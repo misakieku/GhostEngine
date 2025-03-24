@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Ghost.Editor (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "Ghost.Editor (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
