@@ -10,7 +10,12 @@
     <PublishProfile>win-$(Platform).pubxml</PublishProfile>
     <UseWinUI>true</UseWinUI>
     <EnableMsixTooling>true</EnableMsixTooling>
+    <LangVersion>preview</LangVersion>
   </PropertyGroup>
+  <ItemGroup>
+    <None Remove="View\Pages\Landing\CreateProjectPage.xaml" />
+    <None Remove="View\Pages\Landing\OpenProjectPage.xaml" />
+  </ItemGroup>
 
   <ItemGroup>
     <Content Include="Assets\SplashScreen.scale-200.png" />
@@ -41,7 +46,23 @@
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250310001" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Ghost.Database\Ghost.Database.csproj" />
     <ProjectReference Include="..\Ghost.Engine\Ghost.Engine.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="View\Pages\Landing\CreateProjectPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="View\Window\Landing.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="View\Pages\Landing\OpenProjectPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <PropertyGroup Label="Globals" />
 

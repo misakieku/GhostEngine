@@ -1,4 +1,9 @@
-﻿using Microsoft.UI.Xaml;
+﻿using Ghost.Editor.View.Windows;
+using Ghost.Editor.ViewModel.Windows;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.UI.Xaml;
+using System;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -10,6 +15,23 @@ namespace Ghost.Editor
     /// </summary>
     public partial class App : Application
     {
+        private Window? _window;
+
+        public IHost Host
+        {
+            get;
+        }
+
+        public static T GetService<T>() where T : class
+        {
+            if ((Current as App)!.Host.Services.GetService(typeof(T)) is not T service)
+            {
+                throw new ArgumentException($"{typeof(T)} needs to be registered in ConfigureServices within App.xaml.cs.");
+            }
+
+            return service;
+        }
+
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code
         /// executed, and as such is the logical equivalent of main() or WinMain().
@@ -17,6 +39,16 @@ namespace Ghost.Editor
         public App()
         {
             InitializeComponent();
+
+            Host = Microsoft.Extensions.Hosting.Host.
+                CreateDefaultBuilder().
+                UseContentRoot(AppContext.BaseDirectory).
+                ConfigureServices((context, services) =>
+                {
+                    services.AddTransient<LandingWindow>();
+                    services.AddTransient<LandingViewModel>();
+                })
+                .Build();
         }
 
         /// <summary>
@@ -25,10 +57,11 @@ namespace Ghost.Editor
         /// <param name="args">Details about the launch request and process.</param>
         protected override void OnLaunched(LaunchActivatedEventArgs args)
         {
-            m_window = new MainWindow();
-            m_window.Activate();
-        }
+            base.OnLaunched(args);
+            Host.Start();
 
-        private Window? m_window;
+            _window = GetService<LandingWindow>();
+            _window.Activate();
+        }
     }
 }

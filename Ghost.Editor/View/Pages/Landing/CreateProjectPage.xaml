@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="Ghost.Editor.View.Pages.Landing.CreateProjectPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:data="using:Ghost.Database.Models.Projects"
+    xmlns:local="using:Ghost.Editor.View.Pages.Landing"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!--  Template Info  -->
+        <Grid Grid.Column="0">
+            <TextBlock
+                Grid.Column="0"
+                Style="{StaticResource SubtitleTextBlockStyle}"
+                Text="Template" />
+
+            <ListView SelectedItem="">
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="data:TemplateInfo">
+                        <TextBlock VerticalAlignment="Center" Text="{x:Bind Name}" />
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </Grid>
+
+        <!--  Project Info  -->
+        <Grid Grid.Column="1" DataContext="{x:Bind ViewModel.SelectedTemplate, Mode=OneWay}">
+            <Image Stretch="UniformToFill" />
+            <TextBlock Text="{x:Bind ViewModel.SelectedTemplate.Description}" />
+        </Grid>
+
+    </Grid>
+</Page>
