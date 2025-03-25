@@ -21,4 +21,9 @@ public class TemplateInfo
     {
         get; set;
     }
+
+    public Dictionary<string, Version>? Packages
+    {
+        get; set;
+    }
 }

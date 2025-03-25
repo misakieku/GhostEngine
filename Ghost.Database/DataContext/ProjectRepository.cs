@@ -1,16 +1,17 @@
 ﻿using Ghost.Database.Models.Projects;
+using Ghost.Engine.Constants;
 using System.Data.SQLite;
 
 namespace Ghost.Database.DataContext;
 
 public class ProjectRepository
 {
-    private const string _CONNECTION_STRING = "Data Source={0}/projects.db;Version=3;";
+    private const string _CONNECTION_STRING = "Data Source={0}\\projects.db;Version=3;";
     private const string _CREATE_PROJECT_TABLE_STRING = "CREATE TABLE IF NOT EXISTS Projects (ID INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT, Path TEXT, EngineVersion TEXT, LastOpened DATETIME);";
     private const string _SELECT_PROJECT_STRING = "SELECT * FROM Projects";
     private const string _INSERT_PROJECT_STRING = "INSERT INTO Projects (Name, Path, EngineVersion, LastOpened) VALUES (@Name, @Path, @EngineVersion, @LastOpened);";
 
-    private static string GetConnectionString() => string.Format(_CONNECTION_STRING, Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
+    private static string GetConnectionString() => string.Format(_CONNECTION_STRING, EngineDataPath.ApplicationDataFolder);
 
     private static void EnsureTableCreated(SQLiteConnection connection)
     {

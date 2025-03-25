@@ -1,10 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
+    <TargetFramework>net9.0-windows10.0.20348.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <RootNamespace>Ghost.Editor</RootNamespace>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
     <Platforms>x86;x64;ARM64</Platforms>
     <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
     <PublishProfile>win-$(Platform).pubxml</PublishProfile>
@@ -13,6 +12,31 @@
     <LangVersion>preview</LangVersion>
   </PropertyGroup>
   <ItemGroup>
+    <Content Remove="Assets\icon-256.png" />
+    <Content Remove="Assets\Icon.altform-lightunplated_targetsize-16.png" />
+    <Content Remove="Assets\Icon.altform-lightunplated_targetsize-24.png" />
+    <Content Remove="Assets\Icon.altform-lightunplated_targetsize-256.png" />
+    <Content Remove="Assets\Icon.altform-lightunplated_targetsize-32.png" />
+    <Content Remove="Assets\Icon.altform-lightunplated_targetsize-48.png" />
+    <Content Remove="Assets\Icon.altform-unplated_targetsize-16.png" />
+    <Content Remove="Assets\Icon.altform-unplated_targetsize-24.png" />
+    <Content Remove="Assets\Icon.altform-unplated_targetsize-256.png" />
+    <Content Remove="Assets\Icon.altform-unplated_targetsize-32.png" />
+    <Content Remove="Assets\Icon.altform-unplated_targetsize-48.png" />
+    <Content Remove="Assets\Icon.scale-100.png" />
+    <Content Remove="Assets\Icon.scale-125.png" />
+    <Content Remove="Assets\Icon.scale-150.png" />
+    <Content Remove="Assets\Icon.scale-200.png" />
+    <Content Remove="Assets\Icon.scale-400.png" />
+    <Content Remove="Assets\Icon.targetsize-16.png" />
+    <Content Remove="Assets\Icon.targetsize-24.png" />
+    <Content Remove="Assets\Icon.targetsize-256.png" />
+    <Content Remove="Assets\Icon.targetsize-32.png" />
+    <Content Remove="Assets\Icon.targetsize-48.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="Controls\BasicInput\PropertyField.xaml" />
+    <None Remove="Controls\EditorControls.xaml" />
     <None Remove="View\Pages\Landing\CreateProjectPage.xaml" />
     <None Remove="View\Pages\Landing\OpenProjectPage.xaml" />
   </ItemGroup>
@@ -21,8 +45,6 @@
     <Content Include="Assets\SplashScreen.scale-200.png" />
     <Content Include="Assets\LockScreenLogo.scale-200.png" />
     <Content Include="Assets\Square150x150Logo.scale-200.png" />
-    <Content Include="Assets\Square44x44Logo.scale-200.png" />
-    <Content Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png" />
     <Content Include="Assets\StoreLogo.png" />
     <Content Include="Assets\Wide310x150Logo.scale-200.png" />
   </ItemGroup>
@@ -44,6 +66,7 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.3" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250310001" />
+    <PackageReference Include="WinUIEx" Version="2.5.1" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Ghost.Database\Ghost.Database.csproj" />
@@ -64,6 +87,20 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Services\" />
+    <Folder Include="ViewModel\Windows\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Controls\BasicInput\PropertyField.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Controls\EditorControls.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
   <PropertyGroup Label="Globals" />
 
   <!--
@@ -81,5 +118,7 @@
     <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
     <PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
     <Nullable>enable</Nullable>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 </Project>

@@ -1,6 +1,5 @@
-﻿using Ghost.Editor.View.Windows;
-using Ghost.Editor.ViewModel.Windows;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Ghost.Editor.View.Pages;
+using Ghost.Editor.View.Windows;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
 using System;
@@ -16,20 +15,15 @@ namespace Ghost.Editor
     public partial class App : Application
     {
         private Window? _window;
+        public Window? CurrentWindow
+        {
+            get => _window;
+            set => _window = value;
+        }
 
         public IHost Host
         {
             get;
-        }
-
-        public static T GetService<T>() where T : class
-        {
-            if ((Current as App)!.Host.Services.GetService(typeof(T)) is not T service)
-            {
-                throw new ArgumentException($"{typeof(T)} needs to be registered in ConfigureServices within App.xaml.cs.");
-            }
-
-            return service;
         }
 
         /// <summary>
@@ -45,10 +39,24 @@ namespace Ghost.Editor
                 UseContentRoot(AppContext.BaseDirectory).
                 ConfigureServices((context, services) =>
                 {
-                    services.AddTransient<LandingWindow>();
-                    services.AddTransient<LandingViewModel>();
+                    HostHelper.SetupPageService(context, services);
                 })
                 .Build();
+        }
+
+        public static Window? GetWindow()
+        {
+            return (Current as App)?.CurrentWindow;
+        }
+
+        public static T GetService<T>() where T : class
+        {
+            if ((Current as App)!.Host.Services.GetService(typeof(T)) is not T service)
+            {
+                throw new ArgumentException($"{typeof(T)} needs to be registered in ConfigureServices within App.xaml.cs.");
+            }
+
+            return service;
         }
 
         /// <summary>
@@ -58,6 +66,9 @@ namespace Ghost.Editor
         protected override void OnLaunched(LaunchActivatedEventArgs args)
         {
             base.OnLaunched(args);
+
+            EditorActivationHandler.Handle(args);
+
             Host.Start();
 
             _window = GetService<LandingWindow>();

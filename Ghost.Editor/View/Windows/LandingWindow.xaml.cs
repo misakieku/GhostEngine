@@ -1,30 +1,22 @@
-﻿// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
-
-using Ghost.Editor.View.Pages.Landing;
-using Ghost.Editor.ViewModel.Windows;
-using Microsoft.UI.Xaml;
+﻿using Ghost.Editor.View.Pages.Landing;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Animation;
+using WinUIEx;
 
 namespace Ghost.Editor.View.Windows;
 
-internal sealed partial class LandingWindow : Window
+internal sealed partial class LandingWindow : WindowEx
 {
-    public LandingViewModel ViewModel
-    {
-        get;
-    }
-
     private int _previousSelectedIndex;
 
-    public LandingWindow(LandingViewModel viewModel)
+    public LandingWindow()
     {
-        ViewModel = viewModel;
-
         InitializeComponent();
 
-        AppWindow.Resize(new(1200, 900));
+        this.SetWindowSize(1000, 750);
+        this.CenterOnScreen();
+
+        ExtendsContentIntoTitleBar = true;
     }
 
     private void SelectorBar_SelectionChanged(SelectorBar sender, SelectorBarSelectionChangedEventArgs e)
