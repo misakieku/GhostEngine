@@ -1,5 +1,10 @@
 ﻿namespace Ghost.Engine.Models;
 
-public class Component
+public abstract class Component
 {
+    public required GameEntity Owner
+    {
+        get;
+        set;
+    }
 }

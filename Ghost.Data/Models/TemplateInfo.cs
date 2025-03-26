@@ -1,10 +1,29 @@
-﻿using Ghost.Database.Models.Projects;
-using System;
-using System.IO;
+﻿namespace Ghost.Data.Models;
 
-namespace Ghost.Editor.Models.Warpers;
+public class TemplateInfo
+{
+    public required string Name
+    {
+        get; set;
+    }
 
-internal class TemplateInfoWarper(string templatePath, TemplateInfo info)
+    public string? Description
+    {
+        get; set;
+    }
+
+    public required Version TemplateVersion
+    {
+        get; set;
+    }
+
+    public required Version EngineVersion
+    {
+        get; set;
+    }
+}
+
+public class TemplateData(string templatePath, TemplateInfo info)
 {
     private const string _ICON_NAME = "icon.png";
     private const string _PREVIEW_NAME = "preview.png";

@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Ghost.Database.Models.Projects;
+namespace Ghost.Data.Models;
 
 public class ProjectInfo
 {

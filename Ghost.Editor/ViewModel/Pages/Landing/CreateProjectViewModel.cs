@@ -1,25 +1,23 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Ghost.Database.Models.Projects;
-using Ghost.Editor.Constants;
+using Ghost.Data.Models;
+using Ghost.Data.Services;
 using Ghost.Editor.Contracts;
 using Ghost.Editor.Helpers;
-using Ghost.Editor.Models.Warpers;
-using Microsoft.UI.Dispatching;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Text.Json;
 using System.Threading.Tasks;
+using Windows.ApplicationModel;
 
 namespace Ghost.Editor.ViewModel.Pages.Landing;
 
-internal partial class CreateProjectViewModel : ObservableRecipient, INavigationAware
+internal partial class CreateProjectViewModel(ProjectService projectService) : ObservableRecipient, INavigationAware
 {
-    public ObservableCollection<TemplateInfoWarper> templates = new();
+    public ObservableCollection<TemplateData> templates = new();
 
     [ObservableProperty]
-    public partial TemplateInfoWarper? SelectedTemplate
+    public partial TemplateData? SelectedTemplate
     {
         get;
         set;
@@ -39,23 +37,14 @@ internal partial class CreateProjectViewModel : ObservableRecipient, INavigation
         set;
     }
 
-    public void OnNavigatedTo(object? parameter)
+    public async void OnNavigatedTo(object? parameter)
     {
-        DispatcherQueue.GetForCurrentThread().TryEnqueue(DispatcherQueuePriority.High, () =>
+        await foreach (var (path, info) in projectService.GetProjectTemplatesAsync())
         {
-            foreach (var templatePath in Directory.GetFiles(EditorDataPath.ProjectTemplatesFolder, "template.json", SearchOption.AllDirectories))
-            {
-                var templateInfo = JsonSerializer.Deserialize<TemplateInfo>(File.ReadAllText(templatePath));
-                if (templateInfo == null)
-                {
-                    continue;
-                }
+            templates.Add(new(path, info));
+        }
 
-                templates.Add(new(templatePath, templateInfo));
-            }
-
-            SelectedTemplate = templates.FirstOrDefault();
-        });
+        SelectedTemplate = templates.FirstOrDefault();
     }
 
     public void OnNavigatedFrom()
@@ -66,5 +55,19 @@ internal partial class CreateProjectViewModel : ObservableRecipient, INavigation
     private async Task SelectionProjectLocation()
     {
         ProjectLocation = (await SystemUtilities.OpenFolderPickerAsync())?.Path ?? string.Empty;
+    }
+
+    [RelayCommand]
+    private async Task CreateProject()
+    {
+        if (string.IsNullOrWhiteSpace(ProjectName) || !Directory.Exists(ProjectLocation) || SelectedTemplate == null)
+        {
+            return;
+        }
+
+        var projectPath = await projectService.CreateProjectAsync(ProjectName, ProjectLocation, SelectedTemplate.directory);
+
+        var packageVersion = Package.Current.Id.Version;
+        await projectService.AddProjectAsync(ProjectName, projectPath, new System.Version(packageVersion.Major, packageVersion.Minor, packageVersion.Build));
     }
 }

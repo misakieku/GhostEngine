@@ -1,7 +1,8 @@
-﻿using Ghost.Database.DataContext;
-using Ghost.Database.Models.Projects;
+﻿using Ghost.Data.Models;
+using Ghost.Data.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Navigation;
 using System.Collections.ObjectModel;
 
 // To learn more about WinUI, the WinUI project structure,
@@ -11,16 +12,23 @@ namespace Ghost.Editor.View.Pages.Landing;
 
 internal sealed partial class OpenProjectPage : Page
 {
+    private readonly ProjectService _projectService;
+
     public readonly ObservableCollection<ProjectInfo> projects = new();
 
     public OpenProjectPage()
     {
-        foreach (var project in ProjectRepository.LoadProjects())
+        _projectService = App.GetService<ProjectService>();
+
+        InitializeComponent();
+    }
+
+    protected override async void OnNavigatedTo(NavigationEventArgs e)
+    {
+        await foreach (var project in _projectService.LoadProjectAsync())
         {
             projects.Add(project);
         }
-
-        InitializeComponent();
 
         if (projects.Count == 0)
         {

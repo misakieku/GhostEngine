@@ -1,5 +1,7 @@
-﻿using Ghost.Editor.View.Pages;
+﻿using Ghost.Data.Services;
+using Ghost.Editor.View.Pages;
 using Ghost.Editor.View.Windows;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
 using System;
@@ -39,6 +41,8 @@ namespace Ghost.Editor
                 UseContentRoot(AppContext.BaseDirectory).
                 ConfigureServices((context, services) =>
                 {
+                    services.AddTransient<ProjectService>();
+
                     HostHelper.SetupPageService(context, services);
                 })
                 .Build();
@@ -67,7 +71,7 @@ namespace Ghost.Editor
         {
             base.OnLaunched(args);
 
-            EditorActivationHandler.Handle(args);
+            ActivationHandler.Handle(args);
 
             Host.Start();
 

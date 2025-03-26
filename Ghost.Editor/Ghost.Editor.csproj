@@ -23,22 +23,28 @@
     <Content Remove="Assets\Icon.altform-unplated_targetsize-256.png" />
     <Content Remove="Assets\Icon.altform-unplated_targetsize-32.png" />
     <Content Remove="Assets\Icon.altform-unplated_targetsize-48.png" />
-    <Content Remove="Assets\Icon.scale-100.png" />
-    <Content Remove="Assets\Icon.scale-125.png" />
-    <Content Remove="Assets\Icon.scale-150.png" />
-    <Content Remove="Assets\Icon.scale-200.png" />
-    <Content Remove="Assets\Icon.scale-400.png" />
-    <Content Remove="Assets\Icon.targetsize-16.png" />
-    <Content Remove="Assets\Icon.targetsize-24.png" />
-    <Content Remove="Assets\Icon.targetsize-256.png" />
-    <Content Remove="Assets\Icon.targetsize-32.png" />
-    <Content Remove="Assets\Icon.targetsize-48.png" />
   </ItemGroup>
   <ItemGroup>
+    <None Remove="Assets\Icon.scale-100.png" />
+    <None Remove="Assets\Icon.scale-125.png" />
+    <None Remove="Assets\Icon.scale-150.png" />
+    <None Remove="Assets\Icon.scale-200.png" />
+    <None Remove="Assets\Icon.scale-400.png" />
+    <None Remove="Assets\Icon.targetsize-16.png" />
+    <None Remove="Assets\Icon.targetsize-16_altform-unplated.png" />
+    <None Remove="Assets\Icon.targetsize-24.png" />
+    <None Remove="Assets\Icon.targetsize-24_altform-lightunplated.png" />
+    <None Remove="Assets\Icon.targetsize-256.png" />
+    <None Remove="Assets\Icon.targetsize-256_altform-unplated.png" />
+    <None Remove="Assets\Icon.targetsize-32.png" />
+    <None Remove="Assets\Icon.targetsize-32_altform-lightunplated.png" />
+    <None Remove="Assets\Icon.targetsize-48.png" />
+    <None Remove="Assets\Icon.targetsize-48_altform-unplated.png" />
     <None Remove="Controls\BasicInput\PropertyField.xaml" />
     <None Remove="Controls\EditorControls.xaml" />
     <None Remove="View\Pages\Landing\CreateProjectPage.xaml" />
     <None Remove="View\Pages\Landing\OpenProjectPage.xaml" />
+    <None Remove="View\Windows\EngineEditorWindow.xaml" />
   </ItemGroup>
 
   <ItemGroup>
@@ -64,12 +70,13 @@
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.3" />
+    <PackageReference Include="Microsoft.Windows.CsWinRT" Version="2.2.0" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250310001" />
     <PackageReference Include="WinUIEx" Version="2.5.1" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Ghost.Database\Ghost.Database.csproj" />
+    <ProjectReference Include="..\Ghost.Data\Ghost.Data.csproj" />
     <ProjectReference Include="..\Ghost.Engine\Ghost.Engine.csproj" />
   </ItemGroup>
   <ItemGroup>
@@ -88,8 +95,15 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Models\" />
+    <Folder Include="Resources\" />
     <Folder Include="Services\" />
     <Folder Include="ViewModel\Windows\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="View\Windows\EngineEditorWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Page Update="Controls\BasicInput\PropertyField.xaml">
@@ -120,5 +134,7 @@
     <Nullable>enable</Nullable>
     <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <PublishAot>True</PublishAot>
+    <PublishTrimmed>True</PublishTrimmed>
   </PropertyGroup>
 </Project>

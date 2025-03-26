@@ -15,32 +15,47 @@
         <MicaBackdrop />
     </Window.SystemBackdrop>
 
-    <Grid Padding="24,32,24,18">
+    <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="32" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <SelectorBar
-            Grid.Row="0"
-            HorizontalAlignment="Right"
-            SelectionChanged="SelectorBar_SelectionChanged">
-            <SelectorBarItem IsSelected="True" Text="Open">
-                <SelectorBarItem.Icon>
-                    <FontIcon Glyph="&#xE838;" />
-                </SelectorBarItem.Icon>
-            </SelectorBarItem>
-            <SelectorBarItem Text="Create">
-                <SelectorBarItem.Icon>
-                    <FontIcon Glyph="&#xE8F4;" />
-                </SelectorBarItem.Icon>
-            </SelectorBarItem>
-        </SelectorBar>
+        <Grid Grid.Row="0">
+            <TextBlock
+                Margin="24,0,0,0"
+                VerticalAlignment="Bottom"
+                Style="{StaticResource BodyTextBlockStyle}"
+                Text="Ghost Engine" />
+        </Grid>
 
-        <Frame
-            x:Name="ContentFrame"
-            Grid.Row="1"
-            Padding="8"
-            IsNavigationStackEnabled="False" />
+        <Grid Grid.Row="1" Padding="24,0,24,18">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <SelectorBar
+                Grid.Row="0"
+                HorizontalAlignment="Right"
+                SelectionChanged="SelectorBar_SelectionChanged">
+                <SelectorBarItem IsSelected="True" Text="Open">
+                    <SelectorBarItem.Icon>
+                        <FontIcon Glyph="&#xE838;" />
+                    </SelectorBarItem.Icon>
+                </SelectorBarItem>
+                <SelectorBarItem Text="Create">
+                    <SelectorBarItem.Icon>
+                        <FontIcon Glyph="&#xE8F4;" />
+                    </SelectorBarItem.Icon>
+                </SelectorBarItem>
+            </SelectorBar>
+
+            <Frame
+                x:Name="ContentFrame"
+                Grid.Row="1"
+                Padding="8"
+                IsNavigationStackEnabled="False" />
+        </Grid>
     </Grid>
 </winex:WindowEx>
