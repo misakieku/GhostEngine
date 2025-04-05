@@ -3,12 +3,164 @@
     x:Class="Ghost.Editor.View.Windows.EngineEditorWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="using:Ghost.Editor.View.Windows"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:winex="using:WinUIEx"
-    Title="EngineEditorWindow"
     mc:Ignorable="d">
 
-    <Grid />
+    <Window.SystemBackdrop>
+        <MicaBackdrop />
+    </Window.SystemBackdrop>
+
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!--  Titlebar  -->
+        <StackPanel
+            Grid.Row="0"
+            Padding="8"
+            Orientation="Horizontal">
+            <ImageIcon
+                Width="24"
+                Height="24"
+                VerticalAlignment="Center"
+                Source="ms-appx:///Assets/Icon.targetsize-32.png" />
+            <TextBlock
+                Margin="8,0,0,0"
+                VerticalAlignment="Center"
+                Style="{StaticResource CaptionTextBlockStyle}"
+                Text="{x:Bind ViewModel.engineVersionDescriptor}" />
+            <TextBlock
+                Margin="8,0,0,0"
+                VerticalAlignment="Center"
+                Style="{StaticResource CaptionTextBlockStyle}"
+                Text="{x:Bind ViewModel.CurrentProject.Name}" />
+        </StackPanel>
+
+        <!--  Toolbar  -->
+        <Grid Grid.Row="1">
+            <controls:TabbedCommandBar>
+                <controls:TabbedCommandBar.MenuItems>
+                    <controls:TabbedCommandBarItem Header="Home">
+                        <AppBarButton Label="Undo" />
+                        <AppBarButton Label="Redo" />
+                        <AppBarButton Label="Paste" />
+                    </controls:TabbedCommandBarItem>
+                    <controls:TabbedCommandBarItem Header="Home">
+                        <AppBarButton Label="Undo" />
+                        <AppBarButton Label="Redo" />
+                        <AppBarButton Label="Paste" />
+                    </controls:TabbedCommandBarItem>
+                    <controls:TabbedCommandBarItem Header="Home">
+                        <AppBarButton Label="Undo" />
+                        <AppBarButton Label="Redo" />
+                        <AppBarButton Label="Paste" />
+                    </controls:TabbedCommandBarItem>
+                </controls:TabbedCommandBar.MenuItems>
+            </controls:TabbedCommandBar>
+        </Grid>
+
+        <!--  Editor  -->
+        <Grid Grid.Row="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Grid
+                    Grid.Column="0"
+                    Width="350"
+                    Background="Aquamarine" />
+                <Grid Grid.Column="1" />
+                <Grid
+                    Grid.Column="2"
+                    Width="350"
+                    Background="Bisque" />
+            </Grid>
+
+            <Grid Grid.Row="1" Height="350">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Grid Grid.Column="0" Background="AliceBlue" />
+                <Grid
+                    Grid.Column="1"
+                    Width="500"
+                    Background="HotPink" />
+            </Grid>
+        </Grid>
+
+        <!--  Status Bar  -->
+        <Grid
+            Grid.Row="3"
+            Height="25"
+            Background="{ThemeResource SmokeFillColorDefaultBrush}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Orientation="Horizontal">
+                <FontIcon
+                    Margin="8,0,0,0"
+                    FontSize="16"
+                    Foreground="{ThemeResource SystemFillColorSuccessBrush}"
+                    Glyph="&#xE930;"
+                    Visibility="Visible" />
+
+                <Grid Visibility="Collapsed">
+                    <FontIcon
+                        Margin="8,0,0,0"
+                        VerticalAlignment="Center"
+                        FontSize="16"
+                        Foreground="{ThemeResource SystemFillColorAttentionBrush}"
+                        Glyph="&#xE946;" />
+                    <TextBlock
+                        Margin="4,0,0,0"
+                        VerticalAlignment="Center"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Text="0" />
+                    <FontIcon
+                        Margin="8,0,0,0"
+                        VerticalAlignment="Center"
+                        FontSize="16"
+                        Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                        Glyph="&#xE7BA;" />
+                    <TextBlock
+                        Margin="4,0,0,0"
+                        VerticalAlignment="Center"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Text="0" />
+                    <FontIcon
+                        Margin="8,0,0,0"
+                        VerticalAlignment="Center"
+                        FontSize="16"
+                        Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                        Glyph="&#xE783;" />
+                    <TextBlock
+                        Margin="4,0,0,0"
+                        VerticalAlignment="Center"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Text="0" />
+                </Grid>
+            </StackPanel>
+        </Grid>
+    </Grid>
 </winex:WindowEx>

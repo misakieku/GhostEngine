@@ -14,9 +14,4 @@
     <IsAotCompatible>True</IsAotCompatible>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Folder Include="Resources\" />
-    <Folder Include="Services\" />
-  </ItemGroup>
-
 </Project>

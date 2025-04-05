@@ -1,6 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 
-namespace Ghost.Entities.Core;
+namespace Ghost.Entities;
 
 [SkipLocalsInit]
 public struct Entity : IEquatable<Entity>, IComparable<Entity>
@@ -14,7 +14,7 @@ public struct Entity : IEquatable<Entity>, IComparable<Entity>
     private const EntityID _INDEX_MASK = (1u << (int)_INDEX_BITS) - 1;
     private const EntityID _ID_MASK = EntityID.MaxValue;
 
-    private uint _id;
+    private EntityID _id;
 
     public readonly bool IsValid
     {
@@ -31,13 +31,13 @@ public struct Entity : IEquatable<Entity>, IComparable<Entity>
     public readonly GenerationID Generation
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => (GenerationID)((_id >> (int)_INDEX_BITS) & _GENERATION_MASK);
+        get => (GenerationID)(_id >> (int)_INDEX_BITS & _GENERATION_MASK);
     }
 
     public readonly WorldID WorldIndex
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => (WorldID)((_id >> (int)(_INDEX_BITS + _GENERATION_BITS)) & _WORLD_INDEX_MASK);
+        get => (WorldID)(_id >> (int)(_INDEX_BITS + _GENERATION_BITS) & _WORLD_INDEX_MASK);
     }
 
     public void IncrementGeneration()
@@ -48,12 +48,12 @@ public struct Entity : IEquatable<Entity>, IComparable<Entity>
             throw new InvalidOperationException("Generation overflow");
         }
 
-        _id = (_id & ~(_GENERATION_MASK << (int)_INDEX_BITS)) | (generation << (int)_INDEX_BITS);
+        _id = _id & ~(_GENERATION_MASK << (int)_INDEX_BITS) | generation << (int)_INDEX_BITS;
     }
 
     internal Entity(EntityID index, EntityID generation, EntityID worldIndex)
     {
-        _id = (worldIndex << (int)(_INDEX_BITS + _GENERATION_BITS)) | (generation << (int)_INDEX_BITS) | index;
+        _id = worldIndex << (int)(_INDEX_BITS + _GENERATION_BITS) | generation << (int)_INDEX_BITS | index;
     }
 
     public readonly bool Equals(Entity other)
@@ -84,5 +84,10 @@ public struct Entity : IEquatable<Entity>, IComparable<Entity>
     public static bool operator !=(Entity left, Entity right)
     {
         return !(left == right);
+    }
+
+    public override readonly string ToString()
+    {
+        return $"Entity {{ Index: {Index}, Generation: {Generation}, WorldIndex: {WorldIndex} }}";
     }
 }

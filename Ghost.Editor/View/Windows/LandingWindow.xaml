@@ -7,7 +7,6 @@
     xmlns:local="using:Ghost.Editor.View.Windows"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:winex="using:WinUIEx"
-    Title="Landing"
     IsResizable="False"
     mc:Ignorable="d">
 
@@ -15,7 +14,7 @@
         <MicaBackdrop />
     </Window.SystemBackdrop>
 
-    <Grid>
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="32" />
             <RowDefinition Height="*" />
@@ -55,6 +54,8 @@
                 x:Name="ContentFrame"
                 Grid.Row="1"
                 Padding="8"
+                CacheMode="BitmapCache"
+                CacheSize="10"
                 IsNavigationStackEnabled="False" />
         </Grid>
     </Grid>

@@ -7,7 +7,7 @@ public class ProjectInfo
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int ID
     {
-        get; set;
+        get; internal set;
     }
 
     public required string Name

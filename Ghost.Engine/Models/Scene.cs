@@ -2,4 +2,7 @@
 
 public class Scene
 {
+    internal Scene()
+    {
+    }
 }

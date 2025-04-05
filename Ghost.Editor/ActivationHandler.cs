@@ -8,14 +8,14 @@ internal static class ActivationHandler
 {
     private static void FolderInitialization()
     {
-        if (!Directory.Exists(DataPath.ApplicationDataFolder))
+        if (!Directory.Exists(DataPath.APPLICATION_DATA_FOLDER))
         {
-            Directory.CreateDirectory(DataPath.ApplicationDataFolder);
+            Directory.CreateDirectory(DataPath.APPLICATION_DATA_FOLDER);
         }
 
-        if (!Directory.Exists(DataPath.ProjectTemplatesFolder))
+        if (!Directory.Exists(DataPath.PROJECT_TEMPLATES_FOLDER))
         {
-            Directory.CreateDirectory(DataPath.ProjectTemplatesFolder);
+            Directory.CreateDirectory(DataPath.PROJECT_TEMPLATES_FOLDER);
         }
     }
 

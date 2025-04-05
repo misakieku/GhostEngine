@@ -15,7 +15,7 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Grid Grid.Row="0" Margin="16,8">
+        <Grid Grid.Row="0" Margin="16,8,16,16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="200" />
@@ -40,12 +40,13 @@
         <ListView
             x:Name="ProjectListView"
             Grid.Row="1"
-            Padding="16"
+            Padding="8"
             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
             CornerRadius="{StaticResource OverlayCornerRadius}"
             IsItemClickEnabled="True"
             ItemClick="ListView_ItemClick"
             ItemsSource="{x:Bind projects}"
+            SelectionMode="None"
             Visibility="Visible">
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="data:ProjectInfo">

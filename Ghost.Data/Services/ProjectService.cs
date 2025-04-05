@@ -8,19 +8,18 @@ namespace Ghost.Data.Services;
 
 public class ProjectService
 {
-    private const string _TEMPLATE_CONTENT_FILE = "content.zip";
-
     private const string _ASSETS_FOLDER = "Assets";
+    private const string _TEMPLATE_CONTENT_FILE = "content.zip";
 
     public async IAsyncEnumerable<(string path, TemplateInfo info)> GetProjectTemplatesAsync()
     {
-        var templatesFolder = DataPath.ProjectTemplatesFolder;
+        var templatesFolder = DataPath.PROJECT_TEMPLATES_FOLDER;
         if (!Directory.Exists(templatesFolder))
         {
             yield break;
         }
 
-        var templates = Directory.GetFiles(DataPath.ProjectTemplatesFolder, "template.json", SearchOption.AllDirectories);
+        var templates = Directory.GetFiles(DataPath.PROJECT_TEMPLATES_FOLDER, "template.json", SearchOption.AllDirectories);
         foreach (var templatePath in templates)
         {
             var fileStream = File.OpenRead(templatePath);
@@ -52,6 +51,11 @@ public class ProjectService
         });
     }
 
+    public IAsyncEnumerable<ProjectInfo> LoadAllProjectAsync()
+    {
+        return ProjectRepository.LoadProjectsAsync();
+    }
+
     public async Task<string> CreateProjectAsync(string projectName, string projectDirectory, string templatePath)
     {
         var projectPath = Path.Combine(projectDirectory, projectName);
@@ -70,19 +74,27 @@ public class ProjectService
         return ProjectRepository.AddProjectAsync(project);
     }
 
-    public Task AddProjectAsync(string name, string path, Version version)
+    public async Task<ProjectInfo> AddProjectAsync(string name, string path, Version version)
     {
-        return ProjectRepository.AddProjectAsync(new ProjectInfo
+        var project = new ProjectInfo
         {
             Name = name,
             Path = path,
             EngineVersion = version,
             LastOpened = DateTime.Now
-        });
+        };
+        await ProjectRepository.AddProjectAsync(project);
+
+        return project;
     }
 
-    public IAsyncEnumerable<ProjectInfo> LoadProjectAsync()
+    public Task RemoveProjectAsync(ProjectInfo project)
     {
-        return ProjectRepository.LoadProjectsAsync();
+        return ProjectRepository.RemoveProjectAsync(project);
+    }
+
+    public Task UpdateProjectAsync(ProjectInfo project)
+    {
+        return ProjectRepository.UpdateProjectAsync(project);
     }
 }

@@ -1,4 +1,6 @@
-﻿using Ghost.Editor.View.Pages.Landing;
+﻿using Ghost.Data.Resources;
+using Ghost.Editor.View.Pages.Landing;
+using Ghost.Engine.Resources;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Animation;
 using WinUIEx;
@@ -11,6 +13,9 @@ internal sealed partial class LandingWindow : WindowEx
 
     public LandingWindow()
     {
+        AppWindow.SetIcon(AssetsPath.AppIconPath);
+        Title = EngineData.ENGINE_NAME;
+
         InitializeComponent();
 
         this.SetWindowSize(1000, 750);

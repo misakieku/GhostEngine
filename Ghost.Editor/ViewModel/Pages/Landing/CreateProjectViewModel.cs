@@ -4,6 +4,7 @@ using Ghost.Data.Models;
 using Ghost.Data.Services;
 using Ghost.Editor.Contracts;
 using Ghost.Editor.Helpers;
+using Ghost.Editor.View.Windows;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -68,6 +69,11 @@ internal partial class CreateProjectViewModel(ProjectService projectService) : O
         var projectPath = await projectService.CreateProjectAsync(ProjectName, ProjectLocation, SelectedTemplate.directory);
 
         var packageVersion = Package.Current.Id.Version;
-        await projectService.AddProjectAsync(ProjectName, projectPath, new System.Version(packageVersion.Major, packageVersion.Minor, packageVersion.Build));
+        var newProject = await projectService.AddProjectAsync(ProjectName, projectPath, new System.Version(packageVersion.Major, packageVersion.Minor, packageVersion.Build));
+
+        if (EngineEditorWindow.TryLoadProject(newProject))
+        {
+            App.GetService<LandingWindow>().Close();
+        }
     }
 }

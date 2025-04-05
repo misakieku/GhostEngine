@@ -4,9 +4,22 @@ namespace Ghost.Engine;
 
 internal class EngineCore
 {
-    public async Task StartAsync()
+    public static EngineCore? Current
     {
-        ActivationHandler.Handle(new LaunchArgument());
+        get;
+        private set;
+    }
+
+    public static async Task StartAsync(LaunchArgument args)
+    {
+        if (Current != null)
+        {
+            return;
+        }
+
+        Current = new EngineCore();
+
+        ActivationHandler.Handle(args);
         await Task.CompletedTask;
     }
 

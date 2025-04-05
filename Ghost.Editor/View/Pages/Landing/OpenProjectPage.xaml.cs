@@ -1,5 +1,6 @@
 ﻿using Ghost.Data.Models;
 using Ghost.Data.Services;
+using Ghost.Editor.View.Windows;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
@@ -25,7 +26,7 @@ internal sealed partial class OpenProjectPage : Page
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
-        await foreach (var project in _projectService.LoadProjectAsync())
+        await foreach (var project in _projectService.LoadAllProjectAsync())
         {
             projects.Add(project);
         }
@@ -37,13 +38,19 @@ internal sealed partial class OpenProjectPage : Page
         }
     }
 
-    private void ListView_ItemClick(object sender, ItemClickEventArgs e)
+    private async void ListView_ItemClick(object sender, ItemClickEventArgs e)
     {
         if (e.ClickedItem is not ProjectInfo project)
         {
             return;
         }
 
-        //TODO: Load project
+        if (EngineEditorWindow.TryLoadProject(project))
+        {
+            App.GetService<LandingWindow>().Close();
+
+            project.LastOpened = System.DateTime.Now;
+            await _projectService.UpdateProjectAsync(project);
+        }
     }
 }

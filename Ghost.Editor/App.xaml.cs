@@ -1,5 +1,5 @@
 ﻿using Ghost.Data.Services;
-using Ghost.Editor.View.Pages;
+using Ghost.Editor.Helpers;
 using Ghost.Editor.View.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -17,13 +17,8 @@ namespace Ghost.Editor
     public partial class App : Application
     {
         private Window? _window;
-        public Window? CurrentWindow
-        {
-            get => _window;
-            set => _window = value;
-        }
 
-        public IHost Host
+        internal IHost Host
         {
             get;
         }
@@ -32,7 +27,7 @@ namespace Ghost.Editor
         /// Initializes the singleton application object.  This is the first line of authored code
         /// executed, and as such is the logical equivalent of main() or WinMain().
         /// </summary>
-        public App()
+        internal App()
         {
             InitializeComponent();
 
@@ -41,19 +36,27 @@ namespace Ghost.Editor
                 UseContentRoot(AppContext.BaseDirectory).
                 ConfigureServices((context, services) =>
                 {
-                    services.AddTransient<ProjectService>();
+                    services.AddSingleton<ProjectService>();
 
                     HostHelper.SetupPageService(context, services);
                 })
                 .Build();
         }
 
-        public static Window? GetWindow()
+        internal static Window? GetWindow()
         {
-            return (Current as App)?.CurrentWindow;
+            return (Current as App)?._window;
         }
 
-        public static T GetService<T>() where T : class
+        internal static void SetWindow(Window window)
+        {
+            if (Current is App app)
+            {
+                app._window = window;
+            }
+        }
+
+        internal static T GetService<T>() where T : class
         {
             if ((Current as App)!.Host.Services.GetService(typeof(T)) is not T service)
             {
