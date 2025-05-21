@@ -1,0 +1,19 @@
+﻿<#@ template language="C#" #>
+<#@ output extension=".cs" #>
+<#@ import namespace="System.Text" #>
+<#@ include file="Helpers.ttinclude" #>
+
+namespace Ghost.Entities;
+
+<#
+for (var index = 1; index <= Amount; index++)
+{
+    var generics = AppendGenerics(index);
+    var parameters = AppendGenericRefParameters(index);
+    var restrictions = AppendGenericRestrictions(index, "struct, IComponent");
+#>
+public delegate void QueryRefComponent<<#= generics #>>(Entity entity, <#= parameters.ToString() #>)
+    <#= restrictions.ToString() #>;
+<#
+}
+#>

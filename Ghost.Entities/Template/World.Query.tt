@@ -1,0 +1,48 @@
+﻿<#@ template language="C#" #>
+<#@ output extension=".cs" #>
+<#@ import namespace="System.Text" #>
+<#@ include file="Helpers.ttinclude" #>
+
+namespace Ghost.Entities;
+
+public partial struct World
+{
+<#
+    for (var index = 1; index <= Amount; index++)
+    {
+        var generics = AppendGenerics(index);
+        var restrictions = AppendGenericRestrictions(index, "struct, IComponent");
+        var getPools = TryGetComponentPools(index);
+        var hasEntity = HasEntity(index);
+#>
+    public readonly void Query<<#= generics #>>(QueryRefComponent<<#= generics #>> callback)
+        <#= restrictions.ToString() #>
+    {
+        if (!(<#=getPools.ToString()#>))
+        {
+            return;
+        }
+
+        for (var i = 0; i < pool0.Count; i++)
+        {
+			var entity = _entities[i];
+<#
+        if (index > 1)
+        {
+#>
+            if (!(<#=hasEntity.ToString()#>))
+            {
+                continue;
+            }
+
+<#
+        }
+#>
+            callback(entity, <#= GetComponentRef(index).ToString() #>);
+        }
+    }
+
+<#
+    }
+#>
+}

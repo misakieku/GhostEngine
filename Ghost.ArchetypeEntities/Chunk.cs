@@ -5,27 +5,27 @@ using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities;
 
-internal struct Chunks : IDisposable
+internal unsafe struct ChunkCollection : IDisposable
 {
-    private UnsafeArray<Chunk> _chunks;
+    private UnsafeArray<Chunk> _chunkStorage;
     private int _count;
     private int _capacity;
 
     public readonly int Count => _count;
     public readonly int Capacity => _capacity;
 
-    public ref Chunk this[int index] => ref _chunks[index];
+    public readonly ref Chunk this[int index] => ref _chunkStorage[index];
 
-    public Chunks(int capacity)
+    public ChunkCollection(int capacity)
     {
-        _chunks = new(capacity, Allocator.Persistent);
+        _chunkStorage = new(capacity, Allocator.Persistent);
         _count = 0;
         _capacity = capacity;
     }
 
     public void Add(Chunk chunk)
     {
-        _chunks[_count] = chunk;
+        _chunkStorage[_count] = chunk;
         _count++;
     }
 
@@ -36,7 +36,7 @@ internal struct Chunks : IDisposable
             return;
         }
 
-        _chunks.Resize(newCapacity);
+        _chunkStorage.Resize(newCapacity);
     }
 
     public void TrimExcess()
@@ -46,14 +46,14 @@ internal struct Chunks : IDisposable
             return;
         }
 
-        _chunks.Resize(_count);
+        _chunkStorage.Resize(_count);
     }
 
     public void Clear()
     {
         for (var i = 0; i < _count; i++)
         {
-            _chunks[i].Clear();
+            _chunkStorage[i].Clear();
         }
 
         _count = 0;
@@ -63,17 +63,17 @@ internal struct Chunks : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Span<Chunk> AsSpan()
     {
-        return _chunks.AsSpan();
+        return _chunkStorage.AsSpan();
     }
 
     public void Dispose()
     {
         for (var i = 0; i < _count; i++)
         {
-            _chunks[i].Dispose();
+            _chunkStorage[i].Dispose();
         }
 
-        _chunks.Dispose();
+        _chunkStorage.Dispose();
         _count = 0;
         _capacity = 0;
     }
@@ -104,7 +104,7 @@ internal struct Chunk : IDisposable
         _count = 0;
         _capacity = capacity;
 
-        entities = new(capacity, Allocator.Persistent);
+        entities = new((int)capacity, Allocator.Persistent);
         components = new(data.Length, Allocator.Persistent);
 
         _componentLookup = lookup;
@@ -112,7 +112,7 @@ internal struct Chunk : IDisposable
         for (var i = 0; i < data.Length; i++)
         {
             var component = data[i];
-            components[component.id] = new UnsafeArray<byte>(capacity * component.sizeInByte, Allocator.Persistent);
+            components[component.id] = new UnsafeArray<byte>(capacity * (int)component.sizeInByte, Allocator.Persistent);
         }
     }
 

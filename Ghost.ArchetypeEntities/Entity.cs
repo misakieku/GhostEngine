@@ -5,25 +5,24 @@ namespace Ghost.Entities;
 [SkipLocalsInit]
 public struct Entity : IEquatable<Entity>, IComparable<Entity>
 {
-    private const int _WORLD_INDEX_BITS = 4;
-    private const int _GENERATION_BITS = 8;
-    private const int _INDEX_BITS = sizeof(EntityID) * 8 - _WORLD_INDEX_BITS - _GENERATION_BITS;
+    private const EntityID _WORLD_INDEX_BITS = 4u;
+    private const EntityID _GENERATION_BITS = 8u;
+    private const EntityID _INDEX_BITS = sizeof(EntityID) * 8 - _WORLD_INDEX_BITS - _GENERATION_BITS;
 
-    private const int _WORLD_INDEX_MASK = (1 << _WORLD_INDEX_BITS) - 1;
-    private const int _GENERATION_MASK = (1 << _GENERATION_BITS) - 1;
-    private const int _INDEX_MASK = (1 << _INDEX_BITS) - 1;
-
-    public const EntityID INVALID_ID = -1;
+    private const EntityID _WORLD_INDEX_MASK = (1u << (int)_WORLD_INDEX_BITS) - 1;
+    private const EntityID _GENERATION_MASK = (1u << (int)_GENERATION_BITS) - 1;
+    private const EntityID _INDEX_MASK = (1u << (int)_INDEX_BITS) - 1;
+    private const EntityID _ID_MASK = EntityID.MaxValue;
 
     private EntityID _id;
 
     public readonly bool IsValid
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => ID != INVALID_ID;
+        get => _id != _ID_MASK;
     }
 
-    public readonly EntityID ID
+    public readonly EntityID Index
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _id & _INDEX_MASK;
@@ -32,29 +31,29 @@ public struct Entity : IEquatable<Entity>, IComparable<Entity>
     public readonly GenerationID Generation
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => (GenerationID)(_id >> _INDEX_BITS & _GENERATION_MASK);
+        get => (GenerationID)(_id >> (int)_INDEX_BITS & _GENERATION_MASK);
     }
 
     public readonly WorldID WorldIndex
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => (WorldID)(_id >> (_INDEX_BITS + _GENERATION_BITS) & _WORLD_INDEX_MASK);
+        get => (WorldID)(_id >> (int)(_INDEX_BITS + _GENERATION_BITS) & _WORLD_INDEX_MASK);
     }
 
     public void IncrementGeneration()
     {
-        var generation = Generation + 1;
+        var generation = Generation + 1u;
         if (generation >= _GENERATION_MASK)
         {
             throw new InvalidOperationException("Generation overflow");
         }
 
-        _id = _id & ~(_GENERATION_MASK << _INDEX_BITS) | generation << _INDEX_BITS;
+        _id = _id & ~(_GENERATION_MASK << (int)_INDEX_BITS) | generation << (int)_INDEX_BITS;
     }
 
     internal Entity(EntityID index, EntityID generation, EntityID worldIndex)
     {
-        _id = worldIndex << (_INDEX_BITS + _GENERATION_BITS) | generation << _INDEX_BITS | index;
+        _id = worldIndex << (int)(_INDEX_BITS + _GENERATION_BITS) | generation << (int)_INDEX_BITS | index;
     }
 
     public readonly bool Equals(Entity other)
@@ -89,6 +88,6 @@ public struct Entity : IEquatable<Entity>, IComparable<Entity>
 
     public override readonly string ToString()
     {
-        return $"Entity {{ Index: {ID}, Generation: {Generation}, WorldIndex: {WorldIndex} }}";
+        return $"Entity {{ Index: {Index}, Generation: {Generation}, WorldIndex: {WorldIndex} }}";
     }
 }

@@ -1,5 +1,7 @@
 // Code from https://github.com/genaray/Arch/blob/master/src/Arch/Core/Utils/BitSet.cs
 
+using Misaki.HighPerformance.Unsafe.Collections;
+using Misaki.HighPerformance.Unsafe.Helpers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -12,7 +14,7 @@ namespace Ghost.Entities.Helpers;
 /// The <see cref="BitSet"/> class
 /// represents a resizable collection of bits.
 /// </summary>
-public sealed class BitSet
+public struct BitSet : IDisposable
 {
     private const int _BIT_SIZE = (sizeof(uint) * 8) - 1; // 31
     private const int _INDEX_SIZE = 5;  // log_2(BitSize + 1)
@@ -20,7 +22,7 @@ public sealed class BitSet
     private static readonly int _padding = Vector<uint>.Count; // The padding used for vectorisation, the amount of uints required for being vectorized basically
 
     /// <summary>
-    ///     Determines the required length of an <see cref="BitSet"/> to hold the passed id or bit.
+    /// Determines the required length of an <see cref="BitSet"/> to hold the passed id or bit.
     /// </summary>
     /// <param name="id">The id or bit.</param>
     /// <returns>A size of required <see cref="uint"/>s for the bitset.</returns>
@@ -33,7 +35,7 @@ public sealed class BitSet
     /// <summary>
     /// The bits from the bitset.
     /// </summary>
-    private uint[] _bits;
+    private UnsafeArray<uint> _bits;
 
     /// TODO: Update on ClearBit, however clearbit is only used in tests so its fine for now.
     /// <summary>
@@ -52,21 +54,22 @@ public sealed class BitSet
     /// </summary>
     public BitSet()
     {
-        _bits = new uint[_padding];
+        _bits = new UnsafeArray<uint>(_padding, Allocator.Persistent);
     }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BitSet" /> class.
     /// </summary>
-    public BitSet(params uint[] bits)
+    public BitSet(params Span<uint> bits)
     {
-        _bits = bits;
+        _bits = new UnsafeArray<uint>(bits.Length, Allocator.Persistent);
+        _bits.CopyFrom(bits);
     }
 
     /// <summary>
     /// The highest uint index in use inside the <see cref="_bits"/>-array.
     /// </summary>
-    public int HighestIndex
+    public readonly int HighestIndex
     {
         get => _max;
     }
@@ -74,17 +77,17 @@ public sealed class BitSet
     /// <summary>
     /// The highest bit set.
     /// </summary>
-    public int HighestBit
+    public readonly int HighestBit
     {
         get => _highestBit;
     }
 
     /// <summary>
-    /// Returns the length of the bitset, how many ints it consists of.
+    /// Returns the length of the bitset, how many int's it consists of.
     /// </summary>
-    public int Length
+    public readonly int Count
     {
-        get => _bits.Length;
+        get => _bits.Count;
     }
 
     /// <summary>
@@ -92,10 +95,10 @@ public sealed class BitSet
     /// </summary>
     /// <param name="index">The index.</param>
     /// <returns>True if it is, otherwise false</returns>
-    public bool IsSet(int index)
+    public readonly bool IsSet(int index)
     {
         var b = index >> _INDEX_SIZE;
-        if (b >= _bits.Length)
+        if (b >= _bits.Count)
         {
             return false;
         }
@@ -111,9 +114,9 @@ public sealed class BitSet
     public void SetBit(int index)
     {
         var b = index >> _INDEX_SIZE;
-        if (b >= _bits.Length)
+        if (b >= _bits.Count)
         {
-            Array.Resize(ref _bits, (b + _padding) / _padding * _padding);  // Round up to a multiply of Padding
+            _bits.Resize((b + _padding) / _padding * _padding);  // Round up to a multiply of Padding
         }
 
         // Track highest set bit
@@ -126,10 +129,10 @@ public sealed class BitSet
     /// Clears the bit at the given index.
     /// </summary>
     /// <param name="index">The index.</param>
-    public void ClearBit(int index)
+    public readonly void ClearBit(int index)
     {
         var b = index >> _INDEX_SIZE;
-        if (b >= _bits.Length)
+        if (b >= _bits.Count)
         {
             return;
         }
@@ -142,22 +145,22 @@ public sealed class BitSet
     /// </summary>
     public void SetAll()
     {
-        var count = _bits.Length;
+        var count = _bits.Count;
         for (var i = 0; i < count; i++)
         {
             _bits[i] = 0xffffffff;
         }
 
-        _highestBit = (_bits.Length * (_BIT_SIZE + 1)) - 1;
+        _highestBit = (_bits.Count * (_BIT_SIZE + 1)) - 1;
         _max = (_highestBit / (_BIT_SIZE + 1)) + 1;
     }
 
     /// <summary>
     /// Clears all set bits.
     /// </summary>
-    public void ClearAll()
+    public readonly void ClearAll()
     {
-        Array.Clear(_bits, 0, _bits.Length);
+        _bits.Clear();
     }
 
     /// <summary>
@@ -166,19 +169,16 @@ public sealed class BitSet
     /// <param name="other">The other <see cref="BitSet"/>.</param>
     /// <returns>True if they match, false if not.</returns>
     [SkipLocalsInit]
-    public bool All(BitSet other)
+    public readonly bool All(BitSet other)
     {
-        var min = Math.Min(Math.Min(Length, other.Length), _max);
+        var min = Math.Min(Math.Min(Count, other.Count), _max);
         if (!Vector.IsHardwareAccelerated || min < _padding)
         {
-            var bits = _bits.AsSpan();
-            var otherBits = other._bits.AsSpan();
-
             // Bitwise and
             for (var i = 0; i < min; i++)
             {
-                var bit = bits[i];
-                if ((bit & otherBits[i]) != bit)
+                var bit = _bits[i];
+                if ((bit & other._bits[i]) != bit)
                 {
                     return false;
                 }
@@ -187,7 +187,7 @@ public sealed class BitSet
             // Handle extra bits on our side that might just be all zero.
             for (var i = min; i < _max; i++)
             {
-                if (bits[i] != 0)
+                if (_bits[i] != 0)
                 {
                     return false;
                 }
@@ -198,8 +198,8 @@ public sealed class BitSet
             // Vectorized bitwise and
             for (var i = 0; i < min; i += _padding)
             {
-                var vector = new Vector<uint>(_bits, i);
-                var otherVector = new Vector<uint>(other._bits, i);
+                var vector = new Vector<uint>(_bits.AsSpan()[i..]);
+                var otherVector = new Vector<uint>(other._bits.AsSpan()[i..]);
 
                 var resultVector = Vector.BitwiseAnd(vector, otherVector);
                 if (!Vector.EqualsAll(resultVector, vector))
@@ -211,7 +211,7 @@ public sealed class BitSet
             // Handle extra bits on our side that might just be all zero.
             for (var i = min; i < _max; i += _padding)
             {
-                var vector = new Vector<uint>(_bits, i);
+                var vector = new Vector<uint>(_bits.AsSpan()[i..]);
                 if (!Vector.EqualsAll(vector, Vector<uint>.Zero)) // Vectors are not zero bits[0] != 0 basically
                 {
                     return false;
@@ -227,9 +227,9 @@ public sealed class BitSet
     /// </summary>
     /// <param name="other">The other <see cref="BitSet"/>.</param>
     /// <returns>True if they match, false if not.</returns>
-    public bool Any(BitSet other)
+    public readonly bool Any(BitSet other)
     {
-        var min = Math.Min(Math.Min(Length, other.Length), _max);
+        var min = Math.Min(Math.Min(Count, other.Count), _max);
         if (!Vector.IsHardwareAccelerated || min < _padding)
         {
             var bits = _bits.AsSpan();
@@ -259,8 +259,8 @@ public sealed class BitSet
             // Vectorized bitwise and, return true since any is met
             for (var i = 0; i < min; i += _padding)
             {
-                var vector = new Vector<uint>(_bits, i);
-                var otherVector = new Vector<uint>(other._bits, i);
+                var vector = new Vector<uint>(_bits.AsSpan()[i..]);
+                var otherVector = new Vector<uint>(other._bits.AsSpan()[i..]);
 
                 var resultVector = Vector.BitwiseAnd(vector, otherVector);
                 if (!Vector.EqualsAll(resultVector, Vector<uint>.Zero))
@@ -272,7 +272,7 @@ public sealed class BitSet
             // Handle extra bits on our side that might just be all zero.
             for (var i = min; i < _max; i += _padding)
             {
-                var vector = new Vector<uint>(_bits, i);
+                var vector = new Vector<uint>(_bits.AsSpan()[i..]);
                 if (!Vector.EqualsAll(vector, Vector<uint>.Zero)) // Vectors are not zero bits[0] != 0 basically
                 {
                     return false;
@@ -288,9 +288,9 @@ public sealed class BitSet
     /// </summary>
     /// <param name="other">The other <see cref="BitSet"/>.</param>
     /// <returns>True if none match, false if not.</returns>
-    public bool None(BitSet other)
+    public readonly bool None(BitSet other)
     {
-        var min = Math.Min(Math.Min(Length, other.Length), _max);
+        var min = Math.Min(Math.Min(Count, other.Count), _max);
         if (!Vector.IsHardwareAccelerated || min < _padding)
         {
             var bits = _bits.AsSpan();
@@ -311,8 +311,8 @@ public sealed class BitSet
             // Vectorized bitwise and, return true since any is met
             for (var i = 0; i < min; i += _padding)
             {
-                var vector = new Vector<uint>(_bits, i);
-                var otherVector = new Vector<uint>(other._bits, i);
+                var vector = new Vector<uint>(_bits.AsSpan()[i..]);
+                var otherVector = new Vector<uint>(other._bits.AsSpan()[i..]);
 
                 var resultVector = Vector.BitwiseAnd(vector, otherVector);
                 if (!Vector.EqualsAll(resultVector, Vector<uint>.Zero))
@@ -330,9 +330,9 @@ public sealed class BitSet
     /// </summary>
     /// <param name="other">The other <see cref="BitSet"/>.</param>
     /// <returns>True if they match, false if not.</returns>
-    public bool Exclusive(BitSet other)
+    public readonly bool Exclusive(BitSet other)
     {
-        var min = Math.Min(Math.Min(Length, other.Length), _max);
+        var min = Math.Min(Math.Min(Count, other.Count), _max);
 
         if (!Vector.IsHardwareAccelerated || min < _padding)
         {
@@ -363,8 +363,8 @@ public sealed class BitSet
             // Vectorized bitwise xor, return true since any is met
             for (var i = 0; i < min; i += _padding)
             {
-                var vector = new Vector<uint>(_bits, i);
-                var otherVector = new Vector<uint>(other._bits, i);
+                var vector = new Vector<uint>(_bits.AsSpan()[i..]);
+                var otherVector = new Vector<uint>(other._bits.AsSpan()[i..]);
 
                 var resultVector = Vector.Xor(vector, otherVector);
                 if (!Vector.EqualsAll(resultVector, Vector<uint>.Zero))
@@ -376,7 +376,7 @@ public sealed class BitSet
             // Handle extra bits on our side that might just be all zero.
             for (var i = min; i < _max; i += _padding)
             {
-                var vector = new Vector<uint>(_bits, i);
+                var vector = new Vector<uint>(_bits.AsSpan()[i..]);
                 if (!Vector.EqualsAll(vector, Vector<uint>.Zero)) // Vectors are not zero bits[0] != 0 basically
                 {
                     return false;
@@ -391,7 +391,7 @@ public sealed class BitSet
     ///     Creates a <see cref="Span{T}"/> to access the <see cref="_bits"/>.
     /// </summary>
     /// <returns>The hash.</returns>
-    public Span<uint> AsSpan()
+    public readonly Span<uint> AsSpan()
     {
         var max = (_highestBit / (_BIT_SIZE + 1)) + 1;
         return _bits.AsSpan()[0..max];
@@ -403,10 +403,10 @@ public sealed class BitSet
     /// <param name="span">The <see cref="Span{T}"/> to copy into.</param>
     /// <param name="zero">If true, it will zero the unused space from the <see cref="span"/>.</param>
     /// <returns>The <see cref="Span{T}"/>.</returns>
-    public Span<uint> AsSpan(Span<uint> span, bool zero = true)
+    public readonly Span<uint> AsSpan(Span<uint> span, bool zero = true)
     {
-        // Copy everything thats possible from one to another
-        var length = Math.Min(Length, span.Length);
+        // Copy everything that's possible from one to another
+        var length = Math.Min(Count, span.Length);
         for (var index = 0; index < length; index++)
         {
             span[index] = _bits[index];
@@ -425,7 +425,7 @@ public sealed class BitSet
     ///     Calculates the hash, this is unique for the set bits. Two <see cref="BitSet"/> with the same set bits, result in the same hash.
     /// </summary>
     /// <returns>The hash.</returns>
-    public override int GetHashCode()
+    public readonly override int GetHashCode()
     {
         return Component.GetHashCode(AsSpan());
     }
@@ -434,7 +434,7 @@ public sealed class BitSet
     ///     Prints the content of this instance.
     /// </summary>
     /// <returns>The string.</returns>
-    public override string ToString()
+    public readonly override string ToString()
     {
         // Convert uint to binary form for pretty printing
         var binaryBuilder = new StringBuilder();
@@ -444,20 +444,25 @@ public sealed class BitSet
         }
         binaryBuilder.Length--;
 
-        return $"{nameof(_bits)}: {binaryBuilder}, {nameof(Length)}: {Length}";
+        return $"{nameof(_bits)}: {binaryBuilder}, {nameof(Count)}: {Count}";
+    }
+
+    public void Dispose()
+    {
+        _bits.Dispose();
     }
 }
 
 /// <summary>
-///     The <see cref="SpanBitSet"/> struct
-///     represents a non resizable collection of bits.
-///     Used to set, check and clear bits on a allocated <see cref="BitSet"/> or on the stack.
+/// The <see cref="SpanBitSet"/> struct
+/// represents a non resizable collection of bits.
+/// Used to set, check and clear bits on a allocated <see cref="BitSet"/> or on the stack.
 /// </summary>
 public readonly ref struct SpanBitSet
 {
-    private const int BitSize = (sizeof(uint) * 8) - 1; // 31
+    private const int _BIT_SIZE = (sizeof(uint) * 8) - 1; // 31
     // NOTE: Is a byte not 8 bits?
-    private const int ByteSize = 5; // log_2(BitSize + 1)
+    private const int _BYTE_SIZE = 5; // log_2(BitSize + 1)
 
     /// <summary>
     ///     The bits from the bitset.
@@ -477,16 +482,15 @@ public readonly ref struct SpanBitSet
     /// </summary>
     /// <param name="index">The index.</param>
     /// <returns>True if it is, otherwise false</returns>
-
     public bool IsSet(int index)
     {
-        var b = index >> ByteSize;
+        var b = index >> _BYTE_SIZE;
         if (b >= _bits.Length)
         {
             return false;
         }
 
-        return (_bits[b] & (1 << (index & BitSize))) != 0;
+        return (_bits[b] & (1 << (index & _BIT_SIZE))) != 0;
     }
 
     /// <summary>
@@ -494,38 +498,35 @@ public readonly ref struct SpanBitSet
     /// Resizes its internal array if necessary.
     /// </summary>
     /// <param name="index">The index.</param>
-
     public void SetBit(int index)
     {
-        var b = index >> ByteSize;
+        var b = index >> _BYTE_SIZE;
         if (b >= _bits.Length)
         {
             return;
         }
 
-        _bits[b] |= 1u << (index & BitSize);
+        _bits[b] |= 1u << (index & _BIT_SIZE);
     }
 
     /// <summary>
     /// Clears the bit at the given index.
     /// </summary>
     /// <param name="index">The index.</param>
-
     public void ClearBit(int index)
     {
-        var b = index >> ByteSize;
+        var b = index >> _BYTE_SIZE;
         if (b >= _bits.Length)
         {
             return;
         }
 
-        _bits[b] &= ~(1u << (index & BitSize));
+        _bits[b] &= ~(1u << (index & _BIT_SIZE));
     }
 
     /// <summary>
-    ///
+    /// Sets all bits.
     /// </summary>
-
     public void SetAll()
     {
         var count = _bits.Length;
@@ -538,7 +539,6 @@ public readonly ref struct SpanBitSet
     /// <summary>
     /// Clears all set bits.
     /// </summary>
-
     public void ClearAll()
     {
         _bits.Clear();
@@ -548,7 +548,6 @@ public readonly ref struct SpanBitSet
     /// Creates a <see cref="Span{T}"/> to access the <see cref="_bits"/>.
     /// </summary>
     /// <returns>The hash.</returns>
-
     public Span<uint> AsSpan()
     {
         return _bits;
@@ -559,7 +558,6 @@ public readonly ref struct SpanBitSet
     /// </summary>
     /// <param name=""></param>
     /// <returns>The hash.</returns>
-
     public Span<uint> AsSpan(Span<uint> span, bool zero = true)
     {
         // Prevent exception because target array is to small for copy operation
@@ -582,7 +580,6 @@ public readonly ref struct SpanBitSet
     /// Calculates the hash, this is unique for the set bits. Two <see cref="BitSet"/> with the same set bits, result in the same hash.
     /// </summary>
     /// <returns>The hash.</returns>
-
     public override int GetHashCode()
     {
         return Component.GetHashCode(AsSpan());
@@ -592,7 +589,6 @@ public readonly ref struct SpanBitSet
     /// Prints the content of this instance.
     /// </summary>
     /// <returns>The string.</returns>
-
     public override string ToString()
     {
         // Convert uint to binary form for pretty printing

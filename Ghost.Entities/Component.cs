@@ -1,103 +1,112 @@
-﻿using Ghost.Entities.Helpers;
-using Ghost.Entities.Registries;
-using Misaki.HighPerformance.Unsafe.Collections;
-using Misaki.HighPerformance.Unsafe.Helpers;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-
-namespace Ghost.Entities;
+﻿namespace Ghost.Entities;
 
 public interface IComponent
 {
 
 }
 
-[SkipLocalsInit]
-internal readonly record struct ComponentData
+internal class ComponentPool<T> : IDisposable
+    where T : struct, IComponent
 {
-    public readonly int id;
-    public readonly int sizeInByte;
-
-    public ComponentData(int id, int sizeInByte)
+    private struct ComponentData
     {
-        this.id = id;
-        this.sizeInByte = sizeInByte;
+        public T data;
+        public Entity owner;
     }
-}
 
-internal static class Component
-{
-    public static unsafe UnsafeArray<int> ToLookupArray(Span<ComponentData> datas, Allocator allocator)
+    private EntityID _nextId;
+    private EntityID _capacity;
+
+    private ComponentData[] _components;
+    private EntityID[] _lookup;
+
+    public ComponentPool(int initialSize = 16)
     {
-        var max = 0;
-        foreach (var data in datas)
+        _nextId = 0;
+        _capacity = initialSize;
+
+        _components = new ComponentData[initialSize];
+        _lookup = new EntityID[initialSize];
+
+        _lookup.AsSpan().Fill(Entity.INVALID_ID);
+    }
+
+    public EntityID Count => _nextId;
+
+    private EntityID GetComponentIndex(Entity entity)
+    {
+        return _lookup[entity.ID];
+    }
+
+    public void Add(Entity entity, T component)
+    {
+        if (entity.ID >= _lookup.Length)
         {
-            var componentId = data.id;
-            if (componentId >= max)
+            _lookup.AsSpan(_nextId, entity.ID - _lookup.Length + 1).Fill(Entity.INVALID_ID);
+        }
+
+        if (_lookup[entity.ID] != Entity.INVALID_ID)
+        {
+            // Overwrite the old data if generation is larger
+            if (entity.Generation > _components[_lookup[entity.ID]].owner.Generation)
             {
-                max = componentId;
+                var index = _lookup[entity.ID];
+                _components[index].data = component;
+                _components[index].owner = entity;
             }
+
+            return;
         }
 
-        // Create lookup table where the component ID points to the component index.
-        var array = new UnsafeArray<int>(max + 1, allocator);
-        array.AsSpan().Fill(-1);
-
-        for (var index = 0; index < datas.Length; index++)
+        if (_nextId >= _capacity)
         {
-            ref var type = ref datas[index];
-            var componentId = type.id;
-            array[componentId] = index;
+            var newCapacity = _capacity * 2;
+            Array.Resize(ref _components, newCapacity);
+            Array.Resize(ref _lookup, newCapacity);
+            _lookup.AsSpan(_capacity, newCapacity - _capacity).Fill(Entity.INVALID_ID);
+
+            _capacity = newCapacity;
         }
 
-        return array;
+        _components[_nextId] = new ComponentData
+        {
+            data = component,
+            owner = entity
+        };
+        _lookup[entity.ID] = _nextId;
+
+        _nextId++;
     }
 
-    public static int GetHashCode(Span<ComponentData> components)
+    public ref T GetRef(Entity entity)
     {
-        // Search for the highest id to determine how much uints we need for the stack.
-        var highestId = 0;
-        foreach (ref var cmp in components)
-        {
-            if (cmp.id > highestId)
-            {
-                highestId = cmp.id;
-            }
-        }
-
-        // Allocate the stack and set bits to replicate a bitset
-        var length = BitSet.RequiredLength(highestId + 1);
-        Span<uint> stack = stackalloc uint[length];
-        var spanBitSet = new SpanBitSet(stack);
-
-        foreach (ref var type in components)
-        {
-            var x = type.id;
-            spanBitSet.SetBit(x);
-        }
-
-        return GetHashCode(stack);
+        return ref _components[_lookup[entity.ID]].data;
     }
 
-    public static int GetHashCode(Span<uint> span)
+    public bool Has(Entity entity)
     {
-        var hashCode = new HashCode();
-        hashCode.AddBytes(MemoryMarshal.AsBytes(span));
+        if (entity.ID >= _lookup.Length)
+        {
+            return false;
+        }
 
-        return hashCode.ToHashCode();
+        var index = GetComponentIndex(entity);
+        return index != Entity.INVALID_ID && _components[index].owner.Generation == entity.Generation;
     }
-}
 
-internal static class Component<T>
-    where T : unmanaged, IComponent
-{
-    public static readonly ComponentData data;
-
-    public static readonly Signature signature;
-
-    static Component()
+    public void Set(Entity entity, T component)
     {
-        data = ComponentRegistry.GetOrAdd<T>();
-        signature = new Signature(data);
+        if (entity.ID >= _lookup.Length || _lookup[entity.ID] == Entity.INVALID_ID)
+        {
+            return;
+        }
+
+        var index = _lookup[entity.ID];
+        _components[index].data = component;
+        _components[index].owner = entity;
+    }
+
+    public void Dispose()
+    {
     }
 }
