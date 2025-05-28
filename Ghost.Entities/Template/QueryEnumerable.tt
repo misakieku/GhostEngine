@@ -1,0 +1,147 @@
+﻿<#@ template language="C#" #>
+<#@ output extension=".cs" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Linq" #>
+<#@ include file="Helpers.ttinclude" #>
+
+using Ghost.Entities.Query;
+using Ghost.Entities.Utilities;
+using Misaki.HighPerformance.Unsafe.Collections;
+
+namespace Ghost.Entities;
+
+<# for (int arity = 1; arity <= Amount; arity++) {
+var generics = AppendGenerics(arity);
+var restrictions = AppendGenericRestrictions(arity, "struct, IComponentData");
+var poolParams = Enumerable.Range(0, arity)
+                            .Select(i => $"ComponentPool<T{i}> pool{i}")
+                            .Aggregate((a, b) => a + ", " + b);
+var constructorParams = Enumerable.Range(0, arity)
+                                    .Select(i => $"_pool{i}")
+                                    .Aggregate((a, b) => a + ", " + b);
+    
+#>
+public struct QueryEnumerable<<#= generics #>>
+    <#= restrictions #>
+{
+    private readonly World _world;
+
+<# for (int i = 0; i < arity; i++){ #>
+    private readonly ComponentPool<T<#= i #>> _pool<#= i #>;
+<# } #>
+    private readonly int _count;
+
+    private QueryFilter _filters;
+    internal readonly QueryFilter Filters => _filters;
+
+    internal QueryEnumerable(World world, <#= poolParams #>, int count)
+    {
+        _world = world;
+
+<# for (int i = 0; i < arity; i++) { #>
+        _pool<#= i #> = pool<#= i #>;
+<# } #>
+
+        _count = count;
+        
+        _filters = new();
+<# for (int i = 0; i < arity; i++) {#>
+        _filters._all.Add(TypeHandle<T<#= i #>>.Value);
+<# } #>
+    }
+
+    public Enumerator GetEnumerator() => new Enumerator(_world, <#= constructorParams #>, _count, _filters);
+
+    public ref struct Enumerator
+    {
+        private readonly World _world;
+        private readonly ReadOnlySpan<Entity> _entities;
+
+<# for (int i = 0; i < arity; i++){ #>
+        private readonly ComponentPool<T<#= i #>> _pool<#= i #>;
+<# } #>
+
+        private int _index;
+        private readonly int _count;
+
+        private BitSet _filterMask;
+        
+        public QueryItem<<#= generics #>> Current
+        {
+            get;
+            private set;
+        }
+
+        internal Enumerator(World world, <#= poolParams #>, int count, QueryFilter filters)
+        {
+            _world = world;
+            _entities = _world.EntityManager.Entities;
+
+<# for (int i = 0; i < arity; i++){ #>
+            _pool<#= i #> = pool<#= i #>;
+<# } #>
+
+            _count = count;
+            _index = -1;
+            filters.ComputeFilterBitMask(_world, ref _filterMask);
+
+            Current = default;
+        }
+
+        public bool MoveNext()
+        {
+            _index = _filterMask.NextSetBit(_index + 1);
+            if (_index < 0 || _index >= _world.EntityManager.EntityCount)
+            {
+                return false;
+            }
+
+            Current = new QueryItem<<#= generics #>>(_entities[_index], <#= constructorParams #>);
+            return true;
+        }
+    }
+<# for (int i = 1; i <= ExtensionAmount; i++) {
+var compGenerics = AppendGenerics(i, "TComponent");
+var compRestrictions = AppendGenericRestrictions(i, "TComponent", "struct, IComponentData");
+#>
+
+	public readonly QueryEnumerable<<#= generics #>> WithAll<<#= compGenerics #>>()
+		<#= compRestrictions #>
+	{
+<# for (int j = 0; j < i; j++) {#>
+        _filters._all.Add(TypeHandle<TComponent<#= j #>>.Value);
+<# } #>
+        return this;
+	}
+
+    public readonly QueryEnumerable<<#= generics #>> WithAny<<#= compGenerics #>>()
+		<#= compRestrictions #>
+	{
+<# for (int j = 0; j < i; j++) {#>
+        _filters._any.Add(TypeHandle<TComponent<#= j #>>.Value);
+<# } #>
+        return this;
+	}
+
+    public readonly QueryEnumerable<<#= generics #>> WithAbsent<<#= compGenerics #>>()
+		<#= compRestrictions #>
+	{
+<# for (int j = 0; j < i; j++) {#>
+        _filters._absent.Add(TypeHandle<TComponent<#= j #>>.Value);
+<# } #>
+        return this;
+	}
+
+    public readonly QueryEnumerable<<#= generics #>> WithDisabled<<#= compGenerics #>>()
+		<#= compRestrictions #>
+	{
+<# for (int j = 0; j < i; j++) {#>
+        _filters._disabled.Add(TypeHandle<TComponent<#= j #>>.Value);
+<# } #>
+        return this;
+	}
+<# } #>
+}
+
+<# } #>

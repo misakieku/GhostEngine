@@ -10,7 +10,7 @@ for (var index = 1; index <= Amount; index++)
 {
     var generics = AppendGenerics(index);
     var parameters = AppendGenericRefParameters(index);
-    var restrictions = AppendGenericRestrictions(index, "struct, IComponent");
+    var restrictions = AppendGenericRestrictions(index, "struct, IComponentData");
 #>
 public delegate void QueryRefComponent<<#= generics #>>(Entity entity, <#= parameters.ToString() #>)
     <#= restrictions.ToString() #>;

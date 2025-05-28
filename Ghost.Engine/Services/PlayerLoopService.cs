@@ -1,25 +1,12 @@
-﻿
-namespace Ghost.Engine.Services;
+﻿namespace Ghost.Engine.Services;
 
-internal static class GameLoopService
+internal static class PlayerLoopService
 {
-    private readonly static HashSet<GameObject> _gameObjects = new();
-
     private static Timer? _timer;
     private static bool _isRunning = false;
 
     // TODO: Implement the actual time system
     public static float fixedDeltaTime = 0.02f;
-
-    public static void RegisterGameObject(GameObject gameObject)
-    {
-        _gameObjects.Add(gameObject);
-    }
-
-    public static void UnregisterGameObject(GameObject gameObject)
-    {
-        _gameObjects.Remove(gameObject);
-    }
 
     public static void Start()
     {
@@ -28,13 +15,8 @@ internal static class GameLoopService
             return;
         }
 
-        foreach (var gameObject in _gameObjects)
+        foreach (var gameObject in SceneManager.QueryRootGameObjects())
         {
-            if (!gameObject.isActive)
-            {
-                continue;
-            }
-
             gameObject.Start();
         }
 
@@ -48,27 +30,21 @@ internal static class GameLoopService
 
     private static void Update()
     {
-        foreach (var gameObject in _gameObjects)
+        foreach (var gameObject in SceneManager.QueryRootGameObjects())
         {
-            if (!gameObject.isActive)
-            {
-                continue;
-            }
-
             gameObject.Update();
+        }
+
+        foreach (var gameObject in SceneManager.QueryRootGameObjects())
+        {
             gameObject.LateUpdate();
         }
     }
 
     private static void FixedUpdate(object? state)
     {
-        foreach (var gameObject in _gameObjects)
+        foreach (var gameObject in SceneManager.QueryRootGameObjects())
         {
-            if (!gameObject.isActive)
-            {
-                continue;
-            }
-
             gameObject.FixedUpdate();
         }
     }

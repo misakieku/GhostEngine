@@ -2,8 +2,8 @@
 <#@ import namespace="System.Collections.Generic" #>
 <#+
 
-    public int Amount = 25;
-
+    public int Amount = 8;
+    public int ExtensionAmount = 3;
 
     public string Indent(StringBuilder sb, int spaces)
     {
@@ -11,15 +11,20 @@
         return sb.ToString().Replace("\n", "\n" + indent);
     }
 
-    string AppendGenerics(int amount)
+    string AppendGenerics(int amount, string template)
     {
         var sb = new StringBuilder();
         for (var i = 0; i < amount; i++)
         {
             if (i > 0) sb.Append(", ");
-            sb.Append($"T{i}");
+            sb.Append($"{template}{i}");
         }
         return sb.ToString();
+    }
+
+    string AppendGenerics(int amount)
+    {
+        return AppendGenerics(amount, "T");
     }
 
     public StringBuilder AppendGenericRefParameters(int amount)
@@ -46,12 +51,12 @@
         return sb;
     }
 
-    public StringBuilder AppendGenericRestrictions(int amount, string template)
+    public StringBuilder AppendGenericRestrictions(int amount, string Ttemplate, string template)
     {
         var sb = new StringBuilder();
         for (var localIndex = 0; localIndex < amount; localIndex++)
         {
-            sb.Append($"where T{localIndex} : {template}");
+            sb.Append($"where {Ttemplate}{localIndex} : {template}");
             if (localIndex < amount - 1)
             {
                 sb.Append(' ');
@@ -60,12 +65,17 @@
         return sb;
     }
 
+    public StringBuilder AppendGenericRestrictions(int amount, string template)
+    {
+        return AppendGenericRestrictions(amount, "T", template);
+    }
+
     public StringBuilder TryGetComponentPools(int amount)
     {
         var sb = new StringBuilder();
         for (var localIndex = 0; localIndex < amount; localIndex++)
         {
-            sb.Append($"TryGetPool<T{localIndex}>(out var pool{localIndex})");
+            sb.Append($"_componentStorage.TryGetPool<T{localIndex}>(out var pool{localIndex})");
             if (localIndex < amount - 1)
             {
                 sb.Append(" && ");

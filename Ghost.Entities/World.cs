@@ -1,103 +1,103 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using Ghost.Entities.Query;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Entities;
 
-public partial struct World : IDisposable
+// TODO: Archetype system for better performance
+public partial class World
 {
-    private static int _nextWorldIndex = 0;
+    private static List<World> s_worlds = new(2);
+    private static Queue<WorldID> s_freeWorldSlots = new();
 
-    private readonly int _worldIndex;
+    private static int s_maxWorldCount = (int)MathF.Pow(2, Entity.WORLD_INDEX_BITS);
 
-    private List<Entity> _entities;
-    private readonly Stack<EntityID> _freeSlots;
-    private readonly Dictionary<Type, object> _pools;
-
-    public World()
+    public static World Create(int entityCapacity = 16)
     {
-        _worldIndex = _nextWorldIndex++;
-
-        _entities = new List<Entity>();
-        _freeSlots = new Stack<int>();
-        _pools = new();
-    }
-
-    public readonly Entity CreateEntity()
-    {
-        if (_freeSlots.Count > 0)
+        lock (s_worlds)
         {
-            var index = _freeSlots.Pop();
-            return _entities[index];
-        }
-        else
-        {
-            var index = _entities.Count;
-            var entity = new Entity(index, 0, _worldIndex);
-            _entities.Add(entity);
-            return entity;
-        }
-    }
-
-    public readonly void RemoveEntity(Entity e)
-    {
-        if (e.ID >= _entities.Count || _entities[e.ID].Generation != e.Generation)
-        {
-            return;
-        }
-
-        var entity = _entities[e.ID];
-        entity.IncrementGeneration();
-        _entities[e.ID] = entity;
-        _freeSlots.Push(e.ID);
-    }
-
-    public void AddComponent<T>(Entity entity, T component) where T : struct, IComponent
-        => GetOrCreatePool<T>().Add(entity, component);
-
-    public void SetComponent<T>(Entity entity, T component) where T : struct, IComponent
-        => GetOrCreatePool<T>().Set(entity, component);
-
-    public bool HasComponent<T>(Entity entity) where T : struct, IComponent
-        => GetOrCreatePool<T>().Has(entity);
-
-    private readonly bool TryGetPool<T>([MaybeNullWhen(false)] out ComponentPool<T> pool)
-        where T : struct, IComponent
-    {
-        var type = typeof(T);
-        if (_pools.TryGetValue(type, out var obj))
-        {
-            pool = (ComponentPool<T>)obj;
-            return true;
-        }
-
-        pool = null;
-        return false;
-    }
-
-    private readonly ComponentPool<T> GetOrCreatePool<T>()
-        where T : struct, IComponent
-    {
-        var type = typeof(T);
-        if (!_pools.TryGetValue(type, out var obj))
-        {
-            var pool = new ComponentPool<T>();
-            _pools[type] = pool;
-            return pool;
-        }
-
-        return (ComponentPool<T>)obj;
-    }
-
-    public readonly void Dispose()
-    {
-        foreach (var pool in _pools.Values)
-        {
-            if (pool is IDisposable disposablePool)
+            if (s_freeWorldSlots.TryDequeue(out var index))
             {
-                disposablePool.Dispose();
+                s_worlds[index] = new World(index, entityCapacity);
             }
+            else
+            {
+                if (s_worlds.Count >= s_maxWorldCount)
+                {
+                    throw new InvalidOperationException("Maximum number of worlds reached");
+                }
+
+                index = (WorldID)s_worlds.Count;
+                s_worlds.Add(new World(index, entityCapacity));
+            }
+
+            return s_worlds[index];
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static World GetWorld(int index)
+    {
+        return s_worlds[index];
+    }
+}
+
+public partial class World : IDisposable
+{
+    private readonly WorldID _id;
+    private readonly EntityManager _entityManager;
+
+    internal readonly ComponentStorage _componentStorage;
+    internal readonly SystemStorage _systemStorage;
+
+    public WorldID ID => _id;
+    public EntityManager EntityManager => _entityManager;
+
+    private World(WorldID id, int entityCapacity)
+    {
+        _id = id;
+        _entityManager = new EntityManager(this, entityCapacity);
+        _componentStorage = new ComponentStorage();
+        _systemStorage = new SystemStorage();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void AddSystem<T>()
+        where T : SystemBase, new()
+    {
+        var instance = new T
+        {
+            World = this
+        };
+
+        _systemStorage.AddSystem(instance);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Ref<T> GetSingleton<T>()
+        where T : struct, IComponentData
+    {
+        ref var component = ref CollectionsMarshal.GetValueRefOrAddDefault(SingletonContainer<T>.container, _id, out _);
+        return new Ref<T>(ref component);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public IEnumerable<ScriptComponent> QueryScript()
+    {
+        if (_componentStorage.ScriptComponentPool.IsInitialized)
+        {
+            return _componentStorage.ScriptComponentPool.ExecutionList!;
         }
 
-        _pools.Clear();
-        _freeSlots.Clear();
+        return Enumerable.Empty<ScriptComponent>();
+    }
+
+    public void Dispose()
+    {
+        _entityManager.Dispose();
+        _componentStorage.Dispose();
+        _systemStorage.Dispose();
+
+        s_freeWorldSlots.Enqueue(_id);
     }
 }

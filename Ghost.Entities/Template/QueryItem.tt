@@ -1,0 +1,63 @@
+﻿<#@ template language="C#" debug="false" hostspecific="true" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ include file="Helpers.ttinclude" #>
+<#@ output extension=".cs" #>
+
+using Ghost.Entities.Query;
+
+namespace Ghost.Entities;
+
+<# for (int arity = 1; arity <= Amount; arity++)
+{
+var generics = AppendGenerics(arity);
+var restrictions = AppendGenericRestrictions(arity, "struct, IComponentData");
+var constructorParams = Enumerable.Range(0, arity)
+                                    .Select(i => $"ComponentPool<T{i}> pool{i}")
+                                    .Aggregate((a, b) => a + ", " + b);
+var deconstructParams = Enumerable.Range(0, arity)
+                                    .Select(i => {
+                                        var name = $"c{i}";
+                                        return arity == 1
+                                            ? $"out Ref<T0> {name}"
+                                            : $"out Ref<T{i}> {name}";
+                                    })
+                                    .Aggregate((a, b) => a + ", " + b);
+var deconstructAssigns = Enumerable.Range(0, arity)
+                                    .Select(i => {
+                                        var name = $"c{i}";
+                                        return $"{name} = new (ref _pool{i}.GetRef(_entity));";
+                                    })
+                                    .Aggregate((a, b) => a + b);
+#>
+public readonly struct QueryItem<<#= generics #>>
+    <#= restrictions #>
+{
+    private readonly Entity _entity;
+<# for (int i = 0; i < arity; i++){ #>
+    private readonly ComponentPool<T<#= i #>> _pool<#= i #>;
+<# } #>
+
+    internal QueryItem(Entity entity, <#= constructorParams #>)
+    {
+        _entity = entity;
+<# for (int i = 0; i < arity; i++){ #>
+        _pool<#= i #> = pool<#= i #>;
+<# } #>
+    }
+
+    public Entity Entity => _entity;
+
+<# for (int i = 0; i < arity; i++){ #>
+    public ref T<#= i #> Component<#= i #> => ref _pool<#= i #>.GetRef(_entity);
+<# } #>
+
+    // Deconstruct into tuple-like values
+    public void Deconstruct(out Entity entity, <#= deconstructParams #>)
+    {
+        entity = _entity;
+        <#= deconstructAssigns #>
+    }
+}
+
+<# } #>

@@ -8,6 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="Template\QueryItem.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>QueryItem.tt</DependentUpon>
+    </None>
     <None Include="Template\QueryRefComponent.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -27,9 +32,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Template\QueryEnumerable.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>QueryEnumerable.cs</LastGenOutput>
+    </None>
     <None Update="Template\Helpers.tt">
       <Generator>TextTemplatingFilePreprocessor</Generator>
       <LastGenOutput>Helpers.cs</LastGenOutput>
+    </None>
+    <None Update="Template\QueryItem.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>QueryItem.cs</LastGenOutput>
     </None>
     <None Update="Template\QueryRefComponent.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
@@ -51,6 +64,16 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Helpers.tt</DependentUpon>
     </Compile>
+    <Compile Update="Template\QueryEnumerable.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>QueryEnumerable.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Template\QueryItem.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>QueryItem.tt</DependentUpon>
+    </Compile>
     <Compile Update="Template\QueryRefComponent.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -61,6 +84,10 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>World.Query.tt</DependentUpon>
     </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Helpers\" />
   </ItemGroup>
 
 </Project>

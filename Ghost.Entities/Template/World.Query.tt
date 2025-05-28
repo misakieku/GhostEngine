@@ -1,48 +1,34 @@
 ﻿<#@ template language="C#" #>
 <#@ output extension=".cs" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Text" #>
 <#@ include file="Helpers.ttinclude" #>
 
 namespace Ghost.Entities;
 
-public partial struct World
+public partial class World
 {
-<#
-    for (var index = 1; index <= Amount; index++)
+<# for (var index = 1; index <= Amount; index++) {
+    var generics  = AppendGenerics(index);
+    var restrictions = AppendGenericRestrictions(index, "struct, IComponentData");
+    var tryGetPools = TryGetComponentPools(index);
+    var poolParams = Enumerable.Range(0, index)
+                                      .Select(i => $"pool{i}")
+                                      .Aggregate((a,b)=> a + ", " + b);
+    var countSource = "pool0.Count";
+#>
+    public QueryEnumerable<<#= generics #>> Query<<#= generics #>>()
+        <#= restrictions #>
     {
-        var generics = AppendGenerics(index);
-        var restrictions = AppendGenericRestrictions(index, "struct, IComponent");
-        var getPools = TryGetComponentPools(index);
-        var hasEntity = HasEntity(index);
-#>
-    public readonly void Query<<#= generics #>>(QueryRefComponent<<#= generics #>> callback)
-        <#= restrictions.ToString() #>
-    {
-        if (!(<#=getPools.ToString()#>))
-        {
-            return;
-        }
+        if (!(<#= tryGetPools #>))
+            return default;
 
-        for (var i = 0; i < pool0.Count; i++)
-        {
-			var entity = _entities[i];
-<#
-        if (index > 1)
-        {
-#>
-            if (!(<#=hasEntity.ToString()#>))
-            {
-                continue;
-            }
-
-<#
-        }
-#>
-            callback(entity, <#= GetComponentRef(index).ToString() #>);
-        }
+        return new QueryEnumerable<<#= generics #>>(
+            this,
+            <#= poolParams #>,
+            <#= countSource #>);
     }
 
-<#
-    }
-#>
+<# } #>
 }

@@ -1,0 +1,78 @@
+﻿namespace Ghost.Entities;
+
+public abstract class ScriptComponent : IComponentData
+{
+    /// <summary>
+    /// Gets or sets a value indicating whether this script component is enabled.
+    /// </summary>
+    public bool Enable
+    {
+        get;
+        set;
+    } = true;
+
+    /// <summary>
+    /// Gets the entity that owns this script component.
+    /// </summary>
+    public Entity Owner
+    {
+        get;
+        internal set;
+    }
+
+    /// <summary>
+    /// Gets or sets the priority of the script component.
+    /// Change this during runtime does not affect the execution order.
+    /// </summary>
+    public virtual int ExecutionOrder => 0;
+
+    /// <summary>
+    /// Called when the script component is enabled.
+    /// </summary>
+    public virtual void OnEnable()
+    {
+    }
+
+    /// <summary>
+    /// Called when the script component is disabled.
+    /// </summary>
+    public virtual void OnDisable()
+    {
+    }
+
+    /// <summary>
+    /// Called when the script component is started.
+    /// </summary>
+    public virtual void Start()
+    {
+    }
+
+    /// <summary>
+    /// Called every frame.
+    /// </summary>
+    public virtual void Update()
+    {
+    }
+
+    /// <summary>
+    /// Called every frame after all Update methods have been called.
+    /// </summary>
+    public virtual void LateUpdate()
+    {
+    }
+
+    /// <summary>
+    /// Called at a fixed interval.
+    /// This method is called at a fixed time step, independent of the frame rate.
+    /// </summary>
+    public virtual void FixedUpdate()
+    {
+    }
+
+    /// <summary>
+    /// Called when the script component is destroyed.
+    /// </summary>
+    public virtual void OnDestroy()
+    {
+    }
+}
