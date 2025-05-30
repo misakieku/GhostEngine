@@ -1,6 +1,6 @@
-﻿using Ghost.Data.Services;
+﻿using Ghost.Editor.AppStates;
 using Ghost.Editor.Helpers;
-using Ghost.Editor.View.Windows;
+using Ghost.Editor.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
@@ -17,6 +17,18 @@ namespace Ghost.Editor
     public partial class App : Application
     {
         private Window? _window;
+
+        internal static Window? Window
+        {
+            get => (Current as App)?._window;
+            set
+            {
+                if (Current is App app)
+                {
+                    app._window = value;
+                }
+            }
+        }
 
         internal IHost Host
         {
@@ -36,27 +48,29 @@ namespace Ghost.Editor
                 UseContentRoot(AppContext.BaseDirectory).
                 ConfigureServices((context, services) =>
                 {
-                    services.AddSingleton<ProjectService>();
+                    services.AddSingleton(sp =>
+                    {
+                        return new AppStateService(
+                            new LandingState(),
+                            new EditorState());
+                    });
 
-                    HostHelper.SetupPageService(context, services);
+                    HostHelper.AddLandingScope(context, services);
+                    HostHelper.AddEngineScope(context, services);
+
+                    services.AddSingleton<StackedNotificationService>();
                 })
                 .Build();
+
+            UnhandledException += App_UnhandledException;
         }
 
-        internal static Window? GetWindow()
+        internal static IServiceScope CreateScope()
         {
-            return (Current as App)?._window;
+            return (Current as App)!.Host.Services.CreateScope();
         }
 
-        internal static void SetWindow(Window window)
-        {
-            if (Current is App app)
-            {
-                app._window = window;
-            }
-        }
-
-        internal static T GetService<T>() where T : class
+        public static T GetService<T>() where T : class
         {
             if ((Current as App)!.Host.Services.GetService(typeof(T)) is not T service)
             {
@@ -70,7 +84,7 @@ namespace Ghost.Editor
         /// Invoked when the application is launched.
         /// </summary>
         /// <param name="args">Details about the launch request and process.</param>
-        protected override void OnLaunched(LaunchActivatedEventArgs args)
+        protected override async void OnLaunched(LaunchActivatedEventArgs args)
         {
             base.OnLaunched(args);
 
@@ -78,8 +92,13 @@ namespace Ghost.Editor
 
             Host.Start();
 
-            _window = GetService<LandingWindow>();
-            _window.Activate();
+            await GetService<AppStateService>().TransitionToAsync(StateKey.Landing);
+        }
+
+        private void App_UnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
+        {
+            // TODO: Log and handle exceptions as appropriate.
+            // https://docs.microsoft.com/windows/windows-app-sdk/api/winrt/microsoft.ui.xaml.application.unhandledexception.
         }
     }
 }

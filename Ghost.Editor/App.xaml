@@ -9,6 +9,8 @@
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
                 <XamlControlsResources Source="/Controls/EditorControls.xaml" />
+                <ResourceDictionary Source="/Themes/Dark.xaml" />
+                <ResourceDictionary Source="/Themes/Light.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <!--  Other app resources here  -->
         </ResourceDictionary>

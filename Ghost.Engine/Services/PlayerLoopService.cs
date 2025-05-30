@@ -10,43 +10,43 @@ internal static class PlayerLoopService
 
     public static void Start()
     {
-        if (_isRunning)
-        {
-            return;
-        }
+        //if (_isRunning)
+        //{
+        //    return;
+        //}
 
-        foreach (var gameObject in SceneManager.QueryRootGameObjects())
-        {
-            gameObject.Start();
-        }
+        //foreach (var gameObject in SceneManager.QueryRootGameObjects())
+        //{
+        //    gameObject.Start();
+        //}
 
-        _timer ??= new Timer(FixedUpdate, null, 0, (int)(fixedDeltaTime * 1000));
+        //_timer ??= new Timer(FixedUpdate, null, 0, (int)(fixedDeltaTime * 1000));
 
-        while (_isRunning)
-        {
-            Update();
-        }
+        //while (_isRunning)
+        //{
+        //    Update();
+        //}
     }
 
     private static void Update()
     {
-        foreach (var gameObject in SceneManager.QueryRootGameObjects())
-        {
-            gameObject.Update();
-        }
+        //foreach (var gameObject in SceneManager.QueryRootGameObjects())
+        //{
+        //    gameObject.Update();
+        //}
 
-        foreach (var gameObject in SceneManager.QueryRootGameObjects())
-        {
-            gameObject.LateUpdate();
-        }
+        //foreach (var gameObject in SceneManager.QueryRootGameObjects())
+        //{
+        //    gameObject.LateUpdate();
+        //}
     }
 
     private static void FixedUpdate(object? state)
     {
-        foreach (var gameObject in SceneManager.QueryRootGameObjects())
-        {
-            gameObject.FixedUpdate();
-        }
+        //foreach (var gameObject in SceneManager.QueryRootGameObjects())
+        //{
+        //    gameObject.FixedUpdate();
+        //}
     }
 
     public static void Stop()

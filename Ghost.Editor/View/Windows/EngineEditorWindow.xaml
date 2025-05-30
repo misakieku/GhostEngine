@@ -5,16 +5,18 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:ee="using:Ghost.Editor.View.Pages.EngineEditor"
     xmlns:local="using:Ghost.Editor.View.Windows"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:winex="using:WinUIEx"
+    Activated="WindowEx_Activated"
     mc:Ignorable="d">
 
     <Window.SystemBackdrop>
         <MicaBackdrop />
     </Window.SystemBackdrop>
 
-    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -41,7 +43,7 @@
                 Margin="8,0,0,0"
                 VerticalAlignment="Center"
                 Style="{StaticResource CaptionTextBlockStyle}"
-                Text="{x:Bind ViewModel.CurrentProject.Name}" />
+                Text="{x:Bind ViewModel.CurrentProject.Name, Mode=OneWay}" />
         </StackPanel>
 
         <!--  Toolbar  -->
@@ -85,32 +87,41 @@
                     Grid.Column="0"
                     Width="350"
                     Background="Aquamarine" />
-                <Grid Grid.Column="1" />
+                <Grid Grid.Column="1">
+                    <Image Source="C:\Users\Misaki\OneDrive\Pictures\Screenshots\Screenshot 2024-07-20 021657.png" Stretch="UniformToFill" />
+                </Grid>
                 <Grid
                     Grid.Column="2"
                     Width="350"
                     Background="Bisque" />
             </Grid>
 
-            <Grid Grid.Row="1" Height="350">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-
-                <Grid Grid.Column="0" Background="AliceBlue" />
-                <Grid
-                    Grid.Column="1"
-                    Width="500"
-                    Background="HotPink" />
-            </Grid>
+            <TabView
+                Grid.Row="1"
+                Height="350"
+                TabWidthMode="Compact">
+                <TabView.TabItems>
+                    <TabViewItem Header="Project">
+                        <TabViewItem.IconSource>
+                            <FontIconSource Glyph="&#xE8B7;" />
+                        </TabViewItem.IconSource>
+                        <ee:ProjectPage />
+                    </TabViewItem>
+                    <TabViewItem Header="Console">
+                        <TabViewItem.IconSource>
+                            <FontIconSource Glyph="&#xE756;" />
+                        </TabViewItem.IconSource>
+                        <ee:ConsolePage />
+                    </TabViewItem>
+                </TabView.TabItems>
+            </TabView>
         </Grid>
 
         <!--  Status Bar  -->
         <Grid
             Grid.Row="3"
             Height="25"
-            Background="{ThemeResource SmokeFillColorDefaultBrush}">
+            Background="{ThemeResource SolidBackgroundFillColorBaseAltBrush}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />

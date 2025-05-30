@@ -1,5 +1,4 @@
-﻿using Ghost.Data.Models;
-using Ghost.Data.Resources;
+﻿using Ghost.Data.Resources;
 using Ghost.Editor.ViewModel.Windows;
 using Ghost.Engine.Resources;
 using WinUIEx;
@@ -22,7 +21,7 @@ internal sealed partial class EngineEditorWindow : WindowEx
     {
         ViewModel = App.GetService<EngineEditorViewModel>();
 
-        AppWindow.SetIcon(AssetsPath.AppIconPath);
+        AppWindow.SetIcon(AssetsPath.s_appIconPath);
         Title = EngineData.ENGINE_NAME;
         ExtendsContentIntoTitleBar = true;
 
@@ -31,23 +30,8 @@ internal sealed partial class EngineEditorWindow : WindowEx
         this.CenterOnScreen();
     }
 
-    public static bool TryLoadProject(ProjectInfo project)
+    private void WindowEx_Activated(object sender, Microsoft.UI.Xaml.WindowActivatedEventArgs args)
     {
-        try
-        {
-            var window = App.GetService<EngineEditorWindow>();
-            window.ViewModel.CurrentProject = project;
-
-            window.Activate();
-            window.Bindings.Update();
-
-            App.SetWindow(window);
-
-            return true;
-        }
-        catch (System.Exception)
-        {
-            return false;
-        }
+        Bindings.Update();
     }
 }

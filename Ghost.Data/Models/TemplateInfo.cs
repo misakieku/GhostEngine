@@ -23,21 +23,21 @@ public class TemplateInfo
     }
 }
 
-public class TemplateData(string templatePath, TemplateInfo info)
+public struct TemplateData(string templatePath, TemplateInfo info)
 {
     private const string _ICON_NAME = "icon.png";
     private const string _PREVIEW_NAME = "preview.png";
 
     public string directory = Path.GetDirectoryName(templatePath)!;
 
-    public TemplateInfo Info => info;
+    public readonly TemplateInfo Info => info;
 
-    public Uri GetIconURI()
+    public readonly Uri GetIconURI()
     {
         return new Uri(Path.Combine(directory, _ICON_NAME));
     }
 
-    public Uri GetPreviewURI()
+    public readonly Uri GetPreviewURI()
     {
         return new Uri(Path.Combine(directory, _PREVIEW_NAME));
     }

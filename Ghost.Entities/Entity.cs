@@ -112,6 +112,11 @@ public class EntityManager : IDisposable
     public int EntityCount => _entities.Count;
     public ReadOnlySpan<Entity> Entities => CollectionsMarshal.AsSpan(_entities);
 
+    public event Action<Entity, Type>? OnComponentAdded;
+    public event Action<Entity, Type>? OnComponentRemoved;
+    public event Action<Entity>? OnEntityCreated;
+    public event Action<EntityID>? OnEntityRemoved;
+
     internal EntityManager(World world, int initialCapacity)
     {
         _entities = new(initialCapacity);
@@ -125,17 +130,20 @@ public class EntityManager : IDisposable
     /// <returns>The created <see cref="Entity"/>.</returns>
     public Entity CreateEntity()
     {
+        Entity entity;
         if (_freeEntitySlots.TryDequeue(out var id))
         {
-            return _entities[id];
+            entity = _entities[id];
         }
         else
         {
             id = _entities.Count;
-            var entity = new Entity(id, 0, _world.ID);
+            entity = new Entity(id, 0, _world.ID);
             _entities.Add(entity);
-            return entity;
         }
+
+        OnEntityCreated?.Invoke(entity);
+        return entity;
     }
 
     /// <summary>
@@ -149,13 +157,14 @@ public class EntityManager : IDisposable
             return;
         }
 
-        _world._componentStorage.Remove(entity);
+        _world.ComponentStorage.Remove(entity);
 
         var slot = _entities[entity.ID];
         slot.IncrementGeneration();
         _entities[entity.ID] = slot;
         _freeEntitySlots.Enqueue(entity.ID);
 
+        OnEntityRemoved?.Invoke(entity.ID);
         entity = Entity.Invalid;
     }
 
@@ -187,8 +196,9 @@ public class EntityManager : IDisposable
     public void AddComponent<T>(Entity entity, T component)
         where T : struct, IComponentData
     {
-        _world._componentStorage.GetOrCreateComponentPool<T>().Add(entity, component);
-        _world._componentStorage.GetOrCreateMask(TypeHandle<T>.Value).SetBit(entity.ID);
+        _world.ComponentStorage.GetOrCreateComponentPool<T>().Add(entity, component);
+        _world.ComponentStorage.GetOrCreateMask(TypeHandle<T>.Value).SetBit(entity.ID);
+        OnComponentAdded?.Invoke(entity, typeof(T));
     }
 
     /// <summary>
@@ -197,14 +207,23 @@ public class EntityManager : IDisposable
     /// <typeparam name="T">The type of the component to remove.</typeparam>
     /// <param name="entity">The entity for which the component is to be remove.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void RemoveComponent<T>(Entity entity)
+    public bool RemoveComponent<T>(Entity entity)
         where T : struct, IComponentData
     {
-        if (_world._componentStorage.TryGetPool<T>(out var pool) && pool.Has(entity))
+        if (!_world.ComponentStorage.TryGetPool<T>(out var pool) || !pool.Has(entity))
         {
-            pool.Remove(entity);
-            _world._componentStorage.GetOrCreateMask(TypeHandle<T>.Value).ClearBit(entity.ID);
+            return false;
         }
+
+        if (!pool.Remove(entity))
+        {
+            return false;
+        }
+
+        _world.ComponentStorage.GetOrCreateMask(TypeHandle<T>.Value).ClearBit(entity.ID);
+        OnComponentRemoved?.Invoke(entity, typeof(T));
+
+        return true;
     }
 
     /// <summary>
@@ -217,7 +236,7 @@ public class EntityManager : IDisposable
     public void SetComponent<T>(Entity entity, T component)
         where T : struct, IComponentData
     {
-        _world._componentStorage.GetOrCreateComponentPool<T>().Set(entity, component);
+        _world.ComponentStorage.GetOrCreateComponentPool<T>().Set(entity, component);
     }
 
     /// <summary>
@@ -229,7 +248,7 @@ public class EntityManager : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool HasComponent(Entity entity, nint typeHandle)
     {
-        return _world._componentStorage.TryGetMask(typeHandle, out var bitSet) && bitSet.IsSet(entity.ID);
+        return _world.ComponentStorage.TryGetMask(typeHandle, out var bitSet) && bitSet.IsSet(entity.ID);
     }
 
     /// <summary>
@@ -242,7 +261,7 @@ public class EntityManager : IDisposable
     public Ref<T> GetComponent<T>(Entity entity)
         where T : struct, IComponentData
     {
-        if (_world._componentStorage.TryGetPool<T>(out var pool) && pool.Has(entity))
+        if (_world.ComponentStorage.TryGetPool<T>(out var pool) && pool.Has(entity))
         {
             return new Ref<T>(ref pool.GetRef(entity));
         }
@@ -261,7 +280,8 @@ public class EntityManager : IDisposable
     public void AddScript<T>(Entity entity)
         where T : ScriptComponent, new()
     {
-        _world._componentStorage.ScriptComponentPool.Add(entity, new T());
+        _world.ComponentStorage.ScriptComponentPool.Add(entity, new T());
+        OnComponentAdded?.Invoke(entity, typeof(ScriptComponent));
     }
 
     /// <summary>
@@ -280,7 +300,31 @@ public class EntityManager : IDisposable
         }
 
         var instance = (ScriptComponent?)Activator.CreateInstance(type) ?? throw new InvalidOperationException($"Failed to create instance of {type}.");
-        _world._componentStorage.ScriptComponentPool.Add(entity, instance);
+        _world.ComponentStorage.ScriptComponentPool.Add(entity, instance);
+        OnComponentAdded?.Invoke(entity, typeof(ScriptComponent));
+    }
+
+    public bool RemoveScript<T>(Entity entity)
+        where T : ScriptComponent
+    {
+        if (!_world.ComponentStorage.ScriptComponentPool.Remove<T>(entity))
+        {
+            return false;
+        }
+
+        OnComponentRemoved?.Invoke(entity, typeof(ScriptComponent));
+        return true;
+    }
+
+    public bool RemoveScriptAt(Entity entity, int index)
+    {
+        if (!_world.ComponentStorage.ScriptComponentPool.RemoveAt(entity, index))
+        {
+            return false;
+        }
+
+        OnComponentRemoved?.Invoke(entity, typeof(ScriptComponent));
+        return true;
     }
 
     /// <summary>
@@ -292,7 +336,7 @@ public class EntityManager : IDisposable
     public T? GetScript<T>(Entity entity)
         where T : ScriptComponent
     {
-        return (T?)_world._componentStorage.ScriptComponentPool.Get(entity)?
+        return (T?)_world.ComponentStorage.ScriptComponentPool.Get(entity)?
             .FirstOrDefault(script => script is T tScript);
     }
 
@@ -305,7 +349,7 @@ public class EntityManager : IDisposable
     public IEnumerable<T> GetScripts<T>(Entity entity)
         where T : ScriptComponent
     {
-        return (IEnumerable<T>?)_world._componentStorage.ScriptComponentPool.Get(entity)?.Where(script => script is T tScript) ?? Enumerable.Empty<T>();
+        return (IEnumerable<T>?)_world.ComponentStorage.ScriptComponentPool.Get(entity)?.Where(script => script is T tScript) ?? Enumerable.Empty<T>();
     }
 
     public void Dispose()

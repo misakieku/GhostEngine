@@ -33,11 +33,11 @@ public static class EntityHelpers
     /// <typeparam name="T">The type of the component to remove.</typeparam>
     /// <param name="entity">The entity for which the component is to be remove.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void RemoveComponent<T>(this Entity entity)
+    public static bool RemoveComponent<T>(this Entity entity)
         where T : struct, IComponentData
     {
         var world = entity.GetWorld();
-        world.EntityManager.RemoveComponent<T>(entity);
+        return world.EntityManager.RemoveComponent<T>(entity);
     }
 
     /// <summary>

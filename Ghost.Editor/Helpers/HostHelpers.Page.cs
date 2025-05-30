@@ -1,4 +1,5 @@
-﻿using Ghost.Editor.View.Pages.Landing;
+﻿using Ghost.Data.Services;
+using Ghost.Editor.View.Pages.Landing;
 using Ghost.Editor.View.Windows;
 using Ghost.Editor.ViewModel.Pages.Landing;
 using Ghost.Editor.ViewModel.Windows;
@@ -9,7 +10,7 @@ namespace Ghost.Editor.Helpers;
 
 internal static partial class HostHelper
 {
-    public static void SetupPageService(HostBuilderContext context, IServiceCollection services)
+    public static void AddLandingScope(HostBuilderContext context, IServiceCollection services)
     {
         services.AddSingleton<LandingWindow>();
 
@@ -18,6 +19,11 @@ internal static partial class HostHelper
 
         services.AddTransient<OpenProjectPage>();
 
+        services.AddTransient<ProjectService>();
+    }
+
+    public static void AddEngineScope(HostBuilderContext context, IServiceCollection services)
+    {
         services.AddSingleton<EngineEditorWindow>();
         services.AddSingleton<EngineEditorViewModel>();
     }

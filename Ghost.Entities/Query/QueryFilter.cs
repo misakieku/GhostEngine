@@ -37,7 +37,7 @@ internal struct QueryFilter()
         // Compute All mask (intersection)
         foreach (var typeHandle in _all)
         {
-            var mask = world._componentStorage.GetOrCreateMask(typeHandle);
+            var mask = world.ComponentStorage.GetOrCreateMask(typeHandle);
 
             if (!hasAll)
             {
@@ -52,7 +52,7 @@ internal struct QueryFilter()
         // Compute Any mask (union)
         foreach (var typeHandle in _any)
         {
-            var mask = world._componentStorage.GetOrCreateMask(typeHandle);
+            var mask = world.ComponentStorage.GetOrCreateMask(typeHandle);
 
             if (!hasAny)
             {
@@ -66,7 +66,7 @@ internal struct QueryFilter()
         // Compute Absent mask (union for exclusion)
         foreach (var typeHandle in _absent)
         {
-            var mask = world._componentStorage.GetOrCreateMask(typeHandle);
+            var mask = world.ComponentStorage.GetOrCreateMask(typeHandle);
 
             if (!hasAbsent)
             {

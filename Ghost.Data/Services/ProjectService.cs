@@ -1,25 +1,38 @@
-﻿using Ghost.Data.DataContext;
-using Ghost.Data.Models;
+﻿using Ghost.Data.Models;
+using Ghost.Data.Repository;
 using Ghost.Data.Resources;
 using System.IO.Compression;
 using System.Text.Json;
 
 namespace Ghost.Data.Services;
 
-public class ProjectService
+internal partial class ProjectService
 {
     private const string _ASSETS_FOLDER = "Assets";
+    private const string _CONFIG_FOLDER = "ProjectConfig";
     private const string _TEMPLATE_CONTENT_FILE = "content.zip";
 
-    public async IAsyncEnumerable<(string path, TemplateInfo info)> GetProjectTemplatesAsync()
+    public static void EnsureDefaultTemplate()
     {
-        var templatesFolder = DataPath.PROJECT_TEMPLATES_FOLDER;
+        var templates = Directory.GetFiles(DataPath.s_projectTemplateFolder, "template.json", SearchOption.AllDirectories);
+        if (templates.Length > 0)
+        {
+            return; // Default template already exists
+        }
+
+        var defaultTemplatePath = Path.Combine(AppContext.BaseDirectory, "Assets/ProjectTemplates/Empty.zip");
+        ZipFile.ExtractToDirectory(defaultTemplatePath, DataPath.s_projectTemplateFolder, true);
+    }
+
+    public static async IAsyncEnumerable<(string path, TemplateInfo info)> GetProjectTemplatesAsync()
+    {
+        var templatesFolder = DataPath.s_projectTemplateFolder;
         if (!Directory.Exists(templatesFolder))
         {
             yield break;
         }
 
-        var templates = Directory.GetFiles(DataPath.PROJECT_TEMPLATES_FOLDER, "template.json", SearchOption.AllDirectories);
+        var templates = Directory.GetFiles(DataPath.s_projectTemplateFolder, "template.json", SearchOption.AllDirectories);
         foreach (var templatePath in templates)
         {
             var fileStream = File.OpenRead(templatePath);
@@ -33,68 +46,152 @@ public class ProjectService
         }
     }
 
-    private Task SetupAssetsFolder(string projectPath, string templatePath)
+    public static async Task CreateMetadataFileAsync(string path, ProjectMetadata metadata)
     {
-        return Task.Run(() =>
-        {
-            var templateContentPath = Path.Combine(templatePath, _TEMPLATE_CONTENT_FILE);
-            var projectAssetsPath = Path.Combine(projectPath, _ASSETS_FOLDER);
-
-            Directory.CreateDirectory(projectAssetsPath);
-
-            if (!File.Exists(templateContentPath))
-            {
-                return;
-            }
-
-            ZipFile.ExtractToDirectory(templateContentPath, projectAssetsPath);
-        });
+        await using var fileStream = File.Create(path);
+        await JsonSerializer.SerializeAsync(fileStream, metadata, JsonContext.Default.ProjectMetadata);
     }
 
-    public IAsyncEnumerable<ProjectInfo> LoadAllProjectAsync()
+    public static async Task<ProjectMetadata?> LoadMetadataAsync(string ghostprojPath)
     {
-        return ProjectRepository.LoadProjectsAsync();
-    }
-
-    public async Task<string> CreateProjectAsync(string projectName, string projectDirectory, string templatePath)
-    {
-        var projectPath = Path.Combine(projectDirectory, projectName);
-        if (!Directory.Exists(projectPath))
+        if (!File.Exists(ghostprojPath))
         {
-            Directory.CreateDirectory(projectPath);
+            throw new FileNotFoundException("Project metadata file not found.", ghostprojPath);
         }
 
-        await SetupAssetsFolder(projectPath, templatePath);
-
-        return projectPath;
+        await using var fileStream = File.OpenRead(ghostprojPath);
+        return await JsonSerializer.DeserializeAsync<ProjectMetadata>(fileStream, JsonContext.Default.ProjectMetadata);
     }
+
+    public static async Task<Result<ProjectMetadataInfo>> ValidateProjectDirectoryAsync(string? projectDirectory)
+    {
+        if (string.IsNullOrWhiteSpace(projectDirectory) || !Directory.Exists(projectDirectory))
+        {
+            return Result<ProjectMetadataInfo>.Error("Project directory is invalid or does not exist.");
+        }
+
+        var projectAssetsPath = Path.Combine(projectDirectory, _ASSETS_FOLDER);
+        var projectConfigPath = Path.Combine(projectDirectory, _CONFIG_FOLDER);
+        if (!Directory.Exists(projectAssetsPath) || !Directory.Exists(projectConfigPath))
+        {
+            return Result<ProjectMetadataInfo>.Error("Project folder structure is invalid.");
+        }
+
+        var metadataPath = Directory.GetFiles(projectDirectory, $"*.{ProjectMetadata.PROJECT_EXTENSION}", SearchOption.TopDirectoryOnly).FirstOrDefault();
+        if (string.IsNullOrWhiteSpace(metadataPath) || !File.Exists(metadataPath))
+        {
+            return Result<ProjectMetadataInfo>.Error("Project metadata file not found.");
+        }
+
+        var metadata = await LoadMetadataAsync(metadataPath);
+        if (metadata == null)
+        {
+            return Result<ProjectMetadataInfo>.Error("Project metadata file is corrupted or invalid.");
+        }
+
+        return Result<ProjectMetadataInfo>.OK(new(metadataPath, metadata));
+    }
+
+    private static async ValueTask SetupRequestFolderAsync(string projectDirectory, string templateDirectory)
+    {
+        var projectAssetsPath = Path.Combine(projectDirectory, _ASSETS_FOLDER);
+        var projectConfigPath = Path.Combine(projectDirectory, _CONFIG_FOLDER);
+        var templateContentPath = Path.Combine(templateDirectory, _TEMPLATE_CONTENT_FILE);
+
+        Directory.CreateDirectory(projectAssetsPath);
+        if (File.Exists(templateContentPath))
+        {
+            await Task.Run(() =>
+            {
+                ZipFile.ExtractToDirectory(templateContentPath, projectAssetsPath);
+            });
+        }
+
+        Directory.CreateDirectory(projectConfigPath);
+    }
+}
+
+internal partial class ProjectService : IDisposable
+{
+    private readonly ProjectRepository _repository = new(DataPath.s_applicationDataFolder);
 
     public Task AddProjectAsync(ProjectInfo project)
     {
-        return ProjectRepository.AddProjectAsync(project);
+        return _repository.AddProjectAsync(project);
     }
 
-    public async Task<ProjectInfo> AddProjectAsync(string name, string path, Version version)
+    public async Task<ProjectInfo> AddProjectAsync(string name, string path)
     {
         var project = new ProjectInfo
         {
             Name = name,
-            Path = path,
-            EngineVersion = version,
-            LastOpened = DateTime.Now
+            MetadataPath = path,
         };
-        await ProjectRepository.AddProjectAsync(project);
+        await _repository.AddProjectAsync(project);
 
         return project;
     }
 
     public Task RemoveProjectAsync(ProjectInfo project)
     {
-        return ProjectRepository.RemoveProjectAsync(project);
+        return _repository.RemoveProjectAsync(project);
     }
 
     public Task UpdateProjectAsync(ProjectInfo project)
     {
-        return ProjectRepository.UpdateProjectAsync(project);
+        return _repository.UpdateProjectAsync(project);
+    }
+
+    public IAsyncEnumerable<ProjectInfo> LoadAllProjectAsync()
+    {
+        return _repository.LoadProjectsAsync();
+    }
+
+    public async Task<Result<ProjectInfo>> CreateProjectAsync(string projectName, string projectDirectory, Version engineVersion, string templatePath)
+    {
+        try
+        {
+            var projectPath = Path.Combine(projectDirectory, projectName);
+            if (!Directory.Exists(projectPath))
+            {
+                Directory.CreateDirectory(projectPath);
+            }
+            else
+            {
+                // Check if folder is empty
+                if (Directory.EnumerateFiles(projectPath, "*", SearchOption.AllDirectories).Any())
+                {
+                    return new(false, null, "Directory is not empty");
+                }
+            }
+
+            var metadata = new ProjectMetadata(projectName, engineVersion);
+            var metadataPath = Path.Combine(projectPath, $"{projectName}.{ProjectMetadata.PROJECT_EXTENSION}");
+            await CreateMetadataFileAsync(metadataPath, metadata);
+            await SetupRequestFolderAsync(projectPath, templatePath);
+
+            var info = await AddProjectAsync(projectName, metadataPath);
+            return new(true, info);
+        }
+        catch (Exception e)
+        {
+            return Result<ProjectInfo>.Error($"Failed to create project: {e.Message}");
+        }
+    }
+
+    public async Task<Result<ProjectMetadataInfo>> AddProjectFromDirectoryAsync(string projectDirectory)
+    {
+        var result = await ValidateProjectDirectoryAsync(projectDirectory);
+        if (result.success)
+        {
+            await AddProjectAsync(result.data.Metadata.Name, result.data.Path);
+        }
+
+        return result;
+    }
+
+    public void Dispose()
+    {
+        _repository.Dispose();
     }
 }

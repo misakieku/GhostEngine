@@ -2,14 +2,32 @@
 
 public abstract class ScriptComponent : IComponentData
 {
+    private bool _enable = true;
+
     /// <summary>
     /// Gets or sets a value indicating whether this script component is enabled.
     /// </summary>
     public bool Enable
     {
-        get;
-        set;
-    } = true;
+        get => _enable;
+        set
+        {
+            if (_enable == value)
+            {
+                return;
+            }
+
+            _enable = value;
+            if (_enable)
+            {
+                OnEnable();
+            }
+            else
+            {
+                OnDisable();
+            }
+        }
+    }
 
     /// <summary>
     /// Gets the entity that owns this script component.

@@ -44,8 +44,8 @@ public partial class Test
         entity4.AddComponent(new Mesh { index = 44 });
         entity4.AddScript<UserScript>();
 
-        world.AddSystem<TestSystem>();
-        world._systemStorage.UpdateSystems();
+        world.SystemStorage.AddSystem<TestSystem>();
+        world.SystemStorage.UpdateSystems();
 
         //world.SystemStorage.RebuildExecutionList();
         //world.ComponentStorage.RebuildExecutionList();

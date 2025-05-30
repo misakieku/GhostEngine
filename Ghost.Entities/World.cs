@@ -12,6 +12,8 @@ public partial class World
 
     private static int s_maxWorldCount = (int)MathF.Pow(2, Entity.WORLD_INDEX_BITS);
 
+    public static int WorldCount => s_worlds.Count - s_freeWorldSlots.Count;
+
     public static World Create(int entityCapacity = 16)
     {
         lock (s_worlds)
@@ -46,31 +48,21 @@ public partial class World : IDisposable
 {
     private readonly WorldID _id;
     private readonly EntityManager _entityManager;
+    private readonly ComponentStorage _componentStorage;
+    private readonly SystemStorage _systemStorage;
 
-    internal readonly ComponentStorage _componentStorage;
-    internal readonly SystemStorage _systemStorage;
+    internal ComponentStorage ComponentStorage => _componentStorage;
 
     public WorldID ID => _id;
     public EntityManager EntityManager => _entityManager;
+    public SystemStorage SystemStorage => _systemStorage;
 
     private World(WorldID id, int entityCapacity)
     {
         _id = id;
         _entityManager = new EntityManager(this, entityCapacity);
-        _componentStorage = new ComponentStorage();
-        _systemStorage = new SystemStorage();
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AddSystem<T>()
-        where T : SystemBase, new()
-    {
-        var instance = new T
-        {
-            World = this
-        };
-
-        _systemStorage.AddSystem(instance);
+        _componentStorage = new ComponentStorage(this);
+        _systemStorage = new SystemStorage(this);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

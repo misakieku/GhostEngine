@@ -1,6 +1,8 @@
 ﻿using Ghost.Data.Resources;
+using Ghost.Editor.Services;
 using Ghost.Editor.View.Pages.Landing;
 using Ghost.Engine.Resources;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Animation;
 using WinUIEx;
@@ -9,11 +11,13 @@ namespace Ghost.Editor.View.Windows;
 
 internal sealed partial class LandingWindow : WindowEx
 {
+    private IServiceScope? _landingScope;
+
     private int _previousSelectedIndex;
 
     public LandingWindow()
     {
-        AppWindow.SetIcon(AssetsPath.AppIconPath);
+        AppWindow.SetIcon(AssetsPath.s_appIconPath);
         Title = EngineData.ENGINE_NAME;
 
         InitializeComponent();
@@ -22,6 +26,19 @@ internal sealed partial class LandingWindow : WindowEx
         this.CenterOnScreen();
 
         ExtendsContentIntoTitleBar = true;
+    }
+
+    private void WindowEx_Activated(object sender, Microsoft.UI.Xaml.WindowActivatedEventArgs args)
+    {
+        _landingScope?.Dispose();
+        _landingScope = App.CreateScope();
+        App.GetService<StackedNotificationService>().SetReference(InfoBar, NotificationQueue);
+    }
+
+    private void WindowEx_Closed(object sender, Microsoft.UI.Xaml.WindowEventArgs args)
+    {
+        _landingScope?.Dispose();
+        App.GetService<StackedNotificationService>().ClearReference();
     }
 
     private void SelectorBar_SelectionChanged(SelectorBar sender, SelectorBarSelectionChangedEventArgs e)
@@ -37,7 +54,7 @@ internal sealed partial class LandingWindow : WindowEx
         var slideNavigationTransitionEffect = currentSelectedIndex - _previousSelectedIndex > 0 ?
             SlideNavigationTransitionEffect.FromRight : SlideNavigationTransitionEffect.FromLeft;
 
-        ContentFrame.Navigate(pageType, null, new SlideNavigationTransitionInfo() { Effect = slideNavigationTransitionEffect });
+        ContentFrame.Navigate(pageType, _landingScope, new SlideNavigationTransitionInfo() { Effect = slideNavigationTransitionEffect });
 
         _previousSelectedIndex = currentSelectedIndex;
     }

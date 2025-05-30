@@ -5,6 +5,7 @@ namespace Ghost.Data;
 
 [JsonSourceGenerationOptions(WriteIndented = true)]
 [JsonSerializable(typeof(TemplateInfo))]
+[JsonSerializable(typeof(ProjectMetadata))]
 internal partial class JsonContext : JsonSerializerContext
 {
 }

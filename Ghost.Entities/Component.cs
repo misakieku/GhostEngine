@@ -23,11 +23,12 @@ internal interface IComponentPool : IDisposable
         get;
     }
 
-    public void Remove(Entity entity);
+    public bool Remove(Entity entity);
     public bool Has(Entity entity);
 }
 
 internal interface IComponentPool<T> : IComponentPool
+    where T : IComponentData
 {
     public void Add(Entity entity, T Component);
 }
@@ -115,8 +116,10 @@ internal class ComponentPool<T> : IComponentPool<T>
         _nextId++;
     }
 
-    public void Remove(Entity entity)
+    public bool Remove(Entity entity)
     {
+        // We do not remove anything here, the generation of the entity will be used to determine if the component is valid.
+        return true;
     }
 
     public ref T GetRef(Entity entity)
@@ -213,13 +216,62 @@ internal class ScriptComponentPool : IComponentPool<ScriptComponent>
         component.Owner = entity;
     }
 
-    public void Remove(Entity entity)
+    public bool Remove<T>(Entity entity)
+        where T : ScriptComponent
     {
         if (!Has(entity)
             || !_scriptComponents!.TryGetValue(entity, out var scriptList)
             || scriptList == null)
         {
-            return;
+            return false;
+        }
+
+        var scriptToRemove = scriptList.FirstOrDefault(script => script is T);
+        if (scriptToRemove == null)
+        {
+            return false;
+        }
+
+        scriptToRemove.OnDestroy();
+        scriptList.Remove(scriptToRemove);
+        if (scriptList.Count == 0)
+        {
+            _scriptComponents.Remove(entity);
+        }
+
+        return true;
+    }
+
+    public bool RemoveAt(Entity entity, int index)
+    {
+        if (!Has(entity)
+            || !_scriptComponents!.TryGetValue(entity, out var scriptList)
+            || scriptList == null)
+        {
+            return false;
+        }
+
+        if (index < 0 || index > scriptList.Count)
+        {
+            return false;
+        }
+
+        scriptList.RemoveAt(index);
+        if (scriptList.Count == 0)
+        {
+            _scriptComponents.Remove(entity);
+        }
+
+        return true;
+    }
+
+    public bool Remove(Entity entity)
+    {
+        if (!Has(entity)
+            || !_scriptComponents!.TryGetValue(entity, out var scriptList)
+            || scriptList == null)
+        {
+            return false;
         }
 
         foreach (var script in scriptList)
@@ -228,6 +280,7 @@ internal class ScriptComponentPool : IComponentPool<ScriptComponent>
         }
 
         _scriptComponents.Remove(entity);
+        return true;
     }
 
     public bool Has(Entity entity)
@@ -287,7 +340,15 @@ internal class ComponentStorage : IDisposable
     private readonly Dictionary<nint, BitSet> _componentEntityMasks = new();
     private readonly ScriptComponentPool _scriptComponentPool = new();
 
+    private readonly World _world;
+
+    internal ComponentStorage(World world)
+    {
+        _world = world;
+    }
+
     internal Dictionary<nint, IComponentPool> ComponentPools => _componentPools;
+    internal Dictionary<nint, BitSet> ComponentEntityMasks => _componentEntityMasks;
     internal ScriptComponentPool ScriptComponentPool => _scriptComponentPool;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

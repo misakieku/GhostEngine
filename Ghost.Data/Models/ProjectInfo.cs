@@ -2,7 +2,7 @@
 
 namespace Ghost.Data.Models;
 
-public class ProjectInfo
+internal class ProjectInfo
 {
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int ID
@@ -15,17 +15,7 @@ public class ProjectInfo
         get; set;
     }
 
-    public required string Path
-    {
-        get; set;
-    }
-
-    public required Version EngineVersion
-    {
-        get; set;
-    }
-
-    public required DateTime LastOpened
+    public required string MetadataPath
     {
         get; set;
     }

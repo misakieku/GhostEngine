@@ -6,10 +6,10 @@ namespace Ghost.Editor.ViewModel.Windows;
 
 internal partial class EngineEditorViewModel : ObservableRecipient
 {
-    public string engineVersionDescriptor = $"{EngineData.ENGINE_NAME} - {EngineData.ENGINE_VERSION}";
+    public string engineVersionDescriptor = $"{EngineData.ENGINE_NAME} - {EngineData.s_engineVersion}";
 
     [ObservableProperty]
-    public partial ProjectInfo CurrentProject
+    public partial ProjectMetadata CurrentProject
     {
         get;
         set;
