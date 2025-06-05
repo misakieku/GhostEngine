@@ -1,4 +1,4 @@
-﻿using Ghost.Editor.ViewModel.Pages.Landing;
+﻿using Ghost.Editor.ViewModels.Pages.Landing;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 

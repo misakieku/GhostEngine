@@ -1,5 +1,7 @@
 ﻿
 
+using Ghost.Entities.Components;
+
 namespace Ghost.Entities;
 
 public delegate void QueryRefComponent<T0>(Entity entity, ref T0 t0Component)

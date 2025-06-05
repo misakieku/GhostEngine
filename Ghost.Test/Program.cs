@@ -1,5 +1,6 @@
 ﻿using Ghost.Entities;
-using Ghost.Entities.Helpers;
+using Ghost.Entities.Components;
+using Ghost.Entities.Systems;
 using System.Numerics;
 
 var t = new Test();
@@ -15,17 +16,17 @@ public partial class Test
         var entity2 = world.EntityManager.CreateEntity();
         var entity3 = world.EntityManager.CreateEntity();
 
-        entity1.AddComponent(new Transform { position = new Vector3(1, 2, 3) });
-        entity1.AddComponent(new Mesh { index = 42 });
-        entity1.AddScript<UIManager>();
-        entity1.AddScript<EventManager>();
+        world.EntityManager.AddComponent(entity1, new Transform { position = new Vector3(1, 2, 3) });
+        world.EntityManager.AddComponent(entity1, new Mesh { index = 42 });
+        world.EntityManager.AddScript<UIManager>(entity1);
+        world.EntityManager.AddScript<EventManager>(entity1);
 
-        entity2.AddComponent(new Transform { position = new Vector3(4, 5, 6) });
-        entity2.AddComponent(new Mesh { index = 43 });
-        entity2.AddScript<UserScript>();
+        world.EntityManager.AddComponent(entity2, new Transform { position = new Vector3(4, 5, 6) });
+        world.EntityManager.AddComponent(entity2, new Mesh { index = 43 });
+        world.EntityManager.AddScript<UserScript>(entity2);
 
-        entity3.AddComponent(new Transform { position = new Vector3(7, 8, 9) });
-        entity3.AddScript<EventManager>();
+        world.EntityManager.AddComponent(entity3, new Transform { position = new Vector3(7, 8, 9) });
+        world.EntityManager.AddScript<EventManager>(entity3);
 
         foreach (var (_, transform) in world.Query<Transform>())
         {
@@ -40,61 +41,55 @@ public partial class Test
         world.EntityManager.RemoveEntity(ref entity2);
 
         var entity4 = world.EntityManager.CreateEntity();
-        entity4.AddComponent(new Transform { position = new Vector3(10, 11, 12) });
-        entity4.AddComponent(new Mesh { index = 44 });
-        entity4.AddScript<UserScript>();
+        world.EntityManager.AddComponent(entity4, new Transform { position = new Vector3(10, 11, 12) });
+        world.EntityManager.AddComponent(entity4, new Mesh { index = 44 });
+        world.EntityManager.AddScript<UserScript>(entity4);
 
+        world.SystemStorage.AddSystem<TestSystem2>();
         world.SystemStorage.AddSystem<TestSystem>();
+        world.SystemStorage.CreateSystems();
         world.SystemStorage.UpdateSystems();
-
-        //world.SystemStorage.RebuildExecutionList();
-        //world.ComponentStorage.RebuildExecutionList();
-
-        //Console.WriteLine();
-        //Console.WriteLine("Starting scripts...");
-        //foreach (var component in world.QueryScript())
-        //{
-        //    if (!component.Enable)
-        //    {
-        //        continue;
-        //    }
-        //    component.Start();
-        //}
-
-        //Console.WriteLine();
-        //Console.WriteLine("Updating scripts...");
-        //foreach (var component in world.QueryScript())
-        //{
-        //    if (!component.Enable)
-        //    {
-        //        continue;
-        //    }
-        //    component.Update();
-        //}
-
-        //Console.WriteLine();
-        //Console.WriteLine("LateUpdating scripts...");
-        //foreach (var component in world.QueryScript())
-        //{
-        //    if (!component.Enable)
-        //    {
-        //        continue;
-        //    }
-        //    component.LateUpdate();
-        //}
 
         world.Dispose();
     }
 }
 
-public class TestSystem : SystemBase
+public class TestSystem : ISystem
 {
-    public override void OnUpdate()
+    public void OnCreate(in SystemState state)
     {
-        foreach (var (entity, transform) in World.Query<Transform>().WithAny<Mesh>())
+    }
+
+    public void OnUpdate(in SystemState state)
+    {
+        foreach (var (entity, transform) in state.World.Query<Transform>())
         {
             Console.WriteLine($"Entity {entity.ID}: Transform Position = {transform.ValueRO.position}");
         }
+    }
+
+    public void OnDestroy(in SystemState state)
+    {
+    }
+}
+
+[DependsOn(typeof(TestSystem))]
+public class TestSystem2 : ISystem
+{
+    public void OnCreate(in SystemState state)
+    {
+    }
+
+    public void OnUpdate(in SystemState state)
+    {
+        foreach (var (entity, mesh) in state.World.Query<Mesh>())
+        {
+            Console.WriteLine($"Entity {entity.ID}: Mesh Index = {mesh.ValueRO.index}");
+        }
+    }
+
+    public void OnDestroy(in SystemState state)
+    {
     }
 }
 

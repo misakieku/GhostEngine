@@ -1,5 +1,5 @@
-﻿using Ghost.Editor.AppStates;
-using Ghost.Editor.Helpers;
+﻿using Ghost.Editor.Helpers;
+using Ghost.Editor.Infrastructures.AppState;
 using Ghost.Editor.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -20,7 +20,7 @@ namespace Ghost.Editor
 
         internal static Window? Window
         {
-            get => (Current as App)?._window;
+            get => (Current as App)!._window;
             set
             {
                 if (Current is App app)
@@ -48,16 +48,10 @@ namespace Ghost.Editor
                 UseContentRoot(AppContext.BaseDirectory).
                 ConfigureServices((context, services) =>
                 {
-                    services.AddSingleton(sp =>
-                    {
-                        return new AppStateService(
-                            new LandingState(),
-                            new EditorState());
-                    });
-
                     HostHelper.AddLandingScope(context, services);
                     HostHelper.AddEngineScope(context, services);
 
+                    services.AddSingleton<AppStateMachine>();
                     services.AddSingleton<StackedNotificationService>();
                 })
                 .Build();
@@ -92,7 +86,11 @@ namespace Ghost.Editor
 
             Host.Start();
 
-            await GetService<AppStateService>().TransitionToAsync(StateKey.Landing);
+            var stateMachine = GetService<AppStateMachine>();
+            stateMachine.RegisterState(StateKey.Landing, () => new LandingState());
+            stateMachine.RegisterState(StateKey.EngineEditor, () => new EditorState());
+
+            await stateMachine.TransitionToAsync(StateKey.Landing);
         }
 
         private void App_UnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)

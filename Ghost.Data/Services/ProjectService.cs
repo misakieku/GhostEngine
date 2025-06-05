@@ -8,9 +8,10 @@ namespace Ghost.Data.Services;
 
 internal partial class ProjectService
 {
-    private const string _ASSETS_FOLDER = "Assets";
-    private const string _CONFIG_FOLDER = "ProjectConfig";
     private const string _TEMPLATE_CONTENT_FILE = "content.zip";
+
+    public const string ASSETS_FOLDER = "Assets";
+    public const string CONFIG_FOLDER = "ProjectConfig";
 
     public static void EnsureDefaultTemplate()
     {
@@ -70,8 +71,8 @@ internal partial class ProjectService
             return Result<ProjectMetadataInfo>.Error("Project directory is invalid or does not exist.");
         }
 
-        var projectAssetsPath = Path.Combine(projectDirectory, _ASSETS_FOLDER);
-        var projectConfigPath = Path.Combine(projectDirectory, _CONFIG_FOLDER);
+        var projectAssetsPath = Path.Combine(projectDirectory, ASSETS_FOLDER);
+        var projectConfigPath = Path.Combine(projectDirectory, CONFIG_FOLDER);
         if (!Directory.Exists(projectAssetsPath) || !Directory.Exists(projectConfigPath))
         {
             return Result<ProjectMetadataInfo>.Error("Project folder structure is invalid.");
@@ -94,8 +95,8 @@ internal partial class ProjectService
 
     private static async ValueTask SetupRequestFolderAsync(string projectDirectory, string templateDirectory)
     {
-        var projectAssetsPath = Path.Combine(projectDirectory, _ASSETS_FOLDER);
-        var projectConfigPath = Path.Combine(projectDirectory, _CONFIG_FOLDER);
+        var projectAssetsPath = Path.Combine(projectDirectory, ASSETS_FOLDER);
+        var projectConfigPath = Path.Combine(projectDirectory, CONFIG_FOLDER);
         var templateContentPath = Path.Combine(templateDirectory, _TEMPLATE_CONTENT_FILE);
 
         Directory.CreateDirectory(projectAssetsPath);
@@ -111,13 +112,17 @@ internal partial class ProjectService
     }
 }
 
-internal partial class ProjectService : IDisposable
+internal partial class ProjectService
 {
-    private readonly ProjectRepository _repository = new(DataPath.s_applicationDataFolder);
+    public static ProjectMetadataInfo CurrentProject
+    {
+        get;
+        set;
+    }
 
     public Task AddProjectAsync(ProjectInfo project)
     {
-        return _repository.AddProjectAsync(project);
+        return ProjectRepository.AddProjectAsync(project);
     }
 
     public async Task<ProjectInfo> AddProjectAsync(string name, string path)
@@ -127,27 +132,27 @@ internal partial class ProjectService : IDisposable
             Name = name,
             MetadataPath = path,
         };
-        await _repository.AddProjectAsync(project);
+        await ProjectRepository.AddProjectAsync(project);
 
         return project;
     }
 
     public Task RemoveProjectAsync(ProjectInfo project)
     {
-        return _repository.RemoveProjectAsync(project);
+        return ProjectRepository.RemoveProjectAsync(project);
     }
 
     public Task UpdateProjectAsync(ProjectInfo project)
     {
-        return _repository.UpdateProjectAsync(project);
+        return ProjectRepository.UpdateProjectAsync(project);
     }
 
     public IAsyncEnumerable<ProjectInfo> LoadAllProjectAsync()
     {
-        return _repository.LoadProjectsAsync();
+        return ProjectRepository.LoadProjectsAsync();
     }
 
-    public async Task<Result<ProjectInfo>> CreateProjectAsync(string projectName, string projectDirectory, Version engineVersion, string templatePath)
+    public async Task<Result<ProjectMetadataInfo>> CreateProjectAsync(string projectName, string projectDirectory, Version engineVersion, string templatePath)
     {
         try
         {
@@ -161,7 +166,7 @@ internal partial class ProjectService : IDisposable
                 // Check if folder is empty
                 if (Directory.EnumerateFiles(projectPath, "*", SearchOption.AllDirectories).Any())
                 {
-                    return new(false, null, "Directory is not empty");
+                    return new(false, default, "Directory is not empty");
                 }
             }
 
@@ -171,11 +176,11 @@ internal partial class ProjectService : IDisposable
             await SetupRequestFolderAsync(projectPath, templatePath);
 
             var info = await AddProjectAsync(projectName, metadataPath);
-            return new(true, info);
+            return new(true, new(metadataPath, metadata));
         }
         catch (Exception e)
         {
-            return Result<ProjectInfo>.Error($"Failed to create project: {e.Message}");
+            return Result<ProjectMetadataInfo>.Error($"Failed to create project: {e.Message}");
         }
     }
 
@@ -188,10 +193,5 @@ internal partial class ProjectService : IDisposable
         }
 
         return result;
-    }
-
-    public void Dispose()
-    {
-        _repository.Dispose();
     }
 }

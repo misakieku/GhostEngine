@@ -1,30 +1,31 @@
 ﻿using Ghost.Engine.Models;
+using Ghost.Engine.Services;
 
 namespace Ghost.Engine;
 
-internal class EngineCore
+internal class EngineCore : IDisposable, IAsyncDisposable
 {
-    public static EngineCore? Current
+    public async Task StartAsync(LaunchArgument args)
     {
-        get;
-        private set;
-    }
-
-    public static async Task StartAsync(LaunchArgument args)
-    {
-        if (Current != null)
-        {
-            return;
-        }
-
-        Current = new EngineCore();
-
         ActivationHandler.Handle(args);
+
+        Logger.LogInfo("Engine started successfully.");
+
         await Task.CompletedTask;
     }
 
     public async Task ShutDownAsync()
     {
         await Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        ShutDownAsync().GetAwaiter().GetResult();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await ShutDownAsync();
     }
 }

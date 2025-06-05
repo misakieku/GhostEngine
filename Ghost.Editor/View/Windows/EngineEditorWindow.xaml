@@ -43,7 +43,7 @@
                 Margin="8,0,0,0"
                 VerticalAlignment="Center"
                 Style="{StaticResource CaptionTextBlockStyle}"
-                Text="{x:Bind ViewModel.CurrentProject.Name, Mode=OneWay}" />
+                Text="{x:Bind ViewModel.CurrentProject.Metadata.Name, Mode=OneWay}" />
         </StackPanel>
 
         <!--  Toolbar  -->
@@ -83,13 +83,26 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <Grid
+                <TabView
                     Grid.Column="0"
                     Width="350"
-                    Background="Aquamarine" />
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    TabWidthMode="Compact">
+                    <TabView.TabItems>
+                        <TabViewItem Header="Hierarchy">
+                            <TabViewItem.IconSource>
+                                <FontIconSource Glyph="&#xE8A4;" />
+                            </TabViewItem.IconSource>
+                            <ee:HierarchyPage />
+                        </TabViewItem>
+                    </TabView.TabItems>
+                </TabView>
+
                 <Grid Grid.Column="1">
                     <Image Source="C:\Users\Misaki\OneDrive\Pictures\Screenshots\Screenshot 2024-07-20 021657.png" Stretch="UniformToFill" />
                 </Grid>
+
                 <Grid
                     Grid.Column="2"
                     Width="350"
@@ -103,7 +116,7 @@
                 <TabView.TabItems>
                     <TabViewItem Header="Project">
                         <TabViewItem.IconSource>
-                            <FontIconSource Glyph="&#xE8B7;" />
+                            <FontIconSource Glyph="&#xEC50;" />
                         </TabViewItem.IconSource>
                         <ee:ProjectPage />
                     </TabViewItem>

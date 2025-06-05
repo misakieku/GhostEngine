@@ -6,6 +6,7 @@
     xmlns:converters="using:Ghost.Editor.Helpers.Converters"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:data="using:Ghost.Data.Models"
+    xmlns:interactivity="using:Microsoft.Xaml.Interactivity"
     xmlns:local="using:Ghost.Editor.View.Pages.Landing"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     NavigationCacheMode="Enabled"
@@ -73,7 +74,7 @@
                 CornerRadius="{StaticResource OverlayCornerRadius}"
                 IsItemClickEnabled="True"
                 ItemClick="ListView_ItemClick"
-                ItemsSource="{x:Bind projects}"
+                ItemsSource="{x:Bind ViewModel.projects}"
                 SelectionMode="None">
                 <ListView.ItemTemplate>
                     <DataTemplate x:DataType="data:ProjectMetadataInfo">

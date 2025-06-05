@@ -1,5 +1,7 @@
 ﻿
 
+using Ghost.Entities.Components;
+
 namespace Ghost.Entities;
 
 public partial class World

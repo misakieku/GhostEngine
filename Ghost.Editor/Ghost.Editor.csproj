@@ -44,9 +44,8 @@
     <None Remove="Controls\EditorControls.xaml" />
     <None Remove="Controls\Internal\InspectorView.xaml" />
     <None Remove="Controls\Internal\InternalControls.xaml" />
-    <None Remove="Themes\Dark.xaml" />
-    <None Remove="Themes\Light.xaml" />
     <None Remove="View\Pages\EngineEditor\ConsolePage.xaml" />
+    <None Remove="View\Pages\EngineEditor\HierarchyPage.xaml" />
     <None Remove="View\Pages\EngineEditor\ProjectPage.xaml" />
     <None Remove="View\Pages\Landing\CreateProjectPage.xaml" />
     <None Remove="View\Pages\Landing\OpenProjectPage.xaml" />
@@ -105,13 +104,18 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Helpers\Converters\" />
+    <Folder Include="AppStates\" />
     <Folder Include="Resources\" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Misaki.HighPerformance.Unsafe">
       <HintPath>..\..\Class\Misaki.HighPerformance\Misaki.HighPerformance.Unsafe\bin\Release\net9.0\Misaki.HighPerformance.Unsafe.dll</HintPath>
     </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="View\Pages\EngineEditor\HierarchyPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Page Update="View\Pages\EngineEditor\ProjectPage.xaml">
@@ -124,12 +128,7 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <Page Update="Themes\Light.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Page Update="Themes\Dark.xaml">
+    <Page Update="Themes\Override.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>

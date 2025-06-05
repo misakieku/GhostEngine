@@ -1,5 +1,6 @@
 ﻿
 
+using Ghost.Entities.Components;
 using Ghost.Entities.Query;
 
 namespace Ghost.Entities;

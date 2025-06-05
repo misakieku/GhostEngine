@@ -1,5 +1,5 @@
 ﻿using Ghost.Data.Resources;
-using Ghost.Editor.ViewModel.Windows;
+using Ghost.Editor.ViewModels.Windows;
 using Ghost.Engine.Resources;
 using WinUIEx;
 

@@ -21,19 +21,19 @@
             BorderThickness="0,0,0,1">
             <CommandBar Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" DefaultLabelPosition="Collapsed">
                 <CommandBar.PrimaryCommands>
-                    <AppBarButton Content="Clear" />
+                    <AppBarButton Command="{x:Bind ViewModel.ClearLogsCommand}" Content="Clear" />
                     <AppBarSeparator />
-                    <AppBarToggleButton Width="45">
+                    <AppBarToggleButton Width="45" IsChecked="{x:Bind ViewModel.ShowInfo, Mode=TwoWay}">
                         <AppBarToggleButton.Icon>
                             <FontIcon Glyph="&#xF167;" />
                         </AppBarToggleButton.Icon>
                     </AppBarToggleButton>
-                    <AppBarToggleButton Width="45">
+                    <AppBarToggleButton Width="45" IsChecked="{x:Bind ViewModel.ShowWarning, Mode=TwoWay}">
                         <AppBarToggleButton.Icon>
                             <FontIcon Glyph="&#xE814;" />
                         </AppBarToggleButton.Icon>
                     </AppBarToggleButton>
-                    <AppBarToggleButton Width="45">
+                    <AppBarToggleButton Width="45" IsChecked="{x:Bind ViewModel.ShowError, Mode=TwoWay}">
                         <AppBarToggleButton.Icon>
                             <FontIcon Glyph="&#xEB90;" />
                         </AppBarToggleButton.Icon>
@@ -42,7 +42,10 @@
 
                 <CommandBar.SecondaryCommands>
                     <AppBarToggleButton BorderThickness="0" Label="Clear On Play" />
-                    <AppBarToggleButton BorderThickness="0" Label="Show Stack Trace" />
+                    <AppBarToggleButton
+                        BorderThickness="0"
+                        IsChecked="{x:Bind ViewModel.ShowStackTrace, Mode=TwoWay}"
+                        Label="Show Stack Trace" />
                 </CommandBar.SecondaryCommands>
             </CommandBar>
         </Grid>
@@ -54,7 +57,11 @@
                 <RowDefinition Height="100" />
             </Grid.RowDefinitions>
 
-            <ListView Grid.Row="0" />
+            <ListView
+                x:Name="LogListView"
+                Grid.Row="0"
+                ItemsSource="{x:Bind ViewModel.Logs, Mode=OneWay}"
+                SelectedItem="{x:Bind ViewModel.SelectedLog, Mode=TwoWay}" />
             <Grid
                 Grid.Row="1"
                 Padding="4"
@@ -64,7 +71,7 @@
                     <TextBlock
                         IsTextSelectionEnabled="True"
                         Style="{StaticResource CaptionTextBlockStyle}"
-                        Text="Test Log"
+                        Text="{x:Bind ViewModel.SelectedLog.ToStringWithStackTrace(), Mode=OneWay}"
                         TextWrapping="Wrap" />
                 </ScrollViewer>
             </Grid>

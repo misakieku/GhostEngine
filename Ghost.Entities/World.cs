@@ -1,4 +1,6 @@
-﻿using Ghost.Entities.Query;
+﻿using Ghost.Entities.Components;
+using Ghost.Entities.Query;
+using Ghost.Entities.Systems;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -7,10 +9,8 @@ namespace Ghost.Entities;
 // TODO: Archetype system for better performance
 public partial class World
 {
-    private static List<World> s_worlds = new(2);
+    private static List<World> s_worlds = new(4);
     private static Queue<WorldID> s_freeWorldSlots = new();
-
-    private static int s_maxWorldCount = (int)MathF.Pow(2, Entity.WORLD_INDEX_BITS);
 
     public static int WorldCount => s_worlds.Count - s_freeWorldSlots.Count;
 
@@ -24,7 +24,7 @@ public partial class World
             }
             else
             {
-                if (s_worlds.Count >= s_maxWorldCount)
+                if (s_worlds.Count >= WorldID.MaxValue)
                 {
                     throw new InvalidOperationException("Maximum number of worlds reached");
                 }

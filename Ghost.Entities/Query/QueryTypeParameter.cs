@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using Ghost.Entities.Components;
+using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities.Query;
 

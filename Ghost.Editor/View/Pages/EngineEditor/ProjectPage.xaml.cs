@@ -1,30 +1,25 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
-using Microsoft.UI.Xaml;
+using Ghost.Editor.ViewModels.Pages.EngineEditor;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Navigation;
-
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
 
 namespace Ghost.Editor.View.Pages.EngineEditor;
 
-/// <summary>
-/// An empty page that can be used on its own or navigated to within a Frame.
-/// </summary>
-public sealed partial class ProjectPage : Page
+internal sealed partial class ProjectPage : Page
 {
+    public ProjectViewModel ViewModel
+    {
+        get;
+    }
+
     public ProjectPage()
     {
+        ViewModel = App.GetService<ProjectViewModel>();
+
         InitializeComponent();
+    }
+
+    private void GridViewItem_DoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
+    {
+        ViewModel.NavigateToSelected();
     }
 }

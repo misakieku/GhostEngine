@@ -1,19 +1,11 @@
 ﻿using Ghost.Data.Models;
-using System.Data;
+using Ghost.Data.Resources;
 using System.Data.SQLite;
 
 namespace Ghost.Data.Repository;
 
-internal class ProjectRepository : IDisposable
+internal static class ProjectRepository
 {
-    private readonly SQLiteConnection _connection;
-
-    public ProjectRepository(string sourceDirectory)
-    {
-        _connection = new SQLiteConnection(string.Format(Command.CONNECTION_STRING, sourceDirectory));
-        _connection.Open();
-    }
-
     private static class Command
     {
         public const string CONNECTION_STRING = "Data Source={0}\\projects.db;Version=3;";
@@ -24,18 +16,21 @@ internal class ProjectRepository : IDisposable
         public const string UPDATE_PROJECT_STRING = "UPDATE Projects SET Name = @Name, MetadataPath = @MetadataPath WHERE ID = @ID;";
     }
 
-    private async Task EnsureTableCreatedAsync()
+    private static async Task EnsureTableCreatedAsync(SQLiteConnection connection)
     {
-        using var createCommand = _connection.CreateCommand();
+        using var createCommand = connection.CreateCommand();
         createCommand.CommandText = Command.CREATE_PROJECT_TABLE_STRING;
         await createCommand.ExecuteNonQueryAsync();
     }
 
-    public async IAsyncEnumerable<ProjectInfo> LoadProjectsAsync()
+    public static async IAsyncEnumerable<ProjectInfo> LoadProjectsAsync()
     {
-        await EnsureTableCreatedAsync();
+        using var connection = new SQLiteConnection(string.Format(Command.CONNECTION_STRING, DataPath.s_applicationDataFolder));
+        connection.Open();
 
-        using var command = _connection.CreateCommand();
+        await EnsureTableCreatedAsync(connection);
+
+        using var command = connection.CreateCommand();
         command.CommandText = Command.SELECT_PROJECT_STRING;
 
         using var reader = command.ExecuteReader();
@@ -52,11 +47,14 @@ internal class ProjectRepository : IDisposable
         }
     }
 
-    public async Task AddProjectAsync(ProjectInfo project)
+    public static async Task AddProjectAsync(ProjectInfo project)
     {
-        await EnsureTableCreatedAsync();
+        using var connection = new SQLiteConnection(string.Format(Command.CONNECTION_STRING, DataPath.s_applicationDataFolder));
+        connection.Open();
 
-        using var command = _connection.CreateCommand();
+        await EnsureTableCreatedAsync(connection);
+
+        using var command = connection.CreateCommand();
         command.CommandText = Command.INSERT_PROJECT_STRING;
 
         command.Parameters.AddWithValue("@Name", project.Name);
@@ -65,9 +63,12 @@ internal class ProjectRepository : IDisposable
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task RemoveProjectAsync(ProjectInfo project)
+    public static async Task RemoveProjectAsync(ProjectInfo project)
     {
-        using var command = _connection.CreateCommand();
+        using var connection = new SQLiteConnection(string.Format(Command.CONNECTION_STRING, DataPath.s_applicationDataFolder));
+        connection.Open();
+
+        using var command = connection.CreateCommand();
         command.CommandText = Command.REMOVE_PROJECT_STRING;
 
         command.Parameters.AddWithValue("@ID", project.ID);
@@ -75,9 +76,12 @@ internal class ProjectRepository : IDisposable
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task UpdateProjectAsync(ProjectInfo project)
+    public static async Task UpdateProjectAsync(ProjectInfo project)
     {
-        using var command = _connection.CreateCommand();
+        using var connection = new SQLiteConnection(string.Format(Command.CONNECTION_STRING, DataPath.s_applicationDataFolder));
+        connection.Open();
+
+        using var command = connection.CreateCommand();
         command.CommandText = Command.UPDATE_PROJECT_STRING;
 
         command.Parameters.AddWithValue("@Name", project.Name);
@@ -85,15 +89,5 @@ internal class ProjectRepository : IDisposable
         command.Parameters.AddWithValue("@ID", project.ID);
 
         await command.ExecuteNonQueryAsync();
-    }
-
-    public void Dispose()
-    {
-        if (_connection.State == ConnectionState.Open)
-        {
-            _connection.Close();
-        }
-
-        _connection.Dispose();
     }
 }
