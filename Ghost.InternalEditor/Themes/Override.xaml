@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:Microsoft.UI.Xaml.Controls">
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Dark">
+            <StaticResource x:Key="TabViewItemHeaderBackgroundSelected" ResourceKey="ControlFillColorSecondaryBrush" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Light">
+            <StaticResource x:Key="TabViewItemHeaderBackgroundSelected" ResourceKey="ControlFillColorSecondaryBrush" />
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+    <Style TargetType="TabView">
+        <Setter Property="TabWidthMode" Value="Compact" />
+    </Style>
+</ResourceDictionary>

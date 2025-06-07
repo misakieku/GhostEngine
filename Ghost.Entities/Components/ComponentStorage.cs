@@ -18,8 +18,12 @@ internal interface IComponentPool : IDisposable
         get;
     }
 
+    public void Add(Entity entity, IComponentData component);
     public bool Remove(Entity entity);
     public bool Has(Entity entity);
+    public IComponentData Get(Entity entity);
+
+    public IEnumerable<(Entity entity, IComponentData component)> Enumerate();
 }
 
 internal interface IComponentPool<T> : IComponentPool
@@ -56,6 +60,10 @@ internal class ComponentPool<T> : IComponentPool<T>
         _lookup.AsSpan().Fill(Entity.INVALID_ID);
     }
 
+    public ComponentPool() : this(16)
+    {
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static EntityID GetLookupIndex(Entity entity)
     {
@@ -66,6 +74,16 @@ internal class ComponentPool<T> : IComponentPool<T>
     private EntityID GetComponentIndex(Entity entity)
     {
         return _lookup[GetLookupIndex(entity)];
+    }
+
+    public void Add(Entity entity, IComponentData component)
+    {
+        if (component is not T typedComponent)
+        {
+            throw new ArgumentException($"Component type mismatch. Expected {typeof(T)}, but got {component.GetType()}.");
+        }
+
+        Add(entity, typedComponent);
     }
 
     public void Add(Entity entity, T component)
@@ -117,6 +135,11 @@ internal class ComponentPool<T> : IComponentPool<T>
         return true;
     }
 
+    public IComponentData Get(Entity entity)
+    {
+        return GetRef(entity);
+    }
+
     public ref T GetRef(Entity entity)
     {
         if (!entity.IsValid)
@@ -126,6 +149,17 @@ internal class ComponentPool<T> : IComponentPool<T>
 
         var index = GetComponentIndex(entity);
         return ref _components[index].data;
+    }
+
+    public IEnumerable<(Entity entity, IComponentData component)> Enumerate()
+    {
+        for (var i = 0; i < _nextId; i++)
+        {
+            if (_components[i].owner.IsValid)
+            {
+                yield return (_components[i].owner, _components[i].data);
+            }
+        }
     }
 
     public bool Has(Entity entity)
@@ -192,6 +226,16 @@ internal class ScriptComponentPool : IComponentPool<ScriptComponent>
         }
 
         _executionList.Sort((a, b) => a.ExecutionOrder.CompareTo(b.ExecutionOrder));
+    }
+
+    public void Add(Entity entity, IComponentData component)
+    {
+        if (component is not ScriptComponent scriptComponent)
+        {
+            throw new ArgumentException($"Component type mismatch. Expected {typeof(ScriptComponent)}, but got {component.GetType()}.");
+        }
+
+        Add(entity, scriptComponent);
     }
 
     public void Add(Entity entity, ScriptComponent component)
@@ -283,12 +327,33 @@ internal class ScriptComponentPool : IComponentPool<ScriptComponent>
         return _scriptComponents?.ContainsKey(entity) ?? false;
     }
 
-    public List<ScriptComponent>? Get(Entity entity)
+    public IComponentData Get(Entity entity)
+    {
+        throw new NotSupportedException("Use GetAll instead of Get for ScriptComponentPool.");
+    }
+
+    public IEnumerable<(Entity entity, IComponentData component)> Enumerate()
+    {
+        if (_scriptComponents == null)
+        {
+            yield break;
+        }
+
+        foreach (var kvp in _scriptComponents)
+        {
+            foreach (var script in kvp.Value)
+            {
+                yield return (kvp.Key, script);
+            }
+        }
+    }
+
+    public IEnumerable<IComponentData> GetAll(Entity entity)
     {
         if (_scriptComponents == null
             || !_scriptComponents.TryGetValue(entity, out var scriptList))
         {
-            return null;
+            return Enumerable.Empty<ScriptComponent>();
         }
 
         return scriptList;

@@ -13,6 +13,12 @@ internal partial class ProjectService
     public const string ASSETS_FOLDER = "Assets";
     public const string CONFIG_FOLDER = "ProjectConfig";
 
+    public static ProjectMetadataInfo CurrentProject
+    {
+        get;
+        set;
+    }
+
     public static void EnsureDefaultTemplate()
     {
         var templates = Directory.GetFiles(DataPath.s_projectTemplateFolder, "template.json", SearchOption.AllDirectories);
@@ -114,12 +120,6 @@ internal partial class ProjectService
 
 internal partial class ProjectService
 {
-    public static ProjectMetadataInfo CurrentProject
-    {
-        get;
-        set;
-    }
-
     public Task AddProjectAsync(ProjectInfo project)
     {
         return ProjectRepository.AddProjectAsync(project);
@@ -147,9 +147,14 @@ internal partial class ProjectService
         return ProjectRepository.UpdateProjectAsync(project);
     }
 
-    public IAsyncEnumerable<ProjectInfo> LoadAllProjectAsync()
+    public async Task<bool> HasProjectAsync(string path)
     {
-        return ProjectRepository.LoadProjectsAsync();
+        return await ProjectRepository.GetProjectByMetadataPathAsync(path) != null;
+    }
+
+    public IAsyncEnumerable<ProjectInfo> GetAllProjectAsync()
+    {
+        return ProjectRepository.GetAllProjectsAsync();
     }
 
     public async Task<Result<ProjectMetadataInfo>> CreateProjectAsync(string projectName, string projectDirectory, Version engineVersion, string templatePath)
@@ -187,10 +192,17 @@ internal partial class ProjectService
     public async Task<Result<ProjectMetadataInfo>> AddProjectFromDirectoryAsync(string projectDirectory)
     {
         var result = await ValidateProjectDirectoryAsync(projectDirectory);
-        if (result.success)
+        if (!result.success)
         {
-            await AddProjectAsync(result.data.Metadata.Name, result.data.Path);
+            return result;
         }
+
+        if (await HasProjectAsync(result.data.Path))
+        {
+            return Result<ProjectMetadataInfo>.Error("Project already exists.");
+        }
+
+        await AddProjectAsync(result.data.Metadata.Name, result.data.Path);
 
         return result;
     }

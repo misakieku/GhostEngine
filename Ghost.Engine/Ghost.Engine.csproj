@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Ghost.Entities\Ghost.Entities.csproj" />
+    <!--<ProjectReference Include="..\Ghost.Generator\Ghost.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />-->
   </ItemGroup>
 
 </Project>

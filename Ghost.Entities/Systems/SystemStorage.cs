@@ -1,17 +1,17 @@
 ﻿using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Entities.Systems;
 
 [SkipLocalsInit]
-public struct SystemStorage
+public readonly struct SystemStorage
 {
     private readonly List<Type> _systems = new();
     private readonly List<ISystem> _executionList = new();
 
     private readonly World _world;
 
-    public event Action<Type>? SystemAdded;
-    public event Action<Type>? SystemRemoved;
+    internal ReadOnlySpan<Type> Systems => CollectionsMarshal.AsSpan(_systems);
 
     internal SystemStorage(World world)
     {
@@ -21,7 +21,6 @@ public struct SystemStorage
     public readonly void AddSystem(Type systemType)
     {
         _systems.Add(systemType);
-        SystemAdded?.Invoke(systemType);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -34,7 +33,6 @@ public struct SystemStorage
     public readonly void RemoveSystem(Type systemType)
     {
         _systems.Remove(systemType);
-        SystemRemoved?.Invoke(systemType);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

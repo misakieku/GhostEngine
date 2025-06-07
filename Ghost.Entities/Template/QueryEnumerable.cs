@@ -59,7 +59,8 @@ public struct QueryEnumerable<T0>
 
             _count = count;
             _index = -1;
-            filters.ComputeFilterBitMask(_world, ref _filterMask);
+            _filterMask = new BitSet(_world.EntityManager.EntityCount);
+            filters.ComputeFilterBitMask(_world, _filterMask);
 
             Current = default;
         }
@@ -231,7 +232,8 @@ public struct QueryEnumerable<T0, T1>
 
             _count = count;
             _index = -1;
-            filters.ComputeFilterBitMask(_world, ref _filterMask);
+            _filterMask = new BitSet(_world.EntityManager.EntityCount);
+            filters.ComputeFilterBitMask(_world, _filterMask);
 
             Current = default;
         }
@@ -408,7 +410,8 @@ public struct QueryEnumerable<T0, T1, T2>
 
             _count = count;
             _index = -1;
-            filters.ComputeFilterBitMask(_world, ref _filterMask);
+            _filterMask = new BitSet(_world.EntityManager.EntityCount);
+            filters.ComputeFilterBitMask(_world, _filterMask);
 
             Current = default;
         }
@@ -590,7 +593,8 @@ public struct QueryEnumerable<T0, T1, T2, T3>
 
             _count = count;
             _index = -1;
-            filters.ComputeFilterBitMask(_world, ref _filterMask);
+            _filterMask = new BitSet(_world.EntityManager.EntityCount);
+            filters.ComputeFilterBitMask(_world, _filterMask);
 
             Current = default;
         }
@@ -777,7 +781,8 @@ public struct QueryEnumerable<T0, T1, T2, T3, T4>
 
             _count = count;
             _index = -1;
-            filters.ComputeFilterBitMask(_world, ref _filterMask);
+            _filterMask = new BitSet(_world.EntityManager.EntityCount);
+            filters.ComputeFilterBitMask(_world, _filterMask);
 
             Current = default;
         }
@@ -969,7 +974,8 @@ public struct QueryEnumerable<T0, T1, T2, T3, T4, T5>
 
             _count = count;
             _index = -1;
-            filters.ComputeFilterBitMask(_world, ref _filterMask);
+            _filterMask = new BitSet(_world.EntityManager.EntityCount);
+            filters.ComputeFilterBitMask(_world, _filterMask);
 
             Current = default;
         }
@@ -1166,7 +1172,8 @@ public struct QueryEnumerable<T0, T1, T2, T3, T4, T5, T6>
 
             _count = count;
             _index = -1;
-            filters.ComputeFilterBitMask(_world, ref _filterMask);
+            _filterMask = new BitSet(_world.EntityManager.EntityCount);
+            filters.ComputeFilterBitMask(_world, _filterMask);
 
             Current = default;
         }
@@ -1368,7 +1375,8 @@ public struct QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7>
 
             _count = count;
             _index = -1;
-            filters.ComputeFilterBitMask(_world, ref _filterMask);
+            _filterMask = new BitSet(_world.EntityManager.EntityCount);
+            filters.ComputeFilterBitMask(_world, _filterMask);
 
             Current = default;
         }

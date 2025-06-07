@@ -23,7 +23,7 @@ internal static class ProjectRepository
         await createCommand.ExecuteNonQueryAsync();
     }
 
-    public static async IAsyncEnumerable<ProjectInfo> LoadProjectsAsync()
+    public static async IAsyncEnumerable<ProjectInfo> GetAllProjectsAsync()
     {
         using var connection = new SQLiteConnection(string.Format(Command.CONNECTION_STRING, DataPath.s_applicationDataFolder));
         connection.Open();
@@ -45,6 +45,85 @@ internal static class ProjectRepository
 
             yield return project;
         }
+    }
+
+    public static async Task<ProjectInfo?> GetProjectByIdAsync(int id)
+    {
+        using var connection = new SQLiteConnection(string.Format(Command.CONNECTION_STRING, DataPath.s_applicationDataFolder));
+        connection.Open();
+
+        await EnsureTableCreatedAsync(connection);
+
+        using var command = connection.CreateCommand();
+        command.CommandText = Command.SELECT_PROJECT_STRING + " WHERE ID = @ID;";
+
+        command.Parameters.AddWithValue("@ID", id);
+
+        using var reader = await command.ExecuteReaderAsync();
+
+        if (await reader.ReadAsync())
+        {
+            return new ProjectInfo
+            {
+                ID = reader.GetInt32(0),
+                Name = reader.GetString(1),
+                MetadataPath = reader.GetString(2),
+            };
+        }
+
+        return null;
+    }
+
+    public static async Task<ProjectInfo?> GetProjectByNameAsync(string name)
+    {
+        using var connection = new SQLiteConnection(string.Format(Command.CONNECTION_STRING, DataPath.s_applicationDataFolder));
+        connection.Open();
+
+        await EnsureTableCreatedAsync(connection);
+
+        using var command = connection.CreateCommand();
+        command.CommandText = Command.SELECT_PROJECT_STRING + " WHERE Name = @Name;";
+
+        command.Parameters.AddWithValue("@Name", name);
+
+        using var reader = await command.ExecuteReaderAsync();
+        if (await reader.ReadAsync())
+        {
+            return new ProjectInfo
+            {
+                ID = reader.GetInt32(0),
+                Name = reader.GetString(1),
+                MetadataPath = reader.GetString(2),
+            };
+        }
+
+        return null;
+    }
+
+    public static async Task<ProjectInfo?> GetProjectByMetadataPathAsync(string metadataPath)
+    {
+        using var connection = new SQLiteConnection(string.Format(Command.CONNECTION_STRING, DataPath.s_applicationDataFolder));
+        connection.Open();
+
+        await EnsureTableCreatedAsync(connection);
+
+        using var command = connection.CreateCommand();
+        command.CommandText = Command.SELECT_PROJECT_STRING + " WHERE MetadataPath = @MetadataPath;";
+
+        command.Parameters.AddWithValue("@MetadataPath", metadataPath);
+
+        using var reader = await command.ExecuteReaderAsync();
+        if (await reader.ReadAsync())
+        {
+            return new ProjectInfo
+            {
+                ID = reader.GetInt32(0),
+                Name = reader.GetString(1),
+                MetadataPath = reader.GetString(2),
+            };
+        }
+
+        return null;
     }
 
     public static async Task AddProjectAsync(ProjectInfo project)

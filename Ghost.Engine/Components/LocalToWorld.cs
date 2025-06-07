@@ -1,4 +1,4 @@
-﻿using Ghost.Engine.Helpers;
+﻿using Ghost.Engine.Utilities;
 using Ghost.Entities.Components;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -15,7 +15,7 @@ public struct LocalToWorld : IComponentData
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => new()
         {
-            matrix = MatrixHelpers.CreateTRS(Vector3.Zero, Quaternion.Identity, Vector3.One)
+            matrix = MatrixUtilities.CreateTRS(Vector3.Zero, Quaternion.Identity, Vector3.One)
         };
     }
 }

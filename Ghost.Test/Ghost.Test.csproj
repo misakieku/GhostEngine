@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Ghost.Editor\Ghost.Editor.csproj" />
     <ProjectReference Include="..\Ghost.Engine\Ghost.Engine.csproj" />
     <ProjectReference Include="..\Ghost.Entities\Ghost.Entities.csproj" />
     <ProjectReference Include="..\Ghost.Graphics\Ghost.Graphics.csproj" />

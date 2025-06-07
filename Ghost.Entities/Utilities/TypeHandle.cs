@@ -25,4 +25,9 @@ internal static class TypeHandle
     {
         return type.TypeHandle.Value;
     }
+
+    public static Type? ToType(nint handle)
+    {
+        return Type.GetTypeFromHandle(RuntimeTypeHandle.FromIntPtr(handle));
+    }
 }

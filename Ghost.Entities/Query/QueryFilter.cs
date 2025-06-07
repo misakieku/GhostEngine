@@ -24,11 +24,11 @@ internal struct QueryFilter()
     internal List<nint> _absent = new(6);
     internal List<nint> _disabled = new(6);
 
-    public readonly void ComputeFilterBitMask(World world, ref BitSet result)
+    public readonly void ComputeFilterBitMask(World world, BitSet result)
     {
-        BitSet allMask = default;
-        BitSet anyMask = default;
-        BitSet absentMask = default;
+        BitSet allMask = new();
+        BitSet anyMask = new();
+        BitSet absentMask = new();
 
         var hasAll = false;
         var hasAny = false;
@@ -77,7 +77,6 @@ internal struct QueryFilter()
             absentMask |= mask;
         }
 
-        result = new BitSet(world.EntityManager.EntityCount);
         result.SetAll();
 
         if (hasAll)

@@ -1,20 +1,28 @@
 ﻿using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
 
 namespace Ghost.Entities;
 
 [SkipLocalsInit]
 public struct Entity : IEquatable<Entity>, IComparable<Entity>
 {
-    // Is 256 generations enough? If not, increase the size of GenerationID or make generation as a separate int field.
-    public const int GENERATION_BITS = sizeof(GenerationID) * 8;
-    public const int INDEX_BITS = sizeof(EntityID) * 8 - GENERATION_BITS;
-
-    private const int _GENERATION_MASK = (1 << GENERATION_BITS) - 1;
-    private const int _INDEX_MASK = (1 << INDEX_BITS) - 1;
-
     public const EntityID INVALID_ID = -1;
 
+    [JsonInclude]
     private EntityID _id;
+    private GenerationID _generation;
+
+    public readonly EntityID ID
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _id;
+    }
+
+    public readonly GenerationID Generation
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _generation;
+    }
 
     public readonly bool IsValid
     {
@@ -22,39 +30,20 @@ public struct Entity : IEquatable<Entity>, IComparable<Entity>
         get => ID != INVALID_ID;
     }
 
-    public readonly EntityID ID
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _id & _INDEX_MASK;
-    }
-
-    public readonly GenerationID Generation
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => (GenerationID)(_id >> INDEX_BITS & _GENERATION_MASK);
-    }
-
     public static Entity Invalid
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => new(INVALID_ID, 0);
+        get => new(INVALID_ID, GenerationID.MaxValue);
     }
 
     internal Entity(EntityID id, GenerationID generation)
     {
-        _id = generation << INDEX_BITS | id;
+        _id = id;
+        _generation = generation;
     }
 
-    internal void IncrementGeneration()
-    {
-        var generation = Generation + 1;
-        if (generation >= _GENERATION_MASK)
-        {
-            throw new InvalidOperationException("Generation overflow");
-        }
-
-        _id = _id & ~(_GENERATION_MASK << INDEX_BITS) | generation << INDEX_BITS;
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void IncrementGeneration() => _generation++;
 
     public readonly bool Equals(Entity other)
     {

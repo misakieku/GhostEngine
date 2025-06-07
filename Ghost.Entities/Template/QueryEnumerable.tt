@@ -85,7 +85,8 @@ public struct QueryEnumerable<<#= generics #>>
 
             _count = count;
             _index = -1;
-            filters.ComputeFilterBitMask(_world, ref _filterMask);
+            _filterMask = new BitSet(_world.EntityManager.EntityCount);
+            filters.ComputeFilterBitMask(_world, _filterMask);
 
             Current = default;
         }

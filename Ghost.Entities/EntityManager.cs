@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Entities;
-public struct EntityManager : IDisposable
+public readonly struct EntityManager : IDisposable
 {
     private readonly List<Entity> _entities;
     private readonly Queue<EntityID> _freeEntitySlots;
@@ -14,11 +14,6 @@ public struct EntityManager : IDisposable
 
     public readonly int EntityCount => _entities.Count;
     public readonly ReadOnlySpan<Entity> Entities => CollectionsMarshal.AsSpan(_entities);
-
-    public event Action<Entity>? OnEntityCreated;
-    public event Action<EntityID>? OnEntityRemoved;
-    public event Action<Entity, Type>? OnComponentAdded;
-    public event Action<Entity, Type>? OnComponentRemoved;
 
     internal EntityManager(World world, int initialCapacity)
     {
@@ -45,8 +40,12 @@ public struct EntityManager : IDisposable
             _entities.Add(entity);
         }
 
-        OnEntityCreated?.Invoke(entity);
         return entity;
+    }
+
+    internal readonly void AddEntityInternal(Entity entity)
+    {
+        _entities.Add(entity);
     }
 
     /// <summary>
@@ -67,7 +66,6 @@ public struct EntityManager : IDisposable
         _entities[entity.ID] = slot;
         _freeEntitySlots.Enqueue(entity.ID);
 
-        OnEntityRemoved?.Invoke(entity.ID);
         entity = Entity.Invalid;
     }
 
@@ -88,6 +86,20 @@ public struct EntityManager : IDisposable
         return _entities[entity.ID].Generation == entity.Generation;
     }
 
+    public readonly void AddComponent(Entity entity, IComponentData component, Type type)
+    {
+        var typeHandle = TypeHandle.Get(type);
+        ref var pool = ref CollectionsMarshal.GetValueRefOrAddDefault(_world.ComponentStorage.ComponentPools, typeHandle, out var exists);
+        if (!exists)
+        {
+            var poolType = typeof(ComponentPool<>).MakeGenericType(type);
+            pool = (IComponentPool)(Activator.CreateInstance(poolType) ?? throw new InvalidOperationException($"Failed to create component pool for type {type}."));
+        }
+
+        pool!.Add(entity, component);
+        _world.ComponentStorage.GetOrCreateMask(typeHandle).SetBit(entity.ID);
+    }
+
     /// <summary>
     /// Adds a component of type <typeparamref name="T"/> to the given <see cref="Entity"/>.
     /// </summary>
@@ -100,7 +112,6 @@ public struct EntityManager : IDisposable
     {
         _world.ComponentStorage.GetOrCreateComponentPool<T>().Add(entity, component);
         _world.ComponentStorage.GetOrCreateMask(TypeHandle.Get<T>()).SetBit(entity.ID);
-        OnComponentAdded?.Invoke(entity, typeof(T));
     }
 
     /// <summary>
@@ -123,7 +134,6 @@ public struct EntityManager : IDisposable
         }
 
         _world.ComponentStorage.GetOrCreateMask(TypeHandle.Get<T>()).ClearBit(entity.ID);
-        OnComponentRemoved?.Invoke(entity, typeof(T));
 
         return true;
     }
@@ -183,7 +193,6 @@ public struct EntityManager : IDisposable
         where T : ScriptComponent, new()
     {
         _world.ComponentStorage.ScriptComponentPool.Add(entity, new T());
-        OnComponentAdded?.Invoke(entity, typeof(ScriptComponent));
     }
 
     /// <summary>
@@ -203,9 +212,14 @@ public struct EntityManager : IDisposable
 
         var instance = (ScriptComponent?)Activator.CreateInstance(type) ?? throw new InvalidOperationException($"Failed to create instance of {type}.");
         _world.ComponentStorage.ScriptComponentPool.Add(entity, instance);
-        OnComponentAdded?.Invoke(entity, typeof(ScriptComponent));
     }
 
+    /// <summary>
+    /// Removes a script of type <typeparamref name="T"/> from the given <see cref="Entity"/>.
+    /// </summary>
+    /// <typeparam name="T">The type of the script to remove.</typeparam>
+    /// <param name="entity">The entity from which the script is to be removed.</param>
+    /// <returns>True if the script was successfully removed; otherwise, false.</returns>
     public readonly bool RemoveScript<T>(Entity entity)
         where T : ScriptComponent
     {
@@ -214,10 +228,15 @@ public struct EntityManager : IDisposable
             return false;
         }
 
-        OnComponentRemoved?.Invoke(entity, typeof(ScriptComponent));
         return true;
     }
 
+    /// <summary>
+    /// Removes a script at the specified index from the given <see cref="Entity"/>.
+    /// </summary>
+    /// <param name="entity">The entity from which the script is to be removed.</param>
+    /// <param name="index">The index of the script to remove.</param>
+    /// <returns>True if the script was successfully removed; otherwise, false.</returns>
     public readonly bool RemoveScriptAt(Entity entity, int index)
     {
         if (!_world.ComponentStorage.ScriptComponentPool.RemoveAt(entity, index))
@@ -225,7 +244,6 @@ public struct EntityManager : IDisposable
             return false;
         }
 
-        OnComponentRemoved?.Invoke(entity, typeof(ScriptComponent));
         return true;
     }
 
@@ -238,7 +256,7 @@ public struct EntityManager : IDisposable
     public readonly T? GetScript<T>(Entity entity)
         where T : ScriptComponent
     {
-        return (T?)_world.ComponentStorage.ScriptComponentPool.Get(entity)?
+        return (T?)_world.ComponentStorage.ScriptComponentPool.GetAll(entity)?
             .FirstOrDefault(script => script is T tScript);
     }
 
@@ -251,7 +269,7 @@ public struct EntityManager : IDisposable
     public readonly IEnumerable<T> GetScripts<T>(Entity entity)
         where T : ScriptComponent
     {
-        return (IEnumerable<T>?)_world.ComponentStorage.ScriptComponentPool.Get(entity)?.Where(script => script is T tScript) ?? Enumerable.Empty<T>();
+        return (IEnumerable<T>?)_world.ComponentStorage.ScriptComponentPool.GetAll(entity)?.Where(script => script is T tScript) ?? Enumerable.Empty<T>();
     }
 
     public readonly void Dispose()
