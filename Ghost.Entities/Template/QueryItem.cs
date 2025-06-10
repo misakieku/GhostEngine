@@ -25,7 +25,7 @@ public readonly struct QueryItem<T0>
     public void Deconstruct(out Entity entity, out Ref<T0> c0)
     {
         entity = _entity;
-        c0 = new (ref _pool0.GetRef(_entity));
+        c0 = new(ref _pool0.GetRef(_entity));
     }
 }
 
@@ -52,7 +52,8 @@ public readonly struct QueryItem<T0, T1>
     public void Deconstruct(out Entity entity, out Ref<T0> c0, out Ref<T1> c1)
     {
         entity = _entity;
-        c0 = new (ref _pool0.GetRef(_entity));c1 = new (ref _pool1.GetRef(_entity));
+        c0 = new(ref _pool0.GetRef(_entity));
+        c1 = new(ref _pool1.GetRef(_entity));
     }
 }
 
@@ -82,7 +83,9 @@ public readonly struct QueryItem<T0, T1, T2>
     public void Deconstruct(out Entity entity, out Ref<T0> c0, out Ref<T1> c1, out Ref<T2> c2)
     {
         entity = _entity;
-        c0 = new (ref _pool0.GetRef(_entity));c1 = new (ref _pool1.GetRef(_entity));c2 = new (ref _pool2.GetRef(_entity));
+        c0 = new(ref _pool0.GetRef(_entity));
+        c1 = new(ref _pool1.GetRef(_entity));
+        c2 = new(ref _pool2.GetRef(_entity));
     }
 }
 
@@ -115,7 +118,10 @@ public readonly struct QueryItem<T0, T1, T2, T3>
     public void Deconstruct(out Entity entity, out Ref<T0> c0, out Ref<T1> c1, out Ref<T2> c2, out Ref<T3> c3)
     {
         entity = _entity;
-        c0 = new (ref _pool0.GetRef(_entity));c1 = new (ref _pool1.GetRef(_entity));c2 = new (ref _pool2.GetRef(_entity));c3 = new (ref _pool3.GetRef(_entity));
+        c0 = new(ref _pool0.GetRef(_entity));
+        c1 = new(ref _pool1.GetRef(_entity));
+        c2 = new(ref _pool2.GetRef(_entity));
+        c3 = new(ref _pool3.GetRef(_entity));
     }
 }
 
@@ -151,7 +157,11 @@ public readonly struct QueryItem<T0, T1, T2, T3, T4>
     public void Deconstruct(out Entity entity, out Ref<T0> c0, out Ref<T1> c1, out Ref<T2> c2, out Ref<T3> c3, out Ref<T4> c4)
     {
         entity = _entity;
-        c0 = new (ref _pool0.GetRef(_entity));c1 = new (ref _pool1.GetRef(_entity));c2 = new (ref _pool2.GetRef(_entity));c3 = new (ref _pool3.GetRef(_entity));c4 = new (ref _pool4.GetRef(_entity));
+        c0 = new(ref _pool0.GetRef(_entity));
+        c1 = new(ref _pool1.GetRef(_entity));
+        c2 = new(ref _pool2.GetRef(_entity));
+        c3 = new(ref _pool3.GetRef(_entity));
+        c4 = new(ref _pool4.GetRef(_entity));
     }
 }
 
@@ -190,7 +200,12 @@ public readonly struct QueryItem<T0, T1, T2, T3, T4, T5>
     public void Deconstruct(out Entity entity, out Ref<T0> c0, out Ref<T1> c1, out Ref<T2> c2, out Ref<T3> c3, out Ref<T4> c4, out Ref<T5> c5)
     {
         entity = _entity;
-        c0 = new (ref _pool0.GetRef(_entity));c1 = new (ref _pool1.GetRef(_entity));c2 = new (ref _pool2.GetRef(_entity));c3 = new (ref _pool3.GetRef(_entity));c4 = new (ref _pool4.GetRef(_entity));c5 = new (ref _pool5.GetRef(_entity));
+        c0 = new(ref _pool0.GetRef(_entity));
+        c1 = new(ref _pool1.GetRef(_entity));
+        c2 = new(ref _pool2.GetRef(_entity));
+        c3 = new(ref _pool3.GetRef(_entity));
+        c4 = new(ref _pool4.GetRef(_entity));
+        c5 = new(ref _pool5.GetRef(_entity));
     }
 }
 
@@ -232,7 +247,13 @@ public readonly struct QueryItem<T0, T1, T2, T3, T4, T5, T6>
     public void Deconstruct(out Entity entity, out Ref<T0> c0, out Ref<T1> c1, out Ref<T2> c2, out Ref<T3> c3, out Ref<T4> c4, out Ref<T5> c5, out Ref<T6> c6)
     {
         entity = _entity;
-        c0 = new (ref _pool0.GetRef(_entity));c1 = new (ref _pool1.GetRef(_entity));c2 = new (ref _pool2.GetRef(_entity));c3 = new (ref _pool3.GetRef(_entity));c4 = new (ref _pool4.GetRef(_entity));c5 = new (ref _pool5.GetRef(_entity));c6 = new (ref _pool6.GetRef(_entity));
+        c0 = new(ref _pool0.GetRef(_entity));
+        c1 = new(ref _pool1.GetRef(_entity));
+        c2 = new(ref _pool2.GetRef(_entity));
+        c3 = new(ref _pool3.GetRef(_entity));
+        c4 = new(ref _pool4.GetRef(_entity));
+        c5 = new(ref _pool5.GetRef(_entity));
+        c6 = new(ref _pool6.GetRef(_entity));
     }
 }
 
@@ -277,7 +298,14 @@ public readonly struct QueryItem<T0, T1, T2, T3, T4, T5, T6, T7>
     public void Deconstruct(out Entity entity, out Ref<T0> c0, out Ref<T1> c1, out Ref<T2> c2, out Ref<T3> c3, out Ref<T4> c4, out Ref<T5> c5, out Ref<T6> c6, out Ref<T7> c7)
     {
         entity = _entity;
-        c0 = new (ref _pool0.GetRef(_entity));c1 = new (ref _pool1.GetRef(_entity));c2 = new (ref _pool2.GetRef(_entity));c3 = new (ref _pool3.GetRef(_entity));c4 = new (ref _pool4.GetRef(_entity));c5 = new (ref _pool5.GetRef(_entity));c6 = new (ref _pool6.GetRef(_entity));c7 = new (ref _pool7.GetRef(_entity));
+        c0 = new(ref _pool0.GetRef(_entity));
+        c1 = new(ref _pool1.GetRef(_entity));
+        c2 = new(ref _pool2.GetRef(_entity));
+        c3 = new(ref _pool3.GetRef(_entity));
+        c4 = new(ref _pool4.GetRef(_entity));
+        c5 = new(ref _pool5.GetRef(_entity));
+        c6 = new(ref _pool6.GetRef(_entity));
+        c7 = new(ref _pool7.GetRef(_entity));
     }
 }
 

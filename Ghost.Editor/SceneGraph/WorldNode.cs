@@ -1,14 +1,16 @@
-﻿using Ghost.Editor.Serializer;
+﻿using Ghost.Editor.Contracts;
+using Ghost.Editor.Serializer;
 using Ghost.Engine.Components;
 using Ghost.Entities;
+using Microsoft.UI.Xaml;
 using System.Text.Json.Serialization;
 
 namespace Ghost.Editor.SceneGraph;
 
 [JsonConverter(typeof(WorldNodeSerializer))]
-public partial class WorldNode : SceneGraphNode
+public partial class WorldNode : SceneGraphNode, IEquatable<WorldNode>
 {
-    private readonly World _world;
+    private World _world;
     private Dictionary<Entity, EntityNode> _entityNodeLookup = new();
 
     public World World => _world;
@@ -73,7 +75,6 @@ public partial class WorldNode : SceneGraphNode
 
     private EntityNode BuildNodeRecursive(Entity entity, World world)
     {
-        // TODO: Node serialization.
         if (!_entityNodeLookup.TryGetValue(entity, out var node))
         {
             node = new EntityNode(entity, "New Entity");
@@ -105,8 +106,69 @@ public partial class WorldNode : SceneGraphNode
         }
     }
 
-    public void Load()
+    public Task LoadAsync()
     {
-        BuildGraph();
+        return Task.Run(BuildGraph);
+    }
+
+    public void Unload()
+    {
+        _world.Dispose();
+        _world = null!;
+
+        Children?.Clear();
+        _entityNodeLookup.Clear();
+    }
+
+    public override string ToString()
+    {
+        return $"WorldNode: {Name} (World ID: {_world.ID})";
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(_world, Name);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is WorldNode other && Equals(other);
+    }
+
+    public bool Equals(WorldNode? other)
+    {
+        if (other is null)
+        {
+            return false;
+        }
+
+        if (ReferenceEquals(this, other))
+        {
+            return true;
+        }
+
+        return _world.Equals(other._world) && Name == other.Name;
+    }
+
+    public static bool operator ==(WorldNode? left, WorldNode? right)
+    {
+        if (left is null)
+        {
+            return right is null;
+        }
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(WorldNode? left, WorldNode? right)
+    {
+        return !(left == right);
+    }
+}
+
+public partial class WorldNode : IInspectable
+{
+    public UIElement OnInspectorDraw()
+    {
+        throw new NotImplementedException();
     }
 }

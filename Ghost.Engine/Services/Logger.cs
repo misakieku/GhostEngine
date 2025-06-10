@@ -16,7 +16,7 @@ public static class Logger
     private const int _MAX_LOGS = 4096;
 
     private static readonly List<LogMessage> _logs = new();
-    internal static List<LogMessage> Logs => _logs;
+    internal static IReadOnlyList<LogMessage> Logs => _logs;
 
     internal static event Action<LogChangeType>? OnLogsUpdate;
 
@@ -39,7 +39,21 @@ public static class Logger
             stackTrace = new StackTrace(skipFrame, true);
         }
 
-        var logMessage = new LogMessage(level, message, stackTrace);
+        var logMessage = new LogMessage(level, message, stackTrace?.ToString());
+        _logs.Add(logMessage);
+
+        OnLogsUpdate?.Invoke(LogChangeType.LogAdded);
+    }
+
+    private static void LogExceptionInternal(Exception ex)
+    {
+        if (_logs.Count >= _MAX_LOGS)
+        {
+            _logs.RemoveAt(0);
+            OnLogsUpdate?.Invoke(LogChangeType.LogRemoved);
+        }
+
+        var logMessage = new LogMessage(LogLevel.Error, ex.Message, ex.StackTrace);
         _logs.Add(logMessage);
 
         OnLogsUpdate?.Invoke(LogChangeType.LogAdded);
@@ -63,6 +77,11 @@ public static class Logger
     public static void LogError(string message)
     {
         LogInternal(LogLevel.Error, message, 3);
+    }
+
+    public static void LogError(Exception ex)
+    {
+        LogExceptionInternal(ex);
     }
 
     internal static void Clear()

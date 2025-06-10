@@ -44,7 +44,7 @@ public partial class World
     }
 }
 
-public partial class World : IDisposable
+public partial class World : IDisposable, IEquatable<World>
 {
     private readonly WorldID _id;
     private readonly EntityManager _entityManager;
@@ -91,5 +91,35 @@ public partial class World : IDisposable
         _systemStorage.Dispose();
 
         s_freeWorldSlots.Enqueue(_id);
+    }
+
+    public bool Equals(World? other)
+    {
+        if (other is null)
+        {
+            return false;
+        }
+
+        if (ReferenceEquals(this, other))
+        {
+            return true;
+        }
+
+        return _id == other._id;
+    }
+
+    public override int GetHashCode()
+    {
+        return _id.GetHashCode();
+    }
+
+    public static bool operator ==(World? left, World? right)
+    {
+        return left?.Equals(right) ?? right is null;
+    }
+
+    public static bool operator !=(World? left, World? right)
+    {
+        return !(left == right);
     }
 }

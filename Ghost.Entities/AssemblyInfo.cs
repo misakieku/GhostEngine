@@ -7,4 +7,4 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("Ghost.App")]
 [assembly: InternalsVisibleTo("Ghost.Engine")]
 [assembly: InternalsVisibleTo("Ghost.Editor")]
-[assembly: InternalsVisibleTo("Ghost.Test")]
+[assembly: InternalsVisibleTo("Ghost.UnitTest")]

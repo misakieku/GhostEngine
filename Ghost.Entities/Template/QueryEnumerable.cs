@@ -25,12 +25,12 @@ public struct QueryEnumerable<T0>
         _pool0 = pool0;
 
         _count = count;
-        
+
         _filters = new();
         _filters._all.Add(TypeHandle.Get<T0>());
     }
 
-    public readonly Enumerator GetEnumerator() => new (_world, _pool0, _count, _filters);
+    public readonly Enumerator GetEnumerator() => new(_world, _pool0, _count, _filters);
 
     public ref struct Enumerator
     {
@@ -43,7 +43,7 @@ public struct QueryEnumerable<T0>
         private readonly int _count;
 
         private BitSet _filterMask;
-        
+
         public QueryItem<T0> Current
         {
             get;
@@ -78,101 +78,101 @@ public struct QueryEnumerable<T0>
         }
     }
 
-	public readonly QueryEnumerable<T0> WithAll<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+    public readonly QueryEnumerable<T0> WithAll<TComponent0>()
+        where TComponent0 : struct, IComponentData
+    {
         _filters._all.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0> WithAny<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData
+    {
         _filters._any.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0> WithAbsent<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData
+    {
         _filters._absent.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0> WithDisabled<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData
+    {
         _filters._disabled.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
-	public readonly QueryEnumerable<T0> WithAll<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+    public readonly QueryEnumerable<T0> WithAll<TComponent0, TComponent1>()
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._all.Add(TypeHandle.Get<TComponent0>());
         _filters._all.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0> WithAny<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._any.Add(TypeHandle.Get<TComponent0>());
         _filters._any.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0> WithAbsent<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._absent.Add(TypeHandle.Get<TComponent0>());
         _filters._absent.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0> WithDisabled<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._disabled.Add(TypeHandle.Get<TComponent0>());
         _filters._disabled.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
-	public readonly QueryEnumerable<T0> WithAll<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+    public readonly QueryEnumerable<T0> WithAll<TComponent0, TComponent1, TComponent2>()
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._all.Add(TypeHandle.Get<TComponent0>());
         _filters._all.Add(TypeHandle.Get<TComponent1>());
         _filters._all.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0> WithAny<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._any.Add(TypeHandle.Get<TComponent0>());
         _filters._any.Add(TypeHandle.Get<TComponent1>());
         _filters._any.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0> WithAbsent<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._absent.Add(TypeHandle.Get<TComponent0>());
         _filters._absent.Add(TypeHandle.Get<TComponent1>());
         _filters._absent.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0> WithDisabled<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._disabled.Add(TypeHandle.Get<TComponent0>());
         _filters._disabled.Add(TypeHandle.Get<TComponent1>());
         _filters._disabled.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 }
 
 public struct QueryEnumerable<T0, T1>
@@ -195,13 +195,13 @@ public struct QueryEnumerable<T0, T1>
         _pool1 = pool1;
 
         _count = count;
-        
+
         _filters = new();
         _filters._all.Add(TypeHandle.Get<T0>());
         _filters._all.Add(TypeHandle.Get<T1>());
     }
 
-    public readonly Enumerator GetEnumerator() => new (_world, _pool0, _pool1, _count, _filters);
+    public readonly Enumerator GetEnumerator() => new(_world, _pool0, _pool1, _count, _filters);
 
     public ref struct Enumerator
     {
@@ -215,7 +215,7 @@ public struct QueryEnumerable<T0, T1>
         private readonly int _count;
 
         private BitSet _filterMask;
-        
+
         public QueryItem<T0, T1> Current
         {
             get;
@@ -251,101 +251,101 @@ public struct QueryEnumerable<T0, T1>
         }
     }
 
-	public readonly QueryEnumerable<T0, T1> WithAll<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+    public readonly QueryEnumerable<T0, T1> WithAll<TComponent0>()
+        where TComponent0 : struct, IComponentData
+    {
         _filters._all.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1> WithAny<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData
+    {
         _filters._any.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1> WithAbsent<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData
+    {
         _filters._absent.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1> WithDisabled<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData
+    {
         _filters._disabled.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
-	public readonly QueryEnumerable<T0, T1> WithAll<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+    public readonly QueryEnumerable<T0, T1> WithAll<TComponent0, TComponent1>()
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._all.Add(TypeHandle.Get<TComponent0>());
         _filters._all.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1> WithAny<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._any.Add(TypeHandle.Get<TComponent0>());
         _filters._any.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1> WithAbsent<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._absent.Add(TypeHandle.Get<TComponent0>());
         _filters._absent.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1> WithDisabled<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._disabled.Add(TypeHandle.Get<TComponent0>());
         _filters._disabled.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
-	public readonly QueryEnumerable<T0, T1> WithAll<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+    public readonly QueryEnumerable<T0, T1> WithAll<TComponent0, TComponent1, TComponent2>()
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._all.Add(TypeHandle.Get<TComponent0>());
         _filters._all.Add(TypeHandle.Get<TComponent1>());
         _filters._all.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1> WithAny<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._any.Add(TypeHandle.Get<TComponent0>());
         _filters._any.Add(TypeHandle.Get<TComponent1>());
         _filters._any.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1> WithAbsent<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._absent.Add(TypeHandle.Get<TComponent0>());
         _filters._absent.Add(TypeHandle.Get<TComponent1>());
         _filters._absent.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1> WithDisabled<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._disabled.Add(TypeHandle.Get<TComponent0>());
         _filters._disabled.Add(TypeHandle.Get<TComponent1>());
         _filters._disabled.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 }
 
 public struct QueryEnumerable<T0, T1, T2>
@@ -370,14 +370,14 @@ public struct QueryEnumerable<T0, T1, T2>
         _pool2 = pool2;
 
         _count = count;
-        
+
         _filters = new();
         _filters._all.Add(TypeHandle.Get<T0>());
         _filters._all.Add(TypeHandle.Get<T1>());
         _filters._all.Add(TypeHandle.Get<T2>());
     }
 
-    public readonly Enumerator GetEnumerator() => new (_world, _pool0, _pool1, _pool2, _count, _filters);
+    public readonly Enumerator GetEnumerator() => new(_world, _pool0, _pool1, _pool2, _count, _filters);
 
     public ref struct Enumerator
     {
@@ -392,7 +392,7 @@ public struct QueryEnumerable<T0, T1, T2>
         private readonly int _count;
 
         private BitSet _filterMask;
-        
+
         public QueryItem<T0, T1, T2> Current
         {
             get;
@@ -429,101 +429,101 @@ public struct QueryEnumerable<T0, T1, T2>
         }
     }
 
-	public readonly QueryEnumerable<T0, T1, T2> WithAll<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+    public readonly QueryEnumerable<T0, T1, T2> WithAll<TComponent0>()
+        where TComponent0 : struct, IComponentData
+    {
         _filters._all.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2> WithAny<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData
+    {
         _filters._any.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2> WithAbsent<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData
+    {
         _filters._absent.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2> WithDisabled<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData
+    {
         _filters._disabled.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
-	public readonly QueryEnumerable<T0, T1, T2> WithAll<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+    public readonly QueryEnumerable<T0, T1, T2> WithAll<TComponent0, TComponent1>()
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._all.Add(TypeHandle.Get<TComponent0>());
         _filters._all.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2> WithAny<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._any.Add(TypeHandle.Get<TComponent0>());
         _filters._any.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2> WithAbsent<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._absent.Add(TypeHandle.Get<TComponent0>());
         _filters._absent.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2> WithDisabled<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._disabled.Add(TypeHandle.Get<TComponent0>());
         _filters._disabled.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
-	public readonly QueryEnumerable<T0, T1, T2> WithAll<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+    public readonly QueryEnumerable<T0, T1, T2> WithAll<TComponent0, TComponent1, TComponent2>()
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._all.Add(TypeHandle.Get<TComponent0>());
         _filters._all.Add(TypeHandle.Get<TComponent1>());
         _filters._all.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2> WithAny<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._any.Add(TypeHandle.Get<TComponent0>());
         _filters._any.Add(TypeHandle.Get<TComponent1>());
         _filters._any.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2> WithAbsent<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._absent.Add(TypeHandle.Get<TComponent0>());
         _filters._absent.Add(TypeHandle.Get<TComponent1>());
         _filters._absent.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2> WithDisabled<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._disabled.Add(TypeHandle.Get<TComponent0>());
         _filters._disabled.Add(TypeHandle.Get<TComponent1>());
         _filters._disabled.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 }
 
 public struct QueryEnumerable<T0, T1, T2, T3>
@@ -550,7 +550,7 @@ public struct QueryEnumerable<T0, T1, T2, T3>
         _pool3 = pool3;
 
         _count = count;
-        
+
         _filters = new();
         _filters._all.Add(TypeHandle.Get<T0>());
         _filters._all.Add(TypeHandle.Get<T1>());
@@ -558,7 +558,7 @@ public struct QueryEnumerable<T0, T1, T2, T3>
         _filters._all.Add(TypeHandle.Get<T3>());
     }
 
-    public readonly Enumerator GetEnumerator() => new (_world, _pool0, _pool1, _pool2, _pool3, _count, _filters);
+    public readonly Enumerator GetEnumerator() => new(_world, _pool0, _pool1, _pool2, _pool3, _count, _filters);
 
     public ref struct Enumerator
     {
@@ -574,7 +574,7 @@ public struct QueryEnumerable<T0, T1, T2, T3>
         private readonly int _count;
 
         private BitSet _filterMask;
-        
+
         public QueryItem<T0, T1, T2, T3> Current
         {
             get;
@@ -612,101 +612,101 @@ public struct QueryEnumerable<T0, T1, T2, T3>
         }
     }
 
-	public readonly QueryEnumerable<T0, T1, T2, T3> WithAll<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+    public readonly QueryEnumerable<T0, T1, T2, T3> WithAll<TComponent0>()
+        where TComponent0 : struct, IComponentData
+    {
         _filters._all.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3> WithAny<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData
+    {
         _filters._any.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3> WithAbsent<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData
+    {
         _filters._absent.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3> WithDisabled<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData
+    {
         _filters._disabled.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
-	public readonly QueryEnumerable<T0, T1, T2, T3> WithAll<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+    public readonly QueryEnumerable<T0, T1, T2, T3> WithAll<TComponent0, TComponent1>()
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._all.Add(TypeHandle.Get<TComponent0>());
         _filters._all.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3> WithAny<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._any.Add(TypeHandle.Get<TComponent0>());
         _filters._any.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3> WithAbsent<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._absent.Add(TypeHandle.Get<TComponent0>());
         _filters._absent.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3> WithDisabled<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._disabled.Add(TypeHandle.Get<TComponent0>());
         _filters._disabled.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
-	public readonly QueryEnumerable<T0, T1, T2, T3> WithAll<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+    public readonly QueryEnumerable<T0, T1, T2, T3> WithAll<TComponent0, TComponent1, TComponent2>()
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._all.Add(TypeHandle.Get<TComponent0>());
         _filters._all.Add(TypeHandle.Get<TComponent1>());
         _filters._all.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3> WithAny<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._any.Add(TypeHandle.Get<TComponent0>());
         _filters._any.Add(TypeHandle.Get<TComponent1>());
         _filters._any.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3> WithAbsent<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._absent.Add(TypeHandle.Get<TComponent0>());
         _filters._absent.Add(TypeHandle.Get<TComponent1>());
         _filters._absent.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3> WithDisabled<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._disabled.Add(TypeHandle.Get<TComponent0>());
         _filters._disabled.Add(TypeHandle.Get<TComponent1>());
         _filters._disabled.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 }
 
 public struct QueryEnumerable<T0, T1, T2, T3, T4>
@@ -735,7 +735,7 @@ public struct QueryEnumerable<T0, T1, T2, T3, T4>
         _pool4 = pool4;
 
         _count = count;
-        
+
         _filters = new();
         _filters._all.Add(TypeHandle.Get<T0>());
         _filters._all.Add(TypeHandle.Get<T1>());
@@ -744,7 +744,7 @@ public struct QueryEnumerable<T0, T1, T2, T3, T4>
         _filters._all.Add(TypeHandle.Get<T4>());
     }
 
-    public readonly Enumerator GetEnumerator() => new (_world, _pool0, _pool1, _pool2, _pool3, _pool4, _count, _filters);
+    public readonly Enumerator GetEnumerator() => new(_world, _pool0, _pool1, _pool2, _pool3, _pool4, _count, _filters);
 
     public ref struct Enumerator
     {
@@ -761,7 +761,7 @@ public struct QueryEnumerable<T0, T1, T2, T3, T4>
         private readonly int _count;
 
         private BitSet _filterMask;
-        
+
         public QueryItem<T0, T1, T2, T3, T4> Current
         {
             get;
@@ -800,101 +800,101 @@ public struct QueryEnumerable<T0, T1, T2, T3, T4>
         }
     }
 
-	public readonly QueryEnumerable<T0, T1, T2, T3, T4> WithAll<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+    public readonly QueryEnumerable<T0, T1, T2, T3, T4> WithAll<TComponent0>()
+        where TComponent0 : struct, IComponentData
+    {
         _filters._all.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4> WithAny<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData
+    {
         _filters._any.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4> WithAbsent<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData
+    {
         _filters._absent.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4> WithDisabled<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData
+    {
         _filters._disabled.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
-	public readonly QueryEnumerable<T0, T1, T2, T3, T4> WithAll<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+    public readonly QueryEnumerable<T0, T1, T2, T3, T4> WithAll<TComponent0, TComponent1>()
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._all.Add(TypeHandle.Get<TComponent0>());
         _filters._all.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4> WithAny<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._any.Add(TypeHandle.Get<TComponent0>());
         _filters._any.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4> WithAbsent<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._absent.Add(TypeHandle.Get<TComponent0>());
         _filters._absent.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4> WithDisabled<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._disabled.Add(TypeHandle.Get<TComponent0>());
         _filters._disabled.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
-	public readonly QueryEnumerable<T0, T1, T2, T3, T4> WithAll<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+    public readonly QueryEnumerable<T0, T1, T2, T3, T4> WithAll<TComponent0, TComponent1, TComponent2>()
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._all.Add(TypeHandle.Get<TComponent0>());
         _filters._all.Add(TypeHandle.Get<TComponent1>());
         _filters._all.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4> WithAny<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._any.Add(TypeHandle.Get<TComponent0>());
         _filters._any.Add(TypeHandle.Get<TComponent1>());
         _filters._any.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4> WithAbsent<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._absent.Add(TypeHandle.Get<TComponent0>());
         _filters._absent.Add(TypeHandle.Get<TComponent1>());
         _filters._absent.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4> WithDisabled<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._disabled.Add(TypeHandle.Get<TComponent0>());
         _filters._disabled.Add(TypeHandle.Get<TComponent1>());
         _filters._disabled.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 }
 
 public struct QueryEnumerable<T0, T1, T2, T3, T4, T5>
@@ -925,7 +925,7 @@ public struct QueryEnumerable<T0, T1, T2, T3, T4, T5>
         _pool5 = pool5;
 
         _count = count;
-        
+
         _filters = new();
         _filters._all.Add(TypeHandle.Get<T0>());
         _filters._all.Add(TypeHandle.Get<T1>());
@@ -935,7 +935,7 @@ public struct QueryEnumerable<T0, T1, T2, T3, T4, T5>
         _filters._all.Add(TypeHandle.Get<T5>());
     }
 
-    public readonly Enumerator GetEnumerator() => new (_world, _pool0, _pool1, _pool2, _pool3, _pool4, _pool5, _count, _filters);
+    public readonly Enumerator GetEnumerator() => new(_world, _pool0, _pool1, _pool2, _pool3, _pool4, _pool5, _count, _filters);
 
     public ref struct Enumerator
     {
@@ -953,7 +953,7 @@ public struct QueryEnumerable<T0, T1, T2, T3, T4, T5>
         private readonly int _count;
 
         private BitSet _filterMask;
-        
+
         public QueryItem<T0, T1, T2, T3, T4, T5> Current
         {
             get;
@@ -993,101 +993,101 @@ public struct QueryEnumerable<T0, T1, T2, T3, T4, T5>
         }
     }
 
-	public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5> WithAll<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+    public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5> WithAll<TComponent0>()
+        where TComponent0 : struct, IComponentData
+    {
         _filters._all.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5> WithAny<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData
+    {
         _filters._any.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5> WithAbsent<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData
+    {
         _filters._absent.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5> WithDisabled<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData
+    {
         _filters._disabled.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
-	public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5> WithAll<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+    public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5> WithAll<TComponent0, TComponent1>()
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._all.Add(TypeHandle.Get<TComponent0>());
         _filters._all.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5> WithAny<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._any.Add(TypeHandle.Get<TComponent0>());
         _filters._any.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5> WithAbsent<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._absent.Add(TypeHandle.Get<TComponent0>());
         _filters._absent.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5> WithDisabled<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._disabled.Add(TypeHandle.Get<TComponent0>());
         _filters._disabled.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
-	public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5> WithAll<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+    public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5> WithAll<TComponent0, TComponent1, TComponent2>()
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._all.Add(TypeHandle.Get<TComponent0>());
         _filters._all.Add(TypeHandle.Get<TComponent1>());
         _filters._all.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5> WithAny<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._any.Add(TypeHandle.Get<TComponent0>());
         _filters._any.Add(TypeHandle.Get<TComponent1>());
         _filters._any.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5> WithAbsent<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._absent.Add(TypeHandle.Get<TComponent0>());
         _filters._absent.Add(TypeHandle.Get<TComponent1>());
         _filters._absent.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5> WithDisabled<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._disabled.Add(TypeHandle.Get<TComponent0>());
         _filters._disabled.Add(TypeHandle.Get<TComponent1>());
         _filters._disabled.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 }
 
 public struct QueryEnumerable<T0, T1, T2, T3, T4, T5, T6>
@@ -1120,7 +1120,7 @@ public struct QueryEnumerable<T0, T1, T2, T3, T4, T5, T6>
         _pool6 = pool6;
 
         _count = count;
-        
+
         _filters = new();
         _filters._all.Add(TypeHandle.Get<T0>());
         _filters._all.Add(TypeHandle.Get<T1>());
@@ -1131,7 +1131,7 @@ public struct QueryEnumerable<T0, T1, T2, T3, T4, T5, T6>
         _filters._all.Add(TypeHandle.Get<T6>());
     }
 
-    public readonly Enumerator GetEnumerator() => new (_world, _pool0, _pool1, _pool2, _pool3, _pool4, _pool5, _pool6, _count, _filters);
+    public readonly Enumerator GetEnumerator() => new(_world, _pool0, _pool1, _pool2, _pool3, _pool4, _pool5, _pool6, _count, _filters);
 
     public ref struct Enumerator
     {
@@ -1150,7 +1150,7 @@ public struct QueryEnumerable<T0, T1, T2, T3, T4, T5, T6>
         private readonly int _count;
 
         private BitSet _filterMask;
-        
+
         public QueryItem<T0, T1, T2, T3, T4, T5, T6> Current
         {
             get;
@@ -1191,101 +1191,101 @@ public struct QueryEnumerable<T0, T1, T2, T3, T4, T5, T6>
         }
     }
 
-	public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithAll<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+    public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithAll<TComponent0>()
+        where TComponent0 : struct, IComponentData
+    {
         _filters._all.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithAny<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData
+    {
         _filters._any.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithAbsent<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData
+    {
         _filters._absent.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithDisabled<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData
+    {
         _filters._disabled.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
-	public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithAll<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+    public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithAll<TComponent0, TComponent1>()
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._all.Add(TypeHandle.Get<TComponent0>());
         _filters._all.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithAny<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._any.Add(TypeHandle.Get<TComponent0>());
         _filters._any.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithAbsent<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._absent.Add(TypeHandle.Get<TComponent0>());
         _filters._absent.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithDisabled<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._disabled.Add(TypeHandle.Get<TComponent0>());
         _filters._disabled.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
-	public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithAll<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+    public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithAll<TComponent0, TComponent1, TComponent2>()
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._all.Add(TypeHandle.Get<TComponent0>());
         _filters._all.Add(TypeHandle.Get<TComponent1>());
         _filters._all.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithAny<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._any.Add(TypeHandle.Get<TComponent0>());
         _filters._any.Add(TypeHandle.Get<TComponent1>());
         _filters._any.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithAbsent<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._absent.Add(TypeHandle.Get<TComponent0>());
         _filters._absent.Add(TypeHandle.Get<TComponent1>());
         _filters._absent.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithDisabled<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._disabled.Add(TypeHandle.Get<TComponent0>());
         _filters._disabled.Add(TypeHandle.Get<TComponent1>());
         _filters._disabled.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 }
 
 public struct QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7>
@@ -1320,7 +1320,7 @@ public struct QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7>
         _pool7 = pool7;
 
         _count = count;
-        
+
         _filters = new();
         _filters._all.Add(TypeHandle.Get<T0>());
         _filters._all.Add(TypeHandle.Get<T1>());
@@ -1332,7 +1332,7 @@ public struct QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7>
         _filters._all.Add(TypeHandle.Get<T7>());
     }
 
-    public readonly Enumerator GetEnumerator() => new (_world, _pool0, _pool1, _pool2, _pool3, _pool4, _pool5, _pool6, _pool7, _count, _filters);
+    public readonly Enumerator GetEnumerator() => new(_world, _pool0, _pool1, _pool2, _pool3, _pool4, _pool5, _pool6, _pool7, _count, _filters);
 
     public ref struct Enumerator
     {
@@ -1352,7 +1352,7 @@ public struct QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7>
         private readonly int _count;
 
         private BitSet _filterMask;
-        
+
         public QueryItem<T0, T1, T2, T3, T4, T5, T6, T7> Current
         {
             get;
@@ -1394,100 +1394,100 @@ public struct QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7>
         }
     }
 
-	public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithAll<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+    public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithAll<TComponent0>()
+        where TComponent0 : struct, IComponentData
+    {
         _filters._all.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithAny<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData
+    {
         _filters._any.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithAbsent<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData
+    {
         _filters._absent.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithDisabled<TComponent0>()
-		where TComponent0 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData
+    {
         _filters._disabled.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
-	public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithAll<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+    public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithAll<TComponent0, TComponent1>()
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._all.Add(TypeHandle.Get<TComponent0>());
         _filters._all.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithAny<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._any.Add(TypeHandle.Get<TComponent0>());
         _filters._any.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithAbsent<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._absent.Add(TypeHandle.Get<TComponent0>());
         _filters._absent.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithDisabled<TComponent0, TComponent1>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData
+    {
         _filters._disabled.Add(TypeHandle.Get<TComponent0>());
         _filters._disabled.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
-	public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithAll<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+    public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithAll<TComponent0, TComponent1, TComponent2>()
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._all.Add(TypeHandle.Get<TComponent0>());
         _filters._all.Add(TypeHandle.Get<TComponent1>());
         _filters._all.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithAny<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._any.Add(TypeHandle.Get<TComponent0>());
         _filters._any.Add(TypeHandle.Get<TComponent1>());
         _filters._any.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithAbsent<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._absent.Add(TypeHandle.Get<TComponent0>());
         _filters._absent.Add(TypeHandle.Get<TComponent1>());
         _filters._absent.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public readonly QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithDisabled<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
-	{
+        where TComponent0 : struct, IComponentData where TComponent1 : struct, IComponentData where TComponent2 : struct, IComponentData
+    {
         _filters._disabled.Add(TypeHandle.Get<TComponent0>());
         _filters._disabled.Add(TypeHandle.Get<TComponent1>());
         _filters._disabled.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 }
 

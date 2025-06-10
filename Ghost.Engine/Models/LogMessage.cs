@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace Ghost.Engine.Models;
+﻿namespace Ghost.Engine.Models;
 
 public enum LogLevel
 {
@@ -21,7 +19,7 @@ internal class LogMessage
         get; set;
     }
 
-    public StackTrace? StackTrace
+    public string? StackTrace
     {
         get; set;
     }
@@ -31,7 +29,7 @@ internal class LogMessage
         get; set;
     }
 
-    public LogMessage(LogLevel level, string message, StackTrace? stackTrace = null)
+    public LogMessage(LogLevel level, string message, string? stackTrace = null)
     {
         Level = level;
         Message = message;

@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Ghost.UnitTest (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "Ghost.UnitTest (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

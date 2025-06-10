@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="Ghost.App.View.Pages.EngineEditor.ProjectPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converter="using:Ghost.Editor.Utilities.Converters"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:Ghost.App.View.Pages.EngineEditor"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:model="using:Ghost.App.Models"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <converter:AssetPathToGlyphConverter x:Key="AssetPathToGlyphConverter" />
+    </Page.Resources>
+
+    <Grid Background="{ThemeResource LayerFillColorDefaultBrush}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="250" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!--  Folder Tree View  -->
+        <Grid
+            Grid.Column="0"
+            Padding="4"
+            Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+            BorderBrush="{ThemeResource CardStrokeColorDefaultSolid}"
+            BorderThickness="0,0,1,0">
+            <TreeView
+                x:Name="DirectoryTreeView"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                ItemsSource="{x:Bind ViewModel.SubDirectories}"
+                ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                ScrollViewer.VerticalScrollBarVisibility="Auto"
+                SelectedItem="{x:Bind ViewModel.SelectedDirectory, Mode=TwoWay}">
+                <TreeView.ItemTemplate>
+                    <DataTemplate x:DataType="model:ExplorerItem">
+                        <TreeViewItem ItemsSource="{x:Bind Children}">
+                            <StackPanel Orientation="Horizontal">
+                                <FontIcon
+                                    VerticalAlignment="Center"
+                                    FontSize="14"
+                                    Glyph="&#xE8B7;" />
+                                <TextBlock
+                                    Margin="8,0,0,0"
+                                    VerticalAlignment="Center"
+                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                    Text="{x:Bind Name}"
+                                    TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                        </TreeViewItem>
+                    </DataTemplate>
+                </TreeView.ItemTemplate>
+            </TreeView>
+        </Grid>
+
+        <!--  Files  -->
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid
+                Grid.Row="0"
+                Padding="4"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultSolid}"
+                BorderThickness="0,0,0,1">
+                <BreadcrumbBar Height="15" />
+            </Grid>
+
+            <ScrollViewer
+                Grid.Row="1"
+                Padding="8"
+                VerticalAlignment="Stretch"
+                HorizontalScrollBarVisibility="Auto"
+                VerticalScrollBarVisibility="Auto">
+                <GridView
+                    x:Name="AssetsGridView"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    ItemsSource="{x:Bind ViewModel.DirectoryAssets, Mode=OneWay}"
+                    SelectedItem="{x:Bind ViewModel.SelectedAsset, Mode=TwoWay}">
+                    <GridView.ItemContainerStyle>
+                        <Style BasedOn="{StaticResource DefaultGridViewItemStyle}" TargetType="GridViewItem">
+                            <Setter Property="Margin" Value="2" />
+                        </Style>
+                    </GridView.ItemContainerStyle>
+
+                    <GridView.ItemTemplate>
+                        <DataTemplate x:DataType="model:ExplorerItem">
+                            <Grid
+                                Width="100"
+                                Height="100"
+                                Padding="8"
+                                DoubleTapped="GridViewItem_DoubleTapped"
+                                IsDoubleTapEnabled="True">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="0.25*" />
+                                </Grid.RowDefinitions>
+                                <FontIcon FontSize="42" Glyph="{x:Bind FullName, Converter={StaticResource AssetPathToGlyphConverter}}" />
+                                <TextBlock
+                                    Grid.Row="1"
+                                    Margin="8,0"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                    Text="{x:Bind Name}"
+                                    TextTrimming="CharacterEllipsis" />
+                            </Grid>
+                        </DataTemplate>
+                    </GridView.ItemTemplate>
+                </GridView>
+            </ScrollViewer>
+
+            <Grid
+                Grid.Row="2"
+                Padding="4"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultSolid}"
+                BorderThickness="0,1,0,0">
+                <TextBlock
+                    VerticalAlignment="Center"
+                    HorizontalTextAlignment="Left"
+                    Style="{StaticResource CaptionTextBlockStyle}"
+                    Text="{x:Bind ViewModel.SelectedAsset.FullName, Mode=OneWay}"
+                    TextTrimming="CharacterEllipsis" />
+            </Grid>
+        </Grid>
+    </Grid>
+</Page>
