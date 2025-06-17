@@ -4,7 +4,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System.Runtime.CompilerServices;
 
-namespace Ghost.App.Services;
+namespace Ghost.Editor.Services;
 
 public class ProgressService : IProgressService
 {

@@ -1,12 +1,12 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Ghost.App.Contracts;
-using Ghost.App.Infrastructures.AppState;
-using Ghost.App.Services;
-using Ghost.App.Utilities;
 using Ghost.Data.Models;
 using Ghost.Data.Services;
+using Ghost.Editor.Contracts;
+using Ghost.Editor.Core.AppState;
 using Ghost.Editor.Models;
+using Ghost.Editor.Services;
+using Ghost.Editor.Utilities;
 using Ghost.Engine.Resources;
 using System.Collections.ObjectModel;
 using System.IO;

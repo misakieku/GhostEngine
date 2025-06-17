@@ -2,7 +2,7 @@
 using System;
 using System.Linq;
 
-namespace Ghost.App.Utilities;
+namespace Ghost.Editor.Utilities;
 
 public static class ComponentTypeCache
 {

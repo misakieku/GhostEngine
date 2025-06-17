@@ -1,4 +1,4 @@
-﻿namespace Ghost.Test.TestFramework;
+﻿namespace Ghost.UnitTest.TestFramework;
 
 internal interface ITest
 {

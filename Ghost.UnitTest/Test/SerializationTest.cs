@@ -1,9 +1,9 @@
-﻿using Ghost.Editor.SceneGraph;
+﻿using Ghost.Editor.Core.SceneGraph;
 using Ghost.Entities;
-using Ghost.Test.TestFramework;
+using Ghost.UnitTest.TestFramework;
 using System.Text.Json;
 
-namespace Ghost.Test;
+namespace Ghost.UnitTest.Test;
 
 internal class SerializationTest : ITest
 {

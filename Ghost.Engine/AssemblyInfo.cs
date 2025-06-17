@@ -1,3 +1,3 @@
 ﻿using System.Runtime.CompilerServices;
 
-[assembly: InternalsVisibleTo("Ghost.App")]
+[assembly: InternalsVisibleTo("Ghost.Editor")]

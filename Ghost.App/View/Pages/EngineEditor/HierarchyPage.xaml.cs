@@ -1,17 +1,17 @@
-using Ghost.Editor.SceneGraph;
+using Ghost.Editor.Contracts;
+using Ghost.Editor.Controls.Internal;
+using Ghost.Editor.Core.SceneGraph;
+using Ghost.Editor.Services.Contracts;
 using Ghost.Editor.ViewModels.Pages.EngineEditor;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
+namespace Ghost.Editor.View.Pages.EngineEditor;
 
-namespace Ghost.App.View.Pages.EngineEditor;
-/// <summary>
-/// An empty page that can be used on its own or navigated to within a Frame.
-/// </summary>
-internal sealed partial class HierarchyPage : Page
+internal sealed partial class HierarchyPage : NavigationTabPage
 {
+    private readonly IInspectorService _inspectorService;
+
     public HierarchyViewModel ViewModel
     {
         get;
@@ -19,9 +19,38 @@ internal sealed partial class HierarchyPage : Page
 
     public HierarchyPage()
     {
-        ViewModel = GhostApplication.GetService<HierarchyViewModel>();
+        _inspectorService = EditorApplication.GetService<IInspectorService>();
+        ViewModel = EditorApplication.GetService<HierarchyViewModel>();
 
         InitializeComponent();
+
+        Header = "Hierarchy";
+        IconSource = new FontIconSource
+        {
+            Glyph = "\uE8A4"
+        };
+    }
+
+    public override void OnNavigatedTo(object? parameter)
+    {
+        ViewModel.OnNavigatedTo(parameter);
+    }
+
+    public override void OnNavigatedFrom()
+    {
+        ViewModel.OnNavigatedFrom();
+    }
+
+    private void TreeView_SelectionChanged(TreeView sender, TreeViewSelectionChangedEventArgs args)
+    {
+        if (args.AddedItems.Count > 0 && args.AddedItems[0] is IInspectable inspectable)
+        {
+            _inspectorService.SelectedInspectable = inspectable;
+        }
+        else
+        {
+            _inspectorService.SelectedInspectable = null;
+        }
     }
 }
 

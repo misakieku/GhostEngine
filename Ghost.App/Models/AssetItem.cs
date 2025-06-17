@@ -1,4 +1,4 @@
-﻿namespace Ghost.App.Models;
+﻿namespace Ghost.Editor.Models;
 
 internal struct AssetItem()
 {

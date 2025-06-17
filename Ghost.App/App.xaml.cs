@@ -1,31 +1,30 @@
-﻿using Ghost.App.Infrastructures.AppState;
-using Ghost.App.Services;
-using Ghost.App.Utilities;
+﻿using Ghost.Editor.Core.AppState;
+using Ghost.Editor.Services;
 using Ghost.Editor.Services.Contracts;
+using Ghost.Editor.Utilities;
 using Ghost.Engine.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
-using System;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
 
-namespace Ghost.App;
+namespace Ghost.Editor;
 
 /// <summary>
 /// Provides application-specific behavior to supplement the default Application class.
 /// </summary>
-public partial class GhostApplication : Application
+public partial class EditorApplication : Application
 {
     private Window? _window;
 
     internal static Window? Window
     {
-        get => (Current as GhostApplication)!._window;
+        get => (Current as EditorApplication)!._window;
         set
         {
-            if (Current is GhostApplication app)
+            if (Current is EditorApplication app)
             {
                 app._window = value;
             }
@@ -41,7 +40,7 @@ public partial class GhostApplication : Application
     /// Initializes the singleton application object.  This is the first line of authored code
     /// executed, and as such is the logical equivalent of main() or WinMain().
     /// </summary>
-    internal GhostApplication()
+    internal EditorApplication()
     {
         InitializeComponent();
 
@@ -56,6 +55,7 @@ public partial class GhostApplication : Application
                 services.AddSingleton<AppStateMachine>();
                 services.AddSingleton<INotificationService, NotificationService>();
                 services.AddSingleton<IProgressService, ProgressService>();
+                services.AddSingleton<IInspectorService, InspectorService>();
             })
             .Build();
 
@@ -64,12 +64,12 @@ public partial class GhostApplication : Application
 
     internal static IServiceScope CreateScope()
     {
-        return (Current as GhostApplication)!.Host.Services.CreateScope();
+        return (Current as EditorApplication)!.Host.Services.CreateScope();
     }
 
     public static T GetService<T>() where T : class
     {
-        if ((Current as GhostApplication)!.Host.Services.GetService(typeof(T)) is not T service)
+        if ((Current as EditorApplication)!.Host.Services.GetService(typeof(T)) is not T service)
         {
             throw new ArgumentException($"{typeof(T)} needs to be registered in ConfigureServices within App.xaml.cs.");
         }

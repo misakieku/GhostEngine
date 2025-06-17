@@ -2,7 +2,7 @@ using Ghost.Editor.ViewModels.Pages.EngineEditor;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 
-namespace Ghost.App.View.Pages.EngineEditor;
+namespace Ghost.Editor.View.Pages.EngineEditor;
 
 internal sealed partial class ProjectPage : Page
 {
@@ -13,13 +13,13 @@ internal sealed partial class ProjectPage : Page
 
     public ProjectPage()
     {
-        ViewModel = GhostApplication.GetService<ProjectViewModel>();
+        ViewModel = EditorApplication.GetService<ProjectViewModel>();
 
         InitializeComponent();
     }
 
-    private async void GridViewItem_DoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
+    private void GridViewItem_DoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
     {
-        await ViewModel.OpenSelected();
+        ViewModel.OpenSelected();
     }
 }

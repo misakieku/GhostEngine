@@ -1,7 +1,7 @@
 using Ghost.Editor.ViewModels.Pages.EngineEditor;
 using Microsoft.UI.Xaml.Controls;
 
-namespace Ghost.App.View.Pages.EngineEditor;
+namespace Ghost.Editor.View.Pages.EngineEditor;
 
 internal sealed partial class ConsolePage : Page
 {
@@ -12,7 +12,7 @@ internal sealed partial class ConsolePage : Page
 
     public ConsolePage()
     {
-        ViewModel = GhostApplication.GetService<ConsoleViewModel>();
+        ViewModel = EditorApplication.GetService<ConsoleViewModel>();
 
         InitializeComponent();
     }

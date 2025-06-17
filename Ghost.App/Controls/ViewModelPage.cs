@@ -1,9 +1,9 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using Ghost.App.Contracts;
+using Ghost.Editor.Contracts;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 
-namespace Ghost.App.Controls;
+namespace Ghost.Editor.Controls;
 
 public abstract partial class ViewModelPage<VM> : Page
     where VM : ObservableObject

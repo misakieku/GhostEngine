@@ -1,7 +1,7 @@
-﻿using Ghost.App.View.Pages.EngineEditor;
-using Ghost.App.View.Pages.Landing;
-using Ghost.App.View.Windows;
-using Ghost.Data.Services;
+﻿using Ghost.Data.Services;
+using Ghost.Editor.View.Pages.EngineEditor;
+using Ghost.Editor.View.Pages.Landing;
+using Ghost.Editor.View.Windows;
 using Ghost.Editor.ViewModels.Pages.EngineEditor;
 using Ghost.Editor.ViewModels.Pages.Landing;
 using Ghost.Editor.ViewModels.Windows;
@@ -9,7 +9,7 @@ using Ghost.Engine;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace Ghost.App.Utilities;
+namespace Ghost.Editor.Utilities;
 
 internal static partial class HostHelper
 {
@@ -41,5 +41,8 @@ internal static partial class HostHelper
 
         services.AddTransient<ConsolePage>();
         services.AddTransient<ConsoleViewModel>();
+
+        services.AddTransient<InspectorPage>();
+        services.AddTransient<InspectorViewModel>();
     }
 }

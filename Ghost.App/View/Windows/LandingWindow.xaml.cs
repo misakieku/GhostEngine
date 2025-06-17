@@ -1,6 +1,6 @@
-﻿using Ghost.App.Services;
-using Ghost.App.View.Pages.Landing;
+﻿using Ghost.Editor.View.Pages.Landing;
 using Ghost.Data.Resources;
+using Ghost.Editor.Services;
 using Ghost.Editor.Services.Contracts;
 using Ghost.Engine.Resources;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,7 +8,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Animation;
 using WinUIEx;
 
-namespace Ghost.App.View.Windows;
+namespace Ghost.Editor.View.Windows;
 
 internal sealed partial class LandingWindow : WindowEx
 {
@@ -20,7 +20,7 @@ internal sealed partial class LandingWindow : WindowEx
 
     public LandingWindow()
     {
-        _notificationService = (NotificationService)GhostApplication.GetService<INotificationService>();
+        _notificationService = (NotificationService)EditorApplication.GetService<INotificationService>();
 
         AppWindow.SetIcon(AssetsPath.s_appIconPath);
         Title = EngineData.ENGINE_NAME;
@@ -36,7 +36,7 @@ internal sealed partial class LandingWindow : WindowEx
     private void WindowEx_Activated(object sender, Microsoft.UI.Xaml.WindowActivatedEventArgs args)
     {
         _landingScope?.Dispose();
-        _landingScope = GhostApplication.CreateScope();
+        _landingScope = EditorApplication.CreateScope();
         _notificationService.SetReference(InfoBar, NotificationQueue);
     }
 

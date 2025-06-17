@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<Page
-    x:Class="Ghost.App.View.Pages.EngineEditor.HierarchyPage"
+<internal:NavigationTabPage
+    x:Class="Ghost.Editor.View.Pages.EngineEditor.HierarchyPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:local="using:Ghost.App.View.Pages.EngineEditor"
+    xmlns:internal="using:Ghost.Editor.Controls.Internal"
+    xmlns:local="using:Ghost.Editor.View.Pages.EngineEditor"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:sg="using:Ghost.Editor.SceneGraph"
+    xmlns:sg="using:Ghost.Editor.Core.SceneGraph"
     mc:Ignorable="d">
 
-    <Page.Resources>
+    <internal:NavigationTabPage.Resources>
         <DataTemplate x:Key="SceneTemplate" x:DataType="sg:SceneGraphNode">
             <TreeViewItem
                 AutomationProperties.Name="{x:Bind Name}"
@@ -25,19 +26,19 @@
 
         <DataTemplate x:Key="EntityTemplate" x:DataType="sg:SceneGraphNode">
             <TreeViewItem AutomationProperties.Name="{x:Bind Name}" ItemsSource="{x:Bind Children}">
-                <StackPanel Orientation="Horizontal">
+                <StackPanel Margin="10,0" Orientation="Horizontal">
                     <FontIcon FontSize="14" Glyph="&#xF158;" />
-                    <TextBlock Margin="10,0" Text="{x:Bind Name}" />
+                    <TextBlock Margin="5,0,0,0" Text="{x:Bind Name}" />
                 </StackPanel>
             </TreeViewItem>
         </DataTemplate>
-    </Page.Resources>
+    </internal:NavigationTabPage.Resources>
 
     <Grid Padding="4,6" Background="{ThemeResource LayerFillColorDefaultBrush}">
-        <TreeView ItemsSource="{x:Bind ViewModel.SceneList}">
+        <TreeView ItemsSource="{x:Bind ViewModel.SceneList}" SelectionChanged="TreeView_SelectionChanged">
             <TreeView.ItemTemplateSelector>
                 <local:HierarchyTemplateSector EntityTemplate="{StaticResource EntityTemplate}" WorldTemplate="{StaticResource SceneTemplate}" />
             </TreeView.ItemTemplateSelector>
         </TreeView>
     </Grid>
-</Page>
+</internal:NavigationTabPage>

@@ -1,11 +1,11 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using Ghost.Editor.SceneGraph;
-using System;
+using Ghost.Editor.Contracts;
+using Ghost.Editor.Core.SceneGraph;
 using System.Collections.ObjectModel;
 
 namespace Ghost.Editor.ViewModels.Pages.EngineEditor;
 
-internal partial class HierarchyViewModel : ObservableObject, IDisposable
+internal partial class HierarchyViewModel : ObservableObject, INavigationAware
 {
     [ObservableProperty]
     public partial ObservableCollection<WorldNode> SceneList
@@ -13,12 +13,6 @@ internal partial class HierarchyViewModel : ObservableObject, IDisposable
         get;
         private set;
     } = new(EditorWorldManager.LoadedWorlds);
-
-    public HierarchyViewModel()
-    {
-        EditorWorldManager.OnWorldLoaded += OnWorldLoaded;
-        EditorWorldManager.OnWorldUnloaded += OnWorldUnloaded;
-    }
 
     private void OnWorldLoaded(WorldNode node)
     {
@@ -30,7 +24,13 @@ internal partial class HierarchyViewModel : ObservableObject, IDisposable
         SceneList.Remove(node);
     }
 
-    public void Dispose()
+    public void OnNavigatedTo(object? parameter)
+    {
+        EditorWorldManager.OnWorldLoaded += OnWorldLoaded;
+        EditorWorldManager.OnWorldUnloaded += OnWorldUnloaded;
+    }
+
+    public void OnNavigatedFrom()
     {
         EditorWorldManager.OnWorldLoaded -= OnWorldLoaded;
         EditorWorldManager.OnWorldUnloaded -= OnWorldUnloaded;

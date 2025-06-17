@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 
-namespace Ghost.App.Infrastructures.AppState;
+namespace Ghost.Editor.Core.AppState;
 
 internal interface IAppState
 {

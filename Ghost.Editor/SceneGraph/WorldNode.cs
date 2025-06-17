@@ -167,7 +167,12 @@ public partial class WorldNode : SceneGraphNode, IEquatable<WorldNode>
 
 public partial class WorldNode : IInspectable
 {
-    public UIElement OnInspectorDraw()
+    public UIElement HeaderContent()
+    {
+        throw new NotImplementedException();
+    }
+
+    public UIElement InspectorContent()
     {
         throw new NotImplementedException();
     }

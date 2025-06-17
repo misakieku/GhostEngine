@@ -1,4 +1,4 @@
-﻿namespace Ghost.App.Contracts;
+﻿namespace Ghost.Editor.Contracts;
 
 public interface INavigationAware
 {

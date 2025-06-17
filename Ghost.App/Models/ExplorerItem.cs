@@ -1,6 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 
-namespace Ghost.App.Models;
+namespace Ghost.Editor.Models;
 
 internal class ExplorerItem(string name, string path, bool isDirectory)
 {

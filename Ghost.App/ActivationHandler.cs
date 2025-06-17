@@ -3,7 +3,7 @@ using Ghost.Data.Services;
 using Microsoft.UI.Xaml;
 using System.IO;
 
-namespace Ghost.App;
+namespace Ghost.Editor;
 
 internal static class ActivationHandler
 {

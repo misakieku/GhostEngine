@@ -1,7 +1,8 @@
-﻿using Ghost.App.View.Windows;
+﻿using Ghost.Editor;
+using Ghost.Editor.View.Windows;
 using System.Threading.Tasks;
 
-namespace Ghost.App.Infrastructures.AppState;
+namespace Ghost.Editor.Core.AppState;
 
 internal class LandingState : IAppState
 {
@@ -9,17 +10,17 @@ internal class LandingState : IAppState
 
     public Task OnExitingAsync()
     {
-        if (GhostApplication.Window == _window)
+        if (EditorApplication.Window == _window)
         {
-            GhostApplication.Window = null;
+            EditorApplication.Window = null;
         }
         return Task.CompletedTask;
     }
 
     public Task OnEnteringAsync(object? parameter)
     {
-        _window = GhostApplication.GetService<LandingWindow>();
-        GhostApplication.Window = _window;
+        _window = EditorApplication.GetService<LandingWindow>();
+        EditorApplication.Window = _window;
 
         _window.Activate();
         return Task.CompletedTask;
@@ -27,9 +28,9 @@ internal class LandingState : IAppState
 
     public Task OnExitedAsync()
     {
-        if (GhostApplication.Window == _window)
+        if (EditorApplication.Window == _window)
         {
-            GhostApplication.Window = null;
+            EditorApplication.Window = null;
         }
 
         _window?.Close();

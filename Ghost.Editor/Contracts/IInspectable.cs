@@ -3,5 +3,6 @@
 namespace Ghost.Editor.Contracts;
 internal interface IInspectable
 {
-    public UIElement OnInspectorDraw();
+    public UIElement HeaderContent();
+    public UIElement InspectorContent();
 }

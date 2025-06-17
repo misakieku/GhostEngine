@@ -1,18 +1,19 @@
-﻿using System;
+﻿using Ghost.Editor;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
 
-namespace Ghost.App.Utilities;
+namespace Ghost.Editor.Utilities;
 
 public static class SystemUtilities
 {
     public static async Task<StorageFolder?> OpenFolderPickerAsync(PickerLocationId startLocation = PickerLocationId.DocumentsLibrary, string settingsIdentifier = "")
     {
         var openPicker = new FolderPicker();
-        var hWnd = WindowNative.GetWindowHandle(GhostApplication.Window);
+        var hWnd = WindowNative.GetWindowHandle(EditorApplication.Window);
         InitializeWithWindow.Initialize(openPicker, hWnd);
 
         openPicker.SuggestedStartLocation = startLocation;
@@ -26,7 +27,7 @@ public static class SystemUtilities
     public static async Task<StorageFile?> OpenFilePickerAsync(PickerLocationId startLocation = PickerLocationId.DocumentsLibrary, string settingsIdentifier = "", params IEnumerable<string> filter)
     {
         var openPicker = new FileOpenPicker();
-        var hWnd = WindowNative.GetWindowHandle(GhostApplication.Window);
+        var hWnd = WindowNative.GetWindowHandle(EditorApplication.Window);
         InitializeWithWindow.Initialize(openPicker, hWnd);
 
         openPicker.SuggestedStartLocation = startLocation;

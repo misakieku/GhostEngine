@@ -4,7 +4,7 @@ using Ghost.Editor.Services.Contracts;
 using Microsoft.UI.Xaml.Controls;
 using System;
 
-namespace Ghost.App.Services;
+namespace Ghost.Editor.Services;
 
 public class NotificationService : INotificationService
 {

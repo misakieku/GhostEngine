@@ -2,7 +2,7 @@
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 
-namespace Ghost.App.View.Pages.Landing;
+namespace Ghost.Editor.View.Pages.Landing;
 
 internal sealed partial class CreateProjectPage : Page
 {
@@ -13,7 +13,7 @@ internal sealed partial class CreateProjectPage : Page
 
     public CreateProjectPage()
     {
-        ViewModel = GhostApplication.GetService<CreateProjectViewModel>();
+        ViewModel = EditorApplication.GetService<CreateProjectViewModel>();
 
         InitializeComponent();
     }

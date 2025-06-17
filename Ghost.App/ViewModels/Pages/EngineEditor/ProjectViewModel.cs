@@ -1,13 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using Ghost.App;
-using Ghost.App.Models;
 using Ghost.Data.Services;
-using Ghost.Editor.AssetHandle;
-using System;
-using System.Collections.Generic;
+using Ghost.Editor.Core.AssetHandle;
+using Ghost.Editor.Models;
 using System.Collections.ObjectModel;
-using System.IO;
-using System.Threading.Tasks;
 
 namespace Ghost.Editor.ViewModels.Pages.EngineEditor;
 
@@ -96,7 +91,7 @@ internal partial class ProjectViewModel : ObservableObject
 
     private void NavigateToDirectory(string? path)
     {
-        GhostApplication.Window?.DispatcherQueue.TryEnqueue(async () =>
+        EditorApplication.Window?.DispatcherQueue.TryEnqueue(async () =>
         {
             DirectoryAssets.Clear();
 
@@ -121,7 +116,7 @@ internal partial class ProjectViewModel : ObservableObject
         });
     }
 
-    public async Task OpenSelected()
+    public void OpenSelected()
     {
         if (SelectedAsset == null)
         {
@@ -134,7 +129,7 @@ internal partial class ProjectViewModel : ObservableObject
         }
         else
         {
-            await AssetDatabase.OpenAsset(SelectedAsset.FullName);
+            AssetDatabase.OpenAsset(SelectedAsset.FullName);
         }
     }
 

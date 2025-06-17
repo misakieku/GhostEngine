@@ -1,13 +1,10 @@
-﻿using Ghost.App.View.Windows;
-using Ghost.Data.Models;
+﻿using Ghost.Data.Models;
 using Ghost.Data.Services;
-using Ghost.Editor;
+using Ghost.Editor.Core.AssetHandle;
+using Ghost.Editor.View.Windows;
 using Ghost.Engine;
-using Microsoft.UI.Xaml;
-using System;
-using System.Threading.Tasks;
 
-namespace Ghost.App.Infrastructures.AppState;
+namespace Ghost.Editor.Core.AppState;
 
 internal class EditorState : IAppState
 {
@@ -16,9 +13,9 @@ internal class EditorState : IAppState
 
     public Task OnExitingAsync()
     {
-        if (GhostApplication.Window == _window)
+        if (EditorApplication.Window == _window)
         {
-            GhostApplication.Window = null;
+            EditorApplication.Window = null;
         }
         return Task.CompletedTask;
     }
@@ -32,13 +29,13 @@ internal class EditorState : IAppState
 
         ProjectService.CurrentProject = metadataInfo;
 
-        _engineCore = GhostApplication.GetService<EngineCore>();
+        _engineCore = EditorApplication.GetService<EngineCore>();
         await _engineCore.StartAsync(new Engine.Models.LaunchArgument());
 
-        _window = GhostApplication.GetService<EngineEditorWindow>();
+        _window = EditorApplication.GetService<EngineEditorWindow>();
         _window.Activate();
 
-        GhostApplication.Window = _window;
+        EditorApplication.Window = _window;
     }
 
     public async Task OnExitedAsync()
@@ -48,9 +45,9 @@ internal class EditorState : IAppState
             await _engineCore.ShutDownAsync();
         }
 
-        if (GhostApplication.Window == _window)
+        if (EditorApplication.Window == _window)
         {
-            GhostApplication.Window = null;
+            EditorApplication.Window = null;
         }
 
         _window?.Close();
@@ -59,7 +56,7 @@ internal class EditorState : IAppState
 
     public Task OnEnteredAsync(object? parameter)
     {
-        EditorApplication.Activate(parameter, ((GhostApplication)(Application.Current)).Host.Services);
+        AssetDatabase.Initialize();
         return Task.CompletedTask;
     }
 }

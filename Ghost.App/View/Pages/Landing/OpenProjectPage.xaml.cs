@@ -1,11 +1,11 @@
-﻿using Ghost.Data.Models;
-using Ghost.Editor.ViewModels.Pages.Landing;
+﻿using Ghost.Editor.ViewModels.Pages.Landing;
+using Ghost.Data.Models;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using Windows.ApplicationModel.DataTransfer;
 
-namespace Ghost.App.View.Pages.Landing;
+namespace Ghost.Editor.View.Pages.Landing;
 
 internal sealed partial class OpenProjectPage : Page
 {
@@ -16,7 +16,7 @@ internal sealed partial class OpenProjectPage : Page
 
     public OpenProjectPage()
     {
-        ViewModel = GhostApplication.GetService<OpenProjectViewModel>();
+        ViewModel = EditorApplication.GetService<OpenProjectViewModel>();
         InitializeComponent();
     }
 

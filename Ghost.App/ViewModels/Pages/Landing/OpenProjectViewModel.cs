@@ -1,15 +1,12 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using Ghost.App.Contracts;
-using Ghost.App.Infrastructures.AppState;
 using Ghost.Data.Models;
 using Ghost.Data.Services;
+using Ghost.Editor.Contracts;
+using Ghost.Editor.Core.AppState;
 using Ghost.Editor.Models;
 using Ghost.Editor.Services.Contracts;
 using Microsoft.UI.Xaml;
-using System;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
 

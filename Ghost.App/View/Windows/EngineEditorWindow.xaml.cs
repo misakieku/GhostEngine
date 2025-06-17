@@ -1,5 +1,5 @@
-﻿using Ghost.App.Services;
-using Ghost.Data.Resources;
+﻿using Ghost.Data.Resources;
+using Ghost.Editor.Services;
 using Ghost.Editor.Services.Contracts;
 using Ghost.Editor.ViewModels.Windows;
 using Ghost.Engine.Resources;
@@ -9,7 +9,7 @@ using WinUIEx;
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
 
-namespace Ghost.App.View.Windows;
+namespace Ghost.Editor.View.Windows;
 /// <summary>
 /// An empty window that can be used on its own or navigated to within a Frame.
 /// </summary>
@@ -27,10 +27,10 @@ internal sealed partial class EngineEditorWindow : WindowEx
 
     public EngineEditorWindow()
     {
-        ViewModel = GhostApplication.GetService<EngineEditorViewModel>();
+        ViewModel = EditorApplication.GetService<EngineEditorViewModel>();
 
-        _notificationService = (NotificationService)GhostApplication.GetService<INotificationService>();
-        _progressService = (ProgressService)GhostApplication.GetService<IProgressService>();
+        _notificationService = (NotificationService)EditorApplication.GetService<INotificationService>();
+        _progressService = (ProgressService)EditorApplication.GetService<IProgressService>();
 
         AppWindow.SetIcon(AssetsPath.s_appIconPath);
         Title = EngineData.ENGINE_NAME;
@@ -46,7 +46,7 @@ internal sealed partial class EngineEditorWindow : WindowEx
         Bindings.Update();
 
         _editorScope?.Dispose();
-        _editorScope = GhostApplication.CreateScope();
+        _editorScope = EditorApplication.CreateScope();
 
         _notificationService.SetReference(InfoBar, NotificationQueue);
         _progressService.SetReference(ProgressBarContainer);

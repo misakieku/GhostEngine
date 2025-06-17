@@ -1,10 +1,10 @@
 ﻿using Ghost.Entities;
 using Ghost.Entities.Components;
 using Ghost.Entities.Systems;
-using Ghost.Test.TestFramework;
+using Ghost.UnitTest.TestFramework;
 using System.Numerics;
 
-namespace Ghost.Test;
+namespace Ghost.UnitTest;
 
 public partial class EntityTest : ITest
 {
