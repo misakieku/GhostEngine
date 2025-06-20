@@ -67,7 +67,7 @@ public partial class World : IDisposable, IEquatable<World>
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Ref<T> GetSingleton<T>()
-        where T : struct, IComponentData
+        where T : unmanaged, IComponentData
     {
         ref var component = ref CollectionsMarshal.GetValueRefOrAddDefault(SingletonContainer<T>.container, _id, out _);
         return new Ref<T>(ref component);
@@ -111,6 +111,11 @@ public partial class World : IDisposable, IEquatable<World>
     public override int GetHashCode()
     {
         return _id.GetHashCode();
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is World other && Equals(other);
     }
 
     public static bool operator ==(World? left, World? right)

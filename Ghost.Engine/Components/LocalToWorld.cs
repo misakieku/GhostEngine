@@ -15,7 +15,7 @@ public struct LocalToWorld : IComponentData
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => new()
         {
-            matrix = MatrixUtilities.CreateTRS(Vector3.Zero, Quaternion.Identity, Vector3.One)
+            matrix = MatrixUtility.CreateTRS(Vector3.Zero, Quaternion.Identity, Vector3.One)
         };
     }
 }

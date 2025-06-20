@@ -1,6 +1,5 @@
 ﻿using Ghost.Editor.Resources;
 using Ghost.Editor.Services.Contracts;
-using Ghost.Engine.Resources;
 using System.Text.Json;
 
 namespace Ghost.Editor.Core.SceneGraph;
@@ -40,7 +39,7 @@ public static class EditorWorldManager
         }
 
         await using var readStream = new FileStream(worldPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        var deserializedScene = await JsonSerializer.DeserializeAsync<WorldNode>(readStream, StaticResource.defaultSerializerOptions) ?? throw new Exception("Deserialization failed.");
+        var deserializedScene = await JsonSerializer.DeserializeAsync<WorldNode>(readStream, Engine.Resources.StaticResource.defaultSerializerOptions) ?? throw new Exception("Deserialization failed.");
 
         _loadedWorlds.Clear();
 

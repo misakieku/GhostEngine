@@ -5,13 +5,15 @@
 <#@ import namespace="System.Text" #>
 <#@ include file="Helpers.ttinclude" #>
 
+using Ghost.Entities.Components;
+
 namespace Ghost.Entities;
 
 public partial class World
 {
 <# for (var index = 1; index <= Amount; index++) {
     var generics  = AppendGenerics(index);
-    var restrictions = AppendGenericRestrictions(index, "struct, IComponentData");
+    var restrictions = AppendGenericRestrictions(index, "unmanaged, IComponentData");
     var tryGetPools = TryGetComponentPools(index);
     var poolParams = Enumerable.Range(0, index)
                                       .Select(i => $"pool{i}")

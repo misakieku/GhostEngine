@@ -40,7 +40,9 @@
     <None Remove="Assets\Icon.targetsize-48.png" />
     <None Remove="Assets\Icon.targetsize-48_altform-unplated.png" />
     <None Remove="Controls\BasicInput\PropertyField.xaml" />
+    <None Remove="Controls\BasicInput\Vector3Field.xaml" />
     <None Remove="Controls\EditorControls.xaml" />
+    <None Remove="Controls\Internal\ComponentDataView.xaml" />
     <None Remove="Controls\Internal\InternalControls.xaml" />
     <None Remove="Controls\Internal\NavigationTabView.xaml" />
     <None Remove="View\Pages\EngineEditor\ConsolePage.xaml" />
@@ -158,6 +160,16 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Controls\Layout\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Controls\BasicInput\Vector3Field.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Controls\Internal\ComponentDataView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Page Update="Controls\Internal\NavigationTabView.xaml">

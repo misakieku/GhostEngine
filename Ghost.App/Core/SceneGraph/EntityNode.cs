@@ -1,28 +1,29 @@
-﻿using Ghost.Editor.Contracts;
+﻿using Ghost.Editor.Controls.Internal;
+using Ghost.Editor.Core.Inspector;
 using Ghost.Editor.Resources;
+using Ghost.Engine.Editor;
 using Ghost.Entities;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
+using System.Reflection;
 
 namespace Ghost.Editor.Core.SceneGraph;
 
 public partial class EntityNode : SceneGraphNode
 {
+    private WorldNode _owner;
     private readonly Entity _entity;
 
     public Entity Entity => _entity;
     public override SceneGraphNodeType NodeType => SceneGraphNodeType.Entity;
 
-    public EntityNode(Entity entity, string name)
+    public EntityNode(WorldNode owner, Entity entity, string name)
     {
+        _owner = owner;
         _entity = entity;
         Name = name;
-    }
-
-    internal EntityNode()
-    {
     }
 }
 
@@ -30,41 +31,72 @@ public partial class EntityNode : IInspectable
 {
     public IconSource? Icon => EditorIconSource.entity_24;
 
-    public UIElement? HeaderContent()
+    public UIElement? HeaderContent
     {
-        var root = new StackPanel()
+        get
         {
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            VerticalAlignment = VerticalAlignment.Center
-        };
+            var root = new StackPanel()
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Center
+            };
 
-        var nameText = new TextBox
-        {
-            Text = Name,
-            FontWeight = FontWeights.Bold,
-        };
-        var idText = new TextBlock
-        {
-            Text = $"ID: {_entity.ID}",
-            Margin = new Thickness(0, 5, 0, 0),
-        };
+            var nameText = new TextBox
+            {
+                Text = Name,
+                FontWeight = FontWeights.Bold,
+            };
+            var idText = new TextBlock
+            {
+                Text = $"ID: {_entity.ID}   Generation: {_entity.Generation}",
+                Margin = new Thickness(5, 7, 0, 0),
+                Opacity = 0.75,
+                Style = Application.Current.Resources["CaptionTextBlockStyle"] as Style
+            };
 
-        nameText.SetBinding(TextBox.TextProperty, new Binding
-        {
-            Source = this,
-            Path = new PropertyPath(nameof(Name)),
-            Mode = BindingMode.TwoWay,
-            UpdateSourceTrigger = UpdateSourceTrigger.LostFocus,
-        });
+            nameText.SetBinding(TextBox.TextProperty, new Binding
+            {
+                Source = this,
+                Path = new PropertyPath(nameof(Name)),
+                Mode = BindingMode.TwoWay,
+                UpdateSourceTrigger = UpdateSourceTrigger.LostFocus,
+            });
 
-        root.Children.Add(nameText);
-        root.Children.Add(idText);
+            root.Children.Add(nameText);
+            root.Children.Add(idText);
 
-        return root;
+            return root;
+        }
     }
 
-    public UIElement? InspectorContent()
+    public UIElement? InspectorContent
     {
-        return null;
+        get
+        {
+            var root = new StackPanel()
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Top
+            };
+
+            foreach (var (typeHandle, componentPtr) in _owner.World.EntityManager.GetComponentsUnsafe(_entity))
+            {
+                if (componentPtr == IntPtr.Zero)
+                {
+                    continue;
+                }
+
+                var type = Type.GetTypeFromHandle(RuntimeTypeHandle.FromIntPtr(typeHandle));
+                if (type == null || type.GetCustomAttribute<HideEditorAttribute>() != null)
+                {
+                    continue;
+                }
+
+                var dataView = new ComponentDataView(type.Name, _owner.World, _entity, type);
+                root.Children.Add(dataView);
+            }
+
+            return root;
+        }
     }
 }

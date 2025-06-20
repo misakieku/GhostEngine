@@ -12,7 +12,9 @@
             <StaticResource x:Key="TabViewItemHeaderBackgroundSelected" ResourceKey="ControlFillColorSecondaryBrush" />
         </ResourceDictionary>
     </ResourceDictionary.ThemeDictionaries>
+
     <Style TargetType="internal:NavigationTabView">
         <Setter Property="TabWidthMode" Value="Compact" />
     </Style>
+    <Style TargetType="NumberBox" />
 </ResourceDictionary>

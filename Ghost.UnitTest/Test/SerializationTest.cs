@@ -12,13 +12,13 @@ internal class SerializationTest : ITest
     public void Run()
     {
         var testWorld = World.Create();
-        var entity1 = SceneGraphHelpers.CreateEntityNode(testWorld, "entity 1");
-        var entity2 = SceneGraphHelpers.CreateEntityNode(testWorld, "entity 2");
-        var entity3 = SceneGraphHelpers.CreateEntityNode(testWorld, "entity 3");
-        var entity4 = SceneGraphHelpers.CreateEntityNode(testWorld, "entity 4");
-        var entity5 = SceneGraphHelpers.CreateEntityNode(testWorld, "entity 5");
-
         var testScene = new WorldNode(testWorld, "Test Scene");
+
+        var entity1 = SceneGraphHelpers.CreateEntityNode(testScene, "entity 1");
+        var entity2 = SceneGraphHelpers.CreateEntityNode(testScene, "entity 2");
+        var entity3 = SceneGraphHelpers.CreateEntityNode(testScene, "entity 3");
+        var entity4 = SceneGraphHelpers.CreateEntityNode(testScene, "entity 4");
+        var entity5 = SceneGraphHelpers.CreateEntityNode(testScene, "entity 5");
 
         testWorld.SystemStorage.AddSystem<TestSystem>();
 

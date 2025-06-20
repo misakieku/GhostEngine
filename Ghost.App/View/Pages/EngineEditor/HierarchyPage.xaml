@@ -13,22 +13,22 @@
     <internal:NavigationTabPage.Resources>
         <DataTemplate x:Key="SceneTemplate" x:DataType="sg:SceneGraphNode">
             <TreeViewItem
-                AutomationProperties.Name="{x:Bind Name}"
+                AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"
                 Background="{ThemeResource ControlSolidFillColorDefaultBrush}"
                 IsExpanded="True"
-                ItemsSource="{x:Bind Children}">
+                ItemsSource="{x:Bind Children, Mode=OneWay}">
                 <StackPanel Orientation="Horizontal">
                     <FontIcon FontSize="14" Glyph="&#xF159;" />
-                    <TextBlock Margin="10,0" Text="{x:Bind Name}" />
+                    <TextBlock Margin="10,0" Text="{x:Bind Name, Mode=OneWay}" />
                 </StackPanel>
             </TreeViewItem>
         </DataTemplate>
 
         <DataTemplate x:Key="EntityTemplate" x:DataType="sg:SceneGraphNode">
-            <TreeViewItem AutomationProperties.Name="{x:Bind Name}" ItemsSource="{x:Bind Children}">
+            <TreeViewItem AutomationProperties.Name="{x:Bind Name, Mode=OneWay}" ItemsSource="{x:Bind Children, Mode=OneWay}">
                 <StackPanel Margin="10,0" Orientation="Horizontal">
                     <FontIcon FontSize="14" Glyph="&#xF158;" />
-                    <TextBlock Margin="5,0,0,0" Text="{x:Bind Name}" />
+                    <TextBlock Margin="5,0,0,0" Text="{x:Bind Name, Mode=OneWay}" />
                 </StackPanel>
             </TreeViewItem>
         </DataTemplate>

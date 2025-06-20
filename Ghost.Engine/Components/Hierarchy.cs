@@ -1,10 +1,12 @@
-﻿using Ghost.Entities;
+﻿using Ghost.Engine.Editor;
+using Ghost.Entities;
 using Ghost.Entities.Components;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Engine.Components;
 
 [SkipLocalsInit]
+[HideEditor]
 public struct Hierarchy : IComponentData
 {
     public Entity parent;

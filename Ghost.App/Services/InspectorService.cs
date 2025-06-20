@@ -1,4 +1,4 @@
-﻿using Ghost.Editor.Contracts;
+﻿using Ghost.Editor.Core.Inspector;
 using Ghost.Editor.Services.Contracts;
 
 namespace Ghost.Editor.Services;

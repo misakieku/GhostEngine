@@ -1,5 +1,5 @@
-﻿using Ghost.Editor.Contracts;
-using Ghost.Editor.Core.AssetHandle;
+﻿using Ghost.Editor.Core.AssetHandle;
+using Ghost.Editor.Core.Inspector;
 using Ghost.Editor.Core.Serializer;
 using Ghost.Editor.Resources;
 using Ghost.Engine.Components;
@@ -76,21 +76,21 @@ public partial class WorldNode : SceneGraphNode, IEquatable<WorldNode>
         return result;
     }
 
-    private EntityNode BuildNodeRecursive(Entity entity, World world)
+    private EntityNode BuildNodeRecursive(Entity entity)
     {
         if (!_entityNodeLookup.TryGetValue(entity, out var node))
         {
-            node = new EntityNode(entity, "New Entity");
+            node = new EntityNode(this, entity, "New Entity");
             _entityNodeLookup[entity] = node;
         }
 
-        var hc = world.EntityManager.GetComponent<Hierarchy>(entity);
+        var hc = _world.EntityManager.GetComponent<Hierarchy>(entity);
         var child = hc.ValueRO.firstChild;
 
         while (child != Entity.Invalid)
         {
-            node.AddChild(BuildNodeRecursive(child, world));
-            var childHC = world.EntityManager.GetComponent<Hierarchy>(child);
+            node.AddChild(BuildNodeRecursive(child));
+            var childHC = _world.EntityManager.GetComponent<Hierarchy>(child);
             child = childHC.ValueRO.nextSibling;
         }
 
@@ -103,7 +103,7 @@ public partial class WorldNode : SceneGraphNode, IEquatable<WorldNode>
         {
             if (hierarchy.ValueRO.parent == Entity.Invalid)
             {
-                var node = BuildNodeRecursive(entity, _world);
+                var node = BuildNodeRecursive(entity);
                 AddChild(node);
             }
         }
@@ -178,18 +178,7 @@ public partial class WorldNode : IInspectable
         await EditorWorldManager.LoadWorld(path);
     }
 
-    public UIElement? HeaderContent()
-    {
-        return new TextBlock
-        {
-            Text = Name,
-            Style = Application.Current.Resources["SubtitleTextBlockStyle"] as Style,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-    }
+    public UIElement? HeaderContent => null;
 
-    public UIElement? InspectorContent()
-    {
-        return null;
-    }
+    public UIElement? InspectorContent => null;
 }

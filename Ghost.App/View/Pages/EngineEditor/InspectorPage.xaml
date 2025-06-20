@@ -32,13 +32,13 @@
                 HorizontalAlignment="Left"
                 VerticalAlignment="Center"
                 IconSource="{x:Bind ViewModel.Inspectable.Icon, Mode=OneWay}" />
-            <ContentPresenter Grid.Column="1" Content="{x:Bind ViewModel.Inspectable.HeaderContent(), Mode=OneWay}" />
+            <ContentPresenter Grid.Column="1" Content="{x:Bind ViewModel.Inspectable.HeaderContent, Mode=OneWay}" />
         </Grid>
 
         <!--  Content  -->
-        <Grid Grid.Row="1" Padding="10,0,10,0">
-            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                <ContentPresenter Content="{x:Bind ViewModel.Inspectable.InspectorContent(), Mode=OneWay}" />
+        <Grid Grid.Row="1" Padding="0,0,0,0">
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <ContentPresenter Content="{x:Bind ViewModel.Inspectable.InspectorContent, Mode=OneWay}" />
             </ScrollViewer>
         </Grid>
     </Grid>

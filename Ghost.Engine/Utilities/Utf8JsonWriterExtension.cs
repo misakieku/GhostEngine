@@ -2,7 +2,7 @@
 
 namespace Ghost.Engine.Utilities;
 
-public static class Utf8JsonWriterExtensions
+public static class Utf8JsonWriterExtension
 {
     public static void WriteArray<T>(this Utf8JsonWriter writer, ReadOnlySpan<char> name, IEnumerable<T> source, Action<T> writeAction)
     {

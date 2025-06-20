@@ -108,7 +108,7 @@ public readonly struct EntityManager : IDisposable
     /// <param name="component">The component value to add.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly void AddComponent<T>(Entity entity, T component)
-        where T : struct, IComponentData
+        where T : unmanaged, IComponentData
     {
         _world.ComponentStorage.GetOrCreateComponentPool<T>().Add(entity, component);
         _world.ComponentStorage.GetOrCreateMask(TypeHandle.Get<T>()).SetBit(entity.ID);
@@ -121,7 +121,7 @@ public readonly struct EntityManager : IDisposable
     /// <param name="entity">The entity for which the component is to be remove.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly bool RemoveComponent<T>(Entity entity)
-        where T : struct, IComponentData
+        where T : unmanaged, IComponentData
     {
         if (!_world.ComponentStorage.TryGetPool<T>(out var pool) || !pool.Has(entity))
         {
@@ -139,6 +139,29 @@ public readonly struct EntityManager : IDisposable
     }
 
     /// <summary>
+    /// Sets a component of the specified type for the given <see cref="Entity"/>.
+    /// </summary>
+    /// <param name="entity">The entity for which the component is to be set.</param>
+    /// <param name="component">The component value to set.</param>
+    /// <param name="type">The type of the component to set.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly void SetComponent(Entity entity, IComponentData component, Type type)
+    {
+        var typeHandle = TypeHandle.Get(type);
+        if (!_world.ComponentStorage.TryGetPool(typeHandle, out var pool))
+        {
+            return;
+        }
+
+        if (!pool.Has(entity))
+        {
+            return;
+        }
+
+        pool.Set(entity, component);
+    }
+
+    /// <summary>
     /// Sets a component of type <typeparamref name="T"/> for the given <see cref="Entity"/>.
     /// </summary>
     /// <typeparam name="T">The type of the component to set.</typeparam>
@@ -146,7 +169,7 @@ public readonly struct EntityManager : IDisposable
     /// <param name="component">The component value to set.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly void SetComponent<T>(Entity entity, in T component)
-        where T : struct, IComponentData
+        where T : unmanaged, IComponentData
     {
         _world.ComponentStorage.GetOrCreateComponentPool<T>().Set(entity, in component);
     }
@@ -171,7 +194,7 @@ public readonly struct EntityManager : IDisposable
     /// <returns>A <see cref="Ref{T}"/> to the component, or a null reference if the component does not exist.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Ref<T> GetComponent<T>(Entity entity)
-        where T : struct, IComponentData
+        where T : unmanaged, IComponentData
     {
         if (_world.ComponentStorage.TryGetPool<T>(out var pool) && pool.Has(entity))
         {
@@ -180,6 +203,49 @@ public readonly struct EntityManager : IDisposable
         else
         {
             return new Ref<T>(ref Unsafe.NullRef<T>(), false);
+        }
+    }
+
+    /// <summary>
+    /// Retrieves all components associated with the specified entity.
+    /// </summary>
+    /// <remarks>This method iterates through all available component pools to find components  associated
+    /// with the given entity. It is designed to lazily yield components, making it efficient for scenarios where only
+    /// a subset of components may be needed.</remarks>
+    /// <param name="entity">The entity for which components are to be retrieved.</param>
+    /// <returns>An enumerable collection of components associated with the specified entity. If the entity has no components,
+    /// the collection will be empty.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly IEnumerable<IComponentData> GetComponents(Entity entity)
+    {
+        foreach (var pool in _world.ComponentStorage.ComponentPools.Values)
+        {
+            if (pool.Has(entity))
+            {
+                yield return pool.Get(entity);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Retrieves an enumerable collection of raw pointers to the components associated with the specified entity.
+    /// </summary>
+    /// <remarks>This method provides direct access to the memory locations of components, bypassing type
+    /// safety. Use with caution, as improper handling of raw pointers can lead to undefined behavior or memory
+    /// corruption. Ensure that the entity is valid and exists within the current world context before calling this
+    /// method.</remarks>
+    /// <param name="entity">The entity whose components are to be retrieved.</param>
+    /// <returns>An enumerable collection of <see cref="IntPtr"/> representing the memory addresses of the components associated
+    /// with the specified entity. The collection will be empty if the entity has no associated components.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly IEnumerable<(IntPtr, IntPtr)> GetComponentsUnsafe(Entity entity)
+    {
+        foreach (var (typeHandle, pool) in _world.ComponentStorage.ComponentPools)
+        {
+            if (pool.Has(entity))
+            {
+                yield return (typeHandle, pool.GetUnsafe(entity));
+            }
         }
     }
 

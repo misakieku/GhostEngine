@@ -10,21 +10,21 @@ public class SceneGraphHelpers
     /// </summary>
     /// <param name="world">The world context where the entity will be created.</param>
     /// <param name="entity">The entity to be wrapped in the <see cref="EntityNode"/>.</param>
-    public static EntityNode CreateEntityNode(World world, Entity entity, string name)
+    public static EntityNode CreateEntityNode(WorldNode owner, Entity entity, string name)
     {
-        world.EntityManager.AddComponent(entity, LocalToWorld.Identity);
-        world.EntityManager.AddComponent(entity, Hierarchy.Root);
-        return new EntityNode(entity, name);
+        owner.World.EntityManager.AddComponent(entity, LocalToWorld.Identity);
+        owner.World.EntityManager.AddComponent(entity, Hierarchy.Root);
+        return new EntityNode(owner, entity, name);
     }
 
     /// <summary>
     /// Creates a new <see cref="Entity"/> and <see cref="EntityNode"/> entity with default components.
     /// </summary>
-    /// <param name="world">The world context where the entity will be created.</param>
-    public static EntityNode CreateEntityNode(World world, string name)
+    /// <param name="owner">The world context where the entity will be created.</param>
+    public static EntityNode CreateEntityNode(WorldNode owner, string name)
     {
-        var entity = world.EntityManager.CreateEntity();
-        return CreateEntityNode(world, entity, name);
+        var entity = owner.World.EntityManager.CreateEntity();
+        return CreateEntityNode(owner, entity, name);
     }
 
     /// <summary>

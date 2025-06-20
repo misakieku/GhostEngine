@@ -1,5 +1,5 @@
-using Ghost.Editor.Contracts;
 using Ghost.Editor.Controls.Internal;
+using Ghost.Editor.Core.Inspector;
 using Ghost.Editor.Core.SceneGraph;
 using Ghost.Editor.Services.Contracts;
 using Ghost.Editor.ViewModels.Pages.EngineEditor;

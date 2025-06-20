@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using Ghost.Editor.Contracts;
+using Ghost.Editor.Core.Inspector;
 using Ghost.Editor.Services.Contracts;
 
 namespace Ghost.Editor.ViewModels.Pages.EngineEditor;

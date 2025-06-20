@@ -39,7 +39,7 @@ internal class WorldNodeSerializer : JsonConverter<WorldNode>
             var entityName = entityElement.GetProperty(Property.NAME).GetString() ?? "New Entity";
             var entityID = entityElement.GetProperty(Property.ID).GetInt32();
             var entity = new Entity(entityID, 0);
-            var node = new EntityNode(entity, entityName);
+            var node = new EntityNode(result, entity, entityName);
 
             world.EntityManager.AddEntityInternal(entity);
             result.EntityNodeLookup[entity] = node;

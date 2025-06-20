@@ -4,6 +4,7 @@
 <#@ include file="Helpers.ttinclude" #>
 <#@ output extension=".cs" #>
 
+using Ghost.Entities.Components;
 using Ghost.Entities.Query;
 
 namespace Ghost.Entities;
@@ -11,7 +12,7 @@ namespace Ghost.Entities;
 <# for (int arity = 1; arity <= Amount; arity++)
 {
 var generics = AppendGenerics(arity);
-var restrictions = AppendGenericRestrictions(arity, "struct, IComponentData");
+var restrictions = AppendGenericRestrictions(arity, "unmanaged, IComponentData");
 var constructorParams = Enumerable.Range(0, arity)
                                     .Select(i => $"ComponentPool<T{i}> pool{i}")
                                     .Aggregate((a, b) => a + ", " + b);

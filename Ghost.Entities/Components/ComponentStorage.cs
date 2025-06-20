@@ -2,11 +2,12 @@
 using Misaki.HighPerformance.Unsafe.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Entities.Components;
 
 internal static class SingletonContainer<T>
-    where T : struct, IComponentData
+    where T : unmanaged, IComponentData
 {
     public static readonly Dictionary<int, T> container = new();
 }
@@ -22,6 +23,7 @@ internal interface IComponentPool : IDisposable
     public bool Remove(Entity entity);
     public bool Has(Entity entity);
     public IComponentData Get(Entity entity);
+    public IntPtr GetUnsafe(Entity entity);
     public void Set(Entity entity, in IComponentData component);
 
     public IEnumerable<(Entity entity, IComponentData component)> Enumerate();
@@ -35,7 +37,7 @@ internal interface IComponentPool<T> : IComponentPool
 }
 
 internal class ComponentPool<T> : IComponentPool<T>
-    where T : struct, IComponentData
+    where T : unmanaged, IComponentData
 {
     private struct ComponentData
     {
@@ -140,6 +142,11 @@ internal class ComponentPool<T> : IComponentPool<T>
     public IComponentData Get(Entity entity)
     {
         return GetRef(entity);
+    }
+
+    public unsafe IntPtr GetUnsafe(Entity entity)
+    {
+        return (IntPtr)Unsafe.AsPointer(ref GetRef(entity));
     }
 
     public ref T GetRef(Entity entity)
@@ -341,7 +348,29 @@ internal class ScriptComponentPool : IComponentPool<ScriptComponent>
     [Obsolete("Use GetAll instead of Get for ScriptComponentPool.")]
     public IComponentData Get(Entity entity)
     {
-        throw new NotSupportedException("Use GetAll instead of Get for ScriptComponentPool.");
+        if (!Has(entity)
+            || !_scriptComponents!.TryGetValue(entity, out var scriptList)
+            || scriptList == null
+            || scriptList.Count == 0)
+        {
+            return null!;
+        }
+
+        return scriptList[0];
+    }
+
+    [Obsolete("Use GetAll instead of GetUnsafe for ScriptComponentPool.")]
+    public unsafe IntPtr GetUnsafe(Entity entity)
+    {
+        if (!Has(entity)
+            || !_scriptComponents!.TryGetValue(entity, out var scriptList)
+            || scriptList == null
+            || scriptList.Count == 0)
+        {
+            return IntPtr.Zero;
+        }
+
+        return (IntPtr)Unsafe.AsPointer(ref CollectionsMarshal.AsSpan(scriptList)[0]);
     }
 
     public void Set(Entity entity, in IComponentData component)
@@ -385,12 +414,12 @@ internal class ScriptComponentPool : IComponentPool<ScriptComponent>
         }
     }
 
-    public IEnumerable<IComponentData> GetAll(Entity entity)
+    public IReadOnlyList<IComponentData>? GetAll(Entity entity)
     {
         if (_scriptComponents == null
             || !_scriptComponents.TryGetValue(entity, out var scriptList))
         {
-            return Enumerable.Empty<ScriptComponent>();
+            return null;
         }
 
         return scriptList;
@@ -463,7 +492,7 @@ internal readonly struct ComponentStorage : IDisposable
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryGetPool<T>([MaybeNullWhen(false)] out ComponentPool<T> pool)
-        where T : struct, IComponentData
+        where T : unmanaged, IComponentData
     {
         var result = TryGetPool(TypeHandle.Get<T>(), out var obj);
         pool = (ComponentPool<T>?)obj ?? default;
@@ -471,7 +500,7 @@ internal readonly struct ComponentStorage : IDisposable
     }
 
     public ComponentPool<T> GetOrCreateComponentPool<T>()
-        where T : struct, IComponentData
+        where T : unmanaged, IComponentData
     {
         var key = TypeHandle.Get<T>();
         if (!_componentPools.TryGetValue(key, out var obj))
@@ -498,7 +527,7 @@ internal readonly struct ComponentStorage : IDisposable
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryGetMask<T>([MaybeNullWhen(false)] out BitSet bitSet)
-        where T : struct, IComponentData
+        where T : unmanaged, IComponentData
     {
         return TryGetMask(TypeHandle.Get<T>(), out bitSet);
     }

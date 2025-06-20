@@ -4,7 +4,7 @@ namespace Ghost.Engine.Resources;
 
 public static class StaticResource
 {
-    public static JsonSerializerOptions defaultSerializerOptions = new()
+    public static readonly JsonSerializerOptions defaultSerializerOptions = new()
     {
         WriteIndented = true,
         IncludeFields = true,

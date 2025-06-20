@@ -1,8 +1,24 @@
 ﻿using Ghost.Entities;
-using System;
-using System.Linq;
+using System.Reflection;
 
 namespace Ghost.Editor.Utilities;
+
+public static class TypeCache
+{
+    private static readonly TypeInfo[] _types;
+
+    static TypeCache()
+    {
+        _types = AppDomain.CurrentDomain.GetAssemblies()
+            .SelectMany(assembly => assembly.DefinedTypes)
+            .ToArray();
+    }
+
+    public static Type[] GetTypes()
+    {
+        return _types;
+    }
+}
 
 public static class ComponentTypeCache
 {
