@@ -25,7 +25,7 @@ public static class Logger
         get; set;
     }
 
-    private static void LogInternal(LogLevel level, string message, int skipFrame)
+    private static void LogInternal(LogLevel level, string? message, int skipFrame)
     {
         if (_logs.Count >= _MAX_LOGS)
         {
@@ -59,22 +59,22 @@ public static class Logger
         OnLogsUpdate?.Invoke(LogChangeType.LogAdded);
     }
 
-    public static void Log(LogLevel level, string message)
+    public static void Log(LogLevel level, string? message)
     {
         LogInternal(level, message, 2);
     }
 
-    public static void LogInfo(string message)
+    public static void LogInfo(string? message)
     {
         LogInternal(LogLevel.Info, message, 3);
     }
 
-    public static void LogWarning(string message)
+    public static void LogWarning(string? message)
     {
         LogInternal(LogLevel.Warning, message, 3);
     }
 
-    public static void LogError(string message)
+    public static void LogError(string? message)
     {
         LogInternal(LogLevel.Error, message, 3);
     }
@@ -82,6 +82,14 @@ public static class Logger
     public static void LogError(Exception ex)
     {
         LogExceptionInternal(ex);
+    }
+
+    public static void Assert(bool condition, string? message = null)
+    {
+        if (!condition)
+        {
+            LogInternal(LogLevel.Error, message ?? "Assertion failed", 3);
+        }
     }
 
     internal static void Clear()

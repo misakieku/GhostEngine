@@ -1,13 +1,16 @@
 ﻿using Ghost.Engine.Models;
 using Ghost.Engine.Services;
+using Ghost.Graphics;
+using Ghost.Graphics.Data;
 
 namespace Ghost.Engine;
 
-internal class EngineCore : IDisposable, IAsyncDisposable
+internal class EngineCore
 {
     public async Task StartAsync(LaunchArgument args)
     {
         ActivationHandler.Handle(args);
+        GraphicsPipeline.Initialize(GraphicsAPI.DX12);
 
         Logger.LogInfo("Engine started successfully.");
 
@@ -16,16 +19,7 @@ internal class EngineCore : IDisposable, IAsyncDisposable
 
     public async Task ShutDownAsync()
     {
+        GraphicsPipeline.Shutdown();
         await Task.CompletedTask;
-    }
-
-    public void Dispose()
-    {
-        ShutDownAsync().GetAwaiter().GetResult();
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await ShutDownAsync();
     }
 }

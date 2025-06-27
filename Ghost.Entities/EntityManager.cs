@@ -1,10 +1,11 @@
-﻿using Ghost.Entities.Components;
+﻿using Ghost.Core;
+using Ghost.Entities.Components;
 using Ghost.Entities.Query;
-using Ghost.Entities.Utilities;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Entities;
+
 public readonly struct EntityManager : IDisposable
 {
     private readonly List<Entity> _entities;
@@ -181,7 +182,7 @@ public readonly struct EntityManager : IDisposable
     /// <param name="typeHandle">The handle of the component type.</param>
     /// <returns>True if the entity has the component; otherwise, false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly bool HasComponent(Entity entity, nint typeHandle)
+    public readonly bool HasComponent(Entity entity, TypeHandle typeHandle)
     {
         return _world.ComponentStorage.TryGetMask(typeHandle, out var bitSet) && bitSet.IsSet(entity.ID);
     }
@@ -238,7 +239,7 @@ public readonly struct EntityManager : IDisposable
     /// <returns>An enumerable collection of <see cref="IntPtr"/> representing the memory addresses of the components associated
     /// with the specified entity. The collection will be empty if the entity has no associated components.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly IEnumerable<(IntPtr, IntPtr)> GetComponentsUnsafe(Entity entity)
+    public readonly IEnumerable<(TypeHandle, IntPtr)> GetComponentsUnsafe(Entity entity)
     {
         foreach (var (typeHandle, pool) in _world.ComponentStorage.ComponentPools)
         {

@@ -1,4 +1,4 @@
-﻿using Ghost.Entities.Utilities;
+﻿using Ghost.Core;
 using Misaki.HighPerformance.Unsafe.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -463,8 +463,8 @@ internal class ScriptComponentPool : IComponentPool<ScriptComponent>
 [SkipLocalsInit]
 internal readonly struct ComponentStorage : IDisposable
 {
-    private readonly Dictionary<nint, IComponentPool> _componentPools = new();
-    private readonly Dictionary<nint, BitSet> _componentEntityMasks = new();
+    private readonly Dictionary<TypeHandle, IComponentPool> _componentPools = new();
+    private readonly Dictionary<TypeHandle, BitSet> _componentEntityMasks = new();
     private readonly ScriptComponentPool _scriptComponentPool = new();
 
     private readonly World _world;
@@ -474,12 +474,12 @@ internal readonly struct ComponentStorage : IDisposable
         _world = world;
     }
 
-    internal Dictionary<nint, IComponentPool> ComponentPools => _componentPools;
-    internal Dictionary<nint, BitSet> ComponentEntityMasks => _componentEntityMasks;
+    internal Dictionary<TypeHandle, IComponentPool> ComponentPools => _componentPools;
+    internal Dictionary<TypeHandle, BitSet> ComponentEntityMasks => _componentEntityMasks;
     internal ScriptComponentPool ScriptComponentPool => _scriptComponentPool;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryGetPool(nint typeHandle, [MaybeNullWhen(false)] out IComponentPool pool)
+    public bool TryGetPool(TypeHandle typeHandle, [MaybeNullWhen(false)] out IComponentPool pool)
     {
         return _componentPools.TryGetValue(typeHandle, out pool);
     }
@@ -514,7 +514,7 @@ internal readonly struct ComponentStorage : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryGetMask(nint typeHandle, [MaybeNullWhen(false)] out BitSet bitSet)
+    public bool TryGetMask(TypeHandle typeHandle, [MaybeNullWhen(false)] out BitSet bitSet)
     {
         return _componentEntityMasks.TryGetValue(typeHandle, out bitSet);
     }
@@ -522,7 +522,7 @@ internal readonly struct ComponentStorage : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryGetMask(Type type, [MaybeNullWhen(false)] out BitSet bitSet)
     {
-        return TryGetMask(type.TypeHandle.Value, out bitSet);
+        return TryGetMask(TypeHandle.Get(type), out bitSet);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -532,7 +532,7 @@ internal readonly struct ComponentStorage : IDisposable
         return TryGetMask(TypeHandle.Get<T>(), out bitSet);
     }
 
-    public BitSet GetOrCreateMask(nint typeHandle)
+    public BitSet GetOrCreateMask(TypeHandle typeHandle)
     {
         if (!_componentEntityMasks.TryGetValue(typeHandle, out var mask))
         {

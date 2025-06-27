@@ -26,4 +26,8 @@
     </Content>
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Ghost.Core\Ghost.Core.csproj" />
+  </ItemGroup>
+
 </Project>

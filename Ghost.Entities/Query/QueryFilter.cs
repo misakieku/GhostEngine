@@ -1,4 +1,5 @@
-﻿using Misaki.HighPerformance.Unsafe.Collections;
+﻿using Ghost.Core;
+using Misaki.HighPerformance.Unsafe.Collections;
 
 namespace Ghost.Entities.Query;
 
@@ -11,30 +12,29 @@ internal enum FilterMode
     Disabled = 1 << 3,
 }
 
-internal readonly struct FilterEntry(nint id, FilterMode mode)
+internal readonly struct FilterEntry(TypeHandle id, FilterMode mode)
 {
-    public readonly nint typeHandle = id;
+    public readonly TypeHandle typeHandle = id;
     public readonly FilterMode mode = mode;
 }
 
 internal struct QueryFilter()
 {
-    internal List<nint> _all = new(6);
-    internal List<nint> _any = new(6);
-    internal List<nint> _absent = new(6);
-    internal List<nint> _disabled = new(6);
+    internal List<TypeHandle> _all = new(6);
+    internal List<TypeHandle> _any = new(6);
+    internal List<TypeHandle> _absent = new(6);
+    internal List<TypeHandle> _disabled = new(6);
 
-    public readonly void ComputeFilterBitMask(World world, BitSet result)
+    public readonly BitSet ComputeFilterBitMask(World world)
     {
-        BitSet allMask = new();
-        BitSet anyMask = new();
-        BitSet absentMask = new();
+        BitSet? allMask = null;
+        BitSet? anyMask = null;
+        BitSet? absentMask = null;
 
         var hasAll = false;
         var hasAny = false;
         var hasAbsent = false;
 
-        // Compute All mask (intersection)
         foreach (var typeHandle in _all)
         {
             var mask = world.ComponentStorage.GetOrCreateMask(typeHandle);
@@ -49,7 +49,6 @@ internal struct QueryFilter()
             allMask &= mask;
         }
 
-        // Compute Any mask (union)
         foreach (var typeHandle in _any)
         {
             var mask = world.ComponentStorage.GetOrCreateMask(typeHandle);
@@ -63,7 +62,6 @@ internal struct QueryFilter()
             anyMask |= mask;
         }
 
-        // Compute Absent mask (union for exclusion)
         foreach (var typeHandle in _absent)
         {
             var mask = world.ComponentStorage.GetOrCreateMask(typeHandle);
@@ -77,21 +75,24 @@ internal struct QueryFilter()
             absentMask |= mask;
         }
 
+        var result = new BitSet(world.EntityManager.EntityCount);
         result.SetAll();
 
         if (hasAll)
         {
-            result &= allMask;
+            result &= allMask!;
         }
 
         if (hasAny)
         {
-            result &= anyMask;
+            result &= anyMask!;
         }
 
         if (hasAbsent)
         {
-            result &= ~absentMask;
+            result &= ~absentMask!;
         }
+
+        return result;
     }
 }

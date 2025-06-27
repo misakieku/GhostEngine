@@ -17,7 +17,14 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Ghost.Entities\Ghost.Entities.csproj" />
+    <ProjectReference Include="..\Ghost.Graphics\Ghost.Graphics.csproj" />
     <!--<ProjectReference Include="..\Ghost.Generator\Ghost.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />-->
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Misaki.HighPerformance.Unsafe">
+      <HintPath>..\..\Class\Misaki.HighPerformance\Misaki.HighPerformance.Unsafe\bin\Release\net9.0\Misaki.HighPerformance.Unsafe.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

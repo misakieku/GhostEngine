@@ -5,9 +5,9 @@
 <#@ import namespace="System.Linq" #>
 <#@ include file="Helpers.ttinclude" #>
 
+using Ghost.Core;
 using Ghost.Entities.Components;
 using Ghost.Entities.Query;
-using Ghost.Entities.Utilities;
 using Misaki.HighPerformance.Unsafe.Collections;
 
 namespace Ghost.Entities;
@@ -85,8 +85,7 @@ public struct QueryEnumerable<<#= generics #>>
 
             _count = count;
             _index = -1;
-            _filterMask = new BitSet(_world.EntityManager.EntityCount);
-            filters.ComputeFilterBitMask(_world, _filterMask);
+            _filterMask = filters.ComputeFilterBitMask(_world);
 
             Current = default;
         }

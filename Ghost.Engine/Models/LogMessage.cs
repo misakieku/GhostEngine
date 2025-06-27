@@ -14,7 +14,7 @@ internal class LogMessage
         get; set;
     }
 
-    public string Message
+    public string? Message
     {
         get; set;
     }
@@ -29,7 +29,7 @@ internal class LogMessage
         get; set;
     }
 
-    public LogMessage(LogLevel level, string message, string? stackTrace = null)
+    public LogMessage(LogLevel level, string? message, string? stackTrace = null)
     {
         Level = level;
         Message = message;

@@ -57,6 +57,8 @@ public partial class World : IDisposable, IEquatable<World>
     public EntityManager EntityManager => _entityManager;
     public SystemStorage SystemStorage => _systemStorage;
 
+    public event Action<World, Entity, Type>? ComponentChanged;
+
     private World(WorldID id, int entityCapacity)
     {
         _id = id;
@@ -82,6 +84,21 @@ public partial class World : IDisposable, IEquatable<World>
         }
 
         return Enumerable.Empty<ScriptComponent>();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void NotifyComponentChanged(Entity entity, Type type)
+    {
+        //#if GHOST_EDITOR
+        ComponentChanged?.Invoke(this, entity, type);
+        //#endif
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void NotifyComponentChanged<T>(Entity entity)
+        where T : unmanaged, IComponentData
+    {
+        NotifyComponentChanged(entity, typeof(T));
     }
 
     public void Dispose()

@@ -1,4 +1,5 @@
-﻿using Ghost.Data.Models;
+﻿using Ghost.Core;
+using Ghost.Data.Models;
 using Ghost.Data.Repository;
 using Ghost.Data.Resources;
 using System.IO.Compression;
@@ -197,12 +198,12 @@ internal partial class ProjectService
             return result;
         }
 
-        if (await HasProjectAsync(result.data.Path))
+        if (await HasProjectAsync(result.value.Path))
         {
             return Result<ProjectMetadataInfo>.Error("Project already exists.");
         }
 
-        await AddProjectAsync(result.data.Metadata.Name, result.data.Path);
+        await AddProjectAsync(result.value.Metadata.Name, result.value.Path);
 
         return result;
     }
