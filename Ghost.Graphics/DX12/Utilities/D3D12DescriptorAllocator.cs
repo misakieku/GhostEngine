@@ -10,7 +10,7 @@ internal class D3D12DescriptorAllocator : IDisposable
     private const DescriptorIndex _INVALID_DESCRIPTOR_INDEX = ~0u;
 
     private readonly ID3D12Device _device;
-    private readonly Lock _mutex = new();
+    private readonly Lock _lock = new();
 
     private ID3D12DescriptorHeap? _heap;
     private ID3D12DescriptorHeap? _shaderVisibleHeap;
@@ -56,14 +56,15 @@ internal class D3D12DescriptorAllocator : IDisposable
         ShaderVisible = type == DescriptorHeapType.ConstantBufferViewShaderResourceViewUnorderedAccessView || type == DescriptorHeapType.Sampler;
         Stride = device.GetDescriptorHandleIncrementSize(type);
 
-        Debug.Assert(AllocateResources(numDescriptors));
+        var success = AllocateResources(numDescriptors);
+        Debug.Assert(success);
     }
 
     public DescriptorIndex AllocateDescriptor() => AllocateDescriptors(1);
 
     public DescriptorIndex AllocateDescriptors(uint count)
     {
-        lock (_mutex)
+        lock (_lock)
         {
             DescriptorIndex foundIndex = 0;
             uint freeCount = 0;
@@ -120,7 +121,7 @@ internal class D3D12DescriptorAllocator : IDisposable
             return;
         }
 
-        lock (_mutex)
+        lock (_lock)
         {
             for (var index = baseIndex; index < baseIndex + count; index++)
             {

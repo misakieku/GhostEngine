@@ -2,7 +2,6 @@
 using Ghost.Editor.Core.Notifications;
 using Ghost.Editor.View.Pages.Landing;
 using Ghost.Engine.Resources;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Animation;
 using WinUIEx;
@@ -11,8 +10,6 @@ namespace Ghost.Editor.View.Windows;
 
 internal sealed partial class LandingWindow : WindowEx
 {
-    private IServiceScope? _landingScope;
-
     private readonly NotificationService _notificationService;
 
     private int _previousSelectedIndex;
@@ -34,14 +31,11 @@ internal sealed partial class LandingWindow : WindowEx
 
     private void WindowEx_Activated(object sender, Microsoft.UI.Xaml.WindowActivatedEventArgs args)
     {
-        _landingScope?.Dispose();
-        _landingScope = App.CreateScope();
         _notificationService.SetReference(InfoBar, NotificationQueue);
     }
 
     private void WindowEx_Closed(object sender, Microsoft.UI.Xaml.WindowEventArgs args)
     {
-        _landingScope?.Dispose();
         _notificationService.ClearReference();
     }
 
@@ -58,7 +52,7 @@ internal sealed partial class LandingWindow : WindowEx
         var slideNavigationTransitionEffect = currentSelectedIndex - _previousSelectedIndex > 0 ?
             SlideNavigationTransitionEffect.FromRight : SlideNavigationTransitionEffect.FromLeft;
 
-        ContentFrame.Navigate(pageType, _landingScope, new SlideNavigationTransitionInfo() { Effect = slideNavigationTransitionEffect });
+        ContentFrame.Navigate(pageType, null, new SlideNavigationTransitionInfo() { Effect = slideNavigationTransitionEffect });
 
         _previousSelectedIndex = currentSelectedIndex;
     }

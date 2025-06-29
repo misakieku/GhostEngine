@@ -1,26 +1,31 @@
-﻿using Misaki.HighPerformance.Unsafe.Collections;
+﻿using Ghost.Graphics.DX12.Utilities;
+using Misaki.HighPerformance.Unsafe.Collections;
 using Misaki.HighPerformance.Unsafe.Helpers;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using Vortice.Direct3D12;
+using Vortice.DXGI;
+using Vortice.Mathematics;
 
 namespace Ghost.Graphics.Data;
 
 public sealed class Mesh(int initialVertexCapacity = 256, int initialIndexCapacity = 512) : IDisposable
 {
-    private UnsafeList<Vector3> _vertices = new(initialVertexCapacity, Allocator.Persistent);
-    private UnsafeList<Vector3> _normals = new(initialVertexCapacity, Allocator.Persistent);
-    private UnsafeList<Vector4> _tangents = new(initialVertexCapacity, Allocator.Persistent);
-    private UnsafeList<Color32> _colors = new(initialVertexCapacity, Allocator.Persistent);
-    private UnsafeList<Vector2> _uvs = new(initialVertexCapacity, Allocator.Persistent);
+    private UnsafeList<Vertex> _vertices = new(initialVertexCapacity, Allocator.Persistent);
     private UnsafeList<int> _indices = new(initialIndexCapacity, Allocator.Persistent);
 
-    public Span<Vector3> Vertices => _vertices.AsSpan();
-    public Span<Vector3> Normals => _normals.AsSpan();
-    public Span<Vector4> Tangents => _tangents.AsSpan();
-    public Span<Color32> Colors => _colors.AsSpan();
-    public Span<Vector2> UVs => _uvs.AsSpan();
-    public Span<int> Indices => _indices.AsSpan();
+    private BoundingBox _bounds;
 
+    private ID3D12Resource? _vertexBuffer;
+    private ID3D12Resource? _indexBuffer;
+    private VertexBufferView _vertexBufferView;
+    private IndexBufferView _indexBufferView;
+
+    public Span<Vertex> Vertices => _vertices.AsSpan();
+    public Span<int> Indices => _indices.AsSpan();
+    public BoundingBox Bounds => _bounds;
     public int VertexCount => _vertices.Count;
+    public int IndexCount => _indices.Count;
 
     ~Mesh()
     {
@@ -30,21 +35,11 @@ public sealed class Mesh(int initialVertexCapacity = 256, int initialIndexCapaci
     /// <summary>
     /// Adds a vertex to the mesh with the specified attributes.
     /// </summary>
-    /// <remarks>This method adds the vertex attributes to their respective collections, allowing the mesh    
-    /// to be constructed with detailed vertex data. Ensure that all parameters are provided with valid values to
-    /// avoid incomplete or incorrect mesh data.</remarks>
-    /// <param name="position">The position of the vertex in 3D space.</param>
-    /// <param name="normal">The normal vector at the vertex.</param>
-    /// <param name="tangent">The tangent vector at the vertex.</param>
-    /// <param name="color">The color of the vertex.</param>
-    /// <param name="uv">The UV coordinates of the vertex.</param>
-    public void AddVertex(Vector3 position, Vector3 normal, Vector4 tangent, Color32 color, Vector2 uv)
+    /// <param name="vertex">The data to add</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void AddVertex(Vertex vertex)
     {
-        _vertices.Add(position);
-        _normals.Add(normal);
-        _tangents.Add(tangent);
-        _colors.Add(color);
-        _uvs.Add(uv);
+        _vertices.Add(vertex);
     }
 
     /// <summary>
@@ -66,13 +61,12 @@ public sealed class Mesh(int initialVertexCapacity = 256, int initialIndexCapaci
         _indices.Add(index2);
     }
 
+    /// <summary>
+    /// Reduces the memory usage of the internal collections by resizing them to match their current element count.
+    /// </summary>
     public void TrimExcess()
     {
         _vertices.Resize(_vertices.Count);
-        _normals.Resize(_normals.Count);
-        _tangents.Resize(_tangents.Count);
-        _colors.Resize(_colors.Count);
-        _uvs.Resize(_uvs.Count);
         _indices.Resize(_indices.Count);
     }
 
@@ -90,16 +84,6 @@ public sealed class Mesh(int initialVertexCapacity = 256, int initialIndexCapaci
             return;
         }
 
-        if (!_normals.IsCreated)
-        {
-            _normals = new(_vertices.Count, Allocator.Persistent);
-        }
-        else
-        {
-            _normals.Clear();
-            _normals.Resize(_vertices.Count);
-        }
-
         for (var i = 0; i < _indices.Count; i += 3)
         {
             var i0 = _indices[i];
@@ -110,18 +94,18 @@ public sealed class Mesh(int initialVertexCapacity = 256, int initialIndexCapaci
             var v1 = _vertices[i1];
             var v2 = _vertices[i2];
 
-            var edge1 = v1 - v0;
-            var edge2 = v2 - v0;
-            var faceNormal = Vector3.Cross(edge1, edge2);
+            var edge1 = v1.Position - v0.Position;
+            var edge2 = v2.Position - v0.Position;
+            var faceNormal = Vector3.Cross(edge1.AsVector3(), edge2.AsVector3());
 
-            _normals[i0] += faceNormal;
-            _normals[i1] += faceNormal;
-            _normals[i2] += faceNormal;
+            _vertices[i0].Normal += faceNormal.AsVector4();
+            _vertices[i1].Normal += faceNormal.AsVector4();
+            _vertices[i2].Normal += faceNormal.AsVector4();
         }
 
-        for (var i = 0; i < _normals.Count; i++)
+        for (var i = 0; i < _vertices.Count; i++)
         {
-            _normals[i] = Vector3.Normalize(_normals[i]);
+            _vertices[i].Normal = Vector4.Normalize(_vertices[i].Normal);
         }
     }
 
@@ -133,29 +117,7 @@ public sealed class Mesh(int initialVertexCapacity = 256, int initialIndexCapaci
     /// </remarks>
     public void ComputeTangents()
     {
-        if (!_vertices.IsCreated || _vertices.Count < 3
-            || !_indices.IsCreated || _indices.Count < 3
-            || !_uvs.IsCreated || _uvs.Count < _vertices.Count)
-        {
-            return;
-        }
-
-        if (!_normals.IsCreated || _normals.Count != _vertices.Count)
-        {
-            ComputeNormal();
-        }
-
-        if (!_tangents.IsCreated)
-        {
-            _tangents = new(_vertices.Count, Allocator.Persistent);
-        }
-        else
-        {
-            _tangents.Clear();
-            _tangents.Resize(_vertices.Count);
-        }
-
-        var bitangents = new Vector3[_vertices.Count];
+        var bitangents = new Vector4[_vertices.Count];
 
         for (var i = 0; i < _indices.Count; i += 3)
         {
@@ -166,12 +128,13 @@ public sealed class Mesh(int initialVertexCapacity = 256, int initialIndexCapaci
             var v0 = _vertices[i0];
             var v1 = _vertices[i1];
             var v2 = _vertices[i2];
-            var uv0 = _uvs[i0];
-            var uv1 = _uvs[i1];
-            var uv2 = _uvs[i2];
 
-            var deltaPos1 = v1 - v0;
-            var deltaPos2 = v2 - v0;
+            var uv0 = _vertices[i0].UV;
+            var uv1 = _vertices[i1].UV;
+            var uv2 = _vertices[i2].UV;
+
+            var deltaPos1 = v1.Position - v0.Position;
+            var deltaPos2 = v2.Position - v0.Position;
             var deltaUV1 = uv1 - uv0;
             var deltaUV2 = uv2 - uv0;
 
@@ -182,8 +145,8 @@ public sealed class Mesh(int initialVertexCapacity = 256, int initialIndexCapaci
             for (var j = 0; j < 3; j++)
             {
                 var idx = _indices[i + j];
-                var t = _tangents[idx];
-                _tangents[idx] = new Vector4(
+                var t = _vertices[idx].Tangent;
+                _vertices[idx].Tangent = new Vector4(
                     t.X + tangent.X,
                     t.Y + tangent.Y,
                     t.Z + tangent.Z,
@@ -196,38 +159,119 @@ public sealed class Mesh(int initialVertexCapacity = 256, int initialIndexCapaci
 
         for (var i = 0; i < _vertices.Count; i++)
         {
-            var n = _normals![i];
-            var t = _tangents[i];
-            var t3 = new Vector3(t.X, t.Y, t.Z);
+            var n = _vertices[i].Normal;
+            var t = _vertices[i].Tangent;
+            var n3 = n.AsVector3();
+            var t3 = t.AsVector3();
 
-            var proj = n * Vector3.Dot(n, t3);
+            var proj = n3 * Vector3.Dot(n3, t3);
             t3 = Vector3.Normalize(t3 - proj);
 
             var b = bitangents[i];
-            var w = Vector3.Dot(Vector3.Cross(n, t3), b) < 0.0f ? -1.0f : 1.0f;
+            var w = Vector3.Dot(Vector3.Cross(n3, t3), b.AsVector3()) < 0.0f ? -1.0f : 1.0f;
 
-            _tangents[i] = new Vector4(t3.X, t3.Y, t3.Z, w);
+            _vertices[i].Tangent = new Vector4(t3.X, t3.Y, t3.Z, w);
         }
     }
 
+    /// <summary>
+    /// Computes the bounding box of the mesh based on its vertices.
+    /// </summary>
+    public void ComputeBounds()
+    {
+        if (_vertices.Count == 0)
+        {
+            _bounds = BoundingBox.Zero;
+            return;
+        }
+
+        var min = new Vector3(float.MaxValue);
+        var max = new Vector3(float.MinValue);
+        foreach (var vertex in _vertices)
+        {
+            var pos = vertex.Position.AsVector3();
+            min = Vector3.Min(min, pos);
+            max = Vector3.Max(max, pos);
+        }
+
+        _bounds = new BoundingBox(min, max);
+    }
+
+    /// <summary>
+    /// Uploads the mesh data to GPU resources immediately.
+    /// </summary>
+    /// <param name="device">The Direct3D 12 device.</param>
+    /// <param name="commandList">The Direct3D 12 command list to record the upload commands.</param>
+    public unsafe void UploadMeshData(ID3D12Device device, ID3D12GraphicsCommandList commandList)
+    {
+        if (VertexCount == 0 || IndexCount == 0)
+        {
+            return;
+        }
+
+        _vertexBuffer?.Dispose();
+        _indexBuffer?.Dispose();
+
+        var vertexBufferSize = (uint)(VertexCount * sizeof(Vertex));
+        var indexBufferSize = (uint)(IndexCount * sizeof(int));
+        _vertexBuffer = D3D12ResourceUtils.CreateCPUDestinationBuffer(device, vertexBufferSize);
+        _indexBuffer = D3D12ResourceUtils.CreateCPUDestinationBuffer(device, indexBufferSize);
+
+        using var vertexUploadBuffer = D3D12ResourceUtils.CreateUploadBuffer(device, vertexBufferSize);
+        using var indexUploadBuffer = D3D12ResourceUtils.CreateUploadBuffer(device, indexBufferSize);
+
+        void* vertexData;
+        vertexUploadBuffer.Map(0, null, &vertexData);
+        Unsafe.CopyBlock(vertexData, _vertices.GetUnsafePtr(), vertexBufferSize);
+        vertexUploadBuffer.Unmap(0);
+
+        void* indexData;
+        indexUploadBuffer.Map(0, null, &indexData);
+        Unsafe.CopyBlock(indexData, _indices.GetUnsafePtr(), indexBufferSize);
+        indexUploadBuffer.Unmap(0);
+
+        commandList.CopyBufferRegion(_vertexBuffer, 0, vertexUploadBuffer, 0, vertexBufferSize);
+        commandList.CopyBufferRegion(_indexBuffer, 0, indexUploadBuffer, 0, indexBufferSize);
+
+        _vertexBufferView = new VertexBufferView
+        {
+            BufferLocation = _vertexBuffer.GPUVirtualAddress,
+            SizeInBytes = vertexBufferSize,
+            StrideInBytes = (uint)sizeof(Vertex)
+        };
+
+        _indexBufferView = new IndexBufferView
+        {
+            BufferLocation = _indexBuffer.GPUVirtualAddress,
+            SizeInBytes = indexBufferSize,
+            Format = Format.R32_UInt
+        };
+    }
+
+    private void DisposeGpuResources()
+    {
+        _vertexBuffer?.Release();
+        _vertexBuffer = null;
+
+        _indexBuffer?.Release();
+        _indexBuffer = null;
+    }
+
+    /// <summary>
+    /// Clears all vertex and index data and releases associated GPU resources.
+    /// </summar>
     public void Clear()
     {
         _vertices.Clear();
-        _normals.Clear();
-        _tangents.Clear();
-        _colors.Clear();
-        _uvs.Clear();
         _indices.Clear();
+        DisposeGpuResources();
     }
 
     public void Dispose()
     {
         _vertices.Dispose();
-        _normals.Dispose();
-        _tangents.Dispose();
-        _colors.Dispose();
-        _uvs.Dispose();
         _indices.Dispose();
+        DisposeGpuResources();
 
         GC.SuppressFinalize(this);
     }

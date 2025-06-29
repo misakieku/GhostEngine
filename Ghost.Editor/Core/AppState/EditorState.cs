@@ -17,6 +17,7 @@ internal class EditorState : IAppState
         {
             App.Window = null;
         }
+
         return Task.CompletedTask;
     }
 
@@ -42,11 +43,6 @@ internal class EditorState : IAppState
         if (_engineCore != null)
         {
             await _engineCore.ShutDownAsync();
-        }
-
-        if (App.Window == _window)
-        {
-            App.Window = null;
         }
 
         _window?.Close();

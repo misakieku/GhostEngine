@@ -27,7 +27,10 @@ public partial class App : Application
         {
             if (Current is App app)
             {
+                // HACK: As far as I can tell, there is no proper application shutdown event in WinUI 3.
+                app._window?.Closed -= app.OnClosed;
                 app._window = value;
+                app._window?.Closed += app.OnClosed;
             }
         }
     }
@@ -86,7 +89,7 @@ public partial class App : Application
     {
         base.OnLaunched(args);
 
-        Host.Start();
+        await Host.StartAsync();
         ActivationHandler.Handle(args);
 
         var stateMachine = GetService<AppStateMachine>();
@@ -94,6 +97,12 @@ public partial class App : Application
         stateMachine.RegisterState(StateKey.EngineEditor, () => new EditorState());
 
         await stateMachine.TransitionToAsync(StateKey.Landing);
+    }
+
+    private void OnClosed(object? sender, WindowEventArgs args)
+    {
+        Host.StopAsync().GetAwaiter().GetResult();
+        Host.Dispose();
     }
 
     private void App_UnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Ghost.Graphics": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

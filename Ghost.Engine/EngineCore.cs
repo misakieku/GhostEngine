@@ -11,6 +11,7 @@ internal class EngineCore
     {
         ActivationHandler.Handle(args);
         GraphicsPipeline.Initialize(GraphicsAPI.DX12);
+        GraphicsPipeline.Start();
 
         Logger.LogInfo("Engine started successfully.");
 

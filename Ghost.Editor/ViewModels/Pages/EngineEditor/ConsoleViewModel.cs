@@ -59,17 +59,17 @@ internal partial class ConsoleViewModel : ObservableObject
         Logger.OnLogsUpdate -= UpdateLogs;
     }
 
-    private void UpdateLogs(LogChangeType updateType)
+    private void UpdateLogs(LogChangeContext ctx)
     {
-        switch (updateType)
+        switch (ctx.changeType)
         {
             case LogChangeType.LogAdded:
-                Logs.Add(Logger.Logs[^1]);
+                Logs.Add(Logger.Logs[ctx.index]);
                 break;
             case LogChangeType.LogRemoved:
                 if (Logs.Count > 0)
                 {
-                    Logs.RemoveAt(0);
+                    Logs.RemoveAt(ctx.index);
                 }
                 break;
             case LogChangeType.LogsCleared:

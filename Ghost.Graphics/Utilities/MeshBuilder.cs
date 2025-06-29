@@ -36,7 +36,15 @@ public static class MeshBuilder
             var baseIndex = mesh.VertexCount;
             for (var i = 0; i < 4; i++)
             {
-                mesh.AddVertex(corners[face[i]], Vector3.Zero, Vector4.Zero, color, uvs[i]);
+                var vertex = new Vertex
+                {
+                    Position = corners[face[i]].AsVector4(),
+                    Normal = Vector4.Zero,
+                    Tangent = Vector4.Zero,
+                    Color = color,
+                    UV = uvs[i].AsVector4()
+                };
+                mesh.AddVertex(new(corners[face[i]].AsVector4(), Vector4.Zero, Vector4.Zero, color, uvs[i].AsVector4()));
             }
 
             mesh.AddTriangle(baseIndex + 0, baseIndex + 1, baseIndex + 2);
@@ -57,10 +65,10 @@ public static class MeshBuilder
         var hd = depth * 0.5f;
         var mesh = new Mesh(4, 6);
 
-        mesh.AddVertex(new(-hw, 0, -hd), Vector3.Zero, Vector4.Zero, color, new(0, 0));
-        mesh.AddVertex(new(hw, 0, -hd), Vector3.Zero, Vector4.Zero, color, new(1, 0));
-        mesh.AddVertex(new(hw, 0, hd), Vector3.Zero, Vector4.Zero, color, new(1, 1));
-        mesh.AddVertex(new(-hw, 0, hd), Vector3.Zero, Vector4.Zero, color, new(0, 1));
+        mesh.AddVertex(new(new(-hw, 0.0f, -hd, 0.0f), Vector4.Zero, Vector4.Zero, color, new(0.0f)));
+        mesh.AddVertex(new(new(hw, 0.0f, -hd, 0.0f), Vector4.Zero, Vector4.Zero, color, new(1.0f, 0.0f, 0.0f, 0.0f)));
+        mesh.AddVertex(new(new(hw, 0.0f, hd, 0.0f), Vector4.Zero, Vector4.Zero, color, new(1.0f, 1.0f, 0.0f, 0.0f)));
+        mesh.AddVertex(new(new(-hw, 0.0f, hd, 0.0f), Vector4.Zero, Vector4.Zero, color, new(0.0f, 1.0f, 0.0f, 0.0f)));
 
         mesh.AddTriangle(0, 1, 2);
         mesh.AddTriangle(0, 2, 3);
@@ -95,12 +103,14 @@ public static class MeshBuilder
                 var z = sinPhi * sinTheta;
 
                 mesh.AddVertex(
-                    position: new Vector3(x, y, z) * radius,
-                    normal: Vector3.Zero,
-                    tangent: Vector4.Zero,
-                    color: color,
-                    uv: new Vector2((float)lon / longitudeSegments, (float)lat / latitudeSegments)
-                );
+                    new()
+                    {
+                        Position = new Vector4(x, y, z, 0.0f) * radius,
+                        Normal = Vector4.Zero,
+                        Tangent = Vector4.Zero,
+                        Color = color,
+                        UV = new Vector4((float)lon / longitudeSegments, (float)lat / latitudeSegments, 0.0f, 0.0f)
+                    });
             }
         }
 

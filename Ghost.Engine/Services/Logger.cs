@@ -10,6 +10,12 @@ internal enum LogChangeType
     LogsCleared
 }
 
+internal readonly struct LogChangeContext(LogChangeType type, int index)
+{
+    public readonly LogChangeType changeType = type;
+    public readonly int index = index;
+}
+
 public static class Logger
 {
 
@@ -18,31 +24,30 @@ public static class Logger
     private static readonly List<LogMessage> _logs = new();
     internal static IReadOnlyList<LogMessage> Logs => _logs;
 
-    internal static event Action<LogChangeType>? OnLogsUpdate;
+    internal static event Action<LogChangeContext>? OnLogsUpdate;
 
     internal static bool HasStackTrace
     {
         get; set;
     }
 
-    private static void LogInternal(LogLevel level, string? message, int skipFrame)
+    private static StackTrace? CaptureStackTrace()
+    {
+        return HasStackTrace ? new StackTrace(1, true) : null;
+    }
+
+    private static void LogInternal(LogLevel level, object? message, StackTrace? stackTrace)
     {
         if (_logs.Count >= _MAX_LOGS)
         {
             _logs.RemoveAt(0);
-            OnLogsUpdate?.Invoke(LogChangeType.LogRemoved);
+            OnLogsUpdate?.Invoke(new(LogChangeType.LogRemoved, 0));
         }
 
-        StackTrace? stackTrace = null;
-        if (HasStackTrace)
-        {
-            stackTrace = new StackTrace(skipFrame, true);
-        }
-
-        var logMessage = new LogMessage(level, message, stackTrace?.ToString());
+        var logMessage = new LogMessage(level, message?.ToString(), stackTrace?.ToString());
         _logs.Add(logMessage);
 
-        OnLogsUpdate?.Invoke(LogChangeType.LogAdded);
+        OnLogsUpdate?.Invoke(new(LogChangeType.LogAdded, _logs.Count - 1));
     }
 
     private static void LogExceptionInternal(Exception ex)
@@ -50,33 +55,33 @@ public static class Logger
         if (_logs.Count >= _MAX_LOGS)
         {
             _logs.RemoveAt(0);
-            OnLogsUpdate?.Invoke(LogChangeType.LogRemoved);
+            OnLogsUpdate?.Invoke(new(LogChangeType.LogRemoved, 0));
         }
 
         var logMessage = new LogMessage(LogLevel.Error, ex.Message, ex.StackTrace);
         _logs.Add(logMessage);
 
-        OnLogsUpdate?.Invoke(LogChangeType.LogAdded);
+        OnLogsUpdate?.Invoke(new(LogChangeType.LogAdded, _logs.Count - 1));
     }
 
-    public static void Log(LogLevel level, string? message)
+    public static void Log(LogLevel level, object? message)
     {
-        LogInternal(level, message, 2);
+        LogInternal(level, message, CaptureStackTrace());
     }
 
-    public static void LogInfo(string? message)
+    public static void LogInfo(object? message)
     {
-        LogInternal(LogLevel.Info, message, 3);
+        LogInternal(LogLevel.Info, message, CaptureStackTrace());
     }
 
-    public static void LogWarning(string? message)
+    public static void LogWarning(object? message)
     {
-        LogInternal(LogLevel.Warning, message, 3);
+        LogInternal(LogLevel.Warning, message, CaptureStackTrace());
     }
 
-    public static void LogError(string? message)
+    public static void LogError(object? message)
     {
-        LogInternal(LogLevel.Error, message, 3);
+        LogInternal(LogLevel.Error, message, CaptureStackTrace());
     }
 
     public static void LogError(Exception ex)
@@ -84,17 +89,17 @@ public static class Logger
         LogExceptionInternal(ex);
     }
 
-    public static void Assert(bool condition, string? message = null)
+    public static void Assert(bool condition, object? message = null)
     {
         if (!condition)
         {
-            LogInternal(LogLevel.Error, message ?? "Assertion failed", 3);
+            LogInternal(LogLevel.Error, message ?? "Assertion failed", CaptureStackTrace());
         }
     }
 
     internal static void Clear()
     {
         _logs.Clear();
-        OnLogsUpdate?.Invoke(LogChangeType.LogsCleared);
+        OnLogsUpdate?.Invoke(new(LogChangeType.LogsCleared, -1));
     }
 }

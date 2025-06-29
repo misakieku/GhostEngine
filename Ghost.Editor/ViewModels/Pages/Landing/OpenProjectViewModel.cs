@@ -36,7 +36,6 @@ internal partial class OpenProjectViewModel(ProjectService projectService, INoti
 
     public async void OnNavigatedTo(object? parameter)
     {
-        projects.Clear();
         await foreach (var projectInfo in projectService.GetAllProjectAsync())
         {
             var metadata = await ProjectService.LoadMetadataAsync(projectInfo.MetadataPath);
@@ -54,6 +53,7 @@ internal partial class OpenProjectViewModel(ProjectService projectService, INoti
 
     public void OnNavigatedFrom()
     {
+        projects.Clear();
     }
 
     public async Task ContentDrop(DataPackageView dataView)
@@ -89,7 +89,7 @@ internal partial class OpenProjectViewModel(ProjectService projectService, INoti
         UpdateEmptyPlaceHolderVisibility();
     }
 
-    public async Task LoadProject(ProjectMetadataInfo project)
+    public async Task OpenProjectAsync(ProjectMetadataInfo project)
     {
         try
         {

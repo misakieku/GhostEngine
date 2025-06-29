@@ -3,9 +3,9 @@ using Ghost.Graphics.Data;
 
 namespace Ghost.Graphics;
 
-internal static class GraphicsPipeline
+public static class GraphicsPipeline
 {
-    public const int FRAME_COUNT = 2;
+    internal const int FRAME_COUNT = 2;
 
     private static IGraphicsDevice? _graphicsDevice;
     private static Thread? _renderThread;
@@ -24,7 +24,7 @@ internal static class GraphicsPipeline
         }
     }
 
-    public static void Initialize(GraphicsAPI api)
+    internal static void Initialize(GraphicsAPI api)
     {
         _graphicsDevice = api switch
         {
@@ -43,7 +43,7 @@ internal static class GraphicsPipeline
         }
     }
 
-    public static void Start()
+    internal static void Start()
     {
         if (_isRunning)
         {
@@ -59,13 +59,13 @@ internal static class GraphicsPipeline
         _renderThread.Start();
     }
 
-    public static void Stop()
+    internal static void Stop()
     {
         _isRunning = false;
         _renderThread?.Join();
     }
 
-    public static void Shutdown()
+    internal static void Shutdown()
     {
         Stop();
 

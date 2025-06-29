@@ -1,5 +1,5 @@
-﻿using Ghost.Editor.ViewModels.Pages.Landing;
-using Ghost.Data.Models;
+﻿using Ghost.Data.Models;
+using Ghost.Editor.ViewModels.Pages.Landing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
@@ -26,7 +26,7 @@ internal sealed partial class OpenProjectPage : Page
         ViewModel.OnNavigatedTo(e.Parameter);
     }
 
-    override protected void OnNavigatedFrom(NavigationEventArgs e)
+    protected override void OnNavigatedFrom(NavigationEventArgs e)
     {
         base.OnNavigatedFrom(e);
         ViewModel.OnNavigatedFrom();
@@ -65,7 +65,8 @@ internal sealed partial class OpenProjectPage : Page
     {
         if (e.ClickedItem is ProjectMetadataInfo project)
         {
-            await ViewModel.LoadProject(project);
+            await Task.Yield();
+            await ViewModel.OpenProjectAsync(project);
         }
     }
 }

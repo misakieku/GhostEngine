@@ -1,6 +1,6 @@
 ﻿namespace Ghost.Graphics.Data;
 
-internal readonly struct SwapChainSurface
+internal readonly struct SwapChainPresenter
 {
     public enum TargetType
     {
@@ -33,7 +33,7 @@ internal readonly struct SwapChainSurface
         get;
     }
 
-    public SwapChainSurface(Vortice.WinUI.ISwapChainPanelNative swapChainPanelNative, uint width, uint height)
+    public SwapChainPresenter(Vortice.WinUI.ISwapChainPanelNative swapChainPanelNative, uint width, uint height)
     {
         Type = TargetType.Composition;
         SwapChainPanelNative = swapChainPanelNative;
@@ -42,7 +42,7 @@ internal readonly struct SwapChainSurface
         Height = height;
     }
 
-    public SwapChainSurface(IntPtr hwnd, uint width, uint height)
+    public SwapChainPresenter(IntPtr hwnd, uint width, uint height)
     {
         Type = TargetType.Hwnd;
         SwapChainPanelNative = null;

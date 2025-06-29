@@ -13,10 +13,13 @@ internal class DX12GraphicsDevice : IGraphicsDevice
     private readonly ID3D12CommandQueue _commandQueue;
 
     private readonly List<IRenderView> _renderViews = new();
+    private readonly Lock _lock = new();
 
 #if DEBUG
-    private readonly IDebugLayer _debugLayer;
+    private readonly DX12DebugLayer _debugLayer;
 #endif
+
+    private bool _disposed;
 
     public ID3D12Device14 Device => _device;
     public IDXGIFactory7 DXGIFactory => _dxgiFactory;
@@ -61,6 +64,8 @@ internal class DX12GraphicsDevice : IGraphicsDevice
                 adapter.Dispose();
                 break;
             }
+
+            adapter.Dispose();
         }
 
         if (d3d12Device == null)
@@ -83,35 +88,52 @@ internal class DX12GraphicsDevice : IGraphicsDevice
         queue = _device.CreateCommandQueue(queueDesc);
     }
 
-    public IRenderView CreateRenderView(in SwapChainSurface swapChainSurface)
+    public IRenderView CreateRenderView(in SwapChainPresenter swapChainSurface)
     {
         var renderView = new DX12RenderView(this, swapChainSurface);
-        _renderViews.Add(renderView);
+        lock (_lock)
+        {
+            _renderViews.Add(renderView);
+        }
+
         return renderView;
     }
 
     public void OnRender()
     {
-        foreach (var renderView in _renderViews)
+        lock (_lock)
         {
-            renderView.Render();
+            foreach (var renderView in _renderViews)
+            {
+                renderView.ExecutePendingResize();
+
+                renderView.BeginRender();
+                renderView.Render();
+                renderView.EndRender();
+            }
         }
     }
 
     public void Dispose()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         foreach (var renderView in _renderViews)
         {
             renderView.Dispose();
         }
         _renderViews.Clear();
 
-        _commandQueue?.Dispose();
-        _device?.Dispose();
-        _dxgiFactory?.Dispose();
+        _commandQueue.Release();
+        _device.Release();
+        _dxgiFactory.Release();
 
 #if DEBUG
         _debugLayer.Dispose();
 #endif
+        _disposed = true;
     }
 }

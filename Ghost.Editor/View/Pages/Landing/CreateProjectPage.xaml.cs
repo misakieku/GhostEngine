@@ -23,4 +23,10 @@ internal sealed partial class CreateProjectPage : Page
         base.OnNavigatedTo(e);
         ViewModel.OnNavigatedTo(e.Parameter);
     }
+
+    protected override void OnNavigatedFrom(NavigationEventArgs e)
+    {
+        base.OnNavigatedFrom(e);
+        ViewModel.OnNavigatedFrom();
+    }
 }

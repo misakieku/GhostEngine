@@ -1,7 +1,6 @@
 ﻿using Ghost.Graphics.Contracts;
 using Ghost.Graphics.Data;
 using Ghost.Graphics.DX12.Utilities;
-using System.Runtime.CompilerServices;
 using Vortice.Direct3D12;
 using Vortice.DXGI;
 
@@ -13,6 +12,7 @@ internal class DX12RenderView : IRenderView
     private const int _DEPTH_STENCIL_VIEW_HEAP_SIZE = 256;
 
     private readonly DX12GraphicsDevice _graphicsDevice;
+    private readonly SwapChainPresenter _swapChainPresenter;
 
     private readonly IDXGISwapChain4 _swapChain;
     private readonly ID3D12Resource[] _renderTargets;
@@ -20,7 +20,7 @@ internal class DX12RenderView : IRenderView
     private uint _backBufferIndex;
 
     private readonly ID3D12CommandAllocator[] _commandAllocators;
-    private readonly ID3D12GraphicsCommandList7 _commandList;
+    private readonly ID3D12GraphicsCommandList10 _commandList;
 
     private readonly ID3D12Fence1 _fence;
     private readonly AutoResetEvent _fenceEvent;
@@ -28,9 +28,19 @@ internal class DX12RenderView : IRenderView
 
     private readonly D3D12DescriptorAllocator _rtvHeap;
 
-    public DX12RenderView(DX12GraphicsDevice pipelineContext, in SwapChainSurface swapChainSurface)
+    private readonly ICommandBuffer _commandBuffer;
+
+    private readonly Lock _lock = new();
+    private uint _pendingWidth;
+    private uint _pendingHeight;
+    private bool _resizeRequested;
+
+    private bool _disposed;
+
+    public DX12RenderView(DX12GraphicsDevice graphicsDevice, in SwapChainPresenter swapChainSurface)
     {
-        _graphicsDevice = pipelineContext;
+        _graphicsDevice = graphicsDevice;
+        _swapChainPresenter = swapChainSurface;
 
         _rtvHeap = new(_graphicsDevice.Device, DescriptorHeapType.RenderTargetView, _RENDER_TARGET_VIEW_HEAP_SIZE);
 
@@ -39,21 +49,23 @@ internal class DX12RenderView : IRenderView
         _fenceValues = new ulong[GraphicsPipeline.FRAME_COUNT];
         _renderTargetDescriptorIndexes = new uint[GraphicsPipeline.FRAME_COUNT];
 
-        InitializeSwapChain(swapChainSurface, out _swapChain);
+        InitializeSwapChain(out _swapChain);
         InitializeCommandObjects(out _commandAllocators, out _commandList, out _fence);
         CreateRenderTargets();
+
+        _commandBuffer = new DX12CommandBuffer(_commandList);
     }
 
-    private void InitializeSwapChain(in SwapChainSurface swapChainSurface, out IDXGISwapChain4 swapChain)
+    private void InitializeSwapChain(out IDXGISwapChain4 swapChain)
     {
         var swapChainDesc = new SwapChainDescription1
         {
-            Width = swapChainSurface.Width,
-            Height = swapChainSurface.Height,
+            Width = _swapChainPresenter.Width,
+            Height = _swapChainPresenter.Height,
             Format = Format.B8G8R8A8_UNorm,
             Stereo = false,
             SampleDescription = new SampleDescription(1, 0),
-            BufferUsage = Usage.RenderTargetOutput,
+            BufferUsage = Usage.Backbuffer | Usage.RenderTargetOutput,
             BufferCount = GraphicsPipeline.FRAME_COUNT,
             Scaling = Scaling.Stretch,
             SwapEffect = SwapEffect.FlipDiscard,
@@ -61,36 +73,37 @@ internal class DX12RenderView : IRenderView
             Flags = SwapChainFlags.AllowTearing
         };
 
-        // NOTE: Not going to need it for now, this is for standalone applications.
-        var swapChainFullscreenDesc = new SwapChainFullscreenDescription
+        switch (_swapChainPresenter.Type)
         {
-            Windowed = true,
-        };
-
-        switch (swapChainSurface.Type)
-        {
-            case SwapChainSurface.TargetType.Composition:
+            case SwapChainPresenter.TargetType.Composition:
                 var swapChain1 = _graphicsDevice.DXGIFactory.CreateSwapChainForComposition(_graphicsDevice.CommandQueue, swapChainDesc);
                 swapChain = swapChain1.QueryInterface<IDXGISwapChain4>();
+                swapChain1.Dispose();
 
                 _backBufferIndex = swapChain.CurrentBackBufferIndex;
-                swapChainSurface.SwapChainPanelNative!.SetSwapChain(swapChain);
+                _swapChainPresenter.SwapChainPanelNative!.SetSwapChain(swapChain);
                 break;
-            case SwapChainSurface.TargetType.Hwnd:
+            case SwapChainPresenter.TargetType.Hwnd:
+                var swapChainFullscreenDesc = new SwapChainFullscreenDescription
+                {
+                    Windowed = true,
+                };
+
                 var swapChain2 = _graphicsDevice.DXGIFactory.CreateSwapChainForHwnd(
                     _graphicsDevice.CommandQueue,
-                    swapChainSurface.Hwnd,
+                    _swapChainPresenter.Hwnd,
                     swapChainDesc,
                     swapChainFullscreenDesc,
                     null);
                 swapChain = swapChain2.QueryInterface<IDXGISwapChain4>();
+                swapChain2.Dispose();
                 break;
             default:
                 throw new ArgumentException("Unsupported swap chain surface type.");
         }
     }
 
-    private void InitializeCommandObjects(out ID3D12CommandAllocator[] commandAllocator, out ID3D12GraphicsCommandList7 commandList, out ID3D12Fence1 fence)
+    private void InitializeCommandObjects(out ID3D12CommandAllocator[] commandAllocator, out ID3D12GraphicsCommandList10 commandList, out ID3D12Fence1 fence)
     {
         commandAllocator = new ID3D12CommandAllocator[GraphicsPipeline.FRAME_COUNT];
         for (var i = 0; i < GraphicsPipeline.FRAME_COUNT; i++)
@@ -98,10 +111,10 @@ internal class DX12RenderView : IRenderView
             commandAllocator[i] = _graphicsDevice.Device.CreateCommandAllocator(CommandListType.Direct);
         }
 
-        commandList = _graphicsDevice.Device.CreateCommandList<ID3D12GraphicsCommandList7>(CommandListType.Direct, commandAllocator[0], null!);
+        commandList = _graphicsDevice.Device.CreateCommandList<ID3D12GraphicsCommandList10>(CommandListType.Direct, commandAllocator[0], null!);
+        commandList.Close();
         fence = _graphicsDevice.Device.CreateFence<ID3D12Fence1>(_fenceValues[_backBufferIndex], FenceFlags.None);
 
-        _commandList.Close();
         _fenceValues[_backBufferIndex]++;
     }
 
@@ -118,32 +131,80 @@ internal class DX12RenderView : IRenderView
         }
     }
 
-    public void Resize(uint width, uint height)
+    public void RequestResize(uint width, uint height)
     {
+        lock (_lock)
+        {
+            if (_pendingWidth == width && _pendingHeight == height)
+            {
+                return;
+            }
+
+            _resizeRequested = true;
+            _pendingWidth = width;
+            _pendingHeight = height;
+        }
+    }
+
+    public void ExecutePendingResize()
+    {
+        if (!_resizeRequested)
+        {
+            return;
+        }
+
+        uint newWidth;
+        uint newHeight;
+
+        lock (_lock)
+        {
+            newWidth = _pendingWidth;
+            newHeight = _pendingHeight;
+            _resizeRequested = false;
+        }
+
         WaitIdle();
 
         for (var i = 0; i < GraphicsPipeline.FRAME_COUNT; i++)
         {
-            _renderTargets[i].Dispose();
-            _rtvHeap.ReleaseDescriptor(_renderTargetDescriptorIndexes[i]);
+            if (_renderTargets[i] is not null)
+            {
+                _renderTargets[i].Dispose();
+                _rtvHeap.ReleaseDescriptor(_renderTargetDescriptorIndexes[i]);
+            }
 
             _fenceValues[i] = _fenceValues[_backBufferIndex];
         }
 
-        _swapChain.ResizeBuffers(GraphicsPipeline.FRAME_COUNT, width, height, Format.B8G8R8A8_UNorm, SwapChainFlags.AllowTearing).CheckError();
+        _swapChain.ResizeBuffers(GraphicsPipeline.FRAME_COUNT, newWidth, newHeight, Format.B8G8R8A8_UNorm, SwapChainFlags.AllowTearing).CheckError();
 
         CreateRenderTargets();
         _backBufferIndex = _swapChain.CurrentBackBufferIndex;
     }
 
-    public void Render()
+    public ICommandBuffer BeginRender()
     {
+        _backBufferIndex = _swapChain.CurrentBackBufferIndex;
+
         var commandAllocator = _commandAllocators[_backBufferIndex];
         commandAllocator.Reset();
         _commandList.Reset(commandAllocator, null);
 
+        _commandList.ResourceBarrierTransition(_renderTargets[_backBufferIndex], ResourceStates.Present, ResourceStates.RenderTarget);
+
+        return _commandBuffer;
+    }
+
+    public void Render()
+    {
+    }
+
+    public void EndRender()
+    {
+        _commandList.ResourceBarrierTransition(_renderTargets[_backBufferIndex], ResourceStates.RenderTarget, ResourceStates.Present);
         _commandList.Close();
-        _graphicsDevice.CommandQueue.ExecuteCommandLists([_commandList]);
+
+        _graphicsDevice.CommandQueue.ExecuteCommandLists(new[] { _commandList });
 
         _swapChain.Present(1, PresentFlags.None).CheckError();
 
@@ -159,7 +220,6 @@ internal class DX12RenderView : IRenderView
             return;
         }
 
-        _backBufferIndex = _swapChain.CurrentBackBufferIndex;
         if (_fence.CompletedValue < _fenceValues[_backBufferIndex]
             && _fence.SetEventOnCompletion(_fenceValues[_backBufferIndex], _fenceEvent.SafeWaitHandle.DangerousGetHandle()).Success)
         {
@@ -172,38 +232,36 @@ internal class DX12RenderView : IRenderView
     public void WaitIdle()
     {
         var fenceValue = _fenceValues[_backBufferIndex];
-        if (_graphicsDevice.CommandQueue.Signal(_fence, fenceValue).Failure
-            || _fence.SetEventOnCompletion(fenceValue, _fenceEvent.SafeWaitHandle.DangerousGetHandle()).Failure)
+        if (_graphicsDevice.CommandQueue.Signal(_fence, fenceValue).Success
+            && _fence.SetEventOnCompletion(fenceValue, _fenceEvent.SafeWaitHandle.DangerousGetHandle()).Success)
         {
-            return;
-        }
-
-        _fenceEvent.WaitOne();
-        _fenceValues[_backBufferIndex]++;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Flush()
-    {
-        for (var i = 0; i < GraphicsPipeline.FRAME_COUNT; i++)
-        {
-            WaitIdle();
+            _fenceEvent.WaitOne();
+            _fenceValues[_backBufferIndex]++;
         }
     }
 
     public void Dispose()
     {
-        Flush();
+        if (_disposed)
+        {
+            return;
+        }
+
+        WaitIdle();
+
+        _swapChainPresenter.SwapChainPanelNative?.SetSwapChain(null);
 
         foreach (var commandAllocator in _commandAllocators)
         {
             commandAllocator.Dispose();
         }
+        _commandAllocators.AsSpan().Clear();
 
         foreach (var renderTarget in _renderTargets)
         {
             renderTarget.Dispose();
         }
+        _renderTargets.AsSpan().Clear();
 
         _swapChain.Dispose();
         _commandList.Dispose();
@@ -215,5 +273,7 @@ internal class DX12RenderView : IRenderView
 
         _backBufferIndex = 0;
         _fenceValues.AsSpan().Clear();
+
+        _disposed = true;
     }
 }

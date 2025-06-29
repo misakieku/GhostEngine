@@ -15,7 +15,7 @@ internal static partial class HostHelper
 {
     public static void AddLandingScope(HostBuilderContext context, IServiceCollection services)
     {
-        services.AddTransient<LandingWindow>();
+        services.AddSingleton<LandingWindow>();
 
         services.AddTransient<CreateProjectPage>();
         services.AddTransient<CreateProjectViewModel>();
@@ -30,8 +30,8 @@ internal static partial class HostHelper
     {
         services.AddSingleton<EngineCore>();
 
-        services.AddTransient<EngineEditorWindow>();
-        services.AddTransient<EngineEditorViewModel>();
+        services.AddSingleton<EngineEditorWindow>();
+        services.AddSingleton<EngineEditorViewModel>();
 
         services.AddTransient<ScenePage>();
 
