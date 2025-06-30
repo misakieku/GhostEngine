@@ -1,4 +1,4 @@
-﻿using Ghost.Graphics.DX12.Utilities;
+﻿using Ghost.Graphics.Contracts;
 using Misaki.HighPerformance.Unsafe.Collections;
 using Misaki.HighPerformance.Unsafe.Helpers;
 using System.Numerics;
@@ -16,8 +16,8 @@ public sealed class Mesh(int initialVertexCapacity = 256, int initialIndexCapaci
 
     private BoundingBox _bounds;
 
-    private ID3D12Resource? _vertexBuffer;
-    private ID3D12Resource? _indexBuffer;
+    private IResource? _vertexBuffer;
+    private IResource? _indexBuffer;
     private VertexBufferView _vertexBufferView;
     private IndexBufferView _indexBufferView;
 
@@ -35,7 +35,7 @@ public sealed class Mesh(int initialVertexCapacity = 256, int initialIndexCapaci
     /// <summary>
     /// Adds a vertex to the mesh with the specified attributes.
     /// </summary>
-    /// <param name="vertex">The data to add</param>
+    /// <param name="vertex">The vertex data to add</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AddVertex(Vertex vertex)
     {
@@ -198,11 +198,11 @@ public sealed class Mesh(int initialVertexCapacity = 256, int initialIndexCapaci
     }
 
     /// <summary>
-    /// Uploads the mesh data to GPU resources immediately.
+    /// Uploads the mesh data to GPU resources.
     /// </summary>
     /// <param name="device">The Direct3D 12 device.</param>
     /// <param name="commandList">The Direct3D 12 command list to record the upload commands.</param>
-    public unsafe void UploadMeshData(ID3D12Device device, ID3D12GraphicsCommandList commandList)
+    public unsafe void UploadMeshData(ICommandBuffer cmb)
     {
         if (VertexCount == 0 || IndexCount == 0)
         {
@@ -214,47 +214,31 @@ public sealed class Mesh(int initialVertexCapacity = 256, int initialIndexCapaci
 
         var vertexBufferSize = (uint)(VertexCount * sizeof(Vertex));
         var indexBufferSize = (uint)(IndexCount * sizeof(int));
-        _vertexBuffer = D3D12ResourceUtils.CreateCPUDestinationBuffer(device, vertexBufferSize);
-        _indexBuffer = D3D12ResourceUtils.CreateCPUDestinationBuffer(device, indexBufferSize);
+        _vertexBuffer = GraphicsPipeline.ResourceAllocator.CreateCopyDestinationBuffer(vertexBufferSize);
+        _indexBuffer = GraphicsPipeline.ResourceAllocator.CreateCopyDestinationBuffer(indexBufferSize);
 
-        using var vertexUploadBuffer = D3D12ResourceUtils.CreateUploadBuffer(device, vertexBufferSize);
-        using var indexUploadBuffer = D3D12ResourceUtils.CreateUploadBuffer(device, indexBufferSize);
+        using var vertexUploadBuffer = GraphicsPipeline.ResourceAllocator.CreateUploadBuffer(vertexBufferSize);
+        using var indexUploadBuffer = GraphicsPipeline.ResourceAllocator.CreateUploadBuffer(indexBufferSize);
 
-        void* vertexData;
-        vertexUploadBuffer.Map(0, null, &vertexData);
-        Unsafe.CopyBlock(vertexData, _vertices.GetUnsafePtr(), vertexBufferSize);
-        vertexUploadBuffer.Unmap(0);
+        vertexUploadBuffer.SetData(_vertices.AsSpan());
+        indexUploadBuffer.SetData(_indices.AsSpan());
 
-        void* indexData;
-        indexUploadBuffer.Map(0, null, &indexData);
-        Unsafe.CopyBlock(indexData, _indices.GetUnsafePtr(), indexBufferSize);
-        indexUploadBuffer.Unmap(0);
-
-        commandList.CopyBufferRegion(_vertexBuffer, 0, vertexUploadBuffer, 0, vertexBufferSize);
-        commandList.CopyBufferRegion(_indexBuffer, 0, indexUploadBuffer, 0, indexBufferSize);
+        cmb.CopyResource(_vertexBuffer, 0, vertexUploadBuffer, 0, vertexBufferSize);
+        cmb.CopyResource(_indexBuffer, 0, indexUploadBuffer, 0, indexBufferSize);
 
         _vertexBufferView = new VertexBufferView
         {
-            BufferLocation = _vertexBuffer.GPUVirtualAddress,
+            BufferLocation = _vertexBuffer.GPUAddress,
             SizeInBytes = vertexBufferSize,
             StrideInBytes = (uint)sizeof(Vertex)
         };
 
         _indexBufferView = new IndexBufferView
         {
-            BufferLocation = _indexBuffer.GPUVirtualAddress,
+            BufferLocation = _indexBuffer.GPUAddress,
             SizeInBytes = indexBufferSize,
-            Format = Format.R32_UInt
+            Format = Format.R32_SInt
         };
-    }
-
-    private void DisposeGpuResources()
-    {
-        _vertexBuffer?.Release();
-        _vertexBuffer = null;
-
-        _indexBuffer?.Release();
-        _indexBuffer = null;
     }
 
     /// <summary>
@@ -265,6 +249,15 @@ public sealed class Mesh(int initialVertexCapacity = 256, int initialIndexCapaci
         _vertices.Clear();
         _indices.Clear();
         DisposeGpuResources();
+    }
+
+    private void DisposeGpuResources()
+    {
+        _vertexBuffer?.Dispose();
+        _vertexBuffer = null;
+
+        _indexBuffer?.Dispose();
+        _indexBuffer = null;
     }
 
     public void Dispose()

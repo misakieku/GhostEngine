@@ -1,15 +1,19 @@
-﻿using Ghost.Graphics.Utilities;
+﻿using Ghost.Graphics.Contracts;
+using Ghost.Graphics.DX12.Utilities;
+using Ghost.Graphics.Utilities;
 using System.Runtime.CompilerServices;
 using Vortice.Direct3D12;
 using Vortice.DXGI;
 
-namespace Ghost.Graphics.DX12.Utilities;
+namespace Ghost.Graphics.DX12;
 
-internal unsafe class D3D12ResourceUtils
+internal unsafe class DX12ResourceAllocator : IResourceAllocator
 {
     private const ResourceStates _INITIALCOPYTARGETSTATE = ResourceStates.Common;
     private const ResourceStates _INITIALREADTARGETSTATE = ResourceStates.Common;
     private const ResourceStates _INITIALUAVTARGETSTATE = ResourceStates.Common;
+
+    private const uint _MAX_BYTES = D3D12.RequestResourceSizeInMegaBytesExpressionATerm * 1024u * 1024u;
 
     public static ID3D12Resource CreateStaticBuffer<T>(
         ID3D12Device device,
@@ -31,10 +35,7 @@ internal unsafe class D3D12ResourceUtils
         where T : unmanaged
     {
         var sizeInBytes = (uint)(sizeof(T) * data.Length);
-
-        var c_maxBytes = D3D12.RequestResourceSizeInMegaBytesExpressionATerm * 1024u * 1024u;
-
-        if (sizeInBytes > c_maxBytes)
+        if (sizeInBytes > _MAX_BYTES)
         {
             throw new InvalidOperationException($"ERROR: Resource size too large for DirectX 12 (size {sizeInBytes})");
         }
@@ -92,9 +93,7 @@ internal unsafe class D3D12ResourceUtils
         void* data = default,
         ResourceFlags flags = ResourceFlags.None)
     {
-        var c_maxBytes = D3D12.RequestResourceSizeInMegaBytesExpressionATerm * 1024u * 1024u;
-
-        if (sizeInBytes > c_maxBytes)
+        if (sizeInBytes > _MAX_BYTES)
         {
             throw new InvalidOperationException($"ERROR: Resource size too large for DirectX 12 (size {sizeInBytes})");
         }
@@ -122,8 +121,7 @@ internal unsafe class D3D12ResourceUtils
         uint sizeInBytes,
         ResourceFlags flags = ResourceFlags.None)
     {
-        var c_maxBytes = D3D12.RequestResourceSizeInMegaBytesExpressionATerm * 1024u * 1024u;
-        if (sizeInBytes > c_maxBytes)
+        if (sizeInBytes > _MAX_BYTES)
         {
             throw new InvalidOperationException($"ERROR: Resource size too large for DirectX 12 (size {sizeInBytes})");
         }
@@ -136,33 +134,11 @@ internal unsafe class D3D12ResourceUtils
         return buffer;
     }
 
-    public static ID3D12Resource CreateCPUDestinationBuffer(
-        ID3D12Device device,
-        uint sizeInBytes,
-        ResourceFlags flags = ResourceFlags.None)
-    {
-        var c_maxBytes = D3D12.RequestResourceSizeInMegaBytesExpressionATerm * 1024u * 1024u;
-        if (sizeInBytes > c_maxBytes)
-        {
-            throw new InvalidOperationException($"ERROR: Resource size too large for DirectX 12 (size {sizeInBytes})");
-        }
-
-        var buffer = device.CreateCommittedResource(
-            HeapType.Default,
-            HeapFlags.None,
-            ResourceDescription.Buffer(sizeInBytes, flags),
-            ResourceStates.CopyDest
-        );
-        return buffer;
-    }
-
     public static ID3D12Resource CreateUAVBuffer(ID3D12Device device, uint bufferSize,
         ResourceStates initialState = ResourceStates.Common,
         ResourceFlags flags = ResourceFlags.None)
     {
-        var c_maxBytes = D3D12.RequestResourceSizeInMegaBytesExpressionATerm * 1024u * 1024u;
-
-        if (bufferSize > c_maxBytes)
+        if (bufferSize > _MAX_BYTES)
         {
             throw new InvalidOperationException($"ERROR: Resource size too large for DirectX 12 (size {bufferSize})");
         }
@@ -187,7 +163,7 @@ internal unsafe class D3D12ResourceUtils
         ResourceFlags flags = ResourceFlags.None)
         where T : unmanaged
     {
-        if ((width > D3D12.RequestTexture2DUOrVDimension) || (height > D3D12.RequestTexture2DUOrVDimension))
+        if (width > D3D12.RequestTexture2DUOrVDimension || height > D3D12.RequestTexture2DUOrVDimension)
         {
             throw new InvalidOperationException($"ERROR: Resource dimensions too large for DirectX 12 (2D: size {width} by {height})");
         }
@@ -230,5 +206,47 @@ internal unsafe class D3D12ResourceUtils
 
             return texture;
         }
+    }
+
+    public static IResourceAllocator Create() => new DX12ResourceAllocator();
+
+    public IResource CreateUploadBuffer(uint sizeInBytes, ResourceFlags flags = ResourceFlags.None)
+    {
+        if (sizeInBytes > _MAX_BYTES)
+        {
+            throw new InvalidOperationException($"ERROR: Resource size too large for DirectX 12 (size {sizeInBytes})");
+        }
+
+        var device = GraphicsPipeline.GetRenderer<DX12GraphicsDevice>();
+        var buffer = device.NativeDevice.CreateCommittedResource(
+            HeapType.Upload,
+            HeapFlags.None,
+            ResourceDescription.Buffer(sizeInBytes, flags),
+            ResourceStates.GenericRead
+        );
+
+        return new DX12Resource(buffer);
+    }
+
+    public IResource CreateCopyDestinationBuffer(uint sizeInBytes, ResourceFlags flags = ResourceFlags.None)
+    {
+        if (sizeInBytes > _MAX_BYTES)
+        {
+            throw new InvalidOperationException($"ERROR: Resource size too large for DirectX 12 (size {sizeInBytes})");
+        }
+
+        var device = GraphicsPipeline.GetRenderer<DX12GraphicsDevice>();
+        var buffer = device.NativeDevice.CreateCommittedResource(
+            HeapType.Default,
+            HeapFlags.None,
+            ResourceDescription.Buffer(sizeInBytes, flags),
+            ResourceStates.CopyDest
+        );
+
+        return new DX12Resource(buffer);
+    }
+
+    public void Dispose()
+    {
     }
 }

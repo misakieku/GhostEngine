@@ -35,15 +35,15 @@ public static partial class AssetDatabase
     {
         if (Directory.Exists(assetPath))
         {
-            return Result<string>.Error("Folder does not have meta data");
+            return Result<string>.Failure("Folder does not have meta data");
         }
 
         if (Path.GetExtension(assetPath).Equals(".meta", StringComparison.OrdinalIgnoreCase))
         {
-            return Result<string>.Error("Asset path cannot be a meta file");
+            return Result<string>.Failure("Asset path cannot be a meta file");
         }
 
-        return Result<string>.OK(assetPath + ".meta");
+        return Result<string>.Success(assetPath + ".meta");
     }
 
     private static ImporterSettings? GetDefaultSettingsForAsset(string assetPath)

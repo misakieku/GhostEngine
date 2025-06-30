@@ -12,17 +12,17 @@ public readonly struct Result
         this.message = message;
     }
 
-    public static Result OK()
+    public static Result Success()
     {
         return new Result(true);
     }
 
-    public static Result Error(string? message)
+    public static Result Failure(string? message)
     {
         return new Result(false, message);
     }
 
-    public void CheckSuccess()
+    public void EnsureSuccess()
     {
         if (!success)
         {
@@ -47,17 +47,17 @@ public readonly struct Result<T>
         this.message = message;
     }
 
-    public static Result<T> OK(T data)
+    public static Result<T> Success(T data)
     {
         return new Result<T>(true, data);
     }
 
-    public static Result<T> Error(string? message)
+    public static Result<T> Failure(string? message)
     {
         return new Result<T>(false, default!, message);
     }
 
-    public void CheckSuccess()
+    public void EnsureSuccess()
     {
         if (!success)
         {

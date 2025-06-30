@@ -75,29 +75,29 @@ internal partial class ProjectService
     {
         if (string.IsNullOrWhiteSpace(projectDirectory) || !Directory.Exists(projectDirectory))
         {
-            return Result<ProjectMetadataInfo>.Error("Project directory is invalid or does not exist.");
+            return Result<ProjectMetadataInfo>.Failure("Project directory is invalid or does not exist.");
         }
 
         var projectAssetsPath = Path.Combine(projectDirectory, ASSETS_FOLDER);
         var projectConfigPath = Path.Combine(projectDirectory, CONFIG_FOLDER);
         if (!Directory.Exists(projectAssetsPath) || !Directory.Exists(projectConfigPath))
         {
-            return Result<ProjectMetadataInfo>.Error("Project folder structure is invalid.");
+            return Result<ProjectMetadataInfo>.Failure("Project folder structure is invalid.");
         }
 
         var metadataPath = Directory.GetFiles(projectDirectory, $"*.{ProjectMetadata.PROJECT_EXTENSION}", SearchOption.TopDirectoryOnly).FirstOrDefault();
         if (string.IsNullOrWhiteSpace(metadataPath) || !File.Exists(metadataPath))
         {
-            return Result<ProjectMetadataInfo>.Error("Project metadata file not found.");
+            return Result<ProjectMetadataInfo>.Failure("Project metadata file not found.");
         }
 
         var metadata = await LoadMetadataAsync(metadataPath);
         if (metadata == null)
         {
-            return Result<ProjectMetadataInfo>.Error("Project metadata file is corrupted or invalid.");
+            return Result<ProjectMetadataInfo>.Failure("Project metadata file is corrupted or invalid.");
         }
 
-        return Result<ProjectMetadataInfo>.OK(new(metadataPath, metadata));
+        return Result<ProjectMetadataInfo>.Success(new(metadataPath, metadata));
     }
 
     private static async ValueTask SetupRequestFolderAsync(string projectDirectory, string templateDirectory)
@@ -186,7 +186,7 @@ internal partial class ProjectService
         }
         catch (Exception e)
         {
-            return Result<ProjectMetadataInfo>.Error($"Failed to create project: {e.Message}");
+            return Result<ProjectMetadataInfo>.Failure($"Failed to create project: {e.Message}");
         }
     }
 
@@ -200,7 +200,7 @@ internal partial class ProjectService
 
         if (await HasProjectAsync(result.value.Path))
         {
-            return Result<ProjectMetadataInfo>.Error("Project already exists.");
+            return Result<ProjectMetadataInfo>.Failure("Project already exists.");
         }
 
         await AddProjectAsync(result.value.Metadata.Name, result.value.Path);

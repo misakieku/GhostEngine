@@ -2,15 +2,14 @@ using Ghost.Editor.Controls.Internal;
 using Ghost.Graphics;
 using Ghost.Graphics.Contracts;
 using Microsoft.UI.Xaml;
-using Vortice.WinUI;
-using WinRT;
+using Microsoft.UI.Xaml.Controls;
 
 namespace Ghost.Editor.View.Pages.EngineEditor;
 
 internal sealed partial class ScenePage : NavigationTabPage
 {
-    private IRenderView? _renderer;
-    private ISwapChainPanelNative2? _swapChainPanelNative;
+    private IRenderer? _renderView;
+    private ISwapChainPanelNative _swapChainPanelNative;
 
     public ScenePage()
     {
@@ -23,16 +22,16 @@ internal sealed partial class ScenePage : NavigationTabPage
 
     private void OnRendering(object? sender, object e)
     {
-        _renderer?.Render();
     }
 
     private void SwapChainPanel_Loaded(object sender, RoutedEventArgs e)
     {
-        var guid = typeof(ISwapChainPanelNative2).GUID;
-        ((IWinRTObject)SwapChainPanel).NativeObject.TryAs(guid, out var swapChainPanelNativeHandle);
+        //var guid = typeof(ISwapChainPanelNative2).GUID;
+        //((IWinRTObject)SwapChainPanel).NativeObject.TryAs(guid, out var swapChainPanelNativeHandle);
+        _swapChainPanelNative = ISwapChainPanelNative.FromSwapChainPanel(SwapChainPanel);
 
-        _swapChainPanelNative = new ISwapChainPanelNative2(swapChainPanelNativeHandle);
-        _renderer = GraphicsPipeline.GraphicsDevice.CreateRenderView(new(_swapChainPanelNative, (uint)SwapChainPanel.ActualWidth, (uint)SwapChainPanel.ActualHeight));
+        //_swapChainPanelNative = new ISwapChainPanelNative2(swapChainPanelNativeHandle);
+        _renderView = GraphicsPipeline.GraphicsDevice.CreateRenderer(new(_swapChainPanelNative, (uint)SwapChainPanel.ActualWidth, (uint)SwapChainPanel.ActualHeight));
 
         //CompositionTarget.Rendering += OnRendering;
     }
@@ -40,15 +39,15 @@ internal sealed partial class ScenePage : NavigationTabPage
     private void SwapChainPanel_Unloaded(object sender, RoutedEventArgs e)
     {
         //CompositionTarget.Rendering -= OnRendering;
-        _swapChainPanelNative?.Dispose();
-        _renderer?.Dispose();
+        _swapChainPanelNative.Dispose();
+        _renderView?.Dispose();
     }
 
     private void SwapChainPanel_SizeChanged(object sender, SizeChangedEventArgs e)
     {
         if (e.NewSize.Width > 8.0 && e.NewSize.Height > 8.0)
         {
-            _renderer?.RequestResize((uint)e.NewSize.Width, (uint)e.NewSize.Height);
+            _renderView?.RequestResize((uint)e.NewSize.Width, (uint)e.NewSize.Height);
         }
     }
 }

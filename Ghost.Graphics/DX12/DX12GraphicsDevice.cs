@@ -1,82 +1,93 @@
-﻿using Ghost.Graphics.Contracts;
+﻿using Ghost.Core;
+using Ghost.Graphics.Contracts;
 using Ghost.Graphics.Data;
-using Vortice.Direct3D;
-using Vortice.Direct3D12;
-using Vortice.DXGI;
+using System.Collections.Immutable;
+using Win32;
+using Win32.Graphics.Direct3D;
+using Win32.Graphics.Direct3D12;
+using Win32.Graphics.Dxgi;
+using static Win32.Apis;
+using static Win32.Graphics.Direct3D12.Apis;
+using static Win32.Graphics.Dxgi.Apis;
 
 namespace Ghost.Graphics.DX12;
 
-internal class DX12GraphicsDevice : IGraphicsDevice
+internal unsafe class DX12GraphicsDevice : IGraphicsDevice
 {
-    private readonly IDXGIFactory7 _dxgiFactory;
-    private readonly ID3D12Device14 _device;
-    private readonly ID3D12CommandQueue _commandQueue;
-
-    private readonly List<IRenderView> _renderViews = new();
-    private readonly Lock _lock = new();
-
 #if DEBUG
     private readonly DX12DebugLayer _debugLayer;
 #endif
+    private readonly ComPtr<IDXGIFactory7> _dxgiFactory;
+    private readonly ComPtr<ID3D12Device14> _device;
+    private readonly ComPtr<ID3D12CommandQueue> _commandQueue;
+
+    private ImmutableArray<IRenderer> _renderers;
 
     private bool _disposed;
 
-    public ID3D12Device14 Device => _device;
-    public IDXGIFactory7 DXGIFactory => _dxgiFactory;
-    public ID3D12CommandQueue CommandQueue => _commandQueue;
+    public static GraphicsAPI TargetAPI => GraphicsAPI.DX12;
+    public ReadOnlySpan<IRenderer> Renderers => _renderers.AsSpan();
 
-    public static IGraphicsDevice Create() => new DX12GraphicsDevice();
+    public ConstPtr<ID3D12Device14> NativeDevice => new(_device.Get());
+    public ConstPtr<IDXGIFactory7> DXGIFactory => new(_dxgiFactory.Get());
+    public ConstPtr<ID3D12CommandQueue> CommandQueue => new(_commandQueue.Get());
 
-    private DX12GraphicsDevice()
+    public DX12GraphicsDevice()
     {
 #if DEBUG
         _debugLayer = new DX12DebugLayer();
 #endif
 
-        InitializeDevice(out _dxgiFactory, out _device);
-        InitializeCommandQueue(out _commandQueue);
+        InitializeDevice();
+        InitializeCommandQueue();
+
+        _renderers = ImmutableArray<IRenderer>.Empty;
     }
 
-    private void InitializeDevice(out IDXGIFactory7 factory, out ID3D12Device14 device)
+    private void InitializeDevice()
     {
+        fixed (void* factoryPtr = &_dxgiFactory)
+        {
 #if DEBUG
-        factory = DXGI.CreateDXGIFactory2<IDXGIFactory7>(true);
+            CreateDXGIFactory2(true, __uuidof<IDXGIFactory2>(), &factoryPtr);
+            //factory = DXGI.CreateDXGIFactory2<IDXGIFactory7>(true);
 #else
-        factory = DXGI.CreateDXGIFactory2<IDXGIFactory7>(false);
+            //factory = DXGI.CreateDXGIFactory2<IDXGIFactory7>(false);
+            CreateDXGIFactory2(false, __uuidof<IDXGIFactory2>(), &factoryPtr);
 #endif
+        }
 
-        ID3D12Device14? d3d12Device = default;
+        using ComPtr<IDXGIAdapter1> adapter = default;
+
         for (uint adapterIndex = 0;
-            factory.EnumAdapters1(adapterIndex, out var adapter).Success;
+            _dxgiFactory.Get()->EnumAdapterByGpuPreference(adapterIndex, GpuPreference.HighPerformance, __uuidof<IDXGIAdapter1>(), (void**)adapter.ReleaseAndGetAddressOf()).Success;
             adapterIndex++)
         {
-            var desc = adapter.Description1;
+            AdapterDescription1 desc = default;
+            adapter.Get()->GetDesc1(&desc);
 
             // Don't select the Basic Render Driver adapter.
             if ((desc.Flags & AdapterFlags.Software) != AdapterFlags.None)
             {
-                adapter.Dispose();
                 continue;
             }
 
-            if (D3D12.D3D12CreateDevice(adapter, FeatureLevel.Level_11_0, out d3d12Device).Success)
+            fixed (void* devicePtr = &_device)
             {
-                adapter.Dispose();
-                break;
+                if (D3D12CreateDevice((IUnknown*)adapter.Get(), FeatureLevel.Level_11_0, __uuidof<ID3D12Device>(), (void**)devicePtr).Success)
+                {
+                    break;
+                }
             }
-
-            adapter.Dispose();
         }
 
-        if (d3d12Device == null)
+        if (_device.Get() == null)
         {
             throw new PlatformNotSupportedException("Cannot create ID3D12Device");
         }
-
-        device = d3d12Device;
     }
 
-    private void InitializeCommandQueue(out ID3D12CommandQueue queue)
+    private void InitializeCommandQueue()
     {
         var queueDesc = new CommandQueueDescription
         {
@@ -85,32 +96,26 @@ internal class DX12GraphicsDevice : IGraphicsDevice
             Flags = CommandQueueFlags.None,
         };
 
-        queue = _device.CreateCommandQueue(queueDesc);
+        fixed (void* queuePtr = &_commandQueue)
+        {
+            _device.Get()->CreateCommandQueue(&queueDesc, __uuidof<ID3D12CommandQueue>(), &queuePtr);
+        }
     }
 
-    public IRenderView CreateRenderView(in SwapChainPresenter swapChainSurface)
+    public IRenderer CreateRenderer(in SwapChainPresenter presenter)
     {
-        var renderView = new DX12RenderView(this, swapChainSurface);
-        lock (_lock)
-        {
-            _renderViews.Add(renderView);
-        }
+        var renderView = new DX12Renderer(this, in presenter);
+        ImmutableInterlocked.Update(ref _renderers, old => old.Add(renderView));
 
         return renderView;
     }
 
-    public void OnRender()
+    public void RemoveRenderer(IRenderer renderer)
     {
-        lock (_lock)
+        if (renderer is DX12Renderer dx12RenderView)
         {
-            foreach (var renderView in _renderViews)
-            {
-                renderView.ExecutePendingResize();
-
-                renderView.BeginRender();
-                renderView.Render();
-                renderView.EndRender();
-            }
+            dx12RenderView.Dispose();
+            ImmutableInterlocked.Update(ref _renderers, old => old.Remove(dx12RenderView));
         }
     }
 
@@ -121,15 +126,19 @@ internal class DX12GraphicsDevice : IGraphicsDevice
             return;
         }
 
-        foreach (var renderView in _renderViews)
+        foreach (var renderer in _renderers)
+        {
+            renderer.Dispose();
+        }
+
+        foreach (var renderView in _renderers)
         {
             renderView.Dispose();
         }
-        _renderViews.Clear();
 
-        _commandQueue.Release();
-        _device.Release();
-        _dxgiFactory.Release();
+        _commandQueue.Dispose();
+        _device.Dispose();
+        _dxgiFactory.Dispose();
 
 #if DEBUG
         _debugLayer.Dispose();

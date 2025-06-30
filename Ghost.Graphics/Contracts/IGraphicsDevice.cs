@@ -2,10 +2,17 @@
 
 namespace Ghost.Graphics.Contracts;
 
-public interface IGraphicsDevice : IDisposable
+internal interface IGraphicsDevice : IDisposable
 {
-    public static abstract IGraphicsDevice Create();
+    public static abstract GraphicsAPI TargetAPI
+    {
+        get;
+    }
 
-    public IRenderView CreateRenderView(in SwapChainPresenter swapChainSurface);
-    public void OnRender();
+    public ReadOnlySpan<IRenderer> Renderers
+    {
+        get;
+    }
+
+    public IRenderer CreateRenderer(in SwapChainPresenter swapChainSurface);
 }

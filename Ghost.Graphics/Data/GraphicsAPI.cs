@@ -2,5 +2,6 @@
 
 public enum GraphicsAPI
 {
+    None,
     DX12
 }

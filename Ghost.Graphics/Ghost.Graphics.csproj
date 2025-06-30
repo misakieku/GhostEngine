@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <PackageReference Include="Vortice.Direct3D12" Version="3.6.2" />
+    <PackageReference Include="Vortice.Win32.Graphics.D3D12MemoryAllocator" Version="2.2.7" />
     <PackageReference Include="Vortice.WinUI" Version="3.6.2" />
   </ItemGroup>
 
