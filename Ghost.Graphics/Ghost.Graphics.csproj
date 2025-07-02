@@ -17,9 +17,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Vortice.Direct3D12" Version="3.6.2" />
     <PackageReference Include="Vortice.Win32.Graphics.D3D12MemoryAllocator" Version="2.2.7" />
-    <PackageReference Include="Vortice.WinUI" Version="3.6.2" />
+    <PackageReference Include="Vortice.Win32.Graphics.Direct3D.Dxc" Version="2.2.7" />
+    <PackageReference Include="Vortice.Win32.Graphics.Direct3D.Fxc" Version="2.2.7" />
   </ItemGroup>
 
   <ItemGroup>
@@ -30,6 +30,24 @@
     <Reference Include="Misaki.HighPerformance.Unsafe">
       <HintPath>..\..\Class\Misaki.HighPerformance\Misaki.HighPerformance.Unsafe\bin\Release\net9.0\Misaki.HighPerformance.Unsafe.dll</HintPath>
     </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Win32.Apis">
+      <Static>True</Static>
+    </Using>
+    <Using Include="Win32.Graphics.Dxgi.Apis">
+      <Static>True</Static>
+    </Using>
+    <Using Include="Win32.Graphics.Direct3D12.Apis">
+      <Static>True</Static>
+    </Using>
+    <Using Include="Win32.Graphics.Direct3D.Fxc.Apis">
+      <Static>True</Static>
+    </Using>
+    <Using Include="Win32.Graphics.Direct3D.Dxc.Apis">
+      <Static>True</Static>
+    </Using>
   </ItemGroup>
 
 </Project>

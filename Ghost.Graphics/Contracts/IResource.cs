@@ -13,6 +13,11 @@ public interface IResource : IDisposable
         set;
     }
 
+    public bool TempResource
+    {
+        get;
+    }
+
     public void SetData<T>(Span<T> data)
         where T : unmanaged;
 }

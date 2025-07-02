@@ -7,7 +7,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System.Reflection;
 
-namespace Ghost.Editor.Controls.Internal;
+namespace Ghost.Editor.Core.Controls.Internal;
 
 internal unsafe sealed partial class ComponentDataView : Control
 {

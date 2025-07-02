@@ -1,22 +1,24 @@
-﻿using System.Diagnostics;
+﻿using Ghost.Core;
+using System.Diagnostics;
 using System.Numerics;
-using Vortice.Direct3D12;
+using Win32;
+using Win32.Graphics.Direct3D12;
 using DescriptorIndex = System.UInt32;
 
-namespace Ghost.Graphics.DX12.Utilities;
+namespace Ghost.Graphics.D3D12.Utilities;
 
-internal class D3D12DescriptorAllocator : IDisposable
+internal unsafe struct D3D12DescriptorAllocator : IDisposable
 {
     private const DescriptorIndex _INVALID_DESCRIPTOR_INDEX = ~0u;
 
-    private readonly ID3D12Device _device;
+    private readonly ConstPtr<ID3D12Device14> _device;
     private readonly Lock _lock = new();
 
-    private ID3D12DescriptorHeap? _heap;
-    private ID3D12DescriptorHeap? _shaderVisibleHeap;
-    private CpuDescriptorHandle _startCpuHandle = default;
-    private CpuDescriptorHandle _startCpuHandleShaderVisible = default;
-    private GpuDescriptorHandle _startGpuHandleShaderVisible = default;
+    private ComPtr<ID3D12DescriptorHeap> _heap;
+    private ComPtr<ID3D12DescriptorHeap> _shaderVisibleHeap;
+    private CpuDescriptorHandle _startCpuHandle;
+    private CpuDescriptorHandle _startCpuHandleShaderVisible;
+    private GpuDescriptorHandle _startGpuHandleShaderVisible;
     private DescriptorIndex _searchStart;
     private bool[] _allocatedDescriptors = [];
 
@@ -45,16 +47,16 @@ internal class D3D12DescriptorAllocator : IDisposable
         get;
     }
 
-    public ID3D12DescriptorHeap Heap => _heap!;
-    public ID3D12DescriptorHeap? ShaderVisibleHeap => _shaderVisibleHeap;
+    public readonly ConstPtr<ID3D12DescriptorHeap> Heap => new(_heap.Get());
+    public readonly ConstPtr<ID3D12DescriptorHeap> ShaderVisibleHeap => new(_shaderVisibleHeap.Get());
 
-    public D3D12DescriptorAllocator(ID3D12Device device, DescriptorHeapType type, uint numDescriptors)
+    public D3D12DescriptorAllocator(ConstPtr<ID3D12Device14> device, DescriptorHeapType type, uint numDescriptors)
     {
         _device = device;
         HeapType = type;
         NumDescriptors = numDescriptors;
-        ShaderVisible = type == DescriptorHeapType.ConstantBufferViewShaderResourceViewUnorderedAccessView || type == DescriptorHeapType.Sampler;
-        Stride = device.GetDescriptorHandleIncrementSize(type);
+        ShaderVisible = type == DescriptorHeapType.CbvSrvUav || type == DescriptorHeapType.Sampler;
+        Stride = device.Ptr->GetDescriptorHandleIncrementSize(type);
 
         var success = AllocateResources(numDescriptors);
         Debug.Assert(success);
@@ -164,45 +166,50 @@ internal class D3D12DescriptorAllocator : IDisposable
 
     public void CopyToShaderVisibleHeap(DescriptorIndex index, uint count = 1)
     {
-        _device.CopyDescriptorsSimple(count, GetCpuHandleShaderVisible(index), GetCpuHandle(index), HeapType);
+        _device.Ptr->CopyDescriptorsSimple(count, GetCpuHandleShaderVisible(index), GetCpuHandle(index), HeapType);
     }
 
     private bool AllocateResources(uint numDescriptors)
     {
         NumDescriptors = numDescriptors;
-        _heap?.Dispose();
-        _shaderVisibleHeap?.Dispose();
+        _heap.Dispose();
+        _shaderVisibleHeap.Dispose();
 
         DescriptorHeapDescription heapDesc = new()
         {
             Type = HeapType,
-            DescriptorCount = numDescriptors,
+            NumDescriptors = numDescriptors,
             Flags = DescriptorHeapFlags.None,
             NodeMask = 0
         };
 
-        var hr = _device.CreateDescriptorHeap(in heapDesc, out _heap);
-        if (hr.Failure)
+        fixed (void* heapPtr = &_heap)
         {
-            return false;
+            var hr = _device.Ptr->CreateDescriptorHeap(&heapDesc, __uuidof<ID3D12DescriptorHeap>(), (void**)heapPtr);
+            if (hr.Failure)
+            {
+                return false;
+            }
         }
 
-        _startCpuHandle = _heap!.GetCPUDescriptorHandleForHeapStart();
+        _startCpuHandle = _heap.Get()->GetCPUDescriptorHandleForHeapStart();
         Array.Resize(ref _allocatedDescriptors, (int)numDescriptors);
 
         if (ShaderVisible)
         {
             heapDesc.Flags = DescriptorHeapFlags.ShaderVisible;
 
-            hr = _device.CreateDescriptorHeap(in heapDesc, out _shaderVisibleHeap);
-
-            if (hr.Failure)
+            fixed (void* heapPtr = &_shaderVisibleHeap)
             {
-                return false;
+                var hr = _device.Ptr->CreateDescriptorHeap(&heapDesc, __uuidof<ID3D12DescriptorHeap>(), (void**)heapPtr);
+                if (hr.Failure)
+                {
+                    return false;
+                }
             }
 
-            _startCpuHandleShaderVisible = _shaderVisibleHeap!.GetCPUDescriptorHandleForHeapStart();
-            _startGpuHandleShaderVisible = _shaderVisibleHeap!.GetGPUDescriptorHandleForHeapStart();
+            _startCpuHandleShaderVisible = _shaderVisibleHeap.Get()->GetCPUDescriptorHandleForHeapStart();
+            _startGpuHandleShaderVisible = _shaderVisibleHeap.Get()->GetGPUDescriptorHandleForHeapStart();
         }
 
         return true;
@@ -220,11 +227,11 @@ internal class D3D12DescriptorAllocator : IDisposable
             return false;
         }
 
-        _device.CopyDescriptorsSimple(oldSize, _startCpuHandle, oldHeap!.GetCPUDescriptorHandleForHeapStart(), HeapType);
+        _device.Ptr->CopyDescriptorsSimple(oldSize, _startCpuHandle, oldHeap.Get()->GetCPUDescriptorHandleForHeapStart(), HeapType);
 
-        if (_shaderVisibleHeap is not null)
+        if (_shaderVisibleHeap.Get() is not null)
         {
-            _device.CopyDescriptorsSimple(oldSize, _startCpuHandleShaderVisible, oldHeap.GetCPUDescriptorHandleForHeapStart(), HeapType);
+            _device.Ptr->CopyDescriptorsSimple(oldSize, _startCpuHandleShaderVisible, oldHeap.Get()->GetCPUDescriptorHandleForHeapStart(), HeapType);
         }
 
         return true;
@@ -233,7 +240,7 @@ internal class D3D12DescriptorAllocator : IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
-        _heap?.Dispose();
-        _shaderVisibleHeap?.Dispose();
+        _heap.Dispose();
+        _shaderVisibleHeap.Dispose();
     }
 }

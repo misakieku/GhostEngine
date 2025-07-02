@@ -1,9 +1,8 @@
-using Ghost.Editor.Core.Controls;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System.Numerics;
 
-namespace Ghost.Editor.Controls;
+namespace Ghost.Editor.Core.Controls;
 
 [TemplatePart(Name = "XComponent", Type = typeof(NumberBox))]
 [TemplatePart(Name = "YComponent", Type = typeof(NumberBox))]

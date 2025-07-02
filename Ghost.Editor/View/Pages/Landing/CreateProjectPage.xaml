@@ -5,7 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:data="using:Ghost.Data.Models"
-    xmlns:editor="using:Ghost.Editor.Controls"
+    xmlns:editor="using:Ghost.Editor.Core.Controls"
     xmlns:local="using:Ghost.Editor.View.Pages.Landing"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     NavigationCacheMode="Enabled"

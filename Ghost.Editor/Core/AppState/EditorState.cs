@@ -3,6 +3,9 @@ using Ghost.Data.Services;
 using Ghost.Editor.Core.AssetHandle;
 using Ghost.Editor.View.Windows;
 using Ghost.Engine;
+using Ghost.Engine.Services;
+using Ghost.Graphics;
+using Microsoft.UI.Xaml.Media;
 
 namespace Ghost.Editor.Core.AppState;
 
@@ -18,6 +21,9 @@ internal class EditorState : IAppState
             App.Window = null;
         }
 
+        _engineCore?.ShutDown();
+        CompositionTarget.Rendering -= OnRendering;
+
         return Task.CompletedTask;
     }
 
@@ -30,6 +36,10 @@ internal class EditorState : IAppState
 
         ProjectService.CurrentProject = metadataInfo;
 
+        _engineCore = App.GetService<EngineCore>();
+        _engineCore.Start(new Engine.Models.LaunchArgument());
+        CompositionTarget.Rendering += OnRendering;
+
         _window = App.GetService<EngineEditorWindow>();
         _window.Activate();
 
@@ -38,22 +48,29 @@ internal class EditorState : IAppState
         return Task.CompletedTask;
     }
 
-    public async Task OnExitedAsync()
+    public Task OnExitedAsync()
     {
-        if (_engineCore != null)
-        {
-            await _engineCore.ShutDownAsync();
-        }
-
         _window?.Close();
         _window = null;
+
+        return Task.CompletedTask;
     }
 
-    public async Task OnEnteredAsync(object? parameter)
+    public Task OnEnteredAsync(object? parameter)
     {
         AssetDatabase.Initialize();
+        return Task.CompletedTask;
+    }
 
-        _engineCore = App.GetService<EngineCore>();
-        await _engineCore.StartAsync(new Engine.Models.LaunchArgument());
+    private void OnRendering(object? sender, object e)
+    {
+        if (GraphicsPipeline.IsGpuReady())
+        {
+            _window?.DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.High, () =>
+            {
+                PlayerLoopService.Update();
+                GraphicsPipeline.SignalCPUReady();
+            });
+        }
     }
 }

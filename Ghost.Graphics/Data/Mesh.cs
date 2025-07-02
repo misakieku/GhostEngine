@@ -1,20 +1,20 @@
-﻿using Ghost.Graphics.Contracts;
+﻿using Ghost.Core;
+using Ghost.Graphics.Contracts;
 using Misaki.HighPerformance.Unsafe.Collections;
 using Misaki.HighPerformance.Unsafe.Helpers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using Vortice.Direct3D12;
-using Vortice.DXGI;
-using Vortice.Mathematics;
+using Win32.Graphics.Direct3D12;
+using Win32.Graphics.Dxgi.Common;
 
 namespace Ghost.Graphics.Data;
 
-public sealed class Mesh(int initialVertexCapacity = 256, int initialIndexCapacity = 512) : IDisposable
+public unsafe sealed class Mesh(int initialVertexCapacity = 256, int initialIndexCapacity = 512) : IDisposable
 {
     private UnsafeList<Vertex> _vertices = new(initialVertexCapacity, Allocator.Persistent);
     private UnsafeList<int> _indices = new(initialIndexCapacity, Allocator.Persistent);
 
-    private BoundingBox _bounds;
+    private Bounds _boundingBox;
 
     private IResource? _vertexBuffer;
     private IResource? _indexBuffer;
@@ -23,9 +23,13 @@ public sealed class Mesh(int initialVertexCapacity = 256, int initialIndexCapaci
 
     public Span<Vertex> Vertices => _vertices.AsSpan();
     public Span<int> Indices => _indices.AsSpan();
-    public BoundingBox Bounds => _bounds;
-    public int VertexCount => _vertices.Count;
-    public int IndexCount => _indices.Count;
+    public Bounds BoundingBox => _boundingBox;
+
+    public uint VertexCount => (uint)_vertices.Count;
+    public uint IndexCount => (uint)_indices.Count;
+
+    internal ConstPtr<VertexBufferView> VertexBufferView => (VertexBufferView*)Unsafe.AsPointer(ref _vertexBufferView);
+    internal ConstPtr<IndexBufferView> IndexBufferView => (IndexBufferView*)Unsafe.AsPointer(ref _indexBufferView);
 
     ~Mesh()
     {
@@ -181,7 +185,7 @@ public sealed class Mesh(int initialVertexCapacity = 256, int initialIndexCapaci
     {
         if (_vertices.Count == 0)
         {
-            _bounds = BoundingBox.Zero;
+            _boundingBox = Bounds.Zero;
             return;
         }
 
@@ -194,14 +198,13 @@ public sealed class Mesh(int initialVertexCapacity = 256, int initialIndexCapaci
             max = Vector3.Max(max, pos);
         }
 
-        _bounds = new BoundingBox(min, max);
+        _boundingBox = new Bounds(min, max);
     }
 
     /// <summary>
     /// Uploads the mesh data to GPU resources.
     /// </summary>
-    /// <param name="device">The Direct3D 12 device.</param>
-    /// <param name="commandList">The Direct3D 12 command list to record the upload commands.</param>
+    /// <param name="cmb">The command buffer to record the upload commands.</param>
     public unsafe void UploadMeshData(ICommandBuffer cmb)
     {
         if (VertexCount == 0 || IndexCount == 0)
@@ -213,18 +216,21 @@ public sealed class Mesh(int initialVertexCapacity = 256, int initialIndexCapaci
         _indexBuffer?.Dispose();
 
         var vertexBufferSize = (uint)(VertexCount * sizeof(Vertex));
-        var indexBufferSize = (uint)(IndexCount * sizeof(int));
+        var indexBufferSize = IndexCount * sizeof(int);
         _vertexBuffer = GraphicsPipeline.ResourceAllocator.CreateCopyDestinationBuffer(vertexBufferSize);
         _indexBuffer = GraphicsPipeline.ResourceAllocator.CreateCopyDestinationBuffer(indexBufferSize);
 
-        using var vertexUploadBuffer = GraphicsPipeline.ResourceAllocator.CreateUploadBuffer(vertexBufferSize);
-        using var indexUploadBuffer = GraphicsPipeline.ResourceAllocator.CreateUploadBuffer(indexBufferSize);
+        var vertexUploadBuffer = GraphicsPipeline.ResourceAllocator.CreateUploadBuffer(vertexBufferSize, true);
+        var indexUploadBuffer = GraphicsPipeline.ResourceAllocator.CreateUploadBuffer(indexBufferSize, true);
 
         vertexUploadBuffer.SetData(_vertices.AsSpan());
         indexUploadBuffer.SetData(_indices.AsSpan());
 
         cmb.CopyResource(_vertexBuffer, 0, vertexUploadBuffer, 0, vertexBufferSize);
         cmb.CopyResource(_indexBuffer, 0, indexUploadBuffer, 0, indexBufferSize);
+
+        cmb.BarrierTransition(_vertexBuffer, ResourceStates.CopyDest, ResourceStates.VertexAndConstantBuffer);
+        cmb.BarrierTransition(_indexBuffer, ResourceStates.CopyDest, ResourceStates.IndexBuffer);
 
         _vertexBufferView = new VertexBufferView
         {
@@ -237,7 +243,7 @@ public sealed class Mesh(int initialVertexCapacity = 256, int initialIndexCapaci
         {
             BufferLocation = _indexBuffer.GPUAddress,
             SizeInBytes = indexBufferSize,
-            Format = Format.R32_SInt
+            Format = Format.R32Uint
         };
     }
 

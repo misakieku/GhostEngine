@@ -5,7 +5,7 @@ using Microsoft.UI.Xaml.Data;
 using System.Reflection;
 using Windows.Globalization.NumberFormatting;
 
-namespace Ghost.Editor.Controls;
+namespace Ghost.Editor.Core.Controls;
 
 public sealed partial class PropertyField : ContentControl
 {

@@ -20,7 +20,7 @@ internal readonly struct SwapChainPresenter
         get;
     }
 
-    public readonly IntPtr Hwnd
+    public readonly nint Hwnd
     {
         get;
     }
@@ -39,12 +39,12 @@ internal readonly struct SwapChainPresenter
     {
         Type = TargetType.Composition;
         SwapChainPanelNative = swapChainPanelNative;
-        Hwnd = IntPtr.Zero;
+        Hwnd = nint.Zero;
         Width = width;
         Height = height;
     }
 
-    public SwapChainPresenter(IntPtr hwnd, uint width, uint height)
+    public SwapChainPresenter(nint hwnd, uint width, uint height)
     {
         Type = TargetType.Hwnd;
         Hwnd = hwnd;

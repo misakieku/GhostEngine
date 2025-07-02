@@ -15,4 +15,6 @@ internal interface IGraphicsDevice : IDisposable
     }
 
     public IRenderer CreateRenderer(in SwapChainPresenter swapChainSurface);
+    public void RemoveRenderer(IRenderer renderer);
+    public void InitializePendingRenderers();
 }

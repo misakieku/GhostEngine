@@ -1,4 +1,4 @@
-﻿using Ghost.Editor.Controls.Internal;
+﻿using Ghost.Editor.Core.Controls.Internal;
 using Ghost.Editor.Core.Inspector;
 using Ghost.Editor.Core.Resources;
 using Ghost.Engine.Editor;

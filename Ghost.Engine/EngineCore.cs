@@ -2,25 +2,33 @@
 using Ghost.Engine.Services;
 using Ghost.Graphics;
 using Ghost.Graphics.Data;
+using Misaki.HighPerformance.Unsafe.Buffer;
 
 namespace Ghost.Engine;
 
 internal class EngineCore
 {
-    public async Task StartAsync(LaunchArgument args)
+    public void Start(LaunchArgument args)
     {
         ActivationHandler.Handle(args);
-        GraphicsPipeline.Initialize(GraphicsAPI.DX12);
+
+        AllocationManager.Initialize();
+
+        GraphicsPipeline.Initialize(GraphicsAPI.D3D12);
         GraphicsPipeline.Start();
 
         Logger.LogInfo("Engine started successfully.");
-
-        await Task.CompletedTask;
     }
 
-    public async Task ShutDownAsync()
+    public void IncrementCPUFenceValue()
     {
+        GraphicsPipeline.SignalCPUReady();
+    }
+
+    public void ShutDown()
+    {
+        GraphicsPipeline.SignalCPUReady();
         GraphicsPipeline.Shutdown();
-        await Task.CompletedTask;
+        AllocationManager.Dispose();
     }
 }

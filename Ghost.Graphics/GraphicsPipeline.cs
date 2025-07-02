@@ -1,7 +1,7 @@
 ﻿using Ghost.Core;
 using Ghost.Graphics.Contracts;
+using Ghost.Graphics.D3D12;
 using Ghost.Graphics.Data;
-using Ghost.Graphics.DX12;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics;
@@ -14,8 +14,18 @@ public static class GraphicsPipeline
     private static IResourceAllocator? _resourceAllocator;
 
     private static Thread? _renderThread;
+    private static AutoResetEvent[]? _cpuReadyEvent;
+    private static AutoResetEvent[]? _gpuReadyEvent;
 
+    private static uint _cpuFenceValue;
+    private static uint _gpuFenceValue;
+
+    private static bool _initialized;
     private static bool _isRunning;
+
+    internal static uint CPUFenceValue => _cpuFenceValue;
+    internal static uint GPUFenceValue => _gpuFenceValue;
+    internal static bool IsRunning => _isRunning;
 
     internal static IGraphicsDevice GraphicsDevice
     {
@@ -53,17 +63,32 @@ public static class GraphicsPipeline
     {
         switch (api)
         {
-            case GraphicsAPI.DX12:
-                _graphicsDevice = new DX12GraphicsDevice();
-                _resourceAllocator = new DX12ResourceAllocator();
+            case GraphicsAPI.D3D12:
+                _graphicsDevice = new D3D12GraphicsDevice();
+                _resourceAllocator = new D3D12ResourceAllocator();
                 break;
             default:
                 throw new NotSupportedException($"Graphics API {api} is not supported.");
         }
 
-        _renderThread = new Thread(RenderLoop);
+        _renderThread = new Thread(RenderLoop)
+        {
+            IsBackground = true,
+            Name = "Graphics Render Thread",
+            Priority = ThreadPriority.Normal
+        };
+
+        _cpuReadyEvent = new AutoResetEvent[_FRAME_COUNT];
+        _gpuReadyEvent = new AutoResetEvent[_FRAME_COUNT];
+        for (var i = 0; i < _FRAME_COUNT; i++)
+        {
+            _cpuReadyEvent[i] = new(false);
+            _gpuReadyEvent[i] = new(true);
+        }
 
         CurrentAPI = api;
+
+        _initialized = true;
     }
 
     private static void RenderLoop()
@@ -75,28 +100,62 @@ public static class GraphicsPipeline
                 throw new ArgumentException("Renderer has been disposed or is not initialized.");
             }
 
+            var eventIndex = (int)(_gpuFenceValue % _FRAME_COUNT);
+            _cpuReadyEvent![eventIndex].WaitOne();
+
+            _graphicsDevice.InitializePendingRenderers();
+
             foreach (var renderer in _graphicsDevice.Renderers)
             {
                 renderer.ExecutePendingResize();
                 renderer.Render();
             }
+
+            _gpuFenceValue++;
+            _gpuReadyEvent![eventIndex].Set();
+
+            _resourceAllocator!.ReleaseTempResource();
         }
     }
 
-    internal static void Start()
+    internal static bool IsGpuReady()
     {
-        if (_isRunning)
-        {
-            return;
-        }
+        return _gpuFenceValue >= _cpuFenceValue;
+    }
 
-        if (_graphicsDevice == null || _renderThread == null)
+
+    internal static void WaitForGPUReady()
+    {
+        if (_gpuReadyEvent == null)
         {
             throw new InvalidOperationException("Graphics pipeline is not initialized.");
         }
 
+        var eventIndex = (int)(_cpuFenceValue % _FRAME_COUNT);
+        _gpuReadyEvent[eventIndex].WaitOne();
+    }
+
+    internal static void SignalCPUReady()
+    {
+        if (_cpuReadyEvent == null)
+        {
+            throw new InvalidOperationException("Graphics pipeline is not initialized.");
+        }
+
+        var eventIndex = (int)(_cpuFenceValue % _FRAME_COUNT);
+        _cpuFenceValue++;
+        _cpuReadyEvent[eventIndex].Set();
+    }
+
+    internal static void Start()
+    {
+        if (_isRunning || !_initialized)
+        {
+            return;
+        }
+
         _isRunning = true;
-        _renderThread.Start();
+        _renderThread!.Start();
     }
 
     internal static void Stop()
@@ -114,10 +173,11 @@ public static class GraphicsPipeline
 
         _graphicsDevice = null;
         _renderThread = null;
+        _initialized = false;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static T GetRenderer<T>()
+    internal static T GetGraphicsDevice<T>()
         where T : class, IGraphicsDevice
     {
         if (T.TargetAPI != CurrentAPI)

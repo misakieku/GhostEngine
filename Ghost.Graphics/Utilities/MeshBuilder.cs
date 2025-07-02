@@ -8,15 +8,17 @@ public static class MeshBuilder
     /// <summary>
     /// Creates a unit cube centered at the origin with size 1.
     /// </summary>
-    public static Mesh CreateCube(float size = 1.0f, Color32 color = default)
+    public static Mesh CreateCube(float size = 1.0f, Color128 color = default, Vector3 offset = default)
     {
         var half = size * 0.5f;
         var mesh = new Mesh(24, 36);
 
         var corners = new Vector3[]
         {
-            new(-half, -half, -half), new( half, -half, -half), new( half,  half, -half), new(-half,  half, -half),
-            new(-half, -half,  half), new( half, -half,  half), new( half,  half,  half), new(-half,  half,  half)
+            new Vector3(-half, -half, -half) + offset, new Vector3( half, -half, -half) + offset,
+            new Vector3( half,  half, -half) + offset, new Vector3(-half,  half, -half) + offset,
+            new Vector3(-half, -half,  half) + offset, new Vector3( half, -half,  half) + offset,
+            new Vector3( half,  half,  half) + offset, new Vector3(-half,  half,  half) + offset
         };
 
         int[][] faces =
@@ -47,8 +49,8 @@ public static class MeshBuilder
                 mesh.AddVertex(new(corners[face[i]].AsVector4(), Vector4.Zero, Vector4.Zero, color, uvs[i].AsVector4()));
             }
 
-            mesh.AddTriangle(baseIndex + 0, baseIndex + 1, baseIndex + 2);
-            mesh.AddTriangle(baseIndex + 0, baseIndex + 2, baseIndex + 3);
+            mesh.AddTriangle((int)baseIndex + 0, (int)baseIndex + 1, (int)baseIndex + 2);
+            mesh.AddTriangle((int)baseIndex + 0, (int)baseIndex + 2, (int)baseIndex + 3);
         }
 
         mesh.ComputeNormal();
@@ -59,7 +61,7 @@ public static class MeshBuilder
     /// <summary>
     /// Creates a plane on the XZ axis centered at the origin.
     /// </summary>
-    public static Mesh CreatePlane(float width = 1.0f, float depth = 1.0f, Color32 color = default)
+    public static Mesh CreatePlane(float width = 1.0f, float depth = 1.0f, Color128 color = default)
     {
         var hw = width * 0.5f;
         var hd = depth * 0.5f;
@@ -81,7 +83,7 @@ public static class MeshBuilder
     /// <summary>
     /// Creates a UV sphere centered at the origin.
     /// </summary>
-    public static Mesh CreateSphere(int latitudeSegments = 16, int longitudeSegments = 24, float radius = 0.5f, Color32 color = default)
+    public static Mesh CreateSphere(int latitudeSegments = 16, int longitudeSegments = 24, float radius = 0.5f, Color128 color = default)
     {
         var mesh = new Mesh((latitudeSegments + 1) * (longitudeSegments + 1), latitudeSegments * longitudeSegments * 6);
 

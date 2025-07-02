@@ -22,6 +22,7 @@ internal interface IRenderer : IDisposable
     /// </summary>
     public void ExecutePendingResize();
 
+    public void Initialize();
     /// <summary>
     /// Renders the current content to the output target.
     /// </summary>

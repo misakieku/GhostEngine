@@ -7,4 +7,10 @@
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Reference Include="Misaki.HighPerformance.Unsafe">
+      <HintPath>..\..\Class\Misaki.HighPerformance\Misaki.HighPerformance.Unsafe\bin\Release\net9.0\Misaki.HighPerformance.Unsafe.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>

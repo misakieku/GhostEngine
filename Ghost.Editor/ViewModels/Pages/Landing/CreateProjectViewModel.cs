@@ -11,7 +11,7 @@ using System.Collections.ObjectModel;
 
 namespace Ghost.Editor.ViewModels.Pages.Landing;
 
-internal partial class CreateProjectViewModel(NotificationService notificationService, ProjectService projectService, AppStateMachine stateService) : ObservableObject, INavigationAware
+internal partial class CreateProjectViewModel(INotificationService notificationService, ProjectService projectService, AppStateMachine stateService) : ObservableObject, INavigationAware
 {
     public ObservableCollection<TemplateData> templates = new();
 

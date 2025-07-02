@@ -2,18 +2,18 @@
 
 internal partial class AppStateMachine : IDisposable, IAsyncDisposable
 {
-    private Dictionary<StateKey, Lazy<IAppState>> s_states = new();
-    private IAppState? s_current;
+    private Dictionary<StateKey, Lazy<IAppState>> _states = new();
+    private IAppState? _current;
 
     public void RegisterState(StateKey key, Func<IAppState> stateFactory)
     {
-        s_states[key] = new(stateFactory);
+        _states[key] = new(stateFactory);
     }
 
     public async Task TransitionToAsync(StateKey stateKey, object? parameter = null)
     {
-        var previous = s_current;
-        if (!s_states.TryGetValue(stateKey, out var next))
+        var previous = _current;
+        if (!_states.TryGetValue(stateKey, out var next))
         {
             throw new InvalidOperationException($"State '{stateKey}' is not registered.");
         }
@@ -32,24 +32,25 @@ internal partial class AppStateMachine : IDisposable, IAsyncDisposable
 
         await next.Value.OnEnteredAsync(parameter);
 
-        s_current = next.Value;
+        _current = next.Value;
     }
 
     public void Dispose()
     {
-        s_states.Clear();
+        _states.Clear();
 
-        s_current?.OnExitingAsync().GetAwaiter().GetResult();
-        s_current?.OnExitedAsync().GetAwaiter().GetResult();
+        _current?.OnExitingAsync().GetAwaiter().GetResult();
+        _current?.OnExitedAsync().GetAwaiter().GetResult();
+        _current = null;
     }
 
     public async ValueTask DisposeAsync()
     {
-        s_states.Clear();
-        if (s_current != null)
+        _states.Clear();
+        if (_current != null)
         {
-            await s_current.OnExitingAsync();
-            await s_current.OnExitedAsync();
+            await _current.OnExitingAsync();
+            await _current.OnExitedAsync();
         }
     }
 }

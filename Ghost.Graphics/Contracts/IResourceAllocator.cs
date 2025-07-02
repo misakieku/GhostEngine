@@ -1,11 +1,11 @@
-﻿using Vortice.Direct3D12;
+﻿using Win32.Graphics.Direct3D12;
 
 namespace Ghost.Graphics.Contracts;
 
 internal unsafe interface IResourceAllocator : IDisposable
 {
-    public abstract static IResourceAllocator Create();
+    public IResource CreateUploadBuffer(uint sizeInBytes, bool tempResource = false, ResourceFlags flags = ResourceFlags.None);
+    public IResource CreateCopyDestinationBuffer(uint sizeInBytes, bool tempResource = false, ResourceFlags flags = ResourceFlags.None);
 
-    public IResource CreateUploadBuffer(uint sizeInBytes, ResourceFlags flags = ResourceFlags.None);
-    public IResource CreateCopyDestinationBuffer(uint sizeInBytes, ResourceFlags flags = ResourceFlags.None);
+    public void ReleaseTempResource();
 }

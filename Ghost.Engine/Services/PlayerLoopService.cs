@@ -1,8 +1,9 @@
-﻿namespace Ghost.Engine.Services;
+﻿using Ghost.Entities;
+
+namespace Ghost.Engine.Services;
 
 internal static class PlayerLoopService
 {
-    private static Timer? _timer;
     private static bool _isRunning = false;
 
     // TODO: Implement the actual time system
@@ -10,47 +11,47 @@ internal static class PlayerLoopService
 
     public static void Start()
     {
-        //if (_isRunning)
-        //{
-        //    return;
-        //}
+        if (_isRunning)
+        {
+            return;
+        }
 
-        //foreach (var gameObject in SceneManager.QueryRootGameObjects())
-        //{
-        //    gameObject.Start();
-        //}
+        for (var i = 0; i < World.WorldCount; i++)
+        {
+            var world = World.GetWorld(i);
 
-        //_timer ??= new Timer(FixedUpdate, null, 0, (int)(fixedDeltaTime * 1000));
-
-        //while (_isRunning)
-        //{
-        //    Update();
-        //}
+            foreach (var script in world.QueryScript())
+            {
+                script.Start();
+            }
+        }
     }
 
-    private static void Update()
+    public static void Update()
     {
-        //foreach (var gameObject in SceneManager.QueryRootGameObjects())
-        //{
-        //    gameObject.Update();
-        //}
+        for (var i = 0; i < World.WorldCount; i++)
+        {
+            var world = World.GetWorld(i);
+            world.SystemStorage.UpdateSystems();
 
-        //foreach (var gameObject in SceneManager.QueryRootGameObjects())
-        //{
-        //    gameObject.LateUpdate();
-        //}
+            foreach (var script in world.QueryScript())
+            {
+                script.Update();
+            }
+        }
     }
 
-    private static void FixedUpdate(object? state)
+    public static void Shutdown()
     {
-        //foreach (var gameObject in SceneManager.QueryRootGameObjects())
-        //{
-        //    gameObject.FixedUpdate();
-        //}
-    }
+        for (var i = 0; i < World.WorldCount; i++)
+        {
+            var world = World.GetWorld(i);
+            foreach (var script in world.QueryScript())
+            {
+                script.Update();
+            }
+        }
 
-    public static void Stop()
-    {
         _isRunning = false;
     }
 }

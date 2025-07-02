@@ -153,9 +153,24 @@ internal partial class ProjectService
         return await ProjectRepository.GetProjectByMetadataPathAsync(path) != null;
     }
 
-    public IAsyncEnumerable<ProjectInfo> GetAllProjectAsync()
+    public async IAsyncEnumerable<ProjectInfo> GetAllProjectAsync()
     {
-        return ProjectRepository.GetAllProjectsAsync();
+        var badProjectList = new List<ProjectInfo>();
+        await foreach (var project in ProjectRepository.GetAllProjectsAsync())
+        {
+            if (string.IsNullOrWhiteSpace(project.MetadataPath) || !File.Exists(project.MetadataPath))
+            {
+                badProjectList.Add(project);
+                continue;
+            }
+
+            yield return project;
+        }
+
+        foreach (var badProject in badProjectList)
+        {
+            await ProjectRepository.RemoveProjectAsync(badProject);
+        }
     }
 
     public async Task<Result<ProjectMetadataInfo>> CreateProjectAsync(string projectName, string projectDirectory, Version engineVersion, string templatePath)

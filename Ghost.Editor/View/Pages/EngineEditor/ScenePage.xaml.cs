@@ -3,6 +3,7 @@ using Ghost.Graphics;
 using Ghost.Graphics.Contracts;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using WinRT;
 
 namespace Ghost.Editor.View.Pages.EngineEditor;
 
@@ -20,25 +21,17 @@ internal sealed partial class ScenePage : NavigationTabPage
         SwapChainPanel.SizeChanged += SwapChainPanel_SizeChanged;
     }
 
-    private void OnRendering(object? sender, object e)
-    {
-    }
-
     private void SwapChainPanel_Loaded(object sender, RoutedEventArgs e)
     {
-        //var guid = typeof(ISwapChainPanelNative2).GUID;
-        //((IWinRTObject)SwapChainPanel).NativeObject.TryAs(guid, out var swapChainPanelNativeHandle);
-        _swapChainPanelNative = ISwapChainPanelNative.FromSwapChainPanel(SwapChainPanel);
+        var guid = typeof(ISwapChainPanelNative.Interface).GUID;
+        ((IWinRTObject)SwapChainPanel).NativeObject.TryAs(guid, out var swapChainPanelNativeHandle);
+        _swapChainPanelNative = new ISwapChainPanelNative(swapChainPanelNativeHandle);
 
-        //_swapChainPanelNative = new ISwapChainPanelNative2(swapChainPanelNativeHandle);
         _renderView = GraphicsPipeline.GraphicsDevice.CreateRenderer(new(_swapChainPanelNative, (uint)SwapChainPanel.ActualWidth, (uint)SwapChainPanel.ActualHeight));
-
-        //CompositionTarget.Rendering += OnRendering;
     }
 
     private void SwapChainPanel_Unloaded(object sender, RoutedEventArgs e)
     {
-        //CompositionTarget.Rendering -= OnRendering;
         _swapChainPanelNative.Dispose();
         _renderView?.Dispose();
     }

@@ -13,5 +13,5 @@ public unsafe readonly struct ConstPtr<T>
     public readonly T* Ptr => _ptr;
 
     public static implicit operator T*(ConstPtr<T> constPtr) => constPtr._ptr;
-    public static implicit operator ConstPtr<T>(T* ptr) => new(ptr);
+    public static implicit operator ConstPtr<T>(T* pointer) => new(pointer);
 }
