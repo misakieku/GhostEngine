@@ -130,7 +130,7 @@ internal unsafe class D3D12Renderer : IRenderer
             case SwapChainPresenter.TargetType.Hwnd:
                 var swapChainFullscreenDesc = new SwapChainFullscreenDescription
                 {
-                    Windowed = false,
+                    Windowed = true,
                 };
 
                 _graphicsDevice.DXGIFactory.Ptr->CreateSwapChainForHwnd(
@@ -150,7 +150,10 @@ internal unsafe class D3D12Renderer : IRenderer
             throw new InvalidOperationException("Failed to create IDXGISwapChain4 interface.");
         }
 
-        _swapChainPresenter.SwapChainPanelNative.SetSwapChain((IntPtr)_swapChain.Get());
+        if (_swapChainPresenter.Type == SwapChainPresenter.TargetType.Composition)
+        {
+            _swapChainPresenter.SwapChainPanelNative.SetSwapChain((IntPtr)_swapChain.Get());
+        }
         _backBufferIndex = _swapChain.Get()->GetCurrentBackBufferIndex();
     }
 
@@ -221,7 +224,7 @@ internal unsafe class D3D12Renderer : IRenderer
             ref var frameResource = ref _frameResources[i];
             if (frameResource.backBuffer.Get() is not null)
             {
-                frameResource.backBuffer.Reset();
+                frameResource.backBuffer.Dispose();
                 _rtvHeap.ReleaseDescriptor(frameResource.backBufferDescriptorIndexes);
             }
 

@@ -118,13 +118,8 @@ public static class GraphicsPipeline
         }
     }
 
-    internal static bool IsGpuReady()
-    {
-        return _gpuFenceValue >= _cpuFenceValue;
-    }
 
-
-    internal static void WaitForGPUReady()
+    internal static bool WaitForGPUReady(int timeOut = -1)
     {
         if (_gpuReadyEvent == null)
         {
@@ -132,7 +127,7 @@ public static class GraphicsPipeline
         }
 
         var eventIndex = (int)(_cpuFenceValue % _FRAME_COUNT);
-        _gpuReadyEvent[eventIndex].WaitOne();
+        return _gpuReadyEvent[eventIndex].WaitOne(timeOut);
     }
 
     internal static void SignalCPUReady()

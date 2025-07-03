@@ -1,10 +1,12 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using Win32.Graphics.Dxgi.Common;
 
 namespace Ghost.Graphics.Data;
 
+[StructLayout(LayoutKind.Sequential)]
 public struct Vertex(Vector4 position, Vector4 normal, Vector4 tangent, Color128 color, Vector4 uv)
 {
     public unsafe struct Semantic

@@ -220,8 +220,8 @@ public unsafe sealed class Mesh(int initialVertexCapacity = 256, int initialInde
         _vertexBuffer = GraphicsPipeline.ResourceAllocator.CreateCopyDestinationBuffer(vertexBufferSize);
         _indexBuffer = GraphicsPipeline.ResourceAllocator.CreateCopyDestinationBuffer(indexBufferSize);
 
-        var vertexUploadBuffer = GraphicsPipeline.ResourceAllocator.CreateUploadBuffer(vertexBufferSize, true);
-        var indexUploadBuffer = GraphicsPipeline.ResourceAllocator.CreateUploadBuffer(indexBufferSize, true);
+        var vertexUploadBuffer = GraphicsPipeline.ResourceAllocator.CreateUploadBuffer(vertexBufferSize, false);
+        var indexUploadBuffer = GraphicsPipeline.ResourceAllocator.CreateUploadBuffer(indexBufferSize, false);
 
         vertexUploadBuffer.SetData(_vertices.AsSpan());
         indexUploadBuffer.SetData(_indices.AsSpan());

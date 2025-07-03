@@ -64,7 +64,7 @@ internal class EditorState : IAppState
 
     private void OnRendering(object? sender, object e)
     {
-        if (GraphicsPipeline.IsGpuReady())
+        if (GraphicsPipeline.WaitForGPUReady(0))
         {
             _window?.DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.High, () =>
             {

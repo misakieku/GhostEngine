@@ -2,7 +2,7 @@
   "profiles": {
     "Ghost.Editor (Package)": {
       "commandName": "MsixPackage",
-      "nativeDebugging": true
+      "nativeDebugging": false
     },
     "Ghost.Editor (Unpackaged)": {
       "commandName": "Project"

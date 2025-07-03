@@ -49,12 +49,14 @@ public unsafe class D3D12Resource : IResource
 
         fixed (T* ptr = data)
         {
-            var hr = _nativeResource.Get()->Map(0, &range, (void**)&ptr);
+            void* mappedPtr;
+            var hr = _nativeResource.Get()->Map(0, &range, &mappedPtr);
             if (hr.Failure)
             {
                 var message = hr.ToString();
                 throw new InvalidOperationException($"Failed to map resource: {message}");
             }
+            Unsafe.CopyBlock(mappedPtr, ptr, size);
             _nativeResource.Get()->Unmap(0, &range);
         }
     }

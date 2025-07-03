@@ -4,6 +4,7 @@ using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.Data;
 using Ghost.Graphics.Utilities;
 using System.Drawing;
+using System.Runtime.CompilerServices;
 using Win32;
 using Win32.Graphics.Direct3D;
 using Win32.Graphics.Direct3D12;
@@ -14,6 +15,12 @@ namespace Ghost.Graphics.RenderPasses;
 internal unsafe class MeshRenderPass : IRenderPass
 {
     private const string _HLSL_SOURCE = @"
+
+cbuffer ConstantBuffer : register(b0)
+{
+    float4x4 WVP_Matrix;
+};
+
 struct VertexInput
 {
     float3 position : POSITION;
@@ -56,7 +63,17 @@ float4 PSMain(PixelInput input) : SV_TARGET
 
     private void CreateRootSignature()
     {
-        var rootSignatureDesc = new RootSignatureDescription(0u, null)
+        var rootParameters = new RootParameter[]
+        {
+            new ()
+            {
+                ParameterType = RootParameterType.Cbv,
+                ShaderVisibility = ShaderVisibility.Vertex,
+                Descriptor = new RootDescriptor(0, 0)
+            }
+        };
+
+        var rootSignatureDesc = new RootSignatureDescription(0u, (RootParameter*)Unsafe.AsPointer(ref rootParameters[0]))
         {
             Flags = RootSignatureFlags.AllowInputAssemblerInputLayout
         };
