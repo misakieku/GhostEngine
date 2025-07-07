@@ -2,7 +2,6 @@
 using Ghost.Engine.Services;
 using Ghost.Graphics;
 using Ghost.Graphics.Data;
-using Misaki.HighPerformance.Unsafe.Buffer;
 
 namespace Ghost.Engine;
 
@@ -11,8 +10,6 @@ internal class EngineCore
     public void Start(LaunchArgument args)
     {
         ActivationHandler.Handle(args);
-
-        AllocationManager.Initialize();
 
         GraphicsPipeline.Initialize(GraphicsAPI.D3D12);
         GraphicsPipeline.Start();
@@ -29,6 +26,5 @@ internal class EngineCore
     {
         GraphicsPipeline.SignalCPUReady();
         GraphicsPipeline.Shutdown();
-        AllocationManager.Dispose();
     }
 }

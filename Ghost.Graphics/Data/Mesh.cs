@@ -1,7 +1,7 @@
 ﻿using Ghost.Core;
 using Ghost.Graphics.Contracts;
-using Misaki.HighPerformance.Unsafe.Collections;
-using Misaki.HighPerformance.Unsafe.Helpers;
+using Misaki.HighPerformance.LowLevel.Collections;
+using Misaki.HighPerformance.LowLevel.Helpers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using Win32.Graphics.Direct3D12;

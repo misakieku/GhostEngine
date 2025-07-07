@@ -1,5 +1,5 @@
 ﻿using Ghost.Core;
-using Misaki.HighPerformance.Unsafe.Collections;
+using Misaki.HighPerformance.LowLevel.Collections;
 
 namespace Ghost.Entities.Query;
 

@@ -56,7 +56,7 @@
   
   <ItemGroup>
     <Reference Include="Misaki.HighPerformance.Unsafe">
-      <HintPath>..\..\Class\Misaki.HighPerformance\Misaki.HighPerformance.Unsafe\bin\Release\net9.0\Misaki.HighPerformance.Unsafe.dll</HintPath>
+      <HintPath>..\..\Class\Misaki.HighPerformance\Misaki.HighPerformance.LowLevel\bin\Release\net9.0\Misaki.HighPerformance.LowLevel.dll</HintPath>
     </Reference>
   </ItemGroup>
 

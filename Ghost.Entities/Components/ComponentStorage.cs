@@ -1,5 +1,5 @@
 ﻿using Ghost.Core;
-using Misaki.HighPerformance.Unsafe.Collections;
+using Misaki.HighPerformance.LowLevel.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;

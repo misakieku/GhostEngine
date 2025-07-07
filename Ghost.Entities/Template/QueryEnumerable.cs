@@ -3,7 +3,7 @@
 using Ghost.Core;
 using Ghost.Entities.Components;
 using Ghost.Entities.Query;
-using Misaki.HighPerformance.Unsafe.Collections;
+using Misaki.HighPerformance.LowLevel.Collections;
 
 namespace Ghost.Entities;
 

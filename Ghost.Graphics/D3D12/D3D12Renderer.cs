@@ -224,7 +224,7 @@ internal unsafe class D3D12Renderer : IRenderer
             ref var frameResource = ref _frameResources[i];
             if (frameResource.backBuffer.Get() is not null)
             {
-                frameResource.backBuffer.Dispose();
+                var c = frameResource.backBuffer.Reset();
                 _rtvHeap.ReleaseDescriptor(frameResource.backBufferDescriptorIndexes);
             }
 

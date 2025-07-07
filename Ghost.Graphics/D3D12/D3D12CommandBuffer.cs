@@ -17,8 +17,24 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         _commandList = commandList;
     }
 
-    public void DrawMesh(Mesh mesh)
+    public void BarrierTransition(IResource resource, ResourceStates beforeState, ResourceStates afterState)
     {
+        var dxResource = (D3D12Resource)resource;
+        _commandList.Ptr->ResourceBarrierTransition(dxResource.NativeResource.Ptr, beforeState, afterState);
+    }
+
+    public void SetGraphicsRootConstantBufferView(uint slot, ulong gpuAddress)
+    {
+        _commandList.Ptr->SetGraphicsRootConstantBufferView(slot, gpuAddress);
+    }
+
+    public void DrawMesh(Mesh mesh, Material material)
+    {
+        _commandList.Ptr->SetGraphicsRootSignature(material.Shader.RootSignature);
+        _commandList.Ptr->SetPipelineState(material.Shader.PipelineState);
+
+        material.UploadAndBind(this);
+
         _commandList.Ptr->IASetPrimitiveTopology(PrimitiveTopology.TriangleList);
         _commandList.Ptr->IASetVertexBuffers(0, 1, mesh.VertexBufferView);
         _commandList.Ptr->IASetIndexBuffer(mesh.IndexBufferView);
@@ -32,11 +48,5 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         var srcDXResource = (D3D12Resource)srcResource;
 
         _commandList.Ptr->CopyBufferRegion(dstDXResource.NativeResource, dstOffset, srcDXResource.NativeResource, srcOffset, size);
-    }
-
-    public void BarrierTransition(IResource resource, ResourceStates beforeState, ResourceStates afterState)
-    {
-        var dxResource = (D3D12Resource)resource;
-        _commandList.Ptr->ResourceBarrierTransition(dxResource.NativeResource.Ptr, beforeState, afterState);
     }
 }

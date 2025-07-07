@@ -27,8 +27,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="Misaki.HighPerformance.Unsafe">
-      <HintPath>..\..\Class\Misaki.HighPerformance\Misaki.HighPerformance.Unsafe\bin\Release\net9.0\Misaki.HighPerformance.Unsafe.dll</HintPath>
+    <Reference Include="Misaki.HighPerformance.Image">
+      <HintPath>..\..\Class\Misaki.HighPerformance\Misaki.HighPerformance.Image\bin\Release\net9.0\Misaki.HighPerformance.Image.dll</HintPath>
+    </Reference>
+    <Reference Include="Misaki.HighPerformance.LowLevel">
+      <HintPath>..\..\Class\Misaki.HighPerformance\Misaki.HighPerformance.LowLevel\bin\Release\net9.0\Misaki.HighPerformance.LowLevel.dll</HintPath>
     </Reference>
   </ItemGroup>
 

@@ -5,7 +5,10 @@ namespace Ghost.Graphics.Contracts;
 
 public interface ICommandBuffer
 {
-    public void DrawMesh(Mesh mesh);
-    public void CopyResource(IResource dstResource, uint dstOffset, IResource srcResource, uint srcOffset, uint size);
+    // TODO: They should be internal, maybe an interface ICommandBufferInternal?
     public void BarrierTransition(IResource resource, ResourceStates beforeState, ResourceStates afterState);
+    public void SetGraphicsRootConstantBufferView(uint slot, ulong gpuAddress);
+
+    public void DrawMesh(Mesh mesh, Material material);
+    public void CopyResource(IResource dstResource, uint dstOffset, IResource srcResource, uint srcOffset, uint size);
 }

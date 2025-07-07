@@ -2,7 +2,6 @@ using Ghost.Graphics;
 using Ghost.Graphics.Contracts;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
-using Misaki.HighPerformance.Unsafe.Buffer;
 using WinRT;
 
 namespace Ghost.UnitTest;
@@ -32,7 +31,6 @@ public sealed partial class UnitTestAppWindow : Window
 
     private void UnitTestAppWindow_Activated(object sender, WindowActivatedEventArgs args)
     {
-        AllocationManager.Initialize();
         GraphicsPipeline.Initialize(Graphics.Data.GraphicsAPI.D3D12);
         GraphicsPipeline.Start();
 
@@ -49,7 +47,6 @@ public sealed partial class UnitTestAppWindow : Window
     {
         GraphicsPipeline.SignalCPUReady();
         GraphicsPipeline.Shutdown();
-        AllocationManager.Dispose();
         CompositionTarget.Rendering -= OnRendering;
         _swapChainPanelNative.Dispose();
         _renderView?.Dispose();

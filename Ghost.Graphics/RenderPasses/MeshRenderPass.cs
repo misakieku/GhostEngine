@@ -1,24 +1,18 @@
 ﻿using Ghost.Graphics.Contracts;
-using Ghost.Graphics.D3D12;
-using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.Data;
+using Ghost.Graphics.Shading;
 using Ghost.Graphics.Utilities;
 using System.Drawing;
-using System.Runtime.CompilerServices;
-using Win32;
-using Win32.Graphics.Direct3D;
-using Win32.Graphics.Direct3D12;
-using Win32.Graphics.Dxgi.Common;
+using System.Numerics;
 
 namespace Ghost.Graphics.RenderPasses;
 
 internal unsafe class MeshRenderPass : IRenderPass
 {
     private const string _HLSL_SOURCE = @"
-
 cbuffer ConstantBuffer : register(b0)
 {
-    float4x4 WVP_Matrix;
+    float4 _Color;
 };
 
 struct VertexInput
@@ -43,105 +37,35 @@ PixelInput VSMain(VertexInput input)
 
 float4 PSMain(PixelInput input) : SV_TARGET
 {
-    return float4(1.0, 1.0, 1.0, 1.0);
+    return float4(_Color.xyz, 1.0);
 }
 ";
 
     private Mesh? _mesh;
-
-    private ComPtr<ID3D12RootSignature> _rootSignature;
-    private ComPtr<ID3D12PipelineState> _pipelineState;
+    private Shader? _shader;
+    private Material? _material;
 
     public void Initialize(ICommandBuffer cmb)
     {
-        _mesh = MeshBuilder.CreateCube(0.25f, new(Color.AliceBlue));
+        _mesh = MeshBuilder.CreateCube(0.25f);
         _mesh.UploadMeshData(cmb);
 
-        CreateRootSignature();
-        CreatePipelineStateObject();
-    }
+        _shader = new(_HLSL_SOURCE);
+        _material = new(_shader);
 
-    private void CreateRootSignature()
-    {
-        var rootParameters = new RootParameter[]
-        {
-            new ()
-            {
-                ParameterType = RootParameterType.Cbv,
-                ShaderVisibility = ShaderVisibility.Vertex,
-                Descriptor = new RootDescriptor(0, 0)
-            }
-        };
-
-        var rootSignatureDesc = new RootSignatureDescription(0u, (RootParameter*)Unsafe.AsPointer(ref rootParameters[0]))
-        {
-            Flags = RootSignatureFlags.AllowInputAssemblerInputLayout
-        };
-
-        using ComPtr<ID3DBlob> signature = default;
-        using ComPtr<ID3DBlob> error = default;
-
-        var hr = D3D12SerializeRootSignature(&rootSignatureDesc, RootSignatureVersion.V1_0, signature.GetAddressOf(), error.GetAddressOf());
-        if (hr.Failure)
-        {
-            var errorMessage = System.Text.Encoding.ASCII.GetString((byte*)error.Get()->GetBufferPointer(), (int)error.Get()->GetBufferSize());
-            throw new InvalidOperationException($"Failed to serialize root signature: {errorMessage}");
-        }
-
-        GraphicsPipeline.GetGraphicsDevice<D3D12GraphicsDevice>().NativeDevice.Ptr->CreateRootSignature(0, signature.Get()->GetBufferPointer(), signature.Get()->GetBufferSize(), __uuidof<ID3D12RootSignature>(), _rootSignature.GetVoidAddressOf());
-    }
-
-    private void CreatePipelineStateObject()
-    {
-        try
-        {
-            var vertexShaderBytecode = Shader.CompileShader(_HLSL_SOURCE, "VSMain", "vs_5_0");
-            var pixelShaderBytecode = Shader.CompileShader(_HLSL_SOURCE, "PSMain", "ps_5_0");
-
-            fixed (byte* vsPtr = vertexShaderBytecode)
-            fixed (byte* psPtr = pixelShaderBytecode)
-            {
-                var psoDesc = new GraphicsPipelineStateDescription
-                {
-                    pRootSignature = _rootSignature.Get(),
-                    VS = new ShaderBytecode(vsPtr, (nuint)vertexShaderBytecode.Length),
-                    PS = new ShaderBytecode(psPtr, (nuint)pixelShaderBytecode.Length),
-                    InputLayout = D3D12PipelineResource.InputLayoutDescription,
-                    RasterizerState = RasterizerDescription.CullNone,
-                    BlendState = BlendDescription.Opaque,
-                    DepthStencilState = DepthStencilDescription.Default,
-                    SampleMask = uint.MaxValue,
-                    PrimitiveTopologyType = PrimitiveTopologyType.Triangle,
-                    NumRenderTargets = 1,
-                    SampleDesc = new SampleDescription(1, 0),
-                    DSVFormat = Format.Unknown,
-                };
-
-                psoDesc.RTVFormats[0] = D3D12PipelineResource.SWAP_CHAIN_BACK_BUFFER_FORMAT;
-
-                // Create the PSO
-                GraphicsPipeline.GetGraphicsDevice<D3D12GraphicsDevice>().NativeDevice.Ptr->CreateGraphicsPipelineState(&psoDesc, __uuidof<ID3D12PipelineState>(), _pipelineState.GetVoidAddressOf());
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(ex.ToString());
-        }
+        var color = new Vector4(Color.Brown.R / 255f, Color.Brown.G / 255f, Color.Brown.B / 255f, 1.0f);
+        _material.SetVector("_Color", ref color);
     }
 
     public void Execute(ICommandBuffer cmb)
     {
-        var dx12Cmb = (D3D12CommandBuffer)cmb;
-        dx12Cmb.CommandList.Ptr->SetGraphicsRootSignature(_rootSignature.Get());
-        dx12Cmb.CommandList.Ptr->SetPipelineState(_pipelineState.Get());
-
-        cmb.DrawMesh(_mesh!);
+        cmb.DrawMesh(_mesh!, _material!);
     }
 
     public void Dispose()
     {
         _mesh?.Dispose();
-        _rootSignature.Dispose();
-        _pipelineState.Dispose();
+        _shader?.Dispose();
+        _material?.Dispose();
     }
 }
