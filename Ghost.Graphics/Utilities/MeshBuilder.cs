@@ -8,17 +8,17 @@ public static class MeshBuilder
     /// <summary>
     /// Creates a unit cube centered at the origin with size 1.
     /// </summary>
-    public static Mesh CreateCube(float size = 1.0f, Color128 color = default, Vector3 offset = default)
+    public static Mesh CreateCube(float size = 1.0f, Color128 color = default)
     {
         var half = size * 0.5f;
         var mesh = new Mesh(24, 36);
 
-        var corners = new Vector3[]
+        var corners = new Vector4[]
         {
-            new Vector3(-half, -half, -half) + offset, new Vector3( half, -half, -half) + offset,
-            new Vector3( half,  half, -half) + offset, new Vector3(-half,  half, -half) + offset,
-            new Vector3(-half, -half,  half) + offset, new Vector3( half, -half,  half) + offset,
-            new Vector3( half,  half,  half) + offset, new Vector3(-half,  half,  half) + offset
+            new (-half, -half, -half, 1.0f), new (half, -half, -half, 1.0f),
+            new (half, half, -half, 1.0f), new (-half, half, -half, 1.0f),
+            new (-half, -half, half, 1.0f), new (half, -half, half, 1.0f),
+            new (half, half, half, 1.0f), new (-half, half, half, 1.0f)
         };
 
         int[][] faces =
@@ -40,13 +40,13 @@ public static class MeshBuilder
             {
                 var vertex = new Vertex
                 {
-                    Position = corners[face[i]].AsVector4(),
+                    Position = corners[face[i]],
                     Normal = Vector4.Zero,
                     Tangent = Vector4.Zero,
                     Color = color,
                     UV = uvs[i].AsVector4()
                 };
-                mesh.AddVertex(new(corners[face[i]].AsVector4(), Vector4.Zero, Vector4.Zero, color, uvs[i].AsVector4()));
+                mesh.AddVertex(vertex);
             }
 
             mesh.AddTriangle((int)baseIndex + 0, (int)baseIndex + 1, (int)baseIndex + 2);

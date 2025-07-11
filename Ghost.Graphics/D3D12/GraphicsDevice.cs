@@ -1,5 +1,4 @@
 ﻿using Ghost.Core;
-using Ghost.Graphics.Contracts;
 using Ghost.Graphics.Data;
 using System.Collections.Immutable;
 using Win32;
@@ -9,39 +8,38 @@ using Win32.Graphics.Dxgi;
 
 namespace Ghost.Graphics.D3D12;
 
-internal unsafe class D3D12GraphicsDevice : IGraphicsDevice
+internal unsafe class GraphicsDevice
 {
 #if DEBUG
-    private readonly D3D12DebugLayer _debugLayer;
+    private readonly DebugLayer _debugLayer;
 #endif
     private ComPtr<IDXGIFactory7> _dxgiFactory;
     private ComPtr<ID3D12Device14> _device;
     private ComPtr<ID3D12CommandQueue> _commandQueue;
 
-    private ImmutableArray<IRenderer> _initializeQueue;
-    private ImmutableArray<IRenderer> _renderers;
+    private ImmutableArray<Renderer> _initializeQueue;
+    private ImmutableArray<Renderer> _renderers;
 
     private bool _disposed;
 
-    public static GraphicsAPI TargetAPI => GraphicsAPI.D3D12;
-    public ReadOnlySpan<IRenderer> InitializeQueue => _initializeQueue.AsSpan();
-    public ReadOnlySpan<IRenderer> Renderers => _renderers.AsSpan();
+    public ReadOnlySpan<Renderer> InitializeQueue => _initializeQueue.AsSpan();
+    public ReadOnlySpan<Renderer> Renderers => _renderers.AsSpan();
 
     public ConstPtr<ID3D12Device14> NativeDevice => new(_device.Get());
     public ConstPtr<IDXGIFactory7> DXGIFactory => new(_dxgiFactory.Get());
     public ConstPtr<ID3D12CommandQueue> CommandQueue => new(_commandQueue.Get());
 
-    public D3D12GraphicsDevice()
+    public GraphicsDevice()
     {
 #if DEBUG
-        _debugLayer = new D3D12DebugLayer();
+        _debugLayer = new DebugLayer();
 #endif
 
         InitializeDevice();
         InitializeCommandQueue();
 
-        _initializeQueue = ImmutableArray<IRenderer>.Empty;
-        _renderers = ImmutableArray<IRenderer>.Empty;
+        _initializeQueue = ImmutableArray<Renderer>.Empty;
+        _renderers = ImmutableArray<Renderer>.Empty;
     }
 
     private void InitializeDevice()
@@ -67,7 +65,7 @@ internal unsafe class D3D12GraphicsDevice : IGraphicsDevice
                 continue;
             }
 
-            if (D3D12CreateDevice((IUnknown*)adapter.Get(), FeatureLevel.Level_11_0, __uuidof<ID3D12Device14>(), _device.GetVoidAddressOf()).Success)
+            if (D3D12CreateDevice((IUnknown*)adapter.Get(), FeatureLevel.Level_12_0, __uuidof<ID3D12Device14>(), _device.GetVoidAddressOf()).Success)
             {
                 break;
             }
@@ -75,7 +73,7 @@ internal unsafe class D3D12GraphicsDevice : IGraphicsDevice
 
         if (_device.Get() == null)
         {
-            throw new PlatformNotSupportedException("Cannot create ID3D12Device");
+            throw new PlatformNotSupportedException("Cannot create ID3D12Device with feature level 12.0");
         }
     }
 
@@ -94,17 +92,17 @@ internal unsafe class D3D12GraphicsDevice : IGraphicsDevice
         }
     }
 
-    public IRenderer CreateRenderer(in SwapChainPresenter presenter)
+    public Renderer CreateRenderer(in SwapChainPresenter presenter)
     {
-        var renderView = new D3D12Renderer(this, in presenter);
+        var renderView = new Renderer(this, in presenter);
         ImmutableInterlocked.Update(ref _initializeQueue, old => old.Add(renderView));
 
         return renderView;
     }
 
-    public void RemoveRenderer(IRenderer renderer)
+    public void RemoveRenderer(Renderer renderer)
     {
-        if (renderer is D3D12Renderer dx12RenderView)
+        if (renderer is Renderer dx12RenderView)
         {
             dx12RenderView.Dispose();
 
@@ -148,13 +146,8 @@ internal unsafe class D3D12GraphicsDevice : IGraphicsDevice
             renderer.Dispose();
         }
 
-        foreach (var renderView in _renderers)
-        {
-            renderView.Dispose();
-        }
-
         _commandQueue.Dispose();
-        _device.Dispose();
+        _device.Reset();
         _dxgiFactory.Dispose();
 
 #if DEBUG

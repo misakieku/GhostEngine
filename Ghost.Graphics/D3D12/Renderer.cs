@@ -14,7 +14,7 @@ namespace Ghost.Graphics.D3D12;
 // TODO: We should split the renderer and swap chain into different classes to allow for more flexibility in rendering pipelines.
 // Each renderer can have a render target (swap chain or texture).
 // When render target is null, skip the render pass execution.
-internal unsafe class D3D12Renderer : IRenderer
+internal unsafe class Renderer
 {
     private struct FrameResource : IDisposable
     {
@@ -22,17 +22,17 @@ internal unsafe class D3D12Renderer : IRenderer
         public ComPtr<ID3D12GraphicsCommandList10> commandList;
         public ComPtr<ID3D12Resource> backBuffer;
 
-        public ICommandBuffer commandBuffer;
-        public uint backBufferDescriptorIndexes;
+        public CommandList cmd;
+        public RenderTargetDescriptor rtvDescriptor;
         public ulong fenceValue;
 
-        public FrameResource(D3D12Renderer renderer, uint index)
+        public FrameResource(Renderer renderer, uint index)
         {
             renderer._graphicsDevice.NativeDevice.Ptr->CreateCommandAllocator(CommandListType.Direct, __uuidof<ID3D12CommandAllocator>(), commandAllocator.GetVoidAddressOf());
             renderer._graphicsDevice.NativeDevice.Ptr->CreateCommandList(0u, CommandListType.Direct, commandAllocator.Get(), null, __uuidof<ID3D12GraphicsCommandList10>(), commandList.GetVoidAddressOf());
 
-            commandBuffer = new D3D12CommandBuffer(commandList.Get());
-            backBufferDescriptorIndexes = renderer.CreateBackBufferResource(index, backBuffer.GetAddressOf());
+            cmd = new(commandList.Get());
+            rtvDescriptor = renderer.CreateBackBufferResource(index, backBuffer.GetAddressOf());
         }
 
         public readonly void ResetCommandBuffer()
@@ -58,13 +58,11 @@ internal unsafe class D3D12Renderer : IRenderer
             commandAllocator.Dispose();
             commandList.Dispose();
             backBuffer.Dispose();
+            GraphicsPipeline.DescriptorAllocator.ReleaseRTV(rtvDescriptor);
         }
     }
 
-    private const int _RENDER_TARGET_VIEW_HEAP_SIZE = 1024;
-    private const int _DEPTH_STENCIL_VIEW_HEAP_SIZE = 256;
-
-    private readonly D3D12GraphicsDevice _graphicsDevice;
+    private readonly GraphicsDevice _graphicsDevice;
     private readonly SwapChainPresenter _swapChainPresenter;
 
     private ComPtr<IDXGISwapChain4> _swapChain = default;
@@ -73,8 +71,6 @@ internal unsafe class D3D12Renderer : IRenderer
 
     private readonly FrameResource[] _frameResources;
     private readonly AutoResetEvent _fenceEvent;
-
-    private D3D12DescriptorAllocator _rtvHeap;
 
     private ImmutableArray<IRenderPass> _renderPasses;
 
@@ -89,16 +85,15 @@ internal unsafe class D3D12Renderer : IRenderer
 
     public ReadOnlySpan<IRenderPass> RenderPasses => _renderPasses.AsSpan();
 
-    public D3D12Renderer(D3D12GraphicsDevice graphicsDevice, in SwapChainPresenter swapChainSurface)
+    public Renderer(GraphicsDevice graphicsDevice, in SwapChainPresenter swapChainSurface)
     {
         _graphicsDevice = graphicsDevice;
         _swapChainPresenter = swapChainSurface;
         _viewPortWidth = swapChainSurface.Width;
         _viewPortHeight = swapChainSurface.Height;
 
-        _rtvHeap = new(_graphicsDevice.NativeDevice, DescriptorHeapType.Rtv, _RENDER_TARGET_VIEW_HEAP_SIZE);
         _fenceEvent = new(false);
-        _renderPasses = [new MeshRenderPass()];
+        _renderPasses = [new BindlessMeshRenderPass()];
 
         InitializeSwapChain();
         InitializeFrameResource(out _frameResources);
@@ -190,14 +185,14 @@ internal unsafe class D3D12Renderer : IRenderer
         }
     }
 
-    private uint CreateBackBufferResource(uint i, ID3D12Resource** backBuffer)
+    private RenderTargetDescriptor CreateBackBufferResource(uint i, ID3D12Resource** backBuffer)
     {
         _swapChain.Get()->GetBuffer(i, __uuidof<ID3D12Resource>(), (void**)backBuffer);
         (*backBuffer)->SetName($"BackBuffer_{i}");
-        var index = _rtvHeap.AllocateDescriptor();
-        var rtvHandle = _rtvHeap.GetCpuHandle(index);
+        var rtvDescriptor = GraphicsPipeline.DescriptorAllocator.AllocateRTV();
+        var rtvHandle = rtvDescriptor.CpuHandle;
         _graphicsDevice.NativeDevice.Ptr->CreateRenderTargetView(*backBuffer, null, rtvHandle);
-        return index;
+        return rtvDescriptor;
     }
 
     public void ExecutePendingResize()
@@ -225,7 +220,7 @@ internal unsafe class D3D12Renderer : IRenderer
             if (frameResource.backBuffer.Get() is not null)
             {
                 var c = frameResource.backBuffer.Reset();
-                _rtvHeap.ReleaseDescriptor(frameResource.backBufferDescriptorIndexes);
+                GraphicsPipeline.DescriptorAllocator.ReleaseRTV(frameResource.rtvDescriptor);
             }
 
             frameResource.fenceValue = _frameResources[_backBufferIndex].fenceValue;
@@ -239,7 +234,7 @@ internal unsafe class D3D12Renderer : IRenderer
         for (var i = 0u; i < GraphicsPipeline._FRAME_COUNT; i++)
         {
             var index = CreateBackBufferResource(i, _frameResources[i].backBuffer.GetAddressOf());
-            _frameResources[i].backBufferDescriptorIndexes = index;
+            _frameResources[i].rtvDescriptor = index;
         }
 
         _backBufferIndex = _swapChain.Get()->GetCurrentBackBufferIndex();
@@ -253,7 +248,7 @@ internal unsafe class D3D12Renderer : IRenderer
 
         foreach (var pass in _renderPasses)
         {
-            pass.Initialize(frameResource.commandBuffer);
+            pass.Initialize(frameResource.cmd);
         }
 
         frameResource.ExecuteCommandBuffer(_graphicsDevice.CommandQueue);
@@ -265,7 +260,7 @@ internal unsafe class D3D12Renderer : IRenderer
         _backBufferIndex = _swapChain.Get()->GetCurrentBackBufferIndex();
 
         ref var frameResource = ref _frameResources[_backBufferIndex];
-        var cpuHandle = _rtvHeap.GetCpuHandle(frameResource.backBufferDescriptorIndexes);
+        var cpuHandle = frameResource.rtvDescriptor.CpuHandle;
 
         frameResource.ResetCommandBuffer();
         frameResource.commandList.Get()->ResourceBarrierTransition(frameResource.backBuffer.Get(), ResourceStates.Present, ResourceStates.RenderTarget);
@@ -282,7 +277,7 @@ internal unsafe class D3D12Renderer : IRenderer
 
         foreach (var pass in _renderPasses)
         {
-            pass.Execute(frameResource.commandBuffer);
+            pass.Execute(frameResource.cmd);
         }
 
         frameResource.commandList.Get()->ResourceBarrierTransition(frameResource.backBuffer.Get(), ResourceStates.RenderTarget, ResourceStates.Present);
@@ -352,8 +347,6 @@ internal unsafe class D3D12Renderer : IRenderer
 
         _fence.Dispose();
         _fenceEvent.Dispose();
-
-        _rtvHeap.Dispose();
 
         _backBufferIndex = 0;
 

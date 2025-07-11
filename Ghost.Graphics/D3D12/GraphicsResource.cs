@@ -1,5 +1,4 @@
 ﻿using Ghost.Core;
-using Ghost.Graphics.Contracts;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.CompilerServices;
 using Win32;
@@ -7,7 +6,7 @@ using Win32.Graphics.Direct3D12;
 
 namespace Ghost.Graphics.D3D12;
 
-public unsafe class D3D12Resource : IResource
+public unsafe class GraphicsResource
 {
     private ComPtr<ID3D12Resource> _nativeResource;
     private string _name = string.Empty;
@@ -33,13 +32,13 @@ public unsafe class D3D12Resource : IResource
         get;
     }
 
-    internal D3D12Resource(ComPtr<ID3D12Resource> nativeResource, bool temp)
+    internal GraphicsResource(ComPtr<ID3D12Resource> nativeResource, bool temp = false)
     {
         _nativeResource = nativeResource;
         TempResource = temp;
     }
 
-    ~D3D12Resource()
+    ~GraphicsResource()
     {
         DisposeInternal();
     }
@@ -68,12 +67,7 @@ public unsafe class D3D12Resource : IResource
         var range = new Win32.Graphics.Direct3D12.Range(0, size);
 
         void* mappedPtr;
-        var hr = _nativeResource.Get()->Map(0, &range, &mappedPtr);
-        if (hr.Failure)
-        {
-            var message = hr.ToString();
-            throw new InvalidOperationException($"Failed to map resource: {message}");
-        }
+        ThrowIfFailed(_nativeResource.Get()->Map(0, &range, &mappedPtr));
 
         Unsafe.CopyBlock(mappedPtr, data, size);
         _nativeResource.Get()->Unmap(0, &range);
@@ -99,7 +93,7 @@ public unsafe class D3D12Resource : IResource
     public void ReadData<T>(T* pData, uint* size)
         where T : unmanaged
     {
-        ReadData(pData, size);
+        ReadData((void*)pData, size);
     }
 
     public void ReadData(void* pData, uint* size)

@@ -1,23 +1,22 @@
-﻿using Ghost.Graphics.Contracts;
-using Win32;
+﻿using Win32;
 using Win32.Graphics.Direct3D12;
 
 namespace Ghost.Graphics.D3D12;
 
-internal unsafe class D3D12ResourceAllocator : IResourceAllocator
+internal unsafe class ResourceAllocator
 {
     private readonly struct TempResourceAllocInfo
     {
-        public readonly D3D12Resource resource;
+        public readonly GraphicsResource resource;
         public readonly uint cpuFenceValue;
 
-        public TempResourceAllocInfo(D3D12Resource resource, uint cpuFenceValue)
+        public TempResourceAllocInfo(GraphicsResource resource, uint cpuFenceValue)
         {
             this.resource = resource;
             this.cpuFenceValue = cpuFenceValue;
         }
 
-        public TempResourceAllocInfo(D3D12Resource resource)
+        public TempResourceAllocInfo(GraphicsResource resource)
             : this(resource, GraphicsPipeline.CPUFenceValue + 1)
         {
         }
@@ -224,29 +223,28 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator
     //    }
     //}
 
-    public IResource CreateUploadBuffer(uint sizeInBytes, bool tempResource = false, ResourceFlags flags = ResourceFlags.None)
+    public GraphicsResource CreateUploadBuffer(uint sizeInBytes, bool tempResource = false, ResourceFlags flags = ResourceFlags.None)
     {
         if (sizeInBytes > _MAX_BYTES)
         {
             throw new InvalidOperationException($"ERROR: Resource size too large for DirectX 12 (size {sizeInBytes})");
         }
 
-        var device = GraphicsPipeline.GetGraphicsDevice<D3D12GraphicsDevice>();
         var heapProperties = new HeapProperties(HeapType.Upload);
         var resourceDescription = ResourceDescription.Buffer(sizeInBytes, flags);
 
         ComPtr<ID3D12Resource> buffer = default;
-        device.NativeDevice.Ptr->CreateCommittedResource(
+        GraphicsPipeline.GraphicsDevice.NativeDevice.Ptr->CreateCommittedResource(
             &heapProperties,
             HeapFlags.None,
             &resourceDescription,
-            ResourceStates.Common,
+            ResourceStates.GenericRead,
             null,
             __uuidof<ID3D12Resource>(),
             buffer.GetVoidAddressOf()
         );
 
-        var resource = new D3D12Resource(buffer.Move(), tempResource);
+        var resource = new GraphicsResource(buffer.Move(), tempResource);
         if (tempResource)
         {
             _temResources.Enqueue(new(resource));
@@ -255,19 +253,18 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator
         return resource;
     }
 
-    public IResource CreateCopyDestinationBuffer(uint sizeInBytes, bool tempResource = false, ResourceFlags flags = ResourceFlags.None)
+    public GraphicsResource CreateCopyDestinationBuffer(uint sizeInBytes, bool tempResource = false, ResourceFlags flags = ResourceFlags.None)
     {
         if (sizeInBytes > _MAX_BYTES)
         {
             throw new InvalidOperationException($"ERROR: Resource size too large for DirectX 12 (size {sizeInBytes})");
         }
 
-        var device = GraphicsPipeline.GetGraphicsDevice<D3D12GraphicsDevice>();
         var heapProperties = new HeapProperties(HeapType.Default);
         var resourceDescription = ResourceDescription.Buffer(sizeInBytes, flags);
 
         ComPtr<ID3D12Resource> buffer = default;
-        device.NativeDevice.Ptr->CreateCommittedResource(
+        GraphicsPipeline.GraphicsDevice.NativeDevice.Ptr->CreateCommittedResource(
             &heapProperties,
             HeapFlags.None,
             &resourceDescription,
@@ -277,7 +274,7 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator
             buffer.GetVoidAddressOf()
         );
 
-        var resource = new D3D12Resource(buffer.Move(), tempResource);
+        var resource = new GraphicsResource(buffer.Move(), tempResource);
         if (tempResource)
         {
             _temResources.Enqueue(new(resource));

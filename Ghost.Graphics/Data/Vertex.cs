@@ -17,7 +17,7 @@ public struct Vertex(Vector4 position, Vector4 normal, Vector4 tangent, Color128
         private static readonly byte[] s_normalBytes = Encoding.UTF8.GetBytes("NORMAL");
         private static readonly byte[] s_tangentBytes = Encoding.UTF8.GetBytes("TANGENT");
         private static readonly byte[] s_colorBytes = Encoding.UTF8.GetBytes("COLOR");
-        private static readonly byte[] s_uvBytes = Encoding.UTF8.GetBytes("UV");
+        private static readonly byte[] s_uvBytes = Encoding.UTF8.GetBytes("TEXCOORD");
 
         public static byte* PositionName => (byte*)Unsafe.AsPointer(ref s_positionBytes[0]);
         public static byte* NormalName => (byte*)Unsafe.AsPointer(ref s_normalBytes[0]);

@@ -1,4 +1,4 @@
-﻿using Ghost.Graphics.Contracts;
+﻿using Ghost.Graphics.D3D12;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Helpers;
 using System.Runtime.CompilerServices;
@@ -10,9 +10,10 @@ internal struct CBufferCache : IDisposable
     public UnsafeArray<byte> CpuData
     {
         get;
+        set;
     }
 
-    public IResource GpuResource
+    public GraphicsResource GpuResource
     {
         get;
     }
@@ -21,9 +22,9 @@ internal struct CBufferCache : IDisposable
 
     public unsafe CBufferCache(uint bufferSize)
     {
-        CpuData = new((int)bufferSize, Allocator.Persistent);
-
         _alignedSize = (bufferSize + 255u) & ~255u;
+
+        CpuData = new((int)_alignedSize, Allocator.Persistent);
         GpuResource = GraphicsPipeline.ResourceAllocator.CreateUploadBuffer(_alignedSize);
         GpuResource.Name = "Material_CBufferCache";
 

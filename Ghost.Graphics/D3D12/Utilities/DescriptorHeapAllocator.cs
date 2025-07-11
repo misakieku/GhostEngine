@@ -7,7 +7,7 @@ using DescriptorIndex = System.UInt32;
 
 namespace Ghost.Graphics.D3D12.Utilities;
 
-internal unsafe struct D3D12DescriptorAllocator : IDisposable
+internal unsafe struct DescriptorHeapAllocator : IDisposable
 {
     private const DescriptorIndex _INVALID_DESCRIPTOR_INDEX = ~0u;
 
@@ -50,7 +50,7 @@ internal unsafe struct D3D12DescriptorAllocator : IDisposable
     public readonly ConstPtr<ID3D12DescriptorHeap> Heap => new(_heap.Get());
     public readonly ConstPtr<ID3D12DescriptorHeap> ShaderVisibleHeap => new(_shaderVisibleHeap.Get());
 
-    public D3D12DescriptorAllocator(ConstPtr<ID3D12Device14> device, DescriptorHeapType type, uint numDescriptors)
+    public DescriptorHeapAllocator(ConstPtr<ID3D12Device14> device, DescriptorHeapType type, uint numDescriptors)
     {
         _device = device;
         HeapType = type;

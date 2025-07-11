@@ -17,6 +17,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="StbImageSharp" Version="2.30.15" />
+    <PackageReference Include="Vortice.Dxc.Native" Version="1.0.3" />
     <PackageReference Include="Vortice.Win32.Graphics.D3D12MemoryAllocator" Version="2.2.7" />
     <PackageReference Include="Vortice.Win32.Graphics.Direct3D.Dxc" Version="2.2.7" />
     <PackageReference Include="Vortice.Win32.Graphics.Direct3D.Fxc" Version="2.2.7" />
@@ -27,13 +29,19 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="Misaki.HighPerformance.Image">
-      <HintPath>..\..\Class\Misaki.HighPerformance\Misaki.HighPerformance.Image\bin\Release\net9.0\Misaki.HighPerformance.Image.dll</HintPath>
-    </Reference>
     <Reference Include="Misaki.HighPerformance.LowLevel">
       <HintPath>..\..\Class\Misaki.HighPerformance\Misaki.HighPerformance.LowLevel\bin\Release\net9.0\Misaki.HighPerformance.LowLevel.dll</HintPath>
     </Reference>
   </ItemGroup>
+
+  <!--<ItemGroup>
+    <None Include="F:\cpp\dll\dxc\dxcompiler.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="F:\cpp\dll\dxc\dxil.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>-->
 
   <ItemGroup>
     <Using Include="Win32.Apis">

@@ -1,7 +1,7 @@
 ﻿using Ghost.Core;
-using Ghost.Graphics.D3D12;
 using Ghost.Graphics.D3D12.Utilities;
 using Misaki.HighPerformance.LowLevel.Helpers;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -13,6 +13,24 @@ using Win32.Graphics.Dxgi.Common;
 
 namespace Ghost.Graphics.Shading;
 
+internal readonly struct TextureInfo
+{
+    public required string Name
+    {
+        get; init;
+    }
+
+    public uint RegisterSlot
+    {
+        get; init;
+    }
+
+    public uint RootParameterIndex
+    {
+        get; init;
+    }
+}
+
 internal readonly struct PropertyInfo
 {
     public required string Name
@@ -20,7 +38,7 @@ internal readonly struct PropertyInfo
         get; init;
     }
 
-    public required string CBufferName
+    public uint CBufferIndex
     {
         get; init;
     }
@@ -62,23 +80,28 @@ public unsafe class Shader : IDisposable
     private readonly byte[] _vertexShaderBytecode;
     private readonly byte[] _pixelShaderBytecode;
 
-    private readonly Dictionary<string, CBufferInfo> _constantBuffers = new();
-    private readonly Dictionary<string, PropertyInfo> _properties = new();
+    private readonly List<CBufferInfo> _constantBuffers = new();
+    private readonly List<PropertyInfo> _properties = new();
+    private readonly Dictionary<string, int> _propertyNameToIdMap = new();
+
+    private readonly List<TextureInfo> _textures = new();
+    private readonly Dictionary<string, int> _textureNameToIdMap = new();
 
     private bool _disposed;
 
     internal ConstPtr<ID3D12PipelineState> PipelineState => new(_pipelineState.Get());
     internal ConstPtr<ID3D12RootSignature> RootSignature => new(_rootSignature.Get());
 
-    internal IReadOnlyDictionary<string, CBufferInfo> ConstantBuffers => _constantBuffers;
-    internal IReadOnlyDictionary<string, PropertyInfo> Properties => _properties;
+    internal IReadOnlyList<CBufferInfo> ConstantBuffers => _constantBuffers;
+    internal IReadOnlyList<PropertyInfo> Properties => _properties;
+    internal IReadOnlyList<TextureInfo> Textures => _textures;
 
     //public Shader(string shaderPath)
     //{
 
     //}
 
-    public Shader(string shaderCode)
+    internal Shader(string shaderCode)
     {
         _vertexShaderBytecode = CompileShader(Encoding.UTF8.GetBytes(shaderCode), "VSMain", "vs_5_0");
         _pixelShaderBytecode = CompileShader(Encoding.UTF8.GetBytes(shaderCode), "PSMain", "ps_5_0");
@@ -103,7 +126,7 @@ public unsafe class Shader : IDisposable
     /// <param name="shaderProfile">The shader model to target (e.g., "vs_5_0", "ps_5_0").</param>
     /// <returns>A byte array containing the compiled shader bytecode.</returns>
     /// <exception cref="Exception">Thrown if shader compilation fails.</exception>
-    public static unsafe byte[] CompileShader(byte[] sourceCodeBytes, string entryPoint, string shaderProfile)
+    public static unsafe byte[] CompileShader(ReadOnlySpan<byte> sourceCodeBytes, string entryPoint, string shaderProfile)
     {
         using ComPtr<ID3DBlob> bytecodeBlob = default;
         using ComPtr<ID3DBlob> errorBlob = default;
@@ -111,29 +134,14 @@ public unsafe class Shader : IDisposable
         var entryPointBytes = Encoding.UTF8.GetBytes(entryPoint);
         var shaderProfileBytes = Encoding.UTF8.GetBytes(shaderProfile);
 
-        // Call the D3DCompile function
-        var hr = D3DCompile(
-            sourceCodeBytes.AsSpan(),
+        ThrowIfFailed(D3DCompile(
+            sourceCodeBytes,
             entryPointBytes.AsSpan(),
             shaderProfileBytes.AsSpan(),
             CompileFlags.EnableStrictness | CompileFlags.Debug,
             bytecodeBlob.GetAddressOf(),
             errorBlob.GetAddressOf()
-        );
-
-        if (hr.Failure)
-        {
-            var errorMessage = "Shader compilation failed.";
-            if (errorBlob.Get() is not null)
-            {
-                errorMessage += "\n" + Encoding.ASCII.GetString(
-                    (byte*)errorBlob.Get()->GetBufferPointer(),
-                    (int)errorBlob.Get()->GetBufferSize()
-                );
-            }
-
-            throw new Exception(errorMessage);
-        }
+        ));
 
         var bytecode = new byte[bytecodeBlob.Get()->GetBufferSize()];
         Unsafe.CopyBlock(bytecode.AsSpan().GetPointer(), bytecodeBlob.Get()->GetBufferPointer(), (uint)bytecode.Length);
@@ -143,11 +151,18 @@ public unsafe class Shader : IDisposable
 
     private void CreateRootSignature()
     {
-        var rootParameters = new RootParameter1[_constantBuffers.Values.Count];
+        // Calculate total root parameters: CBVs + 1 descriptor table for SRVs (if any textures)
+        var totalRootParameters = _constantBuffers.Count + (_textures.Count > 0 ? 1 : 0);
+        var rootParameters = new RootParameter1[totalRootParameters];
 
-        var i = 0;
-        foreach (var cbufferInfo in _constantBuffers.Values)
+        var parameterIndex = 0;
+
+        // Add CBV root parameters
+        for (var i = 0; i < _constantBuffers.Count; i++)
         {
+            var cbufferInfo = _constantBuffers[i];
+            Debug.Assert(i == cbufferInfo.RegisterSlot);
+
             var rootParameter = new RootParameter1
             {
                 ParameterType = RootParameterType.Cbv,
@@ -155,10 +170,68 @@ public unsafe class Shader : IDisposable
                 Descriptor = new RootDescriptor1(cbufferInfo.RegisterSlot, 0),
             };
 
-            rootParameters[i++] = rootParameter;
+            rootParameters[parameterIndex++] = rootParameter;
         }
 
-        var rootSignatureDesc = new RootSignatureDescription((uint)rootParameters.Length, (RootParameter*)Unsafe.AsPointer(ref rootParameters[0]))
+        // Add descriptor table for SRVs if we have textures
+        if (_textures.Count > 0)
+        {
+            var ranges = new DescriptorRange1[1];
+            ranges[0] = new DescriptorRange1
+            {
+                RangeType = DescriptorRangeType.Srv,
+                NumDescriptors = (uint)_textures.Count,
+                BaseShaderRegister = 0, // Start from t0
+                RegisterSpace = 0,
+                Flags = DescriptorRangeFlags.None,
+                OffsetInDescriptorsFromTableStart = 0
+            };
+
+            fixed (DescriptorRange1* rangesPtr = ranges)
+            {
+                var rootParameter = new RootParameter1
+                {
+                    ParameterType = RootParameterType.DescriptorTable,
+                    ShaderVisibility = ShaderVisibility.All,
+                    DescriptorTable = new RootDescriptorTable1(1, rangesPtr)
+                };
+
+                rootParameters[parameterIndex++] = rootParameter;
+            }
+        }
+
+        // Create static samplers for textures
+        var staticSamplers = new StaticSamplerDescription[_textures.Count];
+        for (var i = 0; i < _textures.Count; i++)
+        {
+            staticSamplers[i] = new StaticSamplerDescription
+            {
+                Filter = Filter.MinMagMipLinear,
+                AddressU = TextureAddressMode.Wrap,
+                AddressV = TextureAddressMode.Wrap,
+                AddressW = TextureAddressMode.Wrap,
+                MipLODBias = 0,
+                MaxAnisotropy = 1,
+                BorderColor = StaticBorderColor.OpaqueWhite,
+                MinLOD = 0,
+                MaxLOD = 0,
+                ShaderRegister = (uint)i, // s0, s1, etc.
+                RegisterSpace = 0,
+                ShaderVisibility = ShaderVisibility.All
+            };
+        }
+
+        var parameterCount = (uint)rootParameters.Length;
+        var parameters = parameterCount > 0
+            ? (RootParameter*)Unsafe.AsPointer(ref rootParameters[0])
+            : null;
+
+        var samplerCount = (uint)staticSamplers.Length;
+        var samplers = samplerCount > 0
+            ? (StaticSamplerDescription*)Unsafe.AsPointer(ref staticSamplers[0])
+            : null;
+
+        var rootSignatureDesc = new RootSignatureDescription(parameterCount, parameters, samplerCount, samplers)
         {
             Flags = RootSignatureFlags.AllowInputAssemblerInputLayout
         };
@@ -166,14 +239,9 @@ public unsafe class Shader : IDisposable
         using ComPtr<ID3DBlob> signature = default;
         using ComPtr<ID3DBlob> error = default;
 
-        var hr = D3D12SerializeRootSignature(&rootSignatureDesc, RootSignatureVersion.V1_0, signature.GetAddressOf(), error.GetAddressOf());
-        if (hr.Failure)
-        {
-            var errorMessage = System.Text.Encoding.ASCII.GetString((byte*)error.Get()->GetBufferPointer(), (int)error.Get()->GetBufferSize());
-            throw new InvalidOperationException($"Failed to serialize root signature: {errorMessage}");
-        }
+        ThrowIfFailed(D3D12SerializeRootSignature(&rootSignatureDesc, RootSignatureVersion.V1_0, signature.GetAddressOf(), error.GetAddressOf()));
 
-        GraphicsPipeline.GetGraphicsDevice<D3D12GraphicsDevice>().NativeDevice.Ptr->CreateRootSignature(0, signature.Get()->GetBufferPointer(), signature.Get()->GetBufferSize(), __uuidof<ID3D12RootSignature>(), _rootSignature.GetVoidAddressOf());
+        GraphicsPipeline.GraphicsDevice.NativeDevice.Ptr->CreateRootSignature(0, signature.Get()->GetBufferPointer(), signature.Get()->GetBufferSize(), __uuidof<ID3D12RootSignature>(), _rootSignature.GetVoidAddressOf());
     }
 
     private void CreatePipelineStateObject()
@@ -202,7 +270,7 @@ public unsafe class Shader : IDisposable
                 psoDesc.RTVFormats[0] = D3D12PipelineResource.SWAP_CHAIN_BACK_BUFFER_FORMAT;
 
                 // Create the PSO
-                GraphicsPipeline.GetGraphicsDevice<D3D12GraphicsDevice>().NativeDevice.Ptr->CreateGraphicsPipelineState(&psoDesc, __uuidof<ID3D12PipelineState>(), _pipelineState.GetVoidAddressOf());
+                GraphicsPipeline.GraphicsDevice.NativeDevice.Ptr->CreateGraphicsPipelineState(&psoDesc, __uuidof<ID3D12PipelineState>(), _pipelineState.GetVoidAddressOf());
             }
         }
         catch (Exception ex)
@@ -222,6 +290,9 @@ public unsafe class Shader : IDisposable
         ShaderDescription shaderDesc;
         reflection.Get()->GetDesc(&shaderDesc);
 
+        var cbufferRegistry = _constantBuffers.ToDictionary(cb => cb.Name);
+        var textureRegistry = _textures.ToDictionary(t => t.Name);
+
         for (uint i = 0; i < shaderDesc.BoundResources; i++)
         {
             ShaderInputBindDescription bindDesc;
@@ -230,7 +301,7 @@ public unsafe class Shader : IDisposable
             if (bindDesc.Type == ShaderInputType.ConstantBuffer)
             {
                 var cbufferName = Marshal.PtrToStringAnsi((IntPtr)bindDesc.Name);
-                if (cbufferName == null || _constantBuffers.ContainsKey(cbufferName))
+                if (cbufferName == null || cbufferRegistry.ContainsKey(cbufferName))
                 {
                     continue;
                 }
@@ -239,12 +310,13 @@ public unsafe class Shader : IDisposable
                 ShaderBufferDescription cbufferDesc;
                 cbuffer->GetDesc(&cbufferDesc);
 
-                _constantBuffers.Add(cbufferName, new CBufferInfo
+                var cbufferInfo = new CBufferInfo
                 {
                     Name = cbufferName,
                     Size = cbufferDesc.Size,
                     RegisterSlot = bindDesc.BindPoint
-                });
+                };
+                cbufferRegistry.Add(cbufferName, cbufferInfo);
 
                 for (uint j = 0; j < cbufferDesc.Variables; j++)
                 {
@@ -253,22 +325,78 @@ public unsafe class Shader : IDisposable
                     variable->GetDesc(&varDesc);
 
                     var variableName = Marshal.PtrToStringAnsi((IntPtr)varDesc.Name);
-                    if (variableName == null || _properties.ContainsKey(variableName))
+                    if (variableName == null || _propertyNameToIdMap.ContainsKey(variableName))
                     {
                         continue;
                     }
 
-                    _properties.Add(variableName, new PropertyInfo
+                    var propInfo = new PropertyInfo
                     {
                         Name = variableName,
-                        CBufferName = cbufferName,
+                        CBufferIndex = cbufferInfo.RegisterSlot,
                         ByteOffset = varDesc.StartOffset,
                         Size = varDesc.Size
-                    });
+                    };
+
+                    // Add to the list and create the name-to-ID mapping
+                    var newId = _properties.Count;
+                    _properties.Add(propInfo);
+                    _propertyNameToIdMap.Add(variableName, newId);
                 }
             }
+            else if (bindDesc.Type == ShaderInputType.Texture)
+            {
+                var textureName = Marshal.PtrToStringAnsi((IntPtr)bindDesc.Name);
+                if (textureName == null || textureRegistry.ContainsKey(textureName))
+                {
+                    continue;
+                }
+
+                // The root parameter index for textures is after all CBVs
+                var textureInfo = new TextureInfo
+                {
+                    Name = textureName,
+                    RegisterSlot = bindDesc.BindPoint,
+                    RootParameterIndex = (uint)_constantBuffers.Count // Descriptor table comes after CBVs
+                };
+
+                textureRegistry.Add(textureName, textureInfo);
+
+                // Add to the texture name-to-ID mapping
+                var newId = _textures.Count;
+                _textureNameToIdMap.Add(textureName, newId);
+            }
         }
+
+        _constantBuffers.Clear();
+        _constantBuffers.AddRange(cbufferRegistry.Values);
+
+        _textures.Clear();
+        _textures.AddRange(textureRegistry.Values);
+
         reflection.Dispose();
+    }
+
+    /// <summary>
+    /// Gets a unique, stable ID for a shader property.
+    /// This should be called once and the ID cached for repeated use.
+    /// </summary>
+    /// <param name="propertyName">The name of the property (e.g., "_Color").</param>
+    /// <returns>The integer ID of the property, or -1 if not found.</returns>
+    public int GetPropertyId(string propertyName)
+    {
+        return _propertyNameToIdMap.TryGetValue(propertyName, out var id) ? id : -1;
+    }
+
+    /// <summary>
+    /// Gets a unique, stable ID for a texture property.
+    /// This should be called once and the ID cached for repeated use.
+    /// </summary>
+    /// <param name="textureName">The name of the texture (e.g., "_MainTex").</param>
+    /// <returns>The integer ID of the texture, or -1 if not found.</returns>
+    public int GetTextureId(string textureName)
+    {
+        return _textureNameToIdMap.TryGetValue(textureName, out var id) ? id : -1;
     }
 
     public void Dispose()
@@ -283,6 +411,8 @@ public unsafe class Shader : IDisposable
 
         _constantBuffers.Clear();
         _properties.Clear();
+        _textures.Clear();
+        _textureNameToIdMap.Clear();
 
         GC.SuppressFinalize(this);
 

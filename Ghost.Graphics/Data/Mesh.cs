@@ -1,5 +1,5 @@
 ﻿using Ghost.Core;
-using Ghost.Graphics.Contracts;
+using Ghost.Graphics.D3D12;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Helpers;
 using System.Numerics;
@@ -16,8 +16,8 @@ public unsafe sealed class Mesh(int initialVertexCapacity = 256, int initialInde
 
     private Bounds _boundingBox;
 
-    private IResource? _vertexBuffer;
-    private IResource? _indexBuffer;
+    private GraphicsResource? _vertexBuffer;
+    private GraphicsResource? _indexBuffer;
     private VertexBufferView _vertexBufferView;
     private IndexBufferView _indexBufferView;
 
@@ -204,8 +204,7 @@ public unsafe sealed class Mesh(int initialVertexCapacity = 256, int initialInde
     /// <summary>
     /// Uploads the mesh data to GPU resources.
     /// </summary>
-    /// <param name="cmb">The command buffer to record the upload commands.</param>
-    public unsafe void UploadMeshData(ICommandBuffer cmb)
+    public unsafe void UploadMeshData()
     {
         if (VertexCount == 0 || IndexCount == 0)
         {
@@ -220,17 +219,13 @@ public unsafe sealed class Mesh(int initialVertexCapacity = 256, int initialInde
         _vertexBuffer = GraphicsPipeline.ResourceAllocator.CreateCopyDestinationBuffer(vertexBufferSize);
         _indexBuffer = GraphicsPipeline.ResourceAllocator.CreateCopyDestinationBuffer(indexBufferSize);
 
-        var vertexUploadBuffer = GraphicsPipeline.ResourceAllocator.CreateUploadBuffer(vertexBufferSize, false);
-        var indexUploadBuffer = GraphicsPipeline.ResourceAllocator.CreateUploadBuffer(indexBufferSize, false);
-
-        vertexUploadBuffer.SetData(_vertices.AsSpan());
-        indexUploadBuffer.SetData(_indices.AsSpan());
-
-        cmb.CopyResource(_vertexBuffer, 0, vertexUploadBuffer, 0, vertexBufferSize);
-        cmb.CopyResource(_indexBuffer, 0, indexUploadBuffer, 0, indexBufferSize);
-
-        cmb.BarrierTransition(_vertexBuffer, ResourceStates.CopyDest, ResourceStates.VertexAndConstantBuffer);
-        cmb.BarrierTransition(_indexBuffer, ResourceStates.CopyDest, ResourceStates.IndexBuffer);
+        using var uploadBatch = new ResourceUploadBatch();
+        uploadBatch.Begin();
+        uploadBatch.Upload(_vertexBuffer, _vertices.AsSpan());
+        uploadBatch.Upload(_indexBuffer, _indices.AsSpan());
+        uploadBatch.Transition(_vertexBuffer, ResourceStates.CopyDest, ResourceStates.VertexAndConstantBuffer);
+        uploadBatch.Transition(_indexBuffer, ResourceStates.CopyDest, ResourceStates.IndexBuffer);
+        uploadBatch.WaitForCompletion(uploadBatch.End());
 
         _vertexBufferView = new VertexBufferView
         {

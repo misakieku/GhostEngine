@@ -1,7 +1,6 @@
 ﻿using Ghost.Engine.Models;
 using Ghost.Engine.Services;
 using Ghost.Graphics;
-using Ghost.Graphics.Data;
 
 namespace Ghost.Engine;
 
@@ -11,7 +10,7 @@ internal class EngineCore
     {
         ActivationHandler.Handle(args);
 
-        GraphicsPipeline.Initialize(GraphicsAPI.D3D12);
+        GraphicsPipeline.Initialize();
         GraphicsPipeline.Start();
 
         Logger.LogInfo("Engine started successfully.");

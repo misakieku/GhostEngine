@@ -1,5 +1,6 @@
 ﻿using Ghost.Engine.Models;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Ghost.Engine.Services;
 
@@ -89,7 +90,7 @@ public static class Logger
         LogExceptionInternal(ex);
     }
 
-    public static void Assert(bool condition, object? message = null)
+    public static void Assert([DoesNotReturnIf(false)] bool condition, object? message = null)
     {
         if (!condition)
         {
