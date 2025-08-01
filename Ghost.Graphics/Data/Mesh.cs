@@ -1,5 +1,5 @@
-﻿using Ghost.Core;
-using Ghost.Graphics.D3D12;
+﻿using Ghost.Graphics.D3D12;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Helpers;
 using System.Numerics;
@@ -16,10 +16,11 @@ public unsafe sealed class Mesh(int initialVertexCapacity = 256, int initialInde
 
     private Bounds _boundingBox;
 
-    private GraphicsResource? _vertexBuffer;
-    private GraphicsResource? _indexBuffer;
-    private VertexBufferView _vertexBufferView;
-    private IndexBufferView _indexBufferView;
+    private GraphicsBuffer? _vertexBuffer;
+    private GraphicsBuffer? _indexBuffer;
+
+    private BindlessDescriptor? _vertexBufferDescriptor;
+    private BindlessDescriptor? _indexBufferDescriptor;
 
     public Span<Vertex> Vertices => _vertices.AsSpan();
     public Span<int> Indices => _indices.AsSpan();
@@ -28,8 +29,8 @@ public unsafe sealed class Mesh(int initialVertexCapacity = 256, int initialInde
     public uint VertexCount => (uint)_vertices.Count;
     public uint IndexCount => (uint)_indices.Count;
 
-    internal ConstPtr<VertexBufferView> VertexBufferView => (VertexBufferView*)Unsafe.AsPointer(ref _vertexBufferView);
-    internal ConstPtr<IndexBufferView> IndexBufferView => (IndexBufferView*)Unsafe.AsPointer(ref _indexBufferView);
+    public uint VertexBufferDescriptorIndex => _vertexBufferDescriptor?.Index ?? throw new InvalidOperationException("Vertex buffer descriptor is not allocated.");
+    public uint IndexBufferDescriptorIndex => _indexBufferDescriptor?.Index ?? throw new InvalidOperationException("Index buffer descriptor is not allocated.");
 
     ~Mesh()
     {
@@ -63,6 +64,24 @@ public unsafe sealed class Mesh(int initialVertexCapacity = 256, int initialInde
         _indices.Add(index0);
         _indices.Add(index1);
         _indices.Add(index2);
+    }
+
+    public void AddTriangles(params ReadOnlySpan<int> indices)
+    {
+        if (indices.Length % 3 != 0)
+        {
+            throw new ArgumentException("The number of indices must be a multiple of 3 to form triangles.");
+        }
+
+        foreach (var index in indices)
+        {
+            if (index < 0 || index >= _vertices.Count)
+            {
+                throw new ArgumentOutOfRangeException(nameof(indices), "Index out of range for the current vertex count.");
+            }
+
+            _indices.Add(index);
+        }
     }
 
     /// <summary>
@@ -211,35 +230,76 @@ public unsafe sealed class Mesh(int initialVertexCapacity = 256, int initialInde
             return;
         }
 
-        _vertexBuffer?.Dispose();
-        _indexBuffer?.Dispose();
+        DisposeGpuResources();
 
         var vertexBufferSize = (uint)(VertexCount * sizeof(Vertex));
         var indexBufferSize = IndexCount * sizeof(int);
-        _vertexBuffer = GraphicsPipeline.ResourceAllocator.CreateCopyDestinationBuffer(vertexBufferSize);
-        _indexBuffer = GraphicsPipeline.ResourceAllocator.CreateCopyDestinationBuffer(indexBufferSize);
+        _vertexBuffer = GraphicsBuffer.Create(vertexBufferSize, GraphicsBuffer.Usage.CopyDestination);
+        _indexBuffer = GraphicsBuffer.Create(indexBufferSize, GraphicsBuffer.Usage.CopyDestination);
 
-        using var uploadBatch = new ResourceUploadBatch();
-        uploadBatch.Begin();
-        uploadBatch.Upload(_vertexBuffer, _vertices.AsSpan());
-        uploadBatch.Upload(_indexBuffer, _indices.AsSpan());
-        uploadBatch.Transition(_vertexBuffer, ResourceStates.CopyDest, ResourceStates.VertexAndConstantBuffer);
-        uploadBatch.Transition(_indexBuffer, ResourceStates.CopyDest, ResourceStates.IndexBuffer);
-        uploadBatch.WaitForCompletion(uploadBatch.End());
+        var uploadBatch = GraphicsPipeline.UploadBatch;
+        uploadBatch.Upload(_vertexBuffer.NativeResource, _vertices.AsSpan());
+        uploadBatch.Upload(_indexBuffer.NativeResource, _indices.AsSpan());
+        uploadBatch.Transition(_vertexBuffer.NativeResource, ResourceStates.CopyDest, ResourceStates.VertexAndConstantBuffer);
+        uploadBatch.Transition(_indexBuffer.NativeResource, ResourceStates.CopyDest, ResourceStates.IndexBuffer);
 
-        _vertexBufferView = new VertexBufferView
+        // Create bindless descriptors for vertex and index buffers
+        CreateBindlessDescriptors();
+    }
+
+    /// <summary>
+    /// Creates SRVs for vertex and index buffers in the bindless descriptor heap
+    /// </summary>
+    private void CreateBindlessDescriptors()
+    {
+        if (_vertexBuffer == null || _indexBuffer == null)
         {
-            BufferLocation = _vertexBuffer.GPUAddress,
-            SizeInBytes = vertexBufferSize,
-            StrideInBytes = (uint)sizeof(Vertex)
+            return;
+        }
+
+        // Allocate new descriptors from the descriptor allocator
+        _vertexBufferDescriptor = GraphicsPipeline.DescriptorAllocator.AllocateBindless();
+        _indexBufferDescriptor = GraphicsPipeline.DescriptorAllocator.AllocateBindless();
+
+        var device = GraphicsPipeline.GraphicsDevice.NativeDevice.Ptr;
+
+        var vertexSrvDesc = new ShaderResourceViewDescription
+        {
+            Format = Format.R32Typeless,
+            ViewDimension = SrvDimension.Buffer,
+            Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,
+            Anonymous = new()
+            {
+                Buffer = new()
+                {
+                    FirstElement = 0,
+                    NumElements = (uint)(_vertexBuffer.GPUAddress != 0 ? (VertexCount * sizeof(Vertex)) / 4 : 0), // Divide by 4 for R32 format
+                    StructureByteStride = 0,
+                    Flags = BufferSrvFlags.Raw
+                }
+            }
         };
 
-        _indexBufferView = new IndexBufferView
+        device->CreateShaderResourceView(_vertexBuffer.NativeResource.Ptr, &vertexSrvDesc, _vertexBufferDescriptor.CpuHandle);
+
+        var indexSrvDesc = new ShaderResourceViewDescription
         {
-            BufferLocation = _indexBuffer.GPUAddress,
-            SizeInBytes = indexBufferSize,
-            Format = Format.R32Uint
+            Format = Format.R32Typeless,
+            ViewDimension = SrvDimension.Buffer,
+            Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,
+            Anonymous = new()
+            {
+                Buffer = new()
+                {
+                    FirstElement = 0,
+                    NumElements = IndexCount,
+                    StructureByteStride = 0,
+                    Flags = BufferSrvFlags.Raw
+                }
+            }
         };
+
+        device->CreateShaderResourceView(_indexBuffer.NativeResource.Ptr, &indexSrvDesc, _indexBufferDescriptor.CpuHandle);
     }
 
     /// <summary>
@@ -259,6 +319,16 @@ public unsafe sealed class Mesh(int initialVertexCapacity = 256, int initialInde
 
         _indexBuffer?.Dispose();
         _indexBuffer = null;
+
+        if (_vertexBufferDescriptor != null)
+        {
+            GraphicsPipeline.DescriptorAllocator.ReleaseBindless(_vertexBufferDescriptor);
+        }
+
+        if (_indexBufferDescriptor != null)
+        {
+            GraphicsPipeline.DescriptorAllocator.ReleaseBindless(_indexBufferDescriptor);
+        }
     }
 
     public void Dispose()

@@ -192,18 +192,18 @@ public readonly struct EntityManager : IDisposable
     /// </summary>
     /// <typeparam name="T">The type of the component to retrieve.</typeparam>
     /// <param name="entity">The entity whose component is to be retrieved.</param>
-    /// <returns>A <see cref="Ref{T}"/> to the component, or a null reference if the component does not exist.</returns>
+    /// <returns>A <see cref="CompRef{T}"/> to the component, or a null reference if the component does not exist.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Ref<T> GetComponent<T>(Entity entity)
+    public readonly CompRef<T> GetComponent<T>(Entity entity)
         where T : unmanaged, IComponentData
     {
         if (_world.ComponentStorage.TryGetPool<T>(out var pool) && pool.Has(entity))
         {
-            return new Ref<T>(ref pool.GetRef(entity));
+            return new CompRef<T>(ref pool.GetRef(entity));
         }
         else
         {
-            return new Ref<T>(ref Unsafe.NullRef<T>(), false);
+            return new CompRef<T>(ref Unsafe.NullRef<T>(), false);
         }
     }
 

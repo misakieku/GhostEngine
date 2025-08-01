@@ -24,9 +24,14 @@ public static class GraphicsPipeline
         }
     }
 
+#if DEBUG
+    private static DebugLayer? s_debugLayer;
+#endif
+
     private static GraphicsDevice? s_graphicsDevice;
     private static DescriptorAllocator? s_descriptorAllocator;
     private static ResourceAllocator? s_resourceAllocator;
+    private static ResourceUploadBatch? s_uploadBatch;
 
     private static Thread? s_renderThread;
     private static FrameResource[]? s_frameResources;
@@ -37,6 +42,7 @@ public static class GraphicsPipeline
 
     private static bool s_initialized;
     private static bool s_isRunning;
+    private static readonly AutoResetEvent s_shutdownEvent = new(false);
 
     internal static uint CPUFenceValue => s_cpuFenceValue;
     internal static uint GPUFenceValue => s_gpuFenceValue;
@@ -46,8 +52,25 @@ public static class GraphicsPipeline
     internal static ResourceAllocator ResourceAllocator => s_resourceAllocator ?? throw new InvalidOperationException("Resource allocator is not initialized.");
     internal static DescriptorAllocator DescriptorAllocator => s_descriptorAllocator ?? throw new InvalidOperationException("Descriptor allocator is not initialized.");
 
+    internal static ResourceUploadBatch UploadBatch
+    {
+        get
+        {
+            if (s_uploadBatch == null)
+            {
+                s_uploadBatch = new();
+                s_uploadBatch.Begin();
+            }
+
+            return s_uploadBatch;
+        }
+    }
+
     internal static void Initialize()
     {
+#if DEBUG
+        s_debugLayer = new DebugLayer();
+#endif
         s_graphicsDevice = new GraphicsDevice();
         s_descriptorAllocator = new DescriptorAllocator();
         s_resourceAllocator = new ResourceAllocator();
@@ -70,25 +93,47 @@ public static class GraphicsPipeline
 
     private static void RenderLoop()
     {
+        var waitHandles = new WaitHandle[2];
+        waitHandles[1] = s_shutdownEvent;
+
         while (s_isRunning)
         {
             s_frameIndex = s_gpuFenceValue % _FRAME_COUNT;
             var frameResource = s_frameResources![s_frameIndex];
 
-            frameResource.cpuReadyEvent.WaitOne();
+            // Wait for either CPU ready signal or shutdown signal
+            waitHandles[0] = frameResource.cpuReadyEvent;
+            var waitResult = WaitHandle.WaitAny(waitHandles);
 
-            s_graphicsDevice!.InitializePendingRenderers();
-
-            foreach (var renderer in s_graphicsDevice.Renderers)
+            // If shutdown was signaled or timeout occurred, exit the loop
+            if (!s_isRunning || waitResult == 1 || waitResult == WaitHandle.WaitTimeout)
             {
-                renderer.ExecutePendingResize();
-                renderer.Render();
+                break;
             }
 
-            s_gpuFenceValue++;
-            frameResource.gpuReadyEvent.Set();
+            // Only proceed if CPU ready event was signaled
+            if (waitResult == 0)
+            {
+                s_graphicsDevice!.InitializePendingRenderers();
 
-            s_resourceAllocator!.ReleaseTempResource();
+                s_uploadBatch?.WaitForCompletion(s_uploadBatch.End());
+                s_uploadBatch?.Dispose();
+                s_uploadBatch = null;
+
+                if (s_graphicsDevice.Renderers.Length > 0)
+                {
+                    foreach (var renderer in s_graphicsDevice.Renderers)
+                    {
+                        renderer.ExecutePendingResize();
+                        renderer.Render();
+                    }
+                }
+
+                s_gpuFenceValue++;
+                frameResource.gpuReadyEvent.Set();
+
+                s_resourceAllocator!.ReleaseTempResource();
+            }
         }
     }
 
@@ -129,7 +174,18 @@ public static class GraphicsPipeline
     internal static void Stop()
     {
         s_isRunning = false;
-        s_renderThread?.Join();
+
+        s_shutdownEvent.Set();
+
+        if (s_renderThread?.Join(TimeSpan.FromSeconds(5)) == false)
+        {
+#if DEBUG
+            System.Diagnostics.Debugger.Break();
+#endif
+            s_renderThread?.Interrupt();
+        }
+
+        s_shutdownEvent.Reset();
     }
 
     internal static void Shutdown()
@@ -148,6 +204,10 @@ public static class GraphicsPipeline
             }
             s_frameResources = null;
         }
+
+#if DEBUG
+        s_debugLayer?.Dispose();
+#endif
 
         s_initialized = false;
     }

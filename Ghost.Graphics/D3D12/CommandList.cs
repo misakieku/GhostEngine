@@ -16,40 +16,60 @@ public unsafe class CommandList
         _commandList = commandList;
     }
 
-    public void BarrierTransition(GraphicsResource resource, ResourceStates beforeState, ResourceStates afterState)
+    internal void BarrierTransition(GraphicsResource resource, ResourceStates beforeState, ResourceStates afterState)
     {
         _commandList.Ptr->ResourceBarrierTransition(resource.NativeResource.Ptr, beforeState, afterState);
     }
 
-    public void SetGraphicsRootConstantBufferView(uint slot, ulong gpuAddress)
+    internal void SetGraphicsRootConstantBufferView(uint slot, ulong gpuAddress)
     {
         _commandList.Ptr->SetGraphicsRootConstantBufferView(slot, gpuAddress);
     }
 
+    /// <summary>
+    /// Draws a mesh using fully bindless rendering with SM 6.6 support.
+    /// This method does not use the Input Assembler stage and instead relies on
+    /// vertex and index buffer access through bindless descriptors in the shader.
+    /// </summary>
+    /// <param name="mesh">The mesh to draw</param>
+    /// <param name="material">The bindless material to use</param>
     public void DrawMesh(Mesh mesh, Material material)
     {
-        _commandList.Ptr->SetGraphicsRootSignature(material.Shader.RootSignature);
-        _commandList.Ptr->SetPipelineState(material.Shader.PipelineState);
-
-        // Bind shader-visible descriptor heaps before setting descriptor tables
-        if (material.Shader.Textures.Count > 0)
-        {
-            var shaderVisibleHeaps = GraphicsPipeline.DescriptorAllocator.GetShaderVisibleHeaps();
-            var heapPtrs = stackalloc ID3D12DescriptorHeap*[shaderVisibleHeaps.Length];
-            for (var i = 0; i < shaderVisibleHeaps.Length; i++)
-            {
-                heapPtrs[i] = shaderVisibleHeaps[i].Ptr;
-            }
-            _commandList.Ptr->SetDescriptorHeaps((uint)shaderVisibleHeaps.Length, heapPtrs);
-        }
-
+        // Bind the bindless material (sets up root signature, pipeline state, and descriptor heaps)
         material.Bind(this);
 
+        // For fully bindless rendering, we don't use the Input Assembler stage
+        // Instead, we use instanced drawing where each "instance" represents a triangle
+        // The shader will use SV_InstanceID to index into the index buffer and then into the vertex buffer
         _commandList.Ptr->IASetPrimitiveTopology(PrimitiveTopology.TriangleList);
-        _commandList.Ptr->IASetVertexBuffers(0, 1, mesh.VertexBufferView);
-        _commandList.Ptr->IASetIndexBuffer(mesh.IndexBufferView);
 
-        _commandList.Ptr->DrawIndexedInstanced(mesh.IndexCount, 1, 0, 0, 0);
+        // Draw without vertex/index buffers - use instanced drawing
+        // Each instance represents a triangle (3 vertices)
+        var triangleCount = mesh.IndexCount / 3;
+        _commandList.Ptr->DrawInstanced(3, triangleCount, 0, 0);
+    }
+
+    public void SetRenderTarget(RenderTexture? color, RenderTexture? depth)
+    {
+        var rtvHandle = color?.RenderTargetView?.CpuHandle;
+        var rtvHandleValue = rtvHandle ?? default;
+        var pRtvHandle = rtvHandle.HasValue ? &rtvHandleValue : null;
+
+        var dsvHandle = depth?.RenderTargetView?.CpuHandle;
+        var dsvHandleValue = dsvHandle ?? default;
+        var pDsvHandle = dsvHandle.HasValue ? &dsvHandleValue : null;
+
+        _commandList.Ptr->OMSetRenderTargets(1, pRtvHandle, false, pDsvHandle);
+    }
+
+    public void ClearRenderTarget(RenderTexture renderTarget, Color128 color)
+    {
+        renderTarget.ClearColor(this, color);
+    }
+
+    public void ClearDepthStencil(RenderTexture depthStencil, ClearFlags flags, float depth = 1.0f, byte stencil = 0)
+    {
+        depthStencil.ClearDepthStencil(this, flags, depth, stencil);
     }
 
     public void CopyResource(GraphicsResource dstResource, uint dstOffset, GraphicsResource srcResource, uint srcOffset, uint size)

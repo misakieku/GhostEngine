@@ -20,16 +20,10 @@ var deconstructParams = Enumerable.Range(0, arity)
                                     .Select(i => {
                                         var name = $"c{i}";
                                         return arity == 1
-                                            ? $"out Ref<T0> {name}"
-                                            : $"out Ref<T{i}> {name}";
+                                            ? $"out CompRef<T0> {name}"
+                                            : $"out CompRef<T{i}> {name}";
                                     })
                                     .Aggregate((a, b) => a + ", " + b);
-var deconstructAssigns = Enumerable.Range(0, arity)
-                                    .Select(i => {
-                                        var name = $"c{i}";
-                                        return $"{name} = new (ref _pool{i}.GetRef(_entity));";
-                                    })
-                                    .Aggregate((a, b) => a + b);
 #>
 public readonly struct QueryItem<<#= generics #>>
     <#= restrictions #>
@@ -57,7 +51,10 @@ public readonly struct QueryItem<<#= generics #>>
     public void Deconstruct(out Entity entity, <#= deconstructParams #>)
     {
         entity = _entity;
-        <#= deconstructAssigns #>
+
+<# for (int i = 0; i < arity; i++){ #>
+        c<#= i #> = new (ref _pool<#= i #>.GetRef(_entity));
+<# } #>
     }
 }
 

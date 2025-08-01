@@ -3,9 +3,9 @@ using Win32.Graphics.Direct3D12;
 namespace Ghost.Graphics.D3D12;
 
 /// <summary>
-/// Base class for D3D12 descriptor implementations.
+/// Base class descriptor implementations.
 /// </summary>
-internal abstract class Descriptor
+public abstract class Descriptor
 {
     protected readonly uint index;
     protected readonly bool isShaderVisible;
@@ -38,9 +38,9 @@ internal abstract class Descriptor
 }
 
 /// <summary>
-/// D3D12 implementation of render target view (RTV) descriptor.
+/// Implementation of render target view (RTV) descriptor.
 /// </summary>
-internal sealed class RenderTargetDescriptor : Descriptor
+public sealed class RenderTargetDescriptor : Descriptor
 {
     private readonly CpuDescriptorHandle _cpuHandle;
 
@@ -55,9 +55,9 @@ internal sealed class RenderTargetDescriptor : Descriptor
 }
 
 /// <summary>
-/// D3D12 implementation of depth stencil view (DSV) descriptor.
+/// Implementation of depth stencil view (DSV) descriptor.
 /// </summary>
-internal sealed class DepthStencilDescriptor : Descriptor
+public sealed class DepthStencilDescriptor : Descriptor
 {
     private readonly CpuDescriptorHandle _cpuHandle;
 
@@ -72,9 +72,9 @@ internal sealed class DepthStencilDescriptor : Descriptor
 }
 
 /// <summary>
-/// D3D12 implementation of shader resource view (SRV) descriptor.
+/// Implementation of shader resource view (SRV) descriptor.
 /// </summary>
-internal sealed class ShaderResourceDescriptor : Descriptor
+public sealed class ShaderResourceDescriptor : Descriptor
 {
     private readonly CpuDescriptorHandle _cpuHandle;
     private readonly GpuDescriptorHandle _gpuHandle;
@@ -91,14 +91,34 @@ internal sealed class ShaderResourceDescriptor : Descriptor
 }
 
 /// <summary>
-/// D3D12 implementation of sampler descriptor.
+/// Implementation of sampler descriptor.
 /// </summary>
-internal sealed class SamplerDescriptor : Descriptor
+public sealed class SamplerDescriptor : Descriptor
 {
     private readonly CpuDescriptorHandle _cpuHandle;
     private readonly GpuDescriptorHandle _gpuHandle;
 
     public SamplerDescriptor(uint index, CpuDescriptorHandle cpuHandle, GpuDescriptorHandle gpuHandle)
+        : base(index, true)
+    {
+        _cpuHandle = cpuHandle;
+        _gpuHandle = gpuHandle;
+    }
+
+    public override CpuDescriptorHandle CpuHandle => _cpuHandle;
+    public override GpuDescriptorHandle GpuHandle => _gpuHandle;
+}
+
+/// <summary>
+/// Implementation of bindless descriptor for SM 6.6 rendering.
+/// This descriptor maintains a 1:1 relationship between allocation indices and shader indices.
+/// </summary>
+public sealed class BindlessDescriptor : Descriptor
+{
+    private readonly CpuDescriptorHandle _cpuHandle;
+    private readonly GpuDescriptorHandle _gpuHandle;
+
+    public BindlessDescriptor(uint index, CpuDescriptorHandle cpuHandle, GpuDescriptorHandle gpuHandle)
         : base(index, true)
     {
         _cpuHandle = cpuHandle;

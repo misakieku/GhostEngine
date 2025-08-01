@@ -1,22 +1,24 @@
-﻿using Ghost.Graphics.D3D12;
+using Ghost.Graphics.D3D12;
 using Ghost.Graphics.Shading;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using Win32.Graphics.Direct3D12;
 
 namespace Ghost.Graphics.Data;
 
+/// <summary>
+/// Material implementation for bindless rendering with SM 6.6 support
+/// </summary>
 public unsafe class Material : IDisposable
 {
     private readonly CBufferCache[] _cbufferCaches;
-    private readonly Texture2D?[] _textures;
-    private readonly Dictionary<string, int> _textureNameToSlotMap;
+    private readonly List<Texture2D> _textures = new();
 
     private bool _disposed;
 
     public Shader Shader
     {
-        get;
-        set;
+        get; set;
     }
 
     public Material(Shader shader)
@@ -37,29 +39,6 @@ public unsafe class Material : IDisposable
         {
             _cbufferCaches = Array.Empty<CBufferCache>();
         }
-
-        // Initialize texture storage
-        if (shader.Textures.Count > 0)
-        {
-            var maxTextureSlot = shader.Textures.Max(t => t.RegisterSlot);
-            _textures = new Texture2D?[maxTextureSlot + 1];
-            _textureNameToSlotMap = new Dictionary<string, int>();
-
-            foreach (var textureInfo in shader.Textures)
-            {
-                _textureNameToSlotMap.Add(textureInfo.Name, (int)textureInfo.RegisterSlot);
-            }
-        }
-        else
-        {
-            _textures = Array.Empty<Texture2D?>();
-            _textureNameToSlotMap = new Dictionary<string, int>();
-        }
-    }
-
-    ~Material()
-    {
-        Dispose();
     }
 
     /// <summary>
@@ -82,6 +61,28 @@ public unsafe class Material : IDisposable
     public void SetFloat(string propertyName, in float value)
     {
         SetFloat(Shader.GetPropertyId(propertyName), in value);
+    }
+
+    /// <summary>
+    /// Sets a uint property in the material's constant buffer (useful for texture indices).
+    /// </summary>
+    /// <param name="propertyId">The ID of the property to set.</param>
+    /// <param name="value">The value to set for the property.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void SetUInt(int propertyId, in uint value)
+    {
+        WriteToCache(propertyId, in value);
+    }
+
+    /// <summary>
+    /// Sets a uint property in the material's constant buffer (useful for texture indices).
+    /// </summary>
+    /// <param name="propertyName">The name of the property to set.</param>
+    /// <param name="value">The value to set for the property.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void SetUInt(string propertyName, in uint value)
+    {
+        SetUInt(Shader.GetPropertyId(propertyName), in value);
     }
 
     /// <summary>
@@ -109,7 +110,7 @@ public unsafe class Material : IDisposable
     /// <summary>
     /// Sets a Matrix property in the material's constant buffer.
     /// </summary>
-    /// <param name="propertyName">The ID of the property to set.</param>
+    /// <param name="propertyId">The ID of the property to set.</param>
     /// <param name="value">The value to set for the property.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void SetMatrix(int propertyId, in Matrix4x4 value)
@@ -129,73 +130,42 @@ public unsafe class Material : IDisposable
     }
 
     /// <summary>
-    /// Sets a texture property in the material.
+    /// Adds a bindless texture to the material and returns its index
     /// </summary>
-    /// <param name="textureId">The ID of the texture to set.</param>
-    /// <param name="texture">The texture to set.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetTexture(int textureId, Texture2D? texture)
+    /// <param name="texture">The bindless texture to add</param>
+    /// <returns>The index of the texture in the material's texture list</returns>
+    public int AddTexture(Texture2D texture)
     {
-        if (textureId == -1)
-        {
-            throw new ArgumentException("Texture ID is invalid.");
-        }
-
-        if (textureId >= _textures.Length)
-        {
-            throw new ArgumentException($"Texture ID {textureId} is out of range.");
-        }
-
-        _textures[textureId] = texture;
+        _textures.Add(texture);
+        return _textures.Count - 1;
     }
 
     /// <summary>
-    /// Sets a texture property in the material.
+    /// Sets a texture index for a shader property (for bindless texture access)
     /// </summary>
-    /// <param name="textureName">The name of the texture to set.</param>
-    /// <param name="texture">The texture to set.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetTexture(string textureName, Texture2D? texture)
+    /// <param name="propertyName">The name of the shader property (e.g., "_TextureIndex1")</param>
+    /// <param name="texture">The bindless texture to reference</param>
+    public void SetTextureIndex(string propertyName, Texture2D texture)
     {
-        if (!_textureNameToSlotMap.TryGetValue(textureName, out var slot))
-        {
-            throw new ArgumentException($"Texture '{textureName}' not found in shader.");
-        }
-
-        _textures[slot] = texture;
+        SetUInt(propertyName, texture.DescriptorIndex);
     }
 
     /// <summary>
-    /// Gets a texture property from the material.
+    /// Sets the mesh buffer indices for bindless vertex and index buffer access
     /// </summary>
-    /// <param name="textureId">The ID of the texture to get.</param>
-    /// <returns>The texture, or null if not set.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Texture2D? GetTexture(int textureId)
+    /// <param name="mesh">The mesh whose buffer indices to set</param>
+    /// <param name="vertexBufferIndexProperty">The name of the vertex buffer index property (e.g., "_VertexBufferIndex")</param>
+    /// <param name="indexBufferIndexProperty">The name of the index buffer index property (e.g., "_IndexBufferIndex")</param>
+    public void SetMeshBufferIndices(Mesh mesh, string vertexBufferIndexProperty = "_VertexBufferIndex", string indexBufferIndexProperty = "_IndexBufferIndex")
     {
-        if (textureId == -1 || textureId >= _textures.Length)
-        {
-            return null;
-        }
-
-        return _textures[textureId];
+        SetUInt(vertexBufferIndexProperty, mesh.VertexBufferDescriptorIndex);
+        SetUInt(indexBufferIndexProperty, mesh.IndexBufferDescriptorIndex);
     }
 
     /// <summary>
-    /// Gets a texture property from the material.
+    /// Gets all textures used by this material
     /// </summary>
-    /// <param name="textureName">The name of the texture to get.</param>
-    /// <returns>The texture, or null if not set.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Texture2D? GetTexture(string textureName)
-    {
-        if (!_textureNameToSlotMap.TryGetValue(textureName, out var slot))
-        {
-            return null;
-        }
-
-        return _textures[slot];
-    }
+    public IReadOnlyList<Texture2D> Textures => _textures;
 
     private unsafe void WriteToCache<T>(int propertyId, in T value) where T : unmanaged
     {
@@ -226,28 +196,35 @@ public unsafe class Material : IDisposable
         }
     }
 
+    /// <summary>
+    /// Binds the material for bindless rendering
+    /// </summary>
+    /// <param name="cmd">Command list to bind to</param>
     internal void Bind(CommandList cmd)
     {
+        var commandList = cmd.NativeCommandList.Ptr;
+
+        // Set root signature and pipeline state
+        commandList->SetGraphicsRootSignature(Shader.RootSignature);
+        commandList->SetPipelineState(Shader.PipelineState);
+
+        // Set descriptor heaps - CRUCIAL: Use the specialized bindless heap for SM 6.6
+        var heaps = stackalloc ID3D12DescriptorHeap*[2];
+        heaps[0] = GraphicsPipeline.DescriptorAllocator.GetBindlessHeap().Ptr; // Specialized bindless heap
+        heaps[1] = Shader.SamplerHeap.Ptr; // Sampler heap from shader
+        commandList->SetDescriptorHeaps(2, heaps);
+
         // Bind constant buffers
+        var rootParamIndex = 0u;
         foreach (var cbufferInfo in Shader.ConstantBuffers)
         {
             var cache = _cbufferCaches[cbufferInfo.RegisterSlot];
-            cmd.SetGraphicsRootConstantBufferView(cbufferInfo.RegisterSlot, cache.GpuResource.GPUAddress);
+            commandList->SetGraphicsRootConstantBufferView(rootParamIndex++, cache.GpuResource.GPUAddress);
         }
 
-        // Bind textures using descriptor table
-        if (Shader.Textures.Count > 0)
-        {
-            // Get the first texture info to determine the root parameter index
-            var textureInfo = Shader.Textures[0];
-            var texture = _textures[0]; // Get the first texture
-            
-            if (texture != null)
-            {
-                // Set descriptor table for SRVs
-                cmd.NativeCommandList.Ptr->SetGraphicsRootDescriptorTable(textureInfo.RootParameterIndex, texture.SRVDescriptor.GpuHandle);
-            }
-        }
+        // Bind sampler descriptor table (last root parameter)
+        var samplerGpuHandle = Shader.SamplerHeap.Ptr->GetGPUDescriptorHandleForHeapStart();
+        commandList->SetGraphicsRootDescriptorTable(rootParamIndex, samplerGpuHandle);
     }
 
     public void Dispose()
@@ -261,6 +238,9 @@ public unsafe class Material : IDisposable
         {
             cache.Dispose();
         }
+
+        // NOTE: We don't dispose the textures here as they might be shared
+        // The user is responsible for disposing BindlessTexture2D instances
 
         GC.SuppressFinalize(this);
 

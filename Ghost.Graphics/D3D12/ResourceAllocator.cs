@@ -1,305 +1,251 @@
-﻿using Win32;
+﻿using Ghost.Graphics.Data;
+using Misaki.HighPerformance.LowLevel.Collections;
+using System.Runtime.CompilerServices;
+using Win32.Graphics.D3D12MemoryAllocator;
 using Win32.Graphics.Direct3D12;
+using Win32.Graphics.Dxgi;
+using Win32.Graphics.Dxgi.Common;
+using static Win32.Graphics.D3D12MemoryAllocator.Apis;
+using ResourceHandle = Ghost.Graphics.Data.ResourceHandle;
 
 namespace Ghost.Graphics.D3D12;
 
 internal unsafe class ResourceAllocator
 {
-    private readonly struct TempResourceAllocInfo
+    private readonly struct AllocationInfo : IDisposable
     {
-        public readonly GraphicsResource resource;
+        public readonly Allocation allocation;
         public readonly uint cpuFenceValue;
+        public readonly uint generation;
 
-        public TempResourceAllocInfo(GraphicsResource resource, uint cpuFenceValue)
+        public bool Allocated => allocation.IsNotNull;
+
+        public AllocationInfo(in Allocation allocation, uint cpuFenceValue, uint generation)
         {
-            this.resource = resource;
+            this.allocation = allocation;
             this.cpuFenceValue = cpuFenceValue;
+            this.generation = generation;
         }
 
-        public TempResourceAllocInfo(GraphicsResource resource)
-            : this(resource, GraphicsPipeline.CPUFenceValue + 1)
+        public AllocationInfo(in Allocation allocation, uint generation)
+            : this(allocation, GraphicsPipeline.CPUFenceValue + 1, generation)
         {
+        }
+
+        public void Dispose()
+        {
+            if (allocation.IsNull)
+            {
+                return;
+            }
+
+            allocation.Release();
         }
     }
-
-    private const ResourceStates _INITIALCOPYTARGETSTATE = ResourceStates.Common;
-    private const ResourceStates _INITIALREADTARGETSTATE = ResourceStates.Common;
-    private const ResourceStates _INITIALUAVTARGETSTATE = ResourceStates.Common;
 
     private const uint _MAX_BYTES = D3D12_REQ_RESOURCE_SIZE_IN_MEGABYTES_EXPRESSION_A_TERM * 1024u * 1024u;
+    private const uint _MAX_TEXTURE2D_DIMENSION = 16384u;
+    private const uint _MAX_TEXTURE3D_DIMENSION = 2048u;
 
-    private readonly Queue<TempResourceAllocInfo> _temResources = new();
+    private readonly Allocator _allocator;
+    private UnsafeList<AllocationInfo> _allocations = new(64, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
+    private UnsafeQueue<int> _freeSlots = new(64, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
+    private UnsafeQueue<ResourceHandle> _temResources = new(64, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
 
-    //public static ID3D12Resource CreateStaticBuffer<T>(
-    //    ID3D12Device device,
-    //    D3D12ResourceUploadBatch resourceUpload,
-    //    T[] data, ResourceStates afterState,
-    //    ResourceFlags flags = ResourceFlags.None)
-    //    where T : unmanaged
-    //{
-    //    Span<T> span = data;
-    //    return CreateStaticBuffer(device, resourceUpload, span, afterState, flags);
-    //}
+    private readonly Lock _lock = new();
 
-    //public static ID3D12Resource CreateStaticBuffer<T>(
-    //    ID3D12Device device,
-    //    D3D12ResourceUploadBatch resourceUpload,
-    //    Span<T> data,
-    //    ResourceStates afterState,
-    //    ResourceFlags flags = ResourceFlags.None)
-    //    where T : unmanaged
-    //{
-    //    var sizeInBytes = (uint)(sizeof(T) * data.Length);
-    //    if (sizeInBytes > _MAX_BYTES)
-    //    {
-    //        throw new InvalidOperationException($"ERROR: Resource size too large for DirectX 12 (size {sizeInBytes})");
-    //    }
-
-    //    var buffer = device.CreateCommittedResource(
-    //        HeapType.Default,
-    //        HeapFlags.None,
-    //        ResourceDescription.Buffer(sizeInBytes, flags),
-    //        _INITIALCOPYTARGETSTATE
-    //    );
-
-    //    fixed (T* dataPtr = data)
-    //    {
-    //        SubresourceData initData = new()
-    //        {
-    //            pData = dataPtr,
-    //        };
-
-    //        resourceUpload.Upload(buffer, 0, &initData, 1);
-    //        resourceUpload.Transition(buffer, ResourceStates.CopyDest, afterState);
-
-    //        return buffer;
-    //    }
-    //}
-
-    //public static ID3D12Resource CreateUploadBuffer<T>(
-    //    ID3D12Device device,
-    //    T[] data,
-    //    ResourceFlags flags = ResourceFlags.None)
-    //    where T : unmanaged
-    //{
-    //    var sizeInBytes = (uint)(sizeof(T) * data.Length);
-    //    fixed (T* dataPtr = data)
-    //    {
-    //        return CreateUploadBuffer(device, sizeInBytes, dataPtr, flags);
-    //    }
-    //}
-
-    //public static ID3D12Resource CreateUploadBuffer<T>(
-    //    ID3D12Device device,
-    //    Span<T> data,
-    //    ResourceFlags flags = ResourceFlags.None)
-    //    where T : unmanaged
-    //{
-    //    var sizeInBytes = (uint)(sizeof(T) * data.Length);
-    //    fixed (T* dataPtr = data)
-    //    {
-    //        return CreateUploadBuffer(device, sizeInBytes, dataPtr, flags);
-    //    }
-    //}
-
-    //public static ID3D12Resource CreateUploadBuffer(
-    //    ID3D12Device device,
-    //    uint sizeInBytes,
-    //    void* data = default,
-    //    ResourceFlags flags = ResourceFlags.None)
-    //{
-    //    if (sizeInBytes > _MAX_BYTES)
-    //    {
-    //        throw new InvalidOperationException($"ERROR: Resource size too large for DirectX 12 (size {sizeInBytes})");
-    //    }
-
-    //    var buffer = device.CreateCommittedResource(
-    //        HeapType.Upload,
-    //        HeapFlags.None,
-    //        ResourceDescription.Buffer(sizeInBytes, flags),
-    //        ResourceStates.GenericRead
-    //    );
-
-    //    if (data is not null)
-    //    {
-    //        void* mappedPtr = default;
-    //        buffer.Map(0, null, &mappedPtr).CheckError();
-    //        Unsafe.CopyBlock(data, mappedPtr, sizeInBytes);
-    //        buffer.Unmap(0, null);
-    //    }
-
-    //    return buffer;
-    //}
-
-    //public static ID3D12Resource CreateReadbackBuffer(
-    //    ID3D12Device device,
-    //    uint sizeInBytes,
-    //    ResourceFlags flags = ResourceFlags.None)
-    //{
-    //    if (sizeInBytes > _MAX_BYTES)
-    //    {
-    //        throw new InvalidOperationException($"ERROR: Resource size too large for DirectX 12 (size {sizeInBytes})");
-    //    }
-    //    var buffer = device.CreateCommittedResource(
-    //        HeapType.Readback,
-    //        HeapFlags.None,
-    //        ResourceDescription.Buffer(sizeInBytes, flags),
-    //        _INITIALREADTARGETSTATE
-    //    );
-    //    return buffer;
-    //}
-
-    //public static ID3D12Resource CreateUAVBuffer(ID3D12Device device, uint bufferSize,
-    //    ResourceStates initialState = ResourceStates.Common,
-    //    ResourceFlags flags = ResourceFlags.None)
-    //{
-    //    if (bufferSize > _MAX_BYTES)
-    //    {
-    //        throw new InvalidOperationException($"ERROR: Resource size too large for DirectX 12 (size {bufferSize})");
-    //    }
-
-    //    var buffer = device.CreateCommittedResource(
-    //        HeapType.Default,
-    //        HeapFlags.None,
-    //        ResourceDescription.Buffer(bufferSize, ResourceFlags.AllowUnorderedAccess | flags),
-    //        _INITIALCOPYTARGETSTATE
-    //    );
-
-    //    return buffer;
-    //}
-
-    //public static ID3D12Resource CreateTexture2D<T>(
-    //    ID3D12Device device,
-    //    D3D12ResourceUploadBatch resourceUpload,
-    //    uint width, uint height, Format format,
-    //    Span<T> data,
-    //    bool generateMips = false,
-    //    ResourceStates afterState = ResourceStates.PixelShaderResource,
-    //    ResourceFlags flags = ResourceFlags.None)
-    //    where T : unmanaged
-    //{
-    //    if (width > D3D12.RequestTexture2DUOrVDimension || height > D3D12.RequestTexture2DUOrVDimension)
-    //    {
-    //        throw new InvalidOperationException($"ERROR: Resource dimensions too large for DirectX 12 (2D: size {width} by {height})");
-    //    }
-
-    //    ushort mipLevels = 1;
-    //    if (generateMips)
-    //    {
-    //        generateMips = resourceUpload.IsSupportedForGenerateMips(format);
-    //        if (generateMips)
-    //        {
-    //            mipLevels = (ushort)TextureUtility.CountMips(width, height);
-    //        }
-    //    }
-
-
-    //    var texture = device.CreateCommittedResource(
-    //        HeapType.Default,
-    //        HeapFlags.None,
-    //        ResourceDescription.Texture2D(format, width, height, 1, mipLevels, 1, 0, flags),
-    //        _INITIALCOPYTARGETSTATE
-    //    );
-
-    //    fixed (T* dataPtr = data)
-    //    {
-    //        FormatHelper.GetSurfaceInfo(format, width, height, out var rowPitch, out var slicePitch);
-    //        SubresourceData initData = new()
-    //        {
-    //            pData = dataPtr,
-    //            RowPitch = (nint)rowPitch,
-    //            SlicePitch = (nint)slicePitch
-    //        };
-
-    //        resourceUpload.Upload(texture, 0, &initData, 1);
-    //        resourceUpload.Transition(texture, ResourceStates.CopyDest, afterState);
-
-    //        if (generateMips)
-    //        {
-    //            resourceUpload.GenerateMips(texture);
-    //        }
-
-    //        return texture;
-    //    }
-    //}
-
-    public GraphicsResource CreateUploadBuffer(uint sizeInBytes, bool tempResource = false, ResourceFlags flags = ResourceFlags.None)
+    private Guid* IID_NULL
     {
-        if (sizeInBytes > _MAX_BYTES)
+        get
         {
-            throw new InvalidOperationException($"ERROR: Resource size too large for DirectX 12 (size {sizeInBytes})");
+            fixed (Guid* pGuid = &Guid.Empty)
+            {
+                return pGuid;
+            }
         }
-
-        var heapProperties = new HeapProperties(HeapType.Upload);
-        var resourceDescription = ResourceDescription.Buffer(sizeInBytes, flags);
-
-        ComPtr<ID3D12Resource> buffer = default;
-        GraphicsPipeline.GraphicsDevice.NativeDevice.Ptr->CreateCommittedResource(
-            &heapProperties,
-            HeapFlags.None,
-            &resourceDescription,
-            ResourceStates.GenericRead,
-            null,
-            __uuidof<ID3D12Resource>(),
-            buffer.GetVoidAddressOf()
-        );
-
-        var resource = new GraphicsResource(buffer.Move(), tempResource);
-        if (tempResource)
-        {
-            _temResources.Enqueue(new(resource));
-        }
-
-        return resource;
     }
 
-    public GraphicsResource CreateCopyDestinationBuffer(uint sizeInBytes, bool tempResource = false, ResourceFlags flags = ResourceFlags.None)
+    public ResourceAllocator()
+    {
+        var desc = new AllocatorDesc
+        {
+            pAdapter = (IDXGIAdapter*)GraphicsPipeline.GraphicsDevice.Adapter.Ptr,
+            pDevice = (ID3D12Device*)GraphicsPipeline.GraphicsDevice.NativeDevice.Ptr,
+            Flags = AllocatorFlags.DefaultPoolsNotZeroed | AllocatorFlags.MSAATexturesAlwaysCommitted
+        };
+
+        CreateAllocator(in desc, out _allocator);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void CheckBufferSize(uint sizeInBytes)
     {
         if (sizeInBytes > _MAX_BYTES)
         {
             throw new InvalidOperationException($"ERROR: Resource size too large for DirectX 12 (size {sizeInBytes})");
         }
+    }
 
-        var heapProperties = new HeapProperties(HeapType.Default);
-        var resourceDescription = ResourceDescription.Buffer(sizeInBytes, flags);
-
-        ComPtr<ID3D12Resource> buffer = default;
-        GraphicsPipeline.GraphicsDevice.NativeDevice.Ptr->CreateCommittedResource(
-            &heapProperties,
-            HeapFlags.None,
-            &resourceDescription,
-            ResourceStates.Common,
-            null,
-            __uuidof<ID3D12Resource>(),
-            buffer.GetVoidAddressOf()
-        );
-
-        var resource = new GraphicsResource(buffer.Move(), tempResource);
-        if (tempResource)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void CheckTexture2DSize(uint width, uint height)
+    {
+        if (width > _MAX_TEXTURE2D_DIMENSION || height > _MAX_TEXTURE2D_DIMENSION)
         {
-            _temResources.Enqueue(new(resource));
+            throw new InvalidOperationException($"ERROR: Texture size too large for DirectX 12 (width {width}, height {height})");
         }
+    }
 
-        return resource;
+    private ResourceHandle TrackResource(in Allocation allocation, bool isTemp)
+    {
+        int id;
+        uint generation;
+        AllocationInfo allocInfo;
+
+        lock (_lock)
+        {
+            if (_freeSlots.Count > 0)
+            {
+                id = _freeSlots.Dequeue();
+                var info = _allocations[id];
+                if (info.Allocated)
+                {
+                    throw new InvalidOperationException($"ERROR: Resource ID {id} registered as free but still allocated.");
+                }
+
+                generation = info.generation + 1;
+                allocInfo = new AllocationInfo(in allocation, generation);
+
+                _allocations[id] = allocInfo;
+            }
+            else
+            {
+                id = _allocations.Count;
+                generation = 0u;
+                allocInfo = new AllocationInfo(in allocation, generation);
+
+                _allocations.Add(allocInfo);
+            }
+
+            var handle = new ResourceHandle(id, generation);
+            if (isTemp)
+            {
+                _temResources.Enqueue(handle);
+            }
+
+            return handle;
+        }
+    }
+
+    public TextureHandle CreateTexture2D(uint width, uint height, ushort mipLevels, Format format = Format.R8G8B8A8Unorm, ResourceFlags resFlags = ResourceFlags.None, AllocationFlags allocFlags = AllocationFlags.None, ResourceStates state = ResourceStates.Common, bool tempResource = false)
+    {
+        CheckTexture2DSize(width, height);
+
+        var resourceDesc = ResourceDescription.Tex2D(format, width, height, mipLevels: mipLevels, arraySize: 1, flags: resFlags);
+        var allocationDesc = new AllocationDesc
+        {
+            HeapType = HeapType.Default,
+            Flags = allocFlags
+        };
+
+        Allocation allocation = default;
+        ThrowIfFailed(_allocator.CreateResource(&allocationDesc, in resourceDesc, state, null, &allocation, IID_NULL, null));
+
+        return new(TrackResource(in allocation, tempResource));
+    }
+
+    public BufferHandle CreateBuffer(uint sizeInBytes, HeapType heapType = HeapType.Default, ResourceFlags resFlags = ResourceFlags.None, AllocationFlags allocFlags = AllocationFlags.None, ResourceStates initialState = ResourceStates.Common, bool tempResource = false)
+    {
+        CheckBufferSize(sizeInBytes);
+
+        var resourceDescription = ResourceDescription.Buffer(sizeInBytes, resFlags);
+        var allocationDesc = new AllocationDesc
+        {
+            HeapType = heapType,
+            Flags = allocFlags
+        };
+
+        Allocation allocation = default;
+        ThrowIfFailed(_allocator.CreateResource(&allocationDesc, in resourceDescription, initialState, null, &allocation, IID_NULL, null));
+
+        return new(TrackResource(in allocation, tempResource));
+    }
+
+    public BufferHandle CreateUploadBuffer(uint sizeInBytes, bool tempResource = false)
+    {
+        return CreateBuffer(sizeInBytes, HeapType.Upload, ResourceFlags.None, AllocationFlags.None, ResourceStates.GenericRead, tempResource);
     }
 
     public void ReleaseTempResource()
     {
         while (_temResources.Count > 0)
         {
-            var info = _temResources.Peek();
+            ref var handle = ref _temResources.Peek();
+            ref var info = ref _allocations[handle.id];
             if (info.cpuFenceValue > GraphicsPipeline.GPUFenceValue)
             {
                 break;
             }
 
-            info.resource.DisposeInternal();
+            ReleaseAllocation(in handle);
             _temResources.Dequeue();
+        }
+    }
+
+    public Allocation GetAllocation(in ResourceHandle handle)
+    {
+        if (!handle.IsValid)
+        {
+            throw new InvalidOperationException("Invalid resource handle.");
+        }
+
+        lock (_lock)
+        {
+            ref var allocationInfo = ref _allocations[handle.id];
+            if (!allocationInfo.Allocated || allocationInfo.generation != handle.generation)
+            {
+                throw new InvalidOperationException($"Resource with ID {handle.id} and generation {handle.generation} is not allocated or has been released.");
+            }
+
+            return allocationInfo.allocation;
+        }
+    }
+
+    public void ReleaseAllocation(in ResourceHandle handle)
+    {
+        if (!handle.IsValid)
+        {
+            return;
+        }
+
+        lock (_lock)
+        {
+            ref var allocationInfo = ref _allocations[handle.id];
+
+            if (!allocationInfo.Allocated || allocationInfo.generation != handle.generation)
+            {
+                return;
+            }
+
+            allocationInfo.Dispose();
+            _freeSlots.Enqueue(handle.id);
         }
     }
 
     public void Dispose()
     {
-        ReleaseTempResource();
+#if DEBUG
+        if (_allocations.Count > 0)
+        {
+            throw new InvalidOperationException($"ResourceAllocator is being disposed with {_allocations.Count} allocations still registered. Ensure all resources are released before disposing.");
+        }
+#endif
+        for (var i = 0; i < _allocations.Count; i++)
+        {
+            _allocations[i].Dispose();
+        }
+
+        _allocations.Dispose();
+        _temResources.Dispose();
+        _allocator.Release();
     }
 }

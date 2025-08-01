@@ -13,17 +13,19 @@ internal class DescriptorAllocator : IDisposable
     private readonly DescriptorHeapAllocator _dsvHeap;
     private readonly DescriptorHeapAllocator _srvHeap;
     private readonly DescriptorHeapAllocator _samplerHeap;
+    private readonly BindlessDescriptorHeapAllocator _bindlessHeap;
 
     private bool _disposed;
 
-    public DescriptorAllocator(uint initialRtvCount = 256, uint initialDsvCount = 256, uint initialSrvCount = 1024, uint initialSamplerCount = 256)
+    public DescriptorAllocator(uint initialRtvCount = 256, uint initialDsvCount = 256, uint initialSrvCount = 1024, uint initialSamplerCount = 256, uint initialBindlessCount = 10000)
     {
         var device = GraphicsPipeline.GraphicsDevice;
 
-        _rtvHeap = new DescriptorHeapAllocator(device.NativeDevice, DescriptorHeapType.Rtv, initialRtvCount);
-        _dsvHeap = new DescriptorHeapAllocator(device.NativeDevice, DescriptorHeapType.Dsv, initialDsvCount);
-        _srvHeap = new DescriptorHeapAllocator(device.NativeDevice, DescriptorHeapType.CbvSrvUav, initialSrvCount);
-        _samplerHeap = new DescriptorHeapAllocator(device.NativeDevice, DescriptorHeapType.Sampler, initialSamplerCount);
+        _rtvHeap = new DescriptorHeapAllocator("rtv", device.NativeDevice, DescriptorHeapType.Rtv, initialRtvCount);
+        _dsvHeap = new DescriptorHeapAllocator("dsv", device.NativeDevice, DescriptorHeapType.Dsv, initialDsvCount);
+        _srvHeap = new DescriptorHeapAllocator("srv", device.NativeDevice, DescriptorHeapType.CbvSrvUav, initialSrvCount);
+        _samplerHeap = new DescriptorHeapAllocator("sampler", device.NativeDevice, DescriptorHeapType.Sampler, initialSamplerCount);
+        _bindlessHeap = new BindlessDescriptorHeapAllocator(device.NativeDevice, initialBindlessCount);
     }
 
     #region RTV Methods
@@ -280,6 +282,81 @@ internal class DescriptorAllocator : IDisposable
 
     #endregion
 
+    #region Bindless Methods
+
+    /// <summary>
+    /// Allocates a bindless descriptor for SM 6.6 rendering.
+    /// The returned descriptor maintains a 1:1 relationship between allocation index and shader index.
+    /// </summary>
+    public BindlessDescriptor AllocateBindless()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        var index = _bindlessHeap.AllocateDescriptor();
+        if (index == uint.MaxValue)
+        {
+            throw new InvalidOperationException("Failed to allocate bindless descriptor");
+        }
+
+        var cpuHandle = _bindlessHeap.GetCpuHandle(index);
+        var gpuHandle = _bindlessHeap.GetGpuHandle(index);
+
+        return new BindlessDescriptor(index, cpuHandle, gpuHandle);
+    }
+
+    /// <summary>
+    /// Allocates multiple bindless descriptors for SM 6.6 rendering.
+    /// </summary>
+    public BindlessDescriptor[] AllocateBindless(uint count)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        var baseIndex = _bindlessHeap.AllocateDescriptors(count);
+        if (baseIndex == uint.MaxValue)
+        {
+            throw new InvalidOperationException($"Failed to allocate {count} bindless descriptors");
+        }
+
+        var descriptors = new BindlessDescriptor[count];
+        for (uint i = 0; i < count; i++)
+        {
+            var index = baseIndex + i;
+            var cpuHandle = _bindlessHeap.GetCpuHandle(index);
+            var gpuHandle = _bindlessHeap.GetGpuHandle(index);
+            descriptors[i] = new BindlessDescriptor(index, cpuHandle, gpuHandle);
+        }
+
+        return descriptors;
+    }
+
+    /// <summary>
+    /// Releases a bindless descriptor.
+    /// </summary>
+    public void ReleaseBindless(BindlessDescriptor descriptor)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (descriptor is BindlessDescriptor d3d12Descriptor)
+        {
+            _bindlessHeap.ReleaseDescriptor(d3d12Descriptor.Index);
+        }
+    }
+
+    /// <summary>
+    /// Releases multiple bindless descriptors.
+    /// </summary>
+    public void ReleaseBindless(BindlessDescriptor[] descriptors)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        foreach (var descriptor in descriptors)
+        {
+            ReleaseBindless(descriptor);
+        }
+    }
+
+    #endregion
+
     #region Utility Methods
 
     /// <summary>
@@ -303,11 +380,24 @@ internal class DescriptorAllocator : IDisposable
     public ConstPtr<ID3D12DescriptorHeap> GetSamplerHeap() => _samplerHeap.ShaderVisibleHeap;
 
     /// <summary>
+    /// Gets the bindless heap for SM 6.6 bindless rendering.
+    /// </summary>
+    public ConstPtr<ID3D12DescriptorHeap> GetBindlessHeap() => _bindlessHeap.BindlessHeap;
+
+    /// <summary>
     /// Gets the shader visible heaps that need to be bound to the command list.
     /// </summary>
     public ConstPtr<ID3D12DescriptorHeap>[] GetShaderVisibleHeaps()
     {
         return [_srvHeap.ShaderVisibleHeap, _samplerHeap.ShaderVisibleHeap];
+    }
+
+    /// <summary>
+    /// Gets the shader visible heaps including bindless heap for SM 6.6 rendering.
+    /// </summary>
+    public ConstPtr<ID3D12DescriptorHeap>[] GetShaderVisibleHeapsWithBindless()
+    {
+        return [_bindlessHeap.BindlessHeap, _srvHeap.ShaderVisibleHeap, _samplerHeap.ShaderVisibleHeap];
     }
 
     #endregion
@@ -323,6 +413,7 @@ internal class DescriptorAllocator : IDisposable
         _dsvHeap.Dispose();
         _srvHeap.Dispose();
         _samplerHeap.Dispose();
+        _bindlessHeap.Dispose();
 
         _disposed = true;
         GC.SuppressFinalize(this);

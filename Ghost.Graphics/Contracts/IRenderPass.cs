@@ -2,7 +2,7 @@
 
 namespace Ghost.Graphics.Contracts;
 
-internal interface IRenderPass : IDisposable
+public interface IRenderPass : IDisposable
 {
     void Initialize(CommandList cmd);
     void Execute(CommandList cmd);

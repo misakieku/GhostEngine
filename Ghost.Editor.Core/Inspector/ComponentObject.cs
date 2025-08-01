@@ -15,7 +15,7 @@ public unsafe readonly struct ComponentObject
         _entity = entity;
     }
 
-    public Ref<T> GetData<T>()
+    public CompRef<T> GetData<T>()
         where T : unmanaged, IComponentData
     {
         return _world.EntityManager.GetComponent<T>(_entity);

@@ -1,4 +1,5 @@
 ﻿using Ghost.Graphics.D3D12;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Helpers;
 using System.Runtime.CompilerServices;
@@ -13,19 +14,19 @@ internal struct CBufferCache : IDisposable
         set;
     }
 
-    public GraphicsResource GpuResource
+    public GraphicsBuffer GpuResource
     {
         get;
     }
 
     private readonly uint _alignedSize;
 
-    public unsafe CBufferCache(uint bufferSize)
+    internal unsafe CBufferCache(uint bufferSize)
     {
         _alignedSize = (bufferSize + 255u) & ~255u;
 
         CpuData = new((int)_alignedSize, Allocator.Persistent);
-        GpuResource = GraphicsPipeline.ResourceAllocator.CreateUploadBuffer(_alignedSize);
+        GpuResource = GraphicsBuffer.Create(_alignedSize, GraphicsBuffer.Usage.Constant);
         GpuResource.Name = "Material_CBufferCache";
 
         UploadToGpu();
@@ -34,11 +35,12 @@ internal struct CBufferCache : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly void UploadToGpu()
     {
-        GpuResource.SetData(CpuData.AsSpan());
+        GpuResource.SetData(CpuData.AsSpan(), 0);
     }
 
     public readonly void Dispose()
     {
+        CpuData.Dispose();
         GpuResource.Dispose();
     }
 }

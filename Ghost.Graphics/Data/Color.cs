@@ -1,10 +1,12 @@
 ﻿using System.Drawing;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.Data;
 
 /// <summary>
 /// Represents a color with 32-bit components."/>
 /// </summary>
+[StructLayout(LayoutKind.Sequential, Size = 4)]
 public struct Color32 : IEquatable<Color32>
 {
     public byte r;
@@ -59,6 +61,7 @@ public struct Color32 : IEquatable<Color32>
 /// <summary>
 /// Represents a color with 128-bit components.
 /// </summary>
+[StructLayout(LayoutKind.Sequential, Size = 16)]
 public struct Color128 : IEquatable<Color128>
 {
     public float r;

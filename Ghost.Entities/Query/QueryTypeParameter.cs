@@ -7,7 +7,7 @@ public interface IQueryTypeParameter
 {
 }
 
-public ref struct Ref<T> : IQueryTypeParameter
+public ref struct CompRef<T> : IQueryTypeParameter
     where T : IComponentData
 {
     internal ref T _value;
@@ -30,13 +30,13 @@ public ref struct Ref<T> : IQueryTypeParameter
         init;
     }
 
-    public Ref(ref T value, bool isValid)
+    public CompRef(ref T value, bool isValid)
     {
         _value = ref value;
         IsValid = isValid;
     }
 
-    public Ref(ref T value) : this(ref value, true)
+    public CompRef(ref T value) : this(ref value, true)
     {
     }
 }

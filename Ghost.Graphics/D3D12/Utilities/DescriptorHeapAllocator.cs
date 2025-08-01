@@ -50,7 +50,7 @@ internal unsafe struct DescriptorHeapAllocator : IDisposable
     public readonly ConstPtr<ID3D12DescriptorHeap> Heap => new(_heap.Get());
     public readonly ConstPtr<ID3D12DescriptorHeap> ShaderVisibleHeap => new(_shaderVisibleHeap.Get());
 
-    public DescriptorHeapAllocator(ConstPtr<ID3D12Device14> device, DescriptorHeapType type, uint numDescriptors)
+    public DescriptorHeapAllocator(string name, ConstPtr<ID3D12Device14> device, DescriptorHeapType type, uint numDescriptors)
     {
         _device = device;
         HeapType = type;
@@ -60,6 +60,12 @@ internal unsafe struct DescriptorHeapAllocator : IDisposable
 
         var success = AllocateResources(numDescriptors);
         Debug.Assert(success);
+
+        _heap.Get()->SetName(name);
+        if (ShaderVisible)
+        {
+            _shaderVisibleHeap.Get()->SetName($"{name} Shader Visible");
+        }
     }
 
     public DescriptorIndex AllocateDescriptor() => AllocateDescriptors(1);

@@ -17,21 +17,13 @@ public sealed partial class UnitTestAppWindow : Window
     {
         InitializeComponent();
 
-        Activated += UnitTestAppWindow_Activated;
-        Closed += UnitTestAppWindow_Closed;
+        Panel.Loaded += SwapChainPanel_Loaded;
+        Panel.Unloaded += SwapChainPanel_Unloaded;
 
         Panel.SizeChanged += SwapChainPanel_SizeChanged;
     }
 
-    private void SwapChainPanel_SizeChanged(object sender, SizeChangedEventArgs e)
-    {
-        if (e.NewSize.Width > 8.0 && e.NewSize.Height > 8.0)
-        {
-            _renderer?.RequestResize((uint)e.NewSize.Width, (uint)e.NewSize.Height);
-        }
-    }
-
-    private void UnitTestAppWindow_Activated(object sender, WindowActivatedEventArgs args)
+    private void SwapChainPanel_Loaded(object sender, RoutedEventArgs e)
     {
 #if DEBUG
         AllocationManager.EnableDebugLayer();
@@ -48,7 +40,7 @@ public sealed partial class UnitTestAppWindow : Window
         CompositionTarget.Rendering += OnRendering;
     }
 
-    private void UnitTestAppWindow_Closed(object sender, WindowEventArgs args)
+    private void SwapChainPanel_Unloaded(object sender, RoutedEventArgs e)
     {
         CompositionTarget.Rendering -= OnRendering;
 
@@ -59,9 +51,17 @@ public sealed partial class UnitTestAppWindow : Window
         _renderer?.Dispose();
     }
 
+    private void SwapChainPanel_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (e.NewSize.Width > 8.0 && e.NewSize.Height > 8.0)
+        {
+            _renderer?.RequestResize((uint)e.NewSize.Width, (uint)e.NewSize.Height);
+        }
+    }
+
     private void OnRendering(object? sender, object e)
     {
-        if (GraphicsPipeline.WaitForGPUReady(0))
+        if (GraphicsPipeline.CPUFenceValue < GraphicsPipeline.GPUFenceValue + GraphicsPipeline._FRAME_COUNT)
         {
             DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.High, () =>
             {

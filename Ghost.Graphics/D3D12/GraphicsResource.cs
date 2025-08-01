@@ -1,21 +1,26 @@
 ﻿using Ghost.Core;
-using Misaki.HighPerformance.LowLevel.Collections;
+using Ghost.Graphics.Data;
 using System.Runtime.CompilerServices;
-using Win32;
 using Win32.Graphics.Direct3D12;
 
 namespace Ghost.Graphics.D3D12;
 
-public unsafe class GraphicsResource
+public unsafe class GraphicsResource : IDisposable
 {
-    private ComPtr<ID3D12Resource> _nativeResource;
+    private readonly ResourceHandle _handle;
     private string _name = string.Empty;
 
-    private bool _disposed;
+    internal ConstPtr<ID3D12Resource> NativeResource
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => new(_handle.GetAllocation().Resource);
+    }
 
-    internal ConstPtr<ID3D12Resource> NativeResource => new(_nativeResource.Get());
-
-    public ulong GPUAddress => _nativeResource.Get()->GetGPUVirtualAddress();
+    internal ulong GPUAddress
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => NativeResource.Ptr->GetGPUVirtualAddress();
+    }
 
     public string Name
     {
@@ -23,7 +28,7 @@ public unsafe class GraphicsResource
         set
         {
             _name = value;
-            _nativeResource.Get()->SetName(_name);
+            NativeResource.Ptr->SetName(_name);
         }
     }
 
@@ -32,10 +37,12 @@ public unsafe class GraphicsResource
         get;
     }
 
-    internal GraphicsResource(ComPtr<ID3D12Resource> nativeResource, bool temp = false)
+    public ulong Size => _handle.GetAllocation().Size;
+
+    internal GraphicsResource(in ResourceHandle handle, bool tempResource = false)
     {
-        _nativeResource = nativeResource;
-        TempResource = temp;
+        _handle = handle;
+        TempResource = tempResource;
     }
 
     ~GraphicsResource()
@@ -43,99 +50,26 @@ public unsafe class GraphicsResource
         DisposeInternal();
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetData<T>(Span<T> data)
-        where T : unmanaged
+    /// <summary>
+    /// Throws an exception if the resource has been disposed.
+    /// </summary>
+    protected void ThrowIfDisposed()
     {
-        fixed (T* ptr = data)
-        {
-            SetData(ptr, (uint)data.Length);
-        }
-    }
-
-    public unsafe void SetData<T>(T* data, uint length)
-        where T : unmanaged
-    {
-        var size = (uint)(length * sizeof(T));
-        SetData((void*)data, size);
-    }
-
-    public unsafe void SetData(void* data, uint size)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        var range = new Win32.Graphics.Direct3D12.Range(0, size);
-
-        void* mappedPtr;
-        ThrowIfFailed(_nativeResource.Get()->Map(0, &range, &mappedPtr));
-
-        Unsafe.CopyBlock(mappedPtr, data, size);
-        _nativeResource.Get()->Unmap(0, &range);
-    }
-
-    public UnsafeArray<T> ReadData<T>(Allocator allocator)
-    where T : unmanaged
-    {
-        var size = (uint)_nativeResource.Get()->GetDesc().Width;
-        var data = new UnsafeArray<T>((int)(size / (uint)sizeof(T)), allocator);
-        try
-        {
-            ReadData(data.GetUnsafePtr(), &size);
-            return data;
-        }
-        catch (Exception)
-        {
-            data.Dispose();
-            throw;
-        }
-    }
-
-    public void ReadData<T>(T* pData, uint* size)
-        where T : unmanaged
-    {
-        ReadData((void*)pData, size);
-    }
-
-    public void ReadData(void* pData, uint* size)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        var range = new Win32.Graphics.Direct3D12.Range(0, (uint)_nativeResource.Get()->GetDesc().Width);
-
-        void* mappedPtr;
-        var hr = _nativeResource.Get()->Map(0, &range, &mappedPtr);
-        if (hr.Failure)
-        {
-            var message = hr.ToString();
-            throw new InvalidOperationException($"Failed to map resource: {message}");
-        }
-
-        Unsafe.CopyBlock(pData, mappedPtr, (uint)(range.End - range.Begin));
-        _nativeResource.Get()->Unmap(0, &range);
-        if (size != null)
-        {
-            *size = (uint)(range.End - range.Begin);
-        }
+        ObjectDisposedException.ThrowIf(!_handle.IsValid, this);
     }
 
     internal void DisposeInternal()
     {
-        if (_disposed)
-        {
-            return;
-        }
-
-        _nativeResource.Dispose();
-
-        _disposed = true;
+        _handle.Dispose();
     }
 
-    public void Dispose()
+    public virtual void Dispose()
     {
         if (!TempResource)
         {
             DisposeInternal();
-            GC.SuppressFinalize(this);
         }
+
+        GC.SuppressFinalize(this);
     }
 }

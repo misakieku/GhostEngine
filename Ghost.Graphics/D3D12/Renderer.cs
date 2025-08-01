@@ -1,7 +1,6 @@
 ﻿using Ghost.Graphics.Contracts;
 using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.Data;
-using Ghost.Graphics.RenderPasses;
 using System.Collections.Immutable;
 using Win32;
 using Win32.Graphics.Direct3D12;
@@ -93,7 +92,7 @@ internal unsafe class Renderer
         _viewPortHeight = swapChainSurface.Height;
 
         _fenceEvent = new(false);
-        _renderPasses = [new BindlessMeshRenderPass()];
+        _renderPasses = [];
 
         InitializeSwapChain();
         InitializeFrameResource(out _frameResources);

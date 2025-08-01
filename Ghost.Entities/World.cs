@@ -68,11 +68,11 @@ public partial class World : IDisposable, IEquatable<World>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Ref<T> GetSingleton<T>()
+    public CompRef<T> GetSingleton<T>()
         where T : unmanaged, IComponentData
     {
         ref var component = ref CollectionsMarshal.GetValueRefOrAddDefault(SingletonContainer<T>.container, _id, out _);
-        return new Ref<T>(ref component);
+        return new CompRef<T>(ref component);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

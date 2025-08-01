@@ -10,11 +10,9 @@ namespace Ghost.Graphics.D3D12;
 
 internal unsafe class GraphicsDevice
 {
-#if DEBUG
-    private readonly DebugLayer _debugLayer;
-#endif
     private ComPtr<IDXGIFactory7> _dxgiFactory;
     private ComPtr<ID3D12Device14> _device;
+    private ComPtr<IDXGIAdapter1> _adapter;
     private ComPtr<ID3D12CommandQueue> _commandQueue;
 
     private ImmutableArray<Renderer> _initializeQueue;
@@ -27,14 +25,11 @@ internal unsafe class GraphicsDevice
 
     public ConstPtr<ID3D12Device14> NativeDevice => new(_device.Get());
     public ConstPtr<IDXGIFactory7> DXGIFactory => new(_dxgiFactory.Get());
+    public ConstPtr<IDXGIAdapter1> Adapter => new(_adapter.Get());
     public ConstPtr<ID3D12CommandQueue> CommandQueue => new(_commandQueue.Get());
 
     public GraphicsDevice()
     {
-#if DEBUG
-        _debugLayer = new DebugLayer();
-#endif
-
         InitializeDevice();
         InitializeCommandQueue();
 
@@ -67,6 +62,7 @@ internal unsafe class GraphicsDevice
 
             if (D3D12CreateDevice((IUnknown*)adapter.Get(), FeatureLevel.Level_12_0, __uuidof<ID3D12Device14>(), _device.GetVoidAddressOf()).Success)
             {
+                _adapter = adapter.Move();
                 break;
             }
         }
@@ -150,9 +146,6 @@ internal unsafe class GraphicsDevice
         _device.Reset();
         _dxgiFactory.Dispose();
 
-#if DEBUG
-        _debugLayer.Dispose();
-#endif
         _disposed = true;
     }
 }

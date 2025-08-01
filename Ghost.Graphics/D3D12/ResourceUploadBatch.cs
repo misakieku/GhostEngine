@@ -9,18 +9,6 @@ namespace Ghost.Graphics.D3D12;
 /// </summary>
 internal unsafe class ResourceUploadBatch : IDisposable
 {
-    private struct TrackedResource
-    {
-        public GraphicsResource resource;
-        public ResourceStates state;
-
-        public TrackedResource(GraphicsResource resource, ResourceStates state)
-        {
-            this.resource = resource;
-            this.state = state;
-        }
-    }
-
     private ComPtr<ID3D12CommandAllocator> _commandAllocator;
     private ComPtr<ID3D12GraphicsCommandList10> _commandList;
     private ComPtr<ID3D12Fence> _fence;
@@ -89,7 +77,7 @@ internal unsafe class ResourceUploadBatch : IDisposable
     /// <typeparam name="T">Type of data to upload</typeparam>
     /// <param name="resource">Destination resource</param>
     /// <param name="data">Source data</param>
-    public void Upload<T>(GraphicsResource resource, ReadOnlySpan<T> data)
+    public void Upload<T>(ID3D12Resource* resource, ReadOnlySpan<T> data)
         where T : unmanaged
     {
         if (!_isRecording)
@@ -98,21 +86,22 @@ internal unsafe class ResourceUploadBatch : IDisposable
         }
 
         var sizeInBytes = (uint)(data.Length * sizeof(T));
-
-        // Create upload buffer
         var uploadBuffer = GraphicsPipeline.ResourceAllocator.CreateUploadBuffer(sizeInBytes, true);
 
-        // Copy data to upload buffer
+        void* mappedData;
+        var uploadResource = uploadBuffer.ResourceHandle.GetAllocation().Resource;
+        uploadResource->Map(0, null, &mappedData);
         fixed (T* dataPtr = data)
         {
-            uploadBuffer.SetData(dataPtr, (uint)data.Length);
+            Unsafe.CopyBlock(mappedData, dataPtr, sizeInBytes);
         }
+        uploadResource->Unmap(0, null);
 
         // Copy from upload buffer to destination
         _commandList.Get()->CopyBufferRegion(
-            resource.NativeResource.Ptr,
+            resource,
             0,
-            uploadBuffer.NativeResource.Ptr,
+            uploadResource,
             0,
             sizeInBytes);
     }
@@ -124,22 +113,20 @@ internal unsafe class ResourceUploadBatch : IDisposable
     /// <param name="firstSubresource">First subresource index</param>
     /// <param name="subresources">Subresource data array</param>
     /// <param name="numSubresources">Number of subresources</param>
-    public void Upload(GraphicsResource resource, uint firstSubresource, SubresourceData* subresources, uint numSubresources)
+    public void Upload(ID3D12Resource* resource, uint firstSubresource, SubresourceData* subresources, uint numSubresources)
     {
         if (!_isRecording)
         {
             throw new InvalidOperationException("Upload batch is not recording");
         }
 
-        var resourceDesc = resource.NativeResource.Ptr->GetDesc();
-
+        var resourceDesc = resource->GetDesc();
         var requiredSize = GetRequiredIntermediateSize(resource, firstSubresource, numSubresources);
-
         var uploadBuffer = GraphicsPipeline.ResourceAllocator.CreateUploadBuffer((uint)requiredSize, true);
 
         UpdateSubresources(
-            resource.NativeResource.Ptr,
-            uploadBuffer.NativeResource.Ptr,
+            resource,
+            uploadBuffer.ResourceHandle.GetAllocation().Resource,
             0,
             firstSubresource,
             numSubresources,
@@ -152,31 +139,14 @@ internal unsafe class ResourceUploadBatch : IDisposable
     /// <param name="resource">Resource to transition</param>
     /// <param name="stateBefore">State before transition</param>
     /// <param name="stateAfter">State after transition</param>
-    public void Transition(GraphicsResource resource, ResourceStates stateBefore, ResourceStates stateAfter)
+    public void Transition(ID3D12Resource* resource, ResourceStates stateBefore, ResourceStates stateAfter)
     {
         if (!_isRecording)
         {
             throw new InvalidOperationException("Upload batch is not recording");
         }
 
-        // Apply the transition immediately
-        var barrier = new ResourceBarrier
-        {
-            Type = ResourceBarrierType.Transition,
-            Flags = ResourceBarrierFlags.None,
-            Anonymous = new ResourceBarrier._Anonymous_e__Union
-            {
-                Transition = new ResourceTransitionBarrier
-                {
-                    pResource = resource.NativeResource.Ptr,
-                    Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
-                    StateBefore = stateBefore,
-                    StateAfter = stateAfter
-                }
-            }
-        };
-
-        _commandList.Get()->ResourceBarrier(1, &barrier);
+        _commandList.Get()->ResourceBarrierTransition(resource, stateBefore, stateAfter);
     }
 
     /// <summary>
@@ -229,9 +199,9 @@ internal unsafe class ResourceUploadBatch : IDisposable
         }
     }
 
-    private ulong GetRequiredIntermediateSize(GraphicsResource destinationResource, uint firstSubresource, uint numSubresources)
+    private ulong GetRequiredIntermediateSize(ID3D12Resource* destinationResource, uint firstSubresource, uint numSubresources)
     {
-        var resourceDesc = destinationResource.NativeResource.Ptr->GetDesc();
+        var resourceDesc = destinationResource->GetDesc();
 
         ulong requiredSize = 0;
         var numRows = stackalloc uint[(int)numSubresources];
