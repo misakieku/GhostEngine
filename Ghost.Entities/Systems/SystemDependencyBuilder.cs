@@ -2,13 +2,26 @@
 
 namespace Ghost.Entities.Systems;
 
-internal class SystemDependencyBuilder(List<Type> allSystemTypes)
+internal class SystemDependencyBuilder
 {
-    private Dictionary<Type, List<Type>> _dependencies = new();
+    private readonly Dictionary<Type, List<Type>> _dependencies = new();
+    private readonly List<Type> _systemTypes;
 
+    public SystemDependencyBuilder(List<Type> allSystemTypes)
+    {
+        _systemTypes = allSystemTypes;
+    }
+
+    /// <summary>
+    /// Builds a dependency graph for all system types that implement the <see cref="ISystem"/> interface.
+    /// </summary>
+    /// <remarks>This method analyzes all system types and their dependencies, as defined by the <see
+    /// cref="DependsOnAttribute"/>. It validates that each system type is a concrete implementation of <see
+    /// cref="ISystem"/> and constructs a mapping of each system type to its direct dependencies.</remarks>
+    /// <exception cref="ArgumentException">Thrown if a type in <c>allSystemTypes</c> is not a concrete implementation of <see cref="ISystem"/>.</exception>
     public void BuildDependencyGraph()
     {
-        foreach (var systemType in allSystemTypes)
+        foreach (var systemType in _systemTypes)
         {
             if (!typeof(ISystem).IsAssignableFrom(systemType) || systemType.IsAbstract || systemType.IsInterface)
             {
@@ -45,7 +58,7 @@ internal class SystemDependencyBuilder(List<Type> allSystemTypes)
             foreach (var dependencyType in directDependencies)
             {
                 // Ensure the dependency is a registered system type
-                if (!allSystemTypes.Contains(dependencyType))
+                if (!_systemTypes.Contains(dependencyType))
                 {
                     throw new InvalidOperationException($"System {systemType.Name} depends on unregistered system {dependencyType.Name}.");
                 }
@@ -66,12 +79,12 @@ internal class SystemDependencyBuilder(List<Type> allSystemTypes)
     /// <exception cref="InvalidOperationException">Thrown if a circular dependency is detected.</exception>"
     public List<Type> BuildExecutionOrder()
     {
-        var executionOrder = new List<Type>(allSystemTypes.Count);
+        var executionOrder = new List<Type>(_systemTypes.Count);
         var visited = new HashSet<Type>(); // Tracks visited nodes in the current DFS path (for cycle detection)
         var permanentMark = new HashSet<Type>(); // Tracks nodes whose dependencies have been fully resolved
 
         // Initialize dependencies for all registered systems, even those without explicit attributes
-        foreach (var sysType in allSystemTypes)
+        foreach (var sysType in _systemTypes)
         {
             if (!_dependencies.ContainsKey(sysType))
             {
@@ -79,7 +92,7 @@ internal class SystemDependencyBuilder(List<Type> allSystemTypes)
             }
         }
 
-        foreach (var systemType in allSystemTypes)
+        foreach (var systemType in _systemTypes)
         {
             if (!permanentMark.Contains(systemType))
             {

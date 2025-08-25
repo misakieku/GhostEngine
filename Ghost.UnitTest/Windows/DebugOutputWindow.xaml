@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Window
-    x:Class="Ghost.UnitTest.UnitTestAppWindow"
+    x:Class="Ghost.UnitTest.Windows.DebugOutputWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:Ghost.UnitTest.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:local="using:Ghost.UnitTest"
+    xmlns:local="using:Ghost.UnitTest.Windows"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    Title="Ghost.UnitTest"
+    Title="DebugOutputWindow"
     mc:Ignorable="d">
 
     <Window.SystemBackdrop>
@@ -14,9 +15,6 @@
     </Window.SystemBackdrop>
 
     <Grid>
-        <SwapChainPanel
-            x:Name="Panel"
-            HorizontalAlignment="Stretch"
-            VerticalAlignment="Stretch" />
+        <controls:DebugConsole HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
     </Grid>
 </Window>

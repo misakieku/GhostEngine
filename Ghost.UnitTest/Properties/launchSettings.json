@@ -2,7 +2,7 @@
   "profiles": {
     "Ghost.UnitTest (Package)": {
       "commandName": "MsixPackage",
-      "nativeDebugging": true
+      "nativeDebugging": false
     },
     "Ghost.UnitTest (Unpackaged)": {
       "commandName": "Project"

@@ -1,28 +1,19 @@
 ﻿using Ghost.Graphics.D3D12;
+using Ghost.Graphics.RHI;
+using Win32.Graphics.Direct3D12;
+using Win32.Graphics.Dxgi;
 
 namespace Ghost.Graphics;
 
+/// <summary>
+/// Legacy graphics pipeline - DEPRECATED
+/// Use RenderSystem and D3D12RenderDevice for new code
+/// This class remains for compatibility during migration
+/// </summary>
+[Obsolete("Use RenderSystem and D3D12RenderDevice instead")]
 public static class GraphicsPipeline
 {
     internal const uint _FRAME_COUNT = 2;
-
-    private readonly struct FrameResource : IDisposable
-    {
-        public readonly AutoResetEvent cpuReadyEvent;
-        public readonly AutoResetEvent gpuReadyEvent;
-
-        public FrameResource()
-        {
-            cpuReadyEvent = new(false);
-            gpuReadyEvent = new(true);
-        }
-
-        public void Dispose()
-        {
-            cpuReadyEvent?.Dispose();
-            gpuReadyEvent?.Dispose();
-        }
-    }
 
 #if DEBUG
     private static DebugLayer? s_debugLayer;
@@ -33,24 +24,25 @@ public static class GraphicsPipeline
     private static ResourceAllocator? s_resourceAllocator;
     private static ResourceUploadBatch? s_uploadBatch;
 
-    private static Thread? s_renderThread;
-    private static FrameResource[]? s_frameResources;
-
-    private static uint s_frameIndex;
-    private static uint s_cpuFenceValue;
-    private static uint s_gpuFenceValue;
+    // New RHI-based device for modern usage
+    private static IRenderDevice? s_renderDevice;
+    private static RenderSystem? s_renderSystem;
 
     private static bool s_initialized;
-    private static bool s_isRunning;
-    private static readonly AutoResetEvent s_shutdownEvent = new(false);
-
-    internal static uint CPUFenceValue => s_cpuFenceValue;
-    internal static uint GPUFenceValue => s_gpuFenceValue;
-    internal static bool IsRunning => s_isRunning;
 
     internal static GraphicsDevice GraphicsDevice => s_graphicsDevice ?? throw new InvalidOperationException("Graphics device is not initialized.");
     internal static ResourceAllocator ResourceAllocator => s_resourceAllocator ?? throw new InvalidOperationException("Resource allocator is not initialized.");
     internal static DescriptorAllocator DescriptorAllocator => s_descriptorAllocator ?? throw new InvalidOperationException("Descriptor allocator is not initialized.");
+
+    /// <summary>
+    /// Gets the modern RHI render device - prefer this over legacy GraphicsDevice
+    /// </summary>
+    public static IRenderDevice RenderDevice => s_renderDevice ?? throw new InvalidOperationException("Render device is not initialized.");
+
+    /// <summary>
+    /// Gets the render system for managing renderers and frame synchronization
+    /// </summary>
+    public static RenderSystem RenderSystem => s_renderSystem ?? throw new InvalidOperationException("Render system is not initialized.");
 
     internal static ResourceUploadBatch UploadBatch
     {
@@ -66,144 +58,67 @@ public static class GraphicsPipeline
         }
     }
 
-    internal static void Initialize()
+    internal static unsafe void Initialize()
     {
 #if DEBUG
         s_debugLayer = new DebugLayer();
 #endif
+        // Initialize legacy components for compatibility
         s_graphicsDevice = new GraphicsDevice();
         s_descriptorAllocator = new DescriptorAllocator();
-        s_resourceAllocator = new ResourceAllocator();
+        s_resourceAllocator = new ResourceAllocator((IDXGIAdapter*)s_graphicsDevice.Adapter.Ptr, (ID3D12Device*)s_graphicsDevice.NativeDevice.Ptr);
 
-        s_renderThread = new Thread(RenderLoop)
-        {
-            IsBackground = true,
-            Name = "Graphics Render Thread",
-            Priority = ThreadPriority.Normal
-        };
-
-        s_frameResources = new FrameResource[_FRAME_COUNT];
-        for (var i = 0; i < _FRAME_COUNT; i++)
-        {
-            s_frameResources[i] = new FrameResource();
-        }
+        // Initialize modern RHI components
+        s_renderDevice = new D3D12.D3D12RenderDevice();
+        s_renderSystem = new RenderSystem(s_renderDevice);
 
         s_initialized = true;
     }
 
-    private static void RenderLoop()
-    {
-        var waitHandles = new WaitHandle[2];
-        waitHandles[1] = s_shutdownEvent;
-
-        while (s_isRunning)
-        {
-            s_frameIndex = s_gpuFenceValue % _FRAME_COUNT;
-            var frameResource = s_frameResources![s_frameIndex];
-
-            // Wait for either CPU ready signal or shutdown signal
-            waitHandles[0] = frameResource.cpuReadyEvent;
-            var waitResult = WaitHandle.WaitAny(waitHandles);
-
-            // If shutdown was signaled or timeout occurred, exit the loop
-            if (!s_isRunning || waitResult == 1 || waitResult == WaitHandle.WaitTimeout)
-            {
-                break;
-            }
-
-            // Only proceed if CPU ready event was signaled
-            if (waitResult == 0)
-            {
-                s_graphicsDevice!.InitializePendingRenderers();
-
-                s_uploadBatch?.WaitForCompletion(s_uploadBatch.End());
-                s_uploadBatch?.Dispose();
-                s_uploadBatch = null;
-
-                if (s_graphicsDevice.Renderers.Length > 0)
-                {
-                    foreach (var renderer in s_graphicsDevice.Renderers)
-                    {
-                        renderer.ExecutePendingResize();
-                        renderer.Render();
-                    }
-                }
-
-                s_gpuFenceValue++;
-                frameResource.gpuReadyEvent.Set();
-
-                s_resourceAllocator!.ReleaseTempResource();
-            }
-        }
-    }
-
-    internal static bool WaitForGPUReady(int timeOut = -1)
-    {
-        if (s_frameResources == null)
-        {
-            throw new InvalidOperationException("Graphics pipeline is not initialized.");
-        }
-
-        var eventIndex = (int)(s_cpuFenceValue % _FRAME_COUNT);
-        return s_frameResources[eventIndex].gpuReadyEvent.WaitOne(timeOut);
-    }
-
-    internal static void SignalCPUReady()
-    {
-        if (s_frameResources == null)
-        {
-            throw new InvalidOperationException("Graphics pipeline is not initialized.");
-        }
-
-        var eventIndex = (int)(s_cpuFenceValue % _FRAME_COUNT);
-        s_cpuFenceValue++;
-        s_frameResources[eventIndex].cpuReadyEvent.Set();
-    }
-
+    /// <summary>
+    /// Legacy method - use RenderSystem.Start() instead
+    /// </summary>
+    [Obsolete("Use RenderSystem.Start() instead")]
     internal static void Start()
     {
-        if (s_isRunning || !s_initialized)
-        {
-            return;
-        }
-
-        s_isRunning = true;
-        s_renderThread!.Start();
+        s_renderSystem?.Start();
     }
 
+    /// <summary>
+    /// Legacy method - use RenderSystem.Stop() instead
+    /// </summary>
+    [Obsolete("Use RenderSystem.Stop() instead")]
     internal static void Stop()
     {
-        s_isRunning = false;
+        s_renderSystem?.Stop();
+    }
 
-        s_shutdownEvent.Set();
+    /// <summary>
+    /// Legacy method - use RenderSystem.WaitForGPUReady() instead
+    /// </summary>
+    [Obsolete("Use RenderSystem.WaitForGPUReady() instead")]
+    internal static bool WaitForGPUReady(int timeOut = -1)
+    {
+        return s_renderSystem?.WaitForGPUReady(timeOut) ?? false;
+    }
 
-        if (s_renderThread?.Join(TimeSpan.FromSeconds(5)) == false)
-        {
-#if DEBUG
-            System.Diagnostics.Debugger.Break();
-#endif
-            s_renderThread?.Interrupt();
-        }
-
-        s_shutdownEvent.Reset();
+    /// <summary>
+    /// Legacy method - use RenderSystem.SignalCPUReady() instead
+    /// </summary>
+    [Obsolete("Use RenderSystem.SignalCPUReady() instead")]
+    internal static void SignalCPUReady()
+    {
+        s_renderSystem?.SignalCPUReady();
     }
 
     internal static void Shutdown()
     {
-        Stop();
+        s_renderSystem?.Dispose();
+        s_renderDevice?.Dispose();
 
         s_resourceAllocator?.Dispose();
         s_descriptorAllocator?.Dispose();
         s_graphicsDevice?.Dispose();
-
-        if (s_frameResources != null)
-        {
-            foreach (var frameResource in s_frameResources)
-            {
-                frameResource.Dispose();
-            }
-            s_frameResources = null;
-        }
 
 #if DEBUG
         s_debugLayer?.Dispose();

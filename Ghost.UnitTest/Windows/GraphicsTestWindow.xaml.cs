@@ -6,14 +6,14 @@ using Microsoft.UI.Xaml.Media;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using WinRT;
 
-namespace Ghost.UnitTest;
+namespace Ghost.UnitTest.Windows;
 
-public sealed partial class UnitTestAppWindow : Window
+public sealed partial class GraphicsTestWindow : Window
 {
     private Renderer? _renderer;
     private ISwapChainPanelNative _swapChainPanelNative;
 
-    public UnitTestAppWindow()
+    public GraphicsTestWindow()
     {
         InitializeComponent();
 
@@ -35,7 +35,7 @@ public sealed partial class UnitTestAppWindow : Window
         ((IWinRTObject)Panel).NativeObject.TryAs(guid, out var swapChainPanelNativeHandle);
         _swapChainPanelNative = new ISwapChainPanelNative(swapChainPanelNativeHandle);
 
-        _renderer = GraphicsPipeline.GraphicsDevice.CreateRenderer(new(_swapChainPanelNative, (uint)AppWindow.Size.Width, (uint)AppWindow.Size.Height));
+        //_renderer = GraphicsPipeline.GraphicsDevice.CreateRenderer(new(_swapChainPanelNative, (uint)AppWindow.Size.Width, (uint)AppWindow.Size.Height));
 
         CompositionTarget.Rendering += OnRendering;
     }
@@ -61,12 +61,12 @@ public sealed partial class UnitTestAppWindow : Window
 
     private void OnRendering(object? sender, object e)
     {
-        if (GraphicsPipeline.CPUFenceValue < GraphicsPipeline.GPUFenceValue + GraphicsPipeline._FRAME_COUNT)
-        {
-            DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.High, () =>
-            {
-                GraphicsPipeline.SignalCPUReady();
-            });
-        }
+        //if (GraphicsPipeline.CPUFenceValue < GraphicsPipeline.GPUFenceValue + GraphicsPipeline._FRAME_COUNT)
+        //{
+        //    DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.High, () =>
+        //    {
+        //        GraphicsPipeline.SignalCPUReady();
+        //    });
+        //}
     }
 }

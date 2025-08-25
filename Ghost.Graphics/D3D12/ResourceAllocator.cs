@@ -28,7 +28,7 @@ internal unsafe class ResourceAllocator
         }
 
         public AllocationInfo(in Allocation allocation, uint generation)
-            : this(allocation, GraphicsPipeline.CPUFenceValue + 1, generation)
+            : this(allocation, 0 /* TODO: Use proper fence value from render system */, generation)
         {
         }
 
@@ -65,12 +65,12 @@ internal unsafe class ResourceAllocator
         }
     }
 
-    public ResourceAllocator()
+    public ResourceAllocator(IDXGIAdapter* pAdapter, ID3D12Device* pDevice)
     {
         var desc = new AllocatorDesc
         {
-            pAdapter = (IDXGIAdapter*)GraphicsPipeline.GraphicsDevice.Adapter.Ptr,
-            pDevice = (ID3D12Device*)GraphicsPipeline.GraphicsDevice.NativeDevice.Ptr,
+            pAdapter = pAdapter,
+            pDevice = pDevice,
             Flags = AllocatorFlags.DefaultPoolsNotZeroed | AllocatorFlags.MSAATexturesAlwaysCommitted
         };
 
@@ -181,10 +181,8 @@ internal unsafe class ResourceAllocator
         {
             ref var handle = ref _temResources.Peek();
             ref var info = ref _allocations[handle.id];
-            if (info.cpuFenceValue > GraphicsPipeline.GPUFenceValue)
-            {
-                break;
-            }
+            // TODO: Implement proper fence-based cleanup with RenderSystem
+            // For now, just release all temp resources
 
             ReleaseAllocation(in handle);
             _temResources.Dequeue();

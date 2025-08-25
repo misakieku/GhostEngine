@@ -1,10 +1,11 @@
 ﻿using Ghost.Entities;
 using Ghost.Entities.Components;
 using Ghost.Entities.Systems;
+using Ghost.UnitTest.Services;
 using Ghost.UnitTest.TestFramework;
 using System.Numerics;
 
-namespace Ghost.UnitTest;
+namespace Ghost.UnitTest.Test;
 
 public partial class EntityTest : ITest
 {
@@ -65,7 +66,7 @@ public class TestSystem : ISystem
     {
         foreach (var (entity, transform) in state.World.Query<Transform>())
         {
-            Console.WriteLine($"Entity {entity.ID}: Transform Position = {transform.ValueRO.position}");
+            LoggingService.Info($"Entity {entity.ID}: Transform Position = {transform.ValueRO.position}");
         }
     }
 
@@ -85,7 +86,7 @@ public class TestSystem2 : ISystem
     {
         foreach (var (entity, mesh) in state.World.Query<Mesh>())
         {
-            Console.WriteLine($"Entity {entity.ID}: Mesh Index = {mesh.ValueRO.index}");
+            LoggingService.Info($"Entity {entity.ID}: Mesh Index = {mesh.ValueRO.index}");
         }
     }
 
@@ -112,17 +113,17 @@ public class UserScript : ScriptComponent
 
     public override void Start()
     {
-        Console.WriteLine("UserScript started for entity: " + Owner.ID);
+        LoggingService.Info("UserScript started for entity: " + Owner.ID);
     }
 
     public override void Update()
     {
-        Console.WriteLine("UserScript updating for entity: " + Owner.ID);
+        LoggingService.Info("UserScript updating for entity: " + Owner.ID);
     }
 
     public override void OnDestroy()
     {
-        Console.WriteLine("UserScript destroyed for entity: " + Owner.ID);
+        LoggingService.Info("UserScript destroyed for entity: " + Owner.ID);
     }
 }
 
@@ -130,17 +131,17 @@ public class UIManager : ScriptComponent
 {
     public override void Start()
     {
-        Console.WriteLine("UIManager started for entity: " + Owner.ID);
+        LoggingService.Info("UIManager started for entity: " + Owner.ID);
     }
 
     public override void Update()
     {
-        Console.WriteLine("UIManager updating for entity: " + Owner.ID);
+        LoggingService.Info("UIManager updating for entity: " + Owner.ID);
     }
 
     public override void OnDestroy()
     {
-        Console.WriteLine("UIManager destroyed for entity: " + Owner.ID);
+        LoggingService.Info("UIManager destroyed for entity: " + Owner.ID);
     }
 }
 
@@ -148,16 +149,16 @@ public class EventManager : ScriptComponent
 {
     public override void Start()
     {
-        Console.WriteLine("EventManager started for entity: " + Owner.ID);
+        LoggingService.Info("EventManager started for entity: " + Owner.ID);
     }
 
     public override void Update()
     {
-        Console.WriteLine("EventManager updating for entity: " + Owner.ID);
+        LoggingService.Info("EventManager updating for entity: " + Owner.ID);
     }
 
     public override void OnDestroy()
     {
-        Console.WriteLine("EventManager destroyed for entity: " + Owner.ID);
+        LoggingService.Info("EventManager destroyed for entity: " + Owner.ID);
     }
 }

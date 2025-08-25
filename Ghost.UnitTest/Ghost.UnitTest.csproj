@@ -12,6 +12,10 @@
     <EnableMsixTooling>true</EnableMsixTooling>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+  <ItemGroup>
+    <None Remove="Controls\DebugConsole.xaml" />
+    <None Remove="Windows\DebugOutputWindow.xaml" />
+  </ItemGroup>
 
   <ItemGroup>
     <Page Remove="UnitTestApp.xaml" />
@@ -59,6 +63,18 @@
       <HintPath>..\..\Class\Misaki.HighPerformance\Misaki.HighPerformance.LowLevel\bin\Release\net9.0\Misaki.HighPerformance.LowLevel.dll</HintPath>
     </Reference>
   </ItemGroup>
+  
+  <ItemGroup>
+    <Page Update="Windows\DebugOutputWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Page Update="Controls\DebugConsole.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
 
   <!-- 
     Defining the "HasPackageAndPublishMenuAddedByProject" property here allows the Solution 
@@ -76,5 +92,6 @@
     <PublishTrimmed>False</PublishTrimmed>
     <SupportedOSPlatformVersion>10.0.20348.0</SupportedOSPlatformVersion>
     <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
 </Project>

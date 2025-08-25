@@ -112,7 +112,11 @@ internal unsafe sealed partial class ComponentDataView : Control
             for (var i = 0; i < fields.Length; i++)
             {
                 var field = fields[i];
-                var component = _world.ComponentStorage.ComponentPools[TypeHandle.Get(_componentType)].Get(_entity);
+                if (!_world.ComponentStorage.TryGetPool(TypeHandle.Get(_componentType), out var pool))
+                {
+                    continue;
+                }
+                var component = pool.Get(_entity);
                 var propertyField = PropertyField.Create(field.Name, field, component);
 
                 _propertyFields[i] = propertyField;

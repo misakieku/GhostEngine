@@ -217,8 +217,8 @@ internal class ScriptComponentPool : IComponentPool<ScriptComponent>
     private Dictionary<Entity, List<ScriptComponent>>? _scriptComponents;
     private List<ScriptComponent>? _executionList;
 
-    internal Dictionary<Entity, List<ScriptComponent>>? ScriptComponents => _scriptComponents;
-    internal List<ScriptComponent>? ExecutionList => _executionList;
+    internal IReadOnlyDictionary<Entity, List<ScriptComponent>>? ScriptComponents => _scriptComponents;
+    internal IReadOnlyList<ScriptComponent>? ExecutionList => _executionList;
 
     public bool IsInitialized => _scriptComponents != null;
     public int Count => _scriptComponents?.Keys.Count ?? 0;
@@ -461,10 +461,22 @@ internal class ScriptComponentPool : IComponentPool<ScriptComponent>
 }
 
 [SkipLocalsInit]
-internal readonly struct ComponentStorage : IDisposable
+internal struct ComponentStorage : IDisposable
 {
-    private readonly Dictionary<TypeHandle, IComponentPool> _componentPools = new();
-    private readonly Dictionary<TypeHandle, BitSet> _componentEntityMasks = new();
+    private static int s_nextId = 0;
+    private static class TypeID<T>
+    {
+        public static readonly int value = s_nextId++;
+    }
+
+    private int _currentCapacity = 16;
+
+    private IComponentPool?[] _componentPools = new IComponentPool[16];
+    private BitSet?[] _componentEntityMasks = new BitSet[16];
+
+    private readonly Dictionary<TypeHandle, int> _typeIDMap = new(16);
+    private readonly Dictionary<int, TypeHandle> _typeHandleMap = new(16);
+
     private readonly ScriptComponentPool _scriptComponentPool = new();
 
     private readonly World _world;
@@ -474,92 +486,225 @@ internal readonly struct ComponentStorage : IDisposable
         _world = world;
     }
 
-    internal Dictionary<TypeHandle, IComponentPool> ComponentPools => _componentPools;
-    internal Dictionary<TypeHandle, BitSet> ComponentEntityMasks => _componentEntityMasks;
-    internal ScriptComponentPool ScriptComponentPool => _scriptComponentPool;
+    internal readonly IReadOnlyList<IComponentPool?> ComponentPools => _componentPools;
+    internal readonly IReadOnlyList<BitSet?> ComponentEntityMasks => _componentEntityMasks;
+    internal readonly ScriptComponentPool ScriptComponentPool => _scriptComponentPool;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryGetPool(TypeHandle typeHandle, [MaybeNullWhen(false)] out IComponentPool pool)
+    private readonly int GetTypeID(TypeHandle typeHandle)
     {
-        return _componentPools.TryGetValue(typeHandle, out pool);
+        if (_typeIDMap.TryGetValue(typeHandle, out var id))
+        {
+            return id;
+        }
+
+        return typeof(TypeID<>).MakeGenericType(typeHandle!)
+            .GetField("value", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public)
+            ?.GetValue(null) as int? ?? -1;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryGetPool(Type type, [MaybeNullWhen(false)] out IComponentPool pool)
+    private readonly int GetTypeID<T>()
+    {
+        return TypeID<T>.value;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void Resize(int newCapacity)
+    {
+        Array.Resize(ref _componentPools, newCapacity);
+        Array.Resize(ref _componentEntityMasks, newCapacity);
+        _currentCapacity = newCapacity;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal readonly TypeHandle GetComponentPoolType(int poolIndex)
+    {
+        if (poolIndex < 0 || poolIndex >= _currentCapacity)
+        {
+            throw new ArgumentOutOfRangeException(nameof(poolIndex), "Invalid pool index.");
+        }
+
+        return _typeHandleMap[poolIndex];
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly bool TryGetPool(TypeHandle typeHandle, [NotNullWhen(true)] out IComponentPool? pool)
+    {
+        var result = _typeIDMap.TryGetValue(typeHandle, out var id);
+        if (!result || id >= _currentCapacity)
+        {
+            pool = null;
+            return false;
+        }
+
+        pool = _componentPools[id];
+        return pool != null;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly bool TryGetPool(Type type, [NotNullWhen(true)] out IComponentPool? pool)
     {
         return TryGetPool(TypeHandle.Get(type), out pool);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryGetPool<T>([MaybeNullWhen(false)] out ComponentPool<T> pool)
+    public readonly bool TryGetPool<T>([NotNullWhen(true)] out ComponentPool<T>? pool)
         where T : unmanaged, IComponentData
     {
-        var result = TryGetPool(TypeHandle.Get<T>(), out var obj);
-        pool = (ComponentPool<T>?)obj ?? default;
-        return result;
+        var id = TypeID<T>.value;
+        if (id >= _currentCapacity)
+        {
+            pool = null;
+            return false;
+        }
+
+        pool = (ComponentPool<T>?)_componentPools[id];
+        return pool != null;
+    }
+
+    public IComponentPool GetOrCreateComponentPool(Type type)
+    {
+        var typeHandle = TypeHandle.Get(type);
+        if (_typeIDMap.TryGetValue(typeHandle, out var id))
+        {
+            if (id < _currentCapacity && _componentPools[id] is IComponentPool existingPool)
+            {
+                return existingPool;
+            }
+        }
+        else
+        {
+            id = GetTypeID(typeHandle);
+        }
+
+        if (id >= _currentCapacity)
+        {
+            Resize(_currentCapacity * 2);
+            _typeIDMap[typeHandle] = id;
+            _typeHandleMap[id] = typeHandle;
+        }
+        else if (_componentPools[id] is IComponentPool existingPool)
+        {
+            return existingPool;
+        }
+
+        var pool = Activator.CreateInstance(typeof(ComponentPool<>).MakeGenericType(type)) as IComponentPool
+            ?? throw new InvalidOperationException($"Failed to create component pool for type {type.FullName}");
+
+        _componentPools[id] = pool;
+
+        return pool;
     }
 
     public ComponentPool<T> GetOrCreateComponentPool<T>()
         where T : unmanaged, IComponentData
     {
-        var key = TypeHandle.Get<T>();
-        if (!_componentPools.TryGetValue(key, out var obj))
+        var id = TypeID<T>.value;
+        var typeHandle = TypeHandle.Get<T>();
+
+        if (id >= _currentCapacity)
         {
-            var pool = new ComponentPool<T>(16);
-            _componentPools[key] = pool;
-            return pool;
+            Resize(_currentCapacity * 2);
+            _typeIDMap[typeHandle] = id;
+            _typeHandleMap[id] = typeHandle;
+        }
+        else if (_componentPools[id] is ComponentPool<T> existingPool)
+        {
+            return existingPool;
         }
 
-        return (ComponentPool<T>)obj;
+        var pool = new ComponentPool<T>();
+        _componentPools[id] = pool;
+
+        return pool;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryGetMask(TypeHandle typeHandle, [MaybeNullWhen(false)] out BitSet bitSet)
+    public readonly bool TryGetMask(TypeHandle typeHandle, [NotNullWhen(true)] out BitSet? bitSet)
     {
-        return _componentEntityMasks.TryGetValue(typeHandle, out bitSet);
+        if (!_typeIDMap.TryGetValue(typeHandle, out var id)
+            || id >= _currentCapacity)
+        {
+            bitSet = null;
+            return false;
+        }
+
+        bitSet = _componentEntityMasks[id];
+        return bitSet != null;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryGetMask(Type type, [MaybeNullWhen(false)] out BitSet bitSet)
-    {
-        return TryGetMask(TypeHandle.Get(type), out bitSet);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryGetMask<T>([MaybeNullWhen(false)] out BitSet bitSet)
+    public readonly bool TryGetMask<T>([NotNullWhen(true)] out BitSet? bitSet)
         where T : unmanaged, IComponentData
     {
         return TryGetMask(TypeHandle.Get<T>(), out bitSet);
     }
 
-    public BitSet GetOrCreateMask(TypeHandle typeHandle)
+    public BitSet GetOrCreateMask<T>()
+        where T : unmanaged, IComponentData
     {
-        if (!_componentEntityMasks.TryGetValue(typeHandle, out var mask))
+        var typeHandle = TypeHandle.Get<T>();
+        if (!_typeIDMap.TryGetValue(typeHandle, out var id))
         {
-            mask = new BitSet();
-            _componentEntityMasks[typeHandle] = mask;
+            id = GetTypeID<T>();
+            _typeIDMap[typeHandle] = id;
+            _typeHandleMap[id] = typeHandle;
         }
-        return mask;
+
+        if (id >= _currentCapacity)
+        {
+            Resize(_currentCapacity * 2);
+        }
+
+        ref var set = ref _componentEntityMasks[id];
+        set ??= new BitSet();
+
+        return set;
+    }
+
+    public BitSet GetOrCreateMask(Type type)
+    {
+        var typeHandle = TypeHandle.Get(type);
+        if (!_typeIDMap.TryGetValue(typeHandle, out var id))
+        {
+            id = GetTypeID(typeHandle);
+            _typeIDMap[typeHandle] = id;
+            _typeHandleMap[id] = typeHandle;
+        }
+
+        if (id >= _currentCapacity)
+        {
+            Resize(_currentCapacity * 2);
+        }
+
+        ref var set = ref _componentEntityMasks[id];
+        set ??= new BitSet();
+
+        return set;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void RebuildExecutionList()
+    public readonly void RebuildExecutionList()
     {
         _scriptComponentPool.RebuildExecutionList();
     }
 
-    public void Remove(Entity entity)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly void Remove(Entity entity)
     {
         _scriptComponentPool.Remove(entity);
     }
 
-    public void Dispose()
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly void Dispose()
     {
-        foreach (var pool in _componentPools.Values)
+        foreach (var pool in _componentPools)
         {
-            pool.Dispose();
+            pool?.Dispose();
         }
-        _componentPools.Clear();
+
+        Array.Clear(_componentPools);
         _scriptComponentPool.Dispose();
     }
 }

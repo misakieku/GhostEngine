@@ -104,12 +104,18 @@ internal class WorldNodeSerializer : JsonConverter<WorldNode>
 
             writer.WriteObject(Property.COMPONENTS, () =>
             {
-                foreach (var kvp in value.World.ComponentStorage.ComponentPools)
+                for (var i = 0; i < value.World.ComponentStorage.ComponentPools.Count; i++)
                 {
-                    var type = kvp.Key.ToType() ?? throw new Exception($"Type {kvp.Key} not found.");
+                    var pool = value.World.ComponentStorage.ComponentPools[i];
+                    if (pool == null)
+                    {
+                        continue;
+                    }
+
+                    var type = value.World.ComponentStorage.GetComponentPoolType(i).GetType();
                     var typeName = type.AssemblyQualifiedName ?? type.Name;
 
-                    writer.WriteArray(typeName, kvp.Value.Enumerate(), data =>
+                    writer.WriteArray(typeName, pool.Enumerate(), data =>
                     {
                         writer.WriteObject(() =>
                         {

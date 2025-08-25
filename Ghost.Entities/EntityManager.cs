@@ -44,6 +44,7 @@ public readonly struct EntityManager : IDisposable
         return entity;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal readonly void AddEntityInternal(Entity entity)
     {
         _entities.Add(entity);
@@ -87,18 +88,19 @@ public readonly struct EntityManager : IDisposable
         return _entities[entity.ID].Generation == entity.Generation;
     }
 
-    public readonly void AddComponent(Entity entity, IComponentData component, Type type)
+    /// <summary>
+    /// Adds a component of the specified type to the given entity.
+    /// </summary>
+    /// <remarks>
+    /// This method use reflection to determine the type of the component being added. Use generic as much as possible.
+    /// </remarks>
+    /// <param name="entity">The entity to which the component will be added.</param>
+    /// <param name="component">The component data to associate with the entity.</param>
+    /// <param name="componentType">The type of the component being added. This must match the type of <paramref name="component"/>.</param>
+    public readonly void AddComponent(Entity entity, IComponentData component, Type componentType)
     {
-        var typeHandle = TypeHandle.Get(type);
-        ref var pool = ref CollectionsMarshal.GetValueRefOrAddDefault(_world.ComponentStorage.ComponentPools, typeHandle, out var exists);
-        if (!exists)
-        {
-            var poolType = typeof(ComponentPool<>).MakeGenericType(type);
-            pool = (IComponentPool)(Activator.CreateInstance(poolType) ?? throw new InvalidOperationException($"Failed to create component pool for type {type}."));
-        }
-
-        pool!.Add(entity, component);
-        _world.ComponentStorage.GetOrCreateMask(typeHandle).SetBit(entity.ID);
+        _world.ComponentStorage.GetOrCreateComponentPool(componentType).Add(entity, component);
+        _world.ComponentStorage.GetOrCreateMask(componentType).SetBit(entity.ID);
     }
 
     /// <summary>
@@ -112,7 +114,7 @@ public readonly struct EntityManager : IDisposable
         where T : unmanaged, IComponentData
     {
         _world.ComponentStorage.GetOrCreateComponentPool<T>().Add(entity, component);
-        _world.ComponentStorage.GetOrCreateMask(TypeHandle.Get<T>()).SetBit(entity.ID);
+        _world.ComponentStorage.GetOrCreateMask<T>().SetBit(entity.ID);
     }
 
     /// <summary>
@@ -134,7 +136,7 @@ public readonly struct EntityManager : IDisposable
             return false;
         }
 
-        _world.ComponentStorage.GetOrCreateMask(TypeHandle.Get<T>()).ClearBit(entity.ID);
+        _world.ComponentStorage.GetOrCreateMask<T>().ClearBit(entity.ID);
 
         return true;
     }
@@ -219,8 +221,13 @@ public readonly struct EntityManager : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly IEnumerable<IComponentData> GetComponents(Entity entity)
     {
-        foreach (var pool in _world.ComponentStorage.ComponentPools.Values)
+        foreach (var pool in _world.ComponentStorage.ComponentPools)
         {
+            if (pool == null)
+            {
+                continue;
+            }
+
             if (pool.Has(entity))
             {
                 yield return pool.Get(entity);
@@ -241,11 +248,17 @@ public readonly struct EntityManager : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly IEnumerable<(TypeHandle, IntPtr)> GetComponentsUnsafe(Entity entity)
     {
-        foreach (var (typeHandle, pool) in _world.ComponentStorage.ComponentPools)
+        for (var i = 0; i < _world.ComponentStorage.ComponentPools.Count; i++)
         {
+            var pool = _world.ComponentStorage.ComponentPools[i];
+            if (pool == null)
+            {
+                continue;
+            }
+
             if (pool.Has(entity))
             {
-                yield return (typeHandle, pool.GetUnsafe(entity));
+                yield return (_world.ComponentStorage.GetComponentPoolType(i), pool.GetUnsafe(entity));
             }
         }
     }

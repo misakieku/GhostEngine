@@ -39,4 +39,24 @@ public readonly struct TypeHandle
     {
         return Type.GetTypeFromHandle(RuntimeTypeHandle.FromIntPtr(Value));
     }
+
+    public static implicit operator TypeHandle(IntPtr value)
+    {
+        return new TypeHandle(value);
+    }
+
+    public static implicit operator IntPtr(TypeHandle handle)
+    {
+        return handle.Value;
+    }
+
+    public static implicit operator TypeHandle(Type type)
+    {
+        return Get(type);
+    }
+
+    public static implicit operator Type?(TypeHandle handle)
+    {
+        return handle.ToType();
+    }
 }

@@ -1,4 +1,4 @@
-﻿using Ghost.Graphics.Contracts;
+using Ghost.Graphics.Contracts;
 using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.Data;
 using System.Collections.Immutable;
@@ -13,6 +13,13 @@ namespace Ghost.Graphics.D3D12;
 // TODO: We should split the renderer and swap chain into different classes to allow for more flexibility in rendering pipelines.
 // Each renderer can have a render target (swap chain or texture).
 // When render target is null, skip the render pass execution.
+
+/// <summary>
+/// Legacy D3D12 Renderer - DEPRECATED
+/// Use D3D12Renderer instead for new code
+/// This class remains for compatibility during migration
+/// </summary>
+[Obsolete("Use D3D12Renderer instead")]
 internal unsafe class Renderer
 {
     private struct FrameResource : IDisposable

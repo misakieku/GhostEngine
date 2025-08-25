@@ -1,4 +1,6 @@
-﻿using Ghost.Core;
+using Ghost.Core;
+using Ghost.Graphics.Data;
+using Ghost.Graphics.RHI;
 using Win32;
 using Win32.Graphics.Direct3D;
 using Win32.Graphics.Direct3D12;
@@ -7,29 +9,39 @@ using Win32.Graphics.Dxgi;
 namespace Ghost.Graphics.D3D12;
 
 /// <summary>
-/// Legacy D3D12 GraphicsDevice - DEPRECATED
-/// Use D3D12RenderDevice instead for new code
-/// This class remains for compatibility during migration
+/// D3D12 implementation of the render device interface
 /// </summary>
-[Obsolete("Use D3D12RenderDevice instead")]
-internal unsafe class GraphicsDevice
+internal unsafe class D3D12RenderDevice : IRenderDevice
 {
     private ComPtr<IDXGIFactory7> _dxgiFactory;
     private ComPtr<ID3D12Device14> _device;
     private ComPtr<IDXGIAdapter1> _adapter;
-    private ComPtr<ID3D12CommandQueue> _commandQueue;
+
+    private D3D12CommandQueue _graphicsQueue;
+    private D3D12CommandQueue _computeQueue;
+    private D3D12CommandQueue _copyQueue;
+    private D3D12DescriptorAllocator _descriptorAllocator;
 
     private bool _disposed;
+
+    public ICommandQueue GraphicsQueue => _graphicsQueue;
+    public ICommandQueue ComputeQueue => _computeQueue;
+    public ICommandQueue CopyQueue => _copyQueue;
+    public IDescriptorAllocator DescriptorAllocator => _descriptorAllocator;
 
     public ConstPtr<ID3D12Device14> NativeDevice => new(_device.Get());
     public ConstPtr<IDXGIFactory7> DXGIFactory => new(_dxgiFactory.Get());
     public ConstPtr<IDXGIAdapter1> Adapter => new(_adapter.Get());
-    public ConstPtr<ID3D12CommandQueue> CommandQueue => new(_commandQueue.Get());
 
-    public GraphicsDevice()
+    public D3D12RenderDevice()
     {
         InitializeDevice();
-        InitializeCommandQueue();
+
+        _graphicsQueue = new D3D12CommandQueue(_device, CommandQueueType.Graphics);
+        _computeQueue = new D3D12CommandQueue(_device, CommandQueueType.Compute);
+        _copyQueue = new D3D12CommandQueue(_device, CommandQueueType.Copy);
+
+        _descriptorAllocator = new D3D12DescriptorAllocator(_device);
     }
 
     private void InitializeDevice()
@@ -68,31 +80,43 @@ internal unsafe class GraphicsDevice
         }
     }
 
-    private void InitializeCommandQueue()
+    public ICommandBuffer CreateCommandBuffer(CommandBufferType type = CommandBufferType.Graphics)
     {
-        var queueDesc = new CommandQueueDescription
-        {
-            Type = CommandListType.Direct,
-            Priority = (int)CommandQueuePriority.High,
-            Flags = CommandQueueFlags.None,
-        };
+        return new D3D12CommandBuffer(_device, type);
+    }
 
-        fixed (void* queuePtr = &_commandQueue)
-        {
-            _device.Get()->CreateCommandQueue(&queueDesc, __uuidof<ID3D12CommandQueue>(), (void**)queuePtr);
-        }
+    public ISwapChain CreateSwapChain(SwapChainDesc desc)
+    {
+        return new D3D12SwapChain(_dxgiFactory, _graphicsQueue.NativeQueue, desc);
+    }
+
+    public IRenderTarget CreateRenderTarget(RenderTargetDesc desc)
+    {
+        return new D3D12RenderTarget(_device, _descriptorAllocator, desc);
+    }
+
+    public ITexture CreateTexture(TextureDesc desc)
+    {
+        return new D3D12Texture(_device, desc);
+    }
+
+    public IBuffer CreateBuffer(BufferDesc desc)
+    {
+        return new D3D12Buffer(_device, desc);
     }
 
     public void Dispose()
     {
-        if (_disposed)
-        {
-            return;
-        }
+        if (_disposed) return;
 
-        _commandQueue.Dispose();
+        _descriptorAllocator?.Dispose();
+        _graphicsQueue?.Dispose();
+        _computeQueue?.Dispose();
+        _copyQueue?.Dispose();
+
         _device.Reset();
         _dxgiFactory.Dispose();
+        _adapter.Dispose();
 
         _disposed = true;
     }
