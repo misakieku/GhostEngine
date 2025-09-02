@@ -1,6 +1,5 @@
+using Ghost.Graphics.Data;
 using Ghost.Graphics.RHI;
-using Win32;
-using Win32.Graphics.Direct3D12;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -13,12 +12,27 @@ internal unsafe class D3D12RenderTarget : IRenderTarget
     private readonly D3D12Texture _target;
     private bool _disposed;
 
-    public uint Width { get; }
-    public uint Height { get; }
-    public RenderTargetType Type { get; }
+    public uint Width
+    {
+        get;
+    }
+
+    public uint Height
+    {
+        get;
+    }
+
+    public RenderTargetType Type
+    {
+        get;
+    }
+
     public ITexture Target => _target;
 
-    public D3D12RenderTarget(ComPtr<ID3D12Device14> device, D3D12DescriptorAllocator descriptorAllocator, RenderTargetDesc desc)
+    /// <summary>
+    /// Create a new render target with its own texture
+    /// </summary>
+    public D3D12RenderTarget(TextureHandle handle, ref readonly RenderTargetDesc desc)
     {
         Width = desc.Width;
         Height = desc.Height;
@@ -26,13 +40,27 @@ internal unsafe class D3D12RenderTarget : IRenderTarget
 
         // Create the target texture based on type
         var usage = Type == RenderTargetType.Color ? TextureUsage.RenderTarget : TextureUsage.DepthStencil;
-        var textureDesc = new TextureDesc(desc.Width, desc.Height, desc.Format, 1, usage);
-        _target = new D3D12Texture(device, textureDesc);
+        var textureDesc = new TextureDesc(desc.Width, desc.Height, desc.Format, desc.Dimension, desc.MipLevels, usage);
+        _target = new D3D12Texture(handle, in textureDesc);
+    }
+
+    /// <summary>
+    /// Wrap an existing texture as a render target (for swap chain back buffers)
+    /// </summary>
+    public D3D12RenderTarget(D3D12Texture existingTexture, RenderTargetType type)
+    {
+        _target = existingTexture;
+        Width = existingTexture.Width;
+        Height = existingTexture.Height;
+        Type = type;
     }
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         _target?.Dispose();
         _disposed = true;

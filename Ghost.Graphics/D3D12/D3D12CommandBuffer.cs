@@ -1,6 +1,5 @@
 using Ghost.Graphics.Data;
 using Ghost.Graphics.RHI;
-using System.Runtime.InteropServices;
 using Win32;
 using Win32.Graphics.Direct3D12;
 using Win32.Numerics;
@@ -133,27 +132,28 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         };
     }
 
-    private static Win32.Graphics.Direct3D12.ResourceStates ConvertResourceState(ResourceState state)
+    private static ResourceStates ConvertResourceState(ResourceState state)
     {
         return state switch
         {
-            ResourceState.Common or ResourceState.Present => Win32.Graphics.Direct3D12.ResourceStates.Common,
-            ResourceState.VertexAndConstantBuffer => Win32.Graphics.Direct3D12.ResourceStates.VertexAndConstantBuffer,
-            ResourceState.IndexBuffer => Win32.Graphics.Direct3D12.ResourceStates.IndexBuffer,
-            ResourceState.RenderTarget => Win32.Graphics.Direct3D12.ResourceStates.RenderTarget,
-            ResourceState.UnorderedAccess => Win32.Graphics.Direct3D12.ResourceStates.UnorderedAccess,
-            ResourceState.DepthWrite => Win32.Graphics.Direct3D12.ResourceStates.DepthWrite,
-            ResourceState.DepthRead => Win32.Graphics.Direct3D12.ResourceStates.DepthRead,
-            ResourceState.PixelShaderResource => Win32.Graphics.Direct3D12.ResourceStates.PixelShaderResource,
-            ResourceState.CopyDest => Win32.Graphics.Direct3D12.ResourceStates.CopyDest,
-            ResourceState.CopySource => Win32.Graphics.Direct3D12.ResourceStates.CopySource,
+            ResourceState.Common or ResourceState.Present => ResourceStates.Common,
+            ResourceState.VertexAndConstantBuffer => ResourceStates.VertexAndConstantBuffer,
+            ResourceState.IndexBuffer => ResourceStates.IndexBuffer,
+            ResourceState.RenderTarget => ResourceStates.RenderTarget,
+            ResourceState.UnorderedAccess => ResourceStates.UnorderedAccess,
+            ResourceState.DepthWrite => ResourceStates.DepthWrite,
+            ResourceState.DepthRead => ResourceStates.DepthRead,
+            ResourceState.PixelShaderResource => ResourceStates.PixelShaderResource,
+            ResourceState.CopyDest => ResourceStates.CopyDest,
+            ResourceState.CopySource => ResourceStates.CopySource,
             _ => throw new ArgumentException($"Unknown resource state: {state}")
         };
     }
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
 
         _commandList.Dispose();
         _allocator.Dispose();

@@ -1,5 +1,3 @@
-using Ghost.Core;
-using Ghost.Graphics.Data;
 using Ghost.Graphics.RHI;
 using Win32;
 using Win32.Graphics.Direct3D;
@@ -17,10 +15,10 @@ internal unsafe class D3D12RenderDevice : IRenderDevice
     private ComPtr<ID3D12Device14> _device;
     private ComPtr<IDXGIAdapter1> _adapter;
 
-    private D3D12CommandQueue _graphicsQueue;
-    private D3D12CommandQueue _computeQueue;
-    private D3D12CommandQueue _copyQueue;
-    private D3D12DescriptorAllocator _descriptorAllocator;
+    private readonly D3D12CommandQueue _graphicsQueue;
+    private readonly D3D12CommandQueue _computeQueue;
+    private readonly D3D12CommandQueue _copyQueue;
+    private readonly D3D12DescriptorAllocator _descriptorAllocator;
 
     private bool _disposed;
 
@@ -29,9 +27,9 @@ internal unsafe class D3D12RenderDevice : IRenderDevice
     public ICommandQueue CopyQueue => _copyQueue;
     public IDescriptorAllocator DescriptorAllocator => _descriptorAllocator;
 
-    public ConstPtr<ID3D12Device14> NativeDevice => new(_device.Get());
-    public ConstPtr<IDXGIFactory7> DXGIFactory => new(_dxgiFactory.Get());
-    public ConstPtr<IDXGIAdapter1> Adapter => new(_adapter.Get());
+    public ID3D12Device14* NativeDevice => _device.Get();
+    public IDXGIFactory7* DXGIFactory => _dxgiFactory.Get();
+    public IDXGIAdapter1* Adapter => _adapter.Get();
 
     public D3D12RenderDevice()
     {
@@ -90,24 +88,10 @@ internal unsafe class D3D12RenderDevice : IRenderDevice
         return new D3D12SwapChain(_dxgiFactory, _graphicsQueue.NativeQueue, desc);
     }
 
-    public IRenderTarget CreateRenderTarget(RenderTargetDesc desc)
-    {
-        return new D3D12RenderTarget(_device, _descriptorAllocator, desc);
-    }
-
-    public ITexture CreateTexture(TextureDesc desc)
-    {
-        return new D3D12Texture(_device, desc);
-    }
-
-    public IBuffer CreateBuffer(BufferDesc desc)
-    {
-        return new D3D12Buffer(_device, desc);
-    }
-
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
 
         _descriptorAllocator?.Dispose();
         _graphicsQueue?.Dispose();

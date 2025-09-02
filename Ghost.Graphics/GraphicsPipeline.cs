@@ -21,7 +21,7 @@ public static class GraphicsPipeline
 
     private static GraphicsDevice? s_graphicsDevice;
     private static DescriptorAllocator? s_descriptorAllocator;
-    private static ResourceAllocator? s_resourceAllocator;
+    private static D3D12ResourceAllocator? s_resourceAllocator;
     private static ResourceUploadBatch? s_uploadBatch;
 
     // New RHI-based device for modern usage
@@ -31,7 +31,7 @@ public static class GraphicsPipeline
     private static bool s_initialized;
 
     internal static GraphicsDevice GraphicsDevice => s_graphicsDevice ?? throw new InvalidOperationException("Graphics device is not initialized.");
-    internal static ResourceAllocator ResourceAllocator => s_resourceAllocator ?? throw new InvalidOperationException("Resource allocator is not initialized.");
+    internal static D3D12ResourceAllocator ResourceAllocator => s_resourceAllocator ?? throw new InvalidOperationException("Resource allocator is not initialized.");
     internal static DescriptorAllocator DescriptorAllocator => s_descriptorAllocator ?? throw new InvalidOperationException("Descriptor allocator is not initialized.");
 
     /// <summary>
@@ -66,7 +66,7 @@ public static class GraphicsPipeline
         // Initialize legacy components for compatibility
         s_graphicsDevice = new GraphicsDevice();
         s_descriptorAllocator = new DescriptorAllocator();
-        s_resourceAllocator = new ResourceAllocator((IDXGIAdapter*)s_graphicsDevice.Adapter.Ptr, (ID3D12Device*)s_graphicsDevice.NativeDevice.Ptr);
+        s_resourceAllocator = new D3D12ResourceAllocator((IDXGIAdapter*)s_graphicsDevice.Adapter.Ptr, (ID3D12Device*)s_graphicsDevice.NativeDevice.Ptr);
 
         // Initialize modern RHI components
         s_renderDevice = new D3D12.D3D12RenderDevice();

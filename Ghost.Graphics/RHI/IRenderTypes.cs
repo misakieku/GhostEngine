@@ -72,6 +72,21 @@ public struct RenderTargetDesc
     public TextureFormat Format;
 
     /// <summary>
+    /// Texture dimension
+    /// </summary>
+    public TextureDimension Dimension;
+
+    /// <summary>
+    /// Creation flags for the render target
+    /// </summary>
+    public RenderTargetCreationFlags CreationFlags;
+
+    /// <summary>
+    /// Number of mip levels. 0 to generate full mip chain
+    /// </summary>
+    public uint MipLevels;
+
+    /// <summary>
     /// Number of samples for MSAA
     /// </summary>
     public uint SampleCount;
@@ -79,7 +94,10 @@ public struct RenderTargetDesc
     /// <summary>
     /// Creates a color render target
     /// </summary>
-    public static RenderTargetDesc Color(uint width, uint height, TextureFormat format, uint sampleCount = 1)
+    public static RenderTargetDesc Color(uint width, uint height,
+        TextureFormat format, TextureDimension dimension = TextureDimension.Texture2D,
+        RenderTargetCreationFlags creationFlags = RenderTargetCreationFlags.AllowUAV | RenderTargetCreationFlags.DynamicallyScalable | RenderTargetCreationFlags.GenerateMips,
+        uint mipLevels = 0u, uint sampleCount = 1)
     {
         return new RenderTargetDesc
         {
@@ -87,6 +105,9 @@ public struct RenderTargetDesc
             Height = height,
             Type = RenderTargetType.Color,
             Format = format,
+            Dimension = dimension,
+            CreationFlags = creationFlags,
+            MipLevels = mipLevels,
             SampleCount = sampleCount
         };
     }
@@ -94,7 +115,10 @@ public struct RenderTargetDesc
     /// <summary>
     /// Creates a depth render target
     /// </summary>
-    public static RenderTargetDesc Depth(uint width, uint height, TextureFormat format = TextureFormat.D24_UNorm_S8_UInt, uint sampleCount = 1)
+    public static RenderTargetDesc Depth(uint width, uint height,
+        TextureFormat format = TextureFormat.D24_UNorm_S8_UInt, TextureDimension dimension = TextureDimension.Texture2D,
+        RenderTargetCreationFlags creationFlags = RenderTargetCreationFlags.AllowUAV | RenderTargetCreationFlags.DynamicallyScalable,
+        uint mipLevels = 0u, uint sampleCount = 1)
     {
         return new RenderTargetDesc
         {
@@ -102,6 +126,9 @@ public struct RenderTargetDesc
             Height = height,
             Type = RenderTargetType.Depth,
             Format = format,
+            Dimension = dimension,
+            CreationFlags = creationFlags,
+            MipLevels = mipLevels,
             SampleCount = sampleCount
         };
     }
@@ -128,7 +155,12 @@ public struct TextureDesc
     public TextureFormat Format;
 
     /// <summary>
-    /// Number of mip levels
+    /// Texture dimension
+    /// </summary>
+    public TextureDimension Dimension;
+
+    /// <summary>
+    /// Number of mip levels. 0 to generate full mip chain
     /// </summary>
     public uint MipLevels;
 
@@ -137,11 +169,12 @@ public struct TextureDesc
     /// </summary>
     public TextureUsage Usage;
 
-    public TextureDesc(uint width, uint height, TextureFormat format, uint mipLevels = 1, TextureUsage usage = TextureUsage.ShaderResource)
+    public TextureDesc(uint width, uint height, TextureFormat format, TextureDimension dimension = TextureDimension.Texture2D, uint mipLevels = 0u, TextureUsage usage = TextureUsage.ShaderResource)
     {
         Width = width;
         Height = height;
         Format = format;
+        Dimension = dimension;
         MipLevels = mipLevels;
         Usage = usage;
     }
@@ -186,6 +219,33 @@ public enum TextureUsage
     RenderTarget = 1 << 1,
     DepthStencil = 1 << 2,
     UnorderedAccess = 1 << 3
+}
+
+/// <summary>
+/// Dimensions of the texture
+/// </summary>
+public enum TextureDimension
+{
+    Unknown = -1,
+    None = 0,
+    Texture2D = 1,
+    Texture3D = 2,
+    TextureCube = 3,
+    Texture2DArray = 4,
+    TextureCubeArray = 5
+}
+
+/// <summary>
+/// Render target creation flags
+/// </summary>
+[Flags]
+public enum RenderTargetCreationFlags
+{
+    None = 0,
+    AllowUAV = 1 << 0,
+    AllowMSAA = 1 << 1,
+    DynamicallyScalable = 1 << 2,
+    GenerateMips = 1 << 3
 }
 
 /// <summary>

@@ -29,6 +29,12 @@ public interface ISwapChain : IDisposable
     ITexture GetCurrentBackBuffer();
 
     /// <summary>
+    /// Gets the current back buffer as a render target
+    /// </summary>
+    /// <returns>Current back buffer render target</returns>
+    IRenderTarget GetCurrentBackBufferRenderTarget();
+
+    /// <summary>
     /// Presents the rendered frame
     /// </summary>
     /// <param name="vsync">Enable vertical synchronization</param>

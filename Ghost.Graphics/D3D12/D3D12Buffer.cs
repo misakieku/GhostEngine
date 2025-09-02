@@ -1,3 +1,4 @@
+using Ghost.Graphics.Data;
 using Ghost.Graphics.RHI;
 using Win32;
 using Win32.Graphics.Direct3D12;
@@ -5,11 +6,12 @@ using Win32.Graphics.Direct3D12;
 namespace Ghost.Graphics.D3D12;
 
 /// <summary>
-/// D3D12 implementation of buffer interface
+/// D3D12 implementation of buffer interface using resource handles
 /// </summary>
 internal unsafe class D3D12Buffer : IBuffer
 {
-    private ComPtr<ID3D12Resource> _resource;
+    private readonly BufferHandle _handle;
+    private readonly ComPtr<ID3D12Resource> _externalResource; // For externally managed resources
     private ResourceState _currentState;
     private void* _mappedPtr;
     private bool _disposed;
@@ -18,64 +20,56 @@ internal unsafe class D3D12Buffer : IBuffer
     {
         get;
     }
-    public string Name { get; set; } = string.Empty;
+
+    public MemoryType MemoryType
+    {
+        get;
+    }
+
+    public string Name
+    {
+        get => field;
+        set
+        {
+            field = value;
+            NativeResource->SetName(field);
+        }
+    } = string.Empty;
+
     public ulong Size
     {
         get;
     }
+
     public ResourceState CurrentState => _currentState;
 
-    public ID3D12Resource* NativeResource => _resource.Get();
+    public ID3D12Resource* NativeResource => _handle.ResourceHandle.GetAllocation().Resource;
 
-    public D3D12Buffer(ComPtr<ID3D12Device14> device, BufferDesc desc)
+    /// <summary>
+    /// Constructor for wrapping existing D3D12 resources
+    /// </summary>
+    public D3D12Buffer(ComPtr<ID3D12Resource> resource, ulong size, BufferUsage usage, MemoryType memoryType)
     {
-        Usage = desc.Usage;
-        Size = desc.Size;
-        _currentState = ResourceState.Common;
+        _handle = BufferHandle.Invalid;
+        _externalResource = resource.Move();
 
-        CreateBuffer(device, desc);
+        Size = size;
+        Usage = usage;
+        MemoryType = memoryType;
+        _currentState = ResourceState.Common;
     }
 
-    private void CreateBuffer(ComPtr<ID3D12Device14> device, BufferDesc desc)
+    /// <summary>
+    /// Constructor for allocator-managed buffers
+    /// </summary>
+    public D3D12Buffer(BufferHandle handle, ref readonly BufferDesc desc)
     {
-        var resourceDesc = new ResourceDescription
-        {
-            Dimension = ResourceDimension.Buffer,
-            Alignment = 0,
-            Width = desc.Size,
-            Height = 1,
-            DepthOrArraySize = 1,
-            MipLevels = 1,
-            Format = Win32.Graphics.Dxgi.Common.Format.Unknown,
-            SampleDesc = new Win32.Graphics.Dxgi.Common.SampleDescription(1, 0),
-            Layout = TextureLayout.RowMajor,
-            Flags = ConvertBufferUsage(desc.Usage)
-        };
+        _handle = handle;
 
-        var heapProps = new HeapProperties
-        {
-            Type = ConvertMemoryType(desc.MemoryType),
-            CPUPageProperty = CpuPageProperty.Unknown,
-            MemoryPoolPreference = MemoryPool.Unknown,
-            CreationNodeMask = 1,
-            VisibleNodeMask = 1
-        };
-
-        var initialState = desc.MemoryType switch
-        {
-            MemoryType.Upload => Win32.Graphics.Direct3D12.ResourceStates.GenericRead,
-            MemoryType.Readback => Win32.Graphics.Direct3D12.ResourceStates.CopyDest,
-            _ => Win32.Graphics.Direct3D12.ResourceStates.Common
-        };
-
-        device.Get()->CreateCommittedResource(
-            &heapProps,
-            HeapFlags.None,
-            &resourceDesc,
-            initialState,
-            null,
-            __uuidof<ID3D12Resource>(),
-            _resource.GetVoidAddressOf());
+        Size = desc.Size;
+        Usage = desc.Usage;
+        MemoryType = desc.MemoryType;
+        _currentState = ResourceState.Common;
     }
 
     public void* Map()
@@ -83,11 +77,15 @@ internal unsafe class D3D12Buffer : IBuffer
         if (_mappedPtr != null)
             return _mappedPtr;
 
-        var range = new Win32.Graphics.Direct3D12.Range { Begin = 0, End = 0 };
+        if (MemoryType != MemoryType.Upload && MemoryType != MemoryType.Readback)
+        {
+            throw new InvalidOperationException("Only upload and readback buffers can be mapped");
+        }
 
+        var range = new Win32.Graphics.Direct3D12.Range { Begin = 0, End = 0 };
         fixed (void** ptr = &_mappedPtr)
         {
-            _resource.Get()->Map(0, &range, ptr);
+            NativeResource->Map(0, &range, ptr);
         }
         return _mappedPtr;
     }
@@ -96,30 +94,14 @@ internal unsafe class D3D12Buffer : IBuffer
     {
         if (_mappedPtr != null)
         {
-            _resource.Get()->Unmap(0, null);
+            NativeResource->Unmap(0, null);
             _mappedPtr = null;
         }
     }
 
-    private static HeapType ConvertMemoryType(MemoryType memoryType)
+    public void SetCurrentState(ResourceState state)
     {
-        return memoryType switch
-        {
-            MemoryType.Default => HeapType.Default,
-            MemoryType.Upload => HeapType.Upload,
-            MemoryType.Readback => HeapType.Readback,
-            _ => throw new ArgumentException($"Unknown memory type: {memoryType}")
-        };
-    }
-
-    private static ResourceFlags ConvertBufferUsage(BufferUsage usage)
-    {
-        var flags = ResourceFlags.None;
-
-        if ((usage & BufferUsage.Raw) != 0)
-            flags |= ResourceFlags.AllowUnorderedAccess;
-
-        return flags;
+        _currentState = state;
     }
 
     public void Dispose()
@@ -128,7 +110,17 @@ internal unsafe class D3D12Buffer : IBuffer
             return;
 
         Unmap();
-        _resource.Dispose();
+
+        if (_handle.IsValid)
+        {
+            _handle.Dispose();
+        }
+        else
+        {
+            // Release external resource
+            _externalResource.Dispose();
+        }
+
         _disposed = true;
     }
 }

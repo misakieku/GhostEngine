@@ -81,6 +81,8 @@ public readonly struct TextureHandle : IEquatable<TextureHandle>, IDisposable
 
     internal ResourceHandle ResourceHandle => _resourceHandle;
 
+    public static TextureHandle Invalid => new(ResourceHandle.Invalid);
+
     internal TextureHandle(ResourceHandle resourceHandle)
     {
         _resourceHandle = resourceHandle;
@@ -124,6 +126,8 @@ public readonly struct BufferHandle : IEquatable<BufferHandle>, IDisposable
     private readonly ResourceHandle _resourceHandle;
 
     internal ResourceHandle ResourceHandle => _resourceHandle;
+
+    public static BufferHandle Invalid => new(ResourceHandle.Invalid);
 
     internal BufferHandle(ResourceHandle resourceHandle)
     {

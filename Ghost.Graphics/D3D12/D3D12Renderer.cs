@@ -26,13 +26,13 @@ public unsafe class D3D12Renderer : IRenderer
         }
     }
 
-    private readonly IRenderDevice _device;
     private readonly ICommandQueue _commandQueue;
     private readonly FrameResource[] _frameResources;
     private uint _frameIndex;
 
-    private IRenderTarget? _renderTarget;
+    private IRenderTarget? _destinationTarget; // Final destination (custom render target or swap chain back buffer)
     private ISwapChain? _swapChain;
+    private IRenderTarget? _offScreenRenderTarget; // Always render to off-screen first
 
     private readonly Lock _lock = new();
     private uint _pendingWidth;
@@ -45,7 +45,6 @@ public unsafe class D3D12Renderer : IRenderer
 
     public D3D12Renderer(IRenderDevice device)
     {
-        _device = device;
         _commandQueue = device.GraphicsQueue;
 
         // Create frame resources for double buffering
@@ -58,16 +57,37 @@ public unsafe class D3D12Renderer : IRenderer
 
     public void SetRenderTarget(IRenderTarget? renderTarget)
     {
-        _renderTarget = renderTarget;
-        _swapChain = null; // Clear swap chain when using render target
+        _destinationTarget = renderTarget;
+        _swapChain = null; // Clear swap chain when using custom render target
+
+        // Create or update off-screen render target to match destination size
+        if (_destinationTarget != null)
+        {
+            CreateOrUpdateOffScreenRenderTarget(_destinationTarget.Width, _destinationTarget.Height);
+        }
+        else
+        {
+            _offScreenRenderTarget?.Dispose();
+            _offScreenRenderTarget = null;
+        }
     }
 
     public void SetSwapChain(ISwapChain? swapChain)
     {
         _swapChain = swapChain;
-        _renderTarget = null; // Clear render target when using swap chain
-    }
+        _destinationTarget = null; // Clear custom render target when using swap chain
 
+        // Create or update off-screen render target to match swap chain size
+        if (_swapChain != null)
+        {
+            CreateOrUpdateOffScreenRenderTarget(_swapChain.Width, _swapChain.Height);
+        }
+        else
+        {
+            _offScreenRenderTarget?.Dispose();
+            _offScreenRenderTarget = null;
+        }
+    }
     public void RequestResize(uint width, uint height)
     {
         lock (_lock)
@@ -99,6 +119,12 @@ public unsafe class D3D12Renderer : IRenderer
 
         // Resize swap chain if present
         _swapChain?.Resize(newWidth, newHeight);
+
+        // Update off-screen render target size
+        if (_swapChain != null)
+        {
+            CreateOrUpdateOffScreenRenderTarget(newWidth, newHeight);
+        }
     }
 
     public void Render()
@@ -118,17 +144,31 @@ public unsafe class D3D12Renderer : IRenderer
         // Begin command recording
         frame.CommandBuffer.Begin();
 
-        if (_renderTarget != null)
+        // Determine the final destination target
+        IRenderTarget? finalDestination = null;
+        ITexture? swapChainBackBuffer = null;
+
+        if (_destinationTarget != null)
         {
-            RenderToTarget(_renderTarget, frame.CommandBuffer);
+            // Rendering to custom render target
+            finalDestination = _destinationTarget;
         }
         else if (_swapChain != null)
         {
-            RenderToSwapChain(_swapChain, frame.CommandBuffer);
+            // Rendering to swap chain - get back buffer as render target
+            finalDestination = _swapChain.GetCurrentBackBufferRenderTarget();
+            swapChainBackBuffer = _swapChain.GetCurrentBackBuffer();
+        }
+
+        if (finalDestination != null && _offScreenRenderTarget != null)
+        {
+            // Always render to off-screen first, then blit to final destination
+            RenderScene(_offScreenRenderTarget, frame.CommandBuffer);
+            BlitToDestination(_offScreenRenderTarget, finalDestination, swapChainBackBuffer, frame.CommandBuffer);
         }
         else
         {
-            // No render target - skip rendering
+            // No destination - skip rendering
             frame.CommandBuffer.End();
             return;
         }
@@ -146,7 +186,7 @@ public unsafe class D3D12Renderer : IRenderer
         frame.FenceValue = _commandQueue.Signal(++_frameIndex);
     }
 
-    private void RenderToTarget(IRenderTarget target, ICommandBuffer cmd)
+    private void RenderScene(IRenderTarget target, ICommandBuffer cmd)
     {
         var clearColor = new Color128 { r = 1.0f, g = 0.0f, b = 1.0f, a = 1.0f };
 
@@ -167,31 +207,47 @@ public unsafe class D3D12Renderer : IRenderer
         cmd.EndRenderPass();
     }
 
-    private void RenderToSwapChain(ISwapChain swapChain, ICommandBuffer cmd)
+    private void BlitToDestination(IRenderTarget source, IRenderTarget destination, ITexture? swapChainBackBuffer, ICommandBuffer cmd)
     {
-        var backBuffer = swapChain.GetCurrentBackBuffer();
+        // Handle swap chain back buffer transitions if needed
+        if (swapChainBackBuffer != null)
+        {
+            // Transition back buffer to render target
+            cmd.ResourceBarrier(swapChainBackBuffer, ResourceState.Present, ResourceState.RenderTarget);
+        }
 
-        // Transition back buffer to render target
-        cmd.ResourceBarrier(backBuffer, ResourceState.Present, ResourceState.RenderTarget);
+        // For now, we'll do a simple copy operation
+        // In a real implementation, you would use a blit shader for post-processing
 
-        // Create temporary render target for back buffer
-        // TODO: This should be cached/reused
-        var renderTarget = CreateBackBufferRenderTarget(backBuffer);
+        // TODO: Implement proper blit operation with shader
+        // This is a placeholder - in D3D12, you would typically:
+        // 1. Set render target to the destination
+        // 2. Use a full-screen quad/triangle with a shader that samples from the source
+        // 3. Apply post-processing effects (tone mapping, gamma correction, etc.)
 
-        RenderToTarget(renderTarget, cmd);
+        // For now, just clear the destination (this should be replaced with actual blit)
+        var clearColor = new Color128 { r = 0.0f, g = 0.0f, b = 0.0f, a = 1.0f };
+        cmd.BeginRenderPass(destination, clearColor);
+        cmd.EndRenderPass();
 
-        // Transition back buffer to present
-        cmd.ResourceBarrier(backBuffer, ResourceState.RenderTarget, ResourceState.Present);
-
-        renderTarget.Dispose();
+        // Handle swap chain back buffer transitions if needed
+        if (swapChainBackBuffer != null)
+        {
+            // Transition back buffer to present
+            cmd.ResourceBarrier(swapChainBackBuffer, ResourceState.RenderTarget, ResourceState.Present);
+        }
     }
 
-    private IRenderTarget CreateBackBufferRenderTarget(ITexture backBuffer)
+    private void CreateOrUpdateOffScreenRenderTarget(uint width, uint height)
     {
-        // TODO: Create render target from back buffer texture
-        // This is a simplified implementation
-        var desc = RenderTargetDesc.Color(backBuffer.Width, backBuffer.Height, backBuffer.Format);
-        return _device.CreateRenderTarget(desc);
+        // Check if we need to recreate the off-screen render target
+        if (_offScreenRenderTarget == null || _offScreenRenderTarget.Width != width || _offScreenRenderTarget.Height != height)
+        {
+            _offScreenRenderTarget?.Dispose();
+
+            var desc = RenderTargetDesc.Color(width, height, TextureFormat.B8G8R8A8_UNorm);
+            _offScreenRenderTarget = _device.CreateRenderTarget(desc);
+        }
     }
 
     public void WaitIdle()
@@ -216,6 +272,8 @@ public unsafe class D3D12Renderer : IRenderer
         {
             frame.Dispose();
         }
+
+        _offScreenRenderTarget?.Dispose();
 
         _disposed = true;
     }

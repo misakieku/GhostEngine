@@ -1,6 +1,5 @@
 using Ghost.Graphics.Contracts;
 using Ghost.Graphics.RHI;
-using Ghost.Graphics.D3D12.Utilities;
 using Win32;
 using Win32.Graphics.Direct3D12;
 using Win32.Graphics.Dxgi;
@@ -15,16 +14,27 @@ internal unsafe class D3D12SwapChain : ISwapChain
 {
     private ComPtr<IDXGISwapChain4> _swapChain;
     private readonly D3D12Texture[] _backBuffers;
+    private readonly D3D12RenderTarget[] _backBufferRenderTargets;
     private uint _currentBackBufferIndex;
     private bool _disposed;
 
-    public uint Width { get; private set; }
-    public uint Height { get; private set; }
-    public uint BufferCount { get; }
+    public uint Width
+    {
+        get; private set;
+    }
+    public uint Height
+    {
+        get; private set;
+    }
+    public uint BufferCount
+    {
+        get;
+    }
 
     public D3D12SwapChain(ComPtr<IDXGIFactory7> factory, ID3D12CommandQueue* commandQueue, SwapChainDesc desc)
     {
         _backBuffers = new D3D12Texture[desc.BufferCount];
+        _backBufferRenderTargets = new D3D12RenderTarget[desc.BufferCount];
 
         Width = desc.Width;
         Height = desc.Height;
@@ -102,6 +112,9 @@ internal unsafe class D3D12SwapChain : ISwapChain
             backBuffer.Get()->SetName($"SwapChain_BackBuffer_{i}");
 
             _backBuffers[i] = new D3D12Texture(backBuffer.Move(), Width, Height, TextureFormat.B8G8R8A8_UNorm);
+
+            // Create render target wrapper for the back buffer
+            _backBufferRenderTargets[i] = new D3D12RenderTarget(_backBuffers[i], RenderTargetType.Color);
         }
     }
 
@@ -109,6 +122,12 @@ internal unsafe class D3D12SwapChain : ISwapChain
     {
         _currentBackBufferIndex = _swapChain.Get()->GetCurrentBackBufferIndex();
         return _backBuffers[_currentBackBufferIndex];
+    }
+
+    public IRenderTarget GetCurrentBackBufferRenderTarget()
+    {
+        _currentBackBufferIndex = _swapChain.Get()->GetCurrentBackBufferIndex();
+        return _backBufferRenderTargets[_currentBackBufferIndex];
     }
 
     public void Present(bool vsync = true)
@@ -127,9 +146,10 @@ internal unsafe class D3D12SwapChain : ISwapChain
         if (Width == width && Height == height)
             return;
 
-        // Release old back buffers
-        for (int i = 0; i < _backBuffers.Length; i++)
+        // Release old back buffers and render targets
+        for (var i = 0; i < _backBuffers.Length; i++)
         {
+            _backBufferRenderTargets[i]?.Dispose();
             _backBuffers[i]?.Dispose();
         }
 
@@ -161,10 +181,14 @@ internal unsafe class D3D12SwapChain : ISwapChain
 
     public void Dispose()
     {
-        if (_disposed) return;
-
-        for (int i = 0; i < _backBuffers.Length; i++)
+        if (_disposed)
         {
+            return;
+        }
+
+        for (var i = 0; i < _backBuffers.Length; i++)
+        {
+            _backBufferRenderTargets[i]?.Dispose();
             _backBuffers[i]?.Dispose();
         }
 
