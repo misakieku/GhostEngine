@@ -1,26 +1,6 @@
+using System.Runtime.CompilerServices;
+
 namespace Ghost.Graphics.RHI;
-
-/// <summary>
-/// Pipeline state object interface
-/// </summary>
-public interface IPipelineState : IDisposable
-{
-    /// <summary>
-    /// Pipeline type (graphics or compute)
-    /// </summary>
-    PipelineType Type
-    {
-        get;
-    }
-
-    /// <summary>
-    /// Pipeline name for debugging
-    /// </summary>
-    string Name
-    {
-        get; set;
-    }
-}
 
 /// <summary>
 /// Root signature interface
@@ -54,48 +34,89 @@ public struct RenderTargetDesc
     /// <summary>
     /// Width of the render target
     /// </summary>
-    public uint Width;
+    public uint Width
+    {
+        get;
+        set;
+    }
 
     /// <summary>
     /// Height of the render target
     /// </summary>
-    public uint Height;
+    public uint Height
+    {
+        get;
+        set;
+    }
 
     /// <summary>
-    /// Type of render target (color or depth)
+    /// Slice of the render target
     /// </summary>
-    public RenderTargetType Type;
+    public uint Slice
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Type of render target
+    /// </summary>
+    public RenderTargetType Type
+    {
+        get;
+        set;
+    }
 
     /// <summary>
     /// Target texture format
     /// </summary>
-    public TextureFormat Format;
+    public TextureFormat Format
+    {
+        get;
+        set;
+    }
 
     /// <summary>
     /// Texture dimension
     /// </summary>
-    public TextureDimension Dimension;
+    public TextureDimension Dimension
+    {
+        get;
+        set;
+    }
 
     /// <summary>
     /// Creation flags for the render target
     /// </summary>
-    public RenderTargetCreationFlags CreationFlags;
+    public RenderTargetCreationFlags CreationFlags
+    {
+        get;
+        set;
+    }
 
     /// <summary>
     /// Number of mip levels. 0 to generate full mip chain
     /// </summary>
-    public uint MipLevels;
+    public uint MipLevels
+    {
+        get;
+        set;
+    }
 
     /// <summary>
     /// Number of samples for MSAA
     /// </summary>
-    public uint SampleCount;
+    public uint SampleCount
+    {
+        get;
+        set;
+    }
 
     /// <summary>
     /// Creates a color render target
     /// </summary>
-    public static RenderTargetDesc Color(uint width, uint height,
-        TextureFormat format, TextureDimension dimension = TextureDimension.Texture2D,
+    public static RenderTargetDesc Color(uint width, uint height, uint slice = 1,
+        TextureFormat format = TextureFormat.R8G8B8A8_UNorm, TextureDimension dimension = TextureDimension.Texture2D,
         RenderTargetCreationFlags creationFlags = RenderTargetCreationFlags.AllowUAV | RenderTargetCreationFlags.DynamicallyScalable | RenderTargetCreationFlags.GenerateMips,
         uint mipLevels = 0u, uint sampleCount = 1)
     {
@@ -103,6 +124,7 @@ public struct RenderTargetDesc
         {
             Width = width,
             Height = height,
+            Slice = slice,
             Type = RenderTargetType.Color,
             Format = format,
             Dimension = dimension,
@@ -115,7 +137,7 @@ public struct RenderTargetDesc
     /// <summary>
     /// Creates a depth render target
     /// </summary>
-    public static RenderTargetDesc Depth(uint width, uint height,
+    public static RenderTargetDesc Depth(uint width, uint height, uint slice = 1,
         TextureFormat format = TextureFormat.D24_UNorm_S8_UInt, TextureDimension dimension = TextureDimension.Texture2D,
         RenderTargetCreationFlags creationFlags = RenderTargetCreationFlags.AllowUAV | RenderTargetCreationFlags.DynamicallyScalable,
         uint mipLevels = 0u, uint sampleCount = 1)
@@ -124,6 +146,7 @@ public struct RenderTargetDesc
         {
             Width = width,
             Height = height,
+            Slice = slice,
             Type = RenderTargetType.Depth,
             Format = format,
             Dimension = dimension,
@@ -131,6 +154,18 @@ public struct RenderTargetDesc
             MipLevels = mipLevels,
             SampleCount = sampleCount
         };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static TextureDesc ToTextureDescriptor(RenderTargetDesc desc)
+    {
+        var usage = desc.Type == RenderTargetType.Color ? TextureUsage.RenderTarget : TextureUsage.DepthStencil;
+        if (desc.CreationFlags.HasFlag(RenderTargetCreationFlags.AllowUAV))
+        {
+            usage |= TextureUsage.UnorderedAccess;
+        }
+
+        return new TextureDesc(desc.Width, desc.Height, desc.Slice, desc.Format, desc.Dimension, desc.MipLevels, usage);
     }
 }
 
@@ -142,37 +177,73 @@ public struct TextureDesc
     /// <summary>
     /// Width of the texture
     /// </summary>
-    public uint Width;
+    public uint Width
+    {
+        get;
+        set;
+    }
 
     /// <summary>
     /// Height of the texture
     /// </summary>
-    public uint Height;
+    public uint Height
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Slice of the texture
+    /// </summary>
+    public uint Slice
+    {
+        get;
+        set;
+    }
 
     /// <summary>
     /// Texture format
     /// </summary>
-    public TextureFormat Format;
+    public TextureFormat Format
+    {
+        get;
+        set;
+    }
 
     /// <summary>
     /// Texture dimension
     /// </summary>
-    public TextureDimension Dimension;
+    public TextureDimension Dimension
+    {
+        get;
+        set;
+    }
 
     /// <summary>
     /// Number of mip levels. 0 to generate full mip chain
     /// </summary>
-    public uint MipLevels;
+    public uint MipLevels
+    {
+        get;
+        set;
+    }
 
     /// <summary>
     /// Texture usage flags
     /// </summary>
-    public TextureUsage Usage;
+    public TextureUsage Usage
+    {
+        get;
+        set;
+    }
 
-    public TextureDesc(uint width, uint height, TextureFormat format, TextureDimension dimension = TextureDimension.Texture2D, uint mipLevels = 0u, TextureUsage usage = TextureUsage.ShaderResource)
+    public TextureDesc(uint width, uint height, uint slice = 1,
+        TextureFormat format = TextureFormat.R8G8B8A8_UNorm, TextureDimension dimension = TextureDimension.Texture2D,
+        uint mipLevels = 0u, TextureUsage usage = TextureUsage.ShaderResource)
     {
         Width = width;
         Height = height;
+        Slice = slice;
         Format = format;
         Dimension = dimension;
         MipLevels = mipLevels;
@@ -188,17 +259,29 @@ public struct BufferDesc
     /// <summary>
     /// Size of the buffer in bytes
     /// </summary>
-    public ulong Size;
+    public ulong Size
+    {
+        get;
+        set;
+    }
 
     /// <summary>
     /// Buffer usage flags
     /// </summary>
-    public BufferUsage Usage;
+    public BufferUsage Usage
+    {
+        get;
+        set;
+    }
 
     /// <summary>
     /// Memory type for the buffer
     /// </summary>
-    public MemoryType MemoryType;
+    public MemoryType MemoryType
+    {
+        get;
+        set;
+    }
 
     public BufferDesc(ulong size, BufferUsage usage, MemoryType memoryType = MemoryType.Default)
     {

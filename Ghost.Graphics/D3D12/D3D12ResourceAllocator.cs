@@ -11,7 +11,7 @@ using ResourceHandle = Ghost.Graphics.Data.ResourceHandle;
 
 namespace Ghost.Graphics.D3D12;
 
-internal unsafe class D3D12ResourceAllocator
+internal unsafe class D3D12ResourceAllocator : IResourceAllocator<ID3D12Resource>, IDisposable
 {
     private readonly struct AllocationInfo : IDisposable
     {
@@ -60,14 +60,14 @@ internal unsafe class D3D12ResourceAllocator
         }
     }
 
-    public D3D12ResourceAllocator(IDXGIAdapter* pAdapter, ID3D12Device* pDevice, RenderSystem renderSystem)
+    public D3D12ResourceAllocator(D3D12RenderDevice device, RenderSystem renderSystem)
     {
         _renderSystem = renderSystem;
 
         var desc = new AllocatorDesc
         {
-            pAdapter = pAdapter,
-            pDevice = pDevice,
+            pAdapter = (IDXGIAdapter*)device.Adapter,
+            pDevice = (ID3D12Device*)device.NativeDevice,
             Flags = AllocatorFlags.DefaultPoolsNotZeroed | AllocatorFlags.MSAATexturesAlwaysCommitted
         };
 
@@ -92,7 +92,7 @@ internal unsafe class D3D12ResourceAllocator
         }
     }
 
-    private ResourceHandle TrackResource(in Allocation allocation, bool isTemp)
+    private ResourceHandle TrackResource(ref readonly Allocation allocation, bool isTemp)
     {
         int id;
         uint generation;
@@ -130,7 +130,7 @@ internal unsafe class D3D12ResourceAllocator
         return handle;
     }
 
-    public TextureHandle CreateTexture2D(in TextureDesc desc, bool tempResource = false)
+    public TextureHandle CreateTextureHandle(ref readonly TextureDesc desc, bool tempResource = false)
     {
         CheckTexture2DSize(desc.Width, desc.Height);
 
@@ -139,7 +139,7 @@ internal unsafe class D3D12ResourceAllocator
             desc.Width,
             desc.Height,
             mipLevels: (ushort)desc.MipLevels,
-            arraySize: 1,
+            arraySize: (ushort)desc.Slice,
             flags: ConvertTextureUsage(desc.Usage)
         );
 
@@ -157,7 +157,7 @@ internal unsafe class D3D12ResourceAllocator
         return new(TrackResource(in allocation, tempResource));
     }
 
-    public BufferHandle CreateBuffer(in BufferDesc desc, bool tempResource = false)
+    public BufferHandle CreateBufferHandle(ref readonly BufferDesc desc, bool tempResource = false)
     {
         CheckBufferSize((uint)desc.Size);
 
@@ -176,10 +176,30 @@ internal unsafe class D3D12ResourceAllocator
         return new(TrackResource(in allocation, tempResource));
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public BufferHandle CreateUploadBuffer(uint sizeInBytes, bool tempResource = false)
     {
         var desc = new BufferDesc(sizeInBytes, BufferUsage.Upload, MemoryType.Upload);
-        return CreateBuffer(in desc, tempResource);
+        return CreateBufferHandle(in desc, tempResource);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public IRenderTarget CreateRenderTarget(ref readonly RenderTargetDesc desc, bool tempResource = false)
+    {
+        var textureDesc = RenderTargetDesc.ToTextureDescriptor(desc);
+        return D3D12RenderTarget.Create(CreateTextureHandle(in textureDesc), in desc);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ITexture CreateTexture(ref readonly TextureDesc desc, bool tempResource = false)
+    {
+        return new D3D12Texture(CreateTextureHandle(in desc, tempResource), in desc);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public IBuffer CreateBuffer(ref readonly BufferDesc desc, bool tempResource = false)
+    {
+        return new D3D12Buffer(CreateBufferHandle(in desc, tempResource), in desc);
     }
 
     #region Conversion Methods
@@ -203,13 +223,19 @@ internal unsafe class D3D12ResourceAllocator
         var flags = ResourceFlags.None;
 
         if (usage.HasFlag(TextureUsage.RenderTarget))
+        {
             flags |= ResourceFlags.AllowRenderTarget;
+        }
 
         if (usage.HasFlag(TextureUsage.DepthStencil))
+        {
             flags |= ResourceFlags.AllowDepthStencil;
+        }
 
         if (usage.HasFlag(TextureUsage.UnorderedAccess))
+        {
             flags |= ResourceFlags.AllowUnorderedAccess;
+        }
 
         return flags;
     }
@@ -219,7 +245,9 @@ internal unsafe class D3D12ResourceAllocator
         var flags = ResourceFlags.None;
 
         if (usage.HasFlag(BufferUsage.Raw))
+        {
             flags |= ResourceFlags.AllowUnorderedAccess;
+        }
 
         return flags;
     }
@@ -238,13 +266,19 @@ internal unsafe class D3D12ResourceAllocator
     private static ResourceStates DetermineInitialTextureState(TextureUsage usage)
     {
         if (usage.HasFlag(TextureUsage.RenderTarget))
+        {
             return ResourceStates.RenderTarget;
+        }
 
         if (usage.HasFlag(TextureUsage.DepthStencil))
+        {
             return ResourceStates.DepthWrite;
+        }
 
         if (usage.HasFlag(TextureUsage.UnorderedAccess))
+        {
             return ResourceStates.UnorderedAccess;
+        }
 
         return ResourceStates.Common;
     }
@@ -252,19 +286,29 @@ internal unsafe class D3D12ResourceAllocator
     private static ResourceStates DetermineInitialBufferState(BufferUsage usage, MemoryType memoryType)
     {
         if (memoryType == MemoryType.Upload)
+        {
             return ResourceStates.GenericRead;
+        }
 
         if (memoryType == MemoryType.Readback)
+        {
             return ResourceStates.CopyDest;
+        }
 
         if (usage.HasFlag(BufferUsage.Vertex))
+        {
             return ResourceStates.VertexAndConstantBuffer;
+        }
 
         if (usage.HasFlag(BufferUsage.Index))
+        {
             return ResourceStates.IndexBuffer;
+        }
 
         if (usage.HasFlag(BufferUsage.Constant))
+        {
             return ResourceStates.VertexAndConstantBuffer;
+        }
 
         return ResourceStates.Common;
     }
@@ -275,20 +319,20 @@ internal unsafe class D3D12ResourceAllocator
     {
         while (_temResources.Count > 0)
         {
-            ref var handle = ref _temResources.Peek();
-            ref var info = ref _allocations[handle.id];
+            var handle = _temResources.Peek();
+            var info = _allocations[handle.id];
 
             if (info.Allocated && info.cpuFenceValue > _renderSystem.CPUFenceValue)
             {
                 break;
             }
 
-            ReleaseAllocation(in handle);
+            ReleaseResource(handle);
             _temResources.Dequeue();
         }
     }
 
-    public Allocation GetAllocation(in ResourceHandle handle)
+    public ID3D12Resource* GetResource(ResourceHandle handle)
     {
         if (!handle.IsValid)
         {
@@ -301,10 +345,10 @@ internal unsafe class D3D12ResourceAllocator
             throw new InvalidOperationException($"Resource with ID {handle.id} and generation {handle.generation} is not allocated or has been released.");
         }
 
-        return allocationInfo.allocation;
+        return allocationInfo.allocation.Resource;
     }
 
-    public void ReleaseAllocation(in ResourceHandle handle)
+    public void ReleaseResource(ResourceHandle handle)
     {
         if (!handle.IsValid)
         {

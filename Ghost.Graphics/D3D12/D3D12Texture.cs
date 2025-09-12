@@ -25,6 +25,11 @@ internal unsafe class D3D12Texture : ITexture
         get;
     }
 
+    public uint Slice
+    {
+        get;
+    }
+
     public TextureFormat Format
     {
         get;
@@ -49,13 +54,14 @@ internal unsafe class D3D12Texture : ITexture
 
     public ID3D12Resource* NativeResource => _handle.IsValid ? _handle.ResourceHandle.GetAllocation().Resource : _externalResource.Get();
 
-    public D3D12Texture(ComPtr<ID3D12Resource> resource, uint width, uint height, TextureFormat format, uint mipLevels = 1)
+    public D3D12Texture(ComPtr<ID3D12Resource> resource, uint width, uint height, uint slice, TextureFormat format, uint mipLevels = 1)
     {
         _handle = TextureHandle.Invalid;
         _externalResource = resource.Move();
 
         Width = width;
         Height = height;
+        Slice = slice;
         Format = format;
         MipLevels = mipLevels;
         _currentState = ResourceState.Common;
@@ -69,6 +75,7 @@ internal unsafe class D3D12Texture : ITexture
 
         Width = desc.Width;
         Height = desc.Height;
+        Slice = desc.Slice;
         Format = desc.Format;
 
         var mipLevels = desc.MipLevels;
@@ -84,7 +91,7 @@ internal unsafe class D3D12Texture : ITexture
 
     ~D3D12Texture()
     {
-        Dispose();
+        Dispose(false);
     }
 
     private static uint GetBytesPerPixel(TextureFormat format)
@@ -108,6 +115,12 @@ internal unsafe class D3D12Texture : ITexture
 
     public void Dispose()
     {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
         if (_disposed)
         {
             return;
@@ -123,7 +136,5 @@ internal unsafe class D3D12Texture : ITexture
         }
 
         _disposed = true;
-
-        GC.SuppressFinalize(this);
     }
 }

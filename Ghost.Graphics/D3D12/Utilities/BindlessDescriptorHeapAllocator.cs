@@ -14,7 +14,7 @@ internal unsafe struct BindlessDescriptorHeapAllocator : IDisposable
 {
     private const DescriptorIndex _INVALID_DESCRIPTOR_INDEX = ~0u;
 
-    private readonly ConstPtr<ID3D12Device14> _device;
+    private readonly ComPtr<ID3D12Device14> _device;
     private readonly Lock _lock = new();
 
     private ComPtr<ID3D12DescriptorHeap> _bindlessHeap;
@@ -42,12 +42,14 @@ internal unsafe struct BindlessDescriptorHeapAllocator : IDisposable
 
     public readonly ConstPtr<ID3D12DescriptorHeap> BindlessHeap => new(_bindlessHeap.Get());
 
-    public BindlessDescriptorHeapAllocator(ConstPtr<ID3D12Device14> device, uint numDescriptors = 10000)
+    public BindlessDescriptorHeapAllocator(ComPtr<ID3D12Device14> device, uint numDescriptors = 10000)
     {
         _device = device;
+        device.Get()->AddRef();
+
         HeapType = DescriptorHeapType.CbvSrvUav;
         NumDescriptors = numDescriptors;
-        _stride = device.Ptr->GetDescriptorHandleIncrementSize(DescriptorHeapType.CbvSrvUav);
+        _stride = device.Get()->GetDescriptorHandleIncrementSize(DescriptorHeapType.CbvSrvUav);
         _freeDescriptors = new Queue<uint>();
 
         var success = AllocateResources(numDescriptors);
@@ -169,7 +171,7 @@ internal unsafe struct BindlessDescriptorHeapAllocator : IDisposable
 
         fixed (void* heapPtr = &_bindlessHeap)
         {
-            var hr = _device.Ptr->CreateDescriptorHeap(&heapDesc, __uuidof<ID3D12DescriptorHeap>(), (void**)heapPtr);
+            var hr = _device.Get()->CreateDescriptorHeap(&heapDesc, __uuidof<ID3D12DescriptorHeap>(), (void**)heapPtr);
             if (hr.Failure)
             {
                 return false;
@@ -204,7 +206,7 @@ internal unsafe struct BindlessDescriptorHeapAllocator : IDisposable
         // Copy old descriptors to new heap
         if (oldHeap.Get() is not null)
         {
-            _device.Ptr->CopyDescriptorsSimple(oldSize, _startCpuHandle, oldHeap.Get()->GetCPUDescriptorHandleForHeapStart(), HeapType);
+            _device.Get()->CopyDescriptorsSimple(oldSize, _startCpuHandle, oldHeap.Get()->GetCPUDescriptorHandleForHeapStart(), HeapType);
         }
 
         return true;

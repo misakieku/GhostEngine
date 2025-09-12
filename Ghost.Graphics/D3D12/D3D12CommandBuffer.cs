@@ -1,6 +1,7 @@
 using Ghost.Graphics.Data;
 using Ghost.Graphics.RHI;
 using Win32;
+using Win32.Graphics.Direct3D;
 using Win32.Graphics.Direct3D12;
 using Win32.Numerics;
 
@@ -13,19 +14,26 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
 {
     private ComPtr<ID3D12CommandAllocator> _allocator;
     private ComPtr<ID3D12GraphicsCommandList10> _commandList;
+
+    private readonly D3D12PipelineStateController _stateController;
+    private readonly D3D12DescriptorAllocator _descriptorAllocator;
+
     private readonly CommandBufferType _type;
     private bool _isRecording;
     private bool _disposed;
 
     public ID3D12GraphicsCommandList10* NativeCommandList => _commandList.Get();
 
-    public D3D12CommandBuffer(ComPtr<ID3D12Device14> device, CommandBufferType type)
+    public D3D12CommandBuffer(D3D12RenderDevice device, D3D12PipelineStateController stateController, D3D12DescriptorAllocator descriptorAllocator, CommandBufferType type)
     {
         _type = type;
         var commandListType = ConvertCommandBufferType(type);
 
-        device.Get()->CreateCommandAllocator(commandListType, __uuidof<ID3D12CommandAllocator>(), _allocator.GetVoidAddressOf());
-        device.Get()->CreateCommandList(0u, commandListType, _allocator.Get(), null, __uuidof<ID3D12GraphicsCommandList10>(), _commandList.GetVoidAddressOf());
+        device.NativeDevice->CreateCommandAllocator(commandListType, __uuidof<ID3D12CommandAllocator>(), _allocator.GetVoidAddressOf());
+        device.NativeDevice->CreateCommandList(0u, commandListType, _allocator.Get(), null, __uuidof<ID3D12GraphicsCommandList10>(), _commandList.GetVoidAddressOf());
+
+        _stateController = stateController;
+        _descriptorAllocator = descriptorAllocator;
 
         // Command lists are created in recording state, so close it
         _commandList.Get()->Close();
@@ -35,7 +43,9 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     public void Begin()
     {
         if (_isRecording)
+        {
             throw new InvalidOperationException("Command buffer is already recording");
+        }
 
         _allocator.Get()->Reset();
         _commandList.Get()->Reset(_allocator.Get(), null);
@@ -45,7 +55,9 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     public void End()
     {
         if (!_isRecording)
+        {
             throw new InvalidOperationException("Command buffer is not recording");
+        }
 
         _commandList.Get()->Close();
         _isRecording = false;
@@ -99,21 +111,53 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         throw new NotImplementedException();
     }
 
-    public void SetPipelineState(IPipelineState pipelineState)
+    public void SetPipelineState(IPipelineStateController pipelineState)
     {
         // TODO: Implement pipeline state setting
         throw new NotImplementedException();
     }
 
-    public void SetDescriptorHeaps(IDescriptorHeap[] heaps)
+    public void DrawMesh(Mesh mesh, Material material)
     {
-        // TODO: Implement descriptor heap setting
-        throw new NotImplementedException();
-    }
+        // Bind the bindless material (sets up root signature, pipeline state, and descriptor heaps)
+        var shaderPipeline = _stateController.GetShaderPipeline(material.Shader);
+        if (shaderPipeline is not D3D12ShaderPipeline d3d12Pipeline)
+        {
+            throw new InvalidOperationException("Shader pipeline is not compiled or invalid");
+        }
 
-    public void DrawIndexedInstanced(uint indexCount, uint instanceCount = 1, uint startIndex = 0, int baseVertex = 0, uint startInstance = 0)
-    {
-        _commandList.Get()->DrawIndexedInstanced(indexCount, instanceCount, startIndex, baseVertex, startInstance);
+        // Set root signature and pipeline state
+        _commandList.Get()->SetGraphicsRootSignature(d3d12Pipeline.rootSignature.Get());
+        _commandList.Get()->SetPipelineState(d3d12Pipeline.pipelineState.Get());
+
+        // Set descriptor heaps - CRUCIAL: Use the specialized bindless heap for SM 6.6
+        var heaps = stackalloc ID3D12DescriptorHeap*[2];
+        heaps[0] = _descriptorAllocator.GetBindlessHeap(); // Specialized bindless heap
+        heaps[1] = d3d12Pipeline.samplerHeap.Get(); // Sampler heap from shader
+        _commandList.Get()->SetDescriptorHeaps(2, heaps);
+
+        // Bind constant buffers
+        var rootParamIndex = 0u;
+        foreach (var cbufferInfo in material.Shader.ConstantBuffers)
+        {
+            var cache = material.CBufferCaches[(int)cbufferInfo.RegisterSlot];
+            _commandList.Get()->SetGraphicsRootConstantBufferView(rootParamIndex++, cache.GpuResource.GPUAddress);
+        }
+
+        // Bind sampler descriptor table (last root parameter)
+        var samplerGpuHandle = d3d12Pipeline.samplerHeap.Get()->GetGPUDescriptorHandleForHeapStart();
+        _commandList.Get()->SetGraphicsRootDescriptorTable(rootParamIndex, samplerGpuHandle);
+
+
+        // For fully bindless rendering, we don't use the Input Assembler stage
+        // Instead, we use instanced drawing where each "instance" represents a triangle
+        // The shader will use SV_InstanceID to index into the index buffer and then into the vertex buffer
+        _commandList.Get()->IASetPrimitiveTopology(PrimitiveTopology.TriangleList);
+
+        // Draw without vertex/index buffers - use instanced drawing
+        // Each instance represents a triangle (3 vertices)
+        var triangleCount = mesh.IndexCount / 3;
+        _commandList.Get()->DrawInstanced(3, triangleCount, 0, 0);
     }
 
     public void Dispatch(uint threadGroupCountX, uint threadGroupCountY = 1, uint threadGroupCountZ = 1)

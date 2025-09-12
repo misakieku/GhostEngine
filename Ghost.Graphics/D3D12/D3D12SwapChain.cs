@@ -1,5 +1,7 @@
 using Ghost.Graphics.Contracts;
+using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
+using System.Runtime.CompilerServices;
 using Win32;
 using Win32.Graphics.Direct3D12;
 using Win32.Graphics.Dxgi;
@@ -13,47 +15,46 @@ namespace Ghost.Graphics.D3D12;
 internal unsafe class D3D12SwapChain : ISwapChain
 {
     private ComPtr<IDXGISwapChain4> _swapChain;
-    private readonly D3D12Texture[] _backBuffers;
-    private readonly D3D12RenderTarget[] _backBufferRenderTargets;
-    private uint _currentBackBufferIndex;
+    private readonly D3D12RenderTarget[] _backBuffers;
     private bool _disposed;
 
     public uint Width
     {
         get; private set;
     }
+
     public uint Height
     {
         get; private set;
     }
+
     public uint BufferCount
     {
         get;
     }
 
-    public D3D12SwapChain(ComPtr<IDXGIFactory7> factory, ID3D12CommandQueue* commandQueue, SwapChainDesc desc)
+    public D3D12SwapChain(IDXGIFactory7* pFactory, ID3D12CommandQueue* pCommandQueue, SwapChainDesc desc)
     {
-        _backBuffers = new D3D12Texture[desc.BufferCount];
-        _backBufferRenderTargets = new D3D12RenderTarget[desc.BufferCount];
+        _backBuffers = new D3D12RenderTarget[D3D12PipelineResource.BACK_BUFFER_COUNT];
 
-        Width = desc.Width;
-        Height = desc.Height;
-        BufferCount = desc.BufferCount;
+        Width = desc.width;
+        Height = desc.height;
+        BufferCount = D3D12PipelineResource.BACK_BUFFER_COUNT;
 
-        CreateSwapChain(factory, commandQueue, desc);
+        CreateSwapChain(pFactory, pCommandQueue, desc);
         CreateBackBuffers();
     }
 
-    private void CreateSwapChain(ComPtr<IDXGIFactory7> factory, ID3D12CommandQueue* commandQueue, SwapChainDesc desc)
+    private void CreateSwapChain(IDXGIFactory7* pFactory, ID3D12CommandQueue* commandQueue, SwapChainDesc desc)
     {
         var swapChainDesc = new SwapChainDescription1
         {
-            Width = desc.Width,
-            Height = desc.Height,
-            Format = ConvertTextureFormat(desc.Format),
+            Width = desc.width,
+            Height = desc.height,
+            Format = ConvertTextureFormat(desc.format),
             SampleDesc = new SampleDescription(1, 0),
             BufferUsage = Usage.BackBuffer | Usage.RenderTargetOutput,
-            BufferCount = desc.BufferCount,
+            BufferCount = D3D12PipelineResource.BACK_BUFFER_COUNT,
             Scaling = Scaling.Stretch,
             SwapEffect = SwapEffect.FlipDiscard,
             AlphaMode = AlphaMode.Ignore,
@@ -63,15 +64,15 @@ internal unsafe class D3D12SwapChain : ISwapChain
 
         using ComPtr<IDXGISwapChain1> tempSwapChain = default;
 
-        switch (desc.Target.Type)
+        switch (desc.target.Type)
         {
             case SwapChainTargetType.Composition:
-                factory.Get()->CreateSwapChainForComposition((IUnknown*)commandQueue, &swapChainDesc, null, tempSwapChain.GetAddressOf());
+                pFactory->CreateSwapChainForComposition((IUnknown*)commandQueue, &swapChainDesc, null, tempSwapChain.GetAddressOf());
 
                 // Set the composition surface
-                if (desc.Target.CompositionSurface != null)
+                if (desc.target.CompositionSurface != null)
                 {
-                    var swapChainPanelNative = ISwapChainPanelNative.FromSwapChainPanel(desc.Target.CompositionSurface);
+                    using var swapChainPanelNative = ISwapChainPanelNative.FromSwapChainPanel(desc.target.CompositionSurface);
                     swapChainPanelNative.SetSwapChain((IntPtr)tempSwapChain.Get());
                 }
                 break;
@@ -82,9 +83,9 @@ internal unsafe class D3D12SwapChain : ISwapChain
                     Windowed = true,
                 };
 
-                factory.Get()->CreateSwapChainForHwnd(
+                pFactory->CreateSwapChainForHwnd(
                     (IUnknown*)commandQueue,
-                    desc.Target.WindowHandle,
+                    desc.target.WindowHandle,
                     &swapChainDesc,
                     &swapChainFullscreenDesc,
                     null,
@@ -99,8 +100,6 @@ internal unsafe class D3D12SwapChain : ISwapChain
         {
             throw new InvalidOperationException("Failed to create IDXGISwapChain4 interface.");
         }
-
-        _currentBackBufferIndex = _swapChain.Get()->GetCurrentBackBufferIndex();
     }
 
     private void CreateBackBuffers()
@@ -111,23 +110,14 @@ internal unsafe class D3D12SwapChain : ISwapChain
             _swapChain.Get()->GetBuffer(i, __uuidof<ID3D12Resource>(), backBuffer.GetVoidAddressOf());
             backBuffer.Get()->SetName($"SwapChain_BackBuffer_{i}");
 
-            _backBuffers[i] = new D3D12Texture(backBuffer.Move(), Width, Height, TextureFormat.B8G8R8A8_UNorm);
-
-            // Create render target wrapper for the back buffer
-            _backBufferRenderTargets[i] = new D3D12RenderTarget(_backBuffers[i], RenderTargetType.Color);
+            _backBuffers[i] = D3D12RenderTarget.Create(backBuffer.Move(), Width, Height, 1, TextureFormat.B8G8R8A8_UNorm, RenderTargetType.Color);
         }
     }
 
-    public ITexture GetCurrentBackBuffer()
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public IRenderTarget GetCurrentBackBuffer()
     {
-        _currentBackBufferIndex = _swapChain.Get()->GetCurrentBackBufferIndex();
-        return _backBuffers[_currentBackBufferIndex];
-    }
-
-    public IRenderTarget GetCurrentBackBufferRenderTarget()
-    {
-        _currentBackBufferIndex = _swapChain.Get()->GetCurrentBackBufferIndex();
-        return _backBufferRenderTargets[_currentBackBufferIndex];
+        return _backBuffers[_swapChain.Get()->GetCurrentBackBufferIndex()];
     }
 
     public void Present(bool vsync = true)
@@ -149,7 +139,6 @@ internal unsafe class D3D12SwapChain : ISwapChain
         // Release old back buffers and render targets
         for (var i = 0; i < _backBuffers.Length; i++)
         {
-            _backBufferRenderTargets[i]?.Dispose();
             _backBuffers[i]?.Dispose();
         }
 
@@ -164,7 +153,6 @@ internal unsafe class D3D12SwapChain : ISwapChain
 
         // Recreate back buffers
         CreateBackBuffers();
-        _currentBackBufferIndex = _swapChain.Get()->GetCurrentBackBufferIndex();
     }
 
     private static Format ConvertTextureFormat(TextureFormat format)
@@ -188,7 +176,6 @@ internal unsafe class D3D12SwapChain : ISwapChain
 
         for (var i = 0; i < _backBuffers.Length; i++)
         {
-            _backBufferRenderTargets[i]?.Dispose();
             _backBuffers[i]?.Dispose();
         }
 

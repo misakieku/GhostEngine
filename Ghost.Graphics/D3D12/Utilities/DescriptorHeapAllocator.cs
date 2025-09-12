@@ -1,5 +1,4 @@
-﻿using Ghost.Core;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Numerics;
 using Win32;
 using Win32.Graphics.Direct3D12;
@@ -11,8 +10,7 @@ internal unsafe struct DescriptorHeapAllocator : IDisposable
 {
     private const DescriptorIndex _INVALID_DESCRIPTOR_INDEX = ~0u;
 
-    private readonly ConstPtr<ID3D12Device14> _device;
-    private readonly Lock _lock = new();
+    private ComPtr<ID3D12Device14> _device;
 
     private ComPtr<ID3D12DescriptorHeap> _heap;
     private ComPtr<ID3D12DescriptorHeap> _shaderVisibleHeap;
@@ -21,6 +19,8 @@ internal unsafe struct DescriptorHeapAllocator : IDisposable
     private GpuDescriptorHandle _startGpuHandleShaderVisible;
     private DescriptorIndex _searchStart;
     private bool[] _allocatedDescriptors = [];
+
+    private readonly Lock _lock = new();
 
     public DescriptorHeapType HeapType
     {
@@ -47,16 +47,18 @@ internal unsafe struct DescriptorHeapAllocator : IDisposable
         get;
     }
 
-    public readonly ConstPtr<ID3D12DescriptorHeap> Heap => new(_heap.Get());
-    public readonly ConstPtr<ID3D12DescriptorHeap> ShaderVisibleHeap => new(_shaderVisibleHeap.Get());
+    public readonly ID3D12DescriptorHeap* Heap => _heap.Get();
+    public readonly ID3D12DescriptorHeap* ShaderVisibleHeap => _shaderVisibleHeap.Get();
 
-    public DescriptorHeapAllocator(string name, ConstPtr<ID3D12Device14> device, DescriptorHeapType type, uint numDescriptors)
+    public DescriptorHeapAllocator(string name, ComPtr<ID3D12Device14> device, DescriptorHeapType type, uint numDescriptors)
     {
         _device = device;
+        device.Get()->AddRef();
+
         HeapType = type;
         NumDescriptors = numDescriptors;
         ShaderVisible = type == DescriptorHeapType.CbvSrvUav || type == DescriptorHeapType.Sampler;
-        Stride = device.Ptr->GetDescriptorHandleIncrementSize(type);
+        Stride = device.Get()->GetDescriptorHandleIncrementSize(type);
 
         var success = AllocateResources(numDescriptors);
         Debug.Assert(success);
@@ -172,7 +174,7 @@ internal unsafe struct DescriptorHeapAllocator : IDisposable
 
     public void CopyToShaderVisibleHeap(DescriptorIndex index, uint count = 1)
     {
-        _device.Ptr->CopyDescriptorsSimple(count, GetCpuHandleShaderVisible(index), GetCpuHandle(index), HeapType);
+        _device.Get()->CopyDescriptorsSimple(count, GetCpuHandleShaderVisible(index), GetCpuHandle(index), HeapType);
     }
 
     private bool AllocateResources(uint numDescriptors)
@@ -191,7 +193,7 @@ internal unsafe struct DescriptorHeapAllocator : IDisposable
 
         fixed (void* heapPtr = &_heap)
         {
-            var hr = _device.Ptr->CreateDescriptorHeap(&heapDesc, __uuidof<ID3D12DescriptorHeap>(), (void**)heapPtr);
+            var hr = _device.Get()->CreateDescriptorHeap(&heapDesc, __uuidof<ID3D12DescriptorHeap>(), (void**)heapPtr);
             if (hr.Failure)
             {
                 return false;
@@ -207,7 +209,7 @@ internal unsafe struct DescriptorHeapAllocator : IDisposable
 
             fixed (void* heapPtr = &_shaderVisibleHeap)
             {
-                var hr = _device.Ptr->CreateDescriptorHeap(&heapDesc, __uuidof<ID3D12DescriptorHeap>(), (void**)heapPtr);
+                var hr = _device.Get()->CreateDescriptorHeap(&heapDesc, __uuidof<ID3D12DescriptorHeap>(), (void**)heapPtr);
                 if (hr.Failure)
                 {
                     return false;
@@ -233,11 +235,11 @@ internal unsafe struct DescriptorHeapAllocator : IDisposable
             return false;
         }
 
-        _device.Ptr->CopyDescriptorsSimple(oldSize, _startCpuHandle, oldHeap.Get()->GetCPUDescriptorHandleForHeapStart(), HeapType);
+        _device.Get()->CopyDescriptorsSimple(oldSize, _startCpuHandle, oldHeap.Get()->GetCPUDescriptorHandleForHeapStart(), HeapType);
 
         if (_shaderVisibleHeap.Get() is not null)
         {
-            _device.Ptr->CopyDescriptorsSimple(oldSize, _startCpuHandleShaderVisible, oldHeap.Get()->GetCPUDescriptorHandleForHeapStart(), HeapType);
+            _device.Get()->CopyDescriptorsSimple(oldSize, _startCpuHandleShaderVisible, oldHeap.Get()->GetCPUDescriptorHandleForHeapStart(), HeapType);
         }
 
         return true;
@@ -246,6 +248,8 @@ internal unsafe struct DescriptorHeapAllocator : IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
+        _device.Dispose();
+
         _heap.Dispose();
         _shaderVisibleHeap.Dispose();
     }

@@ -16,12 +16,12 @@ public static class GraphicsPipeline
     internal const uint _FRAME_COUNT = 2;
 
 #if DEBUG
-    private static DebugLayer? s_debugLayer;
+    private static D3D12DebugLayer? s_debugLayer;
 #endif
 
     private static GraphicsDevice? s_graphicsDevice;
-    private static DescriptorAllocator? s_descriptorAllocator;
-    private static D3D12ResourceAllocator? s_resourceAllocator;
+    private static D3D12DescriptorAllocator? s_descriptorAllocator;
+    private static D3D12DescriptorAllocator? s_resourceAllocator;
     private static ResourceUploadBatch? s_uploadBatch;
 
     // New RHI-based device for modern usage
@@ -31,8 +31,8 @@ public static class GraphicsPipeline
     private static bool s_initialized;
 
     internal static GraphicsDevice GraphicsDevice => s_graphicsDevice ?? throw new InvalidOperationException("Graphics device is not initialized.");
-    internal static D3D12ResourceAllocator ResourceAllocator => s_resourceAllocator ?? throw new InvalidOperationException("Resource allocator is not initialized.");
-    internal static DescriptorAllocator DescriptorAllocator => s_descriptorAllocator ?? throw new InvalidOperationException("Descriptor allocator is not initialized.");
+    internal static D3D12DescriptorAllocator ResourceAllocator => s_resourceAllocator ?? throw new InvalidOperationException("Resource allocator is not initialized.");
+    internal static D3D12DescriptorAllocator DescriptorAllocator => s_descriptorAllocator ?? throw new InvalidOperationException("Descriptor allocator is not initialized.");
 
     /// <summary>
     /// Gets the modern RHI render device - prefer this over legacy GraphicsDevice
@@ -61,7 +61,7 @@ public static class GraphicsPipeline
     internal static unsafe void Initialize()
     {
 #if DEBUG
-        s_debugLayer = new DebugLayer();
+        s_debugLayer = new D3D12DebugLayer();
 #endif
         // Initialize legacy components for compatibility
         s_graphicsDevice = new GraphicsDevice();

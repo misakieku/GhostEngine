@@ -73,27 +73,12 @@ public interface IBuffer : IResource
 /// Render target interface for rendering operations
 /// Supports either color OR depth rendering, not both
 /// </summary>
-public interface IRenderTarget : IDisposable
+public interface IRenderTarget : ITexture
 {
-    /// <summary>
-    /// Width of the render target
-    /// </summary>
-    uint Width { get; }
-
-    /// <summary>
-    /// Height of the render target
-    /// </summary>
-    uint Height { get; }
-
     /// <summary>
     /// Type of render target (color or depth)
     /// </summary>
     RenderTargetType Type { get; }
-
-    /// <summary>
-    /// Gets the target texture (either color or depth based on Type)
-    /// </summary>
-    ITexture Target { get; }
 }
 
 /// <summary>

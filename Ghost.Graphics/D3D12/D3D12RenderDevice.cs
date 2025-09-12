@@ -18,14 +18,12 @@ internal unsafe class D3D12RenderDevice : IRenderDevice
     private readonly D3D12CommandQueue _graphicsQueue;
     private readonly D3D12CommandQueue _computeQueue;
     private readonly D3D12CommandQueue _copyQueue;
-    private readonly D3D12DescriptorAllocator _descriptorAllocator;
 
     private bool _disposed;
 
     public ICommandQueue GraphicsQueue => _graphicsQueue;
     public ICommandQueue ComputeQueue => _computeQueue;
     public ICommandQueue CopyQueue => _copyQueue;
-    public IDescriptorAllocator DescriptorAllocator => _descriptorAllocator;
 
     public ID3D12Device14* NativeDevice => _device.Get();
     public IDXGIFactory7* DXGIFactory => _dxgiFactory.Get();
@@ -38,8 +36,11 @@ internal unsafe class D3D12RenderDevice : IRenderDevice
         _graphicsQueue = new D3D12CommandQueue(_device, CommandQueueType.Graphics);
         _computeQueue = new D3D12CommandQueue(_device, CommandQueueType.Compute);
         _copyQueue = new D3D12CommandQueue(_device, CommandQueueType.Copy);
+    }
 
-        _descriptorAllocator = new D3D12DescriptorAllocator(_device);
+    ~D3D12RenderDevice()
+    {
+        Dispose();
     }
 
     private void InitializeDevice()
@@ -78,22 +79,13 @@ internal unsafe class D3D12RenderDevice : IRenderDevice
         }
     }
 
-    public ICommandBuffer CreateCommandBuffer(CommandBufferType type = CommandBufferType.Graphics)
-    {
-        return new D3D12CommandBuffer(_device, type);
-    }
-
-    public ISwapChain CreateSwapChain(SwapChainDesc desc)
-    {
-        return new D3D12SwapChain(_dxgiFactory, _graphicsQueue.NativeQueue, desc);
-    }
-
     public void Dispose()
     {
         if (_disposed)
+        {
             return;
+        }
 
-        _descriptorAllocator?.Dispose();
         _graphicsQueue?.Dispose();
         _computeQueue?.Dispose();
         _copyQueue?.Dispose();
@@ -103,5 +95,7 @@ internal unsafe class D3D12RenderDevice : IRenderDevice
         _adapter.Dispose();
 
         _disposed = true;
+
+        GC.SuppressFinalize(this);
     }
 }

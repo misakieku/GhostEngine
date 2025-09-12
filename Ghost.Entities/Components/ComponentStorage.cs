@@ -39,7 +39,7 @@ internal interface IComponentPool<T> : IComponentPool
 internal class ComponentPool<T> : IComponentPool<T>
     where T : unmanaged, IComponentData
 {
-    private struct ComponentData
+    private struct ComponentMetadata
     {
         public T data;
         public Entity owner;
@@ -48,7 +48,7 @@ internal class ComponentPool<T> : IComponentPool<T>
     private EntityID _nextId;
     private EntityID _capacity;
 
-    private ComponentData[] _components;
+    private ComponentMetadata[] _components;
     private EntityID[] _lookup;
 
     public EntityID Count => _nextId;
@@ -58,7 +58,7 @@ internal class ComponentPool<T> : IComponentPool<T>
         _nextId = 0;
         _capacity = initialSize;
 
-        _components = new ComponentData[initialSize];
+        _components = new ComponentMetadata[initialSize];
         _lookup = new EntityID[initialSize];
 
         _lookup.AsSpan().Fill(Entity.INVALID_ID);
@@ -124,7 +124,7 @@ internal class ComponentPool<T> : IComponentPool<T>
         }
 
         _lookup[lookupIndex] = _nextId;
-        _components[_nextId] = new ComponentData
+        _components[_nextId] = new ComponentMetadata
         {
             data = component,
             owner = entity
@@ -205,7 +205,7 @@ internal class ComponentPool<T> : IComponentPool<T>
 
     public void Dispose()
     {
-        _components = Array.Empty<ComponentData>();
+        _components = Array.Empty<ComponentMetadata>();
         _lookup = Array.Empty<EntityID>();
         _nextId = 0;
         _capacity = 0;

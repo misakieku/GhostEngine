@@ -4,7 +4,7 @@ using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Helpers;
 using System.Runtime.CompilerServices;
 
-namespace Ghost.Graphics.Shading;
+namespace Ghost.Graphics.Data;
 
 internal struct CBufferCache : IDisposable
 {

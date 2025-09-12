@@ -43,7 +43,7 @@ internal unsafe class D3D12Buffer : IBuffer
 
     public ResourceState CurrentState => _currentState;
 
-    public ID3D12Resource* NativeResource => _handle.ResourceHandle.GetAllocation().Resource;
+    public ID3D12Resource* NativeResource => _externalResource.Get() == null ? _handle.ResourceHandle.GetAllocation().Resource : _externalResource.Get();
 
     /// <summary>
     /// Constructor for wrapping existing D3D12 resources

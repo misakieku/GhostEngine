@@ -10,36 +10,36 @@ public interface ICommandBuffer : IDisposable
     /// <summary>
     /// Begins recording commands into this command buffer
     /// </summary>
-    void Begin();
+    public void Begin();
 
     /// <summary>
     /// Ends recording commands and prepares for submission
     /// </summary>
-    void End();
+    public void End();
 
     /// <summary>
     /// Begins a render pass with the specified render target
     /// </summary>
     /// <param name="renderTarget">Render target to render into</param>
     /// <param name="clearColor">Color to clear the render target with</param>
-    void BeginRenderPass(IRenderTarget renderTarget, Color128 clearColor);
+    public void BeginRenderPass(IRenderTarget renderTarget, Color128 clearColor);
 
     /// <summary>
     /// Ends the current render pass
     /// </summary>
-    void EndRenderPass();
+    public void EndRenderPass();
 
     /// <summary>
     /// Sets the viewport for rendering
     /// </summary>
     /// <param name="viewport">Viewport to set</param>
-    void SetViewport(ViewportDesc viewport);
+    public void SetViewport(ViewportDesc viewport);
 
     /// <summary>
     /// Sets the scissor rectangle
     /// </summary>
     /// <param name="rect">Scissor rectangle to set</param>
-    void SetScissorRect(RectDesc rect);
+    public void SetScissorRect(RectDesc rect);
 
     /// <summary>
     /// Inserts a resource barrier for state transitions
@@ -47,35 +47,26 @@ public interface ICommandBuffer : IDisposable
     /// <param name="resource">Resource to transition</param>
     /// <param name="before">Current resource state</param>
     /// <param name="after">Target resource state</param>
-    void ResourceBarrier(IResource resource, ResourceState before, ResourceState after);
+    public void ResourceBarrier(IResource resource, ResourceState before, ResourceState after);
 
     /// <summary>
     /// Sets the graphics root signature
     /// </summary>
     /// <param name="rootSignature">Root signature to set</param>
-    void SetGraphicsRootSignature(IRootSignature rootSignature);
+    public void SetGraphicsRootSignature(IRootSignature rootSignature);
 
     /// <summary>
     /// Sets the pipeline state object
     /// </summary>
     /// <param name="pipelineState">Pipeline state to set</param>
-    void SetPipelineState(IPipelineState pipelineState);
+    public void SetPipelineState(IPipelineStateController pipelineState);
 
     /// <summary>
-    /// Sets descriptor heaps for bindless rendering
+    /// Renders the specified mesh using the provided material.
     /// </summary>
-    /// <param name="heaps">Descriptor heaps to set</param>
-    void SetDescriptorHeaps(IDescriptorHeap[] heaps);
-
-    /// <summary>
-    /// Draws indexed geometry
-    /// </summary>
-    /// <param name="indexCount">Number of indices to draw</param>
-    /// <param name="instanceCount">Number of instances to draw</param>
-    /// <param name="startIndex">Starting index location</param>
-    /// <param name="baseVertex">Base vertex location</param>
-    /// <param name="startInstance">Starting instance location</param>
-    void DrawIndexedInstanced(uint indexCount, uint instanceCount = 1, uint startIndex = 0, int baseVertex = 0, uint startInstance = 0);
+    /// <param name="mesh">The mesh to be drawn. Must not be null.</param>
+    /// <param name="material">The material to use for rendering the mesh. Must not be null.</param>
+    public void DrawMesh(Mesh mesh, Material material);
 
     /// <summary>
     /// Dispatches compute threads
@@ -83,7 +74,7 @@ public interface ICommandBuffer : IDisposable
     /// <param name="threadGroupCountX">Thread groups in X dimension</param>
     /// <param name="threadGroupCountY">Thread groups in Y dimension</param>
     /// <param name="threadGroupCountZ">Thread groups in Z dimension</param>
-    void Dispatch(uint threadGroupCountX, uint threadGroupCountY = 1, uint threadGroupCountZ = 1);
+    public void Dispatch(uint threadGroupCountX, uint threadGroupCountY = 1, uint threadGroupCountZ = 1);
 }
 
 /// <summary>
@@ -129,7 +120,7 @@ public struct RectDesc
 }
 
 /// <summary>
-/// D3D12-style resource states
+/// Resource states
 /// </summary>
 public enum ResourceState
 {
@@ -143,5 +134,5 @@ public enum ResourceState
     PixelShaderResource = 0x80,
     CopyDest = 0x400,
     CopySource = 0x800,
-    Present = 0
+    Present = 0,
 }

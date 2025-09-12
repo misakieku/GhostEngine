@@ -1,5 +1,8 @@
 using Ghost.Graphics.Data;
 using Ghost.Graphics.RHI;
+using System.Runtime.CompilerServices;
+using Win32;
+using Win32.Graphics.Direct3D12;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -7,62 +10,51 @@ namespace Ghost.Graphics.D3D12;
 /// D3D12 implementation of render target interface
 /// Supports either color OR depth rendering, not both
 /// </summary>
-internal unsafe class D3D12RenderTarget : IRenderTarget
+internal unsafe class D3D12RenderTarget : D3D12Texture, IRenderTarget
 {
-    private readonly D3D12Texture _target;
-    private bool _disposed;
-
-    public uint Width
-    {
-        get;
-    }
-
-    public uint Height
-    {
-        get;
-    }
-
     public RenderTargetType Type
     {
         get;
     }
 
-    public ITexture Target => _target;
+    private D3D12RenderTarget(ComPtr<ID3D12Resource> resource, uint width, uint height, uint slice, TextureFormat format, RenderTargetType type, uint mipLevels = 1)
+        : base(resource, width, height, slice, format, mipLevels)
+    {
+        Type = type;
+    }
+
+    private D3D12RenderTarget(TextureHandle handle, ref readonly RenderTargetDesc desc, ref readonly TextureDesc texDesc)
+        : base(handle, in texDesc)
+    {
+        Type = desc.Type;
+    }
 
     /// <summary>
     /// Create a new render target with its own texture
     /// </summary>
-    public D3D12RenderTarget(TextureHandle handle, ref readonly RenderTargetDesc desc)
+    /// <param name="handle">The handle to the texture resource</param>
+    /// <param name="desc">The descriptor to describe the render target</param>
+    /// <returns>New render target instance</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static D3D12RenderTarget Create(TextureHandle handle, ref readonly RenderTargetDesc desc)
     {
-        Width = desc.Width;
-        Height = desc.Height;
-        Type = desc.Type;
-
-        // Create the target texture based on type
-        var usage = Type == RenderTargetType.Color ? TextureUsage.RenderTarget : TextureUsage.DepthStencil;
-        var textureDesc = new TextureDesc(desc.Width, desc.Height, desc.Format, desc.Dimension, desc.MipLevels, usage);
-        _target = new D3D12Texture(handle, in textureDesc);
+        var texDesc = RenderTargetDesc.ToTextureDescriptor(desc);
+        return new D3D12RenderTarget(handle, in desc, in texDesc);
     }
 
     /// <summary>
-    /// Wrap an existing texture as a render target (for swap chain back buffers)
+    /// Create a new render target from an existing D3D12 resource
     /// </summary>
-    public D3D12RenderTarget(D3D12Texture existingTexture, RenderTargetType type)
+    /// <param name="resource">The existing D3D12 resource</param>
+    /// <param name="width">The width of the render target</param>
+    /// <param name="height">The height of the render target</param>
+    /// <param name="format">The format of the render target</param>
+    /// <param name="type">The type of the render target</param>
+    /// <param name="mipLevels">The number of mip levels</param>
+    /// <returns>New render target instance</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static D3D12RenderTarget Create(ComPtr<ID3D12Resource> resource, uint width, uint height, uint slice, TextureFormat format, RenderTargetType type, uint mipLevels = 1)
     {
-        _target = existingTexture;
-        Width = existingTexture.Width;
-        Height = existingTexture.Height;
-        Type = type;
-    }
-
-    public void Dispose()
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        _target?.Dispose();
-        _disposed = true;
+        return new D3D12RenderTarget(resource, width, height, slice, format, type, mipLevels);
     }
 }

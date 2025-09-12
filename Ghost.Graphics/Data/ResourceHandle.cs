@@ -3,7 +3,7 @@ using Win32.Graphics.D3D12MemoryAllocator;
 
 namespace Ghost.Graphics.Data;
 
-internal readonly struct ResourceHandle : IEquatable<ResourceHandle>, IDisposable
+public readonly struct ResourceHandle : IEquatable<ResourceHandle>, IDisposable
 {
     private const int _INVALID_ID = -1;
 
@@ -28,7 +28,7 @@ internal readonly struct ResourceHandle : IEquatable<ResourceHandle>, IDisposabl
             throw new InvalidOperationException("Cannot get allocation from an invalid AllocationHandle.");
         }
 
-        return GraphicsPipeline.ResourceAllocator.GetAllocation(this);
+        return GraphicsPipeline.ResourceAllocator.GetResource(this);
     }
 
     public bool Equals(ResourceHandle other)
@@ -51,7 +51,7 @@ internal readonly struct ResourceHandle : IEquatable<ResourceHandle>, IDisposabl
 
     public void Dispose()
     {
-        GraphicsPipeline.ResourceAllocator.ReleaseAllocation(this);
+        GraphicsPipeline.ResourceAllocator.ReleaseResource(this);
     }
 
     public static implicit operator Allocation(ResourceHandle handle)
@@ -79,8 +79,7 @@ public readonly struct TextureHandle : IEquatable<TextureHandle>, IDisposable
 {
     private readonly ResourceHandle _resourceHandle;
 
-    internal ResourceHandle ResourceHandle => _resourceHandle;
-
+    public ResourceHandle ResourceHandle => _resourceHandle;
     public static TextureHandle Invalid => new(ResourceHandle.Invalid);
 
     internal TextureHandle(ResourceHandle resourceHandle)
@@ -125,8 +124,7 @@ public readonly struct BufferHandle : IEquatable<BufferHandle>, IDisposable
 {
     private readonly ResourceHandle _resourceHandle;
 
-    internal ResourceHandle ResourceHandle => _resourceHandle;
-
+    public ResourceHandle ResourceHandle => _resourceHandle;
     public static BufferHandle Invalid => new(ResourceHandle.Invalid);
 
     internal BufferHandle(ResourceHandle resourceHandle)

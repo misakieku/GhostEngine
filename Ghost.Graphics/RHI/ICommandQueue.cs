@@ -8,7 +8,10 @@ public interface ICommandQueue : IDisposable
     /// <summary>
     /// Type of commands this queue can execute
     /// </summary>
-    CommandQueueType Type { get; }
+    CommandQueueType Type
+    {
+        get;
+    }
 
     /// <summary>
     /// Submits a single command buffer for execution
@@ -20,7 +23,7 @@ public interface ICommandQueue : IDisposable
     /// Submits multiple command buffers for execution
     /// </summary>
     /// <param name="commandBuffers">Command buffers to submit</param>
-    void Submit(ICommandBuffer[] commandBuffers);
+    void Submit(params ReadOnlySpan<ICommandBuffer> commandBuffers);
 
     /// <summary>
     /// Signals a fence with the specified value

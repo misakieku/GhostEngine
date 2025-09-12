@@ -15,10 +15,13 @@ internal unsafe class D3D12CommandQueue : ICommandQueue
     private ulong _fenceValue;
     private bool _disposed;
 
-    public CommandQueueType Type { get; }
+    public CommandQueueType Type
+    {
+        get;
+    }
     public ID3D12CommandQueue* NativeQueue => _queue.Get();
 
-    public D3D12CommandQueue(ComPtr<ID3D12Device14> device, CommandQueueType type)
+    public D3D12CommandQueue(ID3D12Device14* pDevice, CommandQueueType type)
     {
         Type = type;
         _fenceEvent = new AutoResetEvent(false);
@@ -33,10 +36,10 @@ internal unsafe class D3D12CommandQueue : ICommandQueue
 
         fixed (void* queuePtr = &_queue)
         {
-            device.Get()->CreateCommandQueue(&queueDesc, __uuidof<ID3D12CommandQueue>(), (void**)queuePtr);
+            pDevice->CreateCommandQueue(&queueDesc, __uuidof<ID3D12CommandQueue>(), (void**)queuePtr);
         }
 
-        device.Get()->CreateFence(0, FenceFlags.None, __uuidof<ID3D12Fence1>(), _fence.GetVoidAddressOf());
+        pDevice->CreateFence(0, FenceFlags.None, __uuidof<ID3D12Fence1>(), _fence.GetVoidAddressOf());
     }
 
     public void Submit(ICommandBuffer commandBuffer)
@@ -53,11 +56,11 @@ internal unsafe class D3D12CommandQueue : ICommandQueue
         }
     }
 
-    public void Submit(ICommandBuffer[] commandBuffers)
+    public void Submit(params ReadOnlySpan<ICommandBuffer> commandBuffers)
     {
         var commandLists = stackalloc ID3D12CommandList*[commandBuffers.Length];
 
-        for (int i = 0; i < commandBuffers.Length; i++)
+        for (var i = 0; i < commandBuffers.Length; i++)
         {
             if (commandBuffers[i] is D3D12CommandBuffer d3d12CommandBuffer)
             {
@@ -109,7 +112,8 @@ internal unsafe class D3D12CommandQueue : ICommandQueue
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
 
         _fenceEvent?.Dispose();
         _fence.Dispose();

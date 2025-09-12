@@ -47,7 +47,7 @@ public struct Entity : IEquatable<Entity>, IComparable<Entity>
 
     public readonly bool Equals(Entity other)
     {
-        return _id == other._id;
+        return _id == other._id && _generation == other._generation;
     }
 
     public readonly int CompareTo(Entity other)

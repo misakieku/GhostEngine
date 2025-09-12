@@ -1,6 +1,7 @@
 using Ghost.Graphics;
 using Ghost.Graphics.Contracts;
 using Ghost.Graphics.D3D12;
+using Ghost.Graphics.RHI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Misaki.HighPerformance.LowLevel.Buffer;
@@ -10,8 +11,9 @@ namespace Ghost.UnitTest.Windows;
 
 public sealed partial class GraphicsTestWindow : Window
 {
-    private Renderer? _renderer;
-    private ISwapChainPanelNative _swapChainPanelNative;
+    private RenderSystem? _renderSystem;
+    private IRenderer? _renderer;
+    private ISwapChain? _swapChain;
 
     public GraphicsTestWindow()
     {
@@ -28,14 +30,12 @@ public sealed partial class GraphicsTestWindow : Window
 #if DEBUG
         AllocationManager.EnableDebugLayer();
 #endif
-        GraphicsPipeline.Initialize();
-        GraphicsPipeline.Start();
 
-        var guid = typeof(ISwapChainPanelNative.Interface).GUID;
-        ((IWinRTObject)Panel).NativeObject.TryAs(guid, out var swapChainPanelNativeHandle);
-        _swapChainPanelNative = new ISwapChainPanelNative(swapChainPanelNativeHandle);
+        _renderSystem = new (GraphicsAPI.Direct3D12);
+        _renderer = _renderSystem.CreateRenderer();
 
-        //_renderer = GraphicsPipeline.GraphicsDevice.CreateRenderer(new(_swapChainPanelNative, (uint)AppWindow.Size.Width, (uint)AppWindow.Size.Height));
+        _swapChain = _renderSystem.GraphicsEngine.Device.CreateSwapChain(new SwapChainDesc((uint)AppWindow.Size.Width, (uint)AppWindow.Size.Height, SwapChainTarget.FromCompositionSurface(Panel)));
+        _renderer.SetSwapChain(_swapChain);
 
         CompositionTarget.Rendering += OnRendering;
     }
@@ -44,11 +44,9 @@ public sealed partial class GraphicsTestWindow : Window
     {
         CompositionTarget.Rendering -= OnRendering;
 
-        GraphicsPipeline.SignalCPUReady();
-        GraphicsPipeline.Shutdown();
-
-        _swapChainPanelNative.Dispose();
+        _swapChain?.Dispose();
         _renderer?.Dispose();
+        _renderSystem?.Dispose();
     }
 
     private void SwapChainPanel_SizeChanged(object sender, SizeChangedEventArgs e)

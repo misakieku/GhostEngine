@@ -3,7 +3,7 @@
 namespace Ghost.Graphics.Contracts;
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
-public unsafe readonly struct ISwapChainPanelNative
+public unsafe readonly struct ISwapChainPanelNative : ISwapChainPanelNative.Interface, IDisposable
 {
     [ComImport]
     [Guid("63aad0b8-7c24-40ff-85a8-640d944cc325")]
@@ -20,11 +20,25 @@ public unsafe readonly struct ISwapChainPanelNative
     }
 
     private readonly IntPtr _nativePtr;
-    public readonly IntPtr NativePointer => _nativePtr;
 
     public ISwapChainPanelNative(IntPtr nativePtr)
     {
         _nativePtr = nativePtr;
+    }
+
+    public void QueryInterface(in Guid riid, out nint ppvObject)
+    {
+        throw new NotImplementedException();
+    }
+
+    public uint AddRef()
+    {
+        throw new NotImplementedException();
+    }
+
+    public uint Release()
+    {
+        throw new NotImplementedException();
     }
 
     public static ISwapChainPanelNative FromSwapChainPanel(object panel)

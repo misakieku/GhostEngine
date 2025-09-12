@@ -1,7 +1,7 @@
 using Ghost.Graphics.Contracts;
 using Ghost.Graphics.D3D12;
 using Ghost.Graphics.Data;
-using Ghost.Graphics.Shading;
+using Ghost.Graphics.RHI;
 using Ghost.Graphics.Utilities;
 using System.Numerics;
 
@@ -113,7 +113,7 @@ float4 PSMain(PixelInput input) : SV_TARGET
         "C:/Users/Misaki/Downloads/Im/yande.re 1134666 blue_archive nakamasa_ichika sugarhigh.jpg"
     ];
 
-    public void Initialize(CommandList cmd)
+    public void Initialize(ICommandBuffer cmd)
     {
         _mesh = MeshBuilder.CreateCube(0.75f);
         _mesh.UploadMeshData();
@@ -132,14 +132,14 @@ float4 PSMain(PixelInput input) : SV_TARGET
         for (var i = 0; i < _textures.Length; i++)
         {
             var texture = _textures[i];
-            _material.SetTextureIndex($"_TextureIndex{i + 1}", texture);
+            _material.SetTexture($"_TextureIndex{i + 1}", texture);
         }
 
-        _material.SetMeshBufferIndices(_mesh);
+        _material.SetMeshBuffer(_mesh);
         _material.UploadMaterialData();
     }
 
-    public void Execute(CommandList cmd)
+    public void Execute(ICommandBuffer cmd)
     {
         cmd.DrawMesh(_mesh!, _material!);
     }

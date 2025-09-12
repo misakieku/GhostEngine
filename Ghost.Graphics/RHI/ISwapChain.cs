@@ -26,13 +26,7 @@ public interface ISwapChain : IDisposable
     /// Gets the current back buffer texture
     /// </summary>
     /// <returns>Current back buffer texture</returns>
-    ITexture GetCurrentBackBuffer();
-
-    /// <summary>
-    /// Gets the current back buffer as a render target
-    /// </summary>
-    /// <returns>Current back buffer render target</returns>
-    IRenderTarget GetCurrentBackBufferRenderTarget();
+    IRenderTarget GetCurrentBackBuffer();
 
     /// <summary>
     /// Presents the rendered frame
@@ -56,35 +50,29 @@ public struct SwapChainDesc
     /// <summary>
     /// Width of the swap chain
     /// </summary>
-    public uint Width;
+    public uint width;
 
     /// <summary>
     /// Height of the swap chain
     /// </summary>
-    public uint Height;
+    public uint height;
 
     /// <summary>
     /// Back buffer format
     /// </summary>
-    public TextureFormat Format;
-
-    /// <summary>
-    /// Number of back buffers
-    /// </summary>
-    public uint BufferCount;
+    public TextureFormat format;
 
     /// <summary>
     /// Target for presentation (window handle or composition target)
     /// </summary>
-    public SwapChainTarget Target;
+    public SwapChainTarget target;
 
     public SwapChainDesc(uint width, uint height, SwapChainTarget target, TextureFormat format = TextureFormat.B8G8R8A8_UNorm, uint bufferCount = 2)
     {
-        Width = width;
-        Height = height;
-        Format = format;
-        BufferCount = bufferCount;
-        Target = target;
+        this.width = width;
+        this.height = height;
+        this.format = format;
+        this.target = target;
     }
 }
 

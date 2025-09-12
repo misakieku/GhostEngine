@@ -4,13 +4,13 @@ using Win32.Graphics.Dxgi;
 
 namespace Ghost.Graphics.D3D12;
 
-internal unsafe class DebugLayer
+internal unsafe class D3D12DebugLayer
 {
     private readonly ComPtr<ID3D12Debug6> _d3d12Debug;
     private readonly ComPtr<IDXGIDebug1> _dxgiDebug;
     private readonly ComPtr<IDXGIInfoQueue> _dxgiInfoQueue;
 
-    public DebugLayer()
+    public D3D12DebugLayer()
     {
         D3D12GetDebugInterface(__uuidof<ID3D12Debug6>(), _d3d12Debug.GetVoidAddressOf());
         _d3d12Debug.Get()->EnableDebugLayer();
@@ -25,7 +25,7 @@ internal unsafe class DebugLayer
 
     public void Dispose()
     {
-        _dxgiDebug.Get()->ReportLiveObjects(DXGI_DEBUG_ALL, ReportLiveObjectFlags.Detail | ReportLiveObjectFlags.IgnoreInternal);
+        _dxgiDebug.Get()->ReportLiveObjects(DXGI_DEBUG_ALL, ReportLiveObjectFlags.All);
 
         _d3d12Debug.Dispose();
         _dxgiDebug.Dispose();

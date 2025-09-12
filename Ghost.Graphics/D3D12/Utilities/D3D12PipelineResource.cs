@@ -7,6 +7,8 @@ namespace Ghost.Graphics.D3D12.Utilities;
 
 internal unsafe static class D3D12PipelineResource
 {
+    public const int BACK_BUFFER_COUNT = 2;
+
     private readonly static InputElementDescription[] s_inputElementDescs = [
         new InputElementDescription{ SemanticName = Vertex.Semantic.PositionName, SemanticIndex = 0u, Format =  Format.R32G32B32A32Float, InputSlot = 0u, AlignedByteOffset = 0u, InputSlotClass = InputClassification.PerVertexData, InstanceDataStepRate = 0 },
         new InputElementDescription{ SemanticName = Vertex.Semantic.NormalName, SemanticIndex = 0u, Format =  Format.R32G32B32A32Float, InputSlot = 0u, AlignedByteOffset = 16u, InputSlotClass = InputClassification.PerVertexData, InstanceDataStepRate = 0 },
