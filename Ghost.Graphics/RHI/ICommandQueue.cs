@@ -1,7 +1,7 @@
 namespace Ghost.Graphics.RHI;
 
 /// <summary>
-/// D3D12-style command queue interface
+/// Command queue interface
 /// </summary>
 public interface ICommandQueue : IDisposable
 {
@@ -46,7 +46,7 @@ public interface ICommandQueue : IDisposable
 }
 
 /// <summary>
-/// Command queue types matching D3D12
+/// Command queue types
 /// </summary>
 public enum CommandQueueType
 {

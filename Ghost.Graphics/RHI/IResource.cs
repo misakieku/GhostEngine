@@ -1,3 +1,5 @@
+using Ghost.Graphics.Data;
+
 namespace Ghost.Graphics.RHI;
 
 /// <summary>
@@ -8,17 +10,26 @@ public interface IResource : IDisposable
     /// <summary>
     /// Current resource state
     /// </summary>
-    ResourceState CurrentState { get; }
+    ResourceState CurrentState
+    {
+        get;
+    }
 
     /// <summary>
     /// Resource name for debugging
     /// </summary>
-    string Name { get; set; }
+    string Name
+    {
+        get; set;
+    }
 
     /// <summary>
     /// Size of the resource in bytes
     /// </summary>
-    ulong Size { get; }
+    ulong Size
+    {
+        get;
+    }
 }
 
 /// <summary>
@@ -29,22 +40,34 @@ public interface ITexture : IResource
     /// <summary>
     /// Width of the texture in pixels
     /// </summary>
-    uint Width { get; }
+    uint Width
+    {
+        get;
+    }
 
     /// <summary>
     /// Height of the texture in pixels
     /// </summary>
-    uint Height { get; }
+    uint Height
+    {
+        get;
+    }
 
     /// <summary>
     /// Texture format
     /// </summary>
-    TextureFormat Format { get; }
+    TextureFormat Format
+    {
+        get;
+    }
 
     /// <summary>
     /// Number of mip levels
     /// </summary>
-    uint MipLevels { get; }
+    uint MipLevels
+    {
+        get;
+    }
 }
 
 /// <summary>
@@ -55,18 +78,26 @@ public interface IBuffer : IResource
     /// <summary>
     /// Buffer usage type
     /// </summary>
-    BufferUsage Usage { get; }
+    public BufferUsage Usage
+    {
+        get;
+    }
+
+    public BufferHandle Handle
+    {
+        get;
+    }
 
     /// <summary>
     /// Maps the buffer for CPU access
     /// </summary>
     /// <returns>Pointer to mapped memory</returns>
-    unsafe void* Map();
+    public unsafe void* Map();
 
     /// <summary>
     /// Unmaps the buffer from CPU access
     /// </summary>
-    void Unmap();
+    public void Unmap();
 }
 
 /// <summary>
@@ -78,7 +109,10 @@ public interface IRenderTarget : ITexture
     /// <summary>
     /// Type of render target (color or depth)
     /// </summary>
-    RenderTargetType Type { get; }
+    RenderTargetType Type
+    {
+        get;
+    }
 }
 
 /// <summary>
@@ -117,5 +151,15 @@ public enum BufferUsage
     Structured = 1 << 3,
     Raw = 1 << 4,
     Upload = 1 << 5,
-    Readback = 1 << 6
+    Readback = 1 << 6,
+    IndirectArgument = 1 << 7,
+
+    ShaderResource = Vertex | Index | Constant
+}
+
+[Flags]
+public enum BufferCreationFlags
+{
+    None = 0,
+    Bindless = 1 << 0
 }

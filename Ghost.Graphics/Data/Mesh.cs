@@ -1,4 +1,5 @@
 ﻿using Ghost.Graphics.D3D12;
+using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Helpers;
@@ -9,18 +10,15 @@ using Win32.Graphics.Dxgi.Common;
 
 namespace Ghost.Graphics.Data;
 
-public unsafe sealed class Mesh(int initialVertexCapacity = 256, int initialIndexCapacity = 512) : IDisposable
+public unsafe sealed class Mesh : IDisposable
 {
-    private UnsafeList<Vertex> _vertices = new(initialVertexCapacity, Allocator.Persistent);
-    private UnsafeList<int> _indices = new(initialIndexCapacity, Allocator.Persistent);
+    private UnsafeList<Vertex> _vertices;
+    private UnsafeList<int> _indices;
 
     private Bounds _boundingBox;
 
-    private GraphicsBuffer? _vertexBuffer;
-    private GraphicsBuffer? _indexBuffer;
-
-    private BindlessDescriptor? _vertexBufferDescriptor;
-    private BindlessDescriptor? _indexBufferDescriptor;
+    private IBuffer? _vertexBuffer;
+    private IBuffer? _indexBuffer;
 
     public Span<Vertex> Vertices => _vertices.AsSpan();
     public Span<int> Indices => _indices.AsSpan();
@@ -29,8 +27,59 @@ public unsafe sealed class Mesh(int initialVertexCapacity = 256, int initialInde
     public uint VertexCount => (uint)_vertices.Count;
     public uint IndexCount => (uint)_indices.Count;
 
-    public uint VertexBufferDescriptorIndex => _vertexBufferDescriptor?.Index ?? throw new InvalidOperationException("Vertex buffer descriptor is not allocated.");
-    public uint IndexBufferDescriptorIndex => _indexBufferDescriptor?.Index ?? throw new InvalidOperationException("Index buffer descriptor is not allocated.");
+    public uint VertexBufferDescriptorIndex
+    {
+        get
+        {
+            if (_vertexBuffer == null || !_vertexBuffer.Handle.IsValid)
+            {
+                throw new InvalidOperationException("Vertex buffer is not created.");
+            }
+
+            var bindlessDesc = _vertexBuffer.Handle.BindlessDescriptor;
+            if (!bindlessDesc.IsValid)
+            {
+                throw new InvalidOperationException("Vertex buffer is not created with bindless.");
+            }
+
+            return bindlessDesc.Index;
+        }
+    }
+
+    public uint IndexBufferDescriptorIndex
+    {
+        get
+        {
+            if (_indexBuffer == null || !_indexBuffer.Handle.IsValid)
+            {
+                throw new InvalidOperationException("Index buffer is not created.");
+            }
+
+            var bindlessDesc = _indexBuffer.Handle.BindlessDescriptor;
+            if (!bindlessDesc.IsValid)
+            {
+                throw new InvalidOperationException("Index buffer is not created with bindless.");
+            }
+
+            return bindlessDesc.Index;
+        }
+    }
+
+    public Mesh(int initialVertexCapacity = 256, int initialIndexCapacity = 512)
+    {
+        _vertices = new(initialVertexCapacity, Allocator.Persistent);
+        _indices = new(initialIndexCapacity, Allocator.Persistent);
+    }
+
+    public Mesh(ReadOnlySpan<Vertex> vertices, ReadOnlySpan<int> indices)
+        : this(vertices.Length, indices.Length)
+    {
+        _vertices = new(vertices.Length, Allocator.Persistent);
+        _indices = new(indices.Length, Allocator.Persistent);
+
+        _vertices.CopyFrom(vertices);
+        _indices.CopyFrom(indices);
+    }
 
     ~Mesh()
     {
@@ -302,6 +351,13 @@ public unsafe sealed class Mesh(int initialVertexCapacity = 256, int initialInde
         device->CreateShaderResourceView(_indexBuffer.NativeResource.Ptr, &indexSrvDesc, _indexBufferDescriptor.CpuHandle);
     }
 
+
+    internal void MarkNoLongerReadable()
+    {
+        _vertices.Dispose();
+        _indices.Dispose();
+    }
+
     /// <summary>
     /// Clears all vertex and index data and releases associated GPU resources.
     /// </summar>
@@ -320,14 +376,14 @@ public unsafe sealed class Mesh(int initialVertexCapacity = 256, int initialInde
         _indexBuffer?.Dispose();
         _indexBuffer = null;
 
-        if (_vertexBufferDescriptor != null)
+        if (_vertexBufferDescriptor.IsValid)
         {
-            GraphicsPipeline.DescriptorAllocator.ReleaseBindless(_vertexBufferDescriptor);
+            RenderSystem.GraphicsEngine.DescriptorAllocator.Release(_vertexBufferDescriptor);
         }
 
-        if (_indexBufferDescriptor != null)
+        if (_indexBufferDescriptor.IsValid)
         {
-            GraphicsPipeline.DescriptorAllocator.ReleaseBindless(_indexBufferDescriptor);
+            RenderSystem.GraphicsEngine.DescriptorAllocator.Release(_indexBufferDescriptor);
         }
     }
 

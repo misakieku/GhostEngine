@@ -1,4 +1,3 @@
-using Ghost.Graphics.D3D12;
 using Misaki.HighPerformance.Image;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;

@@ -117,6 +117,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         throw new NotImplementedException();
     }
 
+    // TODO: Batch draw calls by material to minimize state changes
     public void DrawMesh(Mesh mesh, Material material)
     {
         // Bind the bindless material (sets up root signature, pipeline state, and descriptor heaps)

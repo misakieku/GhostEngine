@@ -165,7 +165,16 @@ public struct RenderTargetDesc
             usage |= TextureUsage.UnorderedAccess;
         }
 
-        return new TextureDesc(desc.Width, desc.Height, desc.Slice, desc.Format, desc.Dimension, desc.MipLevels, usage);
+        return new TextureDesc
+        {
+            Width = desc.Width,
+            Height = desc.Height,
+            Slice = desc.Slice,
+            Format = desc.Format,
+            Dimension = desc.Dimension,
+            MipLevels = desc.MipLevels,
+            Usage = usage
+        };
     }
 }
 
@@ -236,19 +245,6 @@ public struct TextureDesc
         get;
         set;
     }
-
-    public TextureDesc(uint width, uint height, uint slice = 1,
-        TextureFormat format = TextureFormat.R8G8B8A8_UNorm, TextureDimension dimension = TextureDimension.Texture2D,
-        uint mipLevels = 0u, TextureUsage usage = TextureUsage.ShaderResource)
-    {
-        Width = width;
-        Height = height;
-        Slice = slice;
-        Format = format;
-        Dimension = dimension;
-        MipLevels = mipLevels;
-        Usage = usage;
-    }
 }
 
 /// <summary>
@@ -265,10 +261,22 @@ public struct BufferDesc
         set;
     }
 
+    public uint Stride
+    {
+        get;
+        set;
+    }
+
     /// <summary>
     /// Buffer usage flags
     /// </summary>
     public BufferUsage Usage
+    {
+        get;
+        set;
+    }
+
+    public BufferCreationFlags CreationFlags
     {
         get;
         set;
@@ -281,13 +289,6 @@ public struct BufferDesc
     {
         get;
         set;
-    }
-
-    public BufferDesc(ulong size, BufferUsage usage, MemoryType memoryType = MemoryType.Default)
-    {
-        Size = size;
-        Usage = usage;
-        MemoryType = memoryType;
     }
 }
 

@@ -3,7 +3,7 @@ using Win32.Graphics.D3D12MemoryAllocator;
 
 namespace Ghost.Graphics.Data;
 
-public readonly struct ResourceHandle : IEquatable<ResourceHandle>, IDisposable
+public readonly struct ResourceHandle : IEquatable<ResourceHandle>
 {
     private const int _INVALID_ID = -1;
 
@@ -19,17 +19,6 @@ public readonly struct ResourceHandle : IEquatable<ResourceHandle>, IDisposable
     }
 
     public bool IsValid => id != _INVALID_ID && generation >= 0;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Allocation GetAllocation()
-    {
-        if (!IsValid)
-        {
-            throw new InvalidOperationException("Cannot get allocation from an invalid AllocationHandle.");
-        }
-
-        return GraphicsPipeline.ResourceAllocator.GetResource(this);
-    }
 
     public bool Equals(ResourceHandle other)
     {
@@ -49,21 +38,6 @@ public readonly struct ResourceHandle : IEquatable<ResourceHandle>, IDisposable
         return obj is ResourceHandle handle && Equals(handle);
     }
 
-    public void Dispose()
-    {
-        GraphicsPipeline.ResourceAllocator.ReleaseResource(this);
-    }
-
-    public static implicit operator Allocation(ResourceHandle handle)
-    {
-        if (!handle.IsValid)
-        {
-            throw new InvalidOperationException("Cannot convert an invalid AllocationHandle to Allocation.");
-        }
-
-        return handle.GetAllocation();
-    }
-
     public static bool operator ==(ResourceHandle left, ResourceHandle right)
     {
         return left.Equals(right);
@@ -75,7 +49,7 @@ public readonly struct ResourceHandle : IEquatable<ResourceHandle>, IDisposable
     }
 }
 
-public readonly struct TextureHandle : IEquatable<TextureHandle>, IDisposable
+public readonly struct TextureHandle : IEquatable<TextureHandle>
 {
     private readonly ResourceHandle _resourceHandle;
 
@@ -104,11 +78,6 @@ public readonly struct TextureHandle : IEquatable<TextureHandle>, IDisposable
         return _resourceHandle.GetHashCode();
     }
 
-    public void Dispose()
-    {
-        _resourceHandle.Dispose();
-    }
-
     public static bool operator ==(TextureHandle left, TextureHandle right)
     {
         return left.Equals(right);
@@ -120,16 +89,26 @@ public readonly struct TextureHandle : IEquatable<TextureHandle>, IDisposable
     }
 }
 
-public readonly struct BufferHandle : IEquatable<BufferHandle>, IDisposable
+public readonly struct BufferHandle : IEquatable<BufferHandle>
 {
     private readonly ResourceHandle _resourceHandle;
+    private readonly BindlessDescriptor _bindlessDescriptor;
+
+    public static BufferHandle Invalid => new(ResourceHandle.Invalid);
 
     public ResourceHandle ResourceHandle => _resourceHandle;
-    public static BufferHandle Invalid => new(ResourceHandle.Invalid);
+    public BindlessDescriptor BindlessDescriptor => _bindlessDescriptor;
 
     internal BufferHandle(ResourceHandle resourceHandle)
     {
         _resourceHandle = resourceHandle;
+        _bindlessDescriptor = BindlessDescriptor.Invalid;
+    }
+
+    internal BufferHandle(ResourceHandle resourceHandle, BindlessDescriptor descriptor)
+    {
+        _resourceHandle = resourceHandle;
+        _bindlessDescriptor = descriptor;
     }
 
     public bool IsValid => _resourceHandle.IsValid;
@@ -147,11 +126,6 @@ public readonly struct BufferHandle : IEquatable<BufferHandle>, IDisposable
     public override int GetHashCode()
     {
         return _resourceHandle.GetHashCode();
-    }
-
-    public void Dispose()
-    {
-        _resourceHandle.Dispose();
     }
 
     public static bool operator ==(BufferHandle left, BufferHandle right)

@@ -11,6 +11,20 @@ namespace Ghost.Graphics.D3D12;
 
 internal unsafe static class D3D12ShaderCompiler
 {
+    public enum CompilerVersion
+    {
+        SM_6_6,
+        SM_7_0
+    }
+
+    public enum ShaderStage
+    {
+        VertexShader,
+        PixelShader,
+        MeshShader,
+        ComputeShader
+    }
+
     public struct CompileResult : IDisposable
     {
         public UnsafeArray<byte> bytecode;
@@ -23,7 +37,35 @@ internal unsafe static class D3D12ShaderCompiler
         }
     }
 
-    public static CompileResult CompileDXC(Shader shader, string entryPoint, string profile)
+    private static string GetProfileString(ShaderStage stage, CompilerVersion version)
+    {
+        return (stage, version) switch
+        {
+            (ShaderStage.VertexShader, CompilerVersion.SM_6_6) => "vs_6_6",
+            (ShaderStage.PixelShader, CompilerVersion.SM_6_6) => "ps_6_6",
+            (ShaderStage.MeshShader, CompilerVersion.SM_6_6) => "ms_6_6",
+            (ShaderStage.ComputeShader, CompilerVersion.SM_6_6) => "cs_6_6",
+            (ShaderStage.VertexShader, CompilerVersion.SM_7_0) => "vs_7_0",
+            (ShaderStage.PixelShader, CompilerVersion.SM_7_0) => "ps_7_0",
+            (ShaderStage.MeshShader, CompilerVersion.SM_7_0) => "ms_7_0",
+            (ShaderStage.ComputeShader, CompilerVersion.SM_7_0) => "cs_7_0",
+            _ => throw new ArgumentOutOfRangeException(nameof(stage), "Unsupported shader stage or compiler version")
+        };
+    }
+
+    private static string GetEntryPoint(ShaderStage stage)
+    {
+        return stage switch
+        {
+            ShaderStage.VertexShader => "VSMain",
+            ShaderStage.PixelShader => "PSMain",
+            ShaderStage.MeshShader => "MSMain",
+            ShaderStage.ComputeShader => "CSMain",
+            _ => throw new ArgumentOutOfRangeException(nameof(stage), "Unsupported shader stage")
+        };
+    }
+
+    public static CompileResult Compile(Shader shader, ShaderStage stage, CompilerVersion version)
     {
         using ComPtr<IDxcCompiler3> compiler = default;
         using ComPtr<IDxcUtils> utils = default;
@@ -43,12 +85,12 @@ internal unsafe static class D3D12ShaderCompiler
         // Prepare compilation arguments - NOTE: NO -Qstrip_reflect to keep reflection data
         var argsArray = new string[]
         {
-            "-T", profile,           // Target profile (vs_6_6, ps_6_6)
-            "-E", entryPoint,        // Entry point
-            "-HV", "2021",           // HLSL version 2021 (required for SM 6.6)
-            "-enable-16bit-types",   // Enable 16-bit types
-            "-O3",                   // Optimization level
-            "-Qstrip_debug"          // Strip debug info but KEEP reflection
+            "-T", GetProfileString(stage, version),         // Target profile (vs_6_6, ps_6_6)
+            "-E", GetEntryPoint(stage),                     // Entry point
+            "-HV", "2021",                                  // HLSL version 2021 (required for SM 6.6)
+            "-enable-16bit-types",                          // Enable 16-bit types
+            "-O3",                                          // Optimization level
+            "-Qstrip_debug"                                 // Strip debug info but KEEP reflection
         };
 
         // Convert to wide strings (DXC expects LPCWSTR)

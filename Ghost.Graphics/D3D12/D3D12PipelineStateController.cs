@@ -25,10 +25,6 @@ internal class D3D12ShaderPipeline : IShaderPipeline
 
 internal unsafe class D3D12PipelineStateController : IPipelineStateController, IDisposable
 {
-    private const string _VS_ENTRY_POINT = "VSMain";
-    private const string _PS_ENTRY_POINT = "PSMain";
-    private const string _PROFILE_VS_6_6 = "vs_6_6";
-
     private readonly ID3D12Device14* _device;
 
     private readonly Dictionary<Shader, D3D12ShaderPipeline> _shaderPipelines;
@@ -55,8 +51,8 @@ internal unsafe class D3D12PipelineStateController : IPipelineStateController, I
     {
         foreach (var kvp in _shaderPipelines)
         {
-            var vsResult = D3D12ShaderCompiler.CompileDXC(kvp.Key, _VS_ENTRY_POINT, _PROFILE_VS_6_6);
-            var psResult = D3D12ShaderCompiler.CompileDXC(kvp.Key, _PS_ENTRY_POINT, _PROFILE_VS_6_6);
+            var vsResult = D3D12ShaderCompiler.Compile(kvp.Key, D3D12ShaderCompiler.ShaderStage.VertexShader, D3D12ShaderCompiler.CompilerVersion.SM_6_6);
+            var psResult = D3D12ShaderCompiler.Compile(kvp.Key, D3D12ShaderCompiler.ShaderStage.PixelShader, D3D12ShaderCompiler.CompilerVersion.SM_6_6);
 
             kvp.Value.vsResult = vsResult;
             kvp.Value.psResult = psResult;

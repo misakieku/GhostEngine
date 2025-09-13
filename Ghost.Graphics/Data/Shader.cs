@@ -60,10 +60,10 @@ internal readonly struct CBufferInfo
 }
 
 /// <summary>
-/// Bindless shader implementation using SM 6.6 with ResourceDescriptorHeap
-/// and D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED
-/// Enhanced to support both bindless and regular texture binding for hybrid materials
+/// A representation of a GPU shader, including its metadata about its resources.
 /// </summary>
+
+// TODO: Multi pass and keyword support
 public unsafe class Shader : IDisposable
 {
     private readonly string _source;
@@ -82,6 +82,7 @@ public unsafe class Shader : IDisposable
     internal List<TextureInfo> RegularTextures => _regularTextures;
     internal Dictionary<string, int> PropertyNameToIdMap => _propertyNameToIdMap;
 
+    // TODO: In real production, we should not load the shader source code directly.
     internal Shader(string shaderCode)
     {
         _source = shaderCode;

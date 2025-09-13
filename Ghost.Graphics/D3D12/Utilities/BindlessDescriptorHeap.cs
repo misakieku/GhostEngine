@@ -10,7 +10,7 @@ namespace Ghost.Graphics.D3D12.Utilities;
 /// Specialized descriptor heap allocator for SM 6.6 bindless rendering with ResourceDescriptorHeap[index].
 /// This allocator maintains a 1:1 relationship between allocation indices and shader indices.
 /// </summary>
-internal unsafe struct BindlessDescriptorHeapAllocator : IDisposable
+internal unsafe struct BindlessDescriptorHeap : IDisposable
 {
     private const DescriptorIndex _INVALID_DESCRIPTOR_INDEX = ~0u;
 
@@ -42,7 +42,7 @@ internal unsafe struct BindlessDescriptorHeapAllocator : IDisposable
 
     public readonly ConstPtr<ID3D12DescriptorHeap> BindlessHeap => new(_bindlessHeap.Get());
 
-    public BindlessDescriptorHeapAllocator(ComPtr<ID3D12Device14> device, uint numDescriptors = 10000)
+    public BindlessDescriptorHeap(ComPtr<ID3D12Device14> device, uint numDescriptors = 10000)
     {
         _device = device;
         device.Get()->AddRef();
@@ -67,7 +67,6 @@ internal unsafe struct BindlessDescriptorHeapAllocator : IDisposable
                 // Try to grow the heap
                 if (!Grow(NumDescriptors * 2))
                 {
-                    Debug.WriteLine("ERROR: Failed to grow bindless descriptor heap!");
                     return _INVALID_DESCRIPTOR_INDEX;
                 }
             }
@@ -88,7 +87,6 @@ internal unsafe struct BindlessDescriptorHeapAllocator : IDisposable
                 var newSize = Math.Max(NumDescriptors * 2, NumDescriptors + count);
                 if (!Grow(newSize))
                 {
-                    Debug.WriteLine("ERROR: Failed to grow bindless descriptor heap!");
                     return _INVALID_DESCRIPTOR_INDEX;
                 }
             }
@@ -110,7 +108,6 @@ internal unsafe struct BindlessDescriptorHeapAllocator : IDisposable
         {
             if (index >= NumDescriptors)
             {
-                Debug.WriteLine("Error: Attempted to release an invalid descriptor index");
                 return;
             }
 
@@ -128,7 +125,6 @@ internal unsafe struct BindlessDescriptorHeapAllocator : IDisposable
                 var index = baseIndex + i;
                 if (index >= NumDescriptors)
                 {
-                    Debug.WriteLine("Error: Attempted to release an invalid descriptor index");
                     continue;
                 }
 
@@ -139,19 +135,19 @@ internal unsafe struct BindlessDescriptorHeapAllocator : IDisposable
         }
     }
 
-    public CpuDescriptorHandle GetCpuHandle(DescriptorIndex index)
+    public readonly CpuDescriptorHandle GetCpuHandle(DescriptorIndex index)
     {
         var handle = _startCpuHandle;
         return handle.Offset((int)index, _stride);
     }
 
-    public GpuDescriptorHandle GetGpuHandle(DescriptorIndex index)
+    public readonly GpuDescriptorHandle GetGpuHandle(DescriptorIndex index)
     {
         var handle = _startGpuHandle;
         return handle.Offset((int)index, _stride);
     }
 
-    public GpuDescriptorHandle GetGpuHandleStart()
+    public readonly GpuDescriptorHandle GetGpuHandleStart()
     {
         return _startGpuHandle;
     }

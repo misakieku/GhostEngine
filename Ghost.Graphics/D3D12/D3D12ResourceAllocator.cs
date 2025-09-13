@@ -7,7 +7,6 @@ using Win32.Graphics.Direct3D12;
 using Win32.Graphics.Dxgi;
 using Win32.Graphics.Dxgi.Common;
 using static Win32.Graphics.D3D12MemoryAllocator.Apis;
-using ResourceHandle = Ghost.Graphics.Data.ResourceHandle;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -43,8 +42,12 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator<ID3D12Resource
     private const uint _MAX_TEXTURE2D_DIMENSION = 16384u;
     private const uint _MAX_TEXTURE3D_DIMENSION = 2048u;
 
-    private readonly RenderSystem _renderSystem;
+    private readonly ID3D12Device14* _device;
+
     private readonly Allocator _allocator;
+    private readonly RenderSystem _renderSystem;
+    private readonly D3D12DescriptorAllocator _descriptorAllocator;
+
     private UnsafeList<AllocationInfo> _allocations = new(64, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
     private UnsafeQueue<int> _freeSlots = new(64, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
     private UnsafeQueue<ResourceHandle> _temResources = new(64, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
@@ -60,10 +63,8 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator<ID3D12Resource
         }
     }
 
-    public D3D12ResourceAllocator(D3D12RenderDevice device, RenderSystem renderSystem)
+    public D3D12ResourceAllocator(RenderSystem renderSystem, D3D12RenderDevice device, D3D12DescriptorAllocator descriptorAllocator)
     {
-        _renderSystem = renderSystem;
-
         var desc = new AllocatorDesc
         {
             pAdapter = (IDXGIAdapter*)device.Adapter,
@@ -72,6 +73,10 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator<ID3D12Resource
         };
 
         CreateAllocator(in desc, out _allocator);
+
+        _device = device.NativeDevice;
+        _renderSystem = renderSystem;
+        _descriptorAllocator = descriptorAllocator;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -173,13 +178,55 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator<ID3D12Resource
         Allocation allocation = default;
         ThrowIfFailed(_allocator.CreateResource(&allocationDesc, in resourceDescription, initialState, null, &allocation, IID_NULL, null));
 
-        return new(TrackResource(in allocation, tempResource));
+        var handle = TrackResource(in allocation, tempResource);
+
+        if (desc.Usage.HasFlag(BufferUsage.ShaderResource) && desc.CreationFlags.HasFlag(BufferCreationFlags.Bindless))
+        {
+            var isRaw = desc.Usage.HasFlag(BufferUsage.Raw);
+
+            var descriptorHandle = _descriptorAllocator.AllocateBindless();
+
+            var srvDesc = new ShaderResourceViewDescription
+            {
+                ViewDimension = SrvDimension.Buffer,
+                Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING
+            };
+
+            if (isRaw)
+            {
+                srvDesc.Format = Format.R32Typeless;
+                srvDesc.Buffer.FirstElement = 0;
+                srvDesc.Buffer.NumElements = (uint)(desc.Size / 4);
+                srvDesc.Buffer.StructureByteStride = 0;
+                srvDesc.Buffer.Flags = BufferSrvFlags.Raw;
+            }
+            else
+            {
+                srvDesc.Format = Format.Unknown;
+                srvDesc.Buffer.FirstElement = 0;
+                srvDesc.Buffer.NumElements = (uint)(desc.Size / desc.Stride);
+                srvDesc.Buffer.StructureByteStride = desc.Stride;
+                srvDesc.Buffer.Flags = BufferSrvFlags.None;
+            }
+
+            _device->CreateShaderResourceView(allocation.Resource, &srvDesc, _descriptorAllocator.GetCpuHandle(descriptorHandle));
+
+            return new(handle, descriptorHandle);
+        }
+
+        return new(handle);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public BufferHandle CreateUploadBuffer(uint sizeInBytes, bool tempResource = false)
     {
-        var desc = new BufferDesc(sizeInBytes, BufferUsage.Upload, MemoryType.Upload);
+        var desc = new BufferDesc 
+        {
+            Size = sizeInBytes,
+            Usage = BufferUsage.Upload,
+            MemoryType = MemoryType.Upload
+        };
+
         return CreateBufferHandle(in desc, tempResource);
     }
 

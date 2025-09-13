@@ -64,7 +64,7 @@ internal unsafe class Renderer
             commandAllocator.Dispose();
             commandList.Dispose();
             backBuffer.Dispose();
-            GraphicsPipeline.DescriptorAllocator.ReleaseRTV(rtvDescriptor);
+            GraphicsPipeline.DescriptorAllocator.Release(rtvDescriptor);
         }
     }
 
@@ -226,7 +226,7 @@ internal unsafe class Renderer
             if (frameResource.backBuffer.Get() is not null)
             {
                 var c = frameResource.backBuffer.Reset();
-                GraphicsPipeline.DescriptorAllocator.ReleaseRTV(frameResource.rtvDescriptor);
+                GraphicsPipeline.DescriptorAllocator.Release(frameResource.rtvDescriptor);
             }
 
             frameResource.fenceValue = _frameResources[_backBufferIndex].fenceValue;

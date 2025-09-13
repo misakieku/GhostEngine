@@ -142,6 +142,6 @@ public abstract unsafe class Texture : GraphicsResource
     public override void Dispose()
     {
         base.Dispose();
-        GraphicsPipeline.DescriptorAllocator.ReleaseBindless(_bindlessDescriptor);
+        GraphicsPipeline.DescriptorAllocator.Release(_bindlessDescriptor);
     }
 }

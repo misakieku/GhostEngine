@@ -9,15 +9,15 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
 #endif
 
     private readonly D3D12RenderDevice _device;
-    private readonly D3D12PipelineStateController _stateController;
+    private readonly D3D12DescriptorAllocator _descriptorAllocator;
     private readonly D3D12ResourceAllocator _resourceAllocator;
 
-    private readonly D3D12PipelineStateController _pipelineState;
-    private readonly D3D12DescriptorAllocator _descriptorAllocator;
+    private readonly D3D12PipelineStateController _stateController;
 
     public IRenderDevice Device => _device;
-    public IPipelineStateController PipelineStateController => _stateController;
     public IResourceAllocator ResourceAllocator => _resourceAllocator;
+
+    public IPipelineStateController PipelineStateController => _stateController;
 
     public D3D12GraphicsEngine(RenderSystem renderSystem)
     {
@@ -26,11 +26,10 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
 #endif
 
         _device = new();
-        _stateController = new(_device);
-        _resourceAllocator = new(_device, renderSystem);
-
-        _pipelineState = new(_device);
         _descriptorAllocator = new(_device);
+        _resourceAllocator = new(renderSystem, _device, _descriptorAllocator);
+
+        _stateController = new(_device);
     }
 
     public IRenderer CreateRenderer()
@@ -50,6 +49,7 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
 
     public void Dispose()
     {
+        _stateController.Dispose();
         _descriptorAllocator.Dispose();
         _resourceAllocator.Dispose();
         _device.Dispose();

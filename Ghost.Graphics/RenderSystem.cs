@@ -12,7 +12,7 @@ public enum GraphicsAPI
 /// Application-level render system that orchestrates multiple renderers
 /// and handles frame synchronization
 /// </summary>
-internal class RenderSystem : IDisposable
+internal class RenderSystem
 {
     private readonly struct FrameResource : IDisposable
     {
@@ -34,15 +34,16 @@ internal class RenderSystem : IDisposable
 
     private const uint _FRAME_COUNT = 2;
 
-    private readonly IGraphicsEngine _engine;
-    private readonly FrameResource[] _frameResources;
-    private readonly Thread _renderThread;
-    private readonly AutoResetEvent _shutdownEvent;
+    private readonly IGraphicsEngine _engine = null!;
+    private readonly FrameResource[] _frameResources = null!;
+    private readonly Thread _renderThread = null!;
+    private readonly AutoResetEvent _shutdownEvent = null!;
     private ImmutableArray<IRenderer> _renderers;
 
     private uint _frameIndex;
     private uint _cpuFenceValue;
     private uint _gpuFenceValue;
+
     private bool _isRunning;
     private bool _disposed;
 
@@ -59,7 +60,7 @@ internal class RenderSystem : IDisposable
             _ => throw new NotSupportedException($"Graphics API {api} is not supported.")
         };
 
-        _renderers = new();
+        _renderers = ImmutableArray<IRenderer>.Empty;
         _shutdownEvent = new(false);
 
         // Create frame resources for synchronization
@@ -75,15 +76,14 @@ internal class RenderSystem : IDisposable
             Name = "Graphics Render Thread",
             Priority = ThreadPriority.Normal
         };
-    }
 
-    ~RenderSystem()
-    {
-        Dispose();
+        _disposed = true;
     }
 
     public IRenderer CreateRenderer()
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         var renderer = _engine.CreateRenderer();
         ImmutableInterlocked.Update(ref _renderers, renderers => renderers.Add(renderer));
         return renderer;
@@ -91,11 +91,15 @@ internal class RenderSystem : IDisposable
 
     public void RemoveRenderer(IRenderer renderer)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         ImmutableInterlocked.Update(ref _renderers, renderers => renderers.Remove(renderer));
     }
 
     public void Start()
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         if (_isRunning)
         {
             return;
@@ -107,6 +111,8 @@ internal class RenderSystem : IDisposable
 
     public void Stop()
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         if (!_isRunning)
         {
             return;
@@ -123,12 +129,16 @@ internal class RenderSystem : IDisposable
 
     public bool WaitForGPUReady(int timeOut = -1)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         var eventIndex = (int)(_cpuFenceValue % _FRAME_COUNT);
         return _frameResources[eventIndex].gpuReadyEvent.WaitOne(timeOut);
     }
 
     public void SignalCPUReady()
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         var eventIndex = (int)(_cpuFenceValue % _FRAME_COUNT);
         _frameResources[eventIndex].cpuReadyEvent.Set();
         _cpuFenceValue++;
@@ -184,7 +194,5 @@ internal class RenderSystem : IDisposable
 
         _shutdownEvent.Dispose();
         _disposed = true;
-
-        GC.SuppressFinalize(this);
     }
 }
