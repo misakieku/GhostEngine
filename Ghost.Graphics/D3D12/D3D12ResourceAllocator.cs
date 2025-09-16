@@ -16,15 +16,13 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator<ID3D12Resource
     {
         public readonly Allocation allocation;
         public readonly uint cpuFenceValue;
-        public readonly uint generation;
 
         public bool Allocated => allocation.IsNotNull;
 
-        public AllocationInfo(in Allocation allocation, uint cpuFenceValue, uint generation)
+        public AllocationInfo(in Allocation allocation, uint cpuFenceValue)
         {
             this.allocation = allocation;
             this.cpuFenceValue = cpuFenceValue;
-            this.generation = generation;
         }
 
         public void Dispose()
@@ -48,8 +46,7 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator<ID3D12Resource
     private readonly RenderSystem _renderSystem;
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
 
-    private UnsafeList<AllocationInfo> _allocations = new(64, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
-    private UnsafeQueue<int> _freeSlots = new(64, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
+    private UnsafeSlotMap<AllocationInfo> _allocations = new(64, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
     private UnsafeQueue<ResourceHandle> _temResources = new(64, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
 
     private Guid* IID_NULL
@@ -99,32 +96,7 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator<ID3D12Resource
 
     private ResourceHandle TrackResource(ref readonly Allocation allocation, bool isTemp)
     {
-        int id;
-        uint generation;
-        AllocationInfo allocInfo;
-
-        if (_freeSlots.Count > 0)
-        {
-            id = _freeSlots.Dequeue();
-            var info = _allocations[id];
-            if (info.Allocated)
-            {
-                throw new InvalidOperationException($"ERROR: Resource ID {id} registered as free but still allocated.");
-            }
-
-            generation = info.generation + 1;
-            allocInfo = new AllocationInfo(in allocation, _renderSystem.CPUFenceValue, generation);
-
-            _allocations[id] = allocInfo;
-        }
-        else
-        {
-            id = _allocations.Count;
-            generation = 0u;
-            allocInfo = new AllocationInfo(in allocation, _renderSystem.CPUFenceValue, generation);
-
-            _allocations.Add(allocInfo);
-        }
+        var id = _allocations.Add(new(in allocation, _renderSystem.CPUFenceValue), out var generation);
 
         var handle = new ResourceHandle(id, generation);
         if (isTemp)
@@ -218,19 +190,6 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator<ID3D12Resource
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public BufferHandle CreateUploadBuffer(uint sizeInBytes, bool tempResource = false)
-    {
-        var desc = new BufferDesc 
-        {
-            Size = sizeInBytes,
-            Usage = BufferUsage.Upload,
-            MemoryType = MemoryType.Upload
-        };
-
-        return CreateBufferHandle(in desc, tempResource);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public IRenderTarget CreateRenderTarget(ref readonly RenderTargetDesc desc, bool tempResource = false)
     {
         var textureDesc = RenderTargetDesc.ToTextureDescriptor(desc);
@@ -246,7 +205,7 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator<ID3D12Resource
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public IBuffer CreateBuffer(ref readonly BufferDesc desc, bool tempResource = false)
     {
-        return new D3D12Buffer(CreateBufferHandle(in desc, tempResource), in desc);
+        return new D3D12Buffer(CreateBufferHandle(in desc, tempResource), in desc, this);
     }
 
     #region Conversion Methods
@@ -367,9 +326,9 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator<ID3D12Resource
         while (_temResources.Count > 0)
         {
             var handle = _temResources.Peek();
-            var info = _allocations[handle.id];
 
-            if (info.Allocated && info.cpuFenceValue > _renderSystem.CPUFenceValue)
+            if (_allocations.TryGetElementAt(handle.id, handle.generation, out var info)
+                && info.Allocated)
             {
                 break;
             }
@@ -386,13 +345,13 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator<ID3D12Resource
             throw new InvalidOperationException("Invalid resource handle.");
         }
 
-        ref var allocationInfo = ref _allocations[handle.id];
-        if (!allocationInfo.Allocated || allocationInfo.generation != handle.generation)
+        var info = _allocations.GetElementAt(handle.id, handle.generation);
+        if (!info.Allocated)
         {
             throw new InvalidOperationException($"Resource with ID {handle.id} and generation {handle.generation} is not allocated or has been released.");
         }
 
-        return allocationInfo.allocation.Resource;
+        return info.allocation.Resource;
     }
 
     public void ReleaseResource(ResourceHandle handle)
@@ -402,15 +361,15 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator<ID3D12Resource
             return;
         }
 
-        ref var allocationInfo = ref _allocations[handle.id];
+        ref var info = ref _allocations.GetElementReferenceAt(handle.id, handle.generation, out var exist);
 
-        if (!allocationInfo.Allocated || allocationInfo.generation != handle.generation)
+        if (!exist || !info.Allocated)
         {
             return;
         }
 
-        allocationInfo.Dispose();
-        _freeSlots.Enqueue(handle.id);
+        info.Dispose();
+        _allocations.Remove(handle.id, handle.generation);
     }
 
     public void Dispose()
@@ -421,9 +380,9 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator<ID3D12Resource
             throw new InvalidOperationException($"ResourceAllocator is being disposed with {_allocations.Count} allocations still registered. Ensure all resources are released before disposing.");
         }
 #endif
-        for (var i = 0; i < _allocations.Count; i++)
+        foreach (var info in _allocations)
         {
-            _allocations[i].Dispose();
+            info.Dispose();
         }
 
         _allocations.Dispose();

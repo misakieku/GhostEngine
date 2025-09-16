@@ -62,7 +62,7 @@ public unsafe class CommandList
         _commandList.Ptr->OMSetRenderTargets(1, pRtvHandle, false, pDsvHandle);
     }
 
-    public void ClearRenderTarget(RenderTexture renderTarget, Color128 color)
+    public void ClearRenderTarget(RenderTexture renderTarget, Color16 color)
     {
         renderTarget.ClearColor(this, color);
     }

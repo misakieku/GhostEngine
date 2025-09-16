@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+﻿using Misaki.HighPerformance.Mathematics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -7,7 +7,7 @@ using Win32.Graphics.Dxgi.Common;
 namespace Ghost.Graphics.Data;
 
 [StructLayout(LayoutKind.Sequential)]
-public struct Vertex(Vector4 position, Vector4 normal, Vector4 tangent, Color128 color, Vector4 uv)
+public struct Vertex
 {
     public unsafe struct Semantic
     {
@@ -19,40 +19,49 @@ public struct Vertex(Vector4 position, Vector4 normal, Vector4 tangent, Color128
         private static readonly byte[] s_colorBytes = Encoding.UTF8.GetBytes("COLOR");
         private static readonly byte[] s_uvBytes = Encoding.UTF8.GetBytes("TEXCOORD");
 
-        public static byte* PositionName => (byte*)Unsafe.AsPointer(ref s_positionBytes[0]);
-        public static byte* NormalName => (byte*)Unsafe.AsPointer(ref s_normalBytes[0]);
-        public static byte* TangentName => (byte*)Unsafe.AsPointer(ref s_tangentBytes[0]);
-        public static byte* ColorName => (byte*)Unsafe.AsPointer(ref s_colorBytes[0]);
-        public static byte* UVName => (byte*)Unsafe.AsPointer(ref s_uvBytes[0]);
+        public static byte* pPositionName => (byte*)Unsafe.AsPointer(ref s_positionBytes[0]);
+        public static byte* pNormalName => (byte*)Unsafe.AsPointer(ref s_normalBytes[0]);
+        public static byte* pTangentName => (byte*)Unsafe.AsPointer(ref s_tangentBytes[0]);
+        public static byte* pColorName => (byte*)Unsafe.AsPointer(ref s_colorBytes[0]);
+        public static byte* pUVName => (byte*)Unsafe.AsPointer(ref s_uvBytes[0]);
     }
 
-    public Vector4 Position
+    public float4 Position
     {
         get;
         set;
-    } = position;
+    }
 
-    public Vector4 Normal
+    public float4 Normal
     {
         get;
         set;
-    } = normal;
+    }
 
-    public Vector4 Tangent
+    public float4 Tangent
     {
         get;
         set;
-    } = tangent;
+    }
 
-    public Color128 Color
+    public Color16 Color
     {
         get;
         set;
-    } = color;
+    }
 
-    public Vector4 UV
+    public float4 UV
     {
         get;
         set;
-    } = uv;
+    }
+
+    public Vertex(float4 position, float4 normal, float4 tangent, Color16 color, float4 uv)
+    {
+        Position = position;
+        Normal = normal;
+        Tangent = tangent;
+        Color = color;
+        UV = uv;
+    }
 }

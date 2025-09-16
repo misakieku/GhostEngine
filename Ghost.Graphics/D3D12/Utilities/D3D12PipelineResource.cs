@@ -10,11 +10,11 @@ internal unsafe static class D3D12PipelineResource
     public const int BACK_BUFFER_COUNT = 2;
 
     private readonly static InputElementDescription[] s_inputElementDescs = [
-        new InputElementDescription{ SemanticName = Vertex.Semantic.PositionName, SemanticIndex = 0u, Format =  Format.R32G32B32A32Float, InputSlot = 0u, AlignedByteOffset = 0u, InputSlotClass = InputClassification.PerVertexData, InstanceDataStepRate = 0 },
-        new InputElementDescription{ SemanticName = Vertex.Semantic.NormalName, SemanticIndex = 0u, Format =  Format.R32G32B32A32Float, InputSlot = 0u, AlignedByteOffset = 16u, InputSlotClass = InputClassification.PerVertexData, InstanceDataStepRate = 0 },
-        new InputElementDescription{ SemanticName = Vertex.Semantic.TangentName, SemanticIndex = 0u, Format =  Format.R32G32B32A32Float, InputSlot = 0u, AlignedByteOffset = 32u, InputSlotClass = InputClassification.PerVertexData, InstanceDataStepRate = 0 },
-        new InputElementDescription{ SemanticName = Vertex.Semantic.ColorName, SemanticIndex = 0u, Format =  Format.R32G32B32A32Float, InputSlot = 0u, AlignedByteOffset = 48u, InputSlotClass = InputClassification.PerVertexData, InstanceDataStepRate = 0 },
-        new InputElementDescription{ SemanticName = Vertex.Semantic.UVName, SemanticIndex = 0u, Format =  Format.R32G32B32A32Float, InputSlot = 0u, AlignedByteOffset = 64u, InputSlotClass = InputClassification.PerVertexData, InstanceDataStepRate = 0 }
+        new InputElementDescription{ SemanticName = Vertex.Semantic.pPositionName, SemanticIndex = 0u, Format =  Format.R32G32B32A32Float, InputSlot = 0u, AlignedByteOffset = 0u, InputSlotClass = InputClassification.PerVertexData, InstanceDataStepRate = 0 },
+        new InputElementDescription{ SemanticName = Vertex.Semantic.pNormalName, SemanticIndex = 0u, Format =  Format.R32G32B32A32Float, InputSlot = 0u, AlignedByteOffset = 16u, InputSlotClass = InputClassification.PerVertexData, InstanceDataStepRate = 0 },
+        new InputElementDescription{ SemanticName = Vertex.Semantic.pTangentName, SemanticIndex = 0u, Format =  Format.R32G32B32A32Float, InputSlot = 0u, AlignedByteOffset = 32u, InputSlotClass = InputClassification.PerVertexData, InstanceDataStepRate = 0 },
+        new InputElementDescription{ SemanticName = Vertex.Semantic.pColorName, SemanticIndex = 0u, Format =  Format.R32G32B32A32Float, InputSlot = 0u, AlignedByteOffset = 48u, InputSlotClass = InputClassification.PerVertexData, InstanceDataStepRate = 0 },
+        new InputElementDescription{ SemanticName = Vertex.Semantic.pUVName, SemanticIndex = 0u, Format =  Format.R32G32B32A32Float, InputSlot = 0u, AlignedByteOffset = 64u, InputSlotClass = InputClassification.PerVertexData, InstanceDataStepRate = 0 }
     ];
 
     public const Format SWAP_CHAIN_BACK_BUFFER_FORMAT = Format.B8G8R8A8Unorm;

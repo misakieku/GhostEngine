@@ -63,7 +63,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         _isRecording = false;
     }
 
-    public void BeginRenderPass(IRenderTarget renderTarget, Color128 clearColor)
+    public void BeginRenderPass(IRenderTarget renderTarget, Color16 clearColor)
     {
         // TODO: Implement render pass begin
         throw new NotImplementedException();

@@ -8,17 +8,17 @@ public readonly struct ResourceHandle : IEquatable<ResourceHandle>
     private const int _INVALID_ID = -1;
 
     public readonly int id;
-    public readonly uint generation;
+    public readonly int generation;
 
-    public static ResourceHandle Invalid => new(-1, 0);
+    public static ResourceHandle Invalid => new(_INVALID_ID, _INVALID_ID);
 
-    internal ResourceHandle(int id, uint generation)
+    internal ResourceHandle(int id, int generation)
     {
         this.id = id;
         this.generation = generation;
     }
 
-    public bool IsValid => id != _INVALID_ID && generation >= 0;
+    public bool IsValid => id != _INVALID_ID && generation != _INVALID_ID;
 
     public bool Equals(ResourceHandle other)
     {

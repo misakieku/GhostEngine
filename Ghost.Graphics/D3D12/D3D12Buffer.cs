@@ -11,6 +11,7 @@ namespace Ghost.Graphics.D3D12;
 internal unsafe class D3D12Buffer : IBuffer
 {
     private readonly BufferHandle _handle;
+    private readonly D3D12ResourceAllocator? _allocator;
     private readonly ComPtr<ID3D12Resource> _externalResource; // For externally managed resources
     private ResourceState _currentState;
     private void* _mappedPtr;
@@ -41,9 +42,11 @@ internal unsafe class D3D12Buffer : IBuffer
         get;
     }
 
+    public BufferHandle Handle => _handle;
+
     public ResourceState CurrentState => _currentState;
 
-    public ID3D12Resource* NativeResource => _externalResource.Get() == null ? _handle.ResourceHandle.GetAllocation().Resource : _externalResource.Get();
+    public ID3D12Resource* NativeResource => _externalResource.Get() == null ? _allocator!.GetResource(_handle.ResourceHandle) : _externalResource.Get();
 
     /// <summary>
     /// Constructor for wrapping existing D3D12 resources
@@ -51,6 +54,8 @@ internal unsafe class D3D12Buffer : IBuffer
     public D3D12Buffer(ComPtr<ID3D12Resource> resource, ulong size, BufferUsage usage, MemoryType memoryType)
     {
         _handle = BufferHandle.Invalid;
+        _allocator = null;
+
         _externalResource = resource.Move();
 
         Size = size;
@@ -62,9 +67,12 @@ internal unsafe class D3D12Buffer : IBuffer
     /// <summary>
     /// Constructor for allocator-managed buffers
     /// </summary>
-    public D3D12Buffer(BufferHandle handle, ref readonly BufferDesc desc)
+    public D3D12Buffer(BufferHandle handle, ref readonly BufferDesc desc, D3D12ResourceAllocator allocator)
     {
         _handle = handle;
+        _allocator = allocator;
+
+        _externalResource = default;
 
         Size = desc.Size;
         Usage = desc.Usage;
@@ -75,7 +83,9 @@ internal unsafe class D3D12Buffer : IBuffer
     public void* Map()
     {
         if (_mappedPtr != null)
+        {
             return _mappedPtr;
+        }
 
         if (MemoryType != MemoryType.Upload && MemoryType != MemoryType.Readback)
         {
@@ -107,13 +117,16 @@ internal unsafe class D3D12Buffer : IBuffer
     public void Dispose()
     {
         if (_disposed)
+        {
             return;
+        }
 
         Unmap();
 
         if (_handle.IsValid)
         {
-            _handle.Dispose();
+            // Release resource via allocator
+            _allocator?.ReleaseResource(_handle.ResourceHandle);
         }
         else
         {

@@ -169,7 +169,7 @@ public unsafe class D3D12Renderer : IRenderer
 
     private void RenderScene(IRenderTarget target, ICommandBuffer cmd)
     {
-        var clearColor = new Color128 { r = 1.0f, g = 0.0f, b = 1.0f, a = 1.0f };
+        var clearColor = new Color16 { r = 1.0f, g = 0.0f, b = 1.0f, a = 1.0f };
 
         cmd.BeginRenderPass(target, clearColor);
 
@@ -207,7 +207,7 @@ public unsafe class D3D12Renderer : IRenderer
         // 3. Apply post-processing effects (tone mapping, gamma correction, etc.)
 
         // For now, just clear the destination (this should be replaced with actual blit)
-        var clearColor = new Color128 { r = 0.0f, g = 0.0f, b = 0.0f, a = 1.0f };
+        var clearColor = new Color16 { r = 0.0f, g = 0.0f, b = 0.0f, a = 1.0f };
         cmd.BeginRenderPass(destination, clearColor);
         cmd.EndRenderPass();
 

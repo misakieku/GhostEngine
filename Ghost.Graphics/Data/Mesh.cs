@@ -3,6 +3,7 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Helpers;
+using Misaki.HighPerformance.Mathematics.Geometry;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using Win32.Graphics.Direct3D12;
@@ -10,19 +11,85 @@ using Win32.Graphics.Dxgi.Common;
 
 namespace Ghost.Graphics.Data;
 
+/// <summary>
+/// The CPU-side mesh data structure.
+/// </summary>
+public struct MeshData
+{
+    public UnsafeList<Vertex> vertices;
+    public UnsafeList<int> indices;
+    public AABB boundingBox;
+    public MeshHandle handle;
+
+    public MeshData()
+    {
+        handle = MeshHandle.Invalid;
+    }
+}
+
+/// <summary>
+/// The GPU-side mesh handle containing buffer references.
+/// </summary>
+public struct MeshHandle
+{
+    public BufferHandle vertexBuffer;
+    public BufferHandle indexBuffer;
+
+    public static MeshHandle Invalid => new() { vertexBuffer = BufferHandle.Invalid, indexBuffer = BufferHandle.Invalid };
+
+    public readonly bool IsValid => vertexBuffer.IsValid && indexBuffer.IsValid;
+}
+
+public struct BatchMeshID : IEquatable<BatchMeshID>
+{
+    public int value;
+
+    public static BatchMeshID Null => new() { value = -1 };
+
+    public readonly override int GetHashCode()
+    {
+        return value.GetHashCode();
+    }
+
+    public readonly override bool Equals(object? obj)
+    {
+        return obj is BatchMeshID id && Equals(id);
+    }
+
+    public readonly bool Equals(BatchMeshID other)
+    {
+        return value == other.value;
+    }
+
+    public readonly int CompareTo(BatchMeshID other)
+    {
+        return value.CompareTo(other.value);
+    }
+
+    public static bool operator ==(BatchMeshID a, BatchMeshID b)
+    {
+        return a.Equals(b);
+    }
+
+    public static bool operator !=(BatchMeshID a, BatchMeshID b)
+    {
+        return !a.Equals(b);
+    }
+}
+
 public unsafe sealed class Mesh : IDisposable
 {
     private UnsafeList<Vertex> _vertices;
     private UnsafeList<int> _indices;
 
-    private Bounds _boundingBox;
+    private AABB _boundingBox;
 
     private IBuffer? _vertexBuffer;
     private IBuffer? _indexBuffer;
 
     public Span<Vertex> Vertices => _vertices.AsSpan();
     public Span<int> Indices => _indices.AsSpan();
-    public Bounds BoundingBox => _boundingBox;
+    public AABB BoundingBox => _boundingBox;
 
     public uint VertexCount => (uint)_vertices.Count;
     public uint IndexCount => (uint)_indices.Count;
@@ -295,62 +362,6 @@ public unsafe sealed class Mesh : IDisposable
         // Create bindless descriptors for vertex and index buffers
         CreateBindlessDescriptors();
     }
-
-    /// <summary>
-    /// Creates SRVs for vertex and index buffers in the bindless descriptor heap
-    /// </summary>
-    private void CreateBindlessDescriptors()
-    {
-        if (_vertexBuffer == null || _indexBuffer == null)
-        {
-            return;
-        }
-
-        // Allocate new descriptors from the descriptor allocator
-        _vertexBufferDescriptor = GraphicsPipeline.DescriptorAllocator.AllocateBindless();
-        _indexBufferDescriptor = GraphicsPipeline.DescriptorAllocator.AllocateBindless();
-
-        var device = GraphicsPipeline.GraphicsDevice.NativeDevice.Ptr;
-
-        var vertexSrvDesc = new ShaderResourceViewDescription
-        {
-            Format = Format.R32Typeless,
-            ViewDimension = SrvDimension.Buffer,
-            Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,
-            Anonymous = new()
-            {
-                Buffer = new()
-                {
-                    FirstElement = 0,
-                    NumElements = (uint)(_vertexBuffer.GPUAddress != 0 ? (VertexCount * sizeof(Vertex)) / 4 : 0), // Divide by 4 for R32 format
-                    StructureByteStride = 0,
-                    Flags = BufferSrvFlags.Raw
-                }
-            }
-        };
-
-        device->CreateShaderResourceView(_vertexBuffer.NativeResource.Ptr, &vertexSrvDesc, _vertexBufferDescriptor.CpuHandle);
-
-        var indexSrvDesc = new ShaderResourceViewDescription
-        {
-            Format = Format.R32Typeless,
-            ViewDimension = SrvDimension.Buffer,
-            Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,
-            Anonymous = new()
-            {
-                Buffer = new()
-                {
-                    FirstElement = 0,
-                    NumElements = IndexCount,
-                    StructureByteStride = 0,
-                    Flags = BufferSrvFlags.Raw
-                }
-            }
-        };
-
-        device->CreateShaderResourceView(_indexBuffer.NativeResource.Ptr, &indexSrvDesc, _indexBufferDescriptor.CpuHandle);
-    }
-
 
     internal void MarkNoLongerReadable()
     {

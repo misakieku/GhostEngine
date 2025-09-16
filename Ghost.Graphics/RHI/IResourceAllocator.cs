@@ -45,15 +45,3 @@ public interface IResourceAllocator
     /// <param name="handle">Resource handle</param>
     public void ReleaseResource(ResourceHandle handle);
 }
-
-internal interface IResourceAllocator<T> : IResourceAllocator
-    where T : unmanaged
-{
-    /// <summary>
-    /// Get the raw gpu resource pointer from a resource handle
-    /// </summary>
-    /// <typeparam name="T">The type of the resource.</typeparam>
-    /// <param name="handle">Resource handle</param>
-    /// <returns>Pointer to the resource</returns>
-    public unsafe T* GetResource(ResourceHandle handle);
-}

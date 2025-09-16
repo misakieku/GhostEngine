@@ -22,7 +22,7 @@ public interface ICommandBuffer : IDisposable
     /// </summary>
     /// <param name="renderTarget">Render target to render into</param>
     /// <param name="clearColor">Color to clear the render target with</param>
-    public void BeginRenderPass(IRenderTarget renderTarget, Color128 clearColor);
+    public void BeginRenderPass(IRenderTarget renderTarget, Color16 clearColor);
 
     /// <summary>
     /// Ends the current render pass

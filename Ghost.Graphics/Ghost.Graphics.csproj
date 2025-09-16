@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <!--<PackageReference Include="StbImageSharp" Version="2.30.15" />-->
+    <PackageReference Include="Misaki.HighPerformance.Mathematics" Version="1.1.0" />
     <PackageReference Include="Vortice.Dxc.Native" Version="1.0.3" />
     <PackageReference Include="Vortice.Win32.Graphics.D3D12MemoryAllocator" Version="2.2.7" />
     <PackageReference Include="Vortice.Win32.Graphics.Direct3D.Dxc" Version="2.2.7" />

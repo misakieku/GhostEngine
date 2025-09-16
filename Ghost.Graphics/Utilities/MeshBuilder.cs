@@ -8,7 +8,7 @@ public static class MeshBuilder
     /// <summary>
     /// Creates a unit cube centered at the origin with size 1.
     /// </summary>
-    public static Mesh CreateCube(float size = 1.0f, Color128 color = default)
+    public static Mesh CreateCube(float size = 1.0f, Color16 color = default)
     {
         var half = size * 0.5f;
         var mesh = new Mesh(24, 36);
@@ -61,7 +61,7 @@ public static class MeshBuilder
     /// <summary>
     /// Creates a plane on the XZ axis centered at the origin.
     /// </summary>
-    public static Mesh CreatePlane(float width = 1.0f, float depth = 1.0f, Color128 color = default)
+    public static Mesh CreatePlane(float width = 1.0f, float depth = 1.0f, Color16 color = default)
     {
         var hw = width * 0.5f;
         var hd = depth * 0.5f;
@@ -83,7 +83,7 @@ public static class MeshBuilder
     /// <summary>
     /// Creates a UV sphere centered at the origin.
     /// </summary>
-    public static Mesh CreateSphere(int latitudeSegments = 16, int longitudeSegments = 24, float radius = 0.5f, Color128 color = default)
+    public static Mesh CreateSphere(int latitudeSegments = 16, int longitudeSegments = 24, float radius = 0.5f, Color16 color = default)
     {
         var mesh = new Mesh((latitudeSegments + 1) * (longitudeSegments + 1), latitudeSegments * longitudeSegments * 6);
 
