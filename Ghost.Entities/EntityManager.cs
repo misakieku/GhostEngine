@@ -186,7 +186,7 @@ public readonly struct EntityManager : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly bool HasComponent(Entity entity, TypeHandle typeHandle)
     {
-        return _world.ComponentStorage.TryGetMask(typeHandle, out var bitSet) && bitSet.IsSet(entity.ID);
+        return _world.ComponentStorage.TryGetMask(typeHandle, out var bitSet) && bitSet.Value.IsSet(entity.ID);
     }
 
     /// <summary>

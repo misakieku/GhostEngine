@@ -30,6 +30,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Reference Include="Misaki.HighPerformance">
+      <HintPath>..\..\Class\Misaki.HighPerformance\Misaki.HighPerformance\bin\Release\net9.0\Misaki.HighPerformance.dll</HintPath>
+    </Reference>
     <Reference Include="Misaki.HighPerformance.Image">
       <HintPath>..\..\Class\Misaki.HighPerformance\Misaki.HighPerformance.Image\bin\Release\net9.0\Misaki.HighPerformance.Image.dll</HintPath>
     </Reference>

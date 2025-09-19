@@ -100,9 +100,9 @@ float4 PSMain(PixelInput input) : SV_TARGET
 ";
 
     // High-level bindless objects
-    private Mesh? _mesh;
+    private MeshClass? _mesh;
     private Shader? _shader;
-    private Material? _material;
+    private MaterialClass? _material;
     private Texture2D[]? _textures;
 
     // Texture file paths for this demo
@@ -118,7 +118,7 @@ float4 PSMain(PixelInput input) : SV_TARGET
         _mesh = MeshBuilder.CreateCube(0.75f);
         _mesh.UploadMeshData();
 
-        _shader = new Shader(_HLSL_SOURCE);
+        _shader = new ShaderData(_HLSL_SOURCE);
         _material = new Material(_shader);
 
         _textures = new Texture2D[_textureFiles.Length];

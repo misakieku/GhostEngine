@@ -34,7 +34,7 @@ internal class RenderSystem
 
     private const uint _FRAME_COUNT = 2;
 
-    private readonly IGraphicsEngine _engine = null!;
+    private readonly IGraphicsEngine _graphicsEngine = null!;
     private readonly FrameResource[] _frameResources = null!;
     private readonly Thread _renderThread = null!;
     private readonly AutoResetEvent _shutdownEvent = null!;
@@ -47,14 +47,14 @@ internal class RenderSystem
     private bool _isRunning;
     private bool _disposed;
 
-    public IGraphicsEngine GraphicsEngine => _engine;
+    public IGraphicsEngine GraphicsEngine => _graphicsEngine;
     public uint CPUFenceValue => _cpuFenceValue;
     public uint GPUFenceValue => _gpuFenceValue;
     public bool IsRunning => _isRunning;
 
     public RenderSystem(GraphicsAPI api)
     {
-        _engine = api switch
+        _graphicsEngine = api switch
         {
             GraphicsAPI.Direct3D12 => new D3D12.D3D12GraphicsEngine(this),
             _ => throw new NotSupportedException($"Graphics API {api} is not supported.")
@@ -84,7 +84,7 @@ internal class RenderSystem
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        var renderer = _engine.CreateRenderer();
+        var renderer = _graphicsEngine.CreateRenderer();
         ImmutableInterlocked.Update(ref _renderers, renderers => renderers.Add(renderer));
         return renderer;
     }
@@ -166,11 +166,15 @@ internal class RenderSystem
             // Only proceed if CPU ready event was signaled
             if (waitResult == 0)
             {
+                _graphicsEngine.BeginFrame();
+
                 foreach (var renderer in _renderers)
                 {
                     renderer.ExecutePendingResize();
                     renderer.Render();
                 }
+
+                _graphicsEngine.EndFrame();
 
                 _gpuFenceValue++;
                 frameResource.gpuReadyEvent.Set();

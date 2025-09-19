@@ -1,3 +1,4 @@
+using Ghost.Core;
 using Ghost.Graphics.Data;
 
 namespace Ghost.Graphics.RHI;
@@ -15,11 +16,9 @@ public interface IShaderPipeline
 
 public interface IPipelineStateController
 {
-    public void ColectionShader(ReadOnlySpan<Shader> shaders);
-
-    public void CompileCollected();
+    public void CompileShader(Identifier<Shader> id, string shaderPath);
 
     public void PreCookPipelineState();
 
-    public IShaderPipeline GetShaderPipeline(Shader shader);
+    public IShaderPipeline GetShaderPipeline(Identifier<Shader> id);
 }

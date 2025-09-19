@@ -206,7 +206,7 @@ public unsafe class RenderTexture : Texture
     /// </summary>
     /// <param name="commandList">Command list to record clear commands</param>
     /// <param name="clearColor">Color to clear to</param>
-    public void ClearColor(CommandList commandList, Color16 clearColor)
+    public void ClearColor(CommandList commandList, Color128 clearColor)
     {
         ThrowIfDisposed();
 

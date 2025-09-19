@@ -34,7 +34,7 @@ public sealed partial class GraphicsTestWindow : Window
         _renderSystem = new (GraphicsAPI.Direct3D12);
         _renderer = _renderSystem.CreateRenderer();
 
-        _swapChain = _renderSystem.GraphicsEngine.Device.CreateSwapChain(new SwapChainDesc((uint)AppWindow.Size.Width, (uint)AppWindow.Size.Height, SwapChainTarget.FromCompositionSurface(Panel)));
+        _swapChain = _renderSystem.GraphicsEngine.CreateSwapChain(new SwapChainDesc((uint)AppWindow.Size.Width, (uint)AppWindow.Size.Height, SwapChainTarget.FromCompositionSurface(Panel)));
         _renderer.SetSwapChain(_swapChain);
 
         CompositionTarget.Rendering += OnRendering;

@@ -65,32 +65,36 @@ internal unsafe static class D3D12ShaderCompiler
         };
     }
 
-    public static CompileResult Compile(Shader shader, ShaderStage stage, CompilerVersion version)
+    public static CompileResult Compile(string shaderPath, ShaderStage stage, CompilerVersion version)
     {
         using ComPtr<IDxcCompiler3> compiler = default;
         using ComPtr<IDxcUtils> utils = default;
+        using ComPtr<IDxcIncludeHandler> includeHandler = default;
 
         // Create DXC compiler and utils
-        DxcCreateInstance(CLSID_DxcCompiler, __uuidof<IDxcCompiler3>(), compiler.GetVoidAddressOf());
-        DxcCreateInstance(CLSID_DxcUtils, __uuidof<IDxcUtils>(), utils.GetVoidAddressOf());
+        DxcCreateInstance(in CLSID_DxcCompiler, __uuidof<IDxcCompiler3>(), compiler.GetVoidAddressOf());
+        DxcCreateInstance(in CLSID_DxcUtils, __uuidof<IDxcUtils>(), utils.GetVoidAddressOf());
+        utils.Get()->CreateDefaultIncludeHandler(includeHandler.GetAddressOf());
 
         // Create source blob
         using ComPtr<IDxcBlobEncoding> sourceBlob = default;
-        var sourceBytes = System.Text.Encoding.UTF8.GetBytes(shader.Source);
-        fixed (byte* sourceBytesPtr = sourceBytes)
+        //var sourceBytes = System.Text.Encoding.UTF8.GetBytes(shaderPath);
+
+        fixed (char* pShaderPath = shaderPath.AsSpan())
         {
-            utils.Get()->CreateBlob(sourceBytesPtr, (uint)sourceBytes.Length, DXC_CP_UTF8, sourceBlob.GetAddressOf());
+            utils.Get()->LoadFile(pShaderPath, null, sourceBlob.GetAddressOf());
+            //utils.Get()->CreateBlob(sourceBytesPtr, (uint)sourceBytes.Length, DXC_CP_UTF8, sourceBlob.GetAddressOf());
         }
 
         // Prepare compilation arguments - NOTE: NO -Qstrip_reflect to keep reflection data
         var argsArray = new string[]
         {
-            "-T", GetProfileString(stage, version),         // Target profile (vs_6_6, ps_6_6)
-            "-E", GetEntryPoint(stage),                     // Entry point
-            "-HV", "2021",                                  // HLSL version 2021 (required for SM 6.6)
-            "-enable-16bit-types",                          // Enable 16-bit types
-            "-O3",                                          // Optimization level
-            "-Qstrip_debug"                                 // Strip debug info but KEEP reflection
+            "-T", GetProfileString(stage, version),                 // Target profile (vs_6_6, ps_6_6)
+            "-E", GetEntryPoint(stage),                             // Entry point
+            "-HV", "2021",                                          // HLSL version 2021 (required for SM 6.6)
+            "-enable-16bit-types",                                  // Enable 16-bit types
+            "-O3",                                                  // Optimization level
+            "-Qstrip_debug"                                         // Strip debug info but KEEP reflection
         };
 
         // Convert to wide strings (DXC expects LPCWSTR)
@@ -116,7 +120,7 @@ internal unsafe static class D3D12ShaderCompiler
                     Encoding = DXC_CP_UTF8
                 };
 
-                compiler.Get()->Compile(&buffer, (char**)argsPtr, (uint)argsArray.Length, null, __uuidof<IDxcResult>(), result.GetVoidAddressOf());
+                compiler.Get()->Compile(&buffer, (char**)argsPtr, (uint)argsArray.Length, includeHandler.Get(), __uuidof<IDxcResult>(), result.GetVoidAddressOf());
             }
 
             // Check compilation result
@@ -203,85 +207,92 @@ internal unsafe static class D3D12ShaderCompiler
         ShaderDescription shaderDesc;
         reflection.Get()->GetDesc(&shaderDesc);
 
-        var cbufferRegistry = shader.ConstantBuffers.ToDictionary(cb => cb.Name);
-        var textureRegistry = shader.RegularTextures.ToDictionary(t => t.Name);
+        var cbufferRegistry = new Dictionary<string, CBufferInfo>();
+        var textureRegistry = new Dictionary<string, TextureInfo>();
 
         for (uint i = 0; i < shaderDesc.BoundResources; i++)
         {
             ShaderInputBindDescription bindDesc;
             reflection.Get()->GetResourceBindingDesc(i, &bindDesc);
 
-            if (bindDesc.Type == ShaderInputType.ConstantBuffer)
+            switch (bindDesc.Type)
             {
-                var cbufferName = Marshal.PtrToStringAnsi((IntPtr)bindDesc.Name);
-                if (cbufferName == null || cbufferRegistry.ContainsKey(cbufferName))
+                case ShaderInputType.ConstantBuffer:
                 {
-                    continue;
-                }
-
-                var cbuffer = reflection.Get()->GetConstantBufferByName(bindDesc.Name);
-                ShaderBufferDescription cbufferDesc;
-                cbuffer->GetDesc(&cbufferDesc);
-
-                var cbufferInfo = new CBufferInfo
-                {
-                    Name = cbufferName,
-                    Size = cbufferDesc.Size,
-                    RegisterSlot = bindDesc.BindPoint
-                };
-                cbufferRegistry.Add(cbufferName, cbufferInfo);
-
-                for (uint j = 0; j < cbufferDesc.Variables; j++)
-                {
-                    var variable = cbuffer->GetVariableByIndex(j);
-                    ShaderVariableDescription varDesc;
-                    variable->GetDesc(&varDesc);
-
-                    var variableName = Marshal.PtrToStringAnsi((IntPtr)varDesc.Name);
-                    if (variableName == null || shader.PropertyNameToIdMap.ContainsKey(variableName))
+                    var cbufferName = Marshal.PtrToStringAnsi((IntPtr)bindDesc.Name);
+                    if (cbufferName == null || cbufferRegistry.ContainsKey(cbufferName))
                     {
                         continue;
                     }
 
-                    var propInfo = new PropertyInfo
+                    var cbuffer = reflection.Get()->GetConstantBufferByName(bindDesc.Name);
+                    ShaderBufferDescription cbufferDesc;
+                    cbuffer->GetDesc(&cbufferDesc);
+
+                    var cbufferInfo = new CBufferInfo
                     {
-                        Name = variableName,
-                        CBufferIndex = cbufferInfo.RegisterSlot,
-                        ByteOffset = varDesc.StartOffset,
-                        Size = varDesc.Size
+                        Size = cbufferDesc.Size,
+                        RegisterSlot = bindDesc.BindPoint
+                    };
+                    cbufferRegistry.Add(cbufferName, cbufferInfo);
+
+                    for (uint j = 0; j < cbufferDesc.Variables; j++)
+                    {
+                        var variable = cbuffer->GetVariableByIndex(j);
+                        ShaderVariableDescription varDesc;
+                        variable->GetDesc(&varDesc);
+
+                        var variableName = Marshal.PtrToStringAnsi((IntPtr)varDesc.Name);
+                        if (variableName == null || shader.PropertyNameToIdMap.ContainsKey(variableName))
+                        {
+                            continue;
+                        }
+
+                        var propInfo = new PropertyInfo
+                        {
+                            CBufferIndex = cbufferInfo.RegisterSlot,
+                            ByteOffset = varDesc.StartOffset,
+                            Size = varDesc.Size
+                        };
+
+                        shader.AddProperty(variableName, propInfo);
+                    }
+
+                    break;
+                }
+
+                case ShaderInputType.Texture:
+                {
+                    var textureName = Marshal.PtrToStringAnsi((IntPtr)bindDesc.Name);
+                    if (textureName == null || textureRegistry.ContainsKey(textureName))
+                    {
+                        continue;
+                    }
+
+                    // ALL texture input slots are regular textures!
+                    // Bindless textures don't use explicit texture inputs - they use ResourceDescriptorHeap[index]
+                    var textureInfo = new TextureInfo
+                    {
+                        RegisterSlot = bindDesc.BindPoint,
+                        RootParameterIndex = (uint)shader.ConstantBuffers.Count // Descriptor table comes after CBVs
                     };
 
-                    // Add to the list and create the name-to-ID mapping
-                    var newId = shader.Properties.Count;
-                    shader.Properties.Add(propInfo);
-                    shader.PropertyNameToIdMap.Add(variableName, newId);
+                    textureRegistry.Add(textureName, textureInfo);
+                    break;
                 }
-            }
-            else if (bindDesc.Type == ShaderInputType.Texture)
-            {
-                var textureName = Marshal.PtrToStringAnsi((IntPtr)bindDesc.Name);
-                if (textureName == null || textureRegistry.ContainsKey(textureName))
-                {
-                    continue;
-                }
-
-                // ALL texture input slots are regular textures!
-                // Bindless textures don't use explicit texture inputs - they use ResourceDescriptorHeap[index]
-                var textureInfo = new TextureInfo
-                {
-                    Name = textureName,
-                    RegisterSlot = bindDesc.BindPoint,
-                    RootParameterIndex = (uint)shader.ConstantBuffers.Count // Descriptor table comes after CBVs
-                };
-
-                textureRegistry.Add(textureName, textureInfo);
             }
         }
 
         shader.ConstantBuffers.Clear();
-        shader.ConstantBuffers.AddRange(cbufferRegistry.Values);
+        foreach (var cbuf in cbufferRegistry.Values)
+        {
+            shader.ConstantBuffers.Add(cbuf);
+        }
 
         shader.RegularTextures.Clear();
-        shader.RegularTextures.AddRange(textureRegistry.Values);
+        foreach (var tex in textureRegistry.Values)
+        {
+            shader.RegularTextures.Add(tex);
+        }
     }
 }

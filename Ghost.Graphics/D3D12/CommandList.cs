@@ -33,7 +33,7 @@ public unsafe class CommandList
     /// </summary>
     /// <param name="mesh">The mesh to draw</param>
     /// <param name="material">The bindless material to use</param>
-    public void DrawMesh(Mesh mesh, Material material)
+    public void DrawMesh(MeshClass mesh, MaterialClass material)
     {
         // Bind the bindless material (sets up root signature, pipeline state, and descriptor heaps)
         material.Bind(this);
@@ -62,7 +62,7 @@ public unsafe class CommandList
         _commandList.Ptr->OMSetRenderTargets(1, pRtvHandle, false, pDsvHandle);
     }
 
-    public void ClearRenderTarget(RenderTexture renderTarget, Color16 color)
+    public void ClearRenderTarget(RenderTexture renderTarget, Color128 color)
     {
         renderTarget.ClearColor(this, color);
     }

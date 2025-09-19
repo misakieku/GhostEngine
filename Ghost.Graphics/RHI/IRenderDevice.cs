@@ -31,7 +31,7 @@ public interface IRenderDevice : IDisposable
 }
 
 /// <summary>
-/// Command buffer types matching D3D12 command list types
+/// Command buffer types
 /// </summary>
 public enum CommandBufferType
 {

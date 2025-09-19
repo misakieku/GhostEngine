@@ -2,82 +2,68 @@
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
-using Misaki.HighPerformance.LowLevel.Helpers;
+using Misaki.HighPerformance.LowLevel.Utilities;
+using Misaki.HighPerformance.Mathematics;
 using Misaki.HighPerformance.Mathematics.Geometry;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using Win32.Graphics.Direct3D12;
 using Win32.Graphics.Dxgi.Common;
 
 namespace Ghost.Graphics.Data;
 
-/// <summary>
-/// The CPU-side mesh data structure.
-/// </summary>
-public struct MeshData
+public struct Mesh
 {
     public UnsafeList<Vertex> vertices;
-    public UnsafeList<int> indices;
+    public UnsafeList<uint> indices;
     public AABB boundingBox;
-    public MeshHandle handle;
-
-    public MeshData()
-    {
-        handle = MeshHandle.Invalid;
-    }
-}
-
-/// <summary>
-/// The GPU-side mesh handle containing buffer references.
-/// </summary>
-public struct MeshHandle
-{
     public BufferHandle vertexBuffer;
     public BufferHandle indexBuffer;
 
-    public static MeshHandle Invalid => new() { vertexBuffer = BufferHandle.Invalid, indexBuffer = BufferHandle.Invalid };
+    public Mesh()
+    {
+        vertexBuffer = BufferHandle.Invalid;
+        indexBuffer = BufferHandle.Invalid;
+    }
 
-    public readonly bool IsValid => vertexBuffer.IsValid && indexBuffer.IsValid;
+    internal Mesh(ReadOnlySpan<Vertex> vertices, ReadOnlySpan<uint> indices, BufferHandle vertexBuffer, BufferHandle indexBuffer)
+    {
+        this.vertices = new(vertices.Length, Allocator.Persistent);
+        this.indices = new(indices.Length, Allocator.Persistent);
+        this.vertices.CopyFrom(vertices);
+        this.indices.CopyFrom(indices);
+        this.vertexBuffer = vertexBuffer;
+        this.indexBuffer = indexBuffer;
+
+        ComputeBounds();
+    }
+
+    public void ComputeBounds()
+    {
+        if (vertices.Count == 0)
+        {
+            return;
+        }
+
+        var min = new float3(float.MaxValue);
+        var max = new float3(float.MinValue);
+        foreach (var vertex in vertices)
+        {
+            var pos = vertex.position.xyz;
+            min = math.min(min, pos);
+            max = math.max(max, pos);
+        }
+
+        boundingBox = new AABB(min, max);
+    }
+
+    public void ReleaseCpuResources()
+    {
+        vertices.Dispose();
+        indices.Dispose();
+    }
 }
 
-public struct BatchMeshID : IEquatable<BatchMeshID>
-{
-    public int value;
-
-    public static BatchMeshID Null => new() { value = -1 };
-
-    public readonly override int GetHashCode()
-    {
-        return value.GetHashCode();
-    }
-
-    public readonly override bool Equals(object? obj)
-    {
-        return obj is BatchMeshID id && Equals(id);
-    }
-
-    public readonly bool Equals(BatchMeshID other)
-    {
-        return value == other.value;
-    }
-
-    public readonly int CompareTo(BatchMeshID other)
-    {
-        return value.CompareTo(other.value);
-    }
-
-    public static bool operator ==(BatchMeshID a, BatchMeshID b)
-    {
-        return a.Equals(b);
-    }
-
-    public static bool operator !=(BatchMeshID a, BatchMeshID b)
-    {
-        return !a.Equals(b);
-    }
-}
-
-public unsafe sealed class Mesh : IDisposable
+public unsafe sealed class MeshClass : IDisposable
 {
     private UnsafeList<Vertex> _vertices;
     private UnsafeList<int> _indices;
@@ -132,13 +118,13 @@ public unsafe sealed class Mesh : IDisposable
         }
     }
 
-    public Mesh(int initialVertexCapacity = 256, int initialIndexCapacity = 512)
+    public MeshClass(int initialVertexCapacity = 256, int initialIndexCapacity = 512)
     {
         _vertices = new(initialVertexCapacity, Allocator.Persistent);
         _indices = new(initialIndexCapacity, Allocator.Persistent);
     }
 
-    public Mesh(ReadOnlySpan<Vertex> vertices, ReadOnlySpan<int> indices)
+    public MeshClass(ReadOnlySpan<Vertex> vertices, ReadOnlySpan<int> indices)
         : this(vertices.Length, indices.Length)
     {
         _vertices = new(vertices.Length, Allocator.Persistent);
@@ -148,7 +134,7 @@ public unsafe sealed class Mesh : IDisposable
         _indices.CopyFrom(indices);
     }
 
-    ~Mesh()
+    ~MeshClass()
     {
         Dispose();
     }
@@ -233,18 +219,18 @@ public unsafe sealed class Mesh : IDisposable
             var v1 = _vertices[i1];
             var v2 = _vertices[i2];
 
-            var edge1 = v1.Position - v0.Position;
-            var edge2 = v2.Position - v0.Position;
-            var faceNormal = Vector3.Cross(edge1.AsVector3(), edge2.AsVector3());
+            var edge1 = v1.position - v0.position;
+            var edge2 = v2.position - v0.position;
+            var faceNormal = math.cross(edge1.xyz, edge2.xyz);
 
-            _vertices[i0].Normal += faceNormal.AsVector4();
-            _vertices[i1].Normal += faceNormal.AsVector4();
-            _vertices[i2].Normal += faceNormal.AsVector4();
+            _vertices[i0].normal.xyz += faceNormal;
+            _vertices[i1].normal.xyz += faceNormal;
+            _vertices[i2].normal.xyz += faceNormal;
         }
 
         for (var i = 0; i < _vertices.Count; i++)
         {
-            _vertices[i].Normal = Vector4.Normalize(_vertices[i].Normal);
+            _vertices[i].normal = math.normalize(_vertices[i].normal);
         }
     }
 
@@ -256,7 +242,7 @@ public unsafe sealed class Mesh : IDisposable
     /// </remarks>
     public void ComputeTangents()
     {
-        var bitangents = new Vector4[_vertices.Count];
+        var bitangents = new float4[_vertices.Count];
 
         for (var i = 0; i < _indices.Count; i += 3)
         {
@@ -268,29 +254,24 @@ public unsafe sealed class Mesh : IDisposable
             var v1 = _vertices[i1];
             var v2 = _vertices[i2];
 
-            var uv0 = _vertices[i0].UV;
-            var uv1 = _vertices[i1].UV;
-            var uv2 = _vertices[i2].UV;
+            var uv0 = _vertices[i0].uv;
+            var uv1 = _vertices[i1].uv;
+            var uv2 = _vertices[i2].uv;
 
-            var deltaPos1 = v1.Position - v0.Position;
-            var deltaPos2 = v2.Position - v0.Position;
+            var deltaPos1 = v1.position - v0.position;
+            var deltaPos2 = v2.position - v0.position;
             var deltaUV1 = uv1 - uv0;
             var deltaUV2 = uv2 - uv0;
 
-            var r = 1.0f / (deltaUV1.X * deltaUV2.Y - deltaUV1.Y * deltaUV2.X);
-            var tangent = (deltaPos1 * deltaUV2.Y - deltaPos2 * deltaUV1.Y) * r;
-            var bitangent = (deltaPos2 * deltaUV1.X - deltaPos1 * deltaUV2.X) * r;
+            var r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
+            var tangent = (deltaPos1 * deltaUV2.y - deltaPos2 * deltaUV1.y) * r;
+            var bitangent = (deltaPos2 * deltaUV1.x - deltaPos1 * deltaUV2.x) * r;
 
             for (var j = 0; j < 3; j++)
             {
                 var idx = _indices[i + j];
-                var t = _vertices[idx].Tangent;
-                _vertices[idx].Tangent = new Vector4(
-                    t.X + tangent.X,
-                    t.Y + tangent.Y,
-                    t.Z + tangent.Z,
-                    0.0f  // we’ll fill w later
-                );
+                var t = _vertices[idx].tangent;
+                _vertices[idx].tangent.xyz = t.xyz + tangent.xyz;
 
                 bitangents[idx] += bitangent;
             }
@@ -298,18 +279,16 @@ public unsafe sealed class Mesh : IDisposable
 
         for (var i = 0; i < _vertices.Count; i++)
         {
-            var n = _vertices[i].Normal;
-            var t = _vertices[i].Tangent;
-            var n3 = n.AsVector3();
-            var t3 = t.AsVector3();
+            var n = _vertices[i].normal;
+            var t = _vertices[i].tangent;
 
-            var proj = n3 * Vector3.Dot(n3, t3);
-            t3 = Vector3.Normalize(t3 - proj);
+            var proj = n * math.dot(n, t);
+            t = math.normalize(t - proj);
 
             var b = bitangents[i];
-            var w = Vector3.Dot(Vector3.Cross(n3, t3), b.AsVector3()) < 0.0f ? -1.0f : 1.0f;
+            var w = math.dot(math.cross(n.xyz, t.xyz), b.xyz) < 0.0f ? -1.0f : 1.0f;
 
-            _vertices[i].Tangent = new Vector4(t3.X, t3.Y, t3.Z, w);
+            _vertices[i].tangent = new float4(t.x, t.y, t.z, w);
         }
     }
 
@@ -320,20 +299,20 @@ public unsafe sealed class Mesh : IDisposable
     {
         if (_vertices.Count == 0)
         {
-            _boundingBox = Bounds.Zero;
+            _boundingBox = AABB.Zero;
             return;
         }
 
-        var min = new Vector3(float.MaxValue);
-        var max = new Vector3(float.MinValue);
+        var min = new float3(float.MaxValue);
+        var max = new float3(float.MinValue);
         foreach (var vertex in _vertices)
         {
-            var pos = vertex.Position.AsVector3();
-            min = Vector3.Min(min, pos);
-            max = Vector3.Max(max, pos);
+            var pos = vertex.position.xyz;
+            min = math.min(min, pos);
+            max = math.max(max, pos);
         }
 
-        _boundingBox = new Bounds(min, max);
+        _boundingBox = new AABB(min, max);
     }
 
     /// <summary>

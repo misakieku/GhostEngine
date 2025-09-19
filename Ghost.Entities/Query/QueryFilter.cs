@@ -25,25 +25,20 @@ internal struct QueryFilter()
     internal List<TypeHandle> _absent = new(6);
     internal List<TypeHandle> _disabled = new(6);
 
-    public readonly BitSet ComputeFilterBitMask(World world)
+    public readonly UnsafeBitSet ComputeFilterBitMask(World world)
     {
-        BitSet? allMask = null;
-        BitSet? anyMask = null;
-        BitSet? absentMask = null;
-
-        var hasAll = false;
-        var hasAny = false;
-        var hasAbsent = false;
+        UnsafeBitSet? allMask = null;
+        UnsafeBitSet? anyMask = null;
+        UnsafeBitSet? absentMask = null;
 
         foreach (var typeHandle in _all)
         {
             var mask = world.ComponentStorage.GetOrCreateMask(typeHandle);
 
-            if (!hasAll)
+            if (!allMask.HasValue)
             {
-                allMask = new BitSet(mask.Length);
-                allMask.SetAll();
-                hasAll = true;
+                allMask = new UnsafeBitSet(mask.Length);
+                allMask.Value.SetAll();
             }
 
             allMask &= mask;
@@ -53,10 +48,9 @@ internal struct QueryFilter()
         {
             var mask = world.ComponentStorage.GetOrCreateMask(typeHandle);
 
-            if (!hasAny)
+            if (!anyMask.HasValue)
             {
-                anyMask = new BitSet(mask.Length);
-                hasAny = true;
+                anyMask = new UnsafeBitSet(mask.Length);
             }
 
             anyMask |= mask;
@@ -66,31 +60,30 @@ internal struct QueryFilter()
         {
             var mask = world.ComponentStorage.GetOrCreateMask(typeHandle);
 
-            if (!hasAbsent)
+            if (!absentMask.HasValue)
             {
-                absentMask = new BitSet(mask.Length);
-                hasAbsent = true;
+                absentMask = new UnsafeBitSet(mask.Length);
             }
 
             absentMask |= mask;
         }
 
-        var result = new BitSet(world.EntityManager.EntityCount);
+        var result = new UnsafeBitSet(world.EntityManager.EntityCount);
         result.SetAll();
 
-        if (hasAll)
+        if (allMask.HasValue)
         {
-            result &= allMask!;
+            result &= allMask.Value;
         }
 
-        if (hasAny)
+        if (anyMask.HasValue)
         {
-            result &= anyMask!;
+            result &= anyMask.Value;
         }
 
-        if (hasAbsent)
+        if (absentMask.HasValue)
         {
-            result &= ~absentMask!;
+            result &= ~absentMask.Value;
         }
 
         return result;

@@ -29,7 +29,7 @@ public readonly struct ResourceHandle : IEquatable<ResourceHandle>
     {
         unchecked
         {
-            return (id * 397) ^ (int)generation;
+            return (id * 397) ^ generation;
         }
     }
 
@@ -52,6 +52,7 @@ public readonly struct ResourceHandle : IEquatable<ResourceHandle>
 public readonly struct TextureHandle : IEquatable<TextureHandle>
 {
     private readonly ResourceHandle _resourceHandle;
+    private readonly BindlessDescriptor _bindlessDescriptor;
 
     public ResourceHandle ResourceHandle => _resourceHandle;
     public static TextureHandle Invalid => new(ResourceHandle.Invalid);
@@ -59,13 +60,20 @@ public readonly struct TextureHandle : IEquatable<TextureHandle>
     internal TextureHandle(ResourceHandle resourceHandle)
     {
         _resourceHandle = resourceHandle;
+        _bindlessDescriptor = BindlessDescriptor.Invalid;
+    }
+
+    internal TextureHandle(ResourceHandle resourceHandle, BindlessDescriptor descriptor)
+    {
+        _resourceHandle = resourceHandle;
+        _bindlessDescriptor = descriptor;
     }
 
     public bool IsValid => _resourceHandle.IsValid;
 
     public bool Equals(TextureHandle other)
     {
-        return _resourceHandle.Equals(other._resourceHandle);
+        return _resourceHandle.Equals(other._resourceHandle) && _bindlessDescriptor.Equals(other._bindlessDescriptor);
     }
 
     public override bool Equals(object? obj)
@@ -75,7 +83,7 @@ public readonly struct TextureHandle : IEquatable<TextureHandle>
 
     public override int GetHashCode()
     {
-        return _resourceHandle.GetHashCode();
+        return HashCode.Combine(_resourceHandle, _bindlessDescriptor);
     }
 
     public static bool operator ==(TextureHandle left, TextureHandle right)
@@ -115,7 +123,7 @@ public readonly struct BufferHandle : IEquatable<BufferHandle>
 
     public bool Equals(BufferHandle other)
     {
-        return _resourceHandle.Equals(other._resourceHandle);
+        return _resourceHandle.Equals(other._resourceHandle) && _bindlessDescriptor.Equals(other._bindlessDescriptor);
     }
 
     public override bool Equals(object? obj)
@@ -125,7 +133,7 @@ public readonly struct BufferHandle : IEquatable<BufferHandle>
 
     public override int GetHashCode()
     {
-        return _resourceHandle.GetHashCode();
+        return HashCode.Combine(_resourceHandle, _bindlessDescriptor);
     }
 
     public static bool operator ==(BufferHandle left, BufferHandle right)

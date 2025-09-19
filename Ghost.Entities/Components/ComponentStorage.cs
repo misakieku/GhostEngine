@@ -472,7 +472,7 @@ internal struct ComponentStorage : IDisposable
     private int _currentCapacity = 16;
 
     private IComponentPool?[] _componentPools = new IComponentPool[16];
-    private BitSet?[] _componentEntityMasks = new BitSet[16];
+    private UnsafeBitSet?[] _componentEntityMasks = new UnsafeBitSet?[16];
 
     private readonly Dictionary<TypeHandle, int> _typeIDMap = new(16);
     private readonly Dictionary<int, TypeHandle> _typeHandleMap = new(16);
@@ -487,7 +487,7 @@ internal struct ComponentStorage : IDisposable
     }
 
     internal readonly IReadOnlyList<IComponentPool?> ComponentPools => _componentPools;
-    internal readonly IReadOnlyList<BitSet?> ComponentEntityMasks => _componentEntityMasks;
+    internal readonly IReadOnlyList<UnsafeBitSet?> ComponentEntityMasks => _componentEntityMasks;
     internal readonly ScriptComponentPool ScriptComponentPool => _scriptComponentPool;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -621,7 +621,7 @@ internal struct ComponentStorage : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly bool TryGetMask(TypeHandle typeHandle, [NotNullWhen(true)] out BitSet? bitSet)
+    public readonly bool TryGetMask(TypeHandle typeHandle, [NotNullWhen(true)] out UnsafeBitSet? bitSet)
     {
         if (!_typeIDMap.TryGetValue(typeHandle, out var id)
             || id >= _currentCapacity)
@@ -631,17 +631,17 @@ internal struct ComponentStorage : IDisposable
         }
 
         bitSet = _componentEntityMasks[id];
-        return bitSet != null;
+        return bitSet.HasValue;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly bool TryGetMask<T>([NotNullWhen(true)] out BitSet? bitSet)
+    public readonly bool TryGetMask<T>([NotNullWhen(true)] out UnsafeBitSet? bitSet)
         where T : unmanaged, IComponentData
     {
         return TryGetMask(TypeHandle.Get<T>(), out bitSet);
     }
 
-    public BitSet GetOrCreateMask<T>()
+    public UnsafeBitSet GetOrCreateMask<T>()
         where T : unmanaged, IComponentData
     {
         var typeHandle = TypeHandle.Get<T>();
@@ -658,12 +658,12 @@ internal struct ComponentStorage : IDisposable
         }
 
         ref var set = ref _componentEntityMasks[id];
-        set ??= new BitSet();
+        set ??= new UnsafeBitSet();
 
-        return set;
+        return set.Value;
     }
 
-    public BitSet GetOrCreateMask(Type type)
+    public UnsafeBitSet GetOrCreateMask(Type type)
     {
         var typeHandle = TypeHandle.Get(type);
         if (!_typeIDMap.TryGetValue(typeHandle, out var id))
@@ -679,9 +679,9 @@ internal struct ComponentStorage : IDisposable
         }
 
         ref var set = ref _componentEntityMasks[id];
-        set ??= new BitSet();
+        set ??= new UnsafeBitSet();
 
-        return set;
+        return set.Value;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -704,7 +704,11 @@ internal struct ComponentStorage : IDisposable
             pool?.Dispose();
         }
 
-        Array.Clear(_componentPools);
+        foreach (var bitSet in _componentEntityMasks)
+        {
+            bitSet?.Dispose();
+        }
+
         _scriptComponentPool.Dispose();
     }
 }

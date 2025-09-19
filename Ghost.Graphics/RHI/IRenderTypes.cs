@@ -173,7 +173,8 @@ public struct RenderTargetDesc
             Format = desc.Format,
             Dimension = desc.Dimension,
             MipLevels = desc.MipLevels,
-            Usage = usage
+            Usage = usage,
+            CreationFlags = TextureCreationFlags.Bindless
         };
     }
 }
@@ -241,6 +242,15 @@ public struct TextureDesc
     /// Texture usage flags
     /// </summary>
     public TextureUsage Usage
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Texture creation flags
+    /// </summary>
+    public TextureCreationFlags CreationFlags
     {
         get;
         set;
@@ -340,4 +350,11 @@ public enum MemoryType
     Default,    // GPU memory
     Upload,     // CPU-to-GPU memory
     Readback    // GPU-to-CPU memory
+}
+
+[Flags]
+public enum TextureCreationFlags
+{
+    None = 0,
+    Bindless = 1 << 0
 }

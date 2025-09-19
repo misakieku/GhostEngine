@@ -66,7 +66,7 @@ public struct QueryEnumerable<<#= generics #>>
         private int _index;
         private readonly int _count;
 
-        private BitSet _filterMask;
+        private UnsafeBitSet _filterMask;
         
         public QueryItem<<#= generics #>> Current
         {

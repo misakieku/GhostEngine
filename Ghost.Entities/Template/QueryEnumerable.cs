@@ -42,7 +42,7 @@ public struct QueryEnumerable<T0>
         private int _index;
         private readonly int _count;
 
-        private BitSet _filterMask;
+        private UnsafeBitSet _filterMask;
         
         public QueryItem<T0> Current
         {
@@ -213,7 +213,7 @@ public struct QueryEnumerable<T0, T1>
         private int _index;
         private readonly int _count;
 
-        private BitSet _filterMask;
+        private UnsafeBitSet _filterMask;
         
         public QueryItem<T0, T1> Current
         {
@@ -389,7 +389,7 @@ public struct QueryEnumerable<T0, T1, T2>
         private int _index;
         private readonly int _count;
 
-        private BitSet _filterMask;
+        private UnsafeBitSet _filterMask;
         
         public QueryItem<T0, T1, T2> Current
         {
@@ -570,7 +570,7 @@ public struct QueryEnumerable<T0, T1, T2, T3>
         private int _index;
         private readonly int _count;
 
-        private BitSet _filterMask;
+        private UnsafeBitSet _filterMask;
         
         public QueryItem<T0, T1, T2, T3> Current
         {
@@ -756,7 +756,7 @@ public struct QueryEnumerable<T0, T1, T2, T3, T4>
         private int _index;
         private readonly int _count;
 
-        private BitSet _filterMask;
+        private UnsafeBitSet _filterMask;
         
         public QueryItem<T0, T1, T2, T3, T4> Current
         {
@@ -947,7 +947,7 @@ public struct QueryEnumerable<T0, T1, T2, T3, T4, T5>
         private int _index;
         private readonly int _count;
 
-        private BitSet _filterMask;
+        private UnsafeBitSet _filterMask;
         
         public QueryItem<T0, T1, T2, T3, T4, T5> Current
         {
@@ -1143,7 +1143,7 @@ public struct QueryEnumerable<T0, T1, T2, T3, T4, T5, T6>
         private int _index;
         private readonly int _count;
 
-        private BitSet _filterMask;
+        private UnsafeBitSet _filterMask;
         
         public QueryItem<T0, T1, T2, T3, T4, T5, T6> Current
         {
@@ -1344,7 +1344,7 @@ public struct QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7>
         private int _index;
         private readonly int _count;
 
-        private BitSet _filterMask;
+        private UnsafeBitSet _filterMask;
         
         public QueryItem<T0, T1, T2, T3, T4, T5, T6, T7> Current
         {

@@ -7,6 +7,11 @@ public interface IGraphicsEngine : IDisposable
         get;
     }
 
+    public IResourceDatabase ResourceDatabase
+    {
+        get;
+    }
+
     public IResourceAllocator ResourceAllocator
     {
         get;
@@ -27,4 +32,14 @@ public interface IGraphicsEngine : IDisposable
     /// <param name="desc">Swap chain description</param>
     /// <returns>A new swap chain instance</returns>
     public ISwapChain CreateSwapChain(SwapChainDesc desc);
+
+    /// <summary>
+    /// Begins a new rendering frame, preparing the graphics context for drawing operations.
+    /// </summary>
+    public void BeginFrame();
+
+    /// <summary>
+    /// Completes the current rendering frame and performs any necessary finalization steps.
+    /// </summary>
+    public void EndFrame();
 }

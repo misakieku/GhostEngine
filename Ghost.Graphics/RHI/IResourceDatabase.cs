@@ -1,4 +1,5 @@
-﻿using Ghost.Graphics.Data;
+﻿using Ghost.Core;
+using Ghost.Graphics.Data;
 
 namespace Ghost.Graphics.RHI;
 
@@ -32,4 +33,24 @@ public interface IResourceDatabase
     /// </summary>
     /// <param name="handle">The handle of the resource to be removed.</param>
     public void RemoveResource(ResourceHandle handle);
+
+    public Identifier<Mesh> AddMesh(ref readonly Mesh mesh);
+
+    public bool HasMesh(Identifier<Mesh> id);
+
+    public Mesh GetMesh(Identifier<Mesh> id);
+
+    public ref Mesh GetMeshReference(Identifier<Mesh> id);
+
+    public void RemoveMesh(Identifier<Mesh> id);
+
+    public Identifier<Shader> AddShader(ref readonly Shader shader);
+
+    public bool HasShader(Identifier<Shader> id);
+
+    public Shader GetShader(Identifier<Shader> id);
+
+    public ref Shader GetShaderReference(Identifier<Shader> id);
+
+    public void RemoveShader(Identifier<Shader> id);
 }

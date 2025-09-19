@@ -1,12 +1,10 @@
+using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.LowLevel.Collections;
+
 namespace Ghost.Graphics.Data;
 
 internal readonly struct TextureInfo
 {
-    public required string Name
-    {
-        get; init;
-    }
-
     public uint RegisterSlot
     {
         get; init;
@@ -20,11 +18,6 @@ internal readonly struct TextureInfo
 
 internal readonly struct PropertyInfo
 {
-    public required string Name
-    {
-        get; init;
-    }
-
     public uint CBufferIndex
     {
         get; init;
@@ -43,11 +36,6 @@ internal readonly struct PropertyInfo
 
 internal readonly struct CBufferInfo
 {
-    public required string Name
-    {
-        get; init;
-    }
-
     public uint Size
     {
         get; init;
@@ -64,36 +52,44 @@ internal readonly struct CBufferInfo
 /// </summary>
 
 // TODO: Multi pass and keyword support
-public unsafe class Shader : IDisposable
+public struct Shader : IDisposable
 {
-    private readonly string _source;
-
-    private readonly List<CBufferInfo> _constantBuffers = new();
-    private readonly List<PropertyInfo> _properties = new();
-    private readonly List<TextureInfo> _regularTextures = new(); // Add regular texture support
-    private readonly Dictionary<string, int> _propertyNameToIdMap = new();
+    private UnsafeList<CBufferInfo> _constantBuffers;
+    private UnsafeList<PropertyInfo> _properties;
+    private UnsafeList<TextureInfo> _regularTextures; // Add regular texture support
+    // TODO: Possible to move this to unmanaged heap?
+    private Dictionary<string, int> _propertyNameToIdMap;
 
     private bool _disposed;
 
-    internal string Source => _source;
+    internal readonly UnsafeList<CBufferInfo> ConstantBuffers => _constantBuffers;
+    internal readonly UnsafeList<PropertyInfo> Properties => _properties;
+    internal readonly UnsafeList<TextureInfo> RegularTextures => _regularTextures;
+    internal readonly Dictionary<string, int> PropertyNameToIdMap => _propertyNameToIdMap;
 
-    internal List<CBufferInfo> ConstantBuffers => _constantBuffers;
-    internal List<PropertyInfo> Properties => _properties;
-    internal List<TextureInfo> RegularTextures => _regularTextures;
-    internal Dictionary<string, int> PropertyNameToIdMap => _propertyNameToIdMap;
-
-    // TODO: In real production, we should not load the shader source code directly.
-    internal Shader(string shaderCode)
+    public Shader()
     {
-        _source = shaderCode;
+        _constantBuffers = new(8, Allocator.Persistent);
+        _properties = new(8, Allocator.Persistent);
+        _regularTextures = new(8, Allocator.Persistent);
+        _propertyNameToIdMap = new(8);
+
+        _disposed = false;
+    }
+
+    internal void AddProperty(string name, PropertyInfo propertyInfo)
+    {
+        var id = _properties.Count;
+        _properties.Add(propertyInfo);
+        _propertyNameToIdMap[name] = id;
     }
 
     /// <summary>
     /// Gets a unique, stable ID for a shader property.
     /// </summary>
-    /// <param name="propertyName">The name of the property (e.g., "_Color").</param>
+    /// <param name="propertyName">The name of the shader property.</param>
     /// <returns>The integer ID of the property, or -1 if not found.</returns>
-    public int GetPropertyId(string propertyName)
+    public readonly int GetPropertyId(string propertyName)
     {
         return _propertyNameToIdMap.TryGetValue(propertyName, out var id) ? id : -1;
     }
@@ -105,12 +101,12 @@ public unsafe class Shader : IDisposable
             return;
         }
 
-        _constantBuffers.Clear();
-        _properties.Clear();
-        _propertyNameToIdMap.Clear();
-        _regularTextures.Clear();
+        _constantBuffers.Dispose();
+        _properties.Dispose();
+        _regularTextures.Dispose();
 
-        GC.SuppressFinalize(this);
+        _propertyNameToIdMap.Clear();
+        _propertyNameToIdMap = null!;
 
         _disposed = true;
     }

@@ -8,10 +8,10 @@ public static class MeshBuilder
     /// <summary>
     /// Creates a unit cube centered at the origin with size 1.
     /// </summary>
-    public static Mesh CreateCube(float size = 1.0f, Color16 color = default)
+    public static MeshClass CreateCube(float size = 1.0f, Color128 color = default)
     {
         var half = size * 0.5f;
-        var mesh = new Mesh(24, 36);
+        var mesh = new MeshClass(24, 36);
 
         var corners = new Vector4[]
         {
@@ -40,11 +40,11 @@ public static class MeshBuilder
             {
                 var vertex = new Vertex
                 {
-                    Position = corners[face[i]],
-                    Normal = Vector4.Zero,
-                    Tangent = Vector4.Zero,
-                    Color = color,
-                    UV = uvs[i].AsVector4()
+                    position = corners[face[i]],
+                    normal = Vector4.Zero,
+                    tangent = Vector4.Zero,
+                    color = color,
+                    uv = uvs[i].AsVector4()
                 };
                 mesh.AddVertex(vertex);
             }
@@ -61,11 +61,11 @@ public static class MeshBuilder
     /// <summary>
     /// Creates a plane on the XZ axis centered at the origin.
     /// </summary>
-    public static Mesh CreatePlane(float width = 1.0f, float depth = 1.0f, Color16 color = default)
+    public static MeshClass CreatePlane(float width = 1.0f, float depth = 1.0f, Color128 color = default)
     {
         var hw = width * 0.5f;
         var hd = depth * 0.5f;
-        var mesh = new Mesh(4, 6);
+        var mesh = new MeshClass(4, 6);
 
         mesh.AddVertex(new(new(-hw, 0.0f, -hd, 0.0f), Vector4.Zero, Vector4.Zero, color, new(0.0f)));
         mesh.AddVertex(new(new(hw, 0.0f, -hd, 0.0f), Vector4.Zero, Vector4.Zero, color, new(1.0f, 0.0f, 0.0f, 0.0f)));
@@ -83,9 +83,9 @@ public static class MeshBuilder
     /// <summary>
     /// Creates a UV sphere centered at the origin.
     /// </summary>
-    public static Mesh CreateSphere(int latitudeSegments = 16, int longitudeSegments = 24, float radius = 0.5f, Color16 color = default)
+    public static MeshClass CreateSphere(int latitudeSegments = 16, int longitudeSegments = 24, float radius = 0.5f, Color128 color = default)
     {
-        var mesh = new Mesh((latitudeSegments + 1) * (longitudeSegments + 1), latitudeSegments * longitudeSegments * 6);
+        var mesh = new MeshClass((latitudeSegments + 1) * (longitudeSegments + 1), latitudeSegments * longitudeSegments * 6);
 
         // Vertices
         for (var lat = 0; lat <= latitudeSegments; lat++)
@@ -107,11 +107,11 @@ public static class MeshBuilder
                 mesh.AddVertex(
                     new()
                     {
-                        Position = new Vector4(x, y, z, 0.0f) * radius,
-                        Normal = Vector4.Zero,
-                        Tangent = Vector4.Zero,
-                        Color = color,
-                        UV = new Vector4((float)lon / longitudeSegments, (float)lat / latitudeSegments, 0.0f, 0.0f)
+                        position = new Vector4(x, y, z, 0.0f) * radius,
+                        normal = Vector4.Zero,
+                        tangent = Vector4.Zero,
+                        color = color,
+                        uv = new Vector4((float)lon / longitudeSegments, (float)lat / latitudeSegments, 0.0f, 0.0f)
                     });
             }
         }

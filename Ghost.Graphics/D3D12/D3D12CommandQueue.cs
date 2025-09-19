@@ -42,6 +42,11 @@ internal unsafe class D3D12CommandQueue : ICommandQueue
         pDevice->CreateFence(0, FenceFlags.None, __uuidof<ID3D12Fence1>(), _fence.GetVoidAddressOf());
     }
 
+    ~D3D12CommandQueue()
+    {
+        Dispose();
+    }
+
     public void Submit(ICommandBuffer commandBuffer)
     {
         if (commandBuffer is D3D12CommandBuffer d3d12CommandBuffer)
@@ -113,12 +118,16 @@ internal unsafe class D3D12CommandQueue : ICommandQueue
     public void Dispose()
     {
         if (_disposed)
+        {
             return;
+        }
 
         _fenceEvent?.Dispose();
         _fence.Dispose();
         _queue.Dispose();
 
         _disposed = true;
+
+        GC.SuppressFinalize(this);
     }
 }

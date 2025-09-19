@@ -1,4 +1,5 @@
-﻿using Ghost.Graphics.D3D12.Utilities;
+﻿using Ghost.Core;
+using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.Data;
 using Ghost.Graphics.RHI;
 using Win32;
@@ -8,7 +9,7 @@ using Win32.Graphics.Dxgi.Common;
 
 namespace Ghost.Graphics.D3D12;
 
-internal class D3D12ShaderPipeline : IShaderPipeline
+internal class D3D12ShaderPipeline : IShaderPipeline, IDisposable
 {
     public ComPtr<ID3D12RootSignature> rootSignature;
     public ComPtr<ID3D12PipelineState> pipelineState;
@@ -21,42 +22,51 @@ internal class D3D12ShaderPipeline : IShaderPipeline
     {
         get; init;
     }
+
+    public void Dispose()
+    {
+        rootSignature.Dispose();
+        pipelineState.Dispose();
+        samplerHeap.Dispose();
+        vsResult.Dispose();
+        psResult.Dispose();
+        csResult.Dispose();
+    }
 }
 
 internal unsafe class D3D12PipelineStateController : IPipelineStateController, IDisposable
 {
     private readonly ID3D12Device14* _device;
+    private readonly D3D12ResourceDatabase _resourceDatabase;
 
-    private readonly Dictionary<Shader, D3D12ShaderPipeline> _shaderPipelines;
+    private readonly Dictionary<Identifier<Shader>, D3D12ShaderPipeline> _shaderPipelines;
 
-    public D3D12PipelineStateController(D3D12RenderDevice device)
+    public D3D12PipelineStateController(D3D12RenderDevice device, D3D12ResourceDatabase resourceDatabase)
     {
         _device = device.NativeDevice;
+        _resourceDatabase = resourceDatabase;
+
         _shaderPipelines = new();
     }
 
-    // TODO: Support compute shaders
-    public void ColectionShader(ReadOnlySpan<Shader> shaders)
+    public void CompileShader(Identifier<Shader> id, string shaderPath)
     {
-        foreach (var shader in shaders)
-        {
-            _shaderPipelines.TryAdd(shader, new()
-            {
-                Type = PipelineType.Graphics
-            });
-        }
-    }
+        var vsResult = D3D12ShaderCompiler.Compile(shaderPath, D3D12ShaderCompiler.ShaderStage.VertexShader, D3D12ShaderCompiler.CompilerVersion.SM_6_6);
+        var psResult = D3D12ShaderCompiler.Compile(shaderPath, D3D12ShaderCompiler.ShaderStage.PixelShader, D3D12ShaderCompiler.CompilerVersion.SM_6_6);
 
-    public void CompileCollected()
-    {
-        foreach (var kvp in _shaderPipelines)
-        {
-            var vsResult = D3D12ShaderCompiler.Compile(kvp.Key, D3D12ShaderCompiler.ShaderStage.VertexShader, D3D12ShaderCompiler.CompilerVersion.SM_6_6);
-            var psResult = D3D12ShaderCompiler.Compile(kvp.Key, D3D12ShaderCompiler.ShaderStage.PixelShader, D3D12ShaderCompiler.CompilerVersion.SM_6_6);
+        var shader = _resourceDatabase.GetShader(id);
 
-            kvp.Value.vsResult = vsResult;
-            kvp.Value.psResult = psResult;
-        }
+        D3D12ShaderCompiler.PerformDXCReflection(shader, vsResult.reflection.Get());
+        D3D12ShaderCompiler.PerformDXCReflection(shader, psResult.reflection.Get());
+
+        var shaderPipeline = new D3D12ShaderPipeline
+        {
+            Type = PipelineType.Graphics,
+            vsResult = vsResult,
+            psResult = psResult
+        };
+
+        _shaderPipelines[id] = shaderPipeline;
     }
 
     private void CreateRootSignature(Shader shader, D3D12ShaderPipeline shaderPipeline)
@@ -219,31 +229,29 @@ internal unsafe class D3D12PipelineStateController : IPipelineStateController, I
     {
         foreach (var kvp in _shaderPipelines)
         {
-            CreateRootSignature(kvp.Key, kvp.Value);
+            var shader = _resourceDatabase.GetShader(kvp.Key);
+
+            CreateRootSignature(shader, kvp.Value);
             CreatePipelineStateObject(kvp.Value);
             CreateSamplerHeap(kvp.Value);
         }
     }
 
-    public IShaderPipeline GetShaderPipeline(Shader shader)
+    public IShaderPipeline GetShaderPipeline(Identifier<Shader> id)
     {
-        if (_shaderPipelines.TryGetValue(shader, out var pipeline))
+        if (_shaderPipelines.TryGetValue(id, out var pipeline))
         {
             return pipeline;
         }
 
-        throw new KeyNotFoundException($"Shader pipeline not found for shader: {shader}");
+        throw new KeyNotFoundException($"Shader pipeline not found for shader ID: {id}");
     }
 
     public void Dispose()
     {
         foreach (var kvp in _shaderPipelines)
         {
-            kvp.Value.rootSignature.Dispose();
-            kvp.Value.pipelineState.Dispose();
-            kvp.Value.samplerHeap.Dispose();
-            kvp.Value.vsResult.Dispose();
-            kvp.Value.psResult.Dispose();
+            kvp.Value.Dispose();
         }
     }
 }
