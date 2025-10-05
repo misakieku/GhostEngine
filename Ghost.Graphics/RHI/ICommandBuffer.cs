@@ -1,7 +1,6 @@
-using Ghost.Graphics.D3D12;
+using Ghost.Core;
 using Ghost.Graphics.Data;
-using Misaki.HighPerformance.LowLevel.Utilities;
-using System.Drawing;
+using Win32.Graphics.Direct3D12;
 
 namespace Ghost.Graphics.RHI;
 
@@ -11,6 +10,11 @@ namespace Ghost.Graphics.RHI;
 public interface ICommandBuffer : IDisposable
 {
     public CommandBufferType Type
+    {
+        get;
+    }
+
+    public bool IsEmpty
     {
         get;
     }
@@ -26,11 +30,24 @@ public interface ICommandBuffer : IDisposable
     public void End();
 
     /// <summary>
+    /// Sets the optional render targets and optional depth target for subsequent rendering operations.
+    /// </summary>
+    /// <remarks>
+    /// To specify no render targets, provide an empty span for <paramref name="renderTargets"/>.
+    /// Use <see cref="Handle{Texture}.Invalid"/> for <paramref name="depthTarget"/> if no depth target is required.
+    /// </remarks>
+    /// <param name="renderTargets">A read-only span of handles to textures that will be used as render targets.
+    /// The order of handles determines the order in which render targets are bound.</param>
+    /// <param name="depthTarget">A handle to the texture to be used as the depth target. Specify a invalid handle if no depth target is required.</param>
+    public void SetRenderTargets(ReadOnlySpan<Handle<Texture>> renderTargets, Handle<Texture> depthTarget);
+
+    /// <summary>
     /// Begins a render pass with the specified render target
     /// </summary>
-    /// <param name="renderTarget">Render target to render into</param>
+    /// <param name="renderTarget">Render target to render into (can be invalid)</param>
+    /// <param name="depthTarget">Depth target to use (can be invalid)</param>
     /// <param name="clearColor">Color to clear the render target with</param>
-    public void BeginRenderPass(IRenderTarget renderTarget, Color128 clearColor);
+    public void BeginRenderPass(Handle<Texture> renderTarget, Handle<Texture> depthTarget, Color128 clearColor);
 
     /// <summary>
     /// Ends the current render pass
@@ -55,26 +72,25 @@ public interface ICommandBuffer : IDisposable
     /// <param name="resource">Resource to transition</param>
     /// <param name="before">Current resource state</param>
     /// <param name="after">Target resource state</param>
-    public void ResourceBarrier(IResource resource, ResourceState before, ResourceState after);
+    public void ResourceBarrier(Handle<GPUResource> resource, ResourceState before, ResourceState after);
 
     /// <summary>
     /// Sets the graphics root signature
     /// </summary>
     /// <param name="rootSignature">Root signature to set</param>
-    public void SetGraphicsRootSignature(IRootSignature rootSignature);
+    public void SetRootSignature(IRootSignature rootSignature);
 
     /// <summary>
     /// Sets the pipeline state object
     /// </summary>
     /// <param name="pipelineState">Pipeline state to set</param>
-    public void SetPipelineState(IPipelineStateController pipelineState);
+    public void SetPipelineState(IShaderPipeline pipelineState);
 
-    /// <summary>
-    /// Renders the specified mesh using the provided material.
-    /// </summary>
-    /// <param name="mesh">The mesh to be drawn. Must not be null.</param>
-    /// <param name="material">The material to use for rendering the mesh. Must not be null.</param>
-    public void DrawMesh(MeshClass mesh, MaterialClass material);
+    public void SetVertexBuffer(uint slot, Handle<GraphicsBuffer> buffer, ulong offset = 0);
+    public void SetIndexBuffer(Handle<GraphicsBuffer> buffer, IndexType type, ulong offset = 0);
+
+    public void Draw(uint vertexCount, uint instanceCount = 1, uint startVertex = 0, uint startInstance = 0);
+    public void DrawIndexed(uint indexCount, uint instanceCount = 1, uint startIndex = 0, int baseVertex = 0, uint startInstance = 0);
 
     /// <summary>
     /// Dispatches compute threads
@@ -91,7 +107,7 @@ public interface ICommandBuffer : IDisposable
     /// <param name="buffer">A handle to the buffer that will receive the uploaded data.</param>
     /// <param name="data">A read-only span containing the data to upload to the buffer. The span must contain elements of type
     /// <typeparamref name="T"/>.</param>
-    public void Upload<T>(BufferHandle buffer, ReadOnlySpan<T> data)
+    public void Upload<T>(Handle<GraphicsBuffer> buffer, ReadOnlySpan<T> data)
         where T : unmanaged;
 
     /// <summary>
@@ -102,7 +118,17 @@ public interface ICommandBuffer : IDisposable
     /// <param name="subresources">A reference to the structure containing the subresource data to upload. The data must match the format and layout expected by the texture.</param>
     /// <param name="numSubresources">The number of subresources to upload, starting from <paramref name="firstSubresource"/>.
     /// Must be greater than zero and not exceed the remaining subresources in the texture.</param>
-    public void Upload(TextureHandle texture, uint firstSubresource, ref SubResourceData subresources, uint numSubresources);
+    public void Upload(Handle<Texture> texture, params ReadOnlySpan<SubResourceData> subresources);
+
+    /// <summary>
+    /// Copies a specified number of bytes from the source graphics buffer to the destination graphics buffer.
+    /// </summary>
+    /// <param name="dest">The handle to the destination graphics buffer where data will be written. Cannot be null.</param>
+    /// <param name="src">The handle to the source graphics buffer from which data will be read. Cannot be null.</param>
+    /// <param name="destOffset">The byte offset in the destination buffer at which to begin writing. Must be zero or greater.</param>
+    /// <param name="srcOffset">The byte offset in the source buffer at which to begin reading. Must be zero or greater.</param>
+    /// <param name="numBytes">The number of bytes to copy. If zero, copies the remaining bytes from the source buffer starting at <paramref name="srcOffset"/>.</param>
+    public void CopyBuffer(Handle<GraphicsBuffer> dest, Handle<GraphicsBuffer> src, ulong destOffset = 0, ulong srcOffset = 0, ulong numBytes = 0);
 }
 
 /// <summary>
@@ -116,16 +142,6 @@ public struct ViewportDesc
     public float height;
     public float minDepth;
     public float maxDepth;
-
-    public ViewportDesc(float width, float height)
-    {
-        x = 0;
-        y = 0;
-        this.width = width;
-        this.height = height;
-        minDepth = 0.0f;
-        maxDepth = 1.0f;
-    }
 }
 
 /// <summary>
@@ -133,18 +149,10 @@ public struct ViewportDesc
 /// </summary>
 public struct RectDesc
 {
-    public int Left;
-    public int Top;
-    public int Right;
-    public int Bottom;
-
-    public RectDesc(int left, int top, int right, int bottom)
-    {
-        Left = left;
-        Top = top;
-        Right = right;
-        Bottom = bottom;
-    }
+    public uint left;
+    public uint top;
+    public uint right;
+    public uint bottom;
 }
 
 /// <summary>
@@ -166,6 +174,27 @@ public enum ResourceState
     GenericRead = 1 << 9,
     IndirectArgument = 1 << 10,
     Present = 0,
+}
+
+internal static class ResourceStateExtensions
+{
+    public static ResourceStates ToD3D12States(this ResourceState state)
+    {
+        return state switch
+        {
+            ResourceState.Common or ResourceState.Present => ResourceStates.Common,
+            ResourceState.VertexAndConstantBuffer => ResourceStates.VertexAndConstantBuffer,
+            ResourceState.IndexBuffer => ResourceStates.IndexBuffer,
+            ResourceState.RenderTarget => ResourceStates.RenderTarget,
+            ResourceState.UnorderedAccess => ResourceStates.UnorderedAccess,
+            ResourceState.DepthWrite => ResourceStates.DepthWrite,
+            ResourceState.DepthRead => ResourceStates.DepthRead,
+            ResourceState.PixelShaderResource => ResourceStates.PixelShaderResource,
+            ResourceState.CopyDest => ResourceStates.CopyDest,
+            ResourceState.CopySource => ResourceStates.CopySource,
+            _ => throw new ArgumentException($"Unknown resource state: {state}")
+        };
+    }
 }
 
 

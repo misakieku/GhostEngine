@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text.Json;
 
 namespace Ghost.Editor.Core.AssetHandle;
+
 public static partial class AssetDatabase
 {
     private static readonly Dictionary<string, Type> _importerTypeLookup = new();

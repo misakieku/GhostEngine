@@ -22,7 +22,7 @@ public readonly struct Result
         return new Result(false, message);
     }
 
-    public void EnsureSuccess()
+    public void ThrowIfFailed()
     {
         if (!success)
         {
@@ -57,7 +57,7 @@ public readonly struct Result<T>
         return new Result<T>(false, default!, message);
     }
 
-    public void EnsureSuccess()
+    public void ThrowIfFailed()
     {
         if (!success)
         {

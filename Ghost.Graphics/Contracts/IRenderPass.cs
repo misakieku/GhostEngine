@@ -2,8 +2,9 @@
 
 namespace Ghost.Graphics.Contracts;
 
-public interface IRenderPass : IDisposable
+public interface IRenderPass
 {
-    void Initialize(ICommandBuffer cmd);
-    void Execute(ICommandBuffer cmd);
+    public void Initialize(ICommandBuffer cmd);
+    public void Execute(ICommandBuffer cmd);
+    public void Cleanup(IResourceDatabase resourceDatabase);
 }

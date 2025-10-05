@@ -14,7 +14,7 @@ public interface IShaderPipeline
     }
 }
 
-public interface IPipelineStateController
+public interface IPipelineLibrary
 {
     public void CompileShader(Identifier<Shader> id, string shaderPath);
 

@@ -1,3 +1,4 @@
+using Ghost.Core;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 
@@ -47,16 +48,19 @@ internal readonly struct CBufferInfo
     }
 }
 
+internal struct ShaderPass
+{
+}
+
 /// <summary>
 /// A representation of a GPU shader, including its metadata about its resources.
 /// </summary>
 
 // TODO: Multi pass and keyword support
-public struct Shader : IDisposable
+public struct Shader : IIdentifierType
 {
     private UnsafeList<CBufferInfo> _constantBuffers;
     private UnsafeList<PropertyInfo> _properties;
-    private UnsafeList<TextureInfo> _regularTextures; // Add regular texture support
     // TODO: Possible to move this to unmanaged heap?
     private Dictionary<string, int> _propertyNameToIdMap;
 
@@ -64,24 +68,14 @@ public struct Shader : IDisposable
 
     internal readonly UnsafeList<CBufferInfo> ConstantBuffers => _constantBuffers;
     internal readonly UnsafeList<PropertyInfo> Properties => _properties;
-    internal readonly UnsafeList<TextureInfo> RegularTextures => _regularTextures;
     internal readonly Dictionary<string, int> PropertyNameToIdMap => _propertyNameToIdMap;
-
     public Shader()
     {
         _constantBuffers = new(8, Allocator.Persistent);
         _properties = new(8, Allocator.Persistent);
-        _regularTextures = new(8, Allocator.Persistent);
         _propertyNameToIdMap = new(8);
 
         _disposed = false;
-    }
-
-    internal void AddProperty(string name, PropertyInfo propertyInfo)
-    {
-        var id = _properties.Count;
-        _properties.Add(propertyInfo);
-        _propertyNameToIdMap[name] = id;
     }
 
     /// <summary>
@@ -94,7 +88,7 @@ public struct Shader : IDisposable
         return _propertyNameToIdMap.TryGetValue(propertyName, out var id) ? id : -1;
     }
 
-    public void Dispose()
+    internal void Dispose()
     {
         if (_disposed)
         {
@@ -103,7 +97,6 @@ public struct Shader : IDisposable
 
         _constantBuffers.Dispose();
         _properties.Dispose();
-        _regularTextures.Dispose();
 
         _propertyNameToIdMap.Clear();
         _propertyNameToIdMap = null!;

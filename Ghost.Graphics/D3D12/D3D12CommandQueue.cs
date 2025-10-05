@@ -1,4 +1,6 @@
 using Ghost.Graphics.RHI;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Win32;
 using Win32.Graphics.Direct3D12;
 
@@ -49,6 +51,11 @@ internal unsafe class D3D12CommandQueue : ICommandQueue
 
     public void Submit(ICommandBuffer commandBuffer)
     {
+        if (commandBuffer.IsEmpty)
+        {
+            return;
+        }
+
         if (commandBuffer is D3D12CommandBuffer d3d12CommandBuffer)
         {
             var commandList = d3d12CommandBuffer.NativeCommandList;
@@ -63,21 +70,43 @@ internal unsafe class D3D12CommandQueue : ICommandQueue
 
     public void Submit(params ReadOnlySpan<ICommandBuffer> commandBuffers)
     {
-        var commandLists = stackalloc ID3D12CommandList*[commandBuffers.Length];
+        Span<int> executableIndices = stackalloc int[commandBuffers.Length];
+        executableIndices.Fill(-1);
 
+        var currentIndex = 0;
         for (var i = 0; i < commandBuffers.Length; i++)
         {
-            if (commandBuffers[i] is D3D12CommandBuffer d3d12CommandBuffer)
+            if (!commandBuffers[i].IsEmpty)
             {
-                commandLists[i] = (ID3D12CommandList*)d3d12CommandBuffer.NativeCommandList;
-            }
-            else
-            {
-                throw new ArgumentException($"Command buffer at index {i} must be a D3D12CommandBuffer", nameof(commandBuffers));
+                executableIndices[currentIndex] = i;
+                currentIndex++;
             }
         }
 
-        _queue.Get()->ExecuteCommandLists((uint)commandBuffers.Length, commandLists);
+        var ppCommandLists = stackalloc ID3D12CommandList*[commandBuffers.Length];
+
+        currentIndex = 0;
+        while (currentIndex < commandBuffers.Length)
+        {
+            var cmdIndex = executableIndices[currentIndex];
+            if (cmdIndex == -1)
+            {
+                break;
+            }
+
+            if (commandBuffers[cmdIndex] is D3D12CommandBuffer d3d12CommandBuffer)
+            {
+                ppCommandLists[currentIndex] = (ID3D12CommandList*)d3d12CommandBuffer.NativeCommandList;
+            }
+            else
+            {
+                throw new ArgumentException("Command buffer must be a D3D12CommandBuffer", nameof(commandBuffers));
+            }
+
+            currentIndex++;
+        }
+
+        _queue.Get()->ExecuteCommandLists((uint)currentIndex, ppCommandLists);
     }
 
     public ulong Signal(ulong value)
@@ -102,6 +131,12 @@ internal unsafe class D3D12CommandQueue : ICommandQueue
     public ulong GetCompletedValue()
     {
         return _fence.Get()->GetCompletedValue();
+    }
+
+    public void WaitIdle()
+    {
+        var fenceValue = Signal(Interlocked.Increment(ref _fenceValue));
+        WaitForValue(fenceValue);
     }
 
     private static CommandListType ConvertCommandQueueType(CommandQueueType type)

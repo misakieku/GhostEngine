@@ -1,6 +1,10 @@
 ﻿namespace Ghost.Core;
 
+public interface IHandleType;
+public interface IIdentifierType;
+
 public readonly struct Handle<T>
+    where T : IHandleType
 {
     public readonly int id;
 
@@ -13,6 +17,8 @@ public readonly struct Handle<T>
     }
 
     public static Handle<T> Invalid => new(-1, -1);
+
+    public bool IsValid => this != Invalid;
 
     public readonly override int GetHashCode()
     {
@@ -46,6 +52,7 @@ public readonly struct Handle<T>
 }
 
 public readonly struct Identifier<T>
+    where T : IIdentifierType
 {
     public readonly int value;
 
@@ -55,6 +62,8 @@ public readonly struct Identifier<T>
     }
 
     public static Identifier<T> Invalid => new(-1);
+
+    public bool IsValid => this != Invalid;
 
     public readonly override int GetHashCode()
     {

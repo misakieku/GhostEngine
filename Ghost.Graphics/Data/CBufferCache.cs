@@ -1,9 +1,10 @@
-﻿using Misaki.HighPerformance.LowLevel.Buffer;
+﻿using Ghost.Core;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 
 namespace Ghost.Graphics.Data;
 
-internal struct CBufferCache
+internal struct CBufferCache : IDisposable
 {
     public UnsafeArray<byte> CpuData
     {
@@ -11,18 +12,23 @@ internal struct CBufferCache
         set;
     }
 
-    public BufferHandle GpuResource
+    public Handle<GraphicsBuffer> GpuResource
     {
         get;
     }
 
     private readonly uint _alignedSize;
 
-    internal unsafe CBufferCache(BufferHandle buffer, uint bufferSize)
+    internal unsafe CBufferCache(Handle<GraphicsBuffer> buffer, uint bufferSize)
     {
         _alignedSize = (bufferSize + 255u) & ~255u;
 
         CpuData = new((int)_alignedSize, Allocator.Persistent);
         GpuResource = buffer;
+    }
+
+    public readonly void Dispose()
+    {
+        CpuData.Dispose();
     }
 }

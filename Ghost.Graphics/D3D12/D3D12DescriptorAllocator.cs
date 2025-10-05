@@ -1,7 +1,5 @@
 using Ghost.Core;
 using Ghost.Graphics.D3D12.Utilities;
-using Ghost.Graphics.Data;
-using Ghost.Graphics.RHI;
 using System.Runtime.CompilerServices;
 using Win32.Graphics.Direct3D12;
 
@@ -10,25 +8,21 @@ namespace Ghost.Graphics.D3D12;
 /// <summary>
 /// D3D12 implementation of descriptor allocator that manages different types of descriptor heaps.
 /// </summary>
-internal unsafe class D3D12DescriptorAllocator : IDescriptorAllocator, IDisposable
+internal unsafe class D3D12DescriptorAllocator : IDisposable
 {
     private readonly D3D12DescriptorHeap _rtvHeap;
     private readonly D3D12DescriptorHeap _dsvHeap;
-    private readonly D3D12DescriptorHeap _srvHeap;
+    private readonly D3D12DescriptorHeap _cbvSrvUavHeap;
     private readonly D3D12DescriptorHeap _samplerHeap;
-    private readonly BindlessDescriptorHeap _bindlessHeap;
 
     private bool _disposed;
 
-    public unsafe D3D12DescriptorAllocator(D3D12RenderDevice device, uint initialRtvCount = 256, uint initialDsvCount = 256, uint initialSrvCount = 1024, uint initialSamplerCount = 256, uint initialBindlessCount = 10000)
+    public unsafe D3D12DescriptorAllocator(D3D12RenderDevice device, int initialRtvCount = 256, int initialDsvCount = 256, int initialSrvCount = 200_000, int initialSamplerCount = 256)
     {
-        var pDevice = device.NativeDevice;
-
-        _rtvHeap = new D3D12DescriptorHeap("rtv", pDevice, DescriptorHeapType.Rtv, initialRtvCount);
-        _dsvHeap = new D3D12DescriptorHeap("dsv", pDevice, DescriptorHeapType.Dsv, initialDsvCount);
-        _srvHeap = new D3D12DescriptorHeap("srv", pDevice, DescriptorHeapType.CbvSrvUav, initialSrvCount);
-        _samplerHeap = new D3D12DescriptorHeap("sampler", pDevice, DescriptorHeapType.Sampler, initialSamplerCount);
-        _bindlessHeap = new BindlessDescriptorHeap(pDevice, initialBindlessCount);
+        _rtvHeap = new D3D12DescriptorHeap("rtv", device, DescriptorHeapType.Rtv, initialRtvCount, initialRtvCount / 2);
+        _dsvHeap = new D3D12DescriptorHeap("dsv", device, DescriptorHeapType.Dsv, initialDsvCount, initialDsvCount / 2);
+        _cbvSrvUavHeap = new D3D12DescriptorHeap("srv", device, DescriptorHeapType.CbvSrvUav, initialSrvCount, initialSrvCount /2);
+        _samplerHeap = new D3D12DescriptorHeap("sampler", device, DescriptorHeapType.Sampler, initialSamplerCount, initialSamplerCount);
     }
 
     ~D3D12DescriptorAllocator()
@@ -38,54 +32,55 @@ internal unsafe class D3D12DescriptorAllocator : IDescriptorAllocator, IDisposab
 
     #region RTV Methods
 
-    public RenderTargetDescriptor AllocateRTV()
+    public Identifier<RTVDesc> AllocateRTV(bool dynamic = false)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        var index = _rtvHeap.AllocateDescriptor();
-        if (index == uint.MaxValue)
+        var index = dynamic ? _rtvHeap.AllocateDescriptorDynamic() : _rtvHeap.AllocateDescriptor();
+        if (index == -1)
         {
             throw new InvalidOperationException("Failed to allocate RTV descriptor");
         }
 
-        return new RenderTargetDescriptor { Index = index };
+        return new Identifier<RTVDesc>(index);
     }
 
-    public RenderTargetDescriptor[] AllocateRTVs(uint count)
+    public Identifier<RTVDesc>[] AllocateRTVs(int count, bool dynamic = false)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        var baseIndex = _rtvHeap.AllocateDescriptors(count);
-        if (baseIndex == uint.MaxValue)
+        var baseIndex = dynamic ? _rtvHeap.AllocateDescriptorsDynamic(count) : _rtvHeap.AllocateDescriptors(count);
+        if (baseIndex == -1)
         {
             throw new InvalidOperationException($"Failed to allocate {count} RTV descriptors");
         }
 
-        var descriptors = new RenderTargetDescriptor[count];
-        for (uint i = 0; i < count; i++)
+        var descriptors = new Identifier<RTVDesc>[count];
+        for (var i = 0; i < count; i++)
         {
             var index = baseIndex + i;
-            descriptors[i] = new RenderTargetDescriptor { Index = index };
+            descriptors[i] = new Identifier<RTVDesc>(index);
         }
 
         return descriptors;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public CpuDescriptorHandle GetCpuHandle(RenderTargetDescriptor descriptor)
+    public CpuDescriptorHandle GetCpuHandle(Identifier<RTVDesc> descriptor)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return _rtvHeap.GetCpuHandle(descriptor.Index);
+        return _rtvHeap.GetCpuHandle(descriptor.value);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Release(RenderTargetDescriptor descriptor)
+    public void Release(Identifier<RTVDesc> descriptor)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        _rtvHeap.ReleaseDescriptor(descriptor.Index);
+        _rtvHeap.ReleaseDescriptor(descriptor.value);
     }
 
-    public void Release(ReadOnlySpan<RenderTargetDescriptor> descriptors)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Release(ReadOnlySpan<Identifier<RTVDesc>> descriptors)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -93,58 +88,82 @@ internal unsafe class D3D12DescriptorAllocator : IDescriptorAllocator, IDisposab
         {
             Release(descriptor);
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void MakePersistent(Identifier<RTVDesc> descriptor)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        _rtvHeap.CopyToPersistentHeap(descriptor.value);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void MakePersistent(ReadOnlySpan<Identifier<RTVDesc>> descriptors)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        foreach (var descriptor in descriptors)
+        {
+            MakePersistent(descriptor);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void ResetRTVDynamicHeap()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        _rtvHeap.ResetDynamicHeap();
     }
 
     #endregion
 
     #region DSV Methods
 
-    public DepthStencilDescriptor AllocateDSV()
+    public Identifier<DSVDesc> AllocateDSV(bool dynamic = false)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        var index = _dsvHeap.AllocateDescriptor();
-        if (index == uint.MaxValue)
+        var index = dynamic ? _dsvHeap.AllocateDescriptorDynamic() : _dsvHeap.AllocateDescriptor();
+        if (index == -1)
         {
             throw new InvalidOperationException("Failed to allocate DSV descriptor");
         }
 
-        return new DepthStencilDescriptor { Index = index };
+        return new Identifier<DSVDesc>(index);
     }
 
-    public DepthStencilDescriptor[] AllocateDSVs(uint count)
+    public Identifier<DSVDesc>[] AllocateDSVs(int count, bool dynamic = false)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        var baseIndex = _dsvHeap.AllocateDescriptors(count);
-        if (baseIndex == uint.MaxValue)
+        var baseIndex = dynamic ? _dsvHeap.AllocateDescriptorsDynamic(count) : _dsvHeap.AllocateDescriptors(count);
+        if (baseIndex == -1)
         {
             throw new InvalidOperationException($"Failed to allocate {count} DSV descriptors");
         }
 
-        var descriptors = new DepthStencilDescriptor[count];
-        for (uint i = 0; i < count; i++)
+        var descriptors = new Identifier<DSVDesc>[count];
+        for (var i = 0; i < count; i++)
         {
             var index = baseIndex + i;
-            descriptors[i] = new DepthStencilDescriptor { Index = index };
+            descriptors[i] = new Identifier<DSVDesc>(index);
         }
 
         return descriptors;
     }
 
-    public CpuDescriptorHandle GetCpuHandle(DepthStencilDescriptor descriptor)
+    public CpuDescriptorHandle GetCpuHandle(Identifier<DSVDesc> descriptor)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return _dsvHeap.GetCpuHandle(descriptor.Index);
+        return _dsvHeap.GetCpuHandle(descriptor.value);
     }
 
-    public void Release(DepthStencilDescriptor descriptor)
+    public void Release(Identifier<DSVDesc> descriptor)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        _dsvHeap.ReleaseDescriptor(descriptor.Index);
+        _dsvHeap.ReleaseDescriptor(descriptor.value);
     }
 
-    public void Release(ReadOnlySpan<DepthStencilDescriptor> descriptors)
+    public void Release(ReadOnlySpan<Identifier<DSVDesc>> descriptors)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -152,66 +171,96 @@ internal unsafe class D3D12DescriptorAllocator : IDescriptorAllocator, IDisposab
         {
             Release(descriptor);
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void MakePersistent(Identifier<DSVDesc> descriptor)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        _dsvHeap.CopyToPersistentHeap(descriptor.value);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void MakePersistent(ReadOnlySpan<Identifier<DSVDesc>> descriptors)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        foreach (var descriptor in descriptors)
+        {
+            MakePersistent(descriptor);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void ResetDSVDynamicHeap()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        _dsvHeap.ResetDynamicHeap();
     }
 
     #endregion
 
-    #region SRV Methods
+    #region CBV_SRV_UAV Methods
 
-    public ShaderResourceDescriptor AllocateSRV()
+    public Identifier<CbvSrvUavDesc> AllocateCbvSrvUav(bool dynamic = false)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        var index = _srvHeap.AllocateDescriptor();
-        if (index == uint.MaxValue)
+        var index = dynamic ? _cbvSrvUavHeap.AllocateDescriptorDynamic() : _cbvSrvUavHeap.AllocateDescriptor();
+        if (index == -1)
         {
-            throw new InvalidOperationException("Failed to allocate SRV descriptor");
+            throw new InvalidOperationException("Failed to allocate CBV/SRV/UAV descriptor");
         }
 
-        _srvHeap.CopyToShaderVisibleHeap(index);
-        return new ShaderResourceDescriptor { Index = index };
+        _cbvSrvUavHeap.CopyToShaderVisibleHeap(index);
+        return new Identifier<CbvSrvUavDesc>(index);
     }
 
-    public ShaderResourceDescriptor[] AllocateSRVs(uint count)
+    public Identifier<CbvSrvUavDesc>[] AllocateSRVs(int count, bool dynamic = false)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        var baseIndex = _srvHeap.AllocateDescriptors(count);
-        if (baseIndex == uint.MaxValue)
+        var baseIndex = dynamic ? _cbvSrvUavHeap.AllocateDescriptorsDynamic(count) : _cbvSrvUavHeap.AllocateDescriptors(count);
+        if (baseIndex == -1)
         {
-            throw new InvalidOperationException($"Failed to allocate {count} SRV descriptors");
+            throw new InvalidOperationException($"Failed to allocate {count} CBV/SRV/UAV descriptors");
         }
 
-        var descriptors = new ShaderResourceDescriptor[count];
-        for (uint i = 0; i < count; i++)
+        var descriptors = new Identifier<CbvSrvUavDesc>[count];
+        for (var i = 0; i < count; i++)
         {
             var index = baseIndex + i;
-            descriptors[i] = new ShaderResourceDescriptor { Index = index };
+            descriptors[i] = new Identifier<CbvSrvUavDesc>(index);
         }
 
-        _srvHeap.CopyToShaderVisibleHeap(baseIndex, count);
+        _cbvSrvUavHeap.CopyToShaderVisibleHeap(baseIndex, count);
         return descriptors;
     }
 
-    public CpuDescriptorHandle GetCpuHandle(ShaderResourceDescriptor descriptor)
+    public CpuDescriptorHandle GetCpuHandle(Identifier<CbvSrvUavDesc> descriptor)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return _srvHeap.GetCpuHandle(descriptor.Index);
+        return _cbvSrvUavHeap.GetCpuHandle(descriptor.value);
     }
 
-    public GpuDescriptorHandle GetGpuHandle(ShaderResourceDescriptor descriptor)
+    public CpuDescriptorHandle GetCpuHandleShaderVisible(Identifier<CbvSrvUavDesc> descriptor)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return _srvHeap.GetGpuHandle(descriptor.Index);
+        return _cbvSrvUavHeap.GetCpuHandleShaderVisible(descriptor.value);
     }
 
-    public void Release(ShaderResourceDescriptor descriptor)
+    public GpuDescriptorHandle GetGpuHandle(Identifier<CbvSrvUavDesc> descriptor)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        _srvHeap.ReleaseDescriptor(descriptor.Index);
+        return _cbvSrvUavHeap.GetGpuHandle(descriptor.value);
     }
 
-    public void Release(ReadOnlySpan<ShaderResourceDescriptor> descriptors)
+    public void Release(Identifier<CbvSrvUavDesc> descriptor)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        _cbvSrvUavHeap.ReleaseDescriptor(descriptor.value);
+    }
+
+    public void Release(ReadOnlySpan<Identifier<CbvSrvUavDesc>> descriptors)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -219,144 +268,96 @@ internal unsafe class D3D12DescriptorAllocator : IDescriptorAllocator, IDisposab
         {
             Release(descriptor);
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void MakePersistent(Identifier<CbvSrvUavDesc> descriptor)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        _cbvSrvUavHeap.CopyToPersistentHeap(descriptor.value);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void MakePersistent(ReadOnlySpan<Identifier<CbvSrvUavDesc>> descriptors)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        foreach (var descriptor in descriptors)
+        {
+            MakePersistent(descriptor);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void ResetCbvSrvUavDynamicHeap()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        _cbvSrvUavHeap.ResetDynamicHeap();
     }
 
     #endregion
 
     #region Sampler Methods
 
-    public SamplerDescriptor AllocateSampler()
+    public Identifier<SamplerDesc> AllocateSampler()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         var index = _samplerHeap.AllocateDescriptor();
-        if (index == uint.MaxValue)
+        if (index == -1)
         {
             throw new InvalidOperationException("Failed to allocate Sampler descriptor");
         }
 
         _samplerHeap.CopyToShaderVisibleHeap(index);
-        return new SamplerDescriptor { Index = index };
+        return new Identifier<SamplerDesc>(index);
     }
 
-    public SamplerDescriptor[] AllocateSamplers(uint count)
+    public Identifier<SamplerDesc>[] AllocateSamplers(int count)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         var baseIndex = _samplerHeap.AllocateDescriptors(count);
-        if (baseIndex == uint.MaxValue)
+        if (baseIndex == -1)
         {
             throw new InvalidOperationException($"Failed to allocate {count} Sampler descriptors");
         }
 
-        var descriptors = new SamplerDescriptor[count];
-        for (uint i = 0; i < count; i++)
+        var descriptors = new Identifier<SamplerDesc>[count];
+        for (var i = 0; i < count; i++)
         {
             var index = baseIndex + i;
-            descriptors[i] = new SamplerDescriptor { Index = index };
+            descriptors[i] = new Identifier<SamplerDesc>(index);
         }
 
         _samplerHeap.CopyToShaderVisibleHeap(baseIndex, count);
         return descriptors;
     }
 
-    public CpuDescriptorHandle GetCpuHandle(SamplerDescriptor descriptor)
+    public CpuDescriptorHandle GetCpuHandle(Identifier<SamplerDesc> descriptor)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return _samplerHeap.GetCpuHandle(descriptor.Index);
+        return _samplerHeap.GetCpuHandle(descriptor.value);
     }
 
-    public GpuDescriptorHandle GetGpuHandle(SamplerDescriptor descriptor)
+    public CpuDescriptorHandle GetCpuHandleShaderVisible(Identifier<SamplerDesc> descriptor)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return _samplerHeap.GetGpuHandle(descriptor.Index);
+        return _samplerHeap.GetCpuHandleShaderVisible(descriptor.value);
     }
 
-    public void Release(SamplerDescriptor descriptor)
+    public GpuDescriptorHandle GetGpuHandle(Identifier<SamplerDesc> descriptor)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        _samplerHeap.ReleaseDescriptor(descriptor.Index);
+        return _samplerHeap.GetGpuHandle(descriptor.value);
     }
 
-    public void Release(ReadOnlySpan<SamplerDescriptor> descriptors)
+    public void Release(Identifier<SamplerDesc> descriptor)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-
-        foreach (var descriptor in descriptors)
-        {
-            Release(descriptor);
-        }
+        _samplerHeap.ReleaseDescriptor(descriptor.value);
     }
 
-    #endregion
-
-    #region Bindless Methods
-
-    /// <summary>
-    /// Allocates a bindless descriptor for SM 6.6 rendering.
-    /// The returned descriptor maintains a 1:1 relationship between allocation index and shader index.
-    /// </summary>
-    public BindlessDescriptor AllocateBindless()
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        var index = _bindlessHeap.AllocateDescriptor();
-        if (index == uint.MaxValue)
-        {
-            throw new InvalidOperationException("Failed to allocate bindless descriptor");
-        }
-
-        return new BindlessDescriptor { Index = index };
-    }
-
-    /// <summary>
-    /// Allocates multiple bindless descriptors for SM 6.6 rendering.
-    /// </summary>
-    public BindlessDescriptor[] AllocateBindless(uint count)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        var baseIndex = _bindlessHeap.AllocateDescriptors(count);
-        if (baseIndex == uint.MaxValue)
-        {
-            throw new InvalidOperationException($"Failed to allocate {count} bindless descriptors");
-        }
-
-        var descriptors = new BindlessDescriptor[count];
-        for (uint i = 0; i < count; i++)
-        {
-            var index = baseIndex + i;
-            descriptors[i] = new BindlessDescriptor { Index = index };
-        }
-
-        return descriptors;
-    }
-
-    public CpuDescriptorHandle GetCpuHandle(BindlessDescriptor descriptor)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        return _bindlessHeap.GetCpuHandle(descriptor.Index);
-    }
-
-    public GpuDescriptorHandle GetGpuHandle(BindlessDescriptor descriptor)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        return _bindlessHeap.GetGpuHandle(descriptor.Index);
-    }
-
-    /// <summary>
-    /// Releases a bindless descriptor.
-    /// </summary>
-    public void Release(BindlessDescriptor descriptor)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        _bindlessHeap.ReleaseDescriptor(descriptor.Index);
-    }
-
-    /// <summary>
-    /// Releases multiple bindless descriptors.
-    /// </summary>
-    public void Release(ReadOnlySpan<BindlessDescriptor> descriptors)
+    public void Release(ReadOnlySpan<Identifier<SamplerDesc>> descriptors)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -367,6 +368,19 @@ internal unsafe class D3D12DescriptorAllocator : IDescriptorAllocator, IDisposab
     }
 
     #endregion
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Release(D3D12ResourceDescriptor descriptor)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        Release(descriptor.rtv);
+        Release(descriptor.dsv);
+        Release(descriptor.srv);
+        Release(descriptor.cbv);
+        Release(descriptor.uav);
+        Release(descriptor.sampler);
+    }
 
     #region Utility Methods
 
@@ -381,9 +395,9 @@ internal unsafe class D3D12DescriptorAllocator : IDescriptorAllocator, IDisposab
     public ID3D12DescriptorHeap* GetDSVHeap() => _dsvHeap.Heap;
 
     /// <summary>
-    /// Gets the SRV heap for binding to the command list.
+    /// Gets the CBV/SRV/UAV heap for binding to the command list.
     /// </summary>
-    public ID3D12DescriptorHeap* GetSRVHeap() => _srvHeap.ShaderVisibleHeap;
+    public ID3D12DescriptorHeap* GetCbvSrvUavHeap() => _cbvSrvUavHeap.ShaderVisibleHeap;
 
     /// <summary>
     /// Gets the sampler heap for binding to the command list.
@@ -391,24 +405,20 @@ internal unsafe class D3D12DescriptorAllocator : IDescriptorAllocator, IDisposab
     public ID3D12DescriptorHeap* GetSamplerHeap() => _samplerHeap.ShaderVisibleHeap;
 
     /// <summary>
-    /// Gets the bindless heap for SM 6.6 bindless rendering.
-    /// </summary>
-    public ID3D12DescriptorHeap* GetBindlessHeap() => _bindlessHeap.BindlessHeap;
-
-    /// <summary>
     /// Gets the shader visible heaps that need to be bound to the command list.
     /// </summary>
-    public ID3D12DescriptorHeap*[] GetShaderVisibleHeaps()
+    /// <param name="ppHeap">An array of two ID3D12DescriptorHeap pointers to receive the CBV/SRV/UAV and Sampler heaps.</param>
+    public void GetShaderVisibleHeaps(ID3D12DescriptorHeap** ppHeap)
     {
-        return [_srvHeap.ShaderVisibleHeap, _samplerHeap.ShaderVisibleHeap];
-    }
+        ObjectDisposedException.ThrowIf(_disposed, this);
 
-    /// <summary>
-    /// Gets the shader visible heaps including bindless heap for SM 6.6 rendering.
-    /// </summary>
-    public ConstPtr<ID3D12DescriptorHeap>[] GetShaderVisibleHeapsWithBindless()
-    {
-        return [_bindlessHeap.BindlessHeap, _srvHeap.ShaderVisibleHeap, _samplerHeap.ShaderVisibleHeap];
+        if (ppHeap == null)
+        {
+            throw new ArgumentNullException(nameof(ppHeap));
+        }
+
+        ppHeap[0] = _cbvSrvUavHeap.ShaderVisibleHeap;
+        ppHeap[1] = _samplerHeap.ShaderVisibleHeap;
     }
 
     #endregion
@@ -422,9 +432,8 @@ internal unsafe class D3D12DescriptorAllocator : IDescriptorAllocator, IDisposab
 
         _rtvHeap.Dispose();
         _dsvHeap.Dispose();
-        _srvHeap.Dispose();
+        _cbvSrvUavHeap.Dispose();
         _samplerHeap.Dispose();
-        _bindlessHeap.Dispose();
 
         _disposed = true;
 

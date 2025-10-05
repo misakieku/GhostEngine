@@ -1,3 +1,4 @@
+using Ghost.Core;
 using Ghost.Graphics.Data;
 using Ghost.Graphics.RenderGraphModule;
 using System.Numerics;
@@ -47,14 +48,14 @@ public static class RenderGraphExample
     /// </summary>
     public class CameraViewState
     {
-        public TextureHandle? PreviousFrameColorBuffer;
-        public TextureHandle? PreviousFrameDepthBuffer;
-        public TextureHandle? VelocityBuffer;
+        public Handle<Texture>? PreviousFrameColorBuffer;
+        public Handle<Texture>? PreviousFrameDepthBuffer;
+        public Handle<Texture>? VelocityBuffer;
 
         public Matrix4x4 PreviousViewProjectionMatrix;
     }
 
-    public static void ExampleRenderGraph(CameraViewState viewState, TextureHandle backBuffer)
+    public static void ExampleRenderGraph(CameraViewState viewState, Handle<Texture> backBuffer)
     {
         // Create render graph with optional descriptor
         var renderGraphDesc = new RenderGraphDesc(initialResourceCapacity: 512, initialPassCapacity: 128);
@@ -189,7 +190,7 @@ public static class RenderGraphExample
     /// <summary>
     /// Example with multiple cameras rendering to different targets
     /// </summary>
-    public static void MultiCameraExample(List<CameraViewState> cameras, List<TextureHandle> renderTargets)
+    public static void MultiCameraExample(List<CameraViewState> cameras, List<Handle<Texture>> renderTargets)
     {
         using var renderGraph = new RenderGraph("MultiCameraRenderGraph");
         renderGraph.BeginRecord();

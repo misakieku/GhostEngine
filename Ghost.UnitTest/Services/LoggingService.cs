@@ -1,9 +1,5 @@
 ﻿using Ghost.UnitTest.Models;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Threading;
 
 namespace Ghost.UnitTest.Services;
 
@@ -11,29 +7,31 @@ internal class LoggingService
 {
     private const int MAX_LOGS = 4096;
     private static readonly Lazy<LoggingService> _instance = new(() => new LoggingService());
-    
+
     private readonly List<LogItem> _logs = [];
     private readonly object _lockObject = new();
-    
+
     public static LoggingService Instance => _instance.Value;
-    
-    public IReadOnlyList<LogItem> Logs 
-    { 
-        get 
+
+    public IReadOnlyList<LogItem> Logs
+    {
+        get
         {
             lock (_lockObject)
             {
                 return _logs.AsReadOnly();
             }
-        } 
+        }
     }
-    
+
     public bool CaptureStackTrace { get; set; } = false;
-    
+
     public event Action<LogItem>? LogAdded;
     public event Action? LogsCleared;
 
-    private LoggingService() { }
+    private LoggingService()
+    {
+    }
 
     private void AddLog(LogItem logItem)
     {
@@ -43,18 +41,19 @@ internal class LoggingService
             {
                 _logs.RemoveAt(0);
             }
-            
+
             _logs.Add(logItem);
         }
-        
+
         // Invoke event outside of lock to prevent deadlock
         LogAdded?.Invoke(logItem);
     }
 
     private string? CaptureCurrentStackTrace()
     {
-        if (!CaptureStackTrace) return null;
-        
+        if (!CaptureStackTrace)
+            return null;
+
         var stackTrace = new StackTrace(skipFrames: 2, fNeedFileInfo: true);
         return stackTrace.ToString();
     }
@@ -98,7 +97,7 @@ internal class LoggingService
         {
             _logs.Clear();
         }
-        
+
         LogsCleared?.Invoke();
     }
 

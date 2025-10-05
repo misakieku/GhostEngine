@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Combinators\**" />
+    <EmbeddedResource Remove="Combinators\**" />
+    <None Remove="Combinators\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Misaki.HighPerformance.Mathematics" Version="1.1.0" />
+  </ItemGroup>
+
+</Project>

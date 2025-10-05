@@ -1,11 +1,8 @@
 using Ghost.Graphics;
-using Ghost.Graphics.Contracts;
-using Ghost.Graphics.D3D12;
 using Ghost.Graphics.RHI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Misaki.HighPerformance.LowLevel.Buffer;
-using WinRT;
 
 namespace Ghost.UnitTest.Windows;
 
@@ -31,7 +28,7 @@ public sealed partial class GraphicsTestWindow : Window
         AllocationManager.EnableDebugLayer();
 #endif
 
-        _renderSystem = new (GraphicsAPI.Direct3D12);
+        _renderSystem = new(GraphicsAPI.Direct3D12);
         _renderer = _renderSystem.CreateRenderer();
 
         _swapChain = _renderSystem.GraphicsEngine.CreateSwapChain(new SwapChainDesc((uint)AppWindow.Size.Width, (uint)AppWindow.Size.Height, SwapChainTarget.FromCompositionSurface(Panel)));

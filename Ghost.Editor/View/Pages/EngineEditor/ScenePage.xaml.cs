@@ -1,7 +1,6 @@
 using Ghost.Editor.Controls.Internal;
 using Ghost.Graphics;
 using Ghost.Graphics.Contracts;
-using Ghost.Graphics.D3D12;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using WinRT;

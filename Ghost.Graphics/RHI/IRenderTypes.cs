@@ -1,4 +1,6 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using Win32.Graphics.Direct3D12;
 
 namespace Ghost.Graphics.RHI;
 
@@ -23,6 +25,61 @@ public enum PipelineType
 {
     Graphics,
     Compute
+}
+
+[StructLayout(LayoutKind.Explicit)]
+public struct ResourceDesc
+{
+    [FieldOffset(0)]
+    public TextureDesc textureDescription;
+
+    [FieldOffset(0)]
+    public BufferDesc bufferDescription;
+
+    public static ResourceDesc Buffer(BufferDesc desc)
+    {
+        return new ResourceDesc
+        {
+            bufferDescription = desc
+        };
+    }
+
+    public static ResourceDesc Texture(TextureDesc desc)
+    {
+        return new ResourceDesc
+        {
+            textureDescription = desc
+        };
+    }
+
+    internal static ResourceDesc FromD3D12(ResourceDescription desc)
+    {
+        if (desc.Dimension == ResourceDimension.Buffer)
+        {
+            return Buffer(new BufferDesc
+            {
+                Size = desc.Width,
+                Stride = 0,
+                Usage = BufferUsage.None,
+                CreationFlags = BufferCreationFlags.None,
+                MemoryType = MemoryType.Default
+            });
+        }
+        else
+        {
+            return Texture(new TextureDesc
+            {
+                Width = (uint)desc.Width,
+                Height = desc.Height,
+                Slice = desc.DepthOrArraySize,
+                Format = desc.Format.ToTextureFormat(),
+                Dimension = desc.Dimension.ToTextureDimension(),
+                MipLevels = desc.MipLevels,
+                Usage = TextureUsage.None,
+                CreationFlags = TextureCreationFlags.None
+            });
+        }
+    }
 }
 
 /// <summary>
@@ -157,7 +214,7 @@ public struct RenderTargetDesc
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TextureDesc ToTextureDescriptor(RenderTargetDesc desc)
+    public static TextureDesc ToTextureDescripton(RenderTargetDesc desc)
     {
         var usage = desc.Type == RenderTargetType.Color ? TextureUsage.RenderTarget : TextureUsage.DepthStencil;
         if (desc.CreationFlags.HasFlag(RenderTargetCreationFlags.AllowUAV))
@@ -327,6 +384,20 @@ public enum TextureDimension
     TextureCube = 3,
     Texture2DArray = 4,
     TextureCubeArray = 5
+}
+
+public static class TextureDimensionExtension
+{
+    public static TextureDimension ToTextureDimension(this ResourceDimension dimension)
+    {
+        return dimension switch
+        {
+            ResourceDimension.Texture1D => TextureDimension.Texture2D,
+            ResourceDimension.Texture2D => TextureDimension.Texture2D,
+            ResourceDimension.Texture3D => TextureDimension.Texture3D,
+            _ => TextureDimension.Unknown,
+        };
+    }
 }
 
 /// <summary>

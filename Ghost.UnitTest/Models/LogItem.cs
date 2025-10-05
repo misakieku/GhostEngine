@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Ghost.UnitTest.Models;
+﻿namespace Ghost.UnitTest.Models;
 
 public enum LogLevel
 {
@@ -12,10 +10,22 @@ public enum LogLevel
 
 internal struct LogItem
 {
-    public LogLevel Level { get; init; }
-    public string Message { get; init; }
-    public DateTime Timestamp { get; init; }
-    public string? StackTrace { get; init; }
+    public LogLevel Level
+    {
+        get; init;
+    }
+    public string Message
+    {
+        get; init;
+    }
+    public DateTime Timestamp
+    {
+        get; init;
+    }
+    public string? StackTrace
+    {
+        get; init;
+    }
 
     public LogItem(LogLevel level, string message, string? stackTrace = null)
     {

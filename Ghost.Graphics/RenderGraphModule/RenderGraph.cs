@@ -1,3 +1,4 @@
+using Ghost.Core;
 using Ghost.Graphics.Data;
 
 namespace Ghost.Graphics.RenderGraphModule;
@@ -122,7 +123,7 @@ public sealed class RenderGraph : IDisposable
     /// <summary>
     /// Import an external texture (e.g., from previous frame, swap chain)
     /// </summary>
-    public RGTextureHandle ImportTexture(string name, TextureHandle externalHandle, TextureDescription description)
+    public RGTextureHandle ImportTexture(string name, Handle<Texture> externalHandle, TextureDescription description)
     {
         var texture = new RenderGraphTexture(_resources.Count, name, externalHandle, description);
 
@@ -133,7 +134,7 @@ public sealed class RenderGraph : IDisposable
     /// <summary>
     /// Import an external buffer (e.g., from previous frame)
     /// </summary>
-    public RGBufferHandle ImportBuffer(string name, BufferHandle externalHandle, BufferDescription description)
+    public RGBufferHandle ImportBuffer(string name, Handle<GraphicsBuffer> externalHandle, BufferDescription description)
     {
         var buffer = new RenderGraphBuffer(_resources.Count, name, externalHandle, description);
 
@@ -144,7 +145,7 @@ public sealed class RenderGraph : IDisposable
     /// <summary>
     /// Export a resource for use in the next frame (for history buffers)
     /// </summary>
-    public TextureHandle ExportTexture(RGTextureHandle handle)
+    public Handle<Texture> ExportTexture(RGTextureHandle handle)
     {
         if (!handle.IsValid || handle._resourceId >= _resources.Count)
             throw new ArgumentException("Invalid texture handle", nameof(handle));
@@ -157,7 +158,7 @@ public sealed class RenderGraph : IDisposable
     /// <summary>
     /// Export a buffer for use in the next frame
     /// </summary>
-    public BufferHandle ExportBuffer(RGBufferHandle handle)
+    public Handle<GraphicsBuffer> ExportBuffer(RGBufferHandle handle)
     {
         if (!handle.IsValid || handle._resourceId >= _resources.Count)
             throw new ArgumentException("Invalid buffer handle", nameof(handle));

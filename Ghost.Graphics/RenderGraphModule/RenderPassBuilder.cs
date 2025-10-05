@@ -1,6 +1,3 @@
-using Ghost.Graphics.Data;
-using Win32.Graphics.Direct3D12;
-
 namespace Ghost.Graphics.RenderGraphModule;
 
 /// <summary>

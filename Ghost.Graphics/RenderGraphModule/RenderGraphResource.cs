@@ -1,3 +1,4 @@
+using Ghost.Core;
 using Ghost.Graphics.Data;
 using Win32.Graphics.Direct3D12;
 using Win32.Graphics.Dxgi.Common;
@@ -91,7 +92,7 @@ public abstract class RenderGraphResource
 /// </summary>
 public sealed class RenderGraphTexture : RenderGraphResource
 {
-    internal TextureHandle Handle
+    internal Handle<Texture> Handle
     {
         get; set;
     }
@@ -107,7 +108,7 @@ public sealed class RenderGraphTexture : RenderGraphResource
         Description = description;
     }
 
-    public RenderGraphTexture(int id, string name, TextureHandle handle, TextureDescription description)
+    public RenderGraphTexture(int id, string name, Handle<Texture> handle, TextureDescription description)
         : base(id, name, ResourceLifetime.External)
     {
         Handle = handle;
@@ -152,7 +153,7 @@ public sealed class RenderGraphTexture : RenderGraphResource
 /// </summary>
 public sealed class RenderGraphBuffer : RenderGraphResource
 {
-    internal BufferHandle Handle
+    internal Handle<GraphicsBuffer> Handle
     {
         get; set;
     }
@@ -167,7 +168,7 @@ public sealed class RenderGraphBuffer : RenderGraphResource
     {
         Description = description;
     }
-    public RenderGraphBuffer(int id, string name, BufferHandle handle, BufferDescription description)
+    public RenderGraphBuffer(int id, string name, Handle<GraphicsBuffer> handle, BufferDescription description)
     : base(id, name, ResourceLifetime.External)
     {
         Handle = handle;

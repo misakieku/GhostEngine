@@ -1,4 +1,5 @@
 ﻿namespace Ghost.Graphics.Utilities;
+
 public class TextureUtility
 {
     public static uint CountMips(uint width, uint height)

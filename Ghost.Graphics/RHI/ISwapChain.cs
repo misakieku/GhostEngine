@@ -1,4 +1,5 @@
-using Ghost.Graphics.Contracts;
+using Ghost.Core;
+using Ghost.Graphics.Data;
 
 namespace Ghost.Graphics.RHI;
 
@@ -10,36 +11,45 @@ public interface ISwapChain : IDisposable
     /// <summary>
     /// Width of the swap chain back buffers
     /// </summary>
-    uint Width { get; }
+    public uint Width
+    {
+        get;
+    }
 
     /// <summary>
     /// Height of the swap chain back buffers
     /// </summary>
-    uint Height { get; }
+    public uint Height
+    {
+        get;
+    }
 
     /// <summary>
     /// Number of back buffers
     /// </summary>
-    uint BufferCount { get; }
+    public uint BufferCount
+    {
+        get;
+    }
 
     /// <summary>
     /// Gets the current back buffer texture
     /// </summary>
     /// <returns>Current back buffer texture</returns>
-    IRenderTarget GetCurrentBackBuffer();
+    public Handle<Texture> GetCurrentBackBuffer();
 
     /// <summary>
     /// Presents the rendered frame
     /// </summary>
     /// <param name="vsync">Enable vertical synchronization</param>
-    void Present(bool vsync = true);
+    public void Present(bool vsync = true);
 
     /// <summary>
     /// Resizes the swap chain back buffers
     /// </summary>
     /// <param name="width">New width</param>
     /// <param name="height">New height</param>
-    void Resize(uint width, uint height);
+    public void Resize(uint width, uint height);
 }
 
 /// <summary>
@@ -84,25 +94,25 @@ public struct SwapChainTarget
     /// <summary>
     /// Target type
     /// </summary>
-    public SwapChainTargetType Type;
+    public SwapChainTargetType type;
 
     /// <summary>
     /// Window handle for HWND targets
     /// </summary>
-    public nint WindowHandle;
+    public nint windowHandle;
 
     /// <summary>
     /// Composition surface for UWP/WinUI targets
     /// </summary>
-    public object? CompositionSurface;
+    public object? compositionSurface;
 
     public static SwapChainTarget FromWindowHandle(nint hwnd)
     {
         return new SwapChainTarget
         {
-            Type = SwapChainTargetType.WindowHandle,
-            WindowHandle = hwnd,
-            CompositionSurface = null
+            type = SwapChainTargetType.WindowHandle,
+            windowHandle = hwnd,
+            compositionSurface = null
         };
     }
 
@@ -110,9 +120,9 @@ public struct SwapChainTarget
     {
         return new SwapChainTarget
         {
-            Type = SwapChainTargetType.Composition,
-            WindowHandle = nint.Zero,
-            CompositionSurface = surface
+            type = SwapChainTargetType.Composition,
+            windowHandle = nint.Zero,
+            compositionSurface = surface
         };
     }
 }

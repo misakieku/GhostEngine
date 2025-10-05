@@ -24,7 +24,7 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
     private readonly D3D12ResourceDatabase _resourceDatabase;
 
-    private UnsafeQueue<ResourceHandle> _temResources = new(64, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
+    private UnsafeQueue<Handle<GPUResource>> _temResources = new(64, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
 
     private Guid* IID_NULL
     {
@@ -78,9 +78,9 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private ResourceHandle TrackResource(ref readonly Allocation allocation, ResourceStates state, bool isTemp)
+    private Handle<GPUResource> TrackResource(ref readonly Allocation allocation, ResourceStates state, D3D12ResourceDescriptor resourceDescriptor, ResourceDesc desc, bool isTemp)
     {
-        var handle = _resourceDatabase.AddResource(in allocation, _renderSystem.CPUFenceValue, D3D12StatesToRHIState(state));
+        var handle = _resourceDatabase.AddResource(in allocation, _renderSystem.CPUFenceValue, D3D12StatesToRHIState(state), resourceDescriptor, desc);
 
         if (isTemp)
         {
@@ -90,13 +90,68 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
         return handle;
     }
 
-    public TextureHandle CreateTexture(ref readonly TextureDesc desc, bool tempResource = false)
+    private void CreateSRV(ID3D12Resource* pResource, CpuDescriptorHandle descriptorHandle, Format format, TextureDimension dimension, uint mipLevels, uint arraySize)
+    {
+        var srvDesc = new ShaderResourceViewDescription
+        {
+            Format = format,
+            Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING
+        };
+
+        switch (dimension)
+        {
+            case TextureDimension.Texture2D:
+                srvDesc.ViewDimension = SrvDimension.Texture2D;
+                srvDesc.Texture2D = new Texture2DSrv
+                {
+                    MipLevels = mipLevels,
+                };
+                break;
+            case TextureDimension.Texture3D:
+                srvDesc.ViewDimension = SrvDimension.Texture3D;
+                srvDesc.Texture3D = new Texture3DSrv
+                {
+                    MipLevels = 0,
+                };
+                break;
+            case TextureDimension.Texture2DArray:
+                srvDesc.ViewDimension = SrvDimension.Texture2DArray;
+                srvDesc.Texture2DArray = new Texture2DArraySrv
+                {
+                    MipLevels = mipLevels,
+                    ArraySize = arraySize,
+                };
+                break;
+            case TextureDimension.TextureCube:
+                srvDesc.ViewDimension = SrvDimension.TextureCube;
+                srvDesc.TextureCube = new TexureCubeSrv
+                {
+                    MipLevels = mipLevels,
+                };
+                break;
+            case TextureDimension.TextureCubeArray:
+                srvDesc.ViewDimension = SrvDimension.TextureCubeArray;
+                srvDesc.TextureCubeArray = new TexureCubeArraySrv
+                {
+                    MipLevels = mipLevels,
+                    NumCubes = arraySize / 6,
+                };
+                break;
+            default:
+                throw new ArgumentException($"Unsupported texture dimension for SRV: {dimension}");
+        }
+
+        _device->CreateShaderResourceView(pResource, &srvDesc, descriptorHandle);
+    }
+
+    public Handle<Texture> CreateTexture(ref readonly TextureDesc desc, bool isTemp = false)
     {
         CheckTexture2DSize(desc.Width, desc.Height);
 
         var d3d12Format = ConvertTextureFormat(desc.Format);
         var mipLevels = desc.MipLevels == 0 ? (ushort)(1 + Math.Floor(Math.Log2(Math.Max(desc.Width, desc.Height)))) : (ushort)desc.MipLevels;
 
+        var resourceFlags = ConvertTextureUsage(desc.Usage);
         var resourceDesc = desc.Dimension switch
         {
             TextureDimension.Texture2D => ResourceDescription.Tex2D(
@@ -104,24 +159,34 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
                                 desc.Width,
                                 desc.Height,
                                 mipLevels: mipLevels,
-                                flags: ConvertTextureUsage(desc.Usage)),
+                                flags: resourceFlags),
             TextureDimension.Texture3D => ResourceDescription.Tex3D(
                                 d3d12Format,
                                 desc.Width,
                                 desc.Height,
                                 (ushort)desc.Slice,
-                                flags: ConvertTextureUsage(desc.Usage)),
-            //case TextureDimension.TextureCube:
-            //    break;
+                                flags: resourceFlags),
+            TextureDimension.TextureCube => ResourceDescription.Tex2D(
+                                d3d12Format,
+                                desc.Width,
+                                desc.Height,
+                                mipLevels: mipLevels,
+                                arraySize: 6,
+                                flags: resourceFlags),
             TextureDimension.Texture2DArray => ResourceDescription.Tex2D(
                                 d3d12Format,
                                 desc.Width,
                                 desc.Height,
                                 mipLevels: mipLevels,
                                 arraySize: (ushort)desc.Slice,
-                                flags: ConvertTextureUsage(desc.Usage)),
-            //case TextureDimension.TextureCubeArray:
-            //    break;
+                                flags: resourceFlags),
+            TextureDimension.TextureCubeArray => ResourceDescription.Tex2D(
+                                d3d12Format,
+                                desc.Width,
+                                desc.Height,
+                                mipLevels: mipLevels,
+                                arraySize: (ushort)(desc.Slice * 6),
+                                flags: resourceFlags),
             _ => throw new ArgumentException($"Unsupported texture dimension: {desc.Dimension}"),
         };
 
@@ -136,58 +201,57 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
         Allocation allocation = default;
         ThrowIfFailed(_allocator.CreateResource(&allocationDesc, in resourceDesc, initialState, null, &allocation, IID_NULL, null));
 
-        var handle = TrackResource(in allocation, initialState, tempResource);
-
-        if (desc.CreationFlags.HasFlag(TextureCreationFlags.Bindless))
+        var resourceDescriptor = D3D12ResourceDescriptor.Invalid;
+        if (desc.Usage.HasFlag(TextureUsage.ShaderResource))
         {
-            var descriptorHandle = _descriptorAllocator.AllocateBindless();
-            var srvDesc = new ShaderResourceViewDescription
-            {
-                Format = d3d12Format,
-                Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING
-            };
+            resourceDescriptor.srv = _descriptorAllocator.AllocateCbvSrvUav(isTemp);
+            var cpuHandle = _descriptorAllocator.GetCpuHandle(resourceDescriptor.srv);
 
-            switch (desc.Dimension)
-            {
-                case TextureDimension.Texture2D:
-                    srvDesc.ViewDimension = SrvDimension.Texture2D;
-                    srvDesc.Texture2D = new Texture2DSrv
-                    {
-                        MipLevels = mipLevels,
-                    };
-                    break;
-                case TextureDimension.Texture3D:
-                    srvDesc.ViewDimension = SrvDimension.Texture3D;
-                    srvDesc.Texture3D = new Texture3DSrv
-                    {
-                        MipLevels = 0,
-                    };
-                    break;
-                case TextureDimension.Texture2DArray:
-                    srvDesc.ViewDimension = SrvDimension.Texture2DArray;
-                    srvDesc.Texture2DArray = new Texture2DArraySrv
-                    {
-                        MipLevels = mipLevels,
-                        ArraySize = desc.Slice,
-                    };
-                    break;
-                default:
-                    throw new ArgumentException($"Unsupported texture dimension for SRV: {desc.Dimension}");
-            }
-
-            _device->CreateShaderResourceView(allocation.Resource, &srvDesc, _descriptorAllocator.GetCpuHandle(descriptorHandle));
+            CreateSRV(allocation.Resource, cpuHandle, d3d12Format, desc.Dimension, mipLevels, desc.Slice);
         }
 
-        return new(handle);
+        if (desc.Usage.HasFlag(TextureUsage.RenderTarget))
+        {
+            resourceDescriptor.rtv = _descriptorAllocator.AllocateRTV(isTemp);
+            var rtvDesc = new RenderTargetViewDescription(allocation.Resource);
+            _device->CreateRenderTargetView(allocation.Resource, &rtvDesc, _descriptorAllocator.GetCpuHandle(resourceDescriptor.rtv));
+        }
+
+        if (desc.Usage.HasFlag(TextureUsage.DepthStencil))
+        {
+            resourceDescriptor.dsv = _descriptorAllocator.AllocateDSV(isTemp);
+            var dsvDesc = new DepthStencilViewDescription(allocation.Resource);
+            _device->CreateDepthStencilView(allocation.Resource, &dsvDesc, _descriptorAllocator.GetCpuHandle(resourceDescriptor.dsv));
+        }
+
+        if (desc.Usage.HasFlag(TextureUsage.UnorderedAccess))
+        {
+            resourceDescriptor.uav = _descriptorAllocator.AllocateCbvSrvUav(isTemp);
+            var uavDesc = new UnorderedAccessViewDescription
+            {
+                ViewDimension = UavDimension.Texture2D,
+                Format = d3d12Format,
+                Texture2D = new Texture2DUav
+                {
+                    MipSlice = 0,
+                    PlaneSlice = 0,
+                }
+            };
+            _device->CreateUnorderedAccessView(allocation.Resource, null, &uavDesc, _descriptorAllocator.GetCpuHandle(resourceDescriptor.uav));
+        }
+
+        var handle = TrackResource(ref allocation, initialState, resourceDescriptor, ResourceDesc.Texture(desc), isTemp);
+
+        return handle.AsTexture();
     }
 
-    public TextureHandle CreateRenderTarget(ref readonly RenderTargetDesc desc, bool tempResource = false)
+    public Handle<Texture> CreateRenderTarget(ref readonly RenderTargetDesc desc, bool isTemp = false)
     {
-        var textureDesc = RenderTargetDesc.ToTextureDescriptor(desc);
-        return CreateTexture(ref textureDesc, tempResource);
+        var textureDesc = RenderTargetDesc.ToTextureDescripton(desc);
+        return CreateTexture(ref textureDesc, isTemp);
     }
 
-    public BufferHandle CreateBuffer(ref readonly BufferDesc desc, bool tempResource = false)
+    public Handle<GraphicsBuffer> CreateBuffer(ref readonly BufferDesc desc, bool isTemp = false)
     {
         CheckBufferSize((uint)desc.Size);
 
@@ -203,12 +267,10 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
         Allocation allocation = default;
         ThrowIfFailed(_allocator.CreateResource(&allocationDesc, in resourceDescription, initialState, null, &allocation, IID_NULL, null));
 
-        var handle = TrackResource(in allocation, initialState, tempResource);
-
+        var resourceDescriptor = D3D12ResourceDescriptor.Invalid;
         if (desc.Usage.HasFlag(BufferUsage.ShaderResource) && desc.CreationFlags.HasFlag(BufferCreationFlags.Bindless))
         {
-            var isRaw = desc.Usage.HasFlag(BufferUsage.Raw);
-            var descriptorHandle = _descriptorAllocator.AllocateBindless();
+            resourceDescriptor.srv = _descriptorAllocator.AllocateCbvSrvUav(isTemp);
 
             var srvDesc = new ShaderResourceViewDescription
             {
@@ -216,7 +278,7 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
                 Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING
             };
 
-            if (isRaw)
+            if (desc.Usage.HasFlag(BufferUsage.Raw))
             {
                 srvDesc.Format = Format.R32Typeless;
                 srvDesc.Buffer.FirstElement = 0;
@@ -233,15 +295,14 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
                 srvDesc.Buffer.Flags = BufferSrvFlags.None;
             }
 
-            _device->CreateShaderResourceView(allocation.Resource, &srvDesc, _descriptorAllocator.GetCpuHandle(descriptorHandle));
-
-            return new(handle, descriptorHandle);
+            _device->CreateShaderResourceView(allocation.Resource, &srvDesc, _descriptorAllocator.GetCpuHandle(resourceDescriptor.srv));
         }
 
-        return new(handle);
+        var handle = TrackResource(ref allocation, initialState, resourceDescriptor, ResourceDesc.Buffer(desc), isTemp);
+        return handle.AsGraphicsBuffer();
     }
 
-    public BufferHandle CreateUploadBuffer(ulong size, bool temp = true)
+    public Handle<GraphicsBuffer> CreateUploadBuffer(ulong size, bool isTemp = true)
     {
         var desc = new BufferDesc
         {
@@ -250,14 +311,14 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
             MemoryType = MemoryType.Upload,
         };
 
-        return CreateBuffer(in desc, temp);
+        return CreateBuffer(ref desc, isTemp);
     }
 
-    public Identifier<Mesh> CreateMesh(ReadOnlySpan<Vertex> vertices, ReadOnlySpan<uint> indices)
+    public Handle<Mesh> CreateMesh(UnsafeList<Vertex> vertices, UnsafeList<uint> indices)
     {
         var vertexBufferDesc = new BufferDesc
         {
-            Size = (ulong)(vertices.Length * Unsafe.SizeOf<Vertex>()),
+            Size = (ulong)(vertices.Count * Unsafe.SizeOf<Vertex>()),
             Stride = (uint)Unsafe.SizeOf<Vertex>(),
             Usage = BufferUsage.Vertex | BufferUsage.ShaderResource,
             MemoryType = MemoryType.Default,
@@ -266,35 +327,42 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
 
         var indexBufferDesc = new BufferDesc
         {
-            Size = (ulong)(indices.Length * sizeof(uint)),
+            Size = (ulong)(indices.Count * sizeof(uint)),
             Stride = sizeof(uint),
             Usage = BufferUsage.Index | BufferUsage.ShaderResource,
             MemoryType = MemoryType.Default,
             CreationFlags = BufferCreationFlags.Bindless
         };
 
-        var vertexBuffer = CreateBuffer(ref vertexBufferDesc, true);
-        var indexBuffer = CreateBuffer(ref indexBufferDesc, true);
+        var vertexBuffer = CreateBuffer(ref vertexBufferDesc);
+        var indexBuffer = CreateBuffer(ref indexBufferDesc);
 
-        var data = new Mesh(vertices, indices, vertexBuffer, indexBuffer);
-        return _resourceDatabase.AddMesh(in data);
+        var data = new Mesh
+        {
+            vertices = vertices,
+            indices = indices,
+            vertexBuffer = vertexBuffer,
+            indexBuffer = indexBuffer,
+        };
+
+        return _resourceDatabase.AddMesh(ref data);
     }
 
-    public Identifier<Material> CreateMaterial(Identifier<Shader> shader)
+    public Handle<Material> CreateMaterial(Identifier<Shader> shader)
     {
         var materialData = new Material
         {
             Shader = shader,
         };
 
-        var shaderResource = _resourceDatabase.GetShader(shader);
+        ref var shaderRef = ref _resourceDatabase.GetShaderReference(shader);
 
-        if (shaderResource.ConstantBuffers.Count > 0)
+        if (shaderRef.ConstantBuffers.Count > 0)
         {
-            var maxSlot = shaderResource.ConstantBuffers.Max(cb => cb.RegisterSlot);
+            var maxSlot = shaderRef.ConstantBuffers.Max(cb => cb.RegisterSlot);
             materialData._cBufferCaches = new UnsafeArray<CBufferCache>((int)maxSlot + 1, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
 
-            foreach (var cbufferInfo in shaderResource.ConstantBuffers)
+            foreach (var cbufferInfo in shaderRef.ConstantBuffers)
             {
                 var desc = new BufferDesc
                 {
@@ -303,13 +371,19 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
                     MemoryType = MemoryType.Default,
                 };
 
-                var buffer = CreateBuffer(in desc);
+                var buffer = CreateBuffer(ref desc);
 
                 materialData._cBufferCaches[cbufferInfo.RegisterSlot] = new CBufferCache(buffer, cbufferInfo.Size);
             }
         }
 
-        return _resourceDatabase.AddMaterial(in materialData);
+        return _resourceDatabase.AddMaterial(ref materialData);
+    }
+
+    public Identifier<Shader> CreateShader()
+    {
+        var shaderData = new Shader();
+        return _resourceDatabase.AddShader(ref shaderData);
     }
 
     #region Conversion Methods
@@ -461,43 +535,39 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
 
     #endregion
 
-    public void ReleaseTempResource()
+    public void ReleaseTempResources()
     {
         while (_temResources.Count > 0)
         {
             var handle = _temResources.Peek();
             ref var info = ref _resourceDatabase.GetResourceInfo(handle, out var exist);
-            if (exist && info.Allocated && info.cpuFenceValue > _renderSystem.GPUFenceValue)
+            if (!exist || !info.Allocated)
             {
+                // Resource already released or invalid, just dequeue
+                _temResources.Dequeue();
+                continue;
+            }
+
+            if (info.cpuFenceValue > _renderSystem.GPUFenceValue)
+            {
+                // Resource still in use by GPU, stop processing.
+                // Since resources are enqueued in order, we can break here.
                 break;
             }
 
-            ReleaseResource(handle);
+            _resourceDatabase.ReleaseResource(handle);
             _temResources.Dequeue();
         }
     }
 
-    public void ReleaseResource(ResourceHandle handle)
+    public void ReleaseResource(Handle<GPUResource> handle)
     {
-        if (!handle.IsValid)
-        {
-            return;
-        }
-
-        ref var info = ref _resourceDatabase.GetResourceInfo(handle, out var exist);
-
-        if (!exist || !info.Allocated)
-        {
-            return;
-        }
-
-        info.Dispose();
-        _resourceDatabase.RemoveResource(handle);
+        _resourceDatabase.ReleaseResource(handle);
     }
 
     public void Dispose()
     {
-#if DEBUG
+#if DEBUG || GHOST_EDITOR
         if (_temResources.Count > 0)
         {
             throw new InvalidOperationException($"ResourceAllocator is being disposed with {_temResources.Count} temp allocations still registered. Ensure all resources are released before disposing.");

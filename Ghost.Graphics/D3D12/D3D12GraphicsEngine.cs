@@ -9,7 +9,7 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
 #endif
 
     private readonly D3D12RenderDevice _device;
-    private readonly D3D12PipelineStateController _stateController;
+    private readonly D3D12PipelineLibrary _stateController;
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
 
     private readonly D3D12ResourceDatabase _resourceDatabase;
@@ -22,7 +22,7 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
     public IResourceDatabase ResourceDatabase => _resourceDatabase;
     public IResourceAllocator ResourceAllocator => _resourceAllocator;
 
-    public IPipelineStateController PipelineStateController => _stateController;
+    public IPipelineLibrary PipelineStateController => _stateController;
 
     public D3D12GraphicsEngine(RenderSystem renderSystem)
     {
@@ -52,7 +52,7 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
 
     public IRenderer CreateRenderer()
     {
-        return new D3D12Renderer(this, _resourceAllocator);
+        return new D3D12Renderer(this, _resourceAllocator, _resourceDatabase);
     }
 
     public ICommandBuffer CreateCommandBuffer(CommandBufferType type = CommandBufferType.Graphics)
@@ -68,7 +68,7 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
 
     public ISwapChain CreateSwapChain(SwapChainDesc desc)
     {
-        return new D3D12SwapChain(_device.DXGIFactory, ((D3D12CommandQueue)_device.ComputeQueue).NativeQueue, desc);
+        return new D3D12SwapChain(_resourceDatabase, _device.DXGIFactory, ((D3D12CommandQueue)_device.ComputeQueue).NativeQueue, desc);
     }
 
     public void BeginFrame()

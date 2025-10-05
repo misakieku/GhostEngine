@@ -1,7 +1,6 @@
 using Ghost.Graphics.Data;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.InteropServices;
-using System.Text;
 using Win32;
 using Win32.Graphics.Direct3D;
 using Win32.Graphics.Direct3D.Dxc;
@@ -182,7 +181,14 @@ internal unsafe static class D3D12ShaderCompiler
         }
     }
 
-    public static void PerformDXCReflection(Shader shader, IDxcBlob* reflectionBlob)
+    private static void AddProperty(ref Shader shader, string name, PropertyInfo propertyInfo)
+    {
+        var id = shader.Properties.Count;
+        shader.Properties.Add(propertyInfo);
+        shader.PropertyNameToIdMap[name] = id;
+    }
+
+    public static void PerformDXCReflection(ref Shader shader, IDxcBlob* reflectionBlob)
     {
         // Create DXC utils to parse reflection data
         using ComPtr<IDxcUtils> utils = default;
@@ -255,7 +261,7 @@ internal unsafe static class D3D12ShaderCompiler
                             Size = varDesc.Size
                         };
 
-                        shader.AddProperty(variableName, propInfo);
+                        AddProperty(ref shader, variableName, propInfo);
                     }
 
                     break;

@@ -1,6 +1,4 @@
 ﻿using Microsoft.UI.Xaml.Data;
-using System;
-using System.IO;
 
 namespace Ghost.Editor.Utilities.Converters;
 
