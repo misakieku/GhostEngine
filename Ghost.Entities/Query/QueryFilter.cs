@@ -1,5 +1,7 @@
 ﻿using Ghost.Core;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities.Query;
 
@@ -27,63 +29,68 @@ internal struct QueryFilter()
 
     public readonly UnsafeBitSet ComputeFilterBitMask(World world)
     {
-        UnsafeBitSet? allMask = null;
-        UnsafeBitSet? anyMask = null;
-        UnsafeBitSet? absentMask = null;
+        UnsafeBitSet allMask = default;
+        UnsafeBitSet anyMask = default;
+        UnsafeBitSet absentMask = default;
+
+        using var scope = AllocationManager.CreateStackScope();
 
         foreach (var typeHandle in _all)
         {
             var mask = world.ComponentStorage.GetOrCreateMask(typeHandle);
 
-            if (!allMask.HasValue)
+            if (!allMask.IsCreated)
             {
-                allMask = new UnsafeBitSet(mask.Length);
-                allMask.Value.SetAll();
+                allMask = new UnsafeBitSet(mask.Length, Allocator.Stack, AllocationOption.Clear);
+                allMask.SetAll();
             }
 
-            allMask &= mask;
+            allMask.AndOperation(mask);
         }
 
         foreach (var typeHandle in _any)
         {
             var mask = world.ComponentStorage.GetOrCreateMask(typeHandle);
 
-            if (!anyMask.HasValue)
+            if (!anyMask.IsCreated)
             {
-                anyMask = new UnsafeBitSet(mask.Length);
+                anyMask = new UnsafeBitSet(mask.Length, Allocator.Stack, AllocationOption.Clear);
             }
 
-            anyMask |= mask;
+            anyMask.OrOperation(mask);
         }
 
         foreach (var typeHandle in _absent)
         {
             var mask = world.ComponentStorage.GetOrCreateMask(typeHandle);
 
-            if (!absentMask.HasValue)
+            if (!absentMask.IsCreated)
             {
-                absentMask = new UnsafeBitSet(mask.Length);
+                absentMask = new UnsafeBitSet(mask.Length, Allocator.Stack, AllocationOption.Clear);
             }
 
-            absentMask |= mask;
+            absentMask.OrOperation(mask);
         }
 
-        var result = new UnsafeBitSet(world.EntityManager.EntityCount);
+        var result = new UnsafeBitSet(world.EntityManager.EntityCount, Allocator.Persistent);
         result.SetAll();
 
-        if (allMask.HasValue)
+        if (allMask.IsCreated)
         {
-            result &= allMask.Value;
+            result.AndOperation(allMask);
+            allMask.Dispose();
         }
 
-        if (anyMask.HasValue)
+        if (anyMask.IsCreated)
         {
-            result &= anyMask.Value;
+            result.AndOperation(anyMask);
+            anyMask.Dispose();
         }
 
-        if (absentMask.HasValue)
+        if (absentMask.IsCreated)
         {
-            result &= ~absentMask.Value;
+            result.AndOperation(~absentMask);
+            absentMask.Dispose();
         }
 
         return result;

@@ -3,7 +3,6 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
-using Win32;
 
 namespace Ghost.Graphics.Data;
 
@@ -110,7 +109,7 @@ public unsafe readonly ref struct RenderingContext
 
         var subresourceData = new SubResourceData
         {
-            pData = data.GetPointer(),
+            pData = data.GetUnsafePtr(),
             rowPitch = rowPitch,
             slicePitch = slicePitch
         };

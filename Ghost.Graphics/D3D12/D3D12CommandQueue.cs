@@ -1,8 +1,7 @@
+using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using Win32;
-using Win32.Graphics.Direct3D12;
+using TerraFX.Interop.DirectX;
+using TerraFX.Interop.Windows;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -29,11 +28,11 @@ internal unsafe class D3D12CommandQueue : ICommandQueue
         _fenceEvent = new AutoResetEvent(false);
         _fenceValue = 0;
 
-        var queueDesc = new CommandQueueDescription
+        var queueDesc = new D3D12_COMMAND_QUEUE_DESC
         {
             Type = ConvertCommandQueueType(type),
-            Priority = (int)CommandQueuePriority.Normal,
-            Flags = CommandQueueFlags.None,
+            Priority = (int)D3D12_COMMAND_QUEUE_PRIORITY.D3D12_COMMAND_QUEUE_PRIORITY_NORMAL,
+            Flags = D3D12_COMMAND_QUEUE_FLAGS.D3D12_COMMAND_QUEUE_FLAG_NONE,
         };
 
         fixed (void* queuePtr = &_queue)
@@ -41,7 +40,7 @@ internal unsafe class D3D12CommandQueue : ICommandQueue
             pDevice->CreateCommandQueue(&queueDesc, __uuidof<ID3D12CommandQueue>(), (void**)queuePtr);
         }
 
-        pDevice->CreateFence(0, FenceFlags.None, __uuidof<ID3D12Fence1>(), _fence.GetVoidAddressOf());
+        pDevice->CreateFence(0, D3D12_FENCE_FLAGS.D3D12_FENCE_FLAG_NONE, __uuidof<ID3D12Fence1>(), _fence.GetVoidAddressOf());
     }
 
     ~D3D12CommandQueue()
@@ -120,8 +119,8 @@ internal unsafe class D3D12CommandQueue : ICommandQueue
     {
         if (_fence.Get()->GetCompletedValue() < value)
         {
-            var handle = new Handle((void*)_fenceEvent.SafeWaitHandle.DangerousGetHandle());
-            if (_fence.Get()->SetEventOnCompletion(value, handle).Success)
+            var handle = new HANDLE((void*)_fenceEvent.SafeWaitHandle.DangerousGetHandle());
+            if (_fence.Get()->SetEventOnCompletion(value, handle).SUCCEEDED)
             {
                 _fenceEvent.WaitOne();
             }
@@ -139,13 +138,13 @@ internal unsafe class D3D12CommandQueue : ICommandQueue
         WaitForValue(fenceValue);
     }
 
-    private static CommandListType ConvertCommandQueueType(CommandQueueType type)
+    private static D3D12_COMMAND_LIST_TYPE ConvertCommandQueueType(CommandQueueType type)
     {
         return type switch
         {
-            CommandQueueType.Graphics => CommandListType.Direct,
-            CommandQueueType.Compute => CommandListType.Compute,
-            CommandQueueType.Copy => CommandListType.Copy,
+            CommandQueueType.Graphics => D3D12_COMMAND_LIST_TYPE.D3D12_COMMAND_LIST_TYPE_DIRECT,
+            CommandQueueType.Compute => D3D12_COMMAND_LIST_TYPE.D3D12_COMMAND_LIST_TYPE_COMPUTE,
+            CommandQueueType.Copy => D3D12_COMMAND_LIST_TYPE.D3D12_COMMAND_LIST_TYPE_COPY,
             _ => throw new ArgumentException($"Unknown command queue type: {type}")
         };
     }

@@ -6,10 +6,10 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.CompilerServices;
-using Win32;
-using Win32.Graphics.Direct3D12;
-using Win32.Graphics.Dxgi;
-using Win32.Graphics.Dxgi.Common;
+using TerraFX.Interop.DirectX;
+using TerraFX.Interop.Windows;
+
+using static TerraFX.Aliases.DXGI_Alias;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -55,18 +55,18 @@ internal unsafe class D3D12SwapChain : ISwapChain
 
     private void CreateSwapChain(IDXGIFactory7* pFactory, ID3D12CommandQueue* commandQueue, SwapChainDesc desc)
     {
-        var swapChainDesc = new SwapChainDescription1
+        var swapChainDesc = new DXGI_SWAP_CHAIN_DESC1
         {
             Width = desc.width,
             Height = desc.height,
-            Format = ConvertTextureFormat(desc.format),
-            SampleDesc = new SampleDescription(1, 0),
-            BufferUsage = Usage.BackBuffer | Usage.RenderTargetOutput,
+            Format = desc.format.ToD3D12Format(),
+            SampleDesc = new DXGI_SAMPLE_DESC(1, 0),
+            BufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT,
             BufferCount = D3D12PipelineResource.BACK_BUFFER_COUNT,
-            Scaling = Scaling.Stretch,
-            SwapEffect = SwapEffect.FlipDiscard,
-            AlphaMode = AlphaMode.Ignore,
-            Flags = SwapChainFlags.AllowTearing,
+            Scaling = DXGI_SCALING_STRETCH,
+            SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD,
+            AlphaMode = DXGI_ALPHA_MODE_IGNORE,
+            Flags = (uint)DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING,
             Stereo = false,
         };
 
@@ -86,14 +86,14 @@ internal unsafe class D3D12SwapChain : ISwapChain
                 break;
 
             case SwapChainTargetType.WindowHandle:
-                var swapChainFullscreenDesc = new SwapChainFullscreenDescription
+                var swapChainFullscreenDesc = new DXGI_SWAP_CHAIN_FULLSCREEN_DESC
                 {
                     Windowed = true,
                 };
 
                 pFactory->CreateSwapChainForHwnd(
                     (IUnknown*)commandQueue,
-                    desc.target.windowHandle,
+                    new HWND(desc.target.windowHandle.ToPointer()),
                     &swapChainDesc,
                     &swapChainFullscreenDesc,
                     null,
@@ -104,7 +104,7 @@ internal unsafe class D3D12SwapChain : ISwapChain
                 throw new ArgumentException("Unsupported swap chain target type.");
         }
 
-        if (tempSwapChain.Get()->QueryInterface(__uuidof<IDXGISwapChain4>(), _swapChain.GetVoidAddressOf()).Failure)
+        if (tempSwapChain.Get()->QueryInterface(__uuidof<IDXGISwapChain4>(), _swapChain.GetVoidAddressOf()).FAILED)
         {
             throw new InvalidOperationException("Failed to create IDXGISwapChain4 interface.");
         }
@@ -130,10 +130,10 @@ internal unsafe class D3D12SwapChain : ISwapChain
 
     public void Present(bool vsync = true)
     {
-        var presentFlags = PresentFlags.None;
+        var presentFlags = 0u;
         var syncInterval = vsync ? 1u : 0u;
 
-        if (_swapChain.Get()->Present(syncInterval, presentFlags).Failure)
+        if (_swapChain.Get()->Present(syncInterval, presentFlags).FAILED)
         {
             throw new InvalidOperationException("Failed to present swap chain.");
         }
@@ -153,7 +153,7 @@ internal unsafe class D3D12SwapChain : ISwapChain
         }
 
         // Resize the swap chain
-        if (_swapChain.Get()->ResizeBuffers(BufferCount, width, height, Format.B8G8R8A8Unorm, SwapChainFlags.AllowTearing).Failure)
+        if (_swapChain.Get()->ResizeBuffers(BufferCount, width, height, DXGI_FORMAT_B8G8R8A8_UNORM, (uint)DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING).FAILED)
         {
             throw new InvalidOperationException("Failed to resize swap chain buffers.");
         }
@@ -163,18 +163,6 @@ internal unsafe class D3D12SwapChain : ISwapChain
 
         // Recreate back buffers
         CreateBackBuffers();
-    }
-
-    private static Format ConvertTextureFormat(TextureFormat format)
-    {
-        return format switch
-        {
-            TextureFormat.R8G8B8A8_UNorm => Format.R8G8B8A8Unorm,
-            TextureFormat.B8G8R8A8_UNorm => Format.B8G8R8A8Unorm,
-            TextureFormat.R16G16B16A16_Float => Format.R16G16B16A16Float,
-            TextureFormat.R32G32B32A32_Float => Format.R32G32B32A32Float,
-            _ => throw new ArgumentException($"Unsupported texture format: {format}")
-        };
     }
 
     public void Dispose()

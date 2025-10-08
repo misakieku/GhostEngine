@@ -1,4 +1,4 @@
-using Win32.Graphics.Dxgi.Common;
+using TerraFX.Interop.DirectX;
 
 namespace Ghost.Graphics.RHI;
 
@@ -46,13 +46,6 @@ public enum BufferUsage
     ShaderResource = Vertex | Index | Constant
 }
 
-[Flags]
-public enum BufferCreationFlags
-{
-    None = 0,
-    Bindless = 1 << 0
-}
-
 public enum IndexType
 {
     UInt16,
@@ -61,30 +54,30 @@ public enum IndexType
 
 internal static class TextureFormatExtensions
 {
-    public static Format ToD3D12Format(this TextureFormat format)
+    public static DXGI_FORMAT ToD3D12Format(this TextureFormat format)
     {
         return format switch
         {
-            TextureFormat.R8G8B8A8_UNorm => Format.R8G8B8A8Unorm,
-            TextureFormat.B8G8R8A8_UNorm => Format.B8G8R8A8Unorm,
-            TextureFormat.R16G16B16A16_Float => Format.R16G16B16A16Float,
-            TextureFormat.R32G32B32A32_Float => Format.R32G32B32A32Float,
-            TextureFormat.D24_UNorm_S8_UInt => Format.D24UnormS8Uint,
-            TextureFormat.D32_Float => Format.D32Float,
+            TextureFormat.R8G8B8A8_UNorm => DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UNORM,
+            TextureFormat.B8G8R8A8_UNorm => DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM,
+            TextureFormat.R16G16B16A16_Float => DXGI_FORMAT.DXGI_FORMAT_R16G16B16A16_FLOAT,
+            TextureFormat.R32G32B32A32_Float => DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_FLOAT,
+            TextureFormat.D24_UNorm_S8_UInt => DXGI_FORMAT.DXGI_FORMAT_D24_UNORM_S8_UINT,
+            TextureFormat.D32_Float => DXGI_FORMAT.DXGI_FORMAT_D32_FLOAT,
             _ => throw new NotSupportedException($"Texture format {format} is not supported."),
         };
     }
 
-    public static TextureFormat ToTextureFormat(this Format format)
+    public static TextureFormat ToTextureFormat(this DXGI_FORMAT format)
     {
         return format switch
         {
-            Format.R8G8B8A8Unorm => TextureFormat.R8G8B8A8_UNorm,
-            Format.B8G8R8A8Unorm => TextureFormat.B8G8R8A8_UNorm,
-            Format.R16G16B16A16Float => TextureFormat.R16G16B16A16_Float,
-            Format.R32G32B32A32Float => TextureFormat.R32G32B32A32_Float,
-            Format.D24UnormS8Uint => TextureFormat.D24_UNorm_S8_UInt,
-            Format.D32Float => TextureFormat.D32_Float,
+            DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UNORM => TextureFormat.R8G8B8A8_UNorm,
+            DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM => TextureFormat.B8G8R8A8_UNorm,
+            DXGI_FORMAT.DXGI_FORMAT_R16G16B16A16_FLOAT => TextureFormat.R16G16B16A16_Float,
+            DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_FLOAT => TextureFormat.R32G32B32A32_Float,
+            DXGI_FORMAT.DXGI_FORMAT_D24_UNORM_S8_UINT => TextureFormat.D24_UNorm_S8_UInt,
+            DXGI_FORMAT.DXGI_FORMAT_D32_FLOAT => TextureFormat.D32_Float,
             _ => TextureFormat.Unknown,
         };
     }

@@ -1,7 +1,6 @@
 ﻿using Ghost.Graphics.Data;
 using System.Runtime.CompilerServices;
-using Win32.Graphics.Direct3D12;
-using Win32.Graphics.Dxgi.Common;
+using TerraFX.Interop.DirectX;
 
 namespace Ghost.Graphics.D3D12.Utilities;
 
@@ -9,19 +8,19 @@ internal unsafe static class D3D12PipelineResource
 {
     public const int BACK_BUFFER_COUNT = 2;
 
-    private readonly static InputElementDescription[] s_inputElementDescs = [
-        new InputElementDescription{ SemanticName = Vertex.Semantic.position.GetUnsafePointer(), SemanticIndex = 0u, Format =  Format.R32G32B32A32Float, InputSlot = 0u, AlignedByteOffset = 0u, InputSlotClass = InputClassification.PerVertexData, InstanceDataStepRate = 0 },
-        new InputElementDescription{ SemanticName = Vertex.Semantic.normal.GetUnsafePointer(), SemanticIndex = 0u, Format =  Format.R32G32B32A32Float, InputSlot = 0u, AlignedByteOffset = 16u, InputSlotClass = InputClassification.PerVertexData, InstanceDataStepRate = 0 },
-        new InputElementDescription{ SemanticName = Vertex.Semantic.tangent.GetUnsafePointer(), SemanticIndex = 0u, Format =  Format.R32G32B32A32Float, InputSlot = 0u, AlignedByteOffset = 32u, InputSlotClass = InputClassification.PerVertexData, InstanceDataStepRate = 0 },
-        new InputElementDescription{ SemanticName = Vertex.Semantic.uv.GetUnsafePointer(), SemanticIndex = 0u, Format =  Format.R32G32B32A32Float, InputSlot = 0u, AlignedByteOffset = 48u, InputSlotClass = InputClassification.PerVertexData, InstanceDataStepRate = 0 },
-        new InputElementDescription{ SemanticName = Vertex.Semantic.color.GetUnsafePointer(), SemanticIndex = 0u, Format =  Format.R32G32B32A32Float, InputSlot = 0u, AlignedByteOffset = 64u, InputSlotClass = InputClassification.PerVertexData, InstanceDataStepRate = 0 },
+    private readonly static D3D12_INPUT_ELEMENT_DESC[] s_inputElementDescs = [
+        new D3D12_INPUT_ELEMENT_DESC{ SemanticName = (sbyte*)Vertex.Semantic.position.GetUnsafePointer(), SemanticIndex = 0u, Format =  Vertex.Semantic.ALIGNED_FORMAT, InputSlot = 0u, AlignedByteOffset = 0u, InputSlotClass = D3D12_INPUT_CLASSIFICATION.D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, InstanceDataStepRate = 0 },
+        new D3D12_INPUT_ELEMENT_DESC{ SemanticName = (sbyte*)Vertex.Semantic.normal.GetUnsafePointer(), SemanticIndex = 0u, Format =  Vertex.Semantic.ALIGNED_FORMAT, InputSlot = 0u, AlignedByteOffset = 16u, InputSlotClass = D3D12_INPUT_CLASSIFICATION.D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, InstanceDataStepRate = 0 },
+        new D3D12_INPUT_ELEMENT_DESC{ SemanticName = (sbyte*)Vertex.Semantic.tangent.GetUnsafePointer(), SemanticIndex = 0u, Format =  Vertex.Semantic.ALIGNED_FORMAT, InputSlot = 0u, AlignedByteOffset = 32u, InputSlotClass = D3D12_INPUT_CLASSIFICATION.D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, InstanceDataStepRate = 0 },
+        new D3D12_INPUT_ELEMENT_DESC{ SemanticName = (sbyte*)Vertex.Semantic.uv.GetUnsafePointer(), SemanticIndex = 0u, Format =  Vertex.Semantic.ALIGNED_FORMAT, InputSlot = 0u, AlignedByteOffset = 48u, InputSlotClass = D3D12_INPUT_CLASSIFICATION.D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, InstanceDataStepRate = 0 },
+        new D3D12_INPUT_ELEMENT_DESC{ SemanticName = (sbyte*)Vertex.Semantic.color.GetUnsafePointer(), SemanticIndex = 0u, Format =  Vertex.Semantic.ALIGNED_FORMAT, InputSlot = 0u, AlignedByteOffset = 64u, InputSlotClass = D3D12_INPUT_CLASSIFICATION.D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, InstanceDataStepRate = 0 },
     ];
 
-    public const Format SWAP_CHAIN_BACK_BUFFER_FORMAT = Format.B8G8R8A8Unorm;
+    public const DXGI_FORMAT SWAP_CHAIN_BACK_BUFFER_FORMAT = DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM;
 
-    public static InputLayoutDescription InputLayoutDescription => new()
+    public static D3D12_INPUT_LAYOUT_DESC InputLayoutDescription => new()
     {
-        pInputElementDescs = (InputElementDescription*)Unsafe.AsPointer(ref s_inputElementDescs[0]),
+        pInputElementDescs = (D3D12_INPUT_ELEMENT_DESC*)Unsafe.AsPointer(ref s_inputElementDescs[0]),
         NumElements = (uint)s_inputElementDescs.Length
     };
 }

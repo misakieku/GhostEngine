@@ -663,9 +663,8 @@ internal struct ComponentStorage : IDisposable
         return set.Value;
     }
 
-    public UnsafeBitSet GetOrCreateMask(Type type)
+    public UnsafeBitSet GetOrCreateMask(TypeHandle typeHandle)
     {
-        var typeHandle = TypeHandle.Get(type);
         if (!_typeIDMap.TryGetValue(typeHandle, out var id))
         {
             id = GetTypeID(typeHandle);
@@ -682,6 +681,11 @@ internal struct ComponentStorage : IDisposable
         set ??= new UnsafeBitSet();
 
         return set.Value;
+    }
+
+    public UnsafeBitSet GetOrCreateMask(Type type)
+    {
+        return GetOrCreateMask(TypeHandle.Get(type));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

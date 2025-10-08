@@ -1,10 +1,12 @@
+#undef SUPPORT_TEXTURE_BINDING
+
+using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.Data;
 using Misaki.HighPerformance.LowLevel.Collections;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Win32;
-using Win32.Graphics.Direct3D;
-using Win32.Graphics.Direct3D.Dxc;
-using Win32.Graphics.Direct3D12;
+using TerraFX.Interop.DirectX;
+using TerraFX.Interop.Windows;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -71,8 +73,11 @@ internal unsafe static class D3D12ShaderCompiler
         using ComPtr<IDxcIncludeHandler> includeHandler = default;
 
         // Create DXC compiler and utils
-        DxcCreateInstance(in CLSID_DxcCompiler, __uuidof<IDxcCompiler3>(), compiler.GetVoidAddressOf());
-        DxcCreateInstance(in CLSID_DxcUtils, __uuidof<IDxcUtils>(), utils.GetVoidAddressOf());
+        var pDxcCompiler = (Guid*)Unsafe.AsPointer(in CLSID.CLSID_DxcCompiler);
+        var pDxcUtils = (Guid*)Unsafe.AsPointer(in CLSID.CLSID_DxcUtils);
+
+        DxcCreateInstance(pDxcCompiler, __uuidof<IDxcCompiler3>(), compiler.GetVoidAddressOf());
+        DxcCreateInstance(pDxcUtils, __uuidof<IDxcUtils>(), utils.GetVoidAddressOf());
         utils.Get()->CreateDefaultIncludeHandler(includeHandler.GetAddressOf());
 
         // Create source blob
@@ -116,16 +121,16 @@ internal unsafe static class D3D12ShaderCompiler
                 {
                     Ptr = sourceBlob.Get()->GetBufferPointer(),
                     Size = sourceBlob.Get()->GetBufferSize(),
-                    Encoding = DXC_CP_UTF8
+                    Encoding = DXC.DXC_CP_UTF8
                 };
 
                 compiler.Get()->Compile(&buffer, (char**)argsPtr, (uint)argsArray.Length, includeHandler.Get(), __uuidof<IDxcResult>(), result.GetVoidAddressOf());
             }
 
             // Check compilation result
-            HResult hrStatus;
+            HRESULT hrStatus;
             result.Get()->GetStatus(&hrStatus);
-            if (hrStatus.Failure)
+            if (hrStatus.FAILED)
             {
                 // Get error messages
                 using ComPtr<IDxcBlobEncoding> errorBlob = default;
@@ -153,7 +158,7 @@ internal unsafe static class D3D12ShaderCompiler
 
             // Get reflection data using DXC API
             using ComPtr<IDxcBlob> reflectionBlob = default;
-            result.Get()->GetOutput(DxcOutKind.Reflection, __uuidof<IDxcBlob>(), reflectionBlob.GetVoidAddressOf(), null);
+            result.Get()->GetOutput(DXC_OUT_KIND.DXC_OUT_REFLECTION, __uuidof<IDxcBlob>(), reflectionBlob.GetVoidAddressOf(), null);
 
             if (reflectionBlob.Get() == null)
             {
@@ -188,18 +193,20 @@ internal unsafe static class D3D12ShaderCompiler
         shader.PropertyNameToIdMap[name] = id;
     }
 
+    // TODO: Since we are using fixed root signature layout, the reflection pass should only validate the layout, not generate it.
     public static void PerformDXCReflection(ref Shader shader, IDxcBlob* reflectionBlob)
     {
         // Create DXC utils to parse reflection data
+        var pDxcUtils = (Guid*)Unsafe.AsPointer(in CLSID.CLSID_DxcUtils);
         using ComPtr<IDxcUtils> utils = default;
-        DxcCreateInstance(CLSID_DxcUtils, __uuidof<IDxcUtils>(), utils.GetVoidAddressOf());
+        DxcCreateInstance(pDxcUtils, __uuidof<IDxcUtils>(), utils.GetVoidAddressOf());
 
         // Create reflection interface from blob
         var reflectionData = new DxcBuffer
         {
             Ptr = reflectionBlob->GetBufferPointer(),
             Size = reflectionBlob->GetBufferSize(),
-            Encoding = DXC_CP_ACP
+            Encoding = DXC.DXC_CP_ACP
         };
 
         using ComPtr<ID3D12ShaderReflection> reflection = default;
@@ -210,7 +217,7 @@ internal unsafe static class D3D12ShaderCompiler
             throw new Exception("Failed to create shader reflection from DXC output");
         }
 
-        ShaderDescription shaderDesc;
+        D3D12_SHADER_DESC shaderDesc;
         reflection.Get()->GetDesc(&shaderDesc);
 
         var cbufferRegistry = new Dictionary<string, CBufferInfo>();
@@ -218,12 +225,12 @@ internal unsafe static class D3D12ShaderCompiler
 
         for (uint i = 0; i < shaderDesc.BoundResources; i++)
         {
-            ShaderInputBindDescription bindDesc;
+            D3D12_SHADER_INPUT_BIND_DESC bindDesc;
             reflection.Get()->GetResourceBindingDesc(i, &bindDesc);
 
             switch (bindDesc.Type)
             {
-                case ShaderInputType.ConstantBuffer:
+                case D3D_SHADER_INPUT_TYPE.D3D_SIT_CBUFFER:
                 {
                     var cbufferName = Marshal.PtrToStringAnsi((IntPtr)bindDesc.Name);
                     if (cbufferName == null || cbufferRegistry.ContainsKey(cbufferName))
@@ -232,7 +239,7 @@ internal unsafe static class D3D12ShaderCompiler
                     }
 
                     var cbuffer = reflection.Get()->GetConstantBufferByName(bindDesc.Name);
-                    ShaderBufferDescription cbufferDesc;
+                    D3D12_SHADER_BUFFER_DESC cbufferDesc;
                     cbuffer->GetDesc(&cbufferDesc);
 
                     var cbufferInfo = new CBufferInfo
@@ -245,7 +252,7 @@ internal unsafe static class D3D12ShaderCompiler
                     for (uint j = 0; j < cbufferDesc.Variables; j++)
                     {
                         var variable = cbuffer->GetVariableByIndex(j);
-                        ShaderVariableDescription varDesc;
+                        D3D12_SHADER_VARIABLE_DESC varDesc;
                         variable->GetDesc(&varDesc);
 
                         var variableName = Marshal.PtrToStringAnsi((IntPtr)varDesc.Name);
@@ -267,8 +274,9 @@ internal unsafe static class D3D12ShaderCompiler
                     break;
                 }
 
-                case ShaderInputType.Texture:
+                case D3D_SHADER_INPUT_TYPE.D3D_SIT_TEXTURE:
                 {
+#if SUPPORT_TEXTURE_BINDING
                     var textureName = Marshal.PtrToStringAnsi((IntPtr)bindDesc.Name);
                     if (textureName == null || textureRegistry.ContainsKey(textureName))
                     {
@@ -285,20 +293,16 @@ internal unsafe static class D3D12ShaderCompiler
 
                     textureRegistry.Add(textureName, textureInfo);
                     break;
+#endif
+                    throw new NotSupportedException("Texture bindings are not supported in current version. Please use bindless textures.");
                 }
             }
         }
 
-        shader.ConstantBuffers.Clear();
+        shader.PerMaterialBufferInfo.Clear();
         foreach (var cbuf in cbufferRegistry.Values)
         {
-            shader.ConstantBuffers.Add(cbuf);
-        }
-
-        shader.RegularTextures.Clear();
-        foreach (var tex in textureRegistry.Values)
-        {
-            shader.RegularTextures.Add(tex);
+            shader.PerMaterialBufferInfo.Add(cbuf);
         }
     }
 }

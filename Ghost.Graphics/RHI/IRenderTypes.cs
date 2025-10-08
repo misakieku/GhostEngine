@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Win32.Graphics.Direct3D12;
+using TerraFX.Interop.DirectX;
 
 namespace Ghost.Graphics.RHI;
 
@@ -52,16 +52,15 @@ public struct ResourceDesc
         };
     }
 
-    internal static ResourceDesc FromD3D12(ResourceDescription desc)
+    internal static ResourceDesc FromD3D12(D3D12_RESOURCE_DESC desc)
     {
-        if (desc.Dimension == ResourceDimension.Buffer)
+        if (desc.Dimension == D3D12_RESOURCE_DIMENSION.D3D12_RESOURCE_DIMENSION_BUFFER)
         {
             return Buffer(new BufferDesc
             {
-                Size = desc.Width,
+                Size = (uint)desc.Width,
                 Stride = 0,
                 Usage = BufferUsage.None,
-                CreationFlags = BufferCreationFlags.None,
                 MemoryType = MemoryType.Default
             });
         }
@@ -76,7 +75,6 @@ public struct ResourceDesc
                 Dimension = desc.Dimension.ToTextureDimension(),
                 MipLevels = desc.MipLevels,
                 Usage = TextureUsage.None,
-                CreationFlags = TextureCreationFlags.None
             });
         }
     }
@@ -174,7 +172,7 @@ public struct RenderTargetDesc
     /// </summary>
     public static RenderTargetDesc Color(uint width, uint height, uint slice = 1,
         TextureFormat format = TextureFormat.R8G8B8A8_UNorm, TextureDimension dimension = TextureDimension.Texture2D,
-        RenderTargetCreationFlags creationFlags = RenderTargetCreationFlags.AllowUAV | RenderTargetCreationFlags.DynamicallyScalable | RenderTargetCreationFlags.GenerateMips,
+        RenderTargetCreationFlags creationFlags = RenderTargetCreationFlags.AllowUAV | RenderTargetCreationFlags.DynamicallyResolution | RenderTargetCreationFlags.GenerateMips,
         uint mipLevels = 0u, uint sampleCount = 1)
     {
         return new RenderTargetDesc
@@ -196,7 +194,7 @@ public struct RenderTargetDesc
     /// </summary>
     public static RenderTargetDesc Depth(uint width, uint height, uint slice = 1,
         TextureFormat format = TextureFormat.D24_UNorm_S8_UInt, TextureDimension dimension = TextureDimension.Texture2D,
-        RenderTargetCreationFlags creationFlags = RenderTargetCreationFlags.AllowUAV | RenderTargetCreationFlags.DynamicallyScalable,
+        RenderTargetCreationFlags creationFlags = RenderTargetCreationFlags.AllowUAV | RenderTargetCreationFlags.DynamicallyResolution,
         uint mipLevels = 0u, uint sampleCount = 1)
     {
         return new RenderTargetDesc
@@ -231,7 +229,6 @@ public struct RenderTargetDesc
             Dimension = desc.Dimension,
             MipLevels = desc.MipLevels,
             Usage = usage,
-            CreationFlags = TextureCreationFlags.Bindless
         };
     }
 }
@@ -303,15 +300,6 @@ public struct TextureDesc
         get;
         set;
     }
-
-    /// <summary>
-    /// Texture creation flags
-    /// </summary>
-    public TextureCreationFlags CreationFlags
-    {
-        get;
-        set;
-    }
 }
 
 /// <summary>
@@ -322,7 +310,7 @@ public struct BufferDesc
     /// <summary>
     /// Size of the buffer in bytes
     /// </summary>
-    public ulong Size
+    public uint Size
     {
         get;
         set;
@@ -338,12 +326,6 @@ public struct BufferDesc
     /// Buffer usage flags
     /// </summary>
     public BufferUsage Usage
-    {
-        get;
-        set;
-    }
-
-    public BufferCreationFlags CreationFlags
     {
         get;
         set;
@@ -388,13 +370,13 @@ public enum TextureDimension
 
 public static class TextureDimensionExtension
 {
-    public static TextureDimension ToTextureDimension(this ResourceDimension dimension)
+    public static TextureDimension ToTextureDimension(this D3D12_RESOURCE_DIMENSION dimension)
     {
         return dimension switch
         {
-            ResourceDimension.Texture1D => TextureDimension.Texture2D,
-            ResourceDimension.Texture2D => TextureDimension.Texture2D,
-            ResourceDimension.Texture3D => TextureDimension.Texture3D,
+            D3D12_RESOURCE_DIMENSION.D3D12_RESOURCE_DIMENSION_TEXTURE1D => TextureDimension.Texture2D,
+            D3D12_RESOURCE_DIMENSION.D3D12_RESOURCE_DIMENSION_TEXTURE2D => TextureDimension.Texture2D,
+            D3D12_RESOURCE_DIMENSION.D3D12_RESOURCE_DIMENSION_TEXTURE3D => TextureDimension.Texture3D,
             _ => TextureDimension.Unknown,
         };
     }
@@ -409,7 +391,7 @@ public enum RenderTargetCreationFlags
     None = 0,
     AllowUAV = 1 << 0,
     AllowMSAA = 1 << 1,
-    DynamicallyScalable = 1 << 2,
+    DynamicallyResolution = 1 << 2,
     GenerateMips = 1 << 3
 }
 
@@ -421,11 +403,4 @@ public enum MemoryType
     Default,    // GPU memory
     Upload,     // CPU-to-GPU memory
     Readback    // GPU-to-CPU memory
-}
-
-[Flags]
-public enum TextureCreationFlags
-{
-    None = 0,
-    Bindless = 1 << 0
 }

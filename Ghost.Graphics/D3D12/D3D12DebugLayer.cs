@@ -1,6 +1,8 @@
-﻿using Win32;
-using Win32.Graphics.Direct3D12;
-using Win32.Graphics.Dxgi;
+﻿using Ghost.Graphics.D3D12.Utilities;
+using TerraFX.Interop.DirectX;
+using TerraFX.Interop.Windows;
+
+using static TerraFX.Aliases.DXGI_Alias;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -19,13 +21,13 @@ internal unsafe class D3D12DebugLayer
         _dxgiDebug.Get()->EnableLeakTrackingForThread();
 
         DXGIGetDebugInterface1(0u, __uuidof<IDXGIInfoQueue>(), _dxgiInfoQueue.GetVoidAddressOf());
-        _dxgiInfoQueue.Get()->SetBreakOnSeverity(DXGI_DEBUG_ALL, InfoQueueMessageSeverity.Error, true);
-        _dxgiInfoQueue.Get()->SetBreakOnSeverity(DXGI_DEBUG_ALL, InfoQueueMessageSeverity.Corruption, true);
+        _dxgiInfoQueue.Get()->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, true);
+        _dxgiInfoQueue.Get()->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION, true);
     }
 
     public void Dispose()
     {
-        _dxgiDebug.Get()->ReportLiveObjects(DXGI_DEBUG_ALL, ReportLiveObjectFlags.All);
+        _dxgiDebug.Get()->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_ALL | DXGI_DEBUG_RLO_IGNORE_INTERNAL);
 
         _d3d12Debug.Dispose();
         _dxgiDebug.Dispose();

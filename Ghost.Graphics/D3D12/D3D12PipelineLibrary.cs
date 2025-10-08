@@ -1,15 +1,17 @@
-﻿#undef USE_TRANDITIONAL_BINDLESS
+﻿#undef USE_TRADITIONAL_BINDLESS
 
 using Ghost.Core;
 using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.Data;
 using Ghost.Graphics.RHI;
-using Ghost.Graphics.Utilities;
 using System.Runtime.InteropServices;
-using Win32;
-using Win32.Graphics.Direct3D;
-using Win32.Graphics.Direct3D12;
-using Win32.Graphics.Dxgi.Common;
+using TerraFX.Interop.DirectX;
+using TerraFX.Interop.Windows;
+using Misaki.HighPerformance.LowLevel.Utilities;
+
+using static TerraFX.Aliases.D3D12_Alias;
+using static TerraFX.Aliases.D3D_Alias;
+using static TerraFX.Aliases.DXGI_Alias;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -36,47 +38,6 @@ internal class D3D12ShaderPipeline : IShaderPipeline, IDisposable
     }
 }
 
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
-internal unsafe struct D3D12GraphicsPipelineStream
-{
-    public PipelineStateSubObjectType rootSignatureType;
-    public ID3D12RootSignature* pRootSignature;
-
-    public PipelineStateSubObjectType vsType;
-    public ShaderBytecode vs;
-
-    public PipelineStateSubObjectType psType;
-    public ShaderBytecode ps;
-
-    public PipelineStateSubObjectType rasterizerType;
-    public RasterizerDescription rasterizer;
-
-    public PipelineStateSubObjectType blendType;
-    public BlendDescription blend;
-
-    public PipelineStateSubObjectType depthStencilType;
-    public DepthStencilDescription depthStencil;
-
-    public PipelineStateSubObjectType topologyType;
-    public PrimitiveTopologyType primitiveTopology;
-
-    public PipelineStateSubObjectType rtvFormatType;
-    public RtFormatArray rtvFormats;
-
-    public PipelineStateSubObjectType dsvFormatType;
-    public Format dsvFormat;
-}
-
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
-internal unsafe struct ComputePipelineStream
-{
-    public PipelineStateSubObjectType rootSignatureType;
-    public ID3D12RootSignature* pRootSignature;
-
-    public PipelineStateSubObjectType csType;
-    public ShaderBytecode cs;
-}
-
 internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
 {
     private readonly D3D12RenderDevice _device;
@@ -86,6 +47,8 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
     private ComPtr<ID3D12RootSignature> _defaultRootSignature;
 
     private readonly Dictionary<Identifier<Shader>, D3D12ShaderPipeline> _shaderPipelines;
+
+    public ID3D12RootSignature* DefaultRootSignature => _defaultRootSignature.Get();
 
     public D3D12PipelineLibrary(D3D12RenderDevice device, D3D12ResourceDatabase resourceDatabase, string? cachePath)
     {
@@ -115,7 +78,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
     private void CreateDefaultRootSignature()
     {
         const int rootParamCount =
-#if USE_TRANDITIONAL_BINDLESS
+#if USE_TRADITIONAL_BINDLESS
             6
 #else
             4
@@ -124,93 +87,85 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
 
         _defaultRootSignature = default;
 
-        // The layout of the root signature is:
-        // - Global buffer (b0)
-        // - Per-view buffer (b1)
-        // - Per-object buffer (b2)
-        // - Per-instance buffer (b3)
-        // - Descriptor table for bindless textures (t0)
-        // - Descriptor table for bindless samplers (s0)
-
         // NOTE: Since we are targeting SM 6.6, we can use ResourceDescriptorHeap and SamplerDescriptorHeap directly without needing to set up descriptor tables.
-
-        var rootParameters = stackalloc RootParameter1[rootParamCount];
-        rootParameters[0] = new RootParameter1
+        var rootParameters = stackalloc D3D12_ROOT_PARAMETER1[rootParamCount];
+        rootParameters[0] = new D3D12_ROOT_PARAMETER1
         {
-            ParameterType = RootParameterType.Cbv,
-            ShaderVisibility = ShaderVisibility.All,
-            Descriptor = new RootDescriptor1(0, 0), // b0
+            ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
+            ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
+            Descriptor = new D3D12_ROOT_DESCRIPTOR1(0, 0), // b0
         };
 
-        rootParameters[1] = new RootParameter1
+        rootParameters[1] = new D3D12_ROOT_PARAMETER1
         {
-            ParameterType = RootParameterType.Cbv,
-            ShaderVisibility = ShaderVisibility.All,
-            Descriptor = new RootDescriptor1(1, 0), // b1
+            ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
+            ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
+            Descriptor = new D3D12_ROOT_DESCRIPTOR1(1, 0), // b1
         };
 
-        rootParameters[2] = new RootParameter1
+        rootParameters[2] = new D3D12_ROOT_PARAMETER1
         {
-            ParameterType = RootParameterType.Cbv,
-            ShaderVisibility = ShaderVisibility.All,
-            Descriptor = new RootDescriptor1(2, 0), // b2
+            ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
+            ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
+            Descriptor = new D3D12_ROOT_DESCRIPTOR1(2, 0), // b2
         };
 
-        rootParameters[3] = new RootParameter1
+        rootParameters[3] = new D3D12_ROOT_PARAMETER1
         {
-            ParameterType = RootParameterType.Cbv,
-            ShaderVisibility = ShaderVisibility.All,
-            Descriptor = new RootDescriptor1(3, 0), // b3
+            ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
+            ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
+            Descriptor = new D3D12_ROOT_DESCRIPTOR1(3, 0), // b3
         };
 
-#if USE_TRANDITIONAL_BINDLESS
+#if USE_TRADITIONAL_BINDLESS
         // Descriptor table for bindless textures
-        var srvRange = new DescriptorRange1(
-            DescriptorRangeType.Srv,
+        var srvRange = new D3D12_DESCRIPTOR_RANGE1(
+            D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
             ~0u,
             0,
             0,
-            DescriptorRangeFlags.DataVolatile);
+            D3D12_DESCRIPTOR_RANGE_FLAGS_DATA_VOLATILE);
 
-        rootParameters[4] = new RootParameter1
+        rootParameters[4] = new D3D12_ROOT_PARAMETER1
         {
-            ParameterType = RootParameterType.DescriptorTable,
-            ShaderVisibility = ShaderVisibility.All,
-            DescriptorTable = new RootDescriptorTable1(1, &srvRange)
+            ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
+            ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
+            DescriptorTable = new D3D12_ROOT_DESCRIPTOR_TABLE1(1, &srvRange)
         };
 
         // Descriptor table for bindless samplers
-        var sampRange = new DescriptorRange1(
-            DescriptorRangeType.Sampler,
-            ~0u, 
+        var sampRange = new D3D12_DESCRIPTOR_RANGE1(
+            D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER,
+            ~0u,
             0,
             0,
-            DescriptorRangeFlags.DataVolatile);
+            D3D12_DESCRIPTOR_RANGE_FLAGS_DATA_VOLATILE);
 
-        rootParameters[5] = new RootParameter1
+        rootParameters[5] = new D3D12_ROOT_PARAMETER1
         {
-            ParameterType = RootParameterType.DescriptorTable,
-            ShaderVisibility = ShaderVisibility.All,
-            DescriptorTable = new RootDescriptorTable1(1, &sampRange)
+            ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
+            ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
+            DescriptorTable = new D3D12_ROOT_DESCRIPTOR_TABLE1(1, &sampRange)
         };
 #endif
 
-        var rootSignatureDesc = new RootSignatureDescription1
+        var rootSignatureDesc = new D3D12_ROOT_SIGNATURE_DESC1
         {
             NumParameters = rootParamCount,
             pParameters = rootParameters,
             NumStaticSamplers = 0,
             pStaticSamplers = null,
-            Flags = RootSignatureFlags.AllowInputAssemblerInputLayout
-#if !USE_TRANDITIONAL_BINDLESS
-                | RootSignatureFlags.CbvSrvUavHeapDirectlyIndexed
-                | RootSignatureFlags.SamplerHeapDirectlyIndexed
+            Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
+#if !USE_TRADITIONAL_BINDLESS
+                | D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED
+                | D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED
 #endif
         };
 
-        var versionedDesc = new VersionedRootSignatureDescription
+
+        var versionedDesc = new D3D12_VERSIONED_ROOT_SIGNATURE_DESC
         {
-            Version = RootSignatureVersion.V1_1,
+            Version = D3D_ROOT_SIGNATURE_VERSION_1_1,
             Desc_1_1 = rootSignatureDesc
         };
 
@@ -218,7 +173,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
         using ComPtr<ID3DBlob> error = default;
 
         var serializeResult = D3D12SerializeVersionedRootSignature(&versionedDesc, signature.GetAddressOf(), error.GetAddressOf());
-        if (serializeResult.Failure)
+        if (serializeResult.FAILED)
         {
             var errorMsg = error.Get() != null ? Marshal.PtrToStringAnsi((nint)error.Get()->GetBufferPointer()) : "Unknown error";
             throw new InvalidOperationException($"Failed to serialize default root signature: {errorMsg}");
@@ -230,12 +185,12 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
 
     public void StorePipeline(string psoIdentifier, ID3D12PipelineState* pso)
     {
-        _library.Get()->StorePipeline(psoIdentifier.AsSpan().GetPointer(), pso);
+        _library.Get()->StorePipeline(psoIdentifier.AsSpan().GetUnsafePtr(), pso);
     }
 
     public void* LoadGraphicsPipeline(string psoIdentifier)
     {
-        if (_library.Get()->LoadGraphicsPipeline(psoIdentifier.AsSpan().GetPointer(), __uuidof<ID3D12PipelineState>(), out var pso).Failure)
+        if (_library.Get()->LoadGraphicsPipeline(psoIdentifier.AsSpan().GetUnsafePtr(), __uuidof<ID3D12PipelineState>(), out var pso).Failure)
         {
             return null;
         }
@@ -266,20 +221,20 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
     // Create PSO from SDL (Shader Definition Language) file
     private void CreatePipelineStateObject(D3D12ShaderPipeline shaderPipeline)
     {
-        var psoDesc = new GraphicsPipelineStateDescription
+        var psoDesc = new D3D12_GRAPHICS_PIPELINE_STATE_DESC
         {
             pRootSignature = _defaultRootSignature.Get(),
-            VS = new ShaderBytecode(shaderPipeline.vsResult.bytecode.GetUnsafePtr(), (nuint)shaderPipeline.vsResult.bytecode.Count),
-            PS = new ShaderBytecode(shaderPipeline.psResult.bytecode.GetUnsafePtr(), (nuint)shaderPipeline.vsResult.bytecode.Count),
+            VS = new D3D12_SHADER_BYTECODE(shaderPipeline.vsResult.bytecode.GetUnsafePtr(), (nuint)shaderPipeline.vsResult.bytecode.Count),
+            PS = new D3D12_SHADER_BYTECODE(shaderPipeline.psResult.bytecode.GetUnsafePtr(), (nuint)shaderPipeline.psResult.bytecode.Count),
             InputLayout = D3D12PipelineResource.InputLayoutDescription,
-            RasterizerState = RasterizerDescription.CullNone,
-            BlendState = BlendDescription.Opaque,
-            DepthStencilState = DepthStencilDescription.Default,
+            RasterizerState = D3D12_RASTERIZER_DESC.CULL_NONE,
+            BlendState = D3D12_BLEND_DESC.OPAQUE,
+            DepthStencilState = D3D12_DEPTH_STENCIL_DESC.DEFAULT,
             SampleMask = uint.MaxValue,
-            PrimitiveTopologyType = PrimitiveTopologyType.Triangle,
+            PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
             NumRenderTargets = 1,
-            SampleDesc = new SampleDescription(1, 0),
-            DSVFormat = Format.Unknown,
+            SampleDesc = new DXGI_SAMPLE_DESC(1, 0),
+            DSVFormat = DXGI_FORMAT_UNKNOWN,
         };
 
         psoDesc.RTVFormats[0] = D3D12PipelineResource.SWAP_CHAIN_BACK_BUFFER_FORMAT;

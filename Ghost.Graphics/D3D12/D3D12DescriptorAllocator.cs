@@ -1,7 +1,9 @@
 using Ghost.Core;
 using Ghost.Graphics.D3D12.Utilities;
 using System.Runtime.CompilerServices;
-using Win32.Graphics.Direct3D12;
+using TerraFX.Interop.DirectX;
+
+using static TerraFX.Aliases.D3D12_Alias;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -19,10 +21,10 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
 
     public unsafe D3D12DescriptorAllocator(D3D12RenderDevice device, int initialRtvCount = 256, int initialDsvCount = 256, int initialSrvCount = 200_000, int initialSamplerCount = 256)
     {
-        _rtvHeap = new D3D12DescriptorHeap("rtv", device, DescriptorHeapType.Rtv, initialRtvCount, initialRtvCount / 2);
-        _dsvHeap = new D3D12DescriptorHeap("dsv", device, DescriptorHeapType.Dsv, initialDsvCount, initialDsvCount / 2);
-        _cbvSrvUavHeap = new D3D12DescriptorHeap("srv", device, DescriptorHeapType.CbvSrvUav, initialSrvCount, initialSrvCount /2);
-        _samplerHeap = new D3D12DescriptorHeap("sampler", device, DescriptorHeapType.Sampler, initialSamplerCount, initialSamplerCount);
+        _rtvHeap = new D3D12DescriptorHeap("rtv", device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, initialRtvCount, initialRtvCount / 2);
+        _dsvHeap = new D3D12DescriptorHeap("dsv", device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, initialDsvCount, initialDsvCount / 2);
+        _cbvSrvUavHeap = new D3D12DescriptorHeap("srv", device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, initialSrvCount, initialSrvCount /2);
+        _samplerHeap = new D3D12DescriptorHeap("sampler", device, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, initialSamplerCount, initialSamplerCount);
     }
 
     ~D3D12DescriptorAllocator()
@@ -66,7 +68,7 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public CpuDescriptorHandle GetCpuHandle(Identifier<RTVDesc> descriptor)
+    public D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle(Identifier<RTVDesc> descriptor)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         return _rtvHeap.GetCpuHandle(descriptor.value);
@@ -151,7 +153,7 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
         return descriptors;
     }
 
-    public CpuDescriptorHandle GetCpuHandle(Identifier<DSVDesc> descriptor)
+    public D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle(Identifier<DSVDesc> descriptor)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         return _dsvHeap.GetCpuHandle(descriptor.value);
@@ -236,19 +238,19 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
         return descriptors;
     }
 
-    public CpuDescriptorHandle GetCpuHandle(Identifier<CbvSrvUavDesc> descriptor)
+    public D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle(Identifier<CbvSrvUavDesc> descriptor)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         return _cbvSrvUavHeap.GetCpuHandle(descriptor.value);
     }
 
-    public CpuDescriptorHandle GetCpuHandleShaderVisible(Identifier<CbvSrvUavDesc> descriptor)
+    public D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandleShaderVisible(Identifier<CbvSrvUavDesc> descriptor)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         return _cbvSrvUavHeap.GetCpuHandleShaderVisible(descriptor.value);
     }
 
-    public GpuDescriptorHandle GetGpuHandle(Identifier<CbvSrvUavDesc> descriptor)
+    public D3D12_GPU_DESCRIPTOR_HANDLE GetGpuHandle(Identifier<CbvSrvUavDesc> descriptor)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         return _cbvSrvUavHeap.GetGpuHandle(descriptor.value);
@@ -333,19 +335,19 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
         return descriptors;
     }
 
-    public CpuDescriptorHandle GetCpuHandle(Identifier<SamplerDesc> descriptor)
+    public D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle(Identifier<SamplerDesc> descriptor)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         return _samplerHeap.GetCpuHandle(descriptor.value);
     }
 
-    public CpuDescriptorHandle GetCpuHandleShaderVisible(Identifier<SamplerDesc> descriptor)
+    public D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandleShaderVisible(Identifier<SamplerDesc> descriptor)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         return _samplerHeap.GetCpuHandleShaderVisible(descriptor.value);
     }
 
-    public GpuDescriptorHandle GetGpuHandle(Identifier<SamplerDesc> descriptor)
+    public D3D12_GPU_DESCRIPTOR_HANDLE GetGpuHandle(Identifier<SamplerDesc> descriptor)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         return _samplerHeap.GetGpuHandle(descriptor.value);
@@ -370,7 +372,7 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
     #endregion
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Release(D3D12ResourceDescriptor descriptor)
+    public void Release(ResourceViewGroup descriptor)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 

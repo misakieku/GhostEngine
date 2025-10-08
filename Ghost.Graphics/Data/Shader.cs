@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Core.Graphics;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 
@@ -59,19 +60,26 @@ internal struct ShaderPass
 // TODO: Multi pass and keyword support
 public struct Shader : IIdentifierType
 {
-    private UnsafeList<CBufferInfo> _constantBuffers;
+    private readonly ShaderDescriptor _descriptor;
+
+    private CBufferInfo _perMaterialBufferInfo;
     private UnsafeList<PropertyInfo> _properties;
-    // TODO: Possible to move this to unmanaged heap?
     private Dictionary<string, int> _propertyNameToIdMap;
 
     private bool _disposed;
 
-    internal readonly UnsafeList<CBufferInfo> ConstantBuffers => _constantBuffers;
+    internal CBufferInfo PerMaterialBufferInfo
+    {
+        readonly get => _perMaterialBufferInfo;
+        set => _perMaterialBufferInfo = value;
+    }
+
     internal readonly UnsafeList<PropertyInfo> Properties => _properties;
     internal readonly Dictionary<string, int> PropertyNameToIdMap => _propertyNameToIdMap;
-    public Shader()
+    public Shader(ShaderDescriptor descriptor)
     {
-        _constantBuffers = new(8, Allocator.Persistent);
+        _descriptor = descriptor;
+
         _properties = new(8, Allocator.Persistent);
         _propertyNameToIdMap = new(8);
 
@@ -95,7 +103,6 @@ public struct Shader : IIdentifierType
             return;
         }
 
-        _constantBuffers.Dispose();
         _properties.Dispose();
 
         _propertyNameToIdMap.Clear();

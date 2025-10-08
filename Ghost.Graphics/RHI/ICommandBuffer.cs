@@ -1,6 +1,6 @@
 using Ghost.Core;
 using Ghost.Graphics.Data;
-using Win32.Graphics.Direct3D12;
+using TerraFX.Interop.DirectX;
 
 namespace Ghost.Graphics.RHI;
 
@@ -178,20 +178,20 @@ public enum ResourceState
 
 internal static class ResourceStateExtensions
 {
-    public static ResourceStates ToD3D12States(this ResourceState state)
+    public static D3D12_RESOURCE_STATES ToD3D12States(this ResourceState state)
     {
         return state switch
         {
-            ResourceState.Common or ResourceState.Present => ResourceStates.Common,
-            ResourceState.VertexAndConstantBuffer => ResourceStates.VertexAndConstantBuffer,
-            ResourceState.IndexBuffer => ResourceStates.IndexBuffer,
-            ResourceState.RenderTarget => ResourceStates.RenderTarget,
-            ResourceState.UnorderedAccess => ResourceStates.UnorderedAccess,
-            ResourceState.DepthWrite => ResourceStates.DepthWrite,
-            ResourceState.DepthRead => ResourceStates.DepthRead,
-            ResourceState.PixelShaderResource => ResourceStates.PixelShaderResource,
-            ResourceState.CopyDest => ResourceStates.CopyDest,
-            ResourceState.CopySource => ResourceStates.CopySource,
+            ResourceState.Common or ResourceState.Present => D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_COMMON,
+            ResourceState.VertexAndConstantBuffer => D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
+            ResourceState.IndexBuffer => D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_INDEX_BUFFER,
+            ResourceState.RenderTarget => D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_RENDER_TARGET,
+            ResourceState.UnorderedAccess => D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+            ResourceState.DepthWrite => D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_DEPTH_WRITE,
+            ResourceState.DepthRead => D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_DEPTH_READ,
+            ResourceState.PixelShaderResource => D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+            ResourceState.CopyDest => D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_COPY_DEST,
+            ResourceState.CopySource => D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_COPY_SOURCE,
             _ => throw new ArgumentException($"Unknown resource state: {state}")
         };
     }

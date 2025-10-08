@@ -1,14 +1,14 @@
 using Ghost.Core;
+using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.Data;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
-using Win32;
-using Win32.Graphics.Direct3D;
-using Win32.Graphics.Direct3D12;
-using Win32.Graphics.Dxgi.Common;
-using Win32.Numerics;
+
+using static TerraFX.Aliases.D3D12_Alias;
+using static TerraFX.Aliases.DXGI_Alias;
+using static TerraFX.Aliases.D3D_Alias;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -20,7 +20,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     private ComPtr<ID3D12CommandAllocator> _allocator;
     private ComPtr<ID3D12GraphicsCommandList10> _commandList;
 
-    private readonly D3D12PipelineLibrary _stateController;
+    private readonly D3D12PipelineLibrary _pipelineLibrary;
     private readonly D3D12ResourceDatabase _resourceDatabase;
     private readonly D3D12ResourceAllocator _resourceAllocator;
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
@@ -48,9 +48,9 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         var commandListType = ConvertCommandBufferType(type);
 
         device.NativeDevice->CreateCommandAllocator(commandListType, __uuidof<ID3D12CommandAllocator>(), _allocator.GetVoidAddressOf());
-        device.NativeDevice->CreateCommandList1(0u, commandListType, CommandListFlags.None, __uuidof<ID3D12GraphicsCommandList10>(), _commandList.GetVoidAddressOf());
+        device.NativeDevice->CreateCommandList1(0u, commandListType, D3D12_COMMAND_LIST_FLAG_NONE, __uuidof<ID3D12GraphicsCommandList10>(), _commandList.GetVoidAddressOf());
 
-        _stateController = stateController;
+        _pipelineLibrary = stateController;
         _resourceDatabase = resourceDatabase;
         _resourceAllocator = resourceAllocator;
         _descriptorAllocator = descriptorAllocator;
@@ -113,7 +113,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         ThrowIfNotRecording();
         IncrementCommandCount();
 
-        var rtvHandles = stackalloc CpuDescriptorHandle[renderTargets.Length];
+        var rtvHandles = stackalloc D3D12_CPU_DESCRIPTOR_HANDLE[renderTargets.Length];
         for (var i = 0; i < renderTargets.Length; i++)
         {
             var handle = renderTargets[i];
@@ -126,13 +126,13 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
             rtvHandles[i] = _descriptorAllocator.GetCpuHandle(descriptor.rtv);
         }
 
-        var dsvHandle = stackalloc CpuDescriptorHandle[depthTarget.IsValid ? 1 : 0];
+        var dsvHandle = stackalloc D3D12_CPU_DESCRIPTOR_HANDLE[depthTarget.IsValid ? 1 : 0];
         if (dsvHandle != null)
         {
             *dsvHandle = _descriptorAllocator.GetCpuHandle(_resourceDatabase.GetResourceInfo(depthTarget.AsResource()).descriptor.dsv);
         }
 
-        _commandList.Get()->OMSetRenderTargets((uint)renderTargets.Length, rtvHandles, Bool32.False, dsvHandle);
+        _commandList.Get()->OMSetRenderTargets((uint)renderTargets.Length, rtvHandles, FALSE, dsvHandle);
     }
 
     public void BeginRenderPass(Handle<Texture> renderTarget, Handle<Texture> depthTarget, Color128 clearColor)
@@ -155,7 +155,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         ThrowIfNotRecording();
         IncrementCommandCount();
 
-        var d3d12Viewport = new Viewport(viewport.width, viewport.height, viewport.x, viewport.y, viewport.minDepth, viewport.maxDepth);
+        var d3d12Viewport = new D3D12_VIEWPORT(viewport.width, viewport.height, viewport.x, viewport.y, viewport.minDepth, viewport.maxDepth);
         _commandList.Get()->RSSetViewports(1, &d3d12Viewport);
     }
 
@@ -165,7 +165,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         ThrowIfNotRecording();
         IncrementCommandCount();
 
-        var d3d12Rect = new Rect((int)rect.left, (int)rect.top, (int)rect.right, (int)rect.bottom);
+        var d3d12Rect = new RECT((int)rect.left, (int)rect.top, (int)rect.right, (int)rect.bottom);
         _commandList.Get()->RSSetScissorRects(1, &d3d12Rect);
     }
 
@@ -176,9 +176,10 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         IncrementCommandCount();
 
         var d3d12Resource = _resourceDatabase.GetResource(resource);
-
-        _commandList.Get()->ResourceBarrierTransition(d3d12Resource,
+        var barrier = D3D12_RESOURCE_BARRIER.InitTransition(d3d12Resource,
             before.ToD3D12States(), after.ToD3D12States());
+
+        _commandList.Get()->ResourceBarrier(1, &barrier);
     }
 
     public void SetRootSignature(IRootSignature rootSignature)
@@ -200,7 +201,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         IncrementCommandCount();
 
         var pResource = _resourceDatabase.GetResource(buffer.AsResource());
-        var vbView = new VertexBufferView
+        var vbView = new D3D12_VERTEX_BUFFER_VIEW
         {
             BufferLocation = pResource->GetGPUVirtualAddress() + offset,
             SizeInBytes = (uint)(pResource->GetDesc().Width - offset),
@@ -217,11 +218,11 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         IncrementCommandCount();
 
         var pResource = _resourceDatabase.GetResource(buffer.AsResource());
-        var ibView = new IndexBufferView
+        var ibView = new D3D12_INDEX_BUFFER_VIEW
         {
             BufferLocation = pResource->GetGPUVirtualAddress() + offset,
             SizeInBytes = (uint)(pResource->GetDesc().Width - offset),
-            Format = type == IndexType.UInt16 ? Format.R16Uint : Format.R32Uint
+            Format = type == IndexType.UInt16 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT
         };
 
         _commandList.Get()->IASetIndexBuffer(&ibView);
@@ -256,36 +257,36 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         ref var materialRef = ref _resourceDatabase.GetMaterialReference(material);
         ref var shaderRef = ref _resourceDatabase.GetShaderReference(materialRef.Shader);
 
-        var shaderPipeline = _stateController.GetShaderPipeline(materialRef.Shader);
+        var shaderPipeline = _pipelineLibrary.GetShaderPipeline(materialRef.Shader);
         if (shaderPipeline is not D3D12ShaderPipeline d3d12Pipeline)
         {
             throw new InvalidOperationException("Shader pipeline is not compiled or invalid");
         }
 
         _commandList.Get()->SetPipelineState(d3d12Pipeline.pipelineState.Get());
-        _commandList.Get()->SetGraphicsRootSignature(d3d12Pipeline.rootSignature.Get());
+        _commandList.Get()->SetGraphicsRootSignature(_pipelineLibrary.DefaultRootSignature);
 
         // Set descriptor heaps - CRUCIAL: Use the specialized bindless heap for SM 6.6
         var heaps = stackalloc ID3D12DescriptorHeap*[2];
-        heaps[0] = _descriptorAllocator.GetCbvSrvUavHeap(); // Specialized bindless heap
-        heaps[1] = d3d12Pipeline.samplerHeap.Get(); // Sampler heap from shader
+        heaps[0] = _descriptorAllocator.GetCbvSrvUavHeap(); // Bindless resource heap
+        heaps[1] = _descriptorAllocator.GetSamplerHeap();   // Bindless sampler heap
         _commandList.Get()->SetDescriptorHeaps(2, heaps);
 
         var rootParamIndex = 0u;
-        foreach (var cbufferInfo in shaderRef.ConstantBuffers)
+        foreach (var cbufferInfo in shaderRef.PerMaterialBufferInfo)
         {
-            ref var cache = ref materialRef._cBufferCaches[(int)cbufferInfo.RegisterSlot];
+            ref var cache = ref materialRef._materialPropertiesCache[(int)cbufferInfo.RegisterSlot];
             var resource = _resourceDatabase.GetResource(cache.GpuResource.AsResource());
             _commandList.Get()->SetGraphicsRootConstantBufferView(rootParamIndex++, resource->GetGPUVirtualAddress());
         }
 
-        var samplerGpuHandle = d3d12Pipeline.samplerHeap.Get()->GetGPUDescriptorHandleForHeapStart();
+        var samplerGpuHandle = _descriptorAllocator.GetSamplerHeap()->GetGPUDescriptorHandleForHeapStart();
         _commandList.Get()->SetGraphicsRootDescriptorTable(rootParamIndex, samplerGpuHandle);
 
         // For fully bindless rendering, we don't use the Input Assembler stage
         // Instead, we use instanced drawing where each "instance" represents a triangle
         // The shader will use SV_InstanceID to index into the index buffer and then into the vertex buffer
-        _commandList.Get()->IASetPrimitiveTopology(PrimitiveTopology.TriangleList);
+        _commandList.Get()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
         // Draw without vertex/index buffers - use instanced drawing
         // Each instance represents a triangle (3 vertices)
@@ -341,10 +342,10 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         var uploadHandle = _resourceAllocator.CreateUploadBuffer(requiredSize);
         var pUploadResource = _resourceDatabase.GetResource(uploadHandle.AsResource());
 
-        var d3d12Subresources = stackalloc SubresourceData[subresources.Length];
+        var d3d12Subresources = stackalloc D3D12_SUBRESOURCE_DATA[subresources.Length];
         for (var i = 0; i < subresources.Length; i++)
         {
-            d3d12Subresources[i] = new SubresourceData
+            d3d12Subresources[i] = new D3D12_SUBRESOURCE_DATA
             {
                 pData = subresources[i].pData,
                 RowPitch = subresources[i].rowPitch,
@@ -385,13 +386,13 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         }
     }
 
-    private static CommandListType ConvertCommandBufferType(CommandBufferType type)
+    private static D3D12_COMMAND_LIST_TYPE ConvertCommandBufferType(CommandBufferType type)
     {
         return type switch
         {
-            CommandBufferType.Graphics => CommandListType.Direct,
-            CommandBufferType.Compute => CommandListType.Compute,
-            CommandBufferType.Copy => CommandListType.Copy,
+            CommandBufferType.Graphics => D3D12_COMMAND_LIST_TYPE_DIRECT,
+            CommandBufferType.Compute => D3D12_COMMAND_LIST_TYPE_COMPUTE,
+            CommandBufferType.Copy => D3D12_COMMAND_LIST_TYPE_COPY,
             _ => throw new ArgumentException($"Unknown command buffer type: {type}")
         };
     }

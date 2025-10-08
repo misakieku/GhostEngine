@@ -1,7 +1,7 @@
 ﻿using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
 using System.Runtime.InteropServices;
-using Win32.Graphics.Dxgi.Common;
+using TerraFX.Interop.DirectX;
 
 namespace Ghost.Graphics.Data;
 
@@ -10,7 +10,7 @@ public struct Vertex
 {
     public unsafe static class Semantic
     {
-        public const Format ALIGNED_FORMAT = Format.R32G32B32A32Float;
+        public const DXGI_FORMAT ALIGNED_FORMAT = DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_FLOAT;
         public const int COUNT = 5;
 
         public static readonly FixedString32 position = new("POSITION");

@@ -36,7 +36,37 @@ public ref struct CompRef<T> : IQueryTypeParameter
         IsValid = isValid;
     }
 
-    public CompRef(ref T value) : this(ref value, true)
+    public CompRef(ref T value)
+        : this(ref value, true)
+    {
+    }
+}
+
+public ref struct CompRO<T> : IQueryTypeParameter
+    where T : IComponentData
+{
+    internal readonly ref T _value;
+
+    public readonly ref T ValueRO
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => ref _value;
+    }
+
+    public readonly bool IsValid
+    {
+        get;
+        init;
+    }
+
+    public CompRO(ref T value, bool isValid)
+    {
+        _value = ref value;
+        IsValid = isValid;
+    }
+
+    public CompRO(ref T value)
+        : this(ref value, true)
     {
     }
 }

@@ -1,10 +1,9 @@
+using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
-using Win32;
-using Win32.Graphics.Direct3D;
-using Win32.Graphics.Direct3D12;
-using Win32.Graphics.Dxgi;
+using static TerraFX.Aliases.D3D_Alias;
+using static TerraFX.Aliases.DXGI_Alias;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -48,27 +47,27 @@ internal unsafe class D3D12RenderDevice : IRenderDevice
     private void InitializeDevice()
     {
 #if DEBUG
-        CreateDXGIFactory2(true, __uuidof<IDXGIFactory7>(), _dxgiFactory.GetVoidAddressOf());
+        CreateDXGIFactory2(TRUE, __uuidof<IDXGIFactory7>(), _dxgiFactory.GetVoidAddressOf());
 #else
-        CreateDXGIFactory2(false, __uuidof<IDXGIFactory7>(), _dxgiFactory.GetVoidAddressOf());
+        CreateDXGIFactory2(FALSE, __uuidof<IDXGIFactory7>(), _dxgiFactory.GetVoidAddressOf());
 #endif
 
         using ComPtr<IDXGIAdapter1> adapter = default;
 
         for (uint adapterIndex = 0;
-            _dxgiFactory.Get()->EnumAdapterByGpuPreference(adapterIndex, GpuPreference.HighPerformance, __uuidof<IDXGIAdapter1>(), adapter.ReleaseAndGetVoidAddressOf()).Success;
+            _dxgiFactory.Get()->EnumAdapterByGpuPreference(adapterIndex, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, __uuidof<IDXGIAdapter1>(), adapter.ReleaseAndGetVoidAddressOf()).SUCCEEDED;
             adapterIndex++)
         {
-            AdapterDescription1 desc = default;
+            DXGI_ADAPTER_DESC1 desc = default;
             adapter.Get()->GetDesc1(&desc);
 
             // Don't select the Basic Render Driver adapter.
-            if ((desc.Flags & AdapterFlags.Software) != AdapterFlags.None)
+            if (desc.Flags.HasFlag(DXGI_ADAPTER_FLAG_SOFTWARE))
             {
                 continue;
             }
 
-            if (D3D12CreateDevice((IUnknown*)adapter.Get(), FeatureLevel.Level_12_0, __uuidof<ID3D12Device14>(), _device.GetVoidAddressOf()).Success)
+            if (D3D12CreateDevice((IUnknown*)adapter.Get(), D3D_FEATURE_LEVEL_12_0, __uuidof<ID3D12Device14>(), _device.GetVoidAddressOf()).SUCCEEDED)
             {
                 _adapter = adapter.Move();
                 break;

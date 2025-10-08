@@ -14,9 +14,9 @@ namespace Ghost.Graphics.RenderPasses;
 /// </summary>
 internal unsafe class MeshRenderPass : IRenderPass
 {
-    private Identifier<Mesh> _mesh;
+    private Handle<Mesh> _mesh;
+    private Handle<Material> _material;
     private Identifier<Shader> _shader;
-    private Identifier<Material> _material;
     private Handle<Texture>[]? _textures;
 
     // Texture file paths for this demo
@@ -52,7 +52,6 @@ internal unsafe class MeshRenderPass : IRenderPass
                 Width = imageData.Width,
                 Height = imageData.Height,
                 Dimension = TextureDimension.Texture2D,
-                CreationFlags = TextureCreationFlags.Bindless,
                 Format = TextureFormat.R8G8B8A8_UNorm,
                 MipLevels = 1,
                 Slice = 1,

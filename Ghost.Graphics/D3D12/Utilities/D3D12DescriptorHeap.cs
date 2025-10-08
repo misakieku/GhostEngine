@@ -1,32 +1,34 @@
 ﻿using Misaki.HighPerformance.LowLevel.Collections;
+using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Diagnostics;
 using System.Numerics;
-using Win32;
-using Win32.Graphics.Direct3D12;
-using DescriptorIndex = System.Int32;
+using TerraFX.Interop.DirectX;
+using TerraFX.Interop.Windows;
+
+using static TerraFX.Aliases.D3D12_Alias;
 
 namespace Ghost.Graphics.D3D12.Utilities;
 
 internal unsafe struct D3D12DescriptorHeap : IDisposable
 {
-    private const DescriptorIndex _INVALID_DESCRIPTOR_INDEX = -1;
+    private const int _INVALID_DESCRIPTOR_INDEX = -1;
 
     private readonly D3D12RenderDevice _device;
 
     private ComPtr<ID3D12DescriptorHeap> _heap;
     private ComPtr<ID3D12DescriptorHeap> _shaderVisibleHeap;
-    private CpuDescriptorHandle _startCpuHandle;
-    private CpuDescriptorHandle _startCpuHandleShaderVisible;
-    private GpuDescriptorHandle _startGpuHandleShaderVisible;
-    private DescriptorIndex _searchStart;
+    private D3D12_CPU_DESCRIPTOR_HANDLE _startCpuHandle;
+    private D3D12_CPU_DESCRIPTOR_HANDLE _startCpuHandleShaderVisible;
+    private D3D12_GPU_DESCRIPTOR_HANDLE _startGpuHandleShaderVisible;
+    private int _searchStart;
     private UnsafeArray<bool> _allocatedDescriptors;
 
-    private readonly DescriptorIndex _dynamicHeapStart;
-    private DescriptorIndex _currentDynamicOffset;
+    private readonly int _dynamicHeapStart;
+    private int _currentDynamicOffset;
 
     private readonly Lock _lock = new();
 
-    public DescriptorHeapType HeapType
+    public D3D12_DESCRIPTOR_HEAP_TYPE HeapType
     {
         get;
     }
@@ -54,7 +56,7 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
     public readonly ID3D12DescriptorHeap* Heap => _heap.Get();
     public readonly ID3D12DescriptorHeap* ShaderVisibleHeap => _shaderVisibleHeap.Get();
 
-    public D3D12DescriptorHeap(string name, D3D12RenderDevice device, DescriptorHeapType type, int numDescriptors, int dynamicHeapStart)
+    public D3D12DescriptorHeap(string name, D3D12RenderDevice device, D3D12_DESCRIPTOR_HEAP_TYPE type, int numDescriptors, int dynamicHeapStart)
     {
         numDescriptors = Math.Max(64, numDescriptors);
 
@@ -62,7 +64,7 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
 
         HeapType = type;
         NumDescriptors = numDescriptors;
-        ShaderVisible = type == DescriptorHeapType.CbvSrvUav || type == DescriptorHeapType.Sampler;
+        ShaderVisible = type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV || type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
         Stride = device.NativeDevice->GetDescriptorHandleIncrementSize(type);
 
         _dynamicHeapStart = Math.Clamp(dynamicHeapStart, 0, numDescriptors);
@@ -71,16 +73,16 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
         var success = AllocateResources(numDescriptors);
         Debug.Assert(success);
 
-        _heap.Get()->SetName(name);
+        _heap.Get()->SetName(name.AsSpan().GetUnsafePtr());
         if (ShaderVisible)
         {
-            _shaderVisibleHeap.Get()->SetName($"{name} Shader Visible");
+            _shaderVisibleHeap.Get()->SetName($"{name} Shader Visible".AsSpan().GetUnsafePtr());
         }
     }
 
-    public DescriptorIndex AllocateDescriptor() => AllocateDescriptors(1);
+    public int AllocateDescriptor() => AllocateDescriptors(1);
 
-    public DescriptorIndex AllocateDescriptors(int count)
+    public int AllocateDescriptors(int count)
     {
         lock (_lock)
         {
@@ -125,9 +127,9 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
         }
     }
 
-    public DescriptorIndex AllocateDescriptorDynamic() => AllocateDescriptorsDynamic(1);
+    public int AllocateDescriptorDynamic() => AllocateDescriptorsDynamic(1);
 
-    public DescriptorIndex AllocateDescriptorsDynamic(int count)
+    public int AllocateDescriptorsDynamic(int count)
     {
         if (count <= 0)
         {
@@ -157,9 +159,9 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
         }
     }
 
-    public void ReleaseDescriptor(DescriptorIndex index) => ReleaseDescriptors(index, 1);
+    public void ReleaseDescriptor(int index) => ReleaseDescriptors(index, 1);
 
-    public void ReleaseDescriptors(DescriptorIndex baseIndex, int count = 1)
+    public void ReleaseDescriptors(int baseIndex, int count = 1)
     {
         if (count == 0)
         {
@@ -203,7 +205,7 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
         }
     }
 
-    public readonly CpuDescriptorHandle GetCpuHandle(DescriptorIndex index)
+    public readonly D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle(int index)
     {
         if (index < 0 || index >= NumDescriptors)
         {
@@ -213,7 +215,7 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
         return _startCpuHandle.Offset(index, Stride);
     }
 
-    public readonly CpuDescriptorHandle GetCpuHandleShaderVisible(DescriptorIndex index)
+    public readonly D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandleShaderVisible(int index)
     {
         if (index < 0 || index >= NumDescriptors)
         {
@@ -228,7 +230,7 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
         return _startCpuHandleShaderVisible.Offset(index, Stride);
     }
 
-    public readonly GpuDescriptorHandle GetGpuHandle(DescriptorIndex index)
+    public readonly D3D12_GPU_DESCRIPTOR_HANDLE GetGpuHandle(int index)
     {
         if (index < 0 || index >= NumDescriptors)
         {
@@ -243,7 +245,7 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
         return _startGpuHandleShaderVisible.Offset(index, Stride);
     }
 
-    public DescriptorIndex CopyToPersistentHeap(DescriptorIndex index, int count = 1)
+    public int CopyToPersistentHeap(int index, int count = 1)
     {
         if (index < _dynamicHeapStart)
         {
@@ -256,7 +258,7 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
         return newLocation;
     }
 
-    public readonly void CopyToShaderVisibleHeap(DescriptorIndex index, int count = 1)
+    public readonly void CopyToShaderVisibleHeap(int index, int count = 1)
     {
         _device.NativeDevice->CopyDescriptorsSimple((uint)count, GetCpuHandleShaderVisible(index), GetCpuHandle(index), HeapType);
     }
@@ -267,18 +269,18 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
         _heap.Dispose();
         _shaderVisibleHeap.Dispose();
 
-        DescriptorHeapDescription heapDesc = new()
+        D3D12_DESCRIPTOR_HEAP_DESC heapDesc = new()
         {
             Type = HeapType,
             NumDescriptors = (uint)numDescriptors,
-            Flags = DescriptorHeapFlags.None,
+            Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
             NodeMask = 0
         };
 
         fixed (void* heapPtr = &_heap)
         {
             var hr = _device.NativeDevice->CreateDescriptorHeap(&heapDesc, __uuidof<ID3D12DescriptorHeap>(), (void**)heapPtr);
-            if (hr.Failure)
+            if (hr.FAILED)
             {
                 return false;
             }
@@ -289,12 +291,12 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
 
         if (ShaderVisible)
         {
-            heapDesc.Flags = DescriptorHeapFlags.ShaderVisible;
+            heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
             fixed (void* heapPtr = &_shaderVisibleHeap)
             {
                 var hr = _device.NativeDevice->CreateDescriptorHeap(&heapDesc, __uuidof<ID3D12DescriptorHeap>(), (void**)heapPtr);
-                if (hr.Failure)
+                if (hr.FAILED)
                 {
                     return false;
                 }

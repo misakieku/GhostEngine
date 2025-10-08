@@ -1,8 +1,11 @@
-﻿using Ghost.Core.Attributes;
+﻿global using static TerraFX.Interop.Windows.Windows;
+global using static TerraFX.Interop.DirectX.DirectX;
+global using static TerraFX.Interop.DirectX.D3D12;
+global using static TerraFX.Interop.DirectX.DXGI;
+
+using Ghost.Core.Attributes;
 using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
-
-using static TerraFX.Interop.Windows.Windows;
 
 [assembly: InternalsVisibleTo("Ghost.Engine")]
 [assembly: InternalsVisibleTo("Ghost.Editor")]

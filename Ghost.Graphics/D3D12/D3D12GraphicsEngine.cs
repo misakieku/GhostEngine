@@ -35,7 +35,7 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
         _resourceDatabase = new(_descriptorAllocator);
         _resourceAllocator = new(renderSystem, _device, _descriptorAllocator, _resourceDatabase);
 
-        _stateController = new(_device, _resourceDatabase);
+        _stateController = new(_device, _resourceDatabase, null);
         _copyCommandBuffer = new(
             _device,
             _stateController,
