@@ -64,7 +64,8 @@ internal class ComponentPool<T> : IComponentPool<T>
         _lookup.AsSpan().Fill(Entity.INVALID_ID);
     }
 
-    public ComponentPool() : this(16)
+    public ComponentPool()
+        : this(16)
     {
     }
 
@@ -217,11 +218,18 @@ internal class ScriptComponentPool : IComponentPool<ScriptComponent>
     private Dictionary<Entity, List<ScriptComponent>>? _scriptComponents;
     private List<ScriptComponent>? _executionList;
 
+    private readonly World _world;
+
     internal IReadOnlyDictionary<Entity, List<ScriptComponent>>? ScriptComponents => _scriptComponents;
     internal IReadOnlyList<ScriptComponent>? ExecutionList => _executionList;
 
     public bool IsInitialized => _scriptComponents != null;
     public int Count => _scriptComponents?.Keys.Count ?? 0;
+
+    public ScriptComponentPool(World world)
+    {
+        _world = world;
+    }
 
     internal void Initialize(int capacity = 16)
     {
@@ -263,14 +271,15 @@ internal class ScriptComponentPool : IComponentPool<ScriptComponent>
             Initialize();
         }
 
-        if (!_scriptComponents!.TryGetValue(entity, out var scriptList))
-        {
-            scriptList = new();
-            _scriptComponents[entity] = scriptList;
-        }
+        ref var scriptList = ref CollectionsMarshal.GetValueRefOrAddDefault(_scriptComponents!, entity, out var exists);
+        scriptList ??= new List<ScriptComponent>();
 
         scriptList.Add(component);
+
         component.Owner = entity;
+        component._world = _world;
+        component.Enable = true;
+        component.Initialize();
     }
 
     public bool Remove<T>(Entity entity)
@@ -472,22 +481,23 @@ internal struct ComponentStorage : IDisposable
     private int _currentCapacity = 16;
 
     private IComponentPool?[] _componentPools = new IComponentPool[16];
-    private UnsafeBitSet?[] _componentEntityMasks = new UnsafeBitSet?[16];
+    private UnsafeBitSet[] _componentEntityMasks = new UnsafeBitSet[16];
 
     private readonly Dictionary<TypeHandle, int> _typeIDMap = new(16);
     private readonly Dictionary<int, TypeHandle> _typeHandleMap = new(16);
 
-    private readonly ScriptComponentPool _scriptComponentPool = new();
+    private readonly ScriptComponentPool _scriptComponentPool;
 
     private readonly World _world;
 
     internal ComponentStorage(World world)
     {
         _world = world;
+        _scriptComponentPool = new ScriptComponentPool(world);
     }
 
     internal readonly IReadOnlyList<IComponentPool?> ComponentPools => _componentPools;
-    internal readonly IReadOnlyList<UnsafeBitSet?> ComponentEntityMasks => _componentEntityMasks;
+    internal readonly IReadOnlyList<UnsafeBitSet> ComponentEntityMasks => _componentEntityMasks;
     internal readonly ScriptComponentPool ScriptComponentPool => _scriptComponentPool;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -641,29 +651,7 @@ internal struct ComponentStorage : IDisposable
         return TryGetMask(TypeHandle.Get<T>(), out bitSet);
     }
 
-    public UnsafeBitSet GetOrCreateMask<T>()
-        where T : unmanaged, IComponentData
-    {
-        var typeHandle = TypeHandle.Get<T>();
-        if (!_typeIDMap.TryGetValue(typeHandle, out var id))
-        {
-            id = GetTypeID<T>();
-            _typeIDMap[typeHandle] = id;
-            _typeHandleMap[id] = typeHandle;
-        }
-
-        if (id >= _currentCapacity)
-        {
-            Resize(_currentCapacity * 2);
-        }
-
-        ref var set = ref _componentEntityMasks[id];
-        set ??= new UnsafeBitSet();
-
-        return set.Value;
-    }
-
-    public UnsafeBitSet GetOrCreateMask(TypeHandle typeHandle)
+    public ref UnsafeBitSet GetOrCreateMask(TypeHandle typeHandle)
     {
         if (!_typeIDMap.TryGetValue(typeHandle, out var id))
         {
@@ -678,14 +666,23 @@ internal struct ComponentStorage : IDisposable
         }
 
         ref var set = ref _componentEntityMasks[id];
-        set ??= new UnsafeBitSet();
+        if (!set.IsCreated)
+        {
+            set = new UnsafeBitSet();
+        }
 
-        return set.Value;
+        return ref set;
     }
 
-    public UnsafeBitSet GetOrCreateMask(Type type)
+    public ref UnsafeBitSet GetOrCreateMask<T>()
+        where T : unmanaged, IComponentData
     {
-        return GetOrCreateMask(TypeHandle.Get(type));
+        return ref GetOrCreateMask(TypeHandle.Get<T>());
+    }
+
+    public ref UnsafeBitSet GetOrCreateMask(Type type)
+    {
+        return ref GetOrCreateMask(TypeHandle.Get(type));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -710,7 +707,7 @@ internal struct ComponentStorage : IDisposable
 
         foreach (var bitSet in _componentEntityMasks)
         {
-            bitSet?.Dispose();
+            bitSet.Dispose();
         }
 
         _scriptComponentPool.Dispose();

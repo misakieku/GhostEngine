@@ -8,6 +8,7 @@
 using Ghost.Core;
 using Ghost.Entities.Components;
 using Ghost.Entities.Query;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 
 namespace Ghost.Entities;
@@ -23,9 +24,11 @@ var constructorParams = Enumerable.Range(0, arity)
                                     .Aggregate((a, b) => a + ", " + b);
     
 #>
-public struct QueryEnumerable<<#= generics #>>
+public unsafe ref struct QueryEnumerable<<#= generics #>>
     <#= restrictions #>
 {
+    private QueryFilter _filter;
+
     private readonly World _world;
 
 <# for (int i = 0; i < arity; i++){ #>
@@ -33,11 +36,13 @@ public struct QueryEnumerable<<#= generics #>>
 <# } #>
     private readonly int _count;
 
-    private QueryFilter _filters;
-    internal readonly QueryFilter Filters => _filters;
-
     internal QueryEnumerable(World world, <#= poolParams #>, int count)
     {
+        _filter = new();
+<# for (int i = 0; i < arity; i++) {#>
+        _filter._all.Add(TypeHandle.Get<T<#= i #>>());
+<# } #>
+
         _world = world;
 
 <# for (int i = 0; i < arity; i++) { #>
@@ -45,39 +50,54 @@ public struct QueryEnumerable<<#= generics #>>
 <# } #>
 
         _count = count;
-        
-        _filters = new();
-<# for (int i = 0; i < arity; i++) {#>
-        _filters._all.Add(TypeHandle.Get<T<#= i #>>());
-<# } #>
     }
 
-    public readonly Enumerator GetEnumerator() => new (_world, <#= constructorParams #>, _count, _filters);
+    internal QueryEnumerable(World world, <#= poolParams #>, int count, ref readonly QueryFilter filter)
+    {
+        _filter = filter;
+
+        _world = world;
+
+<# for (int i = 0; i < arity; i++) { #>
+        _pool<#= i #> = pool<#= i #>;
+<# } #>
+
+        _count = count;
+    }
+
+#pragma warning disable CS9084 // Struct member returns 'this' or other instance members by reference
+    public Enumerator GetEnumerator() => new(_world, <#= constructorParams #>, _count, ref _filter);
+#pragma warning restore CS9084 // Struct member returns 'this' or other instance members by reference
 
     public ref struct Enumerator
     {
-        private readonly World _world;
+        private ref QueryFilter _filter;
+        private UnsafeBitSet _filterMask;
+        
         private readonly ReadOnlySpan<Entity> _entities;
+        private readonly Stack.Scope _stackScope;
 
 <# for (int i = 0; i < arity; i++){ #>
         private readonly ComponentPool<T<#= i #>> _pool<#= i #>;
 <# } #>
 
         private int _index;
-        private readonly int _count;
+        private int _count;
 
-        private UnsafeBitSet _filterMask;
-        
         public QueryItem<<#= generics #>> Current
         {
             get;
             private set;
         }
 
-        internal Enumerator(World world, <#= poolParams #>, int count, QueryFilter filters)
+        internal Enumerator(World world, <#= poolParams #>, int count, ref QueryFilter filter)
         {
-            _world = world;
-            _entities = _world.EntityManager.Entities;
+            _stackScope = AllocationManager.CreateStackScope();
+
+            _filter = ref filter;
+            _filterMask = _filter.ComputeFilterBitMask(world, Allocator.Stack);
+
+            _entities = world.EntityManager.Entities;
 
 <# for (int i = 0; i < arity; i++){ #>
             _pool<#= i #> = pool<#= i #>;
@@ -85,7 +105,6 @@ public struct QueryEnumerable<<#= generics #>>
 
             _count = count;
             _index = -1;
-            _filterMask = filters.ComputeFilterBitMask(_world);
 
             Current = default;
         }
@@ -93,13 +112,21 @@ public struct QueryEnumerable<<#= generics #>>
         public bool MoveNext()
         {
             _index = _filterMask.NextSetBit(_index + 1);
-            if (_index < 0 || _index >= _world.EntityManager.EntityCount)
+            if (_index < 0 || _count <= 0)
             {
                 return false;
             }
 
+            _count--;
             Current = new QueryItem<<#= generics #>>(_entities[_index], <#= constructorParams #>);
+
             return true;
+        }
+
+        public readonly void Dispose()
+        {
+            _stackScope.Dispose();
+            _filter.Dispose();
         }
     }
 <# for (int i = 1; i <= ExtensionAmount; i++) {
@@ -107,38 +134,38 @@ var compGenerics = AppendGenerics(i, "TComponent");
 var compRestrictions = AppendGenericRestrictions(i, "TComponent", "unmanaged, IComponentData");
 #>
 
-	public readonly QueryEnumerable<<#= generics #>> WithAll<<#= compGenerics #>>()
+	public QueryEnumerable<<#= generics #>> WithAll<<#= compGenerics #>>()
 		<#= compRestrictions #>
 	{
 <# for (int j = 0; j < i; j++) {#>
-        _filters._all.Add(TypeHandle.Get<TComponent<#= j #>>());
+        _filter._all.Add(TypeHandle.Get<TComponent<#= j #>>());
 <# } #>
         return this;
 	}
 
-    public readonly QueryEnumerable<<#= generics #>> WithAny<<#= compGenerics #>>()
+    public QueryEnumerable<<#= generics #>> WithAny<<#= compGenerics #>>()
 		<#= compRestrictions #>
 	{
 <# for (int j = 0; j < i; j++) {#>
-        _filters._any.Add(TypeHandle.Get<TComponent<#= j #>>());
+        _filter._any.Add(TypeHandle.Get<TComponent<#= j #>>());
 <# } #>
         return this;
 	}
 
-    public readonly QueryEnumerable<<#= generics #>> WithAbsent<<#= compGenerics #>>()
+    public QueryEnumerable<<#= generics #>> WithAbsent<<#= compGenerics #>>()
 		<#= compRestrictions #>
 	{
 <# for (int j = 0; j < i; j++) {#>
-        _filters._absent.Add(TypeHandle.Get<TComponent<#= j #>>());
+        _filter._absent.Add(TypeHandle.Get<TComponent<#= j #>>());
 <# } #>
         return this;
 	}
 
-    public readonly QueryEnumerable<<#= generics #>> WithDisabled<<#= compGenerics #>>()
+    public QueryEnumerable<<#= generics #>> WithDisabled<<#= compGenerics #>>()
 		<#= compRestrictions #>
 	{
 <# for (int j = 0; j < i; j++) {#>
-        _filters._disabled.Add(TypeHandle.Get<TComponent<#= j #>>());
+        _filter._disabled.Add(TypeHandle.Get<TComponent<#= j #>>());
 <# } #>
         return this;
 	}

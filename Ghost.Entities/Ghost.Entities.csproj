@@ -8,6 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="Template\ForEach.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ForEach.tt</DependentUpon>
+    </None>
     <None Include="Template\QueryItem.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -32,6 +37,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Template\ForEach.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ForEach.cs</LastGenOutput>
+    </None>
     <None Update="Template\QueryEnumerable.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>QueryEnumerable.cs</LastGenOutput>
@@ -59,6 +68,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="Template\ForEach.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ForEach.tt</DependentUpon>
+    </Compile>
     <Compile Update="Template\Helpers.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>

@@ -1,98 +1,98 @@
 ﻿using Ghost.Core;
+using Ghost.Entities.Components;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
-using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities.Query;
 
-[Flags]
-internal enum FilterMode
+public struct QueryFilter : IDisposable
 {
-    All = 1 << 0,
-    Any = 1 << 1,
-    Absent = 1 << 2,
-    Disabled = 1 << 3,
-}
+    private readonly Stack.Scope _scope;
 
-internal readonly struct FilterEntry(TypeHandle id, FilterMode mode)
-{
-    public readonly TypeHandle typeHandle = id;
-    public readonly FilterMode mode = mode;
-}
+    internal UnsafeList<TypeHandle> _all;
+    internal UnsafeList<TypeHandle> _any;
+    internal UnsafeList<TypeHandle> _absent;
+    internal UnsafeList<TypeHandle> _disabled;
 
-internal struct QueryFilter()
-{
-    internal List<TypeHandle> _all = new(6);
-    internal List<TypeHandle> _any = new(6);
-    internal List<TypeHandle> _absent = new(6);
-    internal List<TypeHandle> _disabled = new(6);
+    public QueryFilter()
+    {
+        _scope = AllocationManager.CreateStackScope();
 
-    public readonly UnsafeBitSet ComputeFilterBitMask(World world)
+        _all = new UnsafeList<TypeHandle>(4, Allocator.Stack);
+        _any = new UnsafeList<TypeHandle>(4, Allocator.Stack);
+        _absent = new UnsafeList<TypeHandle>(4, Allocator.Stack);
+        _disabled = new UnsafeList<TypeHandle>(4, Allocator.Stack);
+    }
+
+    public readonly UnsafeBitSet ComputeFilterBitMask(World world, Allocator allocator)
     {
         UnsafeBitSet allMask = default;
         UnsafeBitSet anyMask = default;
         UnsafeBitSet absentMask = default;
 
-        using var scope = AllocationManager.CreateStackScope();
-
-        foreach (var typeHandle in _all)
-        {
-            var mask = world.ComponentStorage.GetOrCreateMask(typeHandle);
-
-            if (!allMask.IsCreated)
-            {
-                allMask = new UnsafeBitSet(mask.Length, Allocator.Stack, AllocationOption.Clear);
-                allMask.SetAll();
-            }
-
-            allMask.AndOperation(mask);
-        }
-
-        foreach (var typeHandle in _any)
-        {
-            var mask = world.ComponentStorage.GetOrCreateMask(typeHandle);
-
-            if (!anyMask.IsCreated)
-            {
-                anyMask = new UnsafeBitSet(mask.Length, Allocator.Stack, AllocationOption.Clear);
-            }
-
-            anyMask.OrOperation(mask);
-        }
-
-        foreach (var typeHandle in _absent)
-        {
-            var mask = world.ComponentStorage.GetOrCreateMask(typeHandle);
-
-            if (!absentMask.IsCreated)
-            {
-                absentMask = new UnsafeBitSet(mask.Length, Allocator.Stack, AllocationOption.Clear);
-            }
-
-            absentMask.OrOperation(mask);
-        }
-
-        var result = new UnsafeBitSet(world.EntityManager.EntityCount, Allocator.Persistent);
+        var result = new UnsafeBitSet(world.EntityManager.EntityCount, allocator);
         result.SetAll();
 
-        if (allMask.IsCreated)
+        using (AllocationManager.CreateStackScope())
         {
-            result.AndOperation(allMask);
-            allMask.Dispose();
-        }
+            foreach (var typeHandle in _all)
+            {
+                var mask = world.ComponentStorage.GetOrCreateMask(typeHandle);
 
-        if (anyMask.IsCreated)
-        {
-            result.AndOperation(anyMask);
-            anyMask.Dispose();
-        }
+                if (!allMask.IsCreated)
+                {
+                    allMask = new UnsafeBitSet(mask.Length, Allocator.Stack, AllocationOption.None);
+                    allMask.SetAll();
+                }
 
-        if (absentMask.IsCreated)
-        {
-            result.AndOperation(~absentMask);
-            absentMask.Dispose();
+                allMask.AndOperation(mask);
+            }
+
+            foreach (var typeHandle in _any)
+            {
+                var mask = world.ComponentStorage.GetOrCreateMask(typeHandle);
+
+                if (!anyMask.IsCreated)
+                {
+                    anyMask = new UnsafeBitSet(mask.Length, Allocator.Stack);
+                }
+
+                anyMask.OrOperation(mask);
+            }
+
+            foreach (var typeHandle in _absent)
+            {
+                var mask = world.ComponentStorage.GetOrCreateMask(typeHandle);
+
+                if (!absentMask.IsCreated)
+                {
+                    absentMask = new UnsafeBitSet(mask.Length, Allocator.Stack);
+                }
+
+                absentMask.OrOperation(mask);
+            }
+
+            if (allMask.IsCreated)
+            {
+                result.AndOperation(allMask);
+            }
+
+            if (anyMask.IsCreated)
+            {
+                result.AndOperation(anyMask);
+            }
+
+            if (absentMask.IsCreated)
+            {
+                result.AndOperation(~absentMask);
+            }
         }
 
         return result;
+    }
+
+    public readonly void Dispose()
+    {
+        _scope.Dispose();
     }
 }

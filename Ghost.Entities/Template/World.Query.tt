@@ -6,6 +6,7 @@
 <#@ include file="Helpers.ttinclude" #>
 
 using Ghost.Entities.Components;
+using Ghost.Entities.Query;
 
 namespace Ghost.Entities;
 
@@ -24,12 +25,29 @@ public partial class World
         <#= restrictions #>
     {
         if (!(<#= tryGetPools #>))
+        {
             return default;
+        }
 
         return new QueryEnumerable<<#= generics #>>(
             this,
             <#= poolParams #>,
             <#= countSource #>);
+    }
+
+    public QueryEnumerable<<#= generics #>> QueryFilter<<#= generics #>>(ref readonly QueryFilter filter) 
+        <#= restrictions #>
+    {
+        if (!(<#= tryGetPools #>))
+        {
+            return default;
+        }
+
+        return new QueryEnumerable<<#= generics #>>(
+            this,
+            <#= poolParams #>,
+            <#= countSource #>,
+            in filter);
     }
 
 <# } #>

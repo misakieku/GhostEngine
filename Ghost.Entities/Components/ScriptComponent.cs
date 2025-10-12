@@ -2,7 +2,9 @@
 
 public abstract class ScriptComponent : IComponentData
 {
-    private bool _enable = true;
+    private bool _enable;
+
+    internal World _world = null!;
 
     /// <summary>
     /// Gets or sets a value indicating whether this script component is enabled.
@@ -39,6 +41,11 @@ public abstract class ScriptComponent : IComponentData
     }
 
     /// <summary>
+    /// Gets the EntityManager instance associated with the current world.
+    /// </summary>
+    protected EntityManager EntityManager => _world.EntityManager;
+
+    /// <summary>
     /// Gets or sets the priority of the script component.
     /// Change this during runtime does not affect the execution order.
     /// </summary>
@@ -55,6 +62,13 @@ public abstract class ScriptComponent : IComponentData
     /// Called when the script component is disabled.
     /// </summary>
     public virtual void OnDisable()
+    {
+    }
+
+    /// <summary>
+    /// Called when the script component is initialized.
+    /// </summary>
+    public virtual void Initialize()
     {
     }
 

@@ -3,11 +3,12 @@ using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities.Query;
 
-public interface IQueryTypeParameter
+public interface IQueryTypeParameter<T>
+    where T : IComponentData
 {
 }
 
-public ref struct CompRef<T> : IQueryTypeParameter
+public ref struct CompRef<T> : IQueryTypeParameter<T>
     where T : IComponentData
 {
     internal ref T _value;
@@ -42,7 +43,7 @@ public ref struct CompRef<T> : IQueryTypeParameter
     }
 }
 
-public ref struct CompRO<T> : IQueryTypeParameter
+public readonly ref struct CompRO<T> : IQueryTypeParameter<T>
     where T : IComponentData
 {
     internal readonly ref T _value;

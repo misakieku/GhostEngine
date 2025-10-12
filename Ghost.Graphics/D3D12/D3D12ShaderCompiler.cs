@@ -149,21 +149,11 @@ internal unsafe static class D3D12ShaderCompiler
 
             // Get compiled bytecode
             using ComPtr<IDxcBlob> bytecodeBlob = default;
-            result.Get()->GetResult(bytecodeBlob.GetAddressOf());
-
-            if (bytecodeBlob.Get() == null)
-            {
-                throw new Exception("DXC compilation succeeded but no bytecode was produced");
-            }
+            ThrowIfFailed(result.Get()->GetResult(bytecodeBlob.GetAddressOf()));
 
             // Get reflection data using DXC API
             using ComPtr<IDxcBlob> reflectionBlob = default;
-            result.Get()->GetOutput(DXC_OUT_KIND.DXC_OUT_REFLECTION, __uuidof<IDxcBlob>(), reflectionBlob.GetVoidAddressOf(), null);
-
-            if (reflectionBlob.Get() == null)
-            {
-                throw new Exception("DXC compilation succeeded but no reflection data was produced");
-            }
+            ThrowIfFailed(result.Get()->GetOutput(DXC_OUT_KIND.DXC_OUT_REFLECTION, __uuidof<IDxcBlob>(), reflectionBlob.GetVoidAddressOf(), null));
 
             var bytecodeSize = bytecodeBlob.Get()->GetBufferSize();
             var bytecode = new UnsafeArray<byte>((int)bytecodeSize, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
@@ -210,12 +200,7 @@ internal unsafe static class D3D12ShaderCompiler
         };
 
         using ComPtr<ID3D12ShaderReflection> reflection = default;
-        utils.Get()->CreateReflection(&reflectionData, __uuidof<ID3D12ShaderReflection>(), reflection.GetVoidAddressOf());
-
-        if (reflection.Get() == null)
-        {
-            throw new Exception("Failed to create shader reflection from DXC output");
-        }
+        ThrowIfFailed(utils.Get()->CreateReflection(&reflectionData, __uuidof<ID3D12ShaderReflection>(), reflection.GetVoidAddressOf()));
 
         D3D12_SHADER_DESC shaderDesc;
         reflection.Get()->GetDesc(&shaderDesc);

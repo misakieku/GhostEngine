@@ -1,6 +1,7 @@
 ﻿using Ghost.Entities.Components;
 using Ghost.Entities.Query;
 using Ghost.Entities.Systems;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -51,6 +52,8 @@ public partial class World : IDisposable, IEquatable<World>
     private readonly ComponentStorage _componentStorage;
     private readonly SystemStorage _systemStorage;
 
+    private bool _isDisposed = false;
+
     internal ComponentStorage ComponentStorage => _componentStorage;
 
     public WorldID ID => _id;
@@ -65,6 +68,11 @@ public partial class World : IDisposable, IEquatable<World>
         _entityManager = new EntityManager(this, entityCapacity);
         _componentStorage = new ComponentStorage(this);
         _systemStorage = new SystemStorage(this);
+    }
+
+    ~World()
+    {
+        Dispose();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -87,27 +95,18 @@ public partial class World : IDisposable, IEquatable<World>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Conditional("GHOST_EDITOR")]
     public void NotifyComponentChanged(Entity entity, Type type)
     {
-        //#if GHOST_EDITOR
         ComponentChanged?.Invoke(this, entity, type);
-        //#endif
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Conditional("GHOST_EDITOR")]
     public void NotifyComponentChanged<T>(Entity entity)
         where T : unmanaged, IComponentData
     {
         NotifyComponentChanged(entity, typeof(T));
-    }
-
-    public void Dispose()
-    {
-        _entityManager.Dispose();
-        _componentStorage.Dispose();
-        _systemStorage.Dispose();
-
-        s_freeWorldSlots.Enqueue(_id);
     }
 
     public bool Equals(World? other)
@@ -143,5 +142,23 @@ public partial class World : IDisposable, IEquatable<World>
     public static bool operator !=(World? left, World? right)
     {
         return !(left == right);
+    }
+
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        _entityManager.Dispose();
+        _componentStorage.Dispose();
+        _systemStorage.Dispose();
+
+        s_freeWorldSlots.Enqueue(_id);
+
+        _isDisposed = true;
+
+        GC.SuppressFinalize(this);
     }
 }

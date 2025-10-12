@@ -19,7 +19,6 @@
   <ItemGroup>
     <PackageReference Include="Misaki.HighPerformance.Mathematics" Version="1.1.0" />
     <PackageReference Include="TerraFX.Interop.D3D12MemoryAllocator" Version="2.0.1.5" />
-    <PackageReference Include="TerraFX.Interop.Windows" Version="10.0.26100.2" />
   </ItemGroup>
 
   <ItemGroup>

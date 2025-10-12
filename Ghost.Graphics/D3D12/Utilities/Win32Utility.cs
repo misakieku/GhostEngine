@@ -7,10 +7,7 @@ internal unsafe static class Win32Utility
 {
     public static void ThrowIfFailed(this HRESULT hr)
     {
-        if (hr.FAILED)
-        {
-            throw new InvalidOperationException($"Operation failed with HRESULT: 0x{hr.Value:X8}");
-        }
+        Windows.ThrowIfFailed(hr);
     }
 
     public static void** GetVoidAddressOf<T>(this ComPtr<T> comPtr)
