@@ -1,6 +1,4 @@
-﻿using System.Runtime.InteropServices;
-
-namespace Ghost.Shader.Compiler.Parser;
+﻿namespace Ghost.Shader.Compiler.Parser;
 
 internal class ShaderBlock : IBlockParser<ShaderSyntax, ShaderSemantics>
 {
@@ -110,7 +108,7 @@ internal class ShaderBlock : IBlockParser<ShaderSyntax, ShaderSemantics>
                 }
             }
         }
-        
+
         return shaderModel;
     }
 }

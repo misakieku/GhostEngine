@@ -1,4 +1,5 @@
 ﻿using Ghost.Core;
+using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
@@ -7,7 +8,7 @@ using Misaki.HighPerformance.Mathematics.Geometry;
 
 namespace Ghost.Graphics.Data;
 
-public struct Mesh : IHandleType
+public struct Mesh : IResourceReleasable, IHandleType
 {
     public UnsafeList<Vertex> vertices;
     public UnsafeList<uint> indices;
@@ -37,6 +38,14 @@ public struct Mesh : IHandleType
     {
         vertices.Dispose();
         indices.Dispose();
+    }
+
+    void IResourceReleasable.ReleaseResource(IResourceDatabase database)
+    {
+        ReleaseCpuResources();
+
+        database.ReleaseResource(vertexBuffer.AsResource());
+        database.ReleaseResource(indexBuffer.AsResource());
     }
 }
 

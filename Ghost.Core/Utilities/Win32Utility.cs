@@ -1,10 +1,22 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Runtime.Versioning;
 using TerraFX.Interop.Windows;
 
-namespace Ghost.Graphics.D3D12.Utilities;
+namespace Ghost.Core.Utilities;
 
+#if PLATEFORME_WIN64
+[SupportedOSPlatform("windows10.0.19041.0")]
 internal unsafe static class Win32Utility
 {
+    public static Guid* IID_NULL => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID.IID_NULL));
+
+    [Conditional("DEBUG")]
+    public static void Assert(this HRESULT hr)
+    {
+        Debug.Assert(hr.SUCCEEDED);
+    }
+
     public static void ThrowIfFailed(this HRESULT hr)
     {
         Windows.ThrowIfFailed(hr);
@@ -22,11 +34,11 @@ internal unsafe static class Win32Utility
         return (void**)comPtr.ReleaseAndGetAddressOf();
     }
 
-    public static ComPtr<T> Move<T>(this ComPtr<T> comPtr)
+    public static ComPtr<T> Move<T>(ref this ComPtr<T> comPtr)
         where T : unmanaged, IUnknown.Interface
     {
-        ComPtr<T> copy = default;
-        Unsafe.AsRef(in comPtr).Swap(ref copy);
+        var copy = default(ComPtr<T>);
+        comPtr.Swap(ref copy);
         return copy;
     }
 
@@ -36,3 +48,4 @@ internal unsafe static class Win32Utility
         return (flags & Unsafe.As<T, uint>(ref flag)) != 0;
     }
 }
+#endif

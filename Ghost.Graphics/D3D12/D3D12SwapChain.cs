@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Core.Utilities;
 using Ghost.Graphics.Contracts;
 using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.Data;

@@ -2,56 +2,6 @@ using TerraFX.Interop.DirectX;
 
 namespace Ghost.Graphics.RHI;
 
-/// <summary>
-/// Type of render target
-/// </summary>
-public enum RenderTargetType
-{
-    Color,
-    Depth
-}
-
-/// <summary>
-/// Texture format enumeration
-/// </summary>
-
-// TODO: Support compressed formats (BCn, ASTC, ETC2, etc)
-public enum TextureFormat
-{
-    Unknown,
-    R8G8B8A8_UNorm,
-    B8G8R8A8_UNorm,
-    R16G16B16A16_Float,
-    R32G32B32A32_Float,
-    D24_UNorm_S8_UInt,
-    D32_Float
-}
-
-/// <summary>
-/// Buffer usage flags
-/// </summary>
-[Flags]
-public enum BufferUsage
-{
-    None = 0,
-    Vertex = 1 << 0,
-    Index = 1 << 1,
-    Constant = 1 << 2,
-    Structured = 1 << 3,
-    Raw = 1 << 4,
-    Upload = 1 << 5,
-    Readback = 1 << 6,
-    IndirectArgument = 1 << 7,
-
-    ShaderResource = Vertex | Index | Constant
-}
-
-public enum IndexType
-{
-    UInt16,
-    UInt32
-}
-
 internal static class TextureFormatExtensions
 {
     public static DXGI_FORMAT ToD3D12Format(this TextureFormat format)

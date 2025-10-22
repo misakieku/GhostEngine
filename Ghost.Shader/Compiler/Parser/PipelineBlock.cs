@@ -1,3 +1,5 @@
+using Ghost.Core.Graphics;
+
 namespace Ghost.Shader.Compiler.Parser;
 
 internal class PipelineBlock : IBlockParser<PipelineSyntax, PipelineSemantic>

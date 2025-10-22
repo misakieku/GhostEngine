@@ -28,7 +28,8 @@ internal class PipelineSemantic
 internal class PassSemantic
 {
     public string name = string.Empty;
-    public ShaderEntryPoint vertexShader;
+    public ShaderEntryPoint taskShader;
+    public ShaderEntryPoint meshShader;
     public ShaderEntryPoint pixelShader;
     public List<string>? defines;
     public List<string>? includes;

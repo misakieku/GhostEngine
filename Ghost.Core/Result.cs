@@ -17,20 +17,14 @@ public readonly struct Result
         return new Result(true);
     }
 
-    public static Result Failure(string? message)
+    public static Result Fail(string? message)
     {
         return new Result(false, message);
     }
 
-    public void ThrowIfFailed()
-    {
-        if (!success)
-        {
-            throw new InvalidOperationException($"Operation failed: {message}");
-        }
-    }
-
     public override string ToString() => success ? "OK" : $"Error: {message}";
+
+    public static implicit operator Result(bool success) => success ? Success() : Fail(null);
 }
 
 public readonly struct Result<T>
@@ -52,18 +46,33 @@ public readonly struct Result<T>
         return new Result<T>(true, data);
     }
 
-    public static Result<T> Failure(string? message)
+    public static Result<T> Fail(string? message)
     {
         return new Result<T>(false, default!, message);
     }
 
-    public void ThrowIfFailed()
+    public override string ToString() => success ? $"OK: {value}" : $"Error: {message}";
+
+    public static implicit operator Result<T>(T? data) => data is not null ? Success(data) : Fail(null);
+}
+
+public static class ResultExtensions
+{
+    public static void ThrowIfFailed(this Result result)
     {
-        if (!success)
+        if (!result.success)
         {
-            throw new InvalidOperationException($"Operation failed: {message}");
+            throw new InvalidOperationException($"Operation failed: {result.message}");
         }
     }
 
-    public override string ToString() => success ? $"OK: {value}" : $"Error: {message}";
+    public static T GetValueOrThrow<T>(this Result<T> result)
+    {
+        if (!result.success)
+        {
+            throw new InvalidOperationException($"Operation failed: {result.message}");
+        }
+
+        return result.value;
+    }
 }

@@ -1,5 +1,6 @@
 ﻿using Ghost.Core;
 using Ghost.Core.Graphics;
+using Ghost.Core.Utilities;
 using Ghost.Graphics.Data;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Collections;
@@ -28,17 +29,6 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
 
     private UnsafeQueue<Handle<GPUResource>> _temResources = new(64, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
 
-    private Guid* IID_NULL
-    {
-        get
-        {
-            fixed (Guid* pGuid = &Guid.Empty)
-            {
-                return pGuid;
-            }
-        }
-    }
-
     public D3D12ResourceAllocator(RenderSystem renderSystem, D3D12RenderDevice device, D3D12DescriptorAllocator descriptorAllocator, D3D12ResourceDatabase resourceDatabase)
     {
         var desc = new D3D12MA_ALLOCATOR_DESC
@@ -62,7 +52,7 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void CheckBufferSize(uint sizeInBytes)
+    private static void CheckBufferSize(ulong sizeInBytes)
     {
         if (sizeInBytes > _MAX_BYTES)
         {
@@ -409,7 +399,7 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
         var initialState = DetermineInitialTextureState(desc.Usage);
 
         ComPtr<D3D12MA_Allocation> allocation = default;
-        ThrowIfFailed(_allocator.Get()->CreateResource(&allocationDesc, &resourceDesc, initialState, null, allocation.GetAddressOf(), IID_NULL, null));
+        ThrowIfFailed(_allocator.Get()->CreateResource(&allocationDesc, &resourceDesc, initialState, null, allocation.GetAddressOf(), Win32Utility.IID_NULL, null));
 
         var resourceDescriptor = ResourceViewGroup.Invalid;
         if (desc.Usage.HasFlag(TextureUsage.ShaderResource))
@@ -482,8 +472,8 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
         var initialState = DetermineInitialBufferState(desc.Usage, desc.MemoryType);
 
         ComPtr<D3D12MA_Allocation> allocation = default;
-        ThrowIfFailed(_allocator.Get()->CreateResource(&allocationDesc, &resourceDescription, initialState, null, allocation.GetAddressOf(), IID_NULL, null));
-
+        ThrowIfFailed(_allocator.Get()->CreateResource(&allocationDesc, &resourceDescription, initialState, null, allocation.GetAddressOf(), Win32Utility.IID_NULL, null));
+        
         var resourceDescriptor = ResourceViewGroup.Invalid;
         if (desc.Usage.HasFlag(BufferUsage.ShaderResource))
         {
@@ -499,7 +489,7 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
             {
                 srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
                 srvDesc.Buffer.FirstElement = 0;
-                srvDesc.Buffer.NumElements = desc.Size / 4;
+                srvDesc.Buffer.NumElements = (uint)(desc.Size / 4u);
                 srvDesc.Buffer.StructureByteStride = 0;
                 srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
             }
@@ -507,7 +497,7 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
             {
                 srvDesc.Format = DXGI_FORMAT_UNKNOWN;
                 srvDesc.Buffer.FirstElement = 0;
-                srvDesc.Buffer.NumElements = desc.Size / desc.Stride;
+                srvDesc.Buffer.NumElements = (uint)(desc.Size / desc.Stride);
                 srvDesc.Buffer.StructureByteStride = desc.Stride;
                 srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
             }
@@ -519,13 +509,13 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
         return handle.AsGraphicsBuffer();
     }
 
-    public Handle<GraphicsBuffer> CreateUploadBuffer(uint size, bool isTemp = true)
+    public Handle<GraphicsBuffer> CreateUploadBuffer(ulong size, bool isTemp = true)
     {
         var desc = new BufferDesc
         {
             Size = size,
             Usage = BufferUsage.Upload,
-            MemoryType = MemoryType.Upload,
+            MemoryType = ResourceMemoryType.Upload,
         };
 
         return CreateBuffer(ref desc, isTemp);
@@ -538,7 +528,7 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
             Size = (uint)(vertices.Count * Unsafe.SizeOf<Vertex>()),
             Stride = (uint)Unsafe.SizeOf<Vertex>(),
             Usage = BufferUsage.Vertex | BufferUsage.ShaderResource,
-            MemoryType = MemoryType.Default,
+            MemoryType = ResourceMemoryType.Default,
         };
 
         var indexBufferDesc = new BufferDesc
@@ -546,7 +536,7 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
             Size = (uint)(indices.Count * sizeof(uint)),
             Stride = sizeof(uint),
             Usage = BufferUsage.Index | BufferUsage.ShaderResource,
-            MemoryType = MemoryType.Default,
+            MemoryType = ResourceMemoryType.Default,
         };
 
         var vertexBuffer = CreateBuffer(ref vertexBufferDesc);
@@ -572,11 +562,13 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
 
         ref var shaderRef = ref _resourceDatabase.GetShaderReference(shader);
 
+        // TODO: Get per-material constant buffer size from database
+
         var desc = new BufferDesc
         {
             Size = shaderRef.PerMaterialBufferInfo.Size,
             Usage = BufferUsage.Constant,
-            MemoryType = MemoryType.Default,
+            MemoryType = ResourceMemoryType.Default,
         };
 
         var buffer = CreateBuffer(ref desc);
@@ -641,13 +633,13 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
         return flags;
     }
 
-    private static D3D12_HEAP_TYPE ConvertMemoryType(MemoryType memoryType)
+    private static D3D12_HEAP_TYPE ConvertMemoryType(ResourceMemoryType memoryType)
     {
         return memoryType switch
         {
-            MemoryType.Default => D3D12_HEAP_TYPE_DEFAULT,
-            MemoryType.Upload => D3D12_HEAP_TYPE_UPLOAD,
-            MemoryType.Readback => D3D12_HEAP_TYPE_READBACK,
+            ResourceMemoryType.Default => D3D12_HEAP_TYPE_DEFAULT,
+            ResourceMemoryType.Upload => D3D12_HEAP_TYPE_UPLOAD,
+            ResourceMemoryType.Readback => D3D12_HEAP_TYPE_READBACK,
             _ => throw new ArgumentException($"Unsupported memory type: {memoryType}")
         };
     }
@@ -672,14 +664,14 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
         return D3D12_RESOURCE_STATE_COMMON;
     }
 
-    private static D3D12_RESOURCE_STATES DetermineInitialBufferState(BufferUsage usage, MemoryType memoryType)
+    private static D3D12_RESOURCE_STATES DetermineInitialBufferState(BufferUsage usage, ResourceMemoryType memoryType)
     {
-        if (memoryType == MemoryType.Upload)
+        if (memoryType == ResourceMemoryType.Upload)
         {
             return D3D12_RESOURCE_STATE_GENERIC_READ;
         }
 
-        if (memoryType == MemoryType.Readback)
+        if (memoryType == ResourceMemoryType.Readback)
         {
             return D3D12_RESOURCE_STATE_COPY_DEST;
         }

@@ -1,14 +1,15 @@
 using Ghost.Core;
+using Ghost.Core.Utilities;
 using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.Data;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Utilities;
+using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
-
+using static TerraFX.Aliases.D3D_Alias;
 using static TerraFX.Aliases.D3D12_Alias;
 using static TerraFX.Aliases.DXGI_Alias;
-using static TerraFX.Aliases.D3D_Alias;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -65,11 +66,13 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         Dispose();
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ThrowIfDisposed()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ThrowIfNotRecording()
     {
         if (!_isRecording)
@@ -78,6 +81,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void IncrementCommandCount()
     {
         _commandCount++;

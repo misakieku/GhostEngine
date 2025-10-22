@@ -9,7 +9,7 @@ public enum LogLevel
     Error
 }
 
-internal struct LogMessage
+internal readonly struct LogMessage
 {
     public LogLevel Level
     {
@@ -58,10 +58,9 @@ internal interface ILogger
     }
 
     public void Log(string message, LogLevel level);
-
     public void Log(Exception exception);
-
     public void Assert(bool condition, string message);
+    public void Clear();
 }
 
 // TODO: Add file logging.
@@ -96,6 +95,14 @@ internal class LoggerImplementation : ILogger
             {
                 Log(message, LogLevel.Error);
             }
+        }
+    }
+
+    public void Clear()
+    {
+        lock (_lock)
+        {
+            _logs.Clear();
         }
     }
 }
@@ -148,5 +155,15 @@ public static class Logger
     public static void LogError(Exception ex)
     {
         s_logger.Log(ex);
+    }
+
+    public static void Assert(bool condition, string message)
+    {
+        s_logger.Assert(condition, message);
+    }
+
+    public static void Clear()
+    {
+        s_logger.Clear();
     }
 }

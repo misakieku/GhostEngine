@@ -1,8 +1,7 @@
-﻿global using static TerraFX.Interop.Windows.Windows;
+﻿global using static TerraFX.Interop.DirectX.D3D12;
 global using static TerraFX.Interop.DirectX.DirectX;
-global using static TerraFX.Interop.DirectX.D3D12;
 global using static TerraFX.Interop.DirectX.DXGI;
-
+global using static TerraFX.Interop.Windows.Windows;
 using Ghost.Core.Attributes;
 using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;

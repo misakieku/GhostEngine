@@ -131,51 +131,6 @@ public interface ICommandBuffer : IDisposable
     public void CopyBuffer(Handle<GraphicsBuffer> dest, Handle<GraphicsBuffer> src, ulong destOffset = 0, ulong srcOffset = 0, ulong numBytes = 0);
 }
 
-/// <summary>
-/// Viewport description
-/// </summary>
-public struct ViewportDesc
-{
-    public float x;
-    public float y;
-    public float width;
-    public float height;
-    public float minDepth;
-    public float maxDepth;
-}
-
-/// <summary>
-/// Rectangle description
-/// </summary>
-public struct RectDesc
-{
-    public uint left;
-    public uint top;
-    public uint right;
-    public uint bottom;
-}
-
-/// <summary>
-/// Resource states
-/// </summary>
-[Flags]
-public enum ResourceState
-{
-    Common = 0,
-    VertexAndConstantBuffer = 1 << 0,
-    IndexBuffer = 1 << 1,
-    RenderTarget = 1 << 2,
-    UnorderedAccess = 1 << 3,
-    DepthWrite = 1 << 4,
-    DepthRead = 1 << 5,
-    PixelShaderResource = 1 << 6,
-    CopyDest = 1 << 7,
-    CopySource = 1 << 8,
-    GenericRead = 1 << 9,
-    IndirectArgument = 1 << 10,
-    Present = 0,
-}
-
 internal static class ResourceStateExtensions
 {
     public static D3D12_RESOURCE_STATES ToD3D12States(this ResourceState state)
@@ -195,12 +150,4 @@ internal static class ResourceStateExtensions
             _ => throw new ArgumentException($"Unknown resource state: {state}")
         };
     }
-}
-
-
-public struct SubResourceData
-{
-    public unsafe void* pData;
-    public nint rowPitch;
-    public nint slicePitch;
 }

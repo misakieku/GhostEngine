@@ -1,6 +1,5 @@
 ﻿using Ghost.Engine.Models;
 using Ghost.Engine.Services;
-using Ghost.Graphics;
 
 namespace Ghost.Engine;
 

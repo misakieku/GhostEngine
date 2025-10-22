@@ -49,13 +49,3 @@ public interface ICommandQueue : IDisposable
     /// </summary>
     public void WaitIdle();
 }
-
-/// <summary>
-/// Command queue types
-/// </summary>
-public enum CommandQueueType
-{
-    Graphics,
-    Compute,
-    Copy
-}

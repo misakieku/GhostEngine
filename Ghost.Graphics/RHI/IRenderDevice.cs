@@ -29,13 +29,3 @@ public interface IRenderDevice : IDisposable
         get;
     }
 }
-
-/// <summary>
-/// Command buffer types
-/// </summary>
-public enum CommandBufferType
-{
-    Graphics,
-    Compute,
-    Copy
-}

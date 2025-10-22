@@ -36,12 +36,12 @@ public static partial class AssetDatabase
     {
         if (Directory.Exists(assetPath))
         {
-            return Result<string>.Failure("Folder does not have meta data");
+            return Result<string>.Fail("Folder does not have meta data");
         }
 
         if (Path.GetExtension(assetPath).Equals(".meta", StringComparison.OrdinalIgnoreCase))
         {
-            return Result<string>.Failure("Asset path cannot be a meta file");
+            return Result<string>.Fail("Asset path cannot be a meta file");
         }
 
         return Result<string>.Success(assetPath + ".meta");

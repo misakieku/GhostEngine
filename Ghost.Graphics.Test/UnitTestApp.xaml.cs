@@ -1,5 +1,4 @@
-﻿using Ghost.Test.Core;
-using Ghost.UnitTest.Windows;
+﻿using Ghost.UnitTest.Windows;
 using Microsoft.UI.Xaml;
 using Microsoft.VisualStudio.TestTools.UnitTesting.AppContainer;
 

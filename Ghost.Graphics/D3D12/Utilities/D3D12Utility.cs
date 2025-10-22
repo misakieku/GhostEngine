@@ -63,6 +63,8 @@ internal static class D3D12_BLEND_DESC_Extensions
         public static D3D12_BLEND_DESC OPAQUE => Create(D3D12_BLEND_ONE, D3D12_BLEND_ZERO);
         public static D3D12_BLEND_DESC ALPHA_BLEND => Create(D3D12_BLEND_SRC_ALPHA, D3D12_BLEND_INV_SRC_ALPHA);
         public static D3D12_BLEND_DESC ADDITIVE => Create(D3D12_BLEND_SRC_ALPHA, D3D12_BLEND_ONE);
+        public static D3D12_BLEND_DESC MULTIPLY => Create(D3D12_BLEND_DEST_COLOR, D3D12_BLEND_ZERO);
+        public static D3D12_BLEND_DESC PREMULTIPLIED => Create(D3D12_BLEND_ONE, D3D12_BLEND_INV_SRC_ALPHA);
         public static D3D12_BLEND_DESC NON_PREMULTIPLIED => Create(D3D12_BLEND_SRC_ALPHA, D3D12_BLEND_INV_SRC_ALPHA);
 
         public static D3D12_BLEND_DESC Create(D3D12_BLEND srcBlend, D3D12_BLEND destBlend)
@@ -147,17 +149,5 @@ internal static class D3D12_DEPTH_STENCILOP_DESC_Extensions
                 StencilFunc = stencilFunc
             };
         }
-    }
-}
-
-internal unsafe static class D3D12MA_Allocation_Extensions
-{
-    extension(ref readonly D3D12MA_Allocation allocation)
-    {
-        public bool IsNull => allocation.GetResource() == null
-            && allocation.GetHeap() == null
-            && allocation.GetSize() == 0;
-
-        public bool IsNotNull => !allocation.IsNull;
     }
 }

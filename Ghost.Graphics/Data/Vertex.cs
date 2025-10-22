@@ -13,11 +13,11 @@ public struct Vertex
         public const DXGI_FORMAT ALIGNED_FORMAT = DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_FLOAT;
         public const int COUNT = 5;
 
-        public static readonly FixedString32 position = new("POSITION");
-        public static readonly FixedString32 normal = new("NORMAL");
-        public static readonly FixedString32 tangent = new("TANGENT");
-        public static readonly FixedString32 uv = new("TEXCOORD");
-        public static readonly FixedString32 color = new("COLOR");
+        public static readonly FixedText32 position = new("POSITION");
+        public static readonly FixedText32 normal = new("NORMAL");
+        public static readonly FixedText32 tangent = new("TANGENT");
+        public static readonly FixedText32 uv = new("TEXCOORD");
+        public static readonly FixedText32 color = new("COLOR");
     }
 
     public float4 position;

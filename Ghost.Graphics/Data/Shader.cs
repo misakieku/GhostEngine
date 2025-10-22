@@ -1,11 +1,13 @@
 using Ghost.Core;
+using Ghost.Core.Contracts;
 using Ghost.Core.Graphics;
-using Misaki.HighPerformance.LowLevel.Buffer;
+using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Collections;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.Data;
 
-internal readonly struct TextureInfo
+public readonly struct TextureInfo
 {
     public uint RegisterSlot
     {
@@ -18,7 +20,7 @@ internal readonly struct TextureInfo
     }
 }
 
-internal readonly struct PropertyInfo
+public readonly struct PropertyInfo
 {
     public uint CBufferIndex
     {
@@ -36,7 +38,7 @@ internal readonly struct PropertyInfo
     }
 }
 
-internal readonly struct CBufferInfo
+public readonly struct CBufferInfo
 {
     public uint Size
     {
@@ -49,65 +51,117 @@ internal readonly struct CBufferInfo
     }
 }
 
-internal struct ShaderPass
+public readonly unsafe struct ShaderPass
 {
+    // NOTE: This is for per pass cbuffer only. Global, per view, and per mesh cbuffers are fixed.
+    private readonly Dictionary<string, int> _propertyLookup;
+    private readonly UnsafeList<PropertyInfo> _properties;
+
+    internal readonly CBufferInfo PassPropertyInfo
+    {
+        get;
+    }
+
+    public ShaderPass(CBufferInfo info, UnsafeList<PropertyInfo> properties, Dictionary<string, int> propertyNameToIdMap)
+    {
+        PassPropertyInfo = info;
+        _properties = properties;
+        _propertyLookup = propertyNameToIdMap;
+    }
+
+    public readonly int GetPropertyId(string propertyName)
+    {
+        return _propertyLookup.TryGetValue(propertyName, out var id) ? id : -1;
+    }
+
+    public readonly PropertyInfo GetPropertyInfo(int id)
+    {
+        return _properties[id];
+    }
+
+    public readonly PropertyInfo GetPropertyInfo(string propertyName)
+    {
+        return _properties[GetPropertyId(propertyName)];
+    }
 }
 
 /// <summary>
-/// A representation of a GPU shader, including its metadata about its resources.
+/// A representation of a GPU shader, including all the passes it contains.
 /// </summary>
-
-// TODO: Multi pass and keyword support
-public struct Shader : IIdentifierType
+public readonly struct Shader : IResourceReleasable, IIdentifierType
 {
-    private readonly ShaderDescriptor _descriptor;
+    private readonly ShaderPassKey[] _passIDs;
+    private readonly Dictionary<string, int> _passLookup; // pass name to index
+    private readonly Dictionary<string, List<int>> _propertyLookup; // property name to pass index (property name to list of pass indices that contain the property)
 
-    private CBufferInfo _perMaterialBufferInfo;
-    private UnsafeList<PropertyInfo> _properties;
-    private Dictionary<string, int> _propertyNameToIdMap;
+    public int PassCount => _passIDs.Length;
 
-    private bool _disposed;
-
-    internal CBufferInfo PerMaterialBufferInfo
+    internal Shader(ShaderDescriptor descriptor)
     {
-        readonly get => _perMaterialBufferInfo;
-        set => _perMaterialBufferInfo = value;
-    }
+        _passIDs = new ShaderPassKey[descriptor.passes.Count];
+        _passLookup = new(descriptor.passes.Count);
+        _propertyLookup = new(descriptor.passes.Count);
 
-    internal readonly UnsafeList<PropertyInfo> Properties => _properties;
-    internal readonly Dictionary<string, int> PropertyNameToIdMap => _propertyNameToIdMap;
-    public Shader(ShaderDescriptor descriptor)
-    {
-        _descriptor = descriptor;
-
-        _properties = new(8, Allocator.Persistent);
-        _propertyNameToIdMap = new(8);
-
-        _disposed = false;
-    }
-
-    /// <summary>
-    /// Gets a unique, stable ID for a shader property.
-    /// </summary>
-    /// <param name="propertyName">The name of the shader property.</param>
-    /// <returns>The integer ID of the property, or -1 if not found.</returns>
-    public readonly int GetPropertyId(string propertyName)
-    {
-        return _propertyNameToIdMap.TryGetValue(propertyName, out var id) ? id : -1;
-    }
-
-    internal void Dispose()
-    {
-        if (_disposed)
+        for (var i = 0; i < descriptor.passes.Count; i++)
         {
-            return;
+            var pass = descriptor.passes[i];
+            var passKey = new ShaderPassKey(pass.Identifier);
+
+            _passIDs[i] = passKey;
+            _passLookup[pass.Name] = i;
+
+            if (pass is FullPassDescriptor fullPass)
+            {
+                if (fullPass.properties == null)
+                {
+                    continue;
+                }
+
+                foreach (var property in fullPass.properties)
+                {
+                    ref var passIndices = ref CollectionsMarshal.GetValueRefOrAddDefault(_propertyLookup, property.name, out var exists);
+                    if (!exists || passIndices == null)
+                    {
+                        passIndices = new List<int>();
+                    }
+
+                    passIndices.Add(i);
+                }
+            }
+            // TODO: handle inherited passes
+        }
+    }
+
+    public readonly ShaderPassKey GetPassKey(int index)
+    {
+        return _passIDs[index];
+    }
+
+    public readonly bool TryGetPassKey(string passName, out ShaderPassKey? passID)
+    {
+        var index = _passLookup.GetValueOrDefault(passName, -1);
+        if (index == -1)
+        {
+            passID = new(0);
+            return false;
         }
 
-        _properties.Dispose();
+        passID = _passIDs[index];
+        return true;
+    }
 
-        _propertyNameToIdMap.Clear();
-        _propertyNameToIdMap = null!;
+    public readonly IReadOnlyCollection<int> GetPropertyPassIndices(string propertyName)
+    {
+        if (_propertyLookup.TryGetValue(propertyName, out var passIndices))
+        {
+            return passIndices;
+        }
 
-        _disposed = true;
+        return Array.Empty<int>();
+    }
+
+    void IResourceReleasable.ReleaseResource(IResourceDatabase database)
+    {
+        // Should we do something here?
     }
 }

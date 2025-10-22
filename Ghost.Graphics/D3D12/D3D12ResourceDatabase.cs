@@ -1,8 +1,8 @@
 ﻿using Ghost.Core;
-using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.Data;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Collections;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
@@ -12,7 +12,7 @@ namespace Ghost.Graphics.D3D12;
 
 internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
 {
-    internal unsafe struct ResourceInfo
+    internal unsafe struct ResourceRecord
     {
         [StructLayout(LayoutKind.Explicit)]
         public struct ResourceUnion
@@ -36,14 +36,14 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
         public ResourceDesc desc;
         public ResourceViewGroup descriptor;
         public ResourceUnion resourceUnion;
-        public uint cpuFenceValue;
         public ResourceState state;
+        public uint cpuFenceValue;
         public readonly bool isExternal;
 
-        public readonly bool Allocated => isExternal ? resourceUnion.resource.Get() != null : resourceUnion.allocation.Get()->IsNotNull;
+        public readonly bool Allocated => isExternal ? resourceUnion.resource.Get() != null : resourceUnion.allocation.Get() != null;
         public readonly ID3D12Resource* ResourcePtr => isExternal ? resourceUnion.resource.Get() : resourceUnion.allocation.Get()->GetResource();
 
-        public ResourceInfo(ComPtr<D3D12MA_Allocation> allocation, uint cpuFenceValue, ResourceState state, ResourceViewGroup resourceDescriptor, ResourceDesc desc)
+        public ResourceRecord(ComPtr<D3D12MA_Allocation> allocation, uint cpuFenceValue, ResourceState state, ResourceViewGroup resourceDescriptor, ResourceDesc desc)
         {
             this.resourceUnion = new ResourceUnion(allocation);
             this.isExternal = false;
@@ -54,7 +54,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
             this.desc = desc;
         }
 
-        public ResourceInfo(ComPtr<ID3D12Resource> resource, ResourceState state)
+        public ResourceRecord(ComPtr<ID3D12Resource> resource, ResourceState state)
         {
             this.resourceUnion = new ResourceUnion(resource);
             this.isExternal = true;
@@ -65,23 +65,25 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
             this.desc = ResourceDesc.FromD3D12(resource.Get()->GetDesc());
         }
 
-        public uint Release()
+        public uint Release(D3D12DescriptorAllocator descriptorAllocator)
         {
             var refCount = 0u;
             if (Allocated)
             {
                 if (isExternal)
                 {
-                    refCount = resourceUnion.resource.Get()->Release();
+                    refCount = resourceUnion.resource.Reset();
                 }
                 else
                 {
-                    refCount = resourceUnion.allocation.Get()->Release();
+                    refCount = resourceUnion.allocation.Reset();
                 }
 
                 resourceUnion = default;
                 descriptor = default;
             }
+
+            descriptorAllocator.Release(descriptor);
 
             return refCount;
         }
@@ -93,31 +95,33 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
         public bool occupied;
     }
 
-    private UnsafeSlotMap<ResourceInfo> _resources;
+    private readonly D3D12DescriptorAllocator _descriptorAllocator;
+
+    private UnsafeSlotMap<ResourceRecord> _resources;
 #if DEBUG || GHOST_EDITOR
-    private readonly Dictionary<ResourceInfo, string> _resourceName;
+    private readonly Dictionary<ResourceRecord, string> _resourceName;
 #endif
 
     private readonly UnsafeSlotMap<Mesh> _meshes;
     private readonly UnsafeSlotMap<Material> _materials;
 
-    // NOTE: We use a simple list since shader is not frequently added/removed. This can save 4 bytes for each ecs component.
+    // NOTE: We use a simple list since shaderSlot is not frequently added/removed. This can save 4 bytes for each ecs component.
     private readonly DynamicArray<Slot<Shader>> _shaders;
-
-    private readonly D3D12DescriptorAllocator _descriptorAllocator;
+    private readonly Dictionary<ShaderPassKey, ShaderPass> _shaderPasses;
 
     private bool _disposed;
 
     public D3D12ResourceDatabase(D3D12DescriptorAllocator descriptorAllocator)
     {
-        _resources = new(64, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
+        _resources = new(64, Allocator.Persistent);
 #if DEBUG || GHOST_EDITOR
         _resourceName = new(64);
 #endif
 
-        _meshes = new(64, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
-        _materials = new(16, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
+        _meshes = new(64, Allocator.Persistent);
+        _materials = new(16, Allocator.Persistent);
         _shaders = new(16);
+        _shaderPasses = new(16);
 
         _descriptorAllocator = descriptorAllocator;
     }
@@ -125,6 +129,12 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
     ~D3D12ResourceDatabase()
     {
         Dispose();
+    }
+
+    private void ReleaseResource<T>(ref T resource)
+        where T : IResourceReleasable
+    {
+        resource.ReleaseResource(this);
     }
 
     public Handle<GPUResource> ImportExternalResource<T>(T resource, ResourceState initialState)
@@ -137,7 +147,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
             throw new InvalidOperationException($"Expect ComPtr<ID3D12Resource> in D3D12ResourceDatabase, but got {typeof(T)}.");
         }
 
-        var id = _resources.Add(new ResourceInfo(d3d12Resource, initialState), out var generation);
+        var id = _resources.Add(new ResourceRecord(d3d12Resource, initialState), out var generation);
         return new Handle<GPUResource>(id, generation);
     }
 
@@ -145,11 +155,11 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        var id = _resources.Add(new ResourceInfo(allocation, cpuFenceValue, initialState, resourceDescriptor, desc), out var generation);
+        var id = _resources.Add(new ResourceRecord(allocation, cpuFenceValue, initialState, resourceDescriptor, desc), out var generation);
         return new Handle<GPUResource>(id, generation);
     }
 
-    public ref ResourceInfo GetResourceInfo(Handle<GPUResource> handle)
+    public ref ResourceRecord GetResourceInfo(Handle<GPUResource> handle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -162,7 +172,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
         return ref info;
     }
 
-    public ref ResourceInfo GetResourceInfo(Handle<GPUResource> handle, out bool exist)
+    public ref ResourceRecord GetResourceInfo(Handle<GPUResource> handle, out bool exist)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         return ref _resources.GetElementReferenceAt(handle.id, handle.generation, out exist);
@@ -232,7 +242,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
             return;
         }
 
-        var refCount = info.Release();
+        var refCount = info.Release(_descriptorAllocator);
 #if DEBUG || GHOST_EDITOR
         if (refCount > 0)
         {
@@ -268,28 +278,15 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
         return ref mesh;
     }
 
-    private void ReleaseMeshResources(ref readonly Mesh mesh)
-    {
-        mesh.ReleaseCpuResources();
-
-        ref var vertexRef = ref GetResourceInfo(mesh.vertexBuffer.AsResource());
-        ref var indexRef = ref GetResourceInfo(mesh.indexBuffer.AsResource());
-        _descriptorAllocator.Release(vertexRef.descriptor);
-        _descriptorAllocator.Release(indexRef.descriptor);
-
-        ReleaseResource(mesh.vertexBuffer.AsResource());
-        ReleaseResource(mesh.indexBuffer.AsResource());
-    }
-
     public void ReleaseMesh(Handle<Mesh> handle)
     {
-        ref var meshSlot = ref _meshes.GetElementReferenceAt(handle.id, handle.generation, out var exist);
+        ref var mesh = ref _meshes.GetElementReferenceAt(handle.id, handle.generation, out var exist);
         if (!exist)
         {
             return;
         }
 
-        ReleaseMeshResources(ref meshSlot);
+        ReleaseResource(ref mesh);
         _meshes.Remove(handle.id, handle.generation);
     }
 
@@ -326,7 +323,8 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
             return;
         }
 
-        material.Dispose();
+        ReleaseResource(ref material);
+        _materials.Remove(handle.id, handle.generation);
     }
 
     public Identifier<Shader> AddShader(ref readonly Shader shader)
@@ -355,16 +353,38 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
         return ref shader;
     }
 
-    public void ReleaseShader(Identifier<Shader> handle)
+    public void ReleaseShader(Identifier<Shader> id)
     {
-        if (!HasShader(handle))
+        if (!HasShader(id))
         {
             return;
         }
 
-        ref var shader = ref _shaders[handle.value].value;
-        shader.Dispose();
+        ref var shaderSlot = ref _shaders[id.value];
+
+        ReleaseResource(ref shaderSlot.value);
+        shaderSlot.occupied = false;
     }
+
+    public void AddShaderPass(ShaderPassKey passKey, ShaderPass pass)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        _shaderPasses.Add(passKey, pass);
+    }
+
+    public ShaderPass GetShaderPass(ShaderPassKey passKey)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (!_shaderPasses.TryGetValue(passKey, out var pass))
+        {
+            throw new KeyNotFoundException($"Shader pass '{passKey}' not found.");
+        }
+
+        return pass;
+    }
+
+    // Should we need to release the shaderSlot pass?
 
     public void Dispose()
     {

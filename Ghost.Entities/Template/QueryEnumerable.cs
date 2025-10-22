@@ -49,7 +49,7 @@ public unsafe ref struct QueryEnumerable<T0>
     {
         private ref QueryFilter _filter;
         private UnsafeBitSet _filterMask;
-        
+
         private readonly ReadOnlySpan<Entity> _entities;
         private readonly Stack.Scope _stackScope;
 
@@ -102,101 +102,101 @@ public unsafe ref struct QueryEnumerable<T0>
         }
     }
 
-	public QueryEnumerable<T0> WithAll<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+    public QueryEnumerable<T0> WithAll<TComponent0>()
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._all.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0> WithAny<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._any.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0> WithAbsent<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._absent.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0> WithDisabled<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._disabled.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
-	public QueryEnumerable<T0> WithAll<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+    public QueryEnumerable<T0> WithAll<TComponent0, TComponent1>()
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._all.Add(TypeHandle.Get<TComponent0>());
         _filter._all.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0> WithAny<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._any.Add(TypeHandle.Get<TComponent0>());
         _filter._any.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0> WithAbsent<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._absent.Add(TypeHandle.Get<TComponent0>());
         _filter._absent.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0> WithDisabled<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._disabled.Add(TypeHandle.Get<TComponent0>());
         _filter._disabled.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
-	public QueryEnumerable<T0> WithAll<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+    public QueryEnumerable<T0> WithAll<TComponent0, TComponent1, TComponent2>()
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._all.Add(TypeHandle.Get<TComponent0>());
         _filter._all.Add(TypeHandle.Get<TComponent1>());
         _filter._all.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0> WithAny<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._any.Add(TypeHandle.Get<TComponent0>());
         _filter._any.Add(TypeHandle.Get<TComponent1>());
         _filter._any.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0> WithAbsent<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._absent.Add(TypeHandle.Get<TComponent0>());
         _filter._absent.Add(TypeHandle.Get<TComponent1>());
         _filter._absent.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0> WithDisabled<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._disabled.Add(TypeHandle.Get<TComponent0>());
         _filter._disabled.Add(TypeHandle.Get<TComponent1>());
         _filter._disabled.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 }
 
 public unsafe ref struct QueryEnumerable<T0, T1>
@@ -244,7 +244,7 @@ public unsafe ref struct QueryEnumerable<T0, T1>
     {
         private ref QueryFilter _filter;
         private UnsafeBitSet _filterMask;
-        
+
         private readonly ReadOnlySpan<Entity> _entities;
         private readonly Stack.Scope _stackScope;
 
@@ -299,101 +299,101 @@ public unsafe ref struct QueryEnumerable<T0, T1>
         }
     }
 
-	public QueryEnumerable<T0, T1> WithAll<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+    public QueryEnumerable<T0, T1> WithAll<TComponent0>()
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._all.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1> WithAny<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._any.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1> WithAbsent<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._absent.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1> WithDisabled<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._disabled.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
-	public QueryEnumerable<T0, T1> WithAll<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+    public QueryEnumerable<T0, T1> WithAll<TComponent0, TComponent1>()
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._all.Add(TypeHandle.Get<TComponent0>());
         _filter._all.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1> WithAny<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._any.Add(TypeHandle.Get<TComponent0>());
         _filter._any.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1> WithAbsent<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._absent.Add(TypeHandle.Get<TComponent0>());
         _filter._absent.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1> WithDisabled<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._disabled.Add(TypeHandle.Get<TComponent0>());
         _filter._disabled.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
-	public QueryEnumerable<T0, T1> WithAll<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+    public QueryEnumerable<T0, T1> WithAll<TComponent0, TComponent1, TComponent2>()
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._all.Add(TypeHandle.Get<TComponent0>());
         _filter._all.Add(TypeHandle.Get<TComponent1>());
         _filter._all.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1> WithAny<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._any.Add(TypeHandle.Get<TComponent0>());
         _filter._any.Add(TypeHandle.Get<TComponent1>());
         _filter._any.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1> WithAbsent<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._absent.Add(TypeHandle.Get<TComponent0>());
         _filter._absent.Add(TypeHandle.Get<TComponent1>());
         _filter._absent.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1> WithDisabled<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._disabled.Add(TypeHandle.Get<TComponent0>());
         _filter._disabled.Add(TypeHandle.Get<TComponent1>());
         _filter._disabled.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 }
 
 public unsafe ref struct QueryEnumerable<T0, T1, T2>
@@ -445,7 +445,7 @@ public unsafe ref struct QueryEnumerable<T0, T1, T2>
     {
         private ref QueryFilter _filter;
         private UnsafeBitSet _filterMask;
-        
+
         private readonly ReadOnlySpan<Entity> _entities;
         private readonly Stack.Scope _stackScope;
 
@@ -502,101 +502,101 @@ public unsafe ref struct QueryEnumerable<T0, T1, T2>
         }
     }
 
-	public QueryEnumerable<T0, T1, T2> WithAll<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+    public QueryEnumerable<T0, T1, T2> WithAll<TComponent0>()
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._all.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2> WithAny<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._any.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2> WithAbsent<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._absent.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2> WithDisabled<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._disabled.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
-	public QueryEnumerable<T0, T1, T2> WithAll<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+    public QueryEnumerable<T0, T1, T2> WithAll<TComponent0, TComponent1>()
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._all.Add(TypeHandle.Get<TComponent0>());
         _filter._all.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2> WithAny<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._any.Add(TypeHandle.Get<TComponent0>());
         _filter._any.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2> WithAbsent<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._absent.Add(TypeHandle.Get<TComponent0>());
         _filter._absent.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2> WithDisabled<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._disabled.Add(TypeHandle.Get<TComponent0>());
         _filter._disabled.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
-	public QueryEnumerable<T0, T1, T2> WithAll<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+    public QueryEnumerable<T0, T1, T2> WithAll<TComponent0, TComponent1, TComponent2>()
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._all.Add(TypeHandle.Get<TComponent0>());
         _filter._all.Add(TypeHandle.Get<TComponent1>());
         _filter._all.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2> WithAny<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._any.Add(TypeHandle.Get<TComponent0>());
         _filter._any.Add(TypeHandle.Get<TComponent1>());
         _filter._any.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2> WithAbsent<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._absent.Add(TypeHandle.Get<TComponent0>());
         _filter._absent.Add(TypeHandle.Get<TComponent1>());
         _filter._absent.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2> WithDisabled<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._disabled.Add(TypeHandle.Get<TComponent0>());
         _filter._disabled.Add(TypeHandle.Get<TComponent1>());
         _filter._disabled.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 }
 
 public unsafe ref struct QueryEnumerable<T0, T1, T2, T3>
@@ -652,7 +652,7 @@ public unsafe ref struct QueryEnumerable<T0, T1, T2, T3>
     {
         private ref QueryFilter _filter;
         private UnsafeBitSet _filterMask;
-        
+
         private readonly ReadOnlySpan<Entity> _entities;
         private readonly Stack.Scope _stackScope;
 
@@ -711,101 +711,101 @@ public unsafe ref struct QueryEnumerable<T0, T1, T2, T3>
         }
     }
 
-	public QueryEnumerable<T0, T1, T2, T3> WithAll<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+    public QueryEnumerable<T0, T1, T2, T3> WithAll<TComponent0>()
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._all.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3> WithAny<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._any.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3> WithAbsent<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._absent.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3> WithDisabled<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._disabled.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
-	public QueryEnumerable<T0, T1, T2, T3> WithAll<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+    public QueryEnumerable<T0, T1, T2, T3> WithAll<TComponent0, TComponent1>()
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._all.Add(TypeHandle.Get<TComponent0>());
         _filter._all.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3> WithAny<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._any.Add(TypeHandle.Get<TComponent0>());
         _filter._any.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3> WithAbsent<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._absent.Add(TypeHandle.Get<TComponent0>());
         _filter._absent.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3> WithDisabled<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._disabled.Add(TypeHandle.Get<TComponent0>());
         _filter._disabled.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
-	public QueryEnumerable<T0, T1, T2, T3> WithAll<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+    public QueryEnumerable<T0, T1, T2, T3> WithAll<TComponent0, TComponent1, TComponent2>()
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._all.Add(TypeHandle.Get<TComponent0>());
         _filter._all.Add(TypeHandle.Get<TComponent1>());
         _filter._all.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3> WithAny<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._any.Add(TypeHandle.Get<TComponent0>());
         _filter._any.Add(TypeHandle.Get<TComponent1>());
         _filter._any.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3> WithAbsent<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._absent.Add(TypeHandle.Get<TComponent0>());
         _filter._absent.Add(TypeHandle.Get<TComponent1>());
         _filter._absent.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3> WithDisabled<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._disabled.Add(TypeHandle.Get<TComponent0>());
         _filter._disabled.Add(TypeHandle.Get<TComponent1>());
         _filter._disabled.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 }
 
 public unsafe ref struct QueryEnumerable<T0, T1, T2, T3, T4>
@@ -865,7 +865,7 @@ public unsafe ref struct QueryEnumerable<T0, T1, T2, T3, T4>
     {
         private ref QueryFilter _filter;
         private UnsafeBitSet _filterMask;
-        
+
         private readonly ReadOnlySpan<Entity> _entities;
         private readonly Stack.Scope _stackScope;
 
@@ -926,101 +926,101 @@ public unsafe ref struct QueryEnumerable<T0, T1, T2, T3, T4>
         }
     }
 
-	public QueryEnumerable<T0, T1, T2, T3, T4> WithAll<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+    public QueryEnumerable<T0, T1, T2, T3, T4> WithAll<TComponent0>()
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._all.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4> WithAny<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._any.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4> WithAbsent<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._absent.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4> WithDisabled<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._disabled.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
-	public QueryEnumerable<T0, T1, T2, T3, T4> WithAll<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+    public QueryEnumerable<T0, T1, T2, T3, T4> WithAll<TComponent0, TComponent1>()
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._all.Add(TypeHandle.Get<TComponent0>());
         _filter._all.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4> WithAny<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._any.Add(TypeHandle.Get<TComponent0>());
         _filter._any.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4> WithAbsent<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._absent.Add(TypeHandle.Get<TComponent0>());
         _filter._absent.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4> WithDisabled<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._disabled.Add(TypeHandle.Get<TComponent0>());
         _filter._disabled.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
-	public QueryEnumerable<T0, T1, T2, T3, T4> WithAll<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+    public QueryEnumerable<T0, T1, T2, T3, T4> WithAll<TComponent0, TComponent1, TComponent2>()
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._all.Add(TypeHandle.Get<TComponent0>());
         _filter._all.Add(TypeHandle.Get<TComponent1>());
         _filter._all.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4> WithAny<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._any.Add(TypeHandle.Get<TComponent0>());
         _filter._any.Add(TypeHandle.Get<TComponent1>());
         _filter._any.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4> WithAbsent<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._absent.Add(TypeHandle.Get<TComponent0>());
         _filter._absent.Add(TypeHandle.Get<TComponent1>());
         _filter._absent.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4> WithDisabled<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._disabled.Add(TypeHandle.Get<TComponent0>());
         _filter._disabled.Add(TypeHandle.Get<TComponent1>());
         _filter._disabled.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 }
 
 public unsafe ref struct QueryEnumerable<T0, T1, T2, T3, T4, T5>
@@ -1084,7 +1084,7 @@ public unsafe ref struct QueryEnumerable<T0, T1, T2, T3, T4, T5>
     {
         private ref QueryFilter _filter;
         private UnsafeBitSet _filterMask;
-        
+
         private readonly ReadOnlySpan<Entity> _entities;
         private readonly Stack.Scope _stackScope;
 
@@ -1147,101 +1147,101 @@ public unsafe ref struct QueryEnumerable<T0, T1, T2, T3, T4, T5>
         }
     }
 
-	public QueryEnumerable<T0, T1, T2, T3, T4, T5> WithAll<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+    public QueryEnumerable<T0, T1, T2, T3, T4, T5> WithAll<TComponent0>()
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._all.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4, T5> WithAny<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._any.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4, T5> WithAbsent<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._absent.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4, T5> WithDisabled<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._disabled.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
-	public QueryEnumerable<T0, T1, T2, T3, T4, T5> WithAll<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+    public QueryEnumerable<T0, T1, T2, T3, T4, T5> WithAll<TComponent0, TComponent1>()
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._all.Add(TypeHandle.Get<TComponent0>());
         _filter._all.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4, T5> WithAny<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._any.Add(TypeHandle.Get<TComponent0>());
         _filter._any.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4, T5> WithAbsent<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._absent.Add(TypeHandle.Get<TComponent0>());
         _filter._absent.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4, T5> WithDisabled<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._disabled.Add(TypeHandle.Get<TComponent0>());
         _filter._disabled.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
-	public QueryEnumerable<T0, T1, T2, T3, T4, T5> WithAll<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+    public QueryEnumerable<T0, T1, T2, T3, T4, T5> WithAll<TComponent0, TComponent1, TComponent2>()
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._all.Add(TypeHandle.Get<TComponent0>());
         _filter._all.Add(TypeHandle.Get<TComponent1>());
         _filter._all.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4, T5> WithAny<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._any.Add(TypeHandle.Get<TComponent0>());
         _filter._any.Add(TypeHandle.Get<TComponent1>());
         _filter._any.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4, T5> WithAbsent<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._absent.Add(TypeHandle.Get<TComponent0>());
         _filter._absent.Add(TypeHandle.Get<TComponent1>());
         _filter._absent.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4, T5> WithDisabled<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._disabled.Add(TypeHandle.Get<TComponent0>());
         _filter._disabled.Add(TypeHandle.Get<TComponent1>());
         _filter._disabled.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 }
 
 public unsafe ref struct QueryEnumerable<T0, T1, T2, T3, T4, T5, T6>
@@ -1309,7 +1309,7 @@ public unsafe ref struct QueryEnumerable<T0, T1, T2, T3, T4, T5, T6>
     {
         private ref QueryFilter _filter;
         private UnsafeBitSet _filterMask;
-        
+
         private readonly ReadOnlySpan<Entity> _entities;
         private readonly Stack.Scope _stackScope;
 
@@ -1374,101 +1374,101 @@ public unsafe ref struct QueryEnumerable<T0, T1, T2, T3, T4, T5, T6>
         }
     }
 
-	public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithAll<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+    public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithAll<TComponent0>()
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._all.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithAny<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._any.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithAbsent<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._absent.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithDisabled<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._disabled.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
-	public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithAll<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+    public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithAll<TComponent0, TComponent1>()
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._all.Add(TypeHandle.Get<TComponent0>());
         _filter._all.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithAny<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._any.Add(TypeHandle.Get<TComponent0>());
         _filter._any.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithAbsent<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._absent.Add(TypeHandle.Get<TComponent0>());
         _filter._absent.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithDisabled<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._disabled.Add(TypeHandle.Get<TComponent0>());
         _filter._disabled.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
-	public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithAll<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+    public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithAll<TComponent0, TComponent1, TComponent2>()
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._all.Add(TypeHandle.Get<TComponent0>());
         _filter._all.Add(TypeHandle.Get<TComponent1>());
         _filter._all.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithAny<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._any.Add(TypeHandle.Get<TComponent0>());
         _filter._any.Add(TypeHandle.Get<TComponent1>());
         _filter._any.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithAbsent<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._absent.Add(TypeHandle.Get<TComponent0>());
         _filter._absent.Add(TypeHandle.Get<TComponent1>());
         _filter._absent.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6> WithDisabled<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._disabled.Add(TypeHandle.Get<TComponent0>());
         _filter._disabled.Add(TypeHandle.Get<TComponent1>());
         _filter._disabled.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 }
 
 public unsafe ref struct QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7>
@@ -1540,7 +1540,7 @@ public unsafe ref struct QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7>
     {
         private ref QueryFilter _filter;
         private UnsafeBitSet _filterMask;
-        
+
         private readonly ReadOnlySpan<Entity> _entities;
         private readonly Stack.Scope _stackScope;
 
@@ -1607,100 +1607,100 @@ public unsafe ref struct QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7>
         }
     }
 
-	public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithAll<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+    public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithAll<TComponent0>()
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._all.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithAny<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._any.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithAbsent<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._absent.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithDisabled<TComponent0>()
-		where TComponent0 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData
+    {
         _filter._disabled.Add(TypeHandle.Get<TComponent0>());
         return this;
-	}
+    }
 
-	public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithAll<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+    public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithAll<TComponent0, TComponent1>()
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._all.Add(TypeHandle.Get<TComponent0>());
         _filter._all.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithAny<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._any.Add(TypeHandle.Get<TComponent0>());
         _filter._any.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithAbsent<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._absent.Add(TypeHandle.Get<TComponent0>());
         _filter._absent.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithDisabled<TComponent0, TComponent1>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData
+    {
         _filter._disabled.Add(TypeHandle.Get<TComponent0>());
         _filter._disabled.Add(TypeHandle.Get<TComponent1>());
         return this;
-	}
+    }
 
-	public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithAll<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+    public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithAll<TComponent0, TComponent1, TComponent2>()
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._all.Add(TypeHandle.Get<TComponent0>());
         _filter._all.Add(TypeHandle.Get<TComponent1>());
         _filter._all.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithAny<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._any.Add(TypeHandle.Get<TComponent0>());
         _filter._any.Add(TypeHandle.Get<TComponent1>());
         _filter._any.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithAbsent<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._absent.Add(TypeHandle.Get<TComponent0>());
         _filter._absent.Add(TypeHandle.Get<TComponent1>());
         _filter._absent.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 
     public QueryEnumerable<T0, T1, T2, T3, T4, T5, T6, T7> WithDisabled<TComponent0, TComponent1, TComponent2>()
-		where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
-	{
+        where TComponent0 : unmanaged, IComponentData where TComponent1 : unmanaged, IComponentData where TComponent2 : unmanaged, IComponentData
+    {
         _filter._disabled.Add(TypeHandle.Get<TComponent0>());
         _filter._disabled.Add(TypeHandle.Get<TComponent1>());
         _filter._disabled.Add(TypeHandle.Get<TComponent2>());
         return this;
-	}
+    }
 }
 

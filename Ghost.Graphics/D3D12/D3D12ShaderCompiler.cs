@@ -1,8 +1,10 @@
-#undef SUPPORT_TEXTURE_BINDING
-
+using Ghost.Core;
+using Ghost.Core.Utilities;
 using Ghost.Graphics.D3D12.Utilities;
-using Ghost.Graphics.Data;
+using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
@@ -10,63 +12,192 @@ using TerraFX.Interop.Windows;
 
 namespace Ghost.Graphics.D3D12;
 
-internal unsafe static class D3D12ShaderCompiler
+internal unsafe struct CompileResult : IDisposable
 {
-    public enum CompilerVersion
+    public UnsafeArray<byte> bytecode;
+
+    public readonly bool IsCreated => bytecode.IsCreated;
+
+    public void Dispose()
     {
-        SM_6_6,
-        SM_7_0
+        bytecode.Dispose();
+    }
+}
+
+internal readonly struct CBufferVariableInfo
+{
+    public string Name
+    {
+        get; init;
     }
 
-    public enum ShaderStage
+    public uint StartOffset
     {
-        VertexShader,
-        PixelShader,
-        MeshShader,
-        ComputeShader
+        get; init;
     }
 
-    public struct CompileResult : IDisposable
+    public uint Size
     {
-        public UnsafeArray<byte> bytecode;
-        public ComPtr<IDxcBlob> reflection;
+        get; init;
+    }
+}
 
-        public void Dispose()
-        {
-            bytecode.Dispose();
-            reflection.Dispose();
-        }
+internal readonly struct CBufferInfo
+{
+    public string Name
+    {
+        get; init;
     }
 
-    private static string GetProfileString(ShaderStage stage, CompilerVersion version)
+    public uint RegisterSlot
+    {
+        get; init;
+    }
+
+    public uint RegisterSpace
+    {
+        get; init;
+    }
+
+    public uint SizeInBytes
+    {
+        get; init;
+    }
+
+    public IReadOnlyList<CBufferVariableInfo> Variables
+    {
+        get; init;
+    }
+}
+
+internal readonly struct ResourceBindingInfo
+{
+    public string Name
+    {
+        get; init;
+    }
+
+    public D3D_SHADER_INPUT_TYPE Type
+    {
+        get; init;
+    }
+
+    public uint BindPoint
+    {
+        get; init;
+    }
+
+    public uint BindCount
+    {
+        get; init;
+    }
+
+    public uint Space
+    {
+        get; init;
+    }
+}
+
+internal readonly struct ShaderReflectionData
+{
+    public List<CBufferInfo> ConstantBuffers
+    {
+        get;
+    }
+
+    public List<ResourceBindingInfo> OtherResources
+    {
+        get;
+    }
+
+    // public List<ResourceBindingInfo> Samplers { get; } = new();
+    // public List<ResourceBindingInfo> ShaderResourceViews { get; } = new();
+    // public List<ResourceBindingInfo> UnorderedAccessViews { get; } = new();
+
+    public ShaderReflectionData()
+    {
+        ConstantBuffers = new List<CBufferInfo>();
+        OtherResources = new List<ResourceBindingInfo>();
+    }
+}
+
+internal static unsafe class D3D12ShaderCompiler
+{
+
+    private static string GetProfileString(ShaderStage stage, CompilerTier version)
     {
         return (stage, version) switch
         {
-            (ShaderStage.VertexShader, CompilerVersion.SM_6_6) => "vs_6_6",
-            (ShaderStage.PixelShader, CompilerVersion.SM_6_6) => "ps_6_6",
-            (ShaderStage.MeshShader, CompilerVersion.SM_6_6) => "ms_6_6",
-            (ShaderStage.ComputeShader, CompilerVersion.SM_6_6) => "cs_6_6",
-            (ShaderStage.VertexShader, CompilerVersion.SM_7_0) => "vs_7_0",
-            (ShaderStage.PixelShader, CompilerVersion.SM_7_0) => "ps_7_0",
-            (ShaderStage.MeshShader, CompilerVersion.SM_7_0) => "ms_7_0",
-            (ShaderStage.ComputeShader, CompilerVersion.SM_7_0) => "cs_7_0",
+            (ShaderStage.TaskShader, CompilerTier.Tier0) => "as_6_6",
+            (ShaderStage.PixelShader, CompilerTier.Tier0) => "ps_6_6",
+            (ShaderStage.MeshShader, CompilerTier.Tier0) => "ms_6_6",
+            (ShaderStage.ComputeShader, CompilerTier.Tier0) => "cs_6_6",
+            (ShaderStage.TaskShader, CompilerTier.Tier1) => "as_6_7",
+            (ShaderStage.PixelShader, CompilerTier.Tier1) => "ps_6_7",
+            (ShaderStage.MeshShader, CompilerTier.Tier1) => "ms_6_7",
+            (ShaderStage.ComputeShader, CompilerTier.Tier1) => "cs_6_7",
+            (ShaderStage.TaskShader, CompilerTier.Tier2) => "as_6_8",
+            (ShaderStage.PixelShader, CompilerTier.Tier2) => "ps_6_8",
+            (ShaderStage.MeshShader, CompilerTier.Tier2) => "ms_6_8",
+            (ShaderStage.ComputeShader, CompilerTier.Tier2) => "cs_6_8",
             _ => throw new ArgumentOutOfRangeException(nameof(stage), "Unsupported shader stage or compiler version")
         };
     }
 
-    private static string GetEntryPoint(ShaderStage stage)
+    private static string GetOptimizeLevelString(CompilerOptimizeLevel level)
     {
-        return stage switch
+        return level switch
         {
-            ShaderStage.VertexShader => "VSMain",
-            ShaderStage.PixelShader => "PSMain",
-            ShaderStage.MeshShader => "MSMain",
-            ShaderStage.ComputeShader => "CSMain",
-            _ => throw new ArgumentOutOfRangeException(nameof(stage), "Unsupported shader stage")
+            CompilerOptimizeLevel.O0 => "-O0",
+            CompilerOptimizeLevel.O1 => "-O1",
+            CompilerOptimizeLevel.O2 => "-O2",
+            CompilerOptimizeLevel.O3 => "-O3",
+            _ => throw new ArgumentOutOfRangeException(nameof(level), "Unsupported optimization level")
         };
     }
 
-    public static CompileResult Compile(string shaderPath, ShaderStage stage, CompilerVersion version)
+    private static List<string> GetCompilerArguments(ref readonly CompilerConfig config)
+    {
+        var argsArray = new List<string>
+        {
+            "-T", GetProfileString(config.stage, config.tier),   // Target profile (ms_6_6, ps_6_6)
+            "-E", config.entryPoint,                                    // Entry point
+            "-HV", "2021",                                              // HLSL version 2021
+            "-enable-16bit-types",                                      // Enable 16-bit types
+            GetOptimizeLevelString(config.optimizeLevel),         // Optimization level
+        };
+
+        foreach (var include in config.includes)
+        {
+            argsArray.Add("-I");
+            argsArray.Add(include);
+        }
+
+        foreach (var define in config.defines)
+        {
+            argsArray.Add("-D");
+            argsArray.Add(define);
+        }
+
+        if (!config.options.HasFlag(CompilerOption.KeepDebugInfo))
+        {
+            argsArray.Add("-Qstrip_debug");
+        }
+
+        if (!config.options.HasFlag(CompilerOption.KeepReflections))
+        {
+            argsArray.Add("-Qstrip_reflect");
+        }
+
+        if (config.options.HasFlag(CompilerOption.WarnAsError))
+        {
+            argsArray.Add("-WX");
+        }
+
+        return argsArray;
+    }
+
+    public static Result<CompileResult> Compile(ref readonly CompilerConfig config, Allocator allocator, IDxcBlob** ppReflectionBlob)
     {
         using ComPtr<IDxcCompiler3> compiler = default;
         using ComPtr<IDxcUtils> utils = default;
@@ -76,56 +207,38 @@ internal unsafe static class D3D12ShaderCompiler
         var pDxcCompiler = (Guid*)Unsafe.AsPointer(in CLSID.CLSID_DxcCompiler);
         var pDxcUtils = (Guid*)Unsafe.AsPointer(in CLSID.CLSID_DxcUtils);
 
-        DxcCreateInstance(pDxcCompiler, __uuidof<IDxcCompiler3>(), compiler.GetVoidAddressOf());
-        DxcCreateInstance(pDxcUtils, __uuidof<IDxcUtils>(), utils.GetVoidAddressOf());
+        ThrowIfFailed(DxcCreateInstance(pDxcCompiler, __uuidof<IDxcCompiler3>(), compiler.GetVoidAddressOf()));
+        ThrowIfFailed(DxcCreateInstance(pDxcUtils, __uuidof<IDxcUtils>(), utils.GetVoidAddressOf()));
+
+        //includeHandler.Get()->LoadSource();
         utils.Get()->CreateDefaultIncludeHandler(includeHandler.GetAddressOf());
 
         // Create source blob
         using ComPtr<IDxcBlobEncoding> sourceBlob = default;
-        //var sourceBytes = System.Text.Encoding.UTF8.GetBytes(shaderPath);
-
-        fixed (char* pShaderPath = shaderPath.AsSpan())
+        if (utils.Get()->LoadFile(config.shaderPath.AsSpan().GetUnsafePtr(), null, sourceBlob.GetAddressOf()).FAILED)
         {
-            utils.Get()->LoadFile(pShaderPath, null, sourceBlob.GetAddressOf());
-            //utils.Get()->CreateBlob(sourceBytesPtr, (uint)sourceBytes.Length, DXC_CP_UTF8, sourceBlob.GetAddressOf());
+            return Result<CompileResult>.Fail($"Failed to load shader file: {config.shaderPath}");
         }
 
-        // Prepare compilation arguments - NOTE: NO -Qstrip_reflect to keep reflection data
-        var argsArray = new string[]
+        var argsArray = GetCompilerArguments(in config);
+        var argPtrs = stackalloc char*[argsArray.Count];
+        for (var i = 0; i < argsArray.Count; i++)
         {
-            "-T", GetProfileString(stage, version),                 // Target profile (vs_6_6, ps_6_6)
-            "-E", GetEntryPoint(stage),                             // Entry point
-            "-HV", "2021",                                          // HLSL version 2021 (required for SM 6.6)
-            "-enable-16bit-types",                                  // Enable 16-bit types
-            "-O3",                                                  // Optimization level
-            "-Qstrip_debug"                                         // Strip debug info but KEEP reflection
-        };
-
-        // Convert to wide strings (DXC expects LPCWSTR)
-        var wideArgs = new nuint[argsArray.Length];
-        var argPointers = new IntPtr[argsArray.Length];
-
-        for (var i = 0; i < argsArray.Length; i++)
-        {
-            argPointers[i] = Marshal.StringToHGlobalUni(argsArray[i]);
-            wideArgs[i] = (nuint)argPointers[i];
+            argPtrs[i] = (char*)Marshal.StringToHGlobalUni(argsArray[i]);
         }
 
         try
         {
             // Compile shader
             using ComPtr<IDxcResult> result = default;
-            fixed (nuint* argsPtr = wideArgs)
+            var buffer = new DxcBuffer
             {
-                var buffer = new DxcBuffer
-                {
-                    Ptr = sourceBlob.Get()->GetBufferPointer(),
-                    Size = sourceBlob.Get()->GetBufferSize(),
-                    Encoding = DXC.DXC_CP_UTF8
-                };
+                Ptr = sourceBlob.Get()->GetBufferPointer(),
+                Size = sourceBlob.Get()->GetBufferSize(),
+                Encoding = DXC.DXC_CP_UTF8
+            };
 
-                compiler.Get()->Compile(&buffer, (char**)argsPtr, (uint)argsArray.Length, includeHandler.Get(), __uuidof<IDxcResult>(), result.GetVoidAddressOf());
-            }
+            ThrowIfFailed(compiler.Get()->Compile(&buffer, argPtrs, (uint)argsArray.Count, includeHandler.Get(), __uuidof<IDxcResult>(), result.GetVoidAddressOf()));
 
             // Check compilation result
             HRESULT hrStatus;
@@ -139,11 +252,11 @@ internal unsafe static class D3D12ShaderCompiler
                 if (errorBlob.Get() != null)
                 {
                     var errorMessage = Marshal.PtrToStringUni((IntPtr)errorBlob.Get()->GetBufferPointer());
-                    throw new Exception($"DXC shader compilation failed: {errorMessage}");
+                    return Result<CompileResult>.Fail($"DXC shader compilation failed:\n{errorMessage}");
                 }
                 else
                 {
-                    throw new Exception("DXC shader compilation failed with unknown error");
+                    return Result<CompileResult>.Fail("DXC shader compilation failed with unknown error.");
                 }
             }
 
@@ -152,47 +265,46 @@ internal unsafe static class D3D12ShaderCompiler
             ThrowIfFailed(result.Get()->GetResult(bytecodeBlob.GetAddressOf()));
 
             // Get reflection data using DXC API
-            using ComPtr<IDxcBlob> reflectionBlob = default;
-            ThrowIfFailed(result.Get()->GetOutput(DXC_OUT_KIND.DXC_OUT_REFLECTION, __uuidof<IDxcBlob>(), reflectionBlob.GetVoidAddressOf(), null));
+            if (ppReflectionBlob != null)
+            {
+                ThrowIfFailed(result.Get()->GetOutput(DXC_OUT_KIND.DXC_OUT_REFLECTION, __uuidof<IDxcBlob>(), (void**)ppReflectionBlob, null));
+            }
 
             var bytecodeSize = bytecodeBlob.Get()->GetBufferSize();
-            var bytecode = new UnsafeArray<byte>((int)bytecodeSize, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
+            var bytecode = new UnsafeArray<byte>((int)bytecodeSize, allocator);
 
             NativeMemory.Copy(bytecodeBlob.Get()->GetBufferPointer(), bytecode.GetUnsafePtr(), bytecodeSize);
 
             return new CompileResult
             {
                 bytecode = bytecode,
-                reflection = reflectionBlob.Move()
             };
         }
         finally
         {
-            // Free allocated wide strings
-            for (var i = 0; i < argPointers.Length; i++)
+            for (var i = 0; i < argsArray.Count; i++)
             {
-                Marshal.FreeHGlobal(argPointers[i]);
+                Marshal.FreeHGlobal((nint)argPtrs[i]);
             }
         }
     }
 
-    private static void AddProperty(ref Shader shader, string name, PropertyInfo propertyInfo)
-    {
-        var id = shader.Properties.Count;
-        shader.Properties.Add(propertyInfo);
-        shader.PropertyNameToIdMap[name] = id;
-    }
-
     // TODO: Since we are using fixed root signature layout, the reflection pass should only validate the layout, not generate it.
-    public static void PerformDXCReflection(ref Shader shader, IDxcBlob* reflectionBlob)
+    // TODO: Ideally this should return a structured reflection data instead of populating raw lists/dictionaries.
+    public static Result<ShaderReflectionData> PerformDXCReflection(IDxcBlob* reflectionBlob)
     {
+        if (reflectionBlob == null)
+        {
+            return Result<ShaderReflectionData>.Fail("Reflection blob is null.");
+        }
+
         // Create DXC utils to parse reflection data
         var pDxcUtils = (Guid*)Unsafe.AsPointer(in CLSID.CLSID_DxcUtils);
         using ComPtr<IDxcUtils> utils = default;
-        DxcCreateInstance(pDxcUtils, __uuidof<IDxcUtils>(), utils.GetVoidAddressOf());
+        ThrowIfFailed(DxcCreateInstance(pDxcUtils, __uuidof<IDxcUtils>(), utils.GetVoidAddressOf()));
 
         // Create reflection interface from blob
-        var reflectionData = new DxcBuffer
+        var reflectionBuffer = new DxcBuffer
         {
             Ptr = reflectionBlob->GetBufferPointer(),
             Size = reflectionBlob->GetBufferSize(),
@@ -200,94 +312,84 @@ internal unsafe static class D3D12ShaderCompiler
         };
 
         using ComPtr<ID3D12ShaderReflection> reflection = default;
-        ThrowIfFailed(utils.Get()->CreateReflection(&reflectionData, __uuidof<ID3D12ShaderReflection>(), reflection.GetVoidAddressOf()));
+        ThrowIfFailed(utils.Get()->CreateReflection(&reflectionBuffer, __uuidof<ID3D12ShaderReflection>(), reflection.GetVoidAddressOf()));
 
         D3D12_SHADER_DESC shaderDesc;
-        reflection.Get()->GetDesc(&shaderDesc);
+        ThrowIfFailed(reflection.Get()->GetDesc(&shaderDesc));
 
-        var cbufferRegistry = new Dictionary<string, CBufferInfo>();
-        var textureRegistry = new Dictionary<string, TextureInfo>();
+        var reflectionData = new ShaderReflectionData();
 
         for (uint i = 0; i < shaderDesc.BoundResources; i++)
         {
             D3D12_SHADER_INPUT_BIND_DESC bindDesc;
-            reflection.Get()->GetResourceBindingDesc(i, &bindDesc);
+            ThrowIfFailed(reflection.Get()->GetResourceBindingDesc(i, &bindDesc));
+
+            var resourceName = Marshal.PtrToStringUTF8((IntPtr)bindDesc.Name);
+            if (resourceName == null)
+            {
+                return Result<ShaderReflectionData>.Fail("Failed to get resource name from reflection data.");
+            }
 
             switch (bindDesc.Type)
             {
                 case D3D_SHADER_INPUT_TYPE.D3D_SIT_CBUFFER:
                 {
-                    var cbufferName = Marshal.PtrToStringAnsi((IntPtr)bindDesc.Name);
-                    if (cbufferName == null || cbufferRegistry.ContainsKey(cbufferName))
-                    {
-                        continue;
-                    }
-
                     var cbuffer = reflection.Get()->GetConstantBufferByName(bindDesc.Name);
                     D3D12_SHADER_BUFFER_DESC cbufferDesc;
-                    cbuffer->GetDesc(&cbufferDesc);
+                    ThrowIfFailed(cbuffer->GetDesc(&cbufferDesc));
 
-                    var cbufferInfo = new CBufferInfo
-                    {
-                        Size = cbufferDesc.Size,
-                        RegisterSlot = bindDesc.BindPoint
-                    };
-                    cbufferRegistry.Add(cbufferName, cbufferInfo);
+                    var variables = new List<CBufferVariableInfo>((int)cbufferDesc.Variables);
 
+                    // Now we iterate all variables for *every* cbuffer, not just b3
                     for (uint j = 0; j < cbufferDesc.Variables; j++)
                     {
                         var variable = cbuffer->GetVariableByIndex(j);
                         D3D12_SHADER_VARIABLE_DESC varDesc;
                         variable->GetDesc(&varDesc);
 
-                        var variableName = Marshal.PtrToStringAnsi((IntPtr)varDesc.Name);
-                        if (variableName == null || shader.PropertyNameToIdMap.ContainsKey(variableName))
+                        var variableName = Marshal.PtrToStringUTF8((IntPtr)varDesc.Name);
+                        if (variableName == null)
                         {
                             continue;
                         }
 
-                        var propInfo = new PropertyInfo
+                        variables.Add(new CBufferVariableInfo
                         {
-                            CBufferIndex = cbufferInfo.RegisterSlot,
-                            ByteOffset = varDesc.StartOffset,
+                            Name = variableName,
+                            StartOffset = varDesc.StartOffset,
                             Size = varDesc.Size
-                        };
-
-                        AddProperty(ref shader, variableName, propInfo);
+                        });
                     }
+
+                    reflectionData.ConstantBuffers.Add(new CBufferInfo
+                    {
+                        Name = resourceName,
+                        RegisterSlot = bindDesc.BindPoint,
+                        RegisterSpace = bindDesc.Space,
+                        SizeInBytes = cbufferDesc.Size,
+                        Variables = variables
+                    });
 
                     break;
                 }
 
-                case D3D_SHADER_INPUT_TYPE.D3D_SIT_TEXTURE:
+                // NOTE: Currently we are not support resource bindings yet, everything access through bindless heaps.
+                default:
                 {
-#if SUPPORT_TEXTURE_BINDING
-                    var textureName = Marshal.PtrToStringAnsi((IntPtr)bindDesc.Name);
-                    if (textureName == null || textureRegistry.ContainsKey(textureName))
+                    reflectionData.OtherResources.Add(new ResourceBindingInfo
                     {
-                        continue;
-                    }
+                        Name = resourceName,
+                        Type = bindDesc.Type,
+                        BindPoint = bindDesc.BindPoint,
+                        BindCount = bindDesc.BindCount,
+                        Space = bindDesc.Space
+                    });
 
-                    // ALL texture input slots are regular textures!
-                    // Bindless textures don't use explicit texture inputs - they use ResourceDescriptorHeap[index]
-                    var textureInfo = new TextureInfo
-                    {
-                        RegisterSlot = bindDesc.BindPoint,
-                        RootParameterIndex = (uint)shader.ConstantBuffers.Count // Descriptor table comes after CBVs
-                    };
-
-                    textureRegistry.Add(textureName, textureInfo);
                     break;
-#endif
-                    throw new NotSupportedException("Texture bindings are not supported in current version. Please use bindless textures.");
                 }
             }
         }
 
-        shader.PerMaterialBufferInfo.Clear();
-        foreach (var cbuf in cbufferRegistry.Values)
-        {
-            shader.PerMaterialBufferInfo.Add(cbuf);
-        }
+        return reflectionData;
     }
 }

@@ -1,0 +1,603 @@
+﻿using Misaki.HighPerformance.Utilities;
+using System.IO.Hashing;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using TerraFX.Interop.DirectX;
+
+namespace Ghost.Graphics.RHI;
+
+public readonly struct ShaderPassKey
+{
+    public readonly ulong value;
+
+    public ShaderPassKey(ulong value)
+    {
+        this.value = value;
+    }
+
+    public ShaderPassKey(string passId)
+    {
+        var passIdSpan = passId.AsSpan();
+        value = XxHash3.HashToUInt64(MemoryMarshal.AsBytes(passIdSpan));
+    }
+
+    public override string ToString()
+    {
+        return value.ToString("X16");
+    }
+
+    public override int GetHashCode()
+    {
+        return value.GetHashCode();
+    }
+}
+
+public readonly struct GraphicsPipelineKey
+{
+    public readonly ulong value;
+
+    public GraphicsPipelineKey(ulong value)
+    {
+        this.value = value;
+    }
+
+    public override string ToString()
+    {
+        return value.ToString("X16");
+    }
+
+    public override int GetHashCode()
+    {
+        return value.GetHashCode();
+    }
+}
+
+internal struct GraphicsPipelineHash
+{
+    [InlineArray(8)]
+    public struct rtv_array
+    {
+        public TextureFormat rtvFormats;
+    }
+
+    public rtv_array rtvFormats;
+    public ShaderPassKey id;
+    public uint rtvCount;
+    public TextureFormat dsvFormat;
+    // Do we need to store blend state?
+    // TODO: Variants
+
+    public readonly GraphicsPipelineKey GetKey()
+    {
+        Span<ulong> data = stackalloc ulong[3 + 8];
+        data[0] = id.value;
+        data[1] = rtvCount;
+        data[2] = (ulong)dsvFormat;
+
+        for (int i = 0; i < 8; i++)
+        {
+            data[3 + i] = (ulong)rtvFormats[i];
+        }
+
+        var bytes = MemoryMarshal.AsBytes(data);
+        return new GraphicsPipelineKey(XxHash3.HashToUInt64(bytes));
+    }
+}
+
+
+
+public struct ViewportDesc
+{
+    public float x;
+    public float y;
+    public float width;
+    public float height;
+    public float minDepth;
+    public float maxDepth;
+}
+
+public struct RectDesc
+{
+    public uint left;
+    public uint top;
+    public uint right;
+    public uint bottom;
+}
+
+public struct SubResourceData
+{
+    public unsafe void* pData;
+    public nint rowPitch;
+    public nint slicePitch;
+}
+
+[StructLayout(LayoutKind.Explicit)]
+public struct ResourceDesc
+{
+    [FieldOffset(0)]
+    public TextureDesc textureDescription;
+
+    [FieldOffset(0)]
+    public BufferDesc bufferDescription;
+
+    public static ResourceDesc Buffer(BufferDesc desc)
+    {
+        return new ResourceDesc
+        {
+            bufferDescription = desc
+        };
+    }
+
+    public static ResourceDesc Texture(TextureDesc desc)
+    {
+        return new ResourceDesc
+        {
+            textureDescription = desc
+        };
+    }
+
+    internal static ResourceDesc FromD3D12(D3D12_RESOURCE_DESC desc)
+    {
+        if (desc.Dimension == D3D12_RESOURCE_DIMENSION.D3D12_RESOURCE_DIMENSION_BUFFER)
+        {
+            return Buffer(new BufferDesc
+            {
+                Size = (uint)desc.Width,
+                Stride = 0,
+                Usage = BufferUsage.None,
+                MemoryType = ResourceMemoryType.Default
+            });
+        }
+        else
+        {
+            return Texture(new TextureDesc
+            {
+                Width = (uint)desc.Width,
+                Height = desc.Height,
+                Slice = desc.DepthOrArraySize,
+                Format = desc.Format.ToTextureFormat(),
+                Dimension = desc.Dimension.ToTextureDimension(),
+                MipLevels = desc.MipLevels,
+                Usage = TextureUsage.None,
+            });
+        }
+    }
+}
+
+/// <summary>
+/// Render target description
+/// Supports either color OR depth rendering, not both
+/// </summary>
+public struct RenderTargetDesc
+{
+    /// <summary>
+    /// Width of the render target
+    /// </summary>
+    public uint Width
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Height of the render target
+    /// </summary>
+    public uint Height
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Slice of the render target
+    /// </summary>
+    public uint Slice
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Type of render target
+    /// </summary>
+    public RenderTargetType Type
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Target texture format
+    /// </summary>
+    public TextureFormat Format
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Texture dimension
+    /// </summary>
+    public TextureDimension Dimension
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Creation flags for the render target
+    /// </summary>
+    public RenderTargetCreationFlags CreationFlags
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Number of mip levels. 0 to generate full mip chain
+    /// </summary>
+    public uint MipLevels
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Number of samples for MSAA
+    /// </summary>
+    public uint SampleCount
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Creates a color render target
+    /// </summary>
+    public static RenderTargetDesc Color(uint width, uint height, uint slice = 1,
+        TextureFormat format = TextureFormat.R8G8B8A8_UNorm, TextureDimension dimension = TextureDimension.Texture2D,
+        RenderTargetCreationFlags creationFlags = RenderTargetCreationFlags.AllowUAV | RenderTargetCreationFlags.DynamicallyResolution | RenderTargetCreationFlags.GenerateMips,
+        uint mipLevels = 0u, uint sampleCount = 1)
+    {
+        return new RenderTargetDesc
+        {
+            Width = width,
+            Height = height,
+            Slice = slice,
+            Type = RenderTargetType.Color,
+            Format = format,
+            Dimension = dimension,
+            CreationFlags = creationFlags,
+            MipLevels = mipLevels,
+            SampleCount = sampleCount
+        };
+    }
+
+    /// <summary>
+    /// Creates a depth render target
+    /// </summary>
+    public static RenderTargetDesc Depth(uint width, uint height, uint slice = 1,
+        TextureFormat format = TextureFormat.D24_UNorm_S8_UInt, TextureDimension dimension = TextureDimension.Texture2D,
+        RenderTargetCreationFlags creationFlags = RenderTargetCreationFlags.AllowUAV | RenderTargetCreationFlags.DynamicallyResolution,
+        uint mipLevels = 0u, uint sampleCount = 1)
+    {
+        return new RenderTargetDesc
+        {
+            Width = width,
+            Height = height,
+            Slice = slice,
+            Type = RenderTargetType.Depth,
+            Format = format,
+            Dimension = dimension,
+            CreationFlags = creationFlags,
+            MipLevels = mipLevels,
+            SampleCount = sampleCount
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static TextureDesc ToTextureDescripton(RenderTargetDesc desc)
+    {
+        var usage = desc.Type == RenderTargetType.Color ? TextureUsage.RenderTarget : TextureUsage.DepthStencil;
+        if (desc.CreationFlags.HasFlag(RenderTargetCreationFlags.AllowUAV))
+        {
+            usage |= TextureUsage.UnorderedAccess;
+        }
+
+        return new TextureDesc
+        {
+            Width = desc.Width,
+            Height = desc.Height,
+            Slice = desc.Slice,
+            Format = desc.Format,
+            Dimension = desc.Dimension,
+            MipLevels = desc.MipLevels,
+            Usage = usage,
+        };
+    }
+}
+
+/// <summary>
+/// Texture description
+/// </summary>
+public struct TextureDesc
+{
+    /// <summary>
+    /// Width of the texture
+    /// </summary>
+    public uint Width
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Height of the texture
+    /// </summary>
+    public uint Height
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Slice of the texture
+    /// </summary>
+    public uint Slice
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Texture format
+    /// </summary>
+    public TextureFormat Format
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Texture dimension
+    /// </summary>
+    public TextureDimension Dimension
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Number of mip levels. 0 to generate full mip chain
+    /// </summary>
+    public uint MipLevels
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Texture usage flags
+    /// </summary>
+    public TextureUsage Usage
+    {
+        get;
+        set;
+    }
+}
+
+/// <summary>
+/// Buffer description
+/// </summary>
+public struct BufferDesc
+{
+    /// <summary>
+    /// Size of the buffer in bytes
+    /// </summary>
+    public ulong Size
+    {
+        get;
+        set;
+    }
+
+    public uint Stride
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Buffer usage flags
+    /// </summary>
+    public BufferUsage Usage
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Memory type for the buffer
+    /// </summary>
+    public ResourceMemoryType MemoryType
+    {
+        get;
+        set;
+    }
+}
+
+public static class TextureDimensionExtension
+{
+    public static TextureDimension ToTextureDimension(this D3D12_RESOURCE_DIMENSION dimension)
+    {
+        return dimension switch
+        {
+            D3D12_RESOURCE_DIMENSION.D3D12_RESOURCE_DIMENSION_TEXTURE1D => TextureDimension.Texture2D,
+            D3D12_RESOURCE_DIMENSION.D3D12_RESOURCE_DIMENSION_TEXTURE2D => TextureDimension.Texture2D,
+            D3D12_RESOURCE_DIMENSION.D3D12_RESOURCE_DIMENSION_TEXTURE3D => TextureDimension.Texture3D,
+            _ => TextureDimension.Unknown,
+        };
+    }
+}
+
+
+[Flags]
+public enum ResourceState
+{
+    Common = 0,
+    VertexAndConstantBuffer = 1 << 0,
+    IndexBuffer = 1 << 1,
+    RenderTarget = 1 << 2,
+    UnorderedAccess = 1 << 3,
+    DepthWrite = 1 << 4,
+    DepthRead = 1 << 5,
+    PixelShaderResource = 1 << 6,
+    CopyDest = 1 << 7,
+    CopySource = 1 << 8,
+    GenericRead = 1 << 9,
+    IndirectArgument = 1 << 10,
+    Present = 0,
+}
+
+public enum CommandQueueType
+{
+    Graphics,
+    Compute,
+    Copy
+}
+
+public enum CommandBufferType
+{
+    Graphics,
+    Compute,
+    Copy
+}
+
+public enum PipelineType
+{
+    Graphics,
+    Compute
+}
+
+[Flags]
+public enum RenderTargetCreationFlags
+{
+    None = 0,
+    AllowUAV = 1 << 0,
+    AllowMSAA = 1 << 1,
+    DynamicallyResolution = 1 << 2,
+    GenerateMips = 1 << 3
+}
+
+public enum ResourceMemoryType
+{
+    Default,    // GPU memory
+    Upload,     // CPU-to-GPU memory
+    Readback    // GPU-to-CPU memory
+}
+
+[Flags]
+public enum TextureUsage
+{
+    None = 0,
+    ShaderResource = 1 << 0,
+    RenderTarget = 1 << 1,
+    DepthStencil = 1 << 2,
+    UnorderedAccess = 1 << 3
+}
+
+public enum TextureDimension
+{
+    Unknown = -1,
+    None = 0,
+    Texture2D = 1,
+    Texture3D = 2,
+    TextureCube = 3,
+    Texture2DArray = 4,
+    TextureCubeArray = 5
+}
+
+public enum RenderTargetType
+{
+    Color,
+    Depth
+}
+
+// TODO: Support compressed formats (BCn, ASTC, ETC2, etc)
+public enum TextureFormat
+{
+    Unknown,
+    R8G8B8A8_UNorm,
+    B8G8R8A8_UNorm,
+    R16G16B16A16_Float,
+    R32G32B32A32_Float,
+    D24_UNorm_S8_UInt,
+    D32_Float
+}
+
+[Flags]
+public enum BufferUsage
+{
+    None = 0,
+    Vertex = 1 << 0,
+    Index = 1 << 1,
+    Constant = 1 << 2,
+    Structured = 1 << 3,
+    Raw = 1 << 4,
+    Upload = 1 << 5,
+    Readback = 1 << 6,
+    IndirectArgument = 1 << 7,
+
+    ShaderResource = Vertex | Index | Constant
+}
+
+public enum IndexType
+{
+    UInt16,
+    UInt32
+}
+
+// Shader compiler
+
+internal ref struct CompilerConfig
+{
+    public ReadOnlySpan<string> includes;
+    public ReadOnlySpan<string> defines;
+    public string shaderPath;
+    public string entryPoint;
+    public ShaderStage stage;
+    public CompilerTier tier;
+    public CompilerOptimizeLevel optimizeLevel;
+    public CompilerOption options;
+}
+
+internal enum CompilerTier
+{
+    Tier0,
+    Tier1,
+    Tier2
+}
+
+internal enum CompilerOptimizeLevel
+{
+    O0,
+    O1,
+    O2,
+    O3
+}
+
+[Flags]
+internal enum CompilerOption
+{
+    None = 0,
+    KeepDebugInfo = 1 << 0,
+    KeepReflections = 1 << 1,
+    WarnAsError = 1 << 2
+}
+
+internal enum ShaderStage
+{
+    TaskShader,
+    MeshShader,
+    PixelShader,
+    ComputeShader
+}

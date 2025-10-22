@@ -1,23 +1,93 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
-using System.Numerics;
+using Misaki.HighPerformance.Mathematics;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.Data;
 
-public struct Material : IHandleType
+internal struct CBufferCache : IResourceReleasable
 {
-    internal CBufferCache _materialPropertiesCache;
+    private UnsafeArray<byte> _cpuData;
+    private Handle<GraphicsBuffer> _gpuResource;
+    private uint _alignedSize;
 
-    public Identifier<Shader> Shader
+    public readonly UnsafeArray<byte> CpuData => _cpuData;
+    public readonly Handle<GraphicsBuffer> GpuResource => _gpuResource;
+    public readonly uint AlignedSize => _alignedSize;
+
+    public unsafe CBufferCache(IResourceAllocator allocator, uint bufferSize)
     {
-        get; internal set;
+        _alignedSize = (bufferSize + 255u) & ~255u;
+
+        _cpuData = new((int)AlignedSize, Allocator.Persistent);
+
+        var desc = new BufferDesc
+        {
+            Size = bufferSize,
+            Usage = BufferUsage.Constant,
+            MemoryType = ResourceMemoryType.Default,
+        };
+
+        _gpuResource = allocator.CreateBuffer(ref desc);
     }
 
-    internal readonly void Dispose()
+    public void ReleaseResource(IResourceDatabase database)
     {
+        _cpuData.Dispose();
+
+        database.ReleaseResource(GpuResource.AsResource());
+        _gpuResource = Handle<GraphicsBuffer>.Invalid;
+
+        _alignedSize = 0;
+    }
+}
+
+public struct Material : IResourceReleasable, IHandleType
+{
+    private Identifier<Shader> _shader;
+    private UnsafeArray<CBufferCache> _materialPropertiesCache; // One per shader pass
+
+    public readonly Identifier<Shader> Shader => _shader;
+
+    public Material(Identifier<Shader> shader, IResourceAllocator allocator, IResourceDatabase database)
+    {
+        SetShader(shader, allocator, database);
+    }
+
+    internal ref CBufferCache GetPassCache(int passIndex)
+    {
+        return ref _materialPropertiesCache[passIndex];
+    }
+
+    public void SetShader(Identifier<Shader> shaderId, IResourceAllocator allocator, IResourceDatabase database)
+    {
+        if (!shaderId.IsValid)
+        {
+            throw new ArgumentException("Shader ID is invalid.");
+        }
+
+        _shader = shaderId;
+
+        var shader = database.GetShaderReference(shaderId);
+        _materialPropertiesCache = new UnsafeArray<CBufferCache>(shader.PassCount, Allocator.Persistent);
+        for (var i = 0; i < shader.PassCount; i++)
+        {
+            var pass = database.GetShaderPass(shader.GetPassKey(i));
+            var cbufferInfo = pass.PassPropertyInfo;
+            _materialPropertiesCache[i] = new CBufferCache(allocator, cbufferInfo.Size);
+        }
+    }
+
+    void IResourceReleasable.ReleaseResource(IResourceDatabase database)
+    {
+        foreach (var cache in _materialPropertiesCache)
+        {
+            cache.ReleaseResource(database);
+        }
+
         _materialPropertiesCache.Dispose();
     }
 }
@@ -25,46 +95,35 @@ public struct Material : IHandleType
 public ref struct MaterialAccessor
 {
     private ref Material _materialData;
-    private ref Shader _shader;
+    private readonly ref Shader _shader;
 
     private readonly IResourceDatabase _resourceDatabase;
 
-    internal MaterialAccessor(ref Material materialData, IResourceDatabase resourceDatabase)
+    public MaterialAccessor(Handle<Material> material, IResourceDatabase resourceDatabase)
     {
         _resourceDatabase = resourceDatabase;
 
-        _materialData = ref materialData;
-        _shader = ref resourceDatabase.GetShaderReference(materialData.Shader);
+        _materialData = ref resourceDatabase.GetMaterialReference(material);
+        _shader = ref resourceDatabase.GetShaderReference(_materialData.Shader);
     }
 
-    private readonly unsafe void WriteToCache<T>(int propertyId, in T value)
+    private readonly unsafe void WriteToCache<T>(string propertyName, in T value)
         where T : unmanaged
     {
-        if (propertyId == -1)
+        foreach (var index in _shader.GetPropertyPassIndices(propertyName))
         {
-            throw new ArgumentException("Property ID is invalid.");
+            var passKey = _shader.GetPassKey(index);
+            var pass = _resourceDatabase.GetShaderPass(passKey);
+            var propertyInfo = pass.GetPropertyInfo(propertyName);
+
+            if (propertyInfo.Size != sizeof(T))
+            {
+                throw new ArgumentException($"Property '{propertyName}' has a size mismatch. Expected {propertyInfo.Size} bytes, but got {sizeof(T)} bytes.");
+            }
+
+            ref var cache = ref _materialData.GetPassCache(index);
+            Unsafe.WriteUnaligned(ref cache.CpuData[propertyInfo.ByteOffset], value);
         }
-
-        var propInfo = _shader.Properties[propertyId];
-        if (propInfo.Size != sizeof(T))
-        {
-            throw new ArgumentException($"Property '{propertyId}' has a size mismatch. Expected {propInfo.Size} bytes, but got {sizeof(T)} bytes.");
-        }
-
-        var cache = _materialData._materialPropertiesCache[propInfo.CBufferIndex];
-
-        Unsafe.WriteUnaligned(ref cache.CpuData[(int)propInfo.ByteOffset], value);
-    }
-
-    /// <summary>
-    /// Sets a float property in the material's constant buffer.
-    /// </summary>
-    /// <param name="propertyId">The ID of the property to set.</param>
-    /// <param name="value">The value to set for the property.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void SetFloat(int propertyId, in float value)
-    {
-        WriteToCache(propertyId, in value);
     }
 
     /// <summary>
@@ -75,18 +134,7 @@ public ref struct MaterialAccessor
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly void SetFloat(string propertyName, in float value)
     {
-        SetFloat(_shader.GetPropertyId(propertyName), in value);
-    }
-
-    /// <summary>
-    /// Sets a uint property in the material's constant buffer (useful for texture indices).
-    /// </summary>
-    /// <param name="propertyId">The ID of the property to set.</param>
-    /// <param name="value">The value to set for the property.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void SetUInt(int propertyId, in uint value)
-    {
-        WriteToCache(propertyId, in value);
+        WriteToCache(propertyName, in value);
     }
 
     /// <summary>
@@ -97,18 +145,7 @@ public ref struct MaterialAccessor
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly void SetUInt(string propertyName, in uint value)
     {
-        SetUInt(_shader.GetPropertyId(propertyName), in value);
-    }
-
-    /// <summary>
-    /// Sets a Vector property in the material's constant buffer.
-    /// </summary>
-    /// <param name="propertyId">The ID of the property to set.</param>
-    /// <param name="value">The value to set for the property.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void SetVector(int propertyId, in Vector4 value)
-    {
-        WriteToCache(propertyId, in value);
+        WriteToCache(propertyName, in value);
     }
 
     /// <summary>
@@ -117,20 +154,9 @@ public ref struct MaterialAccessor
     /// <param name="propertyName">The name of the property to set.</param>
     /// <param name="value">The value to set for the property.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void SetVector(string propertyName, in Vector4 value)
+    public readonly void SetVector(string propertyName, in float4 value)
     {
-        SetVector(_shader.GetPropertyId(propertyName), in value);
-    }
-
-    /// <summary>
-    /// Sets a Matrix property in the material's constant buffer.
-    /// </summary>
-    /// <param name="propertyId">The ID of the property to set.</param>
-    /// <param name="value">The value to set for the property.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void SetMatrix(int propertyId, in Matrix4x4 value)
-    {
-        WriteToCache(propertyId, in value);
+        WriteToCache(propertyName, in value);
     }
 
     /// <summary>
@@ -139,9 +165,9 @@ public ref struct MaterialAccessor
     /// <param name="propertyName">The name of the property to set.</param>
     /// <param name="value">The value to set for the property.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void SetMatrix(string propertyName, in Matrix4x4 value)
+    public readonly void SetMatrix(string propertyName, in float4x4 value)
     {
-        SetMatrix(_shader.GetPropertyId(propertyName), in value);
+        WriteToCache(propertyName, in value);
     }
 
     /// <summary>
@@ -186,8 +212,9 @@ public ref struct MaterialAccessor
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly void UploadMaterialData(ICommandBuffer cmb)
     {
-        foreach (var cache in _materialData._materialPropertiesCache)
+        for (var i = 0; i < _shader.PassCount; i++)
         {
+            ref var cache = ref _materialData.GetPassCache(i);
             cmb.Upload(cache.GpuResource, cache.CpuData.AsSpan());
         }
     }

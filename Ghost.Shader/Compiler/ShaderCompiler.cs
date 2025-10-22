@@ -1,5 +1,5 @@
-﻿using Ghost.Shader.Compiler.Parser;
-using System.Collections.Generic;
+﻿using Ghost.Core.Graphics;
+using Ghost.Shader.Compiler.Parser;
 using System.Text;
 
 namespace Ghost.Shader.Compiler;
@@ -227,7 +227,8 @@ internal static class ShaderCompiler
                 var fullPass = new FullPassDescriptor
                 {
                     uniqueIdentifier = GetPassUniqueId(semantics, pass),
-                    vertexShader = pass.vertexShader,
+                    taskShader = pass.taskShader,
+                    meshShader = pass.meshShader,
                     pixelShader = pass.pixelShader,
                     localPipeline = localPipeline,
                     defines = pass.defines,

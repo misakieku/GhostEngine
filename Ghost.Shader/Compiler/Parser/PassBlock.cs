@@ -1,3 +1,5 @@
+using Ghost.Core.Graphics;
+
 namespace Ghost.Shader.Compiler.Parser;
 
 // TODO: Add pass template support.
@@ -66,7 +68,7 @@ internal class PassBlock : IBlockParser<PassSyntax, PassSemantic>
             return null;
         }
 
-        var model = new PassSemantic
+        var semantic = new PassSemantic
         {
             name = syntax.name.lexeme,
             defines = DefinesBlock.SemanticAnalysis(syntax.defines, errors),
@@ -76,8 +78,8 @@ internal class PassBlock : IBlockParser<PassSyntax, PassSemantic>
             localPipeline = PipelineBlock.SemanticAnalysis(syntax.localPipeline, errors),
         };
 
-        if (model.localProperties != null
-            && model.localProperties.Any(p => p.scope == PropertyScope.Global))
+        if (semantic.localProperties != null
+            && semantic.localProperties.Any(p => p.scope == PropertyScope.Global))
         {
             errors.Add(new ShaderError
             {
@@ -93,50 +95,22 @@ internal class PassBlock : IBlockParser<PassSyntax, PassSemantic>
             {
                 switch (func.name.lexeme)
                 {
-                    case "vs":
-                        if (func.arguments?.Count != 2)
-                        {
-                            errors.Add(new ShaderError
-                            {
-                                message = "Vertex shader declaration requires exactly two arguments: (shaderPath, entryPoint).",
-                                line = func.name.line,
-                                column = func.name.column
-                            });
-                        }
-                        else
-                        {
-                            model.vertexShader = new ShaderEntryPoint
-                            {
-                                shader = func.arguments[0].lexeme,
-                                entry = func.arguments[1].lexeme
-                            };
-                        }
+                    case TokenLexicon.KnownFunctions.TASK_SHADER:
+                        AnalysisShaderEntry(errors, func, ref semantic.taskShader);
                         break;
 
-                    case "ps":
-                        if (func.arguments?.Count != 2)
-                        {
-                            errors.Add(new ShaderError
-                            {
-                                message = "Pixel shader declaration requires exactly two arguments: (shaderPath, entryPoint).",
-                                line = func.name.line,
-                                column = func.name.column
-                            });
-                        }
-                        else
-                        {
-                            model.pixelShader = new ShaderEntryPoint
-                            {
-                                shader = func.arguments[0].lexeme,
-                                entry = func.arguments[1].lexeme
-                            };
-                        }
+                    case TokenLexicon.KnownFunctions.MESH_SHADER:
+                        AnalysisShaderEntry(errors, func, ref semantic.meshShader);
+                        break;
+
+                    case TokenLexicon.KnownFunctions.PIXEL_SHADER:
+                        AnalysisShaderEntry(errors, func, ref semantic.pixelShader);
                         break;
 
                     default:
                         errors.Add(new ShaderError
                         {
-                            message = $"Unknown function '{func.name.lexeme}' in pass.",
+                            message = $"Unknown function '{func.name.lexeme}' in pass {syntax.name.lexeme}.",
                             line = func.name.line,
                             column = func.name.column
                         });
@@ -145,18 +119,39 @@ internal class PassBlock : IBlockParser<PassSyntax, PassSemantic>
             }
         }
 
-        if (model.vertexShader.shader == null || model.pixelShader.shader == null)
+        if (semantic.meshShader.shader == null || semantic.pixelShader.shader == null)
         {
             // TODO: Inheritance from base pass.
             // TODO: Add mesh shader support.
             errors.Add(new ShaderError
             {
-                message = "Pass must contain a vertex shader (vs) and a pixel shader (ps) declaration.",
+                message = $"Pass {syntax.name.lexeme} must contain a mesh shader (ms) and a pixel shader (ps) declaration.",
                 line = syntax.name.line,
                 column = syntax.name.column
             });
         }
 
-        return model;
+        return semantic;
+    }
+
+    private static void AnalysisShaderEntry(List<ShaderError> errors, FunctionCallDeclaration func, ref ShaderEntryPoint shaderEntryPoint)
+    {
+        if (func.arguments?.Count != 2)
+        {
+            errors.Add(new ShaderError
+            {
+                message = "Shader declaration requires exactly two arguments: (shaderPath, entryPoint).",
+                line = func.name.line,
+                column = func.name.column
+            });
+        }
+        else
+        {
+            shaderEntryPoint = new ShaderEntryPoint
+            {
+                shader = func.arguments[0].lexeme,
+                entry = func.arguments[1].lexeme
+            };
+        }
     }
 }

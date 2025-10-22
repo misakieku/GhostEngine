@@ -1,3 +1,4 @@
+using Ghost.Core.Utilities;
 using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
 using TerraFX.Interop.DirectX;

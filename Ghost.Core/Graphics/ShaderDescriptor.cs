@@ -1,4 +1,5 @@
 ﻿namespace Ghost.Core.Graphics;
+
 public enum KeywordType
 {
     Static,
@@ -20,6 +21,8 @@ public struct ShaderEntryPoint
 {
     public string entry;
     public string shader;
+
+    public readonly bool IsCreated => !string.IsNullOrEmpty(entry) && !string.IsNullOrEmpty(shader);
 }
 
 public struct KeywordsGroup
@@ -52,12 +55,27 @@ public interface IPassDescriptor
     {
         get;
     }
+
+    public string Name
+    {
+        get;
+    }
+}
+
+public struct PropertyDescriptor
+{
+    public ShaderPropertyType type;
+    public string name;
+    public object? defaultValue;
 }
 
 public class FullPassDescriptor : IPassDescriptor
 {
     public string uniqueIdentifier = string.Empty;
-    public ShaderEntryPoint vertexShader;
+    public string name = string.Empty;
+
+    public ShaderEntryPoint taskShader;
+    public ShaderEntryPoint meshShader;
     public ShaderEntryPoint pixelShader;
     public List<string>? defines;
     public List<string>? includes;
@@ -66,20 +84,16 @@ public class FullPassDescriptor : IPassDescriptor
     public PipelineDescriptor localPipeline;
 
     public string Identifier => uniqueIdentifier;
+    public string Name => name;
 }
 
 public class FallbackPassDescriptor : IPassDescriptor
 {
     public string fallbackPassIdentifier = string.Empty;
+    public string name = string.Empty;
 
     public string Identifier => fallbackPassIdentifier;
-}
-
-public struct PropertyDescriptor
-{
-    public ShaderPropertyType type;
-    public string name;
-    public object? defaultValue;
+    public string Name => name;
 }
 
 public class ShaderDescriptor

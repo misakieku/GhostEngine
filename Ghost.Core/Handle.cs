@@ -7,7 +7,6 @@ public readonly struct Handle<T>
     where T : IHandleType
 {
     public readonly int id;
-
     public readonly int generation;
 
     public Handle(int id, int generation)
@@ -22,7 +21,7 @@ public readonly struct Handle<T>
 
     public readonly override int GetHashCode()
     {
-        return id.GetHashCode();
+        return id + (generation << 16);
     }
 
     public readonly override bool Equals(object? obj)

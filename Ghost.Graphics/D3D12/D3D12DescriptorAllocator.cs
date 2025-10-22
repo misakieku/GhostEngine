@@ -23,7 +23,7 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
     {
         _rtvHeap = new D3D12DescriptorHeap("rtv", device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, initialRtvCount, initialRtvCount / 2);
         _dsvHeap = new D3D12DescriptorHeap("dsv", device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, initialDsvCount, initialDsvCount / 2);
-        _cbvSrvUavHeap = new D3D12DescriptorHeap("srv", device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, initialSrvCount, initialSrvCount /2);
+        _cbvSrvUavHeap = new D3D12DescriptorHeap("srv", device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, initialSrvCount, initialSrvCount / 2);
         _samplerHeap = new D3D12DescriptorHeap("sampler", device, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, initialSamplerCount, initialSamplerCount);
     }
 

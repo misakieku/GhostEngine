@@ -1,4 +1,4 @@
-using Ghost.Shader.Compiler.Parser;
+using Ghost.Core.Graphics;
 using Misaki.HighPerformance.Mathematics;
 using System.Globalization;
 

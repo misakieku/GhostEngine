@@ -1,4 +1,4 @@
-using Ghost.Shader.Compiler.Parser;
+using Ghost.Core.Graphics;
 
 namespace Ghost.Shader.Compiler.Parser;
 

@@ -4,7 +4,6 @@ using Ghost.Editor.Core.AssetHandle;
 using Ghost.Editor.View.Windows;
 using Ghost.Engine;
 using Ghost.Engine.Services;
-using Ghost.Graphics;
 using Microsoft.UI.Xaml.Media;
 
 namespace Ghost.Editor.Core.AppState;

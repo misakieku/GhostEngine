@@ -7,7 +7,18 @@
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <IsAotCompatible>True</IsAotCompatible>
+    <DefineConstants>$(DefineConstants);PLATEFORME_WIN64</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <IsAotCompatible>True</IsAotCompatible>
+    <DefineConstants>$(DefineConstants);PLATEFORME_WIN64</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
+    <PackageReference Include="System.IO.Hashing" Version="9.0.10" />
     <PackageReference Include="TerraFX.Interop.Windows" Version="10.0.26100.2" />
   </ItemGroup>
   
@@ -15,10 +26,6 @@
     <Reference Include="Misaki.HighPerformance.Unsafe">
       <HintPath>..\..\Class\Misaki.HighPerformance\Misaki.HighPerformance.LowLevel\bin\Release\net9.0\Misaki.HighPerformance.LowLevel.dll</HintPath>
     </Reference>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Contracts\" />
   </ItemGroup>
 
 

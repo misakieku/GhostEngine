@@ -4,27 +4,27 @@
 public enum TokenType
 {
     None = 0,
-    
+
     // Literals
     Identifier = 1 << 0,     // variable names, function names, etc.
     Keyword = 1 << 1,        // shader, properties, pipeline, pass, etc.
     Number = 1 << 2,         // numeric literals (123, 45.67, .5)
     StringLiteral = 1 << 3,  // "ForwardVS.hlsl"
-    
+
     // Operators and Punctuation
     Equals = 1 << 4,         // =
     Semicolon = 1 << 5,      // ;
     Comma = 1 << 6,          // ,
-    
+
     // Delimiters
     LBrace = 1 << 7,         // {
     RBrace = 1 << 8,         // }
     LParen = 1 << 9,         // (
     RParen = 1 << 10,        // )
-    
+
     // Special
     EndOfFile = 1 << 11,     // EOF
-    
+
     // Future extensions (commented out for now)
     // LBracket = 1 << 12,      // [
     // RBracket = 1 << 13,      // ]
@@ -137,9 +137,9 @@ internal static class TokenLexicon
 
     public static class KnownFunctions
     {
-        public const string VERTEX_SHADER = "vs";
-        public const string PIXEL_SHADER = "ps";
+        public const string TASK_SHADER = "ts";
         public const string MESH_SHADER = "ms";
+        public const string PIXEL_SHADER = "ps";
         public const string COMPUTE_SHADER = "cs";
         public const string DYNAMIC = "dynamic";
         public const string STATIC = "static";
@@ -153,22 +153,22 @@ internal static class TokenLexicon
         public const string FLOAT2 = "float2";
         public const string FLOAT3 = "float3";
         public const string FLOAT4 = "float4";
-        
+
         public const string INT = "int";
         public const string INT2 = "int2";
         public const string INT3 = "int3";
         public const string INT4 = "int4";
-        
+
         public const string UINT = "uint";
         public const string UINT2 = "uint2";
         public const string UINT3 = "uint3";
         public const string UINT4 = "uint4";
-        
+
         public const string BOOL = "bool";
         public const string BOOL2 = "bool2";
         public const string BOOL3 = "bool3";
         public const string BOOL4 = "bool4";
-        
+
         // Texture types
         public const string TEXTURE2D = "texture2d";
         public const string TEXTURE2D_ARRAY = "texture2d_array";
@@ -201,7 +201,7 @@ internal static class TokenLexicon
 
     private static readonly HashSet<string> s_functions = new()
     {
-        KnownFunctions.VERTEX_SHADER,
+        KnownFunctions.TASK_SHADER,
         KnownFunctions.PIXEL_SHADER,
         KnownFunctions.MESH_SHADER,
         KnownFunctions.COMPUTE_SHADER,
@@ -229,9 +229,9 @@ internal static class TokenLexicon
     };
 
     public static bool IsKeyword(string lexeme) => s_keywords.Contains(lexeme);
-    
+
     public static bool IsFunction(string lexeme) => s_functions.Contains(lexeme);
-    
+
     public static bool IsType(string lexeme) => s_types.Contains(lexeme);
 
     public static bool IsTextureDefaultValue(string lexeme) => s_textureDefaultValues.Contains(lexeme);

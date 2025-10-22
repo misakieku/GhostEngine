@@ -1,5 +1,4 @@
 ﻿using Ghost.Core;
-using Ghost.Entities.Components;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 

@@ -134,7 +134,7 @@ public unsafe readonly ref struct RenderingContext
 
     public void RenderMesh(Handle<Mesh> mesh, Handle<Material> material)
     {
-        _cmd.DrawMesh(mesh, material);
+        //_cmd.DrawMesh(mesh, material);
     }
 
     public void ExecuteCopyCommands()

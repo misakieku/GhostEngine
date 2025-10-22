@@ -1,11 +1,10 @@
 ﻿using Ghost.Shader.Compiler;
-using Ghost.Shader.Generator;
 using Misaki.HighPerformance.Mathematics;
 using System.Numerics;
 
-ShaderStructGenerator.GenerateHLSL([typeof(TestStruct), typeof(TestEnum), typeof(TestEnumFlags)], PackingRules.Exact, "C:/Users/Misaki/Downloads/Archive/Test.cs.hlsl");
+//ShaderStructGenerator.GenerateHLSL([typeof(TestStruct), typeof(TestEnum), typeof(TestEnumFlags)], PackingRules.Exact, "C:/Users/Misaki/Downloads/Archive/Test.cs.hlsl");
 
-return;
+//return;
 
 var source = File.ReadAllText("F:/csharp/GhostEngine/Ghost.Graphics/test.gshader");
 
@@ -17,6 +16,10 @@ var model = ShaderCompiler.SemanticAnalysis(shaderInfo[0], out var errors);
 foreach (var error in errors)
 {
     Console.WriteLine(error);
+}
+
+if (errors.Count != 0)
+{
     return;
 }
 

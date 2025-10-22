@@ -1,3 +1,4 @@
+using Ghost.Core.Utilities;
 using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
 using TerraFX.Interop.DirectX;
@@ -34,9 +35,9 @@ internal unsafe class D3D12RenderDevice : IRenderDevice
     {
         InitializeDevice();
 
-        _graphicsQueue = new D3D12CommandQueue(_device, CommandQueueType.Graphics);
-        _computeQueue = new D3D12CommandQueue(_device, CommandQueueType.Compute);
-        _copyQueue = new D3D12CommandQueue(_device, CommandQueueType.Copy);
+        _graphicsQueue = new D3D12CommandQueue(_device.Get(), CommandQueueType.Graphics);
+        _computeQueue = new D3D12CommandQueue(_device.Get(), CommandQueueType.Compute);
+        _copyQueue = new D3D12CommandQueue(_device.Get(), CommandQueueType.Copy);
     }
 
     ~D3D12RenderDevice()
@@ -52,7 +53,7 @@ internal unsafe class D3D12RenderDevice : IRenderDevice
         CreateDXGIFactory2(FALSE, __uuidof<IDXGIFactory7>(), _dxgiFactory.GetVoidAddressOf());
 #endif
 
-        using ComPtr<IDXGIAdapter1> adapter = default;
+        ComPtr<IDXGIAdapter1> adapter = default;
 
         for (uint adapterIndex = 0;
             _dxgiFactory.Get()->EnumAdapterByGpuPreference(adapterIndex, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, __uuidof<IDXGIAdapter1>(), adapter.ReleaseAndGetVoidAddressOf()).SUCCEEDED;
@@ -76,6 +77,7 @@ internal unsafe class D3D12RenderDevice : IRenderDevice
 
         if (_device.Get() == null)
         {
+            adapter.Dispose(); // Dispose the last adapter we tried. If the operation succeeded, we would have moved it.
             throw new PlatformNotSupportedException("Cannot create ID3D12Device with feature level 12.0");
         }
     }
