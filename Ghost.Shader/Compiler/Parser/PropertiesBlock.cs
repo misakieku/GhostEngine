@@ -2,7 +2,7 @@ using Ghost.Core.Graphics;
 using Misaki.HighPerformance.Mathematics;
 using System.Globalization;
 
-namespace Ghost.Shader.Compiler.Parser;
+namespace Ghost.SDL.Compiler.Parser;
 
 internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySemantic>>
 {

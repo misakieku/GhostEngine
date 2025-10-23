@@ -1,4 +1,4 @@
-﻿using Ghost.Shader.Compiler;
+﻿using Ghost.SDL.Compiler;
 using Misaki.HighPerformance.Mathematics;
 using System.Numerics;
 

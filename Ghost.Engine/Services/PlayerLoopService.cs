@@ -48,7 +48,7 @@ internal static class PlayerLoopService
             var world = World.GetWorld(i);
             foreach (var script in world.QueryScript())
             {
-                script.Update();
+                script.OnDestroy();
             }
         }
 

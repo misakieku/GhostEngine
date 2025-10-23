@@ -1,9 +1,9 @@
 ﻿using Ghost.Core;
 using Ghost.Core.Graphics;
-using Ghost.Shader.Compiler.Parser;
+using Ghost.SDL.Compiler.Parser;
 using System.Text;
 
-namespace Ghost.Shader.Compiler;
+namespace Ghost.SDL.Compiler;
 
 public struct SDLError
 {
@@ -24,13 +24,13 @@ internal static class SDLCompiler
 
     private struct ShaderInheritance
     {
-        public ShaderSemantics? parent;
+        public SDLSemantics? parent;
         public List<ShaderInheritance>? children;
     }
 
-    public static List<ShaderSyntax> ParseShaders(TokenStream stream)
+    public static List<SDLSyntax> ParseShaders(TokenStream stream)
     {
-        var shaders = new List<ShaderSyntax>();
+        var shaders = new List<SDLSyntax>();
 
         while (stream.TryPeek(out var nextToken))
         {
@@ -52,7 +52,7 @@ internal static class SDLCompiler
         return shaders;
     }
 
-    public static ShaderSemantics? SemanticAnalysis(ShaderSyntax syntax, out List<SDLError> errors)
+    public static SDLSemantics? SemanticAnalysis(SDLSyntax syntax, out List<SDLError> errors)
     {
         errors = new();
 
@@ -72,11 +72,11 @@ internal static class SDLCompiler
         return shaderModel;
     }
 
-    private static List<ShaderSemantics>? TopologicalSort(ReadOnlySpan<ShaderSemantics> semantics)
+    private static List<SDLSemantics>? TopologicalSort(ReadOnlySpan<SDLSemantics> semantics)
     {
         var inDegrees = new Dictionary<string, int>();
         var childrenMap = new Dictionary<string, List<string>>();
-        var semanticsMap = new Dictionary<string, ShaderSemantics>();
+        var semanticsMap = new Dictionary<string, SDLSemantics>();
 
         foreach (var s in semantics)
         {
@@ -94,7 +94,7 @@ internal static class SDLCompiler
             }
         }
 
-        var queue = new Queue<ShaderSemantics>();
+        var queue = new Queue<SDLSemantics>();
         foreach (var s in semantics)
         {
             if (inDegrees[s.name] == 0)
@@ -103,7 +103,7 @@ internal static class SDLCompiler
             }
         }
 
-        var sortedList = new List<ShaderSemantics>();
+        var sortedList = new List<SDLSemantics>();
         while (queue.Count > 0)
         {
             var current = queue.Dequeue();
@@ -123,7 +123,7 @@ internal static class SDLCompiler
         return sortedList.Count == semantics.Length ? sortedList : null;
     }
 
-    private static string GetPassUniqueId(ShaderSemantics shader, PassSemantic pass)
+    private static string GetPassUniqueId(SDLSemantics shader, PassSemantic pass)
     {
         //static ulong Fnv1a64(ReadOnlySpan<char> data)
         //{
@@ -192,7 +192,7 @@ internal static class SDLCompiler
 
     // TODO: Implement shader inheritance resolution, including property and pass merging.
     // Currently, we just ignore inheritance.
-    public static ShaderDescriptor ResolveShader(ShaderSemantics semantics)
+    public static ShaderDescriptor ResolveShader(SDLSemantics semantics)
     {
         var descriptor = new ShaderDescriptor
         {

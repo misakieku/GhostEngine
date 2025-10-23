@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace Ghost.Shader.Generator;
+namespace Ghost.SDL.Generator;
 
 public enum PackingRules
 {

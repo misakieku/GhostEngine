@@ -1,6 +1,6 @@
 using Ghost.Core.Graphics;
 
-namespace Ghost.Shader.Compiler.Parser;
+namespace Ghost.SDL.Compiler.Parser;
 
 // TODO: Add pass template support.
 //   Pass templates let user to inject their own custom code into the generated HLSL code.

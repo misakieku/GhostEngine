@@ -1,4 +1,4 @@
-namespace Ghost.Shader.Compiler.Parser;
+namespace Ghost.SDL.Compiler.Parser;
 
 internal class DefinesBlock : IBlockParser<List<Token>, List<string>>
 {

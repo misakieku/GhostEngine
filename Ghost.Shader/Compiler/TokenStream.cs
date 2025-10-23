@@ -1,4 +1,4 @@
-﻿namespace Ghost.Shader.Compiler;
+﻿namespace Ghost.SDL.Compiler;
 
 internal static class TokenStreamImple
 {

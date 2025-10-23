@@ -369,7 +369,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
 
         var id = _shaders.Count;
         _shaders.Add(shader);
-        return new Identifier<Shader>(id);
+        return new Identifier<SDL>(id);
     }
 
     public bool HasShader(Identifier<Shader> id)
@@ -460,7 +460,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
             ThrowMemoryLeakException("materials", _materials.Count);
         }
 
-        // Shader are reference type, it will be managed by GC, so we don't throw exception here.
+        // SDL are reference type, it will be managed by GC, so we don't throw exception here.
         for (var i = 0; i < _shaders.Count; i++)
         {
             ref var shader = ref _shaders[i];

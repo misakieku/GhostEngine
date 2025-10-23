@@ -1,4 +1,4 @@
-﻿namespace Ghost.Shader.Compiler;
+﻿namespace Ghost.SDL.Compiler;
 
 internal struct FunctionCallDeclaration
 {
@@ -43,7 +43,7 @@ internal class PassSyntax
     public List<FunctionCallDeclaration>? functionCalls;
 }
 
-internal class ShaderSyntax
+internal class SDLSyntax
 {
     public Token name;
     public PropertiesSyntax? properties;

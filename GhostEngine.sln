@@ -21,7 +21,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ghost.Editor.Core", "Ghost.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ghost.Graphics", "Ghost.Graphics\Ghost.Graphics.csproj", "{F55831B1-2ADE-4CEB-8023-F92C7ABF57FE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ghost.Shader", "Ghost.Shader\Ghost.Shader.csproj", "{145C2867-C0FD-4FB0-B60D-467E52081E14}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ghost.SDL", "Ghost.Shader\Ghost.SDL.csproj", "{145C2867-C0FD-4FB0-B60D-467E52081E14}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ghost.Shader.Test", "Ghost.Shader.Test\Ghost.Shader.Test.csproj", "{C3AB43A4-88D8-49F8-B738-A738C8BCEE3F}"
 EndProject

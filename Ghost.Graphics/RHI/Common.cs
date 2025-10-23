@@ -627,7 +627,7 @@ public enum IndexType
     UInt32
 }
 
-// Shader compiler
+// SDL compiler
 
 internal ref struct CompilerConfig
 {

@@ -1,4 +1,4 @@
-﻿namespace Ghost.Shader.Compiler;
+﻿namespace Ghost.SDL.Compiler;
 
 [Flags]
 public enum TokenType

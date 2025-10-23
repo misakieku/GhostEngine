@@ -1,6 +1,6 @@
 using Ghost.Core.Graphics;
 
-namespace Ghost.Shader.Compiler.Parser;
+namespace Ghost.SDL.Compiler.Parser;
 
 internal class KeywordsBlock : IBlockParser<List<FunctionCallDeclaration>, List<KeywordsGroup>>
 {

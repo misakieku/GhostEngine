@@ -40,6 +40,11 @@ public readonly struct TypeHandle
         return Type.GetTypeFromHandle(RuntimeTypeHandle.FromIntPtr(Value));
     }
 
+    public override int GetHashCode()
+    {
+        return Value.GetHashCode();
+    }
+
     public static implicit operator TypeHandle(IntPtr value)
     {
         return new TypeHandle(value);

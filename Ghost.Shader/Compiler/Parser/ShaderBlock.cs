@@ -1,15 +1,15 @@
-﻿namespace Ghost.Shader.Compiler.Parser;
+﻿namespace Ghost.SDL.Compiler.Parser;
 
-internal class ShaderBlock : IBlockParser<ShaderSyntax, ShaderSemantics>
+internal class ShaderBlock : IBlockParser<SDLSyntax, SDLSemantics>
 {
     public static bool ShouldEnter(Token token)
     {
         return token.Match(TokenType.Keyword, TokenLexicon.KnownKeywords.SHADER);
     }
 
-    public static ShaderSyntax Parse(TokenStreamSlice stream)
+    public static SDLSyntax Parse(TokenStreamSlice stream)
     {
-        var shader = new ShaderSyntax();
+        var shader = new SDLSyntax();
 
         stream.Expect(TokenType.Keyword);
         shader.name = stream.Expect(TokenType.StringLiteral);
@@ -49,14 +49,14 @@ internal class ShaderBlock : IBlockParser<ShaderSyntax, ShaderSemantics>
         return shader;
     }
 
-    public static ShaderSemantics? SemanticAnalysis(ShaderSyntax? syntax, List<SDLError> errors)
+    public static SDLSemantics? SemanticAnalysis(SDLSyntax? syntax, List<SDLError> errors)
     {
         if (syntax == null)
         {
             return null;
         }
 
-        var shaderModel = new ShaderSemantics
+        var shaderModel = new SDLSemantics
         {
             name = syntax.name.lexeme,
             properties = PropertiesBlock.SemanticAnalysis(syntax.properties, errors),
