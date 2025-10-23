@@ -49,7 +49,7 @@ internal class ShaderBlock : IBlockParser<ShaderSyntax, ShaderSemantics>
         return shader;
     }
 
-    public static ShaderSemantics? SemanticAnalysis(ShaderSyntax? syntax, List<ShaderError> errors)
+    public static ShaderSemantics? SemanticAnalysis(ShaderSyntax? syntax, List<SDLError> errors)
     {
         if (syntax == null)
         {
@@ -85,7 +85,7 @@ internal class ShaderBlock : IBlockParser<ShaderSyntax, ShaderSemantics>
                     case TokenLexicon.KnownFunctions.FALLBACK:
                         if (func.arguments == null || func.arguments.Count != 1)
                         {
-                            errors.Add(new ShaderError
+                            errors.Add(new SDLError
                             {
                                 message = "Fallback declaration requires exactly one arguments: (fallback shader name).",
                                 line = func.name.line,
@@ -98,7 +98,7 @@ internal class ShaderBlock : IBlockParser<ShaderSyntax, ShaderSemantics>
                         shaderModel.fallback = func.arguments[0].lexeme;
                         break;
                     default:
-                        errors.Add(new ShaderError
+                        errors.Add(new SDLError
                         {
                             message = $"Unknown function '{func.name.lexeme}' in shader.",
                             line = func.name.line,

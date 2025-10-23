@@ -123,7 +123,6 @@ internal readonly struct ShaderReflectionData
 
 internal static unsafe class D3D12ShaderCompiler
 {
-
     private static string GetProfileString(ShaderStage stage, CompilerTier version)
     {
         return (stage, version) switch

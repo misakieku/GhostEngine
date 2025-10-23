@@ -91,7 +91,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
     {
         _defaultRootSignature = default;
 
-        // NOTE: Since we are targeting SM 6.6, we can use ResourceDescriptorHeap and SamplerDescriptorHeap directly without needing to set up descriptor tables.
+        // NOTE: Since we are targeting SM 6.6, we can use ResourceDescriptorHeap and SamplerDescriptorHeap directly without needing to set up viewGroup tables.
         var rootParameters = stackalloc D3D12_ROOT_PARAMETER1[_ROOT_PARAM_COUNT];
         rootParameters[0] = new D3D12_ROOT_PARAMETER1
         {
@@ -325,7 +325,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
             SampleMask = UINT32_MAX,
             SampleDesc = new DXGI_SAMPLE_DESC(1, 0),
             NumRenderTargets = rtvCount,
-            DSVFormat = dsv.ToD3D12Format(),
+            DSVFormat = dsv.ToDXGIFormat(),
             DepthStencilState = BuildDepthStencil(in pipelineDescriptor),
             NodeMask = 0,
             Flags = D3D12_PIPELINE_STATE_FLAG_NONE,
@@ -362,7 +362,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
 
         for (var i = 0; i < rtvCount && i < 6; i++)
         {
-            desc.RTVFormats[i] = rtvs[i].ToD3D12Format();
+            desc.RTVFormats[i] = rtvs[i].ToDXGIFormat();
             desc.BlendState.RenderTarget[i].RenderTargetWriteMask = (byte)(pipelineDescriptor.colorMask & 0x0F);
             hash.rtvFormats[i] = rtvs[i];
         }

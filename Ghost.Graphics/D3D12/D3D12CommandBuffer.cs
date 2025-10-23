@@ -126,14 +126,14 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
                 throw new ArgumentException($"Render target at index {i} is not a valid texture handle");
             }
 
-            var descriptor = _resourceDatabase.GetResourceInfo(handle.AsResource()).descriptor;
+            var descriptor = _resourceDatabase.GetResourceInfo(handle.AsResource()).viewGroup;
             rtvHandles[i] = _descriptorAllocator.GetCpuHandle(descriptor.rtv);
         }
 
         var dsvHandle = stackalloc D3D12_CPU_DESCRIPTOR_HANDLE[depthTarget.IsValid ? 1 : 0];
         if (dsvHandle != null)
         {
-            *dsvHandle = _descriptorAllocator.GetCpuHandle(_resourceDatabase.GetResourceInfo(depthTarget.AsResource()).descriptor.dsv);
+            *dsvHandle = _descriptorAllocator.GetCpuHandle(_resourceDatabase.GetResourceInfo(depthTarget.AsResource()).viewGroup.dsv);
         }
 
         _commandList.Get()->OMSetRenderTargets((uint)renderTargets.Length, rtvHandles, FALSE, dsvHandle);
@@ -270,7 +270,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         _commandList.Get()->SetPipelineState(d3d12Pipeline.pipelineState.Get());
         _commandList.Get()->SetGraphicsRootSignature(_pipelineLibrary.DefaultRootSignature);
 
-        // Set descriptor heaps - CRUCIAL: Use the specialized bindless heap for SM 6.6
+        // Set viewGroup heaps - CRUCIAL: Use the specialized bindless heap for SM 6.6
         var heaps = stackalloc ID3D12DescriptorHeap*[2];
         heaps[0] = _descriptorAllocator.GetCbvSrvUavHeap(); // Bindless resource heap
         heaps[1] = _descriptorAllocator.GetSamplerHeap();   // Bindless sampler heap

@@ -4,6 +4,7 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Collections;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
@@ -34,7 +35,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
         }
 
         public ResourceDesc desc;
-        public ResourceViewGroup descriptor;
+        public ResourceViewGroup viewGroup;
         public ResourceUnion resourceUnion;
         public ResourceState state;
         public uint cpuFenceValue;
@@ -48,7 +49,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
             this.resourceUnion = new ResourceUnion(allocation);
             this.isExternal = false;
 
-            this.descriptor = resourceDescriptor;
+            this.viewGroup = resourceDescriptor;
             this.cpuFenceValue = cpuFenceValue;
             this.state = state;
             this.desc = desc;
@@ -59,7 +60,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
             this.resourceUnion = new ResourceUnion(resource);
             this.isExternal = true;
 
-            this.descriptor = default;
+            this.viewGroup = default;
             this.cpuFenceValue = ~0u;
             this.state = state;
             this.desc = ResourceDesc.FromD3D12(resource.Get()->GetDesc());
@@ -80,10 +81,10 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
                 }
 
                 resourceUnion = default;
-                descriptor = default;
+                viewGroup = default;
             }
 
-            descriptorAllocator.Release(descriptor);
+            descriptorAllocator.Release(viewGroup);
 
             return refCount;
         }
@@ -99,14 +100,12 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
 
     private UnsafeSlotMap<ResourceRecord> _resources;
 #if DEBUG || GHOST_EDITOR
-    private readonly Dictionary<ResourceRecord, string> _resourceName;
+    private readonly Dictionary<Handle<GPUResource>, string> _resourceName;
 #endif
 
     private readonly UnsafeSlotMap<Mesh> _meshes;
     private readonly UnsafeSlotMap<Material> _materials;
-
-    // NOTE: We use a simple list since shaderSlot is not frequently added/removed. This can save 4 bytes for each ecs component.
-    private readonly DynamicArray<Slot<Shader>> _shaders;
+    private readonly DynamicArray<Shader?> _shaders; // NOTE: We use a simple list since shader is not frequently added/removed. This can save 4 bytes for each ecs component.
     private readonly Dictionary<ShaderPassKey, ShaderPass> _shaderPasses;
 
     private bool _disposed;
@@ -135,28 +134,41 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
         where T : IResourceReleasable
     {
         resource.ReleaseResource(this);
+        resource = default!;
     }
 
-    public Handle<GPUResource> ImportExternalResource<T>(T resource, ResourceState initialState)
-        where T : unmanaged
+    public Handle<GPUResource> ImportExternalResource(ComPtr<ID3D12Resource> resource, ResourceState initialState, string? name = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        if (resource is not ComPtr<ID3D12Resource> d3d12Resource)
-        {
-            throw new InvalidOperationException($"Expect ComPtr<ID3D12Resource> in D3D12ResourceDatabase, but got {typeof(T)}.");
-        }
+        var id = _resources.Add(new ResourceRecord(resource, initialState), out var generation);
+        var handle = new Handle<GPUResource>(id, generation);
 
-        var id = _resources.Add(new ResourceRecord(d3d12Resource, initialState), out var generation);
-        return new Handle<GPUResource>(id, generation);
+#if DEBUG || GHOST_EDITOR
+        if (name != null)
+        {
+            _resourceName[handle] = name;
+        }
+#endif
+
+        return handle;
     }
 
-    public Handle<GPUResource> AddResource(ComPtr<D3D12MA_Allocation> allocation, uint cpuFenceValue, ResourceState initialState, ResourceViewGroup resourceDescriptor, ResourceDesc desc)
+    public Handle<GPUResource> AddResource(ComPtr<D3D12MA_Allocation> allocation, uint cpuFenceValue, ResourceState initialState, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string? name = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         var id = _resources.Add(new ResourceRecord(allocation, cpuFenceValue, initialState, resourceDescriptor, desc), out var generation);
-        return new Handle<GPUResource>(id, generation);
+        var handle = new Handle<GPUResource>(id, generation);
+
+#if DEBUG || GHOST_EDITOR
+        if (name != null)
+        {
+            _resourceName[handle] = name;
+        }
+#endif
+
+        return handle;
     }
 
     public ref ResourceRecord GetResourceInfo(Handle<GPUResource> handle)
@@ -218,13 +230,28 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
 
     public int GetBindlessIndex(Handle<GPUResource> handle)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         ref var info = ref GetResourceInfo(handle, out var exist);
         if (!exist || !info.Allocated)
         {
             return -1;
         }
 
-        return info.descriptor.srv.value;
+        return info.viewGroup.srv.value;
+    }
+
+    public string? GetResourceName(Handle<GPUResource> handle)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+#if DEBUG || GHOST_EDITOR
+        if (_resourceName.TryGetValue(handle, out var name))
+        {
+            return name;
+        }
+#endif
+        return null;
     }
 
     public unsafe void ReleaseResource(Handle<GPUResource> handle)
@@ -244,9 +271,10 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
 
         var refCount = info.Release(_descriptorAllocator);
 #if DEBUG || GHOST_EDITOR
+        _resourceName.Remove(handle, out var name);
         if (refCount > 0)
         {
-            throw new GPUResourceLeakException(refCount, info.ResourcePtr, _resourceName[info]);
+            throw new GPUResourceLeakException(refCount, info.ResourcePtr, name ?? "Unknown Resource");
         }
 #endif
 
@@ -269,6 +297,8 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
 
     public ref Mesh GetMeshReference(Handle<Mesh> handle)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         ref var mesh = ref _meshes.GetElementReferenceAt(handle.id, handle.generation, out var exist);
         if (!exist)
         {
@@ -280,6 +310,8 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
 
     public void ReleaseMesh(Handle<Mesh> handle)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         ref var mesh = ref _meshes.GetElementReferenceAt(handle.id, handle.generation, out var exist);
         if (!exist)
         {
@@ -306,6 +338,8 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
 
     public ref Material GetMaterialReference(Handle<Material> handle)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         ref var material = ref _materials.GetElementReferenceAt(handle.id, handle.generation, out var exist);
         if (!exist)
         {
@@ -317,6 +351,8 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
 
     public void ReleaseMaterial(Handle<Material> handle)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         ref var material = ref _materials.GetElementReferenceAt(handle.id, handle.generation, out var exist);
         if (!exist)
         {
@@ -327,43 +363,45 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
         _materials.Remove(handle.id, handle.generation);
     }
 
-    public Identifier<Shader> AddShader(ref readonly Shader shader)
+    public Identifier<Shader> AddShader(Shader shader)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         var id = _shaders.Count;
-        _shaders.Add(new Slot<Shader> { value = shader, occupied = true });
+        _shaders.Add(shader);
         return new Identifier<Shader>(id);
     }
 
     public bool HasShader(Identifier<Shader> id)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return id.value >= 0 && id.value < _shaders.Count && _shaders[id.value].occupied;
+        return id.value >= 0 && id.value < _shaders.Count && _shaders[id.value] != null;
     }
 
-    public ref Shader GetShaderReference(Identifier<Shader> id)
+    public Shader GetShaderReference(Identifier<Shader> id)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         if (!HasShader(id))
         {
             throw new ArgumentOutOfRangeException(nameof(id), $"Shader id {id} is invalid.");
         }
 
-        ref var shader = ref _shaders[id.value].value;
-        return ref shader;
+        var shader = _shaders[id.value]!;
+        return shader;
     }
 
     public void ReleaseShader(Identifier<Shader> id)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         if (!HasShader(id))
         {
             return;
         }
 
-        ref var shaderSlot = ref _shaders[id.value];
-
-        ReleaseResource(ref shaderSlot.value);
-        shaderSlot.occupied = false;
+        ref var shader = ref _shaders[id.value]!;
+        ReleaseResource(ref shader);
     }
 
     public void AddShaderPass(ShaderPassKey passKey, ShaderPass pass)
@@ -384,36 +422,63 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
         return pass;
     }
 
-    // Should we need to release the shaderSlot pass?
+    public void RemoveShaderPass(ShaderPassKey passKey)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (_shaderPasses.Remove(passKey, out var pass))
+        {
+            ReleaseResource(ref pass);
+        }
+    }
 
     public void Dispose()
     {
+        [Conditional("DEBUG"), Conditional("GHOST_EDITOR")]
+        static void ThrowMemoryLeakException(string resourceType, int count)
+        {
+            throw new InvalidOperationException($"ResourceAllocator is being disposed with {count} {resourceType} still registered. Ensure all resources are released before disposing.");
+        }
+
         if (_disposed)
         {
             return;
         }
 
-#if DEBUG || GHOST_EDITOR
         if (_resources.Count > 0)
         {
-            throw new InvalidOperationException($"ResourceAllocator is being disposed with {_resources.Count} allocations still registered. Ensure all resources are released before disposing.");
+            ThrowMemoryLeakException("GPU resources", _resources.Count);
         }
 
         if (_meshes.Count > 0)
         {
-            throw new InvalidOperationException($"ResourceAllocator is being disposed with {_meshes.Count} meshes still registered. Ensure all meshes are released before disposing.");
+            ThrowMemoryLeakException("meshes", _meshes.Count);
         }
 
         if (_materials.Count > 0)
         {
-            throw new InvalidOperationException($"ResourceAllocator is being disposed with {_materials.Count} materials still registered. Ensure all materials are released before disposing.");
+            ThrowMemoryLeakException("materials", _materials.Count);
         }
 
-        if (_shaders.Count > 0)
+        // Shader are reference type, it will be managed by GC, so we don't throw exception here.
+        for (var i = 0; i < _shaders.Count; i++)
         {
-            throw new InvalidOperationException($"ResourceAllocator is being disposed with {_shaders.Count} shaders still registered. Ensure all shaders are released before disposing.");
+            ref var shader = ref _shaders[i];
+            if (shader == null)
+            {
+                continue;
+            }
+
+            ReleaseResource(ref shader);
         }
-#endif
+
+        // Same for shader pass.
+        foreach (var kv in _shaderPasses)
+        {
+            var pass = kv.Value;
+            ReleaseResource(ref pass);
+        }
+
         _resources.Dispose();
         _meshes.Dispose();
         _materials.Dispose();

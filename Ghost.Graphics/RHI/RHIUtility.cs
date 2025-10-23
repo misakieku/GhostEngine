@@ -1,37 +1,9 @@
-using TerraFX.Interop.DirectX;
+﻿using TerraFX.Interop.DirectX;
 
 namespace Ghost.Graphics.RHI;
 
-internal static class TextureFormatExtensions
+internal static class RHIUtility
 {
-    public static DXGI_FORMAT ToD3D12Format(this TextureFormat format)
-    {
-        return format switch
-        {
-            TextureFormat.R8G8B8A8_UNorm => DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UNORM,
-            TextureFormat.B8G8R8A8_UNorm => DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM,
-            TextureFormat.R16G16B16A16_Float => DXGI_FORMAT.DXGI_FORMAT_R16G16B16A16_FLOAT,
-            TextureFormat.R32G32B32A32_Float => DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_FLOAT,
-            TextureFormat.D24_UNorm_S8_UInt => DXGI_FORMAT.DXGI_FORMAT_D24_UNORM_S8_UINT,
-            TextureFormat.D32_Float => DXGI_FORMAT.DXGI_FORMAT_D32_FLOAT,
-            _ => throw new NotSupportedException($"Texture format {format} is not supported."),
-        };
-    }
-
-    public static TextureFormat ToTextureFormat(this DXGI_FORMAT format)
-    {
-        return format switch
-        {
-            DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UNORM => TextureFormat.R8G8B8A8_UNorm,
-            DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM => TextureFormat.B8G8R8A8_UNorm,
-            DXGI_FORMAT.DXGI_FORMAT_R16G16B16A16_FLOAT => TextureFormat.R16G16B16A16_Float,
-            DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_FLOAT => TextureFormat.R32G32B32A32_Float,
-            DXGI_FORMAT.DXGI_FORMAT_D24_UNORM_S8_UINT => TextureFormat.D24_UNorm_S8_UInt,
-            DXGI_FORMAT.DXGI_FORMAT_D32_FLOAT => TextureFormat.D32_Float,
-            _ => TextureFormat.Unknown,
-        };
-    }
-
     public static int GetBytesPerPixel(this TextureFormat format)
     {
         return format switch

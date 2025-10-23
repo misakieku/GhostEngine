@@ -555,32 +555,16 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
 
     public Handle<Material> CreateMaterial(Identifier<Shader> shader)
     {
-        var materialData = new Material
-        {
-            Shader = shader,
-        };
+        var material = new Material();
+        material.SetShader(shader, this, _resourceDatabase);
 
-        ref var shaderRef = ref _resourceDatabase.GetShaderReference(shader);
-
-        // TODO: Get per-material constant buffer size from database
-
-        var desc = new BufferDesc
-        {
-            Size = shaderRef.PerMaterialBufferInfo.Size,
-            Usage = BufferUsage.Constant,
-            MemoryType = ResourceMemoryType.Default,
-        };
-
-        var buffer = CreateBuffer(ref desc);
-        materialData._materialPropertiesCache = new CBufferCache(buffer, shaderRef.PerMaterialBufferInfo.Size);
-
-        return _resourceDatabase.AddMaterial(ref materialData);
+        return _resourceDatabase.AddMaterial(ref material);
     }
 
     public Identifier<Shader> CreateShader(ShaderDescriptor descriptor)
     {
-        var shaderData = new Shader();
-        return _resourceDatabase.AddShader(ref shaderData);
+        var shader = new Shader(descriptor);
+        return _resourceDatabase.AddShader(shader);
     }
 
     #region Conversion Methods

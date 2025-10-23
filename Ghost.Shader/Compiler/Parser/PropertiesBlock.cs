@@ -6,7 +6,7 @@ namespace Ghost.Shader.Compiler.Parser;
 
 internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySemantic>>
 {
-    private delegate object? PropertyValueBuilder(List<Token> tokens, List<ShaderError> errors);
+    private delegate object? PropertyValueBuilder(List<Token> tokens, List<SDLError> errors);
 
     private sealed record PropTypeInfo(int ArgCount, TokenType ArgTokenType, PropertyValueBuilder? Builder);
 
@@ -78,11 +78,11 @@ internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySem
         [ShaderPropertyType.TextureCube] = new(1, TokenType.Identifier, (syntax, errors) => ParseTextureDefault(syntax[0], errors)),
     };
 
-    private static float ParseFloatValue(Token token, List<ShaderError> errors)
+    private static float ParseFloatValue(Token token, List<SDLError> errors)
     {
         if (!float.TryParse(token.lexeme, CultureInfo.InvariantCulture, out var result))
         {
-            errors.Add(new ShaderError
+            errors.Add(new SDLError
             {
                 message = $"Failed to parse float value '{token.lexeme}'.",
                 line = token.line,
@@ -93,11 +93,11 @@ internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySem
         return result;
     }
 
-    private static int ParseIntValue(Token token, List<ShaderError> errors)
+    private static int ParseIntValue(Token token, List<SDLError> errors)
     {
         if (!int.TryParse(token.lexeme, CultureInfo.InvariantCulture, out var result))
         {
-            errors.Add(new ShaderError
+            errors.Add(new SDLError
             {
                 message = $"Failed to parse int value '{token.lexeme}'.",
                 line = token.line,
@@ -108,11 +108,11 @@ internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySem
         return result;
     }
 
-    private static uint ParseUIntValue(Token token, List<ShaderError> errors)
+    private static uint ParseUIntValue(Token token, List<SDLError> errors)
     {
         if (!uint.TryParse(token.lexeme, CultureInfo.InvariantCulture, out var result))
         {
-            errors.Add(new ShaderError
+            errors.Add(new SDLError
             {
                 message = $"Failed to parse uint value '{token.lexeme}'.",
                 line = token.line,
@@ -123,11 +123,11 @@ internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySem
         return result;
     }
 
-    private static bool ParseBoolValue(Token token, List<ShaderError> errors)
+    private static bool ParseBoolValue(Token token, List<SDLError> errors)
     {
         if (!bool.TryParse(token.lexeme, out var result))
         {
-            errors.Add(new ShaderError
+            errors.Add(new SDLError
             {
                 message = $"Failed to parse bool value '{token.lexeme}'.",
                 line = token.line,
@@ -138,11 +138,11 @@ internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySem
         return result;
     }
 
-    private static string ParseTextureDefault(Token token, List<ShaderError> errors)
+    private static string ParseTextureDefault(Token token, List<SDLError> errors)
     {
         if (!TokenLexicon.IsTextureDefaultValue(token.lexeme))
         {
-            errors.Add(new ShaderError
+            errors.Add(new SDLError
             {
                 message = $"Texture default value '{token.lexeme}' is not valid.",
                 line = token.line,
@@ -242,7 +242,7 @@ internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySem
         return syntax;
     }
 
-    public static List<PropertySemantic>? SemanticAnalysis(PropertiesSyntax? syntax, List<ShaderError> errors)
+    public static List<PropertySemantic>? SemanticAnalysis(PropertiesSyntax? syntax, List<SDLError> errors)
     {
         if (syntax == null)
         {
@@ -295,11 +295,11 @@ internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySem
         return models;
     }
 
-    private static bool ValidatePropertyType(List<ShaderError> errors, PropertyDeclaration property, PropertySemantic model)
+    private static bool ValidatePropertyType(List<SDLError> errors, PropertyDeclaration property, PropertySemantic model)
     {
         if (!TokenLexicon.IsType(property.type.lexeme))
         {
-            errors.Add(new ShaderError
+            errors.Add(new SDLError
             {
                 message = $"Shader property type '{property.type.lexeme}' is not a valid type.",
                 line = property.type.line,
@@ -313,11 +313,11 @@ internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySem
         return true;
     }
 
-    private static bool ValidatePropertyName(List<ShaderError> errors, HashSet<string> usedPropertyNames, PropertyDeclaration property, PropertySemantic model)
+    private static bool ValidatePropertyName(List<SDLError> errors, HashSet<string> usedPropertyNames, PropertyDeclaration property, PropertySemantic model)
     {
         if (string.IsNullOrWhiteSpace(property.name.lexeme))
         {
-            errors.Add(new ShaderError
+            errors.Add(new SDLError
             {
                 message = "Shader property has an empty name.",
                 line = property.name.line,
@@ -328,7 +328,7 @@ internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySem
         }
         else if (usedPropertyNames.Contains(property.name.lexeme))
         {
-            errors.Add(new ShaderError
+            errors.Add(new SDLError
             {
                 message = $"Shader property name '{property.name.lexeme}' is duplicated.",
                 line = property.name.line,
@@ -342,12 +342,12 @@ internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySem
         return true;
     }
 
-    private static bool ValidatePropertyConstructor(List<ShaderError> errors, PropertyDeclaration property, PropertySemantic model)
+    private static bool ValidatePropertyConstructor(List<SDLError> errors, PropertyDeclaration property, PropertySemantic model)
     {
         var constructor = property.propertyConstructor;
         if (!constructor.HasValue)
         {
-            errors.Add(new ShaderError
+            errors.Add(new SDLError
             {
                 message = "Shader property constructor is null.",
                 line = property.name.line,
@@ -360,7 +360,7 @@ internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySem
         var constructorValue = constructor.Value;
         if (string.IsNullOrWhiteSpace(constructorValue.name.lexeme))
         {
-            errors.Add(new ShaderError
+            errors.Add(new SDLError
             {
                 message = "Shader property constructor has an empty name.",
                 line = constructorValue.name.line,
@@ -372,7 +372,7 @@ internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySem
 
         if (constructorValue.name.lexeme != property.type.lexeme)
         {
-            errors.Add(new ShaderError
+            errors.Add(new SDLError
             {
                 message = $"Shader property constructor name '{constructorValue.name.lexeme}' does not match property type '{property.type.lexeme}'.",
                 line = constructorValue.name.line,
@@ -384,7 +384,7 @@ internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySem
 
         if (!s_propTypeInfo.TryGetValue(model.type, out var info))
         {
-            errors.Add(new ShaderError
+            errors.Add(new SDLError
             {
                 message = $"No constructor metadata registered for property type '{model.type}'.",
                 line = constructorValue.name.line,
@@ -397,7 +397,7 @@ internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySem
         // Count check
         if (constructorValue.arguments == null)
         {
-            errors.Add(new ShaderError
+            errors.Add(new SDLError
             {
                 message = "Shader property constructor arguments are null.",
                 line = constructorValue.name.line,
@@ -409,7 +409,7 @@ internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySem
 
         if (constructorValue.arguments.Count != info.ArgCount)
         {
-            errors.Add(new ShaderError
+            errors.Add(new SDLError
             {
                 message = $"Shader property constructor for type '{property.type.lexeme}' expects {info.ArgCount} argument(s), but got {constructorValue.arguments.Count}.",
                 line = constructorValue.name.line,
@@ -426,7 +426,7 @@ internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySem
             var arg = constructorValue.arguments[i];
             if (!arg.Match(info.ArgTokenType))
             {
-                errors.Add(new ShaderError
+                errors.Add(new SDLError
                 {
                     message = $"Shader property constructor argument {i} expects token kind '{info.ArgTokenType}', but got '{arg.type}'.",
                     line = arg.line,
@@ -451,7 +451,7 @@ internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySem
             }
             catch (Exception ex)
             {
-                errors.Add(new ShaderError
+                errors.Add(new SDLError
                 {
                     message = $"Failed to construct default value for property '{property.name.lexeme}': {ex.Message}",
                     line = constructorValue.name.line,

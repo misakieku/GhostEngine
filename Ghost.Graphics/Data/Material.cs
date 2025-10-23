@@ -18,20 +18,12 @@ internal struct CBufferCache : IResourceReleasable
     public readonly Handle<GraphicsBuffer> GpuResource => _gpuResource;
     public readonly uint AlignedSize => _alignedSize;
 
-    public unsafe CBufferCache(IResourceAllocator allocator, uint bufferSize)
+    public unsafe CBufferCache(Handle<GraphicsBuffer> buffer, uint bufferSize)
     {
         _alignedSize = (bufferSize + 255u) & ~255u;
 
         _cpuData = new((int)AlignedSize, Allocator.Persistent);
-
-        var desc = new BufferDesc
-        {
-            Size = bufferSize,
-            Usage = BufferUsage.Constant,
-            MemoryType = ResourceMemoryType.Default,
-        };
-
-        _gpuResource = allocator.CreateBuffer(ref desc);
+        _gpuResource = buffer;
     }
 
     public void ReleaseResource(IResourceDatabase database)
@@ -51,11 +43,6 @@ public struct Material : IResourceReleasable, IHandleType
     private UnsafeArray<CBufferCache> _materialPropertiesCache; // One per shader pass
 
     public readonly Identifier<Shader> Shader => _shader;
-
-    public Material(Identifier<Shader> shader, IResourceAllocator allocator, IResourceDatabase database)
-    {
-        SetShader(shader, allocator, database);
-    }
 
     internal ref CBufferCache GetPassCache(int passIndex)
     {
@@ -77,7 +64,16 @@ public struct Material : IResourceReleasable, IHandleType
         {
             var pass = database.GetShaderPass(shader.GetPassKey(i));
             var cbufferInfo = pass.PassPropertyInfo;
-            _materialPropertiesCache[i] = new CBufferCache(allocator, cbufferInfo.Size);
+
+            var desc = new BufferDesc
+            {
+                Size = cbufferInfo.Size,
+                Usage = BufferUsage.Constant,
+                MemoryType = ResourceMemoryType.Default,
+            };
+
+            var buffer = allocator.CreateBuffer(ref desc);
+            _materialPropertiesCache[i] = new CBufferCache(buffer, cbufferInfo.Size);
         }
     }
 
@@ -95,7 +91,7 @@ public struct Material : IResourceReleasable, IHandleType
 public ref struct MaterialAccessor
 {
     private ref Material _materialData;
-    private readonly ref Shader _shader;
+    private Shader _shader;
 
     private readonly IResourceDatabase _resourceDatabase;
 
@@ -104,7 +100,7 @@ public ref struct MaterialAccessor
         _resourceDatabase = resourceDatabase;
 
         _materialData = ref resourceDatabase.GetMaterialReference(material);
-        _shader = ref resourceDatabase.GetShaderReference(_materialData.Shader);
+        _shader = resourceDatabase.GetShaderReference(_materialData.Shader);
     }
 
     private readonly unsafe void WriteToCache<T>(string propertyName, in T value)

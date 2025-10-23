@@ -61,7 +61,7 @@ internal class PassBlock : IBlockParser<PassSyntax, PassSemantic>
         return pass;
     }
 
-    public static PassSemantic? SemanticAnalysis(PassSyntax? syntax, List<ShaderError> errors)
+    public static PassSemantic? SemanticAnalysis(PassSyntax? syntax, List<SDLError> errors)
     {
         if (syntax == null)
         {
@@ -81,7 +81,7 @@ internal class PassBlock : IBlockParser<PassSyntax, PassSemantic>
         if (semantic.localProperties != null
             && semantic.localProperties.Any(p => p.scope == PropertyScope.Global))
         {
-            errors.Add(new ShaderError
+            errors.Add(new SDLError
             {
                 message = "Global properties cannot be declared inside a pass. Move them to the shader properties block.",
                 line = syntax.name.line,
@@ -108,7 +108,7 @@ internal class PassBlock : IBlockParser<PassSyntax, PassSemantic>
                         break;
 
                     default:
-                        errors.Add(new ShaderError
+                        errors.Add(new SDLError
                         {
                             message = $"Unknown function '{func.name.lexeme}' in pass {syntax.name.lexeme}.",
                             line = func.name.line,
@@ -123,7 +123,7 @@ internal class PassBlock : IBlockParser<PassSyntax, PassSemantic>
         {
             // TODO: Inheritance from base pass.
             // TODO: Add mesh shader support.
-            errors.Add(new ShaderError
+            errors.Add(new SDLError
             {
                 message = $"Pass {syntax.name.lexeme} must contain a mesh shader (ms) and a pixel shader (ps) declaration.",
                 line = syntax.name.line,
@@ -134,11 +134,11 @@ internal class PassBlock : IBlockParser<PassSyntax, PassSemantic>
         return semantic;
     }
 
-    private static void AnalysisShaderEntry(List<ShaderError> errors, FunctionCallDeclaration func, ref ShaderEntryPoint shaderEntryPoint)
+    private static void AnalysisShaderEntry(List<SDLError> errors, FunctionCallDeclaration func, ref ShaderEntryPoint shaderEntryPoint)
     {
         if (func.arguments?.Count != 2)
         {
-            errors.Add(new ShaderError
+            errors.Add(new SDLError
             {
                 message = "Shader declaration requires exactly two arguments: (shaderPath, entryPoint).",
                 line = func.name.line,

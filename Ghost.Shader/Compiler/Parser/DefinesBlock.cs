@@ -27,7 +27,7 @@ internal class DefinesBlock : IBlockParser<List<Token>, List<string>>
         return defines;
     }
 
-    public static List<string>? SemanticAnalysis(List<Token>? syntax, List<ShaderError> errors)
+    public static List<string>? SemanticAnalysis(List<Token>? syntax, List<SDLError> errors)
     {
         if (syntax == null)
         {

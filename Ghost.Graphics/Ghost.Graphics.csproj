@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Ghost.Core\Ghost.Core.csproj" />
+    <ProjectReference Include="..\Ghost.Shader\Ghost.Shader.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -3,6 +3,7 @@ using Ghost.Graphics.Contracts;
 using Ghost.Graphics.Data;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Utilities;
+using Ghost.Shader.Compiler;
 using Misaki.HighPerformance.Image;
 
 namespace Ghost.Graphics.RenderPasses;
@@ -27,13 +28,17 @@ internal unsafe class MeshRenderPass : IRenderPass
 
     public void Initialize(ref readonly RenderingContext ctx, IResourceAllocator resourceAllocator, IPipelineLibrary stateController)
     {
+        var shaderDescriptor = SDLCompiler.CompileShader("F:\\csharp\\GhostEngine\\Ghost.Graphics\\RenderPasses\\ShaderCode.hlsl").GetValueOrThrow();
+
+        stateController.CompileShader(shaderDescriptor);
+        stateController.PreCookPipelineState();
+
         MeshBuilder.CreateCube(0.75f, default, out var vertices, out var indices);
 
         _mesh = ctx.CreateMesh(vertices, indices);
         ctx.UploadMesh(_mesh, true);
 
-        _shader = resourceAllocator.CreateShader();
-
+        _shader = resourceAllocator.CreateShader(shaderDescriptor);
         _material = resourceAllocator.CreateMaterial(_shader);
 
         var imageResults = new ImageResult[_textureFiles.Length];
@@ -59,9 +64,6 @@ internal unsafe class MeshRenderPass : IRenderPass
             _textures[i] = ctx.CreateTexture(ref desc);
             ctx.UploadTexture(_textures[i], new Span<byte>(imageData.Data, (int)imageData.Size));
         }
-
-        stateController.CompileShader(_shader, "F:\\csharp\\GhostEngine\\Ghost.Graphics\\RenderPasses\\ShaderCode.hlsl");
-        stateController.PreCookPipelineState();
     }
 
     public void Execute(ref readonly RenderingContext ctx)

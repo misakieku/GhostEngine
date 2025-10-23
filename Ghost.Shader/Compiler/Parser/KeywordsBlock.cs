@@ -30,7 +30,7 @@ internal class KeywordsBlock : IBlockParser<List<FunctionCallDeclaration>, List<
         return keywords;
     }
 
-    public static List<KeywordsGroup>? SemanticAnalysis(List<FunctionCallDeclaration>? syntax, List<ShaderError> errors)
+    public static List<KeywordsGroup>? SemanticAnalysis(List<FunctionCallDeclaration>? syntax, List<SDLError> errors)
     {
         if (syntax == null)
         {
@@ -42,7 +42,7 @@ internal class KeywordsBlock : IBlockParser<List<FunctionCallDeclaration>, List<
         {
             if (keyword.arguments == null || keyword.arguments.Count == 0)
             {
-                errors.Add(new ShaderError
+                errors.Add(new SDLError
                 {
                     message = $"Function '{keyword.name.lexeme}' must have at least one argument.",
                     line = keyword.name.line,
@@ -61,7 +61,7 @@ internal class KeywordsBlock : IBlockParser<List<FunctionCallDeclaration>, List<
                     group.type = KeywordType.Static;
                     break;
                 default:
-                    errors.Add(new ShaderError
+                    errors.Add(new SDLError
                     {
                         message = $"Unknown function name '{keyword.name.lexeme}'.",
                         line = keyword.name.line,

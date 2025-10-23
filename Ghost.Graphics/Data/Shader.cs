@@ -1,7 +1,7 @@
 using Ghost.Core;
-using Ghost.Core.Contracts;
 using Ghost.Core.Graphics;
 using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.InteropServices;
 
@@ -51,13 +51,13 @@ public readonly struct CBufferInfo
     }
 }
 
-public readonly unsafe struct ShaderPass
+public unsafe class ShaderPass : IResourceReleasable
 {
     // NOTE: This is for per pass cbuffer only. Global, per view, and per mesh cbuffers are fixed.
     private readonly Dictionary<string, int> _propertyLookup;
     private readonly UnsafeList<PropertyInfo> _properties;
 
-    internal readonly CBufferInfo PassPropertyInfo
+    internal CBufferInfo PassPropertyInfo
     {
         get;
     }
@@ -69,36 +69,41 @@ public readonly unsafe struct ShaderPass
         _propertyLookup = propertyNameToIdMap;
     }
 
-    public readonly int GetPropertyId(string propertyName)
+    public int GetPropertyId(string propertyName)
     {
         return _propertyLookup.TryGetValue(propertyName, out var id) ? id : -1;
     }
 
-    public readonly PropertyInfo GetPropertyInfo(int id)
+    public PropertyInfo GetPropertyInfo(int id)
     {
         return _properties[id];
     }
 
-    public readonly PropertyInfo GetPropertyInfo(string propertyName)
+    public PropertyInfo GetPropertyInfo(string propertyName)
     {
         return _properties[GetPropertyId(propertyName)];
+    }
+
+    void IResourceReleasable.ReleaseResource(IResourceDatabase database)
+    {
+        _properties.Dispose();
     }
 }
 
 /// <summary>
 /// A representation of a GPU shader, including all the passes it contains.
 /// </summary>
-public readonly struct Shader : IResourceReleasable, IIdentifierType
+public class Shader : IResourceReleasable, IIdentifierType
 {
-    private readonly ShaderPassKey[] _passIDs;
+    private UnsafeArray<ShaderPassKey> _passIDs;
     private readonly Dictionary<string, int> _passLookup; // pass name to index
     private readonly Dictionary<string, List<int>> _propertyLookup; // property name to pass index (property name to list of pass indices that contain the property)
 
-    public int PassCount => _passIDs.Length;
+    public int PassCount => _passIDs.Count;
 
     internal Shader(ShaderDescriptor descriptor)
     {
-        _passIDs = new ShaderPassKey[descriptor.passes.Count];
+        _passIDs = new UnsafeArray<ShaderPassKey>(descriptor.passes.Count, Allocator.Persistent);
         _passLookup = new(descriptor.passes.Count);
         _propertyLookup = new(descriptor.passes.Count);
 
@@ -132,12 +137,12 @@ public readonly struct Shader : IResourceReleasable, IIdentifierType
         }
     }
 
-    public readonly ShaderPassKey GetPassKey(int index)
+    public ShaderPassKey GetPassKey(int index)
     {
         return _passIDs[index];
     }
 
-    public readonly bool TryGetPassKey(string passName, out ShaderPassKey? passID)
+    public bool TryGetPassKey(string passName, out ShaderPassKey? passID)
     {
         var index = _passLookup.GetValueOrDefault(passName, -1);
         if (index == -1)
@@ -150,7 +155,7 @@ public readonly struct Shader : IResourceReleasable, IIdentifierType
         return true;
     }
 
-    public readonly IReadOnlyCollection<int> GetPropertyPassIndices(string propertyName)
+    public IReadOnlyCollection<int> GetPropertyPassIndices(string propertyName)
     {
         if (_propertyLookup.TryGetValue(propertyName, out var passIndices))
         {
@@ -162,6 +167,6 @@ public readonly struct Shader : IResourceReleasable, IIdentifierType
 
     void IResourceReleasable.ReleaseResource(IResourceDatabase database)
     {
-        // Should we do something here?
+        _passIDs.Dispose();
     }
 }

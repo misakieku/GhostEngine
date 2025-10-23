@@ -27,7 +27,7 @@ internal class IncludesBlock : IBlockParser<List<Token>, List<string>>
         return includes;
     }
 
-    public static List<string>? SemanticAnalysis(List<Token>? syntax, List<ShaderError> errors)
+    public static List<string>? SemanticAnalysis(List<Token>? syntax, List<SDLError> errors)
     {
         if (syntax == null || syntax.Count == 0)
         {
@@ -44,7 +44,7 @@ internal class IncludesBlock : IBlockParser<List<Token>, List<string>>
             }
             else
             {
-                errors.Add(new ShaderError
+                errors.Add(new SDLError
                 {
                     message = $"Included file '{path}' not found.",
                     line = includeToken.line,

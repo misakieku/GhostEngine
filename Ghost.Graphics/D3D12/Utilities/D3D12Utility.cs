@@ -1,20 +1,10 @@
-﻿using Misaki.HighPerformance.LowLevel.Utilities;
+﻿using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.LowLevel.Utilities;
 using TerraFX.Interop.DirectX;
 
 using static TerraFX.Aliases.D3D12_Alias;
 
 namespace Ghost.Graphics.D3D12.Utilities;
-
-internal unsafe static class ID3D12Resource_Extensions
-{
-    extension(ID3D12Resource resource)
-    {
-        public void SetName(ReadOnlySpan<char> name)
-        {
-            resource.SetName(name.GetUnsafePtr());
-        }
-    }
-}
 
 internal static class D3D12_RASTERIZER_DESC_Extensions
 {
@@ -149,5 +139,52 @@ internal static class D3D12_DEPTH_STENCILOP_DESC_Extensions
                 StencilFunc = stencilFunc
             };
         }
+    }
+}
+
+internal unsafe static class D3D12Utility
+{
+    public static void SetName(ref this ID3D12Resource resource, ReadOnlySpan<char> name)
+    {
+        resource.SetName(name.GetUnsafePtr());
+    }
+
+    public static TextureDimension ToTextureDimension(this D3D12_RESOURCE_DIMENSION dimension)
+    {
+        return dimension switch
+        {
+            D3D12_RESOURCE_DIMENSION.D3D12_RESOURCE_DIMENSION_TEXTURE1D => TextureDimension.Texture2D,
+            D3D12_RESOURCE_DIMENSION.D3D12_RESOURCE_DIMENSION_TEXTURE2D => TextureDimension.Texture2D,
+            D3D12_RESOURCE_DIMENSION.D3D12_RESOURCE_DIMENSION_TEXTURE3D => TextureDimension.Texture3D,
+            _ => TextureDimension.Unknown,
+        };
+    }
+
+    public static DXGI_FORMAT ToDXGIFormat(this TextureFormat format)
+    {
+        return format switch
+        {
+            TextureFormat.R8G8B8A8_UNorm => DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UNORM,
+            TextureFormat.B8G8R8A8_UNorm => DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM,
+            TextureFormat.R16G16B16A16_Float => DXGI_FORMAT.DXGI_FORMAT_R16G16B16A16_FLOAT,
+            TextureFormat.R32G32B32A32_Float => DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_FLOAT,
+            TextureFormat.D24_UNorm_S8_UInt => DXGI_FORMAT.DXGI_FORMAT_D24_UNORM_S8_UINT,
+            TextureFormat.D32_Float => DXGI_FORMAT.DXGI_FORMAT_D32_FLOAT,
+            _ => throw new NotSupportedException($"Texture format {format} is not supported."),
+        };
+    }
+
+    public static TextureFormat ToTextureFormat(this DXGI_FORMAT format)
+    {
+        return format switch
+        {
+            DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UNORM => TextureFormat.R8G8B8A8_UNorm,
+            DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM => TextureFormat.B8G8R8A8_UNorm,
+            DXGI_FORMAT.DXGI_FORMAT_R16G16B16A16_FLOAT => TextureFormat.R16G16B16A16_Float,
+            DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_FLOAT => TextureFormat.R32G32B32A32_Float,
+            DXGI_FORMAT.DXGI_FORMAT_D24_UNORM_S8_UINT => TextureFormat.D24_UNorm_S8_UInt,
+            DXGI_FORMAT.DXGI_FORMAT_D32_FLOAT => TextureFormat.D32_Float,
+            _ => TextureFormat.Unknown,
+        };
     }
 }

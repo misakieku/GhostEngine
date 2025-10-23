@@ -8,7 +8,7 @@ using static TerraFX.Aliases.D3D12_Alias;
 namespace Ghost.Graphics.D3D12;
 
 /// <summary>
-/// D3D12 implementation of descriptor allocator that manages different types of descriptor heaps.
+/// D3D12 implementation of viewGroup allocator that manages different types of viewGroup heaps.
 /// </summary>
 internal unsafe class D3D12DescriptorAllocator : IDisposable
 {

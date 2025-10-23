@@ -13,6 +13,7 @@ public interface IResourceReleasable
 
 public interface IResourceDatabase
 {
+    /*
     /// <summary>
     /// Imports an external unmanaged resource and returns a handle for use within the resource management system.
     /// </summary>
@@ -20,8 +21,9 @@ public interface IResourceDatabase
     /// <param name="resourcePtr">A pointer to the external unmanaged resource to be imported. Must remain valid for the duration of the resource's usage.</param>
     /// <param name="initialState">The initial state to assign to the imported resource.</param>
     /// <returns>A handle representing the imported resource, which can be used for subsequent operations.</returns>
-    unsafe Handle<GPUResource> ImportExternalResource<T>(T resourcePtr, ResourceState initialState)
+    unsafe Handle<GPUResource> ImportExternalResource<T>(T resourcePtr, ResourceState initialState, string? name = null)
         where T : unmanaged;
+    */
 
     /// <summary>
     /// Retrieves the current state of the specified resource.
@@ -50,6 +52,16 @@ public interface IResourceDatabase
     /// <param name="handle">A handle to the GPU resource for which to obtain the bindless index. Must reference a valid, currently registered resource.</param>
     /// <returns>The bindless index corresponding to the specified GPU resource handle. -1 if the resource does not support bindless access or is not found.</returns>
     int GetBindlessIndex(Handle<GPUResource> handle);
+
+    /// <summary>
+    /// Retrieves the name of the GPU resource associated with the specified handle.
+    /// </summary>
+    /// <remarks>
+    /// You should only use this method in debug builds or inside engine editor.
+    /// </remarks>
+    /// <param name="handle">A handle to the GPU resource for which to obtain the name. Must reference a valid resource.</param>
+    /// <returns>The name of the GPU resource associated with the specified handle, or null if the resource does not have a name.</returns>
+    string? GetResourceName(Handle<GPUResource> handle);
 
     /// <summary>
     /// Removes a resource from the database using its handle.
@@ -116,7 +128,7 @@ public interface IResourceDatabase
     /// </summary>
     /// <param name="shader">The shader to add. The shader is passed by read-only reference and will not be modified.</param>
     /// <returns>The <see cref="Identifier{Shader}"/> representing the newly added shader.</returns>
-    Identifier<Shader> AddShader(ref readonly Shader shader);
+    Identifier<Shader> AddShader(Shader shader);
 
     /// <summary>
     /// Determines whether a shader with the specified identifier exists in the collection.
@@ -130,7 +142,7 @@ public interface IResourceDatabase
     /// </summary>
     /// <param name="id">The identifier of the shader to retrieve. Must refer to a valid shader.</param>
     /// <returns>A reference to the shader corresponding to the specified identifier.</returns>
-    ref Shader GetShaderReference(Identifier<Shader> id);
+    Shader GetShaderReference(Identifier<Shader> id);
 
     /// <summary>
     /// Releases the shader associated with the specified identifier, freeing any resources allocated to it.

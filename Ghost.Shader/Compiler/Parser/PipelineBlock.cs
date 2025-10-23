@@ -38,7 +38,7 @@ internal class PipelineBlock : IBlockParser<PipelineSyntax, PipelineSemantic>
         return pipeline;
     }
 
-    public static PipelineSemantic? SemanticAnalysis(PipelineSyntax? syntax, List<ShaderError> errors)
+    public static PipelineSemantic? SemanticAnalysis(PipelineSyntax? syntax, List<SDLError> errors)
     {
         if (syntax == null)
         {
@@ -80,7 +80,7 @@ internal class PipelineBlock : IBlockParser<PipelineSyntax, PipelineSemantic>
                                 semantic.zTest = ZTestOptions.Always;
                                 break;
                             default:
-                                errors.Add(new ShaderError
+                                errors.Add(new SDLError
                                 {
                                     message = $"Invalid ZTest option: {valueDecl.value.lexeme}",
                                     line = valueDecl.value.line,
@@ -100,7 +100,7 @@ internal class PipelineBlock : IBlockParser<PipelineSyntax, PipelineSemantic>
                                 semantic.zWrite = ZWriteOptions.Off;
                                 break;
                             default:
-                                errors.Add(new ShaderError
+                                errors.Add(new SDLError
                                 {
                                     message = $"Invalid ZWrite option: {valueDecl.value.lexeme}",
                                     line = valueDecl.value.line,
@@ -123,7 +123,7 @@ internal class PipelineBlock : IBlockParser<PipelineSyntax, PipelineSemantic>
                                 semantic.cull = CullOptions.Back;
                                 break;
                             default:
-                                errors.Add(new ShaderError
+                                errors.Add(new SDLError
                                 {
                                     message = $"Invalid Cull option: {valueDecl.value.lexeme}",
                                     line = valueDecl.value.line,
@@ -152,7 +152,7 @@ internal class PipelineBlock : IBlockParser<PipelineSyntax, PipelineSemantic>
                                 semantic.blend = BlendOptions.PremultipliedAlpha;
                                 break;
                             default:
-                                errors.Add(new ShaderError
+                                errors.Add(new SDLError
                                 {
                                     message = $"Invalid Blend option: {valueDecl.value.lexeme}",
                                     line = valueDecl.value.line,
@@ -169,7 +169,7 @@ internal class PipelineBlock : IBlockParser<PipelineSyntax, PipelineSemantic>
                         }
                         else
                         {
-                            errors.Add(new ShaderError
+                            errors.Add(new SDLError
                             {
                                 message = $"Invalid Color Mask value: {valueDecl.value.lexeme}",
                                 line = valueDecl.value.line,

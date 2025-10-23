@@ -1,4 +1,5 @@
-﻿using Misaki.HighPerformance.Utilities;
+﻿using Ghost.Graphics.D3D12.Utilities;
+using Misaki.HighPerformance.Utilities;
 using System.IO.Hashing;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -74,7 +75,7 @@ internal struct GraphicsPipelineHash
         data[1] = rtvCount;
         data[2] = (ulong)dsvFormat;
 
-        for (int i = 0; i < 8; i++)
+        for (var i = 0; i < 8; i++)
         {
             data[3 + i] = (ulong)rtvFormats[i];
         }
@@ -425,18 +426,88 @@ public struct BufferDesc
     }
 }
 
-public static class TextureDimensionExtension
+/// <summary>
+/// Swap chain description
+/// </summary>
+public struct SwapChainDesc
 {
-    public static TextureDimension ToTextureDimension(this D3D12_RESOURCE_DIMENSION dimension)
+    /// <summary>
+    /// Width of the swap chain
+    /// </summary>
+    public uint width;
+
+    /// <summary>
+    /// Height of the swap chain
+    /// </summary>
+    public uint height;
+
+    /// <summary>
+    /// Back buffer format
+    /// </summary>
+    public TextureFormat format;
+
+    /// <summary>
+    /// Target for presentation (window handle or composition target)
+    /// </summary>
+    public SwapChainTarget target;
+
+    public SwapChainDesc(uint width, uint height, SwapChainTarget target, TextureFormat format = TextureFormat.B8G8R8A8_UNorm, uint bufferCount = 2)
     {
-        return dimension switch
+        this.width = width;
+        this.height = height;
+        this.format = format;
+        this.target = target;
+    }
+}
+
+/// <summary>
+/// Swap chain target (window handle or composition surface)
+/// </summary>
+public struct SwapChainTarget
+{
+    /// <summary>
+    /// Target type
+    /// </summary>
+    public SwapChainTargetType type;
+
+    /// <summary>
+    /// Window handle for HWND targets
+    /// </summary>
+    public nint windowHandle;
+
+    /// <summary>
+    /// Composition surface for UWP/WinUI targets
+    /// </summary>
+    public object? compositionSurface;
+
+    public static SwapChainTarget FromWindowHandle(nint hwnd)
+    {
+        return new SwapChainTarget
         {
-            D3D12_RESOURCE_DIMENSION.D3D12_RESOURCE_DIMENSION_TEXTURE1D => TextureDimension.Texture2D,
-            D3D12_RESOURCE_DIMENSION.D3D12_RESOURCE_DIMENSION_TEXTURE2D => TextureDimension.Texture2D,
-            D3D12_RESOURCE_DIMENSION.D3D12_RESOURCE_DIMENSION_TEXTURE3D => TextureDimension.Texture3D,
-            _ => TextureDimension.Unknown,
+            type = SwapChainTargetType.WindowHandle,
+            windowHandle = hwnd,
+            compositionSurface = null
         };
     }
+
+    public static SwapChainTarget FromCompositionSurface(object surface)
+    {
+        return new SwapChainTarget
+        {
+            type = SwapChainTargetType.Composition,
+            windowHandle = nint.Zero,
+            compositionSurface = surface
+        };
+    }
+}
+
+/// <summary>
+/// Swap chain target types
+/// </summary>
+public enum SwapChainTargetType
+{
+    WindowHandle,
+    Composition
 }
 
 

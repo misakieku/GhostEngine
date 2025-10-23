@@ -10,8 +10,8 @@ var source = File.ReadAllText("F:/csharp/GhostEngine/Ghost.Graphics/test.gshader
 
 var lexer = new Lexer(source);
 var stream = new TokenStream(lexer.Tokenize());
-var shaderInfo = ShaderCompiler.ParseShaders(stream);
-var model = ShaderCompiler.SemanticAnalysis(shaderInfo[0], out var errors);
+var shaderInfo = SDLCompiler.ParseShaders(stream);
+var model = SDLCompiler.SemanticAnalysis(shaderInfo[0], out var errors);
 
 foreach (var error in errors)
 {
@@ -29,8 +29,8 @@ if (model == null)
     return;
 }
 
-var descriptor = ShaderCompiler.ResolveShader(model);
-ShaderCompiler.CompileShader(descriptor, "C:/Users/Misaki/Downloads/Archive");
+var descriptor = SDLCompiler.ResolveShader(model);
+SDLCompiler.GenerateShader(descriptor, "C:/Users/Misaki/Downloads/Archive");
 
 Console.WriteLine("Shader compiled successfully:");
 

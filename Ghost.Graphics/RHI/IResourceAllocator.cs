@@ -1,4 +1,5 @@
 ﻿using Ghost.Core;
+using Ghost.Core.Graphics;
 using Ghost.Graphics.Data;
 using Misaki.HighPerformance.LowLevel.Collections;
 
@@ -46,7 +47,8 @@ public interface IResourceAllocator
     /// Creates a new shader and returns its unique identifier.
     /// </summary>
     /// <returns>An <see cref="Identifier{Shader}"/> representing the newly created shader.</returns>
-    public Identifier<Shader> CreateShader();
+    /// <param name="descriptor">The viewGroup containing the shader's properties and passes.</param>
+    public Identifier<Shader> CreateShader(ShaderDescriptor descriptor);
 
     /// <summary>
     /// Release a resource given its handle
