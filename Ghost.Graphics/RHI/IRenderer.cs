@@ -1,6 +1,6 @@
 using Ghost.Core;
-using Ghost.Graphics.Data;
 using Misaki.HighPerformance.Mathematics;
+using Ghost.Graphics.Core;
 
 namespace Ghost.Graphics.RHI;
 

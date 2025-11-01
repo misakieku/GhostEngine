@@ -1,5 +1,5 @@
 ﻿using Ghost.Core;
-using Ghost.Graphics.Data;
+using Ghost.Graphics.Core;
 
 namespace Ghost.Graphics.RHI;
 
@@ -149,8 +149,6 @@ public interface IResourceDatabase
     /// </summary>
     /// <param name="id">The identifier of the shader to release. Must refer to a valid, previously created shader.</param>
     void ReleaseShader(Identifier<Shader> id);
-
-    // TODO: Use xxhash3 to generate passKey from string id.
 
     /// <summary>
     /// Adds a shader pass to the collection using the specified identifier.

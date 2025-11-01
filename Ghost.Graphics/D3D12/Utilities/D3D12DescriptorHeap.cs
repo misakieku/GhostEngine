@@ -1,4 +1,5 @@
-﻿using Misaki.HighPerformance.LowLevel.Collections;
+﻿using Ghost.Core.Utilities;
+using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Diagnostics;
 using System.Numerics;
@@ -277,33 +278,33 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
             NodeMask = 0
         };
 
-        fixed (void* heapPtr = &_heap)
+        ID3D12DescriptorHeap* pHeap = default;
+        var hr = _device.NativeDevice->CreateDescriptorHeap(&heapDesc, __uuidof(pHeap), (void**)&pHeap);
+        if (hr.FAILED)
         {
-            var hr = _device.NativeDevice->CreateDescriptorHeap(&heapDesc, __uuidof<ID3D12DescriptorHeap>(), (void**)heapPtr);
-            if (hr.FAILED)
-            {
-                return false;
-            }
+            return false;
         }
+
+        _heap.Attach(pHeap);
 
         _startCpuHandle = _heap.Get()->GetCPUDescriptorHandleForHeapStart();
         _allocatedDescriptors.Resize(numDescriptors);
 
         if (ShaderVisible)
         {
-            heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+            ID3D12DescriptorHeap* pShaderVisibleHeap = default;
 
-            fixed (void* heapPtr = &_shaderVisibleHeap)
+            heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+            hr = _device.NativeDevice->CreateDescriptorHeap(&heapDesc, __uuidof(pShaderVisibleHeap), (void**)&pShaderVisibleHeap);
+            if (hr.FAILED)
             {
-                var hr = _device.NativeDevice->CreateDescriptorHeap(&heapDesc, __uuidof<ID3D12DescriptorHeap>(), (void**)heapPtr);
-                if (hr.FAILED)
-                {
-                    return false;
-                }
+                return false;
             }
 
-            _startCpuHandleShaderVisible = _shaderVisibleHeap.Get()->GetCPUDescriptorHandleForHeapStart();
-            _startGpuHandleShaderVisible = _shaderVisibleHeap.Get()->GetGPUDescriptorHandleForHeapStart();
+            _startCpuHandleShaderVisible = pShaderVisibleHeap->GetCPUDescriptorHandleForHeapStart();
+            _startGpuHandleShaderVisible = pShaderVisibleHeap->GetGPUDescriptorHandleForHeapStart();
+
+            _shaderVisibleHeap.Attach(pShaderVisibleHeap);
         }
 
         return true;

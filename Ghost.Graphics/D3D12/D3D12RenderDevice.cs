@@ -47,16 +47,20 @@ internal unsafe class D3D12RenderDevice : IRenderDevice
 
     private void InitializeDevice()
     {
+        IDXGIFactory7* pFactory = default;
 #if DEBUG
-        CreateDXGIFactory2(TRUE, __uuidof<IDXGIFactory7>(), _dxgiFactory.GetVoidAddressOf());
+        CreateDXGIFactory2(TRUE, __uuidof(pFactory), (void**)&pFactory);
 #else
-        CreateDXGIFactory2(FALSE, __uuidof<IDXGIFactory7>(), _dxgiFactory.GetVoidAddressOf());
+        CreateDXGIFactory2(FALSE, __uuidof(pFactory), (void**)&pFactory);
 #endif
 
+        _dxgiFactory.Attach(pFactory);
+
+        ID3D12Device14* pDevice = default;
         ComPtr<IDXGIAdapter1> adapter = default;
 
         for (uint adapterIndex = 0;
-            _dxgiFactory.Get()->EnumAdapterByGpuPreference(adapterIndex, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, __uuidof<IDXGIAdapter1>(), adapter.ReleaseAndGetVoidAddressOf()).SUCCEEDED;
+            _dxgiFactory.Get()->EnumAdapterByGpuPreference(adapterIndex, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, adapter.IID(), adapter.ReleaseAndGetVoidAddressOf()).SUCCEEDED;
             adapterIndex++)
         {
             DXGI_ADAPTER_DESC1 desc = default;
@@ -68,18 +72,20 @@ internal unsafe class D3D12RenderDevice : IRenderDevice
                 continue;
             }
 
-            if (D3D12CreateDevice((IUnknown*)adapter.Get(), D3D_FEATURE_LEVEL_12_0, __uuidof<ID3D12Device14>(), _device.GetVoidAddressOf()).SUCCEEDED)
+            if (D3D12CreateDevice((IUnknown*)adapter.Get(), D3D_FEATURE_LEVEL_12_0, __uuidof(pDevice), (void**)&pDevice).SUCCEEDED)
             {
                 _adapter = adapter.Move();
                 break;
             }
         }
 
-        if (_device.Get() == null)
+        if (pDevice == null)
         {
             adapter.Dispose(); // Dispose the last adapter we tried. If the operation succeeded, we would have moved it.
             throw new PlatformNotSupportedException("Cannot create ID3D12Device with feature level 12.0");
         }
+
+        _device.Attach(pDevice);
     }
 
     public void Dispose()

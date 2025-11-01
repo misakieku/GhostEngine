@@ -1,6 +1,5 @@
 using Ghost.Core;
-using Ghost.Graphics.Data;
-using TerraFX.Interop.DirectX;
+using Ghost.Graphics.Core;
 
 namespace Ghost.Graphics.RHI;
 
@@ -9,25 +8,52 @@ namespace Ghost.Graphics.RHI;
 /// </summary>
 public interface ICommandBuffer : IDisposable
 {
-    public CommandBufferType Type
+    /// <summary>
+    /// Gets the type of the command buffer.
+    /// </summary>
+    CommandBufferType Type
     {
         get;
     }
 
-    public bool IsEmpty
+    /// <summary>
+    /// Indicates whether the command buffer contains any recorded commands.
+    /// </summary>
+    bool IsEmpty
     {
         get;
+    }
+
+    /// <summary>
+    /// Gets the name of the command buffer.
+    /// </summary>
+    string Name
+    {
+        get;
+        set;
     }
 
     /// <summary>
     /// Begins recording commands into this command buffer
     /// </summary>
-    public void Begin();
+    void Begin();
 
     /// <summary>
     /// Ends recording commands and prepares for submission
     /// </summary>
-    public void End();
+    void End();
+
+    /// <summary>
+    /// Sets the viewport for rendering
+    /// </summary>
+    /// <param name="viewport">Viewport to set</param>
+    void SetViewport(ViewportDesc viewport);
+
+    /// <summary>
+    /// Sets the scissor rectangle
+    /// </summary>
+    /// <param name="rect">Scissor rectangle to set</param>
+    void SetScissorRect(RectDesc rect);
 
     /// <summary>
     /// Sets the optional render targets and optional depth target for subsequent rendering operations.
@@ -39,32 +65,20 @@ public interface ICommandBuffer : IDisposable
     /// <param name="renderTargets">A read-only span of handles to textures that will be used as render targets.
     /// The order of handles determines the order in which render targets are bound.</param>
     /// <param name="depthTarget">A handle to the texture to be used as the depth target. Specify a invalid handle if no depth target is required.</param>
-    public void SetRenderTargets(ReadOnlySpan<Handle<Texture>> renderTargets, Handle<Texture> depthTarget);
+    void SetRenderTargets(ReadOnlySpan<Handle<Texture>> renderTargets, Handle<Texture> depthTarget);
 
     /// <summary>
     /// Begins a render pass with the specified render target
     /// </summary>
-    /// <param name="renderTarget">Render target to render into (can be invalid)</param>
-    /// <param name="depthTarget">Depth target to use (can be invalid)</param>
-    /// <param name="clearColor">Color to clear the render target with</param>
-    public void BeginRenderPass(Handle<Texture> renderTarget, Handle<Texture> depthTarget, Color128 clearColor);
+    /// <param name="rtDescs">Render target descriptions</param>
+    /// <param name="depthDesc">Depth stencil description</param>
+    /// <param name="allowUAVWrites">Whether UAV writes are allowed during the render pass</param>
+    void BeginRenderPass(ReadOnlySpan<PassRenderTargetDesc> rtDescs, PassDepthStencilDesc depthDesc, bool allowUAVWrites = false);
 
     /// <summary>
     /// Ends the current render pass
     /// </summary>
-    public void EndRenderPass();
-
-    /// <summary>
-    /// Sets the viewport for rendering
-    /// </summary>
-    /// <param name="viewport">Viewport to set</param>
-    public void SetViewport(ViewportDesc viewport);
-
-    /// <summary>
-    /// Sets the scissor rectangle
-    /// </summary>
-    /// <param name="rect">Scissor rectangle to set</param>
-    public void SetScissorRect(RectDesc rect);
+    void EndRenderPass();
 
     /// <summary>
     /// Inserts a resource barrier for state transitions
@@ -72,25 +86,61 @@ public interface ICommandBuffer : IDisposable
     /// <param name="resource">Resource to transition</param>
     /// <param name="before">Current resource state</param>
     /// <param name="after">Target resource state</param>
-    public void ResourceBarrier(Handle<GPUResource> resource, ResourceState before, ResourceState after);
-
-    /// <summary>
-    /// Sets the graphics root signature
-    /// </summary>
-    /// <param name="rootSignature">Root signature to set</param>
-    public void SetRootSignature(IRootSignature rootSignature);
+    void ResourceBarrier(Handle<GPUResource> resource, ResourceState before, ResourceState after);
 
     /// <summary>
     /// Sets the pipeline state object
     /// </summary>
-    /// <param name="pipelineState">Pipeline state to set</param>
-    public void SetPipelineState(IShaderPipeline pipelineState);
+    /// <param name="pipelineKey">Pipeline state to set</param>
+    void SetPipelineState(GraphicsPipelineKey pipelineKey);
 
-    public void SetVertexBuffer(uint slot, Handle<GraphicsBuffer> buffer, ulong offset = 0);
-    public void SetIndexBuffer(Handle<GraphicsBuffer> buffer, IndexType type, ulong offset = 0);
+    /// <summary>
+    /// Sets the constant buffer view for the specified slot in the graphics pipeline.
+    /// </summary>
+    /// <param name="slot">The zero-based index of the slot to bind the constant buffer view to.</param>
+    /// <param name="buffer">A graphics buffer to use as the constant buffer view.</param>
+    void SetConstantBufferView(uint slot, Handle<GraphicsBuffer> buffer);
 
-    public void Draw(uint vertexCount, uint instanceCount = 1, uint startVertex = 0, uint startInstance = 0);
-    public void DrawIndexed(uint indexCount, uint instanceCount = 1, uint startIndex = 0, int baseVertex = 0, uint startInstance = 0);
+    /// <summary>
+    /// Binds a vertex buffer to the specified slot for subsequent draw calls.
+    /// </summary>
+    /// <param name="slot">The vertex buffer slot to bind to.</param>
+    /// <param name="buffer">The handle to the graphics buffer containing vertex data.</param>
+    /// <param name="offset">The offset in bytes from the start of the buffer.</param>
+    void SetVertexBuffer(uint slot, Handle<GraphicsBuffer> buffer, ulong offset = 0);
+
+    /// <summary>
+    /// Binds an index buffer for indexed drawing.
+    /// </summary>
+    /// <param name="buffer">The handle to the graphics buffer containing index data.</param>
+    /// <param name="type">The type of indices (e.g., 16-bit or 32-bit).</param>
+    /// <param name="offset">The offset in bytes from the start of the buffer.</param>
+    void SetIndexBuffer(Handle<GraphicsBuffer> buffer, IndexType type, ulong offset = 0);
+
+    /// <summary>
+    /// Sets the primitive topology to be used for subsequent drawing operations.
+    /// </summary>
+    /// <param name="topology">The primitive topology that determines how the input vertices are interpreted during rendering.</param>
+    void SetPrimitiveTopology(PrimitiveTopology topology);
+
+    /// <summary>
+    /// Issues a non-indexed draw call.
+    /// </summary>
+    /// <param name="vertexCount">Number of vertices to draw.</param>
+    /// <param name="instanceCount">Number of instances to draw.</param>
+    /// <param name="startVertex">Index of the first vertex to draw.</param>
+    /// <param name="startInstance">Index of the first instance to draw.</param>
+    void Draw(uint vertexCount, uint instanceCount = 1, uint startVertex = 0, uint startInstance = 0);
+
+    /// <summary>
+    /// Issues an indexed draw call.
+    /// </summary>
+    /// <param name="indexCount">Number of indices to draw.</param>
+    /// <param name="instanceCount">Number of instances to draw.</param>
+    /// <param name="startIndex">Index of the first index to draw.</param>
+    /// <param name="baseVertex">Value added to each index before indexing the vertex buffer.</param>
+    /// <param name="startInstance">Index of the first instance to draw.</param>
+    void DrawIndexed(uint indexCount, uint instanceCount = 1, uint startIndex = 0, int baseVertex = 0, uint startInstance = 0);
 
     /// <summary>
     /// Dispatches compute threads
@@ -98,7 +148,20 @@ public interface ICommandBuffer : IDisposable
     /// <param name="threadGroupCountX">Thread groups in X dimension</param>
     /// <param name="threadGroupCountY">Thread groups in Y dimension</param>
     /// <param name="threadGroupCountZ">Thread groups in Z dimension</param>
-    public void Dispatch(uint threadGroupCountX, uint threadGroupCountY = 1, uint threadGroupCountZ = 1);
+    void DispatchCompute(uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ);
+
+    /// <summary>
+    /// Dispatches mesh shader threads
+    /// </summary>
+    /// <param name="threadGroupCountX">Thread groups in X dimension</param>
+    /// <param name="threadGroupCountY">Thread groups in Y dimension</param>
+    /// <param name="threadGroupCountZ">Thread groups in Z dimension</param>
+    void DispatchMesh(uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ);
+
+    /// <summary>
+    /// Dispatches ray tracing threads
+    /// </summary>
+    void DispatchRay();
 
     /// <summary>
     /// Uploads the specified data to the buffer represented by the given handle.
@@ -107,7 +170,7 @@ public interface ICommandBuffer : IDisposable
     /// <param name="buffer">A handle to the buffer that will receive the uploaded data.</param>
     /// <param name="data">A read-only span containing the data to upload to the buffer. The span must contain elements of type
     /// <typeparamref name="T"/>.</param>
-    public void Upload<T>(Handle<GraphicsBuffer> buffer, ReadOnlySpan<T> data)
+    void Upload<T>(Handle<GraphicsBuffer> buffer, ReadOnlySpan<T> data)
         where T : unmanaged;
 
     /// <summary>
@@ -118,7 +181,7 @@ public interface ICommandBuffer : IDisposable
     /// <param name="subresources">A reference to the structure containing the subresource data to upload. The data must match the format and layout expected by the texture.</param>
     /// <param name="numSubresources">The number of subresources to upload, starting from <paramref name="firstSubresource"/>.
     /// Must be greater than zero and not exceed the remaining subresources in the texture.</param>
-    public void Upload(Handle<Texture> texture, params ReadOnlySpan<SubResourceData> subresources);
+    void Upload(Handle<Texture> texture, params ReadOnlySpan<SubResourceData> subresources);
 
     /// <summary>
     /// Copies a specified number of bytes from the source graphics buffer to the destination graphics buffer.
@@ -128,26 +191,5 @@ public interface ICommandBuffer : IDisposable
     /// <param name="destOffset">The byte offset in the destination buffer at which to begin writing. Must be zero or greater.</param>
     /// <param name="srcOffset">The byte offset in the source buffer at which to begin reading. Must be zero or greater.</param>
     /// <param name="numBytes">The number of bytes to copy. If zero, copies the remaining bytes from the source buffer starting at <paramref name="srcOffset"/>.</param>
-    public void CopyBuffer(Handle<GraphicsBuffer> dest, Handle<GraphicsBuffer> src, ulong destOffset = 0, ulong srcOffset = 0, ulong numBytes = 0);
-}
-
-internal static class ResourceStateExtensions
-{
-    public static D3D12_RESOURCE_STATES ToD3D12States(this ResourceState state)
-    {
-        return state switch
-        {
-            ResourceState.Common or ResourceState.Present => D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_COMMON,
-            ResourceState.VertexAndConstantBuffer => D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
-            ResourceState.IndexBuffer => D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_INDEX_BUFFER,
-            ResourceState.RenderTarget => D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_RENDER_TARGET,
-            ResourceState.UnorderedAccess => D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-            ResourceState.DepthWrite => D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_DEPTH_WRITE,
-            ResourceState.DepthRead => D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_DEPTH_READ,
-            ResourceState.PixelShaderResource => D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-            ResourceState.CopyDest => D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_COPY_DEST,
-            ResourceState.CopySource => D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_COPY_SOURCE,
-            _ => throw new ArgumentException($"Unknown resource state: {state}")
-        };
-    }
+    void CopyBuffer(Handle<GraphicsBuffer> dest, Handle<GraphicsBuffer> src, ulong destOffset = 0, ulong srcOffset = 0, ulong numBytes = 0);
 }

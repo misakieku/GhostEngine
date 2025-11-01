@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
 using TerraFX.Interop.Windows;
@@ -7,33 +8,82 @@ namespace Ghost.Core.Utilities;
 
 #if PLATEFORME_WIN64
 [SupportedOSPlatform("windows10.0.19041.0")]
-internal unsafe static class Win32Utility
+internal static unsafe class Win32Utility
 {
-    public static Guid* IID_NULL => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID.IID_NULL));
-
-    [Conditional("DEBUG")]
-    public static void Assert(this HRESULT hr)
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public readonly ref struct IID_PPV
     {
-        Debug.Assert(hr.SUCCEEDED);
+        public readonly Guid* iid;
+        public readonly void** ppv;
+
+        public IID_PPV(Guid* iid, void** ppv)
+        {
+            this.iid = iid;
+            this.ppv = ppv;
+        }
+
+        public void Deconstruct(out Guid* iid, out void** ppv)
+        {
+            iid = this.iid;
+            ppv = this.ppv;
+        }
     }
 
+    public static Guid* IID_NULL
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in TerraFX.Interop.Windows.IID.IID_NULL));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static IID_PPV IID_PPV_ARGS<T>(ComPtr<T> comPtr)
+        where T : unmanaged, IUnknown.Interface
+    {
+        return new IID_PPV(Windows.__uuidof<T>(), comPtr.PPV());
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static IID_PPV IID_PPV_ARGS<T>(T** ppv)
+        where T : unmanaged, IUnknown.Interface
+    {
+        return new IID_PPV(Windows.__uuidof<T>(), (void**)ppv);
+    }
+
+    [Conditional("DEBUG")]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Assert(this HRESULT hr)
+    {
+        Debug.Assert(hr.SUCCEEDED, hr.ToString());
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ThrowIfFailed(this HRESULT hr)
     {
         Windows.ThrowIfFailed(hr);
     }
 
-    public static void** GetVoidAddressOf<T>(this ComPtr<T> comPtr)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Guid* IID<T>(this ComPtr<T> comPtr)
+        where T : unmanaged, IUnknown.Interface
+    {
+        return Windows.__uuidof<T>();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void** PPV<T>(this ComPtr<T> comPtr)
         where T : unmanaged, IUnknown.Interface
     {
         return (void**)comPtr.GetAddressOf();
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void** ReleaseAndGetVoidAddressOf<T>(this ComPtr<T> comPtr)
         where T : unmanaged, IUnknown.Interface
     {
         return (void**)comPtr.ReleaseAndGetAddressOf();
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ComPtr<T> Move<T>(ref this ComPtr<T> comPtr)
         where T : unmanaged, IUnknown.Interface
     {
@@ -42,6 +92,7 @@ internal unsafe static class Win32Utility
         return copy;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool HasFlag<T>(this uint flags, T flag)
         where T : Enum
     {

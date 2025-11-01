@@ -6,7 +6,7 @@ using Misaki.HighPerformance.LowLevel.Utilities;
 using Misaki.HighPerformance.Mathematics;
 using Misaki.HighPerformance.Mathematics.Geometry;
 
-namespace Ghost.Graphics.Data;
+namespace Ghost.Graphics.Core;
 
 public struct Mesh : IResourceReleasable, IHandleType
 {

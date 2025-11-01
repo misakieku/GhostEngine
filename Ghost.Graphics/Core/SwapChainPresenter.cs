@@ -1,6 +1,7 @@
 ﻿using Ghost.Graphics.Contracts;
+using Ghost.Graphics.Core;
 
-namespace Ghost.Graphics.Data;
+namespace Ghost.Graphics.Core;
 
 internal readonly struct SwapChainPresenter
 {

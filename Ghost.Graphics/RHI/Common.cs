@@ -1,9 +1,12 @@
-﻿using Ghost.Graphics.D3D12.Utilities;
+﻿using Ghost.Core;
+using Ghost.Core.Graphics;
+using Ghost.Graphics.D3D12.Utilities;
 using Misaki.HighPerformance.Utilities;
 using System.IO.Hashing;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
+using Ghost.Graphics.Core;
 
 namespace Ghost.Graphics.RHI;
 
@@ -35,11 +38,24 @@ public readonly struct ShaderPassKey
 
 public readonly struct GraphicsPipelineKey
 {
+    public const int KEY_STRING_LENGTH = 17; // 16 chars + null terminator
+
     public readonly ulong value;
 
     public GraphicsPipelineKey(ulong value)
     {
         this.value = value;
+    }
+
+    public Result GetString(Span<char> destination)
+    {
+        if (!value.TryFormat(destination, out _, "X16"))
+        {
+            return Result.Fail("Failed to format GraphicsPipelineKey to string.");
+        }
+
+        destination[16] = '\0';
+        return Result.Success();
     }
 
     public override string ToString()
@@ -55,14 +71,14 @@ public readonly struct GraphicsPipelineKey
 
 internal struct GraphicsPipelineHash
 {
-    [InlineArray(8)]
+    [InlineArray(D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT)]
     public struct rtv_array
     {
         public TextureFormat rtvFormats;
     }
 
-    public rtv_array rtvFormats;
     public ShaderPassKey id;
+    public rtv_array rtvFormats;
     public uint rtvCount;
     public TextureFormat dsvFormat;
     // Do we need to store blend state?
@@ -70,12 +86,12 @@ internal struct GraphicsPipelineHash
 
     public readonly GraphicsPipelineKey GetKey()
     {
-        Span<ulong> data = stackalloc ulong[3 + 8];
+        Span<ulong> data = stackalloc ulong[3 + D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
         data[0] = id.value;
         data[1] = rtvCount;
         data[2] = (ulong)dsvFormat;
 
-        for (var i = 0; i < 8; i++)
+        for (var i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
         {
             data[3 + i] = (ulong)rtvFormats[i];
         }
@@ -85,6 +101,18 @@ internal struct GraphicsPipelineHash
     }
 }
 
+public ref struct GraphicsPSODescriptor
+{
+    public ShaderPassKey passId;
+    public ZTestOptions zTest;
+    public ZWriteOptions zWrite;
+    public CullOptions cull;
+    public BlendOptions blend;
+    public uint colorMask;
+
+    public ReadOnlySpan<TextureFormat> rtvFormats;
+    public TextureFormat dsvFormat;
+}
 
 
 public struct ViewportDesc
@@ -111,6 +139,20 @@ public struct SubResourceData
     public nint rowPitch;
     public nint slicePitch;
 }
+
+public struct PassRenderTargetDesc
+{
+    public Handle<Texture> texture;
+    public Color128 clearColor;
+}
+
+public struct PassDepthStencilDesc
+{
+    public Handle<Texture> texture;
+    public float clearDepth;
+    public byte clearStencil;
+}
+
 
 [StructLayout(LayoutKind.Explicit)]
 public struct ResourceDesc
@@ -501,9 +543,6 @@ public struct SwapChainTarget
     }
 }
 
-/// <summary>
-/// Swap chain target types
-/// </summary>
 public enum SwapChainTargetType
 {
     WindowHandle,
@@ -625,6 +664,13 @@ public enum IndexType
 {
     UInt16,
     UInt32
+}
+
+public enum PrimitiveTopology
+{
+    Point,
+    Line,
+    Triangle,
 }
 
 // SDL compiler

@@ -1,24 +1,25 @@
 ﻿using Ghost.Core;
+using Ghost.Core.Graphics;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
 
-namespace Ghost.Graphics.Data;
+namespace Ghost.Graphics.Core;
 
 public unsafe readonly ref struct RenderingContext
 {
     private readonly IRenderDevice _device;
-    private readonly ICommandBuffer _cmd;
-    private readonly ICommandBuffer _copyCmd;
-    private readonly ICommandBuffer _computeCmd;
+    private readonly ICommandBuffer _directCmb;
+    private readonly ICommandBuffer _copyCmb;
+    private readonly ICommandBuffer _computeCmb;
     private readonly IResourceAllocator _resourceAllocator;
     private readonly IResourceDatabase _resourceDatabase;
     private readonly IPipelineLibrary _stateController;
 
     internal RenderingContext(
         IRenderDevice device,
-        ICommandBuffer cmd,
+        ICommandBuffer directCmd,
         ICommandBuffer copyCmd,
         ICommandBuffer computeCmd,
         IResourceAllocator resourceAllocator,
@@ -26,9 +27,9 @@ public unsafe readonly ref struct RenderingContext
         IPipelineLibrary stateController)
     {
         _device = device;
-        _cmd = cmd;
-        _copyCmd = copyCmd;
-        _computeCmd = computeCmd;
+        _directCmb = directCmd;
+        _copyCmb = copyCmd;
+        _computeCmb = computeCmd;
         _resourceAllocator = resourceAllocator;
         _resourceDatabase = resourceDatabase;
         _stateController = stateController;
@@ -51,6 +52,8 @@ public unsafe readonly ref struct RenderingContext
         return CreateMesh(vertexList, indexList);
     }
 
+    // TODO: Make one memory pool for upload.
+
     /// <summary>
     /// Uploads the mesh data to the GPU.
     /// </summary>
@@ -66,29 +69,29 @@ public unsafe readonly ref struct RenderingContext
 
         if (needVertexTransition)
         {
-            _copyCmd.ResourceBarrier(meshData.vertexBuffer.AsResource(), vertexState, ResourceState.CopyDest);
+            _copyCmb.ResourceBarrier(meshData.vertexBuffer.AsResource(), vertexState, ResourceState.CopyDest);
             _resourceDatabase.SetResourceState(meshData.vertexBuffer.AsResource(), ResourceState.CopyDest);
         }
 
         if (needIndexTransition)
         {
-            _copyCmd.ResourceBarrier(meshData.indexBuffer.AsResource(), indexState, ResourceState.CopyDest);
+            _copyCmb.ResourceBarrier(meshData.indexBuffer.AsResource(), indexState, ResourceState.CopyDest);
             _resourceDatabase.SetResourceState(meshData.indexBuffer.AsResource(), ResourceState.CopyDest);
         }
 
-        _copyCmd.Upload(meshData.vertexBuffer, meshData.vertices.AsSpan());
-        _copyCmd.Upload(meshData.indexBuffer, meshData.indices.AsSpan());
+        _copyCmb.Upload(meshData.vertexBuffer, meshData.vertices.AsSpan());
+        _copyCmb.Upload(meshData.indexBuffer, meshData.indices.AsSpan());
 
         if (needVertexTransition)
         {
-            _copyCmd.ResourceBarrier(meshData.vertexBuffer.AsResource(), ResourceState.CopyDest, vertexState);
+            _copyCmb.ResourceBarrier(meshData.vertexBuffer.AsResource(), ResourceState.CopyDest, vertexState);
             _resourceDatabase.SetResourceState(meshData.vertexBuffer.AsResource(), vertexState);
         }
 
         if (needIndexTransition)
         {
             _resourceDatabase.SetResourceState(meshData.indexBuffer.AsResource(), indexState);
-            _copyCmd.ResourceBarrier(meshData.indexBuffer.AsResource(), ResourceState.CopyDest, indexState);
+            _copyCmb.ResourceBarrier(meshData.indexBuffer.AsResource(), ResourceState.CopyDest, indexState);
         }
 
         if (markMeshStatic)
@@ -119,27 +122,65 @@ public unsafe readonly ref struct RenderingContext
 
         if (needTransition)
         {
-            _copyCmd.ResourceBarrier(texture.AsResource(), sateBefore, ResourceState.CopyDest);
+            _copyCmb.ResourceBarrier(texture.AsResource(), sateBefore, ResourceState.CopyDest);
             _resourceDatabase.SetResourceState(texture.AsResource(), ResourceState.CopyDest);
         }
 
-        _copyCmd.Upload(texture, subresourceData);
+        _copyCmb.Upload(texture, subresourceData);
 
         if (needTransition)
         {
-            _copyCmd.ResourceBarrier(texture.AsResource(), ResourceState.CopyDest, sateBefore);
+            _copyCmb.ResourceBarrier(texture.AsResource(), ResourceState.CopyDest, sateBefore);
             _resourceDatabase.SetResourceState(texture.AsResource(), sateBefore);
         }
     }
 
-    public void RenderMesh(Handle<Mesh> mesh, Handle<Material> material)
+    public void RenderMesh(Handle<Mesh> mesh, Handle<Material> material, string passName)
     {
         //_cmd.DrawMesh(mesh, material);
+        ref var meshRef = ref _resourceDatabase.GetMeshReference(mesh);
+        ref var materialRef = ref _resourceDatabase.GetMaterialReference(material);
+        var shader = _resourceDatabase.GetShaderReference(materialRef.Shader);
+
+        shader.TryGetPassKey(passName, out var passKey);
+        var hash = new GraphicsPipelineHash
+        {
+            id = passKey,
+            rtvCount = 1,
+            dsvFormat = TextureFormat.Unknown,
+        };
+
+        hash.rtvFormats[0] = TextureFormat.B8G8R8A8_UNorm;
+        var pipelineKey = hash.GetKey();
+        _directCmb.SetPipelineState(pipelineKey);
+
+        // FIX: Get valid root signature. In D3D12, we use fixed root signature layout for bindless rendering.
+        // However, our code should not assume that blindly. Each pipeline should have contained root signature info even if there are fixed.
+        // This ensures that future changes to root signature layout can be accommodated.
+
+        // for (int i = 0; i < 4; i++)
+        {
+            ref var cache = ref materialRef.GetPassCache((int)passKey.value);
+            _directCmb.SetConstantBufferView(RootSignatureLayout.PER_MATERIAL_BUFFER_SLOT, cache.GpuResource);
+        }
+
+        // NOTE: Since we are using true bindless resources, we only need to set the descriptor heaps, not individual tables.
+        // TODO: Matbe handle the transitional bindless model?
+#if false
+        var samplerGpuHandle = _descriptorAllocator.GetSamplerHeap()->GetGPUDescriptorHandleForHeapStart();
+        _commandList.Get()->SetGraphicsRootDescriptorTable(rootParamIndex, samplerGpuHandle);
+#endif
+        _directCmb.SetPrimitiveTopology(PrimitiveTopology.Triangle);
+
+        // Draw without vertex/index buffers - use instanced drawing
+        // Each instance represents a triangle (3 vertices)
+        var triangleCount = (uint)meshRef.indices.Count / 3;
+        _directCmb.Draw(3, triangleCount, 0, 0);
     }
 
     public void ExecuteCopyCommands()
     {
-        _device.CopyQueue.Submit(_copyCmd);
+        _device.CopyQueue.Submit(_copyCmb);
         _device.CopyQueue.WaitIdle();
     }
 }

@@ -7,6 +7,7 @@ using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using Misaki.HighPerformance.Utilities;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
@@ -35,10 +36,12 @@ internal struct D3D12PipelineState : IDisposable
     // NOTE: This is just a temporary cache for compiled shader code. We will implement a proper disk cache later.
     public D3D12GraphicsCompiledResult compileResult;
     public D3DX12_MESH_SHADER_PIPELINE_STATE_DESC psoDesc;
+    public ComPtr<ID3D12PipelineState> pso;
 
     public void Dispose()
     {
         compileResult.Dispose();
+        pso.Dispose();
     }
 }
 
@@ -62,29 +65,14 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
 
     public ID3D12RootSignature* DefaultRootSignature => _defaultRootSignature.Get();
 
-    public D3D12PipelineLibrary(D3D12RenderDevice device, D3D12ResourceDatabase resourceDatabase, string? cachePath)
+    public D3D12PipelineLibrary(D3D12RenderDevice device, D3D12ResourceDatabase resourceDatabase)
     {
         _device = device;
         _resourceDatabase = resourceDatabase;
 
         _pipelineCache = new();
 
-        InitializeLibrary(cachePath);
         CreateDefaultRootSignature();
-    }
-
-    private void InitializeLibrary(string? filePath)
-    {
-        if (!File.Exists(filePath))
-        {
-            _device.NativeDevice->CreatePipelineLibrary(null, 0, __uuidof<ID3D12PipelineLibrary1>(), _library.GetVoidAddressOf()).ThrowIfFailed();
-        }
-
-        var fileBytes = File.ReadAllBytes(filePath!);
-        fixed (byte* pFileBytes = fileBytes)
-        {
-            _device.NativeDevice->CreatePipelineLibrary(pFileBytes, (nuint)fileBytes.Length, __uuidof<ID3D12PipelineLibrary1>(), _library.GetVoidAddressOf()).ThrowIfFailed();
-        }
     }
 
     private void CreateDefaultRootSignature()
@@ -97,28 +85,28 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
         {
             ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
             ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
-            Descriptor = new D3D12_ROOT_DESCRIPTOR1(0, 0), // b0
+            Descriptor = new D3D12_ROOT_DESCRIPTOR1(RootSignatureLayout.GLOBAL_BUFFER_SLOT, 0), // b0
         };
 
         rootParameters[1] = new D3D12_ROOT_PARAMETER1
         {
             ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
             ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
-            Descriptor = new D3D12_ROOT_DESCRIPTOR1(1, 0), // b1
+            Descriptor = new D3D12_ROOT_DESCRIPTOR1(RootSignatureLayout.PER_VIEW_BUFFER_SLOT, 0), // b1
         };
 
         rootParameters[2] = new D3D12_ROOT_PARAMETER1
         {
             ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
             ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
-            Descriptor = new D3D12_ROOT_DESCRIPTOR1(2, 0), // b2
+            Descriptor = new D3D12_ROOT_DESCRIPTOR1(RootSignatureLayout.PER_OBJECT_BUFFER_SLOT, 0), // b2
         };
 
         rootParameters[3] = new D3D12_ROOT_PARAMETER1
         {
             ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
             ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
-            Descriptor = new D3D12_ROOT_DESCRIPTOR1(3, 0), // b3
+            Descriptor = new D3D12_ROOT_DESCRIPTOR1(RootSignatureLayout.PER_MATERIAL_BUFFER_SLOT, 0), // b3
         };
 
 #if USE_TRADITIONAL_BINDLESS
@@ -166,7 +154,6 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
 #endif
         };
 
-
         var versionedDesc = new D3D12_VERSIONED_ROOT_SIGNATURE_DESC
         {
             Version = D3D_ROOT_SIGNATURE_VERSION_1_1,
@@ -183,8 +170,48 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
             throw new InvalidOperationException($"Failed to serialize default root signature: {errorMsg}");
         }
 
+        ID3D12RootSignature* pRootSignature = default;
         ThrowIfFailed(_device.NativeDevice->CreateRootSignature(0, signature.Get()->GetBufferPointer(), signature.Get()->GetBufferSize(),
-            __uuidof<ID3D12RootSignature>(), _defaultRootSignature.GetVoidAddressOf()));
+            __uuidof(pRootSignature), (void**)&pRootSignature));
+
+        _defaultRootSignature.Attach(pRootSignature);
+    }
+
+    public void LoadLibraryFromDisk(string? filePath)
+    {
+        ID3D12PipelineLibrary1* pLibrary = default;
+
+        if (File.Exists(filePath))
+        {
+            var fileBytes = File.ReadAllBytes(filePath!);
+            fixed (byte* pFileBytes = fileBytes)
+            {
+                ThrowIfFailed(_device.NativeDevice->CreatePipelineLibrary(pFileBytes, (nuint)fileBytes.Length, __uuidof(pLibrary), (void**)&pLibrary));
+            }
+        }
+        else
+        {
+            ThrowIfFailed(_device.NativeDevice->CreatePipelineLibrary(null, 0, __uuidof(pLibrary), (void**)&pLibrary));
+        }
+
+        _library.Attach(pLibrary);
+    }
+
+    public void SaveLibraryToDisk(string filePath)
+    {
+        var dir = Path.GetDirectoryName(filePath);
+        if (!Directory.Exists(dir))
+        {
+            throw new InvalidOperationException($"Directory does not exist: {dir}");
+        }
+
+        var size = _library.Get()->GetSerializedSize();
+        using var buffer = new UnsafeArray<byte>((int)size, Allocator.Persistent); // We use persistent heap allocation instead of stack allocation to avoid stack overflow for large pipeline libraries.
+
+        ThrowIfFailed(_library.Get()->Serialize(buffer.GetUnsafePtr(), size));
+
+        using var fs = File.Open(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
+        fs.Write(buffer.AsSpan());
     }
 
     private static void ValidateReflectionData(ShaderReflectionData reflectionData)
@@ -206,19 +233,30 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
     {
         static CompileResult CompileAndValidate(ref CompilerConfig config)
         {
-            var reflectionBlob = default(IDxcBlob*);
-            var result = D3D12ShaderCompiler.Compile(ref config, Allocator.Persistent, &reflectionBlob).GetValueOrThrow();
+            IDxcBlob* reflectionBlob = default;
 
-            if (reflectionBlob != null)
+            try
             {
-                var reflection = D3D12ShaderCompiler.PerformDXCReflection(reflectionBlob).GetValueOrThrow();
-                ValidateReflectionData(reflection);
-            }
+                var result = D3D12ShaderCompiler.Compile(ref config, Allocator.Persistent, &reflectionBlob).GetValueOrThrow();
 
-            return result;
+                if (reflectionBlob != null)
+                {
+                    var reflection = D3D12ShaderCompiler.PerformDXCReflection(reflectionBlob).GetValueOrThrow();
+                    ValidateReflectionData(reflection);
+                }
+
+                return result;
+            }
+            finally
+            {
+                if (reflectionBlob != null)
+                {
+                    reflectionBlob->Release();
+                }
+            }
         }
 
-        var tsResult = default(CompileResult);
+        CompileResult tsResult = default;
         var tsEntry = descriptor.taskShader;
         if (tsEntry.IsCreated)
         {
@@ -304,17 +342,17 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
         _ => D3D12_COMPARISON_FUNC_LESS_EQUAL
     };
 
-    private static D3D12_DEPTH_STENCIL_DESC BuildDepthStencil(ref readonly PipelineDescriptor pipeline)
+    private static D3D12_DEPTH_STENCIL_DESC BuildDepthStencil(ZTestOptions ztest, ZWriteOptions zwrite)
     {
-        var depthEnabled = pipeline.zTest != ZTestOptions.Disabled;
-        var writeEnabled = pipeline.zWrite == ZWriteOptions.On;
-        var cmp = ToD3DCompare(pipeline.zTest);
+        var depthEnabled = ztest != ZTestOptions.Disabled;
+        var writeEnabled = zwrite == ZWriteOptions.On;
+        var cmp = ToD3DCompare(ztest);
         return D3D12_DEPTH_STENCIL_DESC.Create(depthEnabled, writeEnabled, cmp);
     }
 
-    private void StorePassState(ShaderPassKey id, ref readonly D3D12GraphicsCompiledResult compiled, ref readonly PipelineDescriptor pipelineDescriptor, ReadOnlySpan<TextureFormat> rtvs, TextureFormat dsv)
+    private GraphicsPipelineKey CompilePSO(ref readonly GraphicsPSODescriptor descriptor, ref readonly D3D12GraphicsCompiledResult compiled)
     {
-        var rtvCount = (uint)Math.Min(rtvs.Length, D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT);
+        var rtvCount = (uint)Math.Min(descriptor.rtvFormats.Length, D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT);
 
         var desc = new D3DX12_MESH_SHADER_PIPELINE_STATE_DESC
         {
@@ -325,12 +363,12 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
             SampleMask = UINT32_MAX,
             SampleDesc = new DXGI_SAMPLE_DESC(1, 0),
             NumRenderTargets = rtvCount,
-            DSVFormat = dsv.ToDXGIFormat(),
-            DepthStencilState = BuildDepthStencil(in pipelineDescriptor),
+            DSVFormat = descriptor.dsvFormat.ToDXGIFormat(),
+            DepthStencilState = BuildDepthStencil(descriptor.zTest, descriptor.zWrite),
             NodeMask = 0,
             Flags = D3D12_PIPELINE_STATE_FLAG_NONE,
 
-            BlendState = pipelineDescriptor.blend switch
+            BlendState = descriptor.blend switch
             {
                 BlendOptions.Opaque => D3D12_BLEND_DESC.OPAQUE,
                 BlendOptions.Alpha => D3D12_BLEND_DESC.ALPHA_BLEND,
@@ -339,7 +377,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
                 BlendOptions.PremultipliedAlpha => D3D12_BLEND_DESC.PREMULTIPLIED,
                 _ => D3D12_BLEND_DESC.OPAQUE
             },
-            RasterizerState = pipelineDescriptor.cull switch
+            RasterizerState = descriptor.cull switch
             {
                 CullOptions.Off => D3D12_RASTERIZER_DESC.CULL_NONE,
                 CullOptions.Front => D3D12_RASTERIZER_DESC.CULL_CLOCKWISE,
@@ -355,36 +393,76 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
 
         var hash = new GraphicsPipelineHash
         {
-            id = id,
-            rtvCount = rtvCount,
-            dsvFormat = dsv,
+            id = descriptor.passId,
+            rtvCount = (uint)descriptor.rtvFormats.Length,
+            dsvFormat = descriptor.dsvFormat,
         };
 
-        for (var i = 0; i < rtvCount && i < 6; i++)
+        for (var i = 0; i < rtvCount && i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
         {
-            desc.RTVFormats[i] = rtvs[i].ToDXGIFormat();
-            desc.BlendState.RenderTarget[i].RenderTargetWriteMask = (byte)(pipelineDescriptor.colorMask & 0x0F);
-            hash.rtvFormats[i] = rtvs[i];
+            desc.RTVFormats[i] = descriptor.rtvFormats[i].ToDXGIFormat();
+            desc.BlendState.RenderTarget[i].RenderTargetWriteMask = (byte)(descriptor.colorMask & 0x0F);
+            hash.rtvFormats[i] = descriptor.rtvFormats[i];
         }
 
         var key = hash.GetKey();
-        ref var existing = ref CollectionsMarshal.GetValueRefOrAddDefault(_pipelineCache, hash.GetKey(), out var exists);
-        if (exists)
+        ref var existing = ref CollectionsMarshal.GetValueRefOrAddDefault(_pipelineCache, key, out var exists);
+        if (!exists)
         {
-            throw new InvalidOperationException($"Pass code cache already contains an entry for key: {key}");
+            existing.compileResult = compiled;
+            existing.psoDesc = desc;
+
+            var streamDesc = new D3D12_PIPELINE_STATE_STREAM_DESC
+            {
+                pPipelineStateSubobjectStream = &desc,
+                SizeInBytes = (nuint)sizeof(D3DX12_MESH_SHADER_PIPELINE_STATE_DESC)
+            };
+
+            ID3D12PipelineState* pPipelineState = default;
+
+            char* pKeyStr = stackalloc char[GraphicsPipelineKey.KEY_STRING_LENGTH];
+            var keySpan = new Span<char>(pKeyStr, GraphicsPipelineKey.KEY_STRING_LENGTH);
+            key.GetString(keySpan).ThrowIfFailed();
+
+            var hr = _library.Get()->LoadPipeline(pKeyStr, &streamDesc, __uuidof(pPipelineState), (void**)&pPipelineState);
+            if (hr == E.E_INVALIDARG)
+            {
+                // Pipeline not found in the library, create a new one.
+                ThrowIfFailed(_device.NativeDevice->CreatePipelineState(&streamDesc, __uuidof(pPipelineState), (void**)&pPipelineState));
+                ThrowIfFailed(_library.Get()->StorePipeline(pKeyStr, pPipelineState));
+            }
+            else
+            {
+                ThrowIfFailed(hr);
+            }
+
+            existing.pso.Attach(pPipelineState);
         }
 
-        existing.compileResult = compiled;
-        existing.psoDesc = desc;
+        return key;
     }
 
-    public void CompilePass(IPassDescriptor descriptor)
+    public GraphicsPipelineKey CompilePassPSO(IPassDescriptor descriptor, ReadOnlySpan<TextureFormat> rtvs, TextureFormat dsv)
     {
+        var key = default(GraphicsPipelineKey);
         switch (descriptor)
         {
             case FullPassDescriptor fullPass:
                 var result = CompileAndValidateFullPass(fullPass).GetValueOrThrow();
-                StorePassState(new(fullPass.Identifier), in result, in fullPass.localPipeline, [TextureFormat.B8G8R8A8_UNorm], TextureFormat.Unknown);
+                var psoDes = new GraphicsPSODescriptor
+                {
+                    passId = new(fullPass.Identifier),
+                    zTest = fullPass.localPipeline.zTest,
+                    zWrite = fullPass.localPipeline.zWrite,
+                    cull = fullPass.localPipeline.cull,
+                    blend = fullPass.localPipeline.blend,
+                    colorMask = fullPass.localPipeline.colorMask,
+
+                    rtvFormats = rtvs,
+                    dsvFormat = dsv,
+                };
+
+                key = CompilePSO(in psoDes, in result);
                 break;
 
             // Do we need to support other pass types?
@@ -392,82 +470,31 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
             default:
                 break;
         }
+
+        return key;
     }
 
-    public void CompileShader(ShaderDescriptor descriptor)
+    public Result<Ptr<ID3D12PipelineState>> LoadGraphicsPSO(GraphicsPipelineKey key)
     {
-        foreach (var pass in descriptor.passes)
+        ref var cacheEntry = ref CollectionsMarshal.GetValueRefOrNullRef(_pipelineCache, key);
+        if (Unsafe.IsNullRef(ref cacheEntry))
         {
-            CompilePass(pass);
+            return Result.Fail("Pipeline state not found in cache.");
         }
-    }
 
-    // TODO: Pipeline variants (keywords)
-    // TODO: Disk caching
-    // TODO: Async compilation
-    public void PreCookPipelineState()
-    {
-        foreach (var kvp in _pipelineCache)
-        {
-            var key = kvp.Key;
-            var state = kvp.Value;
-
-            var streamDesc = new D3D12_PIPELINE_STATE_STREAM_DESC
-            {
-                pPipelineStateSubobjectStream = &state.psoDesc,
-                SizeInBytes = (nuint)sizeof(D3DX12_MESH_SHADER_PIPELINE_STATE_DESC)
-            };
-
-            ComPtr<ID3D12PipelineState> pipelineState = default;
-            ThrowIfFailed(_device.NativeDevice->CreatePipelineState(&streamDesc, __uuidof<ID3D12PipelineState>(), pipelineState.GetVoidAddressOf()));
-
-            var name = key.ToString();
-            fixed (char* pName = name)
-            {
-                ThrowIfFailed(_library.Get()->StorePipeline(pName, pipelineState.Get()));
-            }
-        }
-    }
-
-    public ID3D12PipelineState* LoadPipelineState(GraphicsPipelineKey key)
-    {
-        var name = key.ToString();
-        var state = _pipelineCache[key];
-        var streamDesc = new D3D12_PIPELINE_STATE_STREAM_DESC
-        {
-            pPipelineStateSubobjectStream = &state.psoDesc,
-            SizeInBytes = (nuint)sizeof(D3DX12_MESH_SHADER_PIPELINE_STATE_DESC)
-        };
-
-        fixed (char* pName = name)
-        {
-            ID3D12PipelineState* pipelineState;
-            ThrowIfFailed(_library.Get()->LoadPipeline(pName, &streamDesc, __uuidof<ID3D12PipelineState>(), (void**)&pipelineState));
-
-            return pipelineState;
-        }
-    }
-
-    public void SaveLibraryToDisk(string filePath)
-    {
-        var size = _library.Get()->GetSerializedSize();
-        using var buffer = new UnsafeArray<byte>((int)size, Allocator.Persistent); // We use persistent heap allocation instead of stack allocation to avoid stack overflow for large pipeline libraries.
-
-        ThrowIfFailed(_library.Get()->Serialize(buffer.GetUnsafePtr(), size));
-
-        var fs = File.Open(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
-        fs.Write(buffer.AsSpan());
+        return new Ptr<ID3D12PipelineState>(cacheEntry.pso.Get());
     }
 
     public void Dispose()
     {
-        _defaultRootSignature.Dispose();
-
         foreach (var kvp in _pipelineCache)
         {
             kvp.Value.Dispose();
         }
 
+        _pipelineCache.Clear();
+
+        _defaultRootSignature.Dispose();
         _library.Dispose();
     }
 }

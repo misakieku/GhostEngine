@@ -24,7 +24,7 @@ public readonly struct Result
 
     public override string ToString() => success ? "OK" : $"Error: {message}";
 
-    public static implicit operator Result(bool success) => success ? Success() : Fail(null);
+    public static implicit operator bool(Result result) => result.success;
 }
 
 public readonly struct Result<T>
@@ -54,6 +54,7 @@ public readonly struct Result<T>
     public override string ToString() => success ? $"OK: {value}" : $"Error: {message}";
 
     public static implicit operator Result<T>(T? data) => data is not null ? Success(data) : Fail(null);
+    public static implicit operator Result<T>(Result result) => result.success ? Success(default!) : Fail(result.message);
 }
 
 public static class ResultExtensions

@@ -1,6 +1,6 @@
 ﻿using Ghost.Core;
 
-namespace Ghost.Graphics.Data;
+namespace Ghost.Graphics.Core;
 
 public readonly struct GPUResource : IHandleType;
 public readonly struct Texture : IHandleType;

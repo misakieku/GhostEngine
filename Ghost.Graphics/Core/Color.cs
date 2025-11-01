@@ -1,7 +1,7 @@
 ﻿using System.Drawing;
 using System.Runtime.InteropServices;
 
-namespace Ghost.Graphics.Data;
+namespace Ghost.Graphics.Core;
 
 /// <summary>
 /// Represents a color with 4 bytes components.

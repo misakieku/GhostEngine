@@ -36,12 +36,13 @@ internal unsafe class D3D12CommandQueue : ICommandQueue
             Flags = D3D12_COMMAND_QUEUE_FLAGS.D3D12_COMMAND_QUEUE_FLAG_NONE,
         };
 
-        fixed (void* queuePtr = &_queue)
-        {
-            pDevice->CreateCommandQueue(&queueDesc, __uuidof<ID3D12CommandQueue>(), (void**)queuePtr);
-        }
+        ID3D12CommandQueue* pQueue = default;
+        ID3D12Fence1* pFence = default;
+        ThrowIfFailed(pDevice->CreateCommandQueue(&queueDesc, __uuidof(pQueue), (void**)&pQueue));
+        ThrowIfFailed(pDevice->CreateFence(0, D3D12_FENCE_FLAGS.D3D12_FENCE_FLAG_NONE, __uuidof(pFence), (void**)&pFence));
 
-        pDevice->CreateFence(0, D3D12_FENCE_FLAGS.D3D12_FENCE_FLAG_NONE, __uuidof<ID3D12Fence1>(), _fence.GetVoidAddressOf());
+        _queue.Attach(pQueue);
+        _fence.Attach(pFence);
     }
 
     ~D3D12CommandQueue()

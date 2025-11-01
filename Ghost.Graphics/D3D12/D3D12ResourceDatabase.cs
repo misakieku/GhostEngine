@@ -1,5 +1,4 @@
 ﻿using Ghost.Core;
-using Ghost.Graphics.Data;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Collections;
 using Misaki.HighPerformance.LowLevel.Buffer;
@@ -8,6 +7,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
+using Ghost.Graphics.Core;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -369,7 +369,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
 
         var id = _shaders.Count;
         _shaders.Add(shader);
-        return new Identifier<SDL>(id);
+        return new Identifier<Shader>(id);
     }
 
     public bool HasShader(Identifier<Shader> id)

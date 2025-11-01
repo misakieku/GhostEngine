@@ -2,7 +2,6 @@ using Ghost.Core;
 using Ghost.Core.Utilities;
 using Ghost.Graphics.Contracts;
 using Ghost.Graphics.D3D12.Utilities;
-using Ghost.Graphics.Data;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
@@ -11,6 +10,8 @@ using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 
 using static TerraFX.Aliases.DXGI_Alias;
+
+using Ghost.Graphics.Core;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -105,10 +106,10 @@ internal unsafe class D3D12SwapChain : ISwapChain
                 throw new ArgumentException("Unsupported swap chain target type.");
         }
 
-        if (tempSwapChain.Get()->QueryInterface(__uuidof<IDXGISwapChain4>(), _swapChain.GetVoidAddressOf()).FAILED)
-        {
-            throw new InvalidOperationException("Failed to create IDXGISwapChain4 interface.");
-        }
+        IDXGISwapChain4* pSwapChain = default;
+        tempSwapChain.Get()->QueryInterface(__uuidof(pSwapChain), (void**)&pSwapChain);
+
+        _swapChain.Attach(pSwapChain);
     }
 
     private void CreateBackBuffers()
@@ -116,10 +117,10 @@ internal unsafe class D3D12SwapChain : ISwapChain
         for (uint i = 0; i < BufferCount; i++)
         {
             ComPtr<ID3D12Resource> backBuffer = default;
-            _swapChain.Get()->GetBuffer(i, __uuidof<ID3D12Resource>(), backBuffer.GetVoidAddressOf());
+            _swapChain.Get()->GetBuffer(i, backBuffer.IID(), backBuffer.PPV());
             backBuffer.Get()->SetName($"SwapChain_BackBuffer_{i}");
 
-            _backBuffers[i] = _resourceDatabase.ImportExternalResource(backBuffer.Move(), ResourceState.Present).AsTexture();
+            _backBuffers[i] = _resourceDatabase.ImportExternalResource(backBuffer, ResourceState.Present).AsTexture();
         }
     }
 

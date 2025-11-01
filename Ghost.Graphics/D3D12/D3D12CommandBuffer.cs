@@ -1,15 +1,16 @@
 using Ghost.Core;
-using Ghost.Core.Utilities;
 using Ghost.Graphics.D3D12.Utilities;
-using Ghost.Graphics.Data;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
-using static TerraFX.Aliases.D3D_Alias;
+
 using static TerraFX.Aliases.D3D12_Alias;
+using static TerraFX.Aliases.D3D_Alias;
 using static TerraFX.Aliases.DXGI_Alias;
+using Ghost.Core.Graphics;
+using Ghost.Graphics.Core;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -26,16 +27,25 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     private readonly D3D12ResourceAllocator _resourceAllocator;
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
 
+    private string _name;
     private readonly CommandBufferType _type;
     private ushort _commandCount;
     private bool _isRecording;
     private bool _disposed;
 
-    public CommandBufferType Type => _type;
-
     public ID3D12GraphicsCommandList10* NativeCommandList => _commandList.Get();
-
+    public CommandBufferType Type => _type;
     public bool IsEmpty => _commandCount == 0;
+
+    public string Name
+    {
+        get => _name;
+        set
+        {
+            _name = value;
+            _commandList.Get()->SetName(value);
+        }
+    }
 
     public D3D12CommandBuffer(
         D3D12RenderDevice device,
@@ -45,11 +55,18 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         D3D12DescriptorAllocator descriptorAllocator,
         CommandBufferType type)
     {
+        _name = string.Empty;
         _type = type;
+
+        ID3D12CommandAllocator* pAllocator = default;
+        ID3D12GraphicsCommandList10* pCommandList = default;
         var commandListType = ConvertCommandBufferType(type);
 
-        device.NativeDevice->CreateCommandAllocator(commandListType, __uuidof<ID3D12CommandAllocator>(), _allocator.GetVoidAddressOf());
-        device.NativeDevice->CreateCommandList1(0u, commandListType, D3D12_COMMAND_LIST_FLAG_NONE, __uuidof<ID3D12GraphicsCommandList10>(), _commandList.GetVoidAddressOf());
+        device.NativeDevice->CreateCommandAllocator(commandListType, __uuidof(pAllocator), (void**)&pAllocator);
+        device.NativeDevice->CreateCommandList1(0u, commandListType, D3D12_COMMAND_LIST_FLAG_NONE, __uuidof(pCommandList), (void**)&pCommandList);
+
+        _allocator.Attach(pAllocator);
+        _commandList.Attach(pCommandList);
 
         _pipelineLibrary = stateController;
         _resourceDatabase = resourceDatabase;
@@ -89,6 +106,20 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
 
     public void Begin()
     {
+        void ResetCommandList()
+        {
+            ThrowIfFailed(_allocator.Get()->Reset());
+            ThrowIfFailed(_commandList.Get()->Reset(_allocator.Get(), null));
+        }
+
+        void SetBindlessHeap()
+        {
+            var heaps = stackalloc ID3D12DescriptorHeap*[2];
+            heaps[0] = _descriptorAllocator.GetCbvSrvUavHeap(); // Bindless resource heap
+            heaps[1] = _descriptorAllocator.GetSamplerHeap();   // Bindless sampler heap
+            _commandList.Get()->SetDescriptorHeaps(2, heaps);
+        }
+
         ThrowIfDisposed();
 
         if (_isRecording)
@@ -96,8 +127,9 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
             throw new InvalidOperationException("Command buffer is already recording");
         }
 
-        _allocator.Get()->Reset();
-        _commandList.Get()->Reset(_allocator.Get(), null);
+        ResetCommandList();
+        SetBindlessHeap();
+
         _commandCount = 0;
         _isRecording = true;
     }
@@ -109,58 +141,6 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
 
         _commandList.Get()->Close();
         _isRecording = false;
-    }
-
-    public void SetRenderTargets(ReadOnlySpan<Handle<Texture>> renderTargets, Handle<Texture> depthTarget)
-    {
-        ThrowIfDisposed();
-        ThrowIfNotRecording();
-        IncrementCommandCount();
-
-        var rtvHandles = stackalloc D3D12_CPU_DESCRIPTOR_HANDLE[renderTargets.Length];
-        for (var i = 0; i < renderTargets.Length; i++)
-        {
-            var handle = renderTargets[i];
-            if (!handle.IsValid)
-            {
-                throw new ArgumentException($"Render target at index {i} is not a valid texture handle");
-            }
-
-            var descriptor = _resourceDatabase.GetResourceInfo(handle.AsResource()).viewGroup;
-            rtvHandles[i] = _descriptorAllocator.GetCpuHandle(descriptor.rtv);
-        }
-
-        var dsvHandle = stackalloc D3D12_CPU_DESCRIPTOR_HANDLE[depthTarget.IsValid ? 1 : 0];
-        if (dsvHandle != null)
-        {
-            *dsvHandle = _descriptorAllocator.GetCpuHandle(_resourceDatabase.GetResourceInfo(depthTarget.AsResource()).viewGroup.dsv);
-        }
-
-        _commandList.Get()->OMSetRenderTargets((uint)renderTargets.Length, rtvHandles, FALSE, dsvHandle);
-    }
-
-    public void BeginRenderPass(Handle<Texture> renderTarget, Handle<Texture> depthTarget, Color128 clearColor)
-    {
-        // TODO: Implement render pass begin
-    }
-
-    public void EndRenderPass()
-    {
-        ThrowIfDisposed();
-        ThrowIfNotRecording();
-        IncrementCommandCount();
-
-        _commandList.Get()->EndRenderPass();
-    }
-
-    public void SetViewport(ViewportDesc viewport)
-    {
-        ThrowIfDisposed();
-        ThrowIfNotRecording();
-        IncrementCommandCount();
-
-        var d3d12Viewport = new D3D12_VIEWPORT(viewport.width, viewport.height, viewport.x, viewport.y, viewport.minDepth, viewport.maxDepth);
-        _commandList.Get()->RSSetViewports(1, &d3d12Viewport);
     }
 
     public void SetScissorRect(RectDesc rect)
@@ -186,16 +166,141 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         _commandList.Get()->ResourceBarrier(1, &barrier);
     }
 
-    public void SetRootSignature(IRootSignature rootSignature)
+    public void SetRenderTargets(ReadOnlySpan<Handle<Texture>> renderTargets, Handle<Texture> depthTarget)
     {
-        // TODO: Implement root signature setting
-        throw new NotImplementedException();
+        ThrowIfDisposed();
+        ThrowIfNotRecording();
+        IncrementCommandCount();
+
+        var pRtvHandles = stackalloc D3D12_CPU_DESCRIPTOR_HANDLE[renderTargets.Length];
+        for (var i = 0; i < renderTargets.Length; i++)
+        {
+            var handle = renderTargets[i];
+            if (!handle.IsValid)
+            {
+                throw new ArgumentException($"Render target at index {i} is not a valid texture handle");
+            }
+
+            var descriptor = _resourceDatabase.GetResourceInfo(handle.AsResource()).viewGroup;
+            pRtvHandles[i] = _descriptorAllocator.GetCpuHandle(descriptor.rtv);
+        }
+
+        var pDsvHandle = stackalloc D3D12_CPU_DESCRIPTOR_HANDLE[depthTarget.IsValid ? 1 : 0];
+        if (pDsvHandle != null)
+        {
+            pDsvHandle[0] = _descriptorAllocator.GetCpuHandle(_resourceDatabase.GetResourceInfo(depthTarget.AsResource()).viewGroup.dsv);
+        }
+
+        _commandList.Get()->OMSetRenderTargets((uint)renderTargets.Length, pRtvHandles, FALSE, pDsvHandle);
     }
 
-    public void SetPipelineState(IShaderPipeline pipelineState)
+    public void BeginRenderPass(ReadOnlySpan<PassRenderTargetDesc> rtDescs, PassDepthStencilDesc depthDesc, bool allowUAVWrites = false)
     {
-        // TODO: Implement pipeline state setting
-        throw new NotImplementedException();
+        // TODO: Implement render pass begin
+
+        var pRtvDescs = stackalloc D3D12_RENDER_PASS_RENDER_TARGET_DESC[rtDescs.Length];
+        for (var i = 0; i < rtDescs.Length; i++)
+        {
+            var rtDesc = rtDescs[i];
+            if (!rtDesc.texture.IsValid)
+            {
+                throw new ArgumentException($"Render target at index {i} is not a valid texture handle");
+            }
+
+            var resourceInfo = _resourceDatabase.GetResourceInfo(rtDesc.texture.AsResource());
+            var cpuHandle = _descriptorAllocator.GetCpuHandle(resourceInfo.viewGroup.rtv);
+
+            var desc = new D3D12_RENDER_PASS_RENDER_TARGET_DESC
+            {
+                cpuDescriptor = cpuHandle,
+                BeginningAccess = new D3D12_RENDER_PASS_BEGINNING_ACCESS
+                {
+                    Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR,
+                    Clear = new D3D12_RENDER_PASS_BEGINNING_ACCESS_CLEAR_PARAMETERS
+                    {
+                        ClearValue = new D3D12_CLEAR_VALUE
+                        {
+                            Format = resourceInfo.desc.textureDescription.Format.ToDXGIFormat(),
+                        }
+                    }
+                }
+            };
+
+            desc.BeginningAccess.Clear.ClearValue.Color[0] = rtDesc.clearColor.r;
+            desc.BeginningAccess.Clear.ClearValue.Color[1] = rtDesc.clearColor.g;
+            desc.BeginningAccess.Clear.ClearValue.Color[2] = rtDesc.clearColor.b;
+            desc.BeginningAccess.Clear.ClearValue.Color[3] = rtDesc.clearColor.a;
+
+            pRtvDescs[i] = desc;
+        }
+
+        var pDsvDesc = stackalloc D3D12_RENDER_PASS_DEPTH_STENCIL_DESC[depthDesc.texture.IsValid ? 1 : 0];
+        if (pDsvDesc != null)
+        {
+            var resourceInfo = _resourceDatabase.GetResourceInfo(depthDesc.texture.AsResource());
+            var cpuHandle = _descriptorAllocator.GetCpuHandle(resourceInfo.viewGroup.dsv);
+
+            var desc = new D3D12_RENDER_PASS_DEPTH_STENCIL_DESC
+            {
+                cpuDescriptor = cpuHandle,
+                DepthBeginningAccess = new D3D12_RENDER_PASS_BEGINNING_ACCESS
+                {
+                    Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR,
+                    Clear = new D3D12_RENDER_PASS_BEGINNING_ACCESS_CLEAR_PARAMETERS
+                    {
+                        ClearValue = new D3D12_CLEAR_VALUE
+                        {
+                            Format = resourceInfo.desc.textureDescription.Format.ToDXGIFormat(),
+                            DepthStencil = new D3D12_DEPTH_STENCIL_VALUE
+                            {
+                                Depth = depthDesc.clearDepth,
+                                Stencil = depthDesc.clearStencil
+                            }
+                        }
+                    }
+                }
+            };
+
+            pDsvDesc[0] = desc;
+        }
+
+        _commandList.Get()->BeginRenderPass((uint)rtDescs.Length, pRtvDescs, pDsvDesc,
+                allowUAVWrites ? D3D12_RENDER_PASS_FLAG_ALLOW_UAV_WRITES : D3D12_RENDER_PASS_FLAG_NONE);
+    }
+
+    public void EndRenderPass()
+    {
+        ThrowIfDisposed();
+        ThrowIfNotRecording();
+        IncrementCommandCount();
+
+        _commandList.Get()->EndRenderPass();
+    }
+
+    public void SetViewport(ViewportDesc viewport)
+    {
+        ThrowIfDisposed();
+        ThrowIfNotRecording();
+        IncrementCommandCount();
+
+        var d3d12Viewport = new D3D12_VIEWPORT(viewport.width, viewport.height, viewport.x, viewport.y, viewport.minDepth, viewport.maxDepth);
+        _commandList.Get()->RSSetViewports(1, &d3d12Viewport);
+    }
+
+    public void SetPipelineState(GraphicsPipelineKey pipelineKey)
+    {
+        ThrowIfDisposed();
+        ThrowIfNotRecording();
+        IncrementCommandCount();
+
+        var shaderPipeline = _pipelineLibrary.LoadGraphicsPSO(pipelineKey).GetValueOrThrow();
+        _commandList.Get()->SetPipelineState(shaderPipeline.value);
+    }
+
+    public void SetConstantBufferView(uint slot, Handle<GraphicsBuffer> buffer)
+    {
+        var resource = _resourceDatabase.GetResource(buffer.AsResource());
+        _commandList.Get()->SetGraphicsRootConstantBufferView(RootSignatureLayout.PER_MATERIAL_BUFFER_SLOT, resource->GetGPUVirtualAddress());
     }
 
     public void SetVertexBuffer(uint slot, Handle<GraphicsBuffer> buffer, ulong offset = 0)
@@ -232,6 +337,19 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         _commandList.Get()->IASetIndexBuffer(&ibView);
     }
 
+    public void SetPrimitiveTopology(PrimitiveTopology topology)
+    {
+        var d3d12Topology = topology switch
+        {
+            PrimitiveTopology.Point => D3D_PRIMITIVE_TOPOLOGY_POINTLIST,
+            PrimitiveTopology.Line => D3D_PRIMITIVE_TOPOLOGY_LINELIST,
+            PrimitiveTopology.Triangle => D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
+            _ => D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST
+        };
+
+        _commandList.Get()->IASetPrimitiveTopology(d3d12Topology);
+    }
+
     public void Draw(uint vertexCount, uint instanceCount = 1, uint startVertex = 0, uint startInstance = 0)
     {
         ThrowIfDisposed();
@@ -250,61 +368,33 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         _commandList.Get()->DrawIndexedInstanced(indexCount, instanceCount, startIndex, baseVertex, startInstance);
     }
 
-    // TODO: Batch draw calls by material to minimize state changes
-    public void DrawMesh(Handle<Mesh> mesh, Handle<Material> material)
-    {
-        ThrowIfDisposed();
-        ThrowIfNotRecording();
-        IncrementCommandCount();
-
-        ref var meshRef = ref _resourceDatabase.GetMeshReference(mesh);
-        ref var materialRef = ref _resourceDatabase.GetMaterialReference(material);
-        ref var shaderRef = ref _resourceDatabase.GetShaderReference(materialRef.Shader);
-
-        var shaderPipeline = _pipelineLibrary.GetShaderPipeline(materialRef.Shader);
-        if (shaderPipeline is not D3D12ShaderPipeline d3d12Pipeline)
-        {
-            throw new InvalidOperationException("Shader pipeline is not compiled or invalid");
-        }
-
-        _commandList.Get()->SetPipelineState(d3d12Pipeline.pipelineState.Get());
-        _commandList.Get()->SetGraphicsRootSignature(_pipelineLibrary.DefaultRootSignature);
-
-        // Set viewGroup heaps - CRUCIAL: Use the specialized bindless heap for SM 6.6
-        var heaps = stackalloc ID3D12DescriptorHeap*[2];
-        heaps[0] = _descriptorAllocator.GetCbvSrvUavHeap(); // Bindless resource heap
-        heaps[1] = _descriptorAllocator.GetSamplerHeap();   // Bindless sampler heap
-        _commandList.Get()->SetDescriptorHeaps(2, heaps);
-
-        var rootParamIndex = 0u;
-        foreach (var cbufferInfo in shaderRef.PerMaterialBufferInfo)
-        {
-            ref var cache = ref materialRef._materialPropertiesCache[(int)cbufferInfo.RegisterSlot];
-            var resource = _resourceDatabase.GetResource(cache.GpuResource.AsResource());
-            _commandList.Get()->SetGraphicsRootConstantBufferView(rootParamIndex++, resource->GetGPUVirtualAddress());
-        }
-
-        var samplerGpuHandle = _descriptorAllocator.GetSamplerHeap()->GetGPUDescriptorHandleForHeapStart();
-        _commandList.Get()->SetGraphicsRootDescriptorTable(rootParamIndex, samplerGpuHandle);
-
-        // For fully bindless rendering, we don't use the Input Assembler stage
-        // Instead, we use instanced drawing where each "instance" represents a triangle
-        // The shader will use SV_InstanceID to index into the index buffer and then into the vertex buffer
-        _commandList.Get()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-        // Draw without vertex/index buffers - use instanced drawing
-        // Each instance represents a triangle (3 vertices)
-        var triangleCount = (uint)meshRef.indices.Count / 3;
-        _commandList.Get()->DrawInstanced(3, triangleCount, 0, 0);
-    }
-
-    public void Dispatch(uint threadGroupCountX, uint threadGroupCountY = 1, uint threadGroupCountZ = 1)
+    public void DispatchCompute(uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ)
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();
         IncrementCommandCount();
 
         _commandList.Get()->Dispatch(threadGroupCountX, threadGroupCountY, threadGroupCountZ);
+    }
+
+    public void DispatchMesh(uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ)
+    {
+        ThrowIfDisposed();
+        ThrowIfNotRecording();
+        IncrementCommandCount();
+
+        _commandList.Get()->DispatchMesh(threadGroupCountX, threadGroupCountY, threadGroupCountZ);
+    }
+
+    public void DispatchRay()
+    {
+        throw new NotImplementedException();
+
+        // ThrowIfDisposed();
+        // ThrowIfNotRecording();
+        // IncrementCommandCount();
+
+        // _commandList.Get()->DispatchRays();
     }
 
     public void Upload<T>(Handle<GraphicsBuffer> buffer, ReadOnlySpan<T> data)
@@ -323,7 +413,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         pUploadResource->Map(0, null, &pMappedData);
         fixed (T* pData = data)
         {
-            MemoryUtilities.MemCpy(pMappedData, pData, sizeInBytes);
+            MemoryUtility.MemCpy(pMappedData, pData, sizeInBytes);
         }
         pUploadResource->Unmap(0, null);
 

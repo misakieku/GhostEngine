@@ -1,7 +1,6 @@
 ﻿using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Core.Utilities;
-using Ghost.Graphics.Data;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.CompilerServices;
@@ -11,6 +10,7 @@ using static TerraFX.Aliases.D3D12_Alias;
 using static TerraFX.Aliases.D3D12MA_Alias;
 using static TerraFX.Aliases.DXGI_Alias;
 using static TerraFX.Interop.DirectX.D3D12MemAlloc;
+using Ghost.Graphics.Core;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -22,8 +22,8 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
 
     private ComPtr<D3D12MA_Allocator> _allocator;
 
-    private readonly D3D12RenderDevice _device;
     private readonly RenderSystem _renderSystem;
+    private readonly D3D12RenderDevice _device;
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
     private readonly D3D12ResourceDatabase _resourceDatabase;
 
@@ -82,7 +82,7 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
         return handle;
     }
 
-    private D3D12_SHADER_RESOURCE_VIEW_DESC CreateSrvDesc(ID3D12Resource* pResource, bool isCubeMap, uint mipLevels, uint arraySize)
+    private static D3D12_SHADER_RESOURCE_VIEW_DESC CreateSrvDesc(ID3D12Resource* pResource, bool isCubeMap, uint mipLevels, uint arraySize)
     {
         var resourceDesc = pResource->GetDesc();
         var srvDesc = new D3D12_SHADER_RESOURCE_VIEW_DESC
@@ -93,17 +93,6 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
 
         switch (resourceDesc.Dimension)
         {
-            case D3D12_RESOURCE_DIMENSION_BUFFER:
-                srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-                srvDesc.Buffer = new D3D12_BUFFER_SRV
-                {
-                    FirstElement = 0,
-                    NumElements = (uint)(resourceDesc.Width / 4),
-                    StructureByteStride = 0,
-                    Flags = D3D12_BUFFER_SRV_FLAG_RAW,
-                };
-                break;
-
             case D3D12_RESOURCE_DIMENSION_TEXTURE1D:
                 if (resourceDesc.DepthOrArraySize > 1)
                 {
@@ -180,7 +169,7 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
         return srvDesc;
     }
 
-    private D3D12_RENDER_TARGET_VIEW_DESC CreateRtvDesc(ID3D12Resource* pResource, uint mipSlice = 0, uint firstArraySlice = 0, uint planeSlice = 0)
+    private static D3D12_RENDER_TARGET_VIEW_DESC CreateRtvDesc(ID3D12Resource* pResource, uint mipSlice = 0, uint firstArraySlice = 0, uint planeSlice = 0)
     {
         var resourceDesc = pResource->GetDesc();
         var rtvDesc = new D3D12_RENDER_TARGET_VIEW_DESC();
@@ -276,7 +265,7 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
         return rtvDesc;
     }
 
-    private D3D12_DEPTH_STENCIL_VIEW_DESC CreateDsvDesc(ID3D12Resource* pResource, uint mipSlice = 0, uint firstArraySlice = 0, D3D12_DSV_FLAGS flags = D3D12_DSV_FLAG_NONE)
+    private static D3D12_DEPTH_STENCIL_VIEW_DESC CreateDsvDesc(ID3D12Resource* pResource, uint mipSlice = 0, uint firstArraySlice = 0, D3D12_DSV_FLAGS flags = D3D12_DSV_FLAG_NONE)
     {
         var resourceDesc = pResource->GetDesc();
         var dsvDesc = new D3D12_DEPTH_STENCIL_VIEW_DESC
@@ -342,6 +331,88 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
         }
 
         return dsvDesc;
+    }
+
+    private static D3D12_UNORDERED_ACCESS_VIEW_DESC CreateUavDesc(ID3D12Resource* pResource, uint mipSlice = 0, uint firstArraySlice = 0, uint planeSlice = 0)
+    {
+        var resourceDesc = pResource->GetDesc();
+        var uavDesc = new D3D12_UNORDERED_ACCESS_VIEW_DESC
+        {
+            Format = resourceDesc.Format
+        };
+
+        switch (resourceDesc.Dimension)
+        {
+            case D3D12_RESOURCE_DIMENSION_TEXTURE1D:
+                if (resourceDesc.DepthOrArraySize > 1)
+                {
+                    uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1DARRAY;
+                    uavDesc.Texture1DArray = new D3D12_TEX1D_ARRAY_UAV
+                    {
+                        MipSlice = mipSlice,
+                        FirstArraySlice = firstArraySlice,
+                        ArraySize = resourceDesc.ArraySize() - firstArraySlice
+                    };
+                }
+                else
+                {
+                    uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1D;
+                    uavDesc.Texture1D = new D3D12_TEX1D_UAV
+                    {
+                        MipSlice = mipSlice
+                    };
+                }
+                break;
+
+            case D3D12_RESOURCE_DIMENSION_TEXTURE2D:
+                if (resourceDesc.DepthOrArraySize > 1)
+                {
+                    uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+                    uavDesc.Texture2DArray = new D3D12_TEX2D_ARRAY_UAV
+                    {
+                        MipSlice = mipSlice,
+                        FirstArraySlice = firstArraySlice,
+                        ArraySize = resourceDesc.ArraySize() - firstArraySlice,
+                        PlaneSlice = planeSlice
+                    };
+                }
+                else
+                {
+                    uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+                    uavDesc.Texture2D = new D3D12_TEX2D_UAV
+                    {
+                        MipSlice = mipSlice,
+                        PlaneSlice = planeSlice
+                    };
+                }
+                break;
+
+            case D3D12_RESOURCE_DIMENSION_TEXTURE3D:
+                uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
+                uavDesc.Texture3D = new D3D12_TEX3D_UAV
+                {
+                    MipSlice = mipSlice,
+                    FirstWSlice = firstArraySlice,
+                    WSize = resourceDesc.Depth() - firstArraySlice
+                };
+                break;
+
+            case D3D12_RESOURCE_DIMENSION_BUFFER:
+                uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+                uavDesc.Buffer = new D3D12_BUFFER_UAV
+                {
+                    FirstElement = 0,
+                    NumElements = (uint)(resourceDesc.Width / 4), // Assuming R32_TYPELESS RAW
+                    StructureByteStride = 0,
+                    Flags = D3D12_BUFFER_UAV_FLAG_RAW
+                };
+                break;
+
+            default:
+                throw new ArgumentException($"Unsupported texture dimension for UAV: {resourceDesc.Dimension}");
+        }
+
+        return uavDesc;
     }
 
     public Handle<Texture> CreateTexture(ref readonly TextureDesc desc, bool isTemp = false)
@@ -434,17 +505,10 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
         if (desc.Usage.HasFlag(TextureUsage.UnorderedAccess))
         {
             resourceDescriptor.uav = _descriptorAllocator.AllocateCbvSrvUav(isTemp);
-            var uavDesc = new D3D12_UNORDERED_ACCESS_VIEW_DESC
-            {
-                ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D,
-                Format = d3d12Format,
-                Texture2D = new D3D12_TEX2D_UAV
-                {
-                    MipSlice = 0,
-                    PlaneSlice = 0,
-                }
-            };
-            _device.NativeDevice->CreateUnorderedAccessView(allocation.Get()->GetResource(), null, &uavDesc, _descriptorAllocator.GetCpuHandle(resourceDescriptor.uav));
+            var cpuHandle = _descriptorAllocator.GetCpuHandle(resourceDescriptor.uav);
+            var uavDesc = CreateUavDesc(allocation.Get()->GetResource());
+
+            _device.NativeDevice->CreateUnorderedAccessView(allocation.Get()->GetResource(), null, &uavDesc, cpuHandle);
         }
 
         var handle = TrackResource(allocation, initialState, resourceDescriptor, ResourceDesc.Texture(desc), isTemp);
@@ -458,11 +522,14 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
         return CreateTexture(ref textureDesc, isTemp);
     }
 
+    // FIX: This is not correct! Fix it!
     public Handle<GraphicsBuffer> CreateBuffer(ref readonly BufferDesc desc, bool isTemp = false)
     {
         CheckBufferSize(desc.Size);
 
         var resourceDescription = D3D12_RESOURCE_DESC.Buffer(desc.Size, ConvertBufferUsage(desc.Usage));
+        resourceDescription.Format = desc.Usage.HasFlag(BufferUsage.Raw) ? DXGI_FORMAT_R32_TYPELESS : DXGI_FORMAT_UNKNOWN;
+
         var allocationDesc = new D3D12MA_ALLOCATION_DESC
         {
             HeapType = ConvertMemoryType(desc.MemoryType),
@@ -473,7 +540,7 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
 
         ComPtr<D3D12MA_Allocation> allocation = default;
         ThrowIfFailed(_allocator.Get()->CreateResource(&allocationDesc, &resourceDescription, initialState, null, allocation.GetAddressOf(), Win32Utility.IID_NULL, null));
-        
+
         var resourceDescriptor = ResourceViewGroup.Invalid;
         if (desc.Usage.HasFlag(BufferUsage.ShaderResource))
         {

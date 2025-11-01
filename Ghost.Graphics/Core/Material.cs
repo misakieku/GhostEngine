@@ -6,7 +6,7 @@ using Misaki.HighPerformance.LowLevel.Utilities;
 using Misaki.HighPerformance.Mathematics;
 using System.Runtime.CompilerServices;
 
-namespace Ghost.Graphics.Data;
+namespace Ghost.Graphics.Core;
 
 internal struct CBufferCache : IResourceReleasable
 {

@@ -1,10 +1,10 @@
 using Ghost.Core;
 using Ghost.Graphics.Contracts;
-using Ghost.Graphics.Data;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Utilities;
 using Ghost.SDL.Compiler;
 using Misaki.HighPerformance.Image;
+using Ghost.Graphics.Core;
 
 namespace Ghost.Graphics.RenderPasses;
 
@@ -26,12 +26,11 @@ internal unsafe class MeshRenderPass : IRenderPass
         "C:/Users/Misaki/Downloads/Im/yande.re 1134666 blue_archive nakamasa_ichika sugarhigh.jpg"
     ];
 
-    public void Initialize(ref readonly RenderingContext ctx, IResourceAllocator resourceAllocator, IPipelineLibrary stateController)
+    public void Initialize(ref readonly RenderingContext ctx, IResourceAllocator resourceAllocator, IPipelineLibrary pipelineLibrary)
     {
         var shaderDescriptor = SDLCompiler.CompileShader("F:\\csharp\\GhostEngine\\Ghost.Graphics\\RenderPasses\\ShaderCode.hlsl").GetValueOrThrow();
 
-        stateController.CompileShader(shaderDescriptor);
-        stateController.PreCookPipelineState();
+        var key = pipelineLibrary.CompilePassPSO(shaderDescriptor.passes[0], [TextureFormat.B8G8R8A8_UNorm], TextureFormat.Unknown);
 
         MeshBuilder.CreateCube(0.75f, default, out var vertices, out var indices);
 

@@ -1,7 +1,7 @@
 ﻿using Ghost.Core;
 using Ghost.Core.Graphics;
-using Ghost.Graphics.Data;
 using Misaki.HighPerformance.LowLevel.Collections;
+using Ghost.Graphics.Core;
 
 namespace Ghost.Graphics.RHI;
 

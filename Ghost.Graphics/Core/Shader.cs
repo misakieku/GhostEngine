@@ -5,7 +5,7 @@ using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.InteropServices;
 
-namespace Ghost.Graphics.Data;
+namespace Ghost.Graphics.Core;
 
 public readonly struct TextureInfo
 {
@@ -142,7 +142,7 @@ public class Shader : IResourceReleasable, IIdentifierType
         return _passIDs[index];
     }
 
-    public bool TryGetPassKey(string passName, out ShaderPassKey? passID)
+    public bool TryGetPassKey(string passName, out ShaderPassKey passID)
     {
         var index = _passLookup.GetValueOrDefault(passName, -1);
         if (index == -1)

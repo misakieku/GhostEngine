@@ -198,6 +198,7 @@ internal static unsafe class D3D12ShaderCompiler
 
     public static Result<CompileResult> Compile(ref readonly CompilerConfig config, Allocator allocator, IDxcBlob** ppReflectionBlob)
     {
+        // NOTE: Should we cache the compiler and utils instances for better performance?
         using ComPtr<IDxcCompiler3> compiler = default;
         using ComPtr<IDxcUtils> utils = default;
         using ComPtr<IDxcIncludeHandler> includeHandler = default;
@@ -206,8 +207,8 @@ internal static unsafe class D3D12ShaderCompiler
         var pDxcCompiler = (Guid*)Unsafe.AsPointer(in CLSID.CLSID_DxcCompiler);
         var pDxcUtils = (Guid*)Unsafe.AsPointer(in CLSID.CLSID_DxcUtils);
 
-        ThrowIfFailed(DxcCreateInstance(pDxcCompiler, __uuidof<IDxcCompiler3>(), compiler.GetVoidAddressOf()));
-        ThrowIfFailed(DxcCreateInstance(pDxcUtils, __uuidof<IDxcUtils>(), utils.GetVoidAddressOf()));
+        ThrowIfFailed(DxcCreateInstance(pDxcCompiler, compiler.IID(), compiler.PPV()));
+        ThrowIfFailed(DxcCreateInstance(pDxcUtils, utils.IID(), utils.PPV()));
 
         //includeHandler.Get()->LoadSource();
         utils.Get()->CreateDefaultIncludeHandler(includeHandler.GetAddressOf());
@@ -216,7 +217,7 @@ internal static unsafe class D3D12ShaderCompiler
         using ComPtr<IDxcBlobEncoding> sourceBlob = default;
         if (utils.Get()->LoadFile(config.shaderPath.AsSpan().GetUnsafePtr(), null, sourceBlob.GetAddressOf()).FAILED)
         {
-            return Result<CompileResult>.Fail($"Failed to load shader file: {config.shaderPath}");
+            return Result.Fail($"Failed to load shader file: {config.shaderPath}");
         }
 
         var argsArray = GetCompilerArguments(in config);
@@ -237,7 +238,7 @@ internal static unsafe class D3D12ShaderCompiler
                 Encoding = DXC.DXC_CP_UTF8
             };
 
-            ThrowIfFailed(compiler.Get()->Compile(&buffer, argPtrs, (uint)argsArray.Count, includeHandler.Get(), __uuidof<IDxcResult>(), result.GetVoidAddressOf()));
+            ThrowIfFailed(compiler.Get()->Compile(&buffer, argPtrs, (uint)argsArray.Count, includeHandler.Get(), result.IID(), result.PPV()));
 
             // Check compilation result
             HRESULT hrStatus;
@@ -251,11 +252,11 @@ internal static unsafe class D3D12ShaderCompiler
                 if (errorBlob.Get() != null)
                 {
                     var errorMessage = Marshal.PtrToStringUni((IntPtr)errorBlob.Get()->GetBufferPointer());
-                    return Result<CompileResult>.Fail($"DXC shader compilation failed:\n{errorMessage}");
+                    return Result.Fail($"DXC shader compilation failed:\n{errorMessage}");
                 }
                 else
                 {
-                    return Result<CompileResult>.Fail("DXC shader compilation failed with unknown error.");
+                    return Result.Fail("DXC shader compilation failed with unknown error.");
                 }
             }
 
@@ -300,7 +301,7 @@ internal static unsafe class D3D12ShaderCompiler
         // Create DXC utils to parse reflection data
         var pDxcUtils = (Guid*)Unsafe.AsPointer(in CLSID.CLSID_DxcUtils);
         using ComPtr<IDxcUtils> utils = default;
-        ThrowIfFailed(DxcCreateInstance(pDxcUtils, __uuidof<IDxcUtils>(), utils.GetVoidAddressOf()));
+        ThrowIfFailed(DxcCreateInstance(pDxcUtils, utils.IID(), utils.PPV()));
 
         // Create reflection interface from blob
         var reflectionBuffer = new DxcBuffer
@@ -311,7 +312,7 @@ internal static unsafe class D3D12ShaderCompiler
         };
 
         using ComPtr<ID3D12ShaderReflection> reflection = default;
-        ThrowIfFailed(utils.Get()->CreateReflection(&reflectionBuffer, __uuidof<ID3D12ShaderReflection>(), reflection.GetVoidAddressOf()));
+        ThrowIfFailed(utils.Get()->CreateReflection(&reflectionBuffer, reflection.IID(), reflection.PPV()));
 
         D3D12_SHADER_DESC shaderDesc;
         ThrowIfFailed(reflection.Get()->GetDesc(&shaderDesc));
@@ -326,7 +327,7 @@ internal static unsafe class D3D12ShaderCompiler
             var resourceName = Marshal.PtrToStringUTF8((IntPtr)bindDesc.Name);
             if (resourceName == null)
             {
-                return Result<ShaderReflectionData>.Fail("Failed to get resource name from reflection data.");
+                return Result.Fail("Failed to get resource name from reflection data.");
             }
 
             switch (bindDesc.Type)

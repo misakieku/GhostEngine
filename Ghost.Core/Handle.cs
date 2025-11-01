@@ -2,6 +2,7 @@
 
 public interface IHandleType;
 public interface IIdentifierType;
+public interface IKeyType;
 
 public readonly struct Handle<T>
     where T : IHandleType
@@ -90,6 +91,51 @@ public readonly struct Identifier<T>
     }
 
     public static bool operator !=(Identifier<T> a, Identifier<T> b)
+    {
+        return !a.Equals(b);
+    }
+}
+
+public readonly struct Key<T>
+    where T : IKeyType
+{
+    public readonly ulong value;
+
+    public Key(ulong value)
+    {
+        this.value = value;
+    }
+
+    public static Key<T> Invalid => new(0);
+
+    public bool IsValid => this != Invalid;
+
+    public readonly override int GetHashCode()
+    {
+        return value.GetHashCode();
+    }
+
+    public readonly override bool Equals(object? obj)
+    {
+        return obj is Key<T> id && Equals(id);
+    }
+
+    public readonly bool Equals(Key<T> other)
+    {
+        return value == other.value;
+    }
+
+    public readonly int CompareTo(Key<T> other)
+    {
+        return value.CompareTo(other.value);
+    }
+
+    public static bool operator ==(Key<T> a, Key<T> b)
+    {
+        return a.Equals(b);
+    }
+
+    public static bool operator !=(Key<T> a, Key<T> b)
     {
         return !a.Equals(b);
     }

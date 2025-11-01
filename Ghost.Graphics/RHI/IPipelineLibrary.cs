@@ -15,8 +15,11 @@ public interface IShaderPipeline
 
 public interface IPipelineLibrary
 {
-    void CompilePass(IPassDescriptor descriptor);
-    void CompileShader(ShaderDescriptor descriptor);
-    void PreCookPipelineState();
+    /// <summary>
+    /// Load pipeline library from disk.
+    /// </summary>
+    /// <param name="filePath">File path. If null, load default library.</param>
+    void LoadLibraryFromDisk(string? filePath);
     void SaveLibraryToDisk(string filePath);
+    GraphicsPipelineKey CompilePassPSO(IPassDescriptor descriptor, ReadOnlySpan<TextureFormat> rtvs, TextureFormat dsv);
 }

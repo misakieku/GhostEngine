@@ -1,8 +1,8 @@
 using Ghost.Core;
 using Ghost.Graphics.D3D12.Utilities;
-using Ghost.Graphics.Data;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Mathematics;
+using Ghost.Graphics.Core;
 
 namespace Ghost.Graphics.D3D12;
 
