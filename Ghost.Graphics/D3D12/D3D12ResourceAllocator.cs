@@ -1,55 +1,28 @@
 ﻿using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Core.Utilities;
+using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
+using Ghost.Graphics.D3D12.Utilities;
+using Misaki.HighPerformance.Mathematics;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
+
 using static TerraFX.Aliases.D3D12_Alias;
 using static TerraFX.Aliases.D3D12MA_Alias;
 using static TerraFX.Aliases.DXGI_Alias;
 using static TerraFX.Interop.DirectX.D3D12MemAlloc;
-using Ghost.Graphics.Core;
 
 namespace Ghost.Graphics.D3D12;
 
-internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
+internal unsafe sealed partial class D3D12ResourceAllocator
 {
+    // NOTE: _MAX_BYTES may not be accurate, we need to verify it with feature level checks.
     private const uint _MAX_BYTES = D3D12_REQ_RESOURCE_SIZE_IN_MEGABYTES_EXPRESSION_A_TERM * 1024u * 1024u;
     private const uint _MAX_TEXTURE2D_DIMENSION = 16384u;
     private const uint _MAX_TEXTURE3D_DIMENSION = 2048u;
-
-    private ComPtr<D3D12MA_Allocator> _allocator;
-
-    private readonly RenderSystem _renderSystem;
-    private readonly D3D12RenderDevice _device;
-    private readonly D3D12DescriptorAllocator _descriptorAllocator;
-    private readonly D3D12ResourceDatabase _resourceDatabase;
-
-    private UnsafeQueue<Handle<GPUResource>> _temResources = new(64, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
-
-    public D3D12ResourceAllocator(RenderSystem renderSystem, D3D12RenderDevice device, D3D12DescriptorAllocator descriptorAllocator, D3D12ResourceDatabase resourceDatabase)
-    {
-        var desc = new D3D12MA_ALLOCATOR_DESC
-        {
-            pAdapter = (IDXGIAdapter*)device.Adapter,
-            pDevice = (ID3D12Device*)device.NativeDevice,
-            Flags = D3D12MA_ALLOCATOR_FLAG_DEFAULT_POOLS_NOT_ZEROED | D3D12MA_ALLOCATOR_FLAG_MSAA_TEXTURES_ALWAYS_COMMITTED,
-        };
-
-        D3D12MA_CreateAllocator(&desc, _allocator.GetAddressOf());
-
-        _device = device;
-        _renderSystem = renderSystem;
-        _descriptorAllocator = descriptorAllocator;
-        _resourceDatabase = resourceDatabase;
-    }
-
-    ~D3D12ResourceAllocator()
-    {
-        Dispose();
-    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void CheckBufferSize(ulong sizeInBytes)
@@ -69,20 +42,7 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Handle<GPUResource> TrackResource(ComPtr<D3D12MA_Allocation> allocation, D3D12_RESOURCE_STATES state, ResourceViewGroup resourceDescriptor, ResourceDesc desc, bool isTemp)
-    {
-        var handle = _resourceDatabase.AddResource(allocation, _renderSystem.CPUFenceValue, D3D12StatesToRHIState(state), resourceDescriptor, desc);
-
-        if (isTemp)
-        {
-            _temResources.Enqueue(handle);
-        }
-
-        return handle;
-    }
-
-    private static D3D12_SHADER_RESOURCE_VIEW_DESC CreateSrvDesc(ID3D12Resource* pResource, bool isCubeMap, uint mipLevels, uint arraySize)
+    private static D3D12_SHADER_RESOURCE_VIEW_DESC CreateTextureSrvDesc(ID3D12Resource* pResource, uint mipLevels, uint arraySize, bool isCubeMap)
     {
         var resourceDesc = pResource->GetDesc();
         var srvDesc = new D3D12_SHADER_RESOURCE_VIEW_DESC
@@ -164,6 +124,34 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
                 break;
             default:
                 throw new ArgumentException($"Unsupported texture dimension for SRV: {resourceDesc.Dimension}");
+        }
+
+        return srvDesc;
+    }
+
+    private static D3D12_SHADER_RESOURCE_VIEW_DESC CreateBufferSrvDesc(ID3D12Resource* pResource, uint stride, bool isRaw)
+    {
+        var resourceDesc = pResource->GetDesc();
+        var srvDesc = new D3D12_SHADER_RESOURCE_VIEW_DESC
+        {
+            Format = resourceDesc.Format,
+            ViewDimension = D3D12_SRV_DIMENSION_BUFFER,
+            Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING
+        };
+
+        if (isRaw)
+        {
+            srvDesc.Buffer.FirstElement = 0;
+            srvDesc.Buffer.NumElements = (uint)(resourceDesc.Width / 4u);
+            srvDesc.Buffer.StructureByteStride = 0;
+            srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
+        }
+        else // Assumes Structured
+        {
+            srvDesc.Buffer.FirstElement = 0;
+            srvDesc.Buffer.NumElements = (uint)(resourceDesc.Width / stride);
+            srvDesc.Buffer.StructureByteStride = stride;
+            srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
         }
 
         return srvDesc;
@@ -333,7 +321,7 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
         return dsvDesc;
     }
 
-    private static D3D12_UNORDERED_ACCESS_VIEW_DESC CreateUavDesc(ID3D12Resource* pResource, uint mipSlice = 0, uint firstArraySlice = 0, uint planeSlice = 0)
+    private static D3D12_UNORDERED_ACCESS_VIEW_DESC CreateTextureUavDesc(ID3D12Resource* pResource, uint mipSlice = 0, uint firstArraySlice = 0, uint planeSlice = 0)
     {
         var resourceDesc = pResource->GetDesc();
         var uavDesc = new D3D12_UNORDERED_ACCESS_VIEW_DESC
@@ -415,12 +403,253 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
         return uavDesc;
     }
 
+    private static D3D12_UNORDERED_ACCESS_VIEW_DESC CreateBufferUavDesc(ID3D12Resource* pResource, uint stride, bool isRaw)
+    {
+        var resourceDesc = pResource->GetDesc();
+        var uavDesc = new D3D12_UNORDERED_ACCESS_VIEW_DESC
+        {
+            Format = resourceDesc.Format,
+            ViewDimension = D3D12_UAV_DIMENSION_BUFFER,
+        };
+
+        if (isRaw)
+        {
+            uavDesc.Buffer.FirstElement = 0;
+            uavDesc.Buffer.NumElements = (uint)(resourceDesc.Width / 4u);
+            uavDesc.Buffer.StructureByteStride = 0;
+            uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
+        }
+        else // Assumes Structured
+        {
+            uavDesc.Buffer.FirstElement = 0;
+            uavDesc.Buffer.NumElements = (uint)(resourceDesc.Width / stride);
+            uavDesc.Buffer.StructureByteStride = stride;
+            uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
+        }
+
+        return uavDesc;
+    }
+
+    private static DXGI_FORMAT ConvertTextureFormat(TextureFormat format)
+    {
+        return format switch
+        {
+            TextureFormat.R8G8B8A8_UNorm => DXGI_FORMAT_R8G8B8A8_UNORM,
+            TextureFormat.B8G8R8A8_UNorm => DXGI_FORMAT_B8G8R8A8_UNORM,
+            TextureFormat.R16G16B16A16_Float => DXGI_FORMAT_R16G16B16A16_FLOAT,
+            TextureFormat.R32G32B32A32_Float => DXGI_FORMAT_R32G32B32A32_FLOAT,
+            TextureFormat.D24_UNorm_S8_UInt => DXGI_FORMAT_D24_UNORM_S8_UINT,
+            TextureFormat.D32_Float => DXGI_FORMAT_D32_FLOAT,
+            _ => throw new ArgumentException($"Unsupported texture format: {format}")
+        };
+    }
+
+    private static D3D12_RESOURCE_FLAGS ConvertTextureUsage(TextureUsage usage)
+    {
+        var flags = D3D12_RESOURCE_FLAG_NONE;
+
+        if (usage.HasFlag(TextureUsage.RenderTarget))
+        {
+            flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+        }
+
+        if (usage.HasFlag(TextureUsage.DepthStencil))
+        {
+            flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+        }
+
+        if (usage.HasFlag(TextureUsage.UnorderedAccess))
+        {
+            flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+        }
+
+        return flags;
+    }
+
+    private static D3D12_RESOURCE_FLAGS ConvertBufferUsage(BufferUsage usage)
+    {
+        var flags = D3D12_RESOURCE_FLAG_NONE;
+
+        if (usage.HasFlag(BufferUsage.Raw) || usage.HasFlag(BufferUsage.UnorderedAccess))
+        {
+            flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+        }
+
+        return flags;
+    }
+
+    private static D3D12_HEAP_TYPE ConvertMemoryType(ResourceMemoryType memoryType)
+    {
+        return memoryType switch
+        {
+            ResourceMemoryType.Default => D3D12_HEAP_TYPE_DEFAULT,
+            ResourceMemoryType.Upload => D3D12_HEAP_TYPE_UPLOAD,
+            ResourceMemoryType.Readback => D3D12_HEAP_TYPE_READBACK,
+            _ => throw new ArgumentException($"Unsupported memory type: {memoryType}")
+        };
+    }
+
+    private static D3D12_RESOURCE_STATES DetermineInitialTextureState(TextureUsage usage)
+    {
+        if (usage.HasFlag(TextureUsage.RenderTarget))
+        {
+            return D3D12_RESOURCE_STATE_RENDER_TARGET;
+        }
+
+        if (usage.HasFlag(TextureUsage.DepthStencil))
+        {
+            return D3D12_RESOURCE_STATE_DEPTH_WRITE;
+        }
+
+        if (usage.HasFlag(TextureUsage.UnorderedAccess))
+        {
+            return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+        }
+
+        return D3D12_RESOURCE_STATE_COMMON;
+    }
+
+    private static D3D12_RESOURCE_STATES DetermineInitialBufferState(BufferUsage usage, ResourceMemoryType memoryType)
+    {
+        if (memoryType == ResourceMemoryType.Upload)
+        {
+            return D3D12_RESOURCE_STATE_GENERIC_READ;
+        }
+
+        if (memoryType == ResourceMemoryType.Readback)
+        {
+            return D3D12_RESOURCE_STATE_COPY_DEST;
+        }
+
+        // Default to Common, but check for specific roles
+        var state = D3D12_RESOURCE_STATE_COMMON;
+
+        if (usage.HasFlag(BufferUsage.Vertex) || usage.HasFlag(BufferUsage.Constant))
+        {
+            // Vertex and Constant buffers can share this state
+            state |= D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+        }
+
+        if (usage.HasFlag(BufferUsage.Index))
+        {
+            state |= D3D12_RESOURCE_STATE_INDEX_BUFFER;
+        }
+
+        if (usage.HasFlag(BufferUsage.UnorderedAccess))
+        {
+            state |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+        }
+
+        if (usage.HasFlag(BufferUsage.IndirectArgument))
+        {
+            state |= D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
+        }
+
+        // If only one state is set (e.g., just IndexBuffer), return it directly
+        // This is a common optimization to avoid an initial barrier
+        if (math.ispow2((int)state))
+        {
+            return state;
+        }
+
+        // If multiple roles (e.g., Vertex and Index), start in COMMON
+        // or return the combined state if they are compatible
+        // For simplicity, we'll just check for the common "Vertex/Constant" combo
+        if (state == D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER)
+        {
+            return D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+        }
+
+        // If it's a mix, start in common and let the user barrier
+        return D3D12_RESOURCE_STATE_COMMON;
+    }
+
+    private static ResourceState D3D12StatesToRHIState(D3D12_RESOURCE_STATES states)
+    {
+        return states switch
+        {
+            //case ResourceStates.None:
+            //case ResourceStates.Present:
+            D3D12_RESOURCE_STATE_COMMON => ResourceState.Common,
+            D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER => ResourceState.VertexAndConstantBuffer,
+            D3D12_RESOURCE_STATE_INDEX_BUFFER => ResourceState.IndexBuffer,
+            D3D12_RESOURCE_STATE_RENDER_TARGET => ResourceState.RenderTarget,
+            D3D12_RESOURCE_STATE_UNORDERED_ACCESS => ResourceState.UnorderedAccess,
+            D3D12_RESOURCE_STATE_DEPTH_WRITE => ResourceState.DepthWrite,
+            D3D12_RESOURCE_STATE_DEPTH_READ => ResourceState.DepthRead,
+            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE => ResourceState.PixelShaderResource,
+            //case ResourceStates.Predication:
+            D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT => ResourceState.IndirectArgument,
+            D3D12_RESOURCE_STATE_COPY_DEST => ResourceState.CopyDest,
+            D3D12_RESOURCE_STATE_COPY_SOURCE => ResourceState.CopySource,
+            D3D12_RESOURCE_STATE_GENERIC_READ => ResourceState.GenericRead,
+            _ => ResourceState.Common,
+        };
+    }
+}
+
+// TODO: Thread safety for resource allocator
+// A common solution is to use ticket. Each allocation request create a ticket and put it into a thread-safe queue. A dedicated thread process the queue and fulfill the requests.
+internal unsafe sealed partial class D3D12ResourceAllocator : IResourceAllocator, IDisposable
+{
+    private readonly RenderSystem _renderSystem;
+    private readonly D3D12RenderDevice _device;
+    private readonly D3D12DescriptorAllocator _descriptorAllocator;
+    private readonly D3D12ResourceDatabase _resourceDatabase;
+
+    private ComPtr<D3D12MA_Allocator> _allocator;
+    private UnsafeQueue<Handle<GPUResource>> _temResources;
+
+    private bool _disposed;
+
+    public D3D12ResourceAllocator(RenderSystem renderSystem, D3D12RenderDevice device, D3D12DescriptorAllocator descriptorAllocator, D3D12ResourceDatabase resourceDatabase)
+    {
+        var desc = new D3D12MA_ALLOCATOR_DESC
+        {
+            pAdapter = (IDXGIAdapter*)device.Adapter,
+            pDevice = (ID3D12Device*)device.NativeDevice,
+            Flags = D3D12MA_ALLOCATOR_FLAG_DEFAULT_POOLS_NOT_ZEROED | D3D12MA_ALLOCATOR_FLAG_MSAA_TEXTURES_ALWAYS_COMMITTED,
+        };
+
+        D3D12MA_Allocator* pAllocator = default;
+        ThrowIfFailed(D3D12MA_CreateAllocator(&desc, &pAllocator));
+        _allocator.Attach(pAllocator);
+
+        _device = device;
+        _renderSystem = renderSystem;
+        _descriptorAllocator = descriptorAllocator;
+        _resourceDatabase = resourceDatabase;
+
+        _temResources = new(64, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
+    }
+
+    ~D3D12ResourceAllocator()
+    {
+        Dispose();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private Handle<GPUResource> TrackResource(ComPtr<D3D12MA_Allocation> allocation, D3D12_RESOURCE_STATES state, ResourceViewGroup resourceDescriptor, ResourceDesc desc, bool isTemp)
+    {
+        var handle = _resourceDatabase.AddResource(allocation, _renderSystem.CPUFenceValue, D3D12StatesToRHIState(state), resourceDescriptor, desc);
+
+        if (isTemp)
+        {
+            _temResources.Enqueue(handle);
+        }
+
+        return handle;
+    }
+
     public Handle<Texture> CreateTexture(ref readonly TextureDesc desc, bool isTemp = false)
     {
         CheckTexture2DSize(desc.Width, desc.Height);
 
         var d3d12Format = ConvertTextureFormat(desc.Format);
-        var mipLevels = desc.MipLevels == 0 ? (ushort)(1 + Math.Floor(Math.Log2(Math.Max(desc.Width, desc.Height)))) : (ushort)desc.MipLevels;
+        var maxDimension = Math.Max(desc.Width, Math.Max(desc.Height, desc.Slice));
+        var mipLevels = desc.MipLevels == 0
+            ? (ushort)(1 + Math.Floor(Math.Log2(maxDimension)))
+            : (ushort)desc.MipLevels;
 
         var resourceFlags = ConvertTextureUsage(desc.Usage);
         var resourceDesc = desc.Dimension switch
@@ -479,7 +708,7 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
             var cpuHandle = _descriptorAllocator.GetCpuHandle(resourceDescriptor.srv);
 
             var isCubeMap = desc.Dimension == TextureDimension.TextureCube || desc.Dimension == TextureDimension.TextureCubeArray;
-            var srvDesc = CreateSrvDesc(allocation.Get()->GetResource(), isCubeMap, mipLevels, desc.Slice);
+            var srvDesc = CreateTextureSrvDesc(allocation.Get()->GetResource(), mipLevels, desc.Slice, isCubeMap);
 
             _device.NativeDevice->CreateShaderResourceView(allocation.Get()->GetResource(), &srvDesc, cpuHandle);
         }
@@ -506,7 +735,7 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
         {
             resourceDescriptor.uav = _descriptorAllocator.AllocateCbvSrvUav(isTemp);
             var cpuHandle = _descriptorAllocator.GetCpuHandle(resourceDescriptor.uav);
-            var uavDesc = CreateUavDesc(allocation.Get()->GetResource());
+            var uavDesc = CreateTextureUavDesc(allocation.Get()->GetResource());
 
             _device.NativeDevice->CreateUnorderedAccessView(allocation.Get()->GetResource(), null, &uavDesc, cpuHandle);
         }
@@ -518,17 +747,20 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
 
     public Handle<Texture> CreateRenderTarget(ref readonly RenderTargetDesc desc, bool isTemp = false)
     {
-        var textureDesc = RenderTargetDesc.ToTextureDescripton(desc);
+        var textureDesc = desc.ToTextureDescripton();
         return CreateTexture(ref textureDesc, isTemp);
     }
 
-    // FIX: This is not correct! Fix it!
     public Handle<GraphicsBuffer> CreateBuffer(ref readonly BufferDesc desc, bool isTemp = false)
     {
         CheckBufferSize(desc.Size);
 
         var resourceDescription = D3D12_RESOURCE_DESC.Buffer(desc.Size, ConvertBufferUsage(desc.Usage));
-        resourceDescription.Format = desc.Usage.HasFlag(BufferUsage.Raw) ? DXGI_FORMAT_R32_TYPELESS : DXGI_FORMAT_UNKNOWN;
+        var isRaw = desc.Usage.HasFlag(BufferUsage.Raw);
+        if (isRaw)
+        {
+            resourceDescription.Format = DXGI_FORMAT_R32_TYPELESS;
+        }
 
         var allocationDesc = new D3D12MA_ALLOCATION_DESC
         {
@@ -542,34 +774,39 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
         ThrowIfFailed(_allocator.Get()->CreateResource(&allocationDesc, &resourceDescription, initialState, null, allocation.GetAddressOf(), Win32Utility.IID_NULL, null));
 
         var resourceDescriptor = ResourceViewGroup.Invalid;
+        var pResource = allocation.Get()->GetResource();
+
+        if (desc.Usage.HasFlag(BufferUsage.Constant))
+        {
+            // D3D12 CBV size must be 256-byte aligned
+            var alignedSize = (uint)(desc.Size + 255) & ~255u;
+
+            resourceDescriptor.cbv = _descriptorAllocator.AllocateCbvSrvUav(isTemp);
+            var cbvDesc = new D3D12_CONSTANT_BUFFER_VIEW_DESC
+            {
+                BufferLocation = pResource->GetGPUVirtualAddress(),
+                SizeInBytes = alignedSize
+            };
+
+            _device.NativeDevice->CreateConstantBufferView(&cbvDesc, _descriptorAllocator.GetCpuHandle(resourceDescriptor.cbv));
+        }
+
         if (desc.Usage.HasFlag(BufferUsage.ShaderResource))
         {
             resourceDescriptor.srv = _descriptorAllocator.AllocateCbvSrvUav(isTemp);
+            var cpuHandle = _descriptorAllocator.GetCpuHandle(resourceDescriptor.srv);
+            var srvDesc = CreateBufferSrvDesc(allocation.Get()->GetResource(), desc.Stride, isRaw);
 
-            var srvDesc = new D3D12_SHADER_RESOURCE_VIEW_DESC
-            {
-                ViewDimension = D3D12_SRV_DIMENSION_BUFFER,
-                Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING
-            };
+            _device.NativeDevice->CreateShaderResourceView(pResource, &srvDesc, cpuHandle);
+        }
 
-            if (desc.Usage.HasFlag(BufferUsage.Raw))
-            {
-                srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
-                srvDesc.Buffer.FirstElement = 0;
-                srvDesc.Buffer.NumElements = (uint)(desc.Size / 4u);
-                srvDesc.Buffer.StructureByteStride = 0;
-                srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
-            }
-            else
-            {
-                srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-                srvDesc.Buffer.FirstElement = 0;
-                srvDesc.Buffer.NumElements = (uint)(desc.Size / desc.Stride);
-                srvDesc.Buffer.StructureByteStride = desc.Stride;
-                srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-            }
+        if (desc.Usage.HasFlag(BufferUsage.UnorderedAccess))
+        {
+            resourceDescriptor.uav = _descriptorAllocator.AllocateCbvSrvUav(isTemp);
+            var cpuHandle = _descriptorAllocator.GetCpuHandle(resourceDescriptor.uav);
+            var uavDesc = CreateBufferUavDesc(allocation.Get()->GetResource(), desc.Stride, isRaw);
 
-            _device.NativeDevice->CreateShaderResourceView(allocation.Get()->GetResource(), &srvDesc, _descriptorAllocator.GetCpuHandle(resourceDescriptor.srv));
+            _device.NativeDevice->CreateUnorderedAccessView(pResource, null, &uavDesc, cpuHandle);
         }
 
         var handle = TrackResource(allocation, initialState, resourceDescriptor, ResourceDesc.Buffer(desc), isTemp);
@@ -634,142 +871,6 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
         return _resourceDatabase.AddShader(shader);
     }
 
-    #region Conversion Methods
-
-    private static DXGI_FORMAT ConvertTextureFormat(TextureFormat format)
-    {
-        return format switch
-        {
-            TextureFormat.R8G8B8A8_UNorm => DXGI_FORMAT_R8G8B8A8_UNORM,
-            TextureFormat.B8G8R8A8_UNorm => DXGI_FORMAT_B8G8R8A8_UNORM,
-            TextureFormat.R16G16B16A16_Float => DXGI_FORMAT_R16G16B16A16_FLOAT,
-            TextureFormat.R32G32B32A32_Float => DXGI_FORMAT_R32G32B32A32_FLOAT,
-            TextureFormat.D24_UNorm_S8_UInt => DXGI_FORMAT_D24_UNORM_S8_UINT,
-            TextureFormat.D32_Float => DXGI_FORMAT_D32_FLOAT,
-            _ => throw new ArgumentException($"Unsupported texture format: {format}")
-        };
-    }
-
-    private static D3D12_RESOURCE_FLAGS ConvertTextureUsage(TextureUsage usage)
-    {
-        var flags = D3D12_RESOURCE_FLAG_NONE;
-
-        if (usage.HasFlag(TextureUsage.RenderTarget))
-        {
-            flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-        }
-
-        if (usage.HasFlag(TextureUsage.DepthStencil))
-        {
-            flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-        }
-
-        if (usage.HasFlag(TextureUsage.UnorderedAccess))
-        {
-            flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-        }
-
-        return flags;
-    }
-
-    private static D3D12_RESOURCE_FLAGS ConvertBufferUsage(BufferUsage usage)
-    {
-        var flags = D3D12_RESOURCE_FLAG_NONE;
-
-        if (usage.HasFlag(BufferUsage.Raw))
-        {
-            flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-        }
-
-        return flags;
-    }
-
-    private static D3D12_HEAP_TYPE ConvertMemoryType(ResourceMemoryType memoryType)
-    {
-        return memoryType switch
-        {
-            ResourceMemoryType.Default => D3D12_HEAP_TYPE_DEFAULT,
-            ResourceMemoryType.Upload => D3D12_HEAP_TYPE_UPLOAD,
-            ResourceMemoryType.Readback => D3D12_HEAP_TYPE_READBACK,
-            _ => throw new ArgumentException($"Unsupported memory type: {memoryType}")
-        };
-    }
-
-    private static D3D12_RESOURCE_STATES DetermineInitialTextureState(TextureUsage usage)
-    {
-        if (usage.HasFlag(TextureUsage.RenderTarget))
-        {
-            return D3D12_RESOURCE_STATE_RENDER_TARGET;
-        }
-
-        if (usage.HasFlag(TextureUsage.DepthStencil))
-        {
-            return D3D12_RESOURCE_STATE_DEPTH_WRITE;
-        }
-
-        if (usage.HasFlag(TextureUsage.UnorderedAccess))
-        {
-            return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-        }
-
-        return D3D12_RESOURCE_STATE_COMMON;
-    }
-
-    private static D3D12_RESOURCE_STATES DetermineInitialBufferState(BufferUsage usage, ResourceMemoryType memoryType)
-    {
-        if (memoryType == ResourceMemoryType.Upload)
-        {
-            return D3D12_RESOURCE_STATE_GENERIC_READ;
-        }
-
-        if (memoryType == ResourceMemoryType.Readback)
-        {
-            return D3D12_RESOURCE_STATE_COPY_DEST;
-        }
-
-        if (usage.HasFlag(BufferUsage.Vertex))
-        {
-            return D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-        }
-
-        if (usage.HasFlag(BufferUsage.Index))
-        {
-            return D3D12_RESOURCE_STATE_INDEX_BUFFER;
-        }
-
-        if (usage.HasFlag(BufferUsage.Constant))
-        {
-            return D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-        }
-
-        return D3D12_RESOURCE_STATE_COMMON;
-    }
-
-    private static ResourceState D3D12StatesToRHIState(D3D12_RESOURCE_STATES states)
-    {
-        return states switch
-        {
-            //case ResourceStates.None:
-            //case ResourceStates.Present:
-            D3D12_RESOURCE_STATE_COMMON => ResourceState.Common,
-            D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER => ResourceState.VertexAndConstantBuffer,
-            D3D12_RESOURCE_STATE_INDEX_BUFFER => ResourceState.IndexBuffer,
-            D3D12_RESOURCE_STATE_RENDER_TARGET => ResourceState.RenderTarget,
-            D3D12_RESOURCE_STATE_UNORDERED_ACCESS => ResourceState.UnorderedAccess,
-            D3D12_RESOURCE_STATE_DEPTH_WRITE => ResourceState.DepthWrite,
-            D3D12_RESOURCE_STATE_DEPTH_READ => ResourceState.DepthRead,
-            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE => ResourceState.PixelShaderResource,
-            //case ResourceStates.Predication:
-            D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT => ResourceState.IndirectArgument,
-            D3D12_RESOURCE_STATE_COPY_DEST => ResourceState.CopyDest,
-            D3D12_RESOURCE_STATE_COPY_SOURCE => ResourceState.CopySource,
-            D3D12_RESOURCE_STATE_GENERIC_READ => ResourceState.GenericRead,
-            _ => ResourceState.Common,
-        };
-    }
-
-    #endregion
-
     public void ReleaseTempResources()
     {
         while (_temResources.Count > 0)
@@ -802,6 +903,11 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
 
     public void Dispose()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
 #if DEBUG || GHOST_EDITOR
         if (_temResources.Count > 0)
         {
@@ -817,6 +923,7 @@ internal unsafe class D3D12ResourceAllocator : IResourceAllocator, IDisposable
         _temResources.Dispose();
         _allocator.Dispose();
 
+        _disposed = true;
         GC.SuppressFinalize(this);
     }
 }

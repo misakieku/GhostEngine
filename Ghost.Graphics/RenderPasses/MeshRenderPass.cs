@@ -14,8 +14,8 @@ namespace Ghost.Graphics.RenderPasses;
 internal unsafe class MeshRenderPass : IRenderPass
 {
     private Handle<Mesh> _mesh;
-    private Handle<Material> _material;
     private Identifier<Shader> _shader;
+    private Handle<Material> _material;
     private Handle<Texture>[]? _textures;
 
     // Texture file paths for this demo
@@ -67,7 +67,7 @@ internal unsafe class MeshRenderPass : IRenderPass
 
     public void Execute(ref readonly RenderingContext ctx)
     {
-        ctx.RenderMesh(_mesh, _material);
+        ctx.RenderMesh(_mesh, _material, "Forward");
     }
 
     public void Cleanup(IResourceDatabase resourceDatabase)

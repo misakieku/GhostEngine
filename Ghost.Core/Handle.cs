@@ -1,4 +1,4 @@
-﻿namespace Ghost.Core;
+namespace Ghost.Core;
 
 public interface IHandleType;
 public interface IIdentifierType;

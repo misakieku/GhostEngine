@@ -1,5 +1,4 @@
 ﻿using Ghost.Graphics.RHI;
-using Misaki.HighPerformance.LowLevel.Utilities;
 using TerraFX.Interop.DirectX;
 
 using static TerraFX.Aliases.D3D12_Alias;

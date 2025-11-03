@@ -75,15 +75,15 @@ float4 PSMain(PixelInput input) : SV_TARGET
     Texture2D tex2 = ResourceDescriptorHeap[_TextureIndex2];
     Texture2D tex3 = ResourceDescriptorHeap[_TextureIndex3];
     Texture2D tex4 = ResourceDescriptorHeap[_TextureIndex4];
-    
+
     // Sample the textures
     float4 color1 = tex1.Sample(_MainSampler, input.uv.xy);
     float4 color2 = tex2.Sample(_MainSampler, input.uv.xy);
     float4 color3 = tex3.Sample(_MainSampler, input.uv.xy);
     float4 color4 = tex4.Sample(_MainSampler, input.uv.xy);
-    
+
     // Blend all textures together (simple average)
     float4 blendedColor = (color1 + color2 + color3 + color4) * 0.25f;
-    
+
     return blendedColor * _Color;
 }

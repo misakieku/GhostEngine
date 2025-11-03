@@ -1,4 +1,4 @@
-﻿namespace Ghost.Core;
+namespace Ghost.Core;
 
 public readonly struct Result
 {

@@ -339,22 +339,22 @@ public struct RenderTargetDesc
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TextureDesc ToTextureDescripton(RenderTargetDesc desc)
+    public TextureDesc ToTextureDescripton()
     {
-        var usage = desc.Type == RenderTargetType.Color ? TextureUsage.RenderTarget : TextureUsage.DepthStencil;
-        if (desc.CreationFlags.HasFlag(RenderTargetCreationFlags.AllowUAV))
+        var usage = Type == RenderTargetType.Color ? TextureUsage.RenderTarget : TextureUsage.DepthStencil;
+        if (CreationFlags.HasFlag(RenderTargetCreationFlags.AllowUAV))
         {
             usage |= TextureUsage.UnorderedAccess;
         }
 
         return new TextureDesc
         {
-            Width = desc.Width,
-            Height = desc.Height,
-            Slice = desc.Slice,
-            Format = desc.Format,
-            Dimension = desc.Dimension,
-            MipLevels = desc.MipLevels,
+            Width = Width,
+            Height = Height,
+            Slice = Slice,
+            Format = Format,
+            Dimension = Dimension,
+            MipLevels = MipLevels,
             Usage = usage,
         };
     }
@@ -650,14 +650,14 @@ public enum BufferUsage
     None = 0,
     Vertex = 1 << 0,
     Index = 1 << 1,
-    Constant = 1 << 2,
-    Structured = 1 << 3,
-    Raw = 1 << 4,
-    Upload = 1 << 5,
-    Readback = 1 << 6,
     IndirectArgument = 1 << 7,
-
-    ShaderResource = Vertex | Index | Constant
+    Constant = 1 << 2,
+    ShaderResource = 1 << 3,
+    UnorderedAccess = 1 << 4,
+    Structured = 1 << 5,
+    Raw = 1 << 6,
+    Upload = 1 << 8,
+    Readback = 1 << 9,
 }
 
 public enum IndexType
