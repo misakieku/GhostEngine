@@ -1,4 +1,4 @@
-﻿namespace Ghost.SDL.Compiler;
+namespace Ghost.SDL.Compiler;
 
 public class Lexer
 {

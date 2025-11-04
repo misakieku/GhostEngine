@@ -1,4 +1,4 @@
-﻿using Ghost.Core;
+using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Graphics.D3D12.Utilities;
 using Misaki.HighPerformance.Utilities;

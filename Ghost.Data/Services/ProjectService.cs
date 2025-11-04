@@ -1,4 +1,4 @@
-﻿using Ghost.Core;
+using Ghost.Core;
 using Ghost.Data.Models;
 using Ghost.Data.Repository;
 using Ghost.Data.Resources;

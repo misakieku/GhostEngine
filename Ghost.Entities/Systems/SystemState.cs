@@ -1,4 +1,4 @@
-﻿namespace Ghost.Entities.Systems;
+namespace Ghost.Entities.Systems;
 
 public struct SystemState
 {

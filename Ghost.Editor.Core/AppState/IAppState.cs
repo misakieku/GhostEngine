@@ -1,4 +1,4 @@
-﻿namespace Ghost.Editor.Core.AppState;
+namespace Ghost.Editor.Core.AppState;
 
 internal interface IAppState
 {

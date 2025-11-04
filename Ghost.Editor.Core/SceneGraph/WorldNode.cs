@@ -1,4 +1,4 @@
-﻿using Ghost.Editor.Core.AssetHandle;
+using Ghost.Editor.Core.AssetHandle;
 using Ghost.Editor.Core.Inspector;
 using Ghost.Editor.Core.Resources;
 using Ghost.Editor.Core.Serializer;

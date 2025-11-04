@@ -1,4 +1,4 @@
-﻿using Ghost.Entities;
+using Ghost.Entities;
 using Ghost.Entities.Components;
 using Ghost.Entities.Query;
 

@@ -1,4 +1,4 @@
-﻿namespace Ghost.Editor.Core.AssetHandle;
+namespace Ghost.Editor.Core.AssetHandle;
 
 internal class AssetMeta
 {

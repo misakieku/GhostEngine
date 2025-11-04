@@ -1,4 +1,4 @@
-﻿using Ghost.Editor.Core.Inspector;
+using Ghost.Editor.Core.Inspector;
 using Microsoft.UI.Xaml.Controls;
 
 namespace Ghost.Editor.Components;

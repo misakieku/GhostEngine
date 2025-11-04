@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.WinUI.Behaviors;
+using CommunityToolkit.WinUI.Behaviors;
 using Microsoft.UI.Xaml.Controls;
 
 namespace Ghost.Editor.Core.Notifications;

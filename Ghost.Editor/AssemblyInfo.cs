@@ -1,4 +1,4 @@
-﻿using Ghost.Core.Attributes;
+using Ghost.Core.Attributes;
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("Ghost.UnitTest")]

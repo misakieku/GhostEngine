@@ -1,4 +1,4 @@
-﻿namespace Ghost.Data.Repository;
+namespace Ghost.Data.Repository;
 
 internal class AssetsRepository
 {

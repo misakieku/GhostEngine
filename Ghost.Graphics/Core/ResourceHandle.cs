@@ -1,4 +1,4 @@
-﻿using Ghost.Core;
+using Ghost.Core;
 
 namespace Ghost.Graphics.Core;
 

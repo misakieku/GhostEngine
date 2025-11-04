@@ -1,4 +1,4 @@
-﻿using Ghost.Core;
+using Ghost.Core;
 using Ghost.Entities.Components;
 using Ghost.Entities.Query;
 using System.Runtime.CompilerServices;

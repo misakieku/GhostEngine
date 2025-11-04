@@ -1,4 +1,4 @@
-﻿using Ghost.Data.Resources;
+using Ghost.Data.Resources;
 using Ghost.Data.Services;
 using Ghost.Editor.Core.Utilities;
 using Microsoft.UI.Xaml;

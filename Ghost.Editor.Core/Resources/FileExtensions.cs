@@ -1,4 +1,4 @@
-﻿namespace Ghost.Editor.Core.Resources;
+namespace Ghost.Editor.Core.Resources;
 
 internal static class FileExtensions
 {

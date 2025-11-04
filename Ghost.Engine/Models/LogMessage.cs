@@ -1,4 +1,4 @@
-﻿namespace Ghost.Engine.Models;
+namespace Ghost.Engine.Models;
 
 public enum LogLevel
 {

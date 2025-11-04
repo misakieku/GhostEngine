@@ -1,4 +1,4 @@
-﻿using Ghost.UnitTest.Models;
+using Ghost.UnitTest.Models;
 using System.Diagnostics;
 
 namespace Ghost.UnitTest.Services;

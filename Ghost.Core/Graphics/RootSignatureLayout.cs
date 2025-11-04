@@ -1,4 +1,4 @@
-﻿namespace Ghost.Core.Graphics;
+namespace Ghost.Core.Graphics;
 
 /// <summary>
 /// The layout of the root signature is:

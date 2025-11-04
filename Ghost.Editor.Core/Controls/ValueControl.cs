@@ -1,4 +1,4 @@
-﻿using Ghost.Editor.Core.Event;
+using Ghost.Editor.Core.Event;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 

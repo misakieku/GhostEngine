@@ -1,4 +1,4 @@
-﻿namespace Ghost.Editor.Core.Inspector;
+namespace Ghost.Editor.Core.Inspector;
 
 public class InspectorService : IInspectorService
 {

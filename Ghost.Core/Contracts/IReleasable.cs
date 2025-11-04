@@ -1,4 +1,4 @@
-﻿namespace Ghost.Core.Contracts;
+namespace Ghost.Core.Contracts;
 
 internal interface IReleasable
 {

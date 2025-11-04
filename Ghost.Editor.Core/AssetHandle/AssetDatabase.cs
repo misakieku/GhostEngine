@@ -1,4 +1,4 @@
-﻿using Ghost.Data.Services;
+using Ghost.Data.Services;
 
 namespace Ghost.Editor.Core.AssetHandle;
 

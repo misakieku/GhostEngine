@@ -1,4 +1,4 @@
-﻿using Ghost.Core.Utilities;
+using Ghost.Core.Utilities;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Diagnostics;

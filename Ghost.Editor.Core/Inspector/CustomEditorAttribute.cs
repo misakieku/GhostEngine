@@ -1,4 +1,4 @@
-﻿namespace Ghost.Editor.Core.Inspector;
+namespace Ghost.Editor.Core.Inspector;
 
 [AttributeUsage(AttributeTargets.Class)]
 public class CustomEditorAttribute(Type targetType) : Attribute

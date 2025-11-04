@@ -1,4 +1,4 @@
-﻿using Misaki.HighPerformance.Mathematics;
+using Misaki.HighPerformance.Mathematics;
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;

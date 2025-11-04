@@ -1,4 +1,4 @@
-﻿using Ghost.Editor.Core.Progress;
+using Ghost.Editor.Core.Progress;
 using Ghost.Editor.Core.Resources;
 using Ghost.Editor.Core.Utilities;
 using System.Text.Json;

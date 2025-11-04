@@ -1,4 +1,4 @@
-﻿using Ghost.Engine.Utilities;
+using Ghost.Engine.Utilities;
 using Microsoft.UI.Xaml.Data;
 using System.Numerics;
 

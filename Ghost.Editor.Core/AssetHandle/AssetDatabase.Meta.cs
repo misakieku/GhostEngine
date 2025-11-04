@@ -1,4 +1,4 @@
-﻿using Ghost.Core;
+using Ghost.Core;
 using Ghost.Editor.Core.Utilities;
 using Ghost.Engine.Services;
 using System.Reflection;

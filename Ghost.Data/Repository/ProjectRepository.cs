@@ -1,4 +1,4 @@
-﻿using Ghost.Data.Models;
+using Ghost.Data.Models;
 using Ghost.Data.Resources;
 using System.Data.SQLite;
 

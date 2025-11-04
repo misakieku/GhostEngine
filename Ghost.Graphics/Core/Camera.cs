@@ -1,4 +1,4 @@
-﻿namespace Ghost.Graphics.Core;
+namespace Ghost.Graphics.Core;
 
 public class Camera
 {

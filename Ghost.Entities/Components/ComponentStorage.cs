@@ -1,4 +1,4 @@
-﻿using Ghost.Core;
+using Ghost.Core;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;

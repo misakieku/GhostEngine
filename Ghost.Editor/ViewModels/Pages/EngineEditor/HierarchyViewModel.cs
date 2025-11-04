@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.SceneGraph;
 using System.Collections.ObjectModel;

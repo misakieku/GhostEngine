@@ -1,4 +1,4 @@
-﻿using Ghost.Data.Services;
+using Ghost.Data.Services;
 using Ghost.Editor.View.Pages.EngineEditor;
 using Ghost.Editor.View.Pages.Landing;
 using Ghost.Editor.View.Windows;

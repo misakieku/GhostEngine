@@ -1,4 +1,4 @@
-﻿namespace Ghost.Editor.Core.Notifications;
+namespace Ghost.Editor.Core.Notifications;
 
 public enum MessageType
 {

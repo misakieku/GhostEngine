@@ -1,4 +1,4 @@
-﻿namespace Ghost.Editor.Core.AssetHandle;
+namespace Ghost.Editor.Core.AssetHandle;
 
 [AttributeUsage(AttributeTargets.Method)]
 public class AssetOpenHandlerAttribute : Attribute

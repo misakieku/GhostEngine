@@ -1,4 +1,4 @@
-﻿namespace Ghost.Data.Models;
+namespace Ghost.Data.Models;
 
 public class ProjectMetadata
 {

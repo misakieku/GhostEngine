@@ -1,4 +1,4 @@
-﻿using Ghost.Core.Graphics;
+using Ghost.Core.Graphics;
 
 namespace Ghost.SDL.Compiler;
 

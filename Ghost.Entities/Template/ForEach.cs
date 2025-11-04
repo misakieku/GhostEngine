@@ -1,4 +1,4 @@
-﻿
+
 
 namespace Ghost.Entities;
 

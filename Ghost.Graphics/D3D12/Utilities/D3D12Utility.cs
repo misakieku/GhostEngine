@@ -1,4 +1,4 @@
-﻿using Ghost.Graphics.RHI;
+using Ghost.Graphics.RHI;
 using TerraFX.Interop.DirectX;
 
 using static TerraFX.Aliases.D3D12_Alias;

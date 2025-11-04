@@ -1,4 +1,4 @@
-﻿using Ghost.Core;
+using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.SDL.Compiler.Parser;
 using System.Text;

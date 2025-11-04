@@ -1,4 +1,4 @@
-﻿namespace Ghost.Test.Core;
+namespace Ghost.Test.Core;
 
 public class TestRunner
 {

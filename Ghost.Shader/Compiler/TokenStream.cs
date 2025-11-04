@@ -1,4 +1,4 @@
-﻿namespace Ghost.SDL.Compiler;
+namespace Ghost.SDL.Compiler;
 
 internal static class TokenStreamImple
 {

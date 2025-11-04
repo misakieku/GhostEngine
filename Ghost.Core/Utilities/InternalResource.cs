@@ -1,4 +1,4 @@
-﻿using Ghost.Core.Contracts;
+using Ghost.Core.Contracts;
 
 namespace Ghost.Core.Utilities;
 

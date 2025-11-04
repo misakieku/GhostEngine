@@ -1,4 +1,4 @@
-﻿using Ghost.SDL.Compiler;
+using Ghost.SDL.Compiler;
 using Misaki.HighPerformance.Mathematics;
 using System.Numerics;
 

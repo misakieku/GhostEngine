@@ -1,4 +1,4 @@
-﻿using Ghost.Data.Models;
+using Ghost.Data.Models;
 using Ghost.Editor.ViewModels.Pages.Landing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;

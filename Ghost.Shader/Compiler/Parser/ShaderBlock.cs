@@ -1,4 +1,4 @@
-﻿namespace Ghost.SDL.Compiler.Parser;
+namespace Ghost.SDL.Compiler.Parser;
 
 internal class ShaderBlock : IBlockParser<SDLSyntax, SDLSemantics>
 {

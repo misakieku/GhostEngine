@@ -1,4 +1,4 @@
-﻿namespace Ghost.Engine.Resources;
+namespace Ghost.Engine.Resources;
 
 internal class EngineData
 {

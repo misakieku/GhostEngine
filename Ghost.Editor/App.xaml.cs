@@ -1,4 +1,4 @@
-﻿using Ghost.Editor.Core.AppState;
+using Ghost.Editor.Core.AppState;
 using Ghost.Editor.Core.Inspector;
 using Ghost.Editor.Core.Notifications;
 using Ghost.Editor.Core.Progress;

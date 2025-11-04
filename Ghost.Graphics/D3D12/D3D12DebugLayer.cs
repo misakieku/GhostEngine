@@ -1,4 +1,4 @@
-﻿using TerraFX.Interop.DirectX;
+using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 
 using static TerraFX.Aliases.DXGI_Alias;

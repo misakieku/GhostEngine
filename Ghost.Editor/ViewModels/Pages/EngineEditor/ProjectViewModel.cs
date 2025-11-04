@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Ghost.Data.Services;
 using Ghost.Editor.Core.AssetHandle;
 using Ghost.Editor.Models;

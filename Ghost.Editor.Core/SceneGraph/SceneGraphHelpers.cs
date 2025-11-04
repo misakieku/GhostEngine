@@ -1,4 +1,4 @@
-﻿using Ghost.Engine.Components;
+using Ghost.Engine.Components;
 using Ghost.Entities;
 
 namespace Ghost.Editor.Core.SceneGraph;

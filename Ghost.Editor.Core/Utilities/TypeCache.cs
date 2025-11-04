@@ -1,4 +1,4 @@
-﻿using Ghost.Core.Attributes;
+using Ghost.Core.Attributes;
 using System.Reflection;
 
 namespace Ghost.Editor.Core.Utilities;

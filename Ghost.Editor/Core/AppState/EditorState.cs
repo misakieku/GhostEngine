@@ -1,4 +1,4 @@
-﻿using Ghost.Data.Models;
+using Ghost.Data.Models;
 using Ghost.Data.Services;
 using Ghost.Editor.Core.AssetHandle;
 using Ghost.Editor.View.Windows;

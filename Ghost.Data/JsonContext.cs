@@ -1,4 +1,4 @@
-﻿using Ghost.Data.Models;
+using Ghost.Data.Models;
 using System.Text.Json.Serialization;
 
 namespace Ghost.Data;

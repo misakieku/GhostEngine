@@ -1,4 +1,4 @@
-﻿using Ghost.Data.Resources;
+using Ghost.Data.Resources;
 using Ghost.Editor.Core.Notifications;
 using Ghost.Editor.View.Pages.Landing;
 using Ghost.Engine.Resources;

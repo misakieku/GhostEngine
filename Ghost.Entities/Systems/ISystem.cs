@@ -1,4 +1,4 @@
-﻿namespace Ghost.Entities.Systems;
+namespace Ghost.Entities.Systems;
 
 /// <summary>
 /// Attribute to declare that a system depends on one or more other systems.

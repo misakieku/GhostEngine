@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Ghost.Data.Models;
 using Ghost.Data.Services;
 using Ghost.Editor.Core.AppState;

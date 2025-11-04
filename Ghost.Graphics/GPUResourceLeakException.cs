@@ -1,4 +1,4 @@
-﻿namespace Ghost.Graphics;
+namespace Ghost.Graphics;
 
 internal unsafe class GPUResourceLeakException : Exception
 {

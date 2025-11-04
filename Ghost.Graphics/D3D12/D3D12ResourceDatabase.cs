@@ -1,4 +1,4 @@
-﻿using Ghost.Core;
+using Ghost.Core;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Collections;
 using Misaki.HighPerformance.LowLevel.Buffer;

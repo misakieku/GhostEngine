@@ -1,4 +1,4 @@
-﻿using Ghost.Engine.Editor;
+using Ghost.Engine.Editor;
 using Ghost.Entities;
 using Ghost.Entities.Components;
 using System.Runtime.CompilerServices;

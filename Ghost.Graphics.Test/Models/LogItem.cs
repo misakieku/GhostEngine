@@ -1,4 +1,4 @@
-﻿namespace Ghost.UnitTest.Models;
+namespace Ghost.UnitTest.Models;
 
 public enum LogLevel
 {

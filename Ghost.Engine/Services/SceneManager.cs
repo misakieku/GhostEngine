@@ -1,4 +1,4 @@
-﻿namespace Ghost.Engine.Services;
+namespace Ghost.Engine.Services;
 
 public enum SceneLoadMode
 {

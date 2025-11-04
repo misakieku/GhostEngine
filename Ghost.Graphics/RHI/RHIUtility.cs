@@ -1,4 +1,4 @@
-﻿namespace Ghost.Graphics.RHI;
+namespace Ghost.Graphics.RHI;
 
 internal static class RHIUtility
 {

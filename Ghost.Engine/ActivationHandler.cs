@@ -1,4 +1,4 @@
-﻿using Ghost.Engine.Models;
+using Ghost.Engine.Models;
 
 namespace Ghost.Engine;
 

@@ -1,4 +1,4 @@
-﻿using Ghost.Editor.View.Windows;
+using Ghost.Editor.View.Windows;
 
 namespace Ghost.Editor.Core.AppState;
 

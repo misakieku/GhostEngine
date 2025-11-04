@@ -1,4 +1,4 @@
-﻿namespace Ghost.Editor.Core.Event;
+namespace Ghost.Editor.Core.Event;
 
 public delegate void ValueChangedEventHandler<T>(object? sender, ValueChangedEventArgs<T> args);
 

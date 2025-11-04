@@ -1,4 +1,4 @@
-﻿namespace Ghost.Graphics.Utilities;
+namespace Ghost.Graphics.Utilities;
 
 public class TextureUtility
 {

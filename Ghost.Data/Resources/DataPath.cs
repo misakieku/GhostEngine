@@ -1,4 +1,4 @@
-﻿namespace Ghost.Data.Resources;
+namespace Ghost.Data.Resources;
 
 public class DataPath
 {

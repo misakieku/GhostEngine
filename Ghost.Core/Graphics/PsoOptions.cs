@@ -1,4 +1,4 @@
-﻿namespace Ghost.Core.Graphics;
+namespace Ghost.Core.Graphics;
 
 public enum ZTestOptions
 {
