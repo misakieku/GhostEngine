@@ -208,4 +208,40 @@ internal unsafe static class D3D12Utility
             _ => throw new ArgumentException($"Unknown resource state: {state}")
         };
     }
+
+
+
+    public static D3D12_RASTERIZER_DESC D3D12_RASTERIZER_DESC_CREATE(
+        D3D12_FILL_MODE fillMode,
+        D3D12_CULL_MODE cullMode,
+        bool frontCounterClockwise = false,
+        int depthBias = D3D12_DEFAULT_DEPTH_BIAS,
+        float depthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP,
+        float slopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS,
+        bool depthClipEnable = true,
+        bool multisampleEnable = true,
+        bool antialiasedLineEnable = false,
+        uint forcedSampleCount = 0,
+        D3D12_CONSERVATIVE_RASTERIZATION_MODE conservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF)
+    {
+        return new D3D12_RASTERIZER_DESC
+        {
+            FillMode = fillMode,
+            CullMode = cullMode,
+            FrontCounterClockwise = frontCounterClockwise ? TRUE : FALSE,
+            DepthBias = depthBias,
+            DepthBiasClamp = depthBiasClamp,
+            SlopeScaledDepthBias = slopeScaledDepthBias,
+            DepthClipEnable = depthClipEnable ? TRUE : FALSE,
+            MultisampleEnable = multisampleEnable ? TRUE : FALSE,
+            AntialiasedLineEnable = antialiasedLineEnable ? TRUE : FALSE,
+            ForcedSampleCount = forcedSampleCount,
+            ConservativeRaster = conservativeRaster
+        };
+    }
+
+    public static D3D12_RASTERIZER_DESC D3D12_RASTERIZER_DESC_CULL_NONE => D3D12_RASTERIZER_DESC_CREATE(D3D12_FILL_MODE_SOLID, D3D12_CULL_MODE_NONE);
+    public static D3D12_RASTERIZER_DESC D3D12_RASTERIZER_DESC_CULL_CLOCKWISE => D3D12_RASTERIZER_DESC_CREATE(D3D12_FILL_MODE_SOLID, D3D12_CULL_MODE_FRONT);
+    public static D3D12_RASTERIZER_DESC D3D12_RASTERIZER_DESC_CULL_COUNTER_CLOCKWISE => D3D12_RASTERIZER_DESC_CREATE(D3D12_FILL_MODE_SOLID, D3D12_CULL_MODE_BACK);
+    public static D3D12_RASTERIZER_DESC D3D12_RASTERIZER_DESC_WIREFRAME => D3D12_RASTERIZER_DESC_CREATE(D3D12_FILL_MODE_WIREFRAME, D3D12_CULL_MODE_NONE);
 }
