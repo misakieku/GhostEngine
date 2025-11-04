@@ -347,7 +347,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
         var depthEnabled = ztest != ZTestOptions.Disabled;
         var writeEnabled = zwrite == ZWriteOptions.On;
         var cmp = ToD3DCompare(ztest);
-        return D3D12_DEPTH_STENCIL_DESC.Create(depthEnabled, writeEnabled, cmp);
+        return D3D12Utility.D3D12_DEPTH_STENCIL_DESC_CREATE(depthEnabled, writeEnabled, cmp);
     }
 
     private GraphicsPipelineKey CompilePSO(ref readonly GraphicsPSODescriptor descriptor, ref readonly D3D12GraphicsCompiledResult compiled)
@@ -370,19 +370,19 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
 
             BlendState = descriptor.blend switch
             {
-                BlendOptions.Opaque => D3D12_BLEND_DESC.OPAQUE,
-                BlendOptions.Alpha => D3D12_BLEND_DESC.ALPHA_BLEND,
-                BlendOptions.Additive => D3D12_BLEND_DESC.ADDITIVE,
-                BlendOptions.Multiply => D3D12_BLEND_DESC.MULTIPLY,
-                BlendOptions.PremultipliedAlpha => D3D12_BLEND_DESC.PREMULTIPLIED,
-                _ => D3D12_BLEND_DESC.OPAQUE
+                BlendOptions.Opaque => D3D12Utility.D3D12_BLEND_DESC_OPAQUE,
+                BlendOptions.Alpha => D3D12Utility.D3D12_BLEND_DESC_ALPHA_BLEND,
+                BlendOptions.Additive => D3D12Utility.D3D12_BLEND_DESC_ADDITIVE,
+                BlendOptions.Multiply => D3D12Utility.D3D12_BLEND_DESC_MULTIPLY,
+                BlendOptions.PremultipliedAlpha => D3D12Utility.D3D12_BLEND_DESC_PREMULTIPLIED,
+                _ => D3D12Utility.D3D12_BLEND_DESC_OPAQUE
             },
             RasterizerState = descriptor.cull switch
             {
-                CullOptions.Off => D3D12_RASTERIZER_DESC.CULL_NONE,
-                CullOptions.Front => D3D12_RASTERIZER_DESC.CULL_CLOCKWISE,
-                CullOptions.Back => D3D12_RASTERIZER_DESC.CULL_COUNTER_CLOCKWISE,
-                _ => D3D12_RASTERIZER_DESC.CULL_NONE
+                CullOptions.Off => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_NONE,
+                CullOptions.Front => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_CLOCKWISE,
+                CullOptions.Back => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_COUNTER_CLOCKWISE,
+                _ => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_NONE
             },
         };
 
