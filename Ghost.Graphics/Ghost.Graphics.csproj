@@ -17,25 +17,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Misaki.HighPerformance.Mathematics" Version="1.1.0" />
+    <PackageReference Include="Misaki.HighPerformance.Image" Version="1.0.0" />
     <PackageReference Include="TerraFX.Interop.D3D12MemoryAllocator" Version="2.0.1.5" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Ghost.Core\Ghost.Core.csproj" />
     <ProjectReference Include="..\Ghost.Shader\Ghost.SDL.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="Misaki.HighPerformance">
-      <HintPath>..\..\Class\Misaki.HighPerformance\Misaki.HighPerformance\bin\Release\net9.0\Misaki.HighPerformance.dll</HintPath>
-    </Reference>
-    <Reference Include="Misaki.HighPerformance.Image">
-      <HintPath>..\..\Class\Misaki.HighPerformance\Misaki.HighPerformance.Image\bin\Release\net9.0\Misaki.HighPerformance.Image.dll</HintPath>
-    </Reference>
-    <Reference Include="Misaki.HighPerformance.LowLevel">
-      <HintPath>..\..\Class\Misaki.HighPerformance\Misaki.HighPerformance.LowLevel\bin\Release\net9.0\Misaki.HighPerformance.LowLevel.dll</HintPath>
-    </Reference>
   </ItemGroup>
 
   <ItemGroup>

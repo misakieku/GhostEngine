@@ -18,6 +18,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Misaki.HighPerformance" Version="1.0.0" />
+    <PackageReference Include="Misaki.HighPerformance.Jobs" Version="1.1.0" />
+    <PackageReference Include="Misaki.HighPerformance.LowLevel" Version="1.0.0" />
+    <PackageReference Include="Misaki.HighPerformance.Mathematics" Version="1.2.6" />
     <PackageReference Include="System.IO.Hashing" Version="9.0.10" />
     <PackageReference Include="TerraFX.Interop.Windows" Version="10.0.26100.2" />
   </ItemGroup>
