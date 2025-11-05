@@ -161,6 +161,7 @@ public interface ICommandBuffer : IDisposable
     /// <summary>
     /// Dispatches ray tracing threads
     /// </summary>
+    // TODO: This method is not supported yet.
     void DispatchRay();
 
     /// <summary>

@@ -134,15 +134,17 @@ public unsafe readonly ref struct RenderingContext
             _resourceDatabase.SetResourceState(texture.AsResource(), sateBefore);
         }
     }
-
+#if false
+    // TODO: Ideally we should queue the draw call to our rendering system, and render it in the full rendering pipeline.
+    // This is just a place holder for now for testing purpose.
+    // TODO: Since we are using mesh shader, we should use dispatch mesh instead of draw calls.
     public void RenderMesh(Handle<Mesh> mesh, Handle<Material> material, string passName)
     {
-        //_cmd.DrawMesh(mesh, material);
         ref var meshRef = ref _resourceDatabase.GetMeshReference(mesh);
         ref var materialRef = ref _resourceDatabase.GetMaterialReference(material);
         var shader = _resourceDatabase.GetShaderReference(materialRef.Shader);
 
-        shader.TryGetPassKey(passName, out var passKey);
+        shader.TryGetPassKey(passName, out var passIndex, out var passKey);
         var hash = new GraphicsPipelineHash
         {
             id = passKey,
@@ -160,7 +162,7 @@ public unsafe readonly ref struct RenderingContext
 
         // for (int i = 0; i < 4; i++)
         {
-            ref var cache = ref materialRef.GetPassCache((int)passKey.value);
+            ref var cache = ref materialRef.GetPassCache(passIndex);
             _directCmb.SetConstantBufferView(RootSignatureLayout.PER_MATERIAL_BUFFER_SLOT, cache.GpuResource);
         }
 
@@ -176,6 +178,49 @@ public unsafe readonly ref struct RenderingContext
         // Each instance represents a triangle (3 vertices)
         var triangleCount = (uint)meshRef.indices.Count / 3;
         _directCmb.Draw(3, triangleCount, 0, 0);
+    }
+#endif
+
+    // TODO: Ideally we should queue the draw call to our rendering system, and render it in the full rendering pipeline.
+    // This is just a place holder for now for testing purpose.
+    // TODO: Since we are using mesh shader, we should use dispatch mesh instead of draw calls.
+    public void DispatchMesh(Handle<Mesh> mesh, Handle<Material> material, string passName, uint numThreadsX)
+    {
+        ref var meshRef = ref _resourceDatabase.GetMeshReference(mesh);
+        ref var materialRef = ref _resourceDatabase.GetMaterialReference(material);
+        var shader = _resourceDatabase.GetShaderReference(materialRef.Shader);
+
+        shader.TryGetPassKey(passName, out var passIndex, out var passKey);
+        var hash = new GraphicsPipelineHash
+        {
+            id = passKey,
+            rtvCount = 1,
+            dsvFormat = TextureFormat.Unknown,
+        };
+
+        hash.rtvFormats[0] = TextureFormat.B8G8R8A8_UNorm;
+        var pipelineKey = hash.GetKey();
+        _directCmb.SetPipelineState(pipelineKey);
+
+        // FIX: Get valid root signature. In D3D12, we use fixed root signature layout for bindless rendering.
+        // However, our code should not assume that blindly. Each pipeline should have contained root signature info even if there are fixed.
+        // This ensures that future changes to root signature layout can be accommodated.
+
+        // for (int i = 0; i < 4; i++)
+        {
+            ref var cache = ref materialRef.GetPassCache(passIndex);
+            _directCmb.SetConstantBufferView(RootSignatureLayout.PER_MATERIAL_BUFFER_SLOT, cache.GpuResource);
+        }
+
+        // NOTE: Since we are using true bindless resources, we only need to set the descriptor heaps, not individual tables.
+        // TODO: Matbe handle the transitional bindless model?
+#if false
+        var samplerGpuHandle = _descriptorAllocator.GetSamplerHeap()->GetGPUDescriptorHandleForHeapStart();
+        _commandList.Get()->SetGraphicsRootDescriptorTable(rootParamIndex, samplerGpuHandle);
+#endif
+
+        var threadGroupCountX = ((uint)meshRef.indices.Count + numThreadsX - 1) / numThreadsX;
+        _directCmb.DispatchMesh(threadGroupCountX, 1, 1);
     }
 
     public void ExecuteCopyCommands()

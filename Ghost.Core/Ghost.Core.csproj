@@ -25,12 +25,5 @@
     <PackageReference Include="System.IO.Hashing" Version="9.0.10" />
     <PackageReference Include="TerraFX.Interop.Windows" Version="10.0.26100.2" />
   </ItemGroup>
-  
-  <ItemGroup>
-    <Reference Include="Misaki.HighPerformance.Unsafe">
-      <HintPath>..\..\Class\Misaki.HighPerformance\Misaki.HighPerformance.LowLevel\bin\Release\net9.0\Misaki.HighPerformance.LowLevel.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
 
 </Project>

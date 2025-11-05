@@ -1,10 +1,10 @@
 using Ghost.Core;
+using Ghost.Graphics.Core;
 using Ghost.Graphics.Contracts;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Utilities;
 using Ghost.SDL.Compiler;
 using Misaki.HighPerformance.Image;
-using Ghost.Graphics.Core;
 
 namespace Ghost.Graphics.RenderPasses;
 
@@ -67,7 +67,7 @@ internal unsafe class MeshRenderPass : IRenderPass
 
     public void Execute(ref readonly RenderingContext ctx)
     {
-        ctx.RenderMesh(_mesh, _material, "Forward");
+        ctx.DispatchMesh(_mesh, _material, "Forward", 8);
     }
 
     public void Cleanup(IResourceDatabase resourceDatabase)

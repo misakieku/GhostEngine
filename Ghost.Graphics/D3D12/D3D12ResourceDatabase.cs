@@ -106,7 +106,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
     private readonly UnsafeSlotMap<Mesh> _meshes;
     private readonly UnsafeSlotMap<Material> _materials;
     private readonly DynamicArray<Shader?> _shaders; // NOTE: We use a simple list since shader is not frequently added/removed. This can save 4 bytes for each ecs component.
-    private readonly Dictionary<ShaderPassKey, ShaderPass> _shaderPasses;
+    private readonly Dictionary<ShaderPassKey, ShaderPass> _shaderPasses; // NOTE: The reason we use Dictionary here is that ShaderPassKey is a presistence identifier across multiple application sessions.
 
     private bool _disposed;
 

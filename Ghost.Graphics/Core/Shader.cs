@@ -96,6 +96,7 @@ public unsafe class ShaderPass : IResourceReleasable
 public class Shader : IResourceReleasable, IIdentifierType
 {
     private UnsafeArray<ShaderPassKey> _passIDs;
+    // TODO: Optmize lookups with a better data structure if needed
     private readonly Dictionary<string, int> _passLookup; // pass name to index
     private readonly Dictionary<string, List<int>> _propertyLookup; // property name to pass index (property name to list of pass indices that contain the property)
 
@@ -137,20 +138,27 @@ public class Shader : IResourceReleasable, IIdentifierType
         }
     }
 
+    public int GetPassIndex(string passName)
+    {
+        return _passLookup.GetValueOrDefault(passName, -1);
+    }
+
     public ShaderPassKey GetPassKey(int index)
     {
         return _passIDs[index];
     }
 
-    public bool TryGetPassKey(string passName, out ShaderPassKey passID)
+    public bool TryGetPassKey(string passName, out int passIndex, out ShaderPassKey passID)
     {
         var index = _passLookup.GetValueOrDefault(passName, -1);
         if (index == -1)
         {
+            passIndex = -1;
             passID = new(0);
             return false;
         }
 
+        passIndex = index;
         passID = _passIDs[index];
         return true;
     }
