@@ -211,7 +211,7 @@ public ref struct MaterialAccessor
         for (var i = 0; i < _shader.PassCount; i++)
         {
             ref var cache = ref _materialData.GetPassCache(i);
-            cmb.Upload(cache.GpuResource, cache.CpuData.AsSpan());
+            cmb.UploadBuffer<byte>(cache.GpuResource, cache.CpuData.AsSpan());
         }
     }
 }

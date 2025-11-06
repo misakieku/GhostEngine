@@ -1,11 +1,9 @@
 using Ghost.Core;
 using Ghost.Core.Utilities;
-using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
@@ -204,11 +202,11 @@ internal static unsafe class D3D12ShaderCompiler
         using ComPtr<IDxcIncludeHandler> includeHandler = default;
 
         // Create DXC compiler and utils
-        var pDxcCompiler = (Guid*)Unsafe.AsPointer(in CLSID.CLSID_DxcCompiler);
-        var pDxcUtils = (Guid*)Unsafe.AsPointer(in CLSID.CLSID_DxcUtils);
+        var dxccID = CLSID.CLSID_DxcCompiler;
+        var dxcuID = CLSID.CLSID_DxcUtils;
 
-        ThrowIfFailed(DxcCreateInstance(pDxcCompiler, compiler.IID(), compiler.PPV()));
-        ThrowIfFailed(DxcCreateInstance(pDxcUtils, utils.IID(), utils.PPV()));
+        ThrowIfFailed(DxcCreateInstance(&dxccID, compiler.IID(), compiler.PPV()));
+        ThrowIfFailed(DxcCreateInstance(&dxcuID, utils.IID(), utils.PPV()));
 
         //includeHandler.Get()->LoadSource();
         utils.Get()->CreateDefaultIncludeHandler(includeHandler.GetAddressOf());
@@ -299,9 +297,9 @@ internal static unsafe class D3D12ShaderCompiler
         }
 
         // Create DXC utils to parse reflection data
-        var pDxcUtils = (Guid*)Unsafe.AsPointer(in CLSID.CLSID_DxcUtils);
+        var dxcuID = CLSID.CLSID_DxcUtils;
         using ComPtr<IDxcUtils> utils = default;
-        ThrowIfFailed(DxcCreateInstance(pDxcUtils, utils.IID(), utils.PPV()));
+        ThrowIfFailed(DxcCreateInstance(&dxcuID, utils.IID(), utils.PPV()));
 
         // Create reflection interface from blob
         var reflectionBuffer = new DxcBuffer

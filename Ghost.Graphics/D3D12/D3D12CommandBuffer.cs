@@ -397,7 +397,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         // _commandList.Get()->DispatchRays();
     }
 
-    public void Upload<T>(Handle<GraphicsBuffer> buffer, ReadOnlySpan<T> data)
+    public void UploadBuffer<T>(Handle<GraphicsBuffer> buffer, ReadOnlySpan<T> data)
         where T : unmanaged
     {
         ThrowIfDisposed();
@@ -422,7 +422,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         _commandList.Get()->CopyBufferRegion(pResource, 0, pUploadResource, 0, sizeInBytes);
     }
 
-    public void Upload(Handle<Texture> texture, params ReadOnlySpan<SubResourceData> subresources)
+    public void UploadTexture(Handle<Texture> texture, params ReadOnlySpan<SubResourceData> subresources)
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();

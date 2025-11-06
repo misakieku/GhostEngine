@@ -184,7 +184,21 @@ internal unsafe class D3D12Renderer : IRenderer
     {
         var clearColor = new Color128 { r = 1.0f, g = 0.0f, b = 1.0f, a = 1.0f };
 
-        cmd.BeginRenderPass(target, Handle<Texture>.Invalid, clearColor);
+        Span<PassRenderTargetDesc> rtDesc = stackalloc PassRenderTargetDesc[1];
+        rtDesc[0] = new PassRenderTargetDesc
+        {
+            texture = target,
+            clearColor = clearColor,
+        };
+
+        var depthDesc = new PassDepthStencilDesc
+        {
+            texture = Handle<Texture>.Invalid,
+            clearDepth = 1.0f,
+            clearStencil = 0,
+        };
+
+        cmd.BeginRenderPass(rtDesc, depthDesc, false);
 
         var viewport = new ViewportDesc { width = _currentSize.x, height = _currentSize.y, minDepth = 0, maxDepth = 1 };
         var scissor = new RectDesc { right = _currentSize.x, bottom = _currentSize.y };
@@ -213,16 +227,11 @@ internal unsafe class D3D12Renderer : IRenderer
         // For now, we'll do a simple copy operation
         // In a real implementation, you would use a blit shader for post-processing
 
-        // TODO: Implement proper blit operation with shader
+        // FIX: Implement proper blit operation with shader
         // This is a placeholder - in D3D12, you would typically:
         // 1. Set render target to the destination
         // 2. Use a full-screen quad/triangle with a shader that samples from the source
         // 3. Apply post-processing effects (tone mapping, gamma correction, etc.)
-
-        // For now, just clear the destination (this should be replaced with actual blit)
-        var clearColor = new Color128 { r = 0.0f, g = 0.0f, b = 0.0f, a = 1.0f };
-        cmd.BeginRenderPass(destination, Handle<Texture>.Invalid, clearColor);
-        cmd.EndRenderPass();
 
         // Handle swap chain back buffer transitions if needed
         if (_swapChain != null)

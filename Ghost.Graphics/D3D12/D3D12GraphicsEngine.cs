@@ -9,7 +9,7 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
 #endif
 
     private readonly D3D12RenderDevice _device;
-    private readonly D3D12PipelineLibrary _stateController;
+    private readonly D3D12PipelineLibrary _pipelineLibrary;
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
 
     private readonly D3D12ResourceDatabase _resourceDatabase;
@@ -17,12 +17,10 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
 
     private readonly D3D12CommandBuffer _copyCommandBuffer;
 
-
     public IRenderDevice Device => _device;
+    public IPipelineLibrary PipelineLibrary => _pipelineLibrary;
     public IResourceDatabase ResourceDatabase => _resourceDatabase;
     public IResourceAllocator ResourceAllocator => _resourceAllocator;
-
-    public IPipelineLibrary PipelineStateController => _stateController;
 
     public D3D12GraphicsEngine(RenderSystem renderSystem)
     {
@@ -35,10 +33,10 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
         _resourceDatabase = new(_descriptorAllocator);
         _resourceAllocator = new(renderSystem, _device, _descriptorAllocator, _resourceDatabase);
 
-        _stateController = new(_device, _resourceDatabase, null);
+        _pipelineLibrary = new(_device, _resourceDatabase);
         _copyCommandBuffer = new(
             _device,
-            _stateController,
+            _pipelineLibrary,
             _resourceDatabase,
             _resourceAllocator,
             _descriptorAllocator,
@@ -59,7 +57,7 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
     {
         return new D3D12CommandBuffer(
             _device,
-            _stateController,
+            _pipelineLibrary,
             _resourceDatabase,
             _resourceAllocator,
             _descriptorAllocator,
@@ -84,7 +82,7 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
     public void Dispose()
     {
         _copyCommandBuffer.Dispose();
-        _stateController.Dispose();
+        _pipelineLibrary.Dispose();
 
         _resourceAllocator.Dispose();
         _resourceDatabase.Dispose();

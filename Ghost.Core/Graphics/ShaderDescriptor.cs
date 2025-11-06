@@ -13,8 +13,8 @@ public enum ShaderPropertyType
     Int, Int2, Int3, Int4,
     UInt, UInt2, UInt3, UInt4,
     Bool, Bool2, Bool3, Bool4,
-    Texture2D, Texture3D, TextureCube,
-    Texture2DArray, TextureCubeArray,
+    Texture2DBindless, Texture3DBindless, TextureCubeBindless,
+    Texture2DArrayBindless, TextureCubeArrayBindless,
 }
 
 public struct ShaderEntryPoint

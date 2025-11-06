@@ -26,19 +26,19 @@ internal unsafe class MeshRenderPass : IRenderPass
         "C:/Users/Misaki/Downloads/Im/yande.re 1134666 blue_archive nakamasa_ichika sugarhigh.jpg"
     ];
 
-    public void Initialize(ref readonly RenderingContext ctx, IResourceAllocator resourceAllocator, IPipelineLibrary pipelineLibrary)
+    public void Initialize(ref readonly RenderingContext ctx)
     {
         var shaderDescriptor = SDLCompiler.CompileShader("F:\\csharp\\GhostEngine\\Ghost.Graphics\\RenderPasses\\ShaderCode.hlsl").GetValueOrThrow();
 
-        var key = pipelineLibrary.CompilePassPSO(shaderDescriptor.passes[0], [TextureFormat.B8G8R8A8_UNorm], TextureFormat.Unknown);
+        var key = ctx.PipelineLibrary.CompilePassPSO(shaderDescriptor.passes[0], [TextureFormat.B8G8R8A8_UNorm], TextureFormat.Unknown);
 
         MeshBuilder.CreateCube(0.75f, default, out var vertices, out var indices);
 
         _mesh = ctx.CreateMesh(vertices, indices);
         ctx.UploadMesh(_mesh, true);
 
-        _shader = resourceAllocator.CreateShader(shaderDescriptor);
-        _material = resourceAllocator.CreateMaterial(_shader);
+        _shader = ctx.ResourceAllocator.CreateShader(shaderDescriptor);
+        _material = ctx.ResourceAllocator.CreateMaterial(_shader);
 
         var imageResults = new ImageResult[_textureFiles.Length];
 

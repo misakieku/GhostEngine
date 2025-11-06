@@ -171,7 +171,7 @@ public interface ICommandBuffer : IDisposable
     /// <param name="buffer">A handle to the buffer that will receive the uploaded data.</param>
     /// <param name="data">A read-only span containing the data to upload to the buffer. The span must contain elements of type
     /// <typeparamref name="T"/>.</param>
-    void Upload<T>(Handle<GraphicsBuffer> buffer, ReadOnlySpan<T> data)
+    void UploadBuffer<T>(Handle<GraphicsBuffer> buffer, ReadOnlySpan<T> data)
         where T : unmanaged;
 
     /// <summary>
@@ -182,7 +182,7 @@ public interface ICommandBuffer : IDisposable
     /// <param name="subresources">A reference to the structure containing the subresource data to upload. The data must match the format and layout expected by the texture.</param>
     /// <param name="numSubresources">The number of subresources to upload, starting from <paramref name="firstSubresource"/>.
     /// Must be greater than zero and not exceed the remaining subresources in the texture.</param>
-    void Upload(Handle<Texture> texture, params ReadOnlySpan<SubResourceData> subresources);
+    void UploadTexture(Handle<Texture> texture, params ReadOnlySpan<SubResourceData> subresources);
 
     /// <summary>
     /// Copies a specified number of bytes from the source graphics buffer to the destination graphics buffer.

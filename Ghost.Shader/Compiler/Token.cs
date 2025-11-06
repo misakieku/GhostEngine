@@ -170,11 +170,11 @@ internal static class TokenLexicon
         public const string BOOL4 = "bool4";
 
         // Texture types
-        public const string TEXTURE2D = "texture2d";
-        public const string TEXTURE2D_ARRAY = "texture2d_array";
-        public const string TEXTURE3D = "texture3d";
-        public const string TEXTURECUBE = "texturecube";
-        public const string TEXTURECUBE_ARRAY = "texturecube_array";
+        public const string TEXTURE2D_BINDLESS = "tex2d_b";
+        public const string TEXTURE2D_ARRAY_BINDLESS = "tex2d_arr_b";
+        public const string TEXTURE3D_BINDLESS = "tex3d_b";
+        public const string TEXTURECUBE_BINDLESS = "texcube_b";
+        public const string TEXTURECUBE_ARRAY_BINDLESS = "texcube_arr_b";
     }
 
     public static class KnownTextureValue
@@ -215,8 +215,8 @@ internal static class TokenLexicon
         KnownTypes.INT, KnownTypes.INT2, KnownTypes.INT3, KnownTypes.INT4,
         KnownTypes.UINT, KnownTypes.UINT2, KnownTypes.UINT3, KnownTypes.UINT4,
         KnownTypes.BOOL, KnownTypes.BOOL2, KnownTypes.BOOL3, KnownTypes.BOOL4,
-        KnownTypes.TEXTURE2D, KnownTypes.TEXTURE2D_ARRAY, KnownTypes.TEXTURE3D,
-        KnownTypes.TEXTURECUBE, KnownTypes.TEXTURECUBE_ARRAY,
+        KnownTypes.TEXTURE2D_BINDLESS, KnownTypes.TEXTURE2D_ARRAY_BINDLESS, KnownTypes.TEXTURE3D_BINDLESS,
+        KnownTypes.TEXTURECUBE_BINDLESS, KnownTypes.TEXTURECUBE_ARRAY_BINDLESS,
     };
 
     private static readonly HashSet<string> s_textureDefaultValues = new()

@@ -2,44 +2,49 @@ namespace Ghost.Graphics.RHI;
 
 public interface IGraphicsEngine : IDisposable
 {
-    public IRenderDevice Device
+    IRenderDevice Device
     {
         get;
     }
 
-    public IResourceDatabase ResourceDatabase
+    IPipelineLibrary PipelineLibrary
     {
         get;
     }
 
-    public IResourceAllocator ResourceAllocator
+    IResourceDatabase ResourceDatabase
     {
         get;
     }
 
-    public IRenderer CreateRenderer();
+    IResourceAllocator ResourceAllocator
+    {
+        get;
+    }
+
+    IRenderer CreateRenderer();
 
     /// <summary>
     /// Creates a command buffer for recording rendering commands
     /// </summary>
     /// <param name="type">Type of command buffer to create</param>
     /// <returns>A new command buffer instance</returns>
-    public ICommandBuffer CreateCommandBuffer(CommandBufferType type = CommandBufferType.Graphics);
+    ICommandBuffer CreateCommandBuffer(CommandBufferType type = CommandBufferType.Graphics);
 
     /// <summary>
     /// Creates a swap chain for presentation
     /// </summary>
     /// <param name="desc">Swap chain description</param>
     /// <returns>A new swap chain instance</returns>
-    public ISwapChain CreateSwapChain(SwapChainDesc desc);
+    ISwapChain CreateSwapChain(SwapChainDesc desc);
 
     /// <summary>
     /// Begins a new rendering frame, preparing the graphics context for drawing operations.
     /// </summary>
-    public void BeginFrame();
+    void BeginFrame();
 
     /// <summary>
     /// Completes the current rendering frame and performs any necessary finalization steps.
     /// </summary>
-    public void EndFrame();
+    void EndFrame();
 }

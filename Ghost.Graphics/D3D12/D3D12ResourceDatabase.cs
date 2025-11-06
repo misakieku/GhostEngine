@@ -90,12 +90,6 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
         }
     }
 
-    private struct Slot<T>
-    {
-        public T value;
-        public bool occupied;
-    }
-
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
 
     private UnsafeSlotMap<ResourceRecord> _resources;
