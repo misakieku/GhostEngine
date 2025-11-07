@@ -371,7 +371,7 @@ internal static unsafe class D3D12ShaderCompiler
                     break;
                 }
 
-                // NOTE: Currently we are not support resource bindings yet, everything access through bindless heaps.
+                // NOTE: Currently we do not support resource bindings yet, everything access through bindless heaps.
                 default:
                 {
                     reflectionData.OtherResources.Add(new ResourceBindingInfo

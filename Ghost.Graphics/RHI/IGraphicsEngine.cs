@@ -23,6 +23,8 @@ public interface IGraphicsEngine : IDisposable
     }
 
     IRenderer CreateRenderer();
+    void RemoveRenderer(IRenderer renderer);
+    void ClearRenderers();
 
     /// <summary>
     /// Creates a command buffer for recording rendering commands
@@ -42,6 +44,11 @@ public interface IGraphicsEngine : IDisposable
     /// Begins a new rendering frame, preparing the graphics context for drawing operations.
     /// </summary>
     void BeginFrame();
+
+    /// <summary>
+    /// Renders the current frame.
+    /// </summary>
+    void RenderFrame();
 
     /// <summary>
     /// Completes the current rendering frame and performs any necessary finalization steps.

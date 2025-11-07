@@ -1,5 +1,4 @@
 using Ghost.Graphics.RHI;
-using System.Collections.Immutable;
 
 namespace Ghost.Graphics;
 
@@ -8,11 +7,71 @@ public enum GraphicsAPI
     Direct3D12
 }
 
+public struct RenderingConfig
+{
+    public GraphicsAPI GraphicsAPI
+    {
+        get; set;
+    }
+
+    public uint FrameBufferCount
+    {
+        get; set;
+    }
+}
+
+public interface IFenceSynchronizer
+{
+    public uint CPUFenceValue
+    {
+        get;
+    }
+
+    public uint GPUFenceValue
+    {
+        get;
+    }
+
+    public uint FrameIndex
+    {
+        get;
+    }
+
+    public uint MaxFrameLatency
+    {
+        get;
+    }
+
+    public bool WaitForGPUReady(int timeOut = -1);
+    public void SignalCPUReady();
+}
+
+public interface IRenderSystem : IFenceSynchronizer
+{
+    RenderingConfig Config
+    {
+        get;
+    }
+
+    IGraphicsEngine GraphicsEngine
+    {
+        get;
+    }
+
+    bool IsRunning
+    {
+        get;
+    }
+
+    void Start();
+    void Stop();
+}
+
 /// <summary>
 /// Application-level render system that orchestrates multiple renderers
 /// and handles frame synchronization
 /// </summary>
-internal class RenderSystem
+internal class RenderSystem : IRenderSystem
 {
     private readonly struct FrameResource : IDisposable
     {
@@ -27,18 +86,17 @@ internal class RenderSystem
 
         public void Dispose()
         {
-            cpuReadyEvent?.Dispose();
-            gpuReadyEvent?.Dispose();
+            cpuReadyEvent.Dispose();
+            gpuReadyEvent.Dispose();
         }
     }
 
-    private const uint _FRAME_COUNT = 2;
+    private readonly RenderingConfig _config;
+    private readonly IGraphicsEngine _graphicsEngine;
 
-    private readonly IGraphicsEngine _graphicsEngine = null!;
-    private readonly FrameResource[] _frameResources = null!;
-    private readonly Thread _renderThread = null!;
-    private readonly AutoResetEvent _shutdownEvent = null!;
-    private ImmutableArray<IRenderer> _renderers;
+    private readonly FrameResource[] _frameResources;
+    private readonly Thread _renderThread;
+    private readonly AutoResetEvent _shutdownEvent;
 
     private uint _frameIndex;
     private uint _cpuFenceValue;
@@ -47,25 +105,29 @@ internal class RenderSystem
     private bool _isRunning;
     private bool _disposed;
 
+    public RenderingConfig Config => _config;
     public IGraphicsEngine GraphicsEngine => _graphicsEngine;
-    public uint CPUFenceValue => _cpuFenceValue;
-    public uint GPUFenceValue => _gpuFenceValue;
     public bool IsRunning => _isRunning;
 
-    public RenderSystem(GraphicsAPI api)
+    public uint CPUFenceValue => _cpuFenceValue;
+    public uint GPUFenceValue => _gpuFenceValue;
+    public uint FrameIndex => _frameIndex;
+    public uint MaxFrameLatency => _config.FrameBufferCount;
+
+    public RenderSystem(RenderingConfig config)
     {
-        _graphicsEngine = api switch
+        _config = config;
+        _graphicsEngine = config.GraphicsAPI switch
         {
             GraphicsAPI.Direct3D12 => new D3D12.D3D12GraphicsEngine(this),
-            _ => throw new NotSupportedException($"Graphics API {api} is not supported.")
+            _ => throw new NotSupportedException($"Graphics API {config.GraphicsAPI} is not supported.")
         };
 
-        _renderers = ImmutableArray<IRenderer>.Empty;
         _shutdownEvent = new(false);
 
         // Create frame resources for synchronization
-        _frameResources = new FrameResource[_FRAME_COUNT];
-        for (var i = 0; i < _FRAME_COUNT; i++)
+        _frameResources = new FrameResource[config.FrameBufferCount];
+        for (var i = 0; i < config.FrameBufferCount; i++)
         {
             _frameResources[i] = new();
         }
@@ -77,23 +139,13 @@ internal class RenderSystem
             Priority = ThreadPriority.Normal
         };
 
-        _disposed = true;
+        _isRunning = false;
+        _disposed = false;
     }
 
-    public IRenderer CreateRenderer()
+    ~RenderSystem()
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        var renderer = _graphicsEngine.CreateRenderer();
-        ImmutableInterlocked.Update(ref _renderers, renderers => renderers.Add(renderer));
-        return renderer;
-    }
-
-    public void RemoveRenderer(IRenderer renderer)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        ImmutableInterlocked.Update(ref _renderers, renderers => renderers.Remove(renderer));
+        Dispose();
     }
 
     public void Start()
@@ -131,7 +183,7 @@ internal class RenderSystem
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        var eventIndex = (int)(_cpuFenceValue % _FRAME_COUNT);
+        var eventIndex = (int)(_cpuFenceValue % _config.FrameBufferCount);
         return _frameResources[eventIndex].gpuReadyEvent.WaitOne(timeOut);
     }
 
@@ -139,7 +191,7 @@ internal class RenderSystem
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        var eventIndex = (int)(_cpuFenceValue % _FRAME_COUNT);
+        var eventIndex = (int)(_cpuFenceValue % _config.FrameBufferCount);
         _frameResources[eventIndex].cpuReadyEvent.Set();
         _cpuFenceValue++;
     }
@@ -150,7 +202,7 @@ internal class RenderSystem
 
         while (_isRunning)
         {
-            _frameIndex = _gpuFenceValue % _FRAME_COUNT;
+            _frameIndex = _gpuFenceValue % _config.FrameBufferCount;
             var frameResource = _frameResources[_frameIndex];
 
             // Wait for either CPU ready signal or shutdown signal
@@ -167,13 +219,7 @@ internal class RenderSystem
             if (waitResult == 0)
             {
                 _graphicsEngine.BeginFrame();
-
-                foreach (var renderer in _renderers)
-                {
-                    renderer.ExecutePendingResize();
-                    renderer.Render();
-                }
-
+                _graphicsEngine.RenderFrame();
                 _graphicsEngine.EndFrame();
 
                 _gpuFenceValue++;

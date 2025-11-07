@@ -14,9 +14,6 @@ using Ghost.Graphics.Core;
 
 namespace Ghost.Graphics.D3D12;
 
-/// <summary>
-/// D3D12 implementation of command buffer interface
-/// </summary>
 internal unsafe class D3D12CommandBuffer : ICommandBuffer
 {
     private ComPtr<ID3D12CommandAllocator> _allocator;
@@ -26,14 +23,15 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     private readonly D3D12ResourceDatabase _resourceDatabase;
     private readonly D3D12ResourceAllocator _resourceAllocator;
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
+    private readonly CommandBufferType _type;
 
     private string _name;
-    private readonly CommandBufferType _type;
     private ushort _commandCount;
     private bool _isRecording;
     private bool _disposed;
 
     public ID3D12GraphicsCommandList10* NativeCommandList => _commandList.Get();
+
     public CommandBufferType Type => _type;
     public bool IsEmpty => _commandCount == 0;
 
@@ -76,6 +74,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         // Command lists are created in recording state, so close it
         _commandList.Get()->Close();
         _isRecording = false;
+        _disposed = false;
     }
 
     ~D3D12CommandBuffer()
@@ -83,10 +82,30 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         Dispose();
     }
 
+    private static D3D12_COMMAND_LIST_TYPE ConvertCommandBufferType(CommandBufferType type)
+    {
+        return type switch
+        {
+            CommandBufferType.Graphics => D3D12_COMMAND_LIST_TYPE_DIRECT,
+            CommandBufferType.Compute => D3D12_COMMAND_LIST_TYPE_COMPUTE,
+            CommandBufferType.Copy => D3D12_COMMAND_LIST_TYPE_COPY,
+            _ => throw new ArgumentException($"Unknown command buffer type: {type}")
+        };
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ThrowIfDisposed()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void ThrowIfRecording()
+    {
+        if (_isRecording)
+        {
+            throw new InvalidOperationException("Command buffer is already recording");
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -121,11 +140,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         }
 
         ThrowIfDisposed();
-
-        if (_isRecording)
-        {
-            throw new InvalidOperationException("Command buffer is already recording");
-        }
+        ThrowIfRecording();
 
         ResetCommandList();
         SetBindlessHeap();
@@ -196,7 +211,9 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
 
     public void BeginRenderPass(ReadOnlySpan<PassRenderTargetDesc> rtDescs, PassDepthStencilDesc depthDesc, bool allowUAVWrites = false)
     {
-        // TODO: Implement render pass begin
+        ThrowIfDisposed();
+        ThrowIfNotRecording();
+        IncrementCommandCount();
 
         var pRtvDescs = stackalloc D3D12_RENDER_PASS_RENDER_TARGET_DESC[rtDescs.Length];
         for (var i = 0; i < rtDescs.Length; i++)
@@ -299,6 +316,10 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
 
     public void SetConstantBufferView(uint slot, Handle<GraphicsBuffer> buffer)
     {
+        ThrowIfDisposed();
+        ThrowIfNotRecording();
+        IncrementCommandCount();
+
         var resource = _resourceDatabase.GetResource(buffer.AsResource());
         _commandList.Get()->SetGraphicsRootConstantBufferView(RootSignatureLayout.PER_MATERIAL_BUFFER_SLOT, resource->GetGPUVirtualAddress());
     }
@@ -339,6 +360,10 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
 
     public void SetPrimitiveTopology(PrimitiveTopology topology)
     {
+        ThrowIfDisposed();
+        ThrowIfNotRecording();
+        IncrementCommandCount();
+
         var d3d12Topology = topology switch
         {
             PrimitiveTopology.Point => D3D_PRIMITIVE_TOPOLOGY_POINTLIST,
@@ -480,27 +505,16 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         }
     }
 
-    private static D3D12_COMMAND_LIST_TYPE ConvertCommandBufferType(CommandBufferType type)
-    {
-        return type switch
-        {
-            CommandBufferType.Graphics => D3D12_COMMAND_LIST_TYPE_DIRECT,
-            CommandBufferType.Compute => D3D12_COMMAND_LIST_TYPE_COMPUTE,
-            CommandBufferType.Copy => D3D12_COMMAND_LIST_TYPE_COPY,
-            _ => throw new ArgumentException($"Unknown command buffer type: {type}")
-        };
-    }
-
     public void Dispose()
     {
-        if (_isRecording)
-        {
-            throw new InvalidOperationException("Command buffer is still recording");
-        }
-
         if (_disposed)
         {
             return;
+        }
+
+        if (_isRecording)
+        {
+            throw new InvalidOperationException("Command buffer is still recording");
         }
 
         _commandList.Dispose();

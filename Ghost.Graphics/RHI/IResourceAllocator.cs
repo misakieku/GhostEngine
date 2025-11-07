@@ -49,10 +49,4 @@ public interface IResourceAllocator
     /// <returns>An <see cref="Identifier{Shader}"/> representing the newly created shader.</returns>
     /// <param name="descriptor">The viewGroup containing the shader's properties and passes.</param>
     public Identifier<Shader> CreateShader(ShaderDescriptor descriptor);
-
-    /// <summary>
-    /// Release a resource given its handle
-    /// </summary>
-    /// <param name="handle">Resource handle</param>
-    public void ReleaseResource(Handle<GPUResource> handle);
 }

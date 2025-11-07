@@ -10,6 +10,14 @@ using Ghost.Graphics.Core;
 
 namespace Ghost.Graphics.RHI;
 
+public interface IRHIObject
+{
+    string Name
+    {
+        get; set;
+    }
+}
+
 public readonly struct ShaderPassKey
 {
     public readonly ulong value;

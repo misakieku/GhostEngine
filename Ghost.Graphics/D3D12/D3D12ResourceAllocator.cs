@@ -3,7 +3,6 @@ using Ghost.Core.Graphics;
 using Ghost.Core.Utilities;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
-using Ghost.Graphics.D3D12.Utilities;
 using Misaki.HighPerformance.Mathematics;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.CompilerServices;
@@ -588,11 +587,13 @@ internal unsafe sealed partial class D3D12ResourceAllocator
     }
 }
 
+// TODO: Dedicated pool for copy, render graph, and persistent resources
+
 // TODO: Thread safety for resource allocator
 // A common solution is to use ticket. Each allocation request create a ticket and put it into a thread-safe queue. A dedicated thread process the queue and fulfill the requests.
 internal unsafe sealed partial class D3D12ResourceAllocator : IResourceAllocator, IDisposable
 {
-    private readonly RenderSystem _renderSystem;
+    private readonly IFenceSynchronizer _fenceSynchronizer;
     private readonly D3D12RenderDevice _device;
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
     private readonly D3D12ResourceDatabase _resourceDatabase;
@@ -602,7 +603,7 @@ internal unsafe sealed partial class D3D12ResourceAllocator : IResourceAllocator
 
     private bool _disposed;
 
-    public D3D12ResourceAllocator(RenderSystem renderSystem, D3D12RenderDevice device, D3D12DescriptorAllocator descriptorAllocator, D3D12ResourceDatabase resourceDatabase)
+    public D3D12ResourceAllocator(IFenceSynchronizer fenceSynchronizer, D3D12RenderDevice device, D3D12DescriptorAllocator descriptorAllocator, D3D12ResourceDatabase resourceDatabase)
     {
         var desc = new D3D12MA_ALLOCATOR_DESC
         {
@@ -616,7 +617,7 @@ internal unsafe sealed partial class D3D12ResourceAllocator : IResourceAllocator
         _allocator.Attach(pAllocator);
 
         _device = device;
-        _renderSystem = renderSystem;
+        _fenceSynchronizer = fenceSynchronizer;
         _descriptorAllocator = descriptorAllocator;
         _resourceDatabase = resourceDatabase;
 
@@ -631,7 +632,7 @@ internal unsafe sealed partial class D3D12ResourceAllocator : IResourceAllocator
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Handle<GPUResource> TrackResource(ComPtr<D3D12MA_Allocation> allocation, D3D12_RESOURCE_STATES state, ResourceViewGroup resourceDescriptor, ResourceDesc desc, bool isTemp)
     {
-        var handle = _resourceDatabase.AddResource(allocation, _renderSystem.CPUFenceValue, D3D12StatesToRHIState(state), resourceDescriptor, desc);
+        var handle = _resourceDatabase.AddResource(allocation, _fenceSynchronizer.CPUFenceValue, D3D12StatesToRHIState(state), resourceDescriptor, desc);
 
         if (isTemp)
         {
@@ -884,7 +885,7 @@ internal unsafe sealed partial class D3D12ResourceAllocator : IResourceAllocator
                 continue;
             }
 
-            if (info.cpuFenceValue > _renderSystem.GPUFenceValue)
+            if (info.cpuFenceValue > _fenceSynchronizer.GPUFenceValue)
             {
                 // Resource still in use by GPU, stop processing.
                 // Since resources are enqueued in order, we can break here.
@@ -894,11 +895,6 @@ internal unsafe sealed partial class D3D12ResourceAllocator : IResourceAllocator
             _resourceDatabase.ReleaseResource(handle);
             _temResources.Dequeue();
         }
-    }
-
-    public void ReleaseResource(Handle<GPUResource> handle)
-    {
-        _resourceDatabase.ReleaseResource(handle);
     }
 
     public void Dispose()
@@ -917,7 +913,7 @@ internal unsafe sealed partial class D3D12ResourceAllocator : IResourceAllocator
 
         foreach (var handle in _temResources)
         {
-            ReleaseResource(handle);
+            _resourceDatabase.ReleaseResource(handle);
         }
 
         _temResources.Dispose();
