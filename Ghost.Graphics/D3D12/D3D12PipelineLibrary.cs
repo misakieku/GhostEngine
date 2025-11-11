@@ -9,6 +9,7 @@ using Misaki.HighPerformance.LowLevel.Utilities;
 using Misaki.HighPerformance.Utilities;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 
@@ -31,6 +32,7 @@ internal struct D3D12GraphicsCompiledResult : IDisposable
     }
 }
 
+[SupportedOSPlatform(Win32Utility.OS_SUPPORTED_VERSION)]
 internal struct D3D12PipelineState : IDisposable
 {
     // NOTE: This is just a temporary cache for compiled shader code. We will implement a proper disk cache later.
@@ -45,6 +47,7 @@ internal struct D3D12PipelineState : IDisposable
     }
 }
 
+[SupportedOSPlatform(Win32Utility.OS_SUPPORTED_VERSION)]
 internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
 {
     private const int _ROOT_PARAM_COUNT =

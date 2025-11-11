@@ -84,7 +84,7 @@ public static partial class AssetDatabase
         var metaFileResult = GetMetaFilePath(assetPath);
         if (!metaFileResult.success)
         {
-            Logger.LogError(metaFileResult.message);
+            Logger.LogError(metaFileResult.message ?? string.Empty);
             return;
         }
 

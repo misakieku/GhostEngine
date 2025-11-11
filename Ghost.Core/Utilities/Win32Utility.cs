@@ -6,9 +6,13 @@ using TerraFX.Interop.Windows;
 
 namespace Ghost.Core.Utilities;
 
-#if PLATEFORME_WIN64
-[SupportedOSPlatform("windows10.0.19041.0")]
-internal static unsafe class Win32Utility
+internal static partial class Win32Utility
+{
+    public const string OS_SUPPORTED_VERSION = "windows10.0.19041.0";
+}
+
+[SupportedOSPlatform(OS_SUPPORTED_VERSION)]
+internal static unsafe partial class Win32Utility
 {
     [EditorBrowsable(EditorBrowsableState.Never)]
     public readonly ref struct IID_PPV
@@ -70,14 +74,21 @@ internal static unsafe class Win32Utility
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void** PPV<T>(this ComPtr<T> comPtr)
+    public static Guid* IID<T>(this T ptr)
+    where T : unmanaged, IUnknown.Interface
+    {
+        return Windows.__uuidof<T>();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void** PPV<T>(ref this ComPtr<T> comPtr)
         where T : unmanaged, IUnknown.Interface
     {
         return (void**)comPtr.GetAddressOf();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void** ReleaseAndGetVoidAddressOf<T>(this ComPtr<T> comPtr)
+    public static void** ReleaseAndGetVoidAddressOf<T>(ref this ComPtr<T> comPtr)
         where T : unmanaged, IUnknown.Interface
     {
         return (void**)comPtr.ReleaseAndGetAddressOf();
@@ -99,4 +110,3 @@ internal static unsafe class Win32Utility
         return (flags & Unsafe.As<T, uint>(ref flag)) != 0;
     }
 }
-#endif

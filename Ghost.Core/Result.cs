@@ -57,6 +57,25 @@ public readonly struct Result<T>
     public static implicit operator Result<T>(Result result) => result.success ? Success(default!) : Fail(result.message);
 }
 
+public readonly struct Result<T, S>
+{
+    public readonly T value;
+    public readonly S status;
+
+    public Result(T value, S status)
+    {
+        this.value = value;
+        this.status = status;
+    }
+
+    public static Result<T, S> Create(T value, S status)
+    {
+        return new Result<T, S>(value, status);
+    }
+
+    public override string ToString() => $"Value: {value}, Status: {status}";
+}
+
 public static class ResultExtensions
 {
     public static void ThrowIfFailed(this Result result)

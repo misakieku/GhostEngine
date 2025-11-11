@@ -1,6 +1,6 @@
 using Ghost.Core.Utilities;
-using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
+using System.Runtime.Versioning;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 using static TerraFX.Aliases.D3D_Alias;
@@ -11,6 +11,7 @@ namespace Ghost.Graphics.D3D12;
 /// <summary>
 /// D3D12 implementation of the render device interface
 /// </summary>
+[SupportedOSPlatform(Win32Utility.OS_SUPPORTED_VERSION)]
 internal unsafe class D3D12RenderDevice : IRenderDevice
 {
     private ComPtr<IDXGIFactory7> _dxgiFactory;
@@ -57,31 +58,34 @@ internal unsafe class D3D12RenderDevice : IRenderDevice
         _dxgiFactory.Attach(pFactory);
 
         ID3D12Device14* pDevice = default;
-        ComPtr<IDXGIAdapter1> adapter = default;
+        IDXGIAdapter1* pAdapter = default;
 
         for (uint adapterIndex = 0;
-            _dxgiFactory.Get()->EnumAdapterByGpuPreference(adapterIndex, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, adapter.IID(), adapter.ReleaseAndGetVoidAddressOf()).SUCCEEDED;
+            _dxgiFactory.Get()->EnumAdapterByGpuPreference(adapterIndex, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, __uuidof<IDXGIAdapter1>(), (void**)&pAdapter).SUCCEEDED;
             adapterIndex++)
         {
             DXGI_ADAPTER_DESC1 desc = default;
-            adapter.Get()->GetDesc1(&desc);
+            pAdapter->GetDesc1(&desc);
 
             // Don't select the Basic Render Driver adapter.
             if (desc.Flags.HasFlag(DXGI_ADAPTER_FLAG_SOFTWARE))
             {
-                continue;
+                goto NEXT_ITERATION;
             }
 
-            if (D3D12CreateDevice((IUnknown*)adapter.Get(), D3D_FEATURE_LEVEL_12_0, __uuidof(pDevice), (void**)&pDevice).SUCCEEDED)
+            if (D3D12CreateDevice((IUnknown*)pAdapter, D3D_FEATURE_LEVEL_12_0, __uuidof(pDevice), (void**)&pDevice).SUCCEEDED)
             {
-                _adapter = adapter.Move();
+                _adapter.Attach(pAdapter);
                 break;
             }
+
+        NEXT_ITERATION:
+            pAdapter->Release();
         }
 
         if (pDevice == null)
         {
-            adapter.Dispose(); // Dispose the last adapter we tried. If the operation succeeded, we would have moved it.
+            pAdapter->Release(); // Dispose the last adapter we tried. If the operation succeeded, we would have moved it.
             throw new PlatformNotSupportedException("Cannot create ID3D12Device with feature level 12.0");
         }
 

@@ -4,11 +4,11 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Misaki.HighPerformance.LowLevel.Buffer;
 
-namespace Ghost.UnitTest.Windows;
+namespace Ghost.Graphics.Test.Windows;
 
 public sealed partial class GraphicsTestWindow : Window
 {
-    private RenderSystem? _renderSystem;
+    private IRenderSystem? _renderSystem;
     private IRenderer? _renderer;
     private ISwapChain? _swapChain;
 
@@ -28,21 +28,27 @@ public sealed partial class GraphicsTestWindow : Window
         AllocationManager.EnableDebugLayer();
 #endif
 
-        _renderSystem = new(GraphicsAPI.Direct3D12);
-        _renderer = _renderSystem.CreateRenderer();
+        _renderSystem = new RenderSystem(new()
+        {
+            FrameBufferCount = 2,
+            GraphicsAPI = GraphicsAPI.Direct3D12
+        });
+        _renderer = _renderSystem.GraphicsEngine.CreateRenderer();
 
         _swapChain = _renderSystem.GraphicsEngine.CreateSwapChain(new SwapChainDesc((uint)AppWindow.Size.Width, (uint)AppWindow.Size.Height, SwapChainTarget.FromCompositionSurface(Panel)));
         _renderer.SetSwapChain(_swapChain);
 
+        _renderSystem.Start();
         CompositionTarget.Rendering += OnRendering;
     }
 
     private void SwapChainPanel_Unloaded(object sender, RoutedEventArgs e)
     {
         CompositionTarget.Rendering -= OnRendering;
+        _renderSystem?.Stop();
 
-        _swapChain?.Dispose();
         _renderer?.Dispose();
+        _swapChain?.Dispose();
         _renderSystem?.Dispose();
     }
 
@@ -50,18 +56,23 @@ public sealed partial class GraphicsTestWindow : Window
     {
         if (e.NewSize.Width > 8.0 && e.NewSize.Height > 8.0)
         {
-            _renderer?.RequestResize((uint)e.NewSize.Width, (uint)e.NewSize.Height);
+            _renderer?.RequestResize(new((uint)e.NewSize.Width, (uint)e.NewSize.Height));
         }
     }
 
     private void OnRendering(object? sender, object e)
     {
-        //if (GraphicsPipeline.CPUFenceValue < GraphicsPipeline.GPUFenceValue + GraphicsPipeline._FRAME_COUNT)
-        //{
-        //    DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.High, () =>
-        //    {
-        //        GraphicsPipeline.SignalCPUReady();
-        //    });
-        //}
+        if (_renderSystem == null)
+        {
+            return;
+        }
+
+        if (_renderSystem.CPUFenceValue < _renderSystem.GPUFenceValue + _renderSystem.Config.FrameBufferCount)
+        {
+            DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.High, () =>
+            {
+                _renderSystem.SignalCPUReady();
+            });
+        }
     }
 }

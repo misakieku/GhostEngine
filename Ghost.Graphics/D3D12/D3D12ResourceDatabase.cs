@@ -1,16 +1,19 @@
 using Ghost.Core;
+using Ghost.Core.Utilities;
+using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Collections;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
-using Ghost.Graphics.Core;
 
 namespace Ghost.Graphics.D3D12;
 
+[SupportedOSPlatform(Win32Utility.OS_SUPPORTED_VERSION)]
 internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
 {
     internal unsafe struct ResourceRecord
@@ -106,13 +109,13 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
 
     public D3D12ResourceDatabase(D3D12DescriptorAllocator descriptorAllocator)
     {
-        _resources = new(64, Allocator.Persistent);
+        _resources = new(64, Allocator.Persistent, AllocationOption.Clear);
 #if DEBUG || GHOST_EDITOR
         _resourceName = new(64);
 #endif
 
-        _meshes = new(64, Allocator.Persistent);
-        _materials = new(16, Allocator.Persistent);
+        _meshes = new(64, Allocator.Persistent, AllocationOption.Clear);
+        _materials = new(16, Allocator.Persistent, AllocationOption.Clear);
         _shaders = new(16);
         _shaderPasses = new(16);
 
@@ -168,7 +171,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
     public bool HasResource(Handle<GPUResource> handle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return _resources.Contain(handle.id, handle.generation);
+        return _resources.Contains(handle.id, handle.generation);
     }
 
     public ref ResourceRecord GetResourceInfo(Handle<GPUResource> handle)
@@ -292,7 +295,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
     public bool HasMesh(Handle<Mesh> handle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return _meshes.Contain(handle.id, handle.generation);
+        return _meshes.Contains(handle.id, handle.generation);
     }
 
     public ref Mesh GetMeshReference(Handle<Mesh> handle)
@@ -333,7 +336,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
     public bool HasMaterial(Handle<Material> handle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return _materials.Contain(handle.id, handle.generation);
+        return _materials.Contains(handle.id, handle.generation);
     }
 
     public ref Material GetMaterialReference(Handle<Material> handle)

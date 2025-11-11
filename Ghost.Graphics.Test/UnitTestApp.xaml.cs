@@ -1,11 +1,12 @@
-using Ghost.UnitTest.Windows;
+using Ghost.Graphics.Test.Windows;
+
 using Microsoft.UI.Xaml;
 using Microsoft.VisualStudio.TestTools.UnitTesting.AppContainer;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
 
-namespace Ghost.UnitTest;
+namespace Ghost.Graphics.Test;
 /// <summary>
 /// Provides application-specific behavior to supplement the default Application class.
 /// </summary>
@@ -30,12 +31,11 @@ public partial class UnitTestApp : Application
     {
         Microsoft.VisualStudio.TestPlatform.TestExecutor.UnitTestClient.CreateDefaultUI();
 
-        _window = new DebugOutputWindow();
+        _window = new GraphicsTestWindow();
         _window.Activate();
 
         UITestMethodAttribute.DispatcherQueue = _window.DispatcherQueue;
 
         Microsoft.VisualStudio.TestPlatform.TestExecutor.UnitTestClient.Run(Environment.CommandLine);
-        //TestRunner.Run<EntityTest>();
     }
 }

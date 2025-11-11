@@ -1,6 +1,6 @@
 using Microsoft.UI.Xaml;
 
-namespace Ghost.UnitTest.Windows;
+namespace Ghost.Graphics.Test.Windows;
 
 internal sealed partial class DebugOutputWindow : Window
 {

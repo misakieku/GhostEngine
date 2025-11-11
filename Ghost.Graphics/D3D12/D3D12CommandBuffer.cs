@@ -1,19 +1,21 @@
 using Ghost.Core;
+using Ghost.Core.Graphics;
+using Ghost.Core.Utilities;
+using Ghost.Graphics.Core;
 using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Runtime.CompilerServices;
+using System.Runtime.Versioning;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
-
-using static TerraFX.Aliases.D3D12_Alias;
 using static TerraFX.Aliases.D3D_Alias;
+using static TerraFX.Aliases.D3D12_Alias;
 using static TerraFX.Aliases.DXGI_Alias;
-using Ghost.Core.Graphics;
-using Ghost.Graphics.Core;
 
 namespace Ghost.Graphics.D3D12;
 
+[SupportedOSPlatform(Win32Utility.OS_SUPPORTED_VERSION)]
 internal unsafe class D3D12CommandBuffer : ICommandBuffer
 {
     private ComPtr<ID3D12CommandAllocator> _allocator;
@@ -71,8 +73,6 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         _resourceAllocator = resourceAllocator;
         _descriptorAllocator = descriptorAllocator;
 
-        // Command lists are created in recording state, so close it
-        _commandList.Get()->Close();
         _isRecording = false;
         _disposed = false;
     }

@@ -21,10 +21,4 @@
     <!--<ProjectReference Include="..\Ghost.Generator\Ghost.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />-->
   </ItemGroup>
 
-  <ItemGroup>
-    <Reference Include="Misaki.HighPerformance.Unsafe">
-      <HintPath>..\..\Class\Misaki.HighPerformance\Misaki.HighPerformance.LowLevel\bin\Release\net9.0\Misaki.HighPerformance.LowLevel.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
 </Project>

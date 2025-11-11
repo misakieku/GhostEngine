@@ -46,7 +46,7 @@ public interface IFenceSynchronizer
     public void SignalCPUReady();
 }
 
-public interface IRenderSystem : IFenceSynchronizer
+public interface IRenderSystem : IFenceSynchronizer, IDisposable
 {
     RenderingConfig Config
     {

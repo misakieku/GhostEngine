@@ -31,6 +31,11 @@ public readonly struct Handle<T>
         return obj is Handle<T> id && Equals(id);
     }
 
+    public override string ToString()
+    {
+        return $"Handle<{typeof(T).Name}>({id}, {generation})";
+    }
+
     public readonly bool Equals(Handle<T> other)
     {
         return id == other.id;
@@ -75,6 +80,11 @@ public readonly struct Identifier<T>
     public readonly override bool Equals(object? obj)
     {
         return obj is Identifier<T> id && Equals(id);
+    }
+
+    public override string ToString()
+    {
+        return $"Identifier<{typeof(T).Name}>({value})";
     }
 
     public readonly bool Equals(Identifier<T> other)

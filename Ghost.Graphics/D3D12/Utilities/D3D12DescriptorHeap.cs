@@ -288,7 +288,15 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
         _heap.Attach(pHeap);
 
         _startCpuHandle = _heap.Get()->GetCPUDescriptorHandleForHeapStart();
-        _allocatedDescriptors.Resize(numDescriptors);
+
+        if (!_allocatedDescriptors.IsCreated)
+        {
+            _allocatedDescriptors = new UnsafeArray<bool>(numDescriptors, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
+        }
+        else
+        {
+            _allocatedDescriptors.Resize(numDescriptors);
+        }
 
         if (ShaderVisible)
         {

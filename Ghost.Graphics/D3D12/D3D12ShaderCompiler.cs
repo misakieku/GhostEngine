@@ -5,6 +5,7 @@ using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 
@@ -119,6 +120,7 @@ internal readonly struct ShaderReflectionData
     }
 }
 
+[SupportedOSPlatform(Win32Utility.OS_SUPPORTED_VERSION)]
 internal static unsafe class D3D12ShaderCompiler
 {
     private static string GetProfileString(ShaderStage stage, CompilerTier version)
@@ -196,94 +198,109 @@ internal static unsafe class D3D12ShaderCompiler
 
     public static Result<CompileResult> Compile(ref readonly CompilerConfig config, Allocator allocator, IDxcBlob** ppReflectionBlob)
     {
-        // NOTE: Should we cache the compiler and utils instances for better performance?
-        using ComPtr<IDxcCompiler3> compiler = default;
-        using ComPtr<IDxcUtils> utils = default;
-        using ComPtr<IDxcIncludeHandler> includeHandler = default;
-
-        // Create DXC compiler and utils
-        var dxccID = CLSID.CLSID_DxcCompiler;
-        var dxcuID = CLSID.CLSID_DxcUtils;
-
-        ThrowIfFailed(DxcCreateInstance(&dxccID, compiler.IID(), compiler.PPV()));
-        ThrowIfFailed(DxcCreateInstance(&dxcuID, utils.IID(), utils.PPV()));
-
-        //includeHandler.Get()->LoadSource();
-        utils.Get()->CreateDefaultIncludeHandler(includeHandler.GetAddressOf());
-
-        // Create source blob
-        using ComPtr<IDxcBlobEncoding> sourceBlob = default;
-        if (utils.Get()->LoadFile(config.shaderPath.AsSpan().GetUnsafePtr(), null, sourceBlob.GetAddressOf()).FAILED)
-        {
-            return Result.Fail($"Failed to load shader file: {config.shaderPath}");
-        }
-
-        var argsArray = GetCompilerArguments(in config);
-        var argPtrs = stackalloc char*[argsArray.Count];
-        for (var i = 0; i < argsArray.Count; i++)
-        {
-            argPtrs[i] = (char*)Marshal.StringToHGlobalUni(argsArray[i]);
-        }
+        // NOTE: Should we cache the pCompiler and pUtils instances for better performance?
+        IDxcCompiler3* pCompiler = default;
+        IDxcUtils* pUtils = default;
+        IDxcIncludeHandler* pIncludeHandler = default;
 
         try
         {
-            // Compile shader
-            using ComPtr<IDxcResult> result = default;
-            var buffer = new DxcBuffer
-            {
-                Ptr = sourceBlob.Get()->GetBufferPointer(),
-                Size = sourceBlob.Get()->GetBufferSize(),
-                Encoding = DXC.DXC_CP_UTF8
-            };
+            // Create DXC pCompiler and pUtils
+            var dxccID = CLSID.CLSID_DxcCompiler;
+            var dxcuID = CLSID.CLSID_DxcUtils;
 
-            ThrowIfFailed(compiler.Get()->Compile(&buffer, argPtrs, (uint)argsArray.Count, includeHandler.Get(), result.IID(), result.PPV()));
+            ThrowIfFailed(DxcCreateInstance(&dxccID, pCompiler->IID(), (void**)&pCompiler));
+            ThrowIfFailed(DxcCreateInstance(&dxcuID, pUtils->IID(), (void**)&pUtils));
 
-            // Check compilation result
-            HRESULT hrStatus;
-            result.Get()->GetStatus(&hrStatus);
-            if (hrStatus.FAILED)
-            {
-                // Get error messages
-                using ComPtr<IDxcBlobEncoding> errorBlob = default;
-                result.Get()->GetErrorBuffer(errorBlob.GetAddressOf());
+            //pIncludeHandler.Get()->LoadSource();
+            pUtils->CreateDefaultIncludeHandler(&pIncludeHandler);
 
-                if (errorBlob.Get() != null)
+            // Create source blob
+            using ComPtr<IDxcBlobEncoding> sourceBlob = default;
+            fixed (char* pPath = config.shaderPath)
+            { 
+                if (pUtils->LoadFile(pPath, null, sourceBlob.GetAddressOf()).FAILED)
                 {
-                    var errorMessage = Marshal.PtrToStringUni((IntPtr)errorBlob.Get()->GetBufferPointer());
-                    return Result.Fail($"DXC shader compilation failed:\n{errorMessage}");
-                }
-                else
-                {
-                    return Result.Fail("DXC shader compilation failed with unknown error.");
+                    return Result.Fail($"Failed to load shader file: {config.shaderPath}");
                 }
             }
 
-            // Get compiled bytecode
-            using ComPtr<IDxcBlob> bytecodeBlob = default;
-            ThrowIfFailed(result.Get()->GetResult(bytecodeBlob.GetAddressOf()));
-
-            // Get reflection data using DXC API
-            if (ppReflectionBlob != null)
+            var argsArray = GetCompilerArguments(in config);
+            var argPtrs = stackalloc char*[argsArray.Count];
+            for (var i = 0; i < argsArray.Count; i++)
             {
-                ThrowIfFailed(result.Get()->GetOutput(DXC_OUT_KIND.DXC_OUT_REFLECTION, __uuidof<IDxcBlob>(), (void**)ppReflectionBlob, null));
+                argPtrs[i] = (char*)Marshal.StringToHGlobalUni(argsArray[i]);
             }
 
-            var bytecodeSize = bytecodeBlob.Get()->GetBufferSize();
-            var bytecode = new UnsafeArray<byte>((int)bytecodeSize, allocator);
+            IDxcResult* pResult = default;
 
-            NativeMemory.Copy(bytecodeBlob.Get()->GetBufferPointer(), bytecode.GetUnsafePtr(), bytecodeSize);
-
-            return new CompileResult
+            try
             {
-                bytecode = bytecode,
-            };
+                // Compile shader
+                var buffer = new DxcBuffer
+                {
+                    Ptr = sourceBlob.Get()->GetBufferPointer(),
+                    Size = sourceBlob.Get()->GetBufferSize(),
+                    Encoding = DXC.DXC_CP_UTF8
+                };
+
+                ThrowIfFailed(pCompiler->Compile(&buffer, argPtrs, (uint)argsArray.Count, pIncludeHandler, pResult->IID(), (void**)&pResult));
+
+                // Check compilation pResult
+                HRESULT hrStatus;
+                pResult->GetStatus(&hrStatus);
+                if (hrStatus.FAILED)
+                {
+                    // Get error messages
+                    using ComPtr<IDxcBlobEncoding> errorBlob = default;
+                    pResult->GetErrorBuffer(errorBlob.GetAddressOf());
+
+                    if (errorBlob.Get() != null)
+                    {
+                        var errorMessage = Marshal.PtrToStringUni((IntPtr)errorBlob.Get()->GetBufferPointer());
+                        return Result.Fail($"DXC shader compilation failed:\n{errorMessage}");
+                    }
+                    else
+                    {
+                        return Result.Fail("DXC shader compilation failed with unknown error.");
+                    }
+                }
+
+                // Get compiled bytecode
+                using ComPtr<IDxcBlob> bytecodeBlob = default;
+                ThrowIfFailed(pResult->GetResult(bytecodeBlob.GetAddressOf()));
+
+                // Get reflection data using DXC API
+                if (ppReflectionBlob != null)
+                {
+                    ThrowIfFailed(pResult->GetOutput(DXC_OUT_KIND.DXC_OUT_REFLECTION, __uuidof<IDxcBlob>(), (void**)ppReflectionBlob, null));
+                }
+
+                var bytecodeSize = bytecodeBlob.Get()->GetBufferSize();
+                var bytecode = new UnsafeArray<byte>((int)bytecodeSize, allocator);
+
+                NativeMemory.Copy(bytecodeBlob.Get()->GetBufferPointer(), bytecode.GetUnsafePtr(), bytecodeSize);
+
+                return new CompileResult
+                {
+                    bytecode = bytecode,
+                };
+            }
+            finally
+            {
+                for (var i = 0; i < argsArray.Count; i++)
+                {
+                    Marshal.FreeHGlobal((nint)argPtrs[i]);
+                }
+
+                pResult->Release();
+            }
         }
         finally
         {
-            for (var i = 0; i < argsArray.Count; i++)
-            {
-                Marshal.FreeHGlobal((nint)argPtrs[i]);
-            }
+            pCompiler->Release();
+            pUtils->Release();
+            pIncludeHandler->Release();
         }
     }
 
@@ -296,98 +313,108 @@ internal static unsafe class D3D12ShaderCompiler
             return Result<ShaderReflectionData>.Fail("Reflection blob is null.");
         }
 
-        // Create DXC utils to parse reflection data
-        var dxcuID = CLSID.CLSID_DxcUtils;
-        using ComPtr<IDxcUtils> utils = default;
-        ThrowIfFailed(DxcCreateInstance(&dxcuID, utils.IID(), utils.PPV()));
+        ComPtr<IDxcUtils> utils = default;
+        ComPtr<ID3D12ShaderReflection> reflection = default;
 
-        // Create reflection interface from blob
-        var reflectionBuffer = new DxcBuffer
+        try
         {
-            Ptr = reflectionBlob->GetBufferPointer(),
-            Size = reflectionBlob->GetBufferSize(),
-            Encoding = DXC.DXC_CP_ACP
-        };
+            // Create DXC pUtils to parse reflection data
+            var dxcuID = CLSID.CLSID_DxcUtils;
+            ThrowIfFailed(DxcCreateInstance(&dxcuID, utils.IID(), utils.PPV()));
 
-        using ComPtr<ID3D12ShaderReflection> reflection = default;
-        ThrowIfFailed(utils.Get()->CreateReflection(&reflectionBuffer, reflection.IID(), reflection.PPV()));
-
-        D3D12_SHADER_DESC shaderDesc;
-        ThrowIfFailed(reflection.Get()->GetDesc(&shaderDesc));
-
-        var reflectionData = new ShaderReflectionData();
-
-        for (uint i = 0; i < shaderDesc.BoundResources; i++)
-        {
-            D3D12_SHADER_INPUT_BIND_DESC bindDesc;
-            ThrowIfFailed(reflection.Get()->GetResourceBindingDesc(i, &bindDesc));
-
-            var resourceName = Marshal.PtrToStringUTF8((IntPtr)bindDesc.Name);
-            if (resourceName == null)
+            // Create reflection interface from blob
+            var reflectionBuffer = new DxcBuffer
             {
-                return Result.Fail("Failed to get resource name from reflection data.");
-            }
+                Ptr = reflectionBlob->GetBufferPointer(),
+                Size = reflectionBlob->GetBufferSize(),
+                Encoding = DXC.DXC_CP_ACP
+            };
 
-            switch (bindDesc.Type)
+            ThrowIfFailed(utils.Get()->CreateReflection(&reflectionBuffer, reflection.IID(), reflection.PPV()));
+
+            D3D12_SHADER_DESC shaderDesc;
+            ThrowIfFailed(reflection.Get()->GetDesc(&shaderDesc));
+
+            var reflectionData = new ShaderReflectionData();
+
+            for (uint i = 0; i < shaderDesc.BoundResources; i++)
             {
-                case D3D_SHADER_INPUT_TYPE.D3D_SIT_CBUFFER:
+                D3D12_SHADER_INPUT_BIND_DESC bindDesc;
+                ThrowIfFailed(reflection.Get()->GetResourceBindingDesc(i, &bindDesc));
+
+                var resourceName = Marshal.PtrToStringUTF8((IntPtr)bindDesc.Name);
+                if (resourceName == null)
                 {
-                    var cbuffer = reflection.Get()->GetConstantBufferByName(bindDesc.Name);
-                    D3D12_SHADER_BUFFER_DESC cbufferDesc;
-                    ThrowIfFailed(cbuffer->GetDesc(&cbufferDesc));
+                    return Result.Fail("Failed to get resource name from reflection data.");
+                }
 
-                    var variables = new List<CBufferVariableInfo>((int)cbufferDesc.Variables);
-
-                    // Now we iterate all variables for *every* cbuffer, not just b3
-                    for (uint j = 0; j < cbufferDesc.Variables; j++)
+                switch (bindDesc.Type)
+                {
+                    case D3D_SHADER_INPUT_TYPE.D3D_SIT_CBUFFER:
                     {
-                        var variable = cbuffer->GetVariableByIndex(j);
-                        D3D12_SHADER_VARIABLE_DESC varDesc;
-                        variable->GetDesc(&varDesc);
+                        var cbuffer = reflection.Get()->GetConstantBufferByName(bindDesc.Name);
+                        D3D12_SHADER_BUFFER_DESC cbufferDesc;
+                        ThrowIfFailed(cbuffer->GetDesc(&cbufferDesc));
 
-                        var variableName = Marshal.PtrToStringUTF8((IntPtr)varDesc.Name);
-                        if (variableName == null)
+                        var variables = new List<CBufferVariableInfo>((int)cbufferDesc.Variables);
+
+                        // Now we iterate all variables for *every* cbuffer, not just b3
+                        for (uint j = 0; j < cbufferDesc.Variables; j++)
                         {
-                            continue;
+                            var variable = cbuffer->GetVariableByIndex(j);
+                            D3D12_SHADER_VARIABLE_DESC varDesc;
+                            variable->GetDesc(&varDesc);
+
+                            var variableName = Marshal.PtrToStringUTF8((IntPtr)varDesc.Name);
+                            if (variableName == null)
+                            {
+                                continue;
+                            }
+
+                            variables.Add(new CBufferVariableInfo
+                            {
+                                Name = variableName,
+                                StartOffset = varDesc.StartOffset,
+                                Size = varDesc.Size
+                            });
                         }
 
-                        variables.Add(new CBufferVariableInfo
+                        reflectionData.ConstantBuffers.Add(new CBufferInfo
                         {
-                            Name = variableName,
-                            StartOffset = varDesc.StartOffset,
-                            Size = varDesc.Size
+                            Name = resourceName,
+                            RegisterSlot = bindDesc.BindPoint,
+                            RegisterSpace = bindDesc.Space,
+                            SizeInBytes = cbufferDesc.Size,
+                            Variables = variables
                         });
+
+                        break;
                     }
 
-                    reflectionData.ConstantBuffers.Add(new CBufferInfo
+                    // NOTE: Currently we do not support resource bindings yet, everything access through bindless heaps.
+                    default:
                     {
-                        Name = resourceName,
-                        RegisterSlot = bindDesc.BindPoint,
-                        RegisterSpace = bindDesc.Space,
-                        SizeInBytes = cbufferDesc.Size,
-                        Variables = variables
-                    });
+                        reflectionData.OtherResources.Add(new ResourceBindingInfo
+                        {
+                            Name = resourceName,
+                            Type = bindDesc.Type,
+                            BindPoint = bindDesc.BindPoint,
+                            BindCount = bindDesc.BindCount,
+                            Space = bindDesc.Space
+                        });
 
-                    break;
-                }
-
-                // NOTE: Currently we do not support resource bindings yet, everything access through bindless heaps.
-                default:
-                {
-                    reflectionData.OtherResources.Add(new ResourceBindingInfo
-                    {
-                        Name = resourceName,
-                        Type = bindDesc.Type,
-                        BindPoint = bindDesc.BindPoint,
-                        BindCount = bindDesc.BindCount,
-                        Space = bindDesc.Space
-                    });
-
-                    break;
+                        break;
+                    }
                 }
             }
-        }
 
-        return reflectionData;
+            return reflectionData;
+
+        }
+        finally
+        {
+            utils.Dispose();
+            reflection.Dispose();
+        }
     }
 }

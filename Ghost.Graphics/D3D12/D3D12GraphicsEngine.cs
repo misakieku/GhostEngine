@@ -102,7 +102,7 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
     public ISwapChain CreateSwapChain(SwapChainDesc desc)
     {
         ThrowIfDisposed();
-        return new D3D12SwapChain(_resourceDatabase, _device.DXGIFactory, ((D3D12CommandQueue)_device.ComputeQueue).NativeQueue, desc);
+        return new D3D12SwapChain(_resourceDatabase, _device.DXGIFactory, ((D3D12CommandQueue)_device.GraphicsQueue).NativeQueue, desc);
     }
 
     public void BeginFrame()

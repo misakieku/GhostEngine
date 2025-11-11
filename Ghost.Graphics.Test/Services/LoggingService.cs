@@ -1,7 +1,8 @@
-using Ghost.UnitTest.Models;
+using Ghost.Graphics.Test.Models;
+
 using System.Diagnostics;
 
-namespace Ghost.UnitTest.Services;
+namespace Ghost.Graphics.Test.Services;
 
 internal class LoggingService
 {

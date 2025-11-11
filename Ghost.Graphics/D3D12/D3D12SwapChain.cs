@@ -71,18 +71,18 @@ internal unsafe class D3D12SwapChain : ISwapChain
             Stereo = false,
         };
 
-        using ComPtr<IDXGISwapChain1> tempSwapChain = default;
+        IDXGISwapChain1* pTempSwapChain = default;
 
         switch (desc.target.type)
         {
             case SwapChainTargetType.Composition:
-                pFactory->CreateSwapChainForComposition((IUnknown*)commandQueue, &swapChainDesc, null, tempSwapChain.GetAddressOf());
+                ThrowIfFailed(pFactory->CreateSwapChainForComposition((IUnknown*)commandQueue, &swapChainDesc, null, &pTempSwapChain));
 
                 // Set the composition surface
                 if (desc.target.compositionSurface != null)
                 {
                     using var swapChainPanelNative = ISwapChainPanelNative.FromSwapChainPanel(desc.target.compositionSurface);
-                    swapChainPanelNative.SetSwapChain((IntPtr)tempSwapChain.Get());
+                    swapChainPanelNative.SetSwapChain((IntPtr)pTempSwapChain);
                 }
                 break;
 
@@ -98,7 +98,7 @@ internal unsafe class D3D12SwapChain : ISwapChain
                     &swapChainDesc,
                     &swapChainFullscreenDesc,
                     null,
-                    tempSwapChain.GetAddressOf());
+                    &pTempSwapChain);
                 break;
 
             default:
@@ -106,7 +106,8 @@ internal unsafe class D3D12SwapChain : ISwapChain
         }
 
         IDXGISwapChain4* pSwapChain = default;
-        tempSwapChain.Get()->QueryInterface(__uuidof(pSwapChain), (void**)&pSwapChain);
+        pTempSwapChain->QueryInterface(__uuidof(pSwapChain), (void**)&pSwapChain);
+        pTempSwapChain->Release();
 
         _swapChain.Attach(pSwapChain);
     }
