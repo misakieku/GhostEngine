@@ -18,7 +18,8 @@ public readonly struct Handle<T>
 
     public static Handle<T> Invalid => new(-1, -1);
 
-    public bool IsValid => this != Invalid;
+    public readonly bool IsValid => this != Invalid;
+    public readonly bool IsNotValid => this == Invalid;
 
     public readonly override int GetHashCode()
     {
@@ -63,7 +64,8 @@ public readonly struct Identifier<T>
 
     public static Identifier<T> Invalid => new(-1);
 
-    public bool IsValid => this != Invalid;
+    public readonly bool IsValid => this != Invalid;
+    public readonly bool IsNotValid => this == Invalid;
 
     public readonly override int GetHashCode()
     {

@@ -39,9 +39,8 @@ public interface IRenderer : IDisposable
     /// <summary>
     /// Requests a resize operation
     /// </summary>
-    /// <param name="width">New width</param>
-    /// <param name="height">New height</param>
-    public void RequestResize(uint width, uint height);
+    /// <param name="newSize">New size</param>
+    public void RequestResize(uint2 newSize);
 
     /// <summary>
     /// Waits for the GPU to complete all work

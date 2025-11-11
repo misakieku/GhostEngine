@@ -26,6 +26,7 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
     public IPipelineLibrary PipelineLibrary => _pipelineLibrary;
     public IResourceDatabase ResourceDatabase => _resourceDatabase;
     public IResourceAllocator ResourceAllocator => _resourceAllocator;
+    public ICommandBuffer CopyCommandBuffer => _copyCommandBuffer;
 
     public D3D12GraphicsEngine(IRenderSystem renderSystem)
     {

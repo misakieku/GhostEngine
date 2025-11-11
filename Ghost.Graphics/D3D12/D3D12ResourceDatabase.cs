@@ -165,6 +165,12 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
         return handle;
     }
 
+    public bool HasResource(Handle<GPUResource> handle)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return _resources.Contain(handle.id, handle.generation);
+    }
+
     public ref ResourceRecord GetResourceInfo(Handle<GPUResource> handle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);

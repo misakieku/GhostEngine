@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Core.Utilities;
+using Ghost.Graphics.Core;
 using Ghost.Graphics.Contracts;
 using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
@@ -10,8 +11,6 @@ using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 
 using static TerraFX.Aliases.DXGI_Alias;
-
-using Ghost.Graphics.Core;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -120,7 +119,7 @@ internal unsafe class D3D12SwapChain : ISwapChain
             _swapChain.Get()->GetBuffer(i, backBuffer.IID(), backBuffer.PPV());
             backBuffer.Get()->SetName($"SwapChain_BackBuffer_{i}");
 
-            _backBuffers[i] = _resourceDatabase.ImportExternalResource(backBuffer, ResourceState.Present).AsTexture();
+            _backBuffers[i] = _resourceDatabase.ImportExternalResource(backBuffer.Move(), ResourceState.Present).AsTexture();
         }
     }
 
@@ -135,10 +134,7 @@ internal unsafe class D3D12SwapChain : ISwapChain
         var presentFlags = 0u;
         var syncInterval = vsync ? 1u : 0u;
 
-        if (_swapChain.Get()->Present(syncInterval, presentFlags).FAILED)
-        {
-            throw new InvalidOperationException("Failed to present swap chain.");
-        }
+        ThrowIfFailed(_swapChain.Get()->Present(syncInterval, presentFlags));
     }
 
     public void Resize(uint width, uint height)
