@@ -4,11 +4,15 @@ global using static TerraFX.Interop.DirectX.DXGI;
 global using static TerraFX.Interop.Windows.Windows;
 
 using Ghost.Core.Attributes;
+using Ghost.Core.Utilities;
 using System.Runtime.CompilerServices;
+using System.Runtime.Versioning;
 
 [assembly: InternalsVisibleTo("Ghost.Engine")]
 [assembly: InternalsVisibleTo("Ghost.Editor")]
 [assembly: InternalsVisibleTo("Ghost.Editor.Core")]
 [assembly: InternalsVisibleTo("Ghost.Graphics.Test")]
+[assembly: SupportedOSPlatform("windows10.0.19041.0")]
+
 
 [assembly: EngineAssembly]

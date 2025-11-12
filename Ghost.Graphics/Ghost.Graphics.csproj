@@ -17,6 +17,20 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="runtime\win-x64\native\dxcompiler.dll" />
+    <None Remove="runtime\win-x64\native\dxil.dll" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="runtime\win-x64\native\dxcompiler.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="runtime\win-x64\native\dxil.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Misaki.HighPerformance.Image" Version="1.0.0" />
     <PackageReference Include="TerraFX.Interop.D3D12MemoryAllocator" Version="2.0.1.5" />
   </ItemGroup>

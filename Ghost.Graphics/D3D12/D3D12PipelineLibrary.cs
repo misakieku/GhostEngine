@@ -9,7 +9,6 @@ using Misaki.HighPerformance.LowLevel.Utilities;
 using Misaki.HighPerformance.Utilities;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Versioning;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 
@@ -32,7 +31,6 @@ internal struct D3D12GraphicsCompiledResult : IDisposable
     }
 }
 
-[SupportedOSPlatform(Win32Utility.OS_SUPPORTED_VERSION)]
 internal struct D3D12PipelineState : IDisposable
 {
     // NOTE: This is just a temporary cache for compiled shader code. We will implement a proper disk cache later.
@@ -47,10 +45,9 @@ internal struct D3D12PipelineState : IDisposable
     }
 }
 
-[SupportedOSPlatform(Win32Utility.OS_SUPPORTED_VERSION)]
 internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
 {
-    private const int _ROOT_PARAM_COUNT =
+    private const int rootParamCount =
 #if USE_TRADITIONAL_BINDLESS
     6
 #else
@@ -83,7 +80,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
         _defaultRootSignature = default;
 
         // NOTE: Since we are targeting SM 6.6, we can use ResourceDescriptorHeap and SamplerDescriptorHeap directly without needing to set up viewGroup tables.
-        var rootParameters = stackalloc D3D12_ROOT_PARAMETER1[_ROOT_PARAM_COUNT];
+        var rootParameters = stackalloc D3D12_ROOT_PARAMETER1[rootParamCount];
         rootParameters[0] = new D3D12_ROOT_PARAMETER1
         {
             ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
@@ -146,7 +143,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
 
         var rootSignatureDesc = new D3D12_ROOT_SIGNATURE_DESC1
         {
-            NumParameters = _ROOT_PARAM_COUNT,
+            NumParameters = rootParamCount,
             pParameters = rootParameters,
             NumStaticSamplers = 0,
             pStaticSamplers = null,
@@ -180,7 +177,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
         _defaultRootSignature.Attach(pRootSignature);
     }
 
-    public void LoadLibraryFromDisk(string? filePath)
+    public void InitializeLibrary(string? filePath)
     {
         ID3D12PipelineLibrary1* pLibrary = default;
 
@@ -219,9 +216,9 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
 
     private static void ValidateReflectionData(ShaderReflectionData reflectionData)
     {
-        if (reflectionData.ConstantBuffers.Count != _ROOT_PARAM_COUNT)
+        if (reflectionData.ConstantBuffers.Count != rootParamCount)
         {
-            throw new InvalidOperationException($"Shader reflection data has {reflectionData.ConstantBuffers.Count} constant buffers, expected {_ROOT_PARAM_COUNT}");
+            throw new InvalidOperationException($"Shader reflection data has {reflectionData.ConstantBuffers.Count} constant buffers, expected {rootParamCount}");
         }
 
         if (reflectionData.OtherResources.Count != 0)
@@ -240,13 +237,16 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
 
             try
             {
+                // TODO: This does not include generated code. This will cause a root signature mismatch.
                 var result = D3D12ShaderCompiler.Compile(ref config, Allocator.Persistent, &reflectionBlob).GetValueOrThrow();
 
+#if false
                 if (reflectionBlob != null)
                 {
                     var reflection = D3D12ShaderCompiler.PerformDXCReflection(reflectionBlob).GetValueOrThrow();
                     ValidateReflectionData(reflection);
                 }
+#endif
 
                 return result;
             }
@@ -415,15 +415,16 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
             existing.compileResult = compiled;
             existing.psoDesc = desc;
 
+            var meshStream = new CD3DX12_PIPELINE_MESH_STATE_STREAM(in desc);
             var streamDesc = new D3D12_PIPELINE_STATE_STREAM_DESC
             {
-                pPipelineStateSubobjectStream = &desc,
-                SizeInBytes = (nuint)sizeof(D3DX12_MESH_SHADER_PIPELINE_STATE_DESC)
+                pPipelineStateSubobjectStream = &meshStream,
+                SizeInBytes = (nuint)sizeof(CD3DX12_PIPELINE_MESH_STATE_STREAM)
             };
 
             ID3D12PipelineState* pPipelineState = default;
 
-            char* pKeyStr = stackalloc char[GraphicsPipelineKey.KEY_STRING_LENGTH];
+            var pKeyStr = stackalloc char[GraphicsPipelineKey.KEY_STRING_LENGTH];
             var keySpan = new Span<char>(pKeyStr, GraphicsPipelineKey.KEY_STRING_LENGTH);
             key.GetString(keySpan).ThrowIfFailed();
 

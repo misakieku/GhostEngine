@@ -6,12 +6,7 @@ using TerraFX.Interop.Windows;
 
 namespace Ghost.Core.Utilities;
 
-internal static partial class Win32Utility
-{
-    public const string OS_SUPPORTED_VERSION = "windows10.0.19041.0";
-}
-
-[SupportedOSPlatform(OS_SUPPORTED_VERSION)]
+[SupportedOSPlatform("windows10.0.19041.0")]
 internal static unsafe partial class Win32Utility
 {
     [EditorBrowsable(EditorBrowsableState.Never)]

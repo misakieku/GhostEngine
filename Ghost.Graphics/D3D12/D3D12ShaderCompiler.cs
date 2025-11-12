@@ -3,7 +3,6 @@ using Ghost.Core.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
-using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using TerraFX.Interop.DirectX;
@@ -11,7 +10,7 @@ using TerraFX.Interop.Windows;
 
 namespace Ghost.Graphics.D3D12;
 
-internal unsafe struct CompileResult : IDisposable
+internal struct CompileResult : IDisposable
 {
     public UnsafeArray<byte> bytecode;
 
@@ -120,7 +119,6 @@ internal readonly struct ShaderReflectionData
     }
 }
 
-[SupportedOSPlatform(Win32Utility.OS_SUPPORTED_VERSION)]
 internal static unsafe class D3D12ShaderCompiler
 {
     private static string GetProfileString(ShaderStage stage, CompilerTier version)
@@ -209,8 +207,8 @@ internal static unsafe class D3D12ShaderCompiler
             var dxccID = CLSID.CLSID_DxcCompiler;
             var dxcuID = CLSID.CLSID_DxcUtils;
 
-            ThrowIfFailed(DxcCreateInstance(&dxccID, pCompiler->IID(), (void**)&pCompiler));
-            ThrowIfFailed(DxcCreateInstance(&dxcuID, pUtils->IID(), (void**)&pUtils));
+            ThrowIfFailed(DxcCreateInstance(&dxccID, __uuidof(pCompiler), (void**)&pCompiler));
+            ThrowIfFailed(DxcCreateInstance(&dxcuID, __uuidof(pUtils), (void**)&pUtils));
 
             //pIncludeHandler.Get()->LoadSource();
             pUtils->CreateDefaultIncludeHandler(&pIncludeHandler);
@@ -218,7 +216,7 @@ internal static unsafe class D3D12ShaderCompiler
             // Create source blob
             using ComPtr<IDxcBlobEncoding> sourceBlob = default;
             fixed (char* pPath = config.shaderPath)
-            { 
+            {
                 if (pUtils->LoadFile(pPath, null, sourceBlob.GetAddressOf()).FAILED)
                 {
                     return Result.Fail($"Failed to load shader file: {config.shaderPath}");
@@ -244,7 +242,7 @@ internal static unsafe class D3D12ShaderCompiler
                     Encoding = DXC.DXC_CP_UTF8
                 };
 
-                ThrowIfFailed(pCompiler->Compile(&buffer, argPtrs, (uint)argsArray.Count, pIncludeHandler, pResult->IID(), (void**)&pResult));
+                ThrowIfFailed(pCompiler->Compile(&buffer, argPtrs, (uint)argsArray.Count, pIncludeHandler, __uuidof(pResult), (void**)&pResult));
 
                 // Check compilation pResult
                 HRESULT hrStatus;
@@ -257,7 +255,7 @@ internal static unsafe class D3D12ShaderCompiler
 
                     if (errorBlob.Get() != null)
                     {
-                        var errorMessage = Marshal.PtrToStringUni((IntPtr)errorBlob.Get()->GetBufferPointer());
+                        var errorMessage = Marshal.PtrToStringUTF8((IntPtr)errorBlob.Get()->GetBufferPointer());
                         return Result.Fail($"DXC shader compilation failed:\n{errorMessage}");
                     }
                     else

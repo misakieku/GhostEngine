@@ -49,6 +49,8 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
             CommandBufferType.Copy);
 
         _renderers = ImmutableArray<IRenderer>.Empty;
+
+        _pipelineLibrary.InitializeLibrary(null);
     }
 
     ~D3D12GraphicsEngine()
@@ -59,10 +61,7 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ThrowIfDisposed()
     {
-        if (_disposed)
-        {
-            throw new ObjectDisposedException(nameof(D3D12GraphicsEngine));
-        }
+        ObjectDisposedException.ThrowIf(_disposed, this);
     }
 
     public IRenderer CreateRenderer()

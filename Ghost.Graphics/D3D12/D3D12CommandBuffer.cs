@@ -1,12 +1,10 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
-using Ghost.Core.Utilities;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Runtime.CompilerServices;
-using System.Runtime.Versioning;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 using static TerraFX.Aliases.D3D_Alias;
@@ -15,7 +13,6 @@ using static TerraFX.Aliases.DXGI_Alias;
 
 namespace Ghost.Graphics.D3D12;
 
-[SupportedOSPlatform(Win32Utility.OS_SUPPORTED_VERSION)]
 internal unsafe class D3D12CommandBuffer : ICommandBuffer
 {
     private ComPtr<ID3D12CommandAllocator> _allocator;

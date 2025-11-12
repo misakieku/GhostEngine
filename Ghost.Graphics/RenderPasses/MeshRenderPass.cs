@@ -28,7 +28,7 @@ internal unsafe class MeshRenderPass : IRenderPass
 
     public void Initialize(ref readonly RenderingContext ctx)
     {
-        var shaderDescriptor = SDLCompiler.CompileShader("F:\\csharp\\GhostEngine\\Ghost.Graphics\\RenderPasses\\ShaderCode.hlsl").GetValueOrThrow();
+        var shaderDescriptor = SDLCompiler.CompileShader("F:\\csharp\\GhostEngine\\Ghost.Graphics\\test.gshader").GetValueOrThrow();
 
         var key = ctx.PipelineLibrary.CompilePassPSO(shaderDescriptor.passes[0], [TextureFormat.B8G8R8A8_UNorm], TextureFormat.Unknown);
 

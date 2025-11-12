@@ -6,7 +6,6 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
 using System.Runtime.CompilerServices;
-using System.Runtime.Versioning;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 using static TerraFX.Aliases.D3D12_Alias;
@@ -16,8 +15,7 @@ using static TerraFX.Interop.DirectX.D3D12MemAlloc;
 
 namespace Ghost.Graphics.D3D12;
 
-[SupportedOSPlatform(Win32Utility.OS_SUPPORTED_VERSION)]
-internal unsafe sealed partial class D3D12ResourceAllocator
+internal sealed unsafe partial class D3D12ResourceAllocator
 {
     // NOTE: _MAX_BYTES may not be accurate, we need to verify it with feature level checks.
     private const uint _MAX_BYTES = D3D12_REQ_RESOURCE_SIZE_IN_MEGABYTES_EXPRESSION_A_TERM * 1024u * 1024u;
@@ -593,7 +591,7 @@ internal unsafe sealed partial class D3D12ResourceAllocator
 // TODO: Thread safety for resource allocator
 // A common solution is to use ticket. Each allocation request create a ticket and put it into a thread-safe queue. A dedicated thread process the queue and fulfill the requests.
 
-internal unsafe sealed partial class D3D12ResourceAllocator : IResourceAllocator, IDisposable
+internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator, IDisposable
 {
     private readonly IFenceSynchronizer _fenceSynchronizer;
     private readonly D3D12RenderDevice _device;

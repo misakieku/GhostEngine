@@ -1,5 +1,4 @@
 using Ghost.Core;
-using Ghost.Core.Utilities;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Collections;
@@ -7,13 +6,11 @@ using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Runtime.Versioning;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 
 namespace Ghost.Graphics.D3D12;
 
-[SupportedOSPlatform(Win32Utility.OS_SUPPORTED_VERSION)]
 internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
 {
     internal unsafe struct ResourceRecord
@@ -100,8 +97,8 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
     private readonly Dictionary<Handle<GPUResource>, string> _resourceName;
 #endif
 
-    private readonly UnsafeSlotMap<Mesh> _meshes;
-    private readonly UnsafeSlotMap<Material> _materials;
+    private UnsafeSlotMap<Mesh> _meshes;
+    private UnsafeSlotMap<Material> _materials;
     private readonly DynamicArray<Shader?> _shaders; // NOTE: We use a simple list since shader is not frequently added/removed. This can save 4 bytes for each ecs component.
     private readonly Dictionary<ShaderPassKey, ShaderPass> _shaderPasses; // NOTE: The reason we use Dictionary here is that ShaderPassKey is a presistence identifier across multiple application sessions.
 

@@ -1,4 +1,4 @@
-﻿cbuffer ConstantBuffer : register(b0)
+cbuffer ConstantBuffer : register(b0)
 {
     float4 _Color;
     uint _TextureIndex1;
@@ -8,9 +8,6 @@
     uint _VertexBufferIndex;
     uint _IndexBufferIndex;
 };
-
-// SM 6.6 approach - direct access to global descriptor heap
-SamplerState _MainSampler : register(s0);
 
 struct Vertex
 {
@@ -54,6 +51,8 @@ void MSMain(
     v.color = asfloat(vertexBuffer.Load4(vertexOffset + 48));
     v.uv = asfloat(vertexBuffer.Load4(vertexOffset + 64));
 
+    SetMeshOutputCounts(3, 1);
+    
     // Write vertex output
     outVerts[vertexId].position = v.position;
     outVerts[vertexId].color = v.color;
@@ -62,28 +61,17 @@ void MSMain(
     // Thread 0 defines topology
     if (vertexId == 0)
     {
-        SetMeshOutputCounts(3, 1);
         outTris[0] = uint3(0, 1, 2);
     }
 }
 
 float4 PSMain(PixelInput input) : SV_TARGET
 {
-    // SM 6.6 Modern Bindless Approach:
-    // ResourceDescriptorHeap[index] directly accesses any texture in the heap
-    Texture2D tex1 = ResourceDescriptorHeap[_TextureIndex1];
-    Texture2D tex2 = ResourceDescriptorHeap[_TextureIndex2];
-    Texture2D tex3 = ResourceDescriptorHeap[_TextureIndex3];
-    Texture2D tex4 = ResourceDescriptorHeap[_TextureIndex4];
-
-    // Sample the textures
-    float4 color1 = tex1.Sample(_MainSampler, input.uv.xy);
-    float4 color2 = tex2.Sample(_MainSampler, input.uv.xy);
-    float4 color3 = tex3.Sample(_MainSampler, input.uv.xy);
-    float4 color4 = tex4.Sample(_MainSampler, input.uv.xy);
-
-    // Blend all textures together (simple average)
+    float4 color1 = SAMPLE_TEXTURE2D_BINDLESS(_TextureIndex1, 0, input.uv.xy);
+    float4 color2 = SAMPLE_TEXTURE2D_BINDLESS(_TextureIndex2, 0, input.uv.xy);
+    float4 color3 = SAMPLE_TEXTURE2D_BINDLESS(_TextureIndex3, 0, input.uv.xy);
+    float4 color4 = SAMPLE_TEXTURE2D_BINDLESS(_TextureIndex4, 0, input.uv.xy);
+    
     float4 blendedColor = (color1 + color2 + color3 + color4) * 0.25f;
-
     return blendedColor * _Color;
 }

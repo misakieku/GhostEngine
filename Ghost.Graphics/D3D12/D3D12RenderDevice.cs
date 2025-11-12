@@ -11,7 +11,6 @@ namespace Ghost.Graphics.D3D12;
 /// <summary>
 /// D3D12 implementation of the render device interface
 /// </summary>
-[SupportedOSPlatform(Win32Utility.OS_SUPPORTED_VERSION)]
 internal unsafe class D3D12RenderDevice : IRenderDevice
 {
     private ComPtr<IDXGIFactory7> _dxgiFactory;

@@ -6,7 +6,7 @@ namespace Ghost.Entities.Query;
 
 public struct QueryFilter : IDisposable
 {
-    private readonly Stack.Scope _scope;
+    //private readonly Stack.Scope _scope;
 
     internal UnsafeList<TypeHandle> _all;
     internal UnsafeList<TypeHandle> _any;
@@ -15,7 +15,7 @@ public struct QueryFilter : IDisposable
 
     public QueryFilter()
     {
-        _scope = AllocationManager.CreateStackScope();
+        //_scope = AllocationManager.CreateStackScope();
 
         _all = new UnsafeList<TypeHandle>(4, Allocator.Stack);
         _any = new UnsafeList<TypeHandle>(4, Allocator.Stack);
@@ -92,6 +92,6 @@ public struct QueryFilter : IDisposable
 
     public readonly void Dispose()
     {
-        _scope.Dispose();
+        //_scope.Dispose();
     }
 }
