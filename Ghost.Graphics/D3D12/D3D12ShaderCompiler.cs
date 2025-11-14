@@ -1,12 +1,12 @@
 using Ghost.Core;
-using Ghost.Core.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.InteropServices;
-using System.Runtime.Versioning;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
+
+using static TerraFX.Interop.DirectX.DXC;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -19,52 +19,6 @@ internal struct CompileResult : IDisposable
     public void Dispose()
     {
         bytecode.Dispose();
-    }
-}
-
-internal readonly struct CBufferVariableInfo
-{
-    public string Name
-    {
-        get; init;
-    }
-
-    public uint StartOffset
-    {
-        get; init;
-    }
-
-    public uint Size
-    {
-        get; init;
-    }
-}
-
-internal readonly struct CBufferInfo
-{
-    public string Name
-    {
-        get; init;
-    }
-
-    public uint RegisterSlot
-    {
-        get; init;
-    }
-
-    public uint RegisterSpace
-    {
-        get; init;
-    }
-
-    public uint SizeInBytes
-    {
-        get; init;
-    }
-
-    public IReadOnlyList<CBufferVariableInfo> Variables
-    {
-        get; init;
     }
 }
 
@@ -145,10 +99,10 @@ internal static unsafe class D3D12ShaderCompiler
     {
         return level switch
         {
-            CompilerOptimizeLevel.O0 => "-O0",
-            CompilerOptimizeLevel.O1 => "-O1",
-            CompilerOptimizeLevel.O2 => "-O2",
-            CompilerOptimizeLevel.O3 => "-O3",
+            CompilerOptimizeLevel.O0 => DXC_ARG_OPTIMIZATION_LEVEL0,
+            CompilerOptimizeLevel.O1 => DXC_ARG_OPTIMIZATION_LEVEL1,
+            CompilerOptimizeLevel.O2 => DXC_ARG_OPTIMIZATION_LEVEL2,
+            CompilerOptimizeLevel.O3 => DXC_ARG_OPTIMIZATION_LEVEL3,
             _ => throw new ArgumentOutOfRangeException(nameof(level), "Unsupported optimization level")
         };
     }
@@ -164,16 +118,18 @@ internal static unsafe class D3D12ShaderCompiler
             GetOptimizeLevelString(config.optimizeLevel),         // Optimization level
         };
 
-        foreach (var include in config.includes)
-        {
-            argsArray.Add("-I");
-            argsArray.Add(include);
-        }
-
         foreach (var define in config.defines)
         {
             argsArray.Add("-D");
             argsArray.Add(define);
+        }
+
+        // HACK: Currently DXC does not support force include, we have to use GENERATED_CODE_PATH define as a workaround.
+        // User must to write '#include GENERATED_CODE_PATH' in their shader code manually.
+        if (File.Exists(config.include))
+        {
+            argsArray.Add("-D");
+            argsArray.Add($"GENERATED_CODE_PATH={'"' + config.include.Replace("\\", "/") + '"'}");
         }
 
         if (!config.options.HasFlag(CompilerOption.KeepDebugInfo))
@@ -188,7 +144,7 @@ internal static unsafe class D3D12ShaderCompiler
 
         if (config.options.HasFlag(CompilerOption.WarnAsError))
         {
-            argsArray.Add("-WX");
+            argsArray.Add(DXC_ARG_WARNINGS_ARE_ERRORS);
         }
 
         return argsArray;
@@ -210,8 +166,7 @@ internal static unsafe class D3D12ShaderCompiler
             ThrowIfFailed(DxcCreateInstance(&dxccID, __uuidof(pCompiler), (void**)&pCompiler));
             ThrowIfFailed(DxcCreateInstance(&dxcuID, __uuidof(pUtils), (void**)&pUtils));
 
-            //pIncludeHandler.Get()->LoadSource();
-            pUtils->CreateDefaultIncludeHandler(&pIncludeHandler);
+            ThrowIfFailed(pUtils->CreateDefaultIncludeHandler(&pIncludeHandler));
 
             // Create source blob
             using ComPtr<IDxcBlobEncoding> sourceBlob = default;
@@ -239,7 +194,7 @@ internal static unsafe class D3D12ShaderCompiler
                 {
                     Ptr = sourceBlob.Get()->GetBufferPointer(),
                     Size = sourceBlob.Get()->GetBufferSize(),
-                    Encoding = DXC.DXC_CP_UTF8
+                    Encoding = DXC_CP_UTF8
                 };
 
                 ThrowIfFailed(pCompiler->Compile(&buffer, argPtrs, (uint)argsArray.Count, pIncludeHandler, __uuidof(pResult), (void**)&pResult));
@@ -268,7 +223,7 @@ internal static unsafe class D3D12ShaderCompiler
                 using ComPtr<IDxcBlob> bytecodeBlob = default;
                 ThrowIfFailed(pResult->GetResult(bytecodeBlob.GetAddressOf()));
 
-                // Get reflection data using DXC API
+                // Get pReflection data using DXC API
                 if (ppReflectionBlob != null)
                 {
                     ThrowIfFailed(pResult->GetOutput(DXC_OUT_KIND.DXC_OUT_REFLECTION, __uuidof<IDxcBlob>(), (void**)ppReflectionBlob, null));
@@ -302,8 +257,8 @@ internal static unsafe class D3D12ShaderCompiler
         }
     }
 
-    // TODO: Since we are using fixed root signature layout, the reflection pass should only validate the layout, not generate it.
-    // TODO: Ideally this should return a structured reflection data instead of populating raw lists/dictionaries.
+    // TODO: Since we are using fixed root signature layout, the pReflection pass should only validate the layout, not generate it.
+    // TODO: Ideally this should return a structured pReflection data instead of populating raw lists/dictionaries.
     public static Result<ShaderReflectionData> PerformDXCReflection(IDxcBlob* reflectionBlob)
     {
         if (reflectionBlob == null)
@@ -311,34 +266,34 @@ internal static unsafe class D3D12ShaderCompiler
             return Result<ShaderReflectionData>.Fail("Reflection blob is null.");
         }
 
-        ComPtr<IDxcUtils> utils = default;
-        ComPtr<ID3D12ShaderReflection> reflection = default;
+        IDxcUtils* pUtils = default;
+        ID3D12ShaderReflection* pReflection = default;
 
         try
         {
-            // Create DXC pUtils to parse reflection data
+            // Create DXC pUtils to parse pReflection data
             var dxcuID = CLSID.CLSID_DxcUtils;
-            ThrowIfFailed(DxcCreateInstance(&dxcuID, utils.IID(), utils.PPV()));
+            ThrowIfFailed(DxcCreateInstance(&dxcuID, __uuidof(pUtils), (void**)&pUtils));
 
-            // Create reflection interface from blob
+            // Create pReflection interface from blob
             var reflectionBuffer = new DxcBuffer
             {
                 Ptr = reflectionBlob->GetBufferPointer(),
                 Size = reflectionBlob->GetBufferSize(),
-                Encoding = DXC.DXC_CP_ACP
+                Encoding = DXC_CP_ACP
             };
 
-            ThrowIfFailed(utils.Get()->CreateReflection(&reflectionBuffer, reflection.IID(), reflection.PPV()));
+            ThrowIfFailed(pUtils->CreateReflection(&reflectionBuffer, __uuidof(pReflection), (void**)&pReflection));
 
             D3D12_SHADER_DESC shaderDesc;
-            ThrowIfFailed(reflection.Get()->GetDesc(&shaderDesc));
+            ThrowIfFailed(pReflection->GetDesc(&shaderDesc));
 
             var reflectionData = new ShaderReflectionData();
 
             for (uint i = 0; i < shaderDesc.BoundResources; i++)
             {
                 D3D12_SHADER_INPUT_BIND_DESC bindDesc;
-                ThrowIfFailed(reflection.Get()->GetResourceBindingDesc(i, &bindDesc));
+                ThrowIfFailed(pReflection->GetResourceBindingDesc(i, &bindDesc));
 
                 var resourceName = Marshal.PtrToStringUTF8((IntPtr)bindDesc.Name);
                 if (resourceName == null)
@@ -350,11 +305,11 @@ internal static unsafe class D3D12ShaderCompiler
                 {
                     case D3D_SHADER_INPUT_TYPE.D3D_SIT_CBUFFER:
                     {
-                        var cbuffer = reflection.Get()->GetConstantBufferByName(bindDesc.Name);
+                        var cbuffer = pReflection->GetConstantBufferByName(bindDesc.Name);
                         D3D12_SHADER_BUFFER_DESC cbufferDesc;
                         ThrowIfFailed(cbuffer->GetDesc(&cbufferDesc));
 
-                        var variables = new List<CBufferVariableInfo>((int)cbufferDesc.Variables);
+                        var variables = new List<CBufferPropertyInfo>((int)cbufferDesc.Variables);
 
                         // Now we iterate all variables for *every* cbuffer, not just b3
                         for (uint j = 0; j < cbufferDesc.Variables; j++)
@@ -369,7 +324,7 @@ internal static unsafe class D3D12ShaderCompiler
                                 continue;
                             }
 
-                            variables.Add(new CBufferVariableInfo
+                            variables.Add(new CBufferPropertyInfo
                             {
                                 Name = variableName,
                                 StartOffset = varDesc.StartOffset,
@@ -383,7 +338,7 @@ internal static unsafe class D3D12ShaderCompiler
                             RegisterSlot = bindDesc.BindPoint,
                             RegisterSpace = bindDesc.Space,
                             SizeInBytes = cbufferDesc.Size,
-                            Variables = variables
+                            Properties = variables
                         });
 
                         break;
@@ -411,8 +366,8 @@ internal static unsafe class D3D12ShaderCompiler
         }
         finally
         {
-            utils.Dispose();
-            reflection.Dispose();
+            pUtils->Release();
+            pReflection->Release();
         }
     }
 }

@@ -307,7 +307,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         ThrowIfNotRecording();
         IncrementCommandCount();
 
-        var shaderPipeline = _pipelineLibrary.LoadGraphicsPSO(pipelineKey).GetValueOrThrow();
+        var shaderPipeline = _pipelineLibrary.GetGraphicsPSO(pipelineKey).GetValueOrThrow();
         _commandList.Get()->SetPipelineState(shaderPipeline.value);
     }
 

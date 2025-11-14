@@ -11,7 +11,7 @@ public struct SDLError
     public int line;
     public int column;
 
-    public readonly override string ToString()
+    public override readonly string ToString()
     {
         return $"Error at {line}:{column} - {message}";
     }
@@ -125,24 +125,6 @@ internal static class SDLCompiler
 
     private static string GetPassUniqueId(SDLSemantics shader, PassSemantic pass)
     {
-        //static ulong Fnv1a64(ReadOnlySpan<char> data)
-        //{
-        //    const ulong offset = 14695981039346656037;
-        //    const ulong prime = 1099511628211;
-
-        //    var hash = offset;
-
-        //    foreach (var b in data)
-        //    {
-        //        hash ^= b;
-        //        hash *= prime;
-        //    }
-
-        //    return hash;
-        //}
-
-        //return $"{Fnv1a64(shader.name)}_{pass.name}";
-
         return $"{shader.name}_{pass.name}";
     }
 
@@ -215,6 +197,7 @@ internal static class SDLCompiler
 
         if (shaderGlobalProperties != null)
         {
+            descriptor.globalProperties ??= new List<PropertyDescriptor>();
             descriptor.globalProperties.AddRange(shaderGlobalProperties);
         }
 
@@ -245,27 +228,49 @@ internal static class SDLCompiler
         return descriptor;
     }
 
-    public static Result<ShaderDescriptor> CompileShader(string shaderPath)
+    public static Result<ShaderDescriptor> CompileShader(string shaderPath, string generatedOutputDirectory)
     {
-        var source = File.ReadAllText(shaderPath);
-
-        var lexer = new Lexer(source);
-        var stream = new TokenStream(lexer.Tokenize());
-        var shaderInfo = ParseShaders(stream);
-        var model = SemanticAnalysis(shaderInfo[0], out var errors);
-
-        if (errors.Count != 0 || model == null)
+        try
         {
-            var errorMessages = new StringBuilder();
-            foreach (var error in errors)
+            var source = File.ReadAllText(shaderPath);
+
+            var lexer = new Lexer(source);
+            var stream = new TokenStream(lexer.Tokenize());
+            var shaderInfo = ParseShaders(stream);
+            var model = SemanticAnalysis(shaderInfo[0], out var errors);
+
+            if (errors.Count != 0 || model == null)
             {
-                errorMessages.AppendLine(error.ToString());
+                var errorMessages = new StringBuilder();
+                foreach (var error in errors)
+                {
+                    errorMessages.AppendLine(error.ToString());
+                }
+
+                return Result.Fail("Failed to compile shader due to errors:\n" + errorMessages.ToString());
             }
 
-            return Result<ShaderDescriptor>.Fail("Failed to compile shader due to errors:\n" + errorMessages.ToString());
-        }
+            var desc = ResolveShader(model);
+            var globalPropPath = GenerateGlobalProperties(desc.globalProperties, generatedOutputDirectory);
 
-        return ResolveShader(model);
+            foreach (var pass in desc.passes)
+            {
+                if (pass is not FullPassDescriptor fullPass)
+                {
+                    continue;
+                }
+
+                fullPass.includes ??= new List<string>();
+                fullPass.includes.Add(globalPropPath);
+                fullPass.generatedCodePath = GeneratePass(fullPass, generatedOutputDirectory);
+            }
+
+            return desc;
+        }
+        catch (Exception ex)
+        {
+            return Result.Fail("Failed to generate shader files: " + ex.Message);
+        }
     }
 
     private static string ShaderPropertyTypeToHLSLType(ShaderPropertyType type)
@@ -330,6 +335,16 @@ internal static class SDLCompiler
 #define {fileDefine}
 
 #include ""F:/csharp/GhostEngine/Ghost.Shader/BuiltIn/Common.hlsl""");
+        if (fullPass.includes != null)
+        {
+            foreach (var include in fullPass.includes)
+            {
+                sb.Append($@"
+#include ""{include}""");
+            }
+
+            sb.AppendLine();
+        }
 
         if (fullPass.properties != null)
         {
@@ -354,23 +369,20 @@ struct PerMaterialData
         return outputFilePath;
     }
 
-    public static void GenerateShader(ShaderDescriptor descriptor, string targetDirectory)
+    public static string GenerateGlobalProperties(List<PropertyDescriptor> globalProperties, string targetDirectory)
     {
         if (!Directory.Exists(targetDirectory))
         {
             throw new ArgumentException("Target directory does not exist.", nameof(targetDirectory));
         }
 
-        // Generate global property file.
-        if (descriptor.globalProperties.Count > 0)
-        {
-            var globalFilePath = Path.Combine(targetDirectory, _GLOBAL_PROPERTY_FILE_NAME);
-            using var globalFileStream = File.CreateText(globalFilePath);
+        var globalFilePath = Path.Combine(targetDirectory, _GLOBAL_PROPERTY_FILE_NAME);
+        using var globalFileStream = File.CreateText(globalFilePath);
 
-            var sb = new StringBuilder();
+        var sb = new StringBuilder();
 
-            sb.AppendLine(_GENERATED_FILE_HEADER);
-            sb.Append(@"
+        sb.AppendLine(_GENERATED_FILE_HEADER);
+        sb.Append(@"
 #ifndef GLOBALDATA_G_HLSL
 #define GLOBALDATA_G_HLSL
 
@@ -378,22 +390,17 @@ struct PerMaterialData
 
 struct GlobalData
 {");
-            foreach (var prop in descriptor.globalProperties)
-            {
-                sb.Append($@"
-    {ShaderPropertyTypeToHLSLType(prop.type)} {prop.name};");
-            }
-            sb.AppendLine(@"
+        foreach (var prop in globalProperties)
+        {
+            sb.Append($@"
+{ShaderPropertyTypeToHLSLType(prop.type)} {prop.name};");
+        }
+        sb.AppendLine(@"
 };
 
 #endif // GLOBALDATA_G_HLSL");
-            globalFileStream.Write(sb.ToString());
-        }
+        globalFileStream.Write(sb.ToString());
 
-        // Compile each pass.
-        foreach (var pass in descriptor.passes)
-        {
-            GeneratePass(pass, targetDirectory);
-        }
+        return globalFilePath;
     }
 }

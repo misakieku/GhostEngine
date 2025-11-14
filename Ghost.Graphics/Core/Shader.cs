@@ -7,66 +7,23 @@ using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.Core;
 
-public readonly struct TextureInfo
+public class ShaderPass : IResourceReleasable
 {
-    public uint RegisterSlot
-    {
-        get; init;
-    }
-
-    public uint RootParameterIndex
-    {
-        get; init;
-    }
-}
-
-public readonly struct PropertyInfo
-{
-    public uint CBufferIndex
-    {
-        get; init;
-    }
-
-    public uint ByteOffset
-    {
-        get; init;
-    }
-
-    public uint Size
-    {
-        get; init;
-    }
-}
-
-public readonly struct CBufferInfo
-{
-    public uint Size
-    {
-        get; init;
-    }
-
-    public uint RegisterSlot
-    {
-        get; init;
-    }
-}
-
-public unsafe class ShaderPass : IResourceReleasable
-{
+    private CBufferInfo _cbufferInfo;
     // NOTE: This is for per pass cbuffer only. Global, per view, and per mesh cbuffers are fixed.
     private readonly Dictionary<string, int> _propertyLookup;
-    private readonly UnsafeList<PropertyInfo> _properties;
 
-    internal CBufferInfo PassPropertyInfo
-    {
-        get;
-    }
+    public CBufferInfo CBuffer => _cbufferInfo;
 
-    public ShaderPass(CBufferInfo info, UnsafeList<PropertyInfo> properties, Dictionary<string, int> propertyNameToIdMap)
+    public ShaderPass(CBufferInfo info)
     {
-        PassPropertyInfo = info;
-        _properties = properties;
-        _propertyLookup = propertyNameToIdMap;
+        _cbufferInfo = info;
+
+        _propertyLookup = new Dictionary<string, int>(info.Properties.Count);
+        for (var i = 0; i < info.Properties.Count; i++)
+        {
+            _propertyLookup[info.Properties[i].Name] = i;
+        }
     }
 
     public int GetPropertyId(string propertyName)
@@ -74,19 +31,18 @@ public unsafe class ShaderPass : IResourceReleasable
         return _propertyLookup.TryGetValue(propertyName, out var id) ? id : -1;
     }
 
-    public PropertyInfo GetPropertyInfo(int id)
+    public CBufferPropertyInfo GetPropertyInfo(int id)
     {
-        return _properties[id];
+        return _cbufferInfo.Properties[id];
     }
 
-    public PropertyInfo GetPropertyInfo(string propertyName)
+    public CBufferPropertyInfo GetPropertyInfo(string propertyName)
     {
-        return _properties[GetPropertyId(propertyName)];
+        return _cbufferInfo.Properties[GetPropertyId(propertyName)];
     }
 
     void IResourceReleasable.ReleaseResource(IResourceDatabase database)
     {
-        _properties.Dispose();
     }
 }
 

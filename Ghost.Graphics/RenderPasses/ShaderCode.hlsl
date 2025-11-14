@@ -1,13 +1,6 @@
-cbuffer ConstantBuffer : register(b0)
-{
-    float4 _Color;
-    uint _TextureIndex1;
-    uint _TextureIndex2;
-    uint _TextureIndex3;
-    uint _TextureIndex4;
-    uint _VertexBufferIndex;
-    uint _IndexBufferIndex;
-};
+
+#include GENERATED_CODE_PATH
+#include "F:/csharp/GhostEngine/Ghost.Shader/BuiltIn/Properties.hlsl"
 
 struct Vertex
 {
@@ -34,8 +27,8 @@ void MSMain(
     out indices uint3 outTris[1])
 {
     // Fetch bindless buffers
-    ByteAddressBuffer vertexBuffer = ResourceDescriptorHeap[_VertexBufferIndex];
-    ByteAddressBuffer indexBuffer = ResourceDescriptorHeap[_IndexBufferIndex];
+    ByteAddressBuffer vertexBuffer = ResourceDescriptorHeap[g_PerMaterialData.vertexBufferIndex];
+    ByteAddressBuffer indexBuffer = ResourceDescriptorHeap[g_PerMaterialData.indexBufferIndex];
 
     // Compute the triangle’s vertex indices
     uint vertexId = groupThreadID.x;
@@ -67,11 +60,11 @@ void MSMain(
 
 float4 PSMain(PixelInput input) : SV_TARGET
 {
-    float4 color1 = SAMPLE_TEXTURE2D_BINDLESS(_TextureIndex1, 0, input.uv.xy);
-    float4 color2 = SAMPLE_TEXTURE2D_BINDLESS(_TextureIndex2, 0, input.uv.xy);
-    float4 color3 = SAMPLE_TEXTURE2D_BINDLESS(_TextureIndex3, 0, input.uv.xy);
-    float4 color4 = SAMPLE_TEXTURE2D_BINDLESS(_TextureIndex4, 0, input.uv.xy);
+    float4 color1 = SAMPLE_TEXTURE2D_BINDLESS(g_PerMaterialData.texture1, 0, input.uv.xy);
+    float4 color2 = SAMPLE_TEXTURE2D_BINDLESS(g_PerMaterialData.texture2, 0, input.uv.xy);
+    float4 color3 = SAMPLE_TEXTURE2D_BINDLESS(g_PerMaterialData.texture3, 0, input.uv.xy);
+    float4 color4 = SAMPLE_TEXTURE2D_BINDLESS(g_PerMaterialData.texture4, 0, input.uv.xy);
     
     float4 blendedColor = (color1 + color2 + color3 + color4) * 0.25f;
-    return blendedColor * _Color;
+    return blendedColor * g_PerMaterialData.color;
 }

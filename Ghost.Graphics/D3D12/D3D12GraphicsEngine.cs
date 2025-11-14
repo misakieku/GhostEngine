@@ -12,9 +12,9 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
 #endif
 
     private readonly D3D12RenderDevice _device;
-    private readonly D3D12PipelineLibrary _pipelineLibrary;
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
     private readonly D3D12ResourceDatabase _resourceDatabase;
+    private readonly D3D12PipelineLibrary _pipelineLibrary;
     private readonly D3D12ResourceAllocator _resourceAllocator;
     private readonly D3D12CommandBuffer _copyCommandBuffer;
 
@@ -37,9 +37,9 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
         _descriptorAllocator = new(_device);
 
         _resourceDatabase = new(_descriptorAllocator);
-        _resourceAllocator = new(renderSystem, _device, _descriptorAllocator, _resourceDatabase);
-
         _pipelineLibrary = new(_device, _resourceDatabase);
+        _resourceAllocator = new(renderSystem, _device, _descriptorAllocator, _resourceDatabase, _pipelineLibrary);
+
         _copyCommandBuffer = new(
             _device,
             _pipelineLibrary,
@@ -112,6 +112,8 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
         {
             renderer.ExecutePendingResize();
         }
+
+        _copyCommandBuffer.Begin();
     }
 
     public void RenderFrame()
@@ -127,6 +129,8 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
     public void EndFrame()
     {
         ThrowIfDisposed();
+
+        _copyCommandBuffer.End();
         _resourceAllocator.ReleaseTempResources();
     }
 
@@ -138,9 +142,9 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
         }
 
         _copyCommandBuffer.Dispose();
-        _pipelineLibrary.Dispose();
 
         _resourceAllocator.Dispose();
+        _pipelineLibrary.Dispose();
         _resourceDatabase.Dispose();
 
         _descriptorAllocator.Dispose();

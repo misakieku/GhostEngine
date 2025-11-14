@@ -1,12 +1,12 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
+using Ghost.Graphics.Core;
 using Ghost.Graphics.D3D12.Utilities;
 using Misaki.HighPerformance.Utilities;
 using System.IO.Hashing;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
-using Ghost.Graphics.Core;
 
 namespace Ghost.Graphics.RHI;
 
@@ -122,6 +122,51 @@ public ref struct GraphicsPSODescriptor
     public TextureFormat dsvFormat;
 }
 
+public readonly struct CBufferPropertyInfo
+{
+    public string Name
+    {
+        get; init;
+    }
+
+    public uint StartOffset
+    {
+        get; init;
+    }
+
+    public uint Size
+    {
+        get; init;
+    }
+}
+
+public readonly struct CBufferInfo
+{
+    public string Name
+    {
+        get; init;
+    }
+
+    public uint RegisterSlot
+    {
+        get; init;
+    }
+
+    public uint RegisterSpace
+    {
+        get; init;
+    }
+
+    public uint SizeInBytes
+    {
+        get; init;
+    }
+
+    public IReadOnlyList<CBufferPropertyInfo> Properties
+    {
+        get; init;
+    }
+}
 
 public struct ViewportDesc
 {
@@ -685,8 +730,8 @@ public enum PrimitiveTopology
 
 internal ref struct CompilerConfig
 {
-    public ReadOnlySpan<string> includes;
     public ReadOnlySpan<string> defines;
+    public string? include;
     public string shaderPath;
     public string entryPoint;
     public ShaderStage stage;

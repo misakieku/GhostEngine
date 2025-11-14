@@ -597,13 +597,19 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
     private readonly D3D12RenderDevice _device;
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
     private readonly D3D12ResourceDatabase _resourceDatabase;
+    private readonly D3D12PipelineLibrary _pipelineLibrary;
 
     private ComPtr<D3D12MA_Allocator> _allocator;
     private UnsafeQueue<Handle<GPUResource>> _temResources;
 
     private bool _disposed;
 
-    public D3D12ResourceAllocator(IFenceSynchronizer fenceSynchronizer, D3D12RenderDevice device, D3D12DescriptorAllocator descriptorAllocator, D3D12ResourceDatabase resourceDatabase)
+    public D3D12ResourceAllocator(
+        IFenceSynchronizer fenceSynchronizer,
+        D3D12RenderDevice device,
+        D3D12DescriptorAllocator descriptorAllocator,
+        D3D12ResourceDatabase resourceDatabase,
+        D3D12PipelineLibrary pipelineLibrary)
     {
         var desc = new D3D12MA_ALLOCATOR_DESC
         {
@@ -616,10 +622,11 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         ThrowIfFailed(D3D12MA_CreateAllocator(&desc, &pAllocator));
         _allocator.Attach(pAllocator);
 
-        _device = device;
         _fenceSynchronizer = fenceSynchronizer;
+        _device = device;
         _descriptorAllocator = descriptorAllocator;
         _resourceDatabase = resourceDatabase;
+        _pipelineLibrary = pipelineLibrary;
 
         _temResources = new(64, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
     }
@@ -869,6 +876,18 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
     public Identifier<Shader> CreateShader(ShaderDescriptor descriptor)
     {
         var shader = new Shader(descriptor);
+        foreach (var pass in descriptor.passes)
+        {
+            if (pass is not FullPassDescriptor fullPass)
+            {
+                continue;
+            }
+
+            var passKey = new ShaderPassKey(fullPass.uniqueIdentifier);
+            var cbufferInfo = _pipelineLibrary.GetCBufferInfo(passKey).GetValueOrThrow();
+            _resourceDatabase.AddShaderPass(new ShaderPassKey(fullPass.uniqueIdentifier), new ShaderPass(cbufferInfo));
+        }
+
         return _resourceDatabase.AddShader(shader);
     }
 

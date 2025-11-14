@@ -10,13 +10,13 @@ namespace Ghost.Graphics.Core;
 public unsafe readonly ref struct RenderingContext
 {
     private readonly IGraphicsEngine _engine;
-    private readonly ICommandBuffer _directCmb;
-    private readonly ICommandBuffer _copyCmb;
-    private readonly ICommandBuffer _computeCmb;
+    private readonly ICommandBuffer _directCmd;
+    private readonly ICommandBuffer _copyCmd;
+    private readonly ICommandBuffer _computeCmd;
 
-    public ICommandBuffer DirectCommandBuffer => _directCmb;
-    public ICommandBuffer CopyCommandBuffer => _copyCmb;
-    public ICommandBuffer ComputeCommandBuffer => _computeCmb;
+    public ICommandBuffer DirectCommandBuffer => _directCmd;
+    public ICommandBuffer CopyCommandBuffer => _copyCmd;
+    public ICommandBuffer ComputeCommandBuffer => _computeCmd;
 
     public IResourceAllocator ResourceAllocator => _engine.ResourceAllocator;
     public IResourceDatabase ResourceDatabase => _engine.ResourceDatabase;
@@ -29,9 +29,9 @@ public unsafe readonly ref struct RenderingContext
         ICommandBuffer computeCmd)
     {
         _engine = engine;
-        _directCmb = directCmd;
-        _copyCmb = copyCmd;
-        _computeCmb = computeCmd;
+        _directCmd = directCmd;
+        _copyCmd = copyCmd;
+        _computeCmd = computeCmd;
     }
 
     public ICommandBuffer CrearteCommandBuffer(CommandBufferType type)
@@ -88,29 +88,25 @@ public unsafe readonly ref struct RenderingContext
 
         if (needVertexTransition)
         {
-            _copyCmb.ResourceBarrier(meshData.vertexBuffer.AsResource(), vertexState, ResourceState.CopyDest);
-            ResourceDatabase.SetResourceState(meshData.vertexBuffer.AsResource(), ResourceState.CopyDest);
+            _directCmd.ResourceBarrier(meshData.vertexBuffer.AsResource(), vertexState, ResourceState.CopyDest);
         }
 
         if (needIndexTransition)
         {
-            _copyCmb.ResourceBarrier(meshData.indexBuffer.AsResource(), indexState, ResourceState.CopyDest);
-            ResourceDatabase.SetResourceState(meshData.indexBuffer.AsResource(), ResourceState.CopyDest);
+            _directCmd.ResourceBarrier(meshData.indexBuffer.AsResource(), indexState, ResourceState.CopyDest);
         }
 
-        _copyCmb.UploadBuffer<Vertex>(meshData.vertexBuffer, meshData.vertices.AsSpan());
-        _copyCmb.UploadBuffer<uint>(meshData.indexBuffer, meshData.indices.AsSpan());
+        _directCmd.UploadBuffer(meshData.vertexBuffer, meshData.vertices.AsSpan());
+        _directCmd.UploadBuffer(meshData.indexBuffer, meshData.indices.AsSpan());
 
         if (needVertexTransition)
         {
-            _copyCmb.ResourceBarrier(meshData.vertexBuffer.AsResource(), ResourceState.CopyDest, vertexState);
-            ResourceDatabase.SetResourceState(meshData.vertexBuffer.AsResource(), vertexState);
+            _directCmd.ResourceBarrier(meshData.vertexBuffer.AsResource(), ResourceState.CopyDest, vertexState);
         }
 
         if (needIndexTransition)
         {
-            ResourceDatabase.SetResourceState(meshData.indexBuffer.AsResource(), indexState);
-            _copyCmb.ResourceBarrier(meshData.indexBuffer.AsResource(), ResourceState.CopyDest, indexState);
+            _directCmd.ResourceBarrier(meshData.indexBuffer.AsResource(), ResourceState.CopyDest, indexState);
         }
 
         if (markMeshStatic)
@@ -141,20 +137,18 @@ public unsafe readonly ref struct RenderingContext
 
         if (needTransition)
         {
-            _copyCmb.ResourceBarrier(texture.AsResource(), sateBefore, ResourceState.CopyDest);
-            ResourceDatabase.SetResourceState(texture.AsResource(), ResourceState.CopyDest);
+            _directCmd.ResourceBarrier(texture.AsResource(), sateBefore, ResourceState.CopyDest);
         }
 
-        _copyCmb.UploadTexture(texture, subresourceData);
+        _directCmd.UploadTexture(texture, subresourceData);
 
         if (needTransition)
         {
-            _copyCmb.ResourceBarrier(texture.AsResource(), ResourceState.CopyDest, sateBefore);
-            ResourceDatabase.SetResourceState(texture.AsResource(), sateBefore);
+            _directCmd.ResourceBarrier(texture.AsResource(), ResourceState.CopyDest, sateBefore);
         }
     }
 
-    // TODO: Ideally we should queue the draw call to our rendering system, and render it in the full rendering pipeline.
+    // TODO: Ideally we should queue the draw call to our rendering system, and render it in a full rendering pipeline.
     // This is just a place holder for now for testing purpose.
     public void DispatchMesh(Handle<Mesh> mesh, Handle<Material> material, string passName, uint numThreadsX)
     {
@@ -172,20 +166,20 @@ public unsafe readonly ref struct RenderingContext
 
         hash.rtvFormats[0] = TextureFormat.B8G8R8A8_UNorm;
         var pipelineKey = hash.GetKey();
-        _directCmb.SetPipelineState(pipelineKey);
+        _directCmd.SetPipelineState(pipelineKey);
 
         // NOTE: We use fixed root signature layout for bindless rendering.
         ref var cache = ref materialRef.GetPassCache(passIndex);
-        _directCmb.SetConstantBufferView(RootSignatureLayout.PER_MATERIAL_BUFFER_SLOT, cache.GpuResource);
+        _directCmd.SetConstantBufferView(RootSignatureLayout.PER_MATERIAL_BUFFER_SLOT, cache.GpuResource);
 
         // NOTE: Since we are using true bindless resources, we only need to set the descriptor heaps, not individual tables.
-        // TODO: Matbe handle the transitional bindless model?
+        // TODO: Maybe handle the traditional bindless model?
 #if false
         var samplerGpuHandle = _descriptorAllocator.GetSamplerHeap()->GetGPUDescriptorHandleForHeapStart();
         _commandList.Get()->SetGraphicsRootDescriptorTable(rootParamIndex, samplerGpuHandle);
 #endif
 
         var threadGroupCountX = ((uint)meshRef.indices.Count + numThreadsX - 1) / numThreadsX;
-        _directCmb.DispatchMesh(threadGroupCountX, 1, 1);
+        _directCmd.DispatchMesh(threadGroupCountX, 1, 1);
     }
 }

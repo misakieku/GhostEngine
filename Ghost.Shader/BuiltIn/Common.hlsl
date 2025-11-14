@@ -1,4 +1,4 @@
-﻿#ifndef COMMON_HLSL
+#ifndef COMMON_HLSL
 #define COMMON_HLSL
 
 #undef USE_TRADITIONAL_BINDLESS // Just for testing, this should be handled by engine feature level.
@@ -43,11 +43,11 @@
 #define STRUCT_BUFFER_BINDLESS uint
 #define BYTE_ADDRESS_BUFFER_BINDLESS uint
 
-#define TEXTURE2D Texture2D<float4>
-#define TEXTURE3D Texture3D<float4>
-#define TEXTURECUBE TextureCube<float4>
-#define TEXTURE2D_ARRAY Texture2DArray<float4>
-#define TEXTURECUBE_ARRAY TextureCubeArray<float4>
+#define TEXTURE2D Texture2D
+#define TEXTURE3D Texture3D
+#define TEXTURECUBE TextureCube
+#define TEXTURE2D_ARRAY Texture2DArray
+#define TEXTURECUBE_ARRAY TextureCubeArray
 
 #define SAMPLER SamplerState
 
@@ -69,11 +69,26 @@
 
 #define SAMPLE_TEXTURE2D(tex, samp, uv) tex.Sample(samp, uv)
 #define SAMPLE_TEXTURE2D_LEVEL(tex, samp, uv, level) tex.SampleLevel(samp, uv, level)
-#define SAMPLE_TEXTURE2D_BINDLESS(texId, sampId, uv) GET_TEXTURE2D_BINDLESS(texId).Sample(GET_BINDLESS_SAMPLER(sampId), uv)
-#define SAMPLE_TEXTURE2D_LEVEL_BINDLESS(texId, sampId, uv, level) GET_TEXTURE2D_BINDLESS(texId).SampleLevel(GET_BINDLESS_SAMPLER(sampId), uv, level)
+#define SAMPLE_TEXTURE2D_BINDLESS(texId, sampId, uv) SampleTexture2DBindless(texId, sampId, uv)
+#define SAMPLE_TEXTURE2D_LEVEL_BINDLESS(texId, sampId, uv, level) SampleTexture2DLevelBindless(texId, sampId, uv, level)
 
 #define SAMPLE_TEXTURE2D_ARRAY(tex, samp, uv, index) tex.Sample(samp, uv, index)
-#define SAMPLE_TEXTURE2D_ARRAY_BINDLESS(texId, sampId, uv, index) GET_TEXTURE2D_ARRAY_BINDLESS(texId).Sample(GET_BINDLESS_SAMPLER(sampId), uv, index)
+#define SAMPLE_TEXTURE2D_ARRAY_BINDLESS(texId, sampId, uv, index) GET_TEXTURE2D_ARRAY_BINDLESS(texId).Sample(GET_SAMPLER_BINDLESS(sampId), uv, index)
+
+static inline float4 SampleTexture2DBindless(uint texId, uint sampId, float2 uv)
+{
+    Texture2D tex = GET_TEXTURE2D_BINDLESS(texId);
+    SamplerState samp = GET_SAMPLER_BINDLESS(sampId);
+    return tex.Sample(samp, uv);
+}
+
+static inline float4 SampleTexture2DLevelBindless(uint texId, uint sampId, float2 uv, float level)
+{
+    Texture2D tex = GET_TEXTURE2D_BINDLESS(texId);
+    SamplerState samp = GET_SAMPLER_BINDLESS(sampId);
+    return tex.SampleLevel(samp, uv, level);
+}
+
 
 
 

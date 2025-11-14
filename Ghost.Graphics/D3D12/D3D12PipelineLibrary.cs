@@ -7,7 +7,6 @@ using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using Misaki.HighPerformance.Utilities;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
@@ -22,6 +21,7 @@ internal struct D3D12GraphicsCompiledResult : IDisposable
     public CompileResult tsResult;
     public CompileResult msResult;
     public CompileResult psResult;
+    public CBufferInfo cbufferInfo;
 
     public void Dispose()
     {
@@ -33,14 +33,12 @@ internal struct D3D12GraphicsCompiledResult : IDisposable
 
 internal struct D3D12PipelineState : IDisposable
 {
-    // NOTE: This is just a temporary cache for compiled shader code. We will implement a proper disk cache later.
-    public D3D12GraphicsCompiledResult compileResult;
     public D3DX12_MESH_SHADER_PIPELINE_STATE_DESC psoDesc;
     public ComPtr<ID3D12PipelineState> pso;
+    public ShaderPassKey shaderPass;
 
     public void Dispose()
     {
-        compileResult.Dispose();
         pso.Dispose();
     }
 }
@@ -62,6 +60,8 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
     private ComPtr<ID3D12RootSignature> _defaultRootSignature;
 
     private readonly Dictionary<GraphicsPipelineKey, D3D12PipelineState> _pipelineCache;
+    // NOTE: This is just a temporary cache for compiled shader code. We will implement a proper disk cache later.
+    private readonly Dictionary<ShaderPassKey, D3D12GraphicsCompiledResult> _compiledResults;
 
     public ID3D12RootSignature* DefaultRootSignature => _defaultRootSignature.Get();
 
@@ -71,6 +71,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
         _resourceDatabase = resourceDatabase;
 
         _pipelineCache = new();
+        _compiledResults = new();
 
         CreateDefaultRootSignature();
     }
@@ -214,7 +215,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
         fs.Write(buffer.AsSpan());
     }
 
-    private static void ValidateReflectionData(ShaderReflectionData reflectionData)
+    private static CBufferInfo ValidateReflectionData(FullPassDescriptor descriptor, ShaderReflectionData reflectionData)
     {
         if (reflectionData.ConstantBuffers.Count != rootParamCount)
         {
@@ -226,27 +227,27 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
             throw new NotSupportedException("Shader reflection data contains unsupported resource types. Only constant buffers are supported in the current root signature.");
         }
 
+        return reflectionData.ConstantBuffers[RootSignatureLayout.PER_MATERIAL_BUFFER_SLOT];
+
         // TODO: Validate Cbuffer sizes and bindings.
     }
 
-    private static Result<D3D12GraphicsCompiledResult> CompileAndValidateFullPass(FullPassDescriptor descriptor)
+    private static D3D12GraphicsCompiledResult CompileAndValidateFullPass(FullPassDescriptor descriptor)
     {
-        static CompileResult CompileAndValidate(ref CompilerConfig config)
+        static CompileResult CompileAndValidate(ref CompilerConfig config, FullPassDescriptor descriptor)
         {
             IDxcBlob* reflectionBlob = default;
+            CBufferInfo cbufferInfo = default;
 
             try
             {
                 // TODO: This does not include generated code. This will cause a root signature mismatch.
                 var result = D3D12ShaderCompiler.Compile(ref config, Allocator.Persistent, &reflectionBlob).GetValueOrThrow();
-
-#if false
                 if (reflectionBlob != null)
                 {
                     var reflection = D3D12ShaderCompiler.PerformDXCReflection(reflectionBlob).GetValueOrThrow();
-                    ValidateReflectionData(reflection);
+                    cbufferInfo = ValidateReflectionData(descriptor, reflection);
                 }
-#endif
 
                 return result;
             }
@@ -266,7 +267,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
             var config = new CompilerConfig
             {
                 defines = descriptor.defines.AsSpan(),
-                includes = descriptor.includes.AsSpan(),
+                include = descriptor.generatedCodePath,
                 shaderPath = tsEntry.shader,
                 entryPoint = tsEntry.entry,
                 stage = ShaderStage.TaskShader,
@@ -275,7 +276,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
                 options = CompilerOption.KeepReflections,
             };
 
-            tsResult = CompileAndValidate(ref config);
+            tsResult = CompileAndValidate(ref config, descriptor);
         }
 
         CompileResult msResult;
@@ -285,7 +286,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
             var config = new CompilerConfig
             {
                 defines = descriptor.defines.AsSpan(),
-                includes = descriptor.includes.AsSpan(),
+                include = descriptor.generatedCodePath,
                 shaderPath = msEntry.shader,
                 entryPoint = msEntry.entry,
                 stage = ShaderStage.MeshShader,
@@ -294,11 +295,11 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
                 options = CompilerOption.KeepReflections,
             };
 
-            msResult = CompileAndValidate(ref config);
+            msResult = CompileAndValidate(ref config, descriptor);
         }
         else
         {
-            return Result<D3D12GraphicsCompiledResult>.Fail("Mesh shader expected.");
+            throw new InvalidOperationException("Mesh shader expected.");
         }
 
         CompileResult psResult;
@@ -308,7 +309,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
             var config = new CompilerConfig
             {
                 defines = descriptor.defines.AsSpan(),
-                includes = descriptor.includes.AsSpan(),
+                include = descriptor.generatedCodePath,
                 shaderPath = psEntry.shader,
                 entryPoint = psEntry.entry,
                 stage = ShaderStage.PixelShader,
@@ -317,11 +318,11 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
                 options = CompilerOption.KeepReflections,
             };
 
-            psResult = CompileAndValidate(ref config);
+            psResult = CompileAndValidate(ref config, descriptor);
         }
         else
         {
-            return Result<D3D12GraphicsCompiledResult>.Fail("Pixel shader expected.");
+            throw new InvalidOperationException("Pixel shader expected.");
         }
 
         return new D3D12GraphicsCompiledResult
@@ -351,6 +352,11 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
         var writeEnabled = zwrite == ZWriteOptions.On;
         var cmp = ToD3DCompare(ztest);
         return D3D12Utility.D3D12_DEPTH_STENCIL_DESC_CREATE(depthEnabled, writeEnabled, cmp);
+    }
+
+    private bool TryGetCompiledCache(ShaderPassKey passKey, out D3D12GraphicsCompiledResult compiled)
+    {
+        return _compiledResults.TryGetValue(passKey, out compiled);
     }
 
     private GraphicsPipelineKey CompilePSO(ref readonly GraphicsPSODescriptor descriptor, ref readonly D3D12GraphicsCompiledResult compiled)
@@ -412,7 +418,6 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
         ref var existing = ref CollectionsMarshal.GetValueRefOrAddDefault(_pipelineCache, key, out var exists);
         if (!exists)
         {
-            existing.compileResult = compiled;
             existing.psoDesc = desc;
 
             var meshStream = new CD3DX12_PIPELINE_MESH_STATE_STREAM(in desc);
@@ -448,14 +453,22 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
 
     public GraphicsPipelineKey CompilePassPSO(IPassDescriptor descriptor, ReadOnlySpan<TextureFormat> rtvs, TextureFormat dsv)
     {
-        var key = default(GraphicsPipelineKey);
+        GraphicsPipelineKey key = default;
+
+        var passKey = new ShaderPassKey(descriptor.Identifier);
+        var hasCompiledCache = TryGetCompiledCache(passKey, out var compiled);
+
         switch (descriptor)
         {
             case FullPassDescriptor fullPass:
-                var result = CompileAndValidateFullPass(fullPass).GetValueOrThrow();
+                if (!hasCompiledCache)
+                {
+                    compiled = CompileAndValidateFullPass(fullPass);
+                }
+
                 var psoDes = new GraphicsPSODescriptor
                 {
-                    passId = new(fullPass.Identifier),
+                    passId = new ShaderPassKey(fullPass.Identifier),
                     zTest = fullPass.localPipeline.zTest,
                     zWrite = fullPass.localPipeline.zWrite,
                     cull = fullPass.localPipeline.cull,
@@ -466,10 +479,17 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
                     dsvFormat = dsv,
                 };
 
-                key = CompilePSO(in psoDes, in result);
+                key = CompilePSO(in psoDes, in compiled);
                 break;
 
             // Do we need to support other pass types?
+            case FallbackPassDescriptor:
+                if (!hasCompiledCache)
+                {
+                    throw new ArgumentException("FallbackPassDescriptor is not supported for PSO compilation. There may be some inheritance dependency issues.");
+                }
+
+                break;
 
             default:
                 break;
@@ -478,15 +498,24 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
         return key;
     }
 
-    public Result<Ptr<ID3D12PipelineState>> LoadGraphicsPSO(GraphicsPipelineKey key)
+    public Result<Ptr<ID3D12PipelineState>> GetGraphicsPSO(GraphicsPipelineKey key)
     {
-        ref var cacheEntry = ref CollectionsMarshal.GetValueRefOrNullRef(_pipelineCache, key);
-        if (Unsafe.IsNullRef(ref cacheEntry))
+        if (_pipelineCache.TryGetValue(key, out var cacheEntry))
         {
-            return Result.Fail("Pipeline state not found in cache.");
+            return new Ptr<ID3D12PipelineState>(cacheEntry.pso.Get());
         }
 
-        return new Ptr<ID3D12PipelineState>(cacheEntry.pso.Get());
+        return Result.Fail("Pipeline state not found in cache.");
+    }
+
+    public Result<CBufferInfo> GetCBufferInfo(ShaderPassKey key)
+    {
+        if (_compiledResults.TryGetValue(key, out var compiled))
+        {
+            return compiled.cbufferInfo;
+        }
+
+        return Result.Fail("Compiled shader not found in cache.");
     }
 
     public void Dispose()

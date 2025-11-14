@@ -1,4 +1,4 @@
-﻿#ifndef PROPERTIES_HLSL
+#ifndef PROPERTIES_HLSL
 #define PROPERTIES_HLSL
 
 #include "F:/csharp/GhostEngine/Ghost.Shader/BuiltIn/Common.hlsl"

@@ -63,17 +63,17 @@ public struct Material : IResourceReleasable, IHandleType
         for (var i = 0; i < shader.PassCount; i++)
         {
             var pass = database.GetShaderPass(shader.GetPassKey(i));
-            var cbufferInfo = pass.PassPropertyInfo;
+            var cbufferInfo = pass.CBuffer;
 
             var desc = new BufferDesc
             {
-                Size = cbufferInfo.Size,
+                Size = cbufferInfo.SizeInBytes,
                 Usage = BufferUsage.Constant,
                 MemoryType = ResourceMemoryType.Default,
             };
 
             var buffer = allocator.CreateBuffer(ref desc);
-            _materialPropertiesCache[i] = new CBufferCache(buffer, cbufferInfo.Size);
+            _materialPropertiesCache[i] = new CBufferCache(buffer, cbufferInfo.SizeInBytes);
         }
     }
 
@@ -118,7 +118,7 @@ public ref struct MaterialAccessor
             }
 
             ref var cache = ref _materialData.GetPassCache(index);
-            Unsafe.WriteUnaligned(ref cache.CpuData[propertyInfo.ByteOffset], value);
+            Unsafe.WriteUnaligned(ref cache.CpuData[propertyInfo.StartOffset], value);
         }
     }
 

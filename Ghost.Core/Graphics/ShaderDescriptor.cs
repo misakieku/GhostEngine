@@ -77,6 +77,7 @@ public class FullPassDescriptor : IPassDescriptor
     public ShaderEntryPoint taskShader;
     public ShaderEntryPoint meshShader;
     public ShaderEntryPoint pixelShader;
+    public string? generatedCodePath;
     public List<string>? defines;
     public List<string>? includes;
     public List<KeywordsGroup>? keywords;

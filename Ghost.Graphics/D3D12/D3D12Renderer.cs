@@ -210,6 +210,13 @@ internal unsafe class D3D12Renderer : IRenderer
             clearStencil = 0,
         };
 
+        // NOTE: Testing only.
+        var ctx = new RenderingContext(_graphicsEngine, cmd, _graphicsEngine.CopyCommandBuffer, null!);
+        if (_frameIndex == 0)
+        {
+            _pass.Initialize(ref ctx);
+        }
+
         cmd.BeginRenderPass(rtDesc, depthDesc, false);
 
         var viewport = new ViewportDesc { width = _currentSize.x, height = _currentSize.y, minDepth = 0, maxDepth = 1 };
@@ -219,12 +226,6 @@ internal unsafe class D3D12Renderer : IRenderer
         cmd.SetScissorRect(scissor);
 
         // NOTE: Testing only.
-        var ctx = new RenderingContext(_graphicsEngine, cmd, _graphicsEngine.CopyCommandBuffer, null!);
-        if (_frameIndex == 0)
-        {
-            _pass.Initialize(ref ctx);
-        }
-
         _pass.Execute(ref ctx);
 
         cmd.EndRenderPass();

@@ -41,13 +41,6 @@ internal static unsafe partial class Win32Utility
         return new IID_PPV(Windows.__uuidof<T>(), comPtr.PPV());
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IID_PPV IID_PPV_ARGS<T>(T** ppv)
-        where T : unmanaged, IUnknown.Interface
-    {
-        return new IID_PPV(Windows.__uuidof<T>(), (void**)ppv);
-    }
-
     [Conditional("DEBUG")]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Assert(this HRESULT hr)
