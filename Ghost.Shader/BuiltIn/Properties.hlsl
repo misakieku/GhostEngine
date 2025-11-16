@@ -6,6 +6,7 @@
 struct PerViewData
 {
     float4x4 cameraMatrix;
+    float4x4 cameraInverseMatrix;
     float4 screenSize; // xy = size, zw = 1/size
 };
 

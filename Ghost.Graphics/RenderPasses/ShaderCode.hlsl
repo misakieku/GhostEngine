@@ -27,8 +27,8 @@ void MSMain(
     out indices uint3 outTris[1])
 {
     // Fetch bindless buffers
-    ByteAddressBuffer vertexBuffer = ResourceDescriptorHeap[g_PerMaterialData.vertexBufferIndex];
-    ByteAddressBuffer indexBuffer = ResourceDescriptorHeap[g_PerMaterialData.indexBufferIndex];
+    ByteAddressBuffer vertexBuffer = ResourceDescriptorHeap[g_PerObjectData.vertexBuffer];
+    ByteAddressBuffer indexBuffer = ResourceDescriptorHeap[g_PerObjectData.indexBuffer];
 
     // Compute the triangle’s vertex indices
     uint vertexId = groupThreadID.x;
@@ -45,6 +45,8 @@ void MSMain(
     v.uv = asfloat(vertexBuffer.Load4(vertexOffset + 64));
 
     SetMeshOutputCounts(3, 1);
+    
+    v.position = mul(g_PerViewData.cameraMatrix, mul(g_PerObjectData.localToWorld, v.position));
     
     // Write vertex output
     outVerts[vertexId].position = v.position;

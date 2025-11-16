@@ -1,6 +1,7 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Core.Utilities;
+using Ghost.Graphics.Core;
 using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
@@ -45,14 +46,6 @@ internal struct D3D12PipelineState : IDisposable
 
 internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
 {
-    private const int rootParamCount =
-#if USE_TRADITIONAL_BINDLESS
-    6
-#else
-    4
-#endif
-    ;
-
     private readonly D3D12RenderDevice _device;
     private readonly D3D12ResourceDatabase _resourceDatabase;
 
@@ -81,7 +74,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
         _defaultRootSignature = default;
 
         // NOTE: Since we are targeting SM 6.6, we can use ResourceDescriptorHeap and SamplerDescriptorHeap directly without needing to set up viewGroup tables.
-        var rootParameters = stackalloc D3D12_ROOT_PARAMETER1[rootParamCount];
+        var rootParameters = stackalloc D3D12_ROOT_PARAMETER1[RootSignatureLayout.ROOT_PARAMETER_COUNT];
         rootParameters[0] = new D3D12_ROOT_PARAMETER1
         {
             ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
@@ -144,7 +137,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
 
         var rootSignatureDesc = new D3D12_ROOT_SIGNATURE_DESC1
         {
-            NumParameters = rootParamCount,
+            NumParameters = RootSignatureLayout.ROOT_PARAMETER_COUNT,
             pParameters = rootParameters,
             NumStaticSamplers = 0,
             pStaticSamplers = null,
@@ -215,19 +208,38 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
         fs.Write(buffer.AsSpan());
     }
 
-    private static CBufferInfo ValidateReflectionData(FullPassDescriptor descriptor, ShaderReflectionData reflectionData)
+    private static Result<CBufferInfo> ValidateReflectionData(FullPassDescriptor descriptor, ShaderReflectionData reflectionData)
     {
-        if (reflectionData.ConstantBuffers.Count != rootParamCount)
+        CBufferInfo cbufferInfo = default;
+
+        foreach (var info in reflectionData.ResourcesBindings)
         {
-            throw new InvalidOperationException($"Shader reflection data has {reflectionData.ConstantBuffers.Count} constant buffers, expected {rootParamCount}");
+            if (info.BindPoint > 3)
+            {
+                return Result.Fail($"Resource binding point {info.BindPoint} is out of range. Only binding points 0-3 are supported in the current root signature.");
+            }
+
+            if (info.Type != D3D_SHADER_INPUT_TYPE.D3D_SIT_CBUFFER)
+            {
+                return Result.Fail($"Resource binding type {info.Type} is not supported. Only constant buffers are supported in the current root signature.");
+            }
+
+            if (info.BindPoint == RootSignatureLayout.PER_MATERIAL_BUFFER_SLOT)
+            {
+                cbufferInfo = new CBufferInfo
+                {
+                    Name = info.Name,
+                    RegisterSlot = info.BindPoint,
+                    RegisterSpace = info.Space,
+                    SizeInBytes = info.Size,
+                    Properties = info.Properties ?? Array.Empty<CBufferPropertyInfo>(),
+                };
+
+                return Result.Success(cbufferInfo);
+            }
         }
 
-        if (reflectionData.OtherResources.Count != 0)
-        {
-            throw new NotSupportedException("Shader reflection data contains unsupported resource types. Only constant buffers are supported in the current root signature.");
-        }
-
-        return reflectionData.ConstantBuffers[RootSignatureLayout.PER_MATERIAL_BUFFER_SLOT];
+        return Result.Fail("Per-material constant buffer not found in shader reflection data.");
 
         // TODO: Validate Cbuffer sizes and bindings.
     }
@@ -242,11 +254,11 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
             try
             {
                 // TODO: This does not include generated code. This will cause a root signature mismatch.
-                var result = D3D12ShaderCompiler.Compile(ref config, Allocator.Persistent, &reflectionBlob).GetValueOrThrow();
+                var result = D3D12ShaderCompiler.Compile(ref config, Allocator.Persistent, (void**)&reflectionBlob).GetValueOrThrow();
                 if (reflectionBlob != null)
                 {
                     var reflection = D3D12ShaderCompiler.PerformDXCReflection(reflectionBlob).GetValueOrThrow();
-                    cbufferInfo = ValidateReflectionData(descriptor, reflection);
+                    cbufferInfo = ValidateReflectionData(descriptor, reflection).GetValueOrThrow();
                 }
 
                 return result;
@@ -361,7 +373,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
 
     private GraphicsPipelineKey CompilePSO(ref readonly GraphicsPSODescriptor descriptor, ref readonly D3D12GraphicsCompiledResult compiled)
     {
-        var rtvCount = (uint)Math.Min(descriptor.rtvFormats.Length, D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT);
+        var rtvCount = (uint)Math.Min(descriptor.RtvFormats.Length, D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT);
 
         var desc = new D3DX12_MESH_SHADER_PIPELINE_STATE_DESC
         {
@@ -372,12 +384,12 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
             SampleMask = UINT32_MAX,
             SampleDesc = new DXGI_SAMPLE_DESC(1, 0),
             NumRenderTargets = rtvCount,
-            DSVFormat = descriptor.dsvFormat.ToDXGIFormat(),
-            DepthStencilState = BuildDepthStencil(descriptor.zTest, descriptor.zWrite),
+            DSVFormat = descriptor.DsvFormat.ToDXGIFormat(),
+            DepthStencilState = BuildDepthStencil(descriptor.ZTest, descriptor.ZWrite),
             NodeMask = 0,
             Flags = D3D12_PIPELINE_STATE_FLAG_NONE,
 
-            BlendState = descriptor.blend switch
+            BlendState = descriptor.Blend switch
             {
                 BlendOptions.Opaque => D3D12Utility.D3D12_BLEND_DESC_OPAQUE,
                 BlendOptions.Alpha => D3D12Utility.D3D12_BLEND_DESC_ALPHA_BLEND,
@@ -386,7 +398,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
                 BlendOptions.PremultipliedAlpha => D3D12Utility.D3D12_BLEND_DESC_PREMULTIPLIED,
                 _ => D3D12Utility.D3D12_BLEND_DESC_OPAQUE
             },
-            RasterizerState = descriptor.cull switch
+            RasterizerState = descriptor.Cull switch
             {
                 CullOptions.Off => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_NONE,
                 CullOptions.Front => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_CLOCKWISE,
@@ -402,16 +414,16 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
 
         var hash = new GraphicsPipelineHash
         {
-            id = descriptor.passId,
-            rtvCount = (uint)descriptor.rtvFormats.Length,
-            dsvFormat = descriptor.dsvFormat,
+            Id = descriptor.PassId,
+            RtvCount = (uint)descriptor.RtvFormats.Length,
+            DsvFormat = descriptor.DsvFormat,
         };
 
         for (var i = 0; i < rtvCount && i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
         {
-            desc.RTVFormats[i] = descriptor.rtvFormats[i].ToDXGIFormat();
-            desc.BlendState.RenderTarget[i].RenderTargetWriteMask = (byte)(descriptor.colorMask & 0x0F);
-            hash.rtvFormats[i] = descriptor.rtvFormats[i];
+            desc.RTVFormats[i] = descriptor.RtvFormats[i].ToDXGIFormat();
+            desc.BlendState.RenderTarget[i].RenderTargetWriteMask = (byte)(descriptor.ColorMask & 0x0F);
+            hash.RtvFormats[i] = descriptor.RtvFormats[i];
         }
 
         var key = hash.GetKey();
@@ -468,15 +480,15 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
 
                 var psoDes = new GraphicsPSODescriptor
                 {
-                    passId = new ShaderPassKey(fullPass.Identifier),
-                    zTest = fullPass.localPipeline.zTest,
-                    zWrite = fullPass.localPipeline.zWrite,
-                    cull = fullPass.localPipeline.cull,
-                    blend = fullPass.localPipeline.blend,
-                    colorMask = fullPass.localPipeline.colorMask,
+                    PassId = new ShaderPassKey(fullPass.Identifier),
+                    ZTest = fullPass.localPipeline.zTest,
+                    ZWrite = fullPass.localPipeline.zWrite,
+                    Cull = fullPass.localPipeline.cull,
+                    Blend = fullPass.localPipeline.blend,
+                    ColorMask = fullPass.localPipeline.colorMask,
 
-                    rtvFormats = rtvs,
-                    dsvFormat = dsv,
+                    RtvFormats = rtvs,
+                    DsvFormat = dsv,
                 };
 
                 key = CompilePSO(in psoDes, in compiled);

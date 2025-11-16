@@ -10,70 +10,7 @@ using static TerraFX.Interop.DirectX.DXC;
 
 namespace Ghost.Graphics.D3D12;
 
-internal struct CompileResult : IDisposable
-{
-    public UnsafeArray<byte> bytecode;
-
-    public readonly bool IsCreated => bytecode.IsCreated;
-
-    public void Dispose()
-    {
-        bytecode.Dispose();
-    }
-}
-
-internal readonly struct ResourceBindingInfo
-{
-    public string Name
-    {
-        get; init;
-    }
-
-    public D3D_SHADER_INPUT_TYPE Type
-    {
-        get; init;
-    }
-
-    public uint BindPoint
-    {
-        get; init;
-    }
-
-    public uint BindCount
-    {
-        get; init;
-    }
-
-    public uint Space
-    {
-        get; init;
-    }
-}
-
-internal readonly struct ShaderReflectionData
-{
-    public List<CBufferInfo> ConstantBuffers
-    {
-        get;
-    }
-
-    public List<ResourceBindingInfo> OtherResources
-    {
-        get;
-    }
-
-    // public List<ResourceBindingInfo> Samplers { get; } = new();
-    // public List<ResourceBindingInfo> ShaderResourceViews { get; } = new();
-    // public List<ResourceBindingInfo> UnorderedAccessViews { get; } = new();
-
-    public ShaderReflectionData()
-    {
-        ConstantBuffers = new List<CBufferInfo>();
-        OtherResources = new List<ResourceBindingInfo>();
-    }
-}
-
-internal static unsafe class D3D12ShaderCompiler
+internal partial class D3D12ShaderCompiler
 {
     private static string GetProfileString(ShaderStage stage, CompilerTier version)
     {
@@ -150,29 +87,63 @@ internal static unsafe class D3D12ShaderCompiler
         return argsArray;
     }
 
-    public static Result<CompileResult> Compile(ref readonly CompilerConfig config, Allocator allocator, IDxcBlob** ppReflectionBlob)
+    private static ShaderInputType ToInputType(D3D_SHADER_INPUT_TYPE type)
     {
-        // NOTE: Should we cache the pCompiler and pUtils instances for better performance?
+        return type switch
+        {
+            D3D_SHADER_INPUT_TYPE.D3D_SIT_CBUFFER => ShaderInputType.ConstantBuffer,
+            D3D_SHADER_INPUT_TYPE.D3D_SIT_TBUFFER => ShaderInputType.Texture,
+            D3D_SHADER_INPUT_TYPE.D3D_SIT_TEXTURE => ShaderInputType.Texture,
+            D3D_SHADER_INPUT_TYPE.D3D_SIT_SAMPLER => ShaderInputType.Sampler,
+            D3D_SHADER_INPUT_TYPE.D3D_SIT_UAV_RWTYPED => ShaderInputType.UAV,
+            D3D_SHADER_INPUT_TYPE.D3D_SIT_STRUCTURED => ShaderInputType.StructuredBuffer,
+            D3D_SHADER_INPUT_TYPE.D3D_SIT_BYTEADDRESS => ShaderInputType.ByteAddressBuffer,
+            D3D_SHADER_INPUT_TYPE.D3D_SIT_UAV_RWSTRUCTURED => ShaderInputType.RWStructuredBuffer,
+            D3D_SHADER_INPUT_TYPE.D3D_SIT_UAV_RWBYTEADDRESS => ShaderInputType.RWByteAddressBuffer,
+            _ => throw new ArgumentOutOfRangeException(nameof(type), "Unsupported shader input type")
+        };
+    }
+}
+
+internal unsafe partial class D3D12ShaderCompiler : IShaderCompiler
+{
+    private ComPtr<IDxcCompiler3> _compiler;
+    private ComPtr<IDxcUtils> _utils;
+
+    public D3D12ShaderCompiler()
+    {
+        // Initialize DXC _compiler.Get() and _utils.Get()
+        var dxccID = CLSID.CLSID_DxcCompiler;
+        var dxcuID = CLSID.CLSID_DxcUtils;
+
         IDxcCompiler3* pCompiler = default;
         IDxcUtils* pUtils = default;
+        ThrowIfFailed(DxcCreateInstance(&dxccID, __uuidof(pCompiler), (void**)&pCompiler));
+        ThrowIfFailed(DxcCreateInstance(&dxcuID, __uuidof(pUtils), (void**)&pUtils));
+
+        _compiler.Attach(pCompiler);
+        _utils.Attach(pUtils);
+    }
+
+    public Result<CompileResult> Compile(ref readonly CompilerConfig config, Allocator allocator, void** ppReflection)
+    {
+        // NOTE: Should we cache the _compiler.Get() and _utils.Get() instances for better performance?
         IDxcIncludeHandler* pIncludeHandler = default;
 
         try
         {
-            // Create DXC pCompiler and pUtils
+            // Create DXC _compiler.Get() and _utils.Get()
             var dxccID = CLSID.CLSID_DxcCompiler;
             var dxcuID = CLSID.CLSID_DxcUtils;
 
-            ThrowIfFailed(DxcCreateInstance(&dxccID, __uuidof(pCompiler), (void**)&pCompiler));
-            ThrowIfFailed(DxcCreateInstance(&dxcuID, __uuidof(pUtils), (void**)&pUtils));
 
-            ThrowIfFailed(pUtils->CreateDefaultIncludeHandler(&pIncludeHandler));
+            ThrowIfFailed(_utils.Get()->CreateDefaultIncludeHandler(&pIncludeHandler));
 
             // Create source blob
             using ComPtr<IDxcBlobEncoding> sourceBlob = default;
             fixed (char* pPath = config.shaderPath)
             {
-                if (pUtils->LoadFile(pPath, null, sourceBlob.GetAddressOf()).FAILED)
+                if (_utils.Get()->LoadFile(pPath, null, sourceBlob.GetAddressOf()).FAILED)
                 {
                     return Result.Fail($"Failed to load shader file: {config.shaderPath}");
                 }
@@ -197,7 +168,7 @@ internal static unsafe class D3D12ShaderCompiler
                     Encoding = DXC_CP_UTF8
                 };
 
-                ThrowIfFailed(pCompiler->Compile(&buffer, argPtrs, (uint)argsArray.Count, pIncludeHandler, __uuidof(pResult), (void**)&pResult));
+                ThrowIfFailed(_compiler.Get()->Compile(&buffer, argPtrs, (uint)argsArray.Count, pIncludeHandler, __uuidof(pResult), (void**)&pResult));
 
                 // Check compilation pResult
                 HRESULT hrStatus;
@@ -224,9 +195,9 @@ internal static unsafe class D3D12ShaderCompiler
                 ThrowIfFailed(pResult->GetResult(bytecodeBlob.GetAddressOf()));
 
                 // Get pReflection data using DXC API
-                if (ppReflectionBlob != null)
+                if (ppReflection != null)
                 {
-                    ThrowIfFailed(pResult->GetOutput(DXC_OUT_KIND.DXC_OUT_REFLECTION, __uuidof<IDxcBlob>(), (void**)ppReflectionBlob, null));
+                    ThrowIfFailed(pResult->GetOutput(DXC_OUT_KIND.DXC_OUT_REFLECTION, __uuidof<IDxcBlob>(), ppReflection, null));
                 }
 
                 var bytecodeSize = bytecodeBlob.Get()->GetBufferSize();
@@ -251,39 +222,37 @@ internal static unsafe class D3D12ShaderCompiler
         }
         finally
         {
-            pCompiler->Release();
-            pUtils->Release();
             pIncludeHandler->Release();
         }
     }
 
     // TODO: Since we are using fixed root signature layout, the pReflection pass should only validate the layout, not generate it.
     // TODO: Ideally this should return a structured pReflection data instead of populating raw lists/dictionaries.
-    public static Result<ShaderReflectionData> PerformDXCReflection(IDxcBlob* reflectionBlob)
+    public Result<ShaderReflectionData> PerformDXCReflection<T>(T* pReflectionBlob)
+        where T : unmanaged
     {
-        if (reflectionBlob == null)
+        if (typeof(T) != typeof(IDxcBlob))
         {
-            return Result<ShaderReflectionData>.Fail("Reflection blob is null.");
+            return Result<ShaderReflectionData>.Fail("Unsupported reflection type. Only IDxcBlob is supported.");
         }
 
-        IDxcUtils* pUtils = default;
         ID3D12ShaderReflection* pReflection = default;
+        IDxcBlob* pDxcReflectionBlob = (IDxcBlob*)pReflectionBlob;
 
         try
         {
-            // Create DXC pUtils to parse pReflection data
+            // Create DXC _utils.Get() to parse pReflection data
             var dxcuID = CLSID.CLSID_DxcUtils;
-            ThrowIfFailed(DxcCreateInstance(&dxcuID, __uuidof(pUtils), (void**)&pUtils));
 
             // Create pReflection interface from blob
             var reflectionBuffer = new DxcBuffer
             {
-                Ptr = reflectionBlob->GetBufferPointer(),
-                Size = reflectionBlob->GetBufferSize(),
+                Ptr = pDxcReflectionBlob->GetBufferPointer(),
+                Size = pDxcReflectionBlob->GetBufferSize(),
                 Encoding = DXC_CP_ACP
             };
 
-            ThrowIfFailed(pUtils->CreateReflection(&reflectionBuffer, __uuidof(pReflection), (void**)&pReflection));
+            ThrowIfFailed(_utils.Get()->CreateReflection(&reflectionBuffer, __uuidof(pReflection), (void**)&pReflection));
 
             D3D12_SHADER_DESC shaderDesc;
             ThrowIfFailed(pReflection->GetDesc(&shaderDesc));
@@ -300,6 +269,15 @@ internal static unsafe class D3D12ShaderCompiler
                 {
                     return Result.Fail("Failed to get resource name from reflection data.");
                 }
+
+                var info = new ResourceBindingInfo
+                {
+                    Name = resourceName,
+                    Type = ToInputType(bindDesc.Type),
+                    BindPoint = bindDesc.BindPoint,
+                    BindCount = bindDesc.BindCount,
+                    Space = bindDesc.Space
+                };
 
                 switch (bindDesc.Type)
                 {
@@ -332,41 +310,22 @@ internal static unsafe class D3D12ShaderCompiler
                             });
                         }
 
-                        reflectionData.ConstantBuffers.Add(new CBufferInfo
-                        {
-                            Name = resourceName,
-                            RegisterSlot = bindDesc.BindPoint,
-                            RegisterSpace = bindDesc.Space,
-                            SizeInBytes = cbufferDesc.Size,
-                            Properties = variables
-                        });
+                        info.Size = cbufferDesc.Size;
+                        info.Properties = variables;
 
                         break;
                     }
 
                     // NOTE: Currently we do not support resource bindings yet, everything access through bindless heaps.
-                    default:
-                    {
-                        reflectionData.OtherResources.Add(new ResourceBindingInfo
-                        {
-                            Name = resourceName,
-                            Type = bindDesc.Type,
-                            BindPoint = bindDesc.BindPoint,
-                            BindCount = bindDesc.BindCount,
-                            Space = bindDesc.Space
-                        });
-
-                        break;
-                    }
                 }
+
+                reflectionData.ResourcesBindings.Add(info);
             }
 
             return reflectionData;
-
         }
         finally
         {
-            pUtils->Release();
             pReflection->Release();
         }
     }

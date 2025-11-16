@@ -22,6 +22,11 @@ public readonly struct Result
         return new Result(false, message);
     }
 
+    public static Result<T> Success<T>(T value)
+    {
+        return Result<T>.Success(value);
+    }
+
     public override string ToString() => success ? "OK" : $"Error: {message}";
 
     public static implicit operator bool(Result result) => result.success;
@@ -34,16 +39,16 @@ public readonly struct Result<T>
 
     public readonly string? message;
 
-    public Result(bool success, T data, string? message = null)
+    public Result(bool success, T value, string? message = null)
     {
         this.success = success;
-        this.value = data;
+        this.value = value;
         this.message = message;
     }
 
-    public static Result<T> Success(T data)
+    public static Result<T> Success(T value)
     {
-        return new Result<T>(true, data);
+        return new Result<T>(true, value);
     }
 
     public static Result<T> Fail(string? message)

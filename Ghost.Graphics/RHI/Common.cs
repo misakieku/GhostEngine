@@ -85,23 +85,36 @@ internal struct GraphicsPipelineHash
         public TextureFormat rtvFormats;
     }
 
-    public ShaderPassKey id;
-    public rtv_array rtvFormats;
-    public uint rtvCount;
-    public TextureFormat dsvFormat;
+    public ShaderPassKey Id
+    {
+        get; set;
+    }
+
+    public rtv_array RtvFormats;
+
+    public uint RtvCount
+    {
+        get; set;
+    }
+
+    public TextureFormat DsvFormat
+    {
+        get; set;
+    }
+
     // Do we need to store blend state?
     // TODO: Variants
 
-    public readonly GraphicsPipelineKey GetKey()
+    public GraphicsPipelineKey GetKey()
     {
         Span<ulong> data = stackalloc ulong[3 + D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
-        data[0] = id.value;
-        data[1] = rtvCount;
-        data[2] = (ulong)dsvFormat;
+        data[0] = Id.value;
+        data[1] = RtvCount;
+        data[2] = (ulong)DsvFormat;
 
         for (var i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
         {
-            data[3 + i] = (ulong)rtvFormats[i];
+            data[3 + i] = (ulong)RtvFormats[i];
         }
 
         var bytes = MemoryMarshal.AsBytes(data);
@@ -111,15 +124,46 @@ internal struct GraphicsPipelineHash
 
 public ref struct GraphicsPSODescriptor
 {
-    public ShaderPassKey passId;
-    public ZTestOptions zTest;
-    public ZWriteOptions zWrite;
-    public CullOptions cull;
-    public BlendOptions blend;
-    public uint colorMask;
+    public ShaderPassKey PassId
+    {
+        get; set;
+    }
 
-    public ReadOnlySpan<TextureFormat> rtvFormats;
-    public TextureFormat dsvFormat;
+    public ZTestOptions ZTest
+    {
+        get; set;
+    }
+
+    public ZWriteOptions ZWrite
+    {
+        get; set;
+    }
+
+    public CullOptions Cull
+    {
+        get; set;
+    }
+
+    public BlendOptions Blend
+    {
+        get; set;
+    }
+
+    public uint ColorMask
+    {
+        get; set;
+    }
+
+
+    public ReadOnlySpan<TextureFormat> RtvFormats
+    {
+        get; set;
+    }
+
+    public TextureFormat DsvFormat
+    {
+        get; set;
+    }
 }
 
 public readonly struct CBufferPropertyInfo
@@ -170,20 +214,60 @@ public readonly struct CBufferInfo
 
 public struct ViewportDesc
 {
-    public float x;
-    public float y;
-    public float width;
-    public float height;
-    public float minDepth;
-    public float maxDepth;
+    public float X
+    {
+        get; set;
+    }
+
+    public float Y
+    {
+        get; set;
+    }
+
+    public float Width
+    {
+        get; set;
+    }
+
+    public float Height
+    {
+        get; set;
+    }
+
+    public float MinDepth
+    {
+        get; set;
+    }
+
+    public float MaxDepth
+    {
+        get; set;
+    }
+
 }
 
 public struct RectDesc
 {
-    public uint left;
-    public uint top;
-    public uint right;
-    public uint bottom;
+    public uint Left
+    {
+        get; set;
+    }
+
+    public uint Top
+    {
+        get; set;
+    }
+
+    public uint Right
+    {
+        get; set;
+    }
+
+    public uint Bottom
+    {
+        get; set;
+    }
+
 }
 
 public struct SubResourceData
@@ -195,32 +279,68 @@ public struct SubResourceData
 
 public struct PassRenderTargetDesc
 {
-    public Handle<Texture> texture;
-    public Color128 clearColor;
+    public Handle<Texture> Texture
+    {
+        get; set;
+    }
+
+    public Color128 ClearColor
+    {
+        get; set;
+    }
+
 }
 
 public struct PassDepthStencilDesc
 {
-    public Handle<Texture> texture;
-    public float clearDepth;
-    public byte clearStencil;
+    public Handle<Texture> Texture
+    {
+        get; set;
+    }
+
+    public float ClearDepth
+    {
+        get; set;
+    }
+
+    public byte ClearStencil
+    {
+        get; set;
+    }
+
 }
 
 
-[StructLayout(LayoutKind.Explicit)]
 public struct ResourceDesc
 {
-    [FieldOffset(0)]
-    public TextureDesc textureDescription;
+    [StructLayout(LayoutKind.Explicit)]
+    private struct resource_union
+    {
+        [FieldOffset(0)]
+        public TextureDesc textureDescription;
+        [FieldOffset(0)]
+        public BufferDesc bufferDescription;
+    }
 
-    [FieldOffset(0)]
-    public BufferDesc bufferDescription;
+    private resource_union _desc;
+
+    public TextureDesc TextureDescription
+    {
+        readonly get => _desc.textureDescription;
+        set => _desc.textureDescription = value;
+    }
+
+    public BufferDesc BufferDescription
+    {
+        readonly get => _desc.bufferDescription;
+        set => _desc.bufferDescription = value;
+    }
 
     public static ResourceDesc Buffer(BufferDesc desc)
     {
         return new ResourceDesc
         {
-            bufferDescription = desc
+            BufferDescription = desc
         };
     }
 
@@ -228,7 +348,7 @@ public struct ResourceDesc
     {
         return new ResourceDesc
         {
-            textureDescription = desc
+            TextureDescription = desc
         };
     }
 
@@ -271,8 +391,7 @@ public struct RenderTargetDesc
     /// </summary>
     public uint Width
     {
-        get;
-        set;
+        get; set;
     }
 
     /// <summary>
@@ -280,8 +399,7 @@ public struct RenderTargetDesc
     /// </summary>
     public uint Height
     {
-        get;
-        set;
+        get; set;
     }
 
     /// <summary>
@@ -289,8 +407,7 @@ public struct RenderTargetDesc
     /// </summary>
     public uint Slice
     {
-        get;
-        set;
+        get; set;
     }
 
     /// <summary>
@@ -298,8 +415,7 @@ public struct RenderTargetDesc
     /// </summary>
     public RenderTargetType Type
     {
-        get;
-        set;
+        get; set;
     }
 
     /// <summary>
@@ -307,8 +423,7 @@ public struct RenderTargetDesc
     /// </summary>
     public TextureFormat Format
     {
-        get;
-        set;
+        get; set;
     }
 
     /// <summary>
@@ -316,8 +431,7 @@ public struct RenderTargetDesc
     /// </summary>
     public TextureDimension Dimension
     {
-        get;
-        set;
+        get; set;
     }
 
     /// <summary>
@@ -325,8 +439,7 @@ public struct RenderTargetDesc
     /// </summary>
     public RenderTargetCreationFlags CreationFlags
     {
-        get;
-        set;
+        get; set;
     }
 
     /// <summary>
@@ -334,8 +447,7 @@ public struct RenderTargetDesc
     /// </summary>
     public uint MipLevels
     {
-        get;
-        set;
+        get; set;
     }
 
     /// <summary>
@@ -343,8 +455,7 @@ public struct RenderTargetDesc
     /// </summary>
     public uint SampleCount
     {
-        get;
-        set;
+        get; set;
     }
 
     /// <summary>
@@ -423,8 +534,7 @@ public struct TextureDesc
     /// </summary>
     public uint Width
     {
-        get;
-        set;
+        get; set;
     }
 
     /// <summary>
@@ -432,8 +542,7 @@ public struct TextureDesc
     /// </summary>
     public uint Height
     {
-        get;
-        set;
+        get; set;
     }
 
     /// <summary>
@@ -441,8 +550,7 @@ public struct TextureDesc
     /// </summary>
     public uint Slice
     {
-        get;
-        set;
+        get; set;
     }
 
     /// <summary>
@@ -450,8 +558,7 @@ public struct TextureDesc
     /// </summary>
     public TextureFormat Format
     {
-        get;
-        set;
+        get; set;
     }
 
     /// <summary>
@@ -468,8 +575,7 @@ public struct TextureDesc
     /// </summary>
     public uint MipLevels
     {
-        get;
-        set;
+        get; set;
     }
 
     /// <summary>
@@ -477,8 +583,7 @@ public struct TextureDesc
     /// </summary>
     public TextureUsage Usage
     {
-        get;
-        set;
+        get; set;
     }
 }
 
@@ -492,14 +597,12 @@ public struct BufferDesc
     /// </summary>
     public ulong Size
     {
-        get;
-        set;
+        get; set;
     }
 
     public uint Stride
     {
-        get;
-        set;
+        get; set;
     }
 
     /// <summary>
@@ -507,8 +610,7 @@ public struct BufferDesc
     /// </summary>
     public BufferUsage Usage
     {
-        get;
-        set;
+        get; set;
     }
 
     /// <summary>
@@ -516,8 +618,7 @@ public struct BufferDesc
     /// </summary>
     public ResourceMemoryType MemoryType
     {
-        get;
-        set;
+        get; set;
     }
 }
 
@@ -724,50 +825,4 @@ public enum PrimitiveTopology
     Point,
     Line,
     Triangle,
-}
-
-// SDL compiler
-
-internal ref struct CompilerConfig
-{
-    public ReadOnlySpan<string> defines;
-    public string? include;
-    public string shaderPath;
-    public string entryPoint;
-    public ShaderStage stage;
-    public CompilerTier tier;
-    public CompilerOptimizeLevel optimizeLevel;
-    public CompilerOption options;
-}
-
-internal enum CompilerTier
-{
-    Tier0,
-    Tier1,
-    Tier2
-}
-
-internal enum CompilerOptimizeLevel
-{
-    O0,
-    O1,
-    O2,
-    O3
-}
-
-[Flags]
-internal enum CompilerOption
-{
-    None = 0,
-    KeepDebugInfo = 1 << 0,
-    KeepReflections = 1 << 1,
-    WarnAsError = 1 << 2
-}
-
-internal enum ShaderStage
-{
-    TaskShader,
-    MeshShader,
-    PixelShader,
-    ComputeShader
 }

@@ -1,3 +1,4 @@
+using Misaki.HighPerformance.LowLevel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -96,5 +97,19 @@ internal static unsafe partial class Win32Utility
         where T : Enum
     {
         return (flags & Unsafe.As<T, uint>(ref flag)) != 0;
+    }
+
+    extension(MemoryLeakException)
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [Conditional("DEBUG")]
+        [Conditional("GHOST_EDITOR")]
+        public static void ThrowIfRefCountNonZero(uint count)
+        {
+            if (count != 0)
+            {
+                throw new MemoryLeakException($"Reference count is not zero: {count}");
+            }
+        }
     }
 }

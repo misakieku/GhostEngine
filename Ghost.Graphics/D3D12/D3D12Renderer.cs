@@ -199,15 +199,15 @@ internal unsafe class D3D12Renderer : IRenderer
         Span<PassRenderTargetDesc> rtDesc = stackalloc PassRenderTargetDesc[1];
         rtDesc[0] = new PassRenderTargetDesc
         {
-            texture = target,
-            clearColor = clearColor,
+            Texture = target,
+            ClearColor = clearColor,
         };
 
         var depthDesc = new PassDepthStencilDesc
         {
-            texture = Handle<Texture>.Invalid,
-            clearDepth = 1.0f,
-            clearStencil = 0,
+            Texture = Handle<Texture>.Invalid,
+            ClearDepth = 1.0f,
+            ClearStencil = 0,
         };
 
         // NOTE: Testing only.
@@ -219,8 +219,8 @@ internal unsafe class D3D12Renderer : IRenderer
 
         cmd.BeginRenderPass(rtDesc, depthDesc, false);
 
-        var viewport = new ViewportDesc { width = _currentSize.x, height = _currentSize.y, minDepth = 0, maxDepth = 1 };
-        var scissor = new RectDesc { right = _currentSize.x, bottom = _currentSize.y };
+        var viewport = new ViewportDesc { Width = _currentSize.x, Height = _currentSize.y, MinDepth = 0, MaxDepth = 1 };
+        var scissor = new RectDesc { Right = _currentSize.x, Bottom = _currentSize.y };
 
         cmd.SetViewport(viewport);
         cmd.SetScissorRect(scissor);

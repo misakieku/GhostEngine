@@ -1,5 +1,4 @@
 using Ghost.Core;
-using Ghost.Core.Graphics;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
@@ -123,7 +122,7 @@ public unsafe readonly ref struct RenderingContext
     public void UploadTexture(Handle<Texture> texture, ReadOnlySpan<byte> data)
     {
         var desc = ResourceDatabase.GetResourceDescription(texture.AsResource());
-        desc.textureDescription.Format.GetSurfaceInfo((int)desc.textureDescription.Width, (int)desc.textureDescription.Height, out var rowPitch, out var slicePitch, out _);
+        desc.TextureDescription.Format.GetSurfaceInfo((int)desc.TextureDescription.Width, (int)desc.TextureDescription.Height, out var rowPitch, out var slicePitch, out _);
 
         var subresourceData = new SubResourceData
         {
@@ -159,12 +158,12 @@ public unsafe readonly ref struct RenderingContext
         shader.TryGetPassKey(passName, out var passIndex, out var passKey);
         var hash = new GraphicsPipelineHash
         {
-            id = passKey,
-            rtvCount = 1,
-            dsvFormat = TextureFormat.Unknown,
+            Id = passKey,
+            RtvCount = 1,
+            DsvFormat = TextureFormat.Unknown,
         };
 
-        hash.rtvFormats[0] = TextureFormat.B8G8R8A8_UNorm;
+        hash.RtvFormats[0] = TextureFormat.B8G8R8A8_UNorm;
         var pipelineKey = hash.GetKey();
         _directCmd.SetPipelineState(pipelineKey);
 

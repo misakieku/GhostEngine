@@ -47,7 +47,7 @@ public interface ISwapChain : IDisposable
     /// <summary>
     /// Resizes the swap chain back buffers
     /// </summary>
-    /// <param name="width">New width</param>
-    /// <param name="height">New height</param>
+    /// <param name="width">New Width</param>
+    /// <param name="height">New Height</param>
     public void Resize(uint width, uint height);
 }

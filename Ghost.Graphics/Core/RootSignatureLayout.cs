@@ -1,4 +1,4 @@
-namespace Ghost.Core.Graphics;
+namespace Ghost.Graphics.Core;
 
 /// <summary>
 /// The layout of the root signature is:
@@ -32,4 +32,12 @@ public static class RootSignatureLayout
 
     public const int TEXTURE_HEAP_SLOT = 0;
     public const int SAMPLER_HEAP_SLOT = 0;
+
+    public const int ROOT_PARAMETER_COUNT =
+#if USE_TRADITIONAL_BINDLESS
+    6
+#else
+    4
+#endif
+    ;
 }
