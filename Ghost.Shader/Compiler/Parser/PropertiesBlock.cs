@@ -442,7 +442,7 @@ internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySem
             return false;
         }
 
-        // Build default value if we have a builder (textures currently null / TODO)
+        // Build default Value if we have a builder (textures currently null / TODO)
         if (info.Builder != null)
         {
             try

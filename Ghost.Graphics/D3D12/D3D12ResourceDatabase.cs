@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Collections;
+using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Diagnostics;
@@ -19,16 +20,16 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
         public struct ResourceUnion
         {
             [FieldOffset(0)]
-            public ComPtr<D3D12MA_Allocation> allocation;
+            public UniquePtr<D3D12MA_Allocation> allocation;
             [FieldOffset(0)]
-            public ComPtr<ID3D12Resource> resource;
+            public UniquePtr<ID3D12Resource> resource;
 
-            public ResourceUnion(ComPtr<D3D12MA_Allocation> allocation)
+            public ResourceUnion(D3D12MA_Allocation* allocation)
             {
                 this.allocation = allocation;
             }
 
-            public ResourceUnion(ComPtr<ID3D12Resource> resource)
+            public ResourceUnion(ID3D12Resource* resource)
             {
                 this.resource = resource;
             }
@@ -44,7 +45,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
         public readonly bool Allocated => isExternal ? resourceUnion.resource.Get() != null : resourceUnion.allocation.Get() != null;
         public readonly ID3D12Resource* ResourcePtr => isExternal ? resourceUnion.resource.Get() : resourceUnion.allocation.Get()->GetResource();
 
-        public ResourceRecord(ComPtr<D3D12MA_Allocation> allocation, uint cpuFenceValue, ResourceState state, ResourceViewGroup resourceDescriptor, ResourceDesc desc)
+        public ResourceRecord(D3D12MA_Allocation* allocation, uint cpuFenceValue, ResourceState state, ResourceViewGroup resourceDescriptor, ResourceDesc desc)
         {
             this.resourceUnion = new ResourceUnion(allocation);
             this.isExternal = false;
@@ -55,7 +56,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
             this.desc = desc;
         }
 
-        public ResourceRecord(ComPtr<ID3D12Resource> resource, ResourceState state)
+        public ResourceRecord(ID3D12Resource* resource, ResourceState state)
         {
             this.resourceUnion = new ResourceUnion(resource);
             this.isExternal = true;
@@ -63,7 +64,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
             this.viewGroup = default;
             this.cpuFenceValue = ~0u;
             this.state = state;
-            this.desc = ResourceDesc.FromD3D12(resource.Get()->GetDesc());
+            this.desc = ResourceDesc.FromD3D12(resource->GetDesc());
         }
 
         public uint Release(D3D12DescriptorAllocator descriptorAllocator)
@@ -73,11 +74,11 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
             {
                 if (isExternal)
                 {
-                    refCount = resourceUnion.resource.Reset();
+                    refCount = resourceUnion.resource.Get()->Release();
                 }
                 else
                 {
-                    refCount = resourceUnion.allocation.Reset();
+                    refCount = resourceUnion.allocation.Get()->Release();
                 }
 
                 resourceUnion = default;
@@ -131,11 +132,11 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
         resource = default!;
     }
 
-    public Handle<GPUResource> ImportExternalResource(ComPtr<ID3D12Resource> resource, ResourceState initialState, string? name = null)
+    public unsafe Handle<GPUResource> ImportExternalResource(ID3D12Resource* pResource, ResourceState initialState, string? name = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        var id = _resources.Add(new ResourceRecord(resource, initialState), out var generation);
+        var id = _resources.Add(new ResourceRecord(pResource, initialState), out var generation);
         var handle = new Handle<GPUResource>(id, generation);
 
 #if DEBUG || GHOST_EDITOR
@@ -148,7 +149,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
         return handle;
     }
 
-    public Handle<GPUResource> AddResource(ComPtr<D3D12MA_Allocation> allocation, uint cpuFenceValue, ResourceState initialState, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string? name = null)
+    public unsafe Handle<GPUResource> AddResource(D3D12MA_Allocation* allocation, uint cpuFenceValue, ResourceState initialState, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string? name = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 

@@ -31,8 +31,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Misaki.HighPerformance.Analyzer" Version="1.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Misaki.HighPerformance.Image" Version="1.0.0" />
-    <PackageReference Include="TerraFX.Interop.D3D12MemoryAllocator" Version="2.0.1.5" />
+    <PackageReference Include="TerraFX.Interop.D3D12MemoryAllocator" Version="3.0.1" />
   </ItemGroup>
 
   <ItemGroup>

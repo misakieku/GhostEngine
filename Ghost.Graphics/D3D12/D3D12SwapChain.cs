@@ -17,13 +17,11 @@ namespace Ghost.Graphics.D3D12;
 /// <summary>
 /// D3D12 implementation of swap chain interface
 /// </summary>
-internal unsafe class D3D12SwapChain : ISwapChain
+internal unsafe class D3D12SwapChain : IUnknownObject<IDXGISwapChain4>, ISwapChain
 {
     private readonly D3D12ResourceDatabase _resourceDatabase;
 
-    private ComPtr<IDXGISwapChain4> _swapChain;
     private UnsafeArray<Handle<Texture>> _backBuffers;
-    private bool _disposed;
 
     public uint Width
     {
@@ -109,37 +107,42 @@ internal unsafe class D3D12SwapChain : ISwapChain
         pTempSwapChain->QueryInterface(__uuidof(pSwapChain), (void**)&pSwapChain);
         pTempSwapChain->Release();
 
-        _swapChain.Attach(pSwapChain);
+        nativeObject.Attach(pSwapChain);
     }
 
     private void CreateBackBuffers()
     {
         for (uint i = 0; i < BufferCount; i++)
         {
-            ComPtr<ID3D12Resource> backBuffer = default;
-            _swapChain.Get()->GetBuffer(i, backBuffer.IID(), backBuffer.PPV());
-            backBuffer.Get()->SetName($"SwapChain_BackBuffer_{i}");
+            ID3D12Resource* pBackBuffer = default;
+            nativeObject.Get()->GetBuffer(i, __uuidof(pBackBuffer), (void**)&pBackBuffer);
+            pBackBuffer->SetName($"SwapChain_BackBuffer_{i}");
 
-            _backBuffers[i] = _resourceDatabase.ImportExternalResource(backBuffer.Move(), ResourceState.Present).AsTexture();
+            _backBuffers[i] = _resourceDatabase.ImportExternalResource(pBackBuffer, ResourceState.Present).AsTexture();
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Handle<Texture> GetCurrentBackBuffer()
     {
-        return _backBuffers[_swapChain.Get()->GetCurrentBackBufferIndex()];
+        ThrowIfDisposed();
+        return _backBuffers[nativeObject.Get()->GetCurrentBackBufferIndex()];
     }
 
     public void Present(bool vsync = true)
     {
+        ThrowIfDisposed();
+
         var presentFlags = 0u;
         var syncInterval = vsync ? 1u : 0u;
 
-        ThrowIfFailed(_swapChain.Get()->Present(syncInterval, presentFlags));
+        ThrowIfFailed(nativeObject.Get()->Present(syncInterval, presentFlags));
     }
 
     public void Resize(uint width, uint height)
     {
+        ThrowIfDisposed();
+
         if (Width == width && Height == height)
         {
             return;
@@ -152,7 +155,7 @@ internal unsafe class D3D12SwapChain : ISwapChain
         }
 
         // Resize the swap chain
-        if (_swapChain.Get()->ResizeBuffers(BufferCount, width, height, DXGI_FORMAT_B8G8R8A8_UNORM, (uint)DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING).FAILED)
+        if (nativeObject.Get()->ResizeBuffers(BufferCount, width, height, DXGI_FORMAT_B8G8R8A8_UNORM, (uint)DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING).FAILED)
         {
             throw new InvalidOperationException("Failed to resize swap chain buffers.");
         }
@@ -164,9 +167,9 @@ internal unsafe class D3D12SwapChain : ISwapChain
         CreateBackBuffers();
     }
 
-    public void Dispose()
+    protected override void Dispose(bool disposing)
     {
-        if (_disposed)
+        if (Disposed)
         {
             return;
         }
@@ -176,8 +179,8 @@ internal unsafe class D3D12SwapChain : ISwapChain
             _resourceDatabase.ReleaseResource(_backBuffers[i].AsResource());
         }
 
-        _swapChain.Dispose();
         _backBuffers.Dispose();
-        _disposed = true;
+
+        base.Dispose(disposing);
     }
 }

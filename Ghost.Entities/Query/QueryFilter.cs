@@ -40,11 +40,11 @@ public struct QueryFilter : IDisposable
 
                 if (!allMask.IsCreated)
                 {
-                    allMask = new UnsafeBitSet(mask.Length, Allocator.Stack, AllocationOption.None);
+                    allMask = new UnsafeBitSet(mask.Count, Allocator.Stack, AllocationOption.None);
                     allMask.SetAll();
                 }
 
-                allMask.AndOperation(mask);
+                allMask.And(mask);
             }
 
             foreach (var typeHandle in _any)
@@ -53,10 +53,10 @@ public struct QueryFilter : IDisposable
 
                 if (!anyMask.IsCreated)
                 {
-                    anyMask = new UnsafeBitSet(mask.Length, Allocator.Stack);
+                    anyMask = new UnsafeBitSet(mask.Count, Allocator.Stack);
                 }
 
-                anyMask.OrOperation(mask);
+                anyMask.And(mask);
             }
 
             foreach (var typeHandle in _absent)
@@ -65,25 +65,25 @@ public struct QueryFilter : IDisposable
 
                 if (!absentMask.IsCreated)
                 {
-                    absentMask = new UnsafeBitSet(mask.Length, Allocator.Stack);
+                    absentMask = new UnsafeBitSet(mask.Count, Allocator.Stack);
                 }
 
-                absentMask.OrOperation(mask);
+                absentMask.Or(mask);
             }
 
             if (allMask.IsCreated)
             {
-                result.AndOperation(allMask);
+                result.And(allMask);
             }
 
             if (anyMask.IsCreated)
             {
-                result.AndOperation(anyMask);
+                result.And(anyMask);
             }
 
             if (absentMask.IsCreated)
             {
-                result.AndOperation(~absentMask);
+                result.And(~absentMask);
             }
         }
 

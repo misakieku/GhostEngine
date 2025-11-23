@@ -126,7 +126,7 @@ public ref struct MaterialAccessor
     /// Sets a float property in the material's constant buffer.
     /// </summary>
     /// <param name="propertyName">The name of the property to set.</param>
-    /// <param name="value">The value to set for the property.</param>
+    /// <param name="value">The Value to set for the property.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly void SetFloat(string propertyName, in float value)
     {
@@ -137,7 +137,7 @@ public ref struct MaterialAccessor
     /// Sets a uint property in the material's constant buffer (useful for texture indices).
     /// </summary>
     /// <param name="propertyName">The name of the property to set.</param>
-    /// <param name="value">The value to set for the property.</param>
+    /// <param name="value">The Value to set for the property.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly void SetUInt(string propertyName, in uint value)
     {
@@ -148,7 +148,7 @@ public ref struct MaterialAccessor
     /// Sets a Vector property in the material's constant buffer.
     /// </summary>
     /// <param name="propertyName">The name of the property to set.</param>
-    /// <param name="value">The value to set for the property.</param>
+    /// <param name="value">The Value to set for the property.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly void SetVector(string propertyName, in float4 value)
     {
@@ -159,7 +159,7 @@ public ref struct MaterialAccessor
     /// Sets a Matrix property in the material's constant buffer.
     /// </summary>
     /// <param name="propertyName">The name of the property to set.</param>
-    /// <param name="value">The value to set for the property.</param>
+    /// <param name="value">The Value to set for the property.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly void SetMatrix(string propertyName, in float4x4 value)
     {

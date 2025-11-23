@@ -59,7 +59,7 @@ public readonly struct GraphicsPipelineKey
     {
         if (!value.TryFormat(destination, out _, "X16"))
         {
-            return Result.Fail("Failed to format GraphicsPipelineKey to string.");
+            return Result.Failure("Failed to format GraphicsPipelineKey to string.");
         }
 
         destination[16] = '\0';
@@ -166,7 +166,7 @@ public ref struct GraphicsPSODescriptor
     }
 }
 
-public readonly struct CBufferPropertyInfo
+public readonly record struct CBufferPropertyInfo
 {
     public string Name
     {
@@ -184,7 +184,7 @@ public readonly struct CBufferPropertyInfo
     }
 }
 
-public readonly struct CBufferInfo
+public readonly record struct CBufferInfo
 {
     public string Name
     {

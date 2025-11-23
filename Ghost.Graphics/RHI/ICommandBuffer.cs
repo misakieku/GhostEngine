@@ -167,7 +167,7 @@ public interface ICommandBuffer : IDisposable
     /// <summary>
     /// Uploads the specified data to the buffer represented by the given handle.
     /// </summary>
-    /// <typeparam name="T">The unmanaged value type of the elements to upload to the buffer.</typeparam>
+    /// <typeparam name="T">The unmanaged Value type of the elements to upload to the buffer.</typeparam>
     /// <param name="buffer">A handle to the buffer that will receive the uploaded data.</param>
     /// <param name="data">A read-only span containing the data to upload to the buffer. The span must contain elements of type
     /// <typeparamref name="T"/>.</param>

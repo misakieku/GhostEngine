@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Graphics.Contracts;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
@@ -17,6 +18,7 @@ public unsafe readonly ref struct RenderingContext
     public ICommandBuffer CopyCommandBuffer => _copyCmd;
     public ICommandBuffer ComputeCommandBuffer => _computeCmd;
 
+    public IShaderCompiler ShaderCompiler => _engine.ShaderCompiler;
     public IResourceAllocator ResourceAllocator => _engine.ResourceAllocator;
     public IResourceDatabase ResourceDatabase => _engine.ResourceDatabase;
     public IPipelineLibrary PipelineLibrary => _engine.PipelineLibrary;

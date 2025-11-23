@@ -1,10 +1,13 @@
 using Ghost.Core;
-using Ghost.Graphics.Core;
+using Ghost.Core.Graphics;
 using Ghost.Graphics.Contracts;
+using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Utilities;
 using Ghost.SDL.Compiler;
 using Misaki.HighPerformance.Image;
+using Misaki.HighPerformance.Utilities;
+using TerraFX.Interop.Windows;
 
 namespace Ghost.Graphics.RenderPasses;
 
@@ -30,14 +33,36 @@ internal unsafe class MeshRenderPass : IRenderPass
     {
         var shaderDescriptor = SDLCompiler.CompileShader("F:/csharp/GhostEngine/Ghost.Graphics/test.gshader", "C:/Users/Misaki/Downloads/Archive").GetValueOrThrow();
 
-        var key = ctx.PipelineLibrary.CompilePassPSO(shaderDescriptor.passes[0], [TextureFormat.B8G8R8A8_UNorm], TextureFormat.Unknown);
+        foreach (var pass in shaderDescriptor.passes)
+        {
+            var compileResult = ctx.ShaderCompiler.CompilePass(pass);
+            if (compileResult.IsFailure || pass is not FullPassDescriptor fullPass)
+            {
+                continue;
+            }
+
+            var psoDes = new GraphicsPSODescriptor
+            {
+                PassId = new ShaderPassKey(fullPass.Identifier),
+                ZTest = fullPass.localPipeline.zTest,
+                ZWrite = fullPass.localPipeline.zWrite,
+                Cull = fullPass.localPipeline.cull,
+                Blend = fullPass.localPipeline.blend,
+                ColorMask = fullPass.localPipeline.colorMask,
+
+                RtvFormats = [TextureFormat.B8G8R8A8_UNorm],
+                DsvFormat = TextureFormat.Unknown,
+            };
+
+            ctx.PipelineLibrary.CompilePSO(in psoDes, in compileResult.GetValueRef()).GetValueOrThrow();
+        }
 
         MeshBuilder.CreateCube(0.75f, default, out var vertices, out var indices);
 
         _mesh = ctx.CreateMesh(vertices, indices);
         ctx.UploadMesh(_mesh, true);
 
-        _shader = ctx.ResourceAllocator.CreateShader(shaderDescriptor);
+        _shader = ctx.ResourceAllocator.CreateGraphicsShader(shaderDescriptor);
         _material = ctx.ResourceAllocator.CreateMaterial(_shader);
 
         var imageResults = new ImageResult[_textureFiles.Length];

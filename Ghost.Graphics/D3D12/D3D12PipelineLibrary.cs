@@ -1,9 +1,11 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Core.Utilities;
+using Ghost.Graphics.Contracts;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
@@ -17,25 +19,10 @@ using static TerraFX.Aliases.D3D12_Alias;
 
 namespace Ghost.Graphics.D3D12;
 
-internal struct D3D12GraphicsCompiledResult : IDisposable
-{
-    public CompileResult tsResult;
-    public CompileResult msResult;
-    public CompileResult psResult;
-    public CBufferInfo cbufferInfo;
-
-    public void Dispose()
-    {
-        tsResult.Dispose();
-        msResult.Dispose();
-        psResult.Dispose();
-    }
-}
-
 internal struct D3D12PipelineState : IDisposable
 {
     public D3DX12_MESH_SHADER_PIPELINE_STATE_DESC psoDesc;
-    public ComPtr<ID3D12PipelineState> pso;
+    public UniquePtr<ID3D12PipelineState> pso;
     public ShaderPassKey shaderPass;
 
     public void Dispose()
@@ -49,12 +36,11 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
     private readonly D3D12RenderDevice _device;
     private readonly D3D12ResourceDatabase _resourceDatabase;
 
-    private ComPtr<ID3D12PipelineLibrary1> _library;
-    private ComPtr<ID3D12RootSignature> _defaultRootSignature;
+    private UniquePtr<ID3D12PipelineLibrary1> _library;
+    private UniquePtr<ID3D12RootSignature> _defaultRootSignature;
 
     private readonly Dictionary<GraphicsPipelineKey, D3D12PipelineState> _pipelineCache;
-    // NOTE: This is just a temporary cache for compiled shader code. We will implement a proper disk cache later.
-    private readonly Dictionary<ShaderPassKey, D3D12GraphicsCompiledResult> _compiledResults;
+    private readonly Dictionary<ShaderPassKey, CBufferInfo> _cbufferInfoCache;
 
     public ID3D12RootSignature* DefaultRootSignature => _defaultRootSignature.Get();
 
@@ -63,13 +49,13 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
         _device = device;
         _resourceDatabase = resourceDatabase;
 
-        _pipelineCache = new();
-        _compiledResults = new();
+        _pipelineCache = new Dictionary<GraphicsPipelineKey, D3D12PipelineState>();
+        _cbufferInfoCache = new Dictionary<ShaderPassKey, CBufferInfo>();
 
         CreateDefaultRootSignature();
     }
 
-    private void CreateDefaultRootSignature()
+    private Result CreateDefaultRootSignature()
     {
         _defaultRootSignature = default;
 
@@ -154,21 +140,38 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
             Desc_1_1 = rootSignatureDesc
         };
 
-        using ComPtr<ID3DBlob> signature = default;
-        using ComPtr<ID3DBlob> error = default;
+        ID3DBlob* pSignature = default;
+        ID3DBlob* pError = default;
 
-        var serializeResult = D3D12SerializeVersionedRootSignature(&versionedDesc, signature.GetAddressOf(), error.GetAddressOf());
-        if (serializeResult.FAILED)
+        try
         {
-            var errorMsg = error.Get() != null ? Marshal.PtrToStringUTF8((nint)error.Get()->GetBufferPointer()) : "Unknown error";
-            throw new InvalidOperationException($"Failed to serialize default root signature: {errorMsg}");
+            var serializeResult = D3D12SerializeVersionedRootSignature(&versionedDesc, &pSignature, &pError);
+            if (serializeResult.FAILED)
+            {
+                var errorMsg = pError != null ? Marshal.PtrToStringUTF8((nint)pError->GetBufferPointer()) : "Unknown error";
+                return Result.Failure($"Failed to serialize default root signature: {errorMsg}");
+            }
+
+            ID3D12RootSignature* pRootSignature = default;
+            ThrowIfFailed(_device.NativeDevice->CreateRootSignature(0, pSignature->GetBufferPointer(), pSignature->GetBufferSize(),
+                __uuidof(pRootSignature), (void**)&pRootSignature));
+
+            _defaultRootSignature.Attach(pRootSignature);
+        }
+        finally
+        {
+            if (pSignature != null)
+            {
+                pSignature->Release();
+            }
+
+            if (pError != null)
+            {
+                pError->Release();
+            }
         }
 
-        ID3D12RootSignature* pRootSignature = default;
-        ThrowIfFailed(_device.NativeDevice->CreateRootSignature(0, signature.Get()->GetBufferPointer(), signature.Get()->GetBufferSize(),
-            __uuidof(pRootSignature), (void**)&pRootSignature));
-
-        _defaultRootSignature.Attach(pRootSignature);
+        return Result.Success();
     }
 
     public void InitializeLibrary(string? filePath)
@@ -208,20 +211,20 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
         fs.Write(buffer.AsSpan());
     }
 
-    private static Result<CBufferInfo> ValidateReflectionData(FullPassDescriptor descriptor, ShaderReflectionData reflectionData)
+    private static Result<CBufferInfo> ValidateReflectionData(ShaderReflectionData reflectionData)
     {
-        CBufferInfo cbufferInfo = default;
+        CBufferInfo cbufferInfo;
 
         foreach (var info in reflectionData.ResourcesBindings)
         {
             if (info.BindPoint > 3)
             {
-                return Result.Fail($"Resource binding point {info.BindPoint} is out of range. Only binding points 0-3 are supported in the current root signature.");
+                return Result.Failure($"Resource binding point {info.BindPoint} is out of range. Only binding points 0-3 are supported in the current root signature.");
             }
 
-            if (info.Type != D3D_SHADER_INPUT_TYPE.D3D_SIT_CBUFFER)
+            if (info.Type != ShaderInputType.ConstantBuffer)
             {
-                return Result.Fail($"Resource binding type {info.Type} is not supported. Only constant buffers are supported in the current root signature.");
+                return Result.Failure($"Resource binding type {info.Type} is not supported. Only constant buffers are supported in the current root signature.");
             }
 
             if (info.BindPoint == RootSignatureLayout.PER_MATERIAL_BUFFER_SLOT)
@@ -239,110 +242,9 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
             }
         }
 
-        return Result.Fail("Per-material constant buffer not found in shader reflection data.");
+        return Result.Failure("Per-material constant buffer not found in shader reflection data.");
 
         // TODO: Validate Cbuffer sizes and bindings.
-    }
-
-    private static D3D12GraphicsCompiledResult CompileAndValidateFullPass(FullPassDescriptor descriptor)
-    {
-        static CompileResult CompileAndValidate(ref CompilerConfig config, FullPassDescriptor descriptor)
-        {
-            IDxcBlob* reflectionBlob = default;
-            CBufferInfo cbufferInfo = default;
-
-            try
-            {
-                // TODO: This does not include generated code. This will cause a root signature mismatch.
-                var result = D3D12ShaderCompiler.Compile(ref config, Allocator.Persistent, (void**)&reflectionBlob).GetValueOrThrow();
-                if (reflectionBlob != null)
-                {
-                    var reflection = D3D12ShaderCompiler.PerformDXCReflection(reflectionBlob).GetValueOrThrow();
-                    cbufferInfo = ValidateReflectionData(descriptor, reflection).GetValueOrThrow();
-                }
-
-                return result;
-            }
-            finally
-            {
-                if (reflectionBlob != null)
-                {
-                    reflectionBlob->Release();
-                }
-            }
-        }
-
-        CompileResult tsResult = default;
-        var tsEntry = descriptor.taskShader;
-        if (tsEntry.IsCreated)
-        {
-            var config = new CompilerConfig
-            {
-                defines = descriptor.defines.AsSpan(),
-                include = descriptor.generatedCodePath,
-                shaderPath = tsEntry.shader,
-                entryPoint = tsEntry.entry,
-                stage = ShaderStage.TaskShader,
-                tier = CompilerTier.Tier0,
-                optimizeLevel = CompilerOptimizeLevel.O3,
-                options = CompilerOption.KeepReflections,
-            };
-
-            tsResult = CompileAndValidate(ref config, descriptor);
-        }
-
-        CompileResult msResult;
-        var msEntry = descriptor.meshShader;
-        if (msEntry.IsCreated)
-        {
-            var config = new CompilerConfig
-            {
-                defines = descriptor.defines.AsSpan(),
-                include = descriptor.generatedCodePath,
-                shaderPath = msEntry.shader,
-                entryPoint = msEntry.entry,
-                stage = ShaderStage.MeshShader,
-                tier = CompilerTier.Tier0,
-                optimizeLevel = CompilerOptimizeLevel.O3,
-                options = CompilerOption.KeepReflections,
-            };
-
-            msResult = CompileAndValidate(ref config, descriptor);
-        }
-        else
-        {
-            throw new InvalidOperationException("Mesh shader expected.");
-        }
-
-        CompileResult psResult;
-        var psEntry = descriptor.pixelShader;
-        if (psEntry.IsCreated)
-        {
-            var config = new CompilerConfig
-            {
-                defines = descriptor.defines.AsSpan(),
-                include = descriptor.generatedCodePath,
-                shaderPath = psEntry.shader,
-                entryPoint = psEntry.entry,
-                stage = ShaderStage.PixelShader,
-                tier = CompilerTier.Tier0,
-                optimizeLevel = CompilerOptimizeLevel.O3,
-                options = CompilerOption.KeepReflections,
-            };
-
-            psResult = CompileAndValidate(ref config, descriptor);
-        }
-        else
-        {
-            throw new InvalidOperationException("Pixel shader expected.");
-        }
-
-        return new D3D12GraphicsCompiledResult
-        {
-            tsResult = tsResult,
-            msResult = msResult,
-            psResult = psResult
-        };
     }
 
     private static D3D12_COMPARISON_FUNC ToD3DCompare(ZTestOptions z) => z switch
@@ -366,50 +268,42 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
         return D3D12Utility.D3D12_DEPTH_STENCIL_DESC_CREATE(depthEnabled, writeEnabled, cmp);
     }
 
-    private bool TryGetCompiledCache(ShaderPassKey passKey, out D3D12GraphicsCompiledResult compiled)
+    public Result<GraphicsPipelineKey> CompilePSO(ref readonly GraphicsPSODescriptor descriptor, ref readonly GraphicsCompiledResult compiled)
     {
-        return _compiledResults.TryGetValue(passKey, out compiled);
-    }
-
-    private GraphicsPipelineKey CompilePSO(ref readonly GraphicsPSODescriptor descriptor, ref readonly D3D12GraphicsCompiledResult compiled)
-    {
-        var rtvCount = (uint)Math.Min(descriptor.RtvFormats.Length, D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT);
-
-        var desc = new D3DX12_MESH_SHADER_PIPELINE_STATE_DESC
+        static Result<CBufferInfo> ValidatePassReflectionData(ref readonly GraphicsCompiledResult compiled)
         {
-            pRootSignature = _defaultRootSignature.Get(),
-            MS = new D3D12_SHADER_BYTECODE(compiled.msResult.bytecode.GetUnsafePtr(), (nuint)compiled.msResult.bytecode.Count),
-            PS = new D3D12_SHADER_BYTECODE(compiled.psResult.bytecode.GetUnsafePtr(), (nuint)compiled.psResult.bytecode.Count),
-            PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
-            SampleMask = UINT32_MAX,
-            SampleDesc = new DXGI_SAMPLE_DESC(1, 0),
-            NumRenderTargets = rtvCount,
-            DSVFormat = descriptor.DsvFormat.ToDXGIFormat(),
-            DepthStencilState = BuildDepthStencil(descriptor.ZTest, descriptor.ZWrite),
-            NodeMask = 0,
-            Flags = D3D12_PIPELINE_STATE_FLAG_NONE,
-
-            BlendState = descriptor.Blend switch
+            var msr = ValidateReflectionData(compiled.msResult.reflectionData);
+            if (msr.IsFailure)
             {
-                BlendOptions.Opaque => D3D12Utility.D3D12_BLEND_DESC_OPAQUE,
-                BlendOptions.Alpha => D3D12Utility.D3D12_BLEND_DESC_ALPHA_BLEND,
-                BlendOptions.Additive => D3D12Utility.D3D12_BLEND_DESC_ADDITIVE,
-                BlendOptions.Multiply => D3D12Utility.D3D12_BLEND_DESC_MULTIPLY,
-                BlendOptions.PremultipliedAlpha => D3D12Utility.D3D12_BLEND_DESC_PREMULTIPLIED,
-                _ => D3D12Utility.D3D12_BLEND_DESC_OPAQUE
-            },
-            RasterizerState = descriptor.Cull switch
-            {
-                CullOptions.Off => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_NONE,
-                CullOptions.Front => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_CLOCKWISE,
-                CullOptions.Back => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_COUNTER_CLOCKWISE,
-                _ => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_NONE
-            },
-        };
+                return Result.Failure("Validation of mesh shader reflection data failed: " + msr.Message);
+            }
 
-        if (compiled.tsResult.IsCreated)
-        {
-            desc.AS = new D3D12_SHADER_BYTECODE(compiled.tsResult.bytecode.GetUnsafePtr(), (nuint)compiled.tsResult.bytecode.Count);
+            var psr = ValidateReflectionData(compiled.psResult.reflectionData);
+            if (psr.IsFailure)
+            {
+                return Result.Failure("Validation of pixel shader reflection data failed: " + psr.Message);
+            }
+
+            if (msr.Value != psr.Value)
+            {
+                return Result.Failure("Mesh shader and pixel shader constant buffer layouts do not match.");
+            }
+
+            if (compiled.tsResult.IsCreated)
+            {
+                var tsr = ValidateReflectionData(compiled.tsResult.reflectionData);
+                if (tsr.IsFailure)
+                {
+                    return Result.Failure("Validation of task shader reflection data failed: " + tsr.Message);
+                }
+
+                if (tsr.Value != msr.Value)
+                {
+                    return Result.Failure("Task shader and mesh shader constant buffer layouts do not match.");
+                }
+            }
+
+            return psr.Value;
         }
 
         var hash = new GraphicsPipelineHash
@@ -419,18 +313,67 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
             DsvFormat = descriptor.DsvFormat,
         };
 
+        var rtvCount = (uint)Math.Min(descriptor.RtvFormats.Length, D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT);
+
         for (var i = 0; i < rtvCount && i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
         {
-            desc.RTVFormats[i] = descriptor.RtvFormats[i].ToDXGIFormat();
-            desc.BlendState.RenderTarget[i].RenderTargetWriteMask = (byte)(descriptor.ColorMask & 0x0F);
             hash.RtvFormats[i] = descriptor.RtvFormats[i];
         }
 
         var key = hash.GetKey();
-        ref var existing = ref CollectionsMarshal.GetValueRefOrAddDefault(_pipelineCache, key, out var exists);
-        if (!exists)
+
+        if (!_pipelineCache.ContainsKey(key))
         {
-            existing.psoDesc = desc;
+            var result = ValidatePassReflectionData(in compiled);
+            if (result.IsFailure)
+            {
+                return Result.Failure(result.Message);
+            }
+
+            _cbufferInfoCache[descriptor.PassId] = result.Value;
+
+            var desc = new D3DX12_MESH_SHADER_PIPELINE_STATE_DESC
+            {
+                pRootSignature = _defaultRootSignature.Get(),
+                MS = new D3D12_SHADER_BYTECODE(compiled.msResult.bytecode.GetUnsafePtr(), (nuint)compiled.msResult.bytecode.Count),
+                PS = new D3D12_SHADER_BYTECODE(compiled.psResult.bytecode.GetUnsafePtr(), (nuint)compiled.psResult.bytecode.Count),
+                PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
+                SampleMask = UINT32_MAX,
+                SampleDesc = new DXGI_SAMPLE_DESC(1, 0),
+                NumRenderTargets = rtvCount,
+                DSVFormat = descriptor.DsvFormat.ToDXGIFormat(),
+                DepthStencilState = BuildDepthStencil(descriptor.ZTest, descriptor.ZWrite),
+                NodeMask = 0,
+                Flags = D3D12_PIPELINE_STATE_FLAG_NONE,
+
+                BlendState = descriptor.Blend switch
+                {
+                    BlendOptions.Opaque => D3D12Utility.D3D12_BLEND_DESC_OPAQUE,
+                    BlendOptions.Alpha => D3D12Utility.D3D12_BLEND_DESC_ALPHA_BLEND,
+                    BlendOptions.Additive => D3D12Utility.D3D12_BLEND_DESC_ADDITIVE,
+                    BlendOptions.Multiply => D3D12Utility.D3D12_BLEND_DESC_MULTIPLY,
+                    BlendOptions.PremultipliedAlpha => D3D12Utility.D3D12_BLEND_DESC_PREMULTIPLIED,
+                    _ => D3D12Utility.D3D12_BLEND_DESC_OPAQUE
+                },
+                RasterizerState = descriptor.Cull switch
+                {
+                    CullOptions.Off => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_NONE,
+                    CullOptions.Front => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_CLOCKWISE,
+                    CullOptions.Back => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_COUNTER_CLOCKWISE,
+                    _ => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_NONE
+                },
+            };
+
+            if (compiled.tsResult.IsCreated)
+            {
+                desc.AS = new D3D12_SHADER_BYTECODE(compiled.tsResult.bytecode.GetUnsafePtr(), (nuint)compiled.tsResult.bytecode.Count);
+            }
+
+            for (var i = 0; i < rtvCount && i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
+            {
+                desc.RTVFormats[i] = descriptor.RtvFormats[i].ToDXGIFormat();
+                desc.BlendState.RenderTarget[i].RenderTargetWriteMask = (byte)(descriptor.ColorMask & 0x0F);
+            }
 
             var meshStream = new CD3DX12_PIPELINE_MESH_STATE_STREAM(in desc);
             var streamDesc = new D3D12_PIPELINE_STATE_STREAM_DESC
@@ -443,7 +386,11 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
 
             var pKeyStr = stackalloc char[GraphicsPipelineKey.KEY_STRING_LENGTH];
             var keySpan = new Span<char>(pKeyStr, GraphicsPipelineKey.KEY_STRING_LENGTH);
-            key.GetString(keySpan).ThrowIfFailed();
+            var kr = key.GetString(keySpan);
+            if (kr.IsFailure)
+            {
+                return kr;
+            }
 
             var hr = _library.Get()->LoadPipeline(pKeyStr, &streamDesc, __uuidof(pPipelineState), (void**)&pPipelineState);
             if (hr == E.E_INVALIDARG)
@@ -457,77 +404,35 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
                 ThrowIfFailed(hr);
             }
 
-            existing.pso.Attach(pPipelineState);
+            D3D12PipelineState pso = default;
+            pso.shaderPass = descriptor.PassId;
+            pso.psoDesc = desc;
+            pso.pso.Attach(pPipelineState);
+
+            _pipelineCache[key] = pso;
         }
 
         return key;
     }
 
-    public GraphicsPipelineKey CompilePassPSO(IPassDescriptor descriptor, ReadOnlySpan<TextureFormat> rtvs, TextureFormat dsv)
+    public Result<CBufferInfo, ResultStatus> GetCBufferInfo(ShaderPassKey passId)
     {
-        GraphicsPipelineKey key = default;
-
-        var passKey = new ShaderPassKey(descriptor.Identifier);
-        var hasCompiledCache = TryGetCompiledCache(passKey, out var compiled);
-
-        switch (descriptor)
+        if (_cbufferInfoCache.TryGetValue(passId, out var cbufferInfo))
         {
-            case FullPassDescriptor fullPass:
-                if (!hasCompiledCache)
-                {
-                    compiled = CompileAndValidateFullPass(fullPass);
-                }
-
-                var psoDes = new GraphicsPSODescriptor
-                {
-                    PassId = new ShaderPassKey(fullPass.Identifier),
-                    ZTest = fullPass.localPipeline.zTest,
-                    ZWrite = fullPass.localPipeline.zWrite,
-                    Cull = fullPass.localPipeline.cull,
-                    Blend = fullPass.localPipeline.blend,
-                    ColorMask = fullPass.localPipeline.colorMask,
-
-                    RtvFormats = rtvs,
-                    DsvFormat = dsv,
-                };
-
-                key = CompilePSO(in psoDes, in compiled);
-                break;
-
-            // Do we need to support other pass types?
-            case FallbackPassDescriptor:
-                if (!hasCompiledCache)
-                {
-                    throw new ArgumentException("FallbackPassDescriptor is not supported for PSO compilation. There may be some inheritance dependency issues.");
-                }
-
-                break;
-
-            default:
-                break;
+            return Result.Create(cbufferInfo, ResultStatus.Success);
         }
 
-        return key;
+        return Result.Create(default(CBufferInfo), ResultStatus.NotFound);
     }
 
-    public Result<Ptr<ID3D12PipelineState>> GetGraphicsPSO(GraphicsPipelineKey key)
+    public Result<SharedPtr<ID3D12PipelineState>, ResultStatus> GetGraphicsPSO(GraphicsPipelineKey key)
     {
         if (_pipelineCache.TryGetValue(key, out var cacheEntry))
         {
-            return new Ptr<ID3D12PipelineState>(cacheEntry.pso.Get());
+            return Result.Create(new SharedPtr<ID3D12PipelineState>(cacheEntry.pso.Get()), ResultStatus.Success);
         }
 
-        return Result.Fail("Pipeline state not found in cache.");
-    }
-
-    public Result<CBufferInfo> GetCBufferInfo(ShaderPassKey key)
-    {
-        if (_compiledResults.TryGetValue(key, out var compiled))
-        {
-            return compiled.cbufferInfo;
-        }
-
-        return Result.Fail("Compiled shader not found in cache.");
+        return Result.Create(default(SharedPtr<ID3D12PipelineState>), ResultStatus.NotFound);
     }
 
     public void Dispose()

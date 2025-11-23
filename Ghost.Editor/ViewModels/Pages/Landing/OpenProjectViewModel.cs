@@ -66,14 +66,14 @@ internal partial class OpenProjectViewModel(ProjectService projectService, INoti
             if (rootFolder != null)
             {
                 var result = await projectService.AddProjectFromDirectoryAsync(rootFolder.Path);
-                if (result.success)
+                if (result.IsSuccess)
                 {
-                    projects.Add(result.value);
+                    projects.Add(result.Value);
                     goto CloseDropPanel;
                 }
                 else
                 {
-                    errorMessage = result.message;
+                    errorMessage = result.Message;
                 }
             }
         }

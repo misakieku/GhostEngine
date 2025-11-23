@@ -1,9 +1,10 @@
 using Ghost.Core.Utilities;
 using Ghost.Graphics.RHI;
-using System.Runtime.Versioning;
+using Misaki.HighPerformance.LowLevel;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 using static TerraFX.Aliases.D3D_Alias;
+using static TerraFX.Aliases.D3D12_Alias;
 using static TerraFX.Aliases.DXGI_Alias;
 
 namespace Ghost.Graphics.D3D12;
@@ -11,33 +12,30 @@ namespace Ghost.Graphics.D3D12;
 /// <summary>
 /// D3D12 implementation of the render device interface
 /// </summary>
-internal unsafe class D3D12RenderDevice : IRenderDevice
+internal unsafe class D3D12RenderDevice : D3D12Object<ID3D12Device14>, IRenderDevice
 {
-    private ComPtr<IDXGIFactory7> _dxgiFactory;
-    private ComPtr<ID3D12Device14> _device;
-    private ComPtr<IDXGIAdapter1> _adapter;
+    private UniquePtr<IDXGIFactory7> _dxgiFactory;
+    private UniquePtr<IDXGIAdapter1> _adapter;
 
     private readonly D3D12CommandQueue _graphicsQueue;
     private readonly D3D12CommandQueue _computeQueue;
     private readonly D3D12CommandQueue _copyQueue;
 
-    private bool _disposed;
-
     public ICommandQueue GraphicsQueue => _graphicsQueue;
     public ICommandQueue ComputeQueue => _computeQueue;
     public ICommandQueue CopyQueue => _copyQueue;
 
-    public ID3D12Device14* NativeDevice => _device.Get();
     public IDXGIFactory7* DXGIFactory => _dxgiFactory.Get();
+    public ID3D12Device14* NativeDevice => nativeObject.Get();
     public IDXGIAdapter1* Adapter => _adapter.Get();
 
     public D3D12RenderDevice()
     {
         InitializeDevice();
 
-        _graphicsQueue = new D3D12CommandQueue(_device.Get(), CommandQueueType.Graphics);
-        _computeQueue = new D3D12CommandQueue(_device.Get(), CommandQueueType.Compute);
-        _copyQueue = new D3D12CommandQueue(_device.Get(), CommandQueueType.Copy);
+        _graphicsQueue = new D3D12CommandQueue(nativeObject.Get(), CommandQueueType.Graphics);
+        _computeQueue = new D3D12CommandQueue(nativeObject.Get(), CommandQueueType.Compute);
+        _copyQueue = new D3D12CommandQueue(nativeObject.Get(), CommandQueueType.Copy);
     }
 
     ~D3D12RenderDevice()
@@ -60,7 +58,7 @@ internal unsafe class D3D12RenderDevice : IRenderDevice
         IDXGIAdapter1* pAdapter = default;
 
         for (uint adapterIndex = 0;
-            _dxgiFactory.Get()->EnumAdapterByGpuPreference(adapterIndex, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, __uuidof<IDXGIAdapter1>(), (void**)&pAdapter).SUCCEEDED;
+            _dxgiFactory.Get()->EnumAdapterByGpuPreference(adapterIndex, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, __uuidof(pAdapter), (void**)&pAdapter).SUCCEEDED;
             adapterIndex++)
         {
             DXGI_ADAPTER_DESC1 desc = default;
@@ -84,30 +82,77 @@ internal unsafe class D3D12RenderDevice : IRenderDevice
 
         if (pDevice == null)
         {
-            pAdapter->Release(); // Dispose the last adapter we tried. If the operation succeeded, we would have moved it.
+            pAdapter->Release(); // Dispose the last adapter we tried.
             throw new PlatformNotSupportedException("Cannot create ID3D12Device with feature level 12.0");
         }
 
-        _device.Attach(pDevice);
+        nativeObject.Attach(pDevice);
     }
 
-    public void Dispose()
+    public FeatureSupport GetFeatureSupport()
     {
-        if (_disposed)
+        ThrowIfDisposed();
+
+        FeatureSupport support = FeatureSupport.None;
+
+        D3D12_FEATURE_DATA_D3D12_OPTIONS options = default;
+        if (nativeObject.Get()->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, (uint)sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS)).SUCCEEDED)
+        {
+            if (options.ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_3)
+            {
+                support |= FeatureSupport.BindlessResources;
+            }
+        }
+
+        D3D12_FEATURE_DATA_D3D12_OPTIONS5 options5 = default;
+        if (nativeObject.Get()->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &options5, (uint)sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS5)).SUCCEEDED)
+        {
+            if (options5.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED)
+            {
+                support |= FeatureSupport.RayTracing;
+            }
+        }
+
+        D3D12_FEATURE_DATA_D3D12_OPTIONS6 options6 = default;
+        if (nativeObject.Get()->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS6, &options6, (uint)sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS6)).SUCCEEDED)
+        {
+            if (options6.VariableShadingRateTier != D3D12_VARIABLE_SHADING_RATE_TIER_NOT_SUPPORTED)
+            {
+                support |= FeatureSupport.VariableRateShading;
+            }
+        }
+
+        D3D12_FEATURE_DATA_D3D12_OPTIONS7 options7 = default;
+        if (nativeObject.Get()->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, &options7, (uint)sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS7)).SUCCEEDED)
+        {
+            if (options7.MeshShaderTier != D3D12_MESH_SHADER_TIER_NOT_SUPPORTED)
+            {
+                support |= FeatureSupport.MeshShaders;
+            }
+
+            if (options7.SamplerFeedbackTier != D3D12_SAMPLER_FEEDBACK_TIER_NOT_SUPPORTED)
+            {
+                support |= FeatureSupport.SamplerFeedback;
+            }
+        }
+
+        return support;
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (Disposed)
         {
             return;
         }
 
-        _graphicsQueue?.Dispose();
-        _computeQueue?.Dispose();
-        _copyQueue?.Dispose();
+        _graphicsQueue.Dispose();
+        _computeQueue.Dispose();
+        _copyQueue.Dispose();
 
-        _device.Reset();
         _dxgiFactory.Dispose();
         _adapter.Dispose();
 
-        _disposed = true;
-
-        GC.SuppressFinalize(this);
+        base.Dispose(disposing);
     }
 }

@@ -73,17 +73,17 @@ internal partial class CreateProjectViewModel(INotificationService notificationS
         }
 
         var result = await projectService.CreateProjectAsync(ProjectName, ProjectLocation, EngineData.s_engineVersion, SelectedTemplate.Value.directory);
-        if (!result.success)
+        if (result.IsFailure)
         {
-            notificationService.ShowNotification(result.message, MessageType.Error);
+            notificationService.ShowNotification(result.Message, MessageType.Error);
             return;
         }
 
         try
         {
-            await stateService.TransitionToAsync(StateKey.EngineEditor, result.value);
+            await stateService.TransitionToAsync(StateKey.EngineEditor, result.Value);
         }
-        catch (System.Exception e)
+        catch (Exception e)
         {
             notificationService.ShowNotification($"Failed to load project: {e.Message}", MessageType.Error);
         }

@@ -1,10 +1,10 @@
 using Ghost.Core.Utilities;
+using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Diagnostics;
 using System.Numerics;
 using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
 
 using static TerraFX.Aliases.D3D12_Alias;
 
@@ -16,8 +16,8 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
 
     private readonly D3D12RenderDevice _device;
 
-    private ComPtr<ID3D12DescriptorHeap> _heap;
-    private ComPtr<ID3D12DescriptorHeap> _shaderVisibleHeap;
+    private UniquePtr<ID3D12DescriptorHeap> _heap;
+    private UniquePtr<ID3D12DescriptorHeap> _shaderVisibleHeap;
     private D3D12_CPU_DESCRIPTOR_HANDLE _startCpuHandle;
     private D3D12_CPU_DESCRIPTOR_HANDLE _startCpuHandleShaderVisible;
     private D3D12_GPU_DESCRIPTOR_HANDLE _startGpuHandleShaderVisible;
@@ -323,18 +323,25 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
         var oldSize = NumDescriptors;
         var newSize = (int)BitOperations.RoundUpToPowerOf2((uint)minRequiredSize);
 
-        using var oldHeap = _heap;
+        var oldHeap = _heap.Detach();
 
-        if (!AllocateResources(newSize))
+        try
         {
-            return false;
+            if (!AllocateResources(newSize))
+            {
+                return false;
+            }
+
+            _device.NativeDevice->CopyDescriptorsSimple((uint)oldSize, _startCpuHandle, oldHeap->GetCPUDescriptorHandleForHeapStart(), HeapType);
+
+            if (_shaderVisibleHeap.Get() != null)
+            {
+                _device.NativeDevice->CopyDescriptorsSimple((uint)oldSize, _startCpuHandleShaderVisible, oldHeap->GetCPUDescriptorHandleForHeapStart(), HeapType);
+            }
         }
-
-        _device.NativeDevice->CopyDescriptorsSimple((uint)oldSize, _startCpuHandle, oldHeap.Get()->GetCPUDescriptorHandleForHeapStart(), HeapType);
-
-        if (_shaderVisibleHeap.Get() != null)
+        finally
         {
-            _device.NativeDevice->CopyDescriptorsSimple((uint)oldSize, _startCpuHandleShaderVisible, oldHeap.Get()->GetCPUDescriptorHandleForHeapStart(), HeapType);
+            oldHeap->Release();
         }
 
         return true;

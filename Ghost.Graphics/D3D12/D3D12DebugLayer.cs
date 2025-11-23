@@ -1,3 +1,5 @@
+using Ghost.Core.Utilities;
+using Misaki.HighPerformance.LowLevel;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 
@@ -7,9 +9,9 @@ namespace Ghost.Graphics.D3D12;
 
 internal unsafe class D3D12DebugLayer
 {
-    private readonly ComPtr<ID3D12Debug6> _d3d12Debug;
-    private readonly ComPtr<IDXGIDebug1> _dxgiDebug;
-    private readonly ComPtr<IDXGIInfoQueue> _dxgiInfoQueue;
+    private UniquePtr<ID3D12Debug6> _d3d12Debug;
+    private UniquePtr<IDXGIDebug1> _dxgiDebug;
+    private UniquePtr<IDXGIInfoQueue> _dxgiInfoQueue;
 
     public D3D12DebugLayer()
     {

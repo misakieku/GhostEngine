@@ -48,5 +48,5 @@ public interface IResourceAllocator
     /// </summary>
     /// <returns>An <see cref="Identifier{Shader}"/> representing the newly created shader.</returns>
     /// <param name="descriptor">The viewGroup containing the shader's properties and passes.</param>
-    public Identifier<Shader> CreateShader(ShaderDescriptor descriptor);
+    public Identifier<Shader> CreateGraphicsShader(ShaderDescriptor descriptor);
 }

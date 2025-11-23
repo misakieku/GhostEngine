@@ -26,22 +26,22 @@ public interface ICommandQueue : IDisposable
     public void Submit(params ReadOnlySpan<ICommandBuffer> commandBuffers);
 
     /// <summary>
-    /// Signals a fence with the specified value
+    /// Signals a fence with the specified Value
     /// </summary>
     /// <param name="value">Value to signal</param>
-    /// <returns>The fence value that was signaled</returns>
+    /// <returns>The fence Value that was signaled</returns>
     public ulong Signal(ulong value);
 
     /// <summary>
-    /// Waits for the fence to reach the specified value
+    /// Waits for the fence to reach the specified Value
     /// </summary>
     /// <param name="value">Value to wait for</param>
     public void WaitForValue(ulong value);
 
     /// <summary>
-    /// Gets the last completed fence value
+    /// Gets the last completed fence Value
     /// </summary>
-    /// <returns>Last completed fence value</returns>
+    /// <returns>Last completed fence Value</returns>
     public ulong GetCompletedValue();
 
     /// <summary>

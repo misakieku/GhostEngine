@@ -42,6 +42,32 @@ internal static unsafe partial class Win32Utility
         return new IID_PPV(Windows.__uuidof<T>(), comPtr.PPV());
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Attach<T>(ref this UniquePtr<T> uPtr, T* other)
+        where T : unmanaged, IUnknown.Interface
+    {
+        var ptr = uPtr.Get();
+        if (ptr != null)
+        {
+            var refCount = ptr->Release();
+            Debug.Assert((refCount != 0) || (ptr != other));
+        }
+
+        uPtr = new UniquePtr<T>(other);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Dispose<T>(ref this UniquePtr<T> uPtr)
+        where T : unmanaged, IUnknown.Interface
+    {
+        T* ptr = uPtr.Get();
+        if (ptr != null)
+        {
+            uPtr = default;
+            MemoryLeakException.ThrowIfRefCountNonZero(ptr->Release());
+        }
+    }
+
     [Conditional("DEBUG")]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Assert(this HRESULT hr)
@@ -50,9 +76,14 @@ internal static unsafe partial class Win32Utility
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ThrowIfFailed(this HRESULT hr)
+    public static Result ToResult(this HRESULT hr, [CallerArgumentExpression(nameof(hr))] string? op = null)
     {
-        Windows.ThrowIfFailed(hr);
+        if (hr.SUCCEEDED)
+        {
+            return Result.Success();
+        }
+        
+        return Result.Failure($"{op} failed with code {hr}");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -102,8 +133,6 @@ internal static unsafe partial class Win32Utility
     extension(MemoryLeakException)
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [Conditional("DEBUG")]
-        [Conditional("GHOST_EDITOR")]
         public static void ThrowIfRefCountNonZero(uint count)
         {
             if (count != 0)

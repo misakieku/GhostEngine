@@ -7,7 +7,7 @@ public abstract class ScriptComponent : IComponentData
     internal World _world = null!;
 
     /// <summary>
-    /// Gets or sets a value indicating whether this script component is enabled.
+    /// Gets or sets a Value indicating whether this script component is enabled.
     /// </summary>
     public bool Enable
     {

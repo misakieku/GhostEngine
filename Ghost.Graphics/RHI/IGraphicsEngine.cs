@@ -1,8 +1,15 @@
+using Ghost.Graphics.Contracts;
+
 namespace Ghost.Graphics.RHI;
 
 public interface IGraphicsEngine : IDisposable
 {
     IRenderDevice Device
+    {
+        get;
+    }
+
+    IShaderCompiler ShaderCompiler
     {
         get;
     }

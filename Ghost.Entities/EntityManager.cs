@@ -108,7 +108,7 @@ public readonly struct EntityManager : IDisposable
     /// </summary>
     /// <typeparam name="T">The type of the component to set.</typeparam>
     /// <param name="entity">The entity for which the component is to be add.</param>
-    /// <param name="component">The component value to add.</param>
+    /// <param name="component">The component Value to add.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly void AddComponent<T>(Entity entity, T component)
         where T : unmanaged, IComponentData
@@ -145,7 +145,7 @@ public readonly struct EntityManager : IDisposable
     /// Sets a component of the specified type for the given <see cref="Entity"/>.
     /// </summary>
     /// <param name="entity">The entity for which the component is to be set.</param>
-    /// <param name="component">The component value to set.</param>
+    /// <param name="component">The component Value to set.</param>
     /// <param name="type">The type of the component to set.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly void SetComponent(Entity entity, IComponentData component, Type type)
@@ -169,7 +169,7 @@ public readonly struct EntityManager : IDisposable
     /// </summary>
     /// <typeparam name="T">The type of the component to set.</typeparam>
     /// <param name="entity">The entity for which the component is to be set.</param>
-    /// <param name="component">The component value to set.</param>
+    /// <param name="component">The component Value to set.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly void SetComponent<T>(Entity entity, in T component)
         where T : unmanaged, IComponentData

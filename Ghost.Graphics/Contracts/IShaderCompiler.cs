@@ -1,18 +1,35 @@
 using Ghost.Core;
+using Ghost.Core.Graphics;
+using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 
-namespace Ghost.Graphics.RHI;
+namespace Ghost.Graphics.Contracts;
 
 public struct CompileResult : IDisposable
 {
     public UnsafeArray<byte> bytecode;
+    public ShaderReflectionData reflectionData;
 
     public readonly bool IsCreated => bytecode.IsCreated;
 
     public void Dispose()
     {
         bytecode.Dispose();
+    }
+}
+
+public struct GraphicsCompiledResult : IDisposable
+{
+    public CompileResult tsResult;
+    public CompileResult msResult;
+    public CompileResult psResult;
+
+    public void Dispose()
+    {
+        tsResult.Dispose();
+        msResult.Dispose();
+        psResult.Dispose();
     }
 }
 
@@ -49,7 +66,8 @@ public enum CompilerOption
     None = 0,
     KeepDebugInfo = 1 << 0,
     KeepReflections = 1 << 1,
-    WarnAsError = 1 << 2
+    WarnAsError = 1 << 2,
+    SpirvCrossCompile = 1 << 3
 }
 
 public enum ShaderStage
@@ -125,6 +143,7 @@ public readonly struct ShaderReflectionData
 
 public unsafe interface IShaderCompiler
 {
-    Result<CompileResult> Compile(ref readonly CompilerConfig config, Allocator allocator, void** ppReflection);
-    Result<ShaderReflectionData> PerformDXCReflection<T>(T* pReflectionBlob) where T : unmanaged;
+    Result<CompileResult> Compile(ref readonly CompilerConfig config, Allocator allocator);
+    Result<GraphicsCompiledResult> CompilePass(IPassDescriptor descriptor);
+    Result<GraphicsCompiledResult> LoadCompiledCache(ShaderPassKey key);
 }

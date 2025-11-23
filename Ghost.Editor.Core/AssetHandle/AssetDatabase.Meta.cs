@@ -1,6 +1,5 @@
 using Ghost.Core;
 using Ghost.Editor.Core.Utilities;
-using Ghost.Engine.Services;
 using System.Reflection;
 using System.Text.Json;
 
@@ -8,7 +7,7 @@ namespace Ghost.Editor.Core.AssetHandle;
 
 public static partial class AssetDatabase
 {
-    private static readonly Dictionary<string, Type> _importerTypeLookup = new();
+    private static readonly Dictionary<string, Type> s_importerTypeLookup = new();
 
     private static void InitializeMetaData()
     {
@@ -23,7 +22,7 @@ public static partial class AssetDatabase
             var attribute = type.GetCustomAttribute<AssetImporterAttribute>()!;
             foreach (var extension in attribute.SupportedExtensions)
             {
-                _importerTypeLookup[extension] = type;
+                s_importerTypeLookup[extension] = type;
             }
         }
 
@@ -36,12 +35,12 @@ public static partial class AssetDatabase
     {
         if (Directory.Exists(assetPath))
         {
-            return Result<string>.Fail("Folder does not have meta data");
+            return Result<string>.Failure("Folder does not have meta data");
         }
 
         if (Path.GetExtension(assetPath).Equals(".meta", StringComparison.OrdinalIgnoreCase))
         {
-            return Result<string>.Fail("Asset path cannot be a meta file");
+            return Result<string>.Failure("Asset path cannot be a meta file");
         }
 
         return Result<string>.Success(assetPath + ".meta");
@@ -51,7 +50,7 @@ public static partial class AssetDatabase
     {
         var extension = Path.GetExtension(assetPath);
 
-        if (_importerTypeLookup.TryGetValue(extension, out var importerType))
+        if (s_importerTypeLookup.TryGetValue(extension, out var importerType))
         {
             var settingsType = importerType.BaseType?.GetGenericArguments()[0];
             if (settingsType == null || !typeof(ImporterSettings).IsAssignableFrom(settingsType))
@@ -79,28 +78,27 @@ public static partial class AssetDatabase
         }
     }
 
-    internal static void GenerateMetaFile(string assetPath)
+    internal static Result GenerateMetaFile(string assetPath)
     {
         var metaFileResult = GetMetaFilePath(assetPath);
-        if (!metaFileResult.success)
+        if (!metaFileResult.IsSuccess)
         {
-            Logger.LogError(metaFileResult.message ?? string.Empty);
-            return;
+            return metaFileResult;
         }
 
-        if (File.Exists(metaFileResult.value))
+        if (File.Exists(metaFileResult.Value))
         {
-            var existingMeta = JsonSerializer.Deserialize<AssetMeta>(File.ReadAllText(metaFileResult.value));
-            if (existingMeta != null && _assetPathLookup.TryGetValue(existingMeta.Guid, out var path))
+            var existingMeta = JsonSerializer.Deserialize<AssetMeta>(File.ReadAllText(metaFileResult.Value));
+            if (existingMeta != null && s_assetPathLookup.TryGetValue(existingMeta.Guid, out var path))
             {
                 if (assetPath != path)
                 {
                     existingMeta.Guid = Guid.NewGuid();
-                    WriteMetaFile(metaFileResult.value, existingMeta);
+                    WriteMetaFile(metaFileResult.Value, existingMeta);
                 }
             }
 
-            return;
+            return Result.Success();
         }
 
         var defaultSettings = GetDefaultSettingsForAsset(assetPath);
@@ -110,7 +108,9 @@ public static partial class AssetDatabase
             Settings = defaultSettings
         };
 
-        WriteMetaFile(metaFileResult.value, metaData);
+        WriteMetaFile(metaFileResult.Value, metaData);
+
+        return Result.Success();
     }
 
     private static void OnAssetCreated(object sender, FileSystemEventArgs e)
@@ -121,19 +121,19 @@ public static partial class AssetDatabase
     private static void OnAssetDeleted(object sender, FileSystemEventArgs e)
     {
         var metaFileResult = GetMetaFilePath(e.FullPath);
-        if (metaFileResult.success && File.Exists(metaFileResult.value))
+        if (metaFileResult.IsSuccess && File.Exists(metaFileResult.Value))
         {
             try
             {
-                var meta = JsonSerializer.Deserialize<AssetMeta>(File.ReadAllText(metaFileResult.value));
+                var meta = JsonSerializer.Deserialize<AssetMeta>(File.ReadAllText(metaFileResult.Value));
                 if (meta != null
-                    && _assetPathLookup.TryGetValue(meta.Guid, out var path)
+                    && s_assetPathLookup.TryGetValue(meta.Guid, out var path)
                     && path == e.FullPath)
                 {
-                    _assetPathLookup.Remove(meta.Guid);
+                    s_assetPathLookup.Remove(meta.Guid);
                 }
 
-                File.Delete(metaFileResult.value);
+                File.Delete(metaFileResult.Value);
             }
             catch (Exception ex)
             {

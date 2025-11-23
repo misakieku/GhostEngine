@@ -1,7 +1,8 @@
+using Ghost.Graphics.Contracts;
+using Ghost.Graphics.RHI;
+using Ghost.Graphics.Utilities;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
-
-using Ghost.Graphics.RHI;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -12,6 +13,7 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
 #endif
 
     private readonly D3D12RenderDevice _device;
+    private readonly DxcShaderCompiler _shaderCompiler;
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
     private readonly D3D12ResourceDatabase _resourceDatabase;
     private readonly D3D12PipelineLibrary _pipelineLibrary;
@@ -23,6 +25,7 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
     private bool _disposed;
 
     public IRenderDevice Device => _device;
+    public IShaderCompiler ShaderCompiler => _shaderCompiler;
     public IPipelineLibrary PipelineLibrary => _pipelineLibrary;
     public IResourceDatabase ResourceDatabase => _resourceDatabase;
     public IResourceAllocator ResourceAllocator => _resourceAllocator;
@@ -34,6 +37,7 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
         _debugLayer = new();
 #endif
         _device = new();
+        _shaderCompiler = new();
         _descriptorAllocator = new(_device);
 
         _resourceDatabase = new(_descriptorAllocator);

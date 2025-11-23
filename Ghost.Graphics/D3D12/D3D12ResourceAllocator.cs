@@ -589,9 +589,9 @@ internal sealed unsafe partial class D3D12ResourceAllocator
 // TODO: Dedicated pool for copy, render graph, and persistent resources
 
 // TODO: Thread safety for resource allocator
-// A common solution is to use ticket. Each allocation request create a ticket and put it into a thread-safe queue. A dedicated thread process the queue and fulfill the requests.
+// A common solution is to use ticket. Each pAllocation request create a ticket and put it into a thread-safe queue. A dedicated thread process the queue and fulfill the requests.
 
-internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator, IDisposable
+internal sealed unsafe partial class D3D12ResourceAllocator : IUnknownObject<D3D12MA_Allocator>, IResourceAllocator
 {
     private readonly IFenceSynchronizer _fenceSynchronizer;
     private readonly D3D12RenderDevice _device;
@@ -599,10 +599,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
     private readonly D3D12ResourceDatabase _resourceDatabase;
     private readonly D3D12PipelineLibrary _pipelineLibrary;
 
-    private ComPtr<D3D12MA_Allocator> _allocator;
     private UnsafeQueue<Handle<GPUResource>> _temResources;
-
-    private bool _disposed;
 
     public D3D12ResourceAllocator(
         IFenceSynchronizer fenceSynchronizer,
@@ -620,7 +617,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
         D3D12MA_Allocator* pAllocator = default;
         ThrowIfFailed(D3D12MA_CreateAllocator(&desc, &pAllocator));
-        _allocator.Attach(pAllocator);
+        nativeObject.Attach(pAllocator);
 
         _fenceSynchronizer = fenceSynchronizer;
         _device = device;
@@ -637,7 +634,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Handle<GPUResource> TrackResource(ComPtr<D3D12MA_Allocation> allocation, D3D12_RESOURCE_STATES state, ResourceViewGroup resourceDescriptor, ResourceDesc desc, bool isTemp)
+    private Handle<GPUResource> TrackResource(D3D12MA_Allocation* allocation, D3D12_RESOURCE_STATES state, ResourceViewGroup resourceDescriptor, ResourceDesc desc, bool isTemp)
     {
         var handle = _resourceDatabase.AddResource(allocation, _fenceSynchronizer.CPUFenceValue, D3D12StatesToRHIState(state), resourceDescriptor, desc);
 
@@ -651,6 +648,8 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
     public Handle<Texture> CreateTexture(ref readonly TextureDesc desc, bool isTemp = false)
     {
+        ThrowIfDisposed();
+
         CheckTexture2DSize(desc.Width, desc.Height);
 
         var d3d12Format = ConvertTextureFormat(desc.Format);
@@ -706,8 +705,8 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
         var initialState = DetermineInitialTextureState(desc.Usage);
 
-        ComPtr<D3D12MA_Allocation> allocation = default;
-        ThrowIfFailed(_allocator.Get()->CreateResource(&allocationDesc, &resourceDesc, initialState, null, allocation.GetAddressOf(), Win32Utility.IID_NULL, null));
+        D3D12MA_Allocation* pAllocation = default;
+        ThrowIfFailed(nativeObject.Get()->CreateResource(&allocationDesc, &resourceDesc, initialState, null, &pAllocation, Win32Utility.IID_NULL, null));
 
         var resourceDescriptor = ResourceViewGroup.Invalid;
         if (desc.Usage.HasFlag(TextureUsage.ShaderResource))
@@ -716,51 +715,54 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             var cpuHandle = _descriptorAllocator.GetCpuHandle(resourceDescriptor.srv);
 
             var isCubeMap = desc.Dimension == TextureDimension.TextureCube || desc.Dimension == TextureDimension.TextureCubeArray;
-            var srvDesc = CreateTextureSrvDesc(allocation.Get()->GetResource(), mipLevels, desc.Slice, isCubeMap);
+            var srvDesc = CreateTextureSrvDesc(pAllocation->GetResource(), mipLevels, desc.Slice, isCubeMap);
 
-            _device.NativeDevice->CreateShaderResourceView(allocation.Get()->GetResource(), &srvDesc, cpuHandle);
+            _device.NativeDevice->CreateShaderResourceView(pAllocation->GetResource(), &srvDesc, cpuHandle);
         }
 
         if (desc.Usage.HasFlag(TextureUsage.RenderTarget))
         {
             resourceDescriptor.rtv = _descriptorAllocator.AllocateRTV(isTemp);
             var cpuHandle = _descriptorAllocator.GetCpuHandle(resourceDescriptor.rtv);
-            var rtvDesc = CreateRtvDesc(allocation.Get()->GetResource());
+            var rtvDesc = CreateRtvDesc(pAllocation->GetResource());
 
-            _device.NativeDevice->CreateRenderTargetView(allocation.Get()->GetResource(), &rtvDesc, cpuHandle);
+            _device.NativeDevice->CreateRenderTargetView(pAllocation->GetResource(), &rtvDesc, cpuHandle);
         }
 
         if (desc.Usage.HasFlag(TextureUsage.DepthStencil))
         {
             resourceDescriptor.dsv = _descriptorAllocator.AllocateDSV(isTemp);
             var cpuHandle = _descriptorAllocator.GetCpuHandle(resourceDescriptor.dsv);
-            var dsvDesc = CreateDsvDesc(allocation.Get()->GetResource());
+            var dsvDesc = CreateDsvDesc(pAllocation->GetResource());
 
-            _device.NativeDevice->CreateDepthStencilView(allocation.Get()->GetResource(), &dsvDesc, cpuHandle);
+            _device.NativeDevice->CreateDepthStencilView(pAllocation->GetResource(), &dsvDesc, cpuHandle);
         }
 
         if (desc.Usage.HasFlag(TextureUsage.UnorderedAccess))
         {
             resourceDescriptor.uav = _descriptorAllocator.AllocateCbvSrvUav(isTemp);
             var cpuHandle = _descriptorAllocator.GetCpuHandle(resourceDescriptor.uav);
-            var uavDesc = CreateTextureUavDesc(allocation.Get()->GetResource());
+            var uavDesc = CreateTextureUavDesc(pAllocation->GetResource());
 
-            _device.NativeDevice->CreateUnorderedAccessView(allocation.Get()->GetResource(), null, &uavDesc, cpuHandle);
+            _device.NativeDevice->CreateUnorderedAccessView(pAllocation->GetResource(), null, &uavDesc, cpuHandle);
         }
 
-        var handle = TrackResource(allocation, initialState, resourceDescriptor, ResourceDesc.Texture(desc), isTemp);
+        var handle = TrackResource(pAllocation, initialState, resourceDescriptor, ResourceDesc.Texture(desc), isTemp);
 
         return handle.AsTexture();
     }
 
     public Handle<Texture> CreateRenderTarget(ref readonly RenderTargetDesc desc, bool isTemp = false)
     {
+        ThrowIfDisposed();
+
         var textureDesc = desc.ToTextureDescripton();
         return CreateTexture(ref textureDesc, isTemp);
     }
 
     public Handle<GraphicsBuffer> CreateBuffer(ref readonly BufferDesc desc, bool isTemp = false)
     {
+        ThrowIfDisposed();
         CheckBufferSize(desc.Size);
 
         var resourceDescription = D3D12_RESOURCE_DESC.Buffer(desc.Size, ConvertBufferUsage(desc.Usage));
@@ -778,11 +780,11 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
         var initialState = DetermineInitialBufferState(desc.Usage, desc.MemoryType);
 
-        ComPtr<D3D12MA_Allocation> allocation = default;
-        ThrowIfFailed(_allocator.Get()->CreateResource(&allocationDesc, &resourceDescription, initialState, null, allocation.GetAddressOf(), Win32Utility.IID_NULL, null));
+        D3D12MA_Allocation* pAllocation = default;
+        ThrowIfFailed(nativeObject.Get()->CreateResource(&allocationDesc, &resourceDescription, initialState, null, &pAllocation, Win32Utility.IID_NULL, null));
 
         var resourceDescriptor = ResourceViewGroup.Invalid;
-        var pResource = allocation.Get()->GetResource();
+        var pResource = pAllocation->GetResource();
 
         if (desc.Usage.HasFlag(BufferUsage.Constant))
         {
@@ -803,7 +805,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         {
             resourceDescriptor.srv = _descriptorAllocator.AllocateCbvSrvUav(isTemp);
             var cpuHandle = _descriptorAllocator.GetCpuHandle(resourceDescriptor.srv);
-            var srvDesc = CreateBufferSrvDesc(allocation.Get()->GetResource(), desc.Stride, isRaw);
+            var srvDesc = CreateBufferSrvDesc(pAllocation->GetResource(), desc.Stride, isRaw);
 
             _device.NativeDevice->CreateShaderResourceView(pResource, &srvDesc, cpuHandle);
         }
@@ -812,17 +814,19 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         {
             resourceDescriptor.uav = _descriptorAllocator.AllocateCbvSrvUav(isTemp);
             var cpuHandle = _descriptorAllocator.GetCpuHandle(resourceDescriptor.uav);
-            var uavDesc = CreateBufferUavDesc(allocation.Get()->GetResource(), desc.Stride, isRaw);
+            var uavDesc = CreateBufferUavDesc(pAllocation->GetResource(), desc.Stride, isRaw);
 
             _device.NativeDevice->CreateUnorderedAccessView(pResource, null, &uavDesc, cpuHandle);
         }
 
-        var handle = TrackResource(allocation, initialState, resourceDescriptor, ResourceDesc.Buffer(desc), isTemp);
+        var handle = TrackResource(pAllocation, initialState, resourceDescriptor, ResourceDesc.Buffer(desc), isTemp);
         return handle.AsGraphicsBuffer();
     }
 
     public Handle<GraphicsBuffer> CreateUploadBuffer(ulong size, bool isTemp = true)
     {
+        ThrowIfDisposed();
+
         var desc = new BufferDesc
         {
             Size = size,
@@ -835,6 +839,8 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
     public Handle<Mesh> CreateMesh(UnsafeList<Vertex> vertices, UnsafeList<uint> indices)
     {
+        ThrowIfDisposed();
+
         var vertexBufferDesc = new BufferDesc
         {
             Size = (uint)(vertices.Count * Unsafe.SizeOf<Vertex>()),
@@ -867,14 +873,18 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
     public Handle<Material> CreateMaterial(Identifier<Shader> shader)
     {
+        ThrowIfDisposed();
+
         var material = new Material();
         material.SetShader(shader, this, _resourceDatabase);
 
         return _resourceDatabase.AddMaterial(ref material);
     }
 
-    public Identifier<Shader> CreateShader(ShaderDescriptor descriptor)
+    public Identifier<Shader> CreateGraphicsShader(ShaderDescriptor descriptor)
     {
+        ThrowIfDisposed();
+
         var shader = new Shader(descriptor);
         foreach (var pass in descriptor.passes)
         {
@@ -883,9 +893,14 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
                 continue;
             }
 
-            var passKey = new ShaderPassKey(fullPass.uniqueIdentifier);
-            var cbufferInfo = _pipelineLibrary.GetCBufferInfo(passKey).GetValueOrThrow();
-            _resourceDatabase.AddShaderPass(new ShaderPassKey(fullPass.uniqueIdentifier), new ShaderPass(cbufferInfo));
+            var passKey = new ShaderPassKey(fullPass.Identifier);
+            var cbr = _pipelineLibrary.GetCBufferInfo(passKey);
+            if (cbr.Status != ResultStatus.Success)
+            {
+                return Identifier<Shader>.Invalid;
+            }
+
+            _resourceDatabase.AddShaderPass(passKey, new ShaderPass(cbr.Value));
         }
 
         return _resourceDatabase.AddShader(shader);
@@ -893,6 +908,8 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
     public void ReleaseTempResources()
     {
+        ThrowIfDisposed();
+
         while (_temResources.Count > 0)
         {
             var handle = _temResources.Peek();
@@ -916,9 +933,9 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         }
     }
 
-    public void Dispose()
+    protected override void Dispose(bool disposing)
     {
-        if (_disposed)
+        if (Disposed)
         {
             return;
         }
@@ -936,9 +953,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         }
 
         _temResources.Dispose();
-        _allocator.Dispose();
 
-        _disposed = true;
-        GC.SuppressFinalize(this);
+        base.Dispose(disposing);
     }
 }

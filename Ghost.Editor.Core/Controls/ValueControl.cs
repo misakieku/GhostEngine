@@ -56,11 +56,11 @@ public partial class ValueControl<T> : Control
     }
 
     /// <summary>
-    /// Sets the value without notifying the change event.
+    /// Sets the _value without notifying the change event.
     /// </summary>
-    /// <param name="value">The new value to set.</param>
+    /// <param name="value">The new _value to set.</param>
     /// <remarks>This method only suppresses the change event notification, not the <see cref="ValueChanged(T, T)"/> method.
-    /// Useful when you need to change the value programmatically without triggering the change event.</remarks>
+    /// Useful when you need to change the _value programmatically without triggering the change event.</remarks>
     public void SetValueWithoutNotifying(T value)
     {
         _suppressChangedEvent = true;

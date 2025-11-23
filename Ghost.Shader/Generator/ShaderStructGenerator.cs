@@ -73,7 +73,7 @@ internal static partial class ShaderStructGenerator
             var name = $"{CamelCaseToUnderscoreRegex().Replace(enumName, "_$1")}_{names[i]}";
             var value = values.GetValue(i);
             //        sb.Append(@$"
-            //{name} = {value},");
+            //{name} = {Value},");
             sb.Append(@$"
 #define {name.ToUpperInvariant()} {value}"); // Use #define for capability. Enum is only support for newer HLSL versions.
         }

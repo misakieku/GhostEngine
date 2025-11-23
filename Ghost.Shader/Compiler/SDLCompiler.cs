@@ -247,11 +247,15 @@ internal static class SDLCompiler
                     errorMessages.AppendLine(error.ToString());
                 }
 
-                return Result.Fail("Failed to compile shader due to errors:\n" + errorMessages.ToString());
+                return Result.Failure("Failed to compile shader due to errors:\n" + errorMessages.ToString());
             }
 
             var desc = ResolveShader(model);
-            var globalPropPath = GenerateGlobalProperties(desc.globalProperties, generatedOutputDirectory);
+            var globalPropResult = GenerateGlobalProperties(desc.globalProperties, generatedOutputDirectory);
+            if (globalPropResult.IsFailure)
+            {
+                return Result.Failure("Failed to generate global properties: " + globalPropResult.Message);
+            }
 
             foreach (var pass in desc.passes)
             {
@@ -261,15 +265,21 @@ internal static class SDLCompiler
                 }
 
                 fullPass.includes ??= new List<string>();
-                fullPass.includes.Add(globalPropPath);
-                fullPass.generatedCodePath = GeneratePass(fullPass, generatedOutputDirectory);
+                fullPass.includes.Add(globalPropResult.Value);
+                var generatedResult = GeneratePass(fullPass, generatedOutputDirectory);
+                if (generatedResult.IsFailure)
+                {
+                    return Result.Failure("Failed to generate pass files: " + generatedResult.Message);
+                }
+
+                fullPass.generatedCodePath = generatedResult.Value;
             }
 
             return desc;
         }
         catch (Exception ex)
         {
-            return Result.Fail("Failed to generate shader files: " + ex.Message);
+            return Result.Failure("Failed to generate shader files: " + ex.Message);
         }
     }
 
@@ -303,16 +313,16 @@ internal static class SDLCompiler
         };
     }
 
-    public static string GeneratePass(IPassDescriptor descriptor, string targetDirectory)
+    public static Result<string> GeneratePass(IPassDescriptor descriptor, string targetDirectory)
     {
         if (descriptor is not FullPassDescriptor fullPass)
         {
-            throw new NotSupportedException("Only full pass descriptors are supported for compilation.");
+            return Result.Failure("Only full pass descriptors are supported for compilation.");
         }
 
         if (!Directory.Exists(targetDirectory))
         {
-            throw new ArgumentException("Target directory does not exist.", nameof(targetDirectory));
+            return Result.Failure("Target directory does not exist.");
         }
 
         var outputFileName = fullPass.uniqueIdentifier.Replace(' ', '_');
@@ -369,11 +379,11 @@ struct PerMaterialData
         return outputFilePath;
     }
 
-    public static string GenerateGlobalProperties(List<PropertyDescriptor> globalProperties, string targetDirectory)
+    public static Result<string> GenerateGlobalProperties(List<PropertyDescriptor> globalProperties, string targetDirectory)
     {
         if (!Directory.Exists(targetDirectory))
         {
-            throw new ArgumentException("Target directory does not exist.", nameof(targetDirectory));
+            return Result.Failure("Target directory does not exist.");
         }
 
         var globalFilePath = Path.Combine(targetDirectory, _GLOBAL_PROPERTY_FILE_NAME);

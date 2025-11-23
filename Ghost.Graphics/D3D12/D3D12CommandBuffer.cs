@@ -14,9 +14,9 @@ using static TerraFX.Aliases.DXGI_Alias;
 
 namespace Ghost.Graphics.D3D12;
 
-internal unsafe class D3D12CommandBuffer : D3D12RHIObject<ID3D12GraphicsCommandList10>, ICommandBuffer
+internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList10>, ICommandBuffer
 {
-    private ComPtr<ID3D12CommandAllocator> _allocator;
+    private UniquePtr<ID3D12CommandAllocator> _allocator;
 
     private readonly D3D12PipelineLibrary _pipelineLibrary;
     private readonly D3D12ResourceDatabase _resourceDatabase;
@@ -282,8 +282,15 @@ internal unsafe class D3D12CommandBuffer : D3D12RHIObject<ID3D12GraphicsCommandL
         ThrowIfNotRecording();
         IncrementCommandCount();
 
-        var shaderPipeline = _pipelineLibrary.GetGraphicsPSO(pipelineKey).GetValueOrThrow();
-        nativeObject.Get()->SetPipelineState(shaderPipeline.value);
+        var psor = _pipelineLibrary.GetGraphicsPSO(pipelineKey);
+        if (psor.Status != ResultStatus.Success)
+        {
+#if DEBUG || GHOST_EDITOR
+            Logger.LogError($"Failed to get graphics pipeline state object for key {pipelineKey}: {psor.Status}");
+#endif
+        }
+        
+        nativeObject.Get()->SetPipelineState(psor.Value);
     }
 
     public void SetConstantBufferView(uint slot, Handle<GraphicsBuffer> buffer)
@@ -479,7 +486,7 @@ internal unsafe class D3D12CommandBuffer : D3D12RHIObject<ID3D12GraphicsCommandL
 
     protected override void Dispose(bool disposing)
     {
-        if (IsDisposed)
+        if (Disposed)
         {
             return;
         }
@@ -489,7 +496,7 @@ internal unsafe class D3D12CommandBuffer : D3D12RHIObject<ID3D12GraphicsCommandL
             throw new InvalidOperationException("Command buffer is still recording");
         }
 
-        MemoryLeakException.ThrowIfRefCountNonZero(_allocator.Reset());
+        _allocator.Dispose();
         _commandCount = 0;
 
         base.Dispose(disposing);

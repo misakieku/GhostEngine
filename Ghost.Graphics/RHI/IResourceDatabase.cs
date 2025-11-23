@@ -35,11 +35,11 @@ public interface IResourceDatabase
     /// Retrieves the current state of the specified resource.
     /// </summary>
     /// <param name="handle">The handle that uniquely identifies the resource whose state is to be retrieved.</param>
-    /// <returns>A ResourceState value representing the current state of the resource associated with the specified handle.</returns>
+    /// <returns>A ResourceState Value representing the current state of the resource associated with the specified handle.</returns>
     ResourceState GetResourceState(Handle<GPUResource> handle);
 
     /// <summary>
-    /// Sets the state of the specified resource handle to the given value.
+    /// Sets the state of the specified resource handle to the given Value.
     /// </summary>
     /// <param name="handle">The handle that identifies the resource whose state will be updated.</param>
     /// <param name="state">The new state to assign to the resource represented by <paramref name="handle"/>.</param>

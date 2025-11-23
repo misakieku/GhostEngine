@@ -1,5 +1,16 @@
 namespace Ghost.Graphics.RHI;
 
+[Flags]
+public enum FeatureSupport
+{
+    None = 0,
+    RayTracing = 1 << 0,
+    VariableRateShading = 1 << 1,
+    MeshShaders = 1 << 2,
+    SamplerFeedback = 1 << 3,
+    BindlessResources = 1 << 4,
+}
+
 /// <summary>
 /// D3D12-native render device interface for creating graphics resources
 /// </summary>
@@ -28,4 +39,6 @@ public interface IRenderDevice : IDisposable
     {
         get;
     }
+
+    public FeatureSupport GetFeatureSupport();
 }

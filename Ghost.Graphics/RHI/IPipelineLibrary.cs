@@ -1,4 +1,5 @@
-using Ghost.Core.Graphics;
+using Ghost.Core;
+using Ghost.Graphics.Contracts;
 
 namespace Ghost.Graphics.RHI;
 
@@ -21,5 +22,6 @@ public interface IPipelineLibrary
     /// <param name="filePath">File path. If null, load default library.</param>
     void InitializeLibrary(string? filePath);
     void SaveLibraryToDisk(string filePath);
-    GraphicsPipelineKey CompilePassPSO(IPassDescriptor descriptor, ReadOnlySpan<TextureFormat> rtvs, TextureFormat dsv);
+    Result<GraphicsPipelineKey> CompilePSO(ref readonly GraphicsPSODescriptor descriptor, ref readonly GraphicsCompiledResult compiled);
+    Result<CBufferInfo, ResultStatus> GetCBufferInfo(ShaderPassKey passId);
 }

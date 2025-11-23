@@ -75,26 +75,26 @@ internal partial class ProjectService
     {
         if (string.IsNullOrWhiteSpace(projectDirectory) || !Directory.Exists(projectDirectory))
         {
-            return Result<ProjectMetadataInfo>.Fail("Project directory is invalid or does not exist.");
+            return Result<ProjectMetadataInfo>.Failure("Project directory is invalid or does not exist.");
         }
 
         var projectAssetsPath = Path.Combine(projectDirectory, ASSETS_FOLDER);
         var projectConfigPath = Path.Combine(projectDirectory, CONFIG_FOLDER);
         if (!Directory.Exists(projectAssetsPath) || !Directory.Exists(projectConfigPath))
         {
-            return Result<ProjectMetadataInfo>.Fail("Project folder structure is invalid.");
+            return Result<ProjectMetadataInfo>.Failure("Project folder structure is invalid.");
         }
 
         var metadataPath = Directory.GetFiles(projectDirectory, $"*.{ProjectMetadata.PROJECT_EXTENSION}", SearchOption.TopDirectoryOnly).FirstOrDefault();
         if (string.IsNullOrWhiteSpace(metadataPath) || !File.Exists(metadataPath))
         {
-            return Result<ProjectMetadataInfo>.Fail("Project metadata file not found.");
+            return Result<ProjectMetadataInfo>.Failure("Project metadata file not found.");
         }
 
         var metadata = await LoadMetadataAsync(metadataPath);
         if (metadata == null)
         {
-            return Result<ProjectMetadataInfo>.Fail("Project metadata file is corrupted or invalid.");
+            return Result<ProjectMetadataInfo>.Failure("Project metadata file is corrupted or invalid.");
         }
 
         return new ProjectMetadataInfo(metadataPath, metadata);
@@ -187,7 +187,7 @@ internal partial class ProjectService
                 // Check if folder is empty
                 if (Directory.EnumerateFiles(projectPath, "*", SearchOption.AllDirectories).Any())
                 {
-                    return new(false, default, "Directory is not empty");
+                    return Result.Failure("Directory is not empty");
                 }
             }
 
@@ -197,28 +197,28 @@ internal partial class ProjectService
             await SetupRequestFolderAsync(projectPath, templatePath);
 
             var info = await AddProjectAsync(projectName, metadataPath);
-            return new(true, new(metadataPath, metadata));
+            return Result.Success(new ProjectMetadataInfo(metadataPath, metadata));
         }
         catch (Exception e)
         {
-            return Result<ProjectMetadataInfo>.Fail($"Failed to create project: {e.Message}");
+            return Result.Failure($"Failed to create project: {e.Message}");
         }
     }
 
     public async Task<Result<ProjectMetadataInfo>> AddProjectFromDirectoryAsync(string projectDirectory)
     {
         var result = await ValidateProjectDirectoryAsync(projectDirectory);
-        if (!result.success)
+        if (result.IsFailure)
         {
             return result;
         }
 
-        if (await HasProjectAsync(result.value.Path))
+        if (await HasProjectAsync(result.Value.Path))
         {
-            return Result<ProjectMetadataInfo>.Fail("Project already exists.");
+            return Result.Failure("Project already exists.");
         }
 
-        await AddProjectAsync(result.value.Metadata.Name, result.value.Path);
+        await AddProjectAsync(result.Value.Metadata.Name, result.Value.Path);
 
         return result;
     }
