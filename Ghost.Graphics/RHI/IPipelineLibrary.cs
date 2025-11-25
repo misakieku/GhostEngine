@@ -14,7 +14,7 @@ public interface IShaderPipeline
     }
 }
 
-public interface IPipelineLibrary
+public interface IPipelineLibrary : IDisposable
 {
     /// <summary>
     /// Load pipeline library from disk.

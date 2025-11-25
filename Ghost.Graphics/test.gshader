@@ -9,17 +9,17 @@ shader "MyShader/Standard"
         tex2d_b texture4 = tex2d_b(normal);
     }
 
-    pipeline
-    {
-        ztest = less_equal;
-        zwrite = on;
-        cull = back;
-        blend = opaque;
-        color_mask = 0;
-    }
-
     pass "Forward"
     {
+        pipeline
+        {
+            ztest = disable;
+            zwrite = off;
+            cull = off;
+            blend = opaque;
+            color_mask = 15;
+        }
+
         ms("F:/csharp/GhostEngine/Ghost.Graphics/RenderPasses/ShaderCode.hlsl", "MSMain");
         ps("F:/csharp/GhostEngine/Ghost.Graphics/RenderPasses/ShaderCode.hlsl", "PSMain");
     }

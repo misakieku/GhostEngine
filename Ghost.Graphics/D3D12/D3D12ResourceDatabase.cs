@@ -8,11 +8,10 @@ using Misaki.HighPerformance.LowLevel.Collections;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
 
 namespace Ghost.Graphics.D3D12;
 
-internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
+internal class D3D12ResourceDatabase : IResourceDatabase
 {
     internal unsafe struct ResourceRecord
     {
@@ -56,12 +55,12 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
             this.desc = desc;
         }
 
-        public ResourceRecord(ID3D12Resource* resource, ResourceState state)
+        public ResourceRecord(ID3D12Resource* resource, ResourceState state, ResourceViewGroup viewGroup)
         {
             this.resourceUnion = new ResourceUnion(resource);
             this.isExternal = true;
 
-            this.viewGroup = default;
+            this.viewGroup = viewGroup;
             this.cpuFenceValue = ~0u;
             this.state = state;
             this.desc = ResourceDesc.FromD3D12(resource->GetDesc());
@@ -80,12 +79,12 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
                 {
                     refCount = resourceUnion.allocation.Get()->Release();
                 }
-
-                resourceUnion = default;
-                viewGroup = default;
             }
 
             descriptorAllocator.Release(viewGroup);
+
+            resourceUnion = default;
+            viewGroup = default;
 
             return refCount;
         }
@@ -107,15 +106,15 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
 
     public D3D12ResourceDatabase(D3D12DescriptorAllocator descriptorAllocator)
     {
-        _resources = new(64, Allocator.Persistent, AllocationOption.Clear);
+        _resources = new UnsafeSlotMap<ResourceRecord>(64, Allocator.Persistent, AllocationOption.Clear);
 #if DEBUG || GHOST_EDITOR
-        _resourceName = new(64);
+        _resourceName = new Dictionary<Handle<GPUResource>, string>(64);
 #endif
 
-        _meshes = new(64, Allocator.Persistent, AllocationOption.Clear);
-        _materials = new(16, Allocator.Persistent, AllocationOption.Clear);
-        _shaders = new(16);
-        _shaderPasses = new(16);
+        _meshes = new UnsafeSlotMap<Mesh>(64, Allocator.Persistent, AllocationOption.Clear);
+        _materials = new UnsafeSlotMap<Material>(16, Allocator.Persistent, AllocationOption.Clear);
+        _shaders = new DynamicArray<Shader?>(16);
+        _shaderPasses = new Dictionary<ShaderPassKey, ShaderPass>(16);
 
         _descriptorAllocator = descriptorAllocator;
     }
@@ -132,11 +131,11 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
         resource = default!;
     }
 
-    public unsafe Handle<GPUResource> ImportExternalResource(ID3D12Resource* pResource, ResourceState initialState, string? name = null)
+    public unsafe Handle<GPUResource> ImportExternalResource(ID3D12Resource* pResource, ResourceState initialState, ResourceViewGroup viewGroup, string? name = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        var id = _resources.Add(new ResourceRecord(pResource, initialState), out var generation);
+        var id = _resources.Add(new ResourceRecord(pResource, initialState, viewGroup), out var generation);
         var handle = new Handle<GPUResource>(id, generation);
 
 #if DEBUG || GHOST_EDITOR
@@ -172,7 +171,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
         return _resources.Contains(handle.id, handle.generation);
     }
 
-    public ref ResourceRecord GetResourceInfo(Handle<GPUResource> handle)
+    public ref ResourceRecord GetResourceRecord(Handle<GPUResource> handle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -191,11 +190,11 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
         return ref _resources.GetElementReferenceAt(handle.id, handle.generation, out exist);
     }
 
-    public unsafe ID3D12Resource* GetResource(Handle<GPUResource> handle)
+    public unsafe SharedPtr<ID3D12Resource> GetResource(Handle<GPUResource> handle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        ref var info = ref GetResourceInfo(handle);
+        ref var info = ref GetResourceRecord(handle);
         if (!info.Allocated)
         {
             return null;
@@ -207,7 +206,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
     public ResourceState GetResourceState(Handle<GPUResource> handle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return GetResourceInfo(handle).state;
+        return GetResourceRecord(handle).state;
     }
 
     public void SetResourceState(Handle<GPUResource> handle, ResourceState state)
@@ -226,7 +225,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
     public ResourceDesc GetResourceDescription(Handle<GPUResource> handle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return GetResourceInfo(handle).desc;
+        return GetResourceRecord(handle).desc;
     }
 
     public int GetBindlessIndex(Handle<GPUResource> handle)
@@ -273,10 +272,11 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
         var refCount = info.Release(_descriptorAllocator);
 #if DEBUG || GHOST_EDITOR
         _resourceName.Remove(handle, out var name);
-        if (refCount > 0)
-        {
-            throw new GPUResourceLeakException(refCount, info.ResourcePtr, name ?? "Unknown Resource");
-        }
+        //if (refCount > 0)
+        //{
+        //    throw new GPUResourceLeakException(refCount, info.ResourcePtr, name ?? "Unknown Resource");
+        //}
+        //Debug.Assert(refCount == 0, "Resource released with non-zero reference count.");
 #endif
 
         _resources.Remove(handle.id, handle.generation);
@@ -435,10 +435,9 @@ internal class D3D12ResourceDatabase : IResourceDatabase, IDisposable
 
     public void Dispose()
     {
-        [Conditional("DEBUG"), Conditional("GHOST_EDITOR")]
         static void ThrowMemoryLeakException(string resourceType, int count)
         {
-            throw new InvalidOperationException($"ResourceAllocator is being disposed with {count} {resourceType} still registered. Ensure all resources are released before disposing.");
+            throw new MemoryLeakException($"ResourceAllocator is being disposed with {count} {resourceType} still registered. Ensure all resources are released before disposing.");
         }
 
         if (_disposed)

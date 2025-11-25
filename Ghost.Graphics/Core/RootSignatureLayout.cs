@@ -1,3 +1,6 @@
+using Misaki.HighPerformance.Mathematics;
+using System.Runtime.InteropServices;
+
 namespace Ghost.Graphics.Core;
 
 /// <summary>
@@ -41,3 +44,13 @@ public static class RootSignatureLayout
 #endif
     ;
 }
+
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+public struct PerObjectData
+{
+    public float4x4 localToWorld;
+    public float3 worldBoundsMin;
+    public uint vertexBuffer;
+    public float3 worldBoundsMax;
+    public uint indexBuffer;
+};

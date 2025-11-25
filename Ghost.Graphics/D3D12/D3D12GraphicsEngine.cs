@@ -105,7 +105,7 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
     public ISwapChain CreateSwapChain(SwapChainDesc desc)
     {
         ThrowIfDisposed();
-        return new D3D12SwapChain(_resourceDatabase, _device.DXGIFactory, ((D3D12CommandQueue)_device.GraphicsQueue).NativeQueue, desc);
+        return new D3D12SwapChain(_resourceDatabase, _descriptorAllocator, _device, desc);
     }
 
     public void BeginFrame()
@@ -152,6 +152,7 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
         _resourceDatabase.Dispose();
 
         _descriptorAllocator.Dispose();
+        _shaderCompiler.Dispose();
         _device.Dispose();
 #if DEBUG
         _debugLayer.Dispose();

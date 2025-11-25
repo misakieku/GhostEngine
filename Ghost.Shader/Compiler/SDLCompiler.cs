@@ -211,6 +211,7 @@ internal static class SDLCompiler
                 var fullPass = new FullPassDescriptor
                 {
                     uniqueIdentifier = GetPassUniqueId(semantics, pass),
+                    name = pass.name,
                     taskShader = pass.taskShader,
                     meshShader = pass.meshShader,
                     pixelShader = pass.pixelShader,

@@ -18,7 +18,9 @@ internal struct CBufferCache : IResourceReleasable
     public readonly Handle<GraphicsBuffer> GpuResource => _gpuResource;
     public readonly uint AlignedSize => _alignedSize;
 
-    public unsafe CBufferCache(Handle<GraphicsBuffer> buffer, uint bufferSize)
+    public readonly bool IsCreated => _gpuResource.IsValid && _cpuData.IsCreated;
+
+    public CBufferCache(Handle<GraphicsBuffer> buffer, uint bufferSize)
     {
         _alignedSize = (bufferSize + 255u) & ~255u;
 
@@ -65,6 +67,11 @@ public struct Material : IResourceReleasable, IHandleType
             var pass = database.GetShaderPass(shader.GetPassKey(i));
             var cbufferInfo = pass.CBuffer;
 
+            if (cbufferInfo.SizeInBytes == 0)
+            {
+                continue;
+            }
+
             var desc = new BufferDesc
             {
                 Size = cbufferInfo.SizeInBytes,
@@ -91,7 +98,7 @@ public struct Material : IResourceReleasable, IHandleType
 public ref struct MaterialAccessor
 {
     private ref Material _materialData;
-    private Shader _shader;
+    private readonly Shader _shader;
 
     private readonly IResourceDatabase _resourceDatabase;
 

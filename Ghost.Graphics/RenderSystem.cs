@@ -172,11 +172,7 @@ internal class RenderSystem : IRenderSystem
 
         _isRunning = false;
         _shutdownEvent.Set();
-
-        if (_renderThread.IsAlive)
-        {
-            _renderThread.Join();
-        }
+        _renderThread.Join();
     }
 
     public bool WaitForGPUReady(int timeOut = -1)
@@ -242,7 +238,10 @@ internal class RenderSystem : IRenderSystem
             frameResource.Dispose();
         }
 
+        _graphicsEngine.Dispose();
         _shutdownEvent.Dispose();
+
         _disposed = true;
+        GC.SuppressFinalize(this);
     }
 }

@@ -115,7 +115,7 @@ internal sealed partial class DxcShaderCompiler
     }
 }
 
-internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler, IDisposable
+internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
 {
     private UniquePtr<IDxcCompiler3> _compiler;
     private UniquePtr<IDxcUtils> _utils;

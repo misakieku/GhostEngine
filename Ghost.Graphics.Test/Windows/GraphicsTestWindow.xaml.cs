@@ -3,6 +3,8 @@ using Ghost.Graphics.RHI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Misaki.HighPerformance.LowLevel.Buffer;
+using TerraFX.Interop.WinRT;
+using WinRT;
 
 namespace Ghost.Graphics.Test.Windows;
 
@@ -34,7 +36,7 @@ public sealed partial class GraphicsTestWindow : Window
             GraphicsAPI = GraphicsAPI.Direct3D12
         });
         _renderer = _renderSystem.GraphicsEngine.CreateRenderer();
-
+        
         _swapChain = _renderSystem.GraphicsEngine.CreateSwapChain(new SwapChainDesc((uint)AppWindow.Size.Width, (uint)AppWindow.Size.Height, SwapChainTarget.FromCompositionSurface(Panel)));
         _renderer.SetSwapChain(_swapChain);
 

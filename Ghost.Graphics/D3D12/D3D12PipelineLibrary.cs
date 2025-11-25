@@ -31,7 +31,7 @@ internal struct D3D12PipelineState : IDisposable
     }
 }
 
-internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
+internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
 {
     private readonly D3D12RenderDevice _device;
     private readonly D3D12ResourceDatabase _resourceDatabase;
@@ -153,7 +153,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
             }
 
             ID3D12RootSignature* pRootSignature = default;
-            ThrowIfFailed(_device.NativeDevice->CreateRootSignature(0, pSignature->GetBufferPointer(), pSignature->GetBufferSize(),
+            ThrowIfFailed(_device.NativeDevice.Get()->CreateRootSignature(0, pSignature->GetBufferPointer(), pSignature->GetBufferSize(),
                 __uuidof(pRootSignature), (void**)&pRootSignature));
 
             _defaultRootSignature.Attach(pRootSignature);
@@ -183,12 +183,12 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
             var fileBytes = File.ReadAllBytes(filePath!);
             fixed (byte* pFileBytes = fileBytes)
             {
-                ThrowIfFailed(_device.NativeDevice->CreatePipelineLibrary(pFileBytes, (nuint)fileBytes.Length, __uuidof(pLibrary), (void**)&pLibrary));
+                ThrowIfFailed(_device.NativeDevice.Get()->CreatePipelineLibrary(pFileBytes, (nuint)fileBytes.Length, __uuidof(pLibrary), (void**)&pLibrary));
             }
         }
         else
         {
-            ThrowIfFailed(_device.NativeDevice->CreatePipelineLibrary(null, 0, __uuidof(pLibrary), (void**)&pLibrary));
+            ThrowIfFailed(_device.NativeDevice.Get()->CreatePipelineLibrary(null, 0, __uuidof(pLibrary), (void**)&pLibrary));
         }
 
         _library.Attach(pLibrary);
@@ -213,18 +213,26 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
 
     private static Result<CBufferInfo> ValidateReflectionData(ShaderReflectionData reflectionData)
     {
-        CBufferInfo cbufferInfo;
+        var cbufferInfo = default(CBufferInfo);
 
         foreach (var info in reflectionData.ResourcesBindings)
         {
-            if (info.BindPoint > 3)
+            if (info.BindPoint >= RootSignatureLayout.ROOT_PARAMETER_COUNT)
             {
                 return Result.Failure($"Resource binding point {info.BindPoint} is out of range. Only binding points 0-3 are supported in the current root signature.");
             }
 
             if (info.Type != ShaderInputType.ConstantBuffer)
             {
-                return Result.Failure($"Resource binding type {info.Type} is not supported. Only constant buffers are supported in the current root signature.");
+                return Result.Failure($"Resource binding type {info.Type} is not supported. Please consider using bindless resources for buffers, textures and samplers.");
+            }
+
+            if (info.BindPoint == RootSignatureLayout.PER_OBJECT_BUFFER_SLOT)
+            {
+                if (info.Size != sizeof(PerObjectData))
+                {
+                    return Result.Failure($"Per-object constant buffer size mismatch. Expected size: {sizeof(PerObjectData)}, Actual size: {info.Size}");
+                }
             }
 
             if (info.BindPoint == RootSignatureLayout.PER_MATERIAL_BUFFER_SLOT)
@@ -237,19 +245,15 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
                     SizeInBytes = info.Size,
                     Properties = info.Properties ?? Array.Empty<CBufferPropertyInfo>(),
                 };
-
-                return Result.Success(cbufferInfo);
             }
         }
 
-        return Result.Failure("Per-material constant buffer not found in shader reflection data.");
-
-        // TODO: Validate Cbuffer sizes and bindings.
+        return Result.Success(cbufferInfo);
     }
 
     private static D3D12_COMPARISON_FUNC ToD3DCompare(ZTestOptions z) => z switch
     {
-        ZTestOptions.Disabled => D3D12_COMPARISON_FUNC_ALWAYS,
+        ZTestOptions.Disabled => D3D12_COMPARISON_FUNC_NEVER,
         ZTestOptions.Less => D3D12_COMPARISON_FUNC_LESS,
         ZTestOptions.LessEqual => D3D12_COMPARISON_FUNC_LESS_EQUAL,
         ZTestOptions.Equal => D3D12_COMPARISON_FUNC_EQUAL,
@@ -284,7 +288,8 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
                 return Result.Failure("Validation of pixel shader reflection data failed: " + psr.Message);
             }
 
-            if (msr.Value != psr.Value)
+            if (msr.Value.Properties != null
+                && msr.Value.SizeInBytes != psr.Value.SizeInBytes)
             {
                 return Result.Failure("Mesh shader and pixel shader constant buffer layouts do not match.");
             }
@@ -297,12 +302,14 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
                     return Result.Failure("Validation of task shader reflection data failed: " + tsr.Message);
                 }
 
-                if (tsr.Value != msr.Value)
+                if (tsr.Value.Properties != null
+                    && tsr.Value.SizeInBytes != psr.Value.SizeInBytes)
                 {
-                    return Result.Failure("Task shader and mesh shader constant buffer layouts do not match.");
+                    return Result.Failure("Task shader and pixel shader constant buffer layouts do not match.");
                 }
             }
 
+            // ts and ms may not use per material cbuffer at all, so we return the psr value.
             return psr.Value;
         }
 
@@ -396,7 +403,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary, IDisposable
             if (hr == E.E_INVALIDARG)
             {
                 // Pipeline not found in the library, create a new one.
-                ThrowIfFailed(_device.NativeDevice->CreatePipelineState(&streamDesc, __uuidof(pPipelineState), (void**)&pPipelineState));
+                ThrowIfFailed(_device.NativeDevice.Get()->CreatePipelineState(&streamDesc, __uuidof(pPipelineState), (void**)&pPipelineState));
                 ThrowIfFailed(_library.Get()->StorePipeline(pKeyStr, pPipelineState));
             }
             else

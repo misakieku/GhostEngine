@@ -10,16 +10,17 @@ namespace Ghost.Graphics.D3D12;
 /// <summary>
 /// D3D12 implementation of the renderer interface using RHI abstractions
 /// </summary>
-internal unsafe class D3D12Renderer : IRenderer
+internal class D3D12Renderer : IRenderer
 {
     private struct FrameResource : IDisposable
     {
         public ICommandBuffer commandBuffer;
         public ulong fenceValue;
 
-        public FrameResource(D3D12GraphicsEngine graphicsEngine)
+        public FrameResource(D3D12GraphicsEngine graphicsEngine, int index)
         {
             commandBuffer = graphicsEngine.CreateCommandBuffer();
+            commandBuffer.Name = $"Frame Command Buffer {index}";
             fenceValue = 0;
         }
 
@@ -67,7 +68,7 @@ internal unsafe class D3D12Renderer : IRenderer
         _frameResources = new FrameResource[D3D12PipelineResource.BACK_BUFFER_COUNT];
         for (var i = 0; i < _frameResources.Length; i++)
         {
-            _frameResources[i] = new FrameResource(graphicsEngine);
+            _frameResources[i] = new FrameResource(graphicsEngine, i);
         }
 
         _renderTarget = Handle<Texture>.Invalid;
@@ -106,6 +107,12 @@ internal unsafe class D3D12Renderer : IRenderer
         if (swapChain != null)
         {
             CreateOffScreenRenderTarget(swapChain.Width, swapChain.Height);
+        }
+
+        var newSize = swapChain != null ? new uint2(swapChain.Width, swapChain.Height) : _currentSize;
+        if (!math.all(newSize == _currentSize))
+        {
+            RequestResize(newSize);
         }
 
         _swapChain = swapChain;
@@ -171,8 +178,21 @@ internal unsafe class D3D12Renderer : IRenderer
             frame.commandBuffer.Begin();
 
             // NOTE: Temperary solution: render directly to the swap chain back buffer if available.
+            // HACK: This is hard coded for testing purposes only.
+
             var rt = _swapChain?.GetCurrentBackBuffer() ?? _renderTarget;
+
+            if(_swapChain != null)
+            {
+                frame.commandBuffer.ResourceBarrier(rt.AsResource(), ResourceState.Present, ResourceState.RenderTarget);
+            }
+
             RenderScene(rt, frame.commandBuffer);
+
+            if (_swapChain != null)
+            {
+                frame.commandBuffer.ResourceBarrier(rt.AsResource(), ResourceState.RenderTarget, ResourceState.Present);
+            }
 
             // if (_swapChain != null)
             // {
@@ -196,12 +216,14 @@ internal unsafe class D3D12Renderer : IRenderer
     {
         var clearColor = new Color128 { r = 1.0f, g = 0.0f, b = 1.0f, a = 1.0f };
 
-        Span<PassRenderTargetDesc> rtDesc = stackalloc PassRenderTargetDesc[1];
-        rtDesc[0] = new PassRenderTargetDesc
-        {
-            Texture = target,
-            ClearColor = clearColor,
-        };
+        Span<PassRenderTargetDesc> rtDesc =
+        [
+            new PassRenderTargetDesc
+            {
+                Texture = target,
+                ClearColor = clearColor,
+            },
+        ];
 
         var depthDesc = new PassDepthStencilDesc
         {
@@ -217,11 +239,10 @@ internal unsafe class D3D12Renderer : IRenderer
             _pass.Initialize(ref ctx);
         }
 
-        cmd.BeginRenderPass(rtDesc, depthDesc, false);
-
         var viewport = new ViewportDesc { Width = _currentSize.x, Height = _currentSize.y, MinDepth = 0, MaxDepth = 1 };
         var scissor = new RectDesc { Right = _currentSize.x, Bottom = _currentSize.y };
 
+        cmd.BeginRenderPass(rtDesc, depthDesc, false);
         cmd.SetViewport(viewport);
         cmd.SetScissorRect(scissor);
 

@@ -1,5 +1,4 @@
 using Ghost.Core.Utilities;
-using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
 using TerraFX.Interop.DirectX;
@@ -10,18 +9,21 @@ namespace Ghost.Graphics.D3D12;
 /// <summary>
 /// D3D12 implementation of command queue interface
 /// </summary>
-internal unsafe class D3D12CommandQueue : D3D12Object<ID3D12CommandQueue>, ICommandQueue
+internal unsafe class D3D12CommandQueue : ICommandQueue
 {
+    private UniquePtr<ID3D12CommandQueue> _commandQueue;
     private UniquePtr<ID3D12Fence1> _fence;
+
     private readonly AutoResetEvent _fenceEvent;
     private ulong _fenceValue;
+    private bool _disposed;
 
     public CommandQueueType Type
     {
         get;
     }
 
-    public ID3D12CommandQueue* NativeQueue => nativeObject.Get();
+    public SharedPtr<ID3D12CommandQueue> NativeQueue => _commandQueue.Get();
 
     public D3D12CommandQueue(ID3D12Device14* pDevice, CommandQueueType type)
     {
@@ -41,8 +43,13 @@ internal unsafe class D3D12CommandQueue : D3D12Object<ID3D12CommandQueue>, IComm
         ThrowIfFailed(pDevice->CreateCommandQueue(&queueDesc, __uuidof(pQueue), (void**)&pQueue));
         ThrowIfFailed(pDevice->CreateFence(0, D3D12_FENCE_FLAGS.D3D12_FENCE_FLAG_NONE, __uuidof(pFence), (void**)&pFence));
 
-        nativeObject.Attach(pQueue);
+        _commandQueue.Attach(pQueue);
         _fence.Attach(pFence);
+    }
+
+    ~D3D12CommandQueue()
+    {
+        Dispose();
     }
 
     private static D3D12_COMMAND_LIST_TYPE ConvertCommandQueueType(CommandQueueType type)
@@ -58,7 +65,7 @@ internal unsafe class D3D12CommandQueue : D3D12Object<ID3D12CommandQueue>, IComm
 
     public void Submit(ICommandBuffer commandBuffer)
     {
-        ThrowIfDisposed();
+        ObjectDisposedException.ThrowIf(_disposed, this);
 
         if (commandBuffer.IsEmpty)
         {
@@ -68,8 +75,8 @@ internal unsafe class D3D12CommandQueue : D3D12Object<ID3D12CommandQueue>, IComm
         if (commandBuffer is D3D12CommandBuffer d3d12CommandBuffer)
         {
             var commandList = d3d12CommandBuffer.NativeCommandList;
-            var commandListPtr = (ID3D12CommandList*)commandList;
-            nativeObject.Get()->ExecuteCommandLists(1, &commandListPtr);
+            var commandListPtr = (ID3D12CommandList*)commandList.Get();
+            _commandQueue.Get()->ExecuteCommandLists(1, &commandListPtr);
         }
         else
         {
@@ -79,7 +86,7 @@ internal unsafe class D3D12CommandQueue : D3D12Object<ID3D12CommandQueue>, IComm
 
     public void Submit(params ReadOnlySpan<ICommandBuffer> commandBuffers)
     {
-        ThrowIfDisposed();
+        ObjectDisposedException.ThrowIf(_disposed, this);
 
         Span<int> executableIndices = stackalloc int[commandBuffers.Length];
         executableIndices.Fill(-1);
@@ -107,7 +114,7 @@ internal unsafe class D3D12CommandQueue : D3D12Object<ID3D12CommandQueue>, IComm
 
             if (commandBuffers[cmdIndex] is D3D12CommandBuffer d3d12CommandBuffer)
             {
-                ppCommandLists[currentIndex] = (ID3D12CommandList*)d3d12CommandBuffer.NativeCommandList;
+                ppCommandLists[currentIndex] = (ID3D12CommandList*)d3d12CommandBuffer.NativeCommandList.Get();
             }
             else
             {
@@ -117,21 +124,21 @@ internal unsafe class D3D12CommandQueue : D3D12Object<ID3D12CommandQueue>, IComm
             currentIndex++;
         }
 
-        nativeObject.Get()->ExecuteCommandLists((uint)currentIndex, ppCommandLists);
+        _commandQueue.Get()->ExecuteCommandLists((uint)currentIndex, ppCommandLists);
     }
 
     public ulong Signal(ulong value)
     {
-        ThrowIfDisposed();
+        ObjectDisposedException.ThrowIf(_disposed, this);
 
         _fenceValue = value;
-        nativeObject.Get()->Signal((ID3D12Fence*)_fence.Get(), _fenceValue);
+        _commandQueue.Get()->Signal((ID3D12Fence*)_fence.Get(), _fenceValue);
         return _fenceValue;
     }
 
     public void WaitForValue(ulong value)
     {
-        ThrowIfDisposed();
+        ObjectDisposedException.ThrowIf(_disposed, this);
 
         if (_fence.Get()->GetCompletedValue() < value)
         {
@@ -145,28 +152,30 @@ internal unsafe class D3D12CommandQueue : D3D12Object<ID3D12CommandQueue>, IComm
 
     public ulong GetCompletedValue()
     {
-        ThrowIfDisposed();
+        ObjectDisposedException.ThrowIf(_disposed, this);
         return _fence.Get()->GetCompletedValue();
     }
 
     public void WaitIdle()
     {
-        ThrowIfDisposed();
+        ObjectDisposedException.ThrowIf(_disposed, this);
 
         var fenceValue = Signal(Interlocked.Increment(ref _fenceValue));
         WaitForValue(fenceValue);
     }
 
-    protected override void Dispose(bool disposing)
+    public void Dispose()
     {
-        if (Disposed)
+        if (_disposed)
         {
             return;
         }
 
-        _fenceEvent?.Dispose();
+        _commandQueue.Dispose();
         _fence.Dispose();
+        _fenceEvent?.Dispose();
 
-        base.Dispose(disposing);
+        _disposed = true;
+        GC.SuppressFinalize(this);
     }
 }

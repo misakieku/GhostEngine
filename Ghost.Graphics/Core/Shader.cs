@@ -19,10 +19,11 @@ public class ShaderPass : IResourceReleasable
     {
         _cbufferInfo = info;
 
-        _propertyLookup = new Dictionary<string, int>(info.Properties.Count);
-        for (var i = 0; i < info.Properties.Count; i++)
+        var capacity = info.Properties?.Count ?? 0;
+        _propertyLookup = new Dictionary<string, int>(capacity);
+        for (var i = 0; i < capacity; i++)
         {
-            _propertyLookup[info.Properties[i].Name] = i;
+            _propertyLookup[info.Properties![i].Name] = i;
         }
     }
 

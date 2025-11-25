@@ -11,7 +11,7 @@ public interface IResourceReleasable
     void ReleaseResource(IResourceDatabase database);
 }
 
-public interface IResourceDatabase
+public interface IResourceDatabase : IDisposable
 {
     /*
     /// <summary>

@@ -10,12 +10,12 @@ public unsafe static class MeshBuilder
     /// <summary>
     /// Creates a unit cube centered at the origin with size 1.
     /// </summary>
-    public static void CreateCube(float size, Color128 color, out UnsafeList<Vertex> vertices, out UnsafeList<uint> indices)
+    public static void CreateCube(float size, Color128 color, Allocator allocator, out UnsafeList<Vertex> vertices, out UnsafeList<uint> indices)
     {
         var half = size * 0.5f;
 
-        vertices = new UnsafeList<Vertex>(24, Allocator.Persistent);
-        indices = new UnsafeList<uint>(36, Allocator.Persistent);
+        vertices = new UnsafeList<Vertex>(24, allocator);
+        indices = new UnsafeList<uint>(36, allocator);
 
         var corners = new float4[]
         {
@@ -71,13 +71,13 @@ public unsafe static class MeshBuilder
     /// <summary>
     /// Creates a plane on the XZ axis centered at the origin.
     /// </summary>
-    public static void CreatePlane(float width, float depth, Color128 color, out UnsafeList<Vertex> vertices, out UnsafeList<uint> indices)
+    public static void CreatePlane(float width, float depth, Color128 color, Allocator allocator, out UnsafeList<Vertex> vertices, out UnsafeList<uint> indices)
     {
         var hw = width * 0.5f;
         var hd = depth * 0.5f;
 
-        vertices = new UnsafeList<Vertex>(4, Allocator.Persistent);
-        indices = new UnsafeList<uint>(6, Allocator.Persistent);
+        vertices = new UnsafeList<Vertex>(4, allocator);
+        indices = new UnsafeList<uint>(6, allocator);
 
         vertices.Add(new Vertex()
         {
@@ -129,10 +129,10 @@ public unsafe static class MeshBuilder
     /// <summary>
     /// Creates a UV sphere centered at the origin.
     /// </summary>
-    public static void CreateSphere(int latitudeSegments, int longitudeSegments, float radius, Color128 color, out UnsafeList<Vertex> vertices, out UnsafeList<uint> indices)
+    public static void CreateSphere(int latitudeSegments, int longitudeSegments, float radius, Color128 color, Allocator allocator, out UnsafeList<Vertex> vertices, out UnsafeList<uint> indices)
     {
-        vertices = new UnsafeList<Vertex>((latitudeSegments + 1) * (longitudeSegments + 1), Allocator.Persistent);
-        indices = new UnsafeList<uint>(latitudeSegments * longitudeSegments * 6, Allocator.Persistent);
+        vertices = new UnsafeList<Vertex>((latitudeSegments + 1) * (longitudeSegments + 1), allocator);
+        indices = new UnsafeList<uint>(latitudeSegments * longitudeSegments * 6, allocator);
 
         // Vertices
         for (var lat = 0; lat <= latitudeSegments; lat++)

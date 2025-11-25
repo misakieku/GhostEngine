@@ -6,6 +6,7 @@ using Ghost.Graphics.RHI;
 using Ghost.Graphics.Utilities;
 using Ghost.SDL.Compiler;
 using Misaki.HighPerformance.Image;
+using Misaki.HighPerformance.Mathematics;
 using Misaki.HighPerformance.Utilities;
 using TerraFX.Interop.Windows;
 
@@ -57,42 +58,40 @@ internal unsafe class MeshRenderPass : IRenderPass
             ctx.PipelineLibrary.CompilePSO(in psoDes, in compileResult.GetValueRef()).GetValueOrThrow();
         }
 
-        MeshBuilder.CreateCube(0.75f, default, out var vertices, out var indices);
+        MeshBuilder.CreateCube(0.75f, default, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent, out var vertices, out var indices);
 
         _mesh = ctx.CreateMesh(vertices, indices);
+        ctx.UpdateObjectData(_mesh, float4x4.identity);
         ctx.UploadMesh(_mesh, true);
 
         _shader = ctx.ResourceAllocator.CreateGraphicsShader(shaderDescriptor);
         _material = ctx.ResourceAllocator.CreateMaterial(_shader);
 
-        var imageResults = new ImageResult[_textureFiles.Length];
+        //_textures = new Handle<Texture>[_textureFiles.Length];
+        //for (var i = 0; i < _textureFiles.Length; i++)
+        //{
+        //    using var stream = File.OpenRead(_textureFiles[i]);
+        //    using var imageData = ImageResult.FromStream(stream);
 
-        _textures = new Handle<Texture>[_textureFiles.Length];
-        for (var i = 0; i < _textureFiles.Length; i++)
-        {
-            using var stream = File.OpenRead(_textureFiles[i]);
-            using var imageData = ImageResult.FromStream(stream);
-            imageResults[i] = imageData;
+        //    var desc = new TextureDesc
+        //    {
+        //        Width = imageData.Width,
+        //        Height = imageData.Height,
+        //        Dimension = TextureDimension.Texture2D,
+        //        Format = TextureFormat.R8G8B8A8_UNorm,
+        //        MipLevels = 1,
+        //        Slice = 1,
+        //        Usage = TextureUsage.ShaderResource,
+        //    };
 
-            var desc = new TextureDesc
-            {
-                Width = imageData.Width,
-                Height = imageData.Height,
-                Dimension = TextureDimension.Texture2D,
-                Format = TextureFormat.R8G8B8A8_UNorm,
-                MipLevels = 1,
-                Slice = 1,
-                Usage = TextureUsage.ShaderResource,
-            };
-
-            _textures[i] = ctx.CreateTexture(ref desc);
-            ctx.UploadTexture(_textures[i], new Span<byte>(imageData.Data, (int)imageData.Size));
-        }
+        //    _textures[i] = ctx.CreateTexture(ref desc);
+        //    ctx.UploadTexture(_textures[i], new Span<byte>(imageData.Data, (int)imageData.Size));
+        //}
     }
 
     public void Execute(ref readonly RenderingContext ctx)
     {
-        ctx.DispatchMesh(_mesh, _material, "Forward", 8);
+        ctx.DispatchMesh(_mesh, _material, "Forward", 3);
     }
 
     public void Cleanup(IResourceDatabase resourceDatabase)

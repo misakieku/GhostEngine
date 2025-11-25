@@ -166,7 +166,7 @@ public ref struct GraphicsPSODescriptor
     }
 }
 
-public readonly record struct CBufferPropertyInfo
+public readonly struct CBufferPropertyInfo
 {
     public string Name
     {
@@ -184,7 +184,7 @@ public readonly record struct CBufferPropertyInfo
     }
 }
 
-public readonly record struct CBufferInfo
+public readonly struct CBufferInfo
 {
     public string Name
     {

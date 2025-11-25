@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
+using Ghost.Graphics.Utilities;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
@@ -10,42 +11,118 @@ namespace Ghost.Graphics.Core;
 
 public struct Mesh : IResourceReleasable, IHandleType
 {
-    public UnsafeList<Vertex> vertices;
-    public UnsafeList<uint> indices;
-    public AABB boundingBox;
-    public Handle<GraphicsBuffer> vertexBuffer;
-    public Handle<GraphicsBuffer> indexBuffer;
+    internal bool IsMeshDataDirty
+    {
+        get; private set;
+    }
+
+    /// <summary>
+    /// Gets or sets the collection of vertices that define the geometry.
+    /// </summary>
+    public UnsafeList<Vertex> Vertices
+    {
+        readonly get => field;
+        set
+        {
+            field = value;
+            VertexCount = value.Count;
+            IsMeshDataDirty = true;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the collection of indices that define the order of vertices.
+    /// </summary>
+    public UnsafeList<uint> Indices
+    {
+        readonly get => field;
+        set
+        {
+            field = value;
+            IndexCount = value.Count;
+            IsMeshDataDirty = true;
+        }
+    }
+
+    /// <summary>
+    /// Get the number of vertices in the mesh.
+    /// </summary>
+    public int VertexCount
+    {
+        get; private set;
+    }
+
+    /// <summary>
+    /// Get the number of indices in the mesh.
+    /// </summary>
+    public int IndexCount
+    {
+        get; private set;
+    }
+
+    /// <summary>
+    /// Gets or sets the axis-aligned bounding box (AABB) of the mesh.
+    /// </summary>
+    public AABB BoundingBox
+    {
+        get; set;
+    }
+
+    /// <summary>
+    /// Gets the handle to the vertex buffer on the GPU.
+    /// </summary>
+    public Handle<GraphicsBuffer> VertexBuffer
+    {
+        get; internal set;
+    }
+
+    /// <summary>
+    /// Gets the handle to the index buffer on the GPU.
+    /// </summary>
+    public Handle<GraphicsBuffer> IndexBuffer
+    {
+        get; internal set;
+    }
+
+    /// <summary>
+    /// Gets the handle to the mesh data buffer on the GPU.
+    /// </summary>
+    public Handle<GraphicsBuffer> ObjectDataBuffer
+    {
+        get; internal set;
+    }
 
     public Mesh()
     {
-        vertexBuffer = Handle<GraphicsBuffer>.Invalid;
-        indexBuffer = Handle<GraphicsBuffer>.Invalid;
+        VertexBuffer = Handle<GraphicsBuffer>.Invalid;
+        IndexBuffer = Handle<GraphicsBuffer>.Invalid;
     }
 
     internal Mesh(ReadOnlySpan<Vertex> vertices, ReadOnlySpan<uint> indices, Handle<GraphicsBuffer> vertexBuffer, Handle<GraphicsBuffer> indexBuffer)
     {
-        this.vertices = new(vertices.Length, Allocator.Persistent);
-        this.indices = new(indices.Length, Allocator.Persistent);
-        this.vertices.CopyFrom(vertices);
-        this.indices.CopyFrom(indices);
-        this.vertexBuffer = vertexBuffer;
-        this.indexBuffer = indexBuffer;
+        Vertices = new(vertices.Length, Allocator.Persistent);
+        Indices = new(indices.Length, Allocator.Persistent);
+        Vertices.CopyFrom(vertices);
+        Indices.CopyFrom(indices);
+        VertexBuffer = vertexBuffer;
+        IndexBuffer = indexBuffer;
 
         this.ComputeBounds();
     }
 
-    public void ReleaseCpuResources()
+    public readonly void ReleaseCpuResources()
     {
-        vertices.Dispose();
-        indices.Dispose();
+        Vertices.Dispose();
+        Indices.Dispose();
     }
 
     void IResourceReleasable.ReleaseResource(IResourceDatabase database)
     {
         ReleaseCpuResources();
 
-        database.ReleaseResource(vertexBuffer.AsResource());
-        database.ReleaseResource(indexBuffer.AsResource());
+        database.ReleaseResource(VertexBuffer.AsResource());
+        database.ReleaseResource(IndexBuffer.AsResource());
+        database.ReleaseResource(ObjectDataBuffer.AsResource());
     }
 }
 
@@ -56,21 +133,21 @@ public static class MeshExtension
     /// </summary>
     public static void ComputeBounds(ref this Mesh mesh)
     {
-        if (mesh.vertices.Count == 0)
+        if (mesh.Vertices.Count == 0)
         {
             return;
         }
 
         var min = new float3(float.MaxValue);
         var max = new float3(float.MinValue);
-        foreach (var vertex in mesh.vertices)
+        foreach (var vertex in mesh.Vertices)
         {
             var pos = vertex.position.xyz;
             min = math.min(min, pos);
             max = math.max(max, pos);
         }
 
-        mesh.boundingBox = new AABB(min, max);
+        mesh.BoundingBox = new AABB(min, max);
     }
 
     /// <summary>
@@ -81,35 +158,7 @@ public static class MeshExtension
     /// </remarks>
     public static void ComputeNormal(ref this Mesh mesh)
     {
-        if (!mesh.vertices.IsCreated || mesh.vertices.Count < 3
-            || !mesh.indices.IsCreated || mesh.indices.Count < 3)
-        {
-            return;
-        }
-
-        for (var i = 0; i < mesh.indices.Count; i += 3)
-        {
-            var i0 = mesh.indices[i];
-            var i1 = mesh.indices[i + 1];
-            var i2 = mesh.indices[i + 2];
-
-            var v0 = mesh.vertices[i0];
-            var v1 = mesh.vertices[i1];
-            var v2 = mesh.vertices[i2];
-
-            var edge1 = v1.position - v0.position;
-            var edge2 = v2.position - v0.position;
-            var faceNormal = math.cross(edge1.xyz, edge2.xyz);
-
-            mesh.vertices[i0].normal.xyz += faceNormal;
-            mesh.vertices[i1].normal.xyz += faceNormal;
-            mesh.vertices[i2].normal.xyz += faceNormal;
-        }
-
-        for (var i = 0; i < mesh.vertices.Count; i++)
-        {
-            mesh.vertices[i].normal = math.normalize(mesh.vertices[i].normal);
-        }
+        MeshBuilder.ComputeNormal(mesh.Vertices, mesh.Indices);
     }
 
     /// <summary>
@@ -120,53 +169,6 @@ public static class MeshExtension
     /// </remarks>
     public static void ComputeTangents(ref this Mesh mesh)
     {
-        var bitangents = new float4[mesh.vertices.Count];
-
-        for (var i = 0; i < mesh.indices.Count; i += 3)
-        {
-            var i0 = mesh.indices[i];
-            var i1 = mesh.indices[i + 1];
-            var i2 = mesh.indices[i + 2];
-
-            var v0 = mesh.vertices[i0];
-            var v1 = mesh.vertices[i1];
-            var v2 = mesh.vertices[i2];
-
-            var uv0 = mesh.vertices[i0].uv;
-            var uv1 = mesh.vertices[i1].uv;
-            var uv2 = mesh.vertices[i2].uv;
-
-            var deltaPos1 = v1.position - v0.position;
-            var deltaPos2 = v2.position - v0.position;
-            var deltaUV1 = uv1 - uv0;
-            var deltaUV2 = uv2 - uv0;
-
-            var r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
-            var tangent = (deltaPos1 * deltaUV2.y - deltaPos2 * deltaUV1.y) * r;
-            var bitangent = (deltaPos2 * deltaUV1.x - deltaPos1 * deltaUV2.x) * r;
-
-            for (var j = 0; j < 3; j++)
-            {
-                var idx = mesh.indices[i + j];
-                var t = mesh.vertices[idx].tangent;
-                mesh.vertices[idx].tangent.xyz = t.xyz + tangent.xyz;
-
-                bitangents[idx] += bitangent;
-            }
-        }
-
-        for (var i = 0; i < mesh.vertices.Count; i++)
-        {
-            var n = mesh.vertices[i].normal;
-            var t = mesh.vertices[i].tangent;
-
-            var proj = n * math.dot(n, t);
-            t = math.normalize(t - proj);
-
-            var b = bitangents[i];
-            var w = math.dot(math.cross(n.xyz, t.xyz), b.xyz) < 0.0f ? -1.0f : 1.0f;
-
-            mesh.vertices[i].tangent = new float4(t.x, t.y, t.z, w);
-        }
+        MeshBuilder.ComputeTangents(mesh.Vertices, mesh.Indices);
     }
 }

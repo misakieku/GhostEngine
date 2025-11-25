@@ -66,7 +66,7 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
         HeapType = type;
         NumDescriptors = numDescriptors;
         ShaderVisible = type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV || type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
-        Stride = device.NativeDevice->GetDescriptorHandleIncrementSize(type);
+        Stride = device.NativeDevice.Get()->GetDescriptorHandleIncrementSize(type);
 
         _dynamicHeapStart = Math.Clamp(dynamicHeapStart, 0, numDescriptors);
         _currentDynamicOffset = 0;
@@ -254,14 +254,14 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
         }
 
         var newLocation = AllocateDescriptors(count);
-        _device.NativeDevice->CopyDescriptorsSimple((uint)count, GetCpuHandle(index), GetCpuHandle(newLocation), HeapType);
+        _device.NativeDevice.Get()->CopyDescriptorsSimple((uint)count, GetCpuHandle(index), GetCpuHandle(newLocation), HeapType);
 
         return newLocation;
     }
 
     public readonly void CopyToShaderVisibleHeap(int index, int count = 1)
     {
-        _device.NativeDevice->CopyDescriptorsSimple((uint)count, GetCpuHandleShaderVisible(index), GetCpuHandle(index), HeapType);
+        _device.NativeDevice.Get()->CopyDescriptorsSimple((uint)count, GetCpuHandleShaderVisible(index), GetCpuHandle(index), HeapType);
     }
 
     private bool AllocateResources(int numDescriptors)
@@ -279,7 +279,7 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
         };
 
         ID3D12DescriptorHeap* pHeap = default;
-        var hr = _device.NativeDevice->CreateDescriptorHeap(&heapDesc, __uuidof(pHeap), (void**)&pHeap);
+        var hr = _device.NativeDevice.Get()->CreateDescriptorHeap(&heapDesc, __uuidof(pHeap), (void**)&pHeap);
         if (hr.FAILED)
         {
             return false;
@@ -291,11 +291,11 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
 
         if (!_allocatedDescriptors.IsCreated)
         {
-            _allocatedDescriptors = new UnsafeArray<bool>(numDescriptors, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
+            _allocatedDescriptors = new UnsafeArray<bool>(numDescriptors, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent, Misaki.HighPerformance.LowLevel.Buffer.AllocationOption.Clear);
         }
         else
         {
-            _allocatedDescriptors.Resize(numDescriptors);
+            _allocatedDescriptors.Resize(numDescriptors, Misaki.HighPerformance.LowLevel.Buffer.AllocationOption.Clear);
         }
 
         if (ShaderVisible)
@@ -303,7 +303,7 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
             ID3D12DescriptorHeap* pShaderVisibleHeap = default;
 
             heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-            hr = _device.NativeDevice->CreateDescriptorHeap(&heapDesc, __uuidof(pShaderVisibleHeap), (void**)&pShaderVisibleHeap);
+            hr = _device.NativeDevice.Get()->CreateDescriptorHeap(&heapDesc, __uuidof(pShaderVisibleHeap), (void**)&pShaderVisibleHeap);
             if (hr.FAILED)
             {
                 return false;
@@ -332,11 +332,11 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
                 return false;
             }
 
-            _device.NativeDevice->CopyDescriptorsSimple((uint)oldSize, _startCpuHandle, oldHeap->GetCPUDescriptorHandleForHeapStart(), HeapType);
+            _device.NativeDevice.Get()->CopyDescriptorsSimple((uint)oldSize, _startCpuHandle, oldHeap->GetCPUDescriptorHandleForHeapStart(), HeapType);
 
             if (_shaderVisibleHeap.Get() != null)
             {
-                _device.NativeDevice->CopyDescriptorsSimple((uint)oldSize, _startCpuHandleShaderVisible, oldHeap->GetCPUDescriptorHandleForHeapStart(), HeapType);
+                _device.NativeDevice.Get()->CopyDescriptorsSimple((uint)oldSize, _startCpuHandleShaderVisible, oldHeap->GetCPUDescriptorHandleForHeapStart(), HeapType);
             }
         }
         finally
@@ -350,12 +350,7 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
-#if DEBUG
-        if (NumAllocatedDescriptors > 0)
-        {
-            Debug.WriteLine($"Warning: Descriptor heap of type {HeapType} is being disposed with {NumAllocatedDescriptors} allocated descriptors.");
-        }
-#endif
+        Debug.Assert(NumAllocatedDescriptors == 0);
 
         _heap.Dispose();
         _shaderVisibleHeap.Dispose();

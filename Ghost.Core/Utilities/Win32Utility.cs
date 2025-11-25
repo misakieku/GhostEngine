@@ -64,15 +64,9 @@ internal static unsafe partial class Win32Utility
         if (ptr != null)
         {
             uPtr = default;
-            MemoryLeakException.ThrowIfRefCountNonZero(ptr->Release());
+            ptr->Release();
+            //MemoryLeakException.ThrowIfRefCountNonZero(ptr->Release());
         }
-    }
-
-    [Conditional("DEBUG")]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Assert(this HRESULT hr)
-    {
-        Debug.Assert(hr.SUCCEEDED, hr.ToString());
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

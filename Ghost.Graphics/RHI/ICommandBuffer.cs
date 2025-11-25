@@ -24,9 +24,6 @@ public interface ICommandBuffer : IDisposable
         get;
     }
 
-    /// <summary>
-    /// Gets the name of the command buffer.
-    /// </summary>
     string Name
     {
         get;

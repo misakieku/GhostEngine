@@ -1,8 +1,8 @@
 using System.Runtime.InteropServices;
+using TerraFX.Interop.Windows;
 
 namespace Ghost.Graphics.Contracts;
 
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
 public unsafe readonly struct ISwapChainPanelNative : ISwapChainPanelNative.Interface, IDisposable
 {
     [ComImport]

@@ -5,7 +5,7 @@ using Ghost.Graphics.Core;
 
 namespace Ghost.Graphics.RHI;
 
-public interface IResourceAllocator
+public interface IResourceAllocator : IDisposable
 {
     /// <summary>
     /// Creates a texture resource

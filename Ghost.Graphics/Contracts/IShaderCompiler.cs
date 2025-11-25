@@ -141,7 +141,7 @@ public readonly struct ShaderReflectionData
     }
 }
 
-public unsafe interface IShaderCompiler
+public interface IShaderCompiler : IDisposable
 {
     Result<CompileResult> Compile(ref readonly CompilerConfig config, Allocator allocator);
     Result<GraphicsCompiledResult> CompilePass(IPassDescriptor descriptor);

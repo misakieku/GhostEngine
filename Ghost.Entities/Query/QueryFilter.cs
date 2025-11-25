@@ -30,7 +30,7 @@ public struct QueryFilter : IDisposable
         UnsafeBitSet absentMask = default;
 
         var result = new UnsafeBitSet(world.EntityManager.EntityCount, allocator);
-        result.SetAll();
+        result.ClearAll();
 
         using (AllocationManager.CreateStackScope())
         {
@@ -83,7 +83,7 @@ public struct QueryFilter : IDisposable
 
             if (absentMask.IsCreated)
             {
-                result.And(~absentMask);
+                result.ANDC(absentMask);
             }
         }
 
