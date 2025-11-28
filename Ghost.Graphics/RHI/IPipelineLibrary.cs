@@ -23,5 +23,4 @@ public interface IPipelineLibrary : IDisposable
     void InitializeLibrary(string? filePath);
     void SaveLibraryToDisk(string filePath);
     Result<GraphicsPipelineKey> CompilePSO(ref readonly GraphicsPSODescriptor descriptor, ref readonly GraphicsCompiledResult compiled);
-    Result<CBufferInfo, ResultStatus> GetCBufferInfo(ShaderPassKey passId);
 }

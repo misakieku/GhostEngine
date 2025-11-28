@@ -11,6 +11,9 @@ public interface IResourceReleasable
     void ReleaseResource(IResourceDatabase database);
 }
 
+// TODO: Consider adding methods for resource enumeration, statistics, and bulk operations.
+// TODO: Consider adding async resource loading and streaming support.
+// TODO: Mesh, Material, Shader management could be separated into their own interfaces for better modularity because they are not bound to specific graphics API.
 public interface IResourceDatabase : IDisposable
 {
     /*
@@ -155,18 +158,4 @@ public interface IResourceDatabase : IDisposable
     /// </summary>
     /// <param name="id">The identifier of the shader to release. Must refer to a valid, previously created shader.</param>
     void ReleaseShader(Identifier<Shader> id);
-
-    /// <summary>
-    /// Adds a shader pass to the collection using the specified identifier.
-    /// </summary>
-    /// <param name="passKey">The unique identifier for the shader pass.</param>
-    /// <param name="pass">The shader pass to add. Cannot be null.</param>
-    void AddShaderPass(ShaderPassKey passKey, ShaderPass pass);
-
-    /// <summary>
-    /// Retrieves the shader pass associated with the specified pass identifier.
-    /// </summary>
-    /// <param name="passKey">The unique identifier of the shader pass to retrieve.</param>
-    /// <returns>The <see cref="ShaderPass"/> corresponding to the specified identifier, or null if no matching shader pass is found.</returns>
-    ShaderPass GetShaderPass(ShaderPassKey passKey);
 }

@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.D3D12;
 
-internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
+internal class D3D12GraphicsEngine : IGraphicsEngine
 {
 #if DEBUG
     private readonly D3D12DebugLayer _debugLayer;
@@ -34,17 +34,17 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
     public D3D12GraphicsEngine(IRenderSystem renderSystem)
     {
 #if DEBUG
-        _debugLayer = new();
+        _debugLayer = new D3D12DebugLayer();
 #endif
-        _device = new();
-        _shaderCompiler = new();
-        _descriptorAllocator = new(_device);
+        _device = new D3D12RenderDevice();
+        _shaderCompiler = new DxcShaderCompiler();
+        _descriptorAllocator = new D3D12DescriptorAllocator(_device);
 
-        _resourceDatabase = new(_descriptorAllocator);
-        _pipelineLibrary = new(_device, _resourceDatabase);
-        _resourceAllocator = new(renderSystem, _device, _descriptorAllocator, _resourceDatabase, _pipelineLibrary);
+        _resourceDatabase = new D3D12ResourceDatabase(_descriptorAllocator);
+        _pipelineLibrary = new D3D12PipelineLibrary(_device, _resourceDatabase);
+        _resourceAllocator = new D3D12ResourceAllocator(renderSystem, _device, _descriptorAllocator, _resourceDatabase, _pipelineLibrary);
 
-        _copyCommandBuffer = new(
+        _copyCommandBuffer = new D3D12CommandBuffer(
             _device,
             _pipelineLibrary,
             _resourceDatabase,
@@ -136,6 +136,9 @@ internal unsafe class D3D12GraphicsEngine : IGraphicsEngine
 
         _copyCommandBuffer.End();
         _resourceAllocator.ReleaseTempResources();
+        _descriptorAllocator.ResetCbvSrvUavDynamicHeap();
+        _descriptorAllocator.ResetDSVDynamicHeap();
+        _descriptorAllocator.ResetRTVDynamicHeap();
     }
 
     public void Dispose()

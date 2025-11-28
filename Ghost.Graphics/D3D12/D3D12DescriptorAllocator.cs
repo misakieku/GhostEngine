@@ -19,7 +19,7 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
 
     private bool _disposed;
 
-    public unsafe D3D12DescriptorAllocator(D3D12RenderDevice device, int initialRtvCount = 256, int initialDsvCount = 256, int initialSrvCount = 200_000, int initialSamplerCount = 256)
+    public D3D12DescriptorAllocator(D3D12RenderDevice device, int initialRtvCount = 256, int initialDsvCount = 256, int initialSrvCount = 200_000, int initialSamplerCount = 256)
     {
         _rtvHeap = new D3D12DescriptorHeap("rtv", device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, initialRtvCount, initialRtvCount / 2);
         _dsvHeap = new D3D12DescriptorHeap("dsv", device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, initialDsvCount, initialDsvCount / 2);

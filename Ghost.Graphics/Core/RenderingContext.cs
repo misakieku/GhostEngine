@@ -56,13 +56,32 @@ public unsafe readonly ref struct RenderingContext
         queue.WaitIdle();
     }
 
-    public Handle<Mesh> CreateMesh(UnsafeList<Vertex> vertices, UnsafeList<uint> indices)
+    public Handle<Mesh> CreateMesh(UnsafeList<Vertex> vertices, UnsafeList<uint> indices, bool staticMesh)
     {
         var mesh = ResourceAllocator.CreateMesh(vertices, indices);
+        ref var meshData = ref ResourceDatabase.GetMeshReference(mesh);
+
+        var vertexHandle = meshData.VertexBuffer.AsResource();
+        var indexHandle = meshData.IndexBuffer.AsResource();
+
+        _directCmd.ResourceBarrier(vertexHandle, ResourceState.Common, ResourceState.CopyDest);
+        _directCmd.ResourceBarrier(indexHandle, ResourceState.Common, ResourceState.CopyDest);
+
+        _directCmd.UploadBuffer(meshData.VertexBuffer, meshData.Vertices.AsSpan());
+        _directCmd.UploadBuffer(meshData.IndexBuffer, meshData.Indices.AsSpan());
+
+        _directCmd.ResourceBarrier(vertexHandle, ResourceState.CopyDest, ResourceState.VertexAndConstantBuffer);
+        _directCmd.ResourceBarrier(indexHandle, ResourceState.CopyDest, ResourceState.IndexBuffer);
+
+        if (staticMesh)
+        {
+            meshData.ReleaseCpuResources();
+        }
+
         return mesh;
     }
 
-    public Handle<Mesh> CreateMesh(ReadOnlySpan<Vertex> vertices, ReadOnlySpan<uint> indices)
+    public Handle<Mesh> CreateMesh(ReadOnlySpan<Vertex> vertices, ReadOnlySpan<uint> indices, bool staticMesh)
     {
         var vertexList = new UnsafeList<Vertex>(vertices.Length, Allocator.Persistent);
         var indexList = new UnsafeList<uint>(indices.Length, Allocator.Persistent);
@@ -70,12 +89,7 @@ public unsafe readonly ref struct RenderingContext
         vertexList.CopyFrom(vertices);
         indexList.CopyFrom(indices);
 
-        return CreateMesh(vertexList, indexList);
-    }
-
-    public MaterialAccessor GetMaterialAccessor(Handle<Material> material)
-    {
-        return new MaterialAccessor(material, ResourceDatabase);
+        return CreateMesh(vertexList, indexList, staticMesh);
     }
 
     // TODO: Make one memory pool for upload.
@@ -108,12 +122,12 @@ public unsafe readonly ref struct RenderingContext
 
         if (needVertexTransition)
         {
-            _directCmd.ResourceBarrier(meshData.VertexBuffer.AsResource(), ResourceState.CopyDest, ResourceState.VertexAndConstantBuffer);
+            _directCmd.ResourceBarrier(meshData.VertexBuffer.AsResource(), ResourceState.CopyDest, vertexState);
         }
 
         if (needIndexTransition)
         {
-            _directCmd.ResourceBarrier(meshData.IndexBuffer.AsResource(), ResourceState.CopyDest, ResourceState.IndexBuffer);
+            _directCmd.ResourceBarrier(meshData.IndexBuffer.AsResource(), ResourceState.CopyDest, indexState);
         }
 
         if (markMeshStatic)
@@ -177,7 +191,7 @@ public unsafe readonly ref struct RenderingContext
                 slicePitch = slicePitch
             };
 
-            _directCmd.UploadTexture(texture, subresourceData);
+            _directCmd.UploadTexture(texture, [subresourceData]);
         }
 
         if (needTransition)
@@ -194,10 +208,15 @@ public unsafe readonly ref struct RenderingContext
         ref var materialRef = ref ResourceDatabase.GetMaterialReference(material);
         var shader = ResourceDatabase.GetShaderReference(materialRef.Shader);
 
-        shader.TryGetPassKey(passName, out var passIndex, out var passKey);
+        var keyResult = shader.TryGetPassKey(passName, out var passIndex);
+        if (keyResult.Status != ResultStatus.Success)
+        {
+            throw new Exception(keyResult.ToString());
+        }
+
         var hash = new GraphicsPipelineHash
         {
-            Id = passKey,
+            Id = keyResult.Value.Identifier,
             RtvCount = 1,
             DsvFormat = TextureFormat.Unknown,
         };
@@ -209,20 +228,13 @@ public unsafe readonly ref struct RenderingContext
         _directCmd.SetConstantBufferView(RootSignatureLayout.PER_OBJECT_BUFFER_SLOT, meshRef.ObjectDataBuffer);
 
         // NOTE: We use fixed root signature layout for bindless rendering.
-        ref var cache = ref materialRef.GetPassCache(passIndex);
+        var cache = materialRef.CBufferCache;
         if (cache.IsCreated)
         {
             _directCmd.SetConstantBufferView(RootSignatureLayout.PER_MATERIAL_BUFFER_SLOT, cache.GpuResource);
         }
 
-        // NOTE: Since we are using true bindless resources, we only need to set the descriptor heaps, not individual tables.
-        // TODO: Maybe handle the traditional bindless model?
-#if false
-        var samplerGpuHandle = _descriptorAllocator.GetSamplerHeap()->GetGPUDescriptorHandleForHeapStart();
-        _commandList.Get()->SetGraphicsRootDescriptorTable(rootParamIndex, samplerGpuHandle);
-#endif
-
-        //var threadGroupCountX = ((uint)meshRef.IndexCount + numThreadsX - 1) / numThreadsX;
-        _directCmd.DispatchMesh(1, 1, 1);
+        var threadGroupCountX = ((uint)meshRef.IndexCount + numThreadsX - 1) / numThreadsX;
+        _directCmd.DispatchMesh(threadGroupCountX, 1, 1);
     }
 }

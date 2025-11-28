@@ -11,6 +11,9 @@ namespace Ghost.Graphics.Core;
 
 public struct Mesh : IResourceReleasable, IHandleType
 {
+    private UnsafeList<Vertex> _vertices;
+    private UnsafeList<uint> _indices;
+
     internal bool IsMeshDataDirty
     {
         get; private set;
@@ -21,10 +24,10 @@ public struct Mesh : IResourceReleasable, IHandleType
     /// </summary>
     public UnsafeList<Vertex> Vertices
     {
-        readonly get => field;
+        readonly get => _vertices;
         set
         {
-            field = value;
+            _vertices = value;
             VertexCount = value.Count;
             IsMeshDataDirty = true;
         }
@@ -35,10 +38,10 @@ public struct Mesh : IResourceReleasable, IHandleType
     /// </summary>
     public UnsafeList<uint> Indices
     {
-        readonly get => field;
+        readonly get => _indices;
         set
         {
-            field = value;
+            _indices = value;
             IndexCount = value.Count;
             IsMeshDataDirty = true;
         }
@@ -100,8 +103,8 @@ public struct Mesh : IResourceReleasable, IHandleType
 
     internal Mesh(ReadOnlySpan<Vertex> vertices, ReadOnlySpan<uint> indices, Handle<GraphicsBuffer> vertexBuffer, Handle<GraphicsBuffer> indexBuffer)
     {
-        Vertices = new(vertices.Length, Allocator.Persistent);
-        Indices = new(indices.Length, Allocator.Persistent);
+        Vertices = new UnsafeList<Vertex>(vertices.Length, Allocator.Persistent);
+        Indices = new UnsafeList<uint>(indices.Length, Allocator.Persistent);
         Vertices.CopyFrom(vertices);
         Indices.CopyFrom(indices);
         VertexBuffer = vertexBuffer;
@@ -112,8 +115,8 @@ public struct Mesh : IResourceReleasable, IHandleType
 
     public readonly void ReleaseCpuResources()
     {
-        Vertices.Dispose();
-        Indices.Dispose();
+        _vertices.Dispose();
+        _indices.Dispose();
     }
 
     void IResourceReleasable.ReleaseResource(IResourceDatabase database)

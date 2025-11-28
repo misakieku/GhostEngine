@@ -10,11 +10,12 @@ public enum ShaderPropertyType
 {
     None,
     Float, Float2, Float3, Float4,
+    Float4x4,
     Int, Int2, Int3, Int4,
     UInt, UInt2, UInt3, UInt4,
     Bool, Bool2, Bool3, Bool4,
-    Texture2DBindless, Texture3DBindless, TextureCubeBindless,
-    Texture2DArrayBindless, TextureCubeArrayBindless,
+    Texture2D, Texture3D, TextureCube,
+    Texture2DArray, TextureCubeArray,
 }
 
 public struct ShaderEntryPoint
@@ -77,11 +78,8 @@ public class FullPassDescriptor : IPassDescriptor
     public ShaderEntryPoint taskShader;
     public ShaderEntryPoint meshShader;
     public ShaderEntryPoint pixelShader;
-    public string? generatedCodePath;
     public List<string>? defines;
-    public List<string>? includes;
     public List<KeywordsGroup>? keywords;
-    public List<PropertyDescriptor>? properties;
     public PipelineDescriptor localPipeline;
 
     public string Identifier => uniqueIdentifier;
@@ -100,6 +98,42 @@ public class FallbackPassDescriptor : IPassDescriptor
 public class ShaderDescriptor
 {
     public string name = string.Empty;
+    public string? generatedCodePath;
+    public uint cbufferSize;
     public List<PropertyDescriptor> globalProperties = new();
+    public List<PropertyDescriptor> properties = new();
     public List<IPassDescriptor> passes = new();
+}
+
+public static class ShaderDescriptorExtensions
+{
+    public static uint GetSize(this ShaderPropertyType type)
+    {
+        return type switch
+        {
+            ShaderPropertyType.Float => 4,
+            ShaderPropertyType.Float2 => 8,
+            ShaderPropertyType.Float3 => 12,
+            ShaderPropertyType.Float4 => 16,
+            ShaderPropertyType.Float4x4 => 64,
+            ShaderPropertyType.Int => 4,
+            ShaderPropertyType.Int2 => 8,
+            ShaderPropertyType.Int3 => 12,
+            ShaderPropertyType.Int4 => 16,
+            ShaderPropertyType.UInt => 4,
+            ShaderPropertyType.UInt2 => 8,
+            ShaderPropertyType.UInt3 => 12,
+            ShaderPropertyType.UInt4 => 16,
+            ShaderPropertyType.Bool => 4,
+            ShaderPropertyType.Bool2 => 8,
+            ShaderPropertyType.Bool3 => 12,
+            ShaderPropertyType.Bool4 => 16,
+            ShaderPropertyType.Texture2D => 4, // Bindless resource use uint32
+            ShaderPropertyType.Texture3D => 4,
+            ShaderPropertyType.TextureCube => 4,
+            ShaderPropertyType.Texture2DArray => 4,
+            ShaderPropertyType.TextureCubeArray => 4,
+            _ => 0,
+        };
+    }
 }

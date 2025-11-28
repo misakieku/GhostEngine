@@ -1,15 +1,14 @@
-using Ghost.Graphics;
 using Ghost.Graphics.RHI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Misaki.HighPerformance.LowLevel.Buffer;
-using TerraFX.Interop.WinRT;
-using WinRT;
 
 namespace Ghost.Graphics.Test.Windows;
 
 public sealed partial class GraphicsTestWindow : Window
 {
+    private bool _isFirstActivationHandled = false;
+
     private IRenderSystem? _renderSystem;
     private IRenderer? _renderer;
     private ISwapChain? _swapChain;
@@ -18,33 +17,46 @@ public sealed partial class GraphicsTestWindow : Window
     {
         InitializeComponent();
 
-        Panel.Loaded += SwapChainPanel_Loaded;
-        Panel.Unloaded += SwapChainPanel_Unloaded;
+        Activated += GraphicsTestWindow_Activated;
+        Closed += GraphicsTestWindow_Closed;
 
         Panel.SizeChanged += SwapChainPanel_SizeChanged;
     }
 
-    private void SwapChainPanel_Loaded(object sender, RoutedEventArgs e)
+    private void GraphicsTestWindow_Activated(object sender, WindowActivatedEventArgs e)
     {
+        if (_isFirstActivationHandled)
+        {
+            return;
+        }
+
 #if DEBUG
         AllocationManager.EnableDebugLayer();
 #endif
 
-        _renderSystem = new RenderSystem(new()
+        _renderSystem = new RenderSystem(new RenderingConfig()
         {
             FrameBufferCount = 2,
             GraphicsAPI = GraphicsAPI.Direct3D12
         });
         _renderer = _renderSystem.GraphicsEngine.CreateRenderer();
-        
-        _swapChain = _renderSystem.GraphicsEngine.CreateSwapChain(new SwapChainDesc((uint)AppWindow.Size.Width, (uint)AppWindow.Size.Height, SwapChainTarget.FromCompositionSurface(Panel)));
+
+        _swapChain = _renderSystem.GraphicsEngine.CreateSwapChain(new SwapChainDesc
+        {
+            Width = (uint)AppWindow.Size.Width,
+            Height = (uint)AppWindow.Size.Height,
+            Target = SwapChainTarget.FromCompositionSurface(Panel)
+        });
         _renderer.SetSwapChain(_swapChain);
 
         _renderSystem.Start();
         CompositionTarget.Rendering += OnRendering;
+
+        e.Handled = true;
+        _isFirstActivationHandled = true;
     }
 
-    private void SwapChainPanel_Unloaded(object sender, RoutedEventArgs e)
+    private void GraphicsTestWindow_Closed(object sender, WindowEventArgs e)
     {
         CompositionTarget.Rendering -= OnRendering;
         _renderSystem?.Stop();
@@ -52,6 +64,10 @@ public sealed partial class GraphicsTestWindow : Window
         _renderer?.Dispose();
         _swapChain?.Dispose();
         _renderSystem?.Dispose();
+
+#if DEBUG
+        AllocationManager.Dispose();
+#endif
     }
 
     private void SwapChainPanel_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -69,7 +85,7 @@ public sealed partial class GraphicsTestWindow : Window
             return;
         }
 
-        if (_renderSystem.CPUFenceValue < _renderSystem.GPUFenceValue + _renderSystem.Config.FrameBufferCount)
+        if (_renderSystem.CPUFenceValue < _renderSystem.GPUFenceValue + _renderSystem.MaxFrameLatency)
         {
             DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.High, () =>
             {

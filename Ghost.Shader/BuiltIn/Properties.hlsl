@@ -1,5 +1,5 @@
-#ifndef PROPERTIES_HLSL
-#define PROPERTIES_HLSL
+#ifndef BUILTIN_PROPERTIES_HLSL
+#define BUILTIN_PROPERTIES_HLSL
 
 #include "F:/csharp/GhostEngine/Ghost.Shader/BuiltIn/Common.hlsl"
 
@@ -48,4 +48,4 @@ TextureCubeArray GlobalTextureCubeArrayHeap[GLOBAL_TEXTURECUBE_ARRAY_HEAP_SIZE] 
 SamplerState GlobalSamplerHeap[GLOBAL_SAMPLER_HEAP_SIZE] : register(s0);
 #endif
 
-#endif
+#endif // BUILTIN_PROPERTIES_HLSL

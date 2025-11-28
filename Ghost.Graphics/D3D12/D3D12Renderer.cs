@@ -31,7 +31,6 @@ internal class D3D12Renderer : IRenderer
     }
 
     private readonly D3D12GraphicsEngine _graphicsEngine;
-    private readonly D3D12CommandQueue _commandQueue;
     private readonly FrameResource[] _frameResources;
     private uint _frameIndex;
 
@@ -60,7 +59,6 @@ internal class D3D12Renderer : IRenderer
     public D3D12Renderer(D3D12GraphicsEngine graphicsEngine, D3D12ResourceAllocator resourceAllocator, D3D12ResourceDatabase resourceDatabase)
     {
         _graphicsEngine = graphicsEngine;
-        _commandQueue = (D3D12CommandQueue)graphicsEngine.Device.GraphicsQueue;
         _resourceAllocator = resourceAllocator;
         _resourceDatabase = resourceDatabase;
 
@@ -153,7 +151,7 @@ internal class D3D12Renderer : IRenderer
         _swapChain?.Resize(newSize.x, newSize.y);
         _currentSize = newSize;
 
-        // Update off-screen render target size
+        // Update off-screen render Target size
         if (_swapChain != null)
         {
             _resourceDatabase.ReleaseResource(_renderTarget.AsResource());
@@ -170,7 +168,7 @@ internal class D3D12Renderer : IRenderer
 
         if (frame.fenceValue > 0)
         {
-            _commandQueue.WaitForValue(frame.fenceValue);
+            _graphicsEngine.Device.GraphicsQueue.WaitForValue(frame.fenceValue);
         }
 
         if (_renderTarget.IsValid)
@@ -202,12 +200,12 @@ internal class D3D12Renderer : IRenderer
 
             frame.commandBuffer.End();
 
-            _commandQueue.Submit(frame.commandBuffer);
+            _graphicsEngine.Device.GraphicsQueue.Submit(frame.commandBuffer);
             _swapChain?.Present();
 
         }
 
-        frame.fenceValue = _commandQueue.Signal(_frameIndex);
+        frame.fenceValue = _graphicsEngine.Device.GraphicsQueue.Signal(_frameIndex);
         _frameIndex++;
     }
 
@@ -257,7 +255,7 @@ internal class D3D12Renderer : IRenderer
         // Handle swap chain back buffer transitions if needed
         if (_swapChain != null)
         {
-            // Transition back buffer to render target
+            // Transition back buffer to render Target
             cmd.ResourceBarrier(destination.AsResource(), ResourceState.Present, ResourceState.RenderTarget);
         }
 
@@ -266,7 +264,7 @@ internal class D3D12Renderer : IRenderer
 
         // FIX: Implement proper blit operation with shader
         // This is a placeholder - in D3D12, you would typically:
-        // 1. Set render target to the destination
+        // 1. Set render Target to the destination
         // 2. Use a full-screen quad/triangle with a shader that samples from the source
 
         // Handle swap chain back buffer transitions if needed
@@ -284,7 +282,7 @@ internal class D3D12Renderer : IRenderer
         {
             if (frame.fenceValue > 0)
             {
-                _commandQueue.WaitForValue(frame.fenceValue);
+                _graphicsEngine.Device.GraphicsQueue.WaitForValue(frame.fenceValue);
             }
         }
     }
@@ -301,8 +299,8 @@ internal class D3D12Renderer : IRenderer
         // NOTE: Testing only.
         _pass.Cleanup(_resourceDatabase);
 
-        // If using a swap chain, release the off-screen render target.
-        // Otherwise, the render target is managed externally.
+        // If using a swap chain, release the off-screen render Target.
+        // Otherwise, the render Target is managed externally.
         if (_swapChain != null)
         {
             _resourceDatabase.ReleaseResource(_renderTarget.AsResource());

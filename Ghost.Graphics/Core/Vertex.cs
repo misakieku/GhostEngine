@@ -9,7 +9,7 @@ namespace Ghost.Graphics.Core;
 [StructLayout(LayoutKind.Sequential)]
 public struct Vertex
 {
-    public unsafe static class Semantic
+    public static class Semantic
     {
         public const DXGI_FORMAT ALIGNED_FORMAT = DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_FLOAT;
         public const int COUNT = 5;

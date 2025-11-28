@@ -53,21 +53,21 @@ public interface ICommandBuffer : IDisposable
     void SetScissorRect(RectDesc rect);
 
     /// <summary>
-    /// Sets the optional render targets and optional depth target for subsequent rendering operations.
+    /// Sets the optional render targets and optional depth Target for subsequent rendering operations.
     /// </summary>
     /// <remarks>
     /// To specify no render targets, provide an empty span for <paramref name="renderTargets"/>.
-    /// Use <see cref="Handle{Texture}.Invalid"/> for <paramref name="depthTarget"/> if no depth target is required.
+    /// Use <see cref="Handle{Texture}.Invalid"/> for <paramref name="depthTarget"/> if no depth Target is required.
     /// </remarks>
     /// <param name="renderTargets">A read-only span of handles to textures that will be used as render targets.
     /// The order of handles determines the order in which render targets are bound.</param>
-    /// <param name="depthTarget">A handle to the texture to be used as the depth target. Specify a invalid handle if no depth target is required.</param>
+    /// <param name="depthTarget">A handle to the texture to be used as the depth Target. Specify a invalid handle if no depth Target is required.</param>
     void SetRenderTargets(ReadOnlySpan<Handle<Texture>> renderTargets, Handle<Texture> depthTarget);
 
     /// <summary>
-    /// Begins a render pass with the specified render target
+    /// Begins a render pass with the specified render Target
     /// </summary>
-    /// <param name="rtDescs">Render target descriptions</param>
+    /// <param name="rtDescs">Render Target descriptions</param>
     /// <param name="depthDesc">Depth stencil description</param>
     /// <param name="allowUAVWrites">Whether UAV writes are allowed during the render pass</param>
     void BeginRenderPass(ReadOnlySpan<PassRenderTargetDesc> rtDescs, PassDepthStencilDesc depthDesc, bool allowUAVWrites = false);
@@ -78,12 +78,18 @@ public interface ICommandBuffer : IDisposable
     void EndRenderPass();
 
     /// <summary>
-    /// Inserts a resource barrier for state transitions
+    /// Inserts multiple resource barriers for state transitions.
     /// </summary>
-    /// <param name="resource">Resource to transition</param>
-    /// <param name="before">Current resource state</param>
-    /// <param name="after">Target resource state</param>
-    void ResourceBarrier(Handle<GPUResource> resource, ResourceState before, ResourceState after);
+    /// <param name="barrierDescs">Resource barrier descriptions</param>
+    void ResourceBarrier(ReadOnlySpan<BarrierDesc> barrierDescs);
+
+    /// <summary>
+    /// Inserts a resource barrier for state transitions.
+    /// </summary>
+    /// <param name="resource">A handle to the GPU resource to transition.</param>
+    /// <param name="stateBefore">The current state of the resource before the transition.</param>
+    /// <param name="stateAfter">The desired state of the resource after the transition.</param>
+    void ResourceBarrier(Handle<GPUResource> resource, ResourceState stateBefore, ResourceState stateAfter);
 
     /// <summary>
     /// Sets the pipeline state object
@@ -176,10 +182,10 @@ public interface ICommandBuffer : IDisposable
     /// </summary>
     /// <param name="texture">The texture resource to which the subresource data will be uploaded. Must be a valid, initialized texture handle.</param>
     /// <param name="firstSubresource">The index of the first subresource in the texture to receive data. Must be less than the total number of subresources in the texture.</param>
-    /// <param name="subresources">A reference to the structure containing the subresource data to upload. The data must match the format and layout expected by the texture.</param>
+    /// <param name="subresources">A reference to the structure containing the subresource data to upload. The data must match the Format and layout expected by the texture.</param>
     /// <param name="numSubresources">The number of subresources to upload, starting from <paramref name="firstSubresource"/>.
     /// Must be greater than zero and not exceed the remaining subresources in the texture.</param>
-    void UploadTexture(Handle<Texture> texture, params ReadOnlySpan<SubResourceData> subresources);
+    void UploadTexture(Handle<Texture> texture, ReadOnlySpan<SubResourceData> subresources);
 
     /// <summary>
     /// Copies a specified number of bytes from the source graphics buffer to the destination graphics buffer.

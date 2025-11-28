@@ -15,9 +15,9 @@ public interface IResourceAllocator : IDisposable
     public Handle<Texture> CreateTexture(ref readonly TextureDesc desc, bool tempResource = false);
 
     /// <summary>
-    /// Creates a render target for off-screen rendering
+    /// Creates a render Target for off-screen rendering
     /// </summary>
-    /// <param name="desc">Render target description</param>
+    /// <param name="desc">Render Target description</param>
     /// <returns>A new texture handle point to the resource</returns>
     public Handle<Texture> CreateRenderTarget(ref readonly RenderTargetDesc desc, bool tempResource = false);
 

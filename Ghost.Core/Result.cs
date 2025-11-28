@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using TerraFX.Interop.Windows;
 
 namespace Ghost.Core;
 
@@ -44,6 +43,11 @@ public readonly struct Result
         return new Result<T, S>(value, status);
     }
 
+    public static RefResult<T, S> CreateRef<T, S>(ref T value, S status)
+    {
+        return new RefResult<T, S>(ref value, status);
+    }
+
     public override string ToString() => IsSuccess ? "OK" : $"Error: {Message}";
 
     public static implicit operator bool(Result result) => result.IsSuccess;
@@ -68,16 +72,6 @@ public readonly struct Result<T>
         _message = message;
     }
 
-    public ref readonly T GetValueRef()
-    {
-        if (!IsSuccess)
-        {
-            throw new InvalidOperationException("Cannot get value from a failed Result.");
-        }
-
-        return ref Unsafe.AsRef(in _value);
-    }
-
     public static Result<T> Success(T value)
     {
         return new Result<T>(true, value);
@@ -92,9 +86,7 @@ public readonly struct Result<T>
 
     public static implicit operator Result<T>(T? data) => data is not null ? Success(data) : Failure(null);
     public static implicit operator Result<T>(Result result) => result.IsSuccess ? Success(default!) : Failure(result.Message);
-
     public static implicit operator bool(Result<T> result) => result.IsSuccess;
-    public static implicit operator Result(Result<T> result) => result.IsSuccess ? Result.Success() : Result.Failure(result.Message);
 }
 
 public enum ResultStatus : byte
@@ -126,14 +118,31 @@ public readonly struct Result<T, S>
         _status = status;
     }
 
-    public ref readonly T GetValueRef()
-    {
-        return ref Unsafe.AsRef(in _value);
-    }
-
     public static Result<T, S> Create(T value, S status)
     {
         return new Result<T, S>(value, status);
+    }
+
+    public override string ToString() => $"Value: {_value}, Status: {_status}";
+}
+
+public readonly ref struct RefResult<T, S>
+{
+    private readonly ref T _value;
+    private readonly S _status;
+
+    public ref T Value => ref _value;
+    public S Status => _status;
+
+    public RefResult(ref T value, S status)
+    {
+        _value = ref value;
+        _status = status;
+    }
+
+    public static RefResult<T, S> Create(ref T value, S status)
+    {
+        return new RefResult<T, S>(ref value, status);
     }
 
     public override string ToString() => $"Value: {_value}, Status: {_status}";

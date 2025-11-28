@@ -36,9 +36,7 @@ internal class PassSyntax
 {
     public Token name;
     public PipelineSyntax? localPipeline;
-    public PropertiesSyntax? localProperties;
     public List<Token>? defines;
-    public List<Token>? includes;
     public List<FunctionCallDeclaration>? keywords;
     public List<FunctionCallDeclaration>? functionCalls;
 }

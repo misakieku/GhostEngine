@@ -32,14 +32,14 @@ internal static unsafe partial class Win32Utility
     public static Guid* IID_NULL
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in TerraFX.Interop.Windows.IID.IID_NULL));
+        get => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID.IID_NULL));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IID_PPV IID_PPV_ARGS<T>(ComPtr<T> comPtr)
+    public static IID_PPV IID_PPV_ARGS<T>(ComPtr<T>* comPtr)
         where T : unmanaged, IUnknown.Interface
     {
-        return new IID_PPV(Windows.__uuidof<T>(), comPtr.PPV());
+        return new IID_PPV(Windows.__uuidof<T>(), (void**)comPtr);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -78,27 +78,6 @@ internal static unsafe partial class Win32Utility
         }
         
         return Result.Failure($"{op} failed with code {hr}");
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Guid* IID<T>(this ComPtr<T> comPtr)
-        where T : unmanaged, IUnknown.Interface
-    {
-        return Windows.__uuidof<T>();
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Guid* IID<T>(this T ptr)
-    where T : unmanaged, IUnknown.Interface
-    {
-        return Windows.__uuidof<T>();
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void** PPV<T>(ref this ComPtr<T> comPtr)
-        where T : unmanaged, IUnknown.Interface
-    {
-        return (void**)comPtr.GetAddressOf();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

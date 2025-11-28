@@ -138,7 +138,7 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
         _compiler.Attach(pCompiler);
         _utils.Attach(pUtils);
 
-        _compiledResults = new();
+        _compiledResults = new Dictionary<ShaderPassKey, GraphicsCompiledResult>();
     }
 
     ~DxcShaderCompiler()
@@ -153,10 +153,10 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
 
         try
         {
-            // Create DXC _utils.Get() to parse pReflection data
+            // Create DXC _utils.Get() to parse reflection data
             var dxcuID = CLSID.CLSID_DxcUtils;
 
-            // Create pReflection interface from blob
+            // Create reflection interface from blob
             var reflectionBuffer = new DxcBuffer
             {
                 Ptr = pDxcReflectionBlob->GetBufferPointer(),
@@ -242,137 +242,109 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
         }
     }
 
-    public Result<CompileResult> Compile(ref readonly CompilerConfig config, Allocator allocator)
+    public Result<ShaderCompileResult> Compile(ref readonly CompilerConfig config, Allocator allocator)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        IDxcIncludeHandler* pIncludeHandler = default;
-        IDxcBlobEncoding* pSourceBlob = default;
+        using ComPtr<IDxcIncludeHandler> includeHandler = default;
+        using ComPtr<IDxcBlobEncoding> sourceBlob = default;
+
+        // Create DXC _compiler.Get() and _utils.Get()
+        var dxccID = CLSID.CLSID_DxcCompiler;
+        var dxcuID = CLSID.CLSID_DxcUtils;
+
+        ThrowIfFailed(_utils.Get()->CreateDefaultIncludeHandler(includeHandler.GetAddressOf()));
+
+        // Create source blob
+        fixed (char* pPath = config.shaderPath)
+        {
+            if (_utils.Get()->LoadFile(pPath, null, sourceBlob.GetAddressOf()).FAILED)
+            {
+                return Result.Failure($"Failed to load shader file: {config.shaderPath}");
+            }
+        }
+
+        var argsArray = GetCompilerArguments(in config);
+        var argPtrs = stackalloc char*[argsArray.Count];
+        for (var i = 0; i < argsArray.Count; i++)
+        {
+            argPtrs[i] = (char*)Marshal.StringToHGlobalUni(argsArray[i]);
+        }
+
+        using ComPtr<IDxcResult> result = default;
 
         try
         {
-            // Create DXC _compiler.Get() and _utils.Get()
-            var dxccID = CLSID.CLSID_DxcCompiler;
-            var dxcuID = CLSID.CLSID_DxcUtils;
-
-
-            ThrowIfFailed(_utils.Get()->CreateDefaultIncludeHandler(&pIncludeHandler));
-
-            // Create source blob
-            fixed (char* pPath = config.shaderPath)
+            // Compile shader
+            var buffer = new DxcBuffer
             {
-                if (_utils.Get()->LoadFile(pPath, null, &pSourceBlob).FAILED)
+                Ptr = sourceBlob.Get()->GetBufferPointer(),
+                Size = sourceBlob.Get()->GetBufferSize(),
+                Encoding = DXC_CP_UTF8
+            };
+
+            var (iid, ppv) = Win32Utility.IID_PPV_ARGS(&result);
+            ThrowIfFailed(_compiler.Get()->Compile(&buffer, argPtrs, (uint)argsArray.Count, includeHandler, iid, ppv));
+
+            // Check compilation result
+            HRESULT hrStatus;
+            result.Get()->GetStatus(&hrStatus);
+            if (hrStatus.FAILED)
+            {
+                // Get error messages
+                IDxcBlobEncoding* pErrorBlob = default;
+                result.Get()->GetErrorBuffer(&pErrorBlob);
+
+                if (pErrorBlob != null)
                 {
-                    return Result.Failure($"Failed to load shader file: {config.shaderPath}");
+                    var errorMessage = Marshal.PtrToStringUTF8((IntPtr)pErrorBlob->GetBufferPointer());
+                    pErrorBlob->Release();
+
+                    return Result.Failure($"DXC shader compilation failed:\n{errorMessage}");
+                }
+                else
+                {
+                    return Result.Failure("DXC shader compilation failed with unknown error.");
                 }
             }
 
-            var argsArray = GetCompilerArguments(in config);
-            var argPtrs = stackalloc char*[argsArray.Count];
-            for (var i = 0; i < argsArray.Count; i++)
+            // Get compiled bytecode
+            using ComPtr<IDxcBlob> bytecodeBlob = default;
+            ThrowIfFailed(result.Get()->GetResult(bytecodeBlob.GetAddressOf()));
+
+            ShaderReflectionData reflectionData = default;
+            if (config.options.HasFlag(CompilerOption.KeepReflections))
             {
-                argPtrs[i] = (char*)Marshal.StringToHGlobalUni(argsArray[i]);
+                using ComPtr<IDxcBlob> reflection = default;
+                (iid, ppv) = Win32Utility.IID_PPV_ARGS(&reflection);
+
+                if (result.Get()->GetOutput(DXC_OUT_KIND.DXC_OUT_REFLECTION, iid, ppv, null).SUCCEEDED)
+                {
+                    reflectionData = PerformDXCReflection(reflection).GetValueOrDefault();
+                }
             }
 
-            IDxcResult* pResult = default;
+            var bytecodeSize = bytecodeBlob.Get()->GetBufferSize();
+            var bytecode = new UnsafeArray<byte>((int)bytecodeSize, allocator);
 
-            try
+            NativeMemory.Copy(bytecodeBlob.Get()->GetBufferPointer(), bytecode.GetUnsafePtr(), bytecodeSize);
+
+            return new ShaderCompileResult
             {
-                // Compile shader
-                var buffer = new DxcBuffer
-                {
-                    Ptr = pSourceBlob->GetBufferPointer(),
-                    Size = pSourceBlob->GetBufferSize(),
-                    Encoding = DXC_CP_UTF8
-                };
-
-                ThrowIfFailed(_compiler.Get()->Compile(&buffer, argPtrs, (uint)argsArray.Count, pIncludeHandler, __uuidof(pResult), (void**)&pResult));
-
-                // Check compilation pResult
-                HRESULT hrStatus;
-                pResult->GetStatus(&hrStatus);
-                if (hrStatus.FAILED)
-                {
-                    // Get error messages
-                    IDxcBlobEncoding* pErrorBlob = default;
-                    pResult->GetErrorBuffer(&pErrorBlob);
-
-                    if (pErrorBlob != null)
-                    {
-                        var errorMessage = Marshal.PtrToStringUTF8((IntPtr)pErrorBlob->GetBufferPointer());
-                        pErrorBlob->Release();
-
-                        return Result.Failure($"DXC shader compilation failed:\n{errorMessage}");
-                    }
-                    else
-                    {
-                        return Result.Failure("DXC shader compilation failed with unknown error.");
-                    }
-                }
-
-                // Get compiled bytecode
-                IDxcBlob* pBytecodeBlob = default;
-                try
-                {
-                    ThrowIfFailed(pResult->GetResult(&pBytecodeBlob));
-
-                    ShaderReflectionData reflection = default;
-                    if (config.options.HasFlag(CompilerOption.KeepReflections))
-                    {
-                        IDxcBlob* pReflection = default;
-                        if ((pResult->GetOutput(DXC_OUT_KIND.DXC_OUT_REFLECTION, __uuidof<IDxcBlob>(), (void**)&pReflection, null).SUCCEEDED))
-                        {
-                            reflection = PerformDXCReflection(pReflection).GetValueOrDefault();
-                        }
-
-                        if (pReflection != null)
-                        {
-                            pReflection->Release();
-                        }
-                    }
-
-                    var bytecodeSize = pBytecodeBlob->GetBufferSize();
-                    var bytecode = new UnsafeArray<byte>((int)bytecodeSize, allocator);
-
-                    NativeMemory.Copy(pBytecodeBlob->GetBufferPointer(), bytecode.GetUnsafePtr(), bytecodeSize);
-
-                    return new CompileResult
-                    {
-                        bytecode = bytecode,
-                        reflectionData = reflection,
-                    };
-                }
-                finally
-                {
-                    if (pBytecodeBlob != null)
-                    {
-                        pBytecodeBlob->Release();
-                    }
-                }
-            }
-            finally
-            {
-                for (var i = 0; i < argsArray.Count; i++)
-                {
-                    Marshal.FreeHGlobal((nint)argPtrs[i]);
-                }
-
-                if (pResult != null)
-                {
-                    pResult->Release();
-                }
-            }
+                bytecode = bytecode,
+                reflectionData = reflectionData,
+            };
         }
         finally
         {
-            if (pIncludeHandler != null)
+            for (var i = 0; i < argsArray.Count; i++)
             {
-                pIncludeHandler->Release();
+                Marshal.FreeHGlobal((nint)argPtrs[i]);
             }
         }
     }
 
-    public Result<GraphicsCompiledResult> CompilePass(IPassDescriptor descriptor)
+    public Result<GraphicsCompiledResult> CompilePass(IPassDescriptor descriptor, string? generatedCodePath)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -381,14 +353,14 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
             return Result.Failure("FullPassDescriptor expected.");
         }
 
-        CompileResult tsResult = default;
+        ShaderCompileResult tsResult = default;
         var tsEntry = fullDescriptor.taskShader;
         if (tsEntry.IsCreated)
         {
             var config = new CompilerConfig
             {
                 defines = fullDescriptor.defines.AsSpan(),
-                include = fullDescriptor.generatedCodePath,
+                include = generatedCodePath,
                 shaderPath = tsEntry.shader,
                 entryPoint = tsEntry.entry,
                 stage = ShaderStage.TaskShader,
@@ -406,14 +378,14 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
             tsResult = result.Value;
         }
 
-        CompileResult msResult;
+        ShaderCompileResult msResult;
         var msEntry = fullDescriptor.meshShader;
         if (msEntry.IsCreated)
         {
             var config = new CompilerConfig
             {
                 defines = fullDescriptor.defines.AsSpan(),
-                include = fullDescriptor.generatedCodePath,
+                include = generatedCodePath,
                 shaderPath = msEntry.shader,
                 entryPoint = msEntry.entry,
                 stage = ShaderStage.MeshShader,
@@ -435,14 +407,14 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
             return Result.Failure("Mesh shader expected.");
         }
 
-        CompileResult psResult;
+        ShaderCompileResult psResult;
         var psEntry = fullDescriptor.pixelShader;
         if (psEntry.IsCreated)
         {
             var config = new CompilerConfig
             {
                 defines = fullDescriptor.defines.AsSpan(),
-                include = fullDescriptor.generatedCodePath,
+                include = generatedCodePath,
                 shaderPath = psEntry.shader,
                 entryPoint = psEntry.entry,
                 stage = ShaderStage.PixelShader,

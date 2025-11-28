@@ -3,44 +3,43 @@ using Ghost.Core.Graphics;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
-using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.Core;
 
-public class ShaderPass : IResourceReleasable
+public struct ShaderPass : IResourceReleasable
 {
-    private CBufferInfo _cbufferInfo;
-    // NOTE: This is for per pass cbuffer only. Global, per view, and per mesh cbuffers are fixed.
-    private readonly Dictionary<string, int> _propertyLookup;
-
-    public CBufferInfo CBuffer => _cbufferInfo;
-
-    public ShaderPass(CBufferInfo info)
+    public ShaderPassKey Identifier
     {
-        _cbufferInfo = info;
-
-        var capacity = info.Properties?.Count ?? 0;
-        _propertyLookup = new Dictionary<string, int>(capacity);
-        for (var i = 0; i < capacity; i++)
-        {
-            _propertyLookup[info.Properties![i].Name] = i;
-        }
+        get; init;
     }
 
-    public int GetPropertyId(string propertyName)
+    public ZTestOptions ZTest
     {
-        return _propertyLookup.TryGetValue(propertyName, out var id) ? id : -1;
+        get; set;
     }
 
-    public CBufferPropertyInfo GetPropertyInfo(int id)
+    public ZWriteOptions ZWrite
     {
-        return _cbufferInfo.Properties[id];
+        get; set;
     }
 
-    public CBufferPropertyInfo GetPropertyInfo(string propertyName)
+    public CullOptions Cull
     {
-        return _cbufferInfo.Properties[GetPropertyId(propertyName)];
+        get; set;
     }
+
+    public BlendOptions Blend
+    {
+        get; set;
+    }
+
+    public uint ColorMask
+    {
+        get; set;
+    }
+
+    // TODO: Shader variant.
 
     void IResourceReleasable.ReleaseResource(IResourceDatabase database)
     {
@@ -52,46 +51,43 @@ public class ShaderPass : IResourceReleasable
 /// </summary>
 public class Shader : IResourceReleasable, IIdentifierType
 {
-    private UnsafeArray<ShaderPassKey> _passIDs;
+    private readonly uint _cbufferSize;
+    private UnsafeArray<ShaderPass> _passes;
     // TODO: Optmize lookups with a better data structure if needed
     private readonly Dictionary<string, int> _passLookup; // pass name to index
-    private readonly Dictionary<string, List<int>> _propertyLookup; // property name to pass index (property name to list of pass indices that contain the property)
 
-    public int PassCount => _passIDs.Count;
+    public int PassCount => _passes.Count;
+    public uint CBufferSize => _cbufferSize;
 
     internal Shader(ShaderDescriptor descriptor)
     {
-        _passIDs = new UnsafeArray<ShaderPassKey>(descriptor.passes.Count, Allocator.Persistent);
-        _passLookup = new(descriptor.passes.Count);
-        _propertyLookup = new(descriptor.passes.Count);
+        _cbufferSize = descriptor.cbufferSize;
+        _passes = new UnsafeArray<ShaderPass>(descriptor.passes.Count, Allocator.Persistent);
+        _passLookup = new Dictionary<string, int>(descriptor.passes.Count);
 
         for (var i = 0; i < descriptor.passes.Count; i++)
         {
             var pass = descriptor.passes[i];
+
+            // TODO: Handle inherited passes
+            if (pass is not FullPassDescriptor fullPass)
+            {
+                continue;
+            }
+
             var passKey = new ShaderPassKey(pass.Identifier);
 
-            _passIDs[i] = passKey;
-            _passLookup[pass.Name] = i;
-
-            if (pass is FullPassDescriptor fullPass)
+            _passes[i] = new ShaderPass
             {
-                if (fullPass.properties == null)
-                {
-                    continue;
-                }
+                Identifier = passKey,
+                ZTest = fullPass.localPipeline.zTest,
+                ZWrite = fullPass.localPipeline.zWrite,
+                Cull = fullPass.localPipeline.cull,
+                Blend = fullPass.localPipeline.blend,
+                ColorMask = fullPass.localPipeline.colorMask
+            };
 
-                foreach (var property in fullPass.properties)
-                {
-                    ref var passIndices = ref CollectionsMarshal.GetValueRefOrAddDefault(_propertyLookup, property.name, out var exists);
-                    if (!exists || passIndices == null)
-                    {
-                        passIndices = new List<int>();
-                    }
-
-                    passIndices.Add(i);
-                }
-            }
-            // TODO: handle inherited passes
+            _passLookup[pass.Name] = i;
         }
     }
 
@@ -100,38 +96,26 @@ public class Shader : IResourceReleasable, IIdentifierType
         return _passLookup.GetValueOrDefault(passName, -1);
     }
 
-    public ShaderPassKey GetPassKey(int index)
+    public ref ShaderPass GetPassReference(int index)
     {
-        return _passIDs[index];
+        return ref _passes[index];
     }
 
-    public bool TryGetPassKey(string passName, out int passIndex, out ShaderPassKey passID)
+    public RefResult<ShaderPass, ResultStatus> TryGetPassKey(string passName, out int passIndex)
     {
         var index = _passLookup.GetValueOrDefault(passName, -1);
         if (index == -1)
         {
             passIndex = -1;
-            passID = new(0);
-            return false;
+            return Result.CreateRef(ref Unsafe.NullRef<ShaderPass>(), ResultStatus.NotFound);
         }
 
         passIndex = index;
-        passID = _passIDs[index];
-        return true;
-    }
-
-    public IReadOnlyCollection<int> GetPropertyPassIndices(string propertyName)
-    {
-        if (_propertyLookup.TryGetValue(propertyName, out var passIndices))
-        {
-            return passIndices;
-        }
-
-        return Array.Empty<int>();
+        return Result.CreateRef(ref _passes[index], ResultStatus.Success);
     }
 
     void IResourceReleasable.ReleaseResource(IResourceDatabase database)
     {
-        _passIDs.Dispose();
+        _passes.Dispose();
     }
 }

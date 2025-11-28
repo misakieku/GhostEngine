@@ -73,9 +73,9 @@ internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySem
             ParseBoolValue(syntax[3], errors))),
 
         // Textures (single identifier argument)
-        [ShaderPropertyType.Texture2DBindless] = new(1, TokenType.Identifier, (syntax, errors) => ParseTextureDefault(syntax[0], errors)),
-        [ShaderPropertyType.Texture3DBindless] = new(1, TokenType.Identifier, (syntax, errors) => ParseTextureDefault(syntax[0], errors)),
-        [ShaderPropertyType.TextureCubeBindless] = new(1, TokenType.Identifier, (syntax, errors) => ParseTextureDefault(syntax[0], errors)),
+        [ShaderPropertyType.Texture2D] = new(1, TokenType.Identifier, (syntax, errors) => ParseTextureDefault(syntax[0], errors)),
+        [ShaderPropertyType.Texture3D] = new(1, TokenType.Identifier, (syntax, errors) => ParseTextureDefault(syntax[0], errors)),
+        [ShaderPropertyType.TextureCube] = new(1, TokenType.Identifier, (syntax, errors) => ParseTextureDefault(syntax[0], errors)),
     };
 
     private static float ParseFloatValue(Token token, List<SDLError> errors)
@@ -166,6 +166,7 @@ internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySem
             TokenLexicon.KnownTypes.FLOAT2 => ShaderPropertyType.Float2,
             TokenLexicon.KnownTypes.FLOAT3 => ShaderPropertyType.Float3,
             TokenLexicon.KnownTypes.FLOAT4 => ShaderPropertyType.Float4,
+            TokenLexicon.KnownTypes.FLOAT4X4 => ShaderPropertyType.Float4x4,
             TokenLexicon.KnownTypes.INT => ShaderPropertyType.Int,
             TokenLexicon.KnownTypes.INT2 => ShaderPropertyType.Int2,
             TokenLexicon.KnownTypes.INT3 => ShaderPropertyType.Int3,
@@ -178,9 +179,9 @@ internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySem
             TokenLexicon.KnownTypes.BOOL2 => ShaderPropertyType.Bool2,
             TokenLexicon.KnownTypes.BOOL3 => ShaderPropertyType.Bool3,
             TokenLexicon.KnownTypes.BOOL4 => ShaderPropertyType.Bool4,
-            TokenLexicon.KnownTypes.TEXTURE2D_BINDLESS => ShaderPropertyType.Texture2DBindless,
-            TokenLexicon.KnownTypes.TEXTURE3D_BINDLESS => ShaderPropertyType.Texture3DBindless,
-            TokenLexicon.KnownTypes.TEXTURECUBE_BINDLESS => ShaderPropertyType.TextureCubeBindless,
+            TokenLexicon.KnownTypes.TEXTURE2D => ShaderPropertyType.Texture2D,
+            TokenLexicon.KnownTypes.TEXTURE3D => ShaderPropertyType.Texture3D,
+            TokenLexicon.KnownTypes.TEXTURECUBE => ShaderPropertyType.TextureCube,
             _ => ShaderPropertyType.None,
         };
     }

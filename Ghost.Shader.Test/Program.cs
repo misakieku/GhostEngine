@@ -30,11 +30,7 @@ if (model == null)
 }
 
 var descriptor = SDLCompiler.ResolveShader(model);
-
-foreach (var pass in descriptor.passes)
-{
-    SDLCompiler.GeneratePass(pass, "C:/Users/Misaki/Downloads/Archive");
-}
+SDLCompiler.GenerateShaderCode(descriptor, "C:/Users/Misaki/Downloads/Archive");
 
 Console.WriteLine("Shader compiled successfully:");
 

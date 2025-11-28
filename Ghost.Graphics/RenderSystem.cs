@@ -48,11 +48,6 @@ public interface IFenceSynchronizer
 
 public interface IRenderSystem : IFenceSynchronizer, IDisposable
 {
-    RenderingConfig Config
-    {
-        get;
-    }
-
     IGraphicsEngine GraphicsEngine
     {
         get;
@@ -80,8 +75,8 @@ internal class RenderSystem : IRenderSystem
 
         public FrameResource()
         {
-            cpuReadyEvent = new(false);
-            gpuReadyEvent = new(true);
+            cpuReadyEvent = new AutoResetEvent(false);
+            gpuReadyEvent = new AutoResetEvent(true);
         }
 
         public void Dispose()
@@ -105,7 +100,6 @@ internal class RenderSystem : IRenderSystem
     private bool _isRunning;
     private bool _disposed;
 
-    public RenderingConfig Config => _config;
     public IGraphicsEngine GraphicsEngine => _graphicsEngine;
     public bool IsRunning => _isRunning;
 
@@ -123,16 +117,16 @@ internal class RenderSystem : IRenderSystem
             _ => throw new NotSupportedException($"Graphics API {config.GraphicsAPI} is not supported.")
         };
 
-        _shutdownEvent = new(false);
+        _shutdownEvent = new AutoResetEvent(false);
 
         // Create frame resources for synchronization
         _frameResources = new FrameResource[config.FrameBufferCount];
         for (var i = 0; i < config.FrameBufferCount; i++)
         {
-            _frameResources[i] = new();
+            _frameResources[i] = new FrameResource();
         }
 
-        _renderThread = new(RenderLoop)
+        _renderThread = new Thread(RenderLoop)
         {
             IsBackground = true,
             Name = "Graphics Render Thread",

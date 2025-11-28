@@ -7,6 +7,7 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
@@ -27,7 +28,7 @@ internal unsafe class D3D12SwapChain : ISwapChain
     private UniquePtr<IDXGISwapChain4> _swapChain;
     private UnsafeArray<Handle<Texture>> _backBuffers;
 
-    private object? _compositionSurface;
+    private readonly object? _compositionSurface;
 
     private bool _disposed;
 
@@ -48,20 +49,22 @@ internal unsafe class D3D12SwapChain : ISwapChain
 
     public D3D12SwapChain(D3D12ResourceDatabase resourceDatabase, D3D12DescriptorAllocator descriptorAllocator, D3D12RenderDevice device, SwapChainDesc desc)
     {
+        Debug.Assert(desc.BufferCount >= 2);
+
         _resourceDatabase = resourceDatabase;
         _descriptorAllocator = descriptorAllocator;
         _renderDevice = device;
 
-        _backBuffers = new UnsafeArray<Handle<Texture>>(D3D12PipelineResource.BACK_BUFFER_COUNT, Allocator.Persistent);
+        _backBuffers = new UnsafeArray<Handle<Texture>>((int)desc.BufferCount, Allocator.Persistent);
 
-        Width = desc.width;
-        Height = desc.height;
-        BufferCount = D3D12PipelineResource.BACK_BUFFER_COUNT;
+        Width = desc.Width;
+        Height = desc.Height;
+        BufferCount = desc.BufferCount;
 
         CreateSwapChain(desc);
         CreateBackBuffers();
 
-        _compositionSurface = desc.target.compositionSurface;
+        _compositionSurface = desc.Target.CompositionSurface;
     }
 
     ~D3D12SwapChain()
@@ -73,9 +76,9 @@ internal unsafe class D3D12SwapChain : ISwapChain
     {
         var swapChainDesc = new DXGI_SWAP_CHAIN_DESC1
         {
-            Width = desc.width,
-            Height = desc.height,
-            Format = desc.format.ToDXGIFormat(),
+            Width = desc.Width,
+            Height = desc.Height,
+            Format = desc.Format.ToDXGIFormat(),
             SampleDesc = new DXGI_SAMPLE_DESC(1, 0),
             BufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT,
             BufferCount = D3D12PipelineResource.BACK_BUFFER_COUNT,
@@ -91,15 +94,15 @@ internal unsafe class D3D12SwapChain : ISwapChain
         var pFactory = _renderDevice.DXGIFactory.Get();
         var pCommandQueue = _renderDevice.NativeGraphicsQueue.Get();
 
-        switch (desc.target.type)
+        switch (desc.Target.Type)
         {
             case SwapChainTargetType.Composition:
                 ThrowIfFailed(pFactory->CreateSwapChainForComposition((IUnknown*)pCommandQueue, &swapChainDesc, null, &pTempSwapChain));
 
                 // Set the composition surface
-                if (desc.target.compositionSurface != null)
+                if (desc.Target.CompositionSurface != null)
                 {
-                    using var swapChainPanelNative = ISwapChainPanelNative.FromSwapChainPanel(desc.target.compositionSurface);
+                    using var swapChainPanelNative = ISwapChainPanelNative.FromSwapChainPanel(desc.Target.CompositionSurface);
                     swapChainPanelNative.SetSwapChain((IntPtr)pTempSwapChain);
                 }
                 break;
@@ -112,7 +115,7 @@ internal unsafe class D3D12SwapChain : ISwapChain
 
                 pFactory->CreateSwapChainForHwnd(
                     (IUnknown*)pCommandQueue,
-                    new HWND(desc.target.windowHandle.ToPointer()),
+                    new HWND(desc.Target.WindowHandle.ToPointer()),
                     &swapChainDesc,
                     &swapChainFullscreenDesc,
                     null,
@@ -141,7 +144,12 @@ internal unsafe class D3D12SwapChain : ISwapChain
             var rtv = _descriptorAllocator.AllocateRTV();
             _renderDevice.NativeDevice.Get()->CreateRenderTargetView(pBackBuffer, null, _descriptorAllocator.GetCpuHandle(rtv));
 
-            var handle = _resourceDatabase.ImportExternalResource(pBackBuffer, ResourceState.Present, new ResourceViewGroup() { rtv = rtv });
+            var view = ResourceViewGroup.Invalid with
+            {
+                rtv = rtv
+            };
+
+            var handle = _resourceDatabase.ImportExternalResource(pBackBuffer, ResourceState.Present, view);
             _backBuffers[i] = handle.AsTexture();
         }
     }

@@ -10,17 +10,18 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <IsAotCompatible>True</IsAotCompatible>
     <DefineConstants>$(DefineConstants);PLATEFORME_WIN64</DefineConstants>
+    <IsTrimmable>True</IsTrimmable>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <IsAotCompatible>True</IsAotCompatible>
     <DefineConstants>$(DefineConstants);PLATEFORME_WIN64</DefineConstants>
+    <IsTrimmable>True</IsTrimmable>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Misaki.HighPerformance" Version="1.0.1" />
-    <PackageReference Include="Misaki.HighPerformance.Jobs" Version="1.1.0" />
-    <PackageReference Include="Misaki.HighPerformance.LowLevel" Version="1.2.1" />
+    <PackageReference Include="Misaki.HighPerformance.LowLevel" Version="1.2.5" />
     <PackageReference Include="Misaki.HighPerformance.Mathematics" Version="1.2.6" />
     <PackageReference Include="System.IO.Hashing" Version="10.0.0" />
     <PackageReference Include="TerraFX.Interop.Windows" Version="10.0.26100.5" />

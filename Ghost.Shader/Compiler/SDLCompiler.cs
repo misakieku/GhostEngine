@@ -54,7 +54,7 @@ internal static class SDLCompiler
 
     public static SDLSemantics? SemanticAnalysis(SDLSyntax syntax, out List<SDLError> errors)
     {
-        errors = new();
+        errors = new List<SDLError>();
 
         if (string.IsNullOrWhiteSpace(syntax.name.lexeme))
         {
@@ -145,31 +145,23 @@ internal static class SDLCompiler
         };
     }
 
-    private static List<PropertyDescriptor> MergeProperties(List<PropertySemantic>? semantics, List<PropertyDescriptor>? parent)
+    private static uint CalculateCBufferSize(List<PropertyDescriptor> properties)
     {
-        var result = new List<PropertyDescriptor>();
-        if (parent != null)
-        {
-            result.AddRange(parent);
-        }
+        var currentOffset = 0u;
 
-        if (semantics != null)
+        foreach (var prop in properties)
         {
-            foreach (var prop in semantics)
+            var size = prop.type.GetSize();
+
+            if ((currentOffset % 16) + size > 16)
             {
-                if (prop.scope == PropertyScope.Local)
-                {
-                    result.Add(new PropertyDescriptor
-                    {
-                        name = prop.name,
-                        type = prop.type,
-                        defaultValue = prop.defaultValue
-                    });
-                }
+                currentOffset = (currentOffset + 15u) & ~15u;
             }
+
+            currentOffset += size;
         }
 
-        return result.DistinctBy(p => p.name).ToList();
+        return (currentOffset + 15u) & ~15u;
     }
 
     // TODO: Implement shader inheritance resolution, including property and pass merging.
@@ -181,19 +173,23 @@ internal static class SDLCompiler
             name = semantics.name
         };
 
-        var shaderGlobalProperties = semantics.properties?.Where(p => p.scope == PropertyScope.Global).Select(p => new PropertyDescriptor
-        {
-            name = p.name,
-            type = p.type,
-            defaultValue = p.defaultValue
-        }).ToList();
+        var shaderGlobalProperties = semantics.properties?
+            .Where(p => p.scope == PropertyScope.Global)
+            .Select(p => new PropertyDescriptor
+            {
+                name = p.name,
+                type = p.type,
+                defaultValue = p.defaultValue
+            }).ToList();
 
-        var shaderLocalProperties = semantics.properties?.Where(p => p.scope == PropertyScope.Local).Select(p => new PropertyDescriptor
-        {
-            name = p.name,
-            type = p.type,
-            defaultValue = p.defaultValue
-        }).ToList();
+        var shaderLocalProperties = semantics.properties?
+            .Where(p => p.scope == PropertyScope.Local)
+            .Select(p => new PropertyDescriptor
+            {
+                name = p.name,
+                type = p.type,
+                defaultValue = p.defaultValue
+            }).ToList();
 
         if (shaderGlobalProperties != null)
         {
@@ -201,13 +197,18 @@ internal static class SDLCompiler
             descriptor.globalProperties.AddRange(shaderGlobalProperties);
         }
 
+        if (shaderLocalProperties != null)
+        {
+            descriptor.properties ??= new List<PropertyDescriptor>();
+            descriptor.properties.AddRange(shaderLocalProperties);
+            descriptor.cbufferSize = CalculateCBufferSize(descriptor.properties);
+        }
+
         if (semantics.passes != null)
         {
             foreach (var pass in semantics.passes)
             {
                 var localPipeline = MeragePipeline(pass.localPipeline, PipelineDescriptor.Default);
-                var localProperties = MergeProperties(pass.localProperties, shaderLocalProperties); // TODO: Merge with base shader properties if inheritance is implemented.
-
                 var fullPass = new FullPassDescriptor
                 {
                     uniqueIdentifier = GetPassUniqueId(semantics, pass),
@@ -217,9 +218,7 @@ internal static class SDLCompiler
                     pixelShader = pass.pixelShader,
                     localPipeline = localPipeline,
                     defines = pass.defines,
-                    includes = pass.includes,
                     keywords = pass.keywords,
-                    properties = localProperties
                 };
 
                 descriptor.passes.Add(fullPass);
@@ -258,23 +257,13 @@ internal static class SDLCompiler
                 return Result.Failure("Failed to generate global properties: " + globalPropResult.Message);
             }
 
-            foreach (var pass in desc.passes)
+            var generatedResult = GenerateShaderCode(desc, generatedOutputDirectory);
+            if (generatedResult.IsFailure)
             {
-                if (pass is not FullPassDescriptor fullPass)
-                {
-                    continue;
-                }
-
-                fullPass.includes ??= new List<string>();
-                fullPass.includes.Add(globalPropResult.Value);
-                var generatedResult = GeneratePass(fullPass, generatedOutputDirectory);
-                if (generatedResult.IsFailure)
-                {
-                    return Result.Failure("Failed to generate pass files: " + generatedResult.Message);
-                }
-
-                fullPass.generatedCodePath = generatedResult.Value;
+                return Result.Failure("Failed to generate pass files: " + generatedResult.Message);
             }
+
+            desc.generatedCodePath = generatedResult.Value;
 
             return desc;
         }
@@ -305,28 +294,23 @@ internal static class SDLCompiler
             ShaderPropertyType.Bool3 => "bool3",
             ShaderPropertyType.Bool4 => "bool4",
             // NOTE: Textures here are bindless, represented as uint (descriptor index).
-            ShaderPropertyType.Texture2DBindless => "TEXTURE2D_BINDLESS",
-            ShaderPropertyType.Texture3DBindless => "TEXTURE3D_BINDLESS",
-            ShaderPropertyType.TextureCubeBindless => "TEXTURECUBE_BINDLESS",
-            ShaderPropertyType.Texture2DArrayBindless => "TEXTURE2D_ARRAY_BINDLESS",
-            ShaderPropertyType.TextureCubeArrayBindless => "TEXTURECUBE_ARRAY_BINDLESS",
+            ShaderPropertyType.Texture2D => "TEXTURE2D_BINDLESS",
+            ShaderPropertyType.Texture3D => "TEXTURE3D_BINDLESS",
+            ShaderPropertyType.TextureCube => "TEXTURECUBE_BINDLESS",
+            ShaderPropertyType.Texture2DArray => "TEXTURE2D_ARRAY_BINDLESS",
+            ShaderPropertyType.TextureCubeArray => "TEXTURECUBE_ARRAY_BINDLESS",
             _ => throw new ArgumentOutOfRangeException(nameof(type), $"Unsupported shader property type: {type}")
         };
     }
 
-    public static Result<string> GeneratePass(IPassDescriptor descriptor, string targetDirectory)
+    public static Result<string> GenerateShaderCode(ShaderDescriptor descriptor, string targetDirectory)
     {
-        if (descriptor is not FullPassDescriptor fullPass)
-        {
-            return Result.Failure("Only full pass descriptors are supported for compilation.");
-        }
-
         if (!Directory.Exists(targetDirectory))
         {
             return Result.Failure("Target directory does not exist.");
         }
 
-        var outputFileName = fullPass.uniqueIdentifier.Replace(' ', '_');
+        var outputFileName = descriptor.name.Replace('/', '_');
         var outputFilePath = Path.Combine(targetDirectory, outputFileName + ".g.hlsl");
         var outputDirectory = Path.GetDirectoryName(outputFilePath);
 
@@ -346,30 +330,17 @@ internal static class SDLCompiler
 #define {fileDefine}
 
 #include ""F:/csharp/GhostEngine/Ghost.Shader/BuiltIn/Common.hlsl""");
-        if (fullPass.includes != null)
-        {
-            foreach (var include in fullPass.includes)
-            {
-                sb.Append($@"
-#include ""{include}""");
-            }
 
-            sb.AppendLine();
-        }
-
-        if (fullPass.properties != null)
-        {
-            sb.Append(@"
+        sb.Append(@"
 struct PerMaterialData
 {");
-            foreach (var prop in fullPass.properties)
-            {
-                sb.Append($@"
+        foreach (var prop in descriptor.properties)
+        {
+            sb.Append($@"
     {ShaderPropertyTypeToHLSLType(prop.type)} {prop.name};");
-            }
-            sb.Append(@"
-};");
         }
+        sb.Append(@"
+};");
 
         sb.AppendLine();
         sb.AppendLine(@$"

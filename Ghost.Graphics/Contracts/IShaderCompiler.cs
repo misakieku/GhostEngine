@@ -6,7 +6,7 @@ using Misaki.HighPerformance.LowLevel.Collections;
 
 namespace Ghost.Graphics.Contracts;
 
-public struct CompileResult : IDisposable
+public struct ShaderCompileResult : IDisposable
 {
     public UnsafeArray<byte> bytecode;
     public ShaderReflectionData reflectionData;
@@ -21,9 +21,9 @@ public struct CompileResult : IDisposable
 
 public struct GraphicsCompiledResult : IDisposable
 {
-    public CompileResult tsResult;
-    public CompileResult msResult;
-    public CompileResult psResult;
+    public ShaderCompileResult tsResult;
+    public ShaderCompileResult msResult;
+    public ShaderCompileResult psResult;
 
     public void Dispose()
     {
@@ -143,7 +143,7 @@ public readonly struct ShaderReflectionData
 
 public interface IShaderCompiler : IDisposable
 {
-    Result<CompileResult> Compile(ref readonly CompilerConfig config, Allocator allocator);
-    Result<GraphicsCompiledResult> CompilePass(IPassDescriptor descriptor);
+    Result<ShaderCompileResult> Compile(ref readonly CompilerConfig config, Allocator allocator);
+    Result<GraphicsCompiledResult> CompilePass(IPassDescriptor descriptor, string? generatedCodePath);
     Result<GraphicsCompiledResult> LoadCompiledCache(ShaderPassKey key);
 }

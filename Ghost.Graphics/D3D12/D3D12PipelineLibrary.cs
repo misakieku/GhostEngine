@@ -8,8 +8,6 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
-using Misaki.HighPerformance.LowLevel.Utilities;
-using Misaki.HighPerformance.Utilities;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
@@ -40,7 +38,6 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
     private UniquePtr<ID3D12RootSignature> _defaultRootSignature;
 
     private readonly Dictionary<GraphicsPipelineKey, D3D12PipelineState> _pipelineCache;
-    private readonly Dictionary<ShaderPassKey, CBufferInfo> _cbufferInfoCache;
 
     public ID3D12RootSignature* DefaultRootSignature => _defaultRootSignature.Get();
 
@@ -50,9 +47,8 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
         _resourceDatabase = resourceDatabase;
 
         _pipelineCache = new Dictionary<GraphicsPipelineKey, D3D12PipelineState>();
-        _cbufferInfoCache = new Dictionary<ShaderPassKey, CBufferInfo>();
 
-        CreateDefaultRootSignature();
+        CreateDefaultRootSignature().ThrowIfFailed();
     }
 
     private Result CreateDefaultRootSignature()
@@ -140,36 +136,21 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
             Desc_1_1 = rootSignatureDesc
         };
 
-        ID3DBlob* pSignature = default;
-        ID3DBlob* pError = default;
+        using ComPtr<ID3DBlob> pSignature = default;
+        using ComPtr<ID3DBlob> pError = default;
 
-        try
+        var serializeResult = D3D12SerializeVersionedRootSignature(&versionedDesc, pSignature.GetAddressOf(), pError.GetAddressOf());
+        if (serializeResult.FAILED)
         {
-            var serializeResult = D3D12SerializeVersionedRootSignature(&versionedDesc, &pSignature, &pError);
-            if (serializeResult.FAILED)
-            {
-                var errorMsg = pError != null ? Marshal.PtrToStringUTF8((nint)pError->GetBufferPointer()) : "Unknown error";
-                return Result.Failure($"Failed to serialize default root signature: {errorMsg}");
-            }
-
-            ID3D12RootSignature* pRootSignature = default;
-            ThrowIfFailed(_device.NativeDevice.Get()->CreateRootSignature(0, pSignature->GetBufferPointer(), pSignature->GetBufferSize(),
-                __uuidof(pRootSignature), (void**)&pRootSignature));
-
-            _defaultRootSignature.Attach(pRootSignature);
+            var errorMsg = pError.Get() != null ? Marshal.PtrToStringUTF8((nint)pError.Get()->GetBufferPointer()) : "Unknown error";
+            return Result.Failure($"Failed to serialize default root signature: {errorMsg}");
         }
-        finally
-        {
-            if (pSignature != null)
-            {
-                pSignature->Release();
-            }
 
-            if (pError != null)
-            {
-                pError->Release();
-            }
-        }
+        ID3D12RootSignature* pRootSignature = default;
+        ThrowIfFailed(_device.NativeDevice.Get()->CreateRootSignature(0, pSignature.Get()->GetBufferPointer(), pSignature.Get()->GetBufferSize(),
+            __uuidof(pRootSignature), (void**)&pRootSignature));
+
+        _defaultRootSignature.Attach(pRootSignature);
 
         return Result.Success();
     }
@@ -337,8 +318,6 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
                 return Result.Failure(result.Message);
             }
 
-            _cbufferInfoCache[descriptor.PassId] = result.Value;
-
             var desc = new D3DX12_MESH_SHADER_PIPELINE_STATE_DESC
             {
                 pRootSignature = _defaultRootSignature.Get(),
@@ -420,16 +399,6 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
         }
 
         return key;
-    }
-
-    public Result<CBufferInfo, ResultStatus> GetCBufferInfo(ShaderPassKey passId)
-    {
-        if (_cbufferInfoCache.TryGetValue(passId, out var cbufferInfo))
-        {
-            return Result.Create(cbufferInfo, ResultStatus.Success);
-        }
-
-        return Result.Create(default(CBufferInfo), ResultStatus.NotFound);
     }
 
     public Result<SharedPtr<ID3D12PipelineState>, ResultStatus> GetGraphicsPSO(GraphicsPipelineKey key)

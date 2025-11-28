@@ -5,7 +5,7 @@ using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Collections;
-using Misaki.HighPerformance.Mathematics;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
@@ -522,10 +522,11 @@ internal sealed unsafe partial class D3D12ResourceAllocator
             return D3D12_RESOURCE_STATE_COPY_DEST;
         }
 
-        // Default to Common, but check for specific roles
         var state = D3D12_RESOURCE_STATE_COMMON;
+#if true
         return state;
-
+#else
+        // D3D12 does not support state other than COMMON for buffers at creation.
         if (usage.HasFlag(BufferUsage.Vertex) || usage.HasFlag(BufferUsage.Constant))
         {
             // Vertex and Constant buffers can share this state
@@ -564,6 +565,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator
 
         // If it's a mix, start in common and let the user barrier
         return D3D12_RESOURCE_STATE_COMMON;
+#endif
     }
 
     private static ResourceState D3D12StatesToRHIState(D3D12_RESOURCE_STATES states)
@@ -605,7 +607,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
     private readonly D3D12ResourceDatabase _resourceDatabase;
     private readonly D3D12PipelineLibrary _pipelineLibrary;
 
-    private UnsafeQueue<Handle<GPUResource>> _temResources;
+    private UnsafeQueue<Handle<GPUResource>> _tempResources;
 
     private bool _disposed;
 
@@ -633,7 +635,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         _resourceDatabase = resourceDatabase;
         _pipelineLibrary = pipelineLibrary;
 
-        _temResources = new(64, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
+        _tempResources = new UnsafeQueue<Handle<GPUResource>>(64, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
     }
 
     ~D3D12ResourceAllocator()
@@ -648,7 +650,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
         if (isTemp)
         {
-            _temResources.Enqueue(handle);
+            _tempResources.Enqueue(handle);
         }
 
         return handle;
@@ -714,13 +716,15 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         var initialState = DetermineInitialTextureState(desc.Usage);
 
         D3D12MA_Allocation* pAllocation = default;
-        ThrowIfFailed(_d3d12MA.Get()->CreateResource(&allocationDesc, &resourceDesc, initialState, null, &pAllocation, Win32Utility.IID_NULL, null));
+        var iid = IID.IID_NULL;
+        ThrowIfFailed(_d3d12MA.Get()->CreateResource(&allocationDesc, &resourceDesc, initialState, null, &pAllocation, &iid, null));
 
         var resourceDescriptor = ResourceViewGroup.Invalid;
         if (desc.Usage.HasFlag(TextureUsage.ShaderResource))
         {
             resourceDescriptor.srv = _descriptorAllocator.AllocateCbvSrvUav(isTemp);
-            var cpuHandle = _descriptorAllocator.GetCpuHandle(resourceDescriptor.srv);
+            // TODO: Maybe use non-shader-visible descriptor first then batch copy to shader-visible heap later?
+            var cpuHandle = _descriptorAllocator.GetCpuHandleShaderVisible(resourceDescriptor.srv);
 
             var isCubeMap = desc.Dimension == TextureDimension.TextureCube || desc.Dimension == TextureDimension.TextureCubeArray;
             var srvDesc = CreateTextureSrvDesc(pAllocation->GetResource(), mipLevels, desc.Slice, isCubeMap);
@@ -749,7 +753,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         if (desc.Usage.HasFlag(TextureUsage.UnorderedAccess))
         {
             resourceDescriptor.uav = _descriptorAllocator.AllocateCbvSrvUav(isTemp);
-            var cpuHandle = _descriptorAllocator.GetCpuHandle(resourceDescriptor.uav);
+            var cpuHandle = _descriptorAllocator.GetCpuHandleShaderVisible(resourceDescriptor.uav);
             var uavDesc = CreateTextureUavDesc(pAllocation->GetResource());
 
             _device.NativeDevice.Get()->CreateUnorderedAccessView(pAllocation->GetResource(), null, &uavDesc, cpuHandle);
@@ -906,24 +910,6 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         var shader = new Shader(descriptor);
-        foreach (var pass in descriptor.passes)
-        {
-            if (pass is not FullPassDescriptor fullPass)
-            {
-                continue;
-            }
-
-            // TODO: Cache the pass key because we hash it multiple times right now.
-            var passKey = new ShaderPassKey(fullPass.Identifier);
-            var cbr = _pipelineLibrary.GetCBufferInfo(passKey);
-            if (cbr.Status != ResultStatus.Success)
-            {
-                return Identifier<Shader>.Invalid;
-            }
-
-            _resourceDatabase.AddShaderPass(passKey, new ShaderPass(cbr.Value));
-        }
-
         return _resourceDatabase.AddShader(shader);
     }
 
@@ -931,14 +917,14 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        while (_temResources.Count > 0)
+        while (_tempResources.Count > 0)
         {
-            var handle = _temResources.Peek();
-            ref var info = ref _resourceDatabase.GetResourceInfo(handle, out var exist);
+            var handle = _tempResources.Peek();
+            ref var info = ref _resourceDatabase.GetResourceRecord(handle, out var exist);
             if (!exist || !info.Allocated)
             {
                 // Resource already released or invalid, just dequeue
-                _temResources.Dequeue();
+                _tempResources.Dequeue();
                 continue;
             }
 
@@ -950,7 +936,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             }
 
             _resourceDatabase.ReleaseResource(handle);
-            _temResources.Dequeue();
+            _tempResources.Dequeue();
         }
     }
 
@@ -961,20 +947,15 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             return;
         }
 
-#if DEBUG || GHOST_EDITOR
-        if (_temResources.Count > 0)
-        {
-            throw new InvalidOperationException($"ResourceAllocator is being disposed with {_temResources.Count} temp allocations still registered. Ensure all resources are released before disposing.");
-        }
-#endif
+        Debug.Assert(_tempResources.Count == 0, "Temporary resources should be released before disposing the allocator.");
 
-        foreach (var handle in _temResources)
+        foreach (var handle in _tempResources)
         {
             _resourceDatabase.ReleaseResource(handle);
         }
 
         _d3d12MA.Dispose();
-        _temResources.Dispose();
+        _tempResources.Dispose();
 
         _disposed = true;
         GC.SuppressFinalize(this);

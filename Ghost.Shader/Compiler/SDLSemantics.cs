@@ -32,9 +32,7 @@ internal class PassSemantic
     public ShaderEntryPoint meshShader;
     public ShaderEntryPoint pixelShader;
     public List<string>? defines;
-    public List<string>? includes;
     public List<KeywordsGroup>? keywords;
-    public List<PropertySemantic>? localProperties;
     public PipelineSemantic? localPipeline;
 }
 

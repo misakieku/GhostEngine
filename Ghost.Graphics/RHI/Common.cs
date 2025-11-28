@@ -154,7 +154,6 @@ public ref struct GraphicsPSODescriptor
         get; set;
     }
 
-
     public ReadOnlySpan<TextureFormat> RtvFormats
     {
         get; set;
@@ -267,7 +266,6 @@ public struct RectDesc
     {
         get; set;
     }
-
 }
 
 public struct SubResourceData
@@ -310,6 +308,24 @@ public struct PassDepthStencilDesc
 
 }
 
+
+public struct BarrierDesc
+{
+    public Handle<GraphicsBuffer> Resource
+    {
+        get; set;
+    }
+
+    public ResourceState StateBefore
+    {
+        get; set;
+    }
+
+    public ResourceState StateAfter
+    {
+        get; set;
+    }
+}
 
 public struct ResourceDesc
 {
@@ -381,13 +397,13 @@ public struct ResourceDesc
 }
 
 /// <summary>
-/// Render target description
+/// Render Target description
 /// Supports either color OR depth rendering, not both
 /// </summary>
 public struct RenderTargetDesc
 {
     /// <summary>
-    /// Width of the render target
+    /// Width of the render Target
     /// </summary>
     public uint Width
     {
@@ -395,7 +411,7 @@ public struct RenderTargetDesc
     }
 
     /// <summary>
-    /// Height of the render target
+    /// Height of the render Target
     /// </summary>
     public uint Height
     {
@@ -403,7 +419,7 @@ public struct RenderTargetDesc
     }
 
     /// <summary>
-    /// Slice of the render target
+    /// Slice of the render Target
     /// </summary>
     public uint Slice
     {
@@ -411,7 +427,7 @@ public struct RenderTargetDesc
     }
 
     /// <summary>
-    /// Type of render target
+    /// Type of render Target
     /// </summary>
     public RenderTargetType Type
     {
@@ -419,7 +435,7 @@ public struct RenderTargetDesc
     }
 
     /// <summary>
-    /// Target texture format
+    /// Target texture Format
     /// </summary>
     public TextureFormat Format
     {
@@ -435,7 +451,7 @@ public struct RenderTargetDesc
     }
 
     /// <summary>
-    /// Creation flags for the render target
+    /// Creation flags for the render Target
     /// </summary>
     public RenderTargetCreationFlags CreationFlags
     {
@@ -459,7 +475,7 @@ public struct RenderTargetDesc
     }
 
     /// <summary>
-    /// Creates a color render target
+    /// Creates a color render Target
     /// </summary>
     public static RenderTargetDesc Color(uint width, uint height, uint slice = 1,
         TextureFormat format = TextureFormat.R8G8B8A8_UNorm, TextureDimension dimension = TextureDimension.Texture2D,
@@ -481,7 +497,7 @@ public struct RenderTargetDesc
     }
 
     /// <summary>
-    /// Creates a depth render target
+    /// Creates a depth render Target
     /// </summary>
     public static RenderTargetDesc Depth(uint width, uint height, uint slice = 1,
         TextureFormat format = TextureFormat.D24_UNorm_S8_UInt, TextureDimension dimension = TextureDimension.Texture2D,
@@ -554,7 +570,7 @@ public struct TextureDesc
     }
 
     /// <summary>
-    /// Texture format
+    /// Texture Format
     /// </summary>
     public TextureFormat Format
     {
@@ -630,59 +646,82 @@ public struct SwapChainDesc
     /// <summary>
     /// Width of the swap chain
     /// </summary>
-    public uint width;
+    public uint Width
+    {
+        get; set;
+    }
 
     /// <summary>
     /// Height of the swap chain
     /// </summary>
-    public uint height;
-
-    /// <summary>
-    /// Back buffer format
-    /// </summary>
-    public TextureFormat format;
-
-    /// <summary>
-    /// Target for presentation (window handle or composition target)
-    /// </summary>
-    public SwapChainTarget target;
-
-    public SwapChainDesc(uint width, uint height, SwapChainTarget target, TextureFormat format = TextureFormat.B8G8R8A8_UNorm, uint bufferCount = 2)
+    public uint Height
     {
-        this.width = width;
-        this.height = height;
-        this.format = format;
-        this.target = target;
+        get; set;
+    }
+
+
+    /// <summary>
+    /// Back buffer Format
+    /// </summary>
+    public TextureFormat Format
+    {
+        get; set;
+    }
+
+
+    /// <summary>
+    /// Target for presentation (window handle or composition Target)
+    /// </summary>
+    public SwapChainTarget Target
+    {
+        get; set;
+    }
+
+    public uint BufferCount
+    {
+        get; set;
     }
 }
 
 /// <summary>
-/// Swap chain target (window handle or composition surface)
+/// Swap chain Target (window handle or composition surface)
 /// </summary>
 public struct SwapChainTarget
 {
     /// <summary>
     /// Target type
     /// </summary>
-    public SwapChainTargetType type;
+    public SwapChainTargetType Type
+    {
+        get; set;
+    }
+
 
     /// <summary>
     /// Window handle for HWND targets
     /// </summary>
-    public nint windowHandle;
+    public nint WindowHandle
+    {
+        get; set;
+    }
+
 
     /// <summary>
     /// Composition surface for UWP/WinUI targets
     /// </summary>
-    public object? compositionSurface;
+    public object? CompositionSurface
+    {
+        get; set;
+    }
+
 
     public static SwapChainTarget FromWindowHandle(nint hwnd)
     {
         return new SwapChainTarget
         {
-            type = SwapChainTargetType.WindowHandle,
-            windowHandle = hwnd,
-            compositionSurface = null
+            Type = SwapChainTargetType.WindowHandle,
+            WindowHandle = hwnd,
+            CompositionSurface = null
         };
     }
 
@@ -690,9 +729,9 @@ public struct SwapChainTarget
     {
         return new SwapChainTarget
         {
-            type = SwapChainTargetType.Composition,
-            windowHandle = nint.Zero,
-            compositionSurface = surface
+            Type = SwapChainTargetType.Composition,
+            WindowHandle = 0,
+            CompositionSurface = surface
         };
     }
 }

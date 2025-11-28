@@ -15,9 +15,9 @@ public interface IRenderer : IDisposable
     }
 
     /// <summary>
-    /// Sets the render target for this renderer
+    /// Sets the render Target for this renderer
     /// </summary>
-    /// <param name="renderTarget">Render target to render into</param>
+    /// <param name="renderTarget">Render Target to render into</param>
     public void SetRenderTarget(Handle<Texture> renderTarget);
 
     /// <summary>

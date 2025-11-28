@@ -2,7 +2,7 @@
   "profiles": {
     "Ghost.Graphics.Test (Package)": {
       "commandName": "MsixPackage",
-      "nativeDebugging": true
+      "nativeDebugging": false
     },
     "Ghost.Graphics.Test (Unpackaged)": {
       "commandName": "Project"

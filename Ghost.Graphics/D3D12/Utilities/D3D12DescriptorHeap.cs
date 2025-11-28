@@ -164,12 +164,17 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
 
     public void ReleaseDescriptors(int baseIndex, int count = 1)
     {
+        if (baseIndex == _INVALID_DESCRIPTOR_INDEX)
+        {
+            return;
+        }
+
         if (count == 0)
         {
             return;
         }
 
-        if (baseIndex < _dynamicHeapStart)
+        if (baseIndex >= _dynamicHeapStart)
         {
             // Dynamic allocations are not released individually.
             return;

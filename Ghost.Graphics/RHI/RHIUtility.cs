@@ -22,8 +22,8 @@ internal static class RHIUtility
         var packed = false;
         var planar = false;
         var bpe = 0;
-
-        //switch (format)
+        
+        //switch (Format)
         //{
         //    case Format.BC1Typeless:
         //    case Format.BC1Unorm:

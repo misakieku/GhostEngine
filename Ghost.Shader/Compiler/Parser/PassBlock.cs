@@ -27,10 +27,6 @@ internal class PassBlock : IBlockParser<PassSyntax, PassSemantic>
             {
                 pass.defines = DefinesBlock.Parse(bodyStream.SliceNextBlock());
             }
-            else if (IncludesBlock.ShouldEnter(nextToken))
-            {
-                pass.includes = IncludesBlock.Parse(bodyStream.SliceNextBlock());
-            }
             else if (KeywordsBlock.ShouldEnter(nextToken))
             {
                 pass.keywords = KeywordsBlock.Parse(bodyStream.SliceNextBlock());
@@ -38,10 +34,6 @@ internal class PassBlock : IBlockParser<PassSyntax, PassSemantic>
             else if (PipelineBlock.ShouldEnter(nextToken))
             {
                 pass.localPipeline = PipelineBlock.Parse(bodyStream.SliceNextBlock());
-            }
-            else if (PropertiesBlock.ShouldEnter(nextToken))
-            {
-                pass.localProperties = PropertiesBlock.Parse(bodyStream.SliceNextBlock());
             }
             else if (nextToken.Match(TokenType.Identifier))
             {
@@ -72,22 +64,9 @@ internal class PassBlock : IBlockParser<PassSyntax, PassSemantic>
         {
             name = syntax.name.lexeme,
             defines = DefinesBlock.SemanticAnalysis(syntax.defines, errors),
-            includes = IncludesBlock.SemanticAnalysis(syntax.includes, errors),
             keywords = KeywordsBlock.SemanticAnalysis(syntax.keywords, errors),
-            localProperties = PropertiesBlock.SemanticAnalysis(syntax.localProperties, errors),
             localPipeline = PipelineBlock.SemanticAnalysis(syntax.localPipeline, errors),
         };
-
-        if (semantic.localProperties != null
-            && semantic.localProperties.Any(p => p.scope == PropertyScope.Global))
-        {
-            errors.Add(new SDLError
-            {
-                message = "Global properties cannot be declared inside a pass. Move them to the shader properties block.",
-                line = syntax.name.line,
-                column = syntax.name.column
-            });
-        }
 
         if (syntax.functionCalls != null)
         {

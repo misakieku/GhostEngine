@@ -153,6 +153,7 @@ internal static class TokenLexicon
         public const string FLOAT2 = "float2";
         public const string FLOAT3 = "float3";
         public const string FLOAT4 = "float4";
+        public const string FLOAT4X4 = "float4x4";
 
         public const string INT = "int";
         public const string INT2 = "int2";
@@ -170,11 +171,11 @@ internal static class TokenLexicon
         public const string BOOL4 = "bool4";
 
         // Texture types
-        public const string TEXTURE2D_BINDLESS = "tex2d_b";
-        public const string TEXTURE2D_ARRAY_BINDLESS = "tex2d_arr_b";
-        public const string TEXTURE3D_BINDLESS = "tex3d_b";
-        public const string TEXTURECUBE_BINDLESS = "texcube_b";
-        public const string TEXTURECUBE_ARRAY_BINDLESS = "texcube_arr_b";
+        public const string TEXTURE2D = "tex2d";
+        public const string TEXTURE2D_ARRAY = "tex2d_arr";
+        public const string TEXTURE3D = "tex3d";
+        public const string TEXTURECUBE = "texcube";
+        public const string TEXTURECUBE_ARRAY = "texcube_arr";
     }
 
     public static class KnownTextureValue
@@ -211,12 +212,12 @@ internal static class TokenLexicon
 
     private static readonly HashSet<string> s_types = new()
     {
-        KnownTypes.FLOAT, KnownTypes.FLOAT2, KnownTypes.FLOAT3, KnownTypes.FLOAT4,
+        KnownTypes.FLOAT, KnownTypes.FLOAT2, KnownTypes.FLOAT3, KnownTypes.FLOAT4, KnownTypes.FLOAT4X4,
         KnownTypes.INT, KnownTypes.INT2, KnownTypes.INT3, KnownTypes.INT4,
         KnownTypes.UINT, KnownTypes.UINT2, KnownTypes.UINT3, KnownTypes.UINT4,
         KnownTypes.BOOL, KnownTypes.BOOL2, KnownTypes.BOOL3, KnownTypes.BOOL4,
-        KnownTypes.TEXTURE2D_BINDLESS, KnownTypes.TEXTURE2D_ARRAY_BINDLESS, KnownTypes.TEXTURE3D_BINDLESS,
-        KnownTypes.TEXTURECUBE_BINDLESS, KnownTypes.TEXTURECUBE_ARRAY_BINDLESS,
+        KnownTypes.TEXTURE2D, KnownTypes.TEXTURE2D_ARRAY, KnownTypes.TEXTURE3D,
+        KnownTypes.TEXTURECUBE, KnownTypes.TEXTURECUBE_ARRAY,
     };
 
     private static readonly HashSet<string> s_textureDefaultValues = new()

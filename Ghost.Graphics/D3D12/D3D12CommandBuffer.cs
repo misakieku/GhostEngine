@@ -173,17 +173,65 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         _commandList.Get()->RSSetScissorRects(1, &d3d12Rect);
     }
 
-    public void ResourceBarrier(Handle<GPUResource> resource, ResourceState before, ResourceState after)
+    public void ResourceBarrier(ReadOnlySpan<BarrierDesc> barrierDescs)
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();
         IncrementCommandCount();
 
-        var d3d12Resource = _resourceDatabase.GetResource(resource);
-        var barrier = D3D12_RESOURCE_BARRIER.InitTransition(d3d12Resource,
-            before.ToD3D12States(), after.ToD3D12States());
+        var count = 0u;
+        var pBarriers = stackalloc D3D12_RESOURCE_BARRIER[barrierDescs.Length];
+
+        for (int i = 0; i < barrierDescs.Length; i++)
+        {
+            var desc = barrierDescs[i];
+            if (desc.StateBefore == desc.StateAfter)
+            {
+                continue;
+            }
+
+            if (!desc.Resource.IsValid)
+            {
+                throw new ArgumentException($"Barrier resource at index {i} is not a valid resource handle");
+            }
+
+            ref var resourceRecord = ref _resourceDatabase.GetResourceRecord(desc.Resource.AsResource());
+            if (resourceRecord.state != desc.StateBefore)
+            {
+                throw new InvalidOperationException($"Resource state mismatch: expected {desc.StateBefore}, actual {resourceRecord.state}");
+            }
+
+            var barrier = D3D12_RESOURCE_BARRIER.InitTransition(resourceRecord.ResourcePtr,
+                desc.StateBefore.ToD3D12States(), desc.StateAfter.ToD3D12States());
+
+            pBarriers[count] = barrier;
+            count++;
+
+            // Update the resource state in the database
+            resourceRecord.state = desc.StateAfter;
+        }
+
+        _commandList.Get()->ResourceBarrier(count, pBarriers);
+    }
+
+    public void ResourceBarrier(Handle<GPUResource> resource, ResourceState stateBefore, ResourceState stateAfter)
+    {
+        if (stateBefore == stateAfter)
+        {
+            return;
+        }
+
+        ref var resourceRecord = ref _resourceDatabase.GetResourceRecord(resource);
+        if (resourceRecord.state != stateBefore)
+        {
+            throw new InvalidOperationException($"Resource state mismatch: expected {stateBefore}, actual {resourceRecord.state}");
+        }
+
+        var barrier = D3D12_RESOURCE_BARRIER.InitTransition(resourceRecord.ResourcePtr,
+            stateBefore.ToD3D12States(), stateAfter.ToD3D12States());
 
         _commandList.Get()->ResourceBarrier(1, &barrier);
+        resourceRecord.state = stateAfter;
     }
 
     public void SetRenderTargets(ReadOnlySpan<Handle<Texture>> renderTargets, Handle<Texture> depthTarget)
@@ -465,7 +513,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         _commandList.Get()->CopyBufferRegion(pResource, 0, uploadResource, 0, sizeInBytes);
     }
 
-    public void UploadTexture(Handle<Texture> texture, params ReadOnlySpan<SubResourceData> subresources)
+    public void UploadTexture(Handle<Texture> texture, ReadOnlySpan<SubResourceData> subresources)
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();

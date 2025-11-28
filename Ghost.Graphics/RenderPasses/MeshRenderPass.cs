@@ -5,22 +5,32 @@ using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Utilities;
 using Ghost.SDL.Compiler;
-using Misaki.HighPerformance.Image;
 using Misaki.HighPerformance.Mathematics;
-using Misaki.HighPerformance.Utilities;
-using TerraFX.Interop.Windows;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.RenderPasses;
 
 /// <summary>
 /// Simplified bindless mesh render pass using high-level bindless APIs with fully bindless vertex/index buffer access
 /// </summary>
-internal unsafe class MeshRenderPass : IRenderPass
+internal class MeshRenderPass : IRenderPass
 {
+    [StructLayout(LayoutKind.Sequential)]
+    private struct ShaderProperties_MyShader_Standard
+    {
+        public float4 color;
+        public uint texture1;
+        public uint texture2;
+        public uint texture3;
+        public uint texture4;
+    }
+
     private Handle<Mesh> _mesh;
     private Identifier<Shader> _shader;
     private Handle<Material> _material;
     private Handle<Texture>[]? _textures;
+
+    private GraphicsCompiledResult[]? _compileResults;
 
     // Texture file paths for this demo
     private readonly string[] _textureFiles = [
@@ -34,9 +44,11 @@ internal unsafe class MeshRenderPass : IRenderPass
     {
         var shaderDescriptor = SDLCompiler.CompileShader("F:/csharp/GhostEngine/Ghost.Graphics/test.gshader", "C:/Users/Misaki/Downloads/Archive").GetValueOrThrow();
 
-        foreach (var pass in shaderDescriptor.passes)
+        _compileResults = new GraphicsCompiledResult[shaderDescriptor.passes.Count];
+        for (var i = 0; i < shaderDescriptor.passes.Count; i++)
         {
-            var compileResult = ctx.ShaderCompiler.CompilePass(pass);
+            var pass = shaderDescriptor.passes[i];
+            var compileResult = ctx.ShaderCompiler.CompilePass(pass, shaderDescriptor.generatedCodePath);
             if (compileResult.IsFailure || pass is not FullPassDescriptor fullPass)
             {
                 continue;
@@ -55,17 +67,29 @@ internal unsafe class MeshRenderPass : IRenderPass
                 DsvFormat = TextureFormat.Unknown,
             };
 
-            ctx.PipelineLibrary.CompilePSO(in psoDes, in compileResult.GetValueRef()).GetValueOrThrow();
+            _compileResults[i] = compileResult.Value;
+            ctx.PipelineLibrary.CompilePSO(in psoDes, in _compileResults[i]).GetValueOrThrow();
         }
 
         MeshBuilder.CreateCube(0.75f, default, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent, out var vertices, out var indices);
 
-        _mesh = ctx.CreateMesh(vertices, indices);
+        _mesh = ctx.CreateMesh(vertices, indices, true);
         ctx.UpdateObjectData(_mesh, float4x4.identity);
-        ctx.UploadMesh(_mesh, true);
 
         _shader = ctx.ResourceAllocator.CreateGraphicsShader(shaderDescriptor);
         _material = ctx.ResourceAllocator.CreateMaterial(_shader);
+
+        ref var matRef = ref ctx.ResourceDatabase.GetMaterialReference(_material);
+        var matProps = new ShaderProperties_MyShader_Standard
+        {
+            color = new float4(1.0f, 1.0f, 1.0f, 1.0f),
+            texture1 = 0,
+            texture2 = 1,
+            texture3 = 2,
+            texture4 = 3,
+        };
+
+        matRef.SetPropertyCache(in matProps);
 
         //_textures = new Handle<Texture>[_textureFiles.Length];
         //for (var i = 0; i < _textureFiles.Length; i++)
@@ -105,6 +129,14 @@ internal unsafe class MeshRenderPass : IRenderPass
             foreach (var texture in _textures)
             {
                 resourceDatabase.ReleaseResource(texture.AsResource());
+            }
+        }
+
+        if (_compileResults != null)
+        {
+            for (var i = 0; i < _compileResults.Length; i++)
+            {
+                _compileResults[i].Dispose();
             }
         }
     }

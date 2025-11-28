@@ -55,7 +55,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Ghost.Editor.Core\Ghost.Editor.Core.csproj" />
     <ProjectReference Include="..\Ghost.Engine\Ghost.Engine.csproj" />
-    <ProjectReference Include="..\Ghost.Entities\Ghost.Entities.csproj" />
     <ProjectReference Include="..\Ghost.Test.Core\Ghost.Test.Core.csproj" />
   </ItemGroup>
   
@@ -84,9 +83,14 @@
   <PropertyGroup>
     <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
     <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
-    <PublishTrimmed>False</PublishTrimmed>
     <SupportedOSPlatformVersion>10.0.20348.0</SupportedOSPlatformVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" />
 </Project>

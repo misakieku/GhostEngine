@@ -11,6 +11,19 @@ internal unsafe static class D3D12Utility
     public static void SetName<T>(ref this T obj, ReadOnlySpan<char> name)
         where T : unmanaged, ID3D12Object.Interface
     {
+        if (name.Length == 0)
+        {
+            return;
+        }
+
+        fixed (char* pName = name)
+        {
+            obj.SetName(pName);
+        }
+    }
+
+    public static void SetName(ref this D3D12MA_Allocation obj, ReadOnlySpan<char> name)
+    {
         fixed (char* pName = name)
         {
             obj.SetName(pName);

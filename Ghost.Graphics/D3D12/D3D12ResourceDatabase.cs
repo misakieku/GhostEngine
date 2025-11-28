@@ -1,11 +1,11 @@
 using Ghost.Core;
 using Ghost.Graphics.Core;
+using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Collections;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
 
@@ -42,7 +42,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         public readonly bool isExternal;
 
         public readonly bool Allocated => isExternal ? resourceUnion.resource.Get() != null : resourceUnion.allocation.Get() != null;
-        public readonly ID3D12Resource* ResourcePtr => isExternal ? resourceUnion.resource.Get() : resourceUnion.allocation.Get()->GetResource();
+        public readonly SharedPtr<ID3D12Resource> ResourcePtr => isExternal ? resourceUnion.resource.Get() : resourceUnion.allocation.Get()->GetResource();
 
         public ResourceRecord(D3D12MA_Allocation* allocation, uint cpuFenceValue, ResourceState state, ResourceViewGroup resourceDescriptor, ResourceDesc desc)
         {
@@ -131,7 +131,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         resource = default!;
     }
 
-    public unsafe Handle<GPUResource> ImportExternalResource(ID3D12Resource* pResource, ResourceState initialState, ResourceViewGroup viewGroup, string? name = null)
+    public unsafe Handle<GPUResource> ImportExternalResource(ID3D12Resource* pResource, ResourceState initialState, ResourceViewGroup viewGroup, string name = "")
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -139,16 +139,14 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         var handle = new Handle<GPUResource>(id, generation);
 
 #if DEBUG || GHOST_EDITOR
-        if (name != null)
-        {
-            _resourceName[handle] = name;
-        }
+        pResource->SetName(name);
+        _resourceName[handle] = name;
 #endif
 
         return handle;
     }
 
-    public unsafe Handle<GPUResource> AddResource(D3D12MA_Allocation* allocation, uint cpuFenceValue, ResourceState initialState, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string? name = null)
+    public unsafe Handle<GPUResource> AddResource(D3D12MA_Allocation* allocation, uint cpuFenceValue, ResourceState initialState, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string name = "")
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -156,10 +154,8 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         var handle = new Handle<GPUResource>(id, generation);
 
 #if DEBUG || GHOST_EDITOR
-        if (name != null)
-        {
-            _resourceName[handle] = name;
-        }
+        allocation->SetName(name);
+        _resourceName[handle] = name;
 #endif
 
         return handle;
@@ -184,7 +180,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         return ref info;
     }
 
-    public ref ResourceRecord GetResourceInfo(Handle<GPUResource> handle, out bool exist)
+    public ref ResourceRecord GetResourceRecord(Handle<GPUResource> handle, out bool exist)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         return ref _resources.GetElementReferenceAt(handle.id, handle.generation, out exist);
@@ -232,7 +228,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        ref var info = ref GetResourceInfo(handle, out var exist);
+        ref var info = ref GetResourceRecord(handle, out var exist);
         if (!exist || !info.Allocated)
         {
             return -1;
@@ -254,7 +250,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         return null;
     }
 
-    public unsafe void ReleaseResource(Handle<GPUResource> handle)
+    public void ReleaseResource(Handle<GPUResource> handle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -269,14 +265,10 @@ internal class D3D12ResourceDatabase : IResourceDatabase
             return;
         }
 
-        var refCount = info.Release(_descriptorAllocator);
+        info.Release(_descriptorAllocator);
+        //Debug.Assert(info.Release(_descriptorAllocator) == 0);
 #if DEBUG || GHOST_EDITOR
         _resourceName.Remove(handle, out var name);
-        //if (refCount > 0)
-        //{
-        //    throw new GPUResourceLeakException(refCount, info.ResourcePtr, name ?? "Unknown Resource");
-        //}
-        //Debug.Assert(refCount == 0, "Resource released with non-zero reference count.");
 #endif
 
         _resources.Remove(handle.id, handle.generation);
@@ -403,34 +395,6 @@ internal class D3D12ResourceDatabase : IResourceDatabase
 
         ref var shader = ref _shaders[id.value]!;
         ReleaseResource(ref shader);
-    }
-
-    public void AddShaderPass(ShaderPassKey passKey, ShaderPass pass)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        _shaderPasses.Add(passKey, pass);
-    }
-
-    public ShaderPass GetShaderPass(ShaderPassKey passKey)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        if (!_shaderPasses.TryGetValue(passKey, out var pass))
-        {
-            throw new KeyNotFoundException($"Shader pass '{passKey}' not found.");
-        }
-
-        return pass;
-    }
-
-    public void RemoveShaderPass(ShaderPassKey passKey)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        if (_shaderPasses.Remove(passKey, out var pass))
-        {
-            ReleaseResource(ref pass);
-        }
     }
 
     public void Dispose()
