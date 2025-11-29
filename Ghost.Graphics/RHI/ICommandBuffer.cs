@@ -92,6 +92,13 @@ public interface ICommandBuffer : IDisposable
     void ResourceBarrier(Handle<GPUResource> resource, ResourceState stateBefore, ResourceState stateAfter);
 
     /// <summary>
+    /// Inserts a resource barrier for state transitions. The current state is tracked internally.
+    /// </summary>
+    /// <param name="resource">A handle to the GPU resource to transition.</param>
+    /// <param name="stateAfter">The desired state of the resource after the transition.</param>
+    void ResourceBarrier(Handle<GPUResource> resource, ResourceState stateAfter);
+
+    /// <summary>
     /// Sets the pipeline state object
     /// </summary>
     /// <param name="pipelineKey">Pipeline state to set</param>

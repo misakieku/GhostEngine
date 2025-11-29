@@ -6,6 +6,8 @@ public readonly struct GPUResource : IHandleType;
 public readonly struct Texture : IHandleType;
 public readonly struct GraphicsBuffer : IHandleType;
 
+public readonly struct Sampler : IIdentifierType;
+
 public static class ResourceHandleExtensions
 {
     public static Handle<GPUResource> AsResource(this Handle<Texture> texture)

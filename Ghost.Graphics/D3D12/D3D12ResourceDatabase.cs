@@ -97,26 +97,30 @@ internal class D3D12ResourceDatabase : IResourceDatabase
     private readonly Dictionary<Handle<GPUResource>, string> _resourceName;
 #endif
 
+    private UnsafeHashMap<SamplerDesc, Identifier<Sampler>> _samplers;
     private UnsafeSlotMap<Mesh> _meshes;
     private UnsafeSlotMap<Material> _materials;
     private readonly DynamicArray<Shader?> _shaders; // NOTE: We use a simple list since shader is not frequently added/removed. This can save 4 bytes for each ecs component.
     private readonly Dictionary<ShaderPassKey, ShaderPass> _shaderPasses; // NOTE: The reason we use Dictionary here is that ShaderPassKey is a presistence identifier across multiple application sessions.
 
+    private int _lastSamplerId;
     private bool _disposed;
 
     public D3D12ResourceDatabase(D3D12DescriptorAllocator descriptorAllocator)
     {
+        _descriptorAllocator = descriptorAllocator;
+
         _resources = new UnsafeSlotMap<ResourceRecord>(64, Allocator.Persistent, AllocationOption.Clear);
 #if DEBUG || GHOST_EDITOR
         _resourceName = new Dictionary<Handle<GPUResource>, string>(64);
 #endif
-
+        _samplers = new UnsafeHashMap<SamplerDesc, Identifier<Sampler>>(32, Allocator.Persistent);
         _meshes = new UnsafeSlotMap<Mesh>(64, Allocator.Persistent, AllocationOption.Clear);
         _materials = new UnsafeSlotMap<Material>(16, Allocator.Persistent, AllocationOption.Clear);
         _shaders = new DynamicArray<Shader?>(16);
         _shaderPasses = new Dictionary<ShaderPassKey, ShaderPass>(16);
 
-        _descriptorAllocator = descriptorAllocator;
+        _lastSamplerId = -1;
     }
 
     ~D3D12ResourceDatabase()
@@ -224,17 +228,17 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         return GetResourceRecord(handle).desc;
     }
 
-    public int GetBindlessIndex(Handle<GPUResource> handle)
+    public Result<uint, ResultStatus> GetBindlessIndex(Handle<GPUResource> handle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         ref var info = ref GetResourceRecord(handle, out var exist);
         if (!exist || !info.Allocated)
         {
-            return -1;
+            return Result.Create(0u, ResultStatus.NotFound);
         }
 
-        return info.viewGroup.srv.value;
+        return Result.Create((uint)info.viewGroup.srv.value, ResultStatus.NotFound);
     }
 
     public string? GetResourceName(Handle<GPUResource> handle)
@@ -266,12 +270,33 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         }
 
         info.Release(_descriptorAllocator);
-        //Debug.Assert(info.Release(_descriptorAllocator) == 0);
+        //System.Diagnostics.Debug.Assert(info.Release(_descriptorAllocator) == 0);
 #if DEBUG || GHOST_EDITOR
         _resourceName.Remove(handle, out var name);
 #endif
 
         _resources.Remove(handle.id, handle.generation);
+    }
+
+    public Identifier<Sampler> CreateSampler(ref readonly SamplerDesc desc, int id)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (_samplers.ContainsKey(desc))
+        {
+            throw new InvalidOperationException("Sampler already exists.");
+        }
+
+        var identifier = new Identifier<Sampler>(id);
+        _samplers.Add(desc, identifier);
+
+        return identifier;
+    }
+
+    public bool TryGetSampler(ref readonly SamplerDesc desc, out Identifier<Sampler> id)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return _samplers.TryGetValue(desc, out id);
     }
 
     public Handle<Mesh> AddMesh(ref readonly Mesh mesh)
@@ -444,6 +469,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         }
 
         _resources.Dispose();
+        _samplers.Dispose();
         _meshes.Dispose();
         _materials.Dispose();
 

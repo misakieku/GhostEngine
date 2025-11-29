@@ -234,6 +234,12 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         resourceRecord.state = stateAfter;
     }
 
+    public void ResourceBarrier(Handle<GPUResource> resource, ResourceState stateAfter)
+    {
+        var stateBefore = _resourceDatabase.GetResourceState(resource);
+        ResourceBarrier(resource, stateBefore, stateAfter);
+    }
+
     public void SetRenderTargets(ReadOnlySpan<Handle<Texture>> renderTargets, Handle<Texture> depthTarget)
     {
         ThrowIfDisposed();
@@ -511,6 +517,8 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         var pResource = _resourceDatabase.GetResource(buffer.AsResource());
 
         _commandList.Get()->CopyBufferRegion(pResource, 0, uploadResource, 0, sizeInBytes);
+        // D3D12 transition resource to COPY_DEST when copying
+        _resourceDatabase.SetResourceState(buffer.AsResource(), ResourceState.CopyDest);
     }
 
     public void UploadTexture(Handle<Texture> texture, ReadOnlySpan<SubResourceData> subresources)

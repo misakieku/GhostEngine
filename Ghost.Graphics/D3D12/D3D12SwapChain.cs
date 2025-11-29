@@ -81,7 +81,7 @@ internal unsafe class D3D12SwapChain : ISwapChain
             Format = desc.Format.ToDXGIFormat(),
             SampleDesc = new DXGI_SAMPLE_DESC(1, 0),
             BufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT,
-            BufferCount = D3D12PipelineResource.BACK_BUFFER_COUNT,
+            BufferCount = desc.BufferCount,
             Scaling = DXGI_SCALING_STRETCH,
             SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD,
             AlphaMode = DXGI_ALPHA_MODE_IGNORE,

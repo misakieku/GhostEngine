@@ -182,6 +182,9 @@ internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySem
             TokenLexicon.KnownTypes.TEXTURE2D => ShaderPropertyType.Texture2D,
             TokenLexicon.KnownTypes.TEXTURE3D => ShaderPropertyType.Texture3D,
             TokenLexicon.KnownTypes.TEXTURECUBE => ShaderPropertyType.TextureCube,
+            TokenLexicon.KnownTypes.TEXTURECUBE_ARRAY => ShaderPropertyType.TextureCubeArray,
+            TokenLexicon.KnownTypes.TEXTURE2D_ARRAY => ShaderPropertyType.Texture2DArray,
+            TokenLexicon.KnownTypes.SAMPLER => ShaderPropertyType.Sampler,
             _ => ShaderPropertyType.None,
         };
     }

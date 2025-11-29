@@ -8,7 +8,7 @@ using TerraFX.Interop.DirectX;
 
 using static TerraFX.Aliases.D3D12_Alias;
 
-namespace Ghost.Graphics.D3D12.Utilities;
+namespace Ghost.Graphics.D3D12;
 
 internal unsafe struct D3D12DescriptorHeap : IDisposable
 {

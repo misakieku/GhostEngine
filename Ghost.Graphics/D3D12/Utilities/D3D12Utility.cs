@@ -88,6 +88,64 @@ internal unsafe static class D3D12Utility
         };
     }
 
+    public static ResourceState ToResourceState(this D3D12_RESOURCE_STATES states)
+    {
+        return states switch
+        {
+            D3D12_RESOURCE_STATE_COMMON => ResourceState.Common,
+            D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER => ResourceState.VertexAndConstantBuffer,
+            D3D12_RESOURCE_STATE_INDEX_BUFFER => ResourceState.IndexBuffer,
+            D3D12_RESOURCE_STATE_RENDER_TARGET => ResourceState.RenderTarget,
+            D3D12_RESOURCE_STATE_UNORDERED_ACCESS => ResourceState.UnorderedAccess,
+            D3D12_RESOURCE_STATE_DEPTH_WRITE => ResourceState.DepthWrite,
+            D3D12_RESOURCE_STATE_DEPTH_READ => ResourceState.DepthRead,
+            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE => ResourceState.PixelShaderResource,
+            D3D12_RESOURCE_STATE_COPY_DEST => ResourceState.CopyDest,
+            D3D12_RESOURCE_STATE_COPY_SOURCE => ResourceState.CopySource,
+            _ => throw new ArgumentException($"Unknown D3D12 resource state: {states}")
+        };
+    }
+
+    public static D3D12_FILTER ToD3D12Filter(this TextureFilterMode filterMode)
+    {
+        return filterMode switch
+        {
+            TextureFilterMode.Point => D3D12_FILTER_MIN_MAG_MIP_POINT,
+            TextureFilterMode.Bilinear => D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT,
+            TextureFilterMode.Trilinear => D3D12_FILTER_MIN_MAG_MIP_LINEAR,
+            TextureFilterMode.Anisotropic => D3D12_FILTER_ANISOTROPIC,
+            _ => throw new ArgumentException($"Unknown texture filter mode: {filterMode}")
+        };
+    }
+
+    public static D3D12_TEXTURE_ADDRESS_MODE ToD3D12TextureAddressMode(this TextureAddressMode addressMode)
+    {
+        return addressMode switch
+        {
+            TextureAddressMode.Repeat => D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+            TextureAddressMode.Mirror => D3D12_TEXTURE_ADDRESS_MODE_MIRROR,
+            TextureAddressMode.Clamp => D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+            TextureAddressMode.Border => D3D12_TEXTURE_ADDRESS_MODE_BORDER,
+            TextureAddressMode.MirrorOnce => D3D12_TEXTURE_ADDRESS_MODE_MIRROR_ONCE,
+            _ => throw new ArgumentException($"Unknown texture address mode: {addressMode}")
+        };
+    }
+
+    public static D3D12_COMPARISON_FUNC ToD3D12ComparisonFunc(this ComparisonFunction func)
+    {
+        return func switch
+        {
+            ComparisonFunction.Never => D3D12_COMPARISON_FUNC_NEVER,
+            ComparisonFunction.Less => D3D12_COMPARISON_FUNC_LESS,
+            ComparisonFunction.Equal => D3D12_COMPARISON_FUNC_EQUAL,
+            ComparisonFunction.LessEqual => D3D12_COMPARISON_FUNC_LESS_EQUAL,
+            ComparisonFunction.Greater => D3D12_COMPARISON_FUNC_GREATER,
+            ComparisonFunction.NotEqual => D3D12_COMPARISON_FUNC_NOT_EQUAL,
+            ComparisonFunction.GreaterEqual => D3D12_COMPARISON_FUNC_GREATER_EQUAL,
+            ComparisonFunction.Always => D3D12_COMPARISON_FUNC_ALWAYS,
+            _ => throw new ArgumentException($"Unknown comparison function: {func}")
+        };
+    }
 
 
     public static D3D12_RASTERIZER_DESC D3D12_RASTERIZER_DESC_CREATE(

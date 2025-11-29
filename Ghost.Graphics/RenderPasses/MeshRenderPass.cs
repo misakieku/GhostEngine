@@ -5,7 +5,9 @@ using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Utilities;
 using Ghost.SDL.Compiler;
+using Misaki.HighPerformance.Image;
 using Misaki.HighPerformance.Mathematics;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.RenderPasses;
@@ -23,6 +25,11 @@ internal class MeshRenderPass : IRenderPass
         public uint texture2;
         public uint texture3;
         public uint texture4;
+        public uint tex_sampler;
+
+        private uint _padding1;
+        private uint _padding2;
+        private uint _padding3;
     }
 
     private Handle<Mesh> _mesh;
@@ -48,8 +55,8 @@ internal class MeshRenderPass : IRenderPass
         for (var i = 0; i < shaderDescriptor.passes.Count; i++)
         {
             var pass = shaderDescriptor.passes[i];
-            var compileResult = ctx.ShaderCompiler.CompilePass(pass, shaderDescriptor.generatedCodePath);
-            if (compileResult.IsFailure || pass is not FullPassDescriptor fullPass)
+            var compiled = ctx.ShaderCompiler.CompilePass(pass, shaderDescriptor.generatedCodePath).GetValueOrThrow();
+            if (pass is not FullPassDescriptor fullPass)
             {
                 continue;
             }
@@ -67,7 +74,7 @@ internal class MeshRenderPass : IRenderPass
                 DsvFormat = TextureFormat.Unknown,
             };
 
-            _compileResults[i] = compileResult.Value;
+            _compileResults[i] = compiled;
             ctx.PipelineLibrary.CompilePSO(in psoDes, in _compileResults[i]).GetValueOrThrow();
         }
 
@@ -79,38 +86,51 @@ internal class MeshRenderPass : IRenderPass
         _shader = ctx.ResourceAllocator.CreateGraphicsShader(shaderDescriptor);
         _material = ctx.ResourceAllocator.CreateMaterial(_shader);
 
+        _textures = new Handle<Texture>[_textureFiles.Length];
+        for (var i = 0; i < _textureFiles.Length; i++)
+        {
+            using var stream = File.OpenRead(_textureFiles[i]);
+            using var imageData = ImageResult.FromStream(stream, ColorComponents.RGBA);
+
+            var desc = new TextureDesc
+            {
+                Width = imageData.Width,
+                Height = imageData.Height,
+                Dimension = TextureDimension.Texture2D,
+                Format = TextureFormat.R8G8B8A8_UNorm,
+                MipLevels = 1,
+                Slice = 1,
+                Usage = TextureUsage.ShaderResource,
+            };
+
+            _textures[i] = ctx.CreateTexture(ref desc);
+            ctx.UploadTexture(_textures[i], imageData.AsSpan());
+        }
+
+        var samplerDesc = new SamplerDesc
+        {
+            AddressU = TextureAddressMode.Repeat,
+            AddressV = TextureAddressMode.Repeat,
+            AddressW = TextureAddressMode.Repeat,
+            FilterMode = TextureFilterMode.Bilinear,
+            MaxAnisotropy = 16,
+        };
+
+        var sampler = ctx.ResourceAllocator.CreateSampler(in samplerDesc);
+
         ref var matRef = ref ctx.ResourceDatabase.GetMaterialReference(_material);
         var matProps = new ShaderProperties_MyShader_Standard
         {
             color = new float4(1.0f, 1.0f, 1.0f, 1.0f),
-            texture1 = 0,
-            texture2 = 1,
-            texture3 = 2,
-            texture4 = 3,
+            texture1 = ctx.ResourceDatabase.GetBindlessIndex(_textures[0].AsResource()).GetValueOrThrow(ResultStatus.Success),
+            texture2 = ctx.ResourceDatabase.GetBindlessIndex(_textures[1].AsResource()).GetValueOrThrow(ResultStatus.Success),
+            texture3 = ctx.ResourceDatabase.GetBindlessIndex(_textures[2].AsResource()).GetValueOrThrow(ResultStatus.Success),
+            texture4 = ctx.ResourceDatabase.GetBindlessIndex(_textures[3].AsResource()).GetValueOrThrow(ResultStatus.Success),
+            tex_sampler = (uint)sampler.value,
         };
 
-        matRef.SetPropertyCache(in matProps);
-
-        //_textures = new Handle<Texture>[_textureFiles.Length];
-        //for (var i = 0; i < _textureFiles.Length; i++)
-        //{
-        //    using var stream = File.OpenRead(_textureFiles[i]);
-        //    using var imageData = ImageResult.FromStream(stream);
-
-        //    var desc = new TextureDesc
-        //    {
-        //        Width = imageData.Width,
-        //        Height = imageData.Height,
-        //        Dimension = TextureDimension.Texture2D,
-        //        Format = TextureFormat.R8G8B8A8_UNorm,
-        //        MipLevels = 1,
-        //        Slice = 1,
-        //        Usage = TextureUsage.ShaderResource,
-        //    };
-
-        //    _textures[i] = ctx.CreateTexture(ref desc);
-        //    ctx.UploadTexture(_textures[i], new Span<byte>(imageData.Data, (int)imageData.Size));
-        //}
+        Debug.Assert(matRef.SetPropertyCache(in matProps) == ResultStatus.Success);
+        matRef.UploadData(ctx.DirectCommandBuffer);
     }
 
     public void Execute(ref readonly RenderingContext ctx)

@@ -7,6 +7,7 @@ shader "MyShader/Standard"
         tex2d texture2 = tex2d(white);
         tex2d texture3 = tex2d(grey);
         tex2d texture4 = tex2d(normal);
+        sampler tex_sampler;
     }
 
     pass "Forward"

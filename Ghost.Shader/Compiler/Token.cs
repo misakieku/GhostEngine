@@ -176,6 +176,8 @@ internal static class TokenLexicon
         public const string TEXTURE3D = "tex3d";
         public const string TEXTURECUBE = "texcube";
         public const string TEXTURECUBE_ARRAY = "texcube_arr";
+
+        public const string SAMPLER = "sampler";
     }
 
     public static class KnownTextureValue
@@ -218,6 +220,7 @@ internal static class TokenLexicon
         KnownTypes.BOOL, KnownTypes.BOOL2, KnownTypes.BOOL3, KnownTypes.BOOL4,
         KnownTypes.TEXTURE2D, KnownTypes.TEXTURE2D_ARRAY, KnownTypes.TEXTURE3D,
         KnownTypes.TEXTURECUBE, KnownTypes.TEXTURECUBE_ARRAY,
+        KnownTypes.SAMPLER,
     };
 
     private static readonly HashSet<string> s_textureDefaultValues = new()

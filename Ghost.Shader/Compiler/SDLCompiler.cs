@@ -257,7 +257,7 @@ internal static class SDLCompiler
                 return Result.Failure("Failed to generate global properties: " + globalPropResult.Message);
             }
 
-            var generatedResult = GenerateShaderCode(desc, generatedOutputDirectory);
+            var generatedResult = GenerateShaderCode(desc, generatedOutputDirectory, globalPropResult.Value);
             if (generatedResult.IsFailure)
             {
                 return Result.Failure("Failed to generate pass files: " + generatedResult.Message);
@@ -269,7 +269,7 @@ internal static class SDLCompiler
         }
         catch (Exception ex)
         {
-            return Result.Failure("Failed to generate shader files: " + ex.Message);
+            return Result.Failure("Failed to compile shader: " + ex.Message);
         }
     }
 
@@ -294,16 +294,17 @@ internal static class SDLCompiler
             ShaderPropertyType.Bool3 => "bool3",
             ShaderPropertyType.Bool4 => "bool4",
             // NOTE: Textures here are bindless, represented as uint (descriptor index).
-            ShaderPropertyType.Texture2D => "TEXTURE2D_BINDLESS",
-            ShaderPropertyType.Texture3D => "TEXTURE3D_BINDLESS",
-            ShaderPropertyType.TextureCube => "TEXTURECUBE_BINDLESS",
-            ShaderPropertyType.Texture2DArray => "TEXTURE2D_ARRAY_BINDLESS",
-            ShaderPropertyType.TextureCubeArray => "TEXTURECUBE_ARRAY_BINDLESS",
+            ShaderPropertyType.Texture2D => "TEXTURE2D",
+            ShaderPropertyType.Texture3D => "TEXTURE3D",
+            ShaderPropertyType.TextureCube => "TEXTURECUBE",
+            ShaderPropertyType.Texture2DArray => "TEXTURE2D_ARRAY",
+            ShaderPropertyType.TextureCubeArray => "TEXTURECUBE_ARRAY",
+            ShaderPropertyType.Sampler => "SAMPLER",
             _ => throw new ArgumentOutOfRangeException(nameof(type), $"Unsupported shader property type: {type}")
         };
     }
 
-    public static Result<string> GenerateShaderCode(ShaderDescriptor descriptor, string targetDirectory)
+    public static Result<string> GenerateShaderCode(ShaderDescriptor descriptor, string targetDirectory, string globalDataPath)
     {
         if (!Directory.Exists(targetDirectory))
         {
@@ -329,7 +330,8 @@ internal static class SDLCompiler
 #ifndef {fileDefine}
 #define {fileDefine}
 
-#include ""F:/csharp/GhostEngine/Ghost.Shader/BuiltIn/Common.hlsl""");
+#include ""F:/csharp/GhostEngine/Ghost.Shader/BuiltIn/Common.hlsl""
+#include ""{globalDataPath}""");
 
         sb.Append(@"
 struct PerMaterialData

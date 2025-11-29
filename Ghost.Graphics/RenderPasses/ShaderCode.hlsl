@@ -38,12 +38,12 @@ void MSMain(
 
 float4 PSMain(PixelInput input) : SV_TARGET
 {
-    //float4 color1 = SAMPLE_TEXTURE2D(g_PerMaterialData.texture1, 0, input.uv.xy);
-    //float4 color2 = SAMPLE_TEXTURE2D(g_PerMaterialData.texture2, 0, input.uv.xy);
-    //float4 color3 = SAMPLE_TEXTURE2D(g_PerMaterialData.texture3, 0, input.uv.xy);
-    //float4 color4 = SAMPLE_TEXTURE2D(g_PerMaterialData.texture4, 0, input.uv.xy);
+    float4 color1 = SAMPLE_TEXTURE2D(g_PerMaterialData.texture1, g_PerMaterialData.tex_sampler, input.uv.xy);
+    float4 color2 = SAMPLE_TEXTURE2D(g_PerMaterialData.texture2, g_PerMaterialData.tex_sampler, input.uv.xy);
+    float4 color3 = SAMPLE_TEXTURE2D(g_PerMaterialData.texture3, g_PerMaterialData.tex_sampler, input.uv.xy);
+    float4 color4 = SAMPLE_TEXTURE2D(g_PerMaterialData.texture4, g_PerMaterialData.tex_sampler, input.uv.xy);
     
-    //float4 blendedColor = (color1 + color2 + color3 + color4) * 0.25f;
-    return g_PerMaterialData.color + input.color;
+    float4 blendedColor = (color1 + color2 + color3 + color4) * 0.25f;
+    return g_PerMaterialData.color * blendedColor;
     //return input.color;
 }

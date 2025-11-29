@@ -45,6 +45,8 @@ public sealed partial class GraphicsTestWindow : Window
         {
             Width = (uint)AppWindow.Size.Width,
             Height = (uint)AppWindow.Size.Height,
+            BufferCount = 2,
+            Format = TextureFormat.B8G8R8A8_UNorm,
             Target = SwapChainTarget.FromCompositionSurface(Panel)
         });
         _renderer.SetSwapChain(_swapChain);

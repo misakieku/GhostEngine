@@ -1,5 +1,3 @@
-using System.Runtime.CompilerServices;
-
 namespace Ghost.Core;
 
 public readonly struct Result
@@ -39,11 +37,13 @@ public readonly struct Result
     }
 
     public static Result<T, S> Create<T, S>(T value, S status)
+        where S : Enum
     {
         return new Result<T, S>(value, status);
     }
 
     public static RefResult<T, S> CreateRef<T, S>(ref T value, S status)
+        where S : Enum
     {
         return new RefResult<T, S>(ref value, status);
     }
@@ -105,6 +105,7 @@ public enum ResultStatus : byte
 }
 
 public readonly struct Result<T, S>
+    where S : Enum
 {
     private readonly T _value;
     private readonly S _status;
@@ -127,6 +128,7 @@ public readonly struct Result<T, S>
 }
 
 public readonly ref struct RefResult<T, S>
+    where S : Enum
 {
     private readonly ref T _value;
     private readonly S _status;
@@ -171,6 +173,23 @@ public static class ResultExtensions
     public static T? GetValueOrDefault<T>(this Result<T> result, T? defaultValue = default)
     {
         return result.IsSuccess ? result.Value : defaultValue;
+    }
+
+    public static T GetValueOrThrow<T, S>(this Result<T, S> result, S expect)
+        where S : Enum
+    {
+        if (result.Status?.Equals(expect) ?? false)
+        {
+            throw new InvalidOperationException($"Operation failed: expected status {expect}, but got {result.Status}");
+        }
+
+        return result.Value;
+    }
+
+    public static T? GetValueOrDefault<T, S>(this Result<T, S> result, S expect, T? defaultValue = default)
+        where S : Enum
+    {
+        return (result.Status?.Equals(expect) ?? false) ? defaultValue : result.Value;
     }
 
     public static Result OnSuccess(this Result result, Action action)

@@ -83,7 +83,7 @@ public static partial class AssetDatabase
         var metaFileResult = GetMetaFilePath(assetPath);
         if (!metaFileResult.IsSuccess)
         {
-            return metaFileResult;
+            return Result.Failure(metaFileResult.Message);
         }
 
         if (File.Exists(metaFileResult.Value))

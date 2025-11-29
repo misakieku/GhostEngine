@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Core.Utilities;
 using Ghost.Graphics.Core;
+using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Collections;
@@ -849,6 +850,35 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         };
 
         return CreateBuffer(in desc, isTemp);
+    }
+
+    public Identifier<Sampler> CreateSampler(ref readonly SamplerDesc desc)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (_resourceDatabase.TryGetSampler(in desc, out var id))
+        {
+            return id;
+        }
+
+        var samplerDesc = new D3D12_SAMPLER_DESC
+        {
+            Filter = desc.FilterMode.ToD3D12Filter(),
+            AddressU = desc.AddressU.ToD3D12TextureAddressMode(),
+            AddressV = desc.AddressV.ToD3D12TextureAddressMode(),
+            AddressW = desc.AddressW.ToD3D12TextureAddressMode(),
+            MipLODBias = desc.MipLODBias,
+            MaxAnisotropy = desc.MaxAnisotropy,
+            ComparisonFunc = desc.ComparisonFunc.ToD3D12ComparisonFunc(),
+            MinLOD = desc.MinLOD,
+            MaxLOD = desc.MaxLOD,
+        };
+
+        var samplerDescriptor = _descriptorAllocator.AllocateSampler();
+        var cpuHandle = _descriptorAllocator.GetCpuHandleShaderVisible(samplerDescriptor);
+        _device.NativeDevice.Get()->CreateSampler(&samplerDesc, cpuHandle);
+
+        return _resourceDatabase.CreateSampler(in desc, samplerDescriptor.value);
     }
 
     public Handle<Mesh> CreateMesh(UnsafeList<Vertex> vertices, UnsafeList<uint> indices)

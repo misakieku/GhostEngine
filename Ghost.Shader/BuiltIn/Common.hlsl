@@ -10,6 +10,8 @@ struct Vertex
     float4 color;
 };
 
+#define SIZEOF_VERTEX 80 // bytes
+
 // Resource descriptor heap definitions
 
 #define GLOBAL_TEXTURE2D_HEAP ResourceDescriptorHeap
@@ -44,50 +46,52 @@ struct Vertex
 #define GET_BUFFER(id) GLOBAL_BUFFER_HEAP[id]
 #define GET_SAMPLER(id) GLOBAL_SAMPLER_HEAP[id]
 
+#define SAMPLE_TEXTURE2D(texId, sampId, uv) SampleTexture2D(texId, sampId, uv)
+#define SAMPLE_TEXTURE2D_LEVEL(texId, sampId, uv, level) SampleTexture2DLevel(texId, sampId, uv, level)
+#define SAMPLE_TEXTURE2D_ARRAY(texId, sampId, uvw) SampleTextureArray(texId, sampId, uvw)
 
 #define MESH_SHADER_THREADS(x) [NumThreads(x, 1, 1)]
 
 
-inline float4 SampleTexture2D(uint texId, uint sampId, float2 uv)
+static inline float4 SampleTexture2D(uint texId, uint sampId, float2 uv)
 {
     Texture2D tex = GET_TEXTURE2D(texId);
     SamplerState samp = GET_SAMPLER(sampId);
     return tex.Sample(samp, uv);
 }
 
-inline float4 SampleTexture2DLevel(uint texId, uint sampId, float2 uv, float level)
+static inline float4 SampleTexture2DLevel(uint texId, uint sampId, float2 uv, float level)
 {
     Texture2D tex = GET_TEXTURE2D(texId);
     SamplerState samp = GET_SAMPLER(sampId);
     return tex.SampleLevel(samp, uv, level);
 }
 
-inline float4 SampleTextureArray(uint texId, uint sampId, float3 uv)
+static inline float4 SampleTextureArray(uint texId, uint sampId, float3 uvw)
 {
     Texture2DArray tex = GET_TEXTURE2D_ARRAY(texId);
     SamplerState samp = GET_SAMPLER(sampId);
-    return tex.Sample(samp, uvw.xyz);
+    return tex.Sample(samp, uvw);
 }
 
-
-inline Vertex LoadVertexData(uint vertexID, uint groupID, BYTE_ADDRESS_BUFFER vertexBuffer, BYTE_ADDRESS_BUFFER indexBuffer)
+static inline Vertex LoadVertexData(uint vertexID, uint groupID, BYTE_ADDRESS_BUFFER vertexBuffer, BYTE_ADDRESS_BUFFER indexBuffer)
 {
     // Fetch bindless buffers
-    ByteAddressBuffer vertexBuffer = GET_BUFFER(vertexBuffer);
-    ByteAddressBuffer indexBuffer = GET_BUFFER(indexBuffer);
+    ByteAddressBuffer vertices = GET_BUFFER(vertexBuffer);
+    ByteAddressBuffer indices = GET_BUFFER(indexBuffer);
     
     // Compute the triangle’s vertex indices
     uint indexOffset = (groupID * 3 + vertexID) * 4; // uint32 index
-    uint vertexIndex = indexBuffer.Load(indexOffset);
-
+    uint vertexIndex = indices.Load(indexOffset);
+    
     // Load vertex attributes
-    uint vertexOffset = vertexIndex * 80; // 80 bytes per vertex
+    uint vertexOffset = vertexIndex * SIZEOF_VERTEX;
     Vertex v;
-    v.position = asfloat(vertexBuffer.Load4(vertexOffset + 0));
-    v.normal = asfloat(vertexBuffer.Load4(vertexOffset + 16));
-    v.tangent = asfloat(vertexBuffer.Load4(vertexOffset + 32));
-    v.uv = asfloat(vertexBuffer.Load4(vertexOffset + 48));
-    v.color = asfloat(vertexBuffer.Load4(vertexOffset + 64));
+    v.position = asfloat(vertices.Load4(vertexOffset + 0));
+    v.normal = asfloat(vertices.Load4(vertexOffset + 16));
+    v.tangent = asfloat(vertices.Load4(vertexOffset + 32));
+    v.uv = asfloat(vertices.Load4(vertexOffset + 48));
+    v.color = asfloat(vertices.Load4(vertexOffset + 64));
     
     return v;
 }

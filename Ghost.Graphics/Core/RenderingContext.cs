@@ -8,7 +8,7 @@ using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Graphics.Core;
 
-public unsafe readonly ref struct RenderingContext
+public readonly unsafe ref struct RenderingContext
 {
     private readonly IGraphicsEngine _engine;
     private readonly ICommandBuffer _directCmd;
@@ -144,8 +144,8 @@ public unsafe readonly ref struct RenderingContext
             localToWorld = localToWorld,
             worldBoundsMin = meshData.BoundingBox.Min,
             worldBoundsMax = meshData.BoundingBox.Max,
-            vertexBuffer = (uint)_engine.ResourceDatabase.GetBindlessIndex(meshData.VertexBuffer.AsResource()),
-            indexBuffer = (uint)_engine.ResourceDatabase.GetBindlessIndex(meshData.IndexBuffer.AsResource()),
+            vertexBuffer = _engine.ResourceDatabase.GetBindlessIndex(meshData.VertexBuffer.AsResource()).GetValueOrThrow(ResultStatus.Success),
+            indexBuffer = _engine.ResourceDatabase.GetBindlessIndex(meshData.IndexBuffer.AsResource()).GetValueOrThrow(ResultStatus.Success),
         };
 
         var bufferHandle = meshData.ObjectDataBuffer.AsResource();

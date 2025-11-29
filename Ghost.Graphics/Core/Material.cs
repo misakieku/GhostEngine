@@ -106,34 +106,35 @@ public struct Material : IResourceReleasable, IHandleType
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly unsafe Result<ResultStatus> SetPropertyCache<T>(ref readonly T data)
+    public readonly unsafe ResultStatus SetPropertyCache<T>(ref readonly T data)
         where T : unmanaged
     {
         if (sizeof(T) != _cBufferCache.Size)
         {
-            return new Result<ResultStatus>(false, ResultStatus.InvalidArgument);
+            return ResultStatus.InvalidArgument;
         }
 
         Unsafe.WriteUnaligned(_cBufferCache.CpuData.GetUnsafePtr(), data);
-        return Result.Success(ResultStatus.Success);
+        return ResultStatus.Success;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly unsafe Result<ResultStatus> SetRawPropertyCache(ReadOnlySpan<byte> data)
+    public readonly unsafe ResultStatus SetRawPropertyCache(ReadOnlySpan<byte> data)
     {
         if (data.Length != _cBufferCache.Size)
         {
-            return new Result<ResultStatus>(false, ResultStatus.InvalidArgument);
+            return ResultStatus.InvalidArgument;
         }
 
         Unsafe.WriteUnaligned(_cBufferCache.CpuData.GetUnsafePtr(), data);
-        return Result.Success(ResultStatus.Success);
+        return ResultStatus.Success;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly void UploadData(ICommandBuffer cmb)
     {
         cmb.UploadBuffer(_cBufferCache.GpuResource, _cBufferCache.CpuData.AsSpan());
+        cmb.ResourceBarrier(_cBufferCache.GpuResource.AsResource(), ResourceState.VertexAndConstantBuffer);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

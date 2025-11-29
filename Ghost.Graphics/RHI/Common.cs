@@ -10,14 +10,6 @@ using TerraFX.Interop.DirectX;
 
 namespace Ghost.Graphics.RHI;
 
-public interface IRHIObject
-{
-    string Name
-    {
-        get; set;
-    }
-}
-
 public readonly struct ShaderPassKey
 {
     public readonly ulong value;
@@ -604,6 +596,57 @@ public struct TextureDesc
 }
 
 /// <summary>
+/// Describes the parameters used to configure a texture sampler for graphics rendering operations.
+/// </summary>
+public record struct SamplerDesc
+{
+    public TextureFilterMode FilterMode
+    {
+        get; set;
+    }
+
+    public TextureAddressMode AddressU
+    {
+        get; set;
+    }
+
+    public TextureAddressMode AddressV
+    {
+        get; set;
+    }
+
+    public TextureAddressMode AddressW
+    {
+        get; set;
+    }
+
+    public ComparisonFunction ComparisonFunc
+    {
+        get; set;
+    }
+
+    public float MipLODBias
+    {
+        get; set;
+    }
+
+    public uint MaxAnisotropy
+    {
+        get; set;
+    }
+
+    public float MinLOD
+    {
+        get; set;
+    }
+
+    public float MaxLOD
+    {
+        get; set;
+    }
+}
+
+/// <summary>
 /// Buffer description
 /// </summary>
 public struct BufferDesc
@@ -864,4 +907,33 @@ public enum PrimitiveTopology
     Point,
     Line,
     Triangle,
+}
+
+public enum TextureFilterMode
+{
+    Point,
+    Bilinear,
+    Trilinear,
+    Anisotropic
+}
+
+public enum TextureAddressMode
+{
+    Repeat,
+    Mirror,
+    Clamp,
+    Border,
+    MirrorOnce
+}
+
+public enum ComparisonFunction
+{
+    Never,
+    Less,
+    Equal,
+    LessEqual,
+    Greater,
+    NotEqual,
+    GreaterEqual,
+    Always
 }

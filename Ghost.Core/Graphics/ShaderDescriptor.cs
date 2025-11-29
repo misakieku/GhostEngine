@@ -16,6 +16,7 @@ public enum ShaderPropertyType
     Bool, Bool2, Bool3, Bool4,
     Texture2D, Texture3D, TextureCube,
     Texture2DArray, TextureCubeArray,
+    Sampler
 }
 
 public struct ShaderEntryPoint
@@ -133,6 +134,7 @@ public static class ShaderDescriptorExtensions
             ShaderPropertyType.TextureCube => 4,
             ShaderPropertyType.Texture2DArray => 4,
             ShaderPropertyType.TextureCubeArray => 4,
+            ShaderPropertyType.Sampler => 4,
             _ => 0,
         };
     }

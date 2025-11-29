@@ -60,7 +60,7 @@ public interface IResourceDatabase : IDisposable
     /// </summary>
     /// <param name="handle">A handle to the GPU resource for which to obtain the bindless index. Must reference a valid, currently registered resource.</param>
     /// <returns>The bindless index corresponding to the specified GPU resource handle. -1 if the resource does not support bindless access or is not found.</returns>
-    int GetBindlessIndex(Handle<GPUResource> handle);
+    Result<uint, ResultStatus> GetBindlessIndex(Handle<GPUResource> handle);
 
     /// <summary>
     /// Retrieves the name of the GPU resource associated with the specified handle.
@@ -77,6 +77,23 @@ public interface IResourceDatabase : IDisposable
     /// </summary>
     /// <param name="handle">The handle of the resource to be removed.</param>
     void ReleaseResource(Handle<GPUResource> handle);
+
+    /// <summary>
+    /// Retrieves an existing sampler identifier that matches the specified description, or creates a new one if none
+    /// exists.
+    /// </summary>
+    /// <param name="desc">A read-only reference to a <see cref="SamplerDesc"/> structure that defines the properties of the sampler to retrieve or create.</param>
+    /// <param name="id">An integer identifier to associate with the sampler.</param>
+    /// <returns>An <see cref="Identifier{Sampler}"/> representing the sampler that matches the specified description.
+    ///     If a matching sampler does not exist, a new sampler is created and its identifier is returned.</returns>
+    Identifier<Sampler> CreateSampler(ref readonly SamplerDesc desc, int id);
+
+    /// <summary>
+    /// Determines whether a sampler with the specified identifier exists.
+    /// </summary>
+    /// <param name="id">The identifier of the sampler to check for existence.</param>
+    /// <returns>true if a sampler with the given identifier exists; otherwise, false.</returns>
+    bool TryGetSampler(ref readonly SamplerDesc desc, out Identifier<Sampler> id);
 
     /// <summary>
     /// Adds a mesh to the resource database and returns its handle.

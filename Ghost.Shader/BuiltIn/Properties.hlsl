@@ -14,9 +14,9 @@ struct PerObjectData
 {
     float4x4 localToWorld;
     float3 worldBoundsMin;
-    BYTE_ADDRESS_BUFFER_BINDLESS vertexBuffer;
+    BYTE_ADDRESS_BUFFER vertexBuffer;
     float3 worldBoundsMax;
-    BYTE_ADDRESS_BUFFER_BINDLESS indexBuffer;
+    BYTE_ADDRESS_BUFFER indexBuffer;
 };
 
 cbuffer GlobalConstants : register(b0)
