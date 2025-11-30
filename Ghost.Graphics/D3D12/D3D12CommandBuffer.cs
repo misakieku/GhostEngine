@@ -5,6 +5,7 @@ using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Utilities;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
@@ -26,6 +27,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
     private readonly CommandBufferType _type;
 
+    private CommandError _lastError;
     private ushort _commandCount;
     private bool _isRecording;
     private bool _disposed;
@@ -124,6 +126,25 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         _commandCount++;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if DEBUG
+    [DoesNotReturn]
+#endif
+    private void RecordError(string cmdName, ResultStatus status)
+    {
+#if DEBUG
+        throw new InvalidOperationException($"Error at {cmdName} with {status}");
+#else
+
+        _lastError = new CommandError
+        {
+            CommandName = cmdName,
+            CommandIndex = _commandCount,
+            Status = status
+        };
+#endif
+    }
+
     public void Begin()
     {
         void ResetCommandList()
@@ -154,13 +175,20 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         _isRecording = true;
     }
 
-    public void End()
+    public Result End()
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();
 
         _commandList.Get()->Close();
         _isRecording = false;
+
+        if (_lastError.Status != ResultStatus.Success)
+        {
+            return Result.Failure($"Command buffer ended with errors at {_lastError.CommandIndex}, command '{_lastError.CommandName}': {_lastError.Status}");
+        }
+
+        return Result.Success();
     }
 
     public void SetScissorRect(RectDesc rect)
@@ -182,7 +210,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         var count = 0u;
         var pBarriers = stackalloc D3D12_RESOURCE_BARRIER[barrierDescs.Length];
 
-        for (int i = 0; i < barrierDescs.Length; i++)
+        for (var i = 0; i < barrierDescs.Length; i++)
         {
             var desc = barrierDescs[i];
             if (desc.StateBefore == desc.StateAfter)
@@ -192,23 +220,32 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
 
             if (!desc.Resource.IsValid)
             {
-                throw new ArgumentException($"Barrier resource at index {i} is not a valid resource handle");
+                RecordError(nameof(ResourceBarrier), ResultStatus.InvalidArgument);
+                continue;
             }
 
-            ref var resourceRecord = ref _resourceDatabase.GetResourceRecord(desc.Resource.AsResource());
-            if (resourceRecord.state != desc.StateBefore)
+            var recordResult = _resourceDatabase.GetResourceRecord(desc.Resource);
+            if (recordResult.Status != ResultStatus.Success)
             {
-                throw new InvalidOperationException($"Resource state mismatch: expected {desc.StateBefore}, actual {resourceRecord.state}");
+                RecordError(nameof(ResourceBarrier), recordResult.Status);
+                continue;
             }
 
-            var barrier = D3D12_RESOURCE_BARRIER.InitTransition(resourceRecord.ResourcePtr,
+            ref var record = ref recordResult.Value;
+            if (record.state != desc.StateBefore)
+            {
+                RecordError(nameof(ResourceBarrier), ResultStatus.InvalidState);
+                continue;
+            }
+
+            var barrier = D3D12_RESOURCE_BARRIER.InitTransition(record.ResourcePtr,
                 desc.StateBefore.ToD3D12States(), desc.StateAfter.ToD3D12States());
 
             pBarriers[count] = barrier;
             count++;
 
             // Update the resource state in the database
-            resourceRecord.state = desc.StateAfter;
+            record.state = desc.StateAfter;
         }
 
         _commandList.Get()->ResourceBarrier(count, pBarriers);
@@ -216,28 +253,49 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
 
     public void ResourceBarrier(Handle<GPUResource> resource, ResourceState stateBefore, ResourceState stateAfter)
     {
+        ThrowIfDisposed();
+        ThrowIfNotRecording();
+        IncrementCommandCount();
+
         if (stateBefore == stateAfter)
         {
             return;
         }
 
-        ref var resourceRecord = ref _resourceDatabase.GetResourceRecord(resource);
-        if (resourceRecord.state != stateBefore)
+        var recordResult = _resourceDatabase.GetResourceRecord(resource);
+        if (recordResult.Status != ResultStatus.Success)
         {
-            throw new InvalidOperationException($"Resource state mismatch: expected {stateBefore}, actual {resourceRecord.state}");
+            RecordError(nameof(ResourceBarrier), recordResult.Status);
+            return;
         }
 
-        var barrier = D3D12_RESOURCE_BARRIER.InitTransition(resourceRecord.ResourcePtr,
+        ref var record = ref recordResult.Value;
+        var barrier = D3D12_RESOURCE_BARRIER.InitTransition(record.ResourcePtr,
             stateBefore.ToD3D12States(), stateAfter.ToD3D12States());
 
         _commandList.Get()->ResourceBarrier(1, &barrier);
-        resourceRecord.state = stateAfter;
+        record.state = stateAfter;
     }
 
     public void ResourceBarrier(Handle<GPUResource> resource, ResourceState stateAfter)
     {
-        var stateBefore = _resourceDatabase.GetResourceState(resource);
-        ResourceBarrier(resource, stateBefore, stateAfter);
+        ThrowIfDisposed();
+        ThrowIfNotRecording();
+        IncrementCommandCount();
+
+        var recordResult = _resourceDatabase.GetResourceRecord(resource);
+        if (recordResult.Status != ResultStatus.Success)
+        {
+            RecordError(nameof(ResourceBarrier), recordResult.Status);
+            return;
+        }
+
+        ref var record = ref recordResult.Value;
+        var barrier = D3D12_RESOURCE_BARRIER.InitTransition(record.ResourcePtr,
+            record.state.ToD3D12States(), stateAfter.ToD3D12States());
+
+        _commandList.Get()->ResourceBarrier(1, &barrier);
+        record.state = stateAfter;
     }
 
     public void SetRenderTargets(ReadOnlySpan<Handle<Texture>> renderTargets, Handle<Texture> depthTarget)
@@ -247,25 +305,44 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         IncrementCommandCount();
 
         var pRtvHandles = stackalloc D3D12_CPU_DESCRIPTOR_HANDLE[renderTargets.Length];
+        var rtvCount = 0u;
         for (var i = 0; i < renderTargets.Length; i++)
         {
             var handle = renderTargets[i];
             if (!handle.IsValid)
             {
-                throw new ArgumentException($"Render target at index {i} is not a valid texture handle");
+                RecordError(nameof(SetRenderTargets), ResultStatus.InvalidArgument);
+                continue;
             }
 
-            var descriptor = _resourceDatabase.GetResourceRecord(handle.AsResource()).viewGroup;
-            pRtvHandles[i] = _descriptorAllocator.GetCpuHandle(descriptor.rtv);
+            var recordResult = _resourceDatabase.GetResourceRecord(handle.AsResource());
+            if (recordResult.Status != ResultStatus.Success)
+            {
+                RecordError(nameof(SetRenderTargets), recordResult.Status);
+                continue;
+            }
+
+            var viewGroup = recordResult.Value.viewGroup;
+            pRtvHandles[i] = _descriptorAllocator.GetCpuHandle(viewGroup.rtv);
+
+            rtvCount++;
         }
 
         var pDsvHandle = stackalloc D3D12_CPU_DESCRIPTOR_HANDLE[depthTarget.IsValid ? 1 : 0];
         if (pDsvHandle != null)
         {
-            pDsvHandle[0] = _descriptorAllocator.GetCpuHandle(_resourceDatabase.GetResourceRecord(depthTarget.AsResource()).viewGroup.dsv);
+            var recordResult = _resourceDatabase.GetResourceRecord(depthTarget.AsResource());
+            if (recordResult.Status != ResultStatus.Success)
+            {
+                RecordError(nameof(SetRenderTargets), recordResult.Status);
+                return;
+            }
+
+            var viewGroup = recordResult.Value.viewGroup;
+            pDsvHandle[0] = _descriptorAllocator.GetCpuHandle(viewGroup.dsv);
         }
 
-        _commandList.Get()->OMSetRenderTargets((uint)renderTargets.Length, pRtvHandles, FALSE, pDsvHandle);
+        _commandList.Get()->OMSetRenderTargets(rtvCount, pRtvHandles, FALSE, pDsvHandle);
     }
 
     public void BeginRenderPass(ReadOnlySpan<PassRenderTargetDesc> rtDescs, PassDepthStencilDesc depthDesc, bool allowUAVWrites = false)
@@ -280,11 +357,21 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
             var rtDesc = rtDescs[i];
             if (!rtDesc.Texture.IsValid)
             {
-                throw new ArgumentException($"Render target at index {i} is not a valid texture handle");
+                RecordError(nameof(BeginRenderPass), ResultStatus.InvalidArgument);
+                continue;
             }
 
-            var resourceInfo = _resourceDatabase.GetResourceRecord(rtDesc.Texture.AsResource());
-            var cpuHandle = _descriptorAllocator.GetCpuHandle(resourceInfo.viewGroup.rtv);
+            var recordResult = _resourceDatabase.GetResourceRecord(rtDesc.Texture.AsResource());
+            if (recordResult.Status != ResultStatus.Success)
+            {
+                RecordError(nameof(BeginRenderPass), recordResult.Status);
+                continue;
+            }
+
+            var record = recordResult.Value;
+            var cpuHandle = _descriptorAllocator.GetCpuHandle(record.viewGroup.rtv);
+            var format = record.desc.TextureDescription.Format.ToDXGIFormat();
+            var clearColor = rtDesc.ClearColor;
 
             var desc = new D3D12_RENDER_PASS_RENDER_TARGET_DESC
             {
@@ -294,10 +381,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
                     Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR,
                     Clear = new D3D12_RENDER_PASS_BEGINNING_ACCESS_CLEAR_PARAMETERS
                     {
-                        ClearValue = new D3D12_CLEAR_VALUE
-                        {
-                            Format = resourceInfo.desc.TextureDescription.Format.ToDXGIFormat(),
-                        }
+                        ClearValue = new D3D12_CLEAR_VALUE(format, (float*)&clearColor)
                     }
                 },
                 EndingAccess = new D3D12_RENDER_PASS_ENDING_ACCESS
@@ -306,19 +390,22 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
                 }
             };
 
-            desc.BeginningAccess.Clear.ClearValue.Color[0] = rtDesc.ClearColor.r;
-            desc.BeginningAccess.Clear.ClearValue.Color[1] = rtDesc.ClearColor.g;
-            desc.BeginningAccess.Clear.ClearValue.Color[2] = rtDesc.ClearColor.b;
-            desc.BeginningAccess.Clear.ClearValue.Color[3] = rtDesc.ClearColor.a;
-
             pRtvDescs[i] = desc;
         }
 
         var pDsvDesc = stackalloc D3D12_RENDER_PASS_DEPTH_STENCIL_DESC[depthDesc.Texture.IsValid ? 1 : 0];
         if (pDsvDesc != null)
         {
-            var resourceInfo = _resourceDatabase.GetResourceRecord(depthDesc.Texture.AsResource());
-            var cpuHandle = _descriptorAllocator.GetCpuHandle(resourceInfo.viewGroup.dsv);
+            var recordResult = _resourceDatabase.GetResourceRecord(depthDesc.Texture.AsResource());
+            if (recordResult.Status != ResultStatus.Success)
+            {
+                RecordError(nameof(BeginRenderPass), recordResult.Status);
+                return;
+            }
+
+            var record = recordResult.Value;
+            var cpuHandle = _descriptorAllocator.GetCpuHandle(record.viewGroup.dsv);
+            var format = record.desc.TextureDescription.Format.ToDXGIFormat();
 
             var desc = new D3D12_RENDER_PASS_DEPTH_STENCIL_DESC
             {
@@ -328,15 +415,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
                     Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR,
                     Clear = new D3D12_RENDER_PASS_BEGINNING_ACCESS_CLEAR_PARAMETERS
                     {
-                        ClearValue = new D3D12_CLEAR_VALUE
-                        {
-                            Format = resourceInfo.desc.TextureDescription.Format.ToDXGIFormat(),
-                            DepthStencil = new D3D12_DEPTH_STENCIL_VALUE
-                            {
-                                Depth = depthDesc.ClearDepth,
-                                Stencil = depthDesc.ClearStencil
-                            }
-                        }
+                        ClearValue = new D3D12_CLEAR_VALUE(format, depthDesc.ClearDepth, depthDesc.ClearStencil)
                     }
                 }
             };
@@ -402,12 +481,19 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         ThrowIfNotRecording();
         IncrementCommandCount();
 
-        var resource = _resourceDatabase.GetResource(buffer.AsResource());
+        var recordResult = _resourceDatabase.GetResourceRecord(buffer.AsResource());
+        if (recordResult.Status != ResultStatus.Success)
+        {
+            RecordError(nameof(BeginRenderPass), recordResult.Status);
+            return;
+        }
+
+        var record = recordResult.Value;
         var vbView = new D3D12_VERTEX_BUFFER_VIEW
         {
-            BufferLocation = resource.Get()->GetGPUVirtualAddress() + offset,
-            SizeInBytes = (uint)(resource.Get()->GetDesc().Width - offset),
-            StrideInBytes = _resourceDatabase.GetResourceDescription(buffer.AsResource()).BufferDescription.Stride
+            BufferLocation = record.ResourcePtr.Get()->GetGPUVirtualAddress() + offset,
+            SizeInBytes = (uint)(record.ResourcePtr.Get()->GetDesc().Width - offset),
+            StrideInBytes = record.desc.BufferDescription.Stride
         };
 
         _commandList.Get()->IASetVertexBuffers(slot, 1, &vbView);
@@ -541,8 +627,8 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
             d3d12Subresources[i] = new D3D12_SUBRESOURCE_DATA
             {
                 pData = subresources[i].pData,
-                RowPitch = subresources[i].rowPitch,
-                SlicePitch = subresources[i].slicePitch
+                RowPitch = (nint)subresources[i].rowPitch,
+                SlicePitch = (nint)subresources[i].slicePitch
             };
         }
 
@@ -566,7 +652,8 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         var pSrcResource = _resourceDatabase.GetResource(src.AsResource());
         if (pSrcResource == null || pDestResource == null)
         {
-            throw new ArgumentException("Source or destination buffer is not valid");
+            RecordError(nameof(CopyBuffer), ResultStatus.InvalidArgument);
+            return;
         }
 
         if (numBytes == 0)

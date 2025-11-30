@@ -102,8 +102,11 @@ public readonly unsafe ref struct RenderingContext
     public void UploadMesh(Handle<Mesh> mesh, bool markMeshStatic)
     {
         ref var meshData = ref ResourceDatabase.GetMeshReference(mesh);
-        var vertexState = ResourceDatabase.GetResourceState(meshData.VertexBuffer.AsResource());
-        var indexState = ResourceDatabase.GetResourceState(meshData.IndexBuffer.AsResource());
+        var vertexState = ResourceDatabase.GetResourceState(meshData.VertexBuffer.AsResource())
+            .GetValueOrThrow(ResultStatus.Success);
+        var indexState = ResourceDatabase.GetResourceState(meshData.IndexBuffer.AsResource())
+            .GetValueOrThrow(ResultStatus.Success);
+
         var needVertexTransition = vertexState != ResourceState.CopyDest;
         var needIndexTransition = indexState != ResourceState.CopyDest;
 
@@ -149,7 +152,9 @@ public readonly unsafe ref struct RenderingContext
         };
 
         var bufferHandle = meshData.ObjectDataBuffer.AsResource();
-        var state = ResourceDatabase.GetResourceState(bufferHandle);
+        var state = ResourceDatabase.GetResourceState(bufferHandle)
+            .GetValueOrThrow(ResultStatus.Success);
+
         var needTransition = state != ResourceState.CopyDest;
         if (needTransition)
         {
@@ -164,17 +169,31 @@ public readonly unsafe ref struct RenderingContext
         }
     }
 
-    public Handle<Texture> CreateTexture(ref readonly TextureDesc desc, bool tempResource = false)
+    public Handle<Texture> CreateTexture<T>(ref readonly TextureDesc desc, ReadOnlySpan<T> data, bool tempResource = false)
+        where T : unmanaged
     {
-        return ResourceAllocator.CreateTexture(in desc, tempResource);
+        var handle = ResourceAllocator.CreateTexture(in desc, tempResource);
+        UploadTexture(handle, data);
+
+        return handle;
     }
 
-    public void UploadTexture(Handle<Texture> texture, ReadOnlySpan<byte> data)
+    public void UploadTexture<T>(Handle<Texture> texture, ReadOnlySpan<T> data)
+        where T : unmanaged
     {
-        var desc = ResourceDatabase.GetResourceDescription(texture.AsResource());
-        desc.TextureDescription.Format.GetSurfaceInfo((int)desc.TextureDescription.Width, (int)desc.TextureDescription.Height, out var rowPitch, out var slicePitch, out _);
+        var desc = ResourceDatabase.GetResourceDescription(texture.AsResource())
+            .GetValueOrThrow(ResultStatus.Success);
 
-        var sateBefore = ResourceDatabase.GetResourceState(texture.AsResource());
+        if (data.Length * sizeof(T) != desc.TextureDescription.GetTotalBytes())
+        {
+            throw new ArgumentException("Data size does not match texture size.");
+        }
+
+        desc.TextureDescription.Format.GetSurfaceInfo(desc.TextureDescription.Width, desc.TextureDescription.Height, out var rowPitch, out var slicePitch, out _);
+
+        var sateBefore = ResourceDatabase.GetResourceState(texture.AsResource())
+            .GetValueOrThrow(ResultStatus.Success);
+
         var needTransition = sateBefore != ResourceState.CopyDest;
 
         if (needTransition)
@@ -182,7 +201,7 @@ public readonly unsafe ref struct RenderingContext
             _directCmd.ResourceBarrier(texture.AsResource(), sateBefore, ResourceState.CopyDest);
         }
 
-        fixed (byte* pData = data)
+        fixed (T* pData = data)
         {
             var subresourceData = new SubResourceData
             {

@@ -91,7 +91,7 @@ internal class MeshRenderPass : IRenderPass
         {
             using var stream = File.OpenRead(_textureFiles[i]);
             using var imageData = ImageResult.FromStream(stream, ColorComponents.RGBA);
-
+            
             var desc = new TextureDesc
             {
                 Width = imageData.Width,
@@ -103,8 +103,7 @@ internal class MeshRenderPass : IRenderPass
                 Usage = TextureUsage.ShaderResource,
             };
 
-            _textures[i] = ctx.CreateTexture(ref desc);
-            ctx.UploadTexture(_textures[i], imageData.AsSpan());
+            _textures[i] = ctx.CreateTexture(ref desc, imageData.AsSpan());
         }
 
         var samplerDesc = new SamplerDesc

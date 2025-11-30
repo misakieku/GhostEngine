@@ -2,7 +2,7 @@ namespace Ghost.Graphics.RHI;
 
 internal static class RHIUtility
 {
-    public static int GetBytesPerPixel(this TextureFormat format)
+    public static uint GetBytesPerPixel(this TextureFormat format)
     {
         return format switch
         {
@@ -16,12 +16,17 @@ internal static class RHIUtility
         };
     }
 
-    public static void GetSurfaceInfo(this TextureFormat format, int width, int height, out int rowPitch, out int slicePitch, out int rowCount)
+    public static uint GetTotalBytes(this TextureDesc desc)
+    {
+        return desc.Format.GetBytesPerPixel() * desc.Width * desc.Height * desc.Slice;
+    }
+
+    public static void GetSurfaceInfo(this TextureFormat format, uint width, uint height, out uint rowPitch, out uint slicePitch, out uint rowCount)
     {
         var bc = false;
         var packed = false;
         var planar = false;
-        var bpe = 0;
+        var bpe = 0u;
         
         //switch (Format)
         //{
@@ -86,31 +91,33 @@ internal static class RHIUtility
 
         if (bc)
         {
-            var numBlocksWide = 0;
+            var numBlocksWide = 0u;
             if (width > 0)
             {
-                numBlocksWide = Math.Max(1, (width + 3) / 4);
+                numBlocksWide = Math.Max(1u, (width + 3) / 4u);
             }
-            var numBlocksHigh = 0;
+
+            var numBlocksHigh = 0u;
             if (height > 0)
             {
-                numBlocksHigh = Math.Max(1, (height + 3) / 4);
+                numBlocksHigh = Math.Max(1u, (height + 3) / 4u);
             }
+
             rowPitch = numBlocksWide * bpe;
             rowCount = numBlocksHigh;
             slicePitch = rowPitch * numBlocksHigh;
         }
         else if (packed)
         {
-            rowPitch = ((width + 1) >> 1) * bpe;
+            rowPitch = ((width + 1u) >> 1) * bpe;
             rowCount = height;
             slicePitch = rowPitch * height;
         }
         else if (planar)
         {
-            rowPitch = ((width + 1) >> 1) * bpe;
+            rowPitch = ((width + 1u) >> 1) * bpe;
             slicePitch = (rowPitch * height) + ((rowPitch * height + 1) >> 1);
-            rowCount = (int)(height + ((height + 1u) >> 1));
+            rowCount = height + ((height + 1u) >> 1);
         }
         else
         {

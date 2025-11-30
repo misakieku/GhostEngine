@@ -38,7 +38,7 @@ public interface ICommandBuffer : IDisposable
     /// <summary>
     /// Ends recording commands and prepares for submission
     /// </summary>
-    void End();
+    Result End();
 
     /// <summary>
     /// Sets the viewport for rendering

@@ -186,16 +186,11 @@ internal unsafe class D3D12SwapChain : ISwapChain
             _resourceDatabase.ReleaseResource(_backBuffers[i].AsResource());
         }
 
-        // Resize the swap chain
-        if (_swapChain.Get()->ResizeBuffers(BufferCount, width, height, DXGI_FORMAT_B8G8R8A8_UNORM, (uint)DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING).FAILED)
-        {
-            throw new InvalidOperationException("Failed to resize swap chain buffers.");
-        }
+        ThrowIfFailed(_swapChain.Get()->ResizeBuffers(BufferCount, width, height, DXGI_FORMAT_B8G8R8A8_UNORM, (uint)DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING));
 
         Width = width;
         Height = height;
 
-        // Recreate back buffers
         CreateBackBuffers();
     }
 

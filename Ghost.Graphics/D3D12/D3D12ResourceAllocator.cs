@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
+
 using static TerraFX.Aliases.D3D12_Alias;
 using static TerraFX.Aliases.D3D12MA_Alias;
 using static TerraFX.Aliases.DXGI_Alias;

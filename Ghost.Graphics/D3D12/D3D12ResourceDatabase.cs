@@ -6,6 +6,7 @@ using Misaki.HighPerformance.Collections;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
 
@@ -13,7 +14,7 @@ namespace Ghost.Graphics.D3D12;
 
 internal class D3D12ResourceDatabase : IResourceDatabase
 {
-    internal unsafe struct ResourceRecord
+    internal unsafe record struct ResourceRecord
     {
         [StructLayout(LayoutKind.Explicit)]
         public struct ResourceUnion
@@ -171,17 +172,17 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         return _resources.Contains(handle.id, handle.generation);
     }
 
-    public ref ResourceRecord GetResourceRecord(Handle<GPUResource> handle)
+    public RefResult<ResourceRecord, ResultStatus> GetResourceRecord(Handle<GPUResource> handle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         ref var info = ref _resources.GetElementReferenceAt(handle.id, handle.generation, out var exist);
         if (!exist)
         {
-            throw new KeyNotFoundException($"Resource with handle {handle} not found.");
+            return Result.CreateRef(ref Unsafe.NullRef<ResourceRecord>(), ResultStatus.NotFound);
         }
 
-        return ref info;
+        return Result.CreateRef(ref info, ResultStatus.Success);
     }
 
     public ref ResourceRecord GetResourceRecord(Handle<GPUResource> handle, out bool exist)
@@ -190,23 +191,30 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         return ref _resources.GetElementReferenceAt(handle.id, handle.generation, out exist);
     }
 
-    public unsafe SharedPtr<ID3D12Resource> GetResource(Handle<GPUResource> handle)
+    public SharedPtr<ID3D12Resource> GetResource(Handle<GPUResource> handle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        ref var info = ref GetResourceRecord(handle);
-        if (!info.Allocated)
+        var r = GetResourceRecord(handle);
+        if (r.Status != ResultStatus.Success)
         {
             return null;
         }
 
-        return info.ResourcePtr;
+        return r.Value.ResourcePtr;
     }
 
-    public ResourceState GetResourceState(Handle<GPUResource> handle)
+    public Result<ResourceState, ResultStatus> GetResourceState(Handle<GPUResource> handle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return GetResourceRecord(handle).state;
+
+        var r = GetResourceRecord(handle);
+        if (r.Status != ResultStatus.Success)
+        {
+            return Result.Create(ResourceState.Common, r.Status);
+        }
+
+        return Result.Create(r.Value.state, ResultStatus.Success);
     }
 
     public void SetResourceState(Handle<GPUResource> handle, ResourceState state)
@@ -222,10 +230,18 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         info.state = state;
     }
 
-    public ResourceDesc GetResourceDescription(Handle<GPUResource> handle)
+    public Result<ResourceDesc, ResultStatus> GetResourceDescription(Handle<GPUResource> handle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return GetResourceRecord(handle).desc;
+
+        var r = GetResourceRecord(handle);
+
+        if (r.Status != ResultStatus.Success)
+        {
+            return Result.Create(default(ResourceDesc), r.Status);
+        }
+
+        return Result.Create(r.Value.desc, ResultStatus.Success);
     }
 
     public Result<uint, ResultStatus> GetBindlessIndex(Handle<GPUResource> handle)
@@ -238,7 +254,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
             return Result.Create(0u, ResultStatus.NotFound);
         }
 
-        return Result.Create((uint)info.viewGroup.srv.value, ResultStatus.NotFound);
+        return Result.Create((uint)info.viewGroup.srv.value, ResultStatus.Success);
     }
 
     public string? GetResourceName(Handle<GPUResource> handle)

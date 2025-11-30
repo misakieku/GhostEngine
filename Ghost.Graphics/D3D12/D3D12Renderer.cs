@@ -198,7 +198,7 @@ internal class D3D12Renderer : IRenderer
             //     BlitToDestination(_renderTarget, backBufferRT, frame.commandBuffer);
             // }
 
-            frame.commandBuffer.End();
+            frame.commandBuffer.End().ThrowIfFailed();
 
             _graphicsEngine.Device.GraphicsQueue.Submit(frame.commandBuffer);
             _swapChain?.Present();

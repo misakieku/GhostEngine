@@ -263,8 +263,8 @@ public struct RectDesc
 public struct SubResourceData
 {
     public unsafe void* pData;
-    public nint rowPitch;
-    public nint slicePitch;
+    public uint rowPitch;
+    public uint slicePitch;
 }
 
 public struct PassRenderTargetDesc
@@ -303,7 +303,7 @@ public struct PassDepthStencilDesc
 
 public struct BarrierDesc
 {
-    public Handle<GraphicsBuffer> Resource
+    public Handle<GPUResource> Resource
     {
         get; set;
     }
@@ -676,6 +676,24 @@ public struct BufferDesc
     /// Memory type for the buffer
     /// </summary>
     public ResourceMemoryType MemoryType
+    {
+        get; set;
+    }
+}
+
+public struct CommandError
+{
+    public int CommandIndex
+    {
+        get; set;
+    }
+
+    public string CommandName
+    {
+        get; set;
+    }
+
+    public ResultStatus Status
     {
         get; set;
     }

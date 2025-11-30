@@ -1,3 +1,4 @@
+using Ghost.Core;
 using Ghost.Graphics.Contracts;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Utilities;
@@ -134,7 +135,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
     {
         ThrowIfDisposed();
 
-        _copyCommandBuffer.End();
+        _copyCommandBuffer.End().ThrowIfFailed();
         _resourceAllocator.ReleaseTempResources();
         _descriptorAllocator.ResetCbvSrvUavDynamicHeap();
         _descriptorAllocator.ResetDSVDynamicHeap();

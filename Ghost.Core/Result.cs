@@ -178,7 +178,7 @@ public static class ResultExtensions
     public static T GetValueOrThrow<T, S>(this Result<T, S> result, S expect)
         where S : Enum
     {
-        if (result.Status?.Equals(expect) ?? false)
+        if (!EqualityComparer<S>.Default.Equals(result.Status, expect))
         {
             throw new InvalidOperationException($"Operation failed: expected status {expect}, but got {result.Status}");
         }
