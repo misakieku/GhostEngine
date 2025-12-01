@@ -1,17 +1,21 @@
 using Ghost.Graphics.RHI;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Graphics.Test.Windows;
 
 public sealed partial class GraphicsTestWindow : Window
 {
-    private bool _isFirstActivationHandled = false;
-
+    private DispatcherTimer _resizeTimer;
     private IRenderSystem? _renderSystem;
     private IRenderer? _renderer;
     private ISwapChain? _swapChain;
+
+    private bool _isFirstActivationHandled;
+    private bool _isResizing;
 
     public GraphicsTestWindow()
     {
@@ -19,6 +23,10 @@ public sealed partial class GraphicsTestWindow : Window
 
         Activated += GraphicsTestWindow_Activated;
         Closed += GraphicsTestWindow_Closed;
+
+        _resizeTimer = new DispatcherTimer();
+        _resizeTimer.Interval = TimeSpan.FromMilliseconds(200);
+        _resizeTimer.Tick += OnResizeTimerTick;
 
         Panel.SizeChanged += SwapChainPanel_SizeChanged;
     }
@@ -45,11 +53,9 @@ public sealed partial class GraphicsTestWindow : Window
         {
             Width = (uint)AppWindow.Size.Width,
             Height = (uint)AppWindow.Size.Height,
-            BufferCount = 2,
             Format = TextureFormat.B8G8R8A8_UNorm,
             Target = SwapChainTarget.FromCompositionSurface(Panel)
         });
-        _renderer.SetSwapChain(_swapChain);
 
         _renderSystem.Start();
         CompositionTarget.Rendering += OnRendering;
@@ -74,10 +80,31 @@ public sealed partial class GraphicsTestWindow : Window
 
     private void SwapChainPanel_SizeChanged(object sender, SizeChangedEventArgs e)
     {
-        if (e.NewSize.Width > 8.0 && e.NewSize.Height > 8.0)
+        //if (e.NewSize.Width > 8.0 && e.NewSize.Height > 8.0)
+        //{
+        //    _renderer?.RequestResize(new((uint)e.NewSize.Width, (uint)e.NewSize.Height));
+        //}
+
+        _resizeTimer.Stop();
+        _resizeTimer.Start();
+
+        _isResizing = true;
+    }
+
+    private void OnResizeTimerTick(object? sender, object e)
+    {
+        _resizeTimer.Stop();
+        _isResizing = false;
+
+        var newWidth = (uint)(Panel.ActualWidth * Panel.CompositionScaleX);
+        var newHeight = (uint)(Panel.ActualHeight * Panel.CompositionScaleY);
+
+        if (newWidth < 8 || newHeight < 8)
         {
-            _renderer?.RequestResize(new((uint)e.NewSize.Width, (uint)e.NewSize.Height));
+            return;
         }
+
+        _renderer?.RequestResize(new uint2(newWidth, newHeight));
     }
 
     private void OnRendering(object? sender, object e)

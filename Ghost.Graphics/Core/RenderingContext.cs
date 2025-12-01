@@ -64,14 +64,11 @@ public readonly unsafe ref struct RenderingContext
         var vertexHandle = meshData.VertexBuffer.AsResource();
         var indexHandle = meshData.IndexBuffer.AsResource();
 
-        _directCmd.ResourceBarrier(vertexHandle, ResourceState.Common, ResourceState.CopyDest);
-        _directCmd.ResourceBarrier(indexHandle, ResourceState.Common, ResourceState.CopyDest);
+        _directCmd.ResourceBarrier(vertexHandle, ResourceState.CopyDest);
+        _directCmd.ResourceBarrier(indexHandle, ResourceState.CopyDest);
 
         _directCmd.UploadBuffer(meshData.VertexBuffer, meshData.Vertices.AsSpan());
         _directCmd.UploadBuffer(meshData.IndexBuffer, meshData.Indices.AsSpan());
-
-        _directCmd.ResourceBarrier(vertexHandle, ResourceState.CopyDest, ResourceState.VertexAndConstantBuffer);
-        _directCmd.ResourceBarrier(indexHandle, ResourceState.CopyDest, ResourceState.IndexBuffer);
 
         if (staticMesh)
         {
@@ -101,41 +98,20 @@ public readonly unsafe ref struct RenderingContext
     /// <param name="markMeshStatic">Whether to mark the mesh as static. If it's true, the cpu buffer of the mesh will not be avaliable any more</param>
     public void UploadMesh(Handle<Mesh> mesh, bool markMeshStatic)
     {
-        ref var meshData = ref ResourceDatabase.GetMeshReference(mesh);
-        var vertexState = ResourceDatabase.GetResourceState(meshData.VertexBuffer.AsResource())
-            .GetValueOrThrow(ResultStatus.Success);
-        var indexState = ResourceDatabase.GetResourceState(meshData.IndexBuffer.AsResource())
-            .GetValueOrThrow(ResultStatus.Success);
+        ref var meshRef = ref ResourceDatabase.GetMeshReference(mesh);
 
-        var needVertexTransition = vertexState != ResourceState.CopyDest;
-        var needIndexTransition = indexState != ResourceState.CopyDest;
+        _directCmd.ResourceBarrier(meshRef.VertexBuffer.AsResource(),ResourceState.CopyDest);
+        _directCmd.ResourceBarrier(meshRef.IndexBuffer.AsResource(), ResourceState.CopyDest);
 
-        if (needVertexTransition)
-        {
-            _directCmd.ResourceBarrier(meshData.VertexBuffer.AsResource(), vertexState, ResourceState.CopyDest);
-        }
+        _directCmd.UploadBuffer(meshRef.VertexBuffer, meshRef.Vertices.AsSpan());
+        _directCmd.UploadBuffer(meshRef.IndexBuffer, meshRef.Indices.AsSpan());
 
-        if (needIndexTransition)
-        {
-            _directCmd.ResourceBarrier(meshData.IndexBuffer.AsResource(), indexState, ResourceState.CopyDest);
-        }
-
-        _directCmd.UploadBuffer(meshData.VertexBuffer, meshData.Vertices.AsSpan());
-        _directCmd.UploadBuffer(meshData.IndexBuffer, meshData.Indices.AsSpan());
-
-        if (needVertexTransition)
-        {
-            _directCmd.ResourceBarrier(meshData.VertexBuffer.AsResource(), ResourceState.CopyDest, vertexState);
-        }
-
-        if (needIndexTransition)
-        {
-            _directCmd.ResourceBarrier(meshData.IndexBuffer.AsResource(), ResourceState.CopyDest, indexState);
-        }
+        _directCmd.ResourceBarrier(meshRef.VertexBuffer.AsResource(), ResourceState.NonPixelShaderResource);
+        _directCmd.ResourceBarrier(meshRef.IndexBuffer.AsResource(), ResourceState.NonPixelShaderResource);
 
         if (markMeshStatic)
         {
-            meshData.ReleaseCpuResources();
+            meshRef.ReleaseCpuResources();
         }
     }
 
@@ -152,21 +128,10 @@ public readonly unsafe ref struct RenderingContext
         };
 
         var bufferHandle = meshData.ObjectDataBuffer.AsResource();
-        var state = ResourceDatabase.GetResourceState(bufferHandle)
-            .GetValueOrThrow(ResultStatus.Success);
 
-        var needTransition = state != ResourceState.CopyDest;
-        if (needTransition)
-        {
-            _directCmd.ResourceBarrier(bufferHandle, state, ResourceState.CopyDest);
-        }
-
+        _directCmd.ResourceBarrier(bufferHandle, ResourceState.CopyDest);
         _directCmd.UploadBuffer(meshData.ObjectDataBuffer, [data]);
-
-        if (needTransition)
-        {
-            _directCmd.ResourceBarrier(bufferHandle, ResourceState.CopyDest, ResourceState.VertexAndConstantBuffer);
-        }
+        _directCmd.ResourceBarrier(bufferHandle, ResourceState.VertexAndConstantBuffer);
     }
 
     public Handle<Texture> CreateTexture<T>(ref readonly TextureDesc desc, ReadOnlySpan<T> data, bool tempResource = false)
@@ -191,15 +156,7 @@ public readonly unsafe ref struct RenderingContext
 
         desc.TextureDescription.Format.GetSurfaceInfo(desc.TextureDescription.Width, desc.TextureDescription.Height, out var rowPitch, out var slicePitch, out _);
 
-        var sateBefore = ResourceDatabase.GetResourceState(texture.AsResource())
-            .GetValueOrThrow(ResultStatus.Success);
-
-        var needTransition = sateBefore != ResourceState.CopyDest;
-
-        if (needTransition)
-        {
-            _directCmd.ResourceBarrier(texture.AsResource(), sateBefore, ResourceState.CopyDest);
-        }
+        _directCmd.ResourceBarrier(texture.AsResource(), ResourceState.CopyDest);
 
         fixed (T* pData = data)
         {
@@ -211,11 +168,6 @@ public readonly unsafe ref struct RenderingContext
             };
 
             _directCmd.UploadTexture(texture, [subresourceData]);
-        }
-
-        if (needTransition)
-        {
-            _directCmd.ResourceBarrier(texture.AsResource(), ResourceState.CopyDest, sateBefore);
         }
     }
 

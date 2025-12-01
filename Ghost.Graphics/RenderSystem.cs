@@ -1,3 +1,4 @@
+using Ghost.Graphics.D3D12;
 using Ghost.Graphics.RHI;
 
 namespace Ghost.Graphics;
@@ -22,28 +23,28 @@ public struct RenderingConfig
 
 public interface IFenceSynchronizer
 {
-    public uint CPUFenceValue
+    uint CPUFenceValue
     {
         get;
     }
 
-    public uint GPUFenceValue
+    uint GPUFenceValue
     {
         get;
     }
 
-    public uint FrameIndex
+    uint FrameIndex
     {
         get;
     }
 
-    public uint MaxFrameLatency
+    uint MaxFrameLatency
     {
         get;
     }
 
-    public bool WaitForGPUReady(int timeOut = -1);
-    public void SignalCPUReady();
+    bool WaitForGPUReady(int timeOut = -1);
+    void SignalCPUReady();
 }
 
 public interface IRenderSystem : IFenceSynchronizer, IDisposable
@@ -68,18 +69,18 @@ public interface IRenderSystem : IFenceSynchronizer, IDisposable
 /// </summary>
 internal class RenderSystem : IRenderSystem
 {
-    private readonly struct FrameResource : IDisposable
+    private struct FrameResource : IDisposable
     {
         public readonly AutoResetEvent cpuReadyEvent;
         public readonly AutoResetEvent gpuReadyEvent;
 
-        public FrameResource()
+        public FrameResource(ICommandBuffer cmd)
         {
             cpuReadyEvent = new AutoResetEvent(false);
             gpuReadyEvent = new AutoResetEvent(true);
         }
 
-        public void Dispose()
+        public readonly void Dispose()
         {
             cpuReadyEvent.Dispose();
             gpuReadyEvent.Dispose();
@@ -208,9 +209,18 @@ internal class RenderSystem : IRenderSystem
             // Only proceed if CPU ready event was signaled
             if (waitResult == 0)
             {
-                _graphicsEngine.BeginFrame();
                 _graphicsEngine.RenderFrame();
-                _graphicsEngine.EndFrame();
+//                if (result.IsFailure)
+//                {
+//                    // Terminate the render loop on failure
+//                    _isRunning = false;
+//#if DEBUG
+//                    throw new InvalidOperationException($"RenderFrame failed: {result.Message}");
+//#else
+//                    Logger.LogError($"RenderFrame failed: {result.Message}");
+//                    break;
+//#endif
+//                }
 
                 _gpuFenceValue++;
                 frameResource.gpuReadyEvent.Set();

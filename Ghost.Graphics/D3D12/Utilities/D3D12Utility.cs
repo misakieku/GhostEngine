@@ -11,7 +11,7 @@ internal unsafe static class D3D12Utility
     public static void SetName<T>(ref this T obj, ReadOnlySpan<char> name)
         where T : unmanaged, ID3D12Object.Interface
     {
-        if (name.Length == 0)
+        if (name.IsEmpty)
         {
             return;
         }
@@ -24,6 +24,11 @@ internal unsafe static class D3D12Utility
 
     public static void SetName(ref this D3D12MA_Allocation obj, ReadOnlySpan<char> name)
     {
+        if (name.IsEmpty)
+        {
+            return;
+        }
+
         fixed (char* pName = name)
         {
             obj.SetName(pName);
@@ -84,6 +89,9 @@ internal unsafe static class D3D12Utility
             ResourceState.PixelShaderResource => D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
             ResourceState.CopyDest => D3D12_RESOURCE_STATE_COPY_DEST,
             ResourceState.CopySource => D3D12_RESOURCE_STATE_COPY_SOURCE,
+            ResourceState.GenericRead => D3D12_RESOURCE_STATE_GENERIC_READ,
+            ResourceState.IndirectArgument => D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT,
+            ResourceState.NonPixelShaderResource => D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
             _ => throw new ArgumentException($"Unknown resource state: {state}")
         };
     }

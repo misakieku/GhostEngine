@@ -10,7 +10,7 @@
     <EnableMsixTooling>true</EnableMsixTooling>
     <LangVersion>preview</LangVersion>
   </PropertyGroup>
-  <ItemGroup>
+  <!--<ItemGroup>
     <Content Remove="Assets\icon-256.png" />
     <Content Remove="Assets\Icon.altform-lightunplated_targetsize-16.png" />
     <Content Remove="Assets\Icon.altform-lightunplated_targetsize-24.png" />
@@ -50,7 +50,7 @@
   </ItemGroup>
   <ItemGroup>
     <Page Remove="App.xaml" />
-  </ItemGroup>
+  </ItemGroup>-->
 
   <ItemGroup>
     <Content Include="Assets\SplashScreen.scale-200.png" />
@@ -98,11 +98,6 @@
     <Page Update="View\Pages\Landing\OpenProjectPage.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="Misaki.HighPerformance.Unsafe">
-      <HintPath>..\..\Class\Misaki.HighPerformance\Misaki.HighPerformance.LowLevel\bin\Release\net9.0\Misaki.HighPerformance.LowLevel.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Page Update="View\Pages\EngineEditor\InspectorPage.xaml">

@@ -9,6 +9,8 @@ namespace Ghost.Graphics.D3D12;
 
 internal class D3D12GraphicsEngine : IGraphicsEngine
 {
+    private readonly IRenderSystem _renderSystem;
+
 #if DEBUG
     private readonly D3D12DebugLayer _debugLayer;
 #endif
@@ -34,6 +36,8 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
 
     public D3D12GraphicsEngine(IRenderSystem renderSystem)
     {
+        _renderSystem = renderSystem;
+
 #if DEBUG
         _debugLayer = new D3D12DebugLayer();
 #endif
@@ -106,10 +110,10 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
     public ISwapChain CreateSwapChain(SwapChainDesc desc)
     {
         ThrowIfDisposed();
-        return new D3D12SwapChain(_resourceDatabase, _descriptorAllocator, _device, desc);
+        return new D3D12SwapChain(_resourceDatabase, _descriptorAllocator, _device, desc, _renderSystem.MaxFrameLatency);
     }
 
-    public void BeginFrame()
+    public void RenderFrame()
     {
         ThrowIfDisposed();
 
@@ -119,21 +123,11 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         }
 
         _copyCommandBuffer.Begin();
-    }
-
-    public void RenderFrame()
-    {
-        ThrowIfDisposed();
 
         foreach (var renderer in _renderers)
         {
             renderer.Render();
         }
-    }
-
-    public void EndFrame()
-    {
-        ThrowIfDisposed();
 
         _copyCommandBuffer.End().ThrowIfFailed();
         _resourceAllocator.ReleaseTempResources();

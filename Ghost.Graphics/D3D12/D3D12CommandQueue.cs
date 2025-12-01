@@ -132,7 +132,7 @@ internal unsafe class D3D12CommandQueue : ICommandQueue
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         _fenceValue = value;
-        _commandQueue.Get()->Signal((ID3D12Fence*)_fence.Get(), _fenceValue);
+        ThrowIfFailed(_commandQueue.Get()->Signal((ID3D12Fence*)_fence.Get(), _fenceValue));
         return _fenceValue;
     }
 

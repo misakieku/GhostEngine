@@ -1,3 +1,4 @@
+using Ghost.Core;
 using Ghost.Graphics.Contracts;
 
 namespace Ghost.Graphics.RHI;
@@ -48,17 +49,7 @@ public interface IGraphicsEngine : IDisposable
     ISwapChain CreateSwapChain(SwapChainDesc desc);
 
     /// <summary>
-    /// Begins a new rendering frame, preparing the graphics context for drawing operations.
-    /// </summary>
-    void BeginFrame();
-
-    /// <summary>
     /// Renders the current frame.
     /// </summary>
     void RenderFrame();
-
-    /// <summary>
-    /// Completes the current rendering frame and performs any necessary finalization steps.
-    /// </summary>
-    void EndFrame();
 }

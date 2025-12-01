@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.D3D12.Utilities;
+using Misaki.HighPerformance.Mathematics;
 using Misaki.HighPerformance.Utilities;
 using System.IO.Hashing;
 using System.Runtime.CompilerServices;
@@ -201,6 +202,43 @@ public readonly struct CBufferInfo
     {
         get; init;
     }
+}
+
+public struct RenderDesc
+{
+    public float4x4 ViewMatrix
+    {
+        get; set;
+    }
+
+    public float4x4 ProjectionMatrix
+    {
+        get; set;
+    }
+
+    public float4 CameraPosition
+    {
+        get; set;
+    }
+
+    // The "Target" (Where to write pixels)
+    public Handle<Texture> Target
+    {
+        get; set;
+    }
+
+    public Handle<Texture> DepthTarget
+    {
+        get; set;
+    }
+
+    public RectDesc Viewport
+    {
+        get; set;
+    }
+
+    //public RenderPathID RenderPath;
+    //public LayerMask CullingMask;
 }
 
 public struct ViewportDesc
@@ -737,11 +775,6 @@ public struct SwapChainDesc
     {
         get; set;
     }
-
-    public uint BufferCount
-    {
-        get; set;
-    }
 }
 
 /// <summary>
@@ -819,6 +852,7 @@ public enum ResourceState
     CopySource = 1 << 8,
     GenericRead = 1 << 9,
     IndirectArgument = 1 << 10,
+    NonPixelShaderResource = 1 << 11,
     Present = 0,
 }
 

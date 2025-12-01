@@ -136,7 +136,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         resource = default!;
     }
 
-    public unsafe Handle<GPUResource> ImportExternalResource(ID3D12Resource* pResource, ResourceState initialState, ResourceViewGroup viewGroup, string name = "")
+    public unsafe Handle<GPUResource> ImportExternalResource(ID3D12Resource* pResource, ResourceState initialState, ResourceViewGroup viewGroup, string? name = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -144,14 +144,17 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         var handle = new Handle<GPUResource>(id, generation);
 
 #if DEBUG || GHOST_EDITOR
-        pResource->SetName(name);
-        _resourceName[handle] = name;
+        if (!string.IsNullOrEmpty(name))
+        {
+            pResource->SetName(name);
+            _resourceName[handle] = name;
+        }
 #endif
 
         return handle;
     }
 
-    public unsafe Handle<GPUResource> AddResource(D3D12MA_Allocation* allocation, uint cpuFenceValue, ResourceState initialState, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string name = "")
+    public unsafe Handle<GPUResource> AddResource(D3D12MA_Allocation* allocation, uint cpuFenceValue, ResourceState initialState, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string? name = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -159,8 +162,11 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         var handle = new Handle<GPUResource>(id, generation);
 
 #if DEBUG || GHOST_EDITOR
-        allocation->SetName(name);
-        _resourceName[handle] = name;
+        if (!string.IsNullOrEmpty(name))
+        {
+            allocation->SetName(name);
+            _resourceName[handle] = name;
+        }
 #endif
 
         return handle;

@@ -42,26 +42,20 @@ internal unsafe class D3D12SwapChain : ISwapChain
         get; private set;
     }
 
-    public uint BufferCount
+    public D3D12SwapChain(D3D12ResourceDatabase resourceDatabase, D3D12DescriptorAllocator descriptorAllocator, D3D12RenderDevice device, SwapChainDesc desc, uint bufferCount)
     {
-        get;
-    }
-
-    public D3D12SwapChain(D3D12ResourceDatabase resourceDatabase, D3D12DescriptorAllocator descriptorAllocator, D3D12RenderDevice device, SwapChainDesc desc)
-    {
-        Debug.Assert(desc.BufferCount >= 2);
+        Debug.Assert(bufferCount >= 2);
 
         _resourceDatabase = resourceDatabase;
         _descriptorAllocator = descriptorAllocator;
         _renderDevice = device;
 
-        _backBuffers = new UnsafeArray<Handle<Texture>>((int)desc.BufferCount, Allocator.Persistent);
+        _backBuffers = new UnsafeArray<Handle<Texture>>((int)bufferCount, Allocator.Persistent);
 
         Width = desc.Width;
         Height = desc.Height;
-        BufferCount = desc.BufferCount;
 
-        CreateSwapChain(desc);
+        CreateSwapChain(desc, bufferCount);
         CreateBackBuffers();
 
         _compositionSurface = desc.Target.CompositionSurface;
@@ -72,7 +66,7 @@ internal unsafe class D3D12SwapChain : ISwapChain
         Dispose();
     }
 
-    private void CreateSwapChain(SwapChainDesc desc)
+    private void CreateSwapChain(SwapChainDesc desc, uint bufferCount)
     {
         var swapChainDesc = new DXGI_SWAP_CHAIN_DESC1
         {
@@ -81,7 +75,7 @@ internal unsafe class D3D12SwapChain : ISwapChain
             Format = desc.Format.ToDXGIFormat(),
             SampleDesc = new DXGI_SAMPLE_DESC(1, 0),
             BufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT,
-            BufferCount = desc.BufferCount,
+            BufferCount = bufferCount,
             Scaling = DXGI_SCALING_STRETCH,
             SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD,
             AlphaMode = DXGI_ALPHA_MODE_IGNORE,
@@ -135,7 +129,7 @@ internal unsafe class D3D12SwapChain : ISwapChain
 
     private void CreateBackBuffers()
     {
-        for (uint i = 0; i < BufferCount; i++)
+        for (uint i = 0; i < _backBuffers.Count; i++)
         {
             ID3D12Resource* pBackBuffer = default;
             ThrowIfFailed(_swapChain.Get()->GetBuffer(i, __uuidof(pBackBuffer), (void**)&pBackBuffer));
@@ -186,12 +180,26 @@ internal unsafe class D3D12SwapChain : ISwapChain
             _resourceDatabase.ReleaseResource(_backBuffers[i].AsResource());
         }
 
-        ThrowIfFailed(_swapChain.Get()->ResizeBuffers(BufferCount, width, height, DXGI_FORMAT_B8G8R8A8_UNORM, (uint)DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING));
+        ThrowIfFailed(_swapChain.Get()->ResizeBuffers((uint)_backBuffers.Count, width, height, DXGI_FORMAT_B8G8R8A8_UNORM, (uint)DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING));
 
         Width = width;
         Height = height;
 
         CreateBackBuffers();
+
+        //float inverseScale = 1.0f / scale;
+
+        //DXGI_MATRIX_3X2_F inverseScaleMatrix = new DXGI_MATRIX_3X2_F
+        //{
+        //    _11 = inverseScale, // Scale X
+        //    _22 = inverseScale, // Scale Y
+        //    _12 = 0.0f,
+        //    _21 = 0.0f,
+        //    _31 = 0.0f, // Offset X
+        //    _32 = 0.0f // Offset Y
+        //};
+
+        //_swapChain.Get()->SetMatrixTransform(&inverseScaleMatrix);
     }
 
     public void Dispose()

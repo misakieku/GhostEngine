@@ -25,14 +25,6 @@ public interface ISwapChain : IDisposable
     }
 
     /// <summary>
-    /// Number of back buffers
-    /// </summary>
-    public uint BufferCount
-    {
-        get;
-    }
-
-    /// <summary>
     /// Gets the current back buffer texture
     /// </summary>
     /// <returns>Current back buffer texture</returns>

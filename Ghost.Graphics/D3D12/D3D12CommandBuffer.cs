@@ -291,6 +291,11 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         }
 
         ref var record = ref recordResult.Value;
+        if (record.state == stateAfter)
+        {
+            return;
+        }
+
         var barrier = D3D12_RESOURCE_BARRIER.InitTransition(record.ResourcePtr,
             record.state.ToD3D12States(), stateAfter.ToD3D12States());
 
