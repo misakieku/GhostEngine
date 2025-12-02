@@ -1,0 +1,42 @@
+<Solution>
+  <Configurations>
+    <Platform Name="ARM64" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Editor/">
+    <Project Path="Ghost.Data/Ghost.Data.csproj" />
+    <Project Path="Ghost.Editor.Core/Ghost.Editor.Core.csproj" />
+    <Project Path="Ghost.Editor/Ghost.Editor.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+      <Platform Solution="*|x86" Project="x86" />
+      <Deploy />
+    </Project>
+    <Project Path="Ghost.Generator/Ghost.Generator.csproj" />
+  </Folder>
+  <Folder Name="/Library/">
+    <Project Path="Ghost.FMOD/Ghost.FMOD.csproj" />
+    <Project Path="Ghost.Zeux.MeshOptimizer/Ghost.Zeux.MeshOptimizer.csproj" />
+  </Folder>
+  <Folder Name="/Runtime/">
+    <Project Path="Ghost.ArcEntities/Ghost.ArcEntities.csproj" />
+    <Project Path="Ghost.Core/Ghost.Core.csproj" />
+    <Project Path="Ghost.Engine/Ghost.Engine.csproj" />
+    <Project Path="Ghost.Entities/Ghost.Entities.csproj" />
+    <Project Path="Ghost.Graphics/Ghost.Graphics.csproj" />
+  </Folder>
+  <Folder Name="/Test/">
+    <Project Path="Ghost.Entities.Test/Ghost.Entities.Test.csproj" />
+    <Project Path="Ghost.Graphics.Test/Ghost.Graphics.Test.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+      <Platform Solution="*|x86" Project="x86" />
+      <Deploy />
+    </Project>
+    <Project Path="Ghost.RenderGraph.Concept/Ghost.RenderGraph.Concept.csproj" />
+    <Project Path="Ghost.Shader.Test/Ghost.Shader.Test.csproj" />
+    <Project Path="Ghost.Test.Core/Ghost.Test.Core.csproj" />
+  </Folder>
+  <Project Path="Ghost.Shader/Ghost.SDL.csproj" />
+</Solution>
