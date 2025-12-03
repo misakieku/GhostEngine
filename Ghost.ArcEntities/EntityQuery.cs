@@ -14,7 +14,7 @@ public unsafe class EntityQuery<T1, T2>
 
     private List<ArchetypeCache> _cache = new();
 
-    public void AddMatchingArchetype(Archetype archetype)
+    internal void AddMatchingArchetype(Archetype archetype)
     {
         // We look up the offsets ONCE when the archetype is registered
         int off1 = archetype.GetOffset(ComponentTypeID<T1>.value);

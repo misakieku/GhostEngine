@@ -1,12 +1,10 @@
-using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
-using Misaki.HighPerformance.LowLevel.Buffer;
-using System.Runtime.CompilerServices;
 
 namespace Ghost.ArcEntities;
 
 public struct ComponentInfo
 {
+    // public FixedText64 stableName; // Do we actually need this?
     public int size;
     public int alignment;
     public int id;
@@ -15,73 +13,52 @@ public struct ComponentInfo
 internal static unsafe class ComponentTypeID<T>
     where T : unmanaged
 {
-    public static readonly int value = ComponentRegister.s_nextComponentTypeID++;
+    public static readonly int value = ComponentRegister.GetOrRegisterComponent<T>();
 }
 
 internal static class ComponentRegister
 {
-    internal static int s_nextComponentTypeID = 0;
+    private static int s_nextComponentTypeID = 0;
+    private static Dictionary<IntPtr, int> s_typeHandleToID = new();
+
     internal static List<ComponentInfo> s_registeredComponents = new();
+    internal static Dictionary<string, int> s_nameToRuntimeID = new();
 
     internal unsafe static int GetOrRegisterComponent<T>()
         where T : unmanaged
     {
-        var typeId = ComponentTypeID<T>.value;
-        while (s_registeredComponents.Count <= typeId)
-        {
-            s_registeredComponents.Add(default);
-        }
+        var typeHandle = typeof(T).TypeHandle.Value;
 
-        if (s_registeredComponents[typeId].size == 0)
+        lock (s_registeredComponents)
         {
-            s_registeredComponents[typeId] = new ComponentInfo
+            if (s_typeHandleToID.TryGetValue(typeHandle, out int existingID))
             {
+                return existingID;
+            }
+
+            int newID = s_nextComponentTypeID++;
+            string stableName = typeof(T).FullName ?? typeof(T).Name;
+
+            var info = new ComponentInfo
+            {
+                // stableName = new FixedText64(stableName),
                 size = sizeof(T),
                 alignment = (int)MemoryUtility.AlignOf<T>(),
-                id = typeId
+                id = newID,
             };
-        }
 
-        return typeId;
+            while (s_registeredComponents.Count <= newID) s_registeredComponents.Add(default);
+            s_registeredComponents[newID] = info;
+
+            s_typeHandleToID[typeHandle] = newID;
+            s_nameToRuntimeID[stableName] = newID;
+
+            return newID;
+        }
     }
 
     internal static ComponentInfo GetComponentInfo(int typeId)
     {
         return s_registeredComponents[typeId];
-    }
-}
-
-internal unsafe struct Chuck : IDisposable
-{
-    public const int CHUNK_SIZE = 16384; // 16 KB
-
-    private UnsafeArray<byte> _data;
-    private int _count;
-    private int _capacity;
-
-    public int Count
-    {
-        get => _count;
-        set => _count = value;
-    }
-
-    public int Capacity => _capacity;
-
-    public Chuck(int size, int capacity)
-    {
-        _data = new UnsafeArray<byte>(size, Allocator.Persistent);
-        _capacity = capacity;
-        _count = 0;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public byte* GetUnsafePtr()
-    {
-        return (byte*)_data.GetUnsafePtr();
-    }
-
-    public void Dispose()
-    {
-        _data.Dispose();
     }
 }
