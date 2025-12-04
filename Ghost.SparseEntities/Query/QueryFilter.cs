@@ -2,7 +2,7 @@ using Ghost.Core;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 
-namespace Ghost.Entities.Query;
+namespace Ghost.SparseEntities.Query;
 
 public struct QueryFilter : IDisposable
 {

@@ -1,360 +1,266 @@
 using Ghost.Core;
-using Ghost.Entities.Components;
-using Ghost.Entities.Query;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.LowLevel.Collections;
+using Misaki.HighPerformance.LowLevel.Utilities;
+using System.Diagnostics;
 
 namespace Ghost.Entities;
 
-public readonly struct EntityManager : IDisposable
+public unsafe class EntityManager : IDisposable
 {
-    private readonly List<Entity> _entities;
-    private readonly Queue<EntityID> _freeEntitySlots;
+    private struct EntityLocation
+    {
+        public Identifier<Archetype> archetypeID;
+        public int chunkIndex;
+        public int rowIndex;
+    }
 
-    private readonly World _world;
-
-    public readonly int EntityCount => _entities.Count;
-    public readonly ReadOnlySpan<Entity> Entities => CollectionsMarshal.AsSpan(_entities);
+    private World _world;
+    private UnsafeSlotMap<EntityLocation> _entityLocations;
 
     internal EntityManager(World world, int initialCapacity)
     {
-        _entities = new(initialCapacity);
-        _freeEntitySlots = new(initialCapacity);
         _world = world;
+        _entityLocations = new UnsafeSlotMap<EntityLocation>(initialCapacity, Allocator.Persistent);
     }
 
-    /// <summary>
-    /// Adds a new <see cref="Entity"/> to the world.
-    /// </summary>
-    /// <returns>The created <see cref="Entity"/>.</returns>
-    public readonly Entity CreateEntity()
+    internal ResultStatus UpdateEntityLocation(Entity entity, Identifier<Archetype> newArchetypeID, int newChunkIndex, int newRowIndex)
     {
-        Entity entity;
-        if (_freeEntitySlots.TryDequeue(out var id))
+        ref var location = ref _entityLocations.GetElementReferenceAt(entity.ID, entity.Generation, out var exist);
+        if (!exist)
         {
-            entity = _entities[id];
+            return ResultStatus.NotFound;
         }
-        else
+
+        location.archetypeID = newArchetypeID;
+        location.chunkIndex = newChunkIndex;
+        location.rowIndex = newRowIndex;
+
+        return ResultStatus.Success;
+    }
+
+    public Entity CreateEntity(params ReadOnlySpan<Identifier<IComponent>> componentTypeIDs)
+    {
+        var signatureHash = ComponentRegister.GetHashCode(componentTypeIDs);
+        var arcID = _world.GetArchetypeIDBySignatureHash(signatureHash);
+
+        if (arcID.IsNotValid)
         {
-            id = _entities.Count;
-            entity = new Entity(id, 0);
-            _entities.Add(entity);
+            arcID = _world.CreateArchetype(componentTypeIDs, signatureHash);
         }
+
+        ref var archetype = ref _world.GetArchetypeReference(arcID);
+        archetype.AllocateEntity(out var chunkIndex, out var rowIndex);
+
+        var id = _entityLocations.Add(new EntityLocation
+        {
+            archetypeID = arcID,
+            chunkIndex = chunkIndex,
+            rowIndex = rowIndex
+        }, out var generation);
+
+        var entity = new Entity(id, generation);
+        archetype.SetEntity(chunkIndex, rowIndex, entity);
 
         return entity;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal readonly void AddEntityInternal(Entity entity)
+    public Entity CreateEntity()
     {
-        _entities.Add(entity);
+        // Put into empty archetype
+        ref var emptyArchetype = ref _world.GetArchetypeReference(World.EmptyArchetypeID);
+        emptyArchetype.AllocateEntity(out var chunkIndex, out var rowIndex);
+
+        var id = _entityLocations.Add(new EntityLocation
+        {
+            archetypeID = World.EmptyArchetypeID,
+            chunkIndex = chunkIndex,
+            rowIndex = rowIndex
+        }, out var generation);
+
+        var entity = new Entity(id, generation);
+        emptyArchetype.SetEntity(chunkIndex, rowIndex, entity);
+
+        return entity;
     }
 
-    /// <summary>
-    /// Removes the specified <see cref="Entity"/> from the world.
-    /// </summary>
-    /// <param name="entity"></param>
-    public readonly void RemoveEntity(ref Entity entity)
+    public ResultStatus DestoryEntity(Entity entity)
     {
-        if (entity.ID >= _entities.Count || _entities[entity.ID].Generation != entity.Generation)
+        if (!_entityLocations.TryGetElementAt(entity.ID, entity.Generation, out var location))
         {
-            return;
+            return ResultStatus.NotFound;
         }
 
-        _world.ComponentStorage.Remove(entity);
-
-        var slot = _entities[entity.ID];
-        slot.IncrementGeneration();
-        _entities[entity.ID] = slot;
-        _freeEntitySlots.Enqueue(entity.ID);
-
-        entity = Entity.Invalid;
-    }
-
-    /// <summary>
-    /// Checks if the given <see cref="Entity"/> is valid and belongs to this <see cref="World"/>.
-    /// </summary>
-    /// <param name="entity">The entity to check.</param>
-    /// <returns>True if the entity is valid and belongs to this world; otherwise, false.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly bool HasEntity(Entity entity)
-    {
-        if (!entity.IsValid
-            || entity.ID >= _entities.Count)
+        ref var archetype = ref _world.GetArchetypeReference(location.archetypeID);
+        var r = archetype.RemoveEntity(location.chunkIndex, location.rowIndex);
+        if (r != ResultStatus.Success)
         {
-            return false;
+            return r;
         }
 
-        return _entities[entity.ID].Generation == entity.Generation;
-    }
-
-    /// <summary>
-    /// Adds a component of the specified type to the given entity.
-    /// </summary>
-    /// <remarks>
-    /// This method use reflection to determine the type of the component being added. Use generic as much as possible.
-    /// </remarks>
-    /// <param name="entity">The entity to which the component will be added.</param>
-    /// <param name="component">The component data to associate with the entity.</param>
-    /// <param name="componentType">The type of the component being added. This must match the type of <paramref name="component"/>.</param>
-    public readonly void AddComponent(Entity entity, IComponentData component, Type componentType)
-    {
-        _world.ComponentStorage.GetOrCreateComponentPool(componentType).Add(entity, component);
-        _world.ComponentStorage.GetOrCreateMask(componentType).SetBit(entity.ID);
-    }
-
-    /// <summary>
-    /// Adds a component of type <typeparamref name="T"/> to the given <see cref="Entity"/>.
-    /// </summary>
-    /// <typeparam name="T">The type of the component to set.</typeparam>
-    /// <param name="entity">The entity for which the component is to be add.</param>
-    /// <param name="component">The component Value to add.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void AddComponent<T>(Entity entity, T component)
-        where T : unmanaged, IComponentData
-    {
-        _world.ComponentStorage.GetOrCreateComponentPool<T>().Add(entity, component);
-        _world.ComponentStorage.GetOrCreateMask<T>().SetBit(entity.ID);
-    }
-
-    /// <summary>
-    /// Removes a component of type <typeparamref name="T"/> from the given <see cref="Entity"/>.
-    /// </summary>
-    /// <typeparam name="T">The type of the component to remove.</typeparam>
-    /// <param name="entity">The entity for which the component is to be remove.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly bool RemoveComponent<T>(Entity entity)
-        where T : unmanaged, IComponentData
-    {
-        if (!_world.ComponentStorage.TryGetPool<T>(out var pool) || !pool.Has(entity))
+        if (!_entityLocations.Remove(entity.ID, entity.Generation))
         {
-            return false;
+            return ResultStatus.NotFound;
         }
 
-        if (!pool.Remove(entity))
-        {
-            return false;
-        }
-
-        _world.ComponentStorage.GetOrCreateMask<T>().ClearBit(entity.ID);
-
-        return true;
+        return ResultStatus.Success;
     }
 
-    /// <summary>
-    /// Sets a component of the specified type for the given <see cref="Entity"/>.
-    /// </summary>
-    /// <param name="entity">The entity for which the component is to be set.</param>
-    /// <param name="component">The component Value to set.</param>
-    /// <param name="type">The type of the component to set.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void SetComponent(Entity entity, IComponentData component, Type type)
+    private static void CopyData(ref Archetype oldArch, int oldChunk, int oldRow,
+                                 ref Archetype newArch, int newChunk, int newRow)
     {
-        var typeHandle = TypeHandle.Get(type);
-        if (!_world.ComponentStorage.TryGetPool(typeHandle, out var pool))
+        // Iterate every component type in the OLD archetype
+        for (var i = 0; i < oldArch.Layouts.Count; i++)
         {
-            return;
-        }
+            var layout = oldArch.Layouts[i];
 
-        if (!pool.Has(entity))
-        {
-            return;
-        }
+            var src = oldArch.Chunks[oldChunk].GetUnsafePtr() + layout.offset + (layout.size * oldRow);
+            var newOffset = newArch.GetOffset(layout.componentID); // O(1) Lookup
+            var dst = oldArch.Chunks[oldChunk].GetUnsafePtr() + newOffset + (layout.size * newRow);
 
-        pool.Set(entity, component);
-    }
-
-    /// <summary>
-    /// Sets a component of type <typeparamref name="T"/> for the given <see cref="Entity"/>.
-    /// </summary>
-    /// <typeparam name="T">The type of the component to set.</typeparam>
-    /// <param name="entity">The entity for which the component is to be set.</param>
-    /// <param name="component">The component Value to set.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void SetComponent<T>(Entity entity, in T component)
-        where T : unmanaged, IComponentData
-    {
-        _world.ComponentStorage.GetOrCreateComponentPool<T>().Set(entity, in component);
-    }
-
-    /// <summary>
-    /// Checks if the given <see cref="Entity"/> has a component of the specified type.
-    /// </summary>
-    /// <param name="entity">The entity to check.</param>
-    /// <param name="typeHandle">The handle of the component type.</param>
-    /// <returns>True if the entity has the component; otherwise, false.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly bool HasComponent(Entity entity, TypeHandle typeHandle)
-    {
-        return _world.ComponentStorage.TryGetMask(typeHandle, out var bitSet) && bitSet.Value.IsSet(entity.ID);
-    }
-
-    /// <summary>
-    /// Retrieves a reference to a component of type <typeparamref name="T"/> associated with the given <see cref="Entity"/>.
-    /// </summary>
-    /// <typeparam name="T">The type of the component to retrieve.</typeparam>
-    /// <param name="entity">The entity whose component is to be retrieved.</param>
-    /// <returns>A <see cref="CompRef{T}"/> to the component, or a null reference if the component does not exist.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly CompRef<T> GetComponent<T>(Entity entity)
-        where T : unmanaged, IComponentData
-    {
-        if (_world.ComponentStorage.TryGetPool<T>(out var pool) && pool.Has(entity))
-        {
-            return new CompRef<T>(ref pool.GetRef(entity));
-        }
-        else
-        {
-            return new CompRef<T>(ref Unsafe.NullRef<T>(), false);
+            MemoryUtility.MemCpy(src, dst, (nuint)layout.size);
         }
     }
 
-    /// <summary>
-    /// Retrieves all components associated with the specified entity.
-    /// </summary>
-    /// <remarks>This method iterates through all available component pools to find components  associated
-    /// with the given entity. It is designed to lazily yield components, making it efficient for scenarios where only
-    /// a subset of components may be needed.</remarks>
-    /// <param name="entity">The entity for which components are to be retrieved.</param>
-    /// <returns>An enumerable collection of components associated with the specified entity. If the entity has no components,
-    /// the collection will be empty.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly IEnumerable<IComponentData> GetComponents(Entity entity)
+    public ResultStatus AddComponent(Entity entity, Identifier<IComponent> componentID, void* component)
     {
-        foreach (var pool in _world.ComponentStorage.ComponentPools)
+        // Find current location
+        ref var location = ref _entityLocations.GetElementReferenceAt(entity.ID, entity.Generation, out var exist);
+        if (!exist)
         {
-            if (pool == null)
+            return ResultStatus.NotFound;
+        }
+
+        // Build new archetype signature
+        ref var oldArchetype = ref _world.GetArchetypeReference(location.archetypeID);
+        var oldSignature = oldArchetype.Signature;
+
+        // TODO: Check edge cache first.
+        var newArcID = oldArchetype.GetEdgeAdd(componentID);
+        if (newArcID.IsNotValid)
+        {
+            var largestComponentID = Math.Max(oldSignature.Count, componentID);
+            var length = UnsafeBitSet.RequiredLength(largestComponentID + 1);
+
+            Span<uint> bits = stackalloc uint[length];
+            bits.Clear();
+
+            var newSignature = new SpanBitSet(bits);
+
+            var iterator = 0;
+            var compCount = 0;
+            while (true)
             {
-                continue;
+                var bit = oldSignature.NextSetBit(iterator);
+                if (bit == -1)
+                {
+                    break;
+                }
+
+                newSignature.SetBit(bit);
+                iterator = bit + 1;
+                compCount++;
             }
 
-            if (pool.Has(entity))
+            compCount++;
+            newSignature.SetBit(componentID);
+
+            // Find or create new archetype
+            var newSignatureHash = newSignature.GetHashCode();
+            newArcID = _world.GetArchetypeIDBySignatureHash(newSignatureHash);
+            if (newArcID.IsNotValid)
             {
-                yield return pool.Get(entity);
+                // Create new archetype
+                Span<Identifier<IComponent>> componentTypeIDs = stackalloc Identifier<IComponent>[compCount];
+                componentTypeIDs[0] = componentID;
+
+                iterator = 0;
+                while (true)
+                {
+                    var bit = oldSignature.NextSetBit(iterator);
+                    if (bit == -1)
+                    {
+                        break;
+                    }
+
+                    componentTypeIDs[--compCount] = bit;
+                    iterator = bit + 1;
+                }
+
+                newArcID = _world.CreateArchetype(componentTypeIDs, newSignatureHash);
             }
+
+            oldArchetype.AddEdgeAdd(componentID, newArcID);
         }
+
+        // Move entity data
+        ref var newArchetype = ref _world.GetArchetypeReference(newArcID);
+        newArchetype.AllocateEntity(out var newChunkIndex, out var newRowIndex);
+        CopyData(ref oldArchetype, location.chunkIndex, location.rowIndex,
+                 ref newArchetype, newChunkIndex, newRowIndex);
+
+        newArchetype.SetEntity(newChunkIndex, newRowIndex, entity);
+        newArchetype.SetComponentData(newChunkIndex, newRowIndex, componentID, component);
+
+        var r = oldArchetype.RemoveEntity(location.chunkIndex, location.rowIndex);
+        Debug.Assert(r == ResultStatus.Success); // We assert it because the entity should exist if the whole system is consistent.
+        // if (r != ResultStatus.Success)
+        // {
+        //     return r;
+        // }
+
+        // Update location
+        location.archetypeID = newArcID;
+        location.chunkIndex = newChunkIndex;
+        location.rowIndex = newRowIndex;
+
+        return ResultStatus.Success;
     }
 
-    /// <summary>
-    /// Retrieves an enumerable collection of raw pointers to the components associated with the specified entity.
-    /// </summary>
-    /// <remarks>This method provides direct access to the memory locations of components, bypassing type
-    /// safety. Use with caution, as improper handling of raw pointers can lead to undefined behavior or memory
-    /// corruption. Ensure that the entity is valid and exists within the current world context before calling this
-    /// method.</remarks>
-    /// <param name="entity">The entity whose components are to be retrieved.</param>
-    /// <returns>An enumerable collection of <see cref="IntPtr"/> representing the memory addresses of the components associated
-    /// with the specified entity. The collection will be empty if the entity has no associated components.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly IEnumerable<(TypeHandle, IntPtr)> GetComponentsUnsafe(Entity entity)
+    public ResultStatus AddComponent<T>(Entity entity, ref T component)
+        where T : unmanaged, IComponent
     {
-        for (var i = 0; i < _world.ComponentStorage.ComponentPools.Count; i++)
+        return AddComponent(entity, ComponentTypeID<T>.value, UnsafeUtility.AddressOf(ref component));
+    }
+
+    public ResultStatus SetComponentData(Entity entity, Identifier<IComponent> componentID, void* pComponent)
+    {
+        if (!_entityLocations.TryGetElementAt(entity.ID, entity.Generation, out var location))
         {
-            var pool = _world.ComponentStorage.ComponentPools[i];
-            if (pool == null)
-            {
-                continue;
-            }
-
-            if (pool.Has(entity))
-            {
-                yield return (_world.ComponentStorage.GetComponentPoolType(i), pool.GetUnsafe(entity));
-            }
-        }
-    }
-
-    /// <summary>
-    /// Adds a script of type <typeparamref name="T"/> to the given <see cref="Entity"/>.
-    /// </summary>
-    /// <typeparam name="T">The type of the script to add.</typeparam>
-    /// <param name="entity">The entity to which the script is to be added.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void AddScript<T>(Entity entity)
-        where T : ScriptComponent, new()
-    {
-        _world.ComponentStorage.ScriptComponentPool.Add(entity, new T());
-    }
-
-    /// <summary>
-    /// Adds a script of the specified type to the given <see cref="Entity"/>.
-    /// </summary>
-    /// <param name="entity">The entity to which the script is to be added.</param>
-    /// <param name="type">The type of the script to add.</param>
-    /// <exception cref="ArgumentException">Thrown if the specified type does not inherit from <see cref="ScriptComponent"/>.</exception>
-    /// <exception cref="InvalidOperationException">Thrown if the script instance could not be created.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void AddScript(Entity entity, Type type)
-    {
-        if (!typeof(ScriptComponent).IsAssignableFrom(type))
-        {
-            throw new ArgumentException($"Type {type} must inherit from ScriptComponent.", nameof(type));
+            return ResultStatus.NotFound;
         }
 
-        var instance = (ScriptComponent?)Activator.CreateInstance(type) ?? throw new InvalidOperationException($"Failed to create instance of {type}.");
-        _world.ComponentStorage.ScriptComponentPool.Add(entity, instance);
+        ref var archetype = ref _world.GetArchetypeReference(location.archetypeID);
+        archetype.SetComponentData(location.chunkIndex, location.rowIndex, componentID, pComponent);
+
+        return ResultStatus.Success;
     }
 
-    /// <summary>
-    /// Removes a script of type <typeparamref name="T"/> from the given <see cref="Entity"/>.
-    /// </summary>
-    /// <typeparam name="T">The type of the script to remove.</typeparam>
-    /// <param name="entity">The entity from which the script is to be removed.</param>
-    /// <returns>True if the script was successfully removed; otherwise, false.</returns>
-    public readonly bool RemoveScript<T>(Entity entity)
-        where T : ScriptComponent
+    public ResultStatus SetComponentData<T>(Entity entity, ref T component)
+        where T : unmanaged, IComponent
     {
-        if (!_world.ComponentStorage.ScriptComponentPool.Remove<T>(entity))
+        return SetComponentData(entity, ComponentTypeID<T>.value, UnsafeUtility.AddressOf(ref component));
+    }
+
+    public bool HasComponent(Entity entity, Identifier<IComponent> componentID)
+    {
+        if (!_entityLocations.TryGetElementAt(entity.ID, entity.Generation, out var location))
         {
             return false;
         }
 
-        return true;
+        ref var archetype = ref _world.GetArchetypeReference(location.archetypeID);
+        return archetype.HasComponent(componentID);
     }
 
-    /// <summary>
-    /// Removes a script at the specified index from the given <see cref="Entity"/>.
-    /// </summary>
-    /// <param name="entity">The entity from which the script is to be removed.</param>
-    /// <param name="index">The index of the script to remove.</param>
-    /// <returns>True if the script was successfully removed; otherwise, false.</returns>
-    public readonly bool RemoveScriptAt(Entity entity, int index)
+    public bool HasComponent<T>(Entity entity)
+        where T : unmanaged, IComponent
     {
-        if (!_world.ComponentStorage.ScriptComponentPool.RemoveAt(entity, index))
-        {
-            return false;
-        }
-
-        return true;
+        return HasComponent(entity, ComponentTypeID<T>.value);
     }
 
-    /// <summary>
-    /// Retrieves the first script of type <typeparamref name="T"/> associated with the given <see cref="Entity"/>.
-    /// </summary>
-    /// <typeparam name="T">The type of the script to retrieve.</typeparam>
-    /// <param name="entity">The entity whose script is to be retrieved.</param>
-    /// <returns>The script of type <typeparamref name="T"/>, or null if no such script exists.</returns>
-    public readonly T? GetScript<T>(Entity entity)
-        where T : ScriptComponent
+    public void Dispose()
     {
-        return (T?)_world.ComponentStorage.ScriptComponentPool.GetAll(entity)?
-            .FirstOrDefault(script => script is T tScript);
-    }
-
-    /// <summary>
-    /// Retrieves all scripts of type <typeparamref name="T"/> associated with the given <see cref="Entity"/>.
-    /// </summary>
-    /// <typeparam name="T">The type of the scripts to retrieve.</typeparam>
-    /// <param name="entity">The entity whose scripts are to be retrieved.</param>
-    /// <returns>An enumerable of scripts of type <typeparamref name="T"/>.</returns>
-    public readonly IEnumerable<T> GetScripts<T>(Entity entity)
-        where T : ScriptComponent
-    {
-        return (IEnumerable<T>?)_world.ComponentStorage.ScriptComponentPool.GetAll(entity)?.Where(script => script is T tScript) ?? Enumerable.Empty<T>();
-    }
-
-    public readonly void Dispose()
-    {
-        _entities.Clear();
-        _freeEntitySlots.Clear();
+        _entityLocations.Dispose();
     }
 }

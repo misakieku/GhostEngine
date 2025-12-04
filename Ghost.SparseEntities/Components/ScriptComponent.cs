@@ -1,4 +1,4 @@
-namespace Ghost.Entities.Components;
+namespace Ghost.SparseEntities.Components;
 
 public abstract class ScriptComponent : IComponentData
 {

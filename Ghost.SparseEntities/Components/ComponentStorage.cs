@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace Ghost.Entities.Components;
+namespace Ghost.SparseEntities.Components;
 
 internal static class SingletonContainer<T>
     where T : unmanaged, IComponentData

@@ -1,16 +1,15 @@
 using Ghost.Test.Core;
-using Ghost.ArcEntities;
 using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Entities.Test;
 
 public partial class ArcEntityTest : ITest
 {
-    private Ghost.ArcEntities.World _world = null!;
+    private World _world = null!;
 
     public void Setup()
     {
-        _world = Ghost.ArcEntities.World.Create();
+        _world = World.Create();
     }
 
     public void Run()

@@ -1,12 +1,12 @@
 
 
 using Ghost.Core;
-using Ghost.Entities.Components;
-using Ghost.Entities.Query;
+using Ghost.SparseEntities.Components;
+using Ghost.SparseEntities.Query;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 
-namespace Ghost.Entities;
+namespace Ghost.SparseEntities;
 
 public unsafe ref struct QueryEnumerable<T0>
     where T0 : unmanaged, IComponentData

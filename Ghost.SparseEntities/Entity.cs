@@ -1,29 +1,30 @@
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+using System.Text.Json.Serialization;
 
-namespace Ghost.Entities;
+namespace Ghost.SparseEntities;
 
-[StructLayout(LayoutKind.Sequential, Size = 8)]
-public readonly struct Entity : IEquatable<Entity>, IComparable<Entity>
+[SkipLocalsInit]
+public struct Entity : IEquatable<Entity>, IComparable<Entity>
 {
     public const EntityID INVALID_ID = -1;
 
-    private readonly EntityID _id;
-    private readonly GenerationID _generation;
+    [JsonInclude]
+    private EntityID _id;
+    private GenerationID _generation;
 
-    public EntityID ID
+    public readonly EntityID ID
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _id;
     }
 
-    public GenerationID Generation
+    public readonly GenerationID Generation
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _generation;
     }
 
-    public bool IsValid
+    public readonly bool IsValid
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => ID != INVALID_ID;
@@ -41,24 +42,27 @@ public readonly struct Entity : IEquatable<Entity>, IComparable<Entity>
         _generation = generation;
     }
 
-    public bool Equals(Entity other)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void IncrementGeneration() => _generation++;
+
+    public readonly bool Equals(Entity other)
     {
         return _id == other._id && _generation == other._generation;
     }
 
-    public int CompareTo(Entity other)
+    public readonly int CompareTo(Entity other)
     {
         return _id.CompareTo(other._id);
     }
 
-    public override bool Equals(object? obj)
+    public override readonly bool Equals(object? obj)
     {
         return obj is Entity other && Equals(other);
     }
 
-    public override int GetHashCode()
+    public override readonly int GetHashCode()
     {
-        return _id ^ _generation << 16;
+        return _id.GetHashCode();
     }
 
     public static bool operator ==(Entity left, Entity right)
@@ -71,7 +75,7 @@ public readonly struct Entity : IEquatable<Entity>, IComparable<Entity>
         return !(left == right);
     }
 
-    public override string ToString()
+    public override readonly string ToString()
     {
         return $"Entity {{ Index: {ID}, Generation: {Generation} }}";
     }

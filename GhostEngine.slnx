@@ -23,7 +23,8 @@
     <Project Path="Ghost.ArcEntities/Ghost.ArcEntities.csproj" />
     <Project Path="Ghost.Core/Ghost.Core.csproj" />
     <Project Path="Ghost.Engine/Ghost.Engine.csproj" />
-    <Project Path="Ghost.Entities/Ghost.Entities.csproj" />
+    <Project Path="Ghost.SparseEntities/Ghost.SparseEntities.csproj" />
+    <Project Path="Ghost.Entities/Ghost.Entities.csproj" Id="8d127b7f-dc6a-4814-8dc0-1aefe65b5d08" />
     <Project Path="Ghost.Graphics/Ghost.Graphics.csproj" />
   </Folder>
   <Folder Name="/Test/">

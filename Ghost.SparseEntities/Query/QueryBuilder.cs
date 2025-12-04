@@ -1,6 +1,6 @@
 using Ghost.Core;
 
-namespace Ghost.Entities.Query;
+namespace Ghost.SparseEntities.Query;
 
 public struct QueryBuilder
 {

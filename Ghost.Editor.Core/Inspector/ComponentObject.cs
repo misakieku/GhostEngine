@@ -1,6 +1,6 @@
-using Ghost.Entities;
-using Ghost.Entities.Components;
-using Ghost.Entities.Query;
+using Ghost.SparseEntities;
+using Ghost.SparseEntities.Components;
+using Ghost.SparseEntities.Query;
 
 namespace Ghost.Editor.Core.Inspector;
 

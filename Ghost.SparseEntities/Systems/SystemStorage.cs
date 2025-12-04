@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace Ghost.Entities.Systems;
+namespace Ghost.SparseEntities.Systems;
 
 [SkipLocalsInit]
 public readonly struct SystemStorage

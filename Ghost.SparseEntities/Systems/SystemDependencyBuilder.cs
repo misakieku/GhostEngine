@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace Ghost.Entities.Systems;
+namespace Ghost.SparseEntities.Systems;
 
 internal class SystemDependencyBuilder
 {

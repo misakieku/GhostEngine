@@ -1,9 +1,9 @@
 
 
-using Ghost.Entities.Components;
-using Ghost.Entities.Query;
+using Ghost.SparseEntities.Components;
+using Ghost.SparseEntities.Query;
 
-namespace Ghost.Entities;
+namespace Ghost.SparseEntities;
 
 public readonly struct QueryItem<T0>
     where T0 : unmanaged, IComponentData
@@ -26,7 +26,7 @@ public readonly struct QueryItem<T0>
     {
         entity = _entity;
 
-        c0 = new(ref _pool0.GetRef(_entity));
+        c0 = new (ref _pool0.GetRef(_entity));
     }
 }
 
@@ -54,8 +54,8 @@ public readonly struct QueryItem<T0, T1>
     {
         entity = _entity;
 
-        c0 = new(ref _pool0.GetRef(_entity));
-        c1 = new(ref _pool1.GetRef(_entity));
+        c0 = new (ref _pool0.GetRef(_entity));
+        c1 = new (ref _pool1.GetRef(_entity));
     }
 }
 
@@ -86,9 +86,9 @@ public readonly struct QueryItem<T0, T1, T2>
     {
         entity = _entity;
 
-        c0 = new(ref _pool0.GetRef(_entity));
-        c1 = new(ref _pool1.GetRef(_entity));
-        c2 = new(ref _pool2.GetRef(_entity));
+        c0 = new (ref _pool0.GetRef(_entity));
+        c1 = new (ref _pool1.GetRef(_entity));
+        c2 = new (ref _pool2.GetRef(_entity));
     }
 }
 
@@ -122,10 +122,10 @@ public readonly struct QueryItem<T0, T1, T2, T3>
     {
         entity = _entity;
 
-        c0 = new(ref _pool0.GetRef(_entity));
-        c1 = new(ref _pool1.GetRef(_entity));
-        c2 = new(ref _pool2.GetRef(_entity));
-        c3 = new(ref _pool3.GetRef(_entity));
+        c0 = new (ref _pool0.GetRef(_entity));
+        c1 = new (ref _pool1.GetRef(_entity));
+        c2 = new (ref _pool2.GetRef(_entity));
+        c3 = new (ref _pool3.GetRef(_entity));
     }
 }
 
@@ -162,11 +162,11 @@ public readonly struct QueryItem<T0, T1, T2, T3, T4>
     {
         entity = _entity;
 
-        c0 = new(ref _pool0.GetRef(_entity));
-        c1 = new(ref _pool1.GetRef(_entity));
-        c2 = new(ref _pool2.GetRef(_entity));
-        c3 = new(ref _pool3.GetRef(_entity));
-        c4 = new(ref _pool4.GetRef(_entity));
+        c0 = new (ref _pool0.GetRef(_entity));
+        c1 = new (ref _pool1.GetRef(_entity));
+        c2 = new (ref _pool2.GetRef(_entity));
+        c3 = new (ref _pool3.GetRef(_entity));
+        c4 = new (ref _pool4.GetRef(_entity));
     }
 }
 
@@ -206,12 +206,12 @@ public readonly struct QueryItem<T0, T1, T2, T3, T4, T5>
     {
         entity = _entity;
 
-        c0 = new(ref _pool0.GetRef(_entity));
-        c1 = new(ref _pool1.GetRef(_entity));
-        c2 = new(ref _pool2.GetRef(_entity));
-        c3 = new(ref _pool3.GetRef(_entity));
-        c4 = new(ref _pool4.GetRef(_entity));
-        c5 = new(ref _pool5.GetRef(_entity));
+        c0 = new (ref _pool0.GetRef(_entity));
+        c1 = new (ref _pool1.GetRef(_entity));
+        c2 = new (ref _pool2.GetRef(_entity));
+        c3 = new (ref _pool3.GetRef(_entity));
+        c4 = new (ref _pool4.GetRef(_entity));
+        c5 = new (ref _pool5.GetRef(_entity));
     }
 }
 
@@ -254,13 +254,13 @@ public readonly struct QueryItem<T0, T1, T2, T3, T4, T5, T6>
     {
         entity = _entity;
 
-        c0 = new(ref _pool0.GetRef(_entity));
-        c1 = new(ref _pool1.GetRef(_entity));
-        c2 = new(ref _pool2.GetRef(_entity));
-        c3 = new(ref _pool3.GetRef(_entity));
-        c4 = new(ref _pool4.GetRef(_entity));
-        c5 = new(ref _pool5.GetRef(_entity));
-        c6 = new(ref _pool6.GetRef(_entity));
+        c0 = new (ref _pool0.GetRef(_entity));
+        c1 = new (ref _pool1.GetRef(_entity));
+        c2 = new (ref _pool2.GetRef(_entity));
+        c3 = new (ref _pool3.GetRef(_entity));
+        c4 = new (ref _pool4.GetRef(_entity));
+        c5 = new (ref _pool5.GetRef(_entity));
+        c6 = new (ref _pool6.GetRef(_entity));
     }
 }
 
@@ -306,14 +306,14 @@ public readonly struct QueryItem<T0, T1, T2, T3, T4, T5, T6, T7>
     {
         entity = _entity;
 
-        c0 = new(ref _pool0.GetRef(_entity));
-        c1 = new(ref _pool1.GetRef(_entity));
-        c2 = new(ref _pool2.GetRef(_entity));
-        c3 = new(ref _pool3.GetRef(_entity));
-        c4 = new(ref _pool4.GetRef(_entity));
-        c5 = new(ref _pool5.GetRef(_entity));
-        c6 = new(ref _pool6.GetRef(_entity));
-        c7 = new(ref _pool7.GetRef(_entity));
+        c0 = new (ref _pool0.GetRef(_entity));
+        c1 = new (ref _pool1.GetRef(_entity));
+        c2 = new (ref _pool2.GetRef(_entity));
+        c3 = new (ref _pool3.GetRef(_entity));
+        c4 = new (ref _pool4.GetRef(_entity));
+        c5 = new (ref _pool5.GetRef(_entity));
+        c6 = new (ref _pool6.GetRef(_entity));
+        c7 = new (ref _pool7.GetRef(_entity));
     }
 }
 

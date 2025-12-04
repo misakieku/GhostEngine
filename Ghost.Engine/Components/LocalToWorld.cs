@@ -1,5 +1,5 @@
 using Ghost.Engine.Utilities;
-using Ghost.Entities.Components;
+using Ghost.SparseEntities.Components;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 

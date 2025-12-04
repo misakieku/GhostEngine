@@ -1,4 +1,4 @@
-using Ghost.Entities;
+using Ghost.SparseEntities;
 
 namespace Ghost.Engine.Services;
 

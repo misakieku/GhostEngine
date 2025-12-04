@@ -1,7 +1,7 @@
-using Ghost.Entities.Components;
+using Ghost.SparseEntities.Components;
 using System.Runtime.CompilerServices;
 
-namespace Ghost.Entities.Query;
+namespace Ghost.SparseEntities.Query;
 
 public interface IQueryTypeParameter<T>
     where T : IComponentData

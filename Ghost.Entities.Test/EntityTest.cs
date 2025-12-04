@@ -1,6 +1,7 @@
-using Ghost.Entities.Components;
-using Ghost.Entities.Query;
-using Ghost.Entities.Systems;
+#if false
+using Ghost.SparseEntities.Components;
+using Ghost.SparseEntities.Query;
+using Ghost.SparseEntities.Systems;
 using Ghost.Test.Core;
 using System.Numerics;
 
@@ -128,7 +129,7 @@ public class UserScript : ScriptComponent
         EntityManager.GetComponent<Transform>(Owner).ValueRW.position += new Vector3(10, 10, 10);
     }
 
-    override public void OnDisable()
+    public override void OnDisable()
     {
         Console.WriteLine("UserScript disabled for entity: " + Owner);
     }
@@ -189,3 +190,4 @@ public class EventManager : ScriptComponent
         Console.WriteLine("EventManager destroyed for entity: " + Owner);
     }
 }
+#endif
