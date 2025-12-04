@@ -32,6 +32,23 @@ public partial class World
         }
     }
 
+    public static void Destroy(Identifier<World> id)
+    {
+        lock (s_worlds)
+        {
+            if (id.value < 0 || id.value >= s_worlds.Count)
+            {
+                return;
+            }
+
+            var world = s_worlds[id.value];
+            if (world is not null)
+            {
+                world.Dispose();
+            }
+        }
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Result<World, ResultStatus> GetWorld(Identifier<World> id)
     {
@@ -54,12 +71,18 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
 {
     private readonly Identifier<World> _id;
 
-    private UnsafeList<Archetype> _archetypes;
-    private UnsafeHashMap<int, Identifier<Archetype>> _archetypeLookup; // Signature Hash to Archetype ID
     private EntityManager _entityManager;
     private EntityCommandBuffer _entityCommandBuffer;
 
+    private UnsafeList<Archetype> _archetypes;
+    private UnsafeList<EntityQuery> _entityQueries;
+
+    private UnsafeHashMap<int, Identifier<Archetype>> _archetypeLookup; // Signature Hash to Archetype ID
+    private UnsafeHashMap<int, Identifier<EntityQuery>> _querieLookup; // Query Mask Hash to Query ID
+
     private bool _disposed = false;
+
+    internal int ArchetypeCount => _archetypes.Count;
 
     public Identifier<World> ID => _id;
     public EntityManager EntityManager => _entityManager;
@@ -70,7 +93,10 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
         _id = id;
 
         _archetypes = new UnsafeList<Archetype>(16, Allocator.Persistent);
+        _entityQueries = new UnsafeList<EntityQuery>(16, Allocator.Persistent);
+
         _archetypeLookup = new UnsafeHashMap<int, Identifier<Archetype>>(16, Allocator.Persistent);
+        _querieLookup = new UnsafeHashMap<int, Identifier<EntityQuery>>(16, Allocator.Persistent);
 
         _entityManager = new EntityManager(this, entityCapacity);
         _entityCommandBuffer = new EntityCommandBuffer(_entityManager);
@@ -90,12 +116,13 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
         _archetypes.Add(new Archetype(arcID, _id, componentTypeIDs));
         _archetypeLookup.Add(signatureHash, arcID);
 
-        return arcID;
-    }
+        for (int i = 0; i < _entityQueries.Count; i++)
+        {
+            ref var query = ref _entityQueries[i];
+            query.AddArchetypeIfMatch(_archetypes[arcID.value]);
+        }
 
-    internal ref Archetype GetArchetypeReference(Identifier<Archetype> id)
-    {
-        return ref _archetypes[id.value];
+        return arcID;
     }
 
     internal Identifier<Archetype> GetArchetypeIDBySignatureHash(int signatureHash)
@@ -106,6 +133,35 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
         }
 
         return Identifier<Archetype>.Invalid;
+    }
+
+    internal ref Archetype GetArchetypeReference(Identifier<Archetype> id)
+    {
+        return ref _archetypes[id.value];
+    }
+
+    internal Identifier<EntityQuery> CreateEntityQuery(EntityQueryMask mask)
+    {
+        var queryID = new Identifier<EntityQuery>(_entityQueries.Count);
+        _entityQueries.Add(new EntityQuery(_id, mask));
+        _querieLookup.Add(mask.GetHashCode(), queryID);
+
+        return queryID;
+    }
+
+    internal Identifier<EntityQuery> GetEntityQueryIDByMaskHash(int maskHash)
+    {
+        if (_querieLookup.TryGetValue(maskHash, out var queryID))
+        {
+            return queryID;
+        }
+
+        return Identifier<EntityQuery>.Invalid;
+    }
+
+    public ref EntityQuery GetEntityQueryReference(Identifier<EntityQuery> id)
+    {
+        return ref _entityQueries[id.value];
     }
 
     public bool Equals(World? other)
@@ -141,11 +197,15 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
         }
 
         _entityManager.Dispose();
+        _entityCommandBuffer.Dispose();
 
         _archetypes.Dispose();
+        _entityQueries.Dispose();
         _archetypeLookup.Dispose();
+        _querieLookup.Dispose();
 
         s_freeWorldSlots.Enqueue(_id);
+        s_worlds[_id] = null;
 
         _disposed = true;
 

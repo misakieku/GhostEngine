@@ -1,6 +1,6 @@
 namespace Ghost.Entities;
 
-public unsafe class EntityQuery<T1, T2>
+public unsafe class EntityQueryy<T1, T2>
     where T1 : unmanaged, IComponent
     where T2 : unmanaged, IComponent
 {

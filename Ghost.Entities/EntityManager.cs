@@ -110,13 +110,13 @@ public unsafe class EntityManager : IDisposable
                                  ref Archetype newArch, int newChunk, int newRow)
     {
         // Iterate every component type in the OLD archetype
-        for (var i = 0; i < oldArch.Layouts.Count; i++)
+        for (var i = 0; i < oldArch._layouts.Count; i++)
         {
-            var layout = oldArch.Layouts[i];
+            var layout = oldArch._layouts[i];
 
-            var src = oldArch.Chunks[oldChunk].GetUnsafePtr() + layout.offset + (layout.size * oldRow);
+            var src = oldArch._chunks[oldChunk].GetUnsafePtr() + layout.offset + (layout.size * oldRow);
             var newOffset = newArch.GetOffset(layout.componentID); // O(1) Lookup
-            var dst = oldArch.Chunks[oldChunk].GetUnsafePtr() + newOffset + (layout.size * newRow);
+            var dst = oldArch._chunks[oldChunk].GetUnsafePtr() + newOffset + (layout.size * newRow);
 
             MemoryUtility.MemCpy(src, dst, (nuint)layout.size);
         }
@@ -133,7 +133,7 @@ public unsafe class EntityManager : IDisposable
 
         // Build new archetype signature
         ref var oldArchetype = ref _world.GetArchetypeReference(location.archetypeID);
-        var oldSignature = oldArchetype.Signature;
+        var oldSignature = oldArchetype._signature;
 
         // TODO: Check edge cache first.
         var newArcID = oldArchetype.GetEdgeAdd(componentID);

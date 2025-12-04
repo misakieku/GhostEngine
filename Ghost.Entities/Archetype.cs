@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities;
 
-internal unsafe struct Chuck : IDisposable
+internal unsafe struct Chunk : IDisposable
 {
     public const int CHUNK_SIZE = 16384; // 16 KB
 
@@ -22,7 +22,7 @@ internal unsafe struct Chuck : IDisposable
 
     public int Capacity => _capacity;
 
-    public Chuck(int size, int capacity)
+    public Chunk(int size, int capacity)
     {
         _data = new UnsafeArray<byte>(size, Allocator.Persistent);
         _capacity = capacity;
@@ -59,11 +59,11 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
     private readonly Identifier<Archetype> _id;
     private readonly Identifier<World> _worldID;
 
-    private UnsafeBitSet _signature;
-    private UnsafeList<Chuck> _chunks;
-    private UnsafeArray<ComponentMemoryLayout> _layouts;
-    private UnsafeArray<int> _componentIDToOffset;
+    internal UnsafeBitSet _signature;
+    internal UnsafeList<Chunk> _chunks;
+    internal UnsafeArray<ComponentMemoryLayout> _layouts;
 
+    private UnsafeArray<int> _componentIDToOffset;
     // TODO: Is hash map better?
     private UnsafeList<Edge> _edgesAdd;
     private UnsafeList<Edge> _edgesRemove;
@@ -74,10 +74,6 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
     private int _entityIdsOffset;
 
     public Identifier<Archetype> ID => _id;
-
-    public UnsafeBitSet Signature => _signature;
-    public UnsafeList<Chuck> Chunks => _chunks;
-    public UnsafeArray<ComponentMemoryLayout> Layouts => _layouts;
 
     public int EntityCapacity => _entityCapacity;
     public int ChunkCount => _chunks.Count;
@@ -90,14 +86,14 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         if (componentIds.IsEmpty)
         {
             _signature = new UnsafeBitSet(1, Allocator.Persistent, AllocationOption.Clear);
-            _chunks = new UnsafeList<Chuck>(4, Allocator.Persistent);
+            _chunks = new UnsafeList<Chunk>(4, Allocator.Persistent);
 
             _edgesAdd = new UnsafeList<Edge>(4, Allocator.Persistent);
             _edgesRemove = new UnsafeList<Edge>(4, Allocator.Persistent);
 
             _signature.ClearAll();
 
-            _entityCapacity = Chuck.CHUNK_SIZE / sizeof(Entity);
+            _entityCapacity = Chunk.CHUNK_SIZE / sizeof(Entity);
 
             return;
         }
@@ -112,7 +108,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         }
 
         _signature = new UnsafeBitSet(highestComponentID + 1, Allocator.Persistent, AllocationOption.Clear);
-        _chunks = new UnsafeList<Chuck>(4, Allocator.Persistent);
+        _chunks = new UnsafeList<Chunk>(4, Allocator.Persistent);
 
         _edgesAdd = new UnsafeList<Edge>(4, Allocator.Persistent);
         _edgesRemove = new UnsafeList<Edge>(4, Allocator.Persistent);
@@ -148,7 +144,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         }
 
         _maxComponentID = maxComponentID;
-        _entityCapacity = Chuck.CHUNK_SIZE / bytesPerEntity;
+        _entityCapacity = Chunk.CHUNK_SIZE / bytesPerEntity;
         _layouts = new UnsafeArray<ComponentMemoryLayout>(components.Length, Allocator.Persistent);
         _componentIDToOffset = new UnsafeArray<int>(_maxComponentID + 1, Allocator.Persistent);
 
@@ -176,7 +172,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
                 tempOffsets[i] = currentOffset;
                 currentOffset += _entityCapacity * size;
 
-                if (currentOffset > Chuck.CHUNK_SIZE)
+                if (currentOffset > Chunk.CHUNK_SIZE)
                 {
                     fits = false;
                     break;
@@ -220,7 +216,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         }
 
         // Need to allocate a new chunk
-        var newChunk = new Chuck(Chuck.CHUNK_SIZE, _entityCapacity);
+        var newChunk = new Chunk(Chunk.CHUNK_SIZE, _entityCapacity);
 
         rowIndex = 0;
         newChunk.Count++;
@@ -234,9 +230,9 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
     {
         var chunk = _chunks[chunkIndex];
         var chunkBase = chunk.GetUnsafePtr();
-        var pEntity = chunkBase + _entityIdsOffset + (sizeof(Entity) * rowIndex);
+        var dst = chunkBase + _entityIdsOffset + (sizeof(Entity) * rowIndex);
 
-        MemoryUtility.MemCpy(&entity, pEntity, (nuint)sizeof(Entity));
+        MemoryUtility.MemCpy(&entity, dst, (nuint)sizeof(Entity));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -253,7 +249,20 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ref Chuck GetChunkReference(int index)
+    public void* GetComponentDataPtr(int chunkIndex, int rowIndex, Identifier<IComponent> componentID)
+    {
+        var offset = _componentIDToOffset[componentID];
+        var chunk = _chunks[chunkIndex];
+
+        var chunkBase = chunk.GetUnsafePtr();
+        var size = ComponentRegister.GetComponentInfo(componentID).size;
+        var dst = chunkBase + offset + (size * rowIndex);
+
+        return dst;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ref Chunk GetChunkReference(int index)
     {
         return ref _chunks[index];
     }

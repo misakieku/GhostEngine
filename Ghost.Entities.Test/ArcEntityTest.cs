@@ -15,13 +15,23 @@ public partial class ArcEntityTest : ITest
     public void Run()
     {
         var entity1 = _world.EntityManager.CreateEntity(ComponentTypeID<TransformData>.value);
-        Console.WriteLine($"{entity1} Has Transform: {_world.EntityManager.HasComponent<TransformData>(entity1)}");
         var mesh = new MeshData { index = 1 };
         _world.EntityManager.AddComponent<MeshData>(entity1, ref mesh);
-        Console.WriteLine($"{entity1} Has Mesh: {_world.EntityManager.HasComponent<MeshData>(entity1)}");
 
-        _world.EntityManager.DestoryEntity(entity1);
-        Console.WriteLine($"{entity1} Has Transform: {_world.EntityManager.HasComponent<TransformData>(entity1)}");
+        var queryID = new QueryBuilder().WithAll<TransformData>().Build(_world);
+        ref var query = ref _world.GetEntityQueryReference(queryID);
+
+        foreach (var item in query)
+        {
+            var transforms = item.GetComponentData<TransformData>();
+            Console.WriteLine($"Item Count: {item.Count}");
+            for (var i = 0; i < item.Count; i++)
+            {
+                Console.WriteLine($"Entity Position: {transforms[i].position}");
+                transforms[i].position = new float3(1, 2, 3);
+                Console.WriteLine($"Updated Entity Position: {transforms[i].position}");
+            }
+        }
     }
 
     public void Cleanup()
