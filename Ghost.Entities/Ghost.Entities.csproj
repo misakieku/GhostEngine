@@ -8,7 +8,52 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Templates\ForEach.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Templates\EntityQuery.ForEach.gen.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>EntityQuery.ForEach.tt</DependentUpon>
+    </None>
+    <None Include="Templates\ForEach.gen.cs">
+      <DependentUpon>ForEach.tt</DependentUpon>
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Ghost.Core\Ghost.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Templates\EntityQuery.ForEach.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>EntityQuery.ForEach.gen.cs</LastGenOutput>
+    </None>
+    <None Update="Templates\ForEach.tt">
+      <LastGenOutput>ForEach.gen.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Templates\EntityQuery.ForEach.gen.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>EntityQuery.ForEach.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Templates\ForEach.gen.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ForEach.tt</DependentUpon>
+    </Compile>
   </ItemGroup>
 
 </Project>

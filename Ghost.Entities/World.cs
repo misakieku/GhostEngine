@@ -196,6 +196,16 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
             return;
         }
 
+        foreach (var archetype in _archetypes)
+        {
+            archetype.Dispose();
+        }
+
+        foreach (var query in _entityQueries)
+        {
+            query.Dispose();
+        }
+
         _entityManager.Dispose();
         _entityCommandBuffer.Dispose();
 

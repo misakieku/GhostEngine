@@ -15,13 +15,19 @@ public unsafe class EntityManager : IDisposable
         public int rowIndex;
     }
 
-    private World _world;
+    private readonly World _world;
     private UnsafeSlotMap<EntityLocation> _entityLocations;
+    private bool _disposed;
 
     internal EntityManager(World world, int initialCapacity)
     {
         _world = world;
-        _entityLocations = new UnsafeSlotMap<EntityLocation>(initialCapacity, Allocator.Persistent);
+        _entityLocations = new UnsafeSlotMap<EntityLocation>(initialCapacity, Allocator.Persistent, AllocationOption.Clear);
+    }
+
+    ~EntityManager()
+    {
+        Dispose();
     }
 
     internal ResultStatus UpdateEntityLocation(Entity entity, Identifier<Archetype> newArchetypeID, int newChunkIndex, int newRowIndex)
@@ -115,8 +121,8 @@ public unsafe class EntityManager : IDisposable
             var layout = oldArch._layouts[i];
 
             var src = oldArch._chunks[oldChunk].GetUnsafePtr() + layout.offset + (layout.size * oldRow);
-            var newOffset = newArch.GetOffset(layout.componentID); // O(1) Lookup
-            var dst = oldArch._chunks[oldChunk].GetUnsafePtr() + newOffset + (layout.size * newRow);
+            var newOffset = newArch.GetOffset(layout.componentID); // O(1) Looku
+            var dst = newArch._chunks[newChunk].GetUnsafePtr() + newOffset + (layout.size * newRow);
 
             MemoryUtility.MemCpy(src, dst, (nuint)layout.size);
         }
@@ -217,10 +223,10 @@ public unsafe class EntityManager : IDisposable
         return ResultStatus.Success;
     }
 
-    public ResultStatus AddComponent<T>(Entity entity, ref T component)
+    public ResultStatus AddComponent<T>(Entity entity, T component)
         where T : unmanaged, IComponent
     {
-        return AddComponent(entity, ComponentTypeID<T>.value, UnsafeUtility.AddressOf(ref component));
+        return AddComponent(entity, ComponentTypeID<T>.value, &component);
     }
 
     public ResultStatus SetComponentData(Entity entity, Identifier<IComponent> componentID, void* pComponent)
@@ -236,10 +242,10 @@ public unsafe class EntityManager : IDisposable
         return ResultStatus.Success;
     }
 
-    public ResultStatus SetComponentData<T>(Entity entity, ref T component)
+    public ResultStatus SetComponentData<T>(Entity entity, T component)
         where T : unmanaged, IComponent
     {
-        return SetComponentData(entity, ComponentTypeID<T>.value, UnsafeUtility.AddressOf(ref component));
+        return SetComponentData(entity, ComponentTypeID<T>.value, &component);
     }
 
     public bool HasComponent(Entity entity, Identifier<IComponent> componentID)
@@ -261,6 +267,14 @@ public unsafe class EntityManager : IDisposable
 
     public void Dispose()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         _entityLocations.Dispose();
+        _disposed = true;
+
+        GC.SuppressFinalize(this);
     }
 }

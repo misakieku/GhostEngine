@@ -1,6 +1,7 @@
 using Ghost.Core;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities;
 
@@ -10,30 +11,15 @@ public struct EntityQueryMask : IDisposable
     public UnsafeBitSet any;
     public UnsafeBitSet absent;
 
-    public bool Matches(UnsafeBitSet archetypeSignature)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly bool Matches(UnsafeBitSet archetypeSignature)
     {
-        // 1. Check All: Archetype must have ALL bits set
-        if (all.IsCreated && !archetypeSignature.All(all))
-        {
-            return false;
-        }
-
-        // 2. Check None: Archetype must have NONE of these bits set
-        if (absent.IsCreated && archetypeSignature.Any(absent))
-        {
-            return false;
-        }
-
-        // 3. Check Any: Archetype must have AT LEAST ONE of these bits (if Any is defined)
-        if (any.IsCreated && any.Count != 0 && !archetypeSignature.Any(any))
-        {
-            return false;
-        }
-
-        return true;
+        return (!all.IsCreated || all.All(archetypeSignature))
+            && (!absent.IsCreated || absent.None(archetypeSignature))
+            && (!any.IsCreated || any.Count == 0 || any.Any(archetypeSignature));
     }
 
-    public override int GetHashCode()
+    public readonly override int GetHashCode()
     {
         var hash = 17;
         if (all.IsCreated) hash = hash * 23 + all.GetHashCode();
@@ -51,90 +37,114 @@ public struct EntityQueryMask : IDisposable
     }
 }
 
-public unsafe struct EntityQuery : IIdentifierType, IDisposable
+public unsafe partial struct EntityQuery : IIdentifierType, IDisposable
 {
-    public readonly ref struct QueryItem
+    public readonly ref struct ChunkIterator
     {
-        private readonly ref Archetype _archetype;
-        private readonly ref Chunk _chunk;
-
-        public readonly int Count => _chunk.Count;
-
-        internal QueryItem(ref Archetype archetype, int chunkIndex)
+        public readonly ref struct ChunkView
         {
-            _archetype = ref archetype;
-            _chunk = ref archetype.GetChunkReference(chunkIndex);
-        }
+            private readonly ref Archetype _archetype;
+            private readonly ref Chunk _chunk;
 
-        public readonly Span<T> GetComponentData<T>()
-            where T : unmanaged, IComponent
-        {
-            var offset = _archetype.GetOffset(ComponentTypeID<T>.value);
-            if (offset < 0)
+            public readonly int Count => _chunk.Count;
+
+            internal ChunkView(ref Archetype archetype, int chunkIndex)
             {
-                throw new InvalidOperationException($"Archetype does not contain component of type {typeof(T)}");
+                _archetype = ref archetype;
+                _chunk = ref archetype.GetChunkReference(chunkIndex);
             }
 
-            var ptr = (byte*)_chunk.GetUnsafePtr() + offset;
-            return new Span<T>(ptr, _chunk.Count);
+            public readonly ReadOnlySpan<Entity> GetEntities()
+            {
+                var ptr = _chunk.GetUnsafePtr();
+                var pEntity = (Entity*)(ptr + _archetype.EntityIDsOffset);
+                return new ReadOnlySpan<Entity>(pEntity, _chunk.Count);
+            }
+
+            public readonly Span<T> GetComponentData<T>()
+                where T : unmanaged, IComponent
+            {
+                var offset = _archetype.GetOffset(ComponentTypeID<T>.value);
+                if (offset < 0)
+                {
+                    throw new InvalidOperationException($"Archetype does not contain component of type {typeof(T)}");
+                }
+
+                var ptr = (byte*)_chunk.GetUnsafePtr() + offset;
+                return new Span<T>(ptr, _chunk.Count);
+            }
         }
-    }
 
-    public ref struct ChunkEnumerator
-    {
-        private ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
-        private World _world;
-        private int _archetypeIndex;
-        private int _chunkIndex;
+        public ref struct Enumerator
+        {
+            private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
+            private readonly World _world;
+            private int _archetypeIndex;
+            private int _chunkIndex;
 
-        internal ChunkEnumerator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, World world)
+            internal Enumerator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, World world)
+            {
+                _matchingArchetypes = matchingArchetypes;
+                _world = world;
+                _archetypeIndex = 0;
+                _chunkIndex = -1;
+            }
+
+            public readonly ChunkView Current
+            {
+                get
+                {
+                    ref var archetype = ref _world.GetArchetypeReference(_matchingArchetypes[_archetypeIndex]);
+                    return new ChunkView(ref archetype, _chunkIndex);
+                }
+            }
+
+            public bool MoveNext()
+            {
+                _chunkIndex++;
+
+                while (_archetypeIndex < _matchingArchetypes.Count)
+                {
+                    ref var archetype = ref _world.GetArchetypeReference(_matchingArchetypes[_archetypeIndex]);
+                    if (_chunkIndex < archetype.ChunkCount)
+                    {
+                        return true;
+                    }
+
+                    _chunkIndex = 0;
+                    _archetypeIndex++;
+                }
+
+                return false;
+            }
+
+            public void Reset()
+            {
+                _archetypeIndex = 0;
+                _chunkIndex = -1;
+            }
+
+            public readonly void Dispose()
+            {
+            }
+        }
+
+        private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
+        private readonly World _world;
+
+        internal ChunkIterator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, World world)
         {
             _matchingArchetypes = matchingArchetypes;
             _world = world;
-            _archetypeIndex = 0;
-            _chunkIndex = -1;
         }
 
-        public QueryItem Current
+        public readonly Enumerator GetEnumerator()
         {
-            get
-            {
-                ref var archetype = ref _world.GetArchetypeReference(_matchingArchetypes[_archetypeIndex]);
-                return new QueryItem(ref archetype, _chunkIndex);
-            }
-        }
-
-        public bool MoveNext()
-        {
-            _chunkIndex++;
-
-            while (_archetypeIndex < _matchingArchetypes.Count)
-            {
-                ref var archetype = ref _world.GetArchetypeReference(_matchingArchetypes[_archetypeIndex]);
-                if (_chunkIndex < archetype.ChunkCount)
-                {
-                    return true;
-                }
-
-                _chunkIndex = 0;
-                _archetypeIndex++;
-            }
-
-            return false;
-        }
-
-        public void Reset()
-        {
-            _archetypeIndex = 0;
-            _chunkIndex = -1;
-        }
-
-        public void Dispose()
-        {
+            return new Enumerator(_matchingArchetypes, _world);
         }
     }
 
-    private Identifier<World> _worldID;
+    private readonly Identifier<World> _worldID;
     private EntityQueryMask _mask;
     private UnsafeList<Identifier<Archetype>> _matchingArchetypes;
 
@@ -145,7 +155,6 @@ public unsafe struct EntityQuery : IIdentifierType, IDisposable
         _matchingArchetypes = new UnsafeList<Identifier<Archetype>>(8, Allocator.Persistent);
     }
 
-    // Called by World when a new archetype is created
     internal void AddArchetypeIfMatch(Archetype archetype)
     {
         if (_mask.Matches(archetype._signature))
@@ -154,10 +163,10 @@ public unsafe struct EntityQuery : IIdentifierType, IDisposable
         }
     }
 
-    public ChunkEnumerator GetEnumerator()
+    public readonly ChunkIterator GetChunkIterator()
     {
         var world = World.GetWorld(_worldID).Value;
-        return new ChunkEnumerator(_matchingArchetypes.AsReadOnly(), world);
+        return new ChunkIterator(_matchingArchetypes.AsReadOnly(), world);
     }
 
     public void Dispose()
@@ -169,7 +178,7 @@ public unsafe struct EntityQuery : IIdentifierType, IDisposable
 
 public ref struct QueryBuilder
 {
-    private Stack.Scope _scope;
+    private readonly Stack.Scope _scope;
 
     private UnsafeList<Identifier<IComponent>> _all;
     private UnsafeList<Identifier<IComponent>> _any;
@@ -244,7 +253,7 @@ public ref struct QueryBuilder
         return queryID;
     }
 
-    private void FindMax(UnsafeList<Identifier<IComponent>> list, ref int max)
+    private static void FindMax(UnsafeList<Identifier<IComponent>> list, ref int max)
     {
         foreach (var id in list)
         {

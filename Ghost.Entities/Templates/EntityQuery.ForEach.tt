@@ -1,0 +1,127 @@
+<#@ template language="C#" #>
+<#@ output extension="gen.cs" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ include file="Helpers.ttinclude" #>
+using Ghost.Core;
+
+namespace Ghost.Entities;
+
+public unsafe partial struct EntityQuery
+{
+<# for (var i = 1; i <= Amount; i++)
+{
+    var generics = AppendGenerics(i);
+    var compGenerics = AppendGenericRefParameters(i);
+    var restrictions = AppendGenericRestrictionsMultiline(i, "unmanaged, IComponent", 2);
+#>
+    public readonly void ForEach<<#= generics #>>(ForEach<<#= generics #>> action)
+<#= restrictions #>
+    {
+        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+
+        var compTypeIDs = stackalloc int[] { <#= AppendGenerics(i, "ComponentTypeID<T{0}>.value") #> };
+        var offsets = stackalloc int[<#= i #>];
+        var basePtrs = stackalloc byte*[<#= i #>];
+
+        foreach (var archetypeID in _matchingArchetypes)
+        {
+            ref var archetype = ref world.GetArchetypeReference(archetypeID);
+            var hasAllComponents = true;
+            for (var index = 0; index < <#= i #>; index++)
+            {
+                offsets[index] = archetype.GetOffset(compTypeIDs[index]);
+                if (offsets[index] == -1)
+                {
+                    hasAllComponents = false;
+                    break;
+                }
+            }
+
+            if (!hasAllComponents)
+            {
+                continue;
+            }
+
+            for (var chunkIndex = 0; chunkIndex < archetype.ChunkCount; chunkIndex++)
+            {
+                ref var chunk = ref archetype.GetChunkReference(chunkIndex);
+                var count = chunk.Count;
+                for (var index = 0; index < <#= i #>; index++)
+                {
+                    basePtrs[index] = chunk.GetUnsafePtr() + offsets[index];
+                }
+
+                for (var entityIndex = 0; entityIndex < count; entityIndex++)
+                {
+<# for (var localIndex = 0; localIndex < i; localIndex++) { #>
+                    var pComp<#= localIndex #> = (T<#= localIndex #>*)(basePtrs[<#= localIndex #>] + (sizeof(T<#= localIndex #>) * entityIndex));
+<# } #>
+
+                    action(<#= AppendRefParameters(i, "*pComp{0}") #>);
+                }
+            }
+        }
+    }
+
+<# } #>
+
+<# for (var i = 1; i <= Amount; i++)
+{
+    var generics = AppendGenerics(i);
+    var compGenerics = AppendGenericRefParameters(i);
+    var restrictions = AppendGenericRestrictionsMultiline(i, "unmanaged, IComponent", 2);
+#>
+    public readonly void ForEach<<#= generics #>>(ForEachWithEntity<<#= generics #>> action)
+<#= restrictions #>
+    {
+        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+
+        var compTypeIDs = stackalloc int[] { <#= AppendGenerics(i, "ComponentTypeID<T{0}>.value") #> };
+        var offsets = stackalloc int[<#= i #>];
+        var basePtrs = stackalloc byte*[<#= i #>];
+
+        foreach (var archetypeID in _matchingArchetypes)
+        {
+            ref var archetype = ref world.GetArchetypeReference(archetypeID);
+            var hasAllComponents = true;
+            for (var index = 0; index < <#= i #>; index++)
+            {
+                offsets[index] = archetype.GetOffset(compTypeIDs[index]);
+                if (offsets[index] == -1)
+                {
+                    hasAllComponents = false;
+                    break;
+                }
+            }
+
+            if (!hasAllComponents)
+            {
+                continue;
+            }
+
+            for (var chunkIndex = 0; chunkIndex < archetype.ChunkCount; chunkIndex++)
+            {
+                ref var chunk = ref archetype.GetChunkReference(chunkIndex);
+                var count = chunk.Count;
+                for (var index = 0; index < <#= i #>; index++)
+                {
+                    basePtrs[index] = chunk.GetUnsafePtr() + offsets[index];
+                }
+
+                for (var entityIndex = 0; entityIndex < count; entityIndex++)
+                {
+                    var pEntity = (Entity*)(chunk.GetUnsafePtr() + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
+<# for (var localIndex = 0; localIndex < i; localIndex++) { #>
+                    var pComp<#= localIndex #> = (T<#= localIndex #>*)(basePtrs[<#= localIndex #>] + (sizeof(T<#= localIndex #>) * entityIndex));
+<# } #>
+
+                    action(*pEntity, <#= AppendRefParameters(i, "*pComp{0}") #>);
+                }
+            }
+        }
+    }
+
+<# } #>
+}

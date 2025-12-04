@@ -8,7 +8,7 @@ public unsafe class EntityQueryy<T1, T2>
     struct ArchetypeCache
     {
         public Archetype Archetype;
-        public int Offset1; // Offset for T1
+        public int Offset1; // Offset for T0
         public int Offset2; // Offset for T2
     }
 

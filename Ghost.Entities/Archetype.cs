@@ -16,21 +16,21 @@ internal unsafe struct Chunk : IDisposable
 
     public int Count
     {
-        get => _count;
+        readonly get => _count;
         set => _count = value;
     }
 
-    public int Capacity => _capacity;
+    public readonly int Capacity => _capacity;
 
     public Chunk(int size, int capacity)
     {
-        _data = new UnsafeArray<byte>(size, Allocator.Persistent);
+        _data = new UnsafeArray<byte>(size, Allocator.Persistent, AllocationOption.Clear);
         _capacity = capacity;
         _count = 0;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public byte* GetUnsafePtr()
+    public readonly byte* GetUnsafePtr()
     {
         return (byte*)_data.GetUnsafePtr();
     }
@@ -68,15 +68,16 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
     private UnsafeList<Edge> _edgesAdd;
     private UnsafeList<Edge> _edgesRemove;
 
-    private int _hash;
+    private readonly int _hash;
     private int _entityCapacity;
     private int _maxComponentID;
     private int _entityIdsOffset;
 
-    public Identifier<Archetype> ID => _id;
+    public readonly Identifier<Archetype> ID => _id;
 
-    public int EntityCapacity => _entityCapacity;
-    public int ChunkCount => _chunks.Count;
+    public readonly int EntityCapacity => _entityCapacity;
+    public readonly int ChunkCount => _chunks.Count;
+    public readonly int EntityIDsOffset => _entityIdsOffset;
 
     public Archetype(Identifier<Archetype> id, Identifier<World> worldID, ReadOnlySpan<Identifier<IComponent>> componentIds)
     {
@@ -204,7 +205,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
     {
         for (var i = 0; i < _chunks.Count; i++)
         {
-            var chunk = _chunks[i];
+            ref var chunk = ref _chunks[i];
             if (chunk.Count < _entityCapacity)
             {
                 rowIndex = chunk.Count;
@@ -226,7 +227,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetEntity(int chunkIndex, int rowIndex, Entity entity)
+    public readonly void SetEntity(int chunkIndex, int rowIndex, Entity entity)
     {
         var chunk = _chunks[chunkIndex];
         var chunkBase = chunk.GetUnsafePtr();
@@ -236,7 +237,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetComponentData(int chunkIndex, int rowIndex, Identifier<IComponent> componentID, void* pComponent)
+    public readonly void SetComponentData(int chunkIndex, int rowIndex, Identifier<IComponent> componentID, void* pComponent)
     {
         var offset = _componentIDToOffset[componentID];
         var chunk = _chunks[chunkIndex];
@@ -249,7 +250,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void* GetComponentDataPtr(int chunkIndex, int rowIndex, Identifier<IComponent> componentID)
+    public readonly void* GetComponentDataPtr(int chunkIndex, int rowIndex, Identifier<IComponent> componentID)
     {
         var offset = _componentIDToOffset[componentID];
         var chunk = _chunks[chunkIndex];
@@ -268,7 +269,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int GetOffset(int componentId)
+    public readonly int GetOffset(int componentId)
     {
         if (componentId >= _componentIDToOffset.Count)
         {
@@ -326,7 +327,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool HasComponent(Identifier<IComponent> componentID)
+    public readonly bool HasComponent(Identifier<IComponent> componentID)
     {
         return _signature.IsSet(componentID);
     }
@@ -342,7 +343,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Identifier<Archetype> GetEdgeAdd(Identifier<IComponent> componentID)
+    public readonly Identifier<Archetype> GetEdgeAdd(Identifier<IComponent> componentID)
     {
         for (var i = 0; i < _edgesAdd.Count; i++)
         {
@@ -367,7 +368,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Identifier<Archetype> GetEdgeRemove(Identifier<IComponent> componentID)
+    public readonly Identifier<Archetype> GetEdgeRemove(Identifier<IComponent> componentID)
     {
         for (var i = 0; i < _edgesRemove.Count; i++)
         {
@@ -382,7 +383,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Span<T> GetComponentArray<T>(int chunkIndex)
+    public readonly Span<T> GetComponentArray<T>(int chunkIndex)
         where T : unmanaged, IComponent
     {
         var id = ComponentTypeID<T>.value;
@@ -401,7 +402,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         return new Span<T>((T*)((byte*)chunk.GetUnsafePtr() + offset), chunk.Count);
     }
 
-    public override int GetHashCode()
+    public override readonly int GetHashCode()
     {
         return _hash;
     }

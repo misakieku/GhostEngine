@@ -16,7 +16,7 @@ public struct ComponentInfo
     public Identifier<IComponent> id;
 }
 
-public static unsafe class ComponentTypeID<T>
+public static class ComponentTypeID<T>
     where T : unmanaged, IComponent
 {
     public static readonly Identifier<IComponent> value = ComponentRegister.GetOrRegisterComponent<T>();

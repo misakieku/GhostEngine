@@ -39,12 +39,12 @@
         return sb;
     }
 
-    public StringBuilder AppendRefParameters(int amount)
+    public StringBuilder AppendRefParameters(int amount, string template)
     {
         var sb = new StringBuilder();
         for (var localIndex = 0; localIndex < amount; localIndex++)
         {
-            sb.Append($"ref component{localIndex},");
+            sb.Append($"ref {string.Format(template, localIndex)},");
         }
 
         sb.Length--;
@@ -68,6 +68,27 @@
     public StringBuilder AppendGenericRestrictions(int amount, string template)
     {
         return AppendGenericRestrictions(amount, "T", template);
+    }
+
+    public StringBuilder AppendGenericRestrictionsMultiline(int amount, string Ttemplate, string template, int indentation)
+    {
+        var sb = new StringBuilder();
+        var spaces = new string(' ', indentation * 4);
+
+        for (var localIndex = 0; localIndex < amount; localIndex++)
+        {
+            sb.Append($"{spaces}where {Ttemplate}{localIndex} : {template}");
+            if (localIndex < amount - 1)
+            {
+                sb.AppendLine();
+            }
+        }
+        return sb;
+    }
+
+    public StringBuilder AppendGenericRestrictionsMultiline(int amount, string template, int indentation)
+    {
+        return AppendGenericRestrictionsMultiline(amount, "T", template, indentation);
     }
 
     public StringBuilder TryGetComponentPools(int amount)
@@ -112,7 +133,7 @@
         return sb;
     }
 
-        public StringBuilder GetComponentRef(int amount)
+    public StringBuilder GetComponentRef(int amount)
     {
         var sb = new StringBuilder();
         for (var localIndex = 0; localIndex < amount; localIndex++)
