@@ -23,7 +23,7 @@ public unsafe class EntityCommandBuffer : IDisposable
     }
 
     private readonly EntityManager _entityManager;
-    private UnsafeList<Command> _commands;
+    private UnsafeList<Command> _commands; // TODO: Maybe use UnsafeArray<byte> directly?
 
     public EntityCommandBuffer(EntityManager entityManager)
     {
@@ -58,7 +58,7 @@ public unsafe class EntityCommandBuffer : IDisposable
     }
 
     public void AddComponent<T>(Entity entity, T component)
-        where T : unmanaged
+        where T : unmanaged, IComponent
     {
         var data = new UnsafeArray<byte>(sizeof(T), Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
         MemoryUtility.MemCpy(&component, data.GetUnsafePtr(), (nuint)sizeof(T));
@@ -75,7 +75,7 @@ public unsafe class EntityCommandBuffer : IDisposable
     }
 
     public void RemoveComponent<T>(Entity entity)
-        where T : unmanaged
+        where T : unmanaged, IComponent
     {
         var command = new Command
         {

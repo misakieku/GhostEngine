@@ -106,6 +106,29 @@ public readonly struct Identifier<T>
     {
         return !a.Equals(b);
     }
+
+    public static bool operator <(Identifier<T> a, Identifier<T> b)
+    {
+        return a.value < b.value;
+    }
+
+    public static bool operator >(Identifier<T> a, Identifier<T> b)
+    {
+        return a.value > b.value;
+    }
+
+    public static bool operator <=(Identifier<T> a, Identifier<T> b)
+    {
+        return a.value <= b.value;
+    }
+
+    public static bool operator >=(Identifier<T> a, Identifier<T> b)
+    {
+        return a.value >= b.value;
+    }
+
+    public static implicit operator int(Identifier<T> id) => id.value;
+    public static implicit operator Identifier<T>(int value) => new Identifier<T>(value);
 }
 
 public readonly struct Key<T>

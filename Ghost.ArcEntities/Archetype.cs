@@ -43,18 +43,19 @@ internal unsafe struct Chuck : IDisposable
 
 internal struct Edge
 {
-    public int componentID;
+    public Identifier<IComponent> componentID;
     public Identifier<Archetype> targetArchetype;
+}
+
+internal struct ComponentMemoryLayout
+{
+    public int offset;
+    public int size;
+    public Identifier<IComponent> componentID;
 }
 
 internal unsafe struct Archetype : IIdentifierType, IDisposable
 {
-    private struct ComponentMemoryLayout
-    {
-        public int offset;
-        public int size;
-    }
-
     private readonly Identifier<Archetype> _id;
     private readonly Identifier<World> _worldID;
 
@@ -63,18 +64,25 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
     private UnsafeArray<ComponentMemoryLayout> _layouts;
     private UnsafeArray<int> _componentIDToOffset;
 
+    // TODO: Is hash map better?
     private UnsafeList<Edge> _edgesAdd;
     private UnsafeList<Edge> _edgesRemove;
 
+    private int _hash;
     private int _entityCapacity;
     private int _maxComponentID;
     private int _entityIdsOffset;
 
+    public Identifier<Archetype> ID => _id;
+
     public UnsafeBitSet Signature => _signature;
+    public UnsafeList<Chuck> Chunks => _chunks;
+    public UnsafeArray<ComponentMemoryLayout> Layouts => _layouts;
+
     public int EntityCapacity => _entityCapacity;
     public int ChunkCount => _chunks.Count;
 
-    public Archetype(Identifier<Archetype> id, Identifier<World> worldID, ReadOnlySpan<int> componentIds)
+    public Archetype(Identifier<Archetype> id, Identifier<World> worldID, ReadOnlySpan<Identifier<IComponent>> componentIds)
     {
         _id = id;
         _worldID = worldID;
@@ -109,11 +117,13 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         _edgesAdd = new UnsafeList<Edge>(4, Allocator.Persistent);
         _edgesRemove = new UnsafeList<Edge>(4, Allocator.Persistent);
 
+        _hash = _signature.GetHashCode();
+
         var pComponents = stackalloc ComponentInfo[componentIds.Length];
         for (var i = 0; i < componentIds.Length; i++)
         {
             _signature.SetBit(componentIds[i]);
-            pComponents[i] = ComponentRegister.s_registeredComponents[componentIds[i]];
+            pComponents[i] = ComponentRegister.GetComponentInfo(componentIds[i]);
         }
 
         CalculateLayout(new Span<ComponentInfo>(pComponents, componentIds.Length));
@@ -129,10 +139,11 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         var maxComponentID = 0;
         for (var i = 0; i < components.Length; i++)
         {
-            bytesPerEntity += components[i].size;
-            if (components[i].id > maxComponentID)
+            var comp = components[i];
+            bytesPerEntity += comp.size;
+            if (comp.id > maxComponentID)
             {
-                maxComponentID = components[i].id;
+                maxComponentID = comp.id;
             }
         }
 
@@ -144,6 +155,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         _componentIDToOffset.AsSpan().Fill(-1);
 
         components.Sort((a, b) => b.alignment.CompareTo(a.alignment));
+        var tempOffsets = stackalloc int[components.Length];
 
         while (_entityCapacity > 0)
         {
@@ -154,8 +166,6 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
 
             _entityIdsOffset = currentOffset;
             currentOffset += _entityCapacity * entitySize;
-
-            var tempOffsets = stackalloc int[components.Length];
 
             for (var i = 0; i < components.Length; i++)
             {
@@ -180,7 +190,8 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
                     _layouts[i] = new ComponentMemoryLayout
                     {
                         offset = tempOffsets[i],
-                        size = components[i].size
+                        size = components[i].size,
+                        componentID = components[i].id
                     };
 
                     _componentIDToOffset[components[i].id] = tempOffsets[i];
@@ -225,6 +236,19 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         var pEntity = chunkBase + _entityIdsOffset + (sizeof(Entity) * rowIndex);
 
         MemoryUtility.MemCpy(&entity, pEntity, (nuint)sizeof(Entity));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void SetComponentData(int chunkIndex, int rowIndex, Identifier<IComponent> componentID, void* pComponent)
+    {
+        var offset = _componentIDToOffset[componentID];
+        var chunk = _chunks[chunkIndex];
+
+        var chunkBase = chunk.GetUnsafePtr();
+        var size = ComponentRegister.GetComponentInfo(componentID).size;
+        var dst = chunkBase + offset + (size * rowIndex);
+
+        MemoryUtility.MemCpy(pComponent, dst, (nuint)size);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -292,7 +316,13 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AddEdgeAdd(int componentID, Identifier<Archetype> targetArchetype)
+    public bool HasComponent(Identifier<IComponent> componentID)
+    {
+        return _signature.IsSet(componentID);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void AddEdgeAdd(Identifier<IComponent> componentID, Identifier<Archetype> targetArchetype)
     {
         _edgesAdd.Add(new Edge
         {
@@ -302,21 +332,22 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Result<int, ResultStatus> GetEdgeAdd(int componentID)
+    public Identifier<Archetype> GetEdgeAdd(Identifier<IComponent> componentID)
     {
         for (var i = 0; i < _edgesAdd.Count; i++)
         {
-            if (_edgesAdd[i].componentID == componentID)
+            var edge = _edgesAdd[i];
+            if (edge.componentID == componentID)
             {
-                return Result.Create(_edgesAdd[i].targetArchetype.value, ResultStatus.Success);
+                return edge.targetArchetype;
             }
         }
 
-        return Result.Create(-1, ResultStatus.NotFound);
+        return Identifier<Archetype>.Invalid;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AddEdgeRemove(int componentID, Identifier<Archetype> targetArchetype)
+    public void AddEdgeRemove(Identifier<IComponent> componentID, Identifier<Archetype> targetArchetype)
     {
         _edgesRemove.Add(new Edge
         {
@@ -326,22 +357,23 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Result<int, ResultStatus> GetEdgeRemove(int componentID)
+    public Identifier<Archetype> GetEdgeRemove(Identifier<IComponent> componentID)
     {
         for (var i = 0; i < _edgesRemove.Count; i++)
         {
-            if (_edgesRemove[i].componentID == componentID)
+            var edge = _edgesRemove[i];
+            if (edge.componentID == componentID)
             {
-                return Result.Create(_edgesRemove[i].targetArchetype.value, ResultStatus.Success);
+                return edge.targetArchetype;
             }
         }
 
-        return Result.Create(-1, ResultStatus.NotFound);
+        return Identifier<Archetype>.Invalid;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public UnsafeArray<T> GetComponentArray<T>(int chunkIndex)
-        where T : unmanaged
+    public Span<T> GetComponentArray<T>(int chunkIndex)
+        where T : unmanaged, IComponent
     {
         var id = ComponentTypeID<T>.value;
         if (id >= _componentIDToOffset.Count)
@@ -356,7 +388,12 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         }
 
         var chunk = _chunks[chunkIndex];
-        return new UnsafeArray<T>((T*)((byte*)chunk.GetUnsafePtr() + offset), _entityCapacity);
+        return new Span<T>((T*)((byte*)chunk.GetUnsafePtr() + offset), chunk.Count);
+    }
+
+    public override int GetHashCode()
+    {
+        return _hash;
     }
 
     public void Dispose()

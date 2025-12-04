@@ -1,8 +1,8 @@
 namespace Ghost.ArcEntities;
 
 public unsafe class EntityQuery<T1, T2>
-    where T1 : unmanaged
-    where T2 : unmanaged
+    where T1 : unmanaged, IComponent
+    where T2 : unmanaged, IComponent
 {
     // The Cache Struct
     struct ArchetypeCache

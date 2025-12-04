@@ -57,11 +57,13 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
     private UnsafeList<Archetype> _archetypes;
     private UnsafeHashMap<int, Identifier<Archetype>> _archetypeLookup; // Signature Hash to Archetype ID
     private EntityManager _entityManager;
+    private EntityCommandBuffer _entityCommandBuffer;
 
     private bool _disposed = false;
 
     public Identifier<World> ID => _id;
     public EntityManager EntityManager => _entityManager;
+    public EntityCommandBuffer EntityCommandBuffer => _entityCommandBuffer;
 
     private World(Identifier<World> id, int entityCapacity)
     {
@@ -70,10 +72,11 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
         _archetypes = new UnsafeList<Archetype>(16, Allocator.Persistent);
         _archetypeLookup = new UnsafeHashMap<int, Identifier<Archetype>>(16, Allocator.Persistent);
 
-        _entityManager = new EntityManager(this);
+        _entityManager = new EntityManager(this, entityCapacity);
+        _entityCommandBuffer = new EntityCommandBuffer(_entityManager);
 
         // Create the empty archetype
-        CreateArchetype(ReadOnlySpan<int>.Empty, 0);
+        CreateArchetype(ReadOnlySpan<Identifier<IComponent>>.Empty, 0);
     }
 
     ~World()
@@ -81,11 +84,12 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
         Dispose();
     }
 
-    internal Identifier<Archetype> CreateArchetype(ReadOnlySpan<int> componentTypeIDs, int signatureHash)
+    internal Identifier<Archetype> CreateArchetype(ReadOnlySpan<Identifier<IComponent>> componentTypeIDs, int signatureHash)
     {
         var arcID = new Identifier<Archetype>(_archetypes.Count);
         _archetypes.Add(new Archetype(arcID, _id, componentTypeIDs));
         _archetypeLookup.Add(signatureHash, arcID);
+
         return arcID;
     }
 
@@ -135,6 +139,8 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
         {
             return;
         }
+
+        _entityManager.Dispose();
 
         _archetypes.Dispose();
         _archetypeLookup.Dispose();

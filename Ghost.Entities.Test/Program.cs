@@ -1,5 +1,3 @@
-
-using Ghost.Entities.Test;
 using Ghost.Test.Core;
 
-TestRunner.Run<EntityTest>();
+TestRunner.Run<Ghost.Entities.Test.ArcEntityTest>();

@@ -152,6 +152,14 @@ public readonly ref struct RefResult<T, S>
 
 public static class ResultExtensions
 {
+    public static void ThrowIfFailed(this ResultStatus result)
+    {
+        if (result != ResultStatus.Success)
+        {
+            throw new InvalidOperationException($"Operation failed: {result}");
+        }
+    }
+
     public static void ThrowIfFailed(this Result result)
     {
         if (!result.IsSuccess)
@@ -170,11 +178,6 @@ public static class ResultExtensions
         return result.Value;
     }
 
-    public static T? GetValueOrDefault<T>(this Result<T> result, T? defaultValue = default)
-    {
-        return result.IsSuccess ? result.Value : defaultValue;
-    }
-
     public static T GetValueOrThrow<T, S>(this Result<T, S> result, S expect)
         where S : Enum
     {
@@ -186,10 +189,27 @@ public static class ResultExtensions
         return result.Value;
     }
 
+    public static T? GetValueOrDefault<T>(this Result<T> result, T? defaultValue = default)
+    {
+        return result.IsSuccess ? result.Value : defaultValue;
+    }
+
     public static T? GetValueOrDefault<T, S>(this Result<T, S> result, S expect, T? defaultValue = default)
         where S : Enum
     {
         return (result.Status?.Equals(expect) ?? false) ? defaultValue : result.Value;
+    }
+
+    public static bool TryGetValue<T>(this Result<T> result, out T value)
+    {
+        if (result.IsSuccess)
+        {
+            value = result.Value;
+            return true;
+        }
+
+        value = default!;
+        return false;
     }
 
     public static Result OnSuccess(this Result result, Action action)
