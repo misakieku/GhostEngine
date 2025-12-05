@@ -4,7 +4,7 @@ public interface IHandleType;
 public interface IIdentifierType;
 public interface IKeyType;
 
-public readonly struct Handle<T>
+public readonly struct Handle<T> : IEquatable<Handle<T>>
     where T : IHandleType
 {
     public readonly int id;
@@ -57,7 +57,7 @@ public readonly struct Handle<T>
     }
 }
 
-public readonly struct Identifier<T>
+public readonly struct Identifier<T> : IEquatable<Identifier<T>>
     where T : IIdentifierType
 {
     public readonly int value;
@@ -74,7 +74,7 @@ public readonly struct Identifier<T>
 
     public readonly override int GetHashCode()
     {
-        return value.GetHashCode();
+        return value;
     }
 
     public readonly override bool Equals(object? obj)

@@ -1,3 +1,6 @@
+using System.Runtime.CompilerServices;
+using TerraFX.Interop.DirectX;
+
 namespace Ghost.Core;
 
 public readonly struct Result
@@ -152,38 +155,38 @@ public readonly ref struct RefResult<T, S>
 
 public static class ResultExtensions
 {
-    public static void ThrowIfFailed(this ResultStatus result)
+    public static void ThrowIfFailed(this ResultStatus result, [CallerArgumentExpression(nameof(result))] string? op = null)
     {
         if (result != ResultStatus.Success)
         {
-            throw new InvalidOperationException($"Operation failed: {result}");
+            throw new InvalidOperationException($"{op} failed: {result}");
         }
     }
 
-    public static void ThrowIfFailed(this Result result)
+    public static void ThrowIfFailed(this Result result, [CallerArgumentExpression(nameof(result))] string? op = null)
     {
         if (!result.IsSuccess)
         {
-            throw new InvalidOperationException($"Operation failed: {result.Message}");
+            throw new InvalidOperationException($"{op} failed: {result.Message}");
         }
     }
 
-    public static T GetValueOrThrow<T>(this Result<T> result)
+    public static T GetValueOrThrow<T>(this Result<T> result, [CallerArgumentExpression(nameof(result))] string? op = null)
     {
         if (!result.IsSuccess)
         {
-            throw new InvalidOperationException($"Operation failed: {result.Message}");
+            throw new InvalidOperationException($"{op} failed: {result.Message}");
         }
 
         return result.Value;
     }
 
-    public static T GetValueOrThrow<T, S>(this Result<T, S> result, S expect)
+    public static T GetValueOrThrow<T, S>(this Result<T, S> result, S expect, [CallerArgumentExpression(nameof(result))] string? op = null)
         where S : Enum
     {
         if (!EqualityComparer<S>.Default.Equals(result.Status, expect))
         {
-            throw new InvalidOperationException($"Operation failed: expected status {expect}, but got {result.Status}");
+            throw new InvalidOperationException($"{op} failed: expected status {expect}, but got {result.Status}");
         }
 
         return result.Value;
@@ -203,6 +206,19 @@ public static class ResultExtensions
     public static bool TryGetValue<T>(this Result<T> result, out T value)
     {
         if (result.IsSuccess)
+        {
+            value = result.Value;
+            return true;
+        }
+
+        value = default!;
+        return false;
+    }
+
+    public static bool TryGetValue<T, S>(this Result<T, S> result, S expect, out T value)
+        where S : Enum
+    {
+        if (EqualityComparer<S>.Default.Equals(result.Status, expect))
         {
             value = result.Value;
             return true;

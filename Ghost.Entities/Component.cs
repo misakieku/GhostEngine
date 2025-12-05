@@ -8,12 +8,17 @@ public interface IComponent : IIdentifierType
 {
 }
 
+public interface IEnableableComponent : IComponent
+{
+}
+
 public struct ComponentInfo
 {
     // public FixedText64 stableName; // Do we actually need this?
+    public Identifier<IComponent> id;
     public int size;
     public int alignment;
-    public Identifier<IComponent> id;
+    public bool isEnableable;
 }
 
 public static class ComponentTypeID<T>
@@ -25,12 +30,12 @@ public static class ComponentTypeID<T>
 internal static class ComponentRegister
 {
     private static int s_nextComponentTypeID = 0;
-    private static Dictionary<IntPtr, Identifier<IComponent>> s_typeHandleToID = new();
+    private static readonly Dictionary<IntPtr, Identifier<IComponent>> s_typeHandleToID = new();
 
-    private static List<ComponentInfo> s_registeredComponents = new();
-    private static Dictionary<string, Identifier<IComponent>> s_nameToRuntimeID = new();
+    private static readonly List<ComponentInfo> s_registeredComponents = new();
+    private static readonly Dictionary<string, Identifier<IComponent>> s_nameToRuntimeID = new();
 
-    public unsafe static Identifier<IComponent> GetOrRegisterComponent<T>()
+    public static unsafe Identifier<IComponent> GetOrRegisterComponent<T>()
         where T : unmanaged, IComponent
     {
         var typeHandle = typeof(T).TypeHandle.Value;
@@ -50,9 +55,10 @@ internal static class ComponentRegister
             var info = new ComponentInfo
             {
                 // stableName = new FixedText64(stableName),
+                id = newID,
                 size = sizeof(T),
                 alignment = (int)MemoryUtility.AlignOf<T>(),
-                id = newID,
+                isEnableable = typeof(IEnableableComponent).IsAssignableFrom(typeof(T))
             };
 
             while (s_registeredComponents.Count <= newID.value) s_registeredComponents.Add(default);

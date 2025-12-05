@@ -2,6 +2,7 @@ using Ghost.Core;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
+using System;
 using System.Diagnostics;
 
 namespace Ghost.Entities;
@@ -121,8 +122,14 @@ public unsafe class EntityManager : IDisposable
             var layout = oldArch._layouts[i];
 
             var src = oldArch._chunks[oldChunk].GetUnsafePtr() + layout.offset + (layout.size * oldRow);
-            var newOffset = newArch.GetOffset(layout.componentID); // O(1) Looku
-            var dst = newArch._chunks[newChunk].GetUnsafePtr() + newOffset + (layout.size * newRow);
+            var layoutResult = newArch.GetLayout(layout.componentID);
+            Debug.Assert(layoutResult.Status == ResultStatus.Success); // This should always be true if the system is consistent.
+            if (layoutResult.Status != ResultStatus.Success)
+            {
+                continue;
+            }
+
+            var dst = newArch._chunks[newChunk].GetUnsafePtr() + layoutResult.Value.offset + (layout.size * newRow);
 
             MemoryUtility.MemCpy(src, dst, (nuint)layout.size);
         }
@@ -210,10 +217,10 @@ public unsafe class EntityManager : IDisposable
 
         var r = oldArchetype.RemoveEntity(location.chunkIndex, location.rowIndex);
         Debug.Assert(r == ResultStatus.Success); // We assert it because the entity should exist if the whole system is consistent.
-        // if (r != ResultStatus.Success)
-        // {
-        //     return r;
-        // }
+        if (r != ResultStatus.Success)
+        {
+            return r;
+        }
 
         // Update location
         location.archetypeID = newArcID;
@@ -263,6 +270,43 @@ public unsafe class EntityManager : IDisposable
         where T : unmanaged, IComponent
     {
         return HasComponent(entity, ComponentTypeID<T>.value);
+    }
+
+    public ResultStatus SetEnabled<T>(Entity entity, bool enabled)
+        where T : unmanaged, IEnableableComponent
+    {
+        if (!_entityLocations.TryGetElementAt(entity.ID, entity.Generation, out var location))
+        {
+            return ResultStatus.NotFound;
+        }
+
+        ref var archetype = ref _world.GetArchetypeReference(location.archetypeID);
+        var chunkIndex = location.chunkIndex;
+        var rowIndex = location.rowIndex;
+
+        var layoutResult = archetype.GetLayout(ComponentTypeID<T>.value);
+        if (layoutResult.Status != ResultStatus.Success)
+        {
+            return layoutResult.Status;
+        }
+
+        ref var chunk = ref archetype.GetChunkReference(chunkIndex);
+        var chunkBase = chunk.GetUnsafePtr();
+        var maskBase = chunkBase + layoutResult.Value.enableBitsOffset;
+
+        var byteIndex = rowIndex >> Chunk.BIT_SHIFT;
+        var bitIndex = rowIndex & Chunk.BIT_ALIGNMENT_MINUS_ONE;
+
+        if (enabled)
+        {
+            maskBase[byteIndex] |= (byte)(1 << bitIndex);
+        }
+        else
+        {
+            maskBase[byteIndex] &= (byte)~(1 << bitIndex);
+        }
+
+        return ResultStatus.Success;
     }
 
     public void Dispose()

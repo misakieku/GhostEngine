@@ -5,42 +5,86 @@ using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities;
 
-public struct EntityQueryMask : IDisposable
+public struct EntityQueryMask : IDisposable, IEquatable<EntityQueryMask>
 {
-    public UnsafeBitSet all;
-    public UnsafeBitSet any;
-    public UnsafeBitSet absent;
+    public UnsafeBitSet structuralAll;
+    public UnsafeBitSet structuralAny;
+    public UnsafeBitSet structuralAbsent;
+
+    public UnsafeBitSet requireEnabled;
+    public UnsafeBitSet requireDisabled;
+    public UnsafeBitSet rejectIfEnabled;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly bool Matches(UnsafeBitSet archetypeSignature)
+    public readonly bool Matches(ref readonly UnsafeBitSet archetypeSignature)
     {
-        return (!all.IsCreated || all.All(archetypeSignature))
-            && (!absent.IsCreated || absent.None(archetypeSignature))
-            && (!any.IsCreated || any.Count == 0 || any.Any(archetypeSignature));
+        return (!structuralAll.IsCreated || structuralAll.All(archetypeSignature))
+            && (!structuralAbsent.IsCreated || structuralAbsent.None(archetypeSignature))
+            && (!structuralAny.IsCreated || structuralAny.Count == 0 || structuralAny.Any(archetypeSignature));
     }
 
-    public readonly override int GetHashCode()
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public override readonly int GetHashCode()
     {
         var hash = 17;
-        if (all.IsCreated) hash = hash * 23 + all.GetHashCode();
-        if (absent.IsCreated) hash = hash * 23 + absent.GetHashCode();
-        if (any.IsCreated) hash = hash * 23 + any.GetHashCode();
+        if (structuralAll.IsCreated) hash = hash * 23 + structuralAll.GetHashCode();
+        if (structuralAbsent.IsCreated) hash = hash * 23 + structuralAbsent.GetHashCode();
+        if (structuralAny.IsCreated) hash = hash * 23 + structuralAny.GetHashCode();
+        if (requireEnabled.IsCreated) hash = hash * 23 + requireEnabled.GetHashCode();
+        if (requireDisabled.IsCreated) hash = hash * 23 + requireDisabled.GetHashCode();
+        if (rejectIfEnabled.IsCreated) hash = hash * 23 + rejectIfEnabled.GetHashCode();
 
         return hash;
     }
 
     public void Dispose()
     {
-        all.Dispose();
-        any.Dispose();
-        absent.Dispose();
+        structuralAll.Dispose();
+        structuralAny.Dispose();
+        structuralAbsent.Dispose();
+
+        requireEnabled.Dispose();
+        requireDisabled.Dispose();
+        rejectIfEnabled.Dispose();
+    }
+
+    public readonly bool Equals(EntityQueryMask other)
+    {
+        return structuralAll.Equals(other.structuralAll)
+            && structuralAny.Equals(other.structuralAny)
+            && structuralAbsent.Equals(other.structuralAbsent)
+            && requireEnabled.Equals(other.requireEnabled)
+            && requireDisabled.Equals(other.requireDisabled)
+            && rejectIfEnabled.Equals(other.rejectIfEnabled);
+    }
+
+    public override readonly bool Equals(object? obj)
+    {
+        return obj is EntityQueryMask mask && Equals(mask);
+    }
+
+    public static bool operator ==(EntityQueryMask left, EntityQueryMask right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(EntityQueryMask left, EntityQueryMask right)
+    {
+        return !(left == right);
     }
 }
 
 public unsafe partial struct EntityQuery : IIdentifierType, IDisposable
 {
+    /// <summary>
+    /// Provides an enumerator for iterating over chunks of entities and their component data that match a set of archetypes within a world.
+    /// </summary>
     public readonly ref struct ChunkIterator
     {
+        /// <summary>
+        /// Provides a read-only view over a chunk of entities and their component data within an archetype.
+        /// </summary>
+        /// <remarks>This does not filter disabled/enabled components. You must handle that manually.</remarks>
         public readonly ref struct ChunkView
         {
             private readonly ref Archetype _archetype;
@@ -54,6 +98,10 @@ public unsafe partial struct EntityQuery : IIdentifierType, IDisposable
                 _chunk = ref archetype.GetChunkReference(chunkIndex);
             }
 
+            /// <summary>
+            /// Returns a read-only span containing structuralAll entities stored in the current chunk.
+            /// </summary>
+            /// <returns>A read-only span of <see cref="Entity"/> values representing the entities in the chunk.</returns>
             public readonly ReadOnlySpan<Entity> GetEntities()
             {
                 var ptr = _chunk.GetUnsafePtr();
@@ -61,31 +109,70 @@ public unsafe partial struct EntityQuery : IIdentifierType, IDisposable
                 return new ReadOnlySpan<Entity>(pEntity, _chunk.Count);
             }
 
+            /// <summary>
+            /// Gets a span providing direct access to the component data of type T0 for structuralAll entities in the chunk.
+            /// </summary>
+            /// <typeparam name="T">The type of component to access. Must be an unmanaged type that implements <see cref="Component"/>.</typeparam>
+            /// <returns>A span of type <see cref="{T}"/> containing the component data for each entity in the chunk.</returns>
+            /// <exception cref="InvalidOperationException">Thrown if the specified component type is not present in the archetype.</exception>
             public readonly Span<T> GetComponentData<T>()
                 where T : unmanaged, IComponent
             {
-                var offset = _archetype.GetOffset(ComponentTypeID<T>.value);
-                if (offset < 0)
+                var layout = _archetype.GetLayout(ComponentTypeID<T>.value).GetValueOrThrow(ResultStatus.Success);
+                var ptr = _chunk.GetUnsafePtr() + layout.offset;
+                return new Span<T>(ptr, _chunk.Count);
+            }
+
+            /// <summary>
+            /// Gets a bit set representing the enabled state of each instance of the specified enableable component
+            /// type within the current chunk.
+            /// </summary>
+            /// <typeparam name="T">The component type for which to retrieve enablement bits. Must be unmanaged and implement <see cref="IEnableableComponent"/>.</typeparam>
+            /// <returns>A <see cref="SpanBitSet"/> that provides access to the enablement bits for all instances of the specified component type in the chunk.</returns>
+            /// <exception cref="InvalidOperationException">Thrown if the specified component type does not support enablement.</exception>
+            public SpanBitSet GetEnableBits<T>()
+                where T : unmanaged, IEnableableComponent
+            {
+                var layout = _archetype.GetLayout(ComponentTypeID<T>.value).GetValueOrThrow(ResultStatus.Success);
+                if (layout.enableBitsOffset == -1)
                 {
-                    throw new InvalidOperationException($"Archetype does not contain component of type {typeof(T)}");
+                    throw new InvalidOperationException($"Component {typeof(T).FullName} is not enableable.");
                 }
 
-                var ptr = (byte*)_chunk.GetUnsafePtr() + offset;
-                return new Span<T>(ptr, _chunk.Count);
+                var maskBase = _chunk.GetUnsafePtr() + layout.enableBitsOffset;
+                return new SpanBitSet(new Span<uint>(maskBase, (_chunk.Count + 31) / 32));
+            }
+
+            /// <summary>
+            /// Determines whether the specified component of type <typeparamref name="T"/> at the given index is currently enabled.
+            /// </summary>
+            /// <typeparam name="T">The type of the component to check. Must be an unmanaged type that implements <see cref="IEnableableComponent"/>.</typeparam>
+            /// <param name="index">The zero-based index of the component instance to check within the chunk.</param>
+            /// <returns>true if the component at the specified index is enabled; otherwise, false.</returns>
+            /// <exception cref="InvalidOperationException">Thrown if the specified component type <typeparamref name="T"/> does not support enable/disable functionality.</exception>
+            public readonly bool IsComponentEnabled<T>(int index)
+                where T : unmanaged, IEnableableComponent
+            {
+                var layout = _archetype.GetLayout(ComponentTypeID<T>.value).GetValueOrThrow(ResultStatus.Success);
+                if (layout.enableBitsOffset == -1)
+                {
+                    throw new InvalidOperationException($"Component {typeof(T).FullName} is not enableable.");
+                }
+
+                var maskBase = _chunk.GetUnsafePtr() + layout.enableBitsOffset;
+                return CheckBit(maskBase, index);
             }
         }
 
         public ref struct Enumerator
         {
-            private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
-            private readonly World _world;
+            private readonly ChunkIterator _iterator;
             private int _archetypeIndex;
             private int _chunkIndex;
 
-            internal Enumerator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, World world)
+            internal Enumerator(ChunkIterator iterator)
             {
-                _matchingArchetypes = matchingArchetypes;
-                _world = world;
+                _iterator = iterator;
                 _archetypeIndex = 0;
                 _chunkIndex = -1;
             }
@@ -94,7 +181,7 @@ public unsafe partial struct EntityQuery : IIdentifierType, IDisposable
             {
                 get
                 {
-                    ref var archetype = ref _world.GetArchetypeReference(_matchingArchetypes[_archetypeIndex]);
+                    ref var archetype = ref _iterator._world.GetArchetypeReference(_iterator._matchingArchetypes[_archetypeIndex]);
                     return new ChunkView(ref archetype, _chunkIndex);
                 }
             }
@@ -103,9 +190,9 @@ public unsafe partial struct EntityQuery : IIdentifierType, IDisposable
             {
                 _chunkIndex++;
 
-                while (_archetypeIndex < _matchingArchetypes.Count)
+                while (_archetypeIndex < _iterator._matchingArchetypes.Count)
                 {
-                    ref var archetype = ref _world.GetArchetypeReference(_matchingArchetypes[_archetypeIndex]);
+                    ref var archetype = ref _iterator._world.GetArchetypeReference(_iterator._matchingArchetypes[_archetypeIndex]);
                     if (_chunkIndex < archetype.ChunkCount)
                     {
                         return true;
@@ -140,13 +227,14 @@ public unsafe partial struct EntityQuery : IIdentifierType, IDisposable
 
         public readonly Enumerator GetEnumerator()
         {
-            return new Enumerator(_matchingArchetypes, _world);
+            return new Enumerator(this);
         }
     }
 
     private readonly Identifier<World> _worldID;
-    private EntityQueryMask _mask;
     private UnsafeList<Identifier<Archetype>> _matchingArchetypes;
+
+    internal EntityQueryMask _mask;
 
     internal EntityQuery(Identifier<World> worldID, EntityQueryMask mask)
     {
@@ -155,14 +243,96 @@ public unsafe partial struct EntityQuery : IIdentifierType, IDisposable
         _matchingArchetypes = new UnsafeList<Identifier<Archetype>>(8, Allocator.Persistent);
     }
 
-    internal void AddArchetypeIfMatch(Archetype archetype)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsEntityValid(byte* chunkBase, int entityIndex, ref readonly Archetype archetype, ref readonly EntityQueryMask mask)
     {
-        if (_mask.Matches(archetype._signature))
+        // 1. Check "Require Enabled" (WithAll)
+        // We iterate over the bits set in 'requireEnabled'
+        var it = mask.requireEnabled.GetIterator();
+
+        while (it.Next(out var id))
+        {
+            // Get the EnableBitmask for this component in this chunk
+            var layout = archetype.GetLayout(id).Value;
+            if (layout.enableBitsOffset == -1)
+            {
+                // Not enableable, always true
+                continue;
+            }
+
+            // Check bit
+            if (!CheckBit(chunkBase + layout.enableBitsOffset, entityIndex))
+            {
+                return false;
+            }
+        }
+
+        // 2. Check "Require Disabled" (WithDisabled)
+        it = mask.requireDisabled.GetIterator();
+        while (it.Next(out var id))
+        {
+            var layout = archetype.GetLayout(id).Value;
+
+            // If component is not enableable, it is technically "Always Enabled", 
+            // so it cannot satisfy "WithDisabled".
+            if (layout.enableBitsOffset == -1)
+            {
+                return false;
+            }
+
+            // Check bit (Must be 0)
+            if (CheckBit(chunkBase + layout.enableBitsOffset, entityIndex))
+            {
+                return false;
+            }
+        }
+
+        // 3. Check "Reject if Enabled" (The "Soft WithNone")
+        it = mask.rejectIfEnabled.GetIterator();
+        while (it.Next(out var id))
+        {
+            var layoutResult = archetype.GetLayout(id);
+            if (layoutResult.Status != ResultStatus.Success)
+            {
+                // Component is absent, so it is not enabled.
+                continue;
+            }
+
+            // If component is not enableable, it is technically "Always Enabled", 
+            // so it cannot satisfy "Reject if Enabled".
+            if (layoutResult.Value.enableBitsOffset == -1)
+            {
+                return false;
+            }
+
+            // Check bit (Must be 0)
+            if (CheckBit(chunkBase + layoutResult.Value.enableBitsOffset, entityIndex))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool CheckBit(byte* maskBase, int index)
+    {
+        var byteIndex = index >> Chunk.BIT_SHIFT;
+        var bitIndex = index & Chunk.BIT_ALIGNMENT_MINUS_ONE;
+        return (maskBase[byteIndex] & (1 << bitIndex)) != 0;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void AddArchetypeIfMatch(ref readonly Archetype archetype)
+    {
+        if (_mask.Matches(in archetype._signature))
         {
             _matchingArchetypes.Add(archetype.ID);
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly ChunkIterator GetChunkIterator()
     {
         var world = World.GetWorld(_worldID).Value;
@@ -176,13 +346,16 @@ public unsafe partial struct EntityQuery : IIdentifierType, IDisposable
     }
 }
 
-public ref struct QueryBuilder
+public ref partial struct QueryBuilder
 {
     private readonly Stack.Scope _scope;
 
     private UnsafeList<Identifier<IComponent>> _all;
     private UnsafeList<Identifier<IComponent>> _any;
     private UnsafeList<Identifier<IComponent>> _absent;
+    private UnsafeList<Identifier<IComponent>> _none;
+    private UnsafeList<Identifier<IComponent>> _disabled;
+    private UnsafeList<Identifier<IComponent>> _present;
 
     public QueryBuilder()
     {
@@ -191,68 +364,12 @@ public ref struct QueryBuilder
         _all = new UnsafeList<Identifier<IComponent>>(4, Allocator.Stack);
         _any = new UnsafeList<Identifier<IComponent>>(4, Allocator.Stack);
         _absent = new UnsafeList<Identifier<IComponent>>(4, Allocator.Stack);
+        _none = new UnsafeList<Identifier<IComponent>>(4, Allocator.Stack);
+        _disabled = new UnsafeList<Identifier<IComponent>>(4, Allocator.Stack);
+        _present = new UnsafeList<Identifier<IComponent>>(4, Allocator.Stack);
     }
 
-    public QueryBuilder WithAll<T>()
-        where T : unmanaged, IComponent
-    {
-        _all.Add(ComponentTypeID<T>.value);
-        return this;
-    }
-
-    public QueryBuilder WithAny<T>()
-        where T : unmanaged, IComponent
-    {
-        _any.Add(ComponentTypeID<T>.value);
-        return this;
-    }
-
-    public QueryBuilder WithNone<T>()
-        where T : unmanaged, IComponent
-    {
-        _absent.Add(ComponentTypeID<T>.value);
-        return this;
-    }
-
-    public Identifier<EntityQuery> Build(World world)
-    {
-        // 1. Calculate max component ID to size the BitSets
-        int maxID = 0;
-        FindMax(_all, ref maxID);
-        FindMax(_any, ref maxID);
-        FindMax(_absent, ref maxID);
-
-        // 2. Create the Mask
-        using var mask = new EntityQueryMask
-        {
-            all = new UnsafeBitSet(maxID + 1, Allocator.Stack),
-            any = new UnsafeBitSet(maxID + 1, Allocator.Stack),
-            absent = new UnsafeBitSet(maxID + 1, Allocator.Stack)
-        };
-
-        // 3. Fill BitSets
-        foreach (var id in _all) mask.all.SetBit(id);
-        foreach (var id in _any) mask.any.SetBit(id);
-        foreach (var id in _absent) mask.absent.SetBit(id);
-
-        // 4. Ask World for the Query (Cached)
-        var queryID = world.GetEntityQueryIDByMaskHash(mask.GetHashCode());
-        if (queryID.IsNotValid)
-        {
-            queryID = world.CreateEntityQuery(mask);
-            ref var query = ref world.GetEntityQueryReference(queryID);
-            for (var i = 0; i < world.ArchetypeCount; i++)
-            {
-                ref var archetype = ref world.GetArchetypeReference(i);
-                query.AddArchetypeIfMatch(archetype);
-            }
-        }
-
-        Dispose();
-
-        return queryID;
-    }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void FindMax(UnsafeList<Identifier<IComponent>> list, ref int max)
     {
         foreach (var id in list)
@@ -261,11 +378,98 @@ public ref struct QueryBuilder
         }
     }
 
+    public Identifier<EntityQuery> Build(World world)
+    {
+        // 1. Calculate max component ID to size the BitSets
+        var maxID = 0;
+        FindMax(_all, ref maxID);
+        FindMax(_any, ref maxID);
+        FindMax(_absent, ref maxID);
+        FindMax(_none, ref maxID);
+        FindMax(_disabled, ref maxID);
+        FindMax(_present, ref maxID);
+
+        // 2. Create the Mask
+        var mask = new EntityQueryMask
+        {
+            structuralAll = new UnsafeBitSet(maxID + 1, Allocator.Persistent, AllocationOption.Clear),
+            structuralAny = new UnsafeBitSet(maxID + 1, Allocator.Persistent, AllocationOption.Clear),
+            structuralAbsent = new UnsafeBitSet(maxID + 1, Allocator.Persistent, AllocationOption.Clear),
+            requireEnabled = new UnsafeBitSet(maxID + 1, Allocator.Persistent, AllocationOption.Clear),
+            requireDisabled = new UnsafeBitSet(maxID + 1, Allocator.Persistent, AllocationOption.Clear),
+            rejectIfEnabled = new UnsafeBitSet(maxID + 1, Allocator.Persistent, AllocationOption.Clear),
+        };
+
+        // 3. Fill BitSets
+        foreach (var id in _all)
+        {
+            mask.structuralAll.SetBit(id);  // Structure: Must Exist
+            mask.requireEnabled.SetBit(id); // Filter: Must be Enabled
+        }
+
+        foreach (var id in _disabled)
+        {
+            mask.structuralAll.SetBit(id);   // Structure: Must Exist
+            mask.requireDisabled.SetBit(id); // Filter: Must be Disabled
+        }
+
+        foreach (var id in _none)
+        {
+            if (ComponentRegister.GetComponentInfo(id).isEnableable)
+            {
+                mask.rejectIfEnabled.SetBit(id); // Filter: Must Not be Enabled (Can be Absent or Disabled)
+            }
+            else
+            {
+                mask.structuralAbsent.SetBit(id); // Structure: Must Not Exist
+            }
+        }
+
+        foreach (var id in _present)
+        {
+            mask.structuralAll.SetBit(id);
+        }
+
+        foreach (var id in _absent)
+        {
+            mask.structuralAbsent.SetBit(id);
+        }
+
+        foreach (var id in _any)
+        {
+            mask.structuralAny.SetBit(id);
+        }
+
+        // 4. Ask World for the Query (Cached)
+        var maskHash = mask.GetHashCode();
+        var queryID = world.GetEntityQueryIDByMaskHash(maskHash);
+        if (queryID.IsValid)
+        {
+            // Check if the masks are actually equal (Hash collision?).
+            // Really worth it? It's unlikely to have collisions here.
+            if (world.GetEntityQueryReference(queryID)._mask.Equals(mask))
+            {
+                mask.Dispose();
+                goto Return;
+            }
+        }
+
+        // NOTE: We do not dispose the mask here, as it is now owned by the EntityQuery.
+        queryID = world.CreateEntityQuery(mask, maskHash);
+
+    Return:
+        Dispose();
+        return queryID;
+    }
+
     private void Dispose()
     {
         _all.Dispose();
         _any.Dispose();
         _absent.Dispose();
+        _none.Dispose();
+        _disabled.Dispose();
+        _present.Dispose();
 
         _scope.Dispose();
     }

@@ -9,10 +9,13 @@ namespace Ghost.Entities;
 internal unsafe struct Chunk : IDisposable
 {
     public const int CHUNK_SIZE = 16384; // 16 KB
+    public const int BIT_ALIGNMENT = 8;
+    public const int BIT_SHIFT = 3; // log2(BIT_ALIGNMENT)
+    public const int BIT_ALIGNMENT_MINUS_ONE = BIT_ALIGNMENT - 1;
 
     private UnsafeArray<byte> _data;
     private int _count;
-    private int _capacity;
+    private readonly int _capacity;
 
     public int Count
     {
@@ -41,21 +44,22 @@ internal unsafe struct Chunk : IDisposable
     }
 }
 
-internal struct Edge
-{
-    public Identifier<IComponent> componentID;
-    public int targetArchetype; // can't use Identifier<Archetype> because cycle causer
-}
-
-internal struct ComponentMemoryLayout
-{
-    public int offset;
-    public int size;
-    public Identifier<IComponent> componentID;
-}
-
 internal unsafe struct Archetype : IIdentifierType, IDisposable
 {
+    internal struct ComponentMemoryLayout
+    {
+        public int componentID;
+        public int size;
+        public int offset;
+        public int enableBitsOffset; // TODO: Support enableable component
+    }
+
+    private struct Edge
+    {
+        public int componentID;
+        public int targetArchetype; // can't use Identifier<Archetype> because cycle causer
+    }
+
     private readonly Identifier<Archetype> _id;
     private readonly Identifier<World> _worldID;
 
@@ -63,7 +67,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
     internal UnsafeList<Chunk> _chunks;
     internal UnsafeArray<ComponentMemoryLayout> _layouts;
 
-    private UnsafeArray<int> _componentIDToOffset;
+    private UnsafeArray<int> _componentIDToLayoutIndex;
     // TODO: Is hash map better?
     private UnsafeList<Edge> _edgesAdd;
     private UnsafeList<Edge> _edgesRemove;
@@ -84,16 +88,16 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         _id = id;
         _worldID = worldID;
 
+        _chunks = new UnsafeList<Chunk>(4, Allocator.Persistent);
+        _edgesAdd = new UnsafeList<Edge>(4, Allocator.Persistent);
+        _edgesRemove = new UnsafeList<Edge>(4, Allocator.Persistent);
+
         if (componentIds.IsEmpty)
         {
             _signature = new UnsafeBitSet(1, Allocator.Persistent, AllocationOption.Clear);
-            _chunks = new UnsafeList<Chunk>(4, Allocator.Persistent);
-
-            _edgesAdd = new UnsafeList<Edge>(4, Allocator.Persistent);
-            _edgesRemove = new UnsafeList<Edge>(4, Allocator.Persistent);
+            _hash = 0;
 
             _signature.ClearAll();
-
             _entityCapacity = Chunk.CHUNK_SIZE / sizeof(Entity);
 
             return;
@@ -109,27 +113,22 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         }
 
         _signature = new UnsafeBitSet(highestComponentID + 1, Allocator.Persistent, AllocationOption.Clear);
-        _chunks = new UnsafeList<Chunk>(4, Allocator.Persistent);
-
-        _edgesAdd = new UnsafeList<Edge>(4, Allocator.Persistent);
-        _edgesRemove = new UnsafeList<Edge>(4, Allocator.Persistent);
-
         _hash = _signature.GetHashCode();
 
-        var pComponents = stackalloc ComponentInfo[componentIds.Length];
-        for (var i = 0; i < componentIds.Length; i++)
-        {
-            _signature.SetBit(componentIds[i]);
-            pComponents[i] = ComponentRegister.GetComponentInfo(componentIds[i]);
-        }
-
-        CalculateLayout(new Span<ComponentInfo>(pComponents, componentIds.Length));
+        CalculateLayout(componentIds);
     }
 
-    private void CalculateLayout(Span<ComponentInfo> components)
+    private void CalculateLayout(ReadOnlySpan<Identifier<IComponent>> componentIds)
     {
         var entitySize = sizeof(Entity);
         var entityAlign = (int)MemoryUtility.AlignOf<Entity>();
+
+        var components = (Span<ComponentInfo>)stackalloc ComponentInfo[componentIds.Length];
+        for (var i = 0; i < componentIds.Length; i++)
+        {
+            _signature.SetBit(componentIds[i]);
+            components[i] = ComponentRegister.GetComponentInfo(componentIds[i]);
+        }
 
         // Calculate total size per entity to get an initial capacity estimate
         var bytesPerEntity = entitySize;
@@ -147,12 +146,13 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         _maxComponentID = maxComponentID;
         _entityCapacity = Chunk.CHUNK_SIZE / bytesPerEntity;
         _layouts = new UnsafeArray<ComponentMemoryLayout>(components.Length, Allocator.Persistent);
-        _componentIDToOffset = new UnsafeArray<int>(_maxComponentID + 1, Allocator.Persistent);
+        _componentIDToLayoutIndex = new UnsafeArray<int>(_maxComponentID + 1, Allocator.Persistent);
 
-        _componentIDToOffset.AsSpan().Fill(-1);
+        _componentIDToLayoutIndex.AsSpan().Fill(-1);
 
         components.Sort((a, b) => b.alignment.CompareTo(a.alignment));
         var tempOffsets = stackalloc int[components.Length];
+        var tempBitmaskOffsets = stackalloc int[components.Length];
 
         while (_entityCapacity > 0)
         {
@@ -173,6 +173,19 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
                 tempOffsets[i] = currentOffset;
                 currentOffset += _entityCapacity * size;
 
+                var bitmaskOffset = -1;
+                if (components[i].isEnableable)
+                {
+                    var bitmaskSize = (_entityCapacity + Chunk.BIT_ALIGNMENT_MINUS_ONE) / Chunk.BIT_ALIGNMENT;
+                    // Reserve space for the bitmask (1 bit per entity)
+
+                    currentOffset = (currentOffset + Chunk.BIT_ALIGNMENT_MINUS_ONE) & ~Chunk.BIT_ALIGNMENT_MINUS_ONE; // Align
+                    bitmaskOffset = currentOffset;
+                    currentOffset += bitmaskSize;
+                }
+
+                tempBitmaskOffsets[i] = bitmaskOffset;
+
                 if (currentOffset > Chunk.CHUNK_SIZE)
                 {
                     fits = false;
@@ -188,10 +201,11 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
                     {
                         offset = tempOffsets[i],
                         size = components[i].size,
-                        componentID = components[i].id
+                        componentID = components[i].id,
+                        enableBitsOffset = tempBitmaskOffsets[i],
                     };
 
-                    _componentIDToOffset[components[i].id] = tempOffsets[i];
+                    _componentIDToLayoutIndex[components[i].id] = i;
                 }
 
                 return;
@@ -219,6 +233,18 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         // Need to allocate a new chunk
         var newChunk = new Chunk(Chunk.CHUNK_SIZE, _entityCapacity);
 
+        // Set all enable to true by default for enableable components
+        for (var i = 0; i < _layouts.Count; i++)
+        {
+            var layout = _layouts[i];
+            if (layout.enableBitsOffset != -1)
+            {
+                var pChunk = newChunk.GetUnsafePtr();
+                var pBits = pChunk + layout.enableBitsOffset;
+                MemoryUtility.MemSet(pBits, 0xFF, (nuint)((_entityCapacity + Chunk.BIT_ALIGNMENT_MINUS_ONE) / Chunk.BIT_ALIGNMENT));
+            }
+        }
+
         rowIndex = 0;
         newChunk.Count++;
         chunkIndex = _chunks.Count;
@@ -237,9 +263,15 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void SetComponentData(int chunkIndex, int rowIndex, Identifier<IComponent> componentID, void* pComponent)
+    public readonly ResultStatus SetComponentData(int chunkIndex, int rowIndex, Identifier<IComponent> componentID, void* pComponent)
     {
-        var offset = _componentIDToOffset[componentID];
+        var r = GetLayout(componentID);
+        if (r.Status != ResultStatus.Success)
+        {
+            return r.Status;
+        }
+
+        var offset = r.Value.offset;
         var chunk = _chunks[chunkIndex];
 
         var chunkBase = chunk.GetUnsafePtr();
@@ -247,19 +279,27 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         var dst = chunkBase + offset + (size * rowIndex);
 
         MemoryUtility.MemCpy(pComponent, dst, (nuint)size);
+
+        return ResultStatus.Success;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void* GetComponentDataPtr(int chunkIndex, int rowIndex, Identifier<IComponent> componentID)
+    public readonly ResultStatus GetComponentDataPtr(int chunkIndex, int rowIndex, Identifier<IComponent> componentID, void** ppv)
     {
-        var offset = _componentIDToOffset[componentID];
+        var r = GetLayout(componentID);
+        if (r.Status != ResultStatus.Success)
+        {
+            return r.Status;
+        }
+
+        var offset = r.Value.offset;
         var chunk = _chunks[chunkIndex];
 
         var chunkBase = chunk.GetUnsafePtr();
         var size = ComponentRegister.GetComponentInfo(componentID).size;
-        var dst = chunkBase + offset + (size * rowIndex);
+        *ppv = chunkBase + offset + (size * rowIndex);
 
-        return dst;
+        return ResultStatus.Success;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -269,14 +309,20 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly int GetOffset(int componentId)
+    public readonly Result<ComponentMemoryLayout, ResultStatus> GetLayout(int componentID)
     {
-        if (componentId >= _componentIDToOffset.Count)
+        if (componentID >= _componentIDToLayoutIndex.Count)
         {
-            return -1;
+            return Result.Create(default(ComponentMemoryLayout), ResultStatus.InvalidArgument);
         }
 
-        return _componentIDToOffset[componentId];
+        var layoutIndex = _componentIDToLayoutIndex[componentID];
+        if (layoutIndex == -1)
+        {
+            return Result.Create(default(ComponentMemoryLayout), ResultStatus.NotFound);
+        }
+
+        return Result.Create(_layouts[layoutIndex], ResultStatus.Success);
     }
 
     public ResultStatus RemoveEntity(int chunkIndex, int rowIndex)
@@ -382,26 +428,6 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         return Identifier<Archetype>.Invalid;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Span<T> GetComponentArray<T>(int chunkIndex)
-        where T : unmanaged, IComponent
-    {
-        var id = ComponentTypeID<T>.value;
-        if (id >= _componentIDToOffset.Count)
-        {
-            return default;
-        }
-
-        var offset = _componentIDToOffset[id];
-        if (offset == -1)
-        {
-            return default;
-        }
-
-        var chunk = _chunks[chunkIndex];
-        return new Span<T>((T*)((byte*)chunk.GetUnsafePtr() + offset), chunk.Count);
-    }
-
     public override readonly int GetHashCode()
     {
         return _hash;
@@ -419,7 +445,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
 
         _signature.Dispose();
         _chunks.Dispose();
-        _componentIDToOffset.Dispose();
+        _componentIDToLayoutIndex.Dispose();
         _layouts.Dispose();
         _edgesAdd.Dispose();
         _edgesRemove.Dispose();

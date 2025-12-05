@@ -14,18 +14,20 @@ public unsafe partial struct EntityQuery
         var offsets = stackalloc int[1];
         var basePtrs = stackalloc byte*[1];
 
-        foreach (var archetypeID in _matchingArchetypes)
+        for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(archetypeID);
+            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 1; index++)
             {
-                offsets[index] = archetype.GetOffset(compTypeIDs[index]);
-                if (offsets[index] == -1)
+                var layoutResult = archetype.GetLayout(compTypeIDs[index]);
+                if (layoutResult.Status != ResultStatus.Success)
                 {
                     hasAllComponents = false;
                     break;
                 }
+
+                offsets[index] = layoutResult.Value.offset;
             }
 
             if (!hasAllComponents)
@@ -36,14 +38,20 @@ public unsafe partial struct EntityQuery
             for (var chunkIndex = 0; chunkIndex < archetype.ChunkCount; chunkIndex++)
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
-                var count = chunk.Count;
+                var pChunkData = chunk.GetUnsafePtr();
+
                 for (var index = 0; index < 1; index++)
                 {
-                    basePtrs[index] = chunk.GetUnsafePtr() + offsets[index];
+                    basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
                 {
+                    if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
+                    {
+                        continue;
+                    }
+
                     var pComp0 = (T0*)(basePtrs[0] + (sizeof(T0) * entityIndex));
 
                     action(ref *pComp0);
@@ -62,18 +70,20 @@ public unsafe partial struct EntityQuery
         var offsets = stackalloc int[2];
         var basePtrs = stackalloc byte*[2];
 
-        foreach (var archetypeID in _matchingArchetypes)
+        for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(archetypeID);
+            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 2; index++)
             {
-                offsets[index] = archetype.GetOffset(compTypeIDs[index]);
-                if (offsets[index] == -1)
+                var layoutResult = archetype.GetLayout(compTypeIDs[index]);
+                if (layoutResult.Status != ResultStatus.Success)
                 {
                     hasAllComponents = false;
                     break;
                 }
+
+                offsets[index] = layoutResult.Value.offset;
             }
 
             if (!hasAllComponents)
@@ -84,14 +94,20 @@ public unsafe partial struct EntityQuery
             for (var chunkIndex = 0; chunkIndex < archetype.ChunkCount; chunkIndex++)
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
-                var count = chunk.Count;
+                var pChunkData = chunk.GetUnsafePtr();
+
                 for (var index = 0; index < 2; index++)
                 {
-                    basePtrs[index] = chunk.GetUnsafePtr() + offsets[index];
+                    basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
                 {
+                    if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
+                    {
+                        continue;
+                    }
+
                     var pComp0 = (T0*)(basePtrs[0] + (sizeof(T0) * entityIndex));
                     var pComp1 = (T1*)(basePtrs[1] + (sizeof(T1) * entityIndex));
 
@@ -112,18 +128,20 @@ public unsafe partial struct EntityQuery
         var offsets = stackalloc int[3];
         var basePtrs = stackalloc byte*[3];
 
-        foreach (var archetypeID in _matchingArchetypes)
+        for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(archetypeID);
+            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 3; index++)
             {
-                offsets[index] = archetype.GetOffset(compTypeIDs[index]);
-                if (offsets[index] == -1)
+                var layoutResult = archetype.GetLayout(compTypeIDs[index]);
+                if (layoutResult.Status != ResultStatus.Success)
                 {
                     hasAllComponents = false;
                     break;
                 }
+
+                offsets[index] = layoutResult.Value.offset;
             }
 
             if (!hasAllComponents)
@@ -134,14 +152,20 @@ public unsafe partial struct EntityQuery
             for (var chunkIndex = 0; chunkIndex < archetype.ChunkCount; chunkIndex++)
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
-                var count = chunk.Count;
+                var pChunkData = chunk.GetUnsafePtr();
+
                 for (var index = 0; index < 3; index++)
                 {
-                    basePtrs[index] = chunk.GetUnsafePtr() + offsets[index];
+                    basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
                 {
+                    if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
+                    {
+                        continue;
+                    }
+
                     var pComp0 = (T0*)(basePtrs[0] + (sizeof(T0) * entityIndex));
                     var pComp1 = (T1*)(basePtrs[1] + (sizeof(T1) * entityIndex));
                     var pComp2 = (T2*)(basePtrs[2] + (sizeof(T2) * entityIndex));
@@ -164,18 +188,20 @@ public unsafe partial struct EntityQuery
         var offsets = stackalloc int[4];
         var basePtrs = stackalloc byte*[4];
 
-        foreach (var archetypeID in _matchingArchetypes)
+        for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(archetypeID);
+            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 4; index++)
             {
-                offsets[index] = archetype.GetOffset(compTypeIDs[index]);
-                if (offsets[index] == -1)
+                var layoutResult = archetype.GetLayout(compTypeIDs[index]);
+                if (layoutResult.Status != ResultStatus.Success)
                 {
                     hasAllComponents = false;
                     break;
                 }
+
+                offsets[index] = layoutResult.Value.offset;
             }
 
             if (!hasAllComponents)
@@ -186,14 +212,20 @@ public unsafe partial struct EntityQuery
             for (var chunkIndex = 0; chunkIndex < archetype.ChunkCount; chunkIndex++)
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
-                var count = chunk.Count;
+                var pChunkData = chunk.GetUnsafePtr();
+
                 for (var index = 0; index < 4; index++)
                 {
-                    basePtrs[index] = chunk.GetUnsafePtr() + offsets[index];
+                    basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
                 {
+                    if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
+                    {
+                        continue;
+                    }
+
                     var pComp0 = (T0*)(basePtrs[0] + (sizeof(T0) * entityIndex));
                     var pComp1 = (T1*)(basePtrs[1] + (sizeof(T1) * entityIndex));
                     var pComp2 = (T2*)(basePtrs[2] + (sizeof(T2) * entityIndex));
@@ -218,18 +250,20 @@ public unsafe partial struct EntityQuery
         var offsets = stackalloc int[5];
         var basePtrs = stackalloc byte*[5];
 
-        foreach (var archetypeID in _matchingArchetypes)
+        for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(archetypeID);
+            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 5; index++)
             {
-                offsets[index] = archetype.GetOffset(compTypeIDs[index]);
-                if (offsets[index] == -1)
+                var layoutResult = archetype.GetLayout(compTypeIDs[index]);
+                if (layoutResult.Status != ResultStatus.Success)
                 {
                     hasAllComponents = false;
                     break;
                 }
+
+                offsets[index] = layoutResult.Value.offset;
             }
 
             if (!hasAllComponents)
@@ -240,14 +274,20 @@ public unsafe partial struct EntityQuery
             for (var chunkIndex = 0; chunkIndex < archetype.ChunkCount; chunkIndex++)
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
-                var count = chunk.Count;
+                var pChunkData = chunk.GetUnsafePtr();
+
                 for (var index = 0; index < 5; index++)
                 {
-                    basePtrs[index] = chunk.GetUnsafePtr() + offsets[index];
+                    basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
                 {
+                    if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
+                    {
+                        continue;
+                    }
+
                     var pComp0 = (T0*)(basePtrs[0] + (sizeof(T0) * entityIndex));
                     var pComp1 = (T1*)(basePtrs[1] + (sizeof(T1) * entityIndex));
                     var pComp2 = (T2*)(basePtrs[2] + (sizeof(T2) * entityIndex));
@@ -274,18 +314,20 @@ public unsafe partial struct EntityQuery
         var offsets = stackalloc int[6];
         var basePtrs = stackalloc byte*[6];
 
-        foreach (var archetypeID in _matchingArchetypes)
+        for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(archetypeID);
+            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 6; index++)
             {
-                offsets[index] = archetype.GetOffset(compTypeIDs[index]);
-                if (offsets[index] == -1)
+                var layoutResult = archetype.GetLayout(compTypeIDs[index]);
+                if (layoutResult.Status != ResultStatus.Success)
                 {
                     hasAllComponents = false;
                     break;
                 }
+
+                offsets[index] = layoutResult.Value.offset;
             }
 
             if (!hasAllComponents)
@@ -296,14 +338,20 @@ public unsafe partial struct EntityQuery
             for (var chunkIndex = 0; chunkIndex < archetype.ChunkCount; chunkIndex++)
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
-                var count = chunk.Count;
+                var pChunkData = chunk.GetUnsafePtr();
+
                 for (var index = 0; index < 6; index++)
                 {
-                    basePtrs[index] = chunk.GetUnsafePtr() + offsets[index];
+                    basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
                 {
+                    if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
+                    {
+                        continue;
+                    }
+
                     var pComp0 = (T0*)(basePtrs[0] + (sizeof(T0) * entityIndex));
                     var pComp1 = (T1*)(basePtrs[1] + (sizeof(T1) * entityIndex));
                     var pComp2 = (T2*)(basePtrs[2] + (sizeof(T2) * entityIndex));
@@ -332,18 +380,20 @@ public unsafe partial struct EntityQuery
         var offsets = stackalloc int[7];
         var basePtrs = stackalloc byte*[7];
 
-        foreach (var archetypeID in _matchingArchetypes)
+        for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(archetypeID);
+            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 7; index++)
             {
-                offsets[index] = archetype.GetOffset(compTypeIDs[index]);
-                if (offsets[index] == -1)
+                var layoutResult = archetype.GetLayout(compTypeIDs[index]);
+                if (layoutResult.Status != ResultStatus.Success)
                 {
                     hasAllComponents = false;
                     break;
                 }
+
+                offsets[index] = layoutResult.Value.offset;
             }
 
             if (!hasAllComponents)
@@ -354,14 +404,20 @@ public unsafe partial struct EntityQuery
             for (var chunkIndex = 0; chunkIndex < archetype.ChunkCount; chunkIndex++)
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
-                var count = chunk.Count;
+                var pChunkData = chunk.GetUnsafePtr();
+
                 for (var index = 0; index < 7; index++)
                 {
-                    basePtrs[index] = chunk.GetUnsafePtr() + offsets[index];
+                    basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
                 {
+                    if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
+                    {
+                        continue;
+                    }
+
                     var pComp0 = (T0*)(basePtrs[0] + (sizeof(T0) * entityIndex));
                     var pComp1 = (T1*)(basePtrs[1] + (sizeof(T1) * entityIndex));
                     var pComp2 = (T2*)(basePtrs[2] + (sizeof(T2) * entityIndex));
@@ -392,18 +448,20 @@ public unsafe partial struct EntityQuery
         var offsets = stackalloc int[8];
         var basePtrs = stackalloc byte*[8];
 
-        foreach (var archetypeID in _matchingArchetypes)
+        for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(archetypeID);
+            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 8; index++)
             {
-                offsets[index] = archetype.GetOffset(compTypeIDs[index]);
-                if (offsets[index] == -1)
+                var layoutResult = archetype.GetLayout(compTypeIDs[index]);
+                if (layoutResult.Status != ResultStatus.Success)
                 {
                     hasAllComponents = false;
                     break;
                 }
+
+                offsets[index] = layoutResult.Value.offset;
             }
 
             if (!hasAllComponents)
@@ -414,14 +472,20 @@ public unsafe partial struct EntityQuery
             for (var chunkIndex = 0; chunkIndex < archetype.ChunkCount; chunkIndex++)
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
-                var count = chunk.Count;
+                var pChunkData = chunk.GetUnsafePtr();
+
                 for (var index = 0; index < 8; index++)
                 {
-                    basePtrs[index] = chunk.GetUnsafePtr() + offsets[index];
+                    basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
                 {
+                    if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
+                    {
+                        continue;
+                    }
+
                     var pComp0 = (T0*)(basePtrs[0] + (sizeof(T0) * entityIndex));
                     var pComp1 = (T1*)(basePtrs[1] + (sizeof(T1) * entityIndex));
                     var pComp2 = (T2*)(basePtrs[2] + (sizeof(T2) * entityIndex));
@@ -437,7 +501,6 @@ public unsafe partial struct EntityQuery
         }
     }
 
-
     public readonly void ForEach<T0>(ForEachWithEntity<T0> action)
         where T0 : unmanaged, IComponent
     {
@@ -447,18 +510,20 @@ public unsafe partial struct EntityQuery
         var offsets = stackalloc int[1];
         var basePtrs = stackalloc byte*[1];
 
-        foreach (var archetypeID in _matchingArchetypes)
+        for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(archetypeID);
+            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 1; index++)
             {
-                offsets[index] = archetype.GetOffset(compTypeIDs[index]);
-                if (offsets[index] == -1)
+                var layoutResult = archetype.GetLayout(compTypeIDs[index]);
+                if (layoutResult.Status != ResultStatus.Success)
                 {
                     hasAllComponents = false;
                     break;
                 }
+
+                offsets[index] = layoutResult.Value.offset;
             }
 
             if (!hasAllComponents)
@@ -469,17 +534,23 @@ public unsafe partial struct EntityQuery
             for (var chunkIndex = 0; chunkIndex < archetype.ChunkCount; chunkIndex++)
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
-                var count = chunk.Count;
+                var pChunkData = chunk.GetUnsafePtr();
+
                 for (var index = 0; index < 1; index++)
                 {
-                    basePtrs[index] = chunk.GetUnsafePtr() + offsets[index];
+                    basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
                 {
-                    var pEntity = (Entity*)(chunk.GetUnsafePtr() + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
+                    if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
+                    {
+                        continue;
+                    }
+
                     var pComp0 = (T0*)(basePtrs[0] + (sizeof(T0) * entityIndex));
 
+                    var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
                     action(*pEntity, ref *pComp0);
                 }
             }
@@ -496,18 +567,20 @@ public unsafe partial struct EntityQuery
         var offsets = stackalloc int[2];
         var basePtrs = stackalloc byte*[2];
 
-        foreach (var archetypeID in _matchingArchetypes)
+        for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(archetypeID);
+            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 2; index++)
             {
-                offsets[index] = archetype.GetOffset(compTypeIDs[index]);
-                if (offsets[index] == -1)
+                var layoutResult = archetype.GetLayout(compTypeIDs[index]);
+                if (layoutResult.Status != ResultStatus.Success)
                 {
                     hasAllComponents = false;
                     break;
                 }
+
+                offsets[index] = layoutResult.Value.offset;
             }
 
             if (!hasAllComponents)
@@ -518,18 +591,24 @@ public unsafe partial struct EntityQuery
             for (var chunkIndex = 0; chunkIndex < archetype.ChunkCount; chunkIndex++)
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
-                var count = chunk.Count;
+                var pChunkData = chunk.GetUnsafePtr();
+
                 for (var index = 0; index < 2; index++)
                 {
-                    basePtrs[index] = chunk.GetUnsafePtr() + offsets[index];
+                    basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
                 {
-                    var pEntity = (Entity*)(chunk.GetUnsafePtr() + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
+                    if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
+                    {
+                        continue;
+                    }
+
                     var pComp0 = (T0*)(basePtrs[0] + (sizeof(T0) * entityIndex));
                     var pComp1 = (T1*)(basePtrs[1] + (sizeof(T1) * entityIndex));
 
+                    var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
                     action(*pEntity, ref *pComp0,ref *pComp1);
                 }
             }
@@ -547,18 +626,20 @@ public unsafe partial struct EntityQuery
         var offsets = stackalloc int[3];
         var basePtrs = stackalloc byte*[3];
 
-        foreach (var archetypeID in _matchingArchetypes)
+        for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(archetypeID);
+            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 3; index++)
             {
-                offsets[index] = archetype.GetOffset(compTypeIDs[index]);
-                if (offsets[index] == -1)
+                var layoutResult = archetype.GetLayout(compTypeIDs[index]);
+                if (layoutResult.Status != ResultStatus.Success)
                 {
                     hasAllComponents = false;
                     break;
                 }
+
+                offsets[index] = layoutResult.Value.offset;
             }
 
             if (!hasAllComponents)
@@ -569,19 +650,25 @@ public unsafe partial struct EntityQuery
             for (var chunkIndex = 0; chunkIndex < archetype.ChunkCount; chunkIndex++)
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
-                var count = chunk.Count;
+                var pChunkData = chunk.GetUnsafePtr();
+
                 for (var index = 0; index < 3; index++)
                 {
-                    basePtrs[index] = chunk.GetUnsafePtr() + offsets[index];
+                    basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
                 {
-                    var pEntity = (Entity*)(chunk.GetUnsafePtr() + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
+                    if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
+                    {
+                        continue;
+                    }
+
                     var pComp0 = (T0*)(basePtrs[0] + (sizeof(T0) * entityIndex));
                     var pComp1 = (T1*)(basePtrs[1] + (sizeof(T1) * entityIndex));
                     var pComp2 = (T2*)(basePtrs[2] + (sizeof(T2) * entityIndex));
 
+                    var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
                     action(*pEntity, ref *pComp0,ref *pComp1,ref *pComp2);
                 }
             }
@@ -600,18 +687,20 @@ public unsafe partial struct EntityQuery
         var offsets = stackalloc int[4];
         var basePtrs = stackalloc byte*[4];
 
-        foreach (var archetypeID in _matchingArchetypes)
+        for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(archetypeID);
+            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 4; index++)
             {
-                offsets[index] = archetype.GetOffset(compTypeIDs[index]);
-                if (offsets[index] == -1)
+                var layoutResult = archetype.GetLayout(compTypeIDs[index]);
+                if (layoutResult.Status != ResultStatus.Success)
                 {
                     hasAllComponents = false;
                     break;
                 }
+
+                offsets[index] = layoutResult.Value.offset;
             }
 
             if (!hasAllComponents)
@@ -622,20 +711,26 @@ public unsafe partial struct EntityQuery
             for (var chunkIndex = 0; chunkIndex < archetype.ChunkCount; chunkIndex++)
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
-                var count = chunk.Count;
+                var pChunkData = chunk.GetUnsafePtr();
+
                 for (var index = 0; index < 4; index++)
                 {
-                    basePtrs[index] = chunk.GetUnsafePtr() + offsets[index];
+                    basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
                 {
-                    var pEntity = (Entity*)(chunk.GetUnsafePtr() + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
+                    if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
+                    {
+                        continue;
+                    }
+
                     var pComp0 = (T0*)(basePtrs[0] + (sizeof(T0) * entityIndex));
                     var pComp1 = (T1*)(basePtrs[1] + (sizeof(T1) * entityIndex));
                     var pComp2 = (T2*)(basePtrs[2] + (sizeof(T2) * entityIndex));
                     var pComp3 = (T3*)(basePtrs[3] + (sizeof(T3) * entityIndex));
 
+                    var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
                     action(*pEntity, ref *pComp0,ref *pComp1,ref *pComp2,ref *pComp3);
                 }
             }
@@ -655,18 +750,20 @@ public unsafe partial struct EntityQuery
         var offsets = stackalloc int[5];
         var basePtrs = stackalloc byte*[5];
 
-        foreach (var archetypeID in _matchingArchetypes)
+        for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(archetypeID);
+            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 5; index++)
             {
-                offsets[index] = archetype.GetOffset(compTypeIDs[index]);
-                if (offsets[index] == -1)
+                var layoutResult = archetype.GetLayout(compTypeIDs[index]);
+                if (layoutResult.Status != ResultStatus.Success)
                 {
                     hasAllComponents = false;
                     break;
                 }
+
+                offsets[index] = layoutResult.Value.offset;
             }
 
             if (!hasAllComponents)
@@ -677,21 +774,27 @@ public unsafe partial struct EntityQuery
             for (var chunkIndex = 0; chunkIndex < archetype.ChunkCount; chunkIndex++)
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
-                var count = chunk.Count;
+                var pChunkData = chunk.GetUnsafePtr();
+
                 for (var index = 0; index < 5; index++)
                 {
-                    basePtrs[index] = chunk.GetUnsafePtr() + offsets[index];
+                    basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
                 {
-                    var pEntity = (Entity*)(chunk.GetUnsafePtr() + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
+                    if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
+                    {
+                        continue;
+                    }
+
                     var pComp0 = (T0*)(basePtrs[0] + (sizeof(T0) * entityIndex));
                     var pComp1 = (T1*)(basePtrs[1] + (sizeof(T1) * entityIndex));
                     var pComp2 = (T2*)(basePtrs[2] + (sizeof(T2) * entityIndex));
                     var pComp3 = (T3*)(basePtrs[3] + (sizeof(T3) * entityIndex));
                     var pComp4 = (T4*)(basePtrs[4] + (sizeof(T4) * entityIndex));
 
+                    var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
                     action(*pEntity, ref *pComp0,ref *pComp1,ref *pComp2,ref *pComp3,ref *pComp4);
                 }
             }
@@ -712,18 +815,20 @@ public unsafe partial struct EntityQuery
         var offsets = stackalloc int[6];
         var basePtrs = stackalloc byte*[6];
 
-        foreach (var archetypeID in _matchingArchetypes)
+        for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(archetypeID);
+            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 6; index++)
             {
-                offsets[index] = archetype.GetOffset(compTypeIDs[index]);
-                if (offsets[index] == -1)
+                var layoutResult = archetype.GetLayout(compTypeIDs[index]);
+                if (layoutResult.Status != ResultStatus.Success)
                 {
                     hasAllComponents = false;
                     break;
                 }
+
+                offsets[index] = layoutResult.Value.offset;
             }
 
             if (!hasAllComponents)
@@ -734,15 +839,20 @@ public unsafe partial struct EntityQuery
             for (var chunkIndex = 0; chunkIndex < archetype.ChunkCount; chunkIndex++)
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
-                var count = chunk.Count;
+                var pChunkData = chunk.GetUnsafePtr();
+
                 for (var index = 0; index < 6; index++)
                 {
-                    basePtrs[index] = chunk.GetUnsafePtr() + offsets[index];
+                    basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
                 {
-                    var pEntity = (Entity*)(chunk.GetUnsafePtr() + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
+                    if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
+                    {
+                        continue;
+                    }
+
                     var pComp0 = (T0*)(basePtrs[0] + (sizeof(T0) * entityIndex));
                     var pComp1 = (T1*)(basePtrs[1] + (sizeof(T1) * entityIndex));
                     var pComp2 = (T2*)(basePtrs[2] + (sizeof(T2) * entityIndex));
@@ -750,6 +860,7 @@ public unsafe partial struct EntityQuery
                     var pComp4 = (T4*)(basePtrs[4] + (sizeof(T4) * entityIndex));
                     var pComp5 = (T5*)(basePtrs[5] + (sizeof(T5) * entityIndex));
 
+                    var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
                     action(*pEntity, ref *pComp0,ref *pComp1,ref *pComp2,ref *pComp3,ref *pComp4,ref *pComp5);
                 }
             }
@@ -771,18 +882,20 @@ public unsafe partial struct EntityQuery
         var offsets = stackalloc int[7];
         var basePtrs = stackalloc byte*[7];
 
-        foreach (var archetypeID in _matchingArchetypes)
+        for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(archetypeID);
+            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 7; index++)
             {
-                offsets[index] = archetype.GetOffset(compTypeIDs[index]);
-                if (offsets[index] == -1)
+                var layoutResult = archetype.GetLayout(compTypeIDs[index]);
+                if (layoutResult.Status != ResultStatus.Success)
                 {
                     hasAllComponents = false;
                     break;
                 }
+
+                offsets[index] = layoutResult.Value.offset;
             }
 
             if (!hasAllComponents)
@@ -793,15 +906,20 @@ public unsafe partial struct EntityQuery
             for (var chunkIndex = 0; chunkIndex < archetype.ChunkCount; chunkIndex++)
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
-                var count = chunk.Count;
+                var pChunkData = chunk.GetUnsafePtr();
+
                 for (var index = 0; index < 7; index++)
                 {
-                    basePtrs[index] = chunk.GetUnsafePtr() + offsets[index];
+                    basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
                 {
-                    var pEntity = (Entity*)(chunk.GetUnsafePtr() + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
+                    if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
+                    {
+                        continue;
+                    }
+
                     var pComp0 = (T0*)(basePtrs[0] + (sizeof(T0) * entityIndex));
                     var pComp1 = (T1*)(basePtrs[1] + (sizeof(T1) * entityIndex));
                     var pComp2 = (T2*)(basePtrs[2] + (sizeof(T2) * entityIndex));
@@ -810,6 +928,7 @@ public unsafe partial struct EntityQuery
                     var pComp5 = (T5*)(basePtrs[5] + (sizeof(T5) * entityIndex));
                     var pComp6 = (T6*)(basePtrs[6] + (sizeof(T6) * entityIndex));
 
+                    var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
                     action(*pEntity, ref *pComp0,ref *pComp1,ref *pComp2,ref *pComp3,ref *pComp4,ref *pComp5,ref *pComp6);
                 }
             }
@@ -832,18 +951,20 @@ public unsafe partial struct EntityQuery
         var offsets = stackalloc int[8];
         var basePtrs = stackalloc byte*[8];
 
-        foreach (var archetypeID in _matchingArchetypes)
+        for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(archetypeID);
+            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 8; index++)
             {
-                offsets[index] = archetype.GetOffset(compTypeIDs[index]);
-                if (offsets[index] == -1)
+                var layoutResult = archetype.GetLayout(compTypeIDs[index]);
+                if (layoutResult.Status != ResultStatus.Success)
                 {
                     hasAllComponents = false;
                     break;
                 }
+
+                offsets[index] = layoutResult.Value.offset;
             }
 
             if (!hasAllComponents)
@@ -854,15 +975,20 @@ public unsafe partial struct EntityQuery
             for (var chunkIndex = 0; chunkIndex < archetype.ChunkCount; chunkIndex++)
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
-                var count = chunk.Count;
+                var pChunkData = chunk.GetUnsafePtr();
+
                 for (var index = 0; index < 8; index++)
                 {
-                    basePtrs[index] = chunk.GetUnsafePtr() + offsets[index];
+                    basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
                 {
-                    var pEntity = (Entity*)(chunk.GetUnsafePtr() + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
+                    if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
+                    {
+                        continue;
+                    }
+
                     var pComp0 = (T0*)(basePtrs[0] + (sizeof(T0) * entityIndex));
                     var pComp1 = (T1*)(basePtrs[1] + (sizeof(T1) * entityIndex));
                     var pComp2 = (T2*)(basePtrs[2] + (sizeof(T2) * entityIndex));
@@ -872,6 +998,7 @@ public unsafe partial struct EntityQuery
                     var pComp6 = (T6*)(basePtrs[6] + (sizeof(T6) * entityIndex));
                     var pComp7 = (T7*)(basePtrs[7] + (sizeof(T7) * entityIndex));
 
+                    var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
                     action(*pEntity, ref *pComp0,ref *pComp1,ref *pComp2,ref *pComp3,ref *pComp4,ref *pComp5,ref *pComp6,ref *pComp7);
                 }
             }

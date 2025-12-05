@@ -2,6 +2,7 @@ using Ghost.Core;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.CompilerServices;
+using TerraFX.Interop.Windows;
 
 namespace Ghost.Entities;
 
@@ -110,6 +111,7 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
         Dispose();
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal Identifier<Archetype> CreateArchetype(ReadOnlySpan<Identifier<IComponent>> componentTypeIDs, int signatureHash)
     {
         var arcID = new Identifier<Archetype>(_archetypes.Count);
@@ -119,12 +121,13 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
         for (int i = 0; i < _entityQueries.Count; i++)
         {
             ref var query = ref _entityQueries[i];
-            query.AddArchetypeIfMatch(_archetypes[arcID.value]);
+            query.AddArchetypeIfMatch(in _archetypes[arcID.value]);
         }
 
         return arcID;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal Identifier<Archetype> GetArchetypeIDBySignatureHash(int signatureHash)
     {
         if (_archetypeLookup.TryGetValue(signatureHash, out var arcID))
@@ -135,20 +138,29 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
         return Identifier<Archetype>.Invalid;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal ref Archetype GetArchetypeReference(Identifier<Archetype> id)
     {
         return ref _archetypes[id.value];
     }
 
-    internal Identifier<EntityQuery> CreateEntityQuery(EntityQueryMask mask)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal Identifier<EntityQuery> CreateEntityQuery(EntityQueryMask mask, int maskHash)
     {
         var queryID = new Identifier<EntityQuery>(_entityQueries.Count);
         _entityQueries.Add(new EntityQuery(_id, mask));
-        _querieLookup.Add(mask.GetHashCode(), queryID);
+        _querieLookup.Add(maskHash, queryID);
+
+        ref var query = ref _entityQueries[queryID.value];
+        for (var i = 0; i < _archetypes.Count; i++)
+        {
+            query.AddArchetypeIfMatch(in _archetypes[i]);
+        }
 
         return queryID;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal Identifier<EntityQuery> GetEntityQueryIDByMaskHash(int maskHash)
     {
         if (_querieLookup.TryGetValue(maskHash, out var queryID))
@@ -159,6 +171,7 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
         return Identifier<EntityQuery>.Invalid;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ref EntityQuery GetEntityQueryReference(Identifier<EntityQuery> id)
     {
         return ref _entityQueries[id.value];

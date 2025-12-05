@@ -15,28 +15,28 @@ public partial class ArcEntityTest : ITest
     public void Run()
     {
         var entity1 = _world.EntityManager.CreateEntity(ComponentTypeID<Transform>.value);
-        Console.WriteLine(entity1);
-        _world.EntityManager.AddComponent<Mesh>(entity1, new Mesh { index = 1 });
+        _world.EntityManager.AddComponent(entity1, new Mesh { index = 1 });
 
         var queryID = new QueryBuilder().WithAll<Transform>().Build(_world);
         ref var query = ref _world.GetEntityQueryReference(queryID);
+
+        query.ForEach<Transform>((ref t) => 
+        {
+            t.position = new float3(1, 2, 3);
+        });
 
         foreach (var chunk in query.GetChunkIterator())
         {
             var transforms = chunk.GetComponentData<Transform>();
             var entities = chunk.GetEntities();
-
-            for (var i = 0; i < chunk.Count; i++)
+            var bits = chunk.GetEnableBits<Transform>();
+            
+            var it = bits.GetIterator();
+            while (it.Next(out var index) && index < chunk.Count)
             {
-                Console.WriteLine($"Entity {entities[i]} Position: {transforms[i].position}");
-                transforms[i].position = new float3(1, 2, 3);
+                Console.WriteLine($"Entity {entities[index]} Updated Position: {transforms[index].position}");
             }
         }
-
-        query.ForEach<Transform>((e, ref t) => 
-        {
-            Console.WriteLine($"Entity {e} Updated Position: {t.position}");
-        });
     }
 
     public void Cleanup()
@@ -45,7 +45,7 @@ public partial class ArcEntityTest : ITest
     }
 }
 
-public struct Transform : IComponent
+public struct Transform : IEnableableComponent
 {
     public float3 position;
 }

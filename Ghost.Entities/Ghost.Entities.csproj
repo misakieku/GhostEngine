@@ -7,6 +7,16 @@
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <IsAotCompatible>True</IsAotCompatible>
+    <IsTrimmable>True</IsTrimmable>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <IsAotCompatible>True</IsAotCompatible>
+    <IsTrimmable>True</IsTrimmable>
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Remove="Templates\ForEach.cs" />
   </ItemGroup>
@@ -22,6 +32,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
     </None>
+    <None Include="Templates\QueryBuilder.With.gen.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>QueryBuilder.With.tt</DependentUpon>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
@@ -36,6 +51,10 @@
     <None Update="Templates\ForEach.tt">
       <LastGenOutput>ForEach.gen.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Update="Templates\QueryBuilder.With.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>QueryBuilder.With.gen.cs</LastGenOutput>
     </None>
   </ItemGroup>
 
@@ -53,6 +72,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>ForEach.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Templates\QueryBuilder.With.gen.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>QueryBuilder.With.tt</DependentUpon>
     </Compile>
   </ItemGroup>
 
