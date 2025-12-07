@@ -148,7 +148,7 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
     internal Identifier<EntityQuery> CreateEntityQuery(EntityQueryMask mask, int maskHash)
     {
         var queryID = new Identifier<EntityQuery>(_entityQueries.Count);
-        _entityQueries.Add(new EntityQuery(_id, mask));
+        _entityQueries.Add(new EntityQuery(queryID, _id, mask));
         _querieLookup.Add(maskHash, queryID);
 
         ref var query = ref _entityQueries[queryID.value];

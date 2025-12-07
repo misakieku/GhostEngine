@@ -111,7 +111,7 @@ public unsafe partial struct EntityQuery
                     var pComp0 = (T0*)(basePtrs[0] + (sizeof(T0) * entityIndex));
                     var pComp1 = (T1*)(basePtrs[1] + (sizeof(T1) * entityIndex));
 
-                    action(ref *pComp0,ref *pComp1);
+                    action(ref *pComp0, ref *pComp1);
                 }
             }
         }
@@ -170,7 +170,7 @@ public unsafe partial struct EntityQuery
                     var pComp1 = (T1*)(basePtrs[1] + (sizeof(T1) * entityIndex));
                     var pComp2 = (T2*)(basePtrs[2] + (sizeof(T2) * entityIndex));
 
-                    action(ref *pComp0,ref *pComp1,ref *pComp2);
+                    action(ref *pComp0, ref *pComp1, ref *pComp2);
                 }
             }
         }
@@ -231,7 +231,7 @@ public unsafe partial struct EntityQuery
                     var pComp2 = (T2*)(basePtrs[2] + (sizeof(T2) * entityIndex));
                     var pComp3 = (T3*)(basePtrs[3] + (sizeof(T3) * entityIndex));
 
-                    action(ref *pComp0,ref *pComp1,ref *pComp2,ref *pComp3);
+                    action(ref *pComp0, ref *pComp1, ref *pComp2, ref *pComp3);
                 }
             }
         }
@@ -294,7 +294,7 @@ public unsafe partial struct EntityQuery
                     var pComp3 = (T3*)(basePtrs[3] + (sizeof(T3) * entityIndex));
                     var pComp4 = (T4*)(basePtrs[4] + (sizeof(T4) * entityIndex));
 
-                    action(ref *pComp0,ref *pComp1,ref *pComp2,ref *pComp3,ref *pComp4);
+                    action(ref *pComp0, ref *pComp1, ref *pComp2, ref *pComp3, ref *pComp4);
                 }
             }
         }
@@ -359,7 +359,7 @@ public unsafe partial struct EntityQuery
                     var pComp4 = (T4*)(basePtrs[4] + (sizeof(T4) * entityIndex));
                     var pComp5 = (T5*)(basePtrs[5] + (sizeof(T5) * entityIndex));
 
-                    action(ref *pComp0,ref *pComp1,ref *pComp2,ref *pComp3,ref *pComp4,ref *pComp5);
+                    action(ref *pComp0, ref *pComp1, ref *pComp2, ref *pComp3, ref *pComp4, ref *pComp5);
                 }
             }
         }
@@ -426,7 +426,7 @@ public unsafe partial struct EntityQuery
                     var pComp5 = (T5*)(basePtrs[5] + (sizeof(T5) * entityIndex));
                     var pComp6 = (T6*)(basePtrs[6] + (sizeof(T6) * entityIndex));
 
-                    action(ref *pComp0,ref *pComp1,ref *pComp2,ref *pComp3,ref *pComp4,ref *pComp5,ref *pComp6);
+                    action(ref *pComp0, ref *pComp1, ref *pComp2, ref *pComp3, ref *pComp4, ref *pComp5, ref *pComp6);
                 }
             }
         }
@@ -495,7 +495,7 @@ public unsafe partial struct EntityQuery
                     var pComp6 = (T6*)(basePtrs[6] + (sizeof(T6) * entityIndex));
                     var pComp7 = (T7*)(basePtrs[7] + (sizeof(T7) * entityIndex));
 
-                    action(ref *pComp0,ref *pComp1,ref *pComp2,ref *pComp3,ref *pComp4,ref *pComp5,ref *pComp6,ref *pComp7);
+                    action(ref *pComp0, ref *pComp1, ref *pComp2, ref *pComp3, ref *pComp4, ref *pComp5, ref *pComp6, ref *pComp7);
                 }
             }
         }
@@ -609,7 +609,7 @@ public unsafe partial struct EntityQuery
                     var pComp1 = (T1*)(basePtrs[1] + (sizeof(T1) * entityIndex));
 
                     var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
-                    action(*pEntity, ref *pComp0,ref *pComp1);
+                    action(*pEntity, ref *pComp0, ref *pComp1);
                 }
             }
         }
@@ -669,7 +669,7 @@ public unsafe partial struct EntityQuery
                     var pComp2 = (T2*)(basePtrs[2] + (sizeof(T2) * entityIndex));
 
                     var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
-                    action(*pEntity, ref *pComp0,ref *pComp1,ref *pComp2);
+                    action(*pEntity, ref *pComp0, ref *pComp1, ref *pComp2);
                 }
             }
         }
@@ -731,7 +731,7 @@ public unsafe partial struct EntityQuery
                     var pComp3 = (T3*)(basePtrs[3] + (sizeof(T3) * entityIndex));
 
                     var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
-                    action(*pEntity, ref *pComp0,ref *pComp1,ref *pComp2,ref *pComp3);
+                    action(*pEntity, ref *pComp0, ref *pComp1, ref *pComp2, ref *pComp3);
                 }
             }
         }
@@ -795,7 +795,7 @@ public unsafe partial struct EntityQuery
                     var pComp4 = (T4*)(basePtrs[4] + (sizeof(T4) * entityIndex));
 
                     var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
-                    action(*pEntity, ref *pComp0,ref *pComp1,ref *pComp2,ref *pComp3,ref *pComp4);
+                    action(*pEntity, ref *pComp0, ref *pComp1, ref *pComp2, ref *pComp3, ref *pComp4);
                 }
             }
         }
@@ -861,7 +861,7 @@ public unsafe partial struct EntityQuery
                     var pComp5 = (T5*)(basePtrs[5] + (sizeof(T5) * entityIndex));
 
                     var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
-                    action(*pEntity, ref *pComp0,ref *pComp1,ref *pComp2,ref *pComp3,ref *pComp4,ref *pComp5);
+                    action(*pEntity, ref *pComp0, ref *pComp1, ref *pComp2, ref *pComp3, ref *pComp4, ref *pComp5);
                 }
             }
         }
@@ -929,7 +929,7 @@ public unsafe partial struct EntityQuery
                     var pComp6 = (T6*)(basePtrs[6] + (sizeof(T6) * entityIndex));
 
                     var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
-                    action(*pEntity, ref *pComp0,ref *pComp1,ref *pComp2,ref *pComp3,ref *pComp4,ref *pComp5,ref *pComp6);
+                    action(*pEntity, ref *pComp0, ref *pComp1, ref *pComp2, ref *pComp3, ref *pComp4, ref *pComp5, ref *pComp6);
                 }
             }
         }
@@ -999,7 +999,7 @@ public unsafe partial struct EntityQuery
                     var pComp7 = (T7*)(basePtrs[7] + (sizeof(T7) * entityIndex));
 
                     var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
-                    action(*pEntity, ref *pComp0,ref *pComp1,ref *pComp2,ref *pComp3,ref *pComp4,ref *pComp5,ref *pComp6,ref *pComp7);
+                    action(*pEntity, ref *pComp0, ref *pComp1, ref *pComp2, ref *pComp3, ref *pComp4, ref *pComp5, ref *pComp6, ref *pComp7);
                 }
             }
         }

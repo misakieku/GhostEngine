@@ -231,37 +231,37 @@ public unsafe partial struct EntityQuery : IIdentifierType, IDisposable
         }
     }
 
-    private readonly Identifier<World> _worldID;
-    private UnsafeList<Identifier<Archetype>> _matchingArchetypes;
-
     internal EntityQueryMask _mask;
 
-    internal EntityQuery(Identifier<World> worldID, EntityQueryMask mask)
+    private UnsafeList<Identifier<Archetype>> _matchingArchetypes;
+    private readonly Identifier<EntityQuery> _id;
+    private readonly Identifier<World> _worldID;
+
+    internal EntityQuery(Identifier<EntityQuery> id, Identifier<World> worldID, EntityQueryMask mask)
     {
+        _id = id;
         _worldID = worldID;
         _mask = mask;
         _matchingArchetypes = new UnsafeList<Identifier<Archetype>>(8, Allocator.Persistent);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsEntityValid(byte* chunkBase, int entityIndex, ref readonly Archetype archetype, ref readonly EntityQueryMask mask)
     {
         // 1. Check "Require Enabled" (WithAll)
-        // We iterate over the bits set in 'requireEnabled'
         var it = mask.requireEnabled.GetIterator();
-
         while (it.Next(out var id))
         {
             // Get the EnableBitmask for this component in this chunk
-            var layout = archetype.GetLayout(id).Value;
-            if (layout.enableBitsOffset == -1)
-            {
+            var layoutResult = archetype.GetLayout(id);
+            if (layoutResult.Status != ResultStatus.Success
                 // Not enableable, always true
+                || layoutResult.Value.enableBitsOffset == -1)
+            {
                 continue;
             }
 
             // Check bit
-            if (!CheckBit(chunkBase + layout.enableBitsOffset, entityIndex))
+            if (!CheckBit(chunkBase + layoutResult.Value.enableBitsOffset, entityIndex))
             {
                 return false;
             }
@@ -271,17 +271,18 @@ public unsafe partial struct EntityQuery : IIdentifierType, IDisposable
         it = mask.requireDisabled.GetIterator();
         while (it.Next(out var id))
         {
-            var layout = archetype.GetLayout(id).Value;
+            var layoutResult = archetype.GetLayout(id);
+            if (layoutResult.Status != ResultStatus.Success)
+            {
+                continue;
+            }
 
             // If component is not enableable, it is technically "Always Enabled", 
             // so it cannot satisfy "WithDisabled".
-            if (layout.enableBitsOffset == -1)
-            {
-                return false;
-            }
 
             // Check bit (Must be 0)
-            if (CheckBit(chunkBase + layout.enableBitsOffset, entityIndex))
+            if (layoutResult.Value.enableBitsOffset == -1
+                || CheckBit(chunkBase + layoutResult.Value.enableBitsOffset, entityIndex))
             {
                 return false;
             }
@@ -294,19 +295,15 @@ public unsafe partial struct EntityQuery : IIdentifierType, IDisposable
             var layoutResult = archetype.GetLayout(id);
             if (layoutResult.Status != ResultStatus.Success)
             {
-                // Component is absent, so it is not enabled.
                 continue;
             }
 
             // If component is not enableable, it is technically "Always Enabled", 
             // so it cannot satisfy "Reject if Enabled".
-            if (layoutResult.Value.enableBitsOffset == -1)
-            {
-                return false;
-            }
 
             // Check bit (Must be 0)
-            if (CheckBit(chunkBase + layoutResult.Value.enableBitsOffset, entityIndex))
+            if (layoutResult.Value.enableBitsOffset == -1
+                || CheckBit(chunkBase + layoutResult.Value.enableBitsOffset, entityIndex))
             {
                 return false;
             }
@@ -316,7 +313,7 @@ public unsafe partial struct EntityQuery : IIdentifierType, IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool CheckBit(byte* maskBase, int index)
+    internal static bool CheckBit(byte* maskBase, int index)
     {
         var byteIndex = index >> Chunk.BIT_SHIFT;
         var bitIndex = index & Chunk.BIT_ALIGNMENT_MINUS_ONE;

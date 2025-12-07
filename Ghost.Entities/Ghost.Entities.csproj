@@ -52,6 +52,10 @@
       <LastGenOutput>ForEach.gen.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>
     </None>
+    <None Update="Templates\EntityQuery.JobEntityParallel.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>EntityQuery.JobEntityParallel.gen.cs</LastGenOutput>
+    </None>
     <None Update="Templates\QueryBuilder.With.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>QueryBuilder.With.gen.cs</LastGenOutput>
@@ -67,6 +71,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>EntityQuery.ForEach.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Templates\EntityQuery.JobEntityParallel.gen.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>EntityQuery.JobEntityParallel.tt</DependentUpon>
     </Compile>
     <Compile Update="Templates\ForEach.gen.cs">
       <DesignTime>True</DesignTime>

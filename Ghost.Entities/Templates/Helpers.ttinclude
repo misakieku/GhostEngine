@@ -19,6 +19,7 @@
             if (i > 0) sb.Append(", ");
             sb.Append(string.Format(template, i));
         }
+
         return sb.ToString();
     }
 
@@ -27,27 +28,18 @@
         return AppendGenerics(amount, "T{0}");
     }
 
-    public StringBuilder AppendGenericRefParameters(int amount)
+    public StringBuilder AppendParameters(int amount, string template)
     {
         var sb = new StringBuilder();
         for (var localIndex = 0; localIndex < amount; localIndex++)
         {
-            sb.Append($"ref T{localIndex} t{localIndex}Component,");
+            sb.Append(string.Format(template, localIndex));
+            if (localIndex < amount - 1)
+            {
+                sb.Append(", ");
+            }
         }
 
-        sb.Length--;
-        return sb;
-    }
-
-    public StringBuilder AppendRefParameters(int amount, string template)
-    {
-        var sb = new StringBuilder();
-        for (var localIndex = 0; localIndex < amount; localIndex++)
-        {
-            sb.Append($"ref {string.Format(template, localIndex)},");
-        }
-
-        sb.Length--;
         return sb;
     }
 
@@ -62,6 +54,7 @@
                 sb.Append(' ');
             }
         }
+
         return sb;
     }
 
@@ -83,6 +76,7 @@
                 sb.AppendLine();
             }
         }
+
         return sb;
     }
 
@@ -102,6 +96,7 @@
                 sb.Append(" && ");
             }
         }
+
         return sb;
     }
 
@@ -116,6 +111,7 @@
                 sb.Append(" && ");
             }
         }
+
         return sb;
     }
 
@@ -130,6 +126,7 @@
                 sb.Append(", ");
             }
         }
+
         return sb;
     }
 
@@ -144,6 +141,7 @@
                 sb.Append(", ");
             }
         }
+
         return sb;
     }
 #>
