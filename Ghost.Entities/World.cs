@@ -2,16 +2,15 @@ using Ghost.Core;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.CompilerServices;
-using TerraFX.Interop.Windows;
 
 namespace Ghost.Entities;
 
 public partial class World
 {
-    private static List<World?> s_worlds = new(4);
-    private static Queue<Identifier<World>> s_freeWorldSlots = new();
+    private static readonly List<World?> s_worlds = new(4);
+    private static readonly Queue<Identifier<World>> s_freeWorldSlots = new();
 
-    internal static Identifier<Archetype> EmptyArchetypeID => new Identifier<Archetype>(0);
+    internal static Identifier<Archetype> EmptyArchetypeID => new (0);
 
     public static int WorldCount => s_worlds.Count - s_freeWorldSlots.Count;
 
@@ -43,10 +42,7 @@ public partial class World
             }
 
             var world = s_worlds[id.value];
-            if (world is not null)
-            {
-                world.Dispose();
-            }
+            world?.Dispose();
         }
     }
 
@@ -72,8 +68,8 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
 {
     private readonly Identifier<World> _id;
 
-    private EntityManager _entityManager;
-    private EntityCommandBuffer _entityCommandBuffer;
+    private readonly EntityManager _entityManager;
+    private readonly EntityCommandBuffer _entityCommandBuffer;
 
     private UnsafeList<Archetype> _archetypes;
     private UnsafeList<EntityQuery> _entityQueries;

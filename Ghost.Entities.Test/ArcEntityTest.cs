@@ -2,7 +2,6 @@ using Ghost.Test.Core;
 using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
-using System;
 
 namespace Ghost.Entities.Test;
 
