@@ -30,9 +30,9 @@ public static class ComponentTypeID<T>
 internal static class ComponentRegister
 {
     private static int s_nextComponentTypeID = 0;
-    private static readonly Dictionary<IntPtr, Identifier<IComponent>> s_typeHandleToID = new();
 
     private static readonly List<ComponentInfo> s_registeredComponents = new();
+    private static readonly Dictionary<IntPtr, Identifier<IComponent>> s_typeHandleToID = new();
     private static readonly Dictionary<string, Identifier<IComponent>> s_nameToRuntimeID = new();
 
     public static unsafe Identifier<IComponent> GetOrRegisterComponent<T>()
@@ -71,12 +71,26 @@ internal static class ComponentRegister
         }
     }
 
+    public static Identifier<IComponent> GetComponentID(Type type)
+    {
+        var typeHandle = type.TypeHandle.Value;
+        lock (s_registeredComponents)
+        {
+            if (s_typeHandleToID.TryGetValue(typeHandle, out var existingID))
+            {
+                return existingID;
+            }
+        }
+
+        throw new KeyNotFoundException($"Component type {type} is not registered.");
+    }
+
     public static ComponentInfo GetComponentInfo(Identifier<IComponent> typeId)
     {
         return s_registeredComponents[typeId];
     }
 
-    public static int GetHashCode(ReadOnlySpan<Identifier<IComponent>> componentTypeIDs)
+    public static int GetHashCode(params ReadOnlySpan<Identifier<IComponent>> componentTypeIDs)
     {
         var largestID = 0;
         foreach (var id in componentTypeIDs)

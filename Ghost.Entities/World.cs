@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.CompilerServices;
@@ -14,18 +15,18 @@ public partial class World
 
     public static int WorldCount => s_worlds.Count - s_freeWorldSlots.Count;
 
-    public static World Create(int entityCapacity = 16)
+    public static World Create(JobScheduler jobScheduler, int entityCapacity = 16)
     {
         lock (s_worlds)
         {
             if (s_freeWorldSlots.TryDequeue(out var index))
             {
-                s_worlds[index.value] = new World(index, entityCapacity);
+                s_worlds[index.value] = new World(index, entityCapacity, jobScheduler);
             }
             else
             {
                 index = new Identifier<World>(s_worlds.Count);
-                s_worlds.Add(new World(index, entityCapacity));
+                s_worlds.Add(new World(index, entityCapacity, jobScheduler));
             }
 
             return s_worlds[index.value]!;
@@ -67,6 +68,7 @@ public partial class World
 public partial class World : IIdentifierType, IDisposable, IEquatable<World>
 {
     private readonly Identifier<World> _id;
+    private readonly JobScheduler _jobScheduler;
 
     private readonly EntityManager _entityManager;
     private readonly EntityCommandBuffer _entityCommandBuffer;
@@ -82,12 +84,14 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
     internal int ArchetypeCount => _archetypes.Count;
 
     public Identifier<World> ID => _id;
+    public JobScheduler JobScheduler => _jobScheduler;
     public EntityManager EntityManager => _entityManager;
     public EntityCommandBuffer EntityCommandBuffer => _entityCommandBuffer;
 
-    private World(Identifier<World> id, int entityCapacity)
+    private World(Identifier<World> id, int entityCapacity, JobScheduler jobScheduler)
     {
         _id = id;
+        _jobScheduler = jobScheduler;
 
         _archetypes = new UnsafeList<Archetype>(16, Allocator.Persistent);
         _entityQueries = new UnsafeList<EntityQuery>(16, Allocator.Persistent);

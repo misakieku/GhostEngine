@@ -37,17 +37,6 @@ public struct EntityQueryMask : IDisposable, IEquatable<EntityQueryMask>
         return hash;
     }
 
-    public void Dispose()
-    {
-        structuralAll.Dispose();
-        structuralAny.Dispose();
-        structuralAbsent.Dispose();
-
-        requireEnabled.Dispose();
-        requireDisabled.Dispose();
-        rejectIfEnabled.Dispose();
-    }
-
     public readonly bool Equals(EntityQueryMask other)
     {
         return structuralAll.Equals(other.structuralAll)
@@ -72,98 +61,109 @@ public struct EntityQueryMask : IDisposable, IEquatable<EntityQueryMask>
     {
         return !(left == right);
     }
+
+    public void Dispose()
+    {
+        structuralAll.Dispose();
+        structuralAny.Dispose();
+        structuralAbsent.Dispose();
+
+        requireEnabled.Dispose();
+        requireDisabled.Dispose();
+        rejectIfEnabled.Dispose();
+    }
 }
 
 public unsafe partial struct EntityQuery : IIdentifierType, IDisposable
 {
     /// <summary>
+    /// Provides a read-only view over a chunk of entities and their component data within an archetype.
+    /// </summary>
+    /// <remarks>This does not filter disabled/enabled components. You must handle that manually.</remarks>
+    public readonly ref struct ChunkView
+    {
+        private readonly ref Archetype _archetype;
+        private readonly ref Chunk _chunk;
+
+        public readonly int Count => _chunk.Count;
+
+        internal ChunkView(ref Archetype archetype, int chunkIndex)
+        {
+            _archetype = ref archetype;
+            _chunk = ref archetype.GetChunkReference(chunkIndex);
+        }
+
+        /// <summary>
+        /// Returns a read-only span containing structuralAll entities stored in the current chunk.
+        /// </summary>
+        /// <returns>A read-only span of <see cref="Entity"/> values representing the entities in the chunk.</returns>
+        public readonly ReadOnlySpan<Entity> GetEntities()
+        {
+            var ptr = _chunk.GetUnsafePtr();
+            var pEntity = (Entity*)(ptr + _archetype.EntityIDsOffset);
+            return new ReadOnlySpan<Entity>(pEntity, _chunk.Count);
+        }
+
+        /// <summary>
+        /// Gets a span providing direct access to the component data of type T0 for structuralAll entities in the chunk.
+        /// </summary>
+        /// <typeparam name="T">The type of component to access. Must be an unmanaged type that implements <see cref="Component"/>.</typeparam>
+        /// <returns>A span of type <see cref="{T}"/> containing the component data for each entity in the chunk.</returns>
+        /// <exception cref="InvalidOperationException">Thrown if the specified component type is not present in the archetype.</exception>
+        public readonly Span<T> GetComponentData<T>()
+            where T : unmanaged, IComponent
+        {
+            var layout = _archetype.GetLayout(ComponentTypeID<T>.value).GetValueOrThrow(ResultStatus.Success);
+            var ptr = _chunk.GetUnsafePtr() + layout.offset;
+            return new Span<T>(ptr, _chunk.Count);
+        }
+
+        /// <summary>
+        /// Gets a bit set representing the enabled state of each instance of the specified enableable component
+        /// type within the current chunk.
+        /// </summary>
+        /// <typeparam name="T">The component type for which to retrieve enablement bits. Must be unmanaged and implement <see cref="IEnableableComponent"/>.</typeparam>
+        /// <returns>A <see cref="SpanBitSet"/> that provides access to the enablement bits for all instances of the specified component type in the chunk.</returns>
+        /// <exception cref="InvalidOperationException">Thrown if the specified component type does not support enablement.</exception>
+        public SpanBitSet GetEnableBits<T>()
+            where T : unmanaged, IEnableableComponent
+        {
+            var layout = _archetype.GetLayout(ComponentTypeID<T>.value).GetValueOrThrow(ResultStatus.Success);
+            if (layout.enableBitsOffset == -1)
+            {
+                throw new InvalidOperationException($"Component {typeof(T).FullName} is not enableable.");
+            }
+
+            var maskBase = _chunk.GetUnsafePtr() + layout.enableBitsOffset;
+            return new SpanBitSet(new Span<uint>(maskBase, (_chunk.Count + 31) / 32));
+        }
+
+        /// <summary>
+        /// Determines whether the specified component of type <typeparamref name="T"/> at the given index is currently enabled.
+        /// </summary>
+        /// <typeparam name="T">The type of the component to check. Must be an unmanaged type that implements <see cref="IEnableableComponent"/>.</typeparam>
+        /// <param name="index">The zero-based index of the component instance to check within the chunk.</param>
+        /// <returns>true if the component at the specified index is enabled; otherwise, false.</returns>
+        /// <exception cref="InvalidOperationException">Thrown if the specified component type <typeparamref name="T"/> does not support enable/disable functionality.</exception>
+        public readonly bool IsComponentEnabled<T>(int index)
+            where T : unmanaged, IEnableableComponent
+        {
+            var layout = _archetype.GetLayout(ComponentTypeID<T>.value).GetValueOrThrow(ResultStatus.Success);
+            if (layout.enableBitsOffset == -1)
+            {
+                throw new InvalidOperationException($"Component {typeof(T).FullName} is not enableable.");
+            }
+
+            var maskBase = _chunk.GetUnsafePtr() + layout.enableBitsOffset;
+            return CheckBit(maskBase, index);
+        }
+    }
+
+    /// <summary>
     /// Provides an enumerator for iterating over chunks of entities and their component data that match a set of archetypes within a world.
     /// </summary>
     public readonly ref struct ChunkIterator
     {
-        /// <summary>
-        /// Provides a read-only view over a chunk of entities and their component data within an archetype.
-        /// </summary>
-        /// <remarks>This does not filter disabled/enabled components. You must handle that manually.</remarks>
-        public readonly ref struct ChunkView
-        {
-            private readonly ref Archetype _archetype;
-            private readonly ref Chunk _chunk;
-
-            public readonly int Count => _chunk.Count;
-
-            internal ChunkView(ref Archetype archetype, int chunkIndex)
-            {
-                _archetype = ref archetype;
-                _chunk = ref archetype.GetChunkReference(chunkIndex);
-            }
-
-            /// <summary>
-            /// Returns a read-only span containing structuralAll entities stored in the current chunk.
-            /// </summary>
-            /// <returns>A read-only span of <see cref="Entity"/> values representing the entities in the chunk.</returns>
-            public readonly ReadOnlySpan<Entity> GetEntities()
-            {
-                var ptr = _chunk.GetUnsafePtr();
-                var pEntity = (Entity*)(ptr + _archetype.EntityIDsOffset);
-                return new ReadOnlySpan<Entity>(pEntity, _chunk.Count);
-            }
-
-            /// <summary>
-            /// Gets a span providing direct access to the component data of type T0 for structuralAll entities in the chunk.
-            /// </summary>
-            /// <typeparam name="T">The type of component to access. Must be an unmanaged type that implements <see cref="Component"/>.</typeparam>
-            /// <returns>A span of type <see cref="{T}"/> containing the component data for each entity in the chunk.</returns>
-            /// <exception cref="InvalidOperationException">Thrown if the specified component type is not present in the archetype.</exception>
-            public readonly Span<T> GetComponentData<T>()
-                where T : unmanaged, IComponent
-            {
-                var layout = _archetype.GetLayout(ComponentTypeID<T>.value).GetValueOrThrow(ResultStatus.Success);
-                var ptr = _chunk.GetUnsafePtr() + layout.offset;
-                return new Span<T>(ptr, _chunk.Count);
-            }
-
-            /// <summary>
-            /// Gets a bit set representing the enabled state of each instance of the specified enableable component
-            /// type within the current chunk.
-            /// </summary>
-            /// <typeparam name="T">The component type for which to retrieve enablement bits. Must be unmanaged and implement <see cref="IEnableableComponent"/>.</typeparam>
-            /// <returns>A <see cref="SpanBitSet"/> that provides access to the enablement bits for all instances of the specified component type in the chunk.</returns>
-            /// <exception cref="InvalidOperationException">Thrown if the specified component type does not support enablement.</exception>
-            public SpanBitSet GetEnableBits<T>()
-                where T : unmanaged, IEnableableComponent
-            {
-                var layout = _archetype.GetLayout(ComponentTypeID<T>.value).GetValueOrThrow(ResultStatus.Success);
-                if (layout.enableBitsOffset == -1)
-                {
-                    throw new InvalidOperationException($"Component {typeof(T).FullName} is not enableable.");
-                }
-
-                var maskBase = _chunk.GetUnsafePtr() + layout.enableBitsOffset;
-                return new SpanBitSet(new Span<uint>(maskBase, (_chunk.Count + 31) / 32));
-            }
-
-            /// <summary>
-            /// Determines whether the specified component of type <typeparamref name="T"/> at the given index is currently enabled.
-            /// </summary>
-            /// <typeparam name="T">The type of the component to check. Must be an unmanaged type that implements <see cref="IEnableableComponent"/>.</typeparam>
-            /// <param name="index">The zero-based index of the component instance to check within the chunk.</param>
-            /// <returns>true if the component at the specified index is enabled; otherwise, false.</returns>
-            /// <exception cref="InvalidOperationException">Thrown if the specified component type <typeparamref name="T"/> does not support enable/disable functionality.</exception>
-            public readonly bool IsComponentEnabled<T>(int index)
-                where T : unmanaged, IEnableableComponent
-            {
-                var layout = _archetype.GetLayout(ComponentTypeID<T>.value).GetValueOrThrow(ResultStatus.Success);
-                if (layout.enableBitsOffset == -1)
-                {
-                    throw new InvalidOperationException($"Component {typeof(T).FullName} is not enableable.");
-                }
-
-                var maskBase = _chunk.GetUnsafePtr() + layout.enableBitsOffset;
-                return CheckBit(maskBase, index);
-            }
-        }
-
         public ref struct Enumerator
         {
             private readonly ChunkIterator _iterator;
@@ -210,10 +210,6 @@ public unsafe partial struct EntityQuery : IIdentifierType, IDisposable
                 _archetypeIndex = 0;
                 _chunkIndex = -1;
             }
-
-            public readonly void Dispose()
-            {
-            }
         }
 
         private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
@@ -245,6 +241,7 @@ public unsafe partial struct EntityQuery : IIdentifierType, IDisposable
         _matchingArchetypes = new UnsafeList<Identifier<Archetype>>(8, Allocator.Persistent);
     }
 
+    // TODO: Fetching layout every time is not optimal. Cache them?
     private static bool IsEntityValid(byte* chunkBase, int entityIndex, ref readonly Archetype archetype, ref readonly EntityQueryMask mask)
     {
         // 1. Check "Require Enabled" (WithAll)
@@ -358,12 +355,12 @@ public ref partial struct QueryBuilder
     {
         _scope = AllocationManager.CreateStackScope();
 
-        _all = new UnsafeList<Identifier<IComponent>>(4, Allocator.Stack);
-        _any = new UnsafeList<Identifier<IComponent>>(4, Allocator.Stack);
-        _absent = new UnsafeList<Identifier<IComponent>>(4, Allocator.Stack);
-        _none = new UnsafeList<Identifier<IComponent>>(4, Allocator.Stack);
-        _disabled = new UnsafeList<Identifier<IComponent>>(4, Allocator.Stack);
-        _present = new UnsafeList<Identifier<IComponent>>(4, Allocator.Stack);
+        _all = new UnsafeList<Identifier<IComponent>>(4, _scope.AllocationHandle);
+        _any = new UnsafeList<Identifier<IComponent>>(4, _scope.AllocationHandle);
+        _absent = new UnsafeList<Identifier<IComponent>>(4, _scope.AllocationHandle);
+        _none = new UnsafeList<Identifier<IComponent>>(4, _scope.AllocationHandle);
+        _disabled = new UnsafeList<Identifier<IComponent>>(4, _scope.AllocationHandle);
+        _present = new UnsafeList<Identifier<IComponent>>(4, _scope.AllocationHandle);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -461,13 +458,6 @@ public ref partial struct QueryBuilder
 
     private void Dispose()
     {
-        _all.Dispose();
-        _any.Dispose();
-        _absent.Dispose();
-        _none.Dispose();
-        _disabled.Dispose();
-        _present.Dispose();
-
         _scope.Dispose();
     }
 }

@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using TerraFX.Interop.DirectX;
 
 namespace Ghost.Core;
 

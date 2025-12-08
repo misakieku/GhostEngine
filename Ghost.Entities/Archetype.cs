@@ -259,7 +259,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         var chunkBase = chunk.GetUnsafePtr();
         var dst = chunkBase + _entityIdsOffset + (sizeof(Entity) * rowIndex);
 
-        MemoryUtility.MemCpy(&entity, dst, (nuint)sizeof(Entity));
+        MemoryUtility.MemCpy(dst, &entity, (nuint)sizeof(Entity));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -278,18 +278,18 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         var size = ComponentRegister.GetComponentInfo(componentID).size;
         var dst = chunkBase + offset + (size * rowIndex);
 
-        MemoryUtility.MemCpy(pComponent, dst, (nuint)size);
+        MemoryUtility.MemCpy(dst, pComponent, (nuint)size);
 
         return ResultStatus.Success;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly ResultStatus GetComponentDataPtr(int chunkIndex, int rowIndex, Identifier<IComponent> componentID, void** ppv)
+    public readonly void* GetComponentData(int chunkIndex, int rowIndex, Identifier<IComponent> componentID)
     {
         var r = GetLayout(componentID);
         if (r.Status != ResultStatus.Success)
         {
-            return r.Status;
+            return null;
         }
 
         var offset = r.Value.offset;
@@ -297,9 +297,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
 
         var chunkBase = chunk.GetUnsafePtr();
         var size = ComponentRegister.GetComponentInfo(componentID).size;
-        *ppv = chunkBase + offset + (size * rowIndex);
-
-        return ResultStatus.Success;
+        return chunkBase + offset + (size * rowIndex);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -355,7 +353,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
             }
 
             // Only operate the swap back after the update is succeed.
-            MemoryUtility.MemCpy(pLastEntity, pRowEntity, (nuint)sizeof(Entity));
+            MemoryUtility.MemCpy(pRowEntity, pLastEntity, (nuint)sizeof(Entity));
 
             for (var i = 0; i <= _layouts.Count; i++)
             {
@@ -364,7 +362,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
                 var pRow = chunk.GetUnsafePtr() + layout.offset + (layout.size * rowIndex);
                 var pLast = chunk.GetUnsafePtr() + layout.offset + (layout.size * lastIndex);
 
-                MemoryUtility.MemCpy(pLast, pRow, (nuint)layout.size);
+                MemoryUtility.MemCpy(pRow, pLast, (nuint)layout.size);
             }
         }
 

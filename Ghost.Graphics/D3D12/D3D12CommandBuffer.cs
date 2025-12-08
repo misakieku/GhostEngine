@@ -601,7 +601,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         uploadResource.Get()->Map(0, null, &pMappedData);
         fixed (T* pData = data)
         {
-            MemoryUtility.MemCpy(pData, pMappedData, sizeInBytes);
+            MemoryUtility.MemCpy(pMappedData, pData, sizeInBytes);
         }
         uploadResource.Get()->Unmap(0, null);
 

@@ -4,21 +4,24 @@
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Text" #>
 <#@ include file="Helpers.ttinclude" #>
-
 namespace Ghost.Entities;
 
 <# for (var i = 1; i <= Amount; i++)
 {
-    var generics = AppendGenerics(i);
-    var compGenerics = AppendGenericRefParameters(i);
+    var generics = AppendParameters(i, "T{0}");
+    var compGenerics = AppendParameters(i, "ref T{0} component{0}");
+    var restrictions = AppendGenericRestrictionsMultiline(i, "unmanaged, IComponent", 1);
 #>
-public delegate void ForEach<<#= generics #>>(<#= compGenerics #>);
+public delegate void ForEach<<#= generics #>>(<#= compGenerics #>)
+<#= restrictions #>;
 <# } #>
 
 <# for (var i = 1; i <= Amount; i++)
 {
-    var generics = AppendGenerics(i);
-    var compGenerics = AppendGenericRefParameters(i);
+    var generics = AppendParameters(i, "T{0}");
+    var compGenerics = AppendParameters(i, "ref T{0} component{0}");
+    var restrictions = AppendGenericRestrictionsMultiline(i, "unmanaged, IComponent", 1);
 #>
-public delegate void ForEachWithEntity<<#= generics #>>(Entity entity, <#= compGenerics #>);
+public delegate void ForEachWithEntity<<#= generics #>>(Entity entity, <#= compGenerics #>)
+<#= restrictions #>;
 <# } #>

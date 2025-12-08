@@ -15,49 +15,69 @@ internal struct TestEntityQueryJob : IJobEntityParallel<Transform>
 
 public partial class ArcEntityTest : ITest
 {
-    private World _world = null!;
     private JobScheduler _jobScheduler = null!;
+    private World _world = null!;
 
     public void Setup()
     {
-        _world = World.Create();
         _jobScheduler = new JobScheduler(4);
+        _world = World.Create(_jobScheduler);
     }
 
     public void Run()
     {
         var entity1 = _world.EntityManager.CreateEntity(ComponentTypeID<Transform>.value);
-        _world.EntityManager.AddComponent(entity1, new Mesh { index = 1 });
+        _world.EntityCommandBuffer.AddComponent(entity1, new Mesh { index = 1 });
 
-        var queryID = new QueryBuilder().WithAll<Transform>().Build(_world);
-        ref var query = ref _world.GetEntityQueryReference(queryID);
+        // var entity2 = _world.EntityManager.CreateEntity(ComponentTypeID<Transform>.value);
+        // _world.EntityManager.SetComponentData(entity2, new Transform { position = new float3(1, 2, 3) });
 
-        var testJob = new TestEntityQueryJob();
-        var handle = query.ScheduleEntityParallel<TestEntityQueryJob, Transform>(_jobScheduler, testJob, Allocator.Temp, 64, JobHandle.Invalid);
-        _jobScheduler.WaitComplete(handle);
+        Console.WriteLine($"Entity {entity1} hash Mesh: {_world.EntityManager.HasComponent<Mesh>(entity1)}");
 
-        query.ForEach<Transform>((e, ref t) => 
-        {
-            Console.WriteLine($"Entity {e} Has Position: {t.position}");
-        });
+        _world.EntityCommandBuffer.Playback();
+        Console.WriteLine($"Entity {entity1} hash Mesh: {_world.EntityManager.HasComponent<Mesh>(entity1)}");
 
-        //foreach (var chunk in query.GetChunkIterator())
-        //{
-        //    var transforms = chunk.GetComponentData<Transform>();
-        //    var entities = chunk.GetEntities();
-        //    var bits = chunk.GetEnableBits<Transform>();
+        _world.EntityCommandBuffer.RemoveComponent<Mesh>(entity1);
+        Console.WriteLine($"Entity {entity1} hash Mesh: {_world.EntityManager.HasComponent<Mesh>(entity1)}");
 
-        //    var it = bits.GetIterator();
-        //    while (it.Next(out var index) && index < chunk.Count)
-        //    {
-        //        Console.WriteLine($"Entity {entities[index]} Updated Position: {transforms[index].position}");
-        //    }
-        //}
+        _world.EntityCommandBuffer.Playback();
+        Console.WriteLine($"Entity {entity1} hash Mesh: {_world.EntityManager.HasComponent<Mesh>(entity1)}");
+
+        // var queryID = new QueryBuilder().WithAll<Transform>().Build(_world);
+        // ref var query = ref _world.GetEntityQueryReference(queryID);
+
+        // var testJob = new TestEntityQueryJob();
+        // var handle = query.ScheduleEntityParallel<TestEntityQueryJob, Transform>(_jobScheduler, testJob, Allocator.Temp, 64, JobHandle.Invalid);
+        // _jobScheduler.WaitComplete(handle);
+        //
+        // query.ForEach<Transform>((e, ref t) =>
+        // {
+        //     Console.WriteLine($"Entity {e} Has Position: {t.position}");
+        // });
+        //
+        // foreach (ref var transform in query.GetComponentIterator<Transform>())
+        // {
+        //     Console.WriteLine($"Entity Updated Position: {transform.position}");
+        // }
+        //
+        // foreach (var chunk in query.GetChunkIterator())
+        // {
+        //     var transforms = chunk.GetComponentData<Transform>();
+        //     var entities = chunk.GetEntities();
+        //     var bits = chunk.GetEnableBits<Transform>();
+        //
+        //     var it = bits.GetIterator();
+        //     while (it.Next(out var index) && index < chunk.Count)
+        //     {
+        //         Console.WriteLine($"Entity {entities[index]} Updated Position: {transforms[index].position}");
+        //     }
+        // }
     }
 
     public void Cleanup()
     {
         _world.Dispose();
+        _jobScheduler.Dispose();
     }
 }
 

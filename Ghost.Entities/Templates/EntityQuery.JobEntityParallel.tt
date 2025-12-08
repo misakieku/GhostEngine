@@ -35,7 +35,7 @@ internal unsafe struct JobEntityBatch<TJob, <#= generics #>> : IJobParallelFor
 <# for (var j = 0; j < i; j++){ #>
     public UnsafeList<int> offsets<#= j #>;
     public UnsafeList<int> bitsOffsets<#= j #>;
-    
+
 <# } #>
     public void Execute(int loopIndex, int threadIndex)
     {
@@ -46,7 +46,7 @@ internal unsafe struct JobEntityBatch<TJob, <#= generics #>> : IJobParallelFor
 <# for (var j = 0; j < i; j++){ #>
         var off<#= j #> = offsets<#= j #>[loopIndex];
         var enableOff<#= j #> = bitsOffsets<#= j #>[loopIndex];
-        
+
 <# } #>
         var pEntity = (Entity*)(pChunk + entityOffset[loopIndex]);
 <# for (var j = 0; j < i; j++){ #>
@@ -100,10 +100,12 @@ public unsafe partial struct EntityQuery
         }
     }
 
-    public JobHandle ScheduleEntityParallel<TJob, <#= generics #>>(JobScheduler scheduler, TJob jobData, Allocator allocator, int batchSize, JobHandle dependency)
+    public JobHandle ScheduleEntityParallel<TJob, <#= generics #>>(TJob jobData, Allocator allocator, int batchSize, JobHandle dependency)
         where TJob : unmanaged, IJobEntityParallel<<#= generics #>>
 <#= restrictions #>
     {
+        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+
         // 1. Flatten the World
         var chunkList = new UnsafeList<IntPtr>(128, allocator);
         var chunkEntityCounts = new UnsafeList<int>(128, allocator);
@@ -117,9 +119,7 @@ public unsafe partial struct EntityQuery
         // Iterate the Query's matching archetypes
         foreach (var archID in _matchingArchetypes)
         {
-            ref var arch = ref World.GetWorld(_worldID)
-                .GetValueOrThrow(ResultStatus.Success)
-                .GetArchetypeReference(archID);
+            ref var arch = ref world.GetArchetypeReference(archID);
 
             if (arch.ChunkCount == 0)
             {
@@ -164,7 +164,7 @@ public unsafe partial struct EntityQuery
 <# } #>
         };
 
-        var jobHandle = scheduler.ScheduleParallel(ref runner, chunkList.Count, batchSize, dependency);
+        var jobHandle = world.JobScheduler.ScheduleParallel(ref runner, chunkList.Count, batchSize, dependency);
 
         // 3. Dispose the temp lists
         var disposeJob = new DisposeJobEntity<#= i #>
@@ -180,7 +180,7 @@ public unsafe partial struct EntityQuery
 <# } #>
         };
 
-        scheduler.Schedule(ref disposeJob, jobHandle);
+        world.JobScheduler.Schedule(ref disposeJob, jobHandle);
 
         return jobHandle;
     }
