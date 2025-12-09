@@ -9,7 +9,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Ghost.Entities\Ghost.Entities.csproj" />
-    <ProjectReference Include="..\Ghost.SparseEntities\Ghost.SparseEntities.csproj" />
     <ProjectReference Include="..\Ghost.Test.Core\Ghost.Test.Core.csproj" />
   </ItemGroup>
 

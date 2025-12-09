@@ -5,14 +5,14 @@ using Misaki.HighPerformance.LowLevel.Collections;
 
 namespace Ghost.Entities;
 
-public interface IJobEntityParallel<T0>
+public interface IJobEntity<T0>
     where T0 : unmanaged, IComponent
 {
     void Execute(Entity entity, ref T0 component0);
 }
 
 internal unsafe struct JobEntityBatch<TJob, T0> : IJobParallelFor
-    where TJob : unmanaged, IJobEntityParallel<T0>
+    where TJob : unmanaged, IJobEntity<T0>
     where T0 : unmanaged, IComponent
 {
     public TJob userJob;
@@ -48,7 +48,7 @@ internal unsafe struct JobEntityBatch<TJob, T0> : IJobParallelFor
     }
 }
 
-public interface IJobEntityParallel<T0, T1>
+public interface IJobEntity<T0, T1>
     where T0 : unmanaged, IComponent
     where T1 : unmanaged, IComponent
 {
@@ -56,7 +56,7 @@ public interface IJobEntityParallel<T0, T1>
 }
 
 internal unsafe struct JobEntityBatch<TJob, T0, T1> : IJobParallelFor
-    where TJob : unmanaged, IJobEntityParallel<T0, T1>
+    where TJob : unmanaged, IJobEntity<T0, T1>
     where T0 : unmanaged, IComponent
     where T1 : unmanaged, IComponent
 {
@@ -105,7 +105,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1> : IJobParallelFor
     }
 }
 
-public interface IJobEntityParallel<T0, T1, T2>
+public interface IJobEntity<T0, T1, T2>
     where T0 : unmanaged, IComponent
     where T1 : unmanaged, IComponent
     where T2 : unmanaged, IComponent
@@ -114,7 +114,7 @@ public interface IJobEntityParallel<T0, T1, T2>
 }
 
 internal unsafe struct JobEntityBatch<TJob, T0, T1, T2> : IJobParallelFor
-    where TJob : unmanaged, IJobEntityParallel<T0, T1, T2>
+    where TJob : unmanaged, IJobEntity<T0, T1, T2>
     where T0 : unmanaged, IComponent
     where T1 : unmanaged, IComponent
     where T2 : unmanaged, IComponent
@@ -176,7 +176,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2> : IJobParallelFor
     }
 }
 
-public interface IJobEntityParallel<T0, T1, T2, T3>
+public interface IJobEntity<T0, T1, T2, T3>
     where T0 : unmanaged, IComponent
     where T1 : unmanaged, IComponent
     where T2 : unmanaged, IComponent
@@ -186,7 +186,7 @@ public interface IJobEntityParallel<T0, T1, T2, T3>
 }
 
 internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3> : IJobParallelFor
-    where TJob : unmanaged, IJobEntityParallel<T0, T1, T2, T3>
+    where TJob : unmanaged, IJobEntity<T0, T1, T2, T3>
     where T0 : unmanaged, IComponent
     where T1 : unmanaged, IComponent
     where T2 : unmanaged, IComponent
@@ -261,7 +261,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3> : IJobParallelFor
     }
 }
 
-public interface IJobEntityParallel<T0, T1, T2, T3, T4>
+public interface IJobEntity<T0, T1, T2, T3, T4>
     where T0 : unmanaged, IComponent
     where T1 : unmanaged, IComponent
     where T2 : unmanaged, IComponent
@@ -272,7 +272,7 @@ public interface IJobEntityParallel<T0, T1, T2, T3, T4>
 }
 
 internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4> : IJobParallelFor
-    where TJob : unmanaged, IJobEntityParallel<T0, T1, T2, T3, T4>
+    where TJob : unmanaged, IJobEntity<T0, T1, T2, T3, T4>
     where T0 : unmanaged, IComponent
     where T1 : unmanaged, IComponent
     where T2 : unmanaged, IComponent
@@ -360,7 +360,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4> : IJobParallelFo
     }
 }
 
-public interface IJobEntityParallel<T0, T1, T2, T3, T4, T5>
+public interface IJobEntity<T0, T1, T2, T3, T4, T5>
     where T0 : unmanaged, IComponent
     where T1 : unmanaged, IComponent
     where T2 : unmanaged, IComponent
@@ -372,7 +372,7 @@ public interface IJobEntityParallel<T0, T1, T2, T3, T4, T5>
 }
 
 internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5> : IJobParallelFor
-    where TJob : unmanaged, IJobEntityParallel<T0, T1, T2, T3, T4, T5>
+    where TJob : unmanaged, IJobEntity<T0, T1, T2, T3, T4, T5>
     where T0 : unmanaged, IComponent
     where T1 : unmanaged, IComponent
     where T2 : unmanaged, IComponent
@@ -473,7 +473,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5> : IJobParall
     }
 }
 
-public interface IJobEntityParallel<T0, T1, T2, T3, T4, T5, T6>
+public interface IJobEntity<T0, T1, T2, T3, T4, T5, T6>
     where T0 : unmanaged, IComponent
     where T1 : unmanaged, IComponent
     where T2 : unmanaged, IComponent
@@ -486,7 +486,7 @@ public interface IJobEntityParallel<T0, T1, T2, T3, T4, T5, T6>
 }
 
 internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6> : IJobParallelFor
-    where TJob : unmanaged, IJobEntityParallel<T0, T1, T2, T3, T4, T5, T6>
+    where TJob : unmanaged, IJobEntity<T0, T1, T2, T3, T4, T5, T6>
     where T0 : unmanaged, IComponent
     where T1 : unmanaged, IComponent
     where T2 : unmanaged, IComponent
@@ -600,7 +600,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6> : IJobPa
     }
 }
 
-public interface IJobEntityParallel<T0, T1, T2, T3, T4, T5, T6, T7>
+public interface IJobEntity<T0, T1, T2, T3, T4, T5, T6, T7>
     where T0 : unmanaged, IComponent
     where T1 : unmanaged, IComponent
     where T2 : unmanaged, IComponent
@@ -614,7 +614,7 @@ public interface IJobEntityParallel<T0, T1, T2, T3, T4, T5, T6, T7>
 }
 
 internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6, T7> : IJobParallelFor
-    where TJob : unmanaged, IJobEntityParallel<T0, T1, T2, T3, T4, T5, T6, T7>
+    where TJob : unmanaged, IJobEntity<T0, T1, T2, T3, T4, T5, T6, T7>
     where T0 : unmanaged, IComponent
     where T1 : unmanaged, IComponent
     where T2 : unmanaged, IComponent
@@ -765,7 +765,7 @@ public unsafe partial struct EntityQuery
     }
 
     public JobHandle ScheduleEntityParallel<TJob, T0>(TJob jobData, Allocator allocator, int batchSize, JobHandle dependency)
-        where TJob : unmanaged, IJobEntityParallel<T0>
+        where TJob : unmanaged, IJobEntity<T0>
         where T0 : unmanaged, IComponent
     {
         var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
@@ -867,7 +867,7 @@ public unsafe partial struct EntityQuery
     }
 
     public JobHandle ScheduleEntityParallel<TJob, T0, T1>(TJob jobData, Allocator allocator, int batchSize, JobHandle dependency)
-        where TJob : unmanaged, IJobEntityParallel<T0, T1>
+        where TJob : unmanaged, IJobEntity<T0, T1>
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
     {
@@ -990,7 +990,7 @@ public unsafe partial struct EntityQuery
     }
 
     public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2>(TJob jobData, Allocator allocator, int batchSize, JobHandle dependency)
-        where TJob : unmanaged, IJobEntityParallel<T0, T1, T2>
+        where TJob : unmanaged, IJobEntity<T0, T1, T2>
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent
@@ -1134,7 +1134,7 @@ public unsafe partial struct EntityQuery
     }
 
     public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2, T3>(TJob jobData, Allocator allocator, int batchSize, JobHandle dependency)
-        where TJob : unmanaged, IJobEntityParallel<T0, T1, T2, T3>
+        where TJob : unmanaged, IJobEntity<T0, T1, T2, T3>
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent
@@ -1299,7 +1299,7 @@ public unsafe partial struct EntityQuery
     }
 
     public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2, T3, T4>(TJob jobData, Allocator allocator, int batchSize, JobHandle dependency)
-        where TJob : unmanaged, IJobEntityParallel<T0, T1, T2, T3, T4>
+        where TJob : unmanaged, IJobEntity<T0, T1, T2, T3, T4>
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent
@@ -1485,7 +1485,7 @@ public unsafe partial struct EntityQuery
     }
 
     public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2, T3, T4, T5>(TJob jobData, Allocator allocator, int batchSize, JobHandle dependency)
-        where TJob : unmanaged, IJobEntityParallel<T0, T1, T2, T3, T4, T5>
+        where TJob : unmanaged, IJobEntity<T0, T1, T2, T3, T4, T5>
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent
@@ -1692,7 +1692,7 @@ public unsafe partial struct EntityQuery
     }
 
     public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2, T3, T4, T5, T6>(TJob jobData, Allocator allocator, int batchSize, JobHandle dependency)
-        where TJob : unmanaged, IJobEntityParallel<T0, T1, T2, T3, T4, T5, T6>
+        where TJob : unmanaged, IJobEntity<T0, T1, T2, T3, T4, T5, T6>
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent
@@ -1920,7 +1920,7 @@ public unsafe partial struct EntityQuery
     }
 
     public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2, T3, T4, T5, T6, T7>(TJob jobData, Allocator allocator, int batchSize, JobHandle dependency)
-        where TJob : unmanaged, IJobEntityParallel<T0, T1, T2, T3, T4, T5, T6, T7>
+        where TJob : unmanaged, IJobEntity<T0, T1, T2, T3, T4, T5, T6, T7>
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent

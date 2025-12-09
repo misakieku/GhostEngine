@@ -72,6 +72,7 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
 
     private readonly EntityManager _entityManager;
     private readonly EntityCommandBuffer _entityCommandBuffer;
+    private readonly EntityCommandBuffer[] _threadLocalECBs;
 
     private UnsafeList<Archetype> _archetypes;
     private UnsafeList<EntityQuery> _entityQueries;
@@ -83,9 +84,24 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
 
     internal int ArchetypeCount => _archetypes.Count;
 
+    /// <summary>
+    /// Gets the unique identifier of this world.
+    /// </summary>
     public Identifier<World> ID => _id;
+
+    /// <summary>
+    /// Gets the job scheduler associated with this world.
+    /// </summary>
     public JobScheduler JobScheduler => _jobScheduler;
+
+    /// <summary>
+    /// Gets the publicntity manager for this world.
+    /// </summary>
     public EntityManager EntityManager => _entityManager;
+
+    /// <summary>
+    /// Gets the main entity command buffer for this world.
+    /// </summary>
     public EntityCommandBuffer EntityCommandBuffer => _entityCommandBuffer;
 
     private World(Identifier<World> id, int entityCapacity, JobScheduler jobScheduler)
@@ -101,6 +117,12 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
 
         _entityManager = new EntityManager(this, entityCapacity);
         _entityCommandBuffer = new EntityCommandBuffer(_entityManager);
+        _threadLocalECBs = new EntityCommandBuffer[jobScheduler.WorkerCount];
+
+        for (var i = 0; i < jobScheduler.WorkerCount; i++)
+        {
+            _threadLocalECBs[i] = new EntityCommandBuffer(_entityManager);
+        }
 
         // Create the empty archetype
         CreateArchetype(ReadOnlySpan<Identifier<IComponent>>.Empty, 0);
@@ -171,10 +193,32 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
         return Identifier<EntityQuery>.Invalid;
     }
 
+    internal void PlaybackEntityCommandBuffers()
+    {
+        _entityCommandBuffer.Playback();
+
+        for (var i = 0; i < _threadLocalECBs.Length; i++)
+        {
+            _threadLocalECBs[i].Playback();
+        }
+    }
+
+    /// <summary>
+    /// Gets a reference to the entity query with the specified identifier.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ref EntityQuery GetEntityQueryReference(Identifier<EntityQuery> id)
     {
         return ref _entityQueries[id.value];
+    }
+
+    /// <summary>
+    /// Gets the thread-local entity command buffer for the specified thread index.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public EntityCommandBuffer GetThreadLocalEntityCommandBuffer(int threadIndex)
+    {
+        return _threadLocalECBs[threadIndex];
     }
 
     public bool Equals(World? other)
@@ -221,6 +265,10 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
 
         _entityManager.Dispose();
         _entityCommandBuffer.Dispose();
+        for (var i = 0; i < _threadLocalECBs.Length; i++)
+        {
+            _threadLocalECBs[i].Dispose();
+        }
 
         _archetypes.Dispose();
         _entityQueries.Dispose();

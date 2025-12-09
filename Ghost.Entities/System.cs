@@ -19,9 +19,7 @@ public readonly ref struct SystemAPI
 public interface ISystem
 {
     void Initialize(ref readonly SystemAPI systemAPI);
-    void PreUpdate(ref readonly SystemAPI systemAPI);
     void Update(ref readonly SystemAPI systemAPI);
-    void PostUpdate(ref readonly SystemAPI systemAPI);
     void Cleanup(ref readonly SystemAPI systemAPI);
 }
 
@@ -207,16 +205,6 @@ public abstract class SystemGroup : ISystem
         }
     }
 
-    public void PreUpdate(ref readonly SystemAPI systemAPI)
-    {
-        ThrowIfNotSorted();
-
-        foreach (var system in _sortedSystems!)
-        {
-            system.PreUpdate(in systemAPI);
-        }
-    }
-
     public void Update(ref readonly SystemAPI systemAPI)
     {
         ThrowIfNotSorted();
@@ -224,16 +212,6 @@ public abstract class SystemGroup : ISystem
         foreach (var system in _sortedSystems!)
         {
             system.Update(in systemAPI);
-        }
-    }
-
-    public void PostUpdate(ref readonly SystemAPI systemAPI)
-    {
-        ThrowIfNotSorted();
-
-        foreach (var system in _sortedSystems!)
-        {
-            system.PostUpdate(in systemAPI);
         }
     }
 
@@ -281,5 +259,29 @@ public class SystemManager
         }
 
         throw new InvalidOperationException($"System of type {typeof(T).FullName} not found in SystemManager.");
+    }
+
+    internal void InitializeAll(ref readonly SystemAPI systemAPI)
+    {
+        foreach (var system in _systems)
+        {
+            system.Initialize(in systemAPI);
+        }
+    }
+
+    internal void UpdateAll(ref readonly SystemAPI systemAPI)
+    {
+        foreach (var system in _systems)
+        {
+            system.Update(in systemAPI);
+        }
+    }
+
+    internal void CleanupAll(ref readonly SystemAPI systemAPI)
+    {
+        foreach (var system in _systems)
+        {
+            system.Cleanup(in systemAPI);
+        }
     }
 }

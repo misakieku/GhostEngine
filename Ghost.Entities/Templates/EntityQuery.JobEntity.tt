@@ -16,14 +16,14 @@ namespace Ghost.Entities;
     var generics = AppendGenerics(i);
     var restrictions = AppendGenericRestrictionsMultiline(i, "unmanaged, IComponent", 1);
 #>
-public interface IJobEntityParallel<<#= generics #>>
+public interface IJobEntity<<#= generics #>>
 <#= restrictions #>
 {
     void Execute(Entity entity, <#= AppendParameters(i, "ref T{0} component{0}") #>);
 }
 
 internal unsafe struct JobEntityBatch<TJob, <#= generics #>> : IJobParallelFor
-    where TJob : unmanaged, IJobEntityParallel<<#= generics #>>
+    where TJob : unmanaged, IJobEntity<<#= generics #>>
 <#= restrictions #>
 {
     public TJob userJob;
@@ -101,7 +101,7 @@ public unsafe partial struct EntityQuery
     }
 
     public JobHandle ScheduleEntityParallel<TJob, <#= generics #>>(TJob jobData, Allocator allocator, int batchSize, JobHandle dependency)
-        where TJob : unmanaged, IJobEntityParallel<<#= generics #>>
+        where TJob : unmanaged, IJobEntity<<#= generics #>>
 <#= restrictions #>
     {
         var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);

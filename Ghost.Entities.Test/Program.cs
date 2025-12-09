@@ -3,5 +3,5 @@ using Ghost.Test.Core;
 using Misaki.HighPerformance.LowLevel.Buffer;
 
 AllocationManager.EnableDebugLayer();
-TestRunner.Run<ArcEntityTest>();
+TestRunner.Run<EntityTest>();
 AllocationManager.Dispose();

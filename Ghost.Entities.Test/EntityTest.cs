@@ -1,193 +1,85 @@
-#if false
-using Ghost.SparseEntities.Components;
-using Ghost.SparseEntities.Query;
-using Ghost.SparseEntities.Systems;
 using Ghost.Test.Core;
-using System.Numerics;
+using Misaki.HighPerformance.Jobs;
+using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.Mathematics;
+using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities.Test;
 
+internal struct TestEntityQueryJob : IJobEntity<Transform>
+{
+    public readonly void Execute(Entity entity, ref Transform transform)
+    {
+        transform.position += new float3(10, 10, 10);
+    }
+}
+
 public partial class EntityTest : ITest
 {
+    private JobScheduler _jobScheduler = null!;
     private World _world = null!;
 
     public void Setup()
     {
-        _world = World.Create();
+        _jobScheduler = new JobScheduler(4);
+        _world = World.Create(_jobScheduler);
+
+        Console.WriteLine(Unsafe.SizeOf<EntityQuery>());
     }
 
     public void Run()
     {
-        var entity1 = _world.EntityManager.CreateEntity();
-        var entity2 = _world.EntityManager.CreateEntity();
-        var entity3 = _world.EntityManager.CreateEntity();
+        var entity1 = _world.EntityManager.CreateEntity(ComponentTypeID<Transform>.value);
+        _world.EntityManager.AddComponent(entity1, new Mesh { index = 1 });
 
-        _world.EntityManager.AddComponent(entity1, new Transform { position = new Vector3(1, 2, 3) });
-        _world.EntityManager.AddComponent(entity1, new Mesh { index = 42 });
-        _world.EntityManager.AddScript<UIManager>(entity1);
-        _world.EntityManager.AddScript<EventManager>(entity1);
+        var entity2 = _world.EntityManager.CreateEntity(ComponentTypeID<Transform>.value);
+        _world.EntityManager.SetComponent(entity2, new Transform { position = new float3(1, 2, 3) });
 
-        _world.EntityManager.AddComponent(entity2, new Transform { position = new Vector3(4, 5, 6) });
-        _world.EntityManager.AddComponent(entity2, new Mesh { index = 43 });
-        _world.EntityManager.AddScript<UserScript>(entity2);
+        var queryID = new QueryBuilder().WithAll<Transform>().Build(_world);
+        ref var query = ref _world.GetEntityQueryReference(queryID);
 
-        _world.EntityManager.AddComponent(entity3, new Transform { position = new Vector3(7, 8, 9) });
-        _world.EntityManager.AddScript<EventManager>(entity3);
+        var testJob = new TestEntityQueryJob();
+        var handle = query.ScheduleEntityParallel<TestEntityQueryJob, Transform>(testJob, Allocator.Temp, 64, JobHandle.Invalid);
+        _jobScheduler.WaitComplete(handle);
 
-        foreach (var (_, transform) in _world.Query<Transform>())
+        query.ForEach<Transform>((e, ref t) =>
         {
-            transform.ValueRW.position += new Vector3(1, 1, 1);
+            Console.WriteLine($"Entity {e} Has Position: {t.position}");
+        });
+
+        foreach (var (entity, transform) in query.GetEntityComponentIterator<Transform>())
+        {
+            Console.WriteLine($"Entity {entity} Updated Position: {transform.Get().position}");
         }
 
-        var filter = new QueryBuilder()
-            .WithAll<Mesh>()
-            .Build();
-
-        foreach (var (_, mesh) in _world.QueryFilter<Mesh>(in filter))
+        foreach (var chunk in query.GetChunkIterator())
         {
-            mesh.ValueRW.index += 1;
+            var transforms = chunk.GetComponentData<Transform>();
+            var entities = chunk.GetEntities();
+            var bits = chunk.GetEnableBits<Transform>();
+
+            var it = bits.GetIterator();
+            while (it.Next(out var index) && index < chunk.Count)
+            {
+                Console.WriteLine($"Entity {entities[index]} Updated Position: {transforms[index].position}");
+            }
         }
-
-        _world.EntityManager.RemoveEntity(ref entity2);
-
-        var entity4 = _world.EntityManager.CreateEntity();
-        _world.EntityManager.AddComponent(entity4, new Transform { position = new Vector3(10, 11, 12) });
-        _world.EntityManager.AddComponent(entity4, new Mesh { index = 45 });
-        _world.EntityManager.AddScript<UserScript>(entity4);
-
-        _world.SystemStorage.AddSystem<TestSystem2>();
-        _world.SystemStorage.AddSystem<TestSystem>();
-
-        _world.SystemStorage.CreateSystems();
-        _world.SystemStorage.UpdateSystems();
     }
 
     public void Cleanup()
     {
         _world.Dispose();
+        _jobScheduler.Dispose();
+        JobScheduler.ReleaseTempAllocator();
     }
 }
 
-public class TestSystem : ISystem
+public struct Transform : IEnableableComponent
 {
-    public void OnCreate(in SystemState state)
-    {
-    }
-
-    public void OnUpdate(in SystemState state)
-    {
-        foreach (var (entity, transform) in state.World.Query<Transform>())
-        {
-            Console.WriteLine($"Entity {entity}: Transform Position = {transform.ValueRO.position}");
-        }
-    }
-
-    public void OnDestroy(in SystemState state)
-    {
-    }
+    public float3 position;
 }
 
-[DependsOn(typeof(TestSystem))]
-public class TestSystem2 : ISystem
+public struct Mesh : IComponent
 {
-    public void OnCreate(in SystemState state)
-    {
-    }
-
-    public void OnUpdate(in SystemState state)
-    {
-        foreach (var (entity, mesh) in state.World.Query<Mesh>())
-        {
-            Console.WriteLine($"Entity {entity}: Mesh Index = {mesh.ValueRO.index}");
-        }
-    }
-
-    public void OnDestroy(in SystemState state)
-    {
-    }
+    public int index;
 }
-
-public struct Transform : IComponentData
-{
-    public Vector3 position;
-    public Quaternion rotation;
-    public Vector3 scale;
-}
-
-public struct Mesh : IComponentData
-{
-    public uint index;
-}
-
-public class UserScript : ScriptComponent
-{
-    public override int ExecutionOrder => -1;
-
-    public override void OnEnable()
-    {
-        Console.WriteLine("UserScript enabled for entity: " + Owner);
-        EntityManager.GetComponent<Transform>(Owner).ValueRW.position += new Vector3(10, 10, 10);
-    }
-
-    public override void OnDisable()
-    {
-        Console.WriteLine("UserScript disabled for entity: " + Owner);
-    }
-
-    public override void Initialize()
-    {
-        Console.WriteLine("UserScript initialized for entity: " + Owner);
-    }
-
-    public override void Start()
-    {
-        Console.WriteLine("UserScript started for entity: " + Owner);
-    }
-
-    public override void Update()
-    {
-        Console.WriteLine("UserScript updating for entity: " + Owner);
-    }
-
-    public override void OnDestroy()
-    {
-        Console.WriteLine("UserScript destroyed for entity: " + Owner);
-    }
-}
-
-public class UIManager : ScriptComponent
-{
-    public override void Start()
-    {
-        Console.WriteLine("UIManager started for entity: " + Owner);
-    }
-
-    public override void Update()
-    {
-        Console.WriteLine("UIManager updating for entity: " + Owner);
-    }
-
-    public override void OnDestroy()
-    {
-        Console.WriteLine("UIManager destroyed for entity: " + Owner);
-    }
-}
-
-public class EventManager : ScriptComponent
-{
-    public override void Start()
-    {
-        Console.WriteLine("EventManager started for entity: " + Owner);
-    }
-
-    public override void Update()
-    {
-        Console.WriteLine("EventManager updating for entity: " + Owner);
-    }
-
-    public override void OnDestroy()
-    {
-        Console.WriteLine("EventManager destroyed for entity: " + Owner);
-    }
-}
-#endif

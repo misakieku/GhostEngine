@@ -1,0 +1,199 @@
+<#@ template language="C#" #>
+<#@ output extension="gen.cs" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ include file="Helpers.ttinclude" #>
+using Ghost.Core;
+using Misaki.HighPerformance.LowLevel;
+using Misaki.HighPerformance.LowLevel.Collections;
+using System.Runtime.CompilerServices;
+
+namespace Ghost.Entities;
+
+public unsafe partial struct EntityQuery
+{
+<# for (var i = 1; i <= Amount; i++)
+{
+    var generics = AppendParameters(i, "T{0}");
+    var compGenerics = AppendParameters(i, "ref T{0} component{0}");
+    var deconstrictOutPrams = AppendParameters(i, "out Ref<T{0}> component{0}");
+    var restrictions = AppendGenericRestrictionsMultiline(i, "unmanaged, IComponent", 2);
+#>
+    public readonly ref struct EntityComponentIterator<<#= generics #>>
+<#= restrictions #>
+    {
+        public ref struct QueryItem
+        {
+            public Entity entity;
+
+<# for (var j = 0; j < i; j++) { #>
+            public ref T<#= j #> component<#= j #>;
+<# } #>
+            internal QueryItem(Entity entity, <#= compGenerics #>)
+            {
+                this.entity = entity;
+
+<# for (var j = 0; j < i; j++) { #>
+                this.component<#= j #> = ref component<#= j #>;
+<# } #>
+            }
+
+            public void Deconstruct(out Entity entity, <#= deconstrictOutPrams #>)
+            {
+                entity = this.entity;
+
+<# for (var j = 0; j < i; j++) { #>
+                component<#= j #> = new Ref<T<#= j #>>(ref this.component<#= j #>);
+<# } #>
+            }
+        }
+
+        public ref struct Enumerator
+        {
+            private fixed int _compTypeIDs[<#= i #>];
+            private fixed int _offsets[<#= i #>];
+            private fixed long _compBasePtrs[<#= i #>];
+
+            private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
+            private readonly EntityQueryMask _mask;
+            private readonly World _world;
+
+            private ref Archetype _currentArchetype;
+            private ref Chunk _currentChunk;
+            private byte* _chunkBasePtr;
+
+            private int _currentChunkEntityCount;
+            private int _currentArchetypeIndex;
+            private int _currentChunkIndex;
+            private int _currentEntityIndex;
+
+            internal Enumerator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
+            {
+<# for (var j = 0; j < i; j++) { #>
+                _compTypeIDs[<#= j #>] = ComponentTypeID<T<#= j #>>.value;
+                _offsets[<#= j #>] = 0;
+                _compBasePtrs[<#= j #>] = 0;
+
+<# } #>
+                _matchingArchetypes = matchingArchetypes;
+                _mask = mask;
+                _world = world;
+
+                Reset();
+            }
+
+            public QueryItem Current => new(
+                *(Entity*)(_chunkBasePtr + _currentArchetype.EntityIDsOffset + _currentEntityIndex * sizeof(Entity)),
+<# for (var j = 0; j < i; j++) { #>
+                ref *(T<#= j #>*)(_compBasePtrs[<#= j #>] + _currentEntityIndex * sizeof(T<#= j #>))<#= j < i - 1 ? "," : "" #>
+<# } #>
+            );
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private void SetChunk(int chunkIndex)
+            {
+                _currentChunk = ref _currentArchetype.GetChunkReference(chunkIndex);
+                _chunkBasePtr = _currentChunk.GetUnsafePtr();
+                _currentChunkEntityCount = _currentChunk.Count;
+
+                for (var index = 0; index < <#= i #>; index++)
+                {
+                    var layout = _currentArchetype.GetLayout(_compTypeIDs[index])
+                        .GetValueOrThrow(ResultStatus.Success);
+                    _offsets[index] = layout.offset;
+                    _compBasePtrs[index] = (long)(_chunkBasePtr + _offsets[index]);
+                }
+            }
+
+            public bool MoveNext()
+            {
+                while (true)
+                {
+                    _currentEntityIndex++;
+                    if (_currentEntityIndex < _currentChunk.Count)
+                    {
+                        var pChunkData = _currentChunk.GetUnsafePtr();
+                        if (IsEntityValid(pChunkData, _currentEntityIndex, in _currentArchetype, in _mask))
+                        {
+                            return true;
+                        }
+
+                        continue;
+                    }
+
+                    _currentChunkIndex++;
+                    if (!Unsafe.IsNullRef(ref _currentArchetype) && _currentChunkIndex < _currentArchetype.ChunkCount)
+                    {
+                        SetChunk(_currentChunkIndex);
+                        _currentEntityIndex = -1; // Reset for new chunk
+
+                        continue;
+                    }
+
+                    _currentArchetypeIndex++;
+                    if (_currentArchetypeIndex < _matchingArchetypes.Count)
+                    {
+                        _currentArchetype = ref _world.GetArchetypeReference(_matchingArchetypes[_currentArchetypeIndex]);
+
+                        _currentChunkIndex = 0;
+                        if (_currentArchetype.ChunkCount > 0)
+                        {
+                            SetChunk(0);
+                            _currentEntityIndex = -1;
+                            continue;
+                        }
+
+                        // If archetype has no chunks, loop will try next archetype
+                    }
+                    else
+                    {
+                        return false; // End of all data
+                    }
+                }
+            }
+
+            public void Reset()
+            {
+                _currentArchetype = ref Unsafe.NullRef<Archetype>();
+                _currentChunk = ref Unsafe.NullRef<Chunk>();
+                _currentArchetypeIndex = 0;
+                _currentChunkIndex = 0;
+                _currentEntityIndex = -1;
+
+                if (_matchingArchetypes.Count > 0)
+                {
+                    _currentArchetype = ref _world.GetArchetypeReference(_matchingArchetypes[0]);
+                    if (_currentArchetype.ChunkCount > 0)
+                    {
+                        SetChunk(0);
+                    }
+                }
+            }
+        }
+
+        private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
+        private readonly EntityQueryMask _mask;
+        private readonly World _world;
+
+        internal EntityComponentIterator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
+        {
+            _matchingArchetypes = matchingArchetypes;
+            _mask = mask;
+            _world = world;
+        }
+
+        public Enumerator GetEnumerator()
+        {
+            return new Enumerator(_matchingArchetypes, _mask, _world);
+        }
+    }
+
+    public readonly EntityComponentIterator<<#= generics#>> GetEntityComponentIterator<<#= generics#>>()
+<#= restrictions #>
+    {
+        return new EntityComponentIterator<<#= generics#>>(_matchingArchetypes.AsReadOnly(), _mask, World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success));
+    }
+
+<# } #>
+}

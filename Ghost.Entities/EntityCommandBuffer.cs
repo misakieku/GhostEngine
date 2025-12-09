@@ -2,37 +2,30 @@ using Ghost.Core;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
-using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities;
 
 public unsafe class EntityCommandBuffer : IDisposable
 {
-    private enum CommandType
+    private enum ECBOpCode : byte
     {
         CreateEntity,
+        CreateEntityWithComponents,
         DestroyEntity,
         AddComponent,
         RemoveComponent,
         SetComponent,
     }
 
-    private struct Command
-    {
-        public UnsafeArray<byte> data;
-        public Entity entity;
-        public CommandType type;
-        public Identifier<IComponent> componentTypeID;
-    }
-
     private readonly EntityManager _entityManager;
-    private UnsafeList<Command> _commands; // TODO: Maybe use UnsafeArray<byte> directly to save additional memory allocation in Unsafe<byte> data inside Command struct.
+    private UnsafeList<byte> _buffer;
     private bool _disposed;
 
     public EntityCommandBuffer(EntityManager entityManager)
     {
         _entityManager = entityManager;
-        _commands = new UnsafeList<Command>(32, Allocator.Persistent);
+        _buffer = new UnsafeList<byte>(4096, Allocator.Persistent);
     }
 
     ~EntityCommandBuffer()
@@ -40,115 +33,165 @@ public unsafe class EntityCommandBuffer : IDisposable
         Dispose();
     }
 
+    private void WriteHeader(ECBOpCode op)
+    {
+        _buffer.Add((byte)op);
+    }
+
+    private void Write<T>(T value)
+        where T : unmanaged
+    {
+        var size = sizeof(T);
+        var idx = _buffer.Count;
+
+        if (idx + size > _buffer.Capacity)
+        {
+            _buffer.Resize(idx + size);
+        }
+
+        MemoryUtility.MemCpy((byte*)_buffer.GetUnsafePtr() + idx, &value, (nuint)size);
+    }
+
+    private void WriteSpan<T>(ReadOnlySpan<T> span)
+        where T : unmanaged
+    {
+        var size = sizeof(T) * span.Length;
+        var idx = _buffer.Count;
+
+        if (idx + size > _buffer.Capacity)
+        {
+            _buffer.Resize(idx + size);
+        }
+
+        fixed (T* ptr = span)
+        {
+            MemoryUtility.MemCpy((byte*)_buffer.GetUnsafePtr() + idx, ptr, (nuint)size);
+        }
+    }
+
+    private T Read<T>(ref int cursor)
+        where T : unmanaged
+    {
+        var size = sizeof(T);
+        var ptr = (byte*)_buffer.GetUnsafePtr();
+
+        var value = *(T*)&ptr[cursor];
+        cursor += size;
+
+        return value;
+    }
+
+    private Span<T> ReadSpan<T>(ref int cursor, int length)
+        where T : unmanaged
+    {
+        var size = sizeof(T) * length;
+        var ptr = (byte*)_buffer.GetUnsafePtr();
+
+        var span = new Span<T>(&ptr[cursor], length);
+        cursor += size;
+
+        return span;
+    }
+
+    private void* ReadBuffer(ref int cursor, int size)
+    {
+        var ptr = (byte*)_buffer.GetUnsafePtr();
+        var bufferPtr = ptr + cursor;
+        cursor += size;
+
+        return bufferPtr;
+    }
+
     public void CreateEntity()
     {
-        var command = new Command
-        {
-            type = CommandType.CreateEntity,
-            data = default,
-            entity = default,
-            componentTypeID = -1
-        };
-
-        _commands.Add(command);
+        WriteHeader(ECBOpCode.CreateEntity);
     }
 
     public void CreateEntity(params ReadOnlySpan<Identifier<IComponent>> componentTypeIDs)
     {
-        var data = new UnsafeArray<byte>(componentTypeIDs.Length * sizeof(int), Allocator.Temp);
-        MemoryMarshal.Cast<Identifier<IComponent>, byte>(componentTypeIDs).CopyTo(data.AsSpan());
-
-        var command = new Command
-        {
-            type = CommandType.CreateEntity,
-            data = data,
-            entity = Entity.Invalid,
-            componentTypeID = Identifier<IComponent>.Invalid
-        };
-
-        _commands.Add(command);
+        WriteHeader(ECBOpCode.CreateEntityWithComponents);
+        Write(componentTypeIDs.Length);
+        WriteSpan(componentTypeIDs);
     }
 
     public void DestroyEntity(Entity entity)
     {
-        _commands.Add(new Command
-        {
-            type = CommandType.DestroyEntity,
-            data = default,
-            entity = entity,
-            componentTypeID = Identifier<IComponent>.Invalid
-        });
+        WriteHeader(ECBOpCode.DestroyEntity);
+        Write(entity);
     }
 
     public void AddComponent<T>(Entity entity, T component = default)
         where T : unmanaged, IComponent
     {
-        var data = new UnsafeArray<byte>(sizeof(T), Allocator.Temp);
-        MemoryUtility.MemCpy(data.GetUnsafePtr(), &component, (nuint)sizeof(T));
-
-        _commands.Add(new Command
-        {
-            type = CommandType.AddComponent,
-            data = data,
-            entity = entity,
-            componentTypeID = ComponentTypeID<T>.value
-        });
+        WriteHeader(ECBOpCode.AddComponent);
+        Write(entity);
+        Write(ComponentTypeID<T>.value);
+        Write(component);
     }
 
     public void RemoveComponent<T>(Entity entity)
         where T : unmanaged, IComponent
     {
-        _commands.Add(new Command
-        {
-            type = CommandType.RemoveComponent,
-            data = default,
-            entity = entity,
-            componentTypeID = ComponentTypeID<T>.value
-        });
+        WriteHeader(ECBOpCode.RemoveComponent);
+        Write(entity);
+        Write(ComponentTypeID<T>.value);
     }
 
     public void SetComponent<T>(Entity entity, T component)
         where T : unmanaged, IComponent
     {
-        var data = new UnsafeArray<byte>(sizeof(T), Allocator.Temp);
-        MemoryUtility.MemCpy(data.GetUnsafePtr(), &component, (nuint)sizeof(T));
-
-        _commands.Add(new Command
-        {
-            type = CommandType.SetComponent,
-            data = data,
-            entity = entity,
-            componentTypeID = ComponentTypeID<T>.value
-        });
+        WriteHeader(ECBOpCode.SetComponent);
+        Write(entity);
+        Write(ComponentTypeID<T>.value);
+        Write(component);
     }
 
     internal void Playback()
     {
-        foreach (ref var command in _commands)
+        var cursor = 0;
+        var length = _buffer.Count;
+        var ptr = (byte*)_buffer.GetUnsafePtr();
+
+        while (cursor < length)
         {
-            switch (command.type)
+            var op = *(ECBOpCode*)ptr[cursor];
+            cursor += sizeof(ECBOpCode);
+
+            switch (op)
             {
-                case CommandType.CreateEntity:
-                    if (command.data.Count > 0)
-                    {
-                        _entityManager.CreateEntity(MemoryMarshal.Cast<byte, Identifier<IComponent>>(command.data.AsSpan()));
-                    }
-                    else
-                    {
-                        _entityManager.CreateEntity();
-                    }
+                case ECBOpCode.CreateEntity:
+                    _entityManager.CreateEntity();
                     break;
-                case CommandType.DestroyEntity:
-                    _entityManager.DestroyEntity(command.entity);
+
+                case ECBOpCode.CreateEntityWithComponents:
+                    var compCount = Read<int>(ref cursor);
+                    var compTypeIDs = ReadSpan<Identifier<IComponent>>(ref cursor, compCount);
+                    _entityManager.CreateEntity(compTypeIDs);
                     break;
-                case CommandType.AddComponent:
-                    _entityManager.AddComponent(command.entity, command.componentTypeID, command.data.GetUnsafePtr());
+
+                case ECBOpCode.DestroyEntity:
+                    var entityToDestroy = Read<Entity>(ref cursor);
+                    _entityManager.DestroyEntity(entityToDestroy);
                     break;
-                case CommandType.RemoveComponent:
-                    _entityManager.RemoveComponent(command.entity, command.componentTypeID);
+
+                case ECBOpCode.AddComponent:
+                    var entityToAdd = Read<Entity>(ref cursor);
+                    var addCompTypeID = Read<Identifier<IComponent>>(ref cursor);
+                    var pAddCompData = ReadBuffer(ref cursor, ComponentRegister.GetComponentInfo(addCompTypeID).size);
+                    _entityManager.AddComponent(entityToAdd, addCompTypeID, pAddCompData);
                     break;
-                case CommandType.SetComponent:
-                    _entityManager.SetComponent(command.entity, command.componentTypeID, command.data.GetUnsafePtr());
+
+                case ECBOpCode.RemoveComponent:
+                    var entityToRemove = Read<Entity>(ref cursor);
+                    var removeCompTypeID = Read<Identifier<IComponent>>(ref cursor);
+                    _entityManager.RemoveComponent(entityToRemove, removeCompTypeID);
+                    break;
+
+                case ECBOpCode.SetComponent:
+                    var entityToSet = Read<Entity>(ref cursor);
+                    var setCompTypeID = Read<Identifier<IComponent>>(ref cursor);
+                    var pSetCompData = ReadBuffer(ref cursor, ComponentRegister.GetComponentInfo(setCompTypeID).size);
+                    _entityManager.SetComponent(entityToSet, setCompTypeID, pSetCompData);
                     break;
             }
         }
@@ -156,14 +199,10 @@ public unsafe class EntityCommandBuffer : IDisposable
         Reset();
     }
 
-    public void Reset()
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void Reset()
     {
-        foreach (ref var command in _commands)
-        {
-            command.data.Dispose();
-        }
-
-        _commands.Clear();
+        _buffer.Clear();
     }
 
     public void Dispose()
@@ -173,12 +212,7 @@ public unsafe class EntityCommandBuffer : IDisposable
             return;
         }
 
-        foreach (ref var command in _commands)
-        {
-            command.data.Dispose();
-        }
-
-        _commands.Dispose();
+        _buffer.Dispose();
 
         _disposed = true;
         GC.SuppressFinalize(this);
