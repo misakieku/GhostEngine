@@ -8,7 +8,7 @@ namespace Ghost.Entities;
 public interface IJobEntity<T0>
     where T0 : unmanaged, IComponent
 {
-    void Execute(Entity entity, ref T0 component0);
+    void Execute(Entity entity, ref T0 component0, int threadIndex);
 }
 
 internal unsafe struct JobEntityBatch<TJob, T0> : IJobParallelFor
@@ -43,7 +43,7 @@ internal unsafe struct JobEntityBatch<TJob, T0> : IJobParallelFor
                 continue;
             }
 
-            userJob.Execute(pEntity[i], ref ptr0[i]);
+            userJob.Execute(pEntity[i], ref ptr0[i], threadIndex);
         }
     }
 }
@@ -52,7 +52,7 @@ public interface IJobEntity<T0, T1>
     where T0 : unmanaged, IComponent
     where T1 : unmanaged, IComponent
 {
-    void Execute(Entity entity, ref T0 component0, ref T1 component1);
+    void Execute(Entity entity, ref T0 component0, ref T1 component1, int threadIndex);
 }
 
 internal unsafe struct JobEntityBatch<TJob, T0, T1> : IJobParallelFor
@@ -100,7 +100,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1> : IJobParallelFor
                 continue;
             }
 
-            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i]);
+            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], threadIndex);
         }
     }
 }
@@ -110,7 +110,7 @@ public interface IJobEntity<T0, T1, T2>
     where T1 : unmanaged, IComponent
     where T2 : unmanaged, IComponent
 {
-    void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2);
+    void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, int threadIndex);
 }
 
 internal unsafe struct JobEntityBatch<TJob, T0, T1, T2> : IJobParallelFor
@@ -171,7 +171,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2> : IJobParallelFor
                 continue;
             }
 
-            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i]);
+            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], threadIndex);
         }
     }
 }
@@ -182,7 +182,7 @@ public interface IJobEntity<T0, T1, T2, T3>
     where T2 : unmanaged, IComponent
     where T3 : unmanaged, IComponent
 {
-    void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, ref T3 component3);
+    void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, ref T3 component3, int threadIndex);
 }
 
 internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3> : IJobParallelFor
@@ -256,7 +256,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3> : IJobParallelFor
                 continue;
             }
 
-            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], ref ptr3[i]);
+            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], ref ptr3[i], threadIndex);
         }
     }
 }
@@ -268,7 +268,7 @@ public interface IJobEntity<T0, T1, T2, T3, T4>
     where T3 : unmanaged, IComponent
     where T4 : unmanaged, IComponent
 {
-    void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, ref T3 component3, ref T4 component4);
+    void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, ref T3 component3, ref T4 component4, int threadIndex);
 }
 
 internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4> : IJobParallelFor
@@ -355,7 +355,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4> : IJobParallelFo
                 continue;
             }
 
-            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], ref ptr3[i], ref ptr4[i]);
+            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], ref ptr3[i], ref ptr4[i], threadIndex);
         }
     }
 }
@@ -368,7 +368,7 @@ public interface IJobEntity<T0, T1, T2, T3, T4, T5>
     where T4 : unmanaged, IComponent
     where T5 : unmanaged, IComponent
 {
-    void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, ref T3 component3, ref T4 component4, ref T5 component5);
+    void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, ref T3 component3, ref T4 component4, ref T5 component5, int threadIndex);
 }
 
 internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5> : IJobParallelFor
@@ -468,7 +468,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5> : IJobParall
                 continue;
             }
 
-            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], ref ptr3[i], ref ptr4[i], ref ptr5[i]);
+            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], ref ptr3[i], ref ptr4[i], ref ptr5[i], threadIndex);
         }
     }
 }
@@ -482,7 +482,7 @@ public interface IJobEntity<T0, T1, T2, T3, T4, T5, T6>
     where T5 : unmanaged, IComponent
     where T6 : unmanaged, IComponent
 {
-    void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, ref T3 component3, ref T4 component4, ref T5 component5, ref T6 component6);
+    void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, ref T3 component3, ref T4 component4, ref T5 component5, ref T6 component6, int threadIndex);
 }
 
 internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6> : IJobParallelFor
@@ -595,7 +595,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6> : IJobPa
                 continue;
             }
 
-            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], ref ptr3[i], ref ptr4[i], ref ptr5[i], ref ptr6[i]);
+            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], ref ptr3[i], ref ptr4[i], ref ptr5[i], ref ptr6[i], threadIndex);
         }
     }
 }
@@ -610,7 +610,7 @@ public interface IJobEntity<T0, T1, T2, T3, T4, T5, T6, T7>
     where T6 : unmanaged, IComponent
     where T7 : unmanaged, IComponent
 {
-    void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, ref T3 component3, ref T4 component4, ref T5 component5, ref T6 component6, ref T7 component7);
+    void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, ref T3 component3, ref T4 component4, ref T5 component5, ref T6 component6, ref T7 component7, int threadIndex);
 }
 
 internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6, T7> : IJobParallelFor
@@ -736,7 +736,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6, T7> : IJ
                 continue;
             }
 
-            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], ref ptr3[i], ref ptr4[i], ref ptr5[i], ref ptr6[i], ref ptr7[i]);
+            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], ref ptr3[i], ref ptr4[i], ref ptr5[i], ref ptr6[i], ref ptr7[i], threadIndex);
         }
     }
 }
@@ -768,7 +768,7 @@ public unsafe partial struct EntityQuery
         where TJob : unmanaged, IJobEntity<T0>
         where T0 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+        var world = World.GetWorld(_worldID).GetValueOrThrow();
 
         // 1. Flatten the World
         var chunkList = new UnsafeList<IntPtr>(128, allocator);
@@ -790,7 +790,7 @@ public unsafe partial struct EntityQuery
 
             // Get offsets ONCE per archetype
             var layout0 = arch.GetLayout(ComponentTypeID<T0>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
 
             // Add all chunks from this archetype
             for (var i = 0; i < arch.ChunkCount; i++)
@@ -871,7 +871,7 @@ public unsafe partial struct EntityQuery
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+        var world = World.GetWorld(_worldID).GetValueOrThrow();
 
         // 1. Flatten the World
         var chunkList = new UnsafeList<IntPtr>(128, allocator);
@@ -896,9 +896,9 @@ public unsafe partial struct EntityQuery
 
             // Get offsets ONCE per archetype
             var layout0 = arch.GetLayout(ComponentTypeID<T0>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
             var layout1 = arch.GetLayout(ComponentTypeID<T1>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
 
             // Add all chunks from this archetype
             for (var i = 0; i < arch.ChunkCount; i++)
@@ -995,7 +995,7 @@ public unsafe partial struct EntityQuery
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+        var world = World.GetWorld(_worldID).GetValueOrThrow();
 
         // 1. Flatten the World
         var chunkList = new UnsafeList<IntPtr>(128, allocator);
@@ -1023,11 +1023,11 @@ public unsafe partial struct EntityQuery
 
             // Get offsets ONCE per archetype
             var layout0 = arch.GetLayout(ComponentTypeID<T0>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
             var layout1 = arch.GetLayout(ComponentTypeID<T1>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
             var layout2 = arch.GetLayout(ComponentTypeID<T2>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
 
             // Add all chunks from this archetype
             for (var i = 0; i < arch.ChunkCount; i++)
@@ -1140,7 +1140,7 @@ public unsafe partial struct EntityQuery
         where T2 : unmanaged, IComponent
         where T3 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+        var world = World.GetWorld(_worldID).GetValueOrThrow();
 
         // 1. Flatten the World
         var chunkList = new UnsafeList<IntPtr>(128, allocator);
@@ -1171,13 +1171,13 @@ public unsafe partial struct EntityQuery
 
             // Get offsets ONCE per archetype
             var layout0 = arch.GetLayout(ComponentTypeID<T0>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
             var layout1 = arch.GetLayout(ComponentTypeID<T1>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
             var layout2 = arch.GetLayout(ComponentTypeID<T2>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
             var layout3 = arch.GetLayout(ComponentTypeID<T3>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
 
             // Add all chunks from this archetype
             for (var i = 0; i < arch.ChunkCount; i++)
@@ -1306,7 +1306,7 @@ public unsafe partial struct EntityQuery
         where T3 : unmanaged, IComponent
         where T4 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+        var world = World.GetWorld(_worldID).GetValueOrThrow();
 
         // 1. Flatten the World
         var chunkList = new UnsafeList<IntPtr>(128, allocator);
@@ -1340,15 +1340,15 @@ public unsafe partial struct EntityQuery
 
             // Get offsets ONCE per archetype
             var layout0 = arch.GetLayout(ComponentTypeID<T0>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
             var layout1 = arch.GetLayout(ComponentTypeID<T1>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
             var layout2 = arch.GetLayout(ComponentTypeID<T2>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
             var layout3 = arch.GetLayout(ComponentTypeID<T3>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
             var layout4 = arch.GetLayout(ComponentTypeID<T4>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
 
             // Add all chunks from this archetype
             for (var i = 0; i < arch.ChunkCount; i++)
@@ -1493,7 +1493,7 @@ public unsafe partial struct EntityQuery
         where T4 : unmanaged, IComponent
         where T5 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+        var world = World.GetWorld(_worldID).GetValueOrThrow();
 
         // 1. Flatten the World
         var chunkList = new UnsafeList<IntPtr>(128, allocator);
@@ -1530,17 +1530,17 @@ public unsafe partial struct EntityQuery
 
             // Get offsets ONCE per archetype
             var layout0 = arch.GetLayout(ComponentTypeID<T0>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
             var layout1 = arch.GetLayout(ComponentTypeID<T1>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
             var layout2 = arch.GetLayout(ComponentTypeID<T2>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
             var layout3 = arch.GetLayout(ComponentTypeID<T3>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
             var layout4 = arch.GetLayout(ComponentTypeID<T4>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
             var layout5 = arch.GetLayout(ComponentTypeID<T5>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
 
             // Add all chunks from this archetype
             for (var i = 0; i < arch.ChunkCount; i++)
@@ -1701,7 +1701,7 @@ public unsafe partial struct EntityQuery
         where T5 : unmanaged, IComponent
         where T6 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+        var world = World.GetWorld(_worldID).GetValueOrThrow();
 
         // 1. Flatten the World
         var chunkList = new UnsafeList<IntPtr>(128, allocator);
@@ -1741,19 +1741,19 @@ public unsafe partial struct EntityQuery
 
             // Get offsets ONCE per archetype
             var layout0 = arch.GetLayout(ComponentTypeID<T0>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
             var layout1 = arch.GetLayout(ComponentTypeID<T1>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
             var layout2 = arch.GetLayout(ComponentTypeID<T2>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
             var layout3 = arch.GetLayout(ComponentTypeID<T3>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
             var layout4 = arch.GetLayout(ComponentTypeID<T4>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
             var layout5 = arch.GetLayout(ComponentTypeID<T5>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
             var layout6 = arch.GetLayout(ComponentTypeID<T6>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
 
             // Add all chunks from this archetype
             for (var i = 0; i < arch.ChunkCount; i++)
@@ -1930,7 +1930,7 @@ public unsafe partial struct EntityQuery
         where T6 : unmanaged, IComponent
         where T7 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+        var world = World.GetWorld(_worldID).GetValueOrThrow();
 
         // 1. Flatten the World
         var chunkList = new UnsafeList<IntPtr>(128, allocator);
@@ -1973,21 +1973,21 @@ public unsafe partial struct EntityQuery
 
             // Get offsets ONCE per archetype
             var layout0 = arch.GetLayout(ComponentTypeID<T0>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
             var layout1 = arch.GetLayout(ComponentTypeID<T1>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
             var layout2 = arch.GetLayout(ComponentTypeID<T2>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
             var layout3 = arch.GetLayout(ComponentTypeID<T3>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
             var layout4 = arch.GetLayout(ComponentTypeID<T4>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
             var layout5 = arch.GetLayout(ComponentTypeID<T5>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
             var layout6 = arch.GetLayout(ComponentTypeID<T6>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
             var layout7 = arch.GetLayout(ComponentTypeID<T7>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
 
             // Add all chunks from this archetype
             for (var i = 0; i < arch.ChunkCount; i++)

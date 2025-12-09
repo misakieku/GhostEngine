@@ -130,7 +130,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
 #if DEBUG
     [DoesNotReturn]
 #endif
-    private void RecordError(string cmdName, ResultStatus status)
+    private void RecordError(string cmdName, ErrorStatus status)
     {
 #if DEBUG
         throw new InvalidOperationException($"Error at {cmdName} with {status}");
@@ -183,7 +183,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         _commandList.Get()->Close();
         _isRecording = false;
 
-        if (_lastError.Status != ResultStatus.Success)
+        if (_lastError.Status != ErrorStatus.None)
         {
             return Result.Failure($"Command buffer ended with errors at {_lastError.CommandIndex}, command '{_lastError.CommandName}': {_lastError.Status}");
         }
@@ -220,21 +220,21 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
 
             if (!desc.Resource.IsValid)
             {
-                RecordError(nameof(ResourceBarrier), ResultStatus.InvalidArgument);
+                RecordError(nameof(ResourceBarrier), ErrorStatus.InvalidArgument);
                 continue;
             }
 
             var recordResult = _resourceDatabase.GetResourceRecord(desc.Resource);
-            if (recordResult.Status != ResultStatus.Success)
+            if (recordResult.Error != ErrorStatus.None)
             {
-                RecordError(nameof(ResourceBarrier), recordResult.Status);
+                RecordError(nameof(ResourceBarrier), recordResult.Error);
                 continue;
             }
 
             ref var record = ref recordResult.Value;
             if (record.state != desc.StateBefore)
             {
-                RecordError(nameof(ResourceBarrier), ResultStatus.InvalidState);
+                RecordError(nameof(ResourceBarrier), ErrorStatus.InvalidState);
                 continue;
             }
 
@@ -263,9 +263,9 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         }
 
         var recordResult = _resourceDatabase.GetResourceRecord(resource);
-        if (recordResult.Status != ResultStatus.Success)
+        if (recordResult.Error != ErrorStatus.None)
         {
-            RecordError(nameof(ResourceBarrier), recordResult.Status);
+            RecordError(nameof(ResourceBarrier), recordResult.Error);
             return;
         }
 
@@ -284,9 +284,9 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         IncrementCommandCount();
 
         var recordResult = _resourceDatabase.GetResourceRecord(resource);
-        if (recordResult.Status != ResultStatus.Success)
+        if (recordResult.Error != ErrorStatus.None)
         {
-            RecordError(nameof(ResourceBarrier), recordResult.Status);
+            RecordError(nameof(ResourceBarrier), recordResult.Error);
             return;
         }
 
@@ -316,14 +316,14 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
             var handle = renderTargets[i];
             if (!handle.IsValid)
             {
-                RecordError(nameof(SetRenderTargets), ResultStatus.InvalidArgument);
+                RecordError(nameof(SetRenderTargets), ErrorStatus.InvalidArgument);
                 continue;
             }
 
             var recordResult = _resourceDatabase.GetResourceRecord(handle.AsResource());
-            if (recordResult.Status != ResultStatus.Success)
+            if (recordResult.Error != ErrorStatus.None)
             {
-                RecordError(nameof(SetRenderTargets), recordResult.Status);
+                RecordError(nameof(SetRenderTargets), recordResult.Error);
                 continue;
             }
 
@@ -337,9 +337,9 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         if (pDsvHandle != null)
         {
             var recordResult = _resourceDatabase.GetResourceRecord(depthTarget.AsResource());
-            if (recordResult.Status != ResultStatus.Success)
+            if (recordResult.Error != ErrorStatus.None)
             {
-                RecordError(nameof(SetRenderTargets), recordResult.Status);
+                RecordError(nameof(SetRenderTargets), recordResult.Error);
                 return;
             }
 
@@ -362,14 +362,14 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
             var rtDesc = rtDescs[i];
             if (!rtDesc.Texture.IsValid)
             {
-                RecordError(nameof(BeginRenderPass), ResultStatus.InvalidArgument);
+                RecordError(nameof(BeginRenderPass), ErrorStatus.InvalidArgument);
                 continue;
             }
 
             var recordResult = _resourceDatabase.GetResourceRecord(rtDesc.Texture.AsResource());
-            if (recordResult.Status != ResultStatus.Success)
+            if (recordResult.Error != ErrorStatus.None)
             {
-                RecordError(nameof(BeginRenderPass), recordResult.Status);
+                RecordError(nameof(BeginRenderPass), recordResult.Error);
                 continue;
             }
 
@@ -402,9 +402,9 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         if (pDsvDesc != null)
         {
             var recordResult = _resourceDatabase.GetResourceRecord(depthDesc.Texture.AsResource());
-            if (recordResult.Status != ResultStatus.Success)
+            if (recordResult.Error != ErrorStatus.None)
             {
-                RecordError(nameof(BeginRenderPass), recordResult.Status);
+                RecordError(nameof(BeginRenderPass), recordResult.Error);
                 return;
             }
 
@@ -458,10 +458,10 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         IncrementCommandCount();
 
         var psor = _pipelineLibrary.GetGraphicsPSO(pipelineKey);
-        if (psor.Status != ResultStatus.Success)
+        if (psor.Error != ErrorStatus.None)
         {
 #if DEBUG || GHOST_EDITOR
-            Logger.LogError($"Failed to get graphics pipeline state object for key {pipelineKey}: {psor.Status}");
+            Logger.LogError($"Failed to get graphics pipeline state object for key {pipelineKey}: {psor.Error}");
 #endif
             return;
         }
@@ -487,9 +487,9 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         IncrementCommandCount();
 
         var recordResult = _resourceDatabase.GetResourceRecord(buffer.AsResource());
-        if (recordResult.Status != ResultStatus.Success)
+        if (recordResult.Error != ErrorStatus.None)
         {
-            RecordError(nameof(BeginRenderPass), recordResult.Status);
+            RecordError(nameof(BeginRenderPass), recordResult.Error);
             return;
         }
 
@@ -657,7 +657,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         var pSrcResource = _resourceDatabase.GetResource(src.AsResource());
         if (pSrcResource == null || pDestResource == null)
         {
-            RecordError(nameof(CopyBuffer), ResultStatus.InvalidArgument);
+            RecordError(nameof(CopyBuffer), ErrorStatus.InvalidArgument);
             return;
         }
 

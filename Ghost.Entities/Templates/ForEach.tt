@@ -10,18 +10,18 @@ namespace Ghost.Entities;
 {
     var generics = AppendParameters(i, "T{0}");
     var compGenerics = AppendParameters(i, "ref T{0} component{0}");
-    var restrictions = AppendGenericRestrictionsMultiline(i, "unmanaged, IComponent", 1);
+    var restrictions = AppendGenericRestrictions(i, "unmanaged, IComponent");
 #>
 public delegate void ForEach<<#= generics #>>(<#= compGenerics #>)
-<#= restrictions #>;
+    <#= restrictions #>;
 <# } #>
 
 <# for (var i = 1; i <= Amount; i++)
 {
     var generics = AppendParameters(i, "T{0}");
     var compGenerics = AppendParameters(i, "ref T{0} component{0}");
-    var restrictions = AppendGenericRestrictionsMultiline(i, "unmanaged, IComponent", 1);
+    var restrictions = AppendGenericRestrictions(i, "unmanaged, IComponent");
 #>
 public delegate void ForEachWithEntity<<#= generics #>>(Entity entity, <#= compGenerics #>)
-<#= restrictions #>;
+    <#= restrictions #>;
 <# } #>

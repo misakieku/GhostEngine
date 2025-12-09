@@ -27,9 +27,9 @@ internal class MeshRenderPass : IRenderPass
         public uint texture4;
         public uint tex_sampler;
 
-        private uint _padding1;
-        private uint _padding2;
-        private uint _padding3;
+        private readonly uint _padding1;
+        private readonly uint _padding2;
+        private readonly uint _padding3;
     }
 
     private Handle<Mesh> _mesh;
@@ -91,7 +91,7 @@ internal class MeshRenderPass : IRenderPass
         {
             using var stream = File.OpenRead(_textureFiles[i]);
             using var imageData = ImageResult.FromStream(stream, ColorComponents.RGBA);
-            
+
             var desc = new TextureDesc
             {
                 Width = imageData.Width,
@@ -121,14 +121,14 @@ internal class MeshRenderPass : IRenderPass
         var matProps = new ShaderProperties_MyShader_Standard
         {
             color = new float4(1.0f, 1.0f, 1.0f, 1.0f),
-            texture1 = ctx.ResourceDatabase.GetBindlessIndex(_textures[0].AsResource()).GetValueOrThrow(ResultStatus.Success),
-            texture2 = ctx.ResourceDatabase.GetBindlessIndex(_textures[1].AsResource()).GetValueOrThrow(ResultStatus.Success),
-            texture3 = ctx.ResourceDatabase.GetBindlessIndex(_textures[2].AsResource()).GetValueOrThrow(ResultStatus.Success),
-            texture4 = ctx.ResourceDatabase.GetBindlessIndex(_textures[3].AsResource()).GetValueOrThrow(ResultStatus.Success),
+            texture1 = ctx.ResourceDatabase.GetBindlessIndex(_textures[0].AsResource()).GetValueOrThrow(),
+            texture2 = ctx.ResourceDatabase.GetBindlessIndex(_textures[1].AsResource()).GetValueOrThrow(),
+            texture3 = ctx.ResourceDatabase.GetBindlessIndex(_textures[2].AsResource()).GetValueOrThrow(),
+            texture4 = ctx.ResourceDatabase.GetBindlessIndex(_textures[3].AsResource()).GetValueOrThrow(),
             tex_sampler = (uint)sampler.value,
         };
 
-        Debug.Assert(matRef.SetPropertyCache(in matProps) == ResultStatus.Success);
+        Debug.Assert(matRef.SetPropertyCache(in matProps) == ErrorStatus.None);
         matRef.UploadData(ctx.DirectCommandBuffer);
     }
 

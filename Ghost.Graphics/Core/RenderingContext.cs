@@ -49,7 +49,7 @@ public readonly unsafe ref struct RenderingContext
             CommandBufferType.Graphics => _engine.Device.GraphicsQueue,
             CommandBufferType.Compute => _engine.Device.ComputeQueue,
             CommandBufferType.Copy => _engine.Device.CopyQueue,
-            _ => throw new ArgumentOutOfRangeException(),
+            _ => throw new InvalidOperationException("Unknown command buffer type."),
         };
 
         queue.Submit(commandBuffer);
@@ -123,8 +123,8 @@ public readonly unsafe ref struct RenderingContext
             localToWorld = localToWorld,
             worldBoundsMin = meshData.BoundingBox.Min,
             worldBoundsMax = meshData.BoundingBox.Max,
-            vertexBuffer = _engine.ResourceDatabase.GetBindlessIndex(meshData.VertexBuffer.AsResource()).GetValueOrThrow(ResultStatus.Success),
-            indexBuffer = _engine.ResourceDatabase.GetBindlessIndex(meshData.IndexBuffer.AsResource()).GetValueOrThrow(ResultStatus.Success),
+            vertexBuffer = _engine.ResourceDatabase.GetBindlessIndex(meshData.VertexBuffer.AsResource()).GetValueOrThrow(),
+            indexBuffer = _engine.ResourceDatabase.GetBindlessIndex(meshData.IndexBuffer.AsResource()).GetValueOrThrow(),
         };
 
         var bufferHandle = meshData.ObjectDataBuffer.AsResource();
@@ -147,7 +147,7 @@ public readonly unsafe ref struct RenderingContext
         where T : unmanaged
     {
         var desc = ResourceDatabase.GetResourceDescription(texture.AsResource())
-            .GetValueOrThrow(ResultStatus.Success);
+            .GetValueOrThrow();
 
         if (data.Length * sizeof(T) != desc.TextureDescription.GetTotalBytes())
         {
@@ -180,7 +180,7 @@ public readonly unsafe ref struct RenderingContext
         var shader = ResourceDatabase.GetShaderReference(materialRef.Shader);
 
         var keyResult = shader.TryGetPassKey(passName, out var passIndex);
-        if (keyResult.Status != ResultStatus.Success)
+        if (keyResult.Error != ErrorStatus.None)
         {
             throw new Exception(keyResult.ToString());
         }

@@ -54,7 +54,7 @@ public unsafe partial struct EntityQuery
                 for (var index = 0; index < 1; index++)
                 {
                     var layout = _currentArchetype.GetLayout(_compTypeIDs[index])
-                        .GetValueOrThrow(ResultStatus.Success);
+                        .GetValueOrThrow();
                     _offsets[index] = layout.offset;
                     _compBasePtrs[index] = (long)(_chunkBasePtr + _offsets[index]);
                 }
@@ -124,7 +124,6 @@ public unsafe partial struct EntityQuery
                     }
                 }
             }
-
         }
 
         private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
@@ -147,9 +146,8 @@ public unsafe partial struct EntityQuery
     public readonly ComponentIterator<T0> GetComponentIterator<T0>()
         where T0 : unmanaged, IComponent
     {
-        return new ComponentIterator<T0>(_matchingArchetypes.AsReadOnly(), _mask, World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success));
+        return new ComponentIterator<T0>(_matchingArchetypes.AsReadOnly(), _mask, World.GetWorld(_worldID).GetValueOrThrow());
     }
-
 
     public readonly ref struct ComponentIterator<T0, T1>
         where T0 : unmanaged, IComponent
@@ -223,7 +221,7 @@ public unsafe partial struct EntityQuery
                 for (var index = 0; index < 2; index++)
                 {
                     var layout = _currentArchetype.GetLayout(_compTypeIDs[index])
-                        .GetValueOrThrow(ResultStatus.Success);
+                        .GetValueOrThrow();
                     _offsets[index] = layout.offset;
                     _compBasePtrs[index] = (long)(_chunkBasePtr + _offsets[index]);
                 }
@@ -293,7 +291,6 @@ public unsafe partial struct EntityQuery
                     }
                 }
             }
-
         }
 
         private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
@@ -317,9 +314,8 @@ public unsafe partial struct EntityQuery
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
     {
-        return new ComponentIterator<T0, T1>(_matchingArchetypes.AsReadOnly(), _mask, World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success));
+        return new ComponentIterator<T0, T1>(_matchingArchetypes.AsReadOnly(), _mask, World.GetWorld(_worldID).GetValueOrThrow());
     }
-
 
     public readonly ref struct ComponentIterator<T0, T1, T2>
         where T0 : unmanaged, IComponent
@@ -402,7 +398,7 @@ public unsafe partial struct EntityQuery
                 for (var index = 0; index < 3; index++)
                 {
                     var layout = _currentArchetype.GetLayout(_compTypeIDs[index])
-                        .GetValueOrThrow(ResultStatus.Success);
+                        .GetValueOrThrow();
                     _offsets[index] = layout.offset;
                     _compBasePtrs[index] = (long)(_chunkBasePtr + _offsets[index]);
                 }
@@ -472,7 +468,6 @@ public unsafe partial struct EntityQuery
                     }
                 }
             }
-
         }
 
         private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
@@ -497,9 +492,8 @@ public unsafe partial struct EntityQuery
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent
     {
-        return new ComponentIterator<T0, T1, T2>(_matchingArchetypes.AsReadOnly(), _mask, World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success));
+        return new ComponentIterator<T0, T1, T2>(_matchingArchetypes.AsReadOnly(), _mask, World.GetWorld(_worldID).GetValueOrThrow());
     }
-
 
     public readonly ref struct ComponentIterator<T0, T1, T2, T3>
         where T0 : unmanaged, IComponent
@@ -591,7 +585,7 @@ public unsafe partial struct EntityQuery
                 for (var index = 0; index < 4; index++)
                 {
                     var layout = _currentArchetype.GetLayout(_compTypeIDs[index])
-                        .GetValueOrThrow(ResultStatus.Success);
+                        .GetValueOrThrow();
                     _offsets[index] = layout.offset;
                     _compBasePtrs[index] = (long)(_chunkBasePtr + _offsets[index]);
                 }
@@ -661,7 +655,6 @@ public unsafe partial struct EntityQuery
                     }
                 }
             }
-
         }
 
         private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
@@ -687,9 +680,8 @@ public unsafe partial struct EntityQuery
         where T2 : unmanaged, IComponent
         where T3 : unmanaged, IComponent
     {
-        return new ComponentIterator<T0, T1, T2, T3>(_matchingArchetypes.AsReadOnly(), _mask, World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success));
+        return new ComponentIterator<T0, T1, T2, T3>(_matchingArchetypes.AsReadOnly(), _mask, World.GetWorld(_worldID).GetValueOrThrow());
     }
-
 
     public readonly ref struct ComponentIterator<T0, T1, T2, T3, T4>
         where T0 : unmanaged, IComponent
@@ -790,7 +782,7 @@ public unsafe partial struct EntityQuery
                 for (var index = 0; index < 5; index++)
                 {
                     var layout = _currentArchetype.GetLayout(_compTypeIDs[index])
-                        .GetValueOrThrow(ResultStatus.Success);
+                        .GetValueOrThrow();
                     _offsets[index] = layout.offset;
                     _compBasePtrs[index] = (long)(_chunkBasePtr + _offsets[index]);
                 }
@@ -860,7 +852,6 @@ public unsafe partial struct EntityQuery
                     }
                 }
             }
-
         }
 
         private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
@@ -887,9 +878,8 @@ public unsafe partial struct EntityQuery
         where T3 : unmanaged, IComponent
         where T4 : unmanaged, IComponent
     {
-        return new ComponentIterator<T0, T1, T2, T3, T4>(_matchingArchetypes.AsReadOnly(), _mask, World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success));
+        return new ComponentIterator<T0, T1, T2, T3, T4>(_matchingArchetypes.AsReadOnly(), _mask, World.GetWorld(_worldID).GetValueOrThrow());
     }
-
 
     public readonly ref struct ComponentIterator<T0, T1, T2, T3, T4, T5>
         where T0 : unmanaged, IComponent
@@ -999,7 +989,7 @@ public unsafe partial struct EntityQuery
                 for (var index = 0; index < 6; index++)
                 {
                     var layout = _currentArchetype.GetLayout(_compTypeIDs[index])
-                        .GetValueOrThrow(ResultStatus.Success);
+                        .GetValueOrThrow();
                     _offsets[index] = layout.offset;
                     _compBasePtrs[index] = (long)(_chunkBasePtr + _offsets[index]);
                 }
@@ -1069,7 +1059,6 @@ public unsafe partial struct EntityQuery
                     }
                 }
             }
-
         }
 
         private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
@@ -1097,9 +1086,8 @@ public unsafe partial struct EntityQuery
         where T4 : unmanaged, IComponent
         where T5 : unmanaged, IComponent
     {
-        return new ComponentIterator<T0, T1, T2, T3, T4, T5>(_matchingArchetypes.AsReadOnly(), _mask, World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success));
+        return new ComponentIterator<T0, T1, T2, T3, T4, T5>(_matchingArchetypes.AsReadOnly(), _mask, World.GetWorld(_worldID).GetValueOrThrow());
     }
-
 
     public readonly ref struct ComponentIterator<T0, T1, T2, T3, T4, T5, T6>
         where T0 : unmanaged, IComponent
@@ -1218,7 +1206,7 @@ public unsafe partial struct EntityQuery
                 for (var index = 0; index < 7; index++)
                 {
                     var layout = _currentArchetype.GetLayout(_compTypeIDs[index])
-                        .GetValueOrThrow(ResultStatus.Success);
+                        .GetValueOrThrow();
                     _offsets[index] = layout.offset;
                     _compBasePtrs[index] = (long)(_chunkBasePtr + _offsets[index]);
                 }
@@ -1288,7 +1276,6 @@ public unsafe partial struct EntityQuery
                     }
                 }
             }
-
         }
 
         private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
@@ -1317,9 +1304,8 @@ public unsafe partial struct EntityQuery
         where T5 : unmanaged, IComponent
         where T6 : unmanaged, IComponent
     {
-        return new ComponentIterator<T0, T1, T2, T3, T4, T5, T6>(_matchingArchetypes.AsReadOnly(), _mask, World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success));
+        return new ComponentIterator<T0, T1, T2, T3, T4, T5, T6>(_matchingArchetypes.AsReadOnly(), _mask, World.GetWorld(_worldID).GetValueOrThrow());
     }
-
 
     public readonly ref struct ComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>
         where T0 : unmanaged, IComponent
@@ -1447,7 +1433,7 @@ public unsafe partial struct EntityQuery
                 for (var index = 0; index < 8; index++)
                 {
                     var layout = _currentArchetype.GetLayout(_compTypeIDs[index])
-                        .GetValueOrThrow(ResultStatus.Success);
+                        .GetValueOrThrow();
                     _offsets[index] = layout.offset;
                     _compBasePtrs[index] = (long)(_chunkBasePtr + _offsets[index]);
                 }
@@ -1517,7 +1503,6 @@ public unsafe partial struct EntityQuery
                     }
                 }
             }
-
         }
 
         private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
@@ -1547,8 +1532,7 @@ public unsafe partial struct EntityQuery
         where T6 : unmanaged, IComponent
         where T7 : unmanaged, IComponent
     {
-        return new ComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>(_matchingArchetypes.AsReadOnly(), _mask, World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success));
+        return new ComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>(_matchingArchetypes.AsReadOnly(), _mask, World.GetWorld(_worldID).GetValueOrThrow());
     }
-
 
 }

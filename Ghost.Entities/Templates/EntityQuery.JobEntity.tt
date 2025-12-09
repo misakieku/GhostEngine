@@ -19,7 +19,7 @@ namespace Ghost.Entities;
 public interface IJobEntity<<#= generics #>>
 <#= restrictions #>
 {
-    void Execute(Entity entity, <#= AppendParameters(i, "ref T{0} component{0}") #>);
+    void Execute(Entity entity, <#= AppendParameters(i, "ref T{0} component{0}") #>, int threadIndex);
 }
 
 internal unsafe struct JobEntityBatch<TJob, <#= generics #>> : IJobParallelFor
@@ -62,7 +62,7 @@ internal unsafe struct JobEntityBatch<TJob, <#= generics #>> : IJobParallelFor
             }
 
 <# } #>
-            userJob.Execute(pEntity[i], <#= AppendParameters(i, "ref ptr{0}[i]") #>);
+            userJob.Execute(pEntity[i], <#= AppendParameters(i, "ref ptr{0}[i]") #>, threadIndex);
         }
     }
 }
@@ -104,7 +104,7 @@ public unsafe partial struct EntityQuery
         where TJob : unmanaged, IJobEntity<<#= generics #>>
 <#= restrictions #>
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+        var world = World.GetWorld(_worldID).GetValueOrThrow();
 
         // 1. Flatten the World
         var chunkList = new UnsafeList<IntPtr>(128, allocator);
@@ -129,7 +129,7 @@ public unsafe partial struct EntityQuery
             // Get offsets ONCE per archetype
 <# for (var j = 0; j < i; j++){ #>
             var layout<#= j #> = arch.GetLayout(ComponentTypeID<T<#= j #>>.value)
-                .GetValueOrThrow(ResultStatus.Success);
+                .GetValueOrThrow();
 <# } #>
 
             // Add all chunks from this archetype

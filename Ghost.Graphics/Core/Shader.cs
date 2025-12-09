@@ -101,17 +101,17 @@ public class Shader : IResourceReleasable, IIdentifierType
         return ref _passes[index];
     }
 
-    public RefResult<ShaderPass, ResultStatus> TryGetPassKey(string passName, out int passIndex)
+    public RefResult<ShaderPass, ErrorStatus> TryGetPassKey(string passName, out int passIndex)
     {
         var index = _passLookup.GetValueOrDefault(passName, -1);
         if (index == -1)
         {
             passIndex = -1;
-            return Result.CreateRef(ref Unsafe.NullRef<ShaderPass>(), ResultStatus.NotFound);
+            return ErrorStatus.NotFound;
         }
 
         passIndex = index;
-        return Result.CreateRef(ref _passes[index], ResultStatus.Success);
+        return RefResult<ShaderPass, ErrorStatus>.Success(ref _passes[index]);
     }
 
     void IResourceReleasable.ReleaseResource(IResourceDatabase database)

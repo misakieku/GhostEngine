@@ -1,16 +1,18 @@
 using Ghost.Test.Core;
 using Misaki.HighPerformance.Jobs;
-using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
-using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities.Test;
 
-internal struct TestEntityQueryJob : IJobEntity<Transform>
+internal struct TestEntityQueryJob : IJobChunk
 {
-    public readonly void Execute(Entity entity, ref Transform transform)
+    public void Execute(ChunkView view, int threadIndex)
     {
-        transform.position += new float3(10, 10, 10);
+        var transforms = view.GetComponentData<Transform>();
+        for (var i = 0; i < view.Count; i++)
+        {
+            transforms[i].position += new float3(10, 10, 10);
+        }
     }
 }
 
@@ -23,8 +25,6 @@ public partial class EntityTest : ITest
     {
         _jobScheduler = new JobScheduler(4);
         _world = World.Create(_jobScheduler);
-
-        Console.WriteLine(Unsafe.SizeOf<EntityQuery>());
     }
 
     public void Run()
@@ -39,7 +39,7 @@ public partial class EntityTest : ITest
         ref var query = ref _world.GetEntityQueryReference(queryID);
 
         var testJob = new TestEntityQueryJob();
-        var handle = query.ScheduleEntityParallel<TestEntityQueryJob, Transform>(testJob, Allocator.Temp, 64, JobHandle.Invalid);
+        var handle = query.ScheduleChunkParallel(testJob, 64, JobHandle.Invalid);
         _jobScheduler.WaitComplete(handle);
 
         query.ForEach<Transform>((e, ref t) =>

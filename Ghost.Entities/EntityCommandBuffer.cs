@@ -102,14 +102,16 @@ public unsafe class EntityCommandBuffer : IDisposable
         return bufferPtr;
     }
 
-    public void CreateEntity()
+    public void CreateEntity(int count = 1)
     {
         WriteHeader(ECBOpCode.CreateEntity);
+        Write(count);
     }
 
-    public void CreateEntity(params ReadOnlySpan<Identifier<IComponent>> componentTypeIDs)
+    public void CreateEntity(int count, params ReadOnlySpan<Identifier<IComponent>> componentTypeIDs)
     {
         WriteHeader(ECBOpCode.CreateEntityWithComponents);
+        Write(count);
         Write(componentTypeIDs.Length);
         WriteSpan(componentTypeIDs);
     }
@@ -150,23 +152,23 @@ public unsafe class EntityCommandBuffer : IDisposable
     {
         var cursor = 0;
         var length = _buffer.Count;
-        var ptr = (byte*)_buffer.GetUnsafePtr();
 
         while (cursor < length)
         {
-            var op = *(ECBOpCode*)ptr[cursor];
-            cursor += sizeof(ECBOpCode);
+            var op = Read<ECBOpCode>(ref cursor);
 
             switch (op)
             {
                 case ECBOpCode.CreateEntity:
-                    _entityManager.CreateEntity();
+                    var count = Read<int>(ref cursor);
+                    _entityManager.CreateEntities(count);
                     break;
 
                 case ECBOpCode.CreateEntityWithComponents:
+                    var entityCount = Read<int>(ref cursor);
                     var compCount = Read<int>(ref cursor);
                     var compTypeIDs = ReadSpan<Identifier<IComponent>>(ref cursor, compCount);
-                    _entityManager.CreateEntity(compTypeIDs);
+                    _entityManager.CreateEntities(entityCount, compTypeIDs);
                     break;
 
                 case ECBOpCode.DestroyEntity:

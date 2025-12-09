@@ -48,20 +48,20 @@ public partial class World
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Result<World, ResultStatus> GetWorld(Identifier<World> id)
+    public static Result<World, ErrorStatus> GetWorld(Identifier<World> id)
     {
         if (id.value < 0 || id.value >= s_worlds.Count)
         {
-            return Result.Create(default(World)!, ResultStatus.NotFound);
+            return ErrorStatus.InvalidArgument;
         }
 
         var world = s_worlds[id.value];
         if (world is null)
         {
-            return Result.Create(default(World)!, ResultStatus.NotFound);
+            return ErrorStatus.NotFound;
         }
 
-        return Result.Create(world, ResultStatus.Success);
+        return world;
     }
 }
 
@@ -102,6 +102,9 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
     /// <summary>
     /// Gets the main entity command buffer for this world.
     /// </summary>
+    /// <remarks>
+    /// Use <see cref="GetThreadLocalEntityCommandBuffer(int)"/> to get thread-local command buffers for multi-threaded jobs.
+    /// </remarks>
     public EntityCommandBuffer EntityCommandBuffer => _entityCommandBuffer;
 
     private World(Identifier<World> id, int entityCapacity, JobScheduler jobScheduler)

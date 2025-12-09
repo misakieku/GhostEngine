@@ -99,7 +99,7 @@ public unsafe partial struct EntityQuery
                 for (var index = 0; index < <#= i #>; index++)
                 {
                     var layout = _currentArchetype.GetLayout(_compTypeIDs[index])
-                        .GetValueOrThrow(ResultStatus.Success);
+                        .GetValueOrThrow();
                     _offsets[index] = layout.offset;
                     _compBasePtrs[index] = (long)(_chunkBasePtr + _offsets[index]);
                 }
@@ -191,7 +191,7 @@ public unsafe partial struct EntityQuery
     public readonly ComponentIterator<<#= generics#>> GetComponentIterator<<#= generics#>>()
 <#= restrictions #>
     {
-        return new ComponentIterator<<#= generics#>>(_matchingArchetypes.AsReadOnly(), _mask, World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success));
+        return new ComponentIterator<<#= generics#>>(_matchingArchetypes.AsReadOnly(), _mask, World.GetWorld(_worldID).GetValueOrThrow());
     }
 
 <# } #>

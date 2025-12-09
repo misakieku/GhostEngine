@@ -16,8 +16,7 @@ public unsafe partial struct EntityQuery
 #>
 <# for (var i = 1; i <= Amount; i++)
 {
-    var generics = AppendGenerics(i);
-    var compGenerics = AppendGenericRefParameters(i);
+    var generics = AppendParameters(i, "T{0}");
     var restrictions = AppendGenericRestrictionsMultiline(i, "unmanaged, IComponent", 2);
 
     var delegateTupe = isForEachWithEntity ? "ForEachWithEntity" : "ForEach";
@@ -25,7 +24,7 @@ public unsafe partial struct EntityQuery
     public readonly void ForEach<<#= generics #>>(<#= delegateTupe #><<#= generics #>> action)
 <#= restrictions #>
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+        var world = World.GetWorld(_worldID).GetValueOrThrow();
 
         var compTypeIDs = stackalloc int[] { <#= AppendGenerics(i, "ComponentTypeID<T{0}>.value") #> };
         var offsets = stackalloc int[<#= i #>];
@@ -38,7 +37,7 @@ public unsafe partial struct EntityQuery
             for (var index = 0; index < <#= i #>; index++)
             {
                 var layoutResult = archetype.GetLayout(compTypeIDs[index]);
-                if (layoutResult.Status != ResultStatus.Success)
+                if (!layoutResult)
                 {
                     hasAllComponents = false;
                     break;
@@ -75,9 +74,9 @@ public unsafe partial struct EntityQuery
 
 <# if (isForEachWithEntity) { #>
                     var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
-                    action(*pEntity, <#= AppendRefParameters(i, "*pComp{0}") #>);
+                    action(*pEntity, <#= AppendParameters(i, "ref *pComp{0}") #>);
 <# } else { #>
-                    action(<#= AppendRefParameters(i, "*pComp{0}") #>);
+                    action(<#= AppendParameters(i, "ref *pComp{0}") #>);
 <# } #>
                 }
             }

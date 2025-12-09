@@ -6,6 +6,14 @@ using System.Diagnostics;
 
 namespace Ghost.Entities;
 
+/// <summary>
+/// A manager for creating, destroying, and managing entities and their components.
+/// </summary>
+/// <remarks>
+/// All methods in this class are not thread-safe and all of them will cause structural changes if not mentioned otherwise.
+/// Use <see cref="EntityCommandBuffer"/> to defer structural changes to a safe point.
+/// Use <see cref="World.GetThreadLocalEntityCommandBuffer(int)"/> to get a thread-local command buffer for multithreaded scenarios.
+/// </remarks>
 public unsafe partial class EntityManager : IDisposable
 {
     private struct EntityLocation
@@ -30,19 +38,19 @@ public unsafe partial class EntityManager : IDisposable
         Dispose();
     }
 
-    internal ResultStatus UpdateEntityLocation(Entity entity, Identifier<Archetype> newArchetypeID, int newChunkIndex, int newRowIndex)
+    internal ErrorStatus UpdateEntityLocation(Entity entity, Identifier<Archetype> newArchetypeID, int newChunkIndex, int newRowIndex)
     {
         ref var location = ref _entityLocations.GetElementReferenceAt(entity.ID, entity.Generation, out var exist);
         if (!exist)
         {
-            return ResultStatus.NotFound;
+            return ErrorStatus.NotFound;
         }
 
         location.archetypeID = newArchetypeID;
         location.chunkIndex = newChunkIndex;
         location.rowIndex = newRowIndex;
 
-        return ResultStatus.Success;
+        return ErrorStatus.None;
     }
 
     /// <summary>
@@ -51,21 +59,10 @@ public unsafe partial class EntityManager : IDisposable
     /// <returns>The created entity.</returns>
     public Entity CreateEntity()
     {
-        // Put into empty archetype
-        ref var emptyArchetype = ref _world.GetArchetypeReference(World.EmptyArchetypeID);
-        emptyArchetype.AllocateEntity(out var chunkIndex, out var rowIndex);
+        var entities = (Span<Entity>)stackalloc Entity[1];
+        CreateEntities(1, entities);
 
-        var id = _entityLocations.Add(new EntityLocation
-        {
-            archetypeID = World.EmptyArchetypeID,
-            chunkIndex = chunkIndex,
-            rowIndex = rowIndex
-        }, out var generation);
-
-        var entity = new Entity(id, generation);
-        emptyArchetype.SetEntity(chunkIndex, rowIndex, entity);
-
-        return entity;
+        return entities[0];
     }
 
     /// <summary>
@@ -75,28 +72,59 @@ public unsafe partial class EntityManager : IDisposable
     /// <returns>The created entity.</returns>
     public Entity CreateEntity(params ReadOnlySpan<Identifier<IComponent>> componentTypeIDs)
     {
-        var signatureHash = ComponentRegister.GetHashCode(componentTypeIDs);
-        var arcID = _world.GetArchetypeIDBySignatureHash(signatureHash);
+        var entities = (Span<Entity>)stackalloc Entity[1];
+        CreateEntities(1, entities, componentTypeIDs);
 
-        if (arcID.IsNotValid)
+        return entities[0];
+    }
+
+    /// <summary>
+    /// Create multiple entities with no components.
+    /// </summary>
+    /// <param name="count">The number of entities to create.</param>
+    /// <param name="entities">The span to store the created entities.</param>
+    public void CreateEntities(int count, Span<Entity> entities)
+    {
+        ref var emptyArchetype = ref _world.GetArchetypeReference(World.EmptyArchetypeID);
+        emptyArchetype.AllocateEntity(out var chunkIndex, out var rowIndex);
+
+        for (var i = 0; i < count; i++)
         {
-            arcID = _world.CreateArchetype(componentTypeIDs, signatureHash);
+            var id = _entityLocations.Add(new EntityLocation
+            {
+                archetypeID = World.EmptyArchetypeID,
+                chunkIndex = chunkIndex,
+                rowIndex = rowIndex
+            }, out var generation);
+
+            var entity = new Entity(id, generation);
+            emptyArchetype.SetEntity(chunkIndex, rowIndex, entity);
+
+            entities[i] = entity;
         }
+    }
 
-        ref var archetype = ref _world.GetArchetypeReference(arcID);
-        archetype.AllocateEntity(out var chunkIndex, out var rowIndex);
+    /// <summary>
+    /// Create multiple entities with no components.
+    /// </summary>
+    /// <param name="count">The number of entities to create.</param>
+    public void CreateEntities(int count)
+    {
+        ref var emptyArchetype = ref _world.GetArchetypeReference(World.EmptyArchetypeID);
+        emptyArchetype.AllocateEntity(out var chunkIndex, out var rowIndex);
 
-        var id = _entityLocations.Add(new EntityLocation
+        for (var i = 0; i < count; i++)
         {
-            archetypeID = arcID,
-            chunkIndex = chunkIndex,
-            rowIndex = rowIndex
-        }, out var generation);
+            var id = _entityLocations.Add(new EntityLocation
+            {
+                archetypeID = World.EmptyArchetypeID,
+                chunkIndex = chunkIndex,
+                rowIndex = rowIndex
+            }, out var generation);
 
-        var entity = new Entity(id, generation);
-        archetype.SetEntity(chunkIndex, rowIndex, entity);
-
-        return entity;
+            var entity = new Entity(id, generation);
+            emptyArchetype.SetEntity(chunkIndex, rowIndex, entity);
+        }
     }
 
     /// <summary>
@@ -106,7 +134,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="allocator">The allocator to use for the returned array.</param>
     /// <param name="componentTypeIDs">The component type IDs to add to the entities. </param>
     /// <returns>An array of the created entities.</returns>
-    public UnsafeArray<Entity> CreateEntities(int count, Allocator allocator, params ReadOnlySpan<Identifier<IComponent>> componentTypeIDs)
+    public void CreateEntities(int count, Span<Entity> entities, params ReadOnlySpan<Identifier<IComponent>> componentTypeIDs)
     {
         var signatureHash = ComponentRegister.GetHashCode(componentTypeIDs);
         var arcID = _world.GetArchetypeIDBySignatureHash(signatureHash);
@@ -118,7 +146,6 @@ public unsafe partial class EntityManager : IDisposable
 
         ref var archetype = ref _world.GetArchetypeReference(arcID);
 
-        var entities = new UnsafeArray<Entity>(count, allocator);
         for (var i = 0; i < count; i++)
         {
             archetype.AllocateEntity(out var chunkIndex, out var rowIndex);
@@ -135,8 +162,6 @@ public unsafe partial class EntityManager : IDisposable
 
             entities[i] = entity;
         }
-
-        return entities;
     }
 
     /// <summary>
@@ -176,26 +201,26 @@ public unsafe partial class EntityManager : IDisposable
     /// Destroy the specified entity.
     /// </summary>
     /// <returns>The result status of the operation.</returns>
-    public ResultStatus DestroyEntity(Entity entity)
+    public ErrorStatus DestroyEntity(Entity entity)
     {
         if (!_entityLocations.TryGetElementAt(entity.ID, entity.Generation, out var location))
         {
-            return ResultStatus.NotFound;
+            return ErrorStatus.NotFound;
         }
 
         ref var archetype = ref _world.GetArchetypeReference(location.archetypeID);
         var r = archetype.RemoveEntity(location.chunkIndex, location.rowIndex);
-        if (r != ResultStatus.Success)
+        if (r != ErrorStatus.None)
         {
             return r;
         }
 
         if (!_entityLocations.Remove(entity.ID, entity.Generation))
         {
-            return ResultStatus.NotFound;
+            return ErrorStatus.NotFound;
         }
 
-        return ResultStatus.Success;
+        return ErrorStatus.None;
     }
 
     /// <summary>
@@ -214,11 +239,11 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="componentID">The component type ID of the singleton.</param>
     /// <param name="pComponent">Pointer to the component data.</param>
     /// <returns>The result status of the operation.</returns>
-    public ResultStatus CreateSingleton(Identifier<IComponent> componentID, void* pComponent)
+    public ErrorStatus CreateSingleton(Identifier<IComponent> componentID, void* pComponent)
     {
         if (pComponent == null)
         {
-            return ResultStatus.InvalidArgument;
+            return ErrorStatus.InvalidArgument;
         }
 
         // Check if singleton already exists
@@ -227,7 +252,7 @@ public unsafe partial class EntityManager : IDisposable
 
         if (arcID.IsValid)
         {
-            return ResultStatus.InvalidArgument;
+            return ErrorStatus.InvalidArgument;
         }
 
         arcID = _world.CreateArchetype([componentID], signatureHash);
@@ -246,7 +271,7 @@ public unsafe partial class EntityManager : IDisposable
         archetype.SetEntity(chunkIndex, rowIndex, entity);
         archetype.SetComponentData(chunkIndex, rowIndex, componentID, pComponent);
 
-        return ResultStatus.Success;
+        return ErrorStatus.None;
     }
 
     /// <summary>
@@ -255,7 +280,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <typeparam name="T">The component type.</typeparam>
     /// <param name="component">The component data.</param>
     /// <returns>The result status of the operation.</returns>
-    public ResultStatus CreateSingleton<T>(T component = default)
+    public ErrorStatus CreateSingleton<T>(T component = default)
         where T : unmanaged, IComponent
     {
         return CreateSingleton(ComponentTypeID<T>.value, &component);
@@ -278,7 +303,7 @@ public unsafe partial class EntityManager : IDisposable
 
         ref var archetype = ref _world.GetArchetypeReference(arcID);
         var layoutResult = archetype.GetLayout(componentID);
-        if (layoutResult.Status != ResultStatus.Success)
+        if (layoutResult.Error != ErrorStatus.None)
         {
             return null;
         }
@@ -311,8 +336,8 @@ public unsafe partial class EntityManager : IDisposable
 
             var src = oldArch._chunks[oldChunk].GetUnsafePtr() + layout.offset + (layout.size * oldRow);
             var r = newArch.GetLayout(layout.componentID);
-            Debug.Assert(r.Status == ResultStatus.Success); // This should always be true if the system is consistent.
-            if (r.Status != ResultStatus.Success)
+            Debug.Assert(r.Error == ErrorStatus.None); // This should always be true if the system is consistent.
+            if (r.Error != ErrorStatus.None)
             {
                 continue;
             }
@@ -330,13 +355,13 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="componentID">The component type ID to add.</param>
     /// <param name="pComponent">Pointer to the component data.</param>
     /// <returns>The result status of the operation.</returns>
-    public ResultStatus AddComponent(Entity entity, Identifier<IComponent> componentID, void* pComponent)
+    public ErrorStatus AddComponent(Entity entity, Identifier<IComponent> componentID, void* pComponent)
     {
         // Find current location
         ref var location = ref _entityLocations.GetElementReferenceAt(entity.ID, entity.Generation, out var exist);
         if (!exist)
         {
-            return ResultStatus.NotFound;
+            return ErrorStatus.NotFound;
         }
 
         // Build new archetype signature
@@ -397,8 +422,8 @@ public unsafe partial class EntityManager : IDisposable
         newArchetype.SetComponentData(newChunkIndex, newRowIndex, componentID, pComponent);
 
         var r = oldArchetype.RemoveEntity(location.chunkIndex, location.rowIndex);
-        Debug.Assert(r == ResultStatus.Success); // We assert it because the entity should exist if the whole system is consistent.
-        if (r != ResultStatus.Success)
+        Debug.Assert(r == ErrorStatus.None); // We assert it because the entity should exist if the whole system is consistent.
+        if (r != ErrorStatus.None)
         {
             return r;
         }
@@ -408,7 +433,7 @@ public unsafe partial class EntityManager : IDisposable
         location.chunkIndex = newChunkIndex;
         location.rowIndex = newRowIndex;
 
-        return ResultStatus.Success;
+        return ErrorStatus.None;
     }
 
     /// <summary>
@@ -418,7 +443,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="entity">The entity to add the component to.</param>
     /// <param name="component">The component data.</param>
     /// <returns>The result status of the operation.</returns>
-    public ResultStatus AddComponent<T>(Entity entity, T component = default)
+    public ErrorStatus AddComponent<T>(Entity entity, T component = default)
         where T : unmanaged, IComponent
     {
         return AddComponent(entity, ComponentTypeID<T>.value, &component);
@@ -430,13 +455,13 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="entity">The entity to remove the component from.</param>
     /// <param name="componentID">The component type ID to remove.</param>
     /// <returns>The result status of the operation.</returns>
-    public ResultStatus RemoveComponent(Entity entity, Identifier<IComponent> componentID)
+    public ErrorStatus RemoveComponent(Entity entity, Identifier<IComponent> componentID)
     {
         // Find current location
         ref var location = ref _entityLocations.GetElementReferenceAt(entity.ID, entity.Generation, out var exist);
         if (!exist)
         {
-            return ResultStatus.NotFound;
+            return ErrorStatus.NotFound;
         }
 
         // Build new archetype signature
@@ -492,8 +517,8 @@ public unsafe partial class EntityManager : IDisposable
         newArchetype.SetEntity(newChunkIndex, newRowIndex, entity);
 
         var r = oldArchetype.RemoveEntity(location.chunkIndex, location.rowIndex);
-        Debug.Assert(r == ResultStatus.Success); // We assert it because the entity should exist if the whole system is consistent.
-        if (r != ResultStatus.Success)
+        Debug.Assert(r == ErrorStatus.None); // We assert it because the entity should exist if the whole system is consistent.
+        if (r != ErrorStatus.None)
         {
             return r;
         }
@@ -503,7 +528,7 @@ public unsafe partial class EntityManager : IDisposable
         location.chunkIndex = newChunkIndex;
         location.rowIndex = newRowIndex;
 
-        return ResultStatus.Success;
+        return ErrorStatus.None;
     }
 
     /// <summary>
@@ -512,7 +537,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <typeparam name="T">The component type.</typeparam>
     /// <param name="entity">The entity to remove the component from.</param>
     /// <returns>The result status of the operation.</returns>
-    public ResultStatus RemoveComponent<T>(Entity entity)
+    public ErrorStatus RemoveComponent<T>(Entity entity)
         where T : unmanaged, IComponent
     {
         return RemoveComponent(entity, ComponentTypeID<T>.value);
@@ -525,17 +550,17 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="componentID">The component type ID to set.</param>
     /// <param name="pComponent">Pointer to the component data.</param>
     /// <returns>The result status of the operation.</returns>
-    public ResultStatus SetComponent(Entity entity, Identifier<IComponent> componentID, void* pComponent)
+    public ErrorStatus SetComponent(Entity entity, Identifier<IComponent> componentID, void* pComponent)
     {
         if (!_entityLocations.TryGetElementAt(entity.ID, entity.Generation, out var location))
         {
-            return ResultStatus.NotFound;
+            return ErrorStatus.NotFound;
         }
 
         ref var archetype = ref _world.GetArchetypeReference(location.archetypeID);
         archetype.SetComponentData(location.chunkIndex, location.rowIndex, componentID, pComponent);
 
-        return ResultStatus.Success;
+        return ErrorStatus.None;
     }
 
     /// <summary>
@@ -544,7 +569,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <typeparam name="T">The component type.</typeparam>
     /// <param name="entity">The entity to set the component data for.</param>
     /// <param name="component">The component data.</param>
-    public ResultStatus SetComponent<T>(Entity entity, T component)
+    public ErrorStatus SetComponent<T>(Entity entity, T component)
         where T : unmanaged, IComponent
     {
         return SetComponent(entity, ComponentTypeID<T>.value, &component);
@@ -616,11 +641,11 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="componentID">The component type ID of the enableable component.</
     /// <param name="enabled">True to enable the component, false to disable it.</param>
     /// <returns>The result status of the operation.</returns>
-    public ResultStatus SetEnabled(Entity entity, Identifier<IComponent> componentID, bool enabled)
+    public ErrorStatus SetEnabled(Entity entity, Identifier<IComponent> componentID, bool enabled)
     {
         if (!_entityLocations.TryGetElementAt(entity.ID, entity.Generation, out var location))
         {
-            return ResultStatus.NotFound;
+            return ErrorStatus.NotFound;
         }
 
         ref var archetype = ref _world.GetArchetypeReference(location.archetypeID);
@@ -628,9 +653,9 @@ public unsafe partial class EntityManager : IDisposable
         var rowIndex = location.rowIndex;
 
         var layoutResult = archetype.GetLayout(componentID);
-        if (layoutResult.Status != ResultStatus.Success)
+        if (layoutResult.Error != ErrorStatus.None)
         {
-            return layoutResult.Status;
+            return layoutResult.Error;
         }
 
         ref var chunk = ref archetype.GetChunkReference(chunkIndex);
@@ -649,7 +674,7 @@ public unsafe partial class EntityManager : IDisposable
             maskBase[byteIndex] &= (byte)~(1 << bitIndex);
         }
 
-        return ResultStatus.Success;
+        return ErrorStatus.None;
     }
 
     /// <summary>
@@ -659,7 +684,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="entity">The entity to set the enabled state for.</param>
     /// <param name="enabled">True to enable the component, false to disable it.</
     /// <returns>The result status of the operation.</returns>
-    public ResultStatus SetEnabled<T>(Entity entity, bool enabled)
+    public ErrorStatus SetEnabled<T>(Entity entity, bool enabled)
         where T : unmanaged, IEnableableComponent
     {
         return SetEnabled(entity, ComponentTypeID<T>.value, enabled);

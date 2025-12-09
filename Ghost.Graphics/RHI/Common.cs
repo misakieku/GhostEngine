@@ -98,7 +98,7 @@ internal struct GraphicsPipelineHash
     // Do we need to store blend state?
     // TODO: Variants
 
-    public GraphicsPipelineKey GetKey()
+    public readonly GraphicsPipelineKey GetKey()
     {
         Span<ulong> data = stackalloc ulong[3 + D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
         data[0] = Id.value;
@@ -731,7 +731,7 @@ public struct CommandError
         get; set;
     }
 
-    public ResultStatus Status
+    public ErrorStatus Status
     {
         get; set;
     }

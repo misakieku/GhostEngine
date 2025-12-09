@@ -263,12 +263,12 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly ResultStatus SetComponentData(int chunkIndex, int rowIndex, Identifier<IComponent> componentID, void* pComponent)
+    public readonly ErrorStatus SetComponentData(int chunkIndex, int rowIndex, Identifier<IComponent> componentID, void* pComponent)
     {
         var r = GetLayout(componentID);
-        if (r.Status != ResultStatus.Success)
+        if (r.Error != ErrorStatus.None)
         {
-            return r.Status;
+            return r.Error;
         }
 
         var offset = r.Value.offset;
@@ -280,14 +280,14 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
 
         MemoryUtility.MemCpy(dst, pComponent, (nuint)size);
 
-        return ResultStatus.Success;
+        return ErrorStatus.None;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly void* GetComponentData(int chunkIndex, int rowIndex, Identifier<IComponent> componentID)
     {
         var r = GetLayout(componentID);
-        if (r.Status != ResultStatus.Success)
+        if (r.Error != ErrorStatus.None)
         {
             return null;
         }
@@ -307,27 +307,27 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Result<ComponentMemoryLayout, ResultStatus> GetLayout(int componentID)
+    public readonly Result<ComponentMemoryLayout, ErrorStatus> GetLayout(int componentID)
     {
         if (componentID >= _componentIDToLayoutIndex.Count)
         {
-            return Result.Create(default(ComponentMemoryLayout), ResultStatus.InvalidArgument);
+            return ErrorStatus.InvalidArgument;
         }
 
         var layoutIndex = _componentIDToLayoutIndex[componentID];
         if (layoutIndex == -1)
         {
-            return Result.Create(default(ComponentMemoryLayout), ResultStatus.NotFound);
+            return ErrorStatus.NotFound;
         }
 
-        return Result.Create(_layouts[layoutIndex], ResultStatus.Success);
+        return _layouts[layoutIndex];
     }
 
-    public ResultStatus RemoveEntity(int chunkIndex, int rowIndex)
+    public ErrorStatus RemoveEntity(int chunkIndex, int rowIndex)
     {
         if (chunkIndex < 0 || chunkIndex >= _chunks.Count)
         {
-            return ResultStatus.InvalidArgument;
+            return ErrorStatus.InvalidArgument;
         }
 
         ref var chunk = ref _chunks[chunkIndex];
@@ -341,13 +341,13 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
             var pRowEntity = chunkBase + _entityIdsOffset + (sizeof(Entity) * rowIndex);
 
             var wroldResult = World.GetWorld(_worldID);
-            if (wroldResult.Status != ResultStatus.Success)
+            if (wroldResult.Error != ErrorStatus.None)
             {
-                return wroldResult.Status;
+                return wroldResult.Error;
             }
 
             var result = wroldResult.Value.EntityManager.UpdateEntityLocation(*(Entity*)pLastEntity, _id, chunkIndex, rowIndex);
-            if (result != ResultStatus.Success)
+            if (result != ErrorStatus.None)
             {
                 return result;
             }
@@ -367,7 +367,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         }
 
         chunk.Count--;
-        return ResultStatus.Success;
+        return ErrorStatus.None;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

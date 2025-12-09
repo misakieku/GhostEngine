@@ -74,91 +74,102 @@ public struct EntityQueryMask : IDisposable, IEquatable<EntityQueryMask>
     }
 }
 
-public unsafe partial struct EntityQuery : IIdentifierType, IDisposable
+/// <summary>
+/// Provides a read-only view over a chunk of entities and their component data within an archetype.
+/// </summary>
+/// <remarks>This does not filter disabled/enabled components. You must handle that manually.</remarks>
+public readonly unsafe ref struct ChunkView
 {
-    /// <summary>
-    /// Provides a read-only view over a chunk of entities and their component data within an archetype.
-    /// </summary>
-    /// <remarks>This does not filter disabled/enabled components. You must handle that manually.</remarks>
-    public readonly ref struct ChunkView
+    private readonly ReadOnlyUnsafeCollection<Archetype.ComponentMemoryLayout> _layouts;
+    private readonly byte* _pChunkData;
+    private readonly int _entityOffset;
+    private readonly int _entityCount;
+
+    public readonly int Count => _entityCount;
+
+    internal ChunkView(ReadOnlyUnsafeCollection<Archetype.ComponentMemoryLayout> layouts, byte* pChunkData, int entityOffset, int entityCount)
     {
-        private readonly ref Archetype _archetype;
-        private readonly ref Chunk _chunk;
-
-        public readonly int Count => _chunk.Count;
-
-        internal ChunkView(ref Archetype archetype, int chunkIndex)
-        {
-            _archetype = ref archetype;
-            _chunk = ref archetype.GetChunkReference(chunkIndex);
-        }
-
-        /// <summary>
-        /// Returns a read-only span containing structuralAll entities stored in the current chunk.
-        /// </summary>
-        /// <returns>A read-only span of <see cref="Entity"/> values representing the entities in the chunk.</returns>
-        public readonly ReadOnlySpan<Entity> GetEntities()
-        {
-            var ptr = _chunk.GetUnsafePtr();
-            var pEntity = (Entity*)(ptr + _archetype.EntityIDsOffset);
-            return new ReadOnlySpan<Entity>(pEntity, _chunk.Count);
-        }
-
-        /// <summary>
-        /// Gets a span providing direct access to the component data of type T0 for structuralAll entities in the chunk.
-        /// </summary>
-        /// <typeparam name="T">The type of component to access. Must be an unmanaged type that implements <see cref="Component"/>.</typeparam>
-        /// <returns>A span of type <see cref="{T}"/> containing the component data for each entity in the chunk.</returns>
-        /// <exception cref="InvalidOperationException">Thrown if the specified component type is not present in the archetype.</exception>
-        public readonly Span<T> GetComponentData<T>()
-            where T : unmanaged, IComponent
-        {
-            var layout = _archetype.GetLayout(ComponentTypeID<T>.value).GetValueOrThrow(ResultStatus.Success);
-            var ptr = _chunk.GetUnsafePtr() + layout.offset;
-            return new Span<T>(ptr, _chunk.Count);
-        }
-
-        /// <summary>
-        /// Gets a bit set representing the enabled state of each instance of the specified enableable component
-        /// type within the current chunk.
-        /// </summary>
-        /// <typeparam name="T">The component type for which to retrieve enablement bits. Must be unmanaged and implement <see cref="IEnableableComponent"/>.</typeparam>
-        /// <returns>A <see cref="SpanBitSet"/> that provides access to the enablement bits for all instances of the specified component type in the chunk.</returns>
-        /// <exception cref="InvalidOperationException">Thrown if the specified component type does not support enablement.</exception>
-        public SpanBitSet GetEnableBits<T>()
-            where T : unmanaged, IEnableableComponent
-        {
-            var layout = _archetype.GetLayout(ComponentTypeID<T>.value).GetValueOrThrow(ResultStatus.Success);
-            if (layout.enableBitsOffset == -1)
-            {
-                throw new InvalidOperationException($"Component {typeof(T).FullName} is not enableable.");
-            }
-
-            var maskBase = _chunk.GetUnsafePtr() + layout.enableBitsOffset;
-            return new SpanBitSet(new Span<uint>(maskBase, (_chunk.Count + 31) / 32));
-        }
-
-        /// <summary>
-        /// Determines whether the specified component of type <typeparamref name="T"/> at the given index is currently enabled.
-        /// </summary>
-        /// <typeparam name="T">The type of the component to check. Must be an unmanaged type that implements <see cref="IEnableableComponent"/>.</typeparam>
-        /// <param name="index">The zero-based index of the component instance to check within the chunk.</param>
-        /// <returns>true if the component at the specified index is enabled; otherwise, false.</returns>
-        /// <exception cref="InvalidOperationException">Thrown if the specified component type <typeparamref name="T"/> does not support enable/disable functionality.</exception>
-        public readonly bool IsComponentEnabled<T>(int index)
-            where T : unmanaged, IEnableableComponent
-        {
-            var layout = _archetype.GetLayout(ComponentTypeID<T>.value).GetValueOrThrow(ResultStatus.Success);
-            if (layout.enableBitsOffset == -1)
-            {
-                throw new InvalidOperationException($"Component {typeof(T).FullName} is not enableable.");
-            }
-
-            var maskBase = _chunk.GetUnsafePtr() + layout.enableBitsOffset;
-            return CheckBit(maskBase, index);
-        }
+        _layouts = layouts;
+        _pChunkData = pChunkData;
+        _entityOffset = entityOffset;
+        _entityCount = entityCount;
     }
 
+    internal ChunkView(ref readonly Archetype archetype, ref readonly Chunk chunk)
+    {
+        _layouts = archetype._layouts.AsReadOnly();
+        _pChunkData = chunk.GetUnsafePtr();
+        _entityOffset = archetype.EntityIDsOffset;
+        _entityCount = chunk.Count;
+    }
+
+    /// <summary>
+    /// Returns a read-only span containing structuralAll entities stored in the current chunk.
+    /// </summary>
+    /// <returns>A read-only span of <see cref="Entity"/> values representing the entities in the chunk.</returns>
+    public readonly ReadOnlySpan<Entity> GetEntities()
+    {
+        var pEntity = (Entity*)(_pChunkData + _entityOffset);
+        return new ReadOnlySpan<Entity>(pEntity, _entityCount);
+    }
+
+    /// <summary>
+    /// Gets a span providing direct access to the component data of type T0 for structuralAll entities in the chunk.
+    /// </summary>
+    /// <typeparam name="T">The type of component to access. Must be an unmanaged type that implements <see cref="Component"/>.</typeparam>
+    /// <returns>A span of type <see cref="{T}"/> containing the component data for each entity in the chunk.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the specified component type is not present in the archetype.</exception>
+    public readonly Span<T> GetComponentData<T>()
+        where T : unmanaged, IComponent
+    {
+        var layout = _layouts[ComponentTypeID<T>.value];
+        var pComponentData = _pChunkData + layout.offset;
+        return new Span<T>(pComponentData, _entityCount);
+    }
+
+    /// <summary>
+    /// Gets a bit set representing the enabled state of each instance of the specified enableable component
+    /// type within the current chunk.
+    /// </summary>
+    /// <typeparam name="T">The component type for which to retrieve enablement bits. Must be unmanaged and implement <see cref="IEnableableComponent"/>.</typeparam>
+    /// <returns>A <see cref="SpanBitSet"/> that provides access to the enablement bits for all instances of the specified component type in the chunk.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the specified component type does not support enablement.</exception>
+    public readonly SpanBitSet GetEnableBits<T>()
+        where T : unmanaged, IEnableableComponent
+    {
+        var layout = _layouts[ComponentTypeID<T>.value];
+        if (layout.enableBitsOffset == -1)
+        {
+            throw new InvalidOperationException($"Component {typeof(T).FullName} is not enableable.");
+        }
+
+        var maskBase = _pChunkData + layout.enableBitsOffset;
+        return new SpanBitSet(new Span<uint>(maskBase, (_entityCount + 31) / 32));
+    }
+
+    /// <summary>
+    /// Determines whether the specified component of type <typeparamref name="T"/> at the given index is currently enabled.
+    /// </summary>
+    /// <typeparam name="T">The type of the component to check. Must be an unmanaged type that implements <see cref="IEnableableComponent"/>.</typeparam>
+    /// <param name="index">The zero-based index of the component instance to check within the chunk.</param>
+    /// <returns>true if the component at the specified index is enabled; otherwise, false.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the specified component type <typeparamref name="T"/> does not support enable/disable functionality.</exception>
+    public readonly bool IsComponentEnabled<T>(int index)
+        where T : unmanaged, IEnableableComponent
+    {
+        var layout = _layouts[ComponentTypeID<T>.value];
+        if (layout.enableBitsOffset == -1)
+        {
+            throw new InvalidOperationException($"Component {typeof(T).FullName} is not enableable.");
+        }
+
+        var pMask = _pChunkData + layout.enableBitsOffset;
+        return EntityQuery.CheckBit(pMask, index);
+    }
+}
+
+public unsafe partial struct EntityQuery : IIdentifierType, IDisposable
+{
     /// <summary>
     /// Provides an enumerator for iterating over chunks of entities and their component data that match a set of archetypes within a world.
     /// </summary>
@@ -182,7 +193,8 @@ public unsafe partial struct EntityQuery : IIdentifierType, IDisposable
                 get
                 {
                     ref var archetype = ref _iterator._world.GetArchetypeReference(_iterator._matchingArchetypes[_archetypeIndex]);
-                    return new ChunkView(ref archetype, _chunkIndex);
+                    ref var chunk = ref archetype.GetChunkReference(_chunkIndex);
+                    return new ChunkView(in archetype, in chunk);
                 }
             }
 
@@ -250,7 +262,7 @@ public unsafe partial struct EntityQuery : IIdentifierType, IDisposable
         {
             // Get the EnableBitmask for this component in this chunk
             var layoutResult = archetype.GetLayout(id);
-            if (layoutResult.Status != ResultStatus.Success
+            if (layoutResult.Error != ErrorStatus.None
                 // Not enableable, always true
                 || layoutResult.Value.enableBitsOffset == -1)
             {
@@ -269,7 +281,7 @@ public unsafe partial struct EntityQuery : IIdentifierType, IDisposable
         while (it.Next(out var id))
         {
             var layoutResult = archetype.GetLayout(id);
-            if (layoutResult.Status != ResultStatus.Success)
+            if (layoutResult.Error != ErrorStatus.None)
             {
                 continue;
             }
@@ -290,7 +302,7 @@ public unsafe partial struct EntityQuery : IIdentifierType, IDisposable
         while (it.Next(out var id))
         {
             var layoutResult = archetype.GetLayout(id);
-            if (layoutResult.Status != ResultStatus.Success)
+            if (layoutResult.Error != ErrorStatus.None)
             {
                 continue;
             }

@@ -1,4 +1,3 @@
-
 using Ghost.Core;
 
 namespace Ghost.Entities;
@@ -8,7 +7,7 @@ public unsafe partial struct EntityQuery
     public readonly void ForEach<T0>(ForEach<T0> action)
         where T0 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+        var world = World.GetWorld(_worldID).GetValueOrThrow();
 
         var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value };
         var offsets = stackalloc int[1];
@@ -21,7 +20,7 @@ public unsafe partial struct EntityQuery
             for (var index = 0; index < 1; index++)
             {
                 var layoutResult = archetype.GetLayout(compTypeIDs[index]);
-                if (layoutResult.Status != ResultStatus.Success)
+                if (!layoutResult)
                 {
                     hasAllComponents = false;
                     break;
@@ -64,7 +63,7 @@ public unsafe partial struct EntityQuery
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+        var world = World.GetWorld(_worldID).GetValueOrThrow();
 
         var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value, ComponentTypeID<T1>.value };
         var offsets = stackalloc int[2];
@@ -77,7 +76,7 @@ public unsafe partial struct EntityQuery
             for (var index = 0; index < 2; index++)
             {
                 var layoutResult = archetype.GetLayout(compTypeIDs[index]);
-                if (layoutResult.Status != ResultStatus.Success)
+                if (!layoutResult)
                 {
                     hasAllComponents = false;
                     break;
@@ -122,7 +121,7 @@ public unsafe partial struct EntityQuery
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+        var world = World.GetWorld(_worldID).GetValueOrThrow();
 
         var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value, ComponentTypeID<T1>.value, ComponentTypeID<T2>.value };
         var offsets = stackalloc int[3];
@@ -135,7 +134,7 @@ public unsafe partial struct EntityQuery
             for (var index = 0; index < 3; index++)
             {
                 var layoutResult = archetype.GetLayout(compTypeIDs[index]);
-                if (layoutResult.Status != ResultStatus.Success)
+                if (!layoutResult)
                 {
                     hasAllComponents = false;
                     break;
@@ -182,7 +181,7 @@ public unsafe partial struct EntityQuery
         where T2 : unmanaged, IComponent
         where T3 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+        var world = World.GetWorld(_worldID).GetValueOrThrow();
 
         var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value, ComponentTypeID<T1>.value, ComponentTypeID<T2>.value, ComponentTypeID<T3>.value };
         var offsets = stackalloc int[4];
@@ -195,7 +194,7 @@ public unsafe partial struct EntityQuery
             for (var index = 0; index < 4; index++)
             {
                 var layoutResult = archetype.GetLayout(compTypeIDs[index]);
-                if (layoutResult.Status != ResultStatus.Success)
+                if (!layoutResult)
                 {
                     hasAllComponents = false;
                     break;
@@ -244,7 +243,7 @@ public unsafe partial struct EntityQuery
         where T3 : unmanaged, IComponent
         where T4 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+        var world = World.GetWorld(_worldID).GetValueOrThrow();
 
         var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value, ComponentTypeID<T1>.value, ComponentTypeID<T2>.value, ComponentTypeID<T3>.value, ComponentTypeID<T4>.value };
         var offsets = stackalloc int[5];
@@ -257,7 +256,7 @@ public unsafe partial struct EntityQuery
             for (var index = 0; index < 5; index++)
             {
                 var layoutResult = archetype.GetLayout(compTypeIDs[index]);
-                if (layoutResult.Status != ResultStatus.Success)
+                if (!layoutResult)
                 {
                     hasAllComponents = false;
                     break;
@@ -308,7 +307,7 @@ public unsafe partial struct EntityQuery
         where T4 : unmanaged, IComponent
         where T5 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+        var world = World.GetWorld(_worldID).GetValueOrThrow();
 
         var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value, ComponentTypeID<T1>.value, ComponentTypeID<T2>.value, ComponentTypeID<T3>.value, ComponentTypeID<T4>.value, ComponentTypeID<T5>.value };
         var offsets = stackalloc int[6];
@@ -321,7 +320,7 @@ public unsafe partial struct EntityQuery
             for (var index = 0; index < 6; index++)
             {
                 var layoutResult = archetype.GetLayout(compTypeIDs[index]);
-                if (layoutResult.Status != ResultStatus.Success)
+                if (!layoutResult)
                 {
                     hasAllComponents = false;
                     break;
@@ -374,7 +373,7 @@ public unsafe partial struct EntityQuery
         where T5 : unmanaged, IComponent
         where T6 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+        var world = World.GetWorld(_worldID).GetValueOrThrow();
 
         var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value, ComponentTypeID<T1>.value, ComponentTypeID<T2>.value, ComponentTypeID<T3>.value, ComponentTypeID<T4>.value, ComponentTypeID<T5>.value, ComponentTypeID<T6>.value };
         var offsets = stackalloc int[7];
@@ -387,7 +386,7 @@ public unsafe partial struct EntityQuery
             for (var index = 0; index < 7; index++)
             {
                 var layoutResult = archetype.GetLayout(compTypeIDs[index]);
-                if (layoutResult.Status != ResultStatus.Success)
+                if (!layoutResult)
                 {
                     hasAllComponents = false;
                     break;
@@ -442,7 +441,7 @@ public unsafe partial struct EntityQuery
         where T6 : unmanaged, IComponent
         where T7 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+        var world = World.GetWorld(_worldID).GetValueOrThrow();
 
         var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value, ComponentTypeID<T1>.value, ComponentTypeID<T2>.value, ComponentTypeID<T3>.value, ComponentTypeID<T4>.value, ComponentTypeID<T5>.value, ComponentTypeID<T6>.value, ComponentTypeID<T7>.value };
         var offsets = stackalloc int[8];
@@ -455,7 +454,7 @@ public unsafe partial struct EntityQuery
             for (var index = 0; index < 8; index++)
             {
                 var layoutResult = archetype.GetLayout(compTypeIDs[index]);
-                if (layoutResult.Status != ResultStatus.Success)
+                if (!layoutResult)
                 {
                     hasAllComponents = false;
                     break;
@@ -504,7 +503,7 @@ public unsafe partial struct EntityQuery
     public readonly void ForEach<T0>(ForEachWithEntity<T0> action)
         where T0 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+        var world = World.GetWorld(_worldID).GetValueOrThrow();
 
         var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value };
         var offsets = stackalloc int[1];
@@ -517,7 +516,7 @@ public unsafe partial struct EntityQuery
             for (var index = 0; index < 1; index++)
             {
                 var layoutResult = archetype.GetLayout(compTypeIDs[index]);
-                if (layoutResult.Status != ResultStatus.Success)
+                if (!layoutResult)
                 {
                     hasAllComponents = false;
                     break;
@@ -561,7 +560,7 @@ public unsafe partial struct EntityQuery
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+        var world = World.GetWorld(_worldID).GetValueOrThrow();
 
         var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value, ComponentTypeID<T1>.value };
         var offsets = stackalloc int[2];
@@ -574,7 +573,7 @@ public unsafe partial struct EntityQuery
             for (var index = 0; index < 2; index++)
             {
                 var layoutResult = archetype.GetLayout(compTypeIDs[index]);
-                if (layoutResult.Status != ResultStatus.Success)
+                if (!layoutResult)
                 {
                     hasAllComponents = false;
                     break;
@@ -620,7 +619,7 @@ public unsafe partial struct EntityQuery
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+        var world = World.GetWorld(_worldID).GetValueOrThrow();
 
         var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value, ComponentTypeID<T1>.value, ComponentTypeID<T2>.value };
         var offsets = stackalloc int[3];
@@ -633,7 +632,7 @@ public unsafe partial struct EntityQuery
             for (var index = 0; index < 3; index++)
             {
                 var layoutResult = archetype.GetLayout(compTypeIDs[index]);
-                if (layoutResult.Status != ResultStatus.Success)
+                if (!layoutResult)
                 {
                     hasAllComponents = false;
                     break;
@@ -681,7 +680,7 @@ public unsafe partial struct EntityQuery
         where T2 : unmanaged, IComponent
         where T3 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+        var world = World.GetWorld(_worldID).GetValueOrThrow();
 
         var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value, ComponentTypeID<T1>.value, ComponentTypeID<T2>.value, ComponentTypeID<T3>.value };
         var offsets = stackalloc int[4];
@@ -694,7 +693,7 @@ public unsafe partial struct EntityQuery
             for (var index = 0; index < 4; index++)
             {
                 var layoutResult = archetype.GetLayout(compTypeIDs[index]);
-                if (layoutResult.Status != ResultStatus.Success)
+                if (!layoutResult)
                 {
                     hasAllComponents = false;
                     break;
@@ -744,7 +743,7 @@ public unsafe partial struct EntityQuery
         where T3 : unmanaged, IComponent
         where T4 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+        var world = World.GetWorld(_worldID).GetValueOrThrow();
 
         var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value, ComponentTypeID<T1>.value, ComponentTypeID<T2>.value, ComponentTypeID<T3>.value, ComponentTypeID<T4>.value };
         var offsets = stackalloc int[5];
@@ -757,7 +756,7 @@ public unsafe partial struct EntityQuery
             for (var index = 0; index < 5; index++)
             {
                 var layoutResult = archetype.GetLayout(compTypeIDs[index]);
-                if (layoutResult.Status != ResultStatus.Success)
+                if (!layoutResult)
                 {
                     hasAllComponents = false;
                     break;
@@ -809,7 +808,7 @@ public unsafe partial struct EntityQuery
         where T4 : unmanaged, IComponent
         where T5 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+        var world = World.GetWorld(_worldID).GetValueOrThrow();
 
         var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value, ComponentTypeID<T1>.value, ComponentTypeID<T2>.value, ComponentTypeID<T3>.value, ComponentTypeID<T4>.value, ComponentTypeID<T5>.value };
         var offsets = stackalloc int[6];
@@ -822,7 +821,7 @@ public unsafe partial struct EntityQuery
             for (var index = 0; index < 6; index++)
             {
                 var layoutResult = archetype.GetLayout(compTypeIDs[index]);
-                if (layoutResult.Status != ResultStatus.Success)
+                if (!layoutResult)
                 {
                     hasAllComponents = false;
                     break;
@@ -876,7 +875,7 @@ public unsafe partial struct EntityQuery
         where T5 : unmanaged, IComponent
         where T6 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+        var world = World.GetWorld(_worldID).GetValueOrThrow();
 
         var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value, ComponentTypeID<T1>.value, ComponentTypeID<T2>.value, ComponentTypeID<T3>.value, ComponentTypeID<T4>.value, ComponentTypeID<T5>.value, ComponentTypeID<T6>.value };
         var offsets = stackalloc int[7];
@@ -889,7 +888,7 @@ public unsafe partial struct EntityQuery
             for (var index = 0; index < 7; index++)
             {
                 var layoutResult = archetype.GetLayout(compTypeIDs[index]);
-                if (layoutResult.Status != ResultStatus.Success)
+                if (!layoutResult)
                 {
                     hasAllComponents = false;
                     break;
@@ -945,7 +944,7 @@ public unsafe partial struct EntityQuery
         where T6 : unmanaged, IComponent
         where T7 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow(ResultStatus.Success);
+        var world = World.GetWorld(_worldID).GetValueOrThrow();
 
         var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value, ComponentTypeID<T1>.value, ComponentTypeID<T2>.value, ComponentTypeID<T3>.value, ComponentTypeID<T4>.value, ComponentTypeID<T5>.value, ComponentTypeID<T6>.value, ComponentTypeID<T7>.value };
         var offsets = stackalloc int[8];
@@ -958,7 +957,7 @@ public unsafe partial struct EntityQuery
             for (var index = 0; index < 8; index++)
             {
                 var layoutResult = archetype.GetLayout(compTypeIDs[index]);
-                if (layoutResult.Status != ResultStatus.Success)
+                if (!layoutResult)
                 {
                     hasAllComponents = false;
                     break;
