@@ -72,7 +72,7 @@ public unsafe partial struct EntityQuery
             {
                 _currentChunk = ref _currentArchetype.GetChunkReference(chunkIndex);
                 _chunkBasePtr = _currentChunk.GetUnsafePtr();
-                _currentChunkEntityCount = _currentChunk.Count;
+                _currentChunkEntityCount = _currentChunk._count;
 
                 for (var index = 0; index < 1; index++)
                 {
@@ -88,7 +88,7 @@ public unsafe partial struct EntityQuery
                 while (true)
                 {
                     _currentEntityIndex++;
-                    if (_currentEntityIndex < _currentChunk.Count)
+                    if (_currentEntityIndex < _currentChunk._count)
                     {
                         var pChunkData = _currentChunk.GetUnsafePtr();
                         if (IsEntityValid(pChunkData, _currentEntityIndex, in _currentArchetype, in _mask))
@@ -246,7 +246,7 @@ public unsafe partial struct EntityQuery
             {
                 _currentChunk = ref _currentArchetype.GetChunkReference(chunkIndex);
                 _chunkBasePtr = _currentChunk.GetUnsafePtr();
-                _currentChunkEntityCount = _currentChunk.Count;
+                _currentChunkEntityCount = _currentChunk._count;
 
                 for (var index = 0; index < 2; index++)
                 {
@@ -262,7 +262,7 @@ public unsafe partial struct EntityQuery
                 while (true)
                 {
                     _currentEntityIndex++;
-                    if (_currentEntityIndex < _currentChunk.Count)
+                    if (_currentEntityIndex < _currentChunk._count)
                     {
                         var pChunkData = _currentChunk.GetUnsafePtr();
                         if (IsEntityValid(pChunkData, _currentEntityIndex, in _currentArchetype, in _mask))
@@ -430,7 +430,7 @@ public unsafe partial struct EntityQuery
             {
                 _currentChunk = ref _currentArchetype.GetChunkReference(chunkIndex);
                 _chunkBasePtr = _currentChunk.GetUnsafePtr();
-                _currentChunkEntityCount = _currentChunk.Count;
+                _currentChunkEntityCount = _currentChunk._count;
 
                 for (var index = 0; index < 3; index++)
                 {
@@ -446,7 +446,7 @@ public unsafe partial struct EntityQuery
                 while (true)
                 {
                     _currentEntityIndex++;
-                    if (_currentEntityIndex < _currentChunk.Count)
+                    if (_currentEntityIndex < _currentChunk._count)
                     {
                         var pChunkData = _currentChunk.GetUnsafePtr();
                         if (IsEntityValid(pChunkData, _currentEntityIndex, in _currentArchetype, in _mask))
@@ -624,7 +624,7 @@ public unsafe partial struct EntityQuery
             {
                 _currentChunk = ref _currentArchetype.GetChunkReference(chunkIndex);
                 _chunkBasePtr = _currentChunk.GetUnsafePtr();
-                _currentChunkEntityCount = _currentChunk.Count;
+                _currentChunkEntityCount = _currentChunk._count;
 
                 for (var index = 0; index < 4; index++)
                 {
@@ -640,7 +640,7 @@ public unsafe partial struct EntityQuery
                 while (true)
                 {
                     _currentEntityIndex++;
-                    if (_currentEntityIndex < _currentChunk.Count)
+                    if (_currentEntityIndex < _currentChunk._count)
                     {
                         var pChunkData = _currentChunk.GetUnsafePtr();
                         if (IsEntityValid(pChunkData, _currentEntityIndex, in _currentArchetype, in _mask))
@@ -828,7 +828,7 @@ public unsafe partial struct EntityQuery
             {
                 _currentChunk = ref _currentArchetype.GetChunkReference(chunkIndex);
                 _chunkBasePtr = _currentChunk.GetUnsafePtr();
-                _currentChunkEntityCount = _currentChunk.Count;
+                _currentChunkEntityCount = _currentChunk._count;
 
                 for (var index = 0; index < 5; index++)
                 {
@@ -844,7 +844,7 @@ public unsafe partial struct EntityQuery
                 while (true)
                 {
                     _currentEntityIndex++;
-                    if (_currentEntityIndex < _currentChunk.Count)
+                    if (_currentEntityIndex < _currentChunk._count)
                     {
                         var pChunkData = _currentChunk.GetUnsafePtr();
                         if (IsEntityValid(pChunkData, _currentEntityIndex, in _currentArchetype, in _mask))
@@ -1042,7 +1042,7 @@ public unsafe partial struct EntityQuery
             {
                 _currentChunk = ref _currentArchetype.GetChunkReference(chunkIndex);
                 _chunkBasePtr = _currentChunk.GetUnsafePtr();
-                _currentChunkEntityCount = _currentChunk.Count;
+                _currentChunkEntityCount = _currentChunk._count;
 
                 for (var index = 0; index < 6; index++)
                 {
@@ -1058,7 +1058,7 @@ public unsafe partial struct EntityQuery
                 while (true)
                 {
                     _currentEntityIndex++;
-                    if (_currentEntityIndex < _currentChunk.Count)
+                    if (_currentEntityIndex < _currentChunk._count)
                     {
                         var pChunkData = _currentChunk.GetUnsafePtr();
                         if (IsEntityValid(pChunkData, _currentEntityIndex, in _currentArchetype, in _mask))
@@ -1266,7 +1266,7 @@ public unsafe partial struct EntityQuery
             {
                 _currentChunk = ref _currentArchetype.GetChunkReference(chunkIndex);
                 _chunkBasePtr = _currentChunk.GetUnsafePtr();
-                _currentChunkEntityCount = _currentChunk.Count;
+                _currentChunkEntityCount = _currentChunk._count;
 
                 for (var index = 0; index < 7; index++)
                 {
@@ -1282,7 +1282,7 @@ public unsafe partial struct EntityQuery
                 while (true)
                 {
                     _currentEntityIndex++;
-                    if (_currentEntityIndex < _currentChunk.Count)
+                    if (_currentEntityIndex < _currentChunk._count)
                     {
                         var pChunkData = _currentChunk.GetUnsafePtr();
                         if (IsEntityValid(pChunkData, _currentEntityIndex, in _currentArchetype, in _mask))
@@ -1500,7 +1500,7 @@ public unsafe partial struct EntityQuery
             {
                 _currentChunk = ref _currentArchetype.GetChunkReference(chunkIndex);
                 _chunkBasePtr = _currentChunk.GetUnsafePtr();
-                _currentChunkEntityCount = _currentChunk.Count;
+                _currentChunkEntityCount = _currentChunk._count;
 
                 for (var index = 0; index < 8; index++)
                 {
@@ -1516,7 +1516,7 @@ public unsafe partial struct EntityQuery
                 while (true)
                 {
                     _currentEntityIndex++;
-                    if (_currentEntityIndex < _currentChunk.Count)
+                    if (_currentEntityIndex < _currentChunk._count)
                     {
                         var pChunkData = _currentChunk.GetUnsafePtr();
                         if (IsEntityValid(pChunkData, _currentEntityIndex, in _currentArchetype, in _mask))

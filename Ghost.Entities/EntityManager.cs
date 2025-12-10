@@ -18,7 +18,7 @@ public unsafe partial class EntityManager : IDisposable
 {
     private struct EntityLocation
     {
-        public Identifier<Archetype> archetypeID;
+        public int archetypeID;
         public int chunkIndex;
         public int rowIndex;
     }
@@ -209,6 +209,13 @@ public unsafe partial class EntityManager : IDisposable
         }
 
         ref var archetype = ref _world.GetArchetypeReference(location.archetypeID);
+
+        var pManagedRef = archetype.GetComponentData(location.chunkIndex, location.rowIndex, ComponentTypeID<ManagedEntityRef>.value);
+        if (pManagedRef != null)
+        {
+            DestroyManagedEntity(((ManagedEntityRef*)pManagedRef)->entity);
+        }
+
         var r = archetype.RemoveEntity(location.chunkIndex, location.rowIndex);
         if (r != ErrorStatus.None)
         {
@@ -336,9 +343,10 @@ public unsafe partial class EntityManager : IDisposable
 
             var src = oldArch._chunks[oldChunk].GetUnsafePtr() + layout.offset + (layout.size * oldRow);
             var r = newArch.GetLayout(layout.componentID);
-            Debug.Assert(r.Error == ErrorStatus.None); // This should always be true if the system is consistent.
             if (r.Error != ErrorStatus.None)
             {
+                // New archetype does not have this component, skip it.
+                // This can happen when removing components.
                 continue;
             }
 
@@ -514,6 +522,9 @@ public unsafe partial class EntityManager : IDisposable
         // Move entity data
         ref var newArchetype = ref _world.GetArchetypeReference(newArcID);
         newArchetype.AllocateEntity(out var newChunkIndex, out var newRowIndex);
+        CopyData(ref oldArchetype, location.chunkIndex, location.rowIndex,
+                 ref newArchetype, newChunkIndex, newRowIndex);
+
         newArchetype.SetEntity(newChunkIndex, newRowIndex, entity);
 
         var r = oldArchetype.RemoveEntity(location.chunkIndex, location.rowIndex);
@@ -521,6 +532,12 @@ public unsafe partial class EntityManager : IDisposable
         if (r != ErrorStatus.None)
         {
             return r;
+        }
+
+        var pManagedRef = oldArchetype.GetComponentData(location.chunkIndex, location.rowIndex, ComponentTypeID<ManagedEntityRef>.value);
+        if (pManagedRef != null)
+        {
+            DestroyManagedEntity(((ManagedEntityRef*)pManagedRef)->entity);
         }
 
         // Update location
@@ -696,6 +713,9 @@ public unsafe partial class EntityManager : IDisposable
         {
             return;
         }
+
+        Debug.Assert(_entityLocations.Count == 0, "There are still entities alive when disposing EntityManager.");
+        Debug.Assert(_scriptComponents.Count == 0, "There are still managed entities alive when disposing EntityManager.");
 
         _entityLocations.Dispose();
         _disposed = true;

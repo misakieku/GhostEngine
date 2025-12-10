@@ -2,32 +2,126 @@ using Ghost.Core;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities;
 
+internal unsafe sealed class ChunkDebugView
+{
+    [DebuggerDisplay("{Name,nq}: {Data}")]
+    internal class ComponentArrayView
+    {
+        public string Name { get; }
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        public object Data { get; }
+
+        public ComponentArrayView(string name, object data)
+        {
+            Name = name;
+            Data = data;
+        }
+    }
+
+    public byte* pData;
+    public int count;
+    public int capacity;
+    public int worldID;
+    public int archetypeID;
+
+    public ChunkDebugView(Chunk chunk)
+    {
+        pData = chunk.GetUnsafePtr();
+        count = chunk._count;
+        capacity = chunk._capacity;
+#if DEBUG || GHOST_EDITOR
+        worldID = chunk._worldID;
+        archetypeID = chunk._archetypeID;
+#else
+        worldID = -1;
+        archetypeID = -1;
+#endif
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+    public object[] Items
+    {
+        get
+        {
+#if DEBUG || GHOST_EDITOR
+#else
+            if (count == 0)
+#endif
+            {
+                return [];
+            }
+
+#pragma warning disable CS0162 // Unreachable code detected
+            var views = new List<object>();
+#pragma warning restore CS0162 // Unreachable code detected
+            ref var archetype = ref World.GetWorld(worldID).GetValueOrThrow()
+                .GetArchetypeReference(archetypeID);
+
+            foreach (var layout in archetype._layouts)
+            {
+                var type = Type.GetTypeFromHandle(RuntimeTypeHandle.FromIntPtr(ComponentRegister.s_runtimeIDToTypeHandle[layout.componentID]));
+                var readMethod = typeof(ChunkDebugView)
+                    .GetMethod(nameof(ReadComponentArray), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                    .MakeGenericMethod(type);
+
+                // 3. Invoke it to get a Position[] or Velocity[]
+                var array = readMethod.Invoke(this, [layout.offset]);
+
+                // 4. Wrap it in a nice label so the debugger shows "Position[]"
+                views.Add(new ComponentArrayView(type.Name, array));
+            }
+
+            return [.. views];
+        }
+    }
+
+    private T[] ReadComponentArray<T>(int offsetInChunk)
+        where T : unmanaged
+    {
+        var result = new T[count];
+        unsafe
+        {
+            var basePtr = pData + offsetInChunk;
+
+            var sizeOfT = sizeof(T);
+            for (int i = 0; i < count; i++)
+            {
+                // Read directly from raw memory
+                result[i] = Unsafe.Read<T>(basePtr + (i * sizeOfT));
+            }
+        }
+        return result;
+    }
+}
+
+[DebuggerTypeProxy(typeof(ChunkDebugView))]
 internal unsafe struct Chunk : IDisposable
 {
-    public const int CHUNK_SIZE = 16384; // 16 KB
+    public const int CHUNK_BUFFER_SIZE = 16384; // 16 KB
     public const int BIT_ALIGNMENT = 8;
     public const int BIT_SHIFT = 3; // log2(BIT_ALIGNMENT)
     public const int BIT_ALIGNMENT_MINUS_ONE = BIT_ALIGNMENT - 1;
 
     private UnsafeArray<byte> _data;
-    private int _count;
-    private readonly int _capacity;
 
-    public int Count
+    internal int _version;
+    internal int _count;
+    internal readonly int _capacity;
+
+#if DEBUG || GHOST_EDITOR
+    // For debugging purpose
+    internal int _worldID;
+    internal int _archetypeID;
+#endif
+
+    public Chunk(int bufferSize, int capacity)
     {
-        readonly get => _count;
-        set => _count = value;
-    }
-
-    public readonly int Capacity => _capacity;
-
-    public Chunk(int size, int capacity)
-    {
-        _data = new UnsafeArray<byte>(size, Allocator.Persistent, AllocationOption.Clear);
+        _data = new UnsafeArray<byte>(bufferSize, Allocator.Persistent, AllocationOption.Clear);
         _capacity = capacity;
         _count = 0;
     }
@@ -60,9 +154,6 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         public int targetArchetype; // can't use Identifier<Archetype> because cycle causer
     }
 
-    private readonly Identifier<Archetype> _id;
-    private readonly Identifier<World> _worldID;
-
     internal UnsafeBitSet _signature;
     internal UnsafeList<Chunk> _chunks;
     internal UnsafeArray<ComponentMemoryLayout> _layouts;
@@ -71,6 +162,9 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
     // TODO: Is hash map better?
     private UnsafeList<Edge> _edgesAdd;
     private UnsafeList<Edge> _edgesRemove;
+
+    private readonly Identifier<Archetype> _id;
+    private readonly Identifier<World> _worldID;
 
     private readonly int _hash;
     private int _entityCapacity;
@@ -98,7 +192,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
             _hash = 0;
 
             _signature.ClearAll();
-            _entityCapacity = Chunk.CHUNK_SIZE / sizeof(Entity);
+            _entityCapacity = Chunk.CHUNK_BUFFER_SIZE / sizeof(Entity);
 
             return;
         }
@@ -144,7 +238,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         }
 
         _maxComponentID = maxComponentID;
-        _entityCapacity = Chunk.CHUNK_SIZE / bytesPerEntity;
+        _entityCapacity = Chunk.CHUNK_BUFFER_SIZE / bytesPerEntity;
         _layouts = new UnsafeArray<ComponentMemoryLayout>(components.Length, Allocator.Persistent);
         _componentIDToLayoutIndex = new UnsafeArray<int>(_maxComponentID + 1, Allocator.Persistent);
 
@@ -186,7 +280,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
 
                 tempBitmaskOffsets[i] = bitmaskOffset;
 
-                if (currentOffset > Chunk.CHUNK_SIZE)
+                if (currentOffset > Chunk.CHUNK_BUFFER_SIZE)
                 {
                     fits = false;
                     break;
@@ -220,10 +314,10 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         for (var i = 0; i < _chunks.Count; i++)
         {
             ref var chunk = ref _chunks[i];
-            if (chunk.Count < _entityCapacity)
+            if (chunk._count < _entityCapacity)
             {
-                rowIndex = chunk.Count;
-                chunk.Count++;
+                rowIndex = chunk._count;
+                chunk._count++;
                 chunkIndex = i;
 
                 return;
@@ -231,7 +325,11 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         }
 
         // Need to allocate a new chunk
-        var newChunk = new Chunk(Chunk.CHUNK_SIZE, _entityCapacity);
+        var newChunk = new Chunk(Chunk.CHUNK_BUFFER_SIZE, _entityCapacity);
+#if DEBUG || GHOST_EDITOR
+        newChunk._worldID = _worldID;
+        newChunk._archetypeID = _id;
+#endif
 
         // Set all enable to true by default for enableable components
         for (var i = 0; i < _layouts.Count; i++)
@@ -246,7 +344,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         }
 
         rowIndex = 0;
-        newChunk.Count++;
+        newChunk._count++;
         chunkIndex = _chunks.Count;
 
         _chunks.Add(newChunk);
@@ -331,7 +429,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         }
 
         ref var chunk = ref _chunks[chunkIndex];
-        var lastIndex = chunk.Count - 1;
+        var lastIndex = chunk._count - 1;
 
         // If we are NOT removing the very last entity, we must swap.
         if (rowIndex != lastIndex)
@@ -366,7 +464,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
             }
         }
 
-        chunk.Count--;
+        chunk._count--;
         return ErrorStatus.None;
     }
 

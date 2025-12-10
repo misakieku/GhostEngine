@@ -138,7 +138,7 @@ public unsafe partial struct EntityQuery
                 ref var chunkRef = ref arch.GetChunkReference(i);
 
                 chunkList.Add((IntPtr)chunkRef.GetUnsafePtr());
-                chunkEntityCounts.Add(chunkRef.Count);
+                chunkEntityCounts.Add(chunkRef._count);
                 entityOffsets.Add(arch.EntityIDsOffset);
 
 <# for (var j = 0; j < i; j++){ #>

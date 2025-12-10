@@ -5,7 +5,6 @@ public interface IIdentifierType;
 public interface IKeyType;
 
 public readonly struct Handle<T> : IEquatable<Handle<T>>
-    where T : IHandleType
 {
     public readonly int id;
     public readonly int generation;
@@ -58,7 +57,6 @@ public readonly struct Handle<T> : IEquatable<Handle<T>>
 }
 
 public readonly struct Identifier<T> : IEquatable<Identifier<T>>
-    where T : IIdentifierType
 {
     public readonly int value;
 
@@ -132,7 +130,6 @@ public readonly struct Identifier<T> : IEquatable<Identifier<T>>
 }
 
 public readonly struct Key<T>
-    where T : IKeyType
 {
     public readonly ulong value;
 

@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Ghost.Entities;
 
 [StructLayout(LayoutKind.Sequential, Size = 8)]
-public readonly struct Entity : IEquatable<Entity>, IComparable<Entity>
+public readonly record struct Entity
 {
     public const EntityID INVALID_ID = -1;
 
@@ -39,36 +39,6 @@ public readonly struct Entity : IEquatable<Entity>, IComparable<Entity>
     {
         _id = id;
         _generation = generation;
-    }
-
-    public bool Equals(Entity other)
-    {
-        return _id == other._id && _generation == other._generation;
-    }
-
-    public int CompareTo(Entity other)
-    {
-        return _id.CompareTo(other._id);
-    }
-
-    public override bool Equals(object? obj)
-    {
-        return obj is Entity other && Equals(other);
-    }
-
-    public override int GetHashCode()
-    {
-        return _id ^ _generation << 16;
-    }
-
-    public static bool operator ==(Entity left, Entity right)
-    {
-        return left.Equals(right);
-    }
-
-    public static bool operator !=(Entity left, Entity right)
-    {
-        return !(left == right);
     }
 
     public override string ToString()

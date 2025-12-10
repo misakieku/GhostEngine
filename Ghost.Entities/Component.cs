@@ -32,8 +32,11 @@ internal static class ComponentRegister
     private static int s_nextComponentTypeID = 0;
 
     private static readonly List<ComponentInfo> s_registeredComponents = new();
-    private static readonly Dictionary<IntPtr, Identifier<IComponent>> s_typeHandleToID = new();
-    private static readonly Dictionary<string, Identifier<IComponent>> s_nameToRuntimeID = new();
+    private static readonly Dictionary<IntPtr, int> s_typeHandleToID = new();
+    private static readonly Dictionary<string, int> s_nameToRuntimeID = new();
+#if DEBUG || GHOST_EDITOR
+    internal static readonly Dictionary<int, IntPtr> s_runtimeIDToTypeHandle = new();
+#endif
 
     public static unsafe Identifier<IComponent> GetOrRegisterComponent<T>()
         where T : unmanaged, IComponent
@@ -66,6 +69,9 @@ internal static class ComponentRegister
 
             s_typeHandleToID[typeHandle] = newID;
             s_nameToRuntimeID[stableName] = newID;
+#if DEBUG || GHOST_EDITOR
+            s_runtimeIDToTypeHandle[newID.value] = typeHandle;
+#endif
 
             return newID;
         }

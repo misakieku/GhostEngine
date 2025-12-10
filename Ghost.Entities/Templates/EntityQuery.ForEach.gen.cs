@@ -44,7 +44,7 @@ public unsafe partial struct EntityQuery
                     basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                 {
                     if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
                     {
@@ -100,7 +100,7 @@ public unsafe partial struct EntityQuery
                     basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                 {
                     if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
                     {
@@ -158,7 +158,7 @@ public unsafe partial struct EntityQuery
                     basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                 {
                     if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
                     {
@@ -218,7 +218,7 @@ public unsafe partial struct EntityQuery
                     basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                 {
                     if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
                     {
@@ -280,7 +280,7 @@ public unsafe partial struct EntityQuery
                     basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                 {
                     if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
                     {
@@ -344,7 +344,7 @@ public unsafe partial struct EntityQuery
                     basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                 {
                     if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
                     {
@@ -410,7 +410,7 @@ public unsafe partial struct EntityQuery
                     basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                 {
                     if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
                     {
@@ -478,7 +478,7 @@ public unsafe partial struct EntityQuery
                     basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                 {
                     if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
                     {
@@ -540,7 +540,7 @@ public unsafe partial struct EntityQuery
                     basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                 {
                     if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
                     {
@@ -597,7 +597,7 @@ public unsafe partial struct EntityQuery
                     basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                 {
                     if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
                     {
@@ -656,7 +656,7 @@ public unsafe partial struct EntityQuery
                     basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                 {
                     if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
                     {
@@ -717,7 +717,7 @@ public unsafe partial struct EntityQuery
                     basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                 {
                     if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
                     {
@@ -780,7 +780,7 @@ public unsafe partial struct EntityQuery
                     basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                 {
                     if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
                     {
@@ -845,7 +845,7 @@ public unsafe partial struct EntityQuery
                     basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                 {
                     if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
                     {
@@ -912,7 +912,7 @@ public unsafe partial struct EntityQuery
                     basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                 {
                     if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
                     {
@@ -981,7 +981,7 @@ public unsafe partial struct EntityQuery
                     basePtrs[index] = pChunkData + offsets[index];
                 }
 
-                for (var entityIndex = 0; entityIndex < chunk.Count; entityIndex++)
+                for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                 {
                     if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
                     {

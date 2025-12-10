@@ -798,7 +798,7 @@ public unsafe partial struct EntityQuery
                 ref var chunkRef = ref arch.GetChunkReference(i);
 
                 chunkList.Add((IntPtr)chunkRef.GetUnsafePtr());
-                chunkEntityCounts.Add(chunkRef.Count);
+                chunkEntityCounts.Add(chunkRef._count);
                 entityOffsets.Add(arch.EntityIDsOffset);
 
                 offsets0.Add(layout0.offset);
@@ -906,7 +906,7 @@ public unsafe partial struct EntityQuery
                 ref var chunkRef = ref arch.GetChunkReference(i);
 
                 chunkList.Add((IntPtr)chunkRef.GetUnsafePtr());
-                chunkEntityCounts.Add(chunkRef.Count);
+                chunkEntityCounts.Add(chunkRef._count);
                 entityOffsets.Add(arch.EntityIDsOffset);
 
                 offsets0.Add(layout0.offset);
@@ -1035,7 +1035,7 @@ public unsafe partial struct EntityQuery
                 ref var chunkRef = ref arch.GetChunkReference(i);
 
                 chunkList.Add((IntPtr)chunkRef.GetUnsafePtr());
-                chunkEntityCounts.Add(chunkRef.Count);
+                chunkEntityCounts.Add(chunkRef._count);
                 entityOffsets.Add(arch.EntityIDsOffset);
 
                 offsets0.Add(layout0.offset);
@@ -1185,7 +1185,7 @@ public unsafe partial struct EntityQuery
                 ref var chunkRef = ref arch.GetChunkReference(i);
 
                 chunkList.Add((IntPtr)chunkRef.GetUnsafePtr());
-                chunkEntityCounts.Add(chunkRef.Count);
+                chunkEntityCounts.Add(chunkRef._count);
                 entityOffsets.Add(arch.EntityIDsOffset);
 
                 offsets0.Add(layout0.offset);
@@ -1356,7 +1356,7 @@ public unsafe partial struct EntityQuery
                 ref var chunkRef = ref arch.GetChunkReference(i);
 
                 chunkList.Add((IntPtr)chunkRef.GetUnsafePtr());
-                chunkEntityCounts.Add(chunkRef.Count);
+                chunkEntityCounts.Add(chunkRef._count);
                 entityOffsets.Add(arch.EntityIDsOffset);
 
                 offsets0.Add(layout0.offset);
@@ -1548,7 +1548,7 @@ public unsafe partial struct EntityQuery
                 ref var chunkRef = ref arch.GetChunkReference(i);
 
                 chunkList.Add((IntPtr)chunkRef.GetUnsafePtr());
-                chunkEntityCounts.Add(chunkRef.Count);
+                chunkEntityCounts.Add(chunkRef._count);
                 entityOffsets.Add(arch.EntityIDsOffset);
 
                 offsets0.Add(layout0.offset);
@@ -1761,7 +1761,7 @@ public unsafe partial struct EntityQuery
                 ref var chunkRef = ref arch.GetChunkReference(i);
 
                 chunkList.Add((IntPtr)chunkRef.GetUnsafePtr());
-                chunkEntityCounts.Add(chunkRef.Count);
+                chunkEntityCounts.Add(chunkRef._count);
                 entityOffsets.Add(arch.EntityIDsOffset);
 
                 offsets0.Add(layout0.offset);
@@ -1995,7 +1995,7 @@ public unsafe partial struct EntityQuery
                 ref var chunkRef = ref arch.GetChunkReference(i);
 
                 chunkList.Add((IntPtr)chunkRef.GetUnsafePtr());
-                chunkEntityCounts.Add(chunkRef.Count);
+                chunkEntityCounts.Add(chunkRef._count);
                 entityOffsets.Add(arch.EntityIDsOffset);
 
                 offsets0.Add(layout0.offset);

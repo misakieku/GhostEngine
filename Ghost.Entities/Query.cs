@@ -84,15 +84,18 @@ public readonly unsafe ref struct ChunkView
     private readonly byte* _pChunkData;
     private readonly int _entityOffset;
     private readonly int _entityCount;
+    private readonly int _version;
 
     public readonly int Count => _entityCount;
+    public readonly int Version => _version;
 
-    internal ChunkView(ReadOnlyUnsafeCollection<Archetype.ComponentMemoryLayout> layouts, byte* pChunkData, int entityOffset, int entityCount)
+    internal ChunkView(ReadOnlyUnsafeCollection<Archetype.ComponentMemoryLayout> layouts, byte* pChunkData, int entityOffset, int entityCount, int version)
     {
         _layouts = layouts;
         _pChunkData = pChunkData;
         _entityOffset = entityOffset;
         _entityCount = entityCount;
+        _version = version;
     }
 
     internal ChunkView(ref readonly Archetype archetype, ref readonly Chunk chunk)
@@ -100,14 +103,21 @@ public readonly unsafe ref struct ChunkView
         _layouts = archetype._layouts.AsReadOnly();
         _pChunkData = chunk.GetUnsafePtr();
         _entityOffset = archetype.EntityIDsOffset;
-        _entityCount = chunk.Count;
+        _entityCount = chunk._count;
+        _version = chunk._version;
+    }
+
+    // TODO: We do not have a proper versioning system yet.
+    public bool HasChanged(int version)
+    {
+        return _version != version;
     }
 
     /// <summary>
     /// Returns a read-only span containing structuralAll entities stored in the current chunk.
     /// </summary>
     /// <returns>A read-only span of <see cref="Entity"/> values representing the entities in the chunk.</returns>
-    public readonly ReadOnlySpan<Entity> GetEntities()
+    public ReadOnlySpan<Entity> GetEntities()
     {
         var pEntity = (Entity*)(_pChunkData + _entityOffset);
         return new ReadOnlySpan<Entity>(pEntity, _entityCount);
@@ -119,7 +129,7 @@ public readonly unsafe ref struct ChunkView
     /// <typeparam name="T">The type of component to access. Must be an unmanaged type that implements <see cref="Component"/>.</typeparam>
     /// <returns>A span of type <see cref="{T}"/> containing the component data for each entity in the chunk.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the specified component type is not present in the archetype.</exception>
-    public readonly Span<T> GetComponentData<T>()
+    public Span<T> GetComponentData<T>()
         where T : unmanaged, IComponent
     {
         var layout = _layouts[ComponentTypeID<T>.value];
@@ -134,7 +144,7 @@ public readonly unsafe ref struct ChunkView
     /// <typeparam name="T">The component type for which to retrieve enablement bits. Must be unmanaged and implement <see cref="IEnableableComponent"/>.</typeparam>
     /// <returns>A <see cref="SpanBitSet"/> that provides access to the enablement bits for all instances of the specified component type in the chunk.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the specified component type does not support enablement.</exception>
-    public readonly SpanBitSet GetEnableBits<T>()
+    public SpanBitSet GetEnableBits<T>()
         where T : unmanaged, IEnableableComponent
     {
         var layout = _layouts[ComponentTypeID<T>.value];
@@ -154,7 +164,7 @@ public readonly unsafe ref struct ChunkView
     /// <param name="index">The zero-based index of the component instance to check within the chunk.</param>
     /// <returns>true if the component at the specified index is enabled; otherwise, false.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the specified component type <typeparamref name="T"/> does not support enable/disable functionality.</exception>
-    public readonly bool IsComponentEnabled<T>(int index)
+    public bool IsComponentEnabled<T>(int index)
         where T : unmanaged, IEnableableComponent
     {
         var layout = _layouts[ComponentTypeID<T>.value];
