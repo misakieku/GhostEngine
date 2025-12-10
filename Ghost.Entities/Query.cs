@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities;
 
-public struct EntityQueryMask : IDisposable, IEquatable<EntityQueryMask>
+internal struct EntityQueryMask : IDisposable, IEquatable<EntityQueryMask>
 {
     public UnsafeBitSet structuralAll;
     public UnsafeBitSet structuralAny;
@@ -14,6 +14,8 @@ public struct EntityQueryMask : IDisposable, IEquatable<EntityQueryMask>
     public UnsafeBitSet requireEnabled;
     public UnsafeBitSet requireDisabled;
     public UnsafeBitSet rejectIfEnabled;
+
+    public UnsafeBitSet writeAccess;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly bool Matches(ref readonly UnsafeBitSet archetypeSignature)
@@ -33,6 +35,7 @@ public struct EntityQueryMask : IDisposable, IEquatable<EntityQueryMask>
         if (requireEnabled.IsCreated) hash = hash * 23 + requireEnabled.GetHashCode();
         if (requireDisabled.IsCreated) hash = hash * 23 + requireDisabled.GetHashCode();
         if (rejectIfEnabled.IsCreated) hash = hash * 23 + rejectIfEnabled.GetHashCode();
+        if (writeAccess.IsCreated) hash = hash * 23 + writeAccess.GetHashCode();
 
         return hash;
     }
@@ -44,7 +47,8 @@ public struct EntityQueryMask : IDisposable, IEquatable<EntityQueryMask>
             && structuralAbsent.Equals(other.structuralAbsent)
             && requireEnabled.Equals(other.requireEnabled)
             && requireDisabled.Equals(other.requireDisabled)
-            && rejectIfEnabled.Equals(other.rejectIfEnabled);
+            && rejectIfEnabled.Equals(other.rejectIfEnabled)
+            && writeAccess.Equals(other.writeAccess);
     }
 
     public override readonly bool Equals(object? obj)
@@ -71,6 +75,8 @@ public struct EntityQueryMask : IDisposable, IEquatable<EntityQueryMask>
         requireEnabled.Dispose();
         requireDisabled.Dispose();
         rejectIfEnabled.Dispose();
+
+        writeAccess.Dispose();
     }
 }
 
@@ -82,21 +88,11 @@ public readonly unsafe ref struct ChunkView
 {
     private readonly ReadOnlyUnsafeCollection<Archetype.ComponentMemoryLayout> _layouts;
     private readonly byte* _pChunkData;
+    private readonly int* _pVersion;
     private readonly int _entityOffset;
     private readonly int _entityCount;
-    private readonly int _version;
 
     public readonly int Count => _entityCount;
-    public readonly int Version => _version;
-
-    internal ChunkView(ReadOnlyUnsafeCollection<Archetype.ComponentMemoryLayout> layouts, byte* pChunkData, int entityOffset, int entityCount, int version)
-    {
-        _layouts = layouts;
-        _pChunkData = pChunkData;
-        _entityOffset = entityOffset;
-        _entityCount = entityCount;
-        _version = version;
-    }
 
     internal ChunkView(ref readonly Archetype archetype, ref readonly Chunk chunk)
     {
@@ -104,19 +100,63 @@ public readonly unsafe ref struct ChunkView
         _pChunkData = chunk.GetUnsafePtr();
         _entityOffset = archetype.EntityIDsOffset;
         _entityCount = chunk._count;
-        _version = chunk._version;
+        _pVersion = chunk.GetVersionUnsafePtr();
     }
 
-    // TODO: We do not have a proper versioning system yet.
-    public bool HasChanged(int version)
+    /// <summary>
+    /// Determines whether the specified component has changed since the given version.
+    /// </summary>
+    /// <param name="id">The identifier of the component to check for changes.</param>
+    /// <param name="version">The version number to compare against the component's current version. Must be greater than or equal to zero.</param>
+    /// <returns>true if the component's current version is less than or equal to the specified version; otherwise, false.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool HasChanged(Identifier<IComponent> id, int version)
     {
-        return _version != version;
+        return version < _pVersion[id];
+    }
+
+    /// <summary>
+    /// Determines whether the specified version indicates that the component of type <typeparamref name="T"/> has
+    /// changed since the last recorded version.
+    /// </summary>
+    /// <typeparam name="T">The type of component to check for changes. Must be an unmanaged type that implements <see cref="IComponent"/>.</typeparam>
+    /// <param name="version">The version number to compare against the current version of the component.</param>
+    /// <returns>true if the component of type T has changed since the specified version; otherwise, false.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly bool HasChanged<T>(int version)
+        where T : unmanaged, IComponent
+    {
+        return version < _pVersion[ComponentTypeID<T>.value];
+    }
+
+    /// <summary>
+    /// Gets the current version number associated with the specified component identifier.
+    /// </summary>
+    /// <param name="id">The identifier of the component for which to retrieve the version number. Must reference a valid component.</param>
+    /// <returns>The version number of the specified component.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly int GetComponentVersion(Identifier<IComponent> id)
+    {
+        return _pVersion[id];
+    }
+
+    /// <summary>
+    /// Gets the current version number associated with the specified component type.
+    /// </summary>
+    /// <typeparam name="T">The component type for which to retrieve the version. Must be an unmanaged type that implements <see cref="IComponent"/>.</typeparam>
+    /// <returns>The version number of the component type <typeparamref name="T"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly int GetComponentVersion<T>()
+        where T : unmanaged, IComponent
+    {
+        return _pVersion[ComponentTypeID<T>.value];
     }
 
     /// <summary>
     /// Returns a read-only span containing structuralAll entities stored in the current chunk.
     /// </summary>
     /// <returns>A read-only span of <see cref="Entity"/> values representing the entities in the chunk.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<Entity> GetEntities()
     {
         var pEntity = (Entity*)(_pChunkData + _entityOffset);
@@ -129,6 +169,7 @@ public readonly unsafe ref struct ChunkView
     /// <typeparam name="T">The type of component to access. Must be an unmanaged type that implements <see cref="Component"/>.</typeparam>
     /// <returns>A span of type <see cref="{T}"/> containing the component data for each entity in the chunk.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the specified component type is not present in the archetype.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Span<T> GetComponentData<T>()
         where T : unmanaged, IComponent
     {
@@ -144,6 +185,7 @@ public readonly unsafe ref struct ChunkView
     /// <typeparam name="T">The component type for which to retrieve enablement bits. Must be unmanaged and implement <see cref="IEnableableComponent"/>.</typeparam>
     /// <returns>A <see cref="SpanBitSet"/> that provides access to the enablement bits for all instances of the specified component type in the chunk.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the specified component type does not support enablement.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public SpanBitSet GetEnableBits<T>()
         where T : unmanaged, IEnableableComponent
     {
@@ -164,6 +206,7 @@ public readonly unsafe ref struct ChunkView
     /// <param name="index">The zero-based index of the component instance to check within the chunk.</param>
     /// <returns>true if the component at the specified index is enabled; otherwise, false.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the specified component type <typeparamref name="T"/> does not support enable/disable functionality.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsComponentEnabled<T>(int index)
         where T : unmanaged, IEnableableComponent
     {
@@ -373,6 +416,8 @@ public ref partial struct QueryBuilder
     private UnsafeList<Identifier<IComponent>> _disabled;
     private UnsafeList<Identifier<IComponent>> _present;
 
+    private UnsafeList<Identifier<IComponent>> _rw;
+
     public QueryBuilder()
     {
         _scope = AllocationManager.CreateStackScope();
@@ -383,6 +428,8 @@ public ref partial struct QueryBuilder
         _none = new UnsafeList<Identifier<IComponent>>(4, _scope.AllocationHandle);
         _disabled = new UnsafeList<Identifier<IComponent>>(4, _scope.AllocationHandle);
         _present = new UnsafeList<Identifier<IComponent>>(4, _scope.AllocationHandle);
+
+        _rw = new UnsafeList<Identifier<IComponent>>(4, _scope.AllocationHandle);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -394,7 +441,7 @@ public ref partial struct QueryBuilder
         }
     }
 
-    public Identifier<EntityQuery> Build(World world)
+    public Identifier<EntityQuery> Build(World world, Allocator allocator = Allocator.Persistent)
     {
         // 1. Calculate max component ID to size the BitSets
         var maxID = 0;
@@ -408,12 +455,14 @@ public ref partial struct QueryBuilder
         // 2. Create the Mask
         var mask = new EntityQueryMask
         {
-            structuralAll = new UnsafeBitSet(maxID + 1, Allocator.Persistent, AllocationOption.Clear),
-            structuralAny = new UnsafeBitSet(maxID + 1, Allocator.Persistent, AllocationOption.Clear),
-            structuralAbsent = new UnsafeBitSet(maxID + 1, Allocator.Persistent, AllocationOption.Clear),
-            requireEnabled = new UnsafeBitSet(maxID + 1, Allocator.Persistent, AllocationOption.Clear),
-            requireDisabled = new UnsafeBitSet(maxID + 1, Allocator.Persistent, AllocationOption.Clear),
-            rejectIfEnabled = new UnsafeBitSet(maxID + 1, Allocator.Persistent, AllocationOption.Clear),
+            structuralAll = new UnsafeBitSet(maxID + 1, allocator, AllocationOption.Clear),
+            structuralAny = new UnsafeBitSet(maxID + 1, allocator, AllocationOption.Clear),
+            structuralAbsent = new UnsafeBitSet(maxID + 1, allocator, AllocationOption.Clear),
+            requireEnabled = new UnsafeBitSet(maxID + 1, allocator, AllocationOption.Clear),
+            requireDisabled = new UnsafeBitSet(maxID + 1, allocator, AllocationOption.Clear),
+            rejectIfEnabled = new UnsafeBitSet(maxID + 1, allocator, AllocationOption.Clear),
+
+            writeAccess = new UnsafeBitSet(maxID + 1, allocator, AllocationOption.Clear),
         };
 
         // 3. Fill BitSets
@@ -454,6 +503,11 @@ public ref partial struct QueryBuilder
         foreach (var id in _any)
         {
             mask.structuralAny.SetBit(id);
+        }
+
+        foreach (var id in _rw)
+        {
+            mask.writeAccess.SetBit(id);
         }
 
         // 4. Ask World for the Query (Cached)

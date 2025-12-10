@@ -20,7 +20,6 @@
     <Project Path="Ghost.Zeux.MeshOptimizer/Ghost.Zeux.MeshOptimizer.csproj" />
   </Folder>
   <Folder Name="/Runtime/">
-    <Project Path="Ghost.ArcEntities/Ghost.ArcEntities.csproj" />
     <Project Path="Ghost.Core/Ghost.Core.csproj" />
     <Project Path="Ghost.Engine/Ghost.Engine.csproj" />
     <Project Path="Ghost.Entities/Ghost.Entities.csproj" />

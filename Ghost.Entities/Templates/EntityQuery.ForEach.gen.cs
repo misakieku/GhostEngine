@@ -1,3 +1,4 @@
+
 using Ghost.Core;
 
 namespace Ghost.Entities;
@@ -7,11 +8,36 @@ public unsafe partial struct EntityQuery
     public readonly void ForEach<T0>(ForEach<T0> action)
         where T0 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow();
+        var world = World.GetWorldUncheck(_worldID);
+        var globalVersion = world.Version;
 
-        var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value };
+        var comp0TypeID = ComponentTypeID<T0>.value;
+        
+        var compTypeIDs = stackalloc int[]
+        {
+            comp0TypeID.value,
+        };
+
+        var changedCompIDs = stackalloc int[1];
         var offsets = stackalloc int[1];
         var basePtrs = stackalloc byte*[1];
+
+        var changedCompCount = 0;
+
+        var it = _mask.writeAccess.GetIterator();
+        while (it.Next(out var id))
+        {
+            for (var i =0; i < 1; i++)
+            {
+                if (id == compTypeIDs[i])
+                {
+                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
+                    changedCompIDs[changedCompCount] = id;
+                    changedCompCount++;
+                    break;
+                }
+            }
+        }
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
@@ -39,6 +65,11 @@ public unsafe partial struct EntityQuery
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
                 var pChunkData = chunk.GetUnsafePtr();
 
+                for (var j = 0; j < changedCompCount; j++)
+                {
+                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                }
+
                 for (var index = 0; index < 1; index++)
                 {
                     basePtrs[index] = pChunkData + offsets[index];
@@ -63,11 +94,38 @@ public unsafe partial struct EntityQuery
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow();
+        var world = World.GetWorldUncheck(_worldID);
+        var globalVersion = world.Version;
 
-        var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value, ComponentTypeID<T1>.value };
+        var comp0TypeID = ComponentTypeID<T0>.value;
+        var comp1TypeID = ComponentTypeID<T1>.value;
+        
+        var compTypeIDs = stackalloc int[]
+        {
+            comp0TypeID.value,
+            comp1TypeID.value,
+        };
+
+        var changedCompIDs = stackalloc int[2];
         var offsets = stackalloc int[2];
         var basePtrs = stackalloc byte*[2];
+
+        var changedCompCount = 0;
+
+        var it = _mask.writeAccess.GetIterator();
+        while (it.Next(out var id))
+        {
+            for (var i =0; i < 2; i++)
+            {
+                if (id == compTypeIDs[i])
+                {
+                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
+                    changedCompIDs[changedCompCount] = id;
+                    changedCompCount++;
+                    break;
+                }
+            }
+        }
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
@@ -95,6 +153,11 @@ public unsafe partial struct EntityQuery
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
                 var pChunkData = chunk.GetUnsafePtr();
 
+                for (var j = 0; j < changedCompCount; j++)
+                {
+                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                }
+
                 for (var index = 0; index < 2; index++)
                 {
                     basePtrs[index] = pChunkData + offsets[index];
@@ -121,11 +184,40 @@ public unsafe partial struct EntityQuery
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow();
+        var world = World.GetWorldUncheck(_worldID);
+        var globalVersion = world.Version;
 
-        var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value, ComponentTypeID<T1>.value, ComponentTypeID<T2>.value };
+        var comp0TypeID = ComponentTypeID<T0>.value;
+        var comp1TypeID = ComponentTypeID<T1>.value;
+        var comp2TypeID = ComponentTypeID<T2>.value;
+        
+        var compTypeIDs = stackalloc int[]
+        {
+            comp0TypeID.value,
+            comp1TypeID.value,
+            comp2TypeID.value,
+        };
+
+        var changedCompIDs = stackalloc int[3];
         var offsets = stackalloc int[3];
         var basePtrs = stackalloc byte*[3];
+
+        var changedCompCount = 0;
+
+        var it = _mask.writeAccess.GetIterator();
+        while (it.Next(out var id))
+        {
+            for (var i =0; i < 3; i++)
+            {
+                if (id == compTypeIDs[i])
+                {
+                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
+                    changedCompIDs[changedCompCount] = id;
+                    changedCompCount++;
+                    break;
+                }
+            }
+        }
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
@@ -152,6 +244,11 @@ public unsafe partial struct EntityQuery
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
                 var pChunkData = chunk.GetUnsafePtr();
+
+                for (var j = 0; j < changedCompCount; j++)
+                {
+                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                }
 
                 for (var index = 0; index < 3; index++)
                 {
@@ -181,11 +278,42 @@ public unsafe partial struct EntityQuery
         where T2 : unmanaged, IComponent
         where T3 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow();
+        var world = World.GetWorldUncheck(_worldID);
+        var globalVersion = world.Version;
 
-        var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value, ComponentTypeID<T1>.value, ComponentTypeID<T2>.value, ComponentTypeID<T3>.value };
+        var comp0TypeID = ComponentTypeID<T0>.value;
+        var comp1TypeID = ComponentTypeID<T1>.value;
+        var comp2TypeID = ComponentTypeID<T2>.value;
+        var comp3TypeID = ComponentTypeID<T3>.value;
+        
+        var compTypeIDs = stackalloc int[]
+        {
+            comp0TypeID.value,
+            comp1TypeID.value,
+            comp2TypeID.value,
+            comp3TypeID.value,
+        };
+
+        var changedCompIDs = stackalloc int[4];
         var offsets = stackalloc int[4];
         var basePtrs = stackalloc byte*[4];
+
+        var changedCompCount = 0;
+
+        var it = _mask.writeAccess.GetIterator();
+        while (it.Next(out var id))
+        {
+            for (var i =0; i < 4; i++)
+            {
+                if (id == compTypeIDs[i])
+                {
+                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
+                    changedCompIDs[changedCompCount] = id;
+                    changedCompCount++;
+                    break;
+                }
+            }
+        }
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
@@ -212,6 +340,11 @@ public unsafe partial struct EntityQuery
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
                 var pChunkData = chunk.GetUnsafePtr();
+
+                for (var j = 0; j < changedCompCount; j++)
+                {
+                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                }
 
                 for (var index = 0; index < 4; index++)
                 {
@@ -243,11 +376,44 @@ public unsafe partial struct EntityQuery
         where T3 : unmanaged, IComponent
         where T4 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow();
+        var world = World.GetWorldUncheck(_worldID);
+        var globalVersion = world.Version;
 
-        var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value, ComponentTypeID<T1>.value, ComponentTypeID<T2>.value, ComponentTypeID<T3>.value, ComponentTypeID<T4>.value };
+        var comp0TypeID = ComponentTypeID<T0>.value;
+        var comp1TypeID = ComponentTypeID<T1>.value;
+        var comp2TypeID = ComponentTypeID<T2>.value;
+        var comp3TypeID = ComponentTypeID<T3>.value;
+        var comp4TypeID = ComponentTypeID<T4>.value;
+        
+        var compTypeIDs = stackalloc int[]
+        {
+            comp0TypeID.value,
+            comp1TypeID.value,
+            comp2TypeID.value,
+            comp3TypeID.value,
+            comp4TypeID.value,
+        };
+
+        var changedCompIDs = stackalloc int[5];
         var offsets = stackalloc int[5];
         var basePtrs = stackalloc byte*[5];
+
+        var changedCompCount = 0;
+
+        var it = _mask.writeAccess.GetIterator();
+        while (it.Next(out var id))
+        {
+            for (var i =0; i < 5; i++)
+            {
+                if (id == compTypeIDs[i])
+                {
+                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
+                    changedCompIDs[changedCompCount] = id;
+                    changedCompCount++;
+                    break;
+                }
+            }
+        }
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
@@ -274,6 +440,11 @@ public unsafe partial struct EntityQuery
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
                 var pChunkData = chunk.GetUnsafePtr();
+
+                for (var j = 0; j < changedCompCount; j++)
+                {
+                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                }
 
                 for (var index = 0; index < 5; index++)
                 {
@@ -307,11 +478,46 @@ public unsafe partial struct EntityQuery
         where T4 : unmanaged, IComponent
         where T5 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow();
+        var world = World.GetWorldUncheck(_worldID);
+        var globalVersion = world.Version;
 
-        var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value, ComponentTypeID<T1>.value, ComponentTypeID<T2>.value, ComponentTypeID<T3>.value, ComponentTypeID<T4>.value, ComponentTypeID<T5>.value };
+        var comp0TypeID = ComponentTypeID<T0>.value;
+        var comp1TypeID = ComponentTypeID<T1>.value;
+        var comp2TypeID = ComponentTypeID<T2>.value;
+        var comp3TypeID = ComponentTypeID<T3>.value;
+        var comp4TypeID = ComponentTypeID<T4>.value;
+        var comp5TypeID = ComponentTypeID<T5>.value;
+        
+        var compTypeIDs = stackalloc int[]
+        {
+            comp0TypeID.value,
+            comp1TypeID.value,
+            comp2TypeID.value,
+            comp3TypeID.value,
+            comp4TypeID.value,
+            comp5TypeID.value,
+        };
+
+        var changedCompIDs = stackalloc int[6];
         var offsets = stackalloc int[6];
         var basePtrs = stackalloc byte*[6];
+
+        var changedCompCount = 0;
+
+        var it = _mask.writeAccess.GetIterator();
+        while (it.Next(out var id))
+        {
+            for (var i =0; i < 6; i++)
+            {
+                if (id == compTypeIDs[i])
+                {
+                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
+                    changedCompIDs[changedCompCount] = id;
+                    changedCompCount++;
+                    break;
+                }
+            }
+        }
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
@@ -338,6 +544,11 @@ public unsafe partial struct EntityQuery
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
                 var pChunkData = chunk.GetUnsafePtr();
+
+                for (var j = 0; j < changedCompCount; j++)
+                {
+                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                }
 
                 for (var index = 0; index < 6; index++)
                 {
@@ -373,11 +584,48 @@ public unsafe partial struct EntityQuery
         where T5 : unmanaged, IComponent
         where T6 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow();
+        var world = World.GetWorldUncheck(_worldID);
+        var globalVersion = world.Version;
 
-        var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value, ComponentTypeID<T1>.value, ComponentTypeID<T2>.value, ComponentTypeID<T3>.value, ComponentTypeID<T4>.value, ComponentTypeID<T5>.value, ComponentTypeID<T6>.value };
+        var comp0TypeID = ComponentTypeID<T0>.value;
+        var comp1TypeID = ComponentTypeID<T1>.value;
+        var comp2TypeID = ComponentTypeID<T2>.value;
+        var comp3TypeID = ComponentTypeID<T3>.value;
+        var comp4TypeID = ComponentTypeID<T4>.value;
+        var comp5TypeID = ComponentTypeID<T5>.value;
+        var comp6TypeID = ComponentTypeID<T6>.value;
+        
+        var compTypeIDs = stackalloc int[]
+        {
+            comp0TypeID.value,
+            comp1TypeID.value,
+            comp2TypeID.value,
+            comp3TypeID.value,
+            comp4TypeID.value,
+            comp5TypeID.value,
+            comp6TypeID.value,
+        };
+
+        var changedCompIDs = stackalloc int[7];
         var offsets = stackalloc int[7];
         var basePtrs = stackalloc byte*[7];
+
+        var changedCompCount = 0;
+
+        var it = _mask.writeAccess.GetIterator();
+        while (it.Next(out var id))
+        {
+            for (var i =0; i < 7; i++)
+            {
+                if (id == compTypeIDs[i])
+                {
+                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
+                    changedCompIDs[changedCompCount] = id;
+                    changedCompCount++;
+                    break;
+                }
+            }
+        }
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
@@ -404,6 +652,11 @@ public unsafe partial struct EntityQuery
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
                 var pChunkData = chunk.GetUnsafePtr();
+
+                for (var j = 0; j < changedCompCount; j++)
+                {
+                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                }
 
                 for (var index = 0; index < 7; index++)
                 {
@@ -441,11 +694,50 @@ public unsafe partial struct EntityQuery
         where T6 : unmanaged, IComponent
         where T7 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow();
+        var world = World.GetWorldUncheck(_worldID);
+        var globalVersion = world.Version;
 
-        var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value, ComponentTypeID<T1>.value, ComponentTypeID<T2>.value, ComponentTypeID<T3>.value, ComponentTypeID<T4>.value, ComponentTypeID<T5>.value, ComponentTypeID<T6>.value, ComponentTypeID<T7>.value };
+        var comp0TypeID = ComponentTypeID<T0>.value;
+        var comp1TypeID = ComponentTypeID<T1>.value;
+        var comp2TypeID = ComponentTypeID<T2>.value;
+        var comp3TypeID = ComponentTypeID<T3>.value;
+        var comp4TypeID = ComponentTypeID<T4>.value;
+        var comp5TypeID = ComponentTypeID<T5>.value;
+        var comp6TypeID = ComponentTypeID<T6>.value;
+        var comp7TypeID = ComponentTypeID<T7>.value;
+        
+        var compTypeIDs = stackalloc int[]
+        {
+            comp0TypeID.value,
+            comp1TypeID.value,
+            comp2TypeID.value,
+            comp3TypeID.value,
+            comp4TypeID.value,
+            comp5TypeID.value,
+            comp6TypeID.value,
+            comp7TypeID.value,
+        };
+
+        var changedCompIDs = stackalloc int[8];
         var offsets = stackalloc int[8];
         var basePtrs = stackalloc byte*[8];
+
+        var changedCompCount = 0;
+
+        var it = _mask.writeAccess.GetIterator();
+        while (it.Next(out var id))
+        {
+            for (var i =0; i < 8; i++)
+            {
+                if (id == compTypeIDs[i])
+                {
+                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
+                    changedCompIDs[changedCompCount] = id;
+                    changedCompCount++;
+                    break;
+                }
+            }
+        }
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
@@ -472,6 +764,11 @@ public unsafe partial struct EntityQuery
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
                 var pChunkData = chunk.GetUnsafePtr();
+
+                for (var j = 0; j < changedCompCount; j++)
+                {
+                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                }
 
                 for (var index = 0; index < 8; index++)
                 {
@@ -503,11 +800,36 @@ public unsafe partial struct EntityQuery
     public readonly void ForEach<T0>(ForEachWithEntity<T0> action)
         where T0 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow();
+        var world = World.GetWorldUncheck(_worldID);
+        var globalVersion = world.Version;
 
-        var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value };
+        var comp0TypeID = ComponentTypeID<T0>.value;
+        
+        var compTypeIDs = stackalloc int[]
+        {
+            comp0TypeID.value,
+        };
+
+        var changedCompIDs = stackalloc int[1];
         var offsets = stackalloc int[1];
         var basePtrs = stackalloc byte*[1];
+
+        var changedCompCount = 0;
+
+        var it = _mask.writeAccess.GetIterator();
+        while (it.Next(out var id))
+        {
+            for (var i =0; i < 1; i++)
+            {
+                if (id == compTypeIDs[i])
+                {
+                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
+                    changedCompIDs[changedCompCount] = id;
+                    changedCompCount++;
+                    break;
+                }
+            }
+        }
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
@@ -535,6 +857,11 @@ public unsafe partial struct EntityQuery
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
                 var pChunkData = chunk.GetUnsafePtr();
 
+                for (var j = 0; j < changedCompCount; j++)
+                {
+                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                }
+
                 for (var index = 0; index < 1; index++)
                 {
                     basePtrs[index] = pChunkData + offsets[index];
@@ -560,11 +887,38 @@ public unsafe partial struct EntityQuery
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow();
+        var world = World.GetWorldUncheck(_worldID);
+        var globalVersion = world.Version;
 
-        var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value, ComponentTypeID<T1>.value };
+        var comp0TypeID = ComponentTypeID<T0>.value;
+        var comp1TypeID = ComponentTypeID<T1>.value;
+        
+        var compTypeIDs = stackalloc int[]
+        {
+            comp0TypeID.value,
+            comp1TypeID.value,
+        };
+
+        var changedCompIDs = stackalloc int[2];
         var offsets = stackalloc int[2];
         var basePtrs = stackalloc byte*[2];
+
+        var changedCompCount = 0;
+
+        var it = _mask.writeAccess.GetIterator();
+        while (it.Next(out var id))
+        {
+            for (var i =0; i < 2; i++)
+            {
+                if (id == compTypeIDs[i])
+                {
+                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
+                    changedCompIDs[changedCompCount] = id;
+                    changedCompCount++;
+                    break;
+                }
+            }
+        }
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
@@ -591,6 +945,11 @@ public unsafe partial struct EntityQuery
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
                 var pChunkData = chunk.GetUnsafePtr();
+
+                for (var j = 0; j < changedCompCount; j++)
+                {
+                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                }
 
                 for (var index = 0; index < 2; index++)
                 {
@@ -619,11 +978,40 @@ public unsafe partial struct EntityQuery
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow();
+        var world = World.GetWorldUncheck(_worldID);
+        var globalVersion = world.Version;
 
-        var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value, ComponentTypeID<T1>.value, ComponentTypeID<T2>.value };
+        var comp0TypeID = ComponentTypeID<T0>.value;
+        var comp1TypeID = ComponentTypeID<T1>.value;
+        var comp2TypeID = ComponentTypeID<T2>.value;
+        
+        var compTypeIDs = stackalloc int[]
+        {
+            comp0TypeID.value,
+            comp1TypeID.value,
+            comp2TypeID.value,
+        };
+
+        var changedCompIDs = stackalloc int[3];
         var offsets = stackalloc int[3];
         var basePtrs = stackalloc byte*[3];
+
+        var changedCompCount = 0;
+
+        var it = _mask.writeAccess.GetIterator();
+        while (it.Next(out var id))
+        {
+            for (var i =0; i < 3; i++)
+            {
+                if (id == compTypeIDs[i])
+                {
+                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
+                    changedCompIDs[changedCompCount] = id;
+                    changedCompCount++;
+                    break;
+                }
+            }
+        }
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
@@ -650,6 +1038,11 @@ public unsafe partial struct EntityQuery
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
                 var pChunkData = chunk.GetUnsafePtr();
+
+                for (var j = 0; j < changedCompCount; j++)
+                {
+                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                }
 
                 for (var index = 0; index < 3; index++)
                 {
@@ -680,11 +1073,42 @@ public unsafe partial struct EntityQuery
         where T2 : unmanaged, IComponent
         where T3 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow();
+        var world = World.GetWorldUncheck(_worldID);
+        var globalVersion = world.Version;
 
-        var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value, ComponentTypeID<T1>.value, ComponentTypeID<T2>.value, ComponentTypeID<T3>.value };
+        var comp0TypeID = ComponentTypeID<T0>.value;
+        var comp1TypeID = ComponentTypeID<T1>.value;
+        var comp2TypeID = ComponentTypeID<T2>.value;
+        var comp3TypeID = ComponentTypeID<T3>.value;
+        
+        var compTypeIDs = stackalloc int[]
+        {
+            comp0TypeID.value,
+            comp1TypeID.value,
+            comp2TypeID.value,
+            comp3TypeID.value,
+        };
+
+        var changedCompIDs = stackalloc int[4];
         var offsets = stackalloc int[4];
         var basePtrs = stackalloc byte*[4];
+
+        var changedCompCount = 0;
+
+        var it = _mask.writeAccess.GetIterator();
+        while (it.Next(out var id))
+        {
+            for (var i =0; i < 4; i++)
+            {
+                if (id == compTypeIDs[i])
+                {
+                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
+                    changedCompIDs[changedCompCount] = id;
+                    changedCompCount++;
+                    break;
+                }
+            }
+        }
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
@@ -711,6 +1135,11 @@ public unsafe partial struct EntityQuery
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
                 var pChunkData = chunk.GetUnsafePtr();
+
+                for (var j = 0; j < changedCompCount; j++)
+                {
+                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                }
 
                 for (var index = 0; index < 4; index++)
                 {
@@ -743,11 +1172,44 @@ public unsafe partial struct EntityQuery
         where T3 : unmanaged, IComponent
         where T4 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow();
+        var world = World.GetWorldUncheck(_worldID);
+        var globalVersion = world.Version;
 
-        var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value, ComponentTypeID<T1>.value, ComponentTypeID<T2>.value, ComponentTypeID<T3>.value, ComponentTypeID<T4>.value };
+        var comp0TypeID = ComponentTypeID<T0>.value;
+        var comp1TypeID = ComponentTypeID<T1>.value;
+        var comp2TypeID = ComponentTypeID<T2>.value;
+        var comp3TypeID = ComponentTypeID<T3>.value;
+        var comp4TypeID = ComponentTypeID<T4>.value;
+        
+        var compTypeIDs = stackalloc int[]
+        {
+            comp0TypeID.value,
+            comp1TypeID.value,
+            comp2TypeID.value,
+            comp3TypeID.value,
+            comp4TypeID.value,
+        };
+
+        var changedCompIDs = stackalloc int[5];
         var offsets = stackalloc int[5];
         var basePtrs = stackalloc byte*[5];
+
+        var changedCompCount = 0;
+
+        var it = _mask.writeAccess.GetIterator();
+        while (it.Next(out var id))
+        {
+            for (var i =0; i < 5; i++)
+            {
+                if (id == compTypeIDs[i])
+                {
+                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
+                    changedCompIDs[changedCompCount] = id;
+                    changedCompCount++;
+                    break;
+                }
+            }
+        }
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
@@ -774,6 +1236,11 @@ public unsafe partial struct EntityQuery
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
                 var pChunkData = chunk.GetUnsafePtr();
+
+                for (var j = 0; j < changedCompCount; j++)
+                {
+                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                }
 
                 for (var index = 0; index < 5; index++)
                 {
@@ -808,11 +1275,46 @@ public unsafe partial struct EntityQuery
         where T4 : unmanaged, IComponent
         where T5 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow();
+        var world = World.GetWorldUncheck(_worldID);
+        var globalVersion = world.Version;
 
-        var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value, ComponentTypeID<T1>.value, ComponentTypeID<T2>.value, ComponentTypeID<T3>.value, ComponentTypeID<T4>.value, ComponentTypeID<T5>.value };
+        var comp0TypeID = ComponentTypeID<T0>.value;
+        var comp1TypeID = ComponentTypeID<T1>.value;
+        var comp2TypeID = ComponentTypeID<T2>.value;
+        var comp3TypeID = ComponentTypeID<T3>.value;
+        var comp4TypeID = ComponentTypeID<T4>.value;
+        var comp5TypeID = ComponentTypeID<T5>.value;
+        
+        var compTypeIDs = stackalloc int[]
+        {
+            comp0TypeID.value,
+            comp1TypeID.value,
+            comp2TypeID.value,
+            comp3TypeID.value,
+            comp4TypeID.value,
+            comp5TypeID.value,
+        };
+
+        var changedCompIDs = stackalloc int[6];
         var offsets = stackalloc int[6];
         var basePtrs = stackalloc byte*[6];
+
+        var changedCompCount = 0;
+
+        var it = _mask.writeAccess.GetIterator();
+        while (it.Next(out var id))
+        {
+            for (var i =0; i < 6; i++)
+            {
+                if (id == compTypeIDs[i])
+                {
+                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
+                    changedCompIDs[changedCompCount] = id;
+                    changedCompCount++;
+                    break;
+                }
+            }
+        }
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
@@ -839,6 +1341,11 @@ public unsafe partial struct EntityQuery
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
                 var pChunkData = chunk.GetUnsafePtr();
+
+                for (var j = 0; j < changedCompCount; j++)
+                {
+                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                }
 
                 for (var index = 0; index < 6; index++)
                 {
@@ -875,11 +1382,48 @@ public unsafe partial struct EntityQuery
         where T5 : unmanaged, IComponent
         where T6 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow();
+        var world = World.GetWorldUncheck(_worldID);
+        var globalVersion = world.Version;
 
-        var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value, ComponentTypeID<T1>.value, ComponentTypeID<T2>.value, ComponentTypeID<T3>.value, ComponentTypeID<T4>.value, ComponentTypeID<T5>.value, ComponentTypeID<T6>.value };
+        var comp0TypeID = ComponentTypeID<T0>.value;
+        var comp1TypeID = ComponentTypeID<T1>.value;
+        var comp2TypeID = ComponentTypeID<T2>.value;
+        var comp3TypeID = ComponentTypeID<T3>.value;
+        var comp4TypeID = ComponentTypeID<T4>.value;
+        var comp5TypeID = ComponentTypeID<T5>.value;
+        var comp6TypeID = ComponentTypeID<T6>.value;
+        
+        var compTypeIDs = stackalloc int[]
+        {
+            comp0TypeID.value,
+            comp1TypeID.value,
+            comp2TypeID.value,
+            comp3TypeID.value,
+            comp4TypeID.value,
+            comp5TypeID.value,
+            comp6TypeID.value,
+        };
+
+        var changedCompIDs = stackalloc int[7];
         var offsets = stackalloc int[7];
         var basePtrs = stackalloc byte*[7];
+
+        var changedCompCount = 0;
+
+        var it = _mask.writeAccess.GetIterator();
+        while (it.Next(out var id))
+        {
+            for (var i =0; i < 7; i++)
+            {
+                if (id == compTypeIDs[i])
+                {
+                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
+                    changedCompIDs[changedCompCount] = id;
+                    changedCompCount++;
+                    break;
+                }
+            }
+        }
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
@@ -906,6 +1450,11 @@ public unsafe partial struct EntityQuery
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
                 var pChunkData = chunk.GetUnsafePtr();
+
+                for (var j = 0; j < changedCompCount; j++)
+                {
+                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                }
 
                 for (var index = 0; index < 7; index++)
                 {
@@ -944,11 +1493,50 @@ public unsafe partial struct EntityQuery
         where T6 : unmanaged, IComponent
         where T7 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow();
+        var world = World.GetWorldUncheck(_worldID);
+        var globalVersion = world.Version;
 
-        var compTypeIDs = stackalloc int[] { ComponentTypeID<T0>.value, ComponentTypeID<T1>.value, ComponentTypeID<T2>.value, ComponentTypeID<T3>.value, ComponentTypeID<T4>.value, ComponentTypeID<T5>.value, ComponentTypeID<T6>.value, ComponentTypeID<T7>.value };
+        var comp0TypeID = ComponentTypeID<T0>.value;
+        var comp1TypeID = ComponentTypeID<T1>.value;
+        var comp2TypeID = ComponentTypeID<T2>.value;
+        var comp3TypeID = ComponentTypeID<T3>.value;
+        var comp4TypeID = ComponentTypeID<T4>.value;
+        var comp5TypeID = ComponentTypeID<T5>.value;
+        var comp6TypeID = ComponentTypeID<T6>.value;
+        var comp7TypeID = ComponentTypeID<T7>.value;
+        
+        var compTypeIDs = stackalloc int[]
+        {
+            comp0TypeID.value,
+            comp1TypeID.value,
+            comp2TypeID.value,
+            comp3TypeID.value,
+            comp4TypeID.value,
+            comp5TypeID.value,
+            comp6TypeID.value,
+            comp7TypeID.value,
+        };
+
+        var changedCompIDs = stackalloc int[8];
         var offsets = stackalloc int[8];
         var basePtrs = stackalloc byte*[8];
+
+        var changedCompCount = 0;
+
+        var it = _mask.writeAccess.GetIterator();
+        while (it.Next(out var id))
+        {
+            for (var i =0; i < 8; i++)
+            {
+                if (id == compTypeIDs[i])
+                {
+                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
+                    changedCompIDs[changedCompCount] = id;
+                    changedCompCount++;
+                    break;
+                }
+            }
+        }
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
@@ -975,6 +1563,11 @@ public unsafe partial struct EntityQuery
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
                 var pChunkData = chunk.GetUnsafePtr();
+
+                for (var j = 0; j < changedCompCount; j++)
+                {
+                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                }
 
                 for (var index = 0; index < 8; index++)
                 {

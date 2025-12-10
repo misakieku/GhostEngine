@@ -24,11 +24,40 @@ public unsafe partial struct EntityQuery
     public readonly void ForEach<<#= generics #>>(<#= delegateTupe #><<#= generics #>> action)
 <#= restrictions #>
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow();
+        var world = World.GetWorldUncheck(_worldID);
+        var globalVersion = world.Version;
 
-        var compTypeIDs = stackalloc int[] { <#= AppendGenerics(i, "ComponentTypeID<T{0}>.value") #> };
+<# for (var localIndex = 0; localIndex < i; localIndex++) { #>
+        var comp<#= localIndex #>TypeID = ComponentTypeID<T<#= localIndex #>>.value;
+<# } #>
+        
+        var compTypeIDs = stackalloc int[]
+        {
+<# for (var localIndex = 0; localIndex < i; localIndex++) { #>
+            comp<#= localIndex #>TypeID.value,
+<# } #>
+        };
+
+        var changedCompIDs = stackalloc int[<#= i #>];
         var offsets = stackalloc int[<#= i #>];
         var basePtrs = stackalloc byte*[<#= i #>];
+
+        var changedCompCount = 0;
+
+        var it = _mask.writeAccess.GetIterator();
+        while (it.Next(out var id))
+        {
+            for (var i =0; i < <#= i #>; i++)
+            {
+                if (id == compTypeIDs[i])
+                {
+                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
+                    changedCompIDs[changedCompCount] = id;
+                    changedCompCount++;
+                    break;
+                }
+            }
+        }
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
@@ -55,6 +84,11 @@ public unsafe partial struct EntityQuery
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
                 var pChunkData = chunk.GetUnsafePtr();
+
+                for (var j = 0; j < changedCompCount; j++)
+                {
+                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                }
 
                 for (var index = 0; index < <#= i #>; index++)
                 {

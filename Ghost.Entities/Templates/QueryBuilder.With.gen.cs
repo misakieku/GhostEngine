@@ -19,6 +19,20 @@ public ref partial struct QueryBuilder
     }
 
     /// <summary>
+    /// Adds the specified component type(s) to the 'All' filter of the query and requires read-write access.
+    /// Targets entities that have all of the specified component types and those component(s) must be enabled.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public QueryBuilder WithAllRW<T0>()
+        where T0 : unmanaged, IComponent
+    {
+        _all.Add(ComponentTypeID<T0>.value);
+        _rw.Add(ComponentTypeID<T0>.value);
+
+        return this;
+    }
+
+    /// <summary>
     /// Adds the specified component type(s) to the 'Any' filter of the query.
     /// Targets entities that have at least one of the specified component types and those component(s) must be enabled.
     /// </summary>
@@ -84,6 +98,20 @@ public ref partial struct QueryBuilder
     }
 
     /// <summary>
+    /// Adds the specified component type(s) to the 'Present' filter of the query and requires read-write access.
+    /// Targets entities that have all of the specified component types, regardless of whether those component(s) are enabled or disabled.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public QueryBuilder WithPresentRW<T0>()
+        where T0 : unmanaged, IComponent
+    {
+        _present.Add(ComponentTypeID<T0>.value);
+        _rw.Add(ComponentTypeID<T0>.value);
+
+        return this;
+    }
+
+    /// <summary>
     /// Adds the specified component type(s) to the 'All' filter of the query.
     /// Targets entities that have all of the specified component types and those component(s) must be enabled.
     /// </summary>
@@ -94,6 +122,23 @@ public ref partial struct QueryBuilder
     {
         _all.Add(ComponentTypeID<T0>.value);
         _all.Add(ComponentTypeID<T1>.value);
+
+        return this;
+    }
+
+    /// <summary>
+    /// Adds the specified component type(s) to the 'All' filter of the query and requires read-write access.
+    /// Targets entities that have all of the specified component types and those component(s) must be enabled.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public QueryBuilder WithAllRW<T0, T1>()
+        where T0 : unmanaged, IComponent
+        where T1 : unmanaged, IComponent
+    {
+        _all.Add(ComponentTypeID<T0>.value);
+        _rw.Add(ComponentTypeID<T0>.value);
+        _all.Add(ComponentTypeID<T1>.value);
+        _rw.Add(ComponentTypeID<T1>.value);
 
         return this;
     }
@@ -174,6 +219,23 @@ public ref partial struct QueryBuilder
     }
 
     /// <summary>
+    /// Adds the specified component type(s) to the 'Present' filter of the query and requires read-write access.
+    /// Targets entities that have all of the specified component types, regardless of whether those component(s) are enabled or disabled.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public QueryBuilder WithPresentRW<T0, T1>()
+        where T0 : unmanaged, IComponent
+        where T1 : unmanaged, IComponent
+    {
+        _present.Add(ComponentTypeID<T0>.value);
+        _rw.Add(ComponentTypeID<T0>.value);
+        _present.Add(ComponentTypeID<T1>.value);
+        _rw.Add(ComponentTypeID<T1>.value);
+
+        return this;
+    }
+
+    /// <summary>
     /// Adds the specified component type(s) to the 'All' filter of the query.
     /// Targets entities that have all of the specified component types and those component(s) must be enabled.
     /// </summary>
@@ -186,6 +248,26 @@ public ref partial struct QueryBuilder
         _all.Add(ComponentTypeID<T0>.value);
         _all.Add(ComponentTypeID<T1>.value);
         _all.Add(ComponentTypeID<T2>.value);
+
+        return this;
+    }
+
+    /// <summary>
+    /// Adds the specified component type(s) to the 'All' filter of the query and requires read-write access.
+    /// Targets entities that have all of the specified component types and those component(s) must be enabled.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public QueryBuilder WithAllRW<T0, T1, T2>()
+        where T0 : unmanaged, IComponent
+        where T1 : unmanaged, IComponent
+        where T2 : unmanaged, IComponent
+    {
+        _all.Add(ComponentTypeID<T0>.value);
+        _rw.Add(ComponentTypeID<T0>.value);
+        _all.Add(ComponentTypeID<T1>.value);
+        _rw.Add(ComponentTypeID<T1>.value);
+        _all.Add(ComponentTypeID<T2>.value);
+        _rw.Add(ComponentTypeID<T2>.value);
 
         return this;
     }
@@ -271,6 +353,26 @@ public ref partial struct QueryBuilder
         _present.Add(ComponentTypeID<T0>.value);
         _present.Add(ComponentTypeID<T1>.value);
         _present.Add(ComponentTypeID<T2>.value);
+
+        return this;
+    }
+
+    /// <summary>
+    /// Adds the specified component type(s) to the 'Present' filter of the query and requires read-write access.
+    /// Targets entities that have all of the specified component types, regardless of whether those component(s) are enabled or disabled.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public QueryBuilder WithPresentRW<T0, T1, T2>()
+        where T0 : unmanaged, IComponent
+        where T1 : unmanaged, IComponent
+        where T2 : unmanaged, IComponent
+    {
+        _present.Add(ComponentTypeID<T0>.value);
+        _rw.Add(ComponentTypeID<T0>.value);
+        _present.Add(ComponentTypeID<T1>.value);
+        _rw.Add(ComponentTypeID<T1>.value);
+        _present.Add(ComponentTypeID<T2>.value);
+        _rw.Add(ComponentTypeID<T2>.value);
 
         return this;
     }

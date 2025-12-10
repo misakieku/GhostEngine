@@ -48,6 +48,12 @@ public partial class World
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static World GetWorldUncheck(Identifier<World> id)
+    {
+        return s_worlds[id.value]!;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Result<World, ErrorStatus> GetWorld(Identifier<World> id)
     {
         if (id.value < 0 || id.value >= s_worlds.Count)
@@ -80,6 +86,7 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
     private UnsafeHashMap<int, Identifier<Archetype>> _archetypeLookup; // Signature Hash to Archetype ID
     private UnsafeHashMap<int, Identifier<EntityQuery>> _querieLookup; // Query Mask Hash to Query ID
 
+    private int _version;
     private bool _disposed = false;
 
     internal int ArchetypeCount => _archetypes.Count;
@@ -98,6 +105,11 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
     /// Gets the publicntity manager for this world.
     /// </summary>
     public EntityManager EntityManager => _entityManager;
+
+    /// <summary>
+    /// Gets the current version number of the world.
+    /// </summary>
+    public int Version => Interlocked.CompareExchange(ref _version, 0, 0);
 
     /// <summary>
     /// Gets the main entity command buffer for this world.
@@ -196,6 +208,7 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
         return Identifier<EntityQuery>.Invalid;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void PlaybackEntityCommandBuffers()
     {
         _entityCommandBuffer.Playback();
@@ -204,6 +217,12 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
         {
             _threadLocalECBs[i].Playback();
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal int AdvanceVersion()
+    {
+        return Interlocked.Increment(ref _version);
     }
 
     /// <summary>

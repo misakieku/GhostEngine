@@ -32,6 +32,22 @@ public ref partial struct QueryBuilder
     }
 
     /// <summary>
+    /// Adds the specified component type(s) to the 'All' filter of the query and requires read-write access.
+    /// Targets entities that have all of the specified component types and those component(s) must be enabled.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public QueryBuilder WithAllRW<<#= generics #>>()
+<#= restrictions #>
+    {
+<# for (var j = 0; j < i; j++) { #>
+        _all.Add(ComponentTypeID<T<#= j #>>.value);
+        _rw.Add(ComponentTypeID<T<#= j #>>.value);
+<# } #>
+
+        return this;
+    }
+
+    /// <summary>
     /// Adds the specified component type(s) to the 'Any' filter of the query.
     /// Targets entities that have at least one of the specified component types and those component(s) must be enabled.
     /// </summary>
@@ -101,6 +117,22 @@ public ref partial struct QueryBuilder
     {
 <# for (var j = 0; j < i; j++) { #>
         _present.Add(ComponentTypeID<T<#= j #>>.value);
+<# } #>
+
+        return this;
+    }
+
+    /// <summary>
+    /// Adds the specified component type(s) to the 'Present' filter of the query and requires read-write access.
+    /// Targets entities that have all of the specified component types, regardless of whether those component(s) are enabled or disabled.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public QueryBuilder WithPresentRW<<#= generics #>>()
+<#= restrictions #>
+    {
+<# for (var j = 0; j < i; j++) { #>
+        _present.Add(ComponentTypeID<T<#= j #>>.value);
+        _rw.Add(ComponentTypeID<T<#= j #>>.value);
 <# } #>
 
         return this;

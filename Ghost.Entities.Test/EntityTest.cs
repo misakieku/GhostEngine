@@ -39,7 +39,7 @@ public partial class EntityTest : ITest
         var entity2 = _world.EntityManager.CreateEntity(ComponentTypeID<Transform>.value);
         _world.EntityManager.SetComponent(entity2, new Transform { position = new float3(1, 2, 3) });
 
-        var queryID = new QueryBuilder().WithAll<Transform>().Build(_world);
+        var queryID = new QueryBuilder().WithAllRW<Transform>().WithAbsent<Mesh>().Build(_world);
         ref var query = ref _world.GetEntityQueryReference(queryID);
 
         // var testJob = new TestEntityQueryJob();
@@ -49,28 +49,32 @@ public partial class EntityTest : ITest
         _world.EntityManager.AddScriptComponent<TestScriptComponent>(entity1);
         _world.EntityManager.RemoveComponent<ManagedEntityRef>(entity1); // This should destory the managed entity and call OnDestroy
 
+        _world.AdvanceVersion();
+
         query.ForEach<Transform>((e, ref t) =>
         {
             Console.WriteLine($"Entity {e} Has Position: {t.position}");
         });
 
-        // foreach (var (entity, transform) in query.GetEntityComponentIterator<Transform>())
-        // {
-        //     Console.WriteLine($"Entity {entity} Updated Position: {transform.Get().position}");
-        // }
-        //
-        // foreach (var chunk in query.GetChunkIterator())
-        // {
-        //     var transforms = chunk.GetComponentData<Transform>();
-        //     var entities = chunk.GetEntities();
-        //     var bits = chunk.GetEnableBits<Transform>();
-        //
-        //     var it = bits.GetIterator();
-        //     while (it.Next(out var index) && index < chunk.Count)
-        //     {
-        //         Console.WriteLine($"Entity {entities[index]} Updated Position: {transforms[index].position}");
-        //     }
-        // }
+        //foreach (var (entity, transform) in query.GetEntityComponentIterator<Transform>())
+        //{
+        //    Console.WriteLine($"Entity {entity} Updated Position: {transform.Get().position}");
+        //}
+
+        foreach (var chunk in query.GetChunkIterator())
+        {
+            var transforms = chunk.GetComponentData<Transform>();
+            var entities = chunk.GetEntities();
+            var bits = chunk.GetEnableBits<Transform>();
+
+            var changed = chunk.HasChanged<Transform>(0);
+
+            var it = bits.GetIterator();
+            while (it.Next(out var index) && index < chunk.Count)
+            {
+                Console.WriteLine($"Entity {entities[index]} Updated Position: {transforms[index].position}");
+            }
+        }
 
         _world.EntityManager.DestroyEntity(entity1);
         _world.EntityManager.DestroyEntity(entity2);

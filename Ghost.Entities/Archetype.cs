@@ -48,7 +48,7 @@ internal unsafe sealed class ChunkDebugView
     {
         get
         {
-#if DEBUG || GHOST_EDITOR
+#if !(DEBUG || GHOST_EDITOR)
 #else
             if (count == 0)
 #endif
@@ -56,9 +56,7 @@ internal unsafe sealed class ChunkDebugView
                 return [];
             }
 
-#pragma warning disable CS0162 // Unreachable code detected
             var views = new List<object>();
-#pragma warning restore CS0162 // Unreachable code detected
             ref var archetype = ref World.GetWorld(worldID).GetValueOrThrow()
                 .GetArchetypeReference(archetypeID);
 
@@ -108,8 +106,8 @@ internal unsafe struct Chunk : IDisposable
     public const int BIT_ALIGNMENT_MINUS_ONE = BIT_ALIGNMENT - 1;
 
     private UnsafeArray<byte> _data;
+    private UnsafeArray<int> _versions;
 
-    internal int _version;
     internal int _count;
     internal readonly int _capacity;
 
@@ -119,11 +117,26 @@ internal unsafe struct Chunk : IDisposable
     internal int _archetypeID;
 #endif
 
-    public Chunk(int bufferSize, int capacity)
+    public Chunk(int bufferSize, int capacity, int componentCount, int globalVersion)
     {
         _data = new UnsafeArray<byte>(bufferSize, Allocator.Persistent, AllocationOption.Clear);
+        _versions = new UnsafeArray<int>(componentCount, Allocator.Persistent);
         _capacity = capacity;
         _count = 0;
+
+        _versions.AsSpan().Fill(globalVersion);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void MarkChanged(int componentTypeId, int globalVersion)
+    {
+        _versions[componentTypeId] = globalVersion;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly int GetVersion(int componentTypeId)
+    {
+        return _versions[componentTypeId];
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -132,9 +145,16 @@ internal unsafe struct Chunk : IDisposable
         return (byte*)_data.GetUnsafePtr();
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly int* GetVersionUnsafePtr()
+    {
+        return (int*)_versions.GetUnsafePtr();
+    }
+
     public void Dispose()
     {
         _data.Dispose();
+        _versions.Dispose();
     }
 }
 
@@ -324,8 +344,10 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
             }
         }
 
+        var world = World.GetWorldUncheck(_worldID);
+
         // Need to allocate a new chunk
-        var newChunk = new Chunk(Chunk.CHUNK_BUFFER_SIZE, _entityCapacity);
+        var newChunk = new Chunk(Chunk.CHUNK_BUFFER_SIZE, _entityCapacity, _layouts.Count, world.Version);
 #if DEBUG || GHOST_EDITOR
         newChunk._worldID = _worldID;
         newChunk._archetypeID = _id;
@@ -370,13 +392,16 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         }
 
         var offset = r.Value.offset;
-        var chunk = _chunks[chunkIndex];
+        ref var chunk = ref _chunks[chunkIndex];
 
         var chunkBase = chunk.GetUnsafePtr();
         var size = ComponentRegister.GetComponentInfo(componentID).size;
         var dst = chunkBase + offset + (size * rowIndex);
 
         MemoryUtility.MemCpy(dst, pComponent, (nuint)size);
+
+        var world = World.GetWorldUncheck(_worldID);
+        chunk.MarkChanged(componentID, world.Version);
 
         return ErrorStatus.None;
     }
@@ -438,13 +463,8 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
             var pLastEntity = chunkBase + _entityIdsOffset + (sizeof(Entity) * lastIndex);
             var pRowEntity = chunkBase + _entityIdsOffset + (sizeof(Entity) * rowIndex);
 
-            var wroldResult = World.GetWorld(_worldID);
-            if (wroldResult.Error != ErrorStatus.None)
-            {
-                return wroldResult.Error;
-            }
-
-            var result = wroldResult.Value.EntityManager.UpdateEntityLocation(*(Entity*)pLastEntity, _id, chunkIndex, rowIndex);
+            var wrold = World.GetWorldUncheck(_worldID);
+            var result = wrold.EntityManager.UpdateEntityLocation(*(Entity*)pLastEntity, _id, chunkIndex, rowIndex);
             if (result != ErrorStatus.None)
             {
                 return result;

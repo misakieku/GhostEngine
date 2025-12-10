@@ -1,6 +1,7 @@
 using Ghost.Core;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
+using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities;
 
@@ -18,6 +19,7 @@ public struct ComponentInfo
     public Identifier<IComponent> id;
     public int size;
     public int alignment;
+    public int lastWriteVersion;
     public bool isEnableable;
 }
 
@@ -77,6 +79,7 @@ internal static class ComponentRegister
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Identifier<IComponent> GetComponentID(Type type)
     {
         var typeHandle = type.TypeHandle.Value;
@@ -91,9 +94,24 @@ internal static class ComponentRegister
         throw new KeyNotFoundException($"Component type {type} is not registered.");
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ComponentInfo GetComponentInfo(Identifier<IComponent> typeId)
     {
-        return s_registeredComponents[typeId];
+        lock (s_registeredComponents)
+        {
+            return s_registeredComponents[typeId];
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void SetComponentLastWrite(Identifier<IComponent> typeId, int version)
+    {
+        lock (s_registeredComponents)
+        {
+            var info = s_registeredComponents[typeId];
+            info.lastWriteVersion = version;
+            s_registeredComponents[typeId] = info;
+        }
     }
 
     public static int GetHashCode(params ReadOnlySpan<Identifier<IComponent>> componentTypeIDs)
