@@ -1,6 +1,3 @@
-using Ghost.Core;
-using Misaki.HighPerformance.Jobs;
-
 namespace Ghost.Entities;
 
 public readonly ref struct SystemAPI
@@ -235,7 +232,6 @@ public class SystemManager
     private readonly World _world;
 
     private readonly List<ISystem> _systems = new ();
-    private readonly Dictionary<Type, int> _systemTypeMap = new ();
 
     internal SystemManager(World world)
     {
@@ -247,15 +243,17 @@ public class SystemManager
     {
         var system = new T();
         _systems.Add(system);
-        _systemTypeMap[typeof(T)] = _systems.Count - 1;
     }
 
     public T GetSystem<T>()
         where T : ISystem
     {
-        if (_systemTypeMap.TryGetValue(typeof(T), out var index))
+        foreach (var system in _systems)
         {
-            return (T)_systems[index];
+            if (system is T typedSystem)
+            {
+                return typedSystem;
+            }
         }
 
         throw new InvalidOperationException($"System of type {typeof(T).FullName} not found in SystemManager.");

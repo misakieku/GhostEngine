@@ -50,7 +50,17 @@ public partial class World
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static World GetWorldUncheck(Identifier<World> id)
     {
+#if DEBUG || GHOST_EDITOR
+        if (id.value < 0 || id.value >= s_worlds.Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(id), "World ID is out of range.");
+        }
+
+        var world = s_worlds[id.value];
+        return world is null ? throw new InvalidOperationException("World not found.") : world;
+#else
         return s_worlds[id.value]!;
+#endif
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -62,12 +72,7 @@ public partial class World
         }
 
         var world = s_worlds[id.value];
-        if (world is null)
-        {
-            return ErrorStatus.NotFound;
-        }
-
-        return world;
+        return world is null ? ErrorStatus.NotFound : world;
     }
 }
 
@@ -79,6 +84,8 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
     private readonly EntityManager _entityManager;
     private readonly EntityCommandBuffer _entityCommandBuffer;
     private readonly EntityCommandBuffer[] _threadLocalECBs;
+
+    private readonly SystemManager _systemManager;
 
     private UnsafeList<Archetype> _archetypes;
     private UnsafeList<EntityQuery> _entityQueries;
@@ -107,6 +114,11 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
     public EntityManager EntityManager => _entityManager;
 
     /// <summary>
+    /// Gets the system manager for this world.
+    /// </summary>
+    public SystemManager SystemManager => _systemManager;
+
+    /// <summary>
     /// Gets the current version number of the world.
     /// </summary>
     public int Version => Interlocked.CompareExchange(ref _version, 0, 0);
@@ -124,15 +136,17 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
         _id = id;
         _jobScheduler = jobScheduler;
 
+        _entityManager = new EntityManager(this, entityCapacity);
+        _entityCommandBuffer = new EntityCommandBuffer(_entityManager);
+        _threadLocalECBs = new EntityCommandBuffer[jobScheduler.WorkerCount];
+
+        _systemManager = new SystemManager(this);
+
         _archetypes = new UnsafeList<Archetype>(16, Allocator.Persistent);
         _entityQueries = new UnsafeList<EntityQuery>(16, Allocator.Persistent);
 
         _archetypeLookup = new UnsafeHashMap<int, Identifier<Archetype>>(16, Allocator.Persistent);
         _querieLookup = new UnsafeHashMap<int, Identifier<EntityQuery>>(16, Allocator.Persistent);
-
-        _entityManager = new EntityManager(this, entityCapacity);
-        _entityCommandBuffer = new EntityCommandBuffer(_entityManager);
-        _threadLocalECBs = new EntityCommandBuffer[jobScheduler.WorkerCount];
 
         for (var i = 0; i < jobScheduler.WorkerCount; i++)
         {

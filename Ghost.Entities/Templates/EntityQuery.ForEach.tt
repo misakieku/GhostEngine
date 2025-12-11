@@ -4,8 +4,6 @@
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Text" #>
 <#@ include file="Helpers.ttinclude" #>
-using Ghost.Core;
-
 namespace Ghost.Entities;
 
 public unsafe partial struct EntityQuery
@@ -30,7 +28,7 @@ public unsafe partial struct EntityQuery
 <# for (var localIndex = 0; localIndex < i; localIndex++) { #>
         var comp<#= localIndex #>TypeID = ComponentTypeID<T<#= localIndex #>>.value;
 <# } #>
-        
+
         var compTypeIDs = stackalloc int[]
         {
 <# for (var localIndex = 0; localIndex < i; localIndex++) { #>
@@ -51,7 +49,6 @@ public unsafe partial struct EntityQuery
             {
                 if (id == compTypeIDs[i])
                 {
-                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
                     changedCompIDs[changedCompCount] = id;
                     changedCompCount++;
                     break;
@@ -87,7 +84,7 @@ public unsafe partial struct EntityQuery
 
                 for (var j = 0; j < changedCompCount; j++)
                 {
-                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                    archetype.MarkChanged(chunkIndex, changedCompIDs[j], globalVersion);
                 }
 
                 for (var index = 0; index < <#= i #>; index++)

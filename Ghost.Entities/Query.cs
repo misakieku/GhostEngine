@@ -91,6 +91,7 @@ public readonly unsafe ref struct ChunkView
     private readonly int* _pVersion;
     private readonly int _entityOffset;
     private readonly int _entityCount;
+    private readonly int _currentVersion;
 
     public readonly int Count => _entityCount;
 
@@ -101,6 +102,20 @@ public readonly unsafe ref struct ChunkView
         _entityOffset = archetype.EntityIDsOffset;
         _entityCount = chunk._count;
         _pVersion = chunk.GetVersionUnsafePtr();
+
+        _currentVersion = World.GetWorldUncheck(archetype.WorldID).Version;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private Archetype.ComponentMemoryLayout GetLayout(Identifier<IComponent> id)
+    {
+        var layout = _layouts[id.value];
+        if (layout.enableBitsOffset == -1)
+        {
+            throw new InvalidOperationException($"Component {id} is not exist in the archetype.");
+        }
+
+        return layout;
     }
 
     /// <summary>
@@ -112,7 +127,8 @@ public readonly unsafe ref struct ChunkView
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool HasChanged(Identifier<IComponent> id, int version)
     {
-        return version < _pVersion[id];
+        var layout = GetLayout(id);
+        return version < _pVersion[layout.versionIndex];
     }
 
     /// <summary>
@@ -126,7 +142,8 @@ public readonly unsafe ref struct ChunkView
     public readonly bool HasChanged<T>(int version)
         where T : unmanaged, IComponent
     {
-        return version < _pVersion[ComponentTypeID<T>.value];
+        var layout = GetLayout(ComponentTypeID<T>.value);
+        return version < _pVersion[layout.versionIndex];
     }
 
     /// <summary>
@@ -164,16 +181,35 @@ public readonly unsafe ref struct ChunkView
     }
 
     /// <summary>
+    /// Gets a readonly span providing direct access to the component data of type T0 for structuralAll entities in the chunk.
+    /// </summary>
+    /// <typeparam name="T">The type of component to access. Must be an unmanaged type that implements <see cref="Component"/>.</typeparam>
+    /// <returns>A readonly span of type <see cref="{T}"/> containing the component data for each entity in the chunk.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the specified component type is not present in the archetype.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ReadOnlySpan<T> GetComponentData<T>()
+        where T : unmanaged, IComponent
+    {
+        var layout = GetLayout(ComponentTypeID<T>.value);
+        var pComponentData = _pChunkData + layout.offset;
+        return new ReadOnlySpan<T>(pComponentData, _entityCount);
+    }
+
+    /// <summary>
     /// Gets a span providing direct access to the component data of type T0 for structuralAll entities in the chunk.
     /// </summary>
     /// <typeparam name="T">The type of component to access. Must be an unmanaged type that implements <see cref="Component"/>.</typeparam>
     /// <returns>A span of type <see cref="{T}"/> containing the component data for each entity in the chunk.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the specified component type is not present in the archetype.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Span<T> GetComponentData<T>()
+    public Span<T> GetComponentDataRW<T>()
         where T : unmanaged, IComponent
     {
-        var layout = _layouts[ComponentTypeID<T>.value];
+        var compId = ComponentTypeID<T>.value;
+        var layout = GetLayout(compId);
+
+        _pVersion[layout.versionIndex] = _currentVersion;
+
         var pComponentData = _pChunkData + layout.offset;
         return new Span<T>(pComponentData, _entityCount);
     }
@@ -190,11 +226,6 @@ public readonly unsafe ref struct ChunkView
         where T : unmanaged, IEnableableComponent
     {
         var layout = _layouts[ComponentTypeID<T>.value];
-        if (layout.enableBitsOffset == -1)
-        {
-            throw new InvalidOperationException($"Component {typeof(T).FullName} is not enableable.");
-        }
-
         var maskBase = _pChunkData + layout.enableBitsOffset;
         return new SpanBitSet(new Span<uint>(maskBase, (_entityCount + 31) / 32));
     }
@@ -210,12 +241,7 @@ public readonly unsafe ref struct ChunkView
     public bool IsComponentEnabled<T>(int index)
         where T : unmanaged, IEnableableComponent
     {
-        var layout = _layouts[ComponentTypeID<T>.value];
-        if (layout.enableBitsOffset == -1)
-        {
-            throw new InvalidOperationException($"Component {typeof(T).FullName} is not enableable.");
-        }
-
+        var layout = GetLayout(ComponentTypeID<T>.value);
         var pMask = _pChunkData + layout.enableBitsOffset;
         return EntityQuery.CheckBit(pMask, index);
     }

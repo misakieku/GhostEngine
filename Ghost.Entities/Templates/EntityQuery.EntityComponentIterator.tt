@@ -6,6 +6,7 @@
 <#@ include file="Helpers.ttinclude" #>
 using Ghost.Core;
 using Misaki.HighPerformance.LowLevel;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.CompilerServices;
 
@@ -49,7 +50,7 @@ public unsafe partial struct EntityQuery
             }
         }
 
-        public ref struct Enumerator
+        public ref struct Enumerator : IDisposable
         {
             private fixed int _compTypeIDs[<#= i #>];
             private fixed int _offsets[<#= i #>];
@@ -58,6 +59,9 @@ public unsafe partial struct EntityQuery
             private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
             private readonly EntityQueryMask _mask;
             private readonly World _world;
+
+            private readonly Stack.Scope _scope;
+            private UnsafeList<int> _changedComponentIDs;
 
             private ref Archetype _currentArchetype;
             private ref Chunk _currentChunk;
@@ -79,6 +83,22 @@ public unsafe partial struct EntityQuery
                 _matchingArchetypes = matchingArchetypes;
                 _mask = mask;
                 _world = world;
+
+                _scope = AllocationManager.CreateStackScope();
+                _changedComponentIDs = new UnsafeList<int>(<#= i #>, _scope.AllocationHandle);
+
+                var it = _mask.writeAccess.GetIterator();
+                while (it.Next(out var id))
+                {
+                    for (var i = 0; i < <#= i #>; i++)
+                    {
+                        if (id == _compTypeIDs[i])
+                        {
+                            _changedComponentIDs.Add(id);
+                            break;
+                        }
+                    }
+                }
 
                 Reset();
             }
@@ -103,6 +123,11 @@ public unsafe partial struct EntityQuery
                         .GetValueOrThrow();
                     _offsets[index] = layout.offset;
                     _compBasePtrs[index] = (long)(_chunkBasePtr + _offsets[index]);
+                }
+
+                for (var i = 0; i < _changedComponentIDs.Count; i++)
+                {
+                    _currentArchetype.MarkChanged(_currentChunkIndex, _changedComponentIDs[i], _world.Version);
                 }
             }
 
@@ -169,6 +194,11 @@ public unsafe partial struct EntityQuery
                         SetChunk(0);
                     }
                 }
+            }
+
+            public readonly void Dispose()
+            {
+                _scope.Dispose();
             }
         }
 

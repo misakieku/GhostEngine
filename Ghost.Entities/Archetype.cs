@@ -57,18 +57,33 @@ internal unsafe sealed class ChunkDebugView
             }
 
             var views = new List<object>();
-            ref var archetype = ref World.GetWorld(worldID).GetValueOrThrow()
-                .GetArchetypeReference(archetypeID);
-
-            foreach (var layout in archetype._layouts)
+            var r = World.GetWorld(worldID);
+            if (!r)
             {
-                var type = Type.GetTypeFromHandle(RuntimeTypeHandle.FromIntPtr(ComponentRegister.s_runtimeIDToTypeHandle[layout.componentID]));
+                return [];
+            }
+
+            ref var archetype = ref r.Value.GetArchetypeReference(archetypeID);
+            var it = archetype._signature.GetIterator();
+            while (it.Next(out var index))
+            {
+                var type = Type.GetTypeFromHandle(RuntimeTypeHandle.FromIntPtr(ComponentRegister.s_runtimeIDToTypeHandle[index]));
+                if (type == null)
+                {
+                    continue;
+                }
+
+                var layout = archetype.GetLayout(index).Value;
                 var readMethod = typeof(ChunkDebugView)
-                    .GetMethod(nameof(ReadComponentArray), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                    .GetMethod(nameof(ReadComponentArray), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
                     .MakeGenericMethod(type);
 
                 // 3. Invoke it to get a Position[] or Velocity[]
                 var array = readMethod.Invoke(this, [layout.offset]);
+                if (array == null)
+                {
+                    continue;
+                }
 
                 // 4. Wrap it in a nice label so the debugger shows "Position[]"
                 views.Add(new ComponentArrayView(type.Name, array));
@@ -128,18 +143,6 @@ internal unsafe struct Chunk : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void MarkChanged(int componentTypeId, int globalVersion)
-    {
-        _versions[componentTypeId] = globalVersion;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly int GetVersion(int componentTypeId)
-    {
-        return _versions[componentTypeId];
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly byte* GetUnsafePtr()
     {
         return (byte*)_data.GetUnsafePtr();
@@ -165,7 +168,8 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         public int componentID;
         public int size;
         public int offset;
-        public int enableBitsOffset; // TODO: Support enableable component
+        public int enableBitsOffset;
+        public int versionIndex;
     }
 
     private struct Edge
@@ -192,6 +196,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
     private int _entityIdsOffset;
 
     public readonly Identifier<Archetype> ID => _id;
+    public readonly Identifier<World> WorldID => _worldID;
 
     public readonly int EntityCapacity => _entityCapacity;
     public readonly int ChunkCount => _chunks.Count;
@@ -313,10 +318,11 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
                 {
                     _layouts[i] = new ComponentMemoryLayout
                     {
+                        componentID = components[i].id,
                         offset = tempOffsets[i],
                         size = components[i].size,
-                        componentID = components[i].id,
                         enableBitsOffset = tempBitmaskOffsets[i],
+                        versionIndex = i
                     };
 
                     _componentIDToLayoutIndex[components[i].id] = i;
@@ -401,7 +407,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         MemoryUtility.MemCpy(dst, pComponent, (nuint)size);
 
         var world = World.GetWorldUncheck(_worldID);
-        chunk.MarkChanged(componentID, world.Version);
+        MarkChanged(chunkIndex, componentID, world.Version);
 
         return ErrorStatus.None;
     }
@@ -444,6 +450,34 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         }
 
         return _layouts[layoutIndex];
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly ErrorStatus MarkChanged(int chunkIndex, int componentTypeId, int globalVersion)
+    {
+        var layoutResult = GetLayout(componentTypeId);
+        if (layoutResult.IsFailure)
+        {
+            return layoutResult.Error;
+        }
+
+        ref var chunk = ref _chunks[chunkIndex];
+        chunk.GetVersionUnsafePtr()[layoutResult.Value.versionIndex] = globalVersion;
+
+        return ErrorStatus.None;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Result<int, ErrorStatus> GetVersion(int chunkIndex, int componentTypeId)
+    {
+        var layoutResult = GetLayout(componentTypeId);
+        if (layoutResult.Error != ErrorStatus.None)
+        {
+            return layoutResult.Error;
+        }
+
+        ref var chunk = ref _chunks[chunkIndex];
+        return chunk.GetVersionUnsafePtr()[layoutResult.Value.versionIndex];
     }
 
     public ErrorStatus RemoveEntity(int chunkIndex, int rowIndex)

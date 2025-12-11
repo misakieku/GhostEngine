@@ -1,6 +1,3 @@
-
-using Ghost.Core;
-
 namespace Ghost.Entities;
 
 public unsafe partial struct EntityQuery
@@ -12,7 +9,7 @@ public unsafe partial struct EntityQuery
         var globalVersion = world.Version;
 
         var comp0TypeID = ComponentTypeID<T0>.value;
-        
+
         var compTypeIDs = stackalloc int[]
         {
             comp0TypeID.value,
@@ -31,7 +28,6 @@ public unsafe partial struct EntityQuery
             {
                 if (id == compTypeIDs[i])
                 {
-                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
                     changedCompIDs[changedCompCount] = id;
                     changedCompCount++;
                     break;
@@ -67,7 +63,7 @@ public unsafe partial struct EntityQuery
 
                 for (var j = 0; j < changedCompCount; j++)
                 {
-                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                    archetype.MarkChanged(chunkIndex, changedCompIDs[j], globalVersion);
                 }
 
                 for (var index = 0; index < 1; index++)
@@ -99,7 +95,7 @@ public unsafe partial struct EntityQuery
 
         var comp0TypeID = ComponentTypeID<T0>.value;
         var comp1TypeID = ComponentTypeID<T1>.value;
-        
+
         var compTypeIDs = stackalloc int[]
         {
             comp0TypeID.value,
@@ -119,7 +115,6 @@ public unsafe partial struct EntityQuery
             {
                 if (id == compTypeIDs[i])
                 {
-                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
                     changedCompIDs[changedCompCount] = id;
                     changedCompCount++;
                     break;
@@ -155,7 +150,7 @@ public unsafe partial struct EntityQuery
 
                 for (var j = 0; j < changedCompCount; j++)
                 {
-                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                    archetype.MarkChanged(chunkIndex, changedCompIDs[j], globalVersion);
                 }
 
                 for (var index = 0; index < 2; index++)
@@ -190,7 +185,7 @@ public unsafe partial struct EntityQuery
         var comp0TypeID = ComponentTypeID<T0>.value;
         var comp1TypeID = ComponentTypeID<T1>.value;
         var comp2TypeID = ComponentTypeID<T2>.value;
-        
+
         var compTypeIDs = stackalloc int[]
         {
             comp0TypeID.value,
@@ -211,7 +206,6 @@ public unsafe partial struct EntityQuery
             {
                 if (id == compTypeIDs[i])
                 {
-                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
                     changedCompIDs[changedCompCount] = id;
                     changedCompCount++;
                     break;
@@ -247,7 +241,7 @@ public unsafe partial struct EntityQuery
 
                 for (var j = 0; j < changedCompCount; j++)
                 {
-                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                    archetype.MarkChanged(chunkIndex, changedCompIDs[j], globalVersion);
                 }
 
                 for (var index = 0; index < 3; index++)
@@ -285,7 +279,7 @@ public unsafe partial struct EntityQuery
         var comp1TypeID = ComponentTypeID<T1>.value;
         var comp2TypeID = ComponentTypeID<T2>.value;
         var comp3TypeID = ComponentTypeID<T3>.value;
-        
+
         var compTypeIDs = stackalloc int[]
         {
             comp0TypeID.value,
@@ -307,7 +301,6 @@ public unsafe partial struct EntityQuery
             {
                 if (id == compTypeIDs[i])
                 {
-                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
                     changedCompIDs[changedCompCount] = id;
                     changedCompCount++;
                     break;
@@ -343,7 +336,7 @@ public unsafe partial struct EntityQuery
 
                 for (var j = 0; j < changedCompCount; j++)
                 {
-                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                    archetype.MarkChanged(chunkIndex, changedCompIDs[j], globalVersion);
                 }
 
                 for (var index = 0; index < 4; index++)
@@ -384,7 +377,7 @@ public unsafe partial struct EntityQuery
         var comp2TypeID = ComponentTypeID<T2>.value;
         var comp3TypeID = ComponentTypeID<T3>.value;
         var comp4TypeID = ComponentTypeID<T4>.value;
-        
+
         var compTypeIDs = stackalloc int[]
         {
             comp0TypeID.value,
@@ -407,7 +400,6 @@ public unsafe partial struct EntityQuery
             {
                 if (id == compTypeIDs[i])
                 {
-                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
                     changedCompIDs[changedCompCount] = id;
                     changedCompCount++;
                     break;
@@ -443,7 +435,7 @@ public unsafe partial struct EntityQuery
 
                 for (var j = 0; j < changedCompCount; j++)
                 {
-                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                    archetype.MarkChanged(chunkIndex, changedCompIDs[j], globalVersion);
                 }
 
                 for (var index = 0; index < 5; index++)
@@ -487,7 +479,7 @@ public unsafe partial struct EntityQuery
         var comp3TypeID = ComponentTypeID<T3>.value;
         var comp4TypeID = ComponentTypeID<T4>.value;
         var comp5TypeID = ComponentTypeID<T5>.value;
-        
+
         var compTypeIDs = stackalloc int[]
         {
             comp0TypeID.value,
@@ -511,7 +503,6 @@ public unsafe partial struct EntityQuery
             {
                 if (id == compTypeIDs[i])
                 {
-                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
                     changedCompIDs[changedCompCount] = id;
                     changedCompCount++;
                     break;
@@ -547,7 +538,7 @@ public unsafe partial struct EntityQuery
 
                 for (var j = 0; j < changedCompCount; j++)
                 {
-                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                    archetype.MarkChanged(chunkIndex, changedCompIDs[j], globalVersion);
                 }
 
                 for (var index = 0; index < 6; index++)
@@ -594,7 +585,7 @@ public unsafe partial struct EntityQuery
         var comp4TypeID = ComponentTypeID<T4>.value;
         var comp5TypeID = ComponentTypeID<T5>.value;
         var comp6TypeID = ComponentTypeID<T6>.value;
-        
+
         var compTypeIDs = stackalloc int[]
         {
             comp0TypeID.value,
@@ -619,7 +610,6 @@ public unsafe partial struct EntityQuery
             {
                 if (id == compTypeIDs[i])
                 {
-                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
                     changedCompIDs[changedCompCount] = id;
                     changedCompCount++;
                     break;
@@ -655,7 +645,7 @@ public unsafe partial struct EntityQuery
 
                 for (var j = 0; j < changedCompCount; j++)
                 {
-                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                    archetype.MarkChanged(chunkIndex, changedCompIDs[j], globalVersion);
                 }
 
                 for (var index = 0; index < 7; index++)
@@ -705,7 +695,7 @@ public unsafe partial struct EntityQuery
         var comp5TypeID = ComponentTypeID<T5>.value;
         var comp6TypeID = ComponentTypeID<T6>.value;
         var comp7TypeID = ComponentTypeID<T7>.value;
-        
+
         var compTypeIDs = stackalloc int[]
         {
             comp0TypeID.value,
@@ -731,7 +721,6 @@ public unsafe partial struct EntityQuery
             {
                 if (id == compTypeIDs[i])
                 {
-                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
                     changedCompIDs[changedCompCount] = id;
                     changedCompCount++;
                     break;
@@ -767,7 +756,7 @@ public unsafe partial struct EntityQuery
 
                 for (var j = 0; j < changedCompCount; j++)
                 {
-                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                    archetype.MarkChanged(chunkIndex, changedCompIDs[j], globalVersion);
                 }
 
                 for (var index = 0; index < 8; index++)
@@ -804,7 +793,7 @@ public unsafe partial struct EntityQuery
         var globalVersion = world.Version;
 
         var comp0TypeID = ComponentTypeID<T0>.value;
-        
+
         var compTypeIDs = stackalloc int[]
         {
             comp0TypeID.value,
@@ -823,7 +812,6 @@ public unsafe partial struct EntityQuery
             {
                 if (id == compTypeIDs[i])
                 {
-                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
                     changedCompIDs[changedCompCount] = id;
                     changedCompCount++;
                     break;
@@ -859,7 +847,7 @@ public unsafe partial struct EntityQuery
 
                 for (var j = 0; j < changedCompCount; j++)
                 {
-                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                    archetype.MarkChanged(chunkIndex, changedCompIDs[j], globalVersion);
                 }
 
                 for (var index = 0; index < 1; index++)
@@ -892,7 +880,7 @@ public unsafe partial struct EntityQuery
 
         var comp0TypeID = ComponentTypeID<T0>.value;
         var comp1TypeID = ComponentTypeID<T1>.value;
-        
+
         var compTypeIDs = stackalloc int[]
         {
             comp0TypeID.value,
@@ -912,7 +900,6 @@ public unsafe partial struct EntityQuery
             {
                 if (id == compTypeIDs[i])
                 {
-                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
                     changedCompIDs[changedCompCount] = id;
                     changedCompCount++;
                     break;
@@ -948,7 +935,7 @@ public unsafe partial struct EntityQuery
 
                 for (var j = 0; j < changedCompCount; j++)
                 {
-                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                    archetype.MarkChanged(chunkIndex, changedCompIDs[j], globalVersion);
                 }
 
                 for (var index = 0; index < 2; index++)
@@ -984,7 +971,7 @@ public unsafe partial struct EntityQuery
         var comp0TypeID = ComponentTypeID<T0>.value;
         var comp1TypeID = ComponentTypeID<T1>.value;
         var comp2TypeID = ComponentTypeID<T2>.value;
-        
+
         var compTypeIDs = stackalloc int[]
         {
             comp0TypeID.value,
@@ -1005,7 +992,6 @@ public unsafe partial struct EntityQuery
             {
                 if (id == compTypeIDs[i])
                 {
-                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
                     changedCompIDs[changedCompCount] = id;
                     changedCompCount++;
                     break;
@@ -1041,7 +1027,7 @@ public unsafe partial struct EntityQuery
 
                 for (var j = 0; j < changedCompCount; j++)
                 {
-                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                    archetype.MarkChanged(chunkIndex, changedCompIDs[j], globalVersion);
                 }
 
                 for (var index = 0; index < 3; index++)
@@ -1080,7 +1066,7 @@ public unsafe partial struct EntityQuery
         var comp1TypeID = ComponentTypeID<T1>.value;
         var comp2TypeID = ComponentTypeID<T2>.value;
         var comp3TypeID = ComponentTypeID<T3>.value;
-        
+
         var compTypeIDs = stackalloc int[]
         {
             comp0TypeID.value,
@@ -1102,7 +1088,6 @@ public unsafe partial struct EntityQuery
             {
                 if (id == compTypeIDs[i])
                 {
-                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
                     changedCompIDs[changedCompCount] = id;
                     changedCompCount++;
                     break;
@@ -1138,7 +1123,7 @@ public unsafe partial struct EntityQuery
 
                 for (var j = 0; j < changedCompCount; j++)
                 {
-                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                    archetype.MarkChanged(chunkIndex, changedCompIDs[j], globalVersion);
                 }
 
                 for (var index = 0; index < 4; index++)
@@ -1180,7 +1165,7 @@ public unsafe partial struct EntityQuery
         var comp2TypeID = ComponentTypeID<T2>.value;
         var comp3TypeID = ComponentTypeID<T3>.value;
         var comp4TypeID = ComponentTypeID<T4>.value;
-        
+
         var compTypeIDs = stackalloc int[]
         {
             comp0TypeID.value,
@@ -1203,7 +1188,6 @@ public unsafe partial struct EntityQuery
             {
                 if (id == compTypeIDs[i])
                 {
-                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
                     changedCompIDs[changedCompCount] = id;
                     changedCompCount++;
                     break;
@@ -1239,7 +1223,7 @@ public unsafe partial struct EntityQuery
 
                 for (var j = 0; j < changedCompCount; j++)
                 {
-                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                    archetype.MarkChanged(chunkIndex, changedCompIDs[j], globalVersion);
                 }
 
                 for (var index = 0; index < 5; index++)
@@ -1284,7 +1268,7 @@ public unsafe partial struct EntityQuery
         var comp3TypeID = ComponentTypeID<T3>.value;
         var comp4TypeID = ComponentTypeID<T4>.value;
         var comp5TypeID = ComponentTypeID<T5>.value;
-        
+
         var compTypeIDs = stackalloc int[]
         {
             comp0TypeID.value,
@@ -1308,7 +1292,6 @@ public unsafe partial struct EntityQuery
             {
                 if (id == compTypeIDs[i])
                 {
-                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
                     changedCompIDs[changedCompCount] = id;
                     changedCompCount++;
                     break;
@@ -1344,7 +1327,7 @@ public unsafe partial struct EntityQuery
 
                 for (var j = 0; j < changedCompCount; j++)
                 {
-                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                    archetype.MarkChanged(chunkIndex, changedCompIDs[j], globalVersion);
                 }
 
                 for (var index = 0; index < 6; index++)
@@ -1392,7 +1375,7 @@ public unsafe partial struct EntityQuery
         var comp4TypeID = ComponentTypeID<T4>.value;
         var comp5TypeID = ComponentTypeID<T5>.value;
         var comp6TypeID = ComponentTypeID<T6>.value;
-        
+
         var compTypeIDs = stackalloc int[]
         {
             comp0TypeID.value,
@@ -1417,7 +1400,6 @@ public unsafe partial struct EntityQuery
             {
                 if (id == compTypeIDs[i])
                 {
-                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
                     changedCompIDs[changedCompCount] = id;
                     changedCompCount++;
                     break;
@@ -1453,7 +1435,7 @@ public unsafe partial struct EntityQuery
 
                 for (var j = 0; j < changedCompCount; j++)
                 {
-                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                    archetype.MarkChanged(chunkIndex, changedCompIDs[j], globalVersion);
                 }
 
                 for (var index = 0; index < 7; index++)
@@ -1504,7 +1486,7 @@ public unsafe partial struct EntityQuery
         var comp5TypeID = ComponentTypeID<T5>.value;
         var comp6TypeID = ComponentTypeID<T6>.value;
         var comp7TypeID = ComponentTypeID<T7>.value;
-        
+
         var compTypeIDs = stackalloc int[]
         {
             comp0TypeID.value,
@@ -1530,7 +1512,6 @@ public unsafe partial struct EntityQuery
             {
                 if (id == compTypeIDs[i])
                 {
-                    ComponentRegister.SetComponentLastWrite(id, globalVersion);
                     changedCompIDs[changedCompCount] = id;
                     changedCompCount++;
                     break;
@@ -1566,7 +1547,7 @@ public unsafe partial struct EntityQuery
 
                 for (var j = 0; j < changedCompCount; j++)
                 {
-                    chunk.MarkChanged(changedCompIDs[i], globalVersion);
+                    archetype.MarkChanged(chunkIndex, changedCompIDs[j], globalVersion);
                 }
 
                 for (var index = 0; index < 8; index++)

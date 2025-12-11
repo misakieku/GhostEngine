@@ -103,17 +103,6 @@ internal static class ComponentRegister
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void SetComponentLastWrite(Identifier<IComponent> typeId, int version)
-    {
-        lock (s_registeredComponents)
-        {
-            var info = s_registeredComponents[typeId];
-            info.lastWriteVersion = version;
-            s_registeredComponents[typeId] = info;
-        }
-    }
-
     public static int GetHashCode(params ReadOnlySpan<Identifier<IComponent>> componentTypeIDs)
     {
         var largestID = 0;

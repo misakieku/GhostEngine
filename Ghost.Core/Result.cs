@@ -287,6 +287,17 @@ public static class ResultExtensions
         return result;
     }
 
+    public static Result<T, E> OnSuccess<T, E>(this Result<T, E> result, Action<T> action)
+        where E : struct, Enum
+    {
+        if (result.IsSuccess)
+        {
+            action(result.Value);
+        }
+
+        return result;
+    }
+
     public static Result OnFailed(this Result result, Action<string?> action)
     {
         if (result.IsFailure)
@@ -302,6 +313,17 @@ public static class ResultExtensions
         if (result.IsFailure)
         {
             action(result.Message);
+        }
+
+        return result;
+    }
+
+    public static Result<T, E> OnFailed<T, E>(this Result<T, E> result, Action<E> action)
+        where E : struct, Enum
+    {
+        if (result.IsFailure)
+        {
+            action(result.Error);
         }
 
         return result;
