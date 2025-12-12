@@ -37,7 +37,7 @@ internal static class ComponentRegister
     private static readonly Dictionary<IntPtr, int> s_typeHandleToID = new();
     private static readonly Dictionary<string, int> s_nameToRuntimeID = new();
 #if DEBUG || GHOST_EDITOR
-    internal static readonly Dictionary<int, IntPtr> s_runtimeIDToTypeHandle = new();
+    internal static readonly Dictionary<int, Type> s_runtimeIDToType = new();
 #endif
 
     public static unsafe Identifier<IComponent> GetOrRegisterComponent<T>()
@@ -72,7 +72,7 @@ internal static class ComponentRegister
             s_typeHandleToID[typeHandle] = newID;
             s_nameToRuntimeID[stableName] = newID;
 #if DEBUG || GHOST_EDITOR
-            s_runtimeIDToTypeHandle[newID.value] = typeHandle;
+            s_runtimeIDToType[newID.value] = typeof(T);
 #endif
 
             return newID;

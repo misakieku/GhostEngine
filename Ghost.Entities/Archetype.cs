@@ -23,92 +23,80 @@ internal unsafe sealed class ChunkDebugView
         }
     }
 
-    public byte* pData;
-    public int count;
-    public int capacity;
-    public int worldID;
-    public int archetypeID;
+    private Chunk _chunk;
 
     public ChunkDebugView(Chunk chunk)
     {
-        pData = chunk.GetUnsafePtr();
-        count = chunk._count;
-        capacity = chunk._capacity;
-#if DEBUG || GHOST_EDITOR
-        worldID = chunk._worldID;
-        archetypeID = chunk._archetypeID;
-#else
-        worldID = -1;
-        archetypeID = -1;
-#endif
+        _chunk = chunk;
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-    public object[] Items
-    {
-        get
-        {
-#if !(DEBUG || GHOST_EDITOR)
-#else
-            if (count == 0)
-#endif
-            {
-                return [];
-            }
+    public object[] Items => GetItems(in _chunk);
 
-            var views = new List<object>();
-            var r = World.GetWorld(worldID);
-            if (!r)
-            {
-                return [];
-            }
-
-            ref var archetype = ref r.Value.GetArchetypeReference(archetypeID);
-            var it = archetype._signature.GetIterator();
-            while (it.Next(out var index))
-            {
-                var type = Type.GetTypeFromHandle(RuntimeTypeHandle.FromIntPtr(ComponentRegister.s_runtimeIDToTypeHandle[index]));
-                if (type == null)
-                {
-                    continue;
-                }
-
-                var layout = archetype.GetLayout(index).Value;
-                var readMethod = typeof(ChunkDebugView)
-                    .GetMethod(nameof(ReadComponentArray), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-                    .MakeGenericMethod(type);
-
-                // 3. Invoke it to get a Position[] or Velocity[]
-                var array = readMethod.Invoke(this, [layout.offset]);
-                if (array == null)
-                {
-                    continue;
-                }
-
-                // 4. Wrap it in a nice label so the debugger shows "Position[]"
-                views.Add(new ComponentArrayView(type.Name, array));
-            }
-
-            return [.. views];
-        }
-    }
-
-    private T[] ReadComponentArray<T>(int offsetInChunk)
+    private static T[] ReadComponentArray<T>(long pData, int offsetInChunk, int count)
         where T : unmanaged
     {
         var result = new T[count];
         unsafe
         {
-            var basePtr = pData + offsetInChunk;
-
-            var sizeOfT = sizeof(T);
-            for (int i = 0; i < count; i++)
-            {
-                // Read directly from raw memory
-                result[i] = Unsafe.Read<T>(basePtr + (i * sizeOfT));
-            }
+            var basePtr = (byte*)pData + offsetInChunk;
+            var span = new Span<T>(basePtr, count);
+            span.CopyTo(result);
         }
+
         return result;
+    }
+
+    private static object[] GetItems(ref readonly Chunk chunk)
+    {
+#if !(DEBUG || GHOST_EDITOR)
+        return [];
+#else
+        var pData = chunk.GetUnsafePtr();
+        var count = chunk._count;
+        var capacity = chunk._capacity;
+        var worldID = chunk._worldID;
+        var archetypeID = chunk._archetypeID;
+
+        if (count == 0)
+        {
+            return [];
+        }
+
+        var views = new List<object>();
+        var r = World.GetWorld(worldID);
+        if (!r)
+        {
+            return [];
+        }
+
+        ref var archetype = ref r.Value.GetArchetypeReference(archetypeID);
+        var it = archetype._signature.GetIterator();
+        while (it.Next(out var index))
+        {
+            var type = ComponentRegister.s_runtimeIDToType[index];
+            if (type == null)
+            {
+                continue;
+            }
+            var layout = archetype.GetLayout(index).Value;
+            var readMethod = typeof(ChunkDebugView)
+                .GetMethod(nameof(ReadComponentArray), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+                .MakeGenericMethod(type);
+
+            // 3. Invoke it to get a Position[] or Velocity[]
+            var array = readMethod.Invoke(null, [(long)pData, layout.offset, count]);
+            if (array == null)
+            {
+                continue;
+            }
+
+            // 4. Wrap it in a nice label so the debugger shows "Position[]"
+            views.Add(new ComponentArrayView(type.Name, array));
+        }
+
+        return [.. views];
+#endif
     }
 }
 
@@ -509,7 +497,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
             // Only operate the swap back after the update is succeed.
             MemoryUtility.MemCpy(pRowEntity, pLastEntity, (nuint)sizeof(Entity));
 
-            for (var i = 0; i <= _layouts.Count; i++)
+            for (var i = 0; i < _layouts.Count; i++)
             {
                 var layout = _layouts[i];
 

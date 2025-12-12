@@ -14,7 +14,7 @@ internal struct TestChunkQueryJob : IJobChunk
         var transforms = view.GetComponentDataRW<Transform>();
         for (var i = 0; i < view.Count; i++)
         {
-            transforms[i].position += random.NextFloat3(-1f, 1f);
+            transforms[i].position += random.NextFloat3();
         }
     }
 }
