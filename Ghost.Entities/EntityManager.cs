@@ -16,11 +16,28 @@ namespace Ghost.Entities;
 /// </remarks>
 public unsafe partial class EntityManager : IDisposable
 {
-    private struct EntityLocation
+    private struct EntityLocation : IComparable<EntityLocation>
     {
         public int archetypeID;
         public int chunkIndex;
         public int rowIndex;
+
+        public readonly int CompareTo(EntityLocation other)
+        {
+            var archComp = chunkIndex.CompareTo(other.chunkIndex);
+            if (archComp != 0)
+            {
+                return archComp;
+            }
+
+            var chunkComp = chunkIndex.CompareTo(other.chunkIndex);
+            if (chunkComp != 0)
+            {
+                return chunkComp;
+            }
+
+            return rowIndex.CompareTo(other.rowIndex);
+        }
     }
 
     private readonly World _world;
@@ -234,9 +251,79 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="entities">The entities to destroy.</param>
     public void DestroyEntities(ReadOnlySpan<Entity> entities)
     {
-        for (var i = 0; i < entities.Length; i++)
+        if (entities.Length == 0)
         {
-            DestroyEntity(entities[i]);
+            return;
+        }
+
+        using var scope = AllocationManager.CreateStackScope();
+        var batchDestroy = new UnsafeList<EntityLocation>(entities.Length, scope.AllocationHandle);
+        var rowIndicesCache = new UnsafeList<int>(32, scope.AllocationHandle);
+
+        // 1. GATHER
+        // Resolve all entities to their locations
+        for (int i = 0; i < entities.Length; i++)
+        {
+            var entity = entities[i];
+            if (_entityLocations.TryGetElementAt(entity.ID, entity.Generation, out var location))
+            {
+                batchDestroy.Add(location);
+            }
+        }
+
+        if (batchDestroy.Count == 0)
+        {
+            return;
+        }
+
+        // 2. SORT
+        // Sorting groups them by chunk automatically
+        batchDestroy.AsSpan().Sort();
+
+        // 3. SWEEP
+        // Iterate through the sorted list and batch process each chunk
+        var firstLoc = batchDestroy[0];
+        var prevArchetypeID = firstLoc.archetypeID;
+        var prevChunkIndex = firstLoc.chunkIndex;
+
+        for (int i = 0; i < batchDestroy.Count; i++)
+        {
+            var loc = batchDestroy[i];
+
+            // Check if we have crossed a boundary (Different Chunk OR Different Archetype)
+            bool isNewBatch = (loc.chunkIndex != prevChunkIndex) || (loc.archetypeID != prevArchetypeID);
+
+            if (isNewBatch)
+            {
+                // FLUSH PREVIOUS BATCH
+                // We must retrieve the Archetype of the *Previous* batch, not the current 'loc'
+                ref var prevArchetype = ref _world.GetArchetypeReference(prevArchetypeID);
+
+                // Execute the hole-filling/swap logic
+                prevArchetype.RemoveEntities(prevChunkIndex, rowIndicesCache.AsSpan());
+
+                // RESET
+                rowIndicesCache.Clear();
+                prevArchetypeID = loc.archetypeID;
+                prevChunkIndex = loc.chunkIndex;
+            }
+
+            rowIndicesCache.Add(loc.rowIndex);
+        }
+
+        // 4. FINAL FLUSH
+        // Process the stragglers remaining in the cache
+        if (rowIndicesCache.Count > 0)
+        {
+            ref var lastArchetype = ref _world.GetArchetypeReference(prevArchetypeID);
+            lastArchetype.RemoveEntities(prevChunkIndex, rowIndicesCache.AsSpan());
+        }
+
+        // 5. Remove from Entity Locations
+        for (int i = 0; i < entities.Length; i++)
+        {
+            var entity = entities[i];
+            _entityLocations.Remove(entity.ID, entity.Generation);
         }
     }
 

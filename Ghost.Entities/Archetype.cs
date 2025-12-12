@@ -111,6 +111,8 @@ internal unsafe struct Chunk : IDisposable
     private UnsafeArray<byte> _data;
     private UnsafeArray<int> _versions;
 
+    // TODO: Add structual change versioning, similar to DidOrderChange in unity ecs.
+
     internal int _count;
     internal readonly int _capacity;
 
@@ -145,9 +147,7 @@ internal unsafe struct Chunk : IDisposable
     public void Dispose()
     {
         _data.Dispose();
-        Console.WriteLine($"Disposing chunk data");
         _versions.Dispose();
-        Console.WriteLine($"Disposing chunk versions");
     }
 }
 
@@ -487,8 +487,8 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
             var pLastEntity = chunkBase + _entityIdsOffset + (sizeof(Entity) * lastIndex);
             var pRowEntity = chunkBase + _entityIdsOffset + (sizeof(Entity) * rowIndex);
 
-            var wrold = World.GetWorldUncheck(_worldID);
-            var result = wrold.EntityManager.UpdateEntityLocation(*(Entity*)pLastEntity, _id, chunkIndex, rowIndex);
+            var world = World.GetWorldUncheck(_worldID);
+            var result = world.EntityManager.UpdateEntityLocation(*(Entity*)pLastEntity, _id, chunkIndex, rowIndex);
             if (result != ErrorStatus.None)
             {
                 return result;
@@ -509,6 +509,111 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         }
 
         chunk._count--;
+        return ErrorStatus.None;
+    }
+
+    public ErrorStatus RemoveEntities(int chunkIndex, ReadOnlySpan<int> sortedIndicesToRemove)
+    {
+        if (chunkIndex < 0 || chunkIndex >= _chunks.Count)
+        {
+            return ErrorStatus.InvalidArgument;
+        }
+
+        if (sortedIndicesToRemove.Length == 0)
+        {
+            return ErrorStatus.None;
+        }
+
+        ref var chunk = ref _chunks[chunkIndex];
+
+        int oldCount = chunk._count;
+        int removeCount = sortedIndicesToRemove.Length;
+        int newCount = oldCount - removeCount; // The boundary between "Keep" and "Drop"
+
+        var chunkBase = chunk.GetUnsafePtr();
+        var world = World.GetWorldUncheck(_worldID); // Typo fixed from 'wrold'
+
+        // Pointers for the swap logic
+        // 1. 'holePtr' tracks which index in the sorted list we are processing
+        int holePtr = 0;
+
+        // 2. 'candidateIndex' starts at the end of the OLD array and moves backward
+        int candidateIndex = oldCount - 1;
+
+        // 3. 'removalTailPtr' tracks removals at the end of the array to skip them
+        int removalTailPtr = sortedIndicesToRemove.Length - 1;
+
+        // Iterate through the holes that are strictly INSIDE the new valid range
+        while (holePtr < removeCount)
+        {
+            int holeIndex = sortedIndicesToRemove[holePtr];
+
+            // If the current hole is beyond the new count, it's in the "Drop Zone".
+            // Since the list is sorted, all subsequent holes are also in the drop zone.
+            // We are done filling holes.
+            if (holeIndex >= newCount)
+                break;
+
+            // --- Find a Valid Filler ---
+            // We look for an entity at the end of the array that IS NOT scheduled for removal.
+            while (candidateIndex >= newCount)
+            {
+                // Check if the current candidate is actually marked for removal
+                bool isCandidateRemoved = false;
+
+                // Because sortedIndices is sorted, we check the end of the list 
+                // to see if the candidateIndex matches a removal request.
+                if (removalTailPtr >= 0 && sortedIndicesToRemove[removalTailPtr] == candidateIndex)
+                {
+                    isCandidateRemoved = true;
+                    removalTailPtr--; // Consume this removal
+                }
+
+                if (!isCandidateRemoved)
+                {
+                    // Found a valid filler!
+                    break;
+                }
+
+                // This candidate was also removed, so skip it and keep looking left
+                candidateIndex--;
+            }
+
+            // --- Perform The Swap ---
+            // Move 'candidateIndex' (Filler) into 'holeIndex' (Hole)
+
+            var pFillerEntity = chunkBase + _entityIdsOffset + (sizeof(Entity) * candidateIndex);
+            var pHoleEntity = chunkBase + _entityIdsOffset + (sizeof(Entity) * holeIndex);
+
+            // 1. Update the Map (Critical Step)
+            // We tell the world: "The entity that WAS at 'candidateIndex' is now at 'holeIndex'"
+            var result = world.EntityManager.UpdateEntityLocation(*(Entity*)pFillerEntity, _id, chunkIndex, holeIndex);
+            if (result != ErrorStatus.None)
+            {
+                return result;
+            }
+
+            // 2. Overwrite Entity ID
+            MemoryUtility.MemCpy(pHoleEntity, pFillerEntity, (nuint)sizeof(Entity));
+
+            // 3. Overwrite Components
+            for (var i = 0; i < _layouts.Count; i++)
+            {
+                var layout = _layouts[i];
+                var pRow = chunkBase + layout.offset + (layout.size * holeIndex);
+                var pLast = chunkBase + layout.offset + (layout.size * candidateIndex);
+                MemoryUtility.MemCpy(pRow, pLast, (nuint)layout.size);
+            }
+
+            // Prepare for next hole
+            holePtr++;
+            candidateIndex--;
+        }
+
+        // Finally, simply truncate the count
+        chunk._count = newCount;
+
+        // (Optional) If you have Versioning, mark the components as changed here.
         return ErrorStatus.None;
     }
 
@@ -577,12 +682,9 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
     {
         if (_chunks.IsCreated)
         {
-            var i= 0;
             foreach (ref var chunk in _chunks)
             {
-                Console.WriteLine($"Disposing chunk {i} of archetype {_id}");
                 chunk.Dispose();
-                i++;
             }
         }
 
