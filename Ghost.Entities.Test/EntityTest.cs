@@ -1,7 +1,7 @@
 using Ghost.Test.Core;
 using Misaki.HighPerformance.Jobs;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
-using System.Diagnostics;
 
 namespace Ghost.Entities.Test;
 
@@ -9,17 +9,19 @@ internal struct TestChunkQueryJob : IJobChunk
 {
     public readonly void Execute(ChunkView view, int threadIndex)
     {
+        var random = new random((uint)threadIndex + 1u);
+
         var transforms = view.GetComponentDataRW<Transform>();
         for (var i = 0; i < view.Count; i++)
         {
-            transforms[i].position += new float3(10, 10, 10);
+            transforms[i].position += random.NextFloat3(-1f, 1f);
         }
     }
 }
 
 internal struct TestEntityQueryJob : IJobEntity<Transform>
 {
-    public readonly void Execute(Entity entity, ref Transform transform, int index)
+    public readonly void Execute(Entity entity, ref Transform transform, int threadIndex)
     {
         transform.position += new float3(5, 5, 5);
     }
@@ -38,23 +40,16 @@ public partial class EntityTest : ITest
 
     public void Run()
     {
-        var entity1 = _world.EntityManager.CreateEntity(ComponentTypeID<Transform>.value, ComponentTypeID<ManagedEntityRef>.value);
-        _world.EntityManager.AddComponent(entity1, new Mesh { index = 1 });
-        _world.EntityManager.SetComponent(entity1, new ManagedEntityRef
-        {
-            entity = _world.EntityManager.CreateManagedEntity()
-        });
+        var entities = (Span<Entity>)stackalloc Entity[1000];
+        _world.EntityManager.CreateEntities(entities, ComponentTypeID<Transform>.value);
 
-        var entity2 = _world.EntityManager.CreateEntity(ComponentTypeID<Transform>.value);
-        _world.EntityManager.SetComponent(entity2, new Transform { position = new float3(1, 2, 3) });
-
-        var queryID = new QueryBuilder().WithAllRW<Transform>().WithAbsent<Mesh>().Build(_world);
+        var queryID = new QueryBuilder().WithAllRW<Transform>().Build(_world);
         ref var query = ref _world.GetEntityQueryReference(queryID);
 
         _world.AdvanceVersion();
 
-        var testJob = new TestEntityQueryJob();
-        var handle = query.ScheduleEntityParallel<TestEntityQueryJob, Transform>(testJob, 64, JobHandle.Invalid);
+        var testJob = new TestChunkQueryJob();
+        var handle = query.ScheduleChunkParallel<TestChunkQueryJob>(testJob, 64, JobHandle.Invalid);
         _jobScheduler.WaitComplete(handle);
 
         // _world.EntityManager.AddScriptComponent<TestScriptComponent>(entity1);
@@ -73,22 +68,22 @@ public partial class EntityTest : ITest
         foreach (var chunk in query.GetChunkIterator())
         {
             var transforms = chunk.GetComponentData<Transform>();
-            var entities = chunk.GetEntities();
+            var chunkEntities = chunk.GetEntities();
 
-            if (chunk.HasChanged<Transform>(0))
+            // if (chunk.HasChanged<Transform>(0))
             {
-                var bits = chunk.GetEnableBits<Transform>();
+                // var bits = chunk.GetEnableBits<Transform>();
 
-                var it = bits.GetIterator();
-                while (it.Next(out var index) && index < chunk.Count)
+                // var it = bits.GetIterator();
+                // while (it.Next(out var index) && index < chunk.Count)
+                for (var index = 0; index < chunk.Count; index++)
                 {
-                    Console.WriteLine($"Entity {entities[index]} Updated Position: {transforms[index].position}");
+                    Console.WriteLine($"Entity {chunkEntities[index]} Updated Position: {transforms[index].position}");
                 }
             }
         }
 
-        Debug.Assert(_world.EntityManager.DestroyEntity(entity1) == Core.ErrorStatus.None);
-        Debug.Assert(_world.EntityManager.DestroyEntity(entity2) == Core.ErrorStatus.None);
+        _world.EntityManager.DestroyEntities(entities);
     }
 
     public void Cleanup()

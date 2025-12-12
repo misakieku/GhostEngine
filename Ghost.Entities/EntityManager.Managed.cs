@@ -68,7 +68,7 @@ public partial class EntityManager
     /// <returns>True if the ManagedEntity exists, false otherwise.</returns>
     public bool Exists(ManagedEntity managedEntity)
     {
-        return _scriptComponents.Contain(managedEntity.id, managedEntity.generation);
+        return _scriptComponents.Contains(managedEntity.id, managedEntity.generation);
     }
 
     /// <summary>

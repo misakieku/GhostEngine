@@ -157,7 +157,9 @@ internal unsafe struct Chunk : IDisposable
     public void Dispose()
     {
         _data.Dispose();
+        Console.WriteLine($"Disposing chunk data");
         _versions.Dispose();
+        Console.WriteLine($"Disposing chunk versions");
     }
 }
 
@@ -587,9 +589,12 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
     {
         if (_chunks.IsCreated)
         {
+            var i= 0;
             foreach (ref var chunk in _chunks)
             {
+                Console.WriteLine($"Disposing chunk {i} of archetype {_id}");
                 chunk.Dispose();
+                i++;
             }
         }
 

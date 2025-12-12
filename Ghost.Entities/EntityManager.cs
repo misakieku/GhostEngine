@@ -60,7 +60,7 @@ public unsafe partial class EntityManager : IDisposable
     public Entity CreateEntity()
     {
         var entities = (Span<Entity>)stackalloc Entity[1];
-        CreateEntities(1, entities);
+        CreateEntities(entities);
 
         return entities[0];
     }
@@ -73,7 +73,7 @@ public unsafe partial class EntityManager : IDisposable
     public Entity CreateEntity(params ReadOnlySpan<Identifier<IComponent>> componentTypeIDs)
     {
         var entities = (Span<Entity>)stackalloc Entity[1];
-        CreateEntities(1, entities, componentTypeIDs);
+        CreateEntities(entities, componentTypeIDs);
 
         return entities[0];
     }
@@ -81,14 +81,13 @@ public unsafe partial class EntityManager : IDisposable
     /// <summary>
     /// Create multiple entities with no components.
     /// </summary>
-    /// <param name="count">The number of entities to create.</param>
     /// <param name="entities">The span to store the created entities.</param>
-    public void CreateEntities(int count, Span<Entity> entities)
+    public void CreateEntities(Span<Entity> entities)
     {
         ref var emptyArchetype = ref _world.GetArchetypeReference(World.EmptyArchetypeID);
         emptyArchetype.AllocateEntity(out var chunkIndex, out var rowIndex);
 
-        for (var i = 0; i < count; i++)
+        for (var i = 0; i < entities.Length; i++)
         {
             var id = _entityLocations.Add(new EntityLocation
             {
@@ -130,11 +129,10 @@ public unsafe partial class EntityManager : IDisposable
     /// <summary>
     /// Create multiple entities with specified components.
     /// </summary>
-    /// <param name="count">The number of entities to create.</param>
     /// <param name="allocator">The allocator to use for the returned array.</param>
     /// <param name="componentTypeIDs">The component type IDs to add to the entities. </param>
     /// <returns>An array of the created entities.</returns>
-    public void CreateEntities(int count, Span<Entity> entities, params ReadOnlySpan<Identifier<IComponent>> componentTypeIDs)
+    public void CreateEntities(Span<Entity> entities, params ReadOnlySpan<Identifier<IComponent>> componentTypeIDs)
     {
         var signatureHash = ComponentRegister.GetHashCode(componentTypeIDs);
         var arcID = _world.GetArchetypeIDBySignatureHash(signatureHash);
@@ -146,7 +144,7 @@ public unsafe partial class EntityManager : IDisposable
 
         ref var archetype = ref _world.GetArchetypeReference(arcID);
 
-        for (var i = 0; i < count; i++)
+        for (var i = 0; i < entities.Length; i++)
         {
             archetype.AllocateEntity(out var chunkIndex, out var rowIndex);
 
@@ -228,6 +226,18 @@ public unsafe partial class EntityManager : IDisposable
         }
 
         return ErrorStatus.None;
+    }
+
+    /// <summary>
+    /// Destroy the specified entities.
+    /// </summary>
+    /// <param name="entities">The entities to destroy.</param>
+    public void DestroyEntities(ReadOnlySpan<Entity> entities)
+    {
+        for (var i = 0; i < entities.Length; i++)
+        {
+            DestroyEntity(entities[i]);
+        }
     }
 
     /// <summary>
@@ -713,9 +723,6 @@ public unsafe partial class EntityManager : IDisposable
         {
             return;
         }
-
-        Debug.Assert(_entityLocations.Count == 0, "There are still entities alive when disposing EntityManager.");
-        Debug.Assert(_scriptComponents.Count == 0, "There are still managed entities alive when disposing EntityManager.");
 
         _entityLocations.Dispose();
         _disposed = true;
