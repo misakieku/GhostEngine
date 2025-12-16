@@ -86,11 +86,13 @@ internal struct EntityQueryMask : IDisposable, IEquatable<EntityQueryMask>
 /// <remarks>This does not filter disabled/enabled components. You must handle that manually.</remarks>
 public readonly unsafe ref struct ChunkView
 {
+    // We flatten all the information we need for fast access.
     private readonly ReadOnlyUnsafeCollection<Archetype.ComponentMemoryLayout> _layouts;
     private readonly byte* _pChunkData;
     private readonly int* _pVersion;
     private readonly int _entityOffset;
     private readonly int _entityCount;
+    private readonly int _structuralVersion;
     private readonly int _currentVersion;
 
     public readonly int Count => _entityCount;
@@ -103,6 +105,7 @@ public readonly unsafe ref struct ChunkView
         _entityCount = chunk._count;
         _pVersion = chunk.GetVersionUnsafePtr();
 
+        _structuralVersion = chunk._structuralVersion;
         _currentVersion = World.GetWorldUncheck(archetype.WorldID).Version;
     }
 
@@ -144,6 +147,17 @@ public readonly unsafe ref struct ChunkView
     {
         var layout = GetLayout(ComponentTypeID<T>.value);
         return version < _pVersion[layout.versionIndex];
+    }
+
+    /// <summary>
+    /// Determines whether the chunk's structure has changed since the specified version.
+    /// </summary>
+    /// <param name="version">The version number to compare against the chunk's structural version.</param>
+    /// <returns>true if the chunk's structure has changed since the specified version; otherwise, false.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly bool HasStructuralChanged(int version)
+    {
+        return version < _structuralVersion;
     }
 
     /// <summary>

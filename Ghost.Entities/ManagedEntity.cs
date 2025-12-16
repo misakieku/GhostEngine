@@ -6,11 +6,6 @@ public record struct ManagedEntity
 {
     public int id;
     public int generation;
-
-    public override readonly string ToString()
-    {
-        return $"ManagedEntity({id}, {generation})";
-    }
 }
 
 public struct ManagedEntityRef : IComponent
@@ -18,7 +13,7 @@ public struct ManagedEntityRef : IComponent
     public ManagedEntity entity;
 }
 
-public abstract class ScriptComponent : IComponent
+public abstract class ScriptComponent
 {
     internal World _world = null!;
     internal Entity _entity;

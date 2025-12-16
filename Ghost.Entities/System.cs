@@ -172,14 +172,27 @@ public abstract class SystemGroup : ISystem
         return sortedList;
     }
 
-    public void AddSystem(ISystem system)
+    public void AddSystem<T>()
+        where T : ISystem, new()
     {
-        _systems.Add(system);
+        _systems.Add(new T());
         _version++;
     }
 
     public void SortSystems()
     {
+        if (_sortedVersion == _version)
+        {
+            return;
+        }
+
+        if (_systems.Count == 0)
+        {
+            _sortedSystems = new List<ISystem>();
+            _sortedVersion = _version;
+            return;
+        }
+
         _sortedSystems = Sort(_systems);
         _sortedVersion = _version;
     }
@@ -236,6 +249,7 @@ public class SystemManager
     internal SystemManager(World world)
     {
         _world = world;
+        AddSystem<DefaultSystemGroup>();
     }
 
     public void AddSystem<T>()

@@ -1,9 +1,16 @@
 using Ghost.Test.Core;
 using Misaki.HighPerformance.Jobs;
-using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Entities.Test;
+
+internal struct TestEntityQueryJob : IJobEntity<Transform>
+{
+    public readonly void Execute(Entity entity, ref Transform transform, int threadIndex)
+    {
+        transform.position += new float3(5, 5, 5);
+    }
+}
 
 internal struct TestChunkQueryJob : IJobChunk
 {
@@ -19,15 +26,7 @@ internal struct TestChunkQueryJob : IJobChunk
     }
 }
 
-internal struct TestEntityQueryJob : IJobEntity<Transform>
-{
-    public readonly void Execute(Entity entity, ref Transform transform, int threadIndex)
-    {
-        transform.position += new float3(5, 5, 5);
-    }
-}
-
-public partial class EntityTest : ITest
+public partial class EntityQueryTest : ITest
 {
     private JobScheduler _jobScheduler = null!;
     private World _world = null!;
@@ -49,21 +48,18 @@ public partial class EntityTest : ITest
         _world.AdvanceVersion();
 
         var testJob = new TestChunkQueryJob();
-        var handle = query.ScheduleChunkParallel<TestChunkQueryJob>(testJob, 64, JobHandle.Invalid);
+        var handle = query.ScheduleChunkParallel(testJob, 64, JobHandle.Invalid);
         _jobScheduler.WaitComplete(handle);
 
-        // _world.EntityManager.AddScriptComponent<TestScriptComponent>(entity1);
-        // _world.EntityManager.RemoveComponent<ManagedEntityRef>(entity1); // This should destory the managed entity and call OnDestroy
+        query.ForEach<Transform>((e, ref t) =>
+        {
+            Console.WriteLine($"Entity {e} Has Position: {t.position}");
+        });
 
-        // query.ForEach<Transform>((e, ref t) =>
-        // {
-        //     Console.WriteLine($"Entity {e} Has Position: {t.position}");
-        // });
-        //
-        // foreach (var (entity, transform) in query.GetEntityComponentIterator<Transform>())
-        // {
-        //     Console.WriteLine($"Entity {entity} Updated Position: {transform.Get().position}");
-        // }
+        foreach (var (entity, transform) in query.GetEntityComponentIterator<Transform>())
+        {
+            Console.WriteLine($"Entity {entity} Updated Position: {transform.Get().position}");
+        }
 
         foreach (var chunk in query.GetChunkIterator())
         {
@@ -102,19 +98,4 @@ public struct Transform : IEnableableComponent
 public struct Mesh : IComponent
 {
     public int index;
-}
-
-public class TestScriptComponent : ScriptComponent
-{
-    public override void OnCreate()
-    {
-        Console.WriteLine($"TestScriptComponent OnCreate called for Entity {Entity}");
-        ref var transform = ref GetComponent<Transform>();
-        transform.position += new float3(0, 1, 0);
-    }
-
-    public override void OnDestroy()
-    {
-        Console.WriteLine($"TestScriptComponent OnDestroy called for Entity {Entity}");
-    }
 }

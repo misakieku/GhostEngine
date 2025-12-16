@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Misaki.HighPerformance.Collections;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
@@ -48,6 +49,8 @@ public unsafe partial class EntityManager : IDisposable
     {
         _world = world;
         _entityLocations = new UnsafeSlotMap<EntityLocation>(initialCapacity, Allocator.Persistent, AllocationOption.Clear);
+        _scriptComponents = new SlotMap<List<ScriptComponent>>(initialCapacity / 2);
+        // _storages = new IManagedComponentStorage[16];
     }
 
     ~EntityManager()
@@ -212,6 +215,15 @@ public unsafe partial class EntityManager : IDisposable
         }
     }
 
+    private void DestoryManagedEntityIfExists(ref readonly Archetype archetype, EntityLocation location)
+    {
+        var pManagedRef = archetype.GetComponentData(location.chunkIndex, location.rowIndex, ComponentTypeID<ManagedEntityRef>.value);
+        if (pManagedRef != null)
+        {
+            DestroyManagedEntity(((ManagedEntityRef*)pManagedRef)->entity);
+        }
+    }
+
     /// <summary>
     /// Destroy the specified entity.
     /// </summary>
@@ -225,12 +237,7 @@ public unsafe partial class EntityManager : IDisposable
 
         ref var archetype = ref _world.GetArchetypeReference(location.archetypeID);
 
-        var pManagedRef = archetype.GetComponentData(location.chunkIndex, location.rowIndex, ComponentTypeID<ManagedEntityRef>.value);
-        if (pManagedRef != null)
-        {
-            DestroyManagedEntity(((ManagedEntityRef*)pManagedRef)->entity);
-        }
-
+        DestoryManagedEntityIfExists(in archetype, location);
         var r = archetype.RemoveEntity(location.chunkIndex, location.rowIndex);
         if (r != ErrorStatus.None)
         {
@@ -251,6 +258,22 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="entities">The entities to destroy.</param>
     public void DestroyEntities(ReadOnlySpan<Entity> entities)
     {
+        void RemoveManagedEntity(ReadOnlySpan<int> rowIndicesCache, ref readonly Archetype archetype, int chunkIndex)
+        {
+            for (int j = 0; j < rowIndicesCache.Length; j++)
+            {
+                var rowIndex = rowIndicesCache[j];
+                var location = new EntityLocation
+                {
+                    archetypeID = archetype.ID,
+                    chunkIndex = chunkIndex,
+                    rowIndex = rowIndex
+                };
+
+                DestoryManagedEntityIfExists(in archetype, location);
+            }
+        }
+
         if (entities.Length == 0)
         {
             return;
@@ -299,6 +322,9 @@ public unsafe partial class EntityManager : IDisposable
                 // We must retrieve the Archetype of the *Previous* batch, not the current 'loc'
                 ref var prevArchetype = ref _world.GetArchetypeReference(prevArchetypeID);
 
+                // Remove Managed Entities first
+                RemoveManagedEntity(rowIndicesCache.AsSpan(), in prevArchetype, prevChunkIndex);
+
                 // Execute the hole-filling/swap logic
                 prevArchetype.RemoveEntities(prevChunkIndex, rowIndicesCache.AsSpan());
 
@@ -316,6 +342,8 @@ public unsafe partial class EntityManager : IDisposable
         if (rowIndicesCache.Count > 0)
         {
             ref var lastArchetype = ref _world.GetArchetypeReference(prevArchetypeID);
+
+            RemoveManagedEntity(rowIndicesCache.AsSpan(), in lastArchetype, prevChunkIndex);
             lastArchetype.RemoveEntities(prevChunkIndex, rowIndicesCache.AsSpan());
         }
 
@@ -473,7 +501,12 @@ public unsafe partial class EntityManager : IDisposable
         ref var oldArchetype = ref _world.GetArchetypeReference(location.archetypeID);
         var oldSignature = oldArchetype._signature;
 
-        // TODO: Check edge cache first.
+        if (oldSignature.IsSet(componentID))
+        {
+            // Component already exists
+            return ErrorStatus.InvalidArgument;
+        }
+
         var newArcID = oldArchetype.GetEdgeAdd(componentID);
         if (newArcID.IsNotValid)
         {

@@ -112,6 +112,7 @@ internal unsafe struct Chunk : IDisposable
     private UnsafeArray<int> _versions;
 
     // TODO: Add structual change versioning, similar to DidOrderChange in unity ecs.
+    internal int _structuralVersion;
 
     internal int _count;
     internal readonly int _capacity;
@@ -130,6 +131,7 @@ internal unsafe struct Chunk : IDisposable
         _count = 0;
 
         _versions.AsSpan().Fill(globalVersion);
+        _structuralVersion = globalVersion;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -327,6 +329,8 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
 
     public void AllocateEntity(out int chunkIndex, out int rowIndex)
     {
+        var world = World.GetWorldUncheck(_worldID);
+
         for (var i = 0; i < _chunks.Count; i++)
         {
             ref var chunk = ref _chunks[i];
@@ -334,13 +338,12 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
             {
                 rowIndex = chunk._count;
                 chunk._count++;
+                chunk._structuralVersion = world.Version;
                 chunkIndex = i;
 
                 return;
             }
         }
-
-        var world = World.GetWorldUncheck(_worldID);
 
         // Need to allocate a new chunk
         var newChunk = new Chunk(Chunk.CHUNK_BUFFER_SIZE, _entityCapacity, _layouts.Count, world.Version);
@@ -477,6 +480,7 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
             return ErrorStatus.InvalidArgument;
         }
 
+        var world = World.GetWorldUncheck(_worldID);
         ref var chunk = ref _chunks[chunkIndex];
         var lastIndex = chunk._count - 1;
 
@@ -487,7 +491,6 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
             var pLastEntity = chunkBase + _entityIdsOffset + (sizeof(Entity) * lastIndex);
             var pRowEntity = chunkBase + _entityIdsOffset + (sizeof(Entity) * rowIndex);
 
-            var world = World.GetWorldUncheck(_worldID);
             var result = world.EntityManager.UpdateEntityLocation(*(Entity*)pLastEntity, _id, chunkIndex, rowIndex);
             if (result != ErrorStatus.None)
             {
@@ -509,6 +512,8 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
         }
 
         chunk._count--;
+        chunk._structuralVersion = world.Version;
+
         return ErrorStatus.None;
     }
 
@@ -610,10 +615,9 @@ internal unsafe struct Archetype : IIdentifierType, IDisposable
             candidateIndex--;
         }
 
-        // Finally, simply truncate the count
         chunk._count = newCount;
+        chunk._structuralVersion = world.Version;
 
-        // (Optional) If you have Versioning, mark the components as changed here.
         return ErrorStatus.None;
     }
 

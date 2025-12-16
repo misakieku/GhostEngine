@@ -1,10 +1,11 @@
 using Misaki.HighPerformance.Collections;
+using Misaki.HighPerformance.Utilities;
 
 namespace Ghost.Entities;
 
 public partial class EntityManager
 {
-    private readonly SlotMap<List<ScriptComponent>> _scriptComponents = [];
+    private readonly SlotMap<List<ScriptComponent>> _scriptComponents;
 
     internal SlotMap<List<ScriptComponent>> ScriptComponents => _scriptComponents;
 
@@ -134,7 +135,7 @@ public partial class EntityManager
                 if (scripts[i] is T script)
                 {
                     script.OnDestroy();
-                    scripts.RemoveAt(i);
+                    scripts.RemoveAndSwapBack(i);
                     return true;
                 }
             }
@@ -190,6 +191,32 @@ public partial class EntityManager
             }
 
             throw new InvalidOperationException($"ManagedEntity {managedEntity} does not have script component of type {typeof(T)}.");
+        }
+
+        throw new InvalidOperationException($"ManagedEntity {managedEntity} does not exist.");
+    }
+
+    /// <summary>
+    /// Gets all ScriptComponents of type T associated with the given ManagedEntity.
+    /// </summary>
+    /// <typeparam name="T">The type of ScriptComponent to get.</typeparam>
+    /// <param name="managedEntity">The ManagedEntity whose ScriptComponents are to be retrieved
+    /// <returns>The list of ScriptComponents of type T.</returns>
+    public List<T> GetScriptComponents<T>(ManagedEntity managedEntity)
+        where T : ScriptComponent
+    {
+        if (_scriptComponents.TryGetElement(managedEntity.id, managedEntity.generation, out var scripts))
+        {
+            var result = new List<T>();
+            foreach (var script in scripts)
+            {
+                if (script is T typedScript)
+                {
+                    result.Add(typedScript);
+                }
+            }
+
+            return result;
         }
 
         throw new InvalidOperationException($"ManagedEntity {managedEntity} does not exist.");

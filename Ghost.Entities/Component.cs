@@ -13,13 +13,12 @@ public interface IEnableableComponent : IComponent
 {
 }
 
-public struct ComponentInfo
+internal struct ComponentInfo
 {
-    // public FixedText64 stableName; // Do we actually need this?
-    public Identifier<IComponent> id;
+    // public string stableName; // Do we actually need this?
+    public int id;
     public int size;
     public int alignment;
-    public int lastWriteVersion;
     public bool isEnableable;
 }
 
@@ -31,8 +30,6 @@ public static class ComponentTypeID<T>
 
 internal static class ComponentRegister
 {
-    private static int s_nextComponentTypeID = 0;
-
     private static readonly List<ComponentInfo> s_registeredComponents = new();
     private static readonly Dictionary<IntPtr, int> s_typeHandleToID = new();
     private static readonly Dictionary<string, int> s_nameToRuntimeID = new();
@@ -43,7 +40,8 @@ internal static class ComponentRegister
     public static unsafe Identifier<IComponent> GetOrRegisterComponent<T>()
         where T : unmanaged, IComponent
     {
-        var typeHandle = typeof(T).TypeHandle.Value;
+        var type = typeof(T);
+        var typeHandle = type.TypeHandle.Value;
 
         lock (s_registeredComponents)
         {
@@ -52,22 +50,19 @@ internal static class ComponentRegister
                 return existingID;
             }
 
-            var newID = new Identifier<IComponent>(s_nextComponentTypeID);
-            s_nextComponentTypeID++;
-
+            var newID = new Identifier<IComponent>(s_registeredComponents.Count);
             var stableName = typeof(T).FullName ?? typeof(T).Name;
-
             var info = new ComponentInfo
             {
                 // stableName = new FixedText64(stableName),
                 id = newID,
                 size = sizeof(T),
                 alignment = (int)MemoryUtility.AlignOf<T>(),
-                isEnableable = typeof(IEnableableComponent).IsAssignableFrom(typeof(T))
+                isEnableable = typeof(IEnableableComponent).IsAssignableFrom(type),
+                // isManaged = typeof(IManagedWrapper).IsAssignableFrom(type),
             };
 
-            while (s_registeredComponents.Count <= newID.value) s_registeredComponents.Add(default);
-            s_registeredComponents[newID.value] = info;
+            s_registeredComponents.Add(info);
 
             s_typeHandleToID[typeHandle] = newID;
             s_nameToRuntimeID[stableName] = newID;
@@ -91,7 +86,7 @@ internal static class ComponentRegister
             }
         }
 
-        throw new KeyNotFoundException($"Component type {type} is not registered.");
+        return Identifier<IComponent>.Invalid;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -103,6 +98,7 @@ internal static class ComponentRegister
         }
     }
 
+    // TODO: A ComponentSet structure to cache the hashcode for better performance.
     public static int GetHashCode(params ReadOnlySpan<Identifier<IComponent>> componentTypeIDs)
     {
         var largestID = 0;
