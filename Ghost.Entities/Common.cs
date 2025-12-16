@@ -1,6 +1,6 @@
 namespace Ghost.Entities;
 
-public readonly struct Time
+public readonly struct TimeData
 {
     public int FrameCount
     {

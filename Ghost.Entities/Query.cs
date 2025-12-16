@@ -261,7 +261,7 @@ public readonly unsafe ref struct ChunkView
     }
 }
 
-public unsafe partial struct EntityQuery : IIdentifierType, IDisposable
+public unsafe partial struct EntityQuery : IDisposable
 {
     /// <summary>
     /// Provides an enumerator for iterating over chunks of entities and their component data that match a set of archetypes within a world.
@@ -436,6 +436,31 @@ public unsafe partial struct EntityQuery : IIdentifierType, IDisposable
     {
         var world = World.GetWorld(_worldID).Value;
         return new ChunkIterator(_matchingArchetypes.AsReadOnly(), world);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly int GetEntityCount()
+    {
+        var total = 0;
+        var r = World.GetWorld(_worldID);
+        if (r.IsFailure)
+        {
+            return 0;
+        }
+
+        var world = r.Value;
+        for(var i = 0; i < _matchingArchetypes.Count; i++)
+        {
+            var archetypeID = _matchingArchetypes[i];
+            ref var archetype = ref world.GetArchetypeReference(archetypeID);
+            for (var j = 0; j < archetype.ChunkCount; j++)
+            {
+                ref var chunk = ref archetype.GetChunkReference(j);
+                total += chunk._count;
+            }
+        }
+
+        return total;
     }
 
     public void Dispose()

@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities;
 
-public interface IComponent : IIdentifierType
+public interface IComponent
 {
 }
 

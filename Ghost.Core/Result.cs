@@ -55,7 +55,20 @@ public readonly struct Result<T>
     private readonly string? _message;
     private readonly bool _isSuccess;
 
-    public readonly T Value => _value;
+    public T Value
+    {
+        get
+        {
+#if DEBUG || GHOST_EDITOR
+            if (!_isSuccess)
+            {
+                throw new InvalidOperationException($"Cannot access Value when Result is a failure. {_message}");
+            }
+#endif
+            return _value;
+        }
+    }
+
     public readonly string? Message => _message;
     public readonly bool IsSuccess => _isSuccess;
     public readonly bool IsFailure => !_isSuccess;
@@ -113,7 +126,20 @@ public readonly struct Result<T, E>
     private readonly E _error;
     private readonly bool _isSuccess;
 
-    public T Value => _value;
+    public T Value
+    {
+        get
+        {
+#if DEBUG || GHOST_EDITOR
+            if (!_isSuccess)
+            {
+                throw new InvalidOperationException($"Cannot access Value when Result is a failure. Error: {_error}");
+            }
+#endif
+            return _value;
+        }
+    }
+
     public E Error => _error;
     public bool IsSuccess => _isSuccess;
     public bool IsFailure => !_isSuccess;
@@ -156,7 +182,20 @@ public readonly ref struct RefResult<T, E>
     private readonly E _error;
     private readonly bool _isSuccess;
 
-    public ref T Value => ref _value;
+    public ref T Value
+    {
+        get
+        {
+#if DEBUG || GHOST_EDITOR
+            if (!_isSuccess)
+            {
+                throw new InvalidOperationException($"Cannot access Value when Result is a failure. Error: {_error}");
+            }
+#endif
+            return ref _value;
+        }
+    }
+
     public E Error => _error;
     public bool IsSuccess => _isSuccess;
     public bool IsFailure => !_isSuccess;

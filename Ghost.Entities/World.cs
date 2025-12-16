@@ -76,7 +76,7 @@ public partial class World
     }
 }
 
-public partial class World : IIdentifierType, IDisposable, IEquatable<World>
+public partial class World : IDisposable, IEquatable<World>
 {
     private readonly Identifier<World> _id;
     private readonly JobScheduler _jobScheduler;
@@ -289,21 +289,21 @@ public partial class World : IIdentifierType, IDisposable, IEquatable<World>
             return;
         }
 
-        foreach (var archetype in _archetypes)
+        foreach (ref var archetype in _archetypes)
         {
             archetype.Dispose();
         }
 
-        foreach (var query in _entityQueries)
+        foreach (ref var query in _entityQueries)
         {
             query.Dispose();
         }
 
         _entityManager.Dispose();
         _entityCommandBuffer.Dispose();
-        for (var i = 0; i < _threadLocalECBs.Length; i++)
+        foreach (var v in _threadLocalECBs)
         {
-            _threadLocalECBs[i].Dispose();
+            v.Dispose();
         }
 
         _archetypes.Dispose();

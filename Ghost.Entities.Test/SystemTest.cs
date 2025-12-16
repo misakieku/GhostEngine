@@ -34,35 +34,19 @@ internal class SystemTest : ITest
     }
 }
 
-internal class TestSystemA : ISystem
+internal class TestSystemA : SystemBase
 {
-    public void Initialize(ref readonly SystemAPI systemAPI)
+    protected override void OnInitialize(ref readonly SystemAPI systemAPI)
     {
         Console.WriteLine("TestSystemA Initialized");
-    }
-
-    public void Update(ref readonly SystemAPI systemAPI)
-    {
-    }
-
-    public void Cleanup(ref readonly SystemAPI systemAPI)
-    {
     }
 }
 
 [UpdateAfter(typeof(TestSystemA))]
-internal class TestSystemB : ISystem
+internal class TestSystemB : SystemBase
 {
-    public void Initialize(ref readonly SystemAPI systemAPI)
+    protected override void OnInitialize(ref readonly SystemAPI systemAPI)
     {
         Console.WriteLine("TestSystemB Initialized");
-    }
-
-    public void Update(ref readonly SystemAPI systemAPI)
-    {
-    }
-
-    public void Cleanup(ref readonly SystemAPI systemAPI)
-    {
     }
 }

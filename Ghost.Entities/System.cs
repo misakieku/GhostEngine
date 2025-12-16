@@ -1,13 +1,10 @@
+using Ghost.Core;
+
 namespace Ghost.Entities;
 
 public readonly ref struct SystemAPI
 {
-    public World World
-    {
-        get; init;
-    }
-
-    public Time Time
+    public TimeData Time
     {
         get; init;
     }
@@ -15,9 +12,105 @@ public readonly ref struct SystemAPI
 
 public interface ISystem
 {
+    World World
+    {
+        get; init;
+    }
+
     void Initialize(ref readonly SystemAPI systemAPI);
     void Update(ref readonly SystemAPI systemAPI);
     void Cleanup(ref readonly SystemAPI systemAPI);
+}
+
+public abstract class SystemBase : ISystem
+{
+    private List<int>? _requiredQueries;
+
+    public World World
+    {
+        get; init;
+    } = null!;
+
+    public int LastSystemVersion
+    {
+        get; internal set;
+    } = -2;
+
+    private bool ShouldUpdate()
+    {
+        if (_requiredQueries == null || _requiredQueries.Count == 0)
+        {
+            return true;
+        }
+
+        foreach (var queryID in _requiredQueries)
+        {
+            ref var query = ref World.GetEntityQueryReference(new Identifier<EntityQuery>(queryID));
+            if (query.GetEntityCount() == 0)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    protected void RequireQueryForUpdate(Identifier<EntityQuery> queryID)
+    {
+        _requiredQueries ??= new List<int>(4);
+        _requiredQueries.Add(queryID.value);
+    }
+
+    public void Initialize(ref readonly SystemAPI systemAPI)
+    {
+        OnInitialize(in systemAPI);
+    }
+
+    public void Update(ref readonly SystemAPI systemAPI)
+    {
+        if (ShouldUpdate())
+        {
+            if (World.Version - LastSystemVersion > 1)
+            {
+                OnStartRunning();
+            }
+
+            OnUpdate(in systemAPI);
+            LastSystemVersion = World.Version;
+        }
+        else
+        {
+            if (World.Version - LastSystemVersion <= 1)
+            {
+                OnStopRunning();
+            }
+        }
+    }
+
+    public void Cleanup(ref readonly SystemAPI systemAPI)
+    {
+        OnCleanup(in systemAPI);
+    }
+
+    protected virtual void OnInitialize(ref readonly SystemAPI systemAPI)
+    {
+    }
+
+    protected virtual void OnUpdate(ref readonly SystemAPI systemAPI)
+    {
+    }
+
+    protected virtual void OnCleanup(ref readonly SystemAPI systemAPI)
+    {
+    }
+
+    protected virtual void OnStopRunning()
+    {
+    }
+
+    protected virtual void OnStartRunning()
+    {
+    }
 }
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = true)]
@@ -85,11 +178,16 @@ internal static partial class SystemGroupRegistry
 
 public abstract class SystemGroup : ISystem
 {
-    private readonly List<ISystem> _systems = new ();
+    private readonly List<ISystem> _systems = [];
     private List<ISystem>? _sortedSystems;
 
     private uint _version = 0;
     private uint _sortedVersion = 0;
+
+    public World World
+    {
+        get; init;
+    } = null!;
 
     // public SystemGroup()
     // {
@@ -106,13 +204,17 @@ public abstract class SystemGroup : ISystem
         foreach (var sys in systems)
         {
             var type = sys.GetType();
-            if (!dependencies.ContainsKey(type)) dependencies[type] = new HashSet<Type>();
+            if (!dependencies.TryGetValue(type, out HashSet<Type>? value))
+            {
+                value = [];
+                dependencies[type] = value;
+            }
 
             // Handle [UpdateAfter(typeof(Other))] -> Other comes before This
             foreach (var attr in type.GetCustomAttributes(typeof(UpdateAfterAttribute), true))
             {
                 var depType = ((UpdateAfterAttribute)attr).SystemType;
-                dependencies[type].Add(depType);
+                value.Add(depType);
             }
 
             // Handle [UpdateBefore(typeof(Other))] -> This comes before Other
@@ -120,7 +222,7 @@ public abstract class SystemGroup : ISystem
             foreach (var attr in type.GetCustomAttributes(typeof(UpdateBeforeAttribute), true))
             {
                 var targetType = ((UpdateBeforeAttribute)attr).SystemType;
-                if (!dependencies.ContainsKey(targetType)) dependencies[targetType] = new HashSet<Type>();
+                if (!dependencies.ContainsKey(targetType)) dependencies[targetType] = [];
                 dependencies[targetType].Add(type);
             }
         }
@@ -175,7 +277,11 @@ public abstract class SystemGroup : ISystem
     public void AddSystem<T>()
         where T : ISystem, new()
     {
-        _systems.Add(new T());
+        _systems.Add(new T()
+        {
+            World = World
+        });
+
         _version++;
     }
 
@@ -188,7 +294,7 @@ public abstract class SystemGroup : ISystem
 
         if (_systems.Count == 0)
         {
-            _sortedSystems = new List<ISystem>();
+            _sortedSystems = [];
             _sortedVersion = _version;
             return;
         }
@@ -244,7 +350,7 @@ public class SystemManager
 {
     private readonly World _world;
 
-    private readonly List<ISystem> _systems = new ();
+    private readonly List<ISystem> _systems = [];
 
     internal SystemManager(World world)
     {
@@ -255,8 +361,10 @@ public class SystemManager
     public void AddSystem<T>()
         where T : ISystem, new()
     {
-        var system = new T();
-        _systems.Add(system);
+        _systems.Add(new T()
+        {
+            World = _world
+        });
     }
 
     public T GetSystem<T>()

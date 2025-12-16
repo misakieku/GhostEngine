@@ -153,7 +153,7 @@ internal unsafe struct Chunk : IDisposable
     }
 }
 
-internal unsafe struct Archetype : IIdentifierType, IDisposable
+internal unsafe struct Archetype : IDisposable
 {
     internal struct ComponentMemoryLayout
     {
