@@ -178,17 +178,17 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         return _resources.Contains(handle.id, handle.generation);
     }
 
-    public RefResult<ResourceRecord, ResultStatus> GetResourceRecord(Handle<GPUResource> handle)
+    public RefResult<ResourceRecord, ErrorStatus> GetResourceRecord(Handle<GPUResource> handle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         ref var info = ref _resources.GetElementReferenceAt(handle.id, handle.generation, out var exist);
         if (!exist)
         {
-            return Result.CreateRef(ref Unsafe.NullRef<ResourceRecord>(), ResultStatus.NotFound);
+            return ErrorStatus.NotFound;
         }
 
-        return Result.CreateRef(ref info, ResultStatus.Success);
+        return RefResult<ResourceRecord, ErrorStatus>.Success(ref info);
     }
 
     public ref ResourceRecord GetResourceRecord(Handle<GPUResource> handle, out bool exist)
@@ -202,7 +202,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         var r = GetResourceRecord(handle);
-        if (r.Status != ResultStatus.Success)
+        if (r.Error != ErrorStatus.None)
         {
             return null;
         }
@@ -210,17 +210,17 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         return r.Value.ResourcePtr;
     }
 
-    public Result<ResourceState, ResultStatus> GetResourceState(Handle<GPUResource> handle)
+    public Result<ResourceState, ErrorStatus> GetResourceState(Handle<GPUResource> handle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         var r = GetResourceRecord(handle);
-        if (r.Status != ResultStatus.Success)
+        if (!r)
         {
-            return Result.Create(ResourceState.Common, r.Status);
+            return r.Error;
         }
 
-        return Result.Create(r.Value.state, ResultStatus.Success);
+        return r.Value.state;
     }
 
     public void SetResourceState(Handle<GPUResource> handle, ResourceState state)
@@ -236,31 +236,30 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         info.state = state;
     }
 
-    public Result<ResourceDesc, ResultStatus> GetResourceDescription(Handle<GPUResource> handle)
+    public Result<ResourceDesc, ErrorStatus> GetResourceDescription(Handle<GPUResource> handle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         var r = GetResourceRecord(handle);
-
-        if (r.Status != ResultStatus.Success)
+        if (!r)
         {
-            return Result.Create(default(ResourceDesc), r.Status);
+            return r.Error;
         }
 
-        return Result.Create(r.Value.desc, ResultStatus.Success);
+        return r.Value.desc;
     }
 
-    public Result<uint, ResultStatus> GetBindlessIndex(Handle<GPUResource> handle)
+    public Result<uint, ErrorStatus> GetBindlessIndex(Handle<GPUResource> handle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         ref var info = ref GetResourceRecord(handle, out var exist);
         if (!exist || !info.Allocated)
         {
-            return Result.Create(0u, ResultStatus.NotFound);
+            return ErrorStatus.NotFound;
         }
 
-        return Result.Create((uint)info.viewGroup.srv.value, ResultStatus.Success);
+        return (uint)info.viewGroup.srv.value;
     }
 
     public string? GetResourceName(Handle<GPUResource> handle)

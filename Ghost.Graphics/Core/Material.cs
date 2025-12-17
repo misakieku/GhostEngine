@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.CompilerServices;
@@ -83,15 +84,15 @@ public struct Material : IResourceReleasable, IHandleType
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly unsafe Result<T, ResultStatus> GetPropertyCache<T>()
+    public readonly unsafe Result<T, ErrorStatus> GetPropertyCache<T>()
         where T : unmanaged
     {
         if (sizeof(T) != _cBufferCache.Size)
         {
-            return Result.Create(default(T), ResultStatus.InvalidArgument);
+            return ErrorStatus.InvalidArgument;
         }
 
-        return Result.Create(*(T*)_cBufferCache.CpuData.GetUnsafePtr(), ResultStatus.Success);
+        return *(T*)_cBufferCache.CpuData.GetUnsafePtr();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -106,28 +107,28 @@ public struct Material : IResourceReleasable, IHandleType
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly unsafe ResultStatus SetPropertyCache<T>(ref readonly T data)
+    public readonly unsafe ErrorStatus SetPropertyCache<T>(ref readonly T data)
         where T : unmanaged
     {
         if (sizeof(T) != _cBufferCache.Size)
         {
-            return ResultStatus.InvalidArgument;
+            return ErrorStatus.InvalidArgument;
         }
 
         Unsafe.WriteUnaligned(_cBufferCache.CpuData.GetUnsafePtr(), data);
-        return ResultStatus.Success;
+        return ErrorStatus.None;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly unsafe ResultStatus SetRawPropertyCache(ReadOnlySpan<byte> data)
+    public readonly unsafe ErrorStatus SetRawPropertyCache(ReadOnlySpan<byte> data)
     {
         if (data.Length != _cBufferCache.Size)
         {
-            return ResultStatus.InvalidArgument;
+            return ErrorStatus.InvalidArgument;
         }
 
         Unsafe.WriteUnaligned(_cBufferCache.CpuData.GetUnsafePtr(), data);
-        return ResultStatus.Success;
+        return ErrorStatus.None;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

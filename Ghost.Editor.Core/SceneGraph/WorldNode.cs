@@ -3,7 +3,7 @@ using Ghost.Editor.Core.Inspector;
 using Ghost.Editor.Core.Resources;
 using Ghost.Editor.Core.Serializer;
 using Ghost.Engine.Components;
-using Ghost.Entities;
+using Ghost.SparseEntities;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System.Text.Json.Serialization;

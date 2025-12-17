@@ -1,7 +1,7 @@
 using Ghost.Editor.Core.SceneGraph;
 using Ghost.Engine.Utilities;
-using Ghost.Entities;
-using Ghost.Entities.Components;
+using Ghost.SparseEntities;
+using Ghost.SparseEntities.Components;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 

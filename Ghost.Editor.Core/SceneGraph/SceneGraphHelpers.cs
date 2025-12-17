@@ -1,5 +1,5 @@
 using Ghost.Engine.Components;
-using Ghost.Entities;
+using Ghost.SparseEntities;
 
 namespace Ghost.Editor.Core.SceneGraph;
 

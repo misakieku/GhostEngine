@@ -1,6 +1,5 @@
 global using EntityID = System.Int32;
-global using GenerationID = System.UInt16;
-global using WorldID = System.UInt16;
+global using GenerationID = System.Int32;
 
 using Ghost.Core.Attributes;
 using System.Runtime.CompilerServices;
@@ -10,3 +9,4 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("Ghost.Entities.Test")]
 
 [assembly: EngineAssembly]
+

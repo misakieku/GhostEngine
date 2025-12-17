@@ -1,6 +1,6 @@
 using Ghost.Engine.Editor;
-using Ghost.Entities;
-using Ghost.Entities.Components;
+using Ghost.SparseEntities;
+using Ghost.SparseEntities.Components;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Engine.Components;

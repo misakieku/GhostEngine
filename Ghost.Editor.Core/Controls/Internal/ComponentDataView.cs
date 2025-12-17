@@ -2,7 +2,7 @@ using Ghost.Core;
 using Ghost.Editor.Core.Inspector;
 using Ghost.Editor.Core.Resources;
 using Ghost.Editor.Core.Utilities;
-using Ghost.Entities;
+using Ghost.SparseEntities;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System.Reflection;

@@ -161,7 +161,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
 
         if (File.Exists(filePath))
         {
-            var fileBytes = File.ReadAllBytes(filePath!);
+            var fileBytes = File.ReadAllBytes(filePath);
             fixed (byte* pFileBytes = fileBytes)
             {
                 ThrowIfFailed(_device.NativeDevice.Get()->CreatePipelineLibrary(pFileBytes, (nuint)fileBytes.Length, __uuidof(pLibrary), (void**)&pLibrary));
@@ -224,7 +224,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
                     RegisterSlot = info.BindPoint,
                     RegisterSpace = info.Space,
                     SizeInBytes = info.Size,
-                    Properties = info.Properties ?? Array.Empty<CBufferPropertyInfo>(),
+                    Properties = info.Properties ?? [],
                 };
             }
         }
@@ -401,14 +401,14 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
         return key;
     }
 
-    public Result<SharedPtr<ID3D12PipelineState>, ResultStatus> GetGraphicsPSO(GraphicsPipelineKey key)
+    public Result<SharedPtr<ID3D12PipelineState>, ErrorStatus> GetGraphicsPSO(GraphicsPipelineKey key)
     {
         if (_pipelineCache.TryGetValue(key, out var cacheEntry))
         {
-            return Result.Create(new SharedPtr<ID3D12PipelineState>(cacheEntry.pso.Get()), ResultStatus.Success);
+            return cacheEntry.pso.Share();
         }
 
-        return Result.Create(default(SharedPtr<ID3D12PipelineState>), ResultStatus.NotFound);
+        return ErrorStatus.NotFound;
     }
 
     public void Dispose()

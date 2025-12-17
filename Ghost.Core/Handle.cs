@@ -4,8 +4,7 @@ public interface IHandleType;
 public interface IIdentifierType;
 public interface IKeyType;
 
-public readonly struct Handle<T>
-    where T : IHandleType
+public readonly struct Handle<T> : IEquatable<Handle<T>>
 {
     public readonly int id;
     public readonly int generation;
@@ -57,8 +56,7 @@ public readonly struct Handle<T>
     }
 }
 
-public readonly struct Identifier<T>
-    where T : IIdentifierType
+public readonly struct Identifier<T> : IEquatable<Identifier<T>>
 {
     public readonly int value;
 
@@ -74,7 +72,7 @@ public readonly struct Identifier<T>
 
     public readonly override int GetHashCode()
     {
-        return value.GetHashCode();
+        return value;
     }
 
     public readonly override bool Equals(object? obj)
@@ -106,10 +104,32 @@ public readonly struct Identifier<T>
     {
         return !a.Equals(b);
     }
+
+    public static bool operator <(Identifier<T> a, Identifier<T> b)
+    {
+        return a.value < b.value;
+    }
+
+    public static bool operator >(Identifier<T> a, Identifier<T> b)
+    {
+        return a.value > b.value;
+    }
+
+    public static bool operator <=(Identifier<T> a, Identifier<T> b)
+    {
+        return a.value <= b.value;
+    }
+
+    public static bool operator >=(Identifier<T> a, Identifier<T> b)
+    {
+        return a.value >= b.value;
+    }
+
+    public static implicit operator int(Identifier<T> id) => id.value;
+    public static implicit operator Identifier<T>(int value) => new Identifier<T>(value);
 }
 
 public readonly struct Key<T>
-    where T : IKeyType
 {
     public readonly ulong value;
 

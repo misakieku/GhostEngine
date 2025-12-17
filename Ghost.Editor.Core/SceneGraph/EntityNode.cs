@@ -2,7 +2,7 @@ using Ghost.Editor.Core.Controls.Internal;
 using Ghost.Editor.Core.Inspector;
 using Ghost.Editor.Core.Resources;
 using Ghost.Engine.Editor;
-using Ghost.Entities;
+using Ghost.SparseEntities;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;

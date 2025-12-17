@@ -39,7 +39,7 @@ public interface IResourceDatabase : IDisposable
     /// </summary>
     /// <param name="handle">The handle that uniquely identifies the resource whose state is to be retrieved.</param>
     /// <returns>A ResourceState Value representing the current state of the resource associated with the specified handle.</returns>
-    Result<ResourceState, ResultStatus> GetResourceState(Handle<GPUResource> handle);
+    Result<ResourceState, ErrorStatus> GetResourceState(Handle<GPUResource> handle);
 
     /// <summary>
     /// Sets the state of the specified resource handle to the given Value.
@@ -53,14 +53,14 @@ public interface IResourceDatabase : IDisposable
     /// </summary>
     /// <param name="handle">A handle that identifies the GPU resource for which to obtain the description. Must reference a valid resource.</param>
     /// <returns>A ResourceDesc structure containing details about the specified GPU resource.</returns>
-    Result<ResourceDesc, ResultStatus> GetResourceDescription(Handle<GPUResource> handle);
+    Result<ResourceDesc, ErrorStatus> GetResourceDescription(Handle<GPUResource> handle);
 
     /// <summary>
     /// Retrieves the bindless index associated with the specified GPU resource handle.
     /// </summary>
     /// <param name="handle">A handle to the GPU resource for which to obtain the bindless index. Must reference a valid, currently registered resource.</param>
     /// <returns>The bindless index corresponding to the specified GPU resource handle. -1 if the resource does not support bindless access or is not found.</returns>
-    Result<uint, ResultStatus> GetBindlessIndex(Handle<GPUResource> handle);
+    Result<uint, ErrorStatus> GetBindlessIndex(Handle<GPUResource> handle);
 
     /// <summary>
     /// Retrieves the name of the GPU resource associated with the specified handle.

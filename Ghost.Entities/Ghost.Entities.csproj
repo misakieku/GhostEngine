@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -8,60 +8,57 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <IsAotCompatible>True</IsAotCompatible>
+    <IsAotCompatible>False</IsAotCompatible>
+    <IsTrimmable>False</IsTrimmable>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <IsAotCompatible>True</IsAotCompatible>
+    <IsTrimmable>True</IsTrimmable>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="Template\ForEach.cs">
+    <Compile Remove="Templates\ForEach.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Templates\EntityQuery.ForEach.gen.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
+      <DependentUpon>EntityQuery.ForEach.tt</DependentUpon>
+    </None>
+    <None Include="Templates\ForEach.gen.cs">
       <DependentUpon>ForEach.tt</DependentUpon>
-    </None>
-    <None Include="Template\QueryItem.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>QueryItem.tt</DependentUpon>
     </None>
-    <None Include="Template\QueryRefComponent.cs">
+    <None Include="Templates\QueryBuilder.With.gen.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>QueryRefComponent.tt</DependentUpon>
-    </None>
-    <None Include="Template\World.Query.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>World.Query.tt</DependentUpon>
+      <DependentUpon>QueryBuilder.With.tt</DependentUpon>
     </None>
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Template\ForEach.tt">
+    <ProjectReference Include="..\Ghost.Core\Ghost.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Templates\EntityQuery.ForEach.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>ForEach.cs</LastGenOutput>
+      <LastGenOutput>EntityQuery.ForEach.gen.cs</LastGenOutput>
     </None>
-    <None Update="Template\QueryEnumerable.tt">
+    <None Update="Templates\ForEach.tt">
+      <LastGenOutput>ForEach.gen.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>QueryEnumerable.cs</LastGenOutput>
     </None>
-    <None Update="Template\Helpers.tt">
-      <Generator>TextTemplatingFilePreprocessor</Generator>
-      <LastGenOutput>Helpers.cs</LastGenOutput>
-    </None>
-    <None Update="Template\QueryItem.tt">
+    <None Update="Templates\EntityQuery.JobEntityParallel.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>QueryItem.cs</LastGenOutput>
+      <LastGenOutput>EntityQuery.JobEntityParallel.gen.cs</LastGenOutput>
     </None>
-    <None Update="Template\QueryRefComponent.tt">
+    <None Update="Templates\QueryBuilder.With.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>QueryRefComponent.cs</LastGenOutput>
-    </None>
-    <None Update="Template\World.Query.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>World.Query.cs</LastGenOutput>
+      <LastGenOutput>QueryBuilder.With.gen.cs</LastGenOutput>
     </None>
   </ItemGroup>
 
@@ -70,44 +67,26 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="Template\ForEach.cs">
+    <Compile Update="Templates\EntityQuery.ForEach.gen.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>EntityQuery.ForEach.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Templates\EntityQuery.JobEntityParallel.gen.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>EntityQuery.JobEntityParallel.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Templates\ForEach.gen.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>ForEach.tt</DependentUpon>
     </Compile>
-    <Compile Update="Template\Helpers.cs">
+    <Compile Update="Templates\QueryBuilder.With.gen.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>Helpers.tt</DependentUpon>
+      <DependentUpon>QueryBuilder.With.tt</DependentUpon>
     </Compile>
-    <Compile Update="Template\QueryEnumerable.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>QueryEnumerable.tt</DependentUpon>
-    </Compile>
-    <Compile Update="Template\QueryItem.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>QueryItem.tt</DependentUpon>
-    </Compile>
-    <Compile Update="Template\QueryRefComponent.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>QueryRefComponent.tt</DependentUpon>
-    </Compile>
-    <Compile Update="Template\World.Query.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>World.Query.tt</DependentUpon>
-    </Compile>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Helpers\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\Ghost.Core\Ghost.Core.csproj" />
   </ItemGroup>
 
 </Project>
