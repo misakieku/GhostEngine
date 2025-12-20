@@ -110,7 +110,7 @@ public partial class EntityManager
         var location = _entityLocations.GetElementAt(entity.ID, entity.Generation);
         ref var archetype = ref _world.GetArchetypeReference(location.archetypeID);
 
-        var pManagedEntityRef = (ManagedEntityRef*)archetype.GetComponentData(location.chunkIndex, location.rowIndex, ComponentTypeID<ManagedEntityRef>.value);
+        var pManagedEntityRef = (ManagedEntityRef*)archetype.GetComponentData(location.chunkIndex, location.rowIndex, ComponentTypeID<ManagedEntityRef>.Value);
         if (pManagedEntityRef == null)
         {
             throw new InvalidOperationException($"Entity {entity} does not have ManagedEntityRef component.");

@@ -16,9 +16,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Ghost.SparseEntities\Ghost.SparseEntities.csproj" />
+    <ProjectReference Include="..\Ghost.Core\Ghost.Core.csproj" />
+    <ProjectReference Include="..\Ghost.Entities\Ghost.Entities.csproj" />
+    <ProjectReference Include="..\Ghost.Generator\Ghost.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\Ghost.Graphics\Ghost.Graphics.csproj" />
-    <!--<ProjectReference Include="..\Ghost.Generator\Ghost.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />-->
   </ItemGroup>
 
 </Project>

@@ -14,7 +14,7 @@ internal class SystemTest : ITest
         _world = World.Create(_jobScheduler);
     }
 
-    public void Run()
+    public void Run()              
     {
         var group = _world.SystemManager.GetSystem<DefaultSystemGroup>();
         group.AddSystem<TestSystemB>();

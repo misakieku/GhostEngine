@@ -72,7 +72,7 @@ internal partial class CreateProjectViewModel(INotificationService notificationS
             return;
         }
 
-        var result = await projectService.CreateProjectAsync(ProjectName, ProjectLocation, EngineData.s_engineVersion, SelectedTemplate.Value.directory);
+        var result = await projectService.CreateProjectAsync(ProjectName, ProjectLocation, EngineData.EngineVersion, SelectedTemplate.Value.directory);
         if (result.IsFailure)
         {
             notificationService.ShowNotification(result.Message, MessageType.Error);

@@ -24,7 +24,7 @@ public readonly struct Managed<T> : IComponent, IManagedWrapper
 public static class ManagedComponemtnID<T>
     where T : IManagedComponent
 {
-    public static readonly Identifier<IManagedComponent> value = ManagedComponentRegister.GetOrRegisterComponent<T>();
+    public static readonly Identifier<IManagedComponent> value = ManagedComponentRegistry.GetOrRegisterComponent<T>();
 }
 
 internal struct ManagedComponentInfo
@@ -33,7 +33,7 @@ internal struct ManagedComponentInfo
     public bool isScriptComponent;
 }
 
-internal static class ManagedComponentRegister
+internal static class ManagedComponentRegistry
 {
     private static readonly List<ManagedComponentInfo> s_registeredComponents = new();
     private static readonly Dictionary<IntPtr, int> s_typeHandleToID = new();

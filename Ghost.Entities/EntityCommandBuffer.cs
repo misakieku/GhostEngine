@@ -108,12 +108,12 @@ public unsafe class EntityCommandBuffer : IDisposable
         Write(count);
     }
 
-    public void CreateEntity(int count, params ReadOnlySpan<Identifier<IComponent>> componentTypeIDs)
+    public void CreateEntity(int count, ComponentSet set)
     {
         WriteHeader(ECBOpCode.CreateEntityWithComponents);
         Write(count);
-        Write(componentTypeIDs.Length);
-        WriteSpan(componentTypeIDs);
+        Write(set.Components.Length);
+        WriteSpan(set.Components);
     }
 
     public void DestroyEntity(Entity entity)
@@ -127,7 +127,7 @@ public unsafe class EntityCommandBuffer : IDisposable
     {
         WriteHeader(ECBOpCode.AddComponent);
         Write(entity);
-        Write(ComponentTypeID<T>.value);
+        Write(ComponentTypeID<T>.Value);
         Write(component);
     }
 
@@ -136,7 +136,7 @@ public unsafe class EntityCommandBuffer : IDisposable
     {
         WriteHeader(ECBOpCode.RemoveComponent);
         Write(entity);
-        Write(ComponentTypeID<T>.value);
+        Write(ComponentTypeID<T>.Value);
     }
 
     public void SetComponent<T>(Entity entity, T component)
@@ -144,7 +144,7 @@ public unsafe class EntityCommandBuffer : IDisposable
     {
         WriteHeader(ECBOpCode.SetComponent);
         Write(entity);
-        Write(ComponentTypeID<T>.value);
+        Write(ComponentTypeID<T>.Value);
         Write(component);
     }
 
@@ -157,6 +157,8 @@ public unsafe class EntityCommandBuffer : IDisposable
         {
             var op = Read<ECBOpCode>(ref cursor);
 
+            using var scope = AllocationManager.CreateStackScope();
+
             switch (op)
             {
                 case ECBOpCode.CreateEntity:
@@ -168,7 +170,8 @@ public unsafe class EntityCommandBuffer : IDisposable
                     var entityCount = Read<int>(ref cursor);
                     var compCount = Read<int>(ref cursor);
                     var compTypeIDs = ReadSpan<Identifier<IComponent>>(ref cursor, compCount);
-                    _entityManager.CreateEntities(entityCount, compTypeIDs);
+                    var set = new ComponentSet(scope.AllocationHandle, compTypeIDs);
+                    _entityManager.CreateEntities(entityCount, set);
                     break;
 
                 case ECBOpCode.DestroyEntity:
@@ -179,7 +182,7 @@ public unsafe class EntityCommandBuffer : IDisposable
                 case ECBOpCode.AddComponent:
                     var entityToAdd = Read<Entity>(ref cursor);
                     var addCompTypeID = Read<Identifier<IComponent>>(ref cursor);
-                    var pAddCompData = ReadBuffer(ref cursor, ComponentRegister.GetComponentInfo(addCompTypeID).size);
+                    var pAddCompData = ReadBuffer(ref cursor, ComponentRegistry.GetComponentInfo(addCompTypeID).size);
                     _entityManager.AddComponent(entityToAdd, addCompTypeID, pAddCompData);
                     break;
 
@@ -192,7 +195,7 @@ public unsafe class EntityCommandBuffer : IDisposable
                 case ECBOpCode.SetComponent:
                     var entityToSet = Read<Entity>(ref cursor);
                     var setCompTypeID = Read<Identifier<IComponent>>(ref cursor);
-                    var pSetCompData = ReadBuffer(ref cursor, ComponentRegister.GetComponentInfo(setCompTypeID).size);
+                    var pSetCompData = ReadBuffer(ref cursor, ComponentRegistry.GetComponentInfo(setCompTypeID).size);
                     _entityManager.SetComponent(entityToSet, setCompTypeID, pSetCompData);
                     break;
             }

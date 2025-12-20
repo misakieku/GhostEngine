@@ -61,12 +61,12 @@ public abstract class SystemBase : ISystem
         _requiredQueries.Add(queryID.value);
     }
 
-    public void Initialize(ref readonly SystemAPI systemAPI)
+    void ISystem.Initialize(ref readonly SystemAPI systemAPI)
     {
         OnInitialize(in systemAPI);
     }
 
-    public void Update(ref readonly SystemAPI systemAPI)
+    void ISystem.Update(ref readonly SystemAPI systemAPI)
     {
         if (ShouldUpdate())
         {
@@ -87,7 +87,7 @@ public abstract class SystemBase : ISystem
         }
     }
 
-    public void Cleanup(ref readonly SystemAPI systemAPI)
+    void ISystem.Cleanup(ref readonly SystemAPI systemAPI)
     {
         OnCleanup(in systemAPI);
     }
@@ -351,6 +351,8 @@ public class SystemManager
     private readonly World _world;
 
     private readonly List<ISystem> _systems = [];
+
+    internal IReadOnlyList<ISystem> Systems => _systems;
 
     internal SystemManager(World world)
     {

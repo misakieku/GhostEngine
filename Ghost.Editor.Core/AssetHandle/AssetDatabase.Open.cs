@@ -1,3 +1,4 @@
+using Ghost.Editor.Core.Utilities;
 using System.Diagnostics;
 using System.Reflection;
 
@@ -9,8 +10,7 @@ public static partial class AssetDatabase
 
     private static void InitializeAssetHandle()
     {
-        var methods = AppDomain.CurrentDomain.GetAssemblies()
-            .SelectMany(a => a.GetTypes())
+        var methods = TypeCache.GetTypes()
             .SelectMany(t => t.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic))
             .Where(m => m.GetCustomAttribute<AssetOpenHandlerAttribute>() != null &&
                 m.GetParameters().Length == 1 &&

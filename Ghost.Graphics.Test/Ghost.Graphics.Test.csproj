@@ -53,7 +53,6 @@
     <PackageReference Include="MSTest.TestFramework" Version="4.0.2" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Ghost.Editor.Core\Ghost.Editor.Core.csproj" />
     <ProjectReference Include="..\Ghost.Engine\Ghost.Engine.csproj" />
     <ProjectReference Include="..\Ghost.Test.Core\Ghost.Test.Core.csproj" />
   </ItemGroup>

@@ -1,28 +1,55 @@
-using Ghost.Core;
-using Ghost.Engine.Models;
+using Ghost.Entities;
+using Misaki.HighPerformance.Jobs;
 
 namespace Ghost.Engine;
 
-internal class EngineCore
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+internal class EngineEntryAttribute : Attribute
 {
-    public void Start(LaunchArgument args)
+}
+
+internal partial class EngineCoreImpl : IDisposable
+{
+    internal readonly JobScheduler _jobScheduler;
+
+    internal EngineCoreImpl()
     {
-        ActivationHandler.Handle(args);
-
-        //GraphicsPipeline.Initialize();
-        //GraphicsPipeline.Start();
-
-        Logger.LogInfo("Engine started successfully.");
+        _jobScheduler = new JobScheduler(Environment.ProcessorCount - 2); // We -2 here, one for main thread, one for render thread
     }
 
-    public void IncrementCPUFenceValue()
+    internal void IncrementCPUFenceValue()
     {
         //GraphicsPipeline.SignalCPUReady();
     }
 
-    public void ShutDown()
+    public void Dispose()
     {
-        //GraphicsPipeline.SignalCPUReady();
-        //GraphicsPipeline.Shutdown();
+        _jobScheduler.Dispose();
+        JobScheduler.ReleaseTempAllocator();
+    }
+}
+
+[EngineEntry]
+public static partial class EngineCore
+{
+    internal static readonly EngineCoreImpl s_impl;
+
+    public static JobScheduler JobScheduler => s_impl._jobScheduler;
+
+    static EngineCore()
+    {
+        s_impl = new EngineCoreImpl();
+
+        ComponentRegistry.GetOrRegisterComponent<ManagedEntityRef>();
+        RegisterIComponentTypes();
+    }
+
+    internal static void Init()
+    {
+    }
+
+    internal static void Dispose()
+    {
+        s_impl.Dispose();
     }
 }

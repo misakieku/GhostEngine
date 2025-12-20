@@ -19,11 +19,13 @@ public sealed partial class PropertyField : ContentControl
         { typeof(RangeBase), RangeBase.ValueProperty },
     };
 
-    private object? sourceObject;
-    private FieldInfo? propertyInfo;
-    private Type? _fieldType;
+    private object? _sourceObject;
+    internal FieldInfo? _propertyInfo;
+    internal Type? _fieldType;
 
     private object? _lastValue;
+
+    public event Action<PropertyField>? OnValueChanged;
 
     public string Label
     {
@@ -59,8 +61,8 @@ public sealed partial class PropertyField : ContentControl
     private static TField ConfigureField<TField>(PropertyField propertyField, FieldInfo fieldInfo, object sourceObject, Func<TField> factory)
         where TField : FrameworkElement
     {
-        propertyField.sourceObject = sourceObject;
-        propertyField.propertyInfo = fieldInfo;
+        propertyField._sourceObject = sourceObject;
+        propertyField._propertyInfo = fieldInfo;
         propertyField._fieldType = typeof(TField);
 
         var field = factory();
@@ -72,6 +74,12 @@ public sealed partial class PropertyField : ContentControl
             Path = new PropertyPath(fieldInfo.Name),
             Mode = BindingMode.TwoWay,
         });
+
+        field.RegisterPropertyChangedCallback(dp, (s, e) =>
+        {
+            propertyField.OnValueChanged?.Invoke(propertyField);
+        });
+
         return field;
     }
 
@@ -82,42 +90,31 @@ public sealed partial class PropertyField : ContentControl
             Label = label
         };
 
-        FrameworkElement content;
-        switch (fieldInfo.FieldType)
+        FrameworkElement content = fieldInfo.FieldType switch
         {
-            case Type t when t == typeof(string):
-                content = ConfigureField(propertyField, fieldInfo, sourceObject, () => new TextBox());
-                break;
-            case Type t when t == typeof(int) || t == typeof(float) || t == typeof(double):
-                content = ConfigureField(propertyField, fieldInfo, sourceObject, () => new NumberBox
+            Type t when t == typeof(string) => ConfigureField(propertyField, fieldInfo, sourceObject, () => new TextBox()),
+            Type t when t == typeof(int) || t == typeof(float) || t == typeof(double) => ConfigureField(propertyField, fieldInfo, sourceObject, () => new NumberBox
+            {
+                SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Hidden,
+                AcceptsExpression = true,
+                NumberFormatter = new DecimalFormatter
                 {
-                    SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Hidden,
-                    AcceptsExpression = true,
-                    NumberFormatter = new DecimalFormatter
-                    {
-                        FractionDigits = t == typeof(int) ? 0 : 9,
-                    }
-                });
-                break;
-            case Type t when t == typeof(bool):
-                content = ConfigureField(propertyField, fieldInfo, sourceObject, () => new ToggleSwitch());
-                break;
-            case Type t when t == typeof(Enum):
-                content = ConfigureField(propertyField, fieldInfo, sourceObject, () => new ComboBox
-                {
-                    ItemsSource = Enum.GetValues(t),
-                    SelectedValuePath = "Value",
-                });
-                break;
-            default:
-                content = new TextBlock
-                {
-                    Text = $"Unsupported type: {fieldInfo.FieldType.Name}",
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Red)
-                };
-                break;
-        }
+                    FractionDigits = t == typeof(int) ? 0 : 9,
+                }
+            }),
+            Type t when t == typeof(bool) => ConfigureField(propertyField, fieldInfo, sourceObject, () => new ToggleSwitch()),
+            Type t when t == typeof(Enum) => ConfigureField(propertyField, fieldInfo, sourceObject, () => new ComboBox
+            {
+                ItemsSource = Enum.GetValues(t),
+                SelectedValuePath = "Value",
+            }),
+            _ => new TextBlock
+            {
+                Text = $"Unsupported type: {fieldInfo.FieldType.Name}",
+                VerticalAlignment = VerticalAlignment.Center,
+                Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Red)
+            },
+        };
 
         propertyField.Content = content;
         return propertyField;
@@ -125,12 +122,12 @@ public sealed partial class PropertyField : ContentControl
 
     public void UpdateValue()
     {
-        if (sourceObject == null || propertyInfo == null || _fieldType == null)
+        if (_sourceObject == null || _propertyInfo == null || _fieldType == null)
         {
             return;
         }
 
-        var currentValue = propertyInfo.GetValue(sourceObject);
+        var currentValue = _propertyInfo.GetValue(_sourceObject);
         if (Equals(currentValue, _lastValue))
         {
             return;
@@ -139,7 +136,7 @@ public sealed partial class PropertyField : ContentControl
         var dp = GetValueProperty(_fieldType);
         if (dp != null)
         {
-            SetValue(dp, propertyInfo.GetValue(sourceObject));
+            SetValue(dp, _propertyInfo.GetValue(_sourceObject));
             _lastValue = currentValue;
         }
     }

@@ -1,5 +1,5 @@
 using Ghost.Engine.Components;
-using Ghost.SparseEntities;
+using Ghost.Entities;
 
 namespace Ghost.Editor.Core.SceneGraph;
 
@@ -37,23 +37,23 @@ public class SceneGraphHelpers
     {
         // 1) If the child already has a parent, detach it first
         var childHierarchy = scene.World.EntityManager.GetComponent<Hierarchy>(childNode.Entity);
-        if (childHierarchy.ValueRO.parent != Entity.Invalid)
+        if (childHierarchy.parent != Entity.Invalid)
         {
             DetachFromParent(scene, childNode);
         }
 
         // 2) Link child to new parent
-        childHierarchy.ValueRW.parent = parentNode.Entity;
+        childHierarchy.parent = parentNode.Entity;
 
         // 3) Insert child at the head of parent's child list
         var parentHierarchy = scene.World.EntityManager.GetComponent<Hierarchy>(parentNode.Entity);
 
-        childHierarchy.ValueRW.nextSibling = parentHierarchy.ValueRO.firstChild;
-        parentHierarchy.ValueRW.firstChild = childNode.Entity;
+        childHierarchy.nextSibling = parentHierarchy.firstChild;
+        parentHierarchy.firstChild = childNode.Entity;
 
         // 4) Write back
-        scene.World.EntityManager.SetComponent(parentNode.Entity, in parentHierarchy.ValueRO);
-        scene.World.EntityManager.SetComponent(childNode.Entity, in childHierarchy.ValueRO);
+        scene.World.EntityManager.SetComponent(parentNode.Entity, parentHierarchy);
+        scene.World.EntityManager.SetComponent(childNode.Entity, childHierarchy);
 
         // 5) Update children list in parent node
         parentNode.AddChild(childNode);
@@ -67,7 +67,7 @@ public class SceneGraphHelpers
     public static void DetachFromParent(WorldNode scene, EntityNode node)
     {
         var hierarchy = scene.World.EntityManager.GetComponent<Hierarchy>(node.Entity);
-        var parent = hierarchy.ValueRO.parent;
+        var parent = hierarchy.parent;
         if (parent == Entity.Invalid)
         {
             return; // already root
@@ -76,35 +76,35 @@ public class SceneGraphHelpers
         var parentHierarchy = scene.World.EntityManager.GetComponent<Hierarchy>(parent);
 
         // If entity is the first child, simply move head
-        if (parentHierarchy.ValueRO.firstChild == node.Entity)
+        if (parentHierarchy.firstChild == node.Entity)
         {
-            parentHierarchy.ValueRW.firstChild = hierarchy.ValueRO.nextSibling;
+            parentHierarchy.firstChild = hierarchy.nextSibling;
         }
         else
         {
             // Otherwise, find the previous sibling in the linked list
-            var prevSibling = parentHierarchy.ValueRO.firstChild;
+            var prevSibling = parentHierarchy.firstChild;
             while (prevSibling != Entity.Invalid)
             {
                 var prevHierarchy = scene.World.EntityManager.GetComponent<Hierarchy>(prevSibling);
-                if (prevHierarchy.ValueRW.nextSibling == node.Entity)
+                if (prevHierarchy.nextSibling == node.Entity)
                 {
-                    prevHierarchy.ValueRW.nextSibling = hierarchy.ValueRO.nextSibling;
-                    scene.World.EntityManager.SetComponent(prevSibling, in prevHierarchy.ValueRO);
+                    prevHierarchy.nextSibling = hierarchy.nextSibling;
+                    scene.World.EntityManager.SetComponent(prevSibling, prevHierarchy);
                     break;
                 }
 
-                prevSibling = prevHierarchy.ValueRO.nextSibling;
+                prevSibling = prevHierarchy.nextSibling;
             }
         }
 
         // Clear child's references
-        hierarchy.ValueRW.parent = Entity.Invalid;
-        hierarchy.ValueRW.nextSibling = Entity.Invalid;
+        hierarchy.parent = Entity.Invalid;
+        hierarchy.nextSibling = Entity.Invalid;
 
         // Write back
-        scene.World.EntityManager.SetComponent(parent, in parentHierarchy.ValueRO);
-        scene.World.EntityManager.SetComponent(node.Entity, in hierarchy.ValueRO);
+        scene.World.EntityManager.SetComponent(parent, parentHierarchy);
+        scene.World.EntityManager.SetComponent(node.Entity, hierarchy);
 
         // Remove from parent's children list
         scene.EntityNodeLookup[parent].RemoveChild(node);

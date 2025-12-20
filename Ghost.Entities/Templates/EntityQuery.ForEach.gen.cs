@@ -1,3 +1,4 @@
+
 namespace Ghost.Entities;
 
 public unsafe partial struct EntityQuery
@@ -8,7 +9,7 @@ public unsafe partial struct EntityQuery
         var world = World.GetWorldUncheck(_worldID);
         var globalVersion = world.Version;
 
-        var comp0TypeID = ComponentTypeID<T0>.value;
+        var comp0TypeID = ComponentTypeID<T0>.Value;
 
         var compTypeIDs = stackalloc int[]
         {
@@ -93,8 +94,8 @@ public unsafe partial struct EntityQuery
         var world = World.GetWorldUncheck(_worldID);
         var globalVersion = world.Version;
 
-        var comp0TypeID = ComponentTypeID<T0>.value;
-        var comp1TypeID = ComponentTypeID<T1>.value;
+        var comp0TypeID = ComponentTypeID<T0>.Value;
+        var comp1TypeID = ComponentTypeID<T1>.Value;
 
         var compTypeIDs = stackalloc int[]
         {
@@ -182,9 +183,9 @@ public unsafe partial struct EntityQuery
         var world = World.GetWorldUncheck(_worldID);
         var globalVersion = world.Version;
 
-        var comp0TypeID = ComponentTypeID<T0>.value;
-        var comp1TypeID = ComponentTypeID<T1>.value;
-        var comp2TypeID = ComponentTypeID<T2>.value;
+        var comp0TypeID = ComponentTypeID<T0>.Value;
+        var comp1TypeID = ComponentTypeID<T1>.Value;
+        var comp2TypeID = ComponentTypeID<T2>.Value;
 
         var compTypeIDs = stackalloc int[]
         {
@@ -275,10 +276,10 @@ public unsafe partial struct EntityQuery
         var world = World.GetWorldUncheck(_worldID);
         var globalVersion = world.Version;
 
-        var comp0TypeID = ComponentTypeID<T0>.value;
-        var comp1TypeID = ComponentTypeID<T1>.value;
-        var comp2TypeID = ComponentTypeID<T2>.value;
-        var comp3TypeID = ComponentTypeID<T3>.value;
+        var comp0TypeID = ComponentTypeID<T0>.Value;
+        var comp1TypeID = ComponentTypeID<T1>.Value;
+        var comp2TypeID = ComponentTypeID<T2>.Value;
+        var comp3TypeID = ComponentTypeID<T3>.Value;
 
         var compTypeIDs = stackalloc int[]
         {
@@ -372,11 +373,11 @@ public unsafe partial struct EntityQuery
         var world = World.GetWorldUncheck(_worldID);
         var globalVersion = world.Version;
 
-        var comp0TypeID = ComponentTypeID<T0>.value;
-        var comp1TypeID = ComponentTypeID<T1>.value;
-        var comp2TypeID = ComponentTypeID<T2>.value;
-        var comp3TypeID = ComponentTypeID<T3>.value;
-        var comp4TypeID = ComponentTypeID<T4>.value;
+        var comp0TypeID = ComponentTypeID<T0>.Value;
+        var comp1TypeID = ComponentTypeID<T1>.Value;
+        var comp2TypeID = ComponentTypeID<T2>.Value;
+        var comp3TypeID = ComponentTypeID<T3>.Value;
+        var comp4TypeID = ComponentTypeID<T4>.Value;
 
         var compTypeIDs = stackalloc int[]
         {
@@ -473,12 +474,12 @@ public unsafe partial struct EntityQuery
         var world = World.GetWorldUncheck(_worldID);
         var globalVersion = world.Version;
 
-        var comp0TypeID = ComponentTypeID<T0>.value;
-        var comp1TypeID = ComponentTypeID<T1>.value;
-        var comp2TypeID = ComponentTypeID<T2>.value;
-        var comp3TypeID = ComponentTypeID<T3>.value;
-        var comp4TypeID = ComponentTypeID<T4>.value;
-        var comp5TypeID = ComponentTypeID<T5>.value;
+        var comp0TypeID = ComponentTypeID<T0>.Value;
+        var comp1TypeID = ComponentTypeID<T1>.Value;
+        var comp2TypeID = ComponentTypeID<T2>.Value;
+        var comp3TypeID = ComponentTypeID<T3>.Value;
+        var comp4TypeID = ComponentTypeID<T4>.Value;
+        var comp5TypeID = ComponentTypeID<T5>.Value;
 
         var compTypeIDs = stackalloc int[]
         {
@@ -578,13 +579,13 @@ public unsafe partial struct EntityQuery
         var world = World.GetWorldUncheck(_worldID);
         var globalVersion = world.Version;
 
-        var comp0TypeID = ComponentTypeID<T0>.value;
-        var comp1TypeID = ComponentTypeID<T1>.value;
-        var comp2TypeID = ComponentTypeID<T2>.value;
-        var comp3TypeID = ComponentTypeID<T3>.value;
-        var comp4TypeID = ComponentTypeID<T4>.value;
-        var comp5TypeID = ComponentTypeID<T5>.value;
-        var comp6TypeID = ComponentTypeID<T6>.value;
+        var comp0TypeID = ComponentTypeID<T0>.Value;
+        var comp1TypeID = ComponentTypeID<T1>.Value;
+        var comp2TypeID = ComponentTypeID<T2>.Value;
+        var comp3TypeID = ComponentTypeID<T3>.Value;
+        var comp4TypeID = ComponentTypeID<T4>.Value;
+        var comp5TypeID = ComponentTypeID<T5>.Value;
+        var comp6TypeID = ComponentTypeID<T6>.Value;
 
         var compTypeIDs = stackalloc int[]
         {
@@ -687,14 +688,14 @@ public unsafe partial struct EntityQuery
         var world = World.GetWorldUncheck(_worldID);
         var globalVersion = world.Version;
 
-        var comp0TypeID = ComponentTypeID<T0>.value;
-        var comp1TypeID = ComponentTypeID<T1>.value;
-        var comp2TypeID = ComponentTypeID<T2>.value;
-        var comp3TypeID = ComponentTypeID<T3>.value;
-        var comp4TypeID = ComponentTypeID<T4>.value;
-        var comp5TypeID = ComponentTypeID<T5>.value;
-        var comp6TypeID = ComponentTypeID<T6>.value;
-        var comp7TypeID = ComponentTypeID<T7>.value;
+        var comp0TypeID = ComponentTypeID<T0>.Value;
+        var comp1TypeID = ComponentTypeID<T1>.Value;
+        var comp2TypeID = ComponentTypeID<T2>.Value;
+        var comp3TypeID = ComponentTypeID<T3>.Value;
+        var comp4TypeID = ComponentTypeID<T4>.Value;
+        var comp5TypeID = ComponentTypeID<T5>.Value;
+        var comp6TypeID = ComponentTypeID<T6>.Value;
+        var comp7TypeID = ComponentTypeID<T7>.Value;
 
         var compTypeIDs = stackalloc int[]
         {
@@ -792,7 +793,7 @@ public unsafe partial struct EntityQuery
         var world = World.GetWorldUncheck(_worldID);
         var globalVersion = world.Version;
 
-        var comp0TypeID = ComponentTypeID<T0>.value;
+        var comp0TypeID = ComponentTypeID<T0>.Value;
 
         var compTypeIDs = stackalloc int[]
         {
@@ -878,8 +879,8 @@ public unsafe partial struct EntityQuery
         var world = World.GetWorldUncheck(_worldID);
         var globalVersion = world.Version;
 
-        var comp0TypeID = ComponentTypeID<T0>.value;
-        var comp1TypeID = ComponentTypeID<T1>.value;
+        var comp0TypeID = ComponentTypeID<T0>.Value;
+        var comp1TypeID = ComponentTypeID<T1>.Value;
 
         var compTypeIDs = stackalloc int[]
         {
@@ -968,9 +969,9 @@ public unsafe partial struct EntityQuery
         var world = World.GetWorldUncheck(_worldID);
         var globalVersion = world.Version;
 
-        var comp0TypeID = ComponentTypeID<T0>.value;
-        var comp1TypeID = ComponentTypeID<T1>.value;
-        var comp2TypeID = ComponentTypeID<T2>.value;
+        var comp0TypeID = ComponentTypeID<T0>.Value;
+        var comp1TypeID = ComponentTypeID<T1>.Value;
+        var comp2TypeID = ComponentTypeID<T2>.Value;
 
         var compTypeIDs = stackalloc int[]
         {
@@ -1062,10 +1063,10 @@ public unsafe partial struct EntityQuery
         var world = World.GetWorldUncheck(_worldID);
         var globalVersion = world.Version;
 
-        var comp0TypeID = ComponentTypeID<T0>.value;
-        var comp1TypeID = ComponentTypeID<T1>.value;
-        var comp2TypeID = ComponentTypeID<T2>.value;
-        var comp3TypeID = ComponentTypeID<T3>.value;
+        var comp0TypeID = ComponentTypeID<T0>.Value;
+        var comp1TypeID = ComponentTypeID<T1>.Value;
+        var comp2TypeID = ComponentTypeID<T2>.Value;
+        var comp3TypeID = ComponentTypeID<T3>.Value;
 
         var compTypeIDs = stackalloc int[]
         {
@@ -1160,11 +1161,11 @@ public unsafe partial struct EntityQuery
         var world = World.GetWorldUncheck(_worldID);
         var globalVersion = world.Version;
 
-        var comp0TypeID = ComponentTypeID<T0>.value;
-        var comp1TypeID = ComponentTypeID<T1>.value;
-        var comp2TypeID = ComponentTypeID<T2>.value;
-        var comp3TypeID = ComponentTypeID<T3>.value;
-        var comp4TypeID = ComponentTypeID<T4>.value;
+        var comp0TypeID = ComponentTypeID<T0>.Value;
+        var comp1TypeID = ComponentTypeID<T1>.Value;
+        var comp2TypeID = ComponentTypeID<T2>.Value;
+        var comp3TypeID = ComponentTypeID<T3>.Value;
+        var comp4TypeID = ComponentTypeID<T4>.Value;
 
         var compTypeIDs = stackalloc int[]
         {
@@ -1262,12 +1263,12 @@ public unsafe partial struct EntityQuery
         var world = World.GetWorldUncheck(_worldID);
         var globalVersion = world.Version;
 
-        var comp0TypeID = ComponentTypeID<T0>.value;
-        var comp1TypeID = ComponentTypeID<T1>.value;
-        var comp2TypeID = ComponentTypeID<T2>.value;
-        var comp3TypeID = ComponentTypeID<T3>.value;
-        var comp4TypeID = ComponentTypeID<T4>.value;
-        var comp5TypeID = ComponentTypeID<T5>.value;
+        var comp0TypeID = ComponentTypeID<T0>.Value;
+        var comp1TypeID = ComponentTypeID<T1>.Value;
+        var comp2TypeID = ComponentTypeID<T2>.Value;
+        var comp3TypeID = ComponentTypeID<T3>.Value;
+        var comp4TypeID = ComponentTypeID<T4>.Value;
+        var comp5TypeID = ComponentTypeID<T5>.Value;
 
         var compTypeIDs = stackalloc int[]
         {
@@ -1368,13 +1369,13 @@ public unsafe partial struct EntityQuery
         var world = World.GetWorldUncheck(_worldID);
         var globalVersion = world.Version;
 
-        var comp0TypeID = ComponentTypeID<T0>.value;
-        var comp1TypeID = ComponentTypeID<T1>.value;
-        var comp2TypeID = ComponentTypeID<T2>.value;
-        var comp3TypeID = ComponentTypeID<T3>.value;
-        var comp4TypeID = ComponentTypeID<T4>.value;
-        var comp5TypeID = ComponentTypeID<T5>.value;
-        var comp6TypeID = ComponentTypeID<T6>.value;
+        var comp0TypeID = ComponentTypeID<T0>.Value;
+        var comp1TypeID = ComponentTypeID<T1>.Value;
+        var comp2TypeID = ComponentTypeID<T2>.Value;
+        var comp3TypeID = ComponentTypeID<T3>.Value;
+        var comp4TypeID = ComponentTypeID<T4>.Value;
+        var comp5TypeID = ComponentTypeID<T5>.Value;
+        var comp6TypeID = ComponentTypeID<T6>.Value;
 
         var compTypeIDs = stackalloc int[]
         {
@@ -1478,14 +1479,14 @@ public unsafe partial struct EntityQuery
         var world = World.GetWorldUncheck(_worldID);
         var globalVersion = world.Version;
 
-        var comp0TypeID = ComponentTypeID<T0>.value;
-        var comp1TypeID = ComponentTypeID<T1>.value;
-        var comp2TypeID = ComponentTypeID<T2>.value;
-        var comp3TypeID = ComponentTypeID<T3>.value;
-        var comp4TypeID = ComponentTypeID<T4>.value;
-        var comp5TypeID = ComponentTypeID<T5>.value;
-        var comp6TypeID = ComponentTypeID<T6>.value;
-        var comp7TypeID = ComponentTypeID<T7>.value;
+        var comp0TypeID = ComponentTypeID<T0>.Value;
+        var comp1TypeID = ComponentTypeID<T1>.Value;
+        var comp2TypeID = ComponentTypeID<T2>.Value;
+        var comp3TypeID = ComponentTypeID<T3>.Value;
+        var comp4TypeID = ComponentTypeID<T4>.Value;
+        var comp5TypeID = ComponentTypeID<T5>.Value;
+        var comp6TypeID = ComponentTypeID<T6>.Value;
+        var comp7TypeID = ComponentTypeID<T7>.Value;
 
         var compTypeIDs = stackalloc int[]
         {

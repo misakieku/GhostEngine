@@ -1,5 +1,6 @@
 using Ghost.Test.Core;
 using Misaki.HighPerformance.Jobs;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Entities.Test;
@@ -40,7 +41,11 @@ public partial class EntityQueryTest : ITest
     public void Run()
     {
         var entities = (Span<Entity>)stackalloc Entity[1000];
-        _world.EntityManager.CreateEntities(entities, ComponentTypeID<Transform>.value);
+
+        using var scope  = AllocationManager.CreateStackScope();
+        using var set = new ComponentSet(scope.AllocationHandle, ComponentTypeID<Transform>.Value);
+
+        _world.EntityManager.CreateEntities(entities, set);
 
         var queryID = new QueryBuilder().WithAllRW<Transform>().Build(_world);
         ref var query = ref _world.GetEntityQueryReference(queryID);

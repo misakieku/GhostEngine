@@ -145,7 +145,7 @@ public readonly unsafe ref struct ChunkView
     public readonly bool HasChanged<T>(int version)
         where T : unmanaged, IComponent
     {
-        var layout = GetLayout(ComponentTypeID<T>.value);
+        var layout = GetLayout(ComponentTypeID<T>.Value);
         return version < _pVersion[layout.versionIndex];
     }
 
@@ -180,7 +180,7 @@ public readonly unsafe ref struct ChunkView
     public readonly int GetComponentVersion<T>()
         where T : unmanaged, IComponent
     {
-        return _pVersion[ComponentTypeID<T>.value];
+        return _pVersion[ComponentTypeID<T>.Value];
     }
 
     /// <summary>
@@ -204,7 +204,7 @@ public readonly unsafe ref struct ChunkView
     public ReadOnlySpan<T> GetComponentData<T>()
         where T : unmanaged, IComponent
     {
-        var layout = GetLayout(ComponentTypeID<T>.value);
+        var layout = GetLayout(ComponentTypeID<T>.Value);
         var pComponentData = _pChunkData + layout.offset;
         return new ReadOnlySpan<T>(pComponentData, _entityCount);
     }
@@ -219,7 +219,7 @@ public readonly unsafe ref struct ChunkView
     public Span<T> GetComponentDataRW<T>()
         where T : unmanaged, IComponent
     {
-        var compId = ComponentTypeID<T>.value;
+        var compId = ComponentTypeID<T>.Value;
         var layout = GetLayout(compId);
 
         _pVersion[layout.versionIndex] = _currentVersion;
@@ -239,7 +239,7 @@ public readonly unsafe ref struct ChunkView
     public SpanBitSet GetEnableBits<T>()
         where T : unmanaged, IEnableableComponent
     {
-        var layout = _layouts[ComponentTypeID<T>.value];
+        var layout = _layouts[ComponentTypeID<T>.Value];
         var maskBase = _pChunkData + layout.enableBitsOffset;
         return new SpanBitSet(new Span<uint>(maskBase, (_entityCount + 31) / 32));
     }
@@ -255,7 +255,7 @@ public readonly unsafe ref struct ChunkView
     public bool IsComponentEnabled<T>(int index)
         where T : unmanaged, IEnableableComponent
     {
-        var layout = GetLayout(ComponentTypeID<T>.value);
+        var layout = GetLayout(ComponentTypeID<T>.Value);
         var pMask = _pChunkData + layout.enableBitsOffset;
         return EntityQuery.CheckBit(pMask, index);
     }
@@ -545,7 +545,7 @@ public ref partial struct QueryBuilder
 
         foreach (var id in _none)
         {
-            if (ComponentRegister.GetComponentInfo(id).isEnableable)
+            if (ComponentRegistry.GetComponentInfo(id).isEnableable)
             {
                 mask.rejectIfEnabled.SetBit(id); // Filter: Must Not be Enabled (Can be Absent or Disabled)
             }

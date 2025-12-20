@@ -1,21 +1,11 @@
-using Ghost.Engine.Utilities;
-using Ghost.SparseEntities.Components;
-using System.Numerics;
+using Ghost.Entities;
+using Misaki.HighPerformance.Mathematics;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Engine.Components;
 
 [SkipLocalsInit]
-public struct LocalToWorld : IComponentData
+public struct LocalToWorld : IComponent
 {
-    public Matrix4x4 matrix;
-
-    public static LocalToWorld Identity
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => new()
-        {
-            matrix = MatrixUtility.CreateTRS(Vector3.Zero, Quaternion.Identity, Vector3.One)
-        };
-    }
+    public float4x4 matrix;
 }

@@ -5,7 +5,7 @@ namespace Ghost.Editor.Core.Utilities;
 
 public static class TypeCache
 {
-    private static readonly TypeInfo[] _types;
+    private static readonly TypeInfo[] s_types;
 
     static TypeCache()
     {
@@ -26,11 +26,11 @@ public static class TypeCache
             }
         }
 
-        _types = loadableTypes.Select(t => t.GetTypeInfo()).ToArray();
+        s_types = loadableTypes.Select(t => t.GetTypeInfo()).ToArray();
     }
 
     public static Type[] GetTypes()
     {
-        return _types;
+        return s_types;
     }
 }

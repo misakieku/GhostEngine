@@ -74,7 +74,7 @@ internal unsafe sealed class ChunkDebugView
         var it = archetype._signature.GetIterator();
         while (it.Next(out var index))
         {
-            var type = ComponentRegister.s_runtimeIDToType[index];
+            var type = ComponentRegistry.s_runtimeIDToType[index];
             if (type == null)
             {
                 continue;
@@ -238,7 +238,7 @@ internal unsafe struct Archetype : IDisposable
         for (var i = 0; i < componentIds.Length; i++)
         {
             _signature.SetBit(componentIds[i]);
-            components[i] = ComponentRegister.GetComponentInfo(componentIds[i]);
+            components[i] = ComponentRegistry.GetComponentInfo(componentIds[i]);
         }
 
         // Calculate total size per entity to get an initial capacity estimate
@@ -394,7 +394,7 @@ internal unsafe struct Archetype : IDisposable
         ref var chunk = ref _chunks[chunkIndex];
 
         var chunkBase = chunk.GetUnsafePtr();
-        var size = ComponentRegister.GetComponentInfo(componentID).size;
+        var size = ComponentRegistry.GetComponentInfo(componentID).size;
         var dst = chunkBase + offset + (size * rowIndex);
 
         MemoryUtility.MemCpy(dst, pComponent, (nuint)size);
@@ -418,7 +418,7 @@ internal unsafe struct Archetype : IDisposable
         var chunk = _chunks[chunkIndex];
 
         var chunkBase = chunk.GetUnsafePtr();
-        var size = ComponentRegister.GetComponentInfo(componentID).size;
+        var size = ComponentRegistry.GetComponentInfo(componentID).size;
         return chunkBase + offset + (size * rowIndex);
     }
 

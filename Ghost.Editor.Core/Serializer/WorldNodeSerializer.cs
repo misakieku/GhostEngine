@@ -1,13 +1,13 @@
 using Ghost.Editor.Core.SceneGraph;
+using Ghost.Engine;
+using Ghost.Engine.IO;
 using Ghost.Engine.Utilities;
-using Ghost.SparseEntities;
-using Ghost.SparseEntities.Components;
+using Ghost.Entities;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace Ghost.Editor.Core.Serializer;
 
-internal class WorldNodeSerializer : JsonConverter<WorldNode>
+internal class WorldNodeSerializer : CustomSerializer<WorldNode>
 {
     private static class Property
     {
@@ -25,112 +25,124 @@ internal class WorldNodeSerializer : JsonConverter<WorldNode>
         return typeToConvert == typeof(WorldNode) || typeToConvert.IsSubclassOf(typeof(WorldNode));
     }
 
-    public override WorldNode? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-    {
-        var element = JsonDocument.ParseValue(ref reader).RootElement;
-        var name = element.GetProperty(Property.NAME).GetString() ?? "New World";
-
-        var world = World.Create();
-        var result = new WorldNode(world, name);
-
-        foreach (var entityElement in element.GetProperty(Property.ENTITIES).EnumerateArray())
-        {
-            var entityName = entityElement.GetProperty(Property.NAME).GetString() ?? "New Entity";
-            var entityID = entityElement.GetProperty(Property.ID).GetInt32();
-            var entity = new Entity(entityID, 0);
-            var node = new EntityNode(result, entity, entityName);
-
-            world.EntityManager.AddEntityInternal(entity);
-            result.EntityNodeLookup[entity] = node;
-        }
-
-        foreach (var componentElement in element.GetProperty(Property.COMPONENTS).EnumerateObject())
-        {
-            var typeName = componentElement.Name;
-            var type = Type.GetType(typeName) ?? throw new Exception($"Type {typeName} not found.");
-
-            foreach (var dataElement in componentElement.Value.EnumerateArray())
-            {
-                var entityID = dataElement.GetProperty(Property.ENTITY_ID).GetInt32();
-                var entity = new Entity(entityID, 0);
-
-                var dataProperty = dataElement.GetProperty(Property.DATA);
-                var component = JsonSerializer.Deserialize(dataProperty.GetRawText(), type, options);
-                if (component is IComponentData data)
-                {
-                    world.EntityManager.AddComponent(entity, data, type);
-                }
-            }
-        }
-
-        foreach (var systemElement in element.GetProperty(Property.SYSTEMS).EnumerateArray())
-        {
-            var typeString = systemElement.GetString();
-            if (string.IsNullOrEmpty(typeString))
-            {
-                continue;
-            }
-
-            var systemType = Type.GetType(typeString);
-            if (systemType == null)
-            {
-                continue;
-            }
-
-            world.SystemStorage.AddSystem(systemType);
-        }
-
-        return result;
-    }
-
-    public override void Write(Utf8JsonWriter writer, WorldNode value, JsonSerializerOptions options)
+    public unsafe override void SerializeJson(Utf8JsonWriter writer, WorldNode value, JsonSerializerOptions options)
     {
         writer.WriteObject(() =>
         {
             writer.WriteString(Property.NAME, value.Name);
-            writer.WriteArray(Property.ENTITIES, value.World.EntityManager.Entities, entity =>
+
+            writer.WriteStartArray(Property.ENTITIES);
+
+            for (var i = 0; i < value.World.ArchetypeCount; i++)
             {
-                if (!entity.IsValid)
+                ref var archetype = ref value.World.GetArchetypeReference(i);
+
+                for (var j = 0; j < archetype.ChunkCount; j++)
+                {
+                    ref var chunk = ref archetype.GetChunkReference(j);
+                    for (var k = 0; k < chunk._count; k++)
+                    {
+                        foreach (var layout in archetype._layouts)
+                        {
+                            var type = ComponentRegistry.s_runtimeIDToType[layout.componentID];
+                            var size = ComponentRegistry.GetComponentInfo(layout.componentID).size;
+
+                            if (type.AssemblyQualifiedName == null)
+                            {
+                                continue;
+                            }
+
+                            writer.WriteStartObject(type.AssemblyQualifiedName);
+
+                            var pComponentData = chunk.GetUnsafePtr() + layout.offset + (k * size);
+                            ComponentSerializerRegistry.SerializeJson(layout.componentID, writer, pComponentData, options);
+                        }
+                    }
+                }
+            }
+
+            writer.WriteEndArray();
+
+            writer.WriteArray(Property.SYSTEMS, value.World.SystemManager.Systems, system =>
+            {
+                var name = system.GetType().AssemblyQualifiedName;
+                if (name == null)
                 {
                     return;
                 }
 
-                writer.WriteObject(() =>
-                {
-                    writer.WriteString(Property.NAME, value.EntityNodeLookup[entity].Name);
-                    writer.WriteNumber(Property.ID, entity.ID);
-                });
-            });
-
-            writer.WriteObject(Property.COMPONENTS, () =>
-            {
-                for (var i = 0; i < value.World.ComponentStorage.ComponentPools.Count; i++)
-                {
-                    var pool = value.World.ComponentStorage.ComponentPools[i];
-                    if (pool == null)
-                    {
-                        continue;
-                    }
-
-                    var type = value.World.ComponentStorage.GetComponentPoolType(i).GetType();
-                    var typeName = type.AssemblyQualifiedName ?? type.Name;
-
-                    writer.WriteArray(typeName, pool.Enumerate(), data =>
-                    {
-                        writer.WriteObject(() =>
-                        {
-                            writer.WriteNumber(Property.ENTITY_ID, data.entity.ID);
-                            writer.WritePropertyName(Property.DATA);
-                            JsonSerializer.Serialize(writer, data.component, type, options);
-                        });
-                    });
-                }
-            });
-
-            writer.WriteArray(Property.SYSTEMS, value.World.SystemStorage.Systems, systemType =>
-            {
-                writer.WriteStringValue(systemType.AssemblyQualifiedName ?? systemType.Name);
+                writer.WriteStringValue(name);
             });
         });
+    }
+
+    public override WorldNode? DeserializeJson(ref Utf8JsonReader reader, JsonSerializerOptions options)
+    {
+        throw new NotImplementedException();
+
+        //var element = JsonDocument.ParseValue(ref reader).RootElement;
+        //var name = element.GetProperty(Property.NAME).GetString() ?? "New World";
+
+        //var world = World.Create(EngineCore.JobScheduler);
+        //var result = new WorldNode(world, name);
+
+        //foreach (var entityElement in element.GetProperty(Property.ENTITIES).EnumerateArray())
+        //{
+        //    var entityName = entityElement.GetProperty(Property.NAME).GetString() ?? "New Entity";
+        //    var entityID = entityElement.GetProperty(Property.ID).GetInt32();
+        //    var entity = new Entity(entityID, 0);
+        //    var node = new EntityNode(result, entity, entityName);
+
+        //    world.EntityManager.AddEntityInternal(entity);
+        //    result.EntityNodeLookup[entity] = node;
+        //}
+
+        //foreach (var componentElement in element.GetProperty(Property.COMPONENTS).EnumerateObject())
+        //{
+        //    var typeName = componentElement.Name;
+        //    var type = Type.GetType(typeName) ?? throw new Exception($"Type {typeName} not found.");
+
+        //    foreach (var dataElement in componentElement.Value.EnumerateArray())
+        //    {
+        //        var entityID = dataElement.GetProperty(Property.ENTITY_ID).GetInt32();
+        //        var entity = new Entity(entityID, 0);
+
+        //        var dataProperty = dataElement.GetProperty(Property.DATA);
+        //        var component = JsonSerializer.Deserialize(dataProperty.GetRawText(), type, options);
+        //        if (component is IComponent data)
+        //        {
+        //            world.EntityManager.AddComponent(entity, data, type);
+        //        }
+        //    }
+        //}
+
+        //foreach (var systemElement in element.GetProperty(Property.SYSTEMS).EnumerateArray())
+        //{
+        //    var typeString = systemElement.GetString();
+        //    if (string.IsNullOrEmpty(typeString))
+        //    {
+        //        continue;
+        //    }
+
+        //    var systemType = Type.GetType(typeString);
+        //    if (systemType == null)
+        //    {
+        //        continue;
+        //    }
+
+        //    world.SystemStorage.AddSystem(systemType);
+        //}
+
+        //return result;
+    }
+
+    public override void SerializeBinary(BinaryWriter writer, WorldNode value)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override WorldNode? DeserializeBinary(BinaryReader reader)
+    {
+        throw new NotImplementedException();
     }
 }

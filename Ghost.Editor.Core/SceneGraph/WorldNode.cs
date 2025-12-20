@@ -3,14 +3,14 @@ using Ghost.Editor.Core.Inspector;
 using Ghost.Editor.Core.Resources;
 using Ghost.Editor.Core.Serializer;
 using Ghost.Engine.Components;
-using Ghost.SparseEntities;
+using Ghost.Engine.IO;
+using Ghost.Entities;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using System.Text.Json.Serialization;
 
 namespace Ghost.Editor.Core.SceneGraph;
 
-[JsonConverter(typeof(WorldNodeSerializer))]
+[CustomSerializer(typeof(WorldNodeSerializer))]
 public partial class WorldNode : SceneGraphNode, IEquatable<WorldNode>
 {
     private World _world;
@@ -25,11 +25,6 @@ public partial class WorldNode : SceneGraphNode, IEquatable<WorldNode>
     {
         _world = world;
         Name = name;
-    }
-
-    internal WorldNode()
-    {
-        _world = World.Create();
     }
 
     private void UpdateLookup(Entity key, EntityNode value)
@@ -85,13 +80,13 @@ public partial class WorldNode : SceneGraphNode, IEquatable<WorldNode>
         }
 
         var hc = _world.EntityManager.GetComponent<Hierarchy>(entity);
-        var child = hc.ValueRO.firstChild;
+        var child = hc.firstChild;
 
         while (child != Entity.Invalid)
         {
             node.AddChild(BuildNodeRecursive(child));
             var childHC = _world.EntityManager.GetComponent<Hierarchy>(child);
-            child = childHC.ValueRO.nextSibling;
+            child = childHC.nextSibling;
         }
 
         return node;
@@ -99,14 +94,18 @@ public partial class WorldNode : SceneGraphNode, IEquatable<WorldNode>
 
     private void BuildGraph()
     {
-        foreach (var (entity, hierarchy) in _world.Query<Hierarchy>())
+        var queryID = new QueryBuilder()
+            .WithAll<Hierarchy>()
+            .Build(_world);
+
+        _world.GetEntityQueryReference(queryID).ForEach<Hierarchy>((entity, ref hierarchy) =>
         {
-            if (hierarchy.ValueRO.parent == Entity.Invalid)
+            if (hierarchy.parent == Entity.Invalid)
             {
                 var node = BuildNodeRecursive(entity);
                 AddChild(node);
             }
-        }
+        });
     }
 
     public Task LoadAsync()
@@ -116,7 +115,6 @@ public partial class WorldNode : SceneGraphNode, IEquatable<WorldNode>
 
     public void Unload()
     {
-        _world.Dispose();
         _world = null!;
 
         Children?.Clear();

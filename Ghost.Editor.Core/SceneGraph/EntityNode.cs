@@ -2,7 +2,7 @@ using Ghost.Editor.Core.Controls.Internal;
 using Ghost.Editor.Core.Inspector;
 using Ghost.Editor.Core.Resources;
 using Ghost.Engine.Editor;
-using Ghost.SparseEntities;
+using Ghost.Entities;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -76,31 +76,46 @@ public partial class EntityNode : IInspectable
         }
     }
 
-    public UIElement? InspectorContent
+    public unsafe UIElement? InspectorContent
     {
         get
         {
+            var r = Owner.World.EntityManager.GetEntityLocation(Entity);
+            if (!r)
+            {
+                return null;
+            }
+
             var root = new StackPanel()
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment = VerticalAlignment.Top
             };
 
-            foreach (var (typeHandle, componentPtr) in Owner.World.EntityManager.GetComponentsUnsafe(Entity))
+            var location = r.Value;
+            ref var archetype = ref Owner.World.GetArchetypeReference(location.archetypeID);
+
+            var it = archetype._signature.GetIterator();
+            while (it.Next(out var typeID))
             {
-                if (componentPtr == IntPtr.Zero)
+                var pComponent = archetype.GetComponentData(location.chunkIndex, location.rowIndex, typeID);
+                if (pComponent == null)
                 {
                     continue;
                 }
 
-                var type = typeHandle.ToType();
-                if (type == null || type.GetCustomAttribute<HideEditorAttribute>() != null)
+                if (!ComponentRegistry.s_runtimeIDToType.TryGetValue(typeID, out var t))
                 {
                     continue;
                 }
 
-                var dataView = new ComponentDataView(type.Name, Owner.World, Entity, type);
-                root.Children.Add(dataView);
+                if (t.GetCustomAttribute<HideEditorAttribute>() != null)
+                {
+                    continue;
+                }
+
+                var componentView = new ComponentView(t.Name, Owner.World, Entity, t);
+                root.Children.Add(componentView);
             }
 
             return root;

@@ -35,7 +35,7 @@ public unsafe partial struct EntityQuery
 
             internal Enumerator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
             {
-                _compTypeIDs[0] = ComponentTypeID<T0>.value;
+                _compTypeIDs[0] = ComponentTypeID<T0>.Value;
                 _offsets[0] = 0;
                 _compBasePtrs[0] = 0;
 
@@ -224,11 +224,11 @@ public unsafe partial struct EntityQuery
 
             internal Enumerator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
             {
-                _compTypeIDs[0] = ComponentTypeID<T0>.value;
+                _compTypeIDs[0] = ComponentTypeID<T0>.Value;
                 _offsets[0] = 0;
                 _compBasePtrs[0] = 0;
 
-                _compTypeIDs[1] = ComponentTypeID<T1>.value;
+                _compTypeIDs[1] = ComponentTypeID<T1>.Value;
                 _offsets[1] = 0;
                 _compBasePtrs[1] = 0;
 
@@ -425,15 +425,15 @@ public unsafe partial struct EntityQuery
 
             internal Enumerator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
             {
-                _compTypeIDs[0] = ComponentTypeID<T0>.value;
+                _compTypeIDs[0] = ComponentTypeID<T0>.Value;
                 _offsets[0] = 0;
                 _compBasePtrs[0] = 0;
 
-                _compTypeIDs[1] = ComponentTypeID<T1>.value;
+                _compTypeIDs[1] = ComponentTypeID<T1>.Value;
                 _offsets[1] = 0;
                 _compBasePtrs[1] = 0;
 
-                _compTypeIDs[2] = ComponentTypeID<T2>.value;
+                _compTypeIDs[2] = ComponentTypeID<T2>.Value;
                 _offsets[2] = 0;
                 _compBasePtrs[2] = 0;
 
@@ -636,19 +636,19 @@ public unsafe partial struct EntityQuery
 
             internal Enumerator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
             {
-                _compTypeIDs[0] = ComponentTypeID<T0>.value;
+                _compTypeIDs[0] = ComponentTypeID<T0>.Value;
                 _offsets[0] = 0;
                 _compBasePtrs[0] = 0;
 
-                _compTypeIDs[1] = ComponentTypeID<T1>.value;
+                _compTypeIDs[1] = ComponentTypeID<T1>.Value;
                 _offsets[1] = 0;
                 _compBasePtrs[1] = 0;
 
-                _compTypeIDs[2] = ComponentTypeID<T2>.value;
+                _compTypeIDs[2] = ComponentTypeID<T2>.Value;
                 _offsets[2] = 0;
                 _compBasePtrs[2] = 0;
 
-                _compTypeIDs[3] = ComponentTypeID<T3>.value;
+                _compTypeIDs[3] = ComponentTypeID<T3>.Value;
                 _offsets[3] = 0;
                 _compBasePtrs[3] = 0;
 
@@ -857,23 +857,23 @@ public unsafe partial struct EntityQuery
 
             internal Enumerator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
             {
-                _compTypeIDs[0] = ComponentTypeID<T0>.value;
+                _compTypeIDs[0] = ComponentTypeID<T0>.Value;
                 _offsets[0] = 0;
                 _compBasePtrs[0] = 0;
 
-                _compTypeIDs[1] = ComponentTypeID<T1>.value;
+                _compTypeIDs[1] = ComponentTypeID<T1>.Value;
                 _offsets[1] = 0;
                 _compBasePtrs[1] = 0;
 
-                _compTypeIDs[2] = ComponentTypeID<T2>.value;
+                _compTypeIDs[2] = ComponentTypeID<T2>.Value;
                 _offsets[2] = 0;
                 _compBasePtrs[2] = 0;
 
-                _compTypeIDs[3] = ComponentTypeID<T3>.value;
+                _compTypeIDs[3] = ComponentTypeID<T3>.Value;
                 _offsets[3] = 0;
                 _compBasePtrs[3] = 0;
 
-                _compTypeIDs[4] = ComponentTypeID<T4>.value;
+                _compTypeIDs[4] = ComponentTypeID<T4>.Value;
                 _offsets[4] = 0;
                 _compBasePtrs[4] = 0;
 
@@ -1088,27 +1088,27 @@ public unsafe partial struct EntityQuery
 
             internal Enumerator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
             {
-                _compTypeIDs[0] = ComponentTypeID<T0>.value;
+                _compTypeIDs[0] = ComponentTypeID<T0>.Value;
                 _offsets[0] = 0;
                 _compBasePtrs[0] = 0;
 
-                _compTypeIDs[1] = ComponentTypeID<T1>.value;
+                _compTypeIDs[1] = ComponentTypeID<T1>.Value;
                 _offsets[1] = 0;
                 _compBasePtrs[1] = 0;
 
-                _compTypeIDs[2] = ComponentTypeID<T2>.value;
+                _compTypeIDs[2] = ComponentTypeID<T2>.Value;
                 _offsets[2] = 0;
                 _compBasePtrs[2] = 0;
 
-                _compTypeIDs[3] = ComponentTypeID<T3>.value;
+                _compTypeIDs[3] = ComponentTypeID<T3>.Value;
                 _offsets[3] = 0;
                 _compBasePtrs[3] = 0;
 
-                _compTypeIDs[4] = ComponentTypeID<T4>.value;
+                _compTypeIDs[4] = ComponentTypeID<T4>.Value;
                 _offsets[4] = 0;
                 _compBasePtrs[4] = 0;
 
-                _compTypeIDs[5] = ComponentTypeID<T5>.value;
+                _compTypeIDs[5] = ComponentTypeID<T5>.Value;
                 _offsets[5] = 0;
                 _compBasePtrs[5] = 0;
 
@@ -1329,31 +1329,31 @@ public unsafe partial struct EntityQuery
 
             internal Enumerator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
             {
-                _compTypeIDs[0] = ComponentTypeID<T0>.value;
+                _compTypeIDs[0] = ComponentTypeID<T0>.Value;
                 _offsets[0] = 0;
                 _compBasePtrs[0] = 0;
 
-                _compTypeIDs[1] = ComponentTypeID<T1>.value;
+                _compTypeIDs[1] = ComponentTypeID<T1>.Value;
                 _offsets[1] = 0;
                 _compBasePtrs[1] = 0;
 
-                _compTypeIDs[2] = ComponentTypeID<T2>.value;
+                _compTypeIDs[2] = ComponentTypeID<T2>.Value;
                 _offsets[2] = 0;
                 _compBasePtrs[2] = 0;
 
-                _compTypeIDs[3] = ComponentTypeID<T3>.value;
+                _compTypeIDs[3] = ComponentTypeID<T3>.Value;
                 _offsets[3] = 0;
                 _compBasePtrs[3] = 0;
 
-                _compTypeIDs[4] = ComponentTypeID<T4>.value;
+                _compTypeIDs[4] = ComponentTypeID<T4>.Value;
                 _offsets[4] = 0;
                 _compBasePtrs[4] = 0;
 
-                _compTypeIDs[5] = ComponentTypeID<T5>.value;
+                _compTypeIDs[5] = ComponentTypeID<T5>.Value;
                 _offsets[5] = 0;
                 _compBasePtrs[5] = 0;
 
-                _compTypeIDs[6] = ComponentTypeID<T6>.value;
+                _compTypeIDs[6] = ComponentTypeID<T6>.Value;
                 _offsets[6] = 0;
                 _compBasePtrs[6] = 0;
 
@@ -1580,35 +1580,35 @@ public unsafe partial struct EntityQuery
 
             internal Enumerator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
             {
-                _compTypeIDs[0] = ComponentTypeID<T0>.value;
+                _compTypeIDs[0] = ComponentTypeID<T0>.Value;
                 _offsets[0] = 0;
                 _compBasePtrs[0] = 0;
 
-                _compTypeIDs[1] = ComponentTypeID<T1>.value;
+                _compTypeIDs[1] = ComponentTypeID<T1>.Value;
                 _offsets[1] = 0;
                 _compBasePtrs[1] = 0;
 
-                _compTypeIDs[2] = ComponentTypeID<T2>.value;
+                _compTypeIDs[2] = ComponentTypeID<T2>.Value;
                 _offsets[2] = 0;
                 _compBasePtrs[2] = 0;
 
-                _compTypeIDs[3] = ComponentTypeID<T3>.value;
+                _compTypeIDs[3] = ComponentTypeID<T3>.Value;
                 _offsets[3] = 0;
                 _compBasePtrs[3] = 0;
 
-                _compTypeIDs[4] = ComponentTypeID<T4>.value;
+                _compTypeIDs[4] = ComponentTypeID<T4>.Value;
                 _offsets[4] = 0;
                 _compBasePtrs[4] = 0;
 
-                _compTypeIDs[5] = ComponentTypeID<T5>.value;
+                _compTypeIDs[5] = ComponentTypeID<T5>.Value;
                 _offsets[5] = 0;
                 _compBasePtrs[5] = 0;
 
-                _compTypeIDs[6] = ComponentTypeID<T6>.value;
+                _compTypeIDs[6] = ComponentTypeID<T6>.Value;
                 _offsets[6] = 0;
                 _compBasePtrs[6] = 0;
 
-                _compTypeIDs[7] = ComponentTypeID<T7>.value;
+                _compTypeIDs[7] = ComponentTypeID<T7>.Value;
                 _offsets[7] = 0;
                 _compBasePtrs[7] = 0;
 

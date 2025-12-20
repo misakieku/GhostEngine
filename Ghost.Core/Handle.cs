@@ -68,7 +68,7 @@ public readonly struct Identifier<T> : IEquatable<Identifier<T>>
     public static Identifier<T> Invalid => new(-1);
 
     public readonly bool IsValid => this != Invalid;
-    public readonly bool IsNotValid => this == Invalid;
+    public readonly bool IsInvalid => this == Invalid;
 
     public readonly override int GetHashCode()
     {

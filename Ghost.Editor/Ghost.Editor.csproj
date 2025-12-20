@@ -8,49 +8,7 @@
     <PublishProfile>win-$(Platform).pubxml</PublishProfile>
     <UseWinUI>true</UseWinUI>
     <EnableMsixTooling>true</EnableMsixTooling>
-    <LangVersion>preview</LangVersion>
   </PropertyGroup>
-  <!--<ItemGroup>
-    <Content Remove="Assets\icon-256.png" />
-    <Content Remove="Assets\Icon.altform-lightunplated_targetsize-16.png" />
-    <Content Remove="Assets\Icon.altform-lightunplated_targetsize-24.png" />
-    <Content Remove="Assets\Icon.altform-lightunplated_targetsize-256.png" />
-    <Content Remove="Assets\Icon.altform-lightunplated_targetsize-32.png" />
-    <Content Remove="Assets\Icon.altform-lightunplated_targetsize-48.png" />
-    <Content Remove="Assets\Icon.altform-unplated_targetsize-16.png" />
-    <Content Remove="Assets\Icon.altform-unplated_targetsize-24.png" />
-    <Content Remove="Assets\Icon.altform-unplated_targetsize-256.png" />
-    <Content Remove="Assets\Icon.altform-unplated_targetsize-32.png" />
-    <Content Remove="Assets\Icon.altform-unplated_targetsize-48.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Remove="Assets\Icon.scale-100.png" />
-    <None Remove="Assets\Icon.scale-125.png" />
-    <None Remove="Assets\Icon.scale-150.png" />
-    <None Remove="Assets\Icon.scale-200.png" />
-    <None Remove="Assets\Icon.scale-400.png" />
-    <None Remove="Assets\Icon.targetsize-16.png" />
-    <None Remove="Assets\Icon.targetsize-16_altform-unplated.png" />
-    <None Remove="Assets\Icon.targetsize-24.png" />
-    <None Remove="Assets\Icon.targetsize-24_altform-lightunplated.png" />
-    <None Remove="Assets\Icon.targetsize-256.png" />
-    <None Remove="Assets\Icon.targetsize-256_altform-unplated.png" />
-    <None Remove="Assets\Icon.targetsize-32.png" />
-    <None Remove="Assets\Icon.targetsize-32_altform-lightunplated.png" />
-    <None Remove="Assets\Icon.targetsize-48.png" />
-    <None Remove="Assets\Icon.targetsize-48_altform-unplated.png" />
-    <None Remove="View\Pages\EngineEditor\ConsolePage.xaml" />
-    <None Remove="View\Pages\EngineEditor\HierarchyPage.xaml" />
-    <None Remove="View\Pages\EngineEditor\InspectorPage.xaml" />
-    <None Remove="View\Pages\EngineEditor\ProjectPage.xaml" />
-    <None Remove="View\Pages\EngineEditor\ScenePage.xaml" />
-    <None Remove="View\Pages\Landing\CreateProjectPage.xaml" />
-    <None Remove="View\Pages\Landing\OpenProjectPage.xaml" />
-    <None Remove="View\Windows\EngineEditorWindow.xaml" />
-  </ItemGroup>
-  <ItemGroup>
-    <Page Remove="App.xaml" />
-  </ItemGroup>-->
 
   <ItemGroup>
     <Content Include="Assets\SplashScreen.scale-200.png" />
@@ -75,7 +33,7 @@
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.WinUI.Controls.Primitives" Version="8.2.250402" />
     <PackageReference Include="CommunityToolkit.WinUI.Controls.TabbedCommandBar" Version="8.2.250402" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.1" />
     <PackageReference Include="Microsoft.Windows.CsWinRT" Version="2.2.0" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.7175" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.251106002" />
@@ -83,6 +41,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Ghost.Editor.Core\Ghost.Editor.Core.csproj" />
+    <ProjectReference Include="..\Ghost.Entities\Ghost.Entities.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Page Update="View\Pages\Landing\CreateProjectPage.xaml">

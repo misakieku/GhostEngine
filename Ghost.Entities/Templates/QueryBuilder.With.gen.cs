@@ -13,7 +13,7 @@ public ref partial struct QueryBuilder
     public QueryBuilder WithAll<T0>()
         where T0 : unmanaged, IComponent
     {
-        _all.Add(ComponentTypeID<T0>.value);
+        _all.Add(ComponentTypeID<T0>.Value);
 
         return this;
     }
@@ -26,8 +26,8 @@ public ref partial struct QueryBuilder
     public QueryBuilder WithAllRW<T0>()
         where T0 : unmanaged, IComponent
     {
-        _all.Add(ComponentTypeID<T0>.value);
-        _rw.Add(ComponentTypeID<T0>.value);
+        _all.Add(ComponentTypeID<T0>.Value);
+        _rw.Add(ComponentTypeID<T0>.Value);
 
         return this;
     }
@@ -40,7 +40,7 @@ public ref partial struct QueryBuilder
     public QueryBuilder WithAny<T0>()
         where T0 : unmanaged, IComponent
     {
-        _any.Add(ComponentTypeID<T0>.value);
+        _any.Add(ComponentTypeID<T0>.Value);
 
         return this;
     }
@@ -53,7 +53,7 @@ public ref partial struct QueryBuilder
     public QueryBuilder WithAbsent<T0>()
         where T0 : unmanaged, IComponent
     {
-        _absent.Add(ComponentTypeID<T0>.value);
+        _absent.Add(ComponentTypeID<T0>.Value);
 
         return this;
     }
@@ -66,7 +66,7 @@ public ref partial struct QueryBuilder
     public QueryBuilder WithNone<T0>()
         where T0 : unmanaged, IComponent
     {
-        _none.Add(ComponentTypeID<T0>.value);
+        _none.Add(ComponentTypeID<T0>.Value);
 
         return this;
     }
@@ -79,7 +79,7 @@ public ref partial struct QueryBuilder
     public QueryBuilder WithDisabled<T0>()
         where T0 : unmanaged, IEnableableComponent
     {
-        _disabled.Add(ComponentTypeID<T0>.value);
+        _disabled.Add(ComponentTypeID<T0>.Value);
 
         return this;
     }
@@ -92,7 +92,7 @@ public ref partial struct QueryBuilder
     public QueryBuilder WithPresent<T0>()
         where T0 : unmanaged, IComponent
     {
-        _present.Add(ComponentTypeID<T0>.value);
+        _present.Add(ComponentTypeID<T0>.Value);
 
         return this;
     }
@@ -105,8 +105,8 @@ public ref partial struct QueryBuilder
     public QueryBuilder WithPresentRW<T0>()
         where T0 : unmanaged, IComponent
     {
-        _present.Add(ComponentTypeID<T0>.value);
-        _rw.Add(ComponentTypeID<T0>.value);
+        _present.Add(ComponentTypeID<T0>.Value);
+        _rw.Add(ComponentTypeID<T0>.Value);
 
         return this;
     }
@@ -120,8 +120,8 @@ public ref partial struct QueryBuilder
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
     {
-        _all.Add(ComponentTypeID<T0>.value);
-        _all.Add(ComponentTypeID<T1>.value);
+        _all.Add(ComponentTypeID<T0>.Value);
+        _all.Add(ComponentTypeID<T1>.Value);
 
         return this;
     }
@@ -135,10 +135,10 @@ public ref partial struct QueryBuilder
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
     {
-        _all.Add(ComponentTypeID<T0>.value);
-        _rw.Add(ComponentTypeID<T0>.value);
-        _all.Add(ComponentTypeID<T1>.value);
-        _rw.Add(ComponentTypeID<T1>.value);
+        _all.Add(ComponentTypeID<T0>.Value);
+        _rw.Add(ComponentTypeID<T0>.Value);
+        _all.Add(ComponentTypeID<T1>.Value);
+        _rw.Add(ComponentTypeID<T1>.Value);
 
         return this;
     }
@@ -152,8 +152,8 @@ public ref partial struct QueryBuilder
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
     {
-        _any.Add(ComponentTypeID<T0>.value);
-        _any.Add(ComponentTypeID<T1>.value);
+        _any.Add(ComponentTypeID<T0>.Value);
+        _any.Add(ComponentTypeID<T1>.Value);
 
         return this;
     }
@@ -167,8 +167,8 @@ public ref partial struct QueryBuilder
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
     {
-        _absent.Add(ComponentTypeID<T0>.value);
-        _absent.Add(ComponentTypeID<T1>.value);
+        _absent.Add(ComponentTypeID<T0>.Value);
+        _absent.Add(ComponentTypeID<T1>.Value);
 
         return this;
     }
@@ -182,8 +182,8 @@ public ref partial struct QueryBuilder
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
     {
-        _none.Add(ComponentTypeID<T0>.value);
-        _none.Add(ComponentTypeID<T1>.value);
+        _none.Add(ComponentTypeID<T0>.Value);
+        _none.Add(ComponentTypeID<T1>.Value);
 
         return this;
     }
@@ -197,8 +197,8 @@ public ref partial struct QueryBuilder
         where T0 : unmanaged, IEnableableComponent
         where T1 : unmanaged, IEnableableComponent
     {
-        _disabled.Add(ComponentTypeID<T0>.value);
-        _disabled.Add(ComponentTypeID<T1>.value);
+        _disabled.Add(ComponentTypeID<T0>.Value);
+        _disabled.Add(ComponentTypeID<T1>.Value);
 
         return this;
     }
@@ -212,8 +212,8 @@ public ref partial struct QueryBuilder
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
     {
-        _present.Add(ComponentTypeID<T0>.value);
-        _present.Add(ComponentTypeID<T1>.value);
+        _present.Add(ComponentTypeID<T0>.Value);
+        _present.Add(ComponentTypeID<T1>.Value);
 
         return this;
     }
@@ -227,10 +227,10 @@ public ref partial struct QueryBuilder
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
     {
-        _present.Add(ComponentTypeID<T0>.value);
-        _rw.Add(ComponentTypeID<T0>.value);
-        _present.Add(ComponentTypeID<T1>.value);
-        _rw.Add(ComponentTypeID<T1>.value);
+        _present.Add(ComponentTypeID<T0>.Value);
+        _rw.Add(ComponentTypeID<T0>.Value);
+        _present.Add(ComponentTypeID<T1>.Value);
+        _rw.Add(ComponentTypeID<T1>.Value);
 
         return this;
     }
@@ -245,9 +245,9 @@ public ref partial struct QueryBuilder
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent
     {
-        _all.Add(ComponentTypeID<T0>.value);
-        _all.Add(ComponentTypeID<T1>.value);
-        _all.Add(ComponentTypeID<T2>.value);
+        _all.Add(ComponentTypeID<T0>.Value);
+        _all.Add(ComponentTypeID<T1>.Value);
+        _all.Add(ComponentTypeID<T2>.Value);
 
         return this;
     }
@@ -262,12 +262,12 @@ public ref partial struct QueryBuilder
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent
     {
-        _all.Add(ComponentTypeID<T0>.value);
-        _rw.Add(ComponentTypeID<T0>.value);
-        _all.Add(ComponentTypeID<T1>.value);
-        _rw.Add(ComponentTypeID<T1>.value);
-        _all.Add(ComponentTypeID<T2>.value);
-        _rw.Add(ComponentTypeID<T2>.value);
+        _all.Add(ComponentTypeID<T0>.Value);
+        _rw.Add(ComponentTypeID<T0>.Value);
+        _all.Add(ComponentTypeID<T1>.Value);
+        _rw.Add(ComponentTypeID<T1>.Value);
+        _all.Add(ComponentTypeID<T2>.Value);
+        _rw.Add(ComponentTypeID<T2>.Value);
 
         return this;
     }
@@ -282,9 +282,9 @@ public ref partial struct QueryBuilder
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent
     {
-        _any.Add(ComponentTypeID<T0>.value);
-        _any.Add(ComponentTypeID<T1>.value);
-        _any.Add(ComponentTypeID<T2>.value);
+        _any.Add(ComponentTypeID<T0>.Value);
+        _any.Add(ComponentTypeID<T1>.Value);
+        _any.Add(ComponentTypeID<T2>.Value);
 
         return this;
     }
@@ -299,9 +299,9 @@ public ref partial struct QueryBuilder
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent
     {
-        _absent.Add(ComponentTypeID<T0>.value);
-        _absent.Add(ComponentTypeID<T1>.value);
-        _absent.Add(ComponentTypeID<T2>.value);
+        _absent.Add(ComponentTypeID<T0>.Value);
+        _absent.Add(ComponentTypeID<T1>.Value);
+        _absent.Add(ComponentTypeID<T2>.Value);
 
         return this;
     }
@@ -316,9 +316,9 @@ public ref partial struct QueryBuilder
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent
     {
-        _none.Add(ComponentTypeID<T0>.value);
-        _none.Add(ComponentTypeID<T1>.value);
-        _none.Add(ComponentTypeID<T2>.value);
+        _none.Add(ComponentTypeID<T0>.Value);
+        _none.Add(ComponentTypeID<T1>.Value);
+        _none.Add(ComponentTypeID<T2>.Value);
 
         return this;
     }
@@ -333,9 +333,9 @@ public ref partial struct QueryBuilder
         where T1 : unmanaged, IEnableableComponent
         where T2 : unmanaged, IEnableableComponent
     {
-        _disabled.Add(ComponentTypeID<T0>.value);
-        _disabled.Add(ComponentTypeID<T1>.value);
-        _disabled.Add(ComponentTypeID<T2>.value);
+        _disabled.Add(ComponentTypeID<T0>.Value);
+        _disabled.Add(ComponentTypeID<T1>.Value);
+        _disabled.Add(ComponentTypeID<T2>.Value);
 
         return this;
     }
@@ -350,9 +350,9 @@ public ref partial struct QueryBuilder
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent
     {
-        _present.Add(ComponentTypeID<T0>.value);
-        _present.Add(ComponentTypeID<T1>.value);
-        _present.Add(ComponentTypeID<T2>.value);
+        _present.Add(ComponentTypeID<T0>.Value);
+        _present.Add(ComponentTypeID<T1>.Value);
+        _present.Add(ComponentTypeID<T2>.Value);
 
         return this;
     }
@@ -367,12 +367,12 @@ public ref partial struct QueryBuilder
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent
     {
-        _present.Add(ComponentTypeID<T0>.value);
-        _rw.Add(ComponentTypeID<T0>.value);
-        _present.Add(ComponentTypeID<T1>.value);
-        _rw.Add(ComponentTypeID<T1>.value);
-        _present.Add(ComponentTypeID<T2>.value);
-        _rw.Add(ComponentTypeID<T2>.value);
+        _present.Add(ComponentTypeID<T0>.Value);
+        _rw.Add(ComponentTypeID<T0>.Value);
+        _present.Add(ComponentTypeID<T1>.Value);
+        _rw.Add(ComponentTypeID<T1>.Value);
+        _present.Add(ComponentTypeID<T2>.Value);
+        _rw.Add(ComponentTypeID<T2>.Value);
 
         return this;
     }

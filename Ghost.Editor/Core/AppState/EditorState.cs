@@ -36,7 +36,7 @@ internal class EditorState : IAppState
         ProjectService.CurrentProject = metadataInfo;
 
         _engineCore = App.GetService<EngineCore>();
-        _engineCore.Start(new Engine.Models.LaunchArgument());
+        _engineCore.Init(new Engine.Models.LaunchArgument());
         CompositionTarget.Rendering += OnRendering;
 
         _window = App.GetService<EngineEditorWindow>();

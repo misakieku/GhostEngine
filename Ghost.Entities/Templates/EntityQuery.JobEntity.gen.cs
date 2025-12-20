@@ -1118,7 +1118,7 @@ public unsafe partial struct EntityQuery
             }
 
             // Get offsets ONCE per archetype
-            var layout0 = arch.GetLayout(ComponentTypeID<T0>.value)
+            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value)
                 .GetValueOrThrow();
 
             // Add all chunks from this archetype
@@ -1154,7 +1154,7 @@ public unsafe partial struct EntityQuery
             version = world.Version,
         };
 
-        runner.componentIDs[0] = ComponentTypeID<T0>.value;
+        runner.componentIDs[0] = ComponentTypeID<T0>.Value;
 
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
@@ -1255,9 +1255,9 @@ public unsafe partial struct EntityQuery
             }
 
             // Get offsets ONCE per archetype
-            var layout0 = arch.GetLayout(ComponentTypeID<T0>.value)
+            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value)
                 .GetValueOrThrow();
-            var layout1 = arch.GetLayout(ComponentTypeID<T1>.value)
+            var layout1 = arch.GetLayout(ComponentTypeID<T1>.Value)
                 .GetValueOrThrow();
 
             // Add all chunks from this archetype
@@ -1301,7 +1301,7 @@ public unsafe partial struct EntityQuery
             version = world.Version,
         };
 
-        runner.componentIDs[0] = ComponentTypeID<T0>.value;
+        runner.componentIDs[0] = ComponentTypeID<T0>.Value;
 
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
@@ -1419,11 +1419,11 @@ public unsafe partial struct EntityQuery
             }
 
             // Get offsets ONCE per archetype
-            var layout0 = arch.GetLayout(ComponentTypeID<T0>.value)
+            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value)
                 .GetValueOrThrow();
-            var layout1 = arch.GetLayout(ComponentTypeID<T1>.value)
+            var layout1 = arch.GetLayout(ComponentTypeID<T1>.Value)
                 .GetValueOrThrow();
-            var layout2 = arch.GetLayout(ComponentTypeID<T2>.value)
+            var layout2 = arch.GetLayout(ComponentTypeID<T2>.Value)
                 .GetValueOrThrow();
 
             // Add all chunks from this archetype
@@ -1475,7 +1475,7 @@ public unsafe partial struct EntityQuery
             version = world.Version,
         };
 
-        runner.componentIDs[0] = ComponentTypeID<T0>.value;
+        runner.componentIDs[0] = ComponentTypeID<T0>.Value;
 
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
@@ -1610,13 +1610,13 @@ public unsafe partial struct EntityQuery
             }
 
             // Get offsets ONCE per archetype
-            var layout0 = arch.GetLayout(ComponentTypeID<T0>.value)
+            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value)
                 .GetValueOrThrow();
-            var layout1 = arch.GetLayout(ComponentTypeID<T1>.value)
+            var layout1 = arch.GetLayout(ComponentTypeID<T1>.Value)
                 .GetValueOrThrow();
-            var layout2 = arch.GetLayout(ComponentTypeID<T2>.value)
+            var layout2 = arch.GetLayout(ComponentTypeID<T2>.Value)
                 .GetValueOrThrow();
-            var layout3 = arch.GetLayout(ComponentTypeID<T3>.value)
+            var layout3 = arch.GetLayout(ComponentTypeID<T3>.Value)
                 .GetValueOrThrow();
 
             // Add all chunks from this archetype
@@ -1676,7 +1676,7 @@ public unsafe partial struct EntityQuery
             version = world.Version,
         };
 
-        runner.componentIDs[0] = ComponentTypeID<T0>.value;
+        runner.componentIDs[0] = ComponentTypeID<T0>.Value;
 
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
@@ -1828,15 +1828,15 @@ public unsafe partial struct EntityQuery
             }
 
             // Get offsets ONCE per archetype
-            var layout0 = arch.GetLayout(ComponentTypeID<T0>.value)
+            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value)
                 .GetValueOrThrow();
-            var layout1 = arch.GetLayout(ComponentTypeID<T1>.value)
+            var layout1 = arch.GetLayout(ComponentTypeID<T1>.Value)
                 .GetValueOrThrow();
-            var layout2 = arch.GetLayout(ComponentTypeID<T2>.value)
+            var layout2 = arch.GetLayout(ComponentTypeID<T2>.Value)
                 .GetValueOrThrow();
-            var layout3 = arch.GetLayout(ComponentTypeID<T3>.value)
+            var layout3 = arch.GetLayout(ComponentTypeID<T3>.Value)
                 .GetValueOrThrow();
-            var layout4 = arch.GetLayout(ComponentTypeID<T4>.value)
+            var layout4 = arch.GetLayout(ComponentTypeID<T4>.Value)
                 .GetValueOrThrow();
 
             // Add all chunks from this archetype
@@ -1904,7 +1904,7 @@ public unsafe partial struct EntityQuery
             version = world.Version,
         };
 
-        runner.componentIDs[0] = ComponentTypeID<T0>.value;
+        runner.componentIDs[0] = ComponentTypeID<T0>.Value;
 
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
@@ -2073,17 +2073,17 @@ public unsafe partial struct EntityQuery
             }
 
             // Get offsets ONCE per archetype
-            var layout0 = arch.GetLayout(ComponentTypeID<T0>.value)
+            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value)
                 .GetValueOrThrow();
-            var layout1 = arch.GetLayout(ComponentTypeID<T1>.value)
+            var layout1 = arch.GetLayout(ComponentTypeID<T1>.Value)
                 .GetValueOrThrow();
-            var layout2 = arch.GetLayout(ComponentTypeID<T2>.value)
+            var layout2 = arch.GetLayout(ComponentTypeID<T2>.Value)
                 .GetValueOrThrow();
-            var layout3 = arch.GetLayout(ComponentTypeID<T3>.value)
+            var layout3 = arch.GetLayout(ComponentTypeID<T3>.Value)
                 .GetValueOrThrow();
-            var layout4 = arch.GetLayout(ComponentTypeID<T4>.value)
+            var layout4 = arch.GetLayout(ComponentTypeID<T4>.Value)
                 .GetValueOrThrow();
-            var layout5 = arch.GetLayout(ComponentTypeID<T5>.value)
+            var layout5 = arch.GetLayout(ComponentTypeID<T5>.Value)
                 .GetValueOrThrow();
 
             // Add all chunks from this archetype
@@ -2159,7 +2159,7 @@ public unsafe partial struct EntityQuery
             version = world.Version,
         };
 
-        runner.componentIDs[0] = ComponentTypeID<T0>.value;
+        runner.componentIDs[0] = ComponentTypeID<T0>.Value;
 
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
@@ -2345,19 +2345,19 @@ public unsafe partial struct EntityQuery
             }
 
             // Get offsets ONCE per archetype
-            var layout0 = arch.GetLayout(ComponentTypeID<T0>.value)
+            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value)
                 .GetValueOrThrow();
-            var layout1 = arch.GetLayout(ComponentTypeID<T1>.value)
+            var layout1 = arch.GetLayout(ComponentTypeID<T1>.Value)
                 .GetValueOrThrow();
-            var layout2 = arch.GetLayout(ComponentTypeID<T2>.value)
+            var layout2 = arch.GetLayout(ComponentTypeID<T2>.Value)
                 .GetValueOrThrow();
-            var layout3 = arch.GetLayout(ComponentTypeID<T3>.value)
+            var layout3 = arch.GetLayout(ComponentTypeID<T3>.Value)
                 .GetValueOrThrow();
-            var layout4 = arch.GetLayout(ComponentTypeID<T4>.value)
+            var layout4 = arch.GetLayout(ComponentTypeID<T4>.Value)
                 .GetValueOrThrow();
-            var layout5 = arch.GetLayout(ComponentTypeID<T5>.value)
+            var layout5 = arch.GetLayout(ComponentTypeID<T5>.Value)
                 .GetValueOrThrow();
-            var layout6 = arch.GetLayout(ComponentTypeID<T6>.value)
+            var layout6 = arch.GetLayout(ComponentTypeID<T6>.Value)
                 .GetValueOrThrow();
 
             // Add all chunks from this archetype
@@ -2441,7 +2441,7 @@ public unsafe partial struct EntityQuery
             version = world.Version,
         };
 
-        runner.componentIDs[0] = ComponentTypeID<T0>.value;
+        runner.componentIDs[0] = ComponentTypeID<T0>.Value;
 
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
@@ -2644,21 +2644,21 @@ public unsafe partial struct EntityQuery
             }
 
             // Get offsets ONCE per archetype
-            var layout0 = arch.GetLayout(ComponentTypeID<T0>.value)
+            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value)
                 .GetValueOrThrow();
-            var layout1 = arch.GetLayout(ComponentTypeID<T1>.value)
+            var layout1 = arch.GetLayout(ComponentTypeID<T1>.Value)
                 .GetValueOrThrow();
-            var layout2 = arch.GetLayout(ComponentTypeID<T2>.value)
+            var layout2 = arch.GetLayout(ComponentTypeID<T2>.Value)
                 .GetValueOrThrow();
-            var layout3 = arch.GetLayout(ComponentTypeID<T3>.value)
+            var layout3 = arch.GetLayout(ComponentTypeID<T3>.Value)
                 .GetValueOrThrow();
-            var layout4 = arch.GetLayout(ComponentTypeID<T4>.value)
+            var layout4 = arch.GetLayout(ComponentTypeID<T4>.Value)
                 .GetValueOrThrow();
-            var layout5 = arch.GetLayout(ComponentTypeID<T5>.value)
+            var layout5 = arch.GetLayout(ComponentTypeID<T5>.Value)
                 .GetValueOrThrow();
-            var layout6 = arch.GetLayout(ComponentTypeID<T6>.value)
+            var layout6 = arch.GetLayout(ComponentTypeID<T6>.Value)
                 .GetValueOrThrow();
-            var layout7 = arch.GetLayout(ComponentTypeID<T7>.value)
+            var layout7 = arch.GetLayout(ComponentTypeID<T7>.Value)
                 .GetValueOrThrow();
 
             // Add all chunks from this archetype
@@ -2750,7 +2750,7 @@ public unsafe partial struct EntityQuery
             version = world.Version,
         };
 
-        runner.componentIDs[0] = ComponentTypeID<T0>.value;
+        runner.componentIDs[0] = ComponentTypeID<T0>.Value;
 
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))

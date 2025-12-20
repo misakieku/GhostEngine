@@ -1,9 +1,9 @@
 using Ghost.Graphics.RHI;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
+using System.Text.Json;
 
 namespace Ghost.Graphics.Test.Windows;
 
@@ -56,6 +56,8 @@ public sealed partial class GraphicsTestWindow : Window
             Format = TextureFormat.B8G8R8A8_UNorm,
             Target = SwapChainTarget.FromCompositionSurface(Panel)
         });
+
+        _renderer.SetSwapChain(_swapChain);
 
         _renderSystem.Start();
         CompositionTarget.Rendering += OnRendering;

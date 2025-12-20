@@ -1,10 +1,8 @@
-using Ghost.SparseEntities;
-using Ghost.SparseEntities.Components;
-using Ghost.SparseEntities.Query;
+using Ghost.Entities;
 
 namespace Ghost.Editor.Core.Inspector;
 
-public unsafe readonly struct ComponentObject
+public readonly struct ComponentObject
 {
     private readonly World _world;
     private readonly Entity _entity;
@@ -15,15 +13,15 @@ public unsafe readonly struct ComponentObject
         _entity = entity;
     }
 
-    public CompRef<T> GetData<T>()
-        where T : unmanaged, IComponentData
+    public ref T GetData<T>()
+        where T : unmanaged, IComponent
     {
-        return _world.EntityManager.GetComponent<T>(_entity);
+        return ref _world.EntityManager.GetComponent<T>(_entity);
     }
 
     public void SetData<T>(in T data)
-        where T : unmanaged, IComponentData
+        where T : unmanaged, IComponent
     {
-        _world.EntityManager.SetComponent(_entity, in data);
+        _world.EntityManager.SetComponent(_entity, data);
     }
 }

@@ -75,7 +75,7 @@ public unsafe partial struct EntityQuery
             internal Enumerator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
             {
 <# for (var j = 0; j < i; j++) { #>
-                _compTypeIDs[<#= j #>] = ComponentTypeID<T<#= j #>>.value;
+                _compTypeIDs[<#= j #>] = ComponentTypeID<T<#= j #>>.Value;
                 _offsets[<#= j #>] = 0;
                 _compBasePtrs[<#= j #>] = 0;
 

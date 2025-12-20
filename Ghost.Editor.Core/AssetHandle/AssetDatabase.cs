@@ -4,7 +4,7 @@ namespace Ghost.Editor.Core.AssetHandle;
 
 public static partial class AssetDatabase
 {
-    private static FileSystemWatcher? _watcher;
+    private static FileSystemWatcher? s_watcher;
 
     private static readonly Dictionary<Guid, string> s_assetPathLookup = new();
 
@@ -22,7 +22,7 @@ public static partial class AssetDatabase
         }
 
         AssetsDirectory = new DirectoryInfo(Path.Combine(Path.GetDirectoryName(ProjectService.CurrentProject.Path)!, ProjectService.ASSETS_FOLDER));
-        _watcher = new FileSystemWatcher
+        s_watcher = new FileSystemWatcher
         {
             Path = AssetsDirectory.FullName,
             IncludeSubdirectories = true,

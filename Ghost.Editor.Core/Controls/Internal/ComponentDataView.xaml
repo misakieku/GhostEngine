@@ -4,10 +4,10 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Ghost.Editor.Core.Controls.Internal">
 
-    <Style TargetType="local:ComponentDataView">
+    <Style TargetType="local:ComponentView">
         <Setter Property="Template">
             <Setter.Value>
-                <ControlTemplate TargetType="local:ComponentDataView">
+                <ControlTemplate TargetType="local:ComponentView">
                     <StackPanel Margin="0,0,0,16">
                         <Border
                             Padding="8"

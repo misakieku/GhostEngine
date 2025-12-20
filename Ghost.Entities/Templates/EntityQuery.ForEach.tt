@@ -26,7 +26,7 @@ public unsafe partial struct EntityQuery
         var globalVersion = world.Version;
 
 <# for (var localIndex = 0; localIndex < i; localIndex++) { #>
-        var comp<#= localIndex #>TypeID = ComponentTypeID<T<#= localIndex #>>.value;
+        var comp<#= localIndex #>TypeID = ComponentTypeID<T<#= localIndex #>>.Value;
 <# } #>
 
         var compTypeIDs = stackalloc int[]

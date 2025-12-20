@@ -74,7 +74,7 @@ internal class RenderSystem : IRenderSystem
         public readonly AutoResetEvent cpuReadyEvent;
         public readonly AutoResetEvent gpuReadyEvent;
 
-        public FrameResource(ICommandBuffer cmd)
+        public FrameResource()
         {
             cpuReadyEvent = new AutoResetEvent(false);
             gpuReadyEvent = new AutoResetEvent(true);

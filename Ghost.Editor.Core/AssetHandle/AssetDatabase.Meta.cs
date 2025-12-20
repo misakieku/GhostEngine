@@ -11,7 +11,7 @@ public static partial class AssetDatabase
 
     private static void InitializeMetaData()
     {
-        if (_watcher == null)
+        if (s_watcher == null)
         {
             throw new InvalidOperationException("AssetDatabase is not initialized. Ensure that Initialize() is called before registering asset importers.");
         }
@@ -26,24 +26,24 @@ public static partial class AssetDatabase
             }
         }
 
-        _watcher.Created += OnAssetCreated;
-        _watcher.Deleted += OnAssetDeleted;
-        _watcher.Renamed += OnAssetRenamed;
+        s_watcher.Created += OnAssetCreated;
+        s_watcher.Deleted += OnAssetDeleted;
+        s_watcher.Renamed += OnAssetRenamed;
     }
 
-    private static Result<string> GetMetaFilePath(string assetPath)
+    private static Result<string, ErrorStatus> GetMetaFilePath(string assetPath)
     {
         if (Directory.Exists(assetPath))
         {
-            return Result<string>.Failure("Folder does not have meta data");
+            return ErrorStatus.NotFound;
         }
 
         if (Path.GetExtension(assetPath).Equals(".meta", StringComparison.OrdinalIgnoreCase))
         {
-            return Result<string>.Failure("Asset path cannot be a meta file");
+            return ErrorStatus.InvalidState;
         }
 
-        return Result<string>.Success(assetPath + ".meta");
+        return assetPath + ".meta";
     }
 
     private static ImporterSettings? GetDefaultSettingsForAsset(string assetPath)
@@ -83,7 +83,7 @@ public static partial class AssetDatabase
         var metaFileResult = GetMetaFilePath(assetPath);
         if (!metaFileResult.IsSuccess)
         {
-            return Result.Failure(metaFileResult.Message);
+            return Result.Failure(metaFileResult.Error.ToString());
         }
 
         if (File.Exists(metaFileResult.Value))
