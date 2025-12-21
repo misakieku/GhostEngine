@@ -3,7 +3,6 @@ using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
-using System.Text.Json.Serialization.Metadata;
 
 namespace Ghost.Entities.Test;
 
@@ -32,23 +31,7 @@ public class SerializationTest : ITest
         using var stream = new MemoryStream();
         var serializeOptions = new JsonSerializerOptions
         {
-            IncludeFields = true,
-            IgnoreReadOnlyProperties = true,
-            TypeInfoResolver = new DefaultJsonTypeInfoResolver
-            {
-                Modifiers = { typeInfo =>
-                    {
-                        // Remove everything from the serialization list that is not a field
-                        foreach (var property in typeInfo.Properties)
-                        {
-                            if (property.AttributeProvider is not System.Reflection.FieldInfo)
-                            {
-                                property.ShouldSerialize = (_, _) => false;
-                            }
-                        }
-                    }
-                }
-            }
+            IncludeFields = true
         };
 
         using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });

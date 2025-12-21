@@ -10,6 +10,7 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Ghost.Editor.Core.SceneGraph;
 
+// FIX: This should be scene node, not world node
 [CustomSerializer(typeof(WorldNodeSerializer))]
 public partial class WorldNode : SceneGraphNode, IEquatable<WorldNode>
 {

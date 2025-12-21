@@ -89,7 +89,7 @@ public struct ComponentSet : IDisposable, IEquatable<ComponentSet>
 public static class ComponentTypeID<T>
     where T : unmanaged, IComponent
 {
-    public static readonly Identifier<IComponent> Value = ComponentRegistry.GetOrRegisterComponent<T>();
+    public static readonly Identifier<IComponent> Value = ComponentRegistry.GetOrRegisterComponentID<T>();
 }
 
 internal static class ComponentRegistry
@@ -100,7 +100,7 @@ internal static class ComponentRegistry
 
     internal static readonly Dictionary<int, Type> s_runtimeIDToType = new();
 
-    public static unsafe Identifier<IComponent> GetOrRegisterComponent<T>()
+    public static unsafe Identifier<IComponent> GetOrRegisterComponentID<T>()
         where T : unmanaged, IComponent
     {
         var type = typeof(T);

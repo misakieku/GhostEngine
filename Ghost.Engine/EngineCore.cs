@@ -40,8 +40,7 @@ public static partial class EngineCore
     {
         s_impl = new EngineCoreImpl();
 
-        ComponentRegistry.GetOrRegisterComponent<ManagedEntityRef>();
-        RegisterIComponentTypes();
+        ComponentRegistry.GetOrRegisterComponentID<ManagedEntityRef>();
     }
 
     internal static void Init()

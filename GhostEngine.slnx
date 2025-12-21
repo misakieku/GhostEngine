@@ -13,7 +13,6 @@
       <Platform Solution="*|x86" Project="x86" />
       <Deploy />
     </Project>
-    <Project Path="Ghost.Generator/Ghost.Generator.csproj" />
   </Folder>
   <Folder Name="/Library/">
     <Project Path="Ghost.FMOD/Ghost.FMOD.csproj" />
@@ -23,6 +22,7 @@
     <Project Path="Ghost.Core/Ghost.Core.csproj" />
     <Project Path="Ghost.Engine/Ghost.Engine.csproj" />
     <Project Path="Ghost.Entities/Ghost.Entities.csproj" />
+    <Project Path="Ghost.Generator/Ghost.Generator.csproj" />
     <Project Path="Ghost.Graphics/Ghost.Graphics.csproj" />
   </Folder>
   <Folder Name="/Test/">

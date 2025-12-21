@@ -1,4 +1,3 @@
-using Ghost.Graphics.D3D12;
 using Ghost.Graphics.RHI;
 
 namespace Ghost.Graphics;
@@ -210,17 +209,17 @@ internal class RenderSystem : IRenderSystem
             if (waitResult == 0)
             {
                 _graphicsEngine.RenderFrame();
-//                if (result.IsFailure)
-//                {
-//                    // Terminate the render loop on failure
-//                    _isRunning = false;
-//#if DEBUG
-//                    throw new InvalidOperationException($"RenderFrame failed: {result.Message}");
-//#else
-//                    Logger.LogError($"RenderFrame failed: {result.Message}");
-//                    break;
-//#endif
-//                }
+                //                if (result.IsFailure)
+                //                {
+                //                    // Terminate the render loop on failure
+                //                    _isRunning = false;
+                //#if DEBUG
+                //                    throw new InvalidOperationException($"RenderFrame failed: {result.Message}");
+                //#else
+                //                    Logger.LogError($"RenderFrame failed: {result.Message}");
+                //                    break;
+                //#endif
+                //                }
 
                 _gpuFenceValue++;
                 frameResource.gpuReadyEvent.Set();

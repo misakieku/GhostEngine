@@ -32,7 +32,7 @@ public readonly record struct Entity
     public static Entity Invalid
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => new(INVALID_ID, GenerationID.MaxValue);
+        get => new(INVALID_ID, INVALID_ID);
     }
 
     internal Entity(EntityID id, GenerationID generation)

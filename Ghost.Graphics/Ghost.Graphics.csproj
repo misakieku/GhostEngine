@@ -41,7 +41,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Misaki.HighPerformance.Image" Version="1.0.0" />
+    <PackageReference Include="Misaki.HighPerformance.Image" Version="1.1.0" />
     <PackageReference Include="TerraFX.Interop.D3D12MemoryAllocator" Version="3.0.1" />
   </ItemGroup>
 

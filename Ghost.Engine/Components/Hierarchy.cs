@@ -4,7 +4,6 @@ using System.Runtime.CompilerServices;
 
 namespace Ghost.Engine.Components;
 
-[SkipLocalsInit]
 [HideEditor]
 public struct Hierarchy : IComponent
 {
