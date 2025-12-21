@@ -597,7 +597,7 @@ public ref partial struct QueryBuilder
         return queryID;
     }
 
-    private void Dispose()
+    private readonly void Dispose()
     {
         _scope.Dispose();
     }

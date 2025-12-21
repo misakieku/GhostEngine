@@ -11,11 +11,11 @@ public partial class World
     private static readonly List<World?> s_worlds = new(4);
     private static readonly Queue<Identifier<World>> s_freeWorldSlots = new();
 
-    internal static Identifier<Archetype> EmptyArchetypeID => new (0);
+    internal static Identifier<Archetype> EmptyArchetypeID => new(0);
 
     public static int WorldCount => s_worlds.Count - s_freeWorldSlots.Count;
 
-    public static World Create(JobScheduler jobScheduler, int entityCapacity = 16)
+    public static World Create(JobScheduler? jobScheduler = null, int entityCapacity = 16)
     {
         lock (s_worlds)
         {
@@ -79,11 +79,11 @@ public partial class World
 public partial class World : IDisposable, IEquatable<World>
 {
     private readonly Identifier<World> _id;
-    private readonly JobScheduler _jobScheduler;
+    private readonly JobScheduler? _jobScheduler;
 
     private readonly EntityManager _entityManager;
     private readonly EntityCommandBuffer _entityCommandBuffer;
-    private readonly EntityCommandBuffer[] _threadLocalECBs;
+    private readonly EntityCommandBuffer[]? _threadLocalECBs;
 
     private readonly SystemManager _systemManager;
 
@@ -106,7 +106,7 @@ public partial class World : IDisposable, IEquatable<World>
     /// <summary>
     /// Gets the job scheduler associated with this world.
     /// </summary>
-    public JobScheduler JobScheduler => _jobScheduler;
+    public JobScheduler? JobScheduler => _jobScheduler;
 
     /// <summary>
     /// Gets the publicntity manager for this world.
@@ -131,14 +131,13 @@ public partial class World : IDisposable, IEquatable<World>
     /// </remarks>
     public EntityCommandBuffer EntityCommandBuffer => _entityCommandBuffer;
 
-    private World(Identifier<World> id, int entityCapacity, JobScheduler jobScheduler)
+    private World(Identifier<World> id, int entityCapacity, JobScheduler? jobScheduler)
     {
         _id = id;
         _jobScheduler = jobScheduler;
 
         _entityManager = new EntityManager(this, entityCapacity);
         _entityCommandBuffer = new EntityCommandBuffer(_entityManager);
-        _threadLocalECBs = new EntityCommandBuffer[jobScheduler.WorkerCount];
 
         _systemManager = new SystemManager(this);
 
@@ -148,9 +147,13 @@ public partial class World : IDisposable, IEquatable<World>
         _archetypeLookup = new UnsafeHashMap<int, Identifier<Archetype>>(16, Allocator.Persistent);
         _querieLookup = new UnsafeHashMap<int, Identifier<EntityQuery>>(16, Allocator.Persistent);
 
-        for (var i = 0; i < jobScheduler.WorkerCount; i++)
+        if (jobScheduler != null)
         {
-            _threadLocalECBs[i] = new EntityCommandBuffer(_entityManager);
+            _threadLocalECBs = new EntityCommandBuffer[jobScheduler.WorkerCount];
+            for (var i = 0; i < jobScheduler.WorkerCount; i++)
+            {
+                _threadLocalECBs[i] = new EntityCommandBuffer(_entityManager);
+            }
         }
 
         // Create the empty archetype
@@ -227,9 +230,12 @@ public partial class World : IDisposable, IEquatable<World>
     {
         _entityCommandBuffer.Playback();
 
-        for (var i = 0; i < _threadLocalECBs.Length; i++)
+        if (_threadLocalECBs != null)
         {
-            _threadLocalECBs[i].Playback();
+            for (var i = 0; i < _threadLocalECBs.Length; i++)
+            {
+                _threadLocalECBs[i].Playback();
+            }
         }
     }
 
@@ -254,6 +260,11 @@ public partial class World : IDisposable, IEquatable<World>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public EntityCommandBuffer GetThreadLocalEntityCommandBuffer(int threadIndex)
     {
+        if (_threadLocalECBs == null)
+        {
+            throw new InvalidOperationException("This world does not have a JobScheduler associated with it.");
+        }
+
         return _threadLocalECBs[threadIndex];
     }
 
@@ -301,9 +312,13 @@ public partial class World : IDisposable, IEquatable<World>
 
         _entityManager.Dispose();
         _entityCommandBuffer.Dispose();
-        foreach (var v in _threadLocalECBs)
+
+        if (_threadLocalECBs != null)
         {
-            v.Dispose();
+            foreach (var v in _threadLocalECBs)
+            {
+                v.Dispose();
+            }
         }
 
         _archetypes.Dispose();

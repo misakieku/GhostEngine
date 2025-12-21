@@ -1096,6 +1096,10 @@ public unsafe partial struct EntityQuery
         where T0 : unmanaged, IComponent
     {
         var world = World.GetWorld(_worldID).GetValueOrThrow();
+        if (world.JobScheduler == null)
+        {
+            throw new InvalidOperationException("The World has no JobScheduler assigned.");
+        }
 
         // 1. Flatten the World
         var chunks = new UnsafeList<IntPtr>(128, JobScheduler.TempAllocatorHandle);
@@ -1229,6 +1233,10 @@ public unsafe partial struct EntityQuery
         where T1 : unmanaged, IComponent
     {
         var world = World.GetWorld(_worldID).GetValueOrThrow();
+        if (world.JobScheduler == null)
+        {
+            throw new InvalidOperationException("The World has no JobScheduler assigned.");
+        }
 
         // 1. Flatten the World
         var chunks = new UnsafeList<IntPtr>(128, JobScheduler.TempAllocatorHandle);
@@ -1389,6 +1397,10 @@ public unsafe partial struct EntityQuery
         where T2 : unmanaged, IComponent
     {
         var world = World.GetWorld(_worldID).GetValueOrThrow();
+        if (world.JobScheduler == null)
+        {
+            throw new InvalidOperationException("The World has no JobScheduler assigned.");
+        }
 
         // 1. Flatten the World
         var chunks = new UnsafeList<IntPtr>(128, JobScheduler.TempAllocatorHandle);
@@ -1576,6 +1588,10 @@ public unsafe partial struct EntityQuery
         where T3 : unmanaged, IComponent
     {
         var world = World.GetWorld(_worldID).GetValueOrThrow();
+        if (world.JobScheduler == null)
+        {
+            throw new InvalidOperationException("The World has no JobScheduler assigned.");
+        }
 
         // 1. Flatten the World
         var chunks = new UnsafeList<IntPtr>(128, JobScheduler.TempAllocatorHandle);
@@ -1790,6 +1806,10 @@ public unsafe partial struct EntityQuery
         where T4 : unmanaged, IComponent
     {
         var world = World.GetWorld(_worldID).GetValueOrThrow();
+        if (world.JobScheduler == null)
+        {
+            throw new InvalidOperationException("The World has no JobScheduler assigned.");
+        }
 
         // 1. Flatten the World
         var chunks = new UnsafeList<IntPtr>(128, JobScheduler.TempAllocatorHandle);
@@ -2031,6 +2051,10 @@ public unsafe partial struct EntityQuery
         where T5 : unmanaged, IComponent
     {
         var world = World.GetWorld(_worldID).GetValueOrThrow();
+        if (world.JobScheduler == null)
+        {
+            throw new InvalidOperationException("The World has no JobScheduler assigned.");
+        }
 
         // 1. Flatten the World
         var chunks = new UnsafeList<IntPtr>(128, JobScheduler.TempAllocatorHandle);
@@ -2299,6 +2323,10 @@ public unsafe partial struct EntityQuery
         where T6 : unmanaged, IComponent
     {
         var world = World.GetWorld(_worldID).GetValueOrThrow();
+        if (world.JobScheduler == null)
+        {
+            throw new InvalidOperationException("The World has no JobScheduler assigned.");
+        }
 
         // 1. Flatten the World
         var chunks = new UnsafeList<IntPtr>(128, JobScheduler.TempAllocatorHandle);
@@ -2594,6 +2622,10 @@ public unsafe partial struct EntityQuery
         where T7 : unmanaged, IComponent
     {
         var world = World.GetWorld(_worldID).GetValueOrThrow();
+        if (world.JobScheduler == null)
+        {
+            throw new InvalidOperationException("The World has no JobScheduler assigned.");
+        }
 
         // 1. Flatten the World
         var chunks = new UnsafeList<IntPtr>(128, JobScheduler.TempAllocatorHandle);

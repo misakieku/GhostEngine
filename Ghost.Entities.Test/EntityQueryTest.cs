@@ -98,9 +98,19 @@ public partial class EntityQueryTest : ITest
 public struct Transform : IEnableableComponent
 {
     public float3 position;
+
+    public override string ToString()
+    {
+        return $"Position: {position}";
+    }
 }
 
 public struct Mesh : IComponent
 {
     public int index;
+
+    public override string ToString()
+    {
+        return $"Index: {index}";
+    }
 }

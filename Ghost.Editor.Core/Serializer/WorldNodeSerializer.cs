@@ -30,7 +30,6 @@ internal class WorldNodeSerializer : CustomSerializer<WorldNode>
         writer.WriteObject(() =>
         {
             writer.WriteString(Property.NAME, value.Name);
-
             writer.WriteStartArray(Property.ENTITIES);
 
             for (var i = 0; i < value.World.ArchetypeCount; i++)
@@ -52,7 +51,9 @@ internal class WorldNodeSerializer : CustomSerializer<WorldNode>
                                 continue;
                             }
 
-                            writer.WriteStartObject(type.AssemblyQualifiedName);
+                            writer.WriteStartObject();
+                            writer.WriteString("Type", type.AssemblyQualifiedName);
+                            writer.WritePropertyName("Data");
 
                             var pComponentData = chunk.GetUnsafePtr() + layout.offset + (k * size);
                             ComponentSerializerRegistry.SerializeJson(layout.componentID, writer, pComponentData, options);

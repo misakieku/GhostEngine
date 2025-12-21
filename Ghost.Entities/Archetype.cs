@@ -372,6 +372,16 @@ internal unsafe struct Archetype : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Entity GetEntity(int chunkIndex, int rowIndex)
+    {
+        var chunk = _chunks[chunkIndex];
+        var chunkBase = chunk.GetUnsafePtr();
+        var src = chunkBase + _entityIdsOffset + (sizeof(Entity) * rowIndex);
+
+        return *(Entity*)src;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly void SetEntity(int chunkIndex, int rowIndex, Entity entity)
     {
         var chunk = _chunks[chunkIndex];

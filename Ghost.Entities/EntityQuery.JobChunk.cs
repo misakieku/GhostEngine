@@ -48,6 +48,10 @@ public unsafe partial struct EntityQuery
         where TJob : unmanaged, IJobChunk
     {
         var world = World.GetWorld(_worldID).GetValueOrThrow();
+        if (world.JobScheduler == null)
+        {
+            throw new InvalidOperationException("The World has no JobScheduler assigned.");
+        }
 
         var chunkInfos = new UnsafeList<ChunkInfo>(_matchingArchetypes.Count * 2, JobScheduler.TempAllocatorHandle);
 

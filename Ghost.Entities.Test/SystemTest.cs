@@ -1,17 +1,14 @@
 using Ghost.Test.Core;
-using Misaki.HighPerformance.Jobs;
 
 namespace Ghost.Entities.Test;
 
 internal class SystemTest : ITest
 {
-    private JobScheduler _jobScheduler = null!;
     private World _world = null!;
 
     public void Setup()
     {
-        _jobScheduler = new JobScheduler(4);
-        _world = World.Create(_jobScheduler);
+        _world = World.Create();
     }
 
     public void Run()              
@@ -29,8 +26,6 @@ internal class SystemTest : ITest
     public void Cleanup()
     {
         _world.Dispose();
-        _jobScheduler.Dispose();
-        JobScheduler.ReleaseTempAllocator();
     }
 }
 

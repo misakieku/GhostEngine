@@ -3,5 +3,5 @@ using Ghost.Test.Core;
 using Misaki.HighPerformance.LowLevel.Buffer;
 
 AllocationManager.EnableDebugLayer();
-TestRunner.Run<SystemTest>();
+TestRunner.Run<SerializationTest>();
 AllocationManager.Dispose();

@@ -161,16 +161,17 @@ public unsafe partial class EntityManager : IDisposable
     /// <summary>
     /// Create multiple entities with specified components.
     /// </summary>
-    /// <param name="allocator">The allocator to use for the returned array.</param>
+    /// <param name="entities">The span to store the created entities.</param>
     /// <param name="set">A set of component type IDs to add to the entities.</param>
     /// <returns>An array of the created entities.</returns>
     public void CreateEntities(Span<Entity> entities, ComponentSet set)
     {
-        var arcID = _world.GetArchetypeIDBySignatureHash(set.GetHashCode());
+        var hash = set.GetHashCode();
+        var arcID = _world.GetArchetypeIDBySignatureHash(hash);
 
         if (arcID.IsInvalid)
         {
-            arcID = _world.CreateArchetype(set.Components, set.GetHashCode());
+            arcID = _world.CreateArchetype(set.Components, hash);
         }
 
         ref var archetype = ref _world.GetArchetypeReference(arcID);
