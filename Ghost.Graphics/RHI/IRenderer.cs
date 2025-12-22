@@ -1,5 +1,4 @@
 using Ghost.Core;
-using Misaki.HighPerformance.Mathematics;
 using Ghost.Graphics.Core;
 
 namespace Ghost.Graphics.RHI;
@@ -9,7 +8,7 @@ namespace Ghost.Graphics.RHI;
 /// </summary>
 public interface IRenderer : IDisposable
 {
-    public uint2 Size
+    Handle<Texture> RenderTarget
     {
         get;
     }
@@ -21,29 +20,9 @@ public interface IRenderer : IDisposable
     public void SetRenderTarget(Handle<Texture> renderTarget);
 
     /// <summary>
-    /// Sets the swap chain for this renderer
-    /// </summary>
-    /// <param name="swapChain">Swap chain for presentation</param>
-    public void SetSwapChain(ISwapChain? swapChain);
-
-    /// <summary>
-    /// Executes any pending resize operations
-    /// </summary>
-    public void ExecutePendingResize();
-
-    /// <summary>
     /// Renders a frame
     /// </summary>
-    public void Render();
-
-    /// <summary>
-    /// Requests a resize operation
-    /// </summary>
-    /// <param name="newSize">New size</param>
-    public void RequestResize(uint2 newSize);
-
-    /// <summary>
-    /// Waits for the GPU to complete all work
-    /// </summary>
-    public void WaitIdle();
+    /// <param name="commandBuffer">Command buffer to record rendering commands into</param>
+    /// <returns>Result of the rendering operation</returns>
+    public Result Render(ICommandBuffer commandBuffer);
 }

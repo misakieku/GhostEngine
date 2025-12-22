@@ -77,7 +77,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
     {
         ThrowIfDisposed();
 
-        var renderer = new D3D12Renderer(this, _resourceAllocator, _resourceDatabase);
+        var renderer = new D3D12Renderer(this, _resourceDatabase);
         ImmutableInterlocked.Update(ref _renderers, renderers => renderers.Add(renderer));
         return renderer;
     }
@@ -113,20 +113,15 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         return new D3D12SwapChain(_resourceDatabase, _descriptorAllocator, _device, desc, _renderSystem.MaxFrameLatency);
     }
 
-    public void RenderFrame()
+    public void RenderFrame(ICommandBuffer commandBuffer)
     {
         ThrowIfDisposed();
-
-        foreach (var renderer in _renderers)
-        {
-            renderer.ExecutePendingResize();
-        }
 
         _copyCommandBuffer.Begin();
 
         foreach (var renderer in _renderers)
         {
-            renderer.Render();
+            renderer.Render(commandBuffer);
         }
 
         _copyCommandBuffer.End().ThrowIfFailed();

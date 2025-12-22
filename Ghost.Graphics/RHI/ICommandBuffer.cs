@@ -3,6 +3,8 @@ using Ghost.Graphics.Core;
 
 namespace Ghost.Graphics.RHI;
 
+// TODO: Add ICommandAllocator support for thread local command buffers. We often use one allocator for multiple command buffers in a single frame.
+
 /// <summary>
 /// D3D12-style command buffer interface for recording rendering commands
 /// </summary>

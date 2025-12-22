@@ -28,6 +28,11 @@ public readonly struct Result
         return new Result(false, message);
     }
 
+    public static Result Failure(ErrorStatus status)
+    {
+        return new Result(false, status.ToString());
+    }
+
     public static Result<T> Success<T>(T value)
     {
         return Result<T>.Success(value);
@@ -36,6 +41,11 @@ public readonly struct Result
     public static Result<T> Failure<T>(string? message = null)
     {
         return Result<T>.Failure(message);
+    }
+
+    public static Result<T> Failure<T>(ErrorStatus status)
+    {
+        return Result<T>.Failure(status.ToString());
     }
 
     public void Deconstruct(out bool success, out string? message)
@@ -116,7 +126,9 @@ public enum ErrorStatus : byte
     OutOfMemory,
     Timeout,
     Cancelled,
-    UnknownError
+    UnknownError,
+
+    Success = None,
 }
 
 public readonly struct Result<T, E>

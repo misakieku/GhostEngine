@@ -51,5 +51,5 @@ public interface IGraphicsEngine : IDisposable
     /// <summary>
     /// Renders the current frame.
     /// </summary>
-    void RenderFrame();
+    void RenderFrame(ICommandBuffer commandBuffer);
 }

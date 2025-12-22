@@ -48,7 +48,6 @@ public sealed partial class GraphicsTestWindow : Window
             GraphicsAPI = GraphicsAPI.Direct3D12
         });
         _renderer = _renderSystem.GraphicsEngine.CreateRenderer();
-
         _swapChain = _renderSystem.GraphicsEngine.CreateSwapChain(new SwapChainDesc
         {
             Width = (uint)AppWindow.Size.Width,
@@ -57,7 +56,7 @@ public sealed partial class GraphicsTestWindow : Window
             Target = SwapChainTarget.FromCompositionSurface(Panel)
         });
 
-        _renderer.SetSwapChain(_swapChain);
+        _renderer.SetRenderTarget(_swapChain.GetCurrentBackBuffer());
 
         _renderSystem.Start();
         CompositionTarget.Rendering += OnRendering;
@@ -106,7 +105,8 @@ public sealed partial class GraphicsTestWindow : Window
             return;
         }
 
-        _renderer?.RequestResize(new uint2(newWidth, newHeight));
+        _renderSystem?.WaitIdle();
+        _swapChain?.Resize(newWidth, newHeight);
     }
 
     private void OnRendering(object? sender, object e)

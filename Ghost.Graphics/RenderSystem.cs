@@ -44,6 +44,7 @@ public interface IFenceSynchronizer
 
     bool WaitForGPUReady(int timeOut = -1);
     void SignalCPUReady();
+    void WaitIdle();
 }
 
 public interface IRenderSystem : IFenceSynchronizer, IDisposable
@@ -68,21 +69,34 @@ public interface IRenderSystem : IFenceSynchronizer, IDisposable
 /// </summary>
 internal class RenderSystem : IRenderSystem
 {
+    // TODO: Thread local command buffers.
     private struct FrameResource : IDisposable
     {
-        public readonly AutoResetEvent cpuReadyEvent;
-        public readonly AutoResetEvent gpuReadyEvent;
-
-        public FrameResource()
+        public required AutoResetEvent CpuReadyEvent
         {
-            cpuReadyEvent = new AutoResetEvent(false);
-            gpuReadyEvent = new AutoResetEvent(true);
+            get; init;
+        }
+
+        public required AutoResetEvent GpuReadyEvent
+        {
+            get; init;
+        }
+
+        public required ICommandBuffer CommandBuffer
+        {
+            get; init;
+        }
+
+        public ulong FenceValue
+        {
+            get; set;
         }
 
         public readonly void Dispose()
         {
-            cpuReadyEvent.Dispose();
-            gpuReadyEvent.Dispose();
+            CpuReadyEvent.Dispose();
+            GpuReadyEvent.Dispose();
+            CommandBuffer.Dispose();
         }
     }
 
@@ -123,7 +137,12 @@ internal class RenderSystem : IRenderSystem
         _frameResources = new FrameResource[config.FrameBufferCount];
         for (var i = 0; i < config.FrameBufferCount; i++)
         {
-            _frameResources[i] = new FrameResource();
+            _frameResources[i] = new FrameResource
+            {
+                CpuReadyEvent = new AutoResetEvent(false),
+                GpuReadyEvent = new AutoResetEvent(true),
+                CommandBuffer = _graphicsEngine.CreateCommandBuffer(CommandBufferType.Graphics),
+            };
         }
 
         _renderThread = new Thread(RenderLoop)
@@ -174,7 +193,7 @@ internal class RenderSystem : IRenderSystem
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         var eventIndex = (int)(_cpuFenceValue % _config.FrameBufferCount);
-        return _frameResources[eventIndex].gpuReadyEvent.WaitOne(timeOut);
+        return _frameResources[eventIndex].GpuReadyEvent.WaitOne(timeOut);
     }
 
     public void SignalCPUReady()
@@ -182,8 +201,19 @@ internal class RenderSystem : IRenderSystem
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         var eventIndex = (int)(_cpuFenceValue % _config.FrameBufferCount);
-        _frameResources[eventIndex].cpuReadyEvent.Set();
+        _frameResources[eventIndex].CpuReadyEvent.Set();
         _cpuFenceValue++;
+    }
+
+    public void WaitIdle()
+    {
+        foreach (var frameResource in _frameResources)
+        {
+            if (frameResource.FenceValue > 0)
+            {
+                _graphicsEngine.Device.GraphicsQueue.WaitForValue(frameResource.FenceValue);
+            }
+        }
     }
 
     private void RenderLoop()
@@ -193,10 +223,10 @@ internal class RenderSystem : IRenderSystem
         while (_isRunning)
         {
             _frameIndex = _gpuFenceValue % _config.FrameBufferCount;
-            var frameResource = _frameResources[_frameIndex];
+            ref var frameResource = ref _frameResources[_frameIndex];
 
             // Wait for either CPU ready signal or shutdown signal
-            waitHandles[0] = frameResource.cpuReadyEvent;
+            waitHandles[0] = frameResource.CpuReadyEvent;
             var waitResult = WaitHandle.WaitAny(waitHandles);
 
             // If shutdown was signaled or timeout occurred, exit the loop
@@ -208,21 +238,18 @@ internal class RenderSystem : IRenderSystem
             // Only proceed if CPU ready event was signaled
             if (waitResult == 0)
             {
-                _graphicsEngine.RenderFrame();
-                //                if (result.IsFailure)
-                //                {
-                //                    // Terminate the render loop on failure
-                //                    _isRunning = false;
-                //#if DEBUG
-                //                    throw new InvalidOperationException($"RenderFrame failed: {result.Message}");
-                //#else
-                //                    Logger.LogError($"RenderFrame failed: {result.Message}");
-                //                    break;
-                //#endif
-                //                }
+                if (frameResource.FenceValue > 0)
+                {
+                    _graphicsEngine.Device.GraphicsQueue.WaitForValue(frameResource.FenceValue);
+                }
+
+                _graphicsEngine.RenderFrame(frameResource.CommandBuffer);
 
                 _gpuFenceValue++;
-                frameResource.gpuReadyEvent.Set();
+                frameResource.GpuReadyEvent.Set();
+
+                frameResource.FenceValue = _graphicsEngine.Device.GraphicsQueue.Signal(_frameIndex);
+                _frameIndex++;
             }
         }
     }
