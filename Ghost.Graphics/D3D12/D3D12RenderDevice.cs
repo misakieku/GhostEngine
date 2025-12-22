@@ -28,9 +28,9 @@ internal unsafe class D3D12RenderDevice : IRenderDevice
     public ICommandQueue ComputeQueue => _computeQueue;
     public ICommandQueue CopyQueue => _copyQueue;
 
-    public SharedPtr<IDXGIFactory7> DXGIFactory => _dxgiFactory.Get();
-    public SharedPtr<ID3D12Device14> NativeDevice => _device.Get();
-    public SharedPtr<IDXGIAdapter1> Adapter => _adapter.Get();
+    public SharedPtr<IDXGIFactory7> DXGIFactory => _dxgiFactory.Share();
+    public SharedPtr<ID3D12Device14> NativeDevice => _device.Share();
+    public SharedPtr<IDXGIAdapter1> Adapter => _adapter.Share();
     public SharedPtr<ID3D12CommandQueue> NativeGraphicsQueue => _graphicsQueue.NativeQueue;
     public SharedPtr<ID3D12CommandQueue> NativeComputeQueue => _computeQueue.NativeQueue;
     public SharedPtr<ID3D12CommandQueue> NativeCopyQueue => _copyQueue.NativeQueue;

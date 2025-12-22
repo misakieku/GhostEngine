@@ -5,7 +5,7 @@ namespace Ghost.Graphics.Contracts;
 
 public interface IRenderPass
 {
-    public void Initialize(ref readonly RenderingContext ctx);
-    public void Execute(ref readonly RenderingContext ctx);
-    public void Cleanup(IResourceDatabase resourceDatabase);
+    void Initialize(ref readonly RenderingContext ctx);
+    void Execute(ref readonly RenderingContext ctx);
+    void Cleanup(IResourceDatabase resourceDatabase);
 }

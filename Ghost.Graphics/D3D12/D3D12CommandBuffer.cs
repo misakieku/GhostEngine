@@ -19,7 +19,6 @@ namespace Ghost.Graphics.D3D12;
 internal unsafe class D3D12CommandBuffer : ICommandBuffer
 {
     private UniquePtr<ID3D12GraphicsCommandList10> _commandList;
-    private UniquePtr<ID3D12CommandAllocator> _allocator;
 
     private readonly D3D12PipelineLibrary _pipelineLibrary;
     private readonly D3D12ResourceDatabase _resourceDatabase;
@@ -62,14 +61,11 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     {
         _type = type;
 
-        ID3D12CommandAllocator* pAllocator = default;
         ID3D12GraphicsCommandList10* pCommandList = default;
-        var commandListType = ConvertCommandBufferType(type);
+        var commandListType = D3D12Utility.ToCommandListType(type);
 
-        device.NativeDevice.Get()->CreateCommandAllocator(commandListType, __uuidof(pAllocator), (void**)&pAllocator);
         device.NativeDevice.Get()->CreateCommandList1(0u, commandListType, D3D12_COMMAND_LIST_FLAG_NONE, __uuidof(pCommandList), (void**)&pCommandList);
 
-        _allocator.Attach(pAllocator);
         _commandList.Attach(pCommandList);
 
         _pipelineLibrary = stateController;
@@ -83,17 +79,6 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     ~D3D12CommandBuffer()
     {
         Dispose();
-    }
-
-    private static D3D12_COMMAND_LIST_TYPE ConvertCommandBufferType(CommandBufferType type)
-    {
-        return type switch
-        {
-            CommandBufferType.Graphics => D3D12_COMMAND_LIST_TYPE_DIRECT,
-            CommandBufferType.Compute => D3D12_COMMAND_LIST_TYPE_COMPUTE,
-            CommandBufferType.Copy => D3D12_COMMAND_LIST_TYPE_COPY,
-            _ => throw new ArgumentException($"Unknown command buffer type: {type}")
-        };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -145,30 +130,26 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
 #endif
     }
 
-    public void Begin()
+    public void Begin(ICommandAllocator allocator)
     {
-        void ResetCommandList()
+        ThrowIfDisposed();
+        ThrowIfRecording();
+
+        if (allocator is not D3D12CommandAllocator d3d12Allocator)
         {
-            ThrowIfFailed(_allocator.Get()->Reset());
-            ThrowIfFailed(_commandList.Get()->Reset(_allocator.Get(), null));
+            throw new ArgumentException("Invalid command allocator type", nameof(allocator));
         }
 
-        void SetBindlessHeap()
+        ThrowIfFailed(_commandList.Get()->Reset(d3d12Allocator.NativeAllocator, null));
+
+        if (Type == CommandBufferType.Graphics || Type == CommandBufferType.Compute)
         {
+            // Set descriptor heaps for bindless resources and samplers
+
             var heaps = stackalloc ID3D12DescriptorHeap*[2];
             heaps[0] = _descriptorAllocator.GetCbvSrvUavHeap(); // Bindless resource heap
             heaps[1] = _descriptorAllocator.GetSamplerHeap();   // Bindless sampler heap
             _commandList.Get()->SetDescriptorHeaps(2, heaps);
-        }
-
-        ThrowIfDisposed();
-        ThrowIfRecording();
-
-        ResetCommandList();
-
-        if (Type == CommandBufferType.Graphics || Type == CommandBufferType.Compute)
-        {
-            SetBindlessHeap();
         }
 
         _commandCount = 0;
@@ -684,7 +665,6 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         }
 
         _commandList.Dispose();
-        _allocator.Dispose();
         _commandCount = 0;
 
         _disposed = true;

@@ -1,21 +1,19 @@
+using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
-using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
-using System.Text.Json;
 
 namespace Ghost.Graphics.Test.Windows;
 
 public sealed partial class GraphicsTestWindow : Window
 {
-    private DispatcherTimer _resizeTimer;
     private IRenderSystem? _renderSystem;
     private IRenderer? _renderer;
     private ISwapChain? _swapChain;
 
     private bool _isFirstActivationHandled;
-    private bool _isResizing;
 
     public GraphicsTestWindow()
     {
@@ -24,11 +22,8 @@ public sealed partial class GraphicsTestWindow : Window
         Activated += GraphicsTestWindow_Activated;
         Closed += GraphicsTestWindow_Closed;
 
-        _resizeTimer = new DispatcherTimer();
-        _resizeTimer.Interval = TimeSpan.FromMilliseconds(200);
-        _resizeTimer.Tick += OnResizeTimerTick;
-
         Panel.SizeChanged += SwapChainPanel_SizeChanged;
+        Panel.CompositionScaleChanged += SwapChainPanel_CompositionScaleChanged;
     }
 
     private void GraphicsTestWindow_Activated(object sender, WindowActivatedEventArgs e)
@@ -39,7 +34,7 @@ public sealed partial class GraphicsTestWindow : Window
         }
 
 #if DEBUG
-        AllocationManager.EnableDebugLayer();
+        Misaki.HighPerformance.LowLevel.Buffer.AllocationManager.EnableDebugLayer();
 #endif
 
         _renderSystem = new RenderSystem(new RenderingConfig()
@@ -52,11 +47,13 @@ public sealed partial class GraphicsTestWindow : Window
         {
             Width = (uint)AppWindow.Size.Width,
             Height = (uint)AppWindow.Size.Height,
+            ScaleX = Panel.CompositionScaleX,
+            ScaleY = Panel.CompositionScaleY,
             Format = TextureFormat.B8G8R8A8_UNorm,
             Target = SwapChainTarget.FromCompositionSurface(Panel)
         });
 
-        _renderer.SetRenderTarget(_swapChain.GetCurrentBackBuffer());
+        _renderer.RenderTargetStrategy = new SwapChainTargetStrategy(_swapChain);
 
         _renderSystem.Start();
         CompositionTarget.Rendering += OnRendering;
@@ -75,27 +72,16 @@ public sealed partial class GraphicsTestWindow : Window
         _renderSystem?.Dispose();
 
 #if DEBUG
-        AllocationManager.Dispose();
+        Misaki.HighPerformance.LowLevel.Buffer.AllocationManager.Dispose();
 #endif
     }
 
     private void SwapChainPanel_SizeChanged(object sender, SizeChangedEventArgs e)
     {
-        //if (e.NewSize.Width > 8.0 && e.NewSize.Height > 8.0)
-        //{
-        //    _renderer?.RequestResize(new((uint)e.NewSize.Width, (uint)e.NewSize.Height));
-        //}
-
-        _resizeTimer.Stop();
-        _resizeTimer.Start();
-
-        _isResizing = true;
-    }
-
-    private void OnResizeTimerTick(object? sender, object e)
-    {
-        _resizeTimer.Stop();
-        _isResizing = false;
+        if (_renderSystem == null || _swapChain == null)
+        {
+            return;
+        }
 
         var newWidth = (uint)(Panel.ActualWidth * Panel.CompositionScaleX);
         var newHeight = (uint)(Panel.ActualHeight * Panel.CompositionScaleY);
@@ -105,8 +91,12 @@ public sealed partial class GraphicsTestWindow : Window
             return;
         }
 
-        _renderSystem?.WaitIdle();
-        _swapChain?.Resize(newWidth, newHeight);
+        _renderSystem.RequestSwapChainResize(_swapChain, new uint2(newWidth, newHeight));
+    }
+
+    private void SwapChainPanel_CompositionScaleChanged(SwapChainPanel sender, object args)
+    {
+        _swapChain?.SetScale(sender.CompositionScaleX, sender.CompositionScaleY);
     }
 
     private void OnRendering(object? sender, object e)

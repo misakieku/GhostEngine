@@ -1,4 +1,8 @@
+using Ghost.Core;
 using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.Mathematics;
+using System.Collections.Concurrent;
+using System.Diagnostics;
 
 namespace Ghost.Graphics;
 
@@ -61,6 +65,7 @@ public interface IRenderSystem : IFenceSynchronizer, IDisposable
 
     void Start();
     void Stop();
+    void RequestSwapChainResize(ISwapChain swapChain, uint2 newSize);
 }
 
 /// <summary>
@@ -82,7 +87,7 @@ internal class RenderSystem : IRenderSystem
             get; init;
         }
 
-        public required ICommandBuffer CommandBuffer
+        public required ICommandAllocator CommandAllocator
         {
             get; init;
         }
@@ -96,7 +101,7 @@ internal class RenderSystem : IRenderSystem
         {
             CpuReadyEvent.Dispose();
             GpuReadyEvent.Dispose();
-            CommandBuffer.Dispose();
+            CommandAllocator.Dispose();
         }
     }
 
@@ -106,6 +111,7 @@ internal class RenderSystem : IRenderSystem
     private readonly FrameResource[] _frameResources;
     private readonly Thread _renderThread;
     private readonly AutoResetEvent _shutdownEvent;
+    private readonly ConcurrentDictionary<ISwapChain, uint2> _resizeRequest;
 
     private uint _frameIndex;
     private uint _cpuFenceValue;
@@ -131,8 +137,6 @@ internal class RenderSystem : IRenderSystem
             _ => throw new NotSupportedException($"Graphics API {config.GraphicsAPI} is not supported.")
         };
 
-        _shutdownEvent = new AutoResetEvent(false);
-
         // Create frame resources for synchronization
         _frameResources = new FrameResource[config.FrameBufferCount];
         for (var i = 0; i < config.FrameBufferCount; i++)
@@ -141,7 +145,7 @@ internal class RenderSystem : IRenderSystem
             {
                 CpuReadyEvent = new AutoResetEvent(false),
                 GpuReadyEvent = new AutoResetEvent(true),
-                CommandBuffer = _graphicsEngine.CreateCommandBuffer(CommandBufferType.Graphics),
+                CommandAllocator = _graphicsEngine.CreateCommandAllocator(CommandBufferType.Graphics)
             };
         }
 
@@ -151,6 +155,9 @@ internal class RenderSystem : IRenderSystem
             Name = "Graphics Render Thread",
             Priority = ThreadPriority.Normal
         };
+
+        _shutdownEvent = new AutoResetEvent(false);
+        _resizeRequest = new ConcurrentDictionary<ISwapChain, uint2>();
 
         _isRunning = false;
         _disposed = false;
@@ -186,6 +193,12 @@ internal class RenderSystem : IRenderSystem
         _isRunning = false;
         _shutdownEvent.Set();
         _renderThread.Join();
+    }
+
+    public void RequestSwapChainResize(ISwapChain swapChain, uint2 newSize)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        _resizeRequest.AddOrUpdate(swapChain, newSize, (_, _) => newSize);
     }
 
     public bool WaitForGPUReady(int timeOut = -1)
@@ -243,13 +256,31 @@ internal class RenderSystem : IRenderSystem
                     _graphicsEngine.Device.GraphicsQueue.WaitForValue(frameResource.FenceValue);
                 }
 
-                _graphicsEngine.RenderFrame(frameResource.CommandBuffer);
+                if (!_resizeRequest.IsEmpty)
+                {
+                    WaitIdle();
+                    foreach (var kvp in _resizeRequest)
+                    {
+                        var swapChain = kvp.Key;
+                        var newSize = kvp.Value;
+                        swapChain.Resize(newSize.x, newSize.y);
+                    }
+                }
+
+                var r = _graphicsEngine.RenderFrame(frameResource.CommandAllocator);
+                if (r.IsFailure)
+                {
+                    _isRunning = false;
+#if DEBUG
+                    System.Diagnostics.Debugger.Break();
+#endif
+                    Logger.LogError($"RenderFrame failed: {r.Message}");
+                }
 
                 _gpuFenceValue++;
-                frameResource.GpuReadyEvent.Set();
 
-                frameResource.FenceValue = _graphicsEngine.Device.GraphicsQueue.Signal(_frameIndex);
-                _frameIndex++;
+                frameResource.GpuReadyEvent.Set();
+                frameResource.FenceValue = _graphicsEngine.Device.GraphicsQueue.Signal(_gpuFenceValue);
             }
         }
     }

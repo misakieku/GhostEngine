@@ -1,3 +1,7 @@
+#if DEBUG
+#define ENABLE_DEBUG
+#endif
+
 using Ghost.Core;
 using Ghost.Graphics.Contracts;
 using Ghost.Graphics.RHI;
@@ -11,7 +15,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
 {
     private readonly IRenderSystem _renderSystem;
 
-#if DEBUG
+#if ENABLE_DEBUG
     private readonly D3D12DebugLayer _debugLayer;
 #endif
 
@@ -21,7 +25,6 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
     private readonly D3D12ResourceDatabase _resourceDatabase;
     private readonly D3D12PipelineLibrary _pipelineLibrary;
     private readonly D3D12ResourceAllocator _resourceAllocator;
-    private readonly D3D12CommandBuffer _copyCommandBuffer;
 
     private ImmutableArray<IRenderer> _renderers;
 
@@ -32,13 +35,12 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
     public IPipelineLibrary PipelineLibrary => _pipelineLibrary;
     public IResourceDatabase ResourceDatabase => _resourceDatabase;
     public IResourceAllocator ResourceAllocator => _resourceAllocator;
-    public ICommandBuffer CopyCommandBuffer => _copyCommandBuffer;
 
     public D3D12GraphicsEngine(IRenderSystem renderSystem)
     {
         _renderSystem = renderSystem;
 
-#if DEBUG
+#if ENABLE_DEBUG
         _debugLayer = new D3D12DebugLayer();
 #endif
         _device = new D3D12RenderDevice();
@@ -48,14 +50,6 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         _resourceDatabase = new D3D12ResourceDatabase(_descriptorAllocator);
         _pipelineLibrary = new D3D12PipelineLibrary(_device, _resourceDatabase);
         _resourceAllocator = new D3D12ResourceAllocator(renderSystem, _device, _descriptorAllocator, _resourceDatabase, _pipelineLibrary);
-
-        _copyCommandBuffer = new D3D12CommandBuffer(
-            _device,
-            _pipelineLibrary,
-            _resourceDatabase,
-            _resourceAllocator,
-            _descriptorAllocator,
-            CommandBufferType.Copy);
 
         _renderers = ImmutableArray<IRenderer>.Empty;
 
@@ -94,6 +88,11 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         ImmutableInterlocked.Update(ref _renderers, renderers => renderers.Clear());
     }
 
+    public ICommandAllocator CreateCommandAllocator(CommandBufferType type = CommandBufferType.Graphics)
+    {
+        return new D3D12CommandAllocator(_device, type);
+    }
+
     public ICommandBuffer CreateCommandBuffer(CommandBufferType type = CommandBufferType.Graphics)
     {
         ThrowIfDisposed();
@@ -113,22 +112,27 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         return new D3D12SwapChain(_resourceDatabase, _descriptorAllocator, _device, desc, _renderSystem.MaxFrameLatency);
     }
 
-    public void RenderFrame(ICommandBuffer commandBuffer)
+    public Result RenderFrame(ICommandAllocator commandAllocator)
     {
         ThrowIfDisposed();
 
-        _copyCommandBuffer.Begin();
+        var r = Result.Success();
 
         foreach (var renderer in _renderers)
         {
-            renderer.Render(commandBuffer);
+            r = renderer.Render(commandAllocator);
+            if (r.IsFailure)
+            {
+                break;
+            }
         }
 
-        _copyCommandBuffer.End().ThrowIfFailed();
         _resourceAllocator.ReleaseTempResources();
         _descriptorAllocator.ResetCbvSrvUavDynamicHeap();
         _descriptorAllocator.ResetDSVDynamicHeap();
         _descriptorAllocator.ResetRTVDynamicHeap();
+
+        return r;
     }
 
     public void Dispose()
@@ -138,8 +142,6 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
             return;
         }
 
-        _copyCommandBuffer.Dispose();
-
         _resourceAllocator.Dispose();
         _pipelineLibrary.Dispose();
         _resourceDatabase.Dispose();
@@ -147,7 +149,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         _descriptorAllocator.Dispose();
         _shaderCompiler.Dispose();
         _device.Dispose();
-#if DEBUG
+#if ENABLE_DEBUG
         _debugLayer.Dispose();
 #endif
 

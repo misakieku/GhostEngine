@@ -1,5 +1,5 @@
 using Ghost.Core;
-using Ghost.Graphics.Core;
+using Ghost.Graphics.Contracts;
 
 namespace Ghost.Graphics.RHI;
 
@@ -8,21 +8,15 @@ namespace Ghost.Graphics.RHI;
 /// </summary>
 public interface IRenderer : IDisposable
 {
-    Handle<Texture> RenderTarget
+    IRenderTargetStrategy? RenderTargetStrategy
     {
-        get;
+        get; set;
     }
-
-    /// <summary>
-    /// Sets the render Target for this renderer
-    /// </summary>
-    /// <param name="renderTarget">Render Target to render into</param>
-    public void SetRenderTarget(Handle<Texture> renderTarget);
 
     /// <summary>
     /// Renders a frame
     /// </summary>
-    /// <param name="commandBuffer">Command buffer to record rendering commands into</param>
+    /// <param name="commandAllocator">Command allocator to use for rendering</param>
     /// <returns>Result of the rendering operation</returns>
-    public Result Render(ICommandBuffer commandBuffer);
+    Result Render(ICommandAllocator commandAllocator);
 }

@@ -155,6 +155,17 @@ internal unsafe static class D3D12Utility
         };
     }
 
+    public static D3D12_COMMAND_LIST_TYPE ToCommandListType(CommandBufferType type)
+    {
+        return type switch
+        {
+            CommandBufferType.Graphics => D3D12_COMMAND_LIST_TYPE_DIRECT,
+            CommandBufferType.Compute => D3D12_COMMAND_LIST_TYPE_COMPUTE,
+            CommandBufferType.Copy => D3D12_COMMAND_LIST_TYPE_COPY,
+            _ => throw new ArgumentException($"Unknown command buffer type: {type}")
+        };
+    }
+
 
     public static D3D12_RASTERIZER_DESC D3D12_RASTERIZER_DESC_CREATE(
         D3D12_FILL_MODE fillMode,

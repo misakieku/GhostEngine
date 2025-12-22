@@ -35,7 +35,7 @@ public interface ICommandBuffer : IDisposable
     /// <summary>
     /// Begins recording commands into this command buffer
     /// </summary>
-    void Begin();
+    void Begin(ICommandAllocator allocator);
 
     /// <summary>
     /// Ends recording commands and prepares for submission

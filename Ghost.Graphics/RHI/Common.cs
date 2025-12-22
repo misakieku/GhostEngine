@@ -758,6 +758,15 @@ public struct SwapChainDesc
         get; set;
     }
 
+    public float ScaleX
+    {
+        get; set;
+    }
+
+    public float ScaleY
+    {
+        get; set;
+    }
 
     /// <summary>
     /// Back buffer Format

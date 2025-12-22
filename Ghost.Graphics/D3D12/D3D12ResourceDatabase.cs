@@ -104,7 +104,6 @@ internal class D3D12ResourceDatabase : IResourceDatabase
     private readonly DynamicArray<Shader?> _shaders; // NOTE: We use a simple list since shader is not frequently added/removed. This can save 4 bytes for each ecs component.
     private readonly Dictionary<ShaderPassKey, ShaderPass> _shaderPasses; // NOTE: The reason we use Dictionary here is that ShaderPassKey is a presistence identifier across multiple application sessions.
 
-    private int _lastSamplerId;
     private bool _disposed;
 
     public D3D12ResourceDatabase(D3D12DescriptorAllocator descriptorAllocator)
@@ -120,8 +119,6 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         _materials = new UnsafeSlotMap<Material>(16, Allocator.Persistent, AllocationOption.Clear);
         _shaders = new DynamicArray<Shader?>(16);
         _shaderPasses = new Dictionary<ShaderPassKey, ShaderPass>(16);
-
-        _lastSamplerId = -1;
     }
 
     ~D3D12ResourceDatabase()

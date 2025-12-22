@@ -12,28 +12,18 @@ public readonly unsafe ref struct RenderingContext
 {
     private readonly IGraphicsEngine _engine;
     private readonly ICommandBuffer _directCmd;
-    private readonly ICommandBuffer _copyCmd;
-    private readonly ICommandBuffer _computeCmd;
 
     public ICommandBuffer DirectCommandBuffer => _directCmd;
-    public ICommandBuffer CopyCommandBuffer => _copyCmd;
-    public ICommandBuffer ComputeCommandBuffer => _computeCmd;
 
     public IShaderCompiler ShaderCompiler => _engine.ShaderCompiler;
     public IResourceAllocator ResourceAllocator => _engine.ResourceAllocator;
     public IResourceDatabase ResourceDatabase => _engine.ResourceDatabase;
     public IPipelineLibrary PipelineLibrary => _engine.PipelineLibrary;
 
-    internal RenderingContext(
-        IGraphicsEngine engine,
-        ICommandBuffer directCmd,
-        ICommandBuffer copyCmd,
-        ICommandBuffer computeCmd)
+    internal RenderingContext(IGraphicsEngine engine, ICommandBuffer directCmd)
     {
         _engine = engine;
         _directCmd = directCmd;
-        _copyCmd = copyCmd;
-        _computeCmd = computeCmd;
     }
 
     public ICommandBuffer CrearteCommandBuffer(CommandBufferType type)

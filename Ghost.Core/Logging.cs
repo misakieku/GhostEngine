@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 
 namespace Ghost.Core;
 
@@ -10,7 +9,7 @@ public enum LogLevel
     Error
 }
 
-internal readonly struct LogMessage
+public readonly struct LogMessage
 {
     public LogLevel Level
     {
@@ -51,67 +50,68 @@ internal readonly struct LogMessage
     }
 }
 
-internal interface ILogger
+public interface ILogger
 {
-    public ReadOnlyObservableCollection<LogMessage> Logs
+    ReadOnlyObservableCollection<LogMessage> Logs
     {
         get;
     }
 
-    public void Log(string message, LogLevel level);
-    public void Log(Exception exception);
-    public void Assert(bool condition, string message);
-    public void Clear();
-}
-
-// TODO: Add file logging.
-internal class LoggerImplementation : ILogger
-{
-    private readonly ObservableCollection<LogMessage> _logs = new();
-    private readonly Lock _lock = new();
-
-    public ReadOnlyObservableCollection<LogMessage> Logs => new(_logs);
-
-    public void Log(string message, LogLevel level)
-    {
-        lock (_lock)
-        {
-            _logs.Add(new LogMessage(level, message));
-        }
-    }
-
-    public void Log(Exception exception)
-    {
-        lock (_lock)
-        {
-            _logs.Add(new LogMessage(LogLevel.Error, exception.Message, exception.StackTrace));
-        }
-    }
-
-    public void Assert(bool condition, string message)
-    {
-        lock (_lock)
-        {
-            if (!condition)
-            {
-                Log(message, LogLevel.Error);
-            }
-        }
-    }
-
-    public void Clear()
-    {
-        lock (_lock)
-        {
-            _logs.Clear();
-        }
-    }
+    void Log(string message, LogLevel level);
+    void Log(Exception exception);
+    void Assert(bool condition, string message);
+    void Clear();
 }
 
 public static class Logger
 {
-    private static readonly ILogger s_logger = new LoggerImplementation();
-    internal static ReadOnlyObservableCollection<LogMessage> Logs => s_logger.Logs;
+    // TODO: Add file logging.
+    private class LoggerImpl : ILogger
+    {
+        private readonly ObservableCollection<LogMessage> _logs = new();
+        private readonly Lock _lock = new();
+
+        public ReadOnlyObservableCollection<LogMessage> Logs => new(_logs);
+
+        public void Log(string message, LogLevel level)
+        {
+            lock (_lock)
+            {
+                _logs.Add(new LogMessage(level, message));
+            }
+        }
+
+        public void Log(Exception exception)
+        {
+            lock (_lock)
+            {
+                _logs.Add(new LogMessage(LogLevel.Error, exception.Message, exception.StackTrace));
+            }
+        }
+
+        public void Assert(bool condition, string message)
+        {
+            lock (_lock)
+            {
+                if (!condition)
+                {
+                    Log(message, LogLevel.Error);
+                }
+            }
+        }
+
+        public void Clear()
+        {
+            lock (_lock)
+            {
+                _logs.Clear();
+            }
+        }
+    }
+
+    private static readonly ILogger s_logger = new LoggerImpl();
+
+    public static ReadOnlyObservableCollection<LogMessage> Logs => s_logger.Logs;
 
     public static void Log(LogLevel level, object? message)
     {
