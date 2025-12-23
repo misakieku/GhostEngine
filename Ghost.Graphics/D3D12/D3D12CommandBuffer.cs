@@ -114,8 +114,10 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if DEBUG
     [DoesNotReturn]
-#endif
+    private static void RecordError(string cmdName, ErrorStatus status)
+#else
     private void RecordError(string cmdName, ErrorStatus status)
+#endif
     {
 #if DEBUG
         throw new InvalidOperationException($"Error at {cmdName} with {status}");

@@ -32,7 +32,7 @@ public unsafe partial struct EntityQuery
         var compTypeIDs = stackalloc int[]
         {
 <# for (var localIndex = 0; localIndex < i; localIndex++) { #>
-            comp<#= localIndex #>TypeID.value,
+            comp<#= localIndex #>TypeID.Value,
 <# } #>
         };
 

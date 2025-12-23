@@ -53,7 +53,7 @@ internal class D3D12Renderer : IRenderer
         }
 
         var target = RenderTargetStrategy.GetRenderTarget();
-        if (target.IsNotValid)
+        if (target.IsInvalid)
         {
             return Result.Failure("Render target is invalid.");
         }
@@ -64,7 +64,7 @@ internal class D3D12Renderer : IRenderer
         // NOTE: Temperary solution: render directly to the swap chain back buffer if available.
         // HACK: This is hard coded for testing purposes only.
 
-        var error = RenderScene(target);
+        var error = RenderScene(target, RenderTargetStrategy.Viewport, RenderTargetStrategy.Scissor);
         if (error != ErrorStatus.None)
         {
             _commandBuffer.End();
@@ -85,7 +85,7 @@ internal class D3D12Renderer : IRenderer
     }
 
     // TODO: A proper render graph integration.
-    private ErrorStatus RenderScene(Handle<Texture> target)
+    private ErrorStatus RenderScene(Handle<Texture> target, ViewportDesc viewport, RectDesc rect)
     {
         var clearColor = new Color128 { r = 1.0f, g = 0.0f, b = 1.0f, a = 1.0f };
 
@@ -112,20 +112,9 @@ internal class D3D12Renderer : IRenderer
             _pass.Initialize(ref ctx);
         }
 
-        var result = _resourceDatabase.GetResourceDescription(target.AsResource());
-        if (result.IsFailure)
-        {
-            return result.Error;
-        }
-
-        // TODO: Decouple viewport and scissor from the texture size.
-        var texDesc = result.Value.TextureDescription;
-        var viewport = new ViewportDesc { Width = texDesc.Width, Height = texDesc.Height, MinDepth = 0, MaxDepth = 1 };
-        var scissor = new RectDesc { Right = texDesc.Width, Bottom = texDesc.Height };
-
         _commandBuffer.BeginRenderPass(rtDesc, depthDesc, false);
         _commandBuffer.SetViewport(viewport);
-        _commandBuffer.SetScissorRect(scissor);
+        _commandBuffer.SetScissorRect(rect);
 
         // NOTE: Testing only.
         _pass.Execute(ref ctx);

@@ -129,7 +129,7 @@ internal static class ComponentRegistry
 
             s_typeHandleToID[typeHandle] = newID;
             s_nameToRuntimeID[stableName] = newID;
-            s_runtimeIDToType[newID.value] = typeof(T);
+            s_runtimeIDToType[newID.Value] = typeof(T);
 
             return newID;
         }
@@ -179,9 +179,9 @@ internal static class ComponentRegistry
         var largestID = 0;
         foreach (var id in componentTypeIDs)
         {
-            if (id.value > largestID)
+            if (id.Value > largestID)
             {
-                largestID = id.value;
+                largestID = id.Value;
             }
         }
 
@@ -192,7 +192,7 @@ internal static class ComponentRegistry
         var bitSet = new SpanBitSet(bits);
         foreach (var id in componentTypeIDs)
         {
-            bitSet.SetBit(id.value);
+            bitSet.SetBit(id.Value);
         }
 
         return bitSet.GetHashCode();

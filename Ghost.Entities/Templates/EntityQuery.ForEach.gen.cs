@@ -1,4 +1,3 @@
-
 namespace Ghost.Entities;
 
 public unsafe partial struct EntityQuery
@@ -13,7 +12,7 @@ public unsafe partial struct EntityQuery
 
         var compTypeIDs = stackalloc int[]
         {
-            comp0TypeID.value,
+            comp0TypeID.Value,
         };
 
         var changedCompIDs = stackalloc int[1];
@@ -99,8 +98,8 @@ public unsafe partial struct EntityQuery
 
         var compTypeIDs = stackalloc int[]
         {
-            comp0TypeID.value,
-            comp1TypeID.value,
+            comp0TypeID.Value,
+            comp1TypeID.Value,
         };
 
         var changedCompIDs = stackalloc int[2];
@@ -189,9 +188,9 @@ public unsafe partial struct EntityQuery
 
         var compTypeIDs = stackalloc int[]
         {
-            comp0TypeID.value,
-            comp1TypeID.value,
-            comp2TypeID.value,
+            comp0TypeID.Value,
+            comp1TypeID.Value,
+            comp2TypeID.Value,
         };
 
         var changedCompIDs = stackalloc int[3];
@@ -283,10 +282,10 @@ public unsafe partial struct EntityQuery
 
         var compTypeIDs = stackalloc int[]
         {
-            comp0TypeID.value,
-            comp1TypeID.value,
-            comp2TypeID.value,
-            comp3TypeID.value,
+            comp0TypeID.Value,
+            comp1TypeID.Value,
+            comp2TypeID.Value,
+            comp3TypeID.Value,
         };
 
         var changedCompIDs = stackalloc int[4];
@@ -381,11 +380,11 @@ public unsafe partial struct EntityQuery
 
         var compTypeIDs = stackalloc int[]
         {
-            comp0TypeID.value,
-            comp1TypeID.value,
-            comp2TypeID.value,
-            comp3TypeID.value,
-            comp4TypeID.value,
+            comp0TypeID.Value,
+            comp1TypeID.Value,
+            comp2TypeID.Value,
+            comp3TypeID.Value,
+            comp4TypeID.Value,
         };
 
         var changedCompIDs = stackalloc int[5];
@@ -483,12 +482,12 @@ public unsafe partial struct EntityQuery
 
         var compTypeIDs = stackalloc int[]
         {
-            comp0TypeID.value,
-            comp1TypeID.value,
-            comp2TypeID.value,
-            comp3TypeID.value,
-            comp4TypeID.value,
-            comp5TypeID.value,
+            comp0TypeID.Value,
+            comp1TypeID.Value,
+            comp2TypeID.Value,
+            comp3TypeID.Value,
+            comp4TypeID.Value,
+            comp5TypeID.Value,
         };
 
         var changedCompIDs = stackalloc int[6];
@@ -589,13 +588,13 @@ public unsafe partial struct EntityQuery
 
         var compTypeIDs = stackalloc int[]
         {
-            comp0TypeID.value,
-            comp1TypeID.value,
-            comp2TypeID.value,
-            comp3TypeID.value,
-            comp4TypeID.value,
-            comp5TypeID.value,
-            comp6TypeID.value,
+            comp0TypeID.Value,
+            comp1TypeID.Value,
+            comp2TypeID.Value,
+            comp3TypeID.Value,
+            comp4TypeID.Value,
+            comp5TypeID.Value,
+            comp6TypeID.Value,
         };
 
         var changedCompIDs = stackalloc int[7];
@@ -699,14 +698,14 @@ public unsafe partial struct EntityQuery
 
         var compTypeIDs = stackalloc int[]
         {
-            comp0TypeID.value,
-            comp1TypeID.value,
-            comp2TypeID.value,
-            comp3TypeID.value,
-            comp4TypeID.value,
-            comp5TypeID.value,
-            comp6TypeID.value,
-            comp7TypeID.value,
+            comp0TypeID.Value,
+            comp1TypeID.Value,
+            comp2TypeID.Value,
+            comp3TypeID.Value,
+            comp4TypeID.Value,
+            comp5TypeID.Value,
+            comp6TypeID.Value,
+            comp7TypeID.Value,
         };
 
         var changedCompIDs = stackalloc int[8];
@@ -797,7 +796,7 @@ public unsafe partial struct EntityQuery
 
         var compTypeIDs = stackalloc int[]
         {
-            comp0TypeID.value,
+            comp0TypeID.Value,
         };
 
         var changedCompIDs = stackalloc int[1];
@@ -884,8 +883,8 @@ public unsafe partial struct EntityQuery
 
         var compTypeIDs = stackalloc int[]
         {
-            comp0TypeID.value,
-            comp1TypeID.value,
+            comp0TypeID.Value,
+            comp1TypeID.Value,
         };
 
         var changedCompIDs = stackalloc int[2];
@@ -975,9 +974,9 @@ public unsafe partial struct EntityQuery
 
         var compTypeIDs = stackalloc int[]
         {
-            comp0TypeID.value,
-            comp1TypeID.value,
-            comp2TypeID.value,
+            comp0TypeID.Value,
+            comp1TypeID.Value,
+            comp2TypeID.Value,
         };
 
         var changedCompIDs = stackalloc int[3];
@@ -1070,10 +1069,10 @@ public unsafe partial struct EntityQuery
 
         var compTypeIDs = stackalloc int[]
         {
-            comp0TypeID.value,
-            comp1TypeID.value,
-            comp2TypeID.value,
-            comp3TypeID.value,
+            comp0TypeID.Value,
+            comp1TypeID.Value,
+            comp2TypeID.Value,
+            comp3TypeID.Value,
         };
 
         var changedCompIDs = stackalloc int[4];
@@ -1169,11 +1168,11 @@ public unsafe partial struct EntityQuery
 
         var compTypeIDs = stackalloc int[]
         {
-            comp0TypeID.value,
-            comp1TypeID.value,
-            comp2TypeID.value,
-            comp3TypeID.value,
-            comp4TypeID.value,
+            comp0TypeID.Value,
+            comp1TypeID.Value,
+            comp2TypeID.Value,
+            comp3TypeID.Value,
+            comp4TypeID.Value,
         };
 
         var changedCompIDs = stackalloc int[5];
@@ -1272,12 +1271,12 @@ public unsafe partial struct EntityQuery
 
         var compTypeIDs = stackalloc int[]
         {
-            comp0TypeID.value,
-            comp1TypeID.value,
-            comp2TypeID.value,
-            comp3TypeID.value,
-            comp4TypeID.value,
-            comp5TypeID.value,
+            comp0TypeID.Value,
+            comp1TypeID.Value,
+            comp2TypeID.Value,
+            comp3TypeID.Value,
+            comp4TypeID.Value,
+            comp5TypeID.Value,
         };
 
         var changedCompIDs = stackalloc int[6];
@@ -1379,13 +1378,13 @@ public unsafe partial struct EntityQuery
 
         var compTypeIDs = stackalloc int[]
         {
-            comp0TypeID.value,
-            comp1TypeID.value,
-            comp2TypeID.value,
-            comp3TypeID.value,
-            comp4TypeID.value,
-            comp5TypeID.value,
-            comp6TypeID.value,
+            comp0TypeID.Value,
+            comp1TypeID.Value,
+            comp2TypeID.Value,
+            comp3TypeID.Value,
+            comp4TypeID.Value,
+            comp5TypeID.Value,
+            comp6TypeID.Value,
         };
 
         var changedCompIDs = stackalloc int[7];
@@ -1490,14 +1489,14 @@ public unsafe partial struct EntityQuery
 
         var compTypeIDs = stackalloc int[]
         {
-            comp0TypeID.value,
-            comp1TypeID.value,
-            comp2TypeID.value,
-            comp3TypeID.value,
-            comp4TypeID.value,
-            comp5TypeID.value,
-            comp6TypeID.value,
-            comp7TypeID.value,
+            comp0TypeID.Value,
+            comp1TypeID.Value,
+            comp2TypeID.Value,
+            comp3TypeID.Value,
+            comp4TypeID.Value,
+            comp5TypeID.Value,
+            comp6TypeID.Value,
+            comp7TypeID.Value,
         };
 
         var changedCompIDs = stackalloc int[8];

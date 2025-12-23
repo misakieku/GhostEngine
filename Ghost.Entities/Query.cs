@@ -112,7 +112,7 @@ public readonly unsafe ref struct ChunkView
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Archetype.ComponentMemoryLayout GetLayout(Identifier<IComponent> id)
     {
-        var layout = _layouts[id.value];
+        var layout = _layouts[id.Value];
         if (layout.enableBitsOffset == -1)
         {
             throw new InvalidOperationException($"Component {id} is not exist in the archetype.");
@@ -502,7 +502,7 @@ public ref partial struct QueryBuilder
     {
         foreach (var id in list)
         {
-            if (id.value > max) max = id.value;
+            if (id.Value > max) max = id.Value;
         }
     }
 

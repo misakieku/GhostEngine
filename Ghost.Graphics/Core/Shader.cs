@@ -3,7 +3,6 @@ using Ghost.Core.Graphics;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
-using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.Core;
 
@@ -41,7 +40,7 @@ public struct ShaderPass : IResourceReleasable
 
     // TODO: Shader variant.
 
-    void IResourceReleasable.ReleaseResource(IResourceDatabase database)
+    readonly void IResourceReleasable.ReleaseResource(IResourceDatabase database)
     {
     }
 }

@@ -6,6 +6,16 @@ namespace Ghost.Graphics.Contracts;
 
 public interface IRenderTargetStrategy
 {
+    ViewportDesc Viewport
+    {
+        get;
+    }
+
+    RectDesc Scissor
+    {
+        get;
+    }
+
     /// <summary>
     /// Gets a handle to the current render target texture.
     /// </summary>

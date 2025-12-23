@@ -125,7 +125,7 @@ internal class MeshRenderPass : IRenderPass
             texture2 = ctx.ResourceDatabase.GetBindlessIndex(_textures[1].AsResource()).GetValueOrThrow(),
             texture3 = ctx.ResourceDatabase.GetBindlessIndex(_textures[2].AsResource()).GetValueOrThrow(),
             texture4 = ctx.ResourceDatabase.GetBindlessIndex(_textures[3].AsResource()).GetValueOrThrow(),
-            tex_sampler = (uint)sampler.value,
+            tex_sampler = (uint)sampler.Value,
         };
 
         Debug.Assert(matRef.SetPropertyCache(in matProps) == ErrorStatus.None);

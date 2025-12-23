@@ -1,17 +1,15 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Graphics.Core;
-using Ghost.Graphics.D3D12.Utilities;
 using Misaki.HighPerformance.Mathematics;
 using Misaki.HighPerformance.Utilities;
 using System.IO.Hashing;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using TerraFX.Interop.DirectX;
 
 namespace Ghost.Graphics.RHI;
 
-public readonly struct ShaderPassKey
+public readonly struct ShaderPassKey : IEquatable<ShaderPassKey>
 {
     public readonly ulong value;
 
@@ -31,9 +29,29 @@ public readonly struct ShaderPassKey
         return value.ToString("X16");
     }
 
+    public bool Equals(ShaderPassKey other)
+    {
+        return value == other.value;
+    }
+
     public override int GetHashCode()
     {
         return value.GetHashCode();
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is ShaderPassKey key && Equals(key);
+    }
+
+    public static bool operator ==(ShaderPassKey left, ShaderPassKey right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(ShaderPassKey left, ShaderPassKey right)
+    {
+        return !(left == right);
     }
 }
 
@@ -396,33 +414,6 @@ public struct ResourceDesc
         {
             TextureDescription = desc
         };
-    }
-
-    internal static ResourceDesc FromD3D12(D3D12_RESOURCE_DESC desc)
-    {
-        if (desc.Dimension == D3D12_RESOURCE_DIMENSION.D3D12_RESOURCE_DIMENSION_BUFFER)
-        {
-            return Buffer(new BufferDesc
-            {
-                Size = (uint)desc.Width,
-                Stride = 0,
-                Usage = BufferUsage.None,
-                MemoryType = ResourceMemoryType.Default
-            });
-        }
-        else
-        {
-            return Texture(new TextureDesc
-            {
-                Width = (uint)desc.Width,
-                Height = desc.Height,
-                Slice = desc.DepthOrArraySize,
-                Format = desc.Format.ToTextureFormat(),
-                Dimension = desc.Dimension.ToTextureDimension(),
-                MipLevels = desc.MipLevels,
-                Usage = TextureUsage.None,
-            });
-        }
     }
 }
 

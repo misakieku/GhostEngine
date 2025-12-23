@@ -51,6 +51,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
         CreateDefaultRootSignature().ThrowIfFailed();
     }
 
+    // TODO: Maybe we don't need 4 root signature. We can use bindless for global, per-view, and per-object buffers as well.
     private Result CreateDefaultRootSignature()
     {
         _defaultRootSignature = default;

@@ -58,7 +58,7 @@ public abstract class SystemBase : ISystem
     protected void RequireQueryForUpdate(Identifier<EntityQuery> queryID)
     {
         _requiredQueries ??= new List<int>(4);
-        _requiredQueries.Add(queryID.value);
+        _requiredQueries.Add(queryID.Value);
     }
 
     void ISystem.Initialize(ref readonly SystemAPI systemAPI)

@@ -6,23 +6,30 @@ public interface IKeyType;
 
 public readonly struct Handle<T> : IEquatable<Handle<T>>
 {
-    public readonly int id;
-    public readonly int generation;
+    public int ID
+    {
+        get => field - 1;
+    }
+
+    public int Generation
+    {
+        get => field - 1;
+    }
 
     public Handle(int id, int generation)
     {
-        this.id = id;
-        this.generation = generation;
+        ID = id + 1;
+        Generation = generation + 1;
     }
 
-    public static Handle<T> Invalid => new(-1, -1);
+    public static Handle<T> Invalid => default;
 
     public readonly bool IsValid => this != Invalid;
-    public readonly bool IsNotValid => this == Invalid;
+    public readonly bool IsInvalid => this == Invalid;
 
     public readonly override int GetHashCode()
     {
-        return id + (generation << 16);
+        return ID + (Generation << 16);
     }
 
     public readonly override bool Equals(object? obj)
@@ -32,17 +39,17 @@ public readonly struct Handle<T> : IEquatable<Handle<T>>
 
     public override string ToString()
     {
-        return $"Handle<{typeof(T).Name}>({id}, {generation})";
+        return $"Handle<{typeof(T).Name}>({ID}, {Generation})";
     }
 
     public readonly bool Equals(Handle<T> other)
     {
-        return id == other.id;
+        return ID == other.ID && Generation == other.Generation;
     }
 
     public readonly int CompareTo(Handle<T> other)
     {
-        return id.CompareTo(other.id);
+        return ID.CompareTo(other.ID);
     }
 
     public static bool operator ==(Handle<T> a, Handle<T> b)
@@ -58,21 +65,24 @@ public readonly struct Handle<T> : IEquatable<Handle<T>>
 
 public readonly struct Identifier<T> : IEquatable<Identifier<T>>
 {
-    public readonly int value;
+    public int Value
+    {
+        get => field - 1;
+    }
 
     public Identifier(int value)
     {
-        this.value = value;
+        Value = value + 1;
     }
 
-    public static Identifier<T> Invalid => new(-1);
+    public static Identifier<T> Invalid => default;
 
     public readonly bool IsValid => this != Invalid;
     public readonly bool IsInvalid => this == Invalid;
 
     public readonly override int GetHashCode()
     {
-        return value;
+        return Value;
     }
 
     public readonly override bool Equals(object? obj)
@@ -82,17 +92,17 @@ public readonly struct Identifier<T> : IEquatable<Identifier<T>>
 
     public override string ToString()
     {
-        return $"Identifier<{typeof(T).Name}>({value})";
+        return $"Identifier<{typeof(T).Name}>({Value})";
     }
 
     public readonly bool Equals(Identifier<T> other)
     {
-        return value == other.value;
+        return Value == other.Value;
     }
 
     public readonly int CompareTo(Identifier<T> other)
     {
-        return value.CompareTo(other.value);
+        return Value.CompareTo(other.Value);
     }
 
     public static bool operator ==(Identifier<T> a, Identifier<T> b)
@@ -107,44 +117,48 @@ public readonly struct Identifier<T> : IEquatable<Identifier<T>>
 
     public static bool operator <(Identifier<T> a, Identifier<T> b)
     {
-        return a.value < b.value;
+        return a.Value < b.Value;
     }
 
     public static bool operator >(Identifier<T> a, Identifier<T> b)
     {
-        return a.value > b.value;
+        return a.Value > b.Value;
     }
 
     public static bool operator <=(Identifier<T> a, Identifier<T> b)
     {
-        return a.value <= b.value;
+        return a.Value <= b.Value;
     }
 
     public static bool operator >=(Identifier<T> a, Identifier<T> b)
     {
-        return a.value >= b.value;
+        return a.Value >= b.Value;
     }
 
-    public static implicit operator int(Identifier<T> id) => id.value;
+    public static implicit operator int(Identifier<T> id) => id.Value;
     public static implicit operator Identifier<T>(int value) => new Identifier<T>(value);
 }
 
 public readonly struct Key<T>
 {
-    public readonly ulong value;
+    public ulong Value
+    {
+        get;
+    }
 
     public Key(ulong value)
     {
-        this.value = value;
+        Value = value;
     }
 
     public static Key<T> Invalid => new(0);
 
     public bool IsValid => this != Invalid;
+    public bool IsInvalid => this == Invalid;
 
     public readonly override int GetHashCode()
     {
-        return value.GetHashCode();
+        return Value.GetHashCode();
     }
 
     public readonly override bool Equals(object? obj)
@@ -154,12 +168,12 @@ public readonly struct Key<T>
 
     public readonly bool Equals(Key<T> other)
     {
-        return value == other.value;
+        return Value == other.Value;
     }
 
     public readonly int CompareTo(Key<T> other)
     {
-        return value.CompareTo(other.value);
+        return Value.CompareTo(other.Value);
     }
 
     public static bool operator ==(Key<T> a, Key<T> b)

@@ -21,7 +21,7 @@ public partial class World
         {
             if (s_freeWorldSlots.TryDequeue(out var index))
             {
-                s_worlds[index.value] = new World(index, entityCapacity, jobScheduler);
+                s_worlds[index.Value] = new World(index, entityCapacity, jobScheduler);
             }
             else
             {
@@ -29,7 +29,7 @@ public partial class World
                 s_worlds.Add(new World(index, entityCapacity, jobScheduler));
             }
 
-            return s_worlds[index.value]!;
+            return s_worlds[index.Value]!;
         }
     }
 
@@ -37,12 +37,12 @@ public partial class World
     {
         lock (s_worlds)
         {
-            if (id.value < 0 || id.value >= s_worlds.Count)
+            if (id.Value < 0 || id.Value >= s_worlds.Count)
             {
                 return;
             }
 
-            var world = s_worlds[id.value];
+            var world = s_worlds[id.Value];
             world?.Dispose();
         }
     }
@@ -51,12 +51,12 @@ public partial class World
     internal static World GetWorldUncheck(Identifier<World> id)
     {
 #if DEBUG || GHOST_EDITOR
-        if (id.value < 0 || id.value >= s_worlds.Count)
+        if (id.Value < 0 || id.Value >= s_worlds.Count)
         {
             throw new ArgumentOutOfRangeException(nameof(id), "World ID is out of range.");
         }
 
-        var world = s_worlds[id.value];
+        var world = s_worlds[id.Value];
         return world is null ? throw new InvalidOperationException("World not found.") : world;
 #else
         return s_worlds[id.value]!;
@@ -66,12 +66,12 @@ public partial class World
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Result<World, ErrorStatus> GetWorld(Identifier<World> id)
     {
-        if (id.value < 0 || id.value >= s_worlds.Count)
+        if (id.Value < 0 || id.Value >= s_worlds.Count)
         {
             return ErrorStatus.InvalidArgument;
         }
 
-        var world = s_worlds[id.value];
+        var world = s_worlds[id.Value];
         return world is null ? ErrorStatus.NotFound : world;
     }
 }
@@ -175,7 +175,7 @@ public partial class World : IDisposable, IEquatable<World>
         for (int i = 0; i < _entityQueries.Count; i++)
         {
             ref var query = ref _entityQueries[i];
-            query.AddArchetypeIfMatch(in _archetypes[arcID.value]);
+            query.AddArchetypeIfMatch(in _archetypes[arcID.Value]);
         }
 
         return arcID;
@@ -195,7 +195,7 @@ public partial class World : IDisposable, IEquatable<World>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal ref Archetype GetArchetypeReference(Identifier<Archetype> id)
     {
-        return ref _archetypes[id.value];
+        return ref _archetypes[id.Value];
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -205,7 +205,7 @@ public partial class World : IDisposable, IEquatable<World>
         _entityQueries.Add(new EntityQuery(queryID, _id, mask));
         _querieLookup.Add(maskHash, queryID);
 
-        ref var query = ref _entityQueries[queryID.value];
+        ref var query = ref _entityQueries[queryID.Value];
         for (var i = 0; i < _archetypes.Count; i++)
         {
             query.AddArchetypeIfMatch(in _archetypes[i]);
@@ -251,7 +251,7 @@ public partial class World : IDisposable, IEquatable<World>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ref EntityQuery GetEntityQueryReference(Identifier<EntityQuery> id)
     {
-        return ref _entityQueries[id.value];
+        return ref _entityQueries[id.Value];
     }
 
     /// <summary>

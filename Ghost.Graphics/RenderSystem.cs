@@ -2,7 +2,6 @@ using Ghost.Core;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Mathematics;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 
 namespace Ghost.Graphics;
 

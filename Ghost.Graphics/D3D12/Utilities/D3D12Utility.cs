@@ -166,6 +166,33 @@ internal unsafe static class D3D12Utility
         };
     }
 
+    public static ResourceDesc ToResourceDesc(this D3D12_RESOURCE_DESC desc)
+    {
+        if (desc.Dimension == D3D12_RESOURCE_DIMENSION.D3D12_RESOURCE_DIMENSION_BUFFER)
+        {
+            return ResourceDesc.Buffer(new BufferDesc
+            {
+                Size = (uint)desc.Width,
+                Stride = 0,
+                Usage = BufferUsage.None,
+                MemoryType = ResourceMemoryType.Default
+            });
+        }
+        else
+        {
+            return ResourceDesc.Texture(new TextureDesc
+            {
+                Width = (uint)desc.Width,
+                Height = desc.Height,
+                Slice = desc.DepthOrArraySize,
+                Format = desc.Format.ToTextureFormat(),
+                Dimension = desc.Dimension.ToTextureDimension(),
+                MipLevels = desc.MipLevels,
+                Usage = TextureUsage.None,
+            });
+        }
+    }
+
 
     public static D3D12_RASTERIZER_DESC D3D12_RASTERIZER_DESC_CREATE(
         D3D12_FILL_MODE fillMode,

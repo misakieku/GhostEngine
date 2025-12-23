@@ -879,7 +879,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         var cpuHandle = _descriptorAllocator.GetCpuHandleShaderVisible(samplerDescriptor);
         _device.NativeDevice.Get()->CreateSampler(&samplerDesc, cpuHandle);
 
-        return _resourceDatabase.CreateSampler(in desc, samplerDescriptor.value);
+        return _resourceDatabase.CreateSampler(in desc, samplerDescriptor.Value);
     }
 
     public Handle<Mesh> CreateMesh(UnsafeList<Vertex> vertices, UnsafeList<uint> indices)

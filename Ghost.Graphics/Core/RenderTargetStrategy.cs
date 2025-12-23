@@ -8,9 +8,22 @@ internal class SwapChainTargetStrategy : IRenderTargetStrategy
 {
     private readonly ISwapChain _swapChain;
 
+    public ViewportDesc Viewport
+    {
+        get; set;
+    }
+
+    public RectDesc Scissor
+    {
+        get; set;
+    }
+
     public SwapChainTargetStrategy(ISwapChain swapChain)
     {
         _swapChain = swapChain;
+
+        Viewport = new ViewportDesc { Width = swapChain.Width, Height = swapChain.Height, MinDepth = 0, MaxDepth = 1 };
+        Scissor = new RectDesc { Right = swapChain.Width, Bottom = swapChain.Height };
     }
 
     public Handle<Texture> GetRenderTarget()
@@ -37,6 +50,16 @@ internal class SwapChainTargetStrategy : IRenderTargetStrategy
 internal class TextureTargetStrategy : IRenderTargetStrategy
 {
     private readonly Handle<Texture> _texture;
+
+    public ViewportDesc Viewport
+    {
+        get; set;
+    }
+
+    public RectDesc Scissor
+    {
+        get; set;
+    }
 
     public TextureTargetStrategy(Handle<Texture> texture)
     {

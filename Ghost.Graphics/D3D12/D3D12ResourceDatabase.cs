@@ -6,7 +6,6 @@ using Misaki.HighPerformance.Collections;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
 
@@ -64,7 +63,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
             this.viewGroup = viewGroup;
             this.cpuFenceValue = ~0u;
             this.state = state;
-            this.desc = ResourceDesc.FromD3D12(resource->GetDesc());
+            this.desc = resource->GetDesc().ToResourceDesc();
         }
 
         public uint Release(D3D12DescriptorAllocator descriptorAllocator)
@@ -102,7 +101,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
     private UnsafeSlotMap<Mesh> _meshes;
     private UnsafeSlotMap<Material> _materials;
     private readonly DynamicArray<Shader?> _shaders; // NOTE: We use a simple list since shader is not frequently added/removed. This can save 4 bytes for each ecs component.
-    private readonly Dictionary<ShaderPassKey, ShaderPass> _shaderPasses; // NOTE: The reason we use Dictionary here is that ShaderPassKey is a presistence identifier across multiple application sessions.
+    // private UnsafeHashMap<ShaderPassKey, ShaderPass> _shaderPasses; // NOTE: The reason we use Dictionary here is that ShaderPassKey is a presistence identifier across multiple application sessions.
 
     private bool _disposed;
 
@@ -118,7 +117,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         _meshes = new UnsafeSlotMap<Mesh>(64, Allocator.Persistent, AllocationOption.Clear);
         _materials = new UnsafeSlotMap<Material>(16, Allocator.Persistent, AllocationOption.Clear);
         _shaders = new DynamicArray<Shader?>(16);
-        _shaderPasses = new Dictionary<ShaderPassKey, ShaderPass>(16);
+        // _shaderPasses = new UnsafeHashMap<ShaderPassKey, ShaderPass>(32, Allocator.Persistent);
     }
 
     ~D3D12ResourceDatabase()
@@ -172,14 +171,14 @@ internal class D3D12ResourceDatabase : IResourceDatabase
     public bool HasResource(Handle<GPUResource> handle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return _resources.Contains(handle.id, handle.generation);
+        return _resources.Contains(handle.ID, handle.Generation);
     }
 
     public RefResult<ResourceRecord, ErrorStatus> GetResourceRecord(Handle<GPUResource> handle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        ref var info = ref _resources.GetElementReferenceAt(handle.id, handle.generation, out var exist);
+        ref var info = ref _resources.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
         if (!exist)
         {
             return ErrorStatus.NotFound;
@@ -191,7 +190,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
     public ref ResourceRecord GetResourceRecord(Handle<GPUResource> handle, out bool exist)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return ref _resources.GetElementReferenceAt(handle.id, handle.generation, out exist);
+        return ref _resources.GetElementReferenceAt(handle.ID, handle.Generation, out exist);
     }
 
     public SharedPtr<ID3D12Resource> GetResource(Handle<GPUResource> handle)
@@ -224,7 +223,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        ref var info = ref _resources.GetElementReferenceAt(handle.id, handle.generation, out var exist);
+        ref var info = ref _resources.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
         if (!exist || !info.Allocated)
         {
             throw new KeyNotFoundException($"Resource with handle {handle} not found.");
@@ -256,7 +255,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
             return ErrorStatus.NotFound;
         }
 
-        return (uint)info.viewGroup.srv.value;
+        return (uint)info.viewGroup.srv.Value;
     }
 
     public string? GetResourceName(Handle<GPUResource> handle)
@@ -281,7 +280,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
             return;
         }
 
-        ref var info = ref _resources.GetElementReferenceAt(handle.id, handle.generation, out var exist);
+        ref var info = ref _resources.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
         if (!exist || !info.Allocated)
         {
             return;
@@ -293,7 +292,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         _resourceName.Remove(handle, out var name);
 #endif
 
-        _resources.Remove(handle.id, handle.generation);
+        _resources.Remove(handle.ID, handle.Generation);
     }
 
     public Identifier<Sampler> CreateSampler(ref readonly SamplerDesc desc, int id)
@@ -328,14 +327,14 @@ internal class D3D12ResourceDatabase : IResourceDatabase
     public bool HasMesh(Handle<Mesh> handle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return _meshes.Contains(handle.id, handle.generation);
+        return _meshes.Contains(handle.ID, handle.Generation);
     }
 
     public ref Mesh GetMeshReference(Handle<Mesh> handle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        ref var mesh = ref _meshes.GetElementReferenceAt(handle.id, handle.generation, out var exist);
+        ref var mesh = ref _meshes.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
         if (!exist)
         {
             throw new ArgumentOutOfRangeException(nameof(handle), $"Mesh {handle} is invalid.");
@@ -348,14 +347,14 @@ internal class D3D12ResourceDatabase : IResourceDatabase
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        ref var mesh = ref _meshes.GetElementReferenceAt(handle.id, handle.generation, out var exist);
+        ref var mesh = ref _meshes.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
         if (!exist)
         {
             return;
         }
 
         ReleaseResource(ref mesh);
-        _meshes.Remove(handle.id, handle.generation);
+        _meshes.Remove(handle.ID, handle.Generation);
     }
 
     public Handle<Material> AddMaterial(ref readonly Material material)
@@ -369,14 +368,14 @@ internal class D3D12ResourceDatabase : IResourceDatabase
     public bool HasMaterial(Handle<Material> handle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return _materials.Contains(handle.id, handle.generation);
+        return _materials.Contains(handle.ID, handle.Generation);
     }
 
     public ref Material GetMaterialReference(Handle<Material> handle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        ref var material = ref _materials.GetElementReferenceAt(handle.id, handle.generation, out var exist);
+        ref var material = ref _materials.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
         if (!exist)
         {
             throw new ArgumentOutOfRangeException(nameof(handle), $"Material handle {handle} is invalid.");
@@ -389,14 +388,14 @@ internal class D3D12ResourceDatabase : IResourceDatabase
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        ref var material = ref _materials.GetElementReferenceAt(handle.id, handle.generation, out var exist);
+        ref var material = ref _materials.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
         if (!exist)
         {
             return;
         }
 
         ReleaseResource(ref material);
-        _materials.Remove(handle.id, handle.generation);
+        _materials.Remove(handle.ID, handle.Generation);
     }
 
     public Identifier<Shader> AddShader(Shader shader)
@@ -411,7 +410,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
     public bool HasShader(Identifier<Shader> id)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return id.value >= 0 && id.value < _shaders.Count && _shaders[id.value] != null;
+        return id.Value >= 0 && id.Value < _shaders.Count && _shaders[id.Value] != null;
     }
 
     public Shader GetShaderReference(Identifier<Shader> id)
@@ -423,7 +422,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
             throw new ArgumentOutOfRangeException(nameof(id), $"Shader id {id} is invalid.");
         }
 
-        var shader = _shaders[id.value]!;
+        var shader = _shaders[id.Value]!;
         return shader;
     }
 
@@ -436,7 +435,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
             return;
         }
 
-        ref var shader = ref _shaders[id.value]!;
+        ref var shader = ref _shaders[id.Value]!;
         ReleaseResource(ref shader);
     }
 
@@ -479,17 +478,11 @@ internal class D3D12ResourceDatabase : IResourceDatabase
             ReleaseResource(ref shader);
         }
 
-        // Same for shader pass.
-        foreach (var kv in _shaderPasses)
-        {
-            var pass = kv.Value;
-            ReleaseResource(ref pass);
-        }
-
         _resources.Dispose();
         _samplers.Dispose();
         _meshes.Dispose();
         _materials.Dispose();
+        // _shaderPasses.Dispose();
 
         _disposed = true;
 
