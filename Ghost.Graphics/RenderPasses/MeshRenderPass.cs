@@ -39,6 +39,8 @@ internal class MeshRenderPass : IRenderPass
 
     private GraphicsCompiledResult[]? _compileResults;
 
+    private Identifier<ShaderPass> _forwardPassID;
+
     // Texture file paths for this demo
     private readonly string[] _textureFiles = [
         "C:/Users/Misaki/Downloads/Im/Icon.png",
@@ -64,11 +66,7 @@ internal class MeshRenderPass : IRenderPass
             var psoDes = new GraphicsPSODescriptor
             {
                 PassId = new ShaderPassKey(fullPass.Identifier),
-                ZTest = fullPass.localPipeline.zTest,
-                ZWrite = fullPass.localPipeline.zWrite,
-                Cull = fullPass.localPipeline.cull,
-                Blend = fullPass.localPipeline.blend,
-                ColorMask = fullPass.localPipeline.colorMask,
+                PipelineOption = fullPass.localPipeline,
 
                 RtvFormats = [TextureFormat.B8G8R8A8_UNorm],
                 DsvFormat = TextureFormat.Unknown,
@@ -103,7 +101,7 @@ internal class MeshRenderPass : IRenderPass
                 Usage = TextureUsage.ShaderResource,
             };
 
-            _textures[i] = ctx.CreateTexture(ref desc, imageData.AsSpan());
+            _textures[i] = ctx.CreateTexture(in desc, imageData.AsSpan());
         }
 
         var samplerDesc = new SamplerDesc
@@ -130,11 +128,13 @@ internal class MeshRenderPass : IRenderPass
 
         Debug.Assert(matRef.SetPropertyCache(in matProps) == ErrorStatus.None);
         matRef.UploadData(ctx.DirectCommandBuffer);
+
+        _forwardPassID = Shader.GetPassID("Forward");
     }
 
     public void Execute(ref readonly RenderingContext ctx)
     {
-        ctx.DispatchMesh(_mesh, _material, "Forward", 3);
+        ctx.DispatchMesh(_mesh, _material, _forwardPassID, 3);
     }
 
     public void Cleanup(IResourceDatabase resourceDatabase)

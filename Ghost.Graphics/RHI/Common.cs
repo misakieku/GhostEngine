@@ -55,15 +55,45 @@ public readonly struct ShaderPassKey : IEquatable<ShaderPassKey>
     }
 }
 
+
 public readonly struct GraphicsPipelineKey
 {
     public const int KEY_STRING_LENGTH = 17; // 16 chars + null terminator
 
-    public readonly ulong value;
+    public readonly UInt128 value;
 
-    public GraphicsPipelineKey(ulong value)
+    public GraphicsPipelineKey(UInt128 value)
     {
         this.value = value;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static GraphicsPipelineKey Combine(MaterialPipelineKey materialKey, PassPipelineKey passKey)
+    {
+        // Order-sensitive 128-bit mix. Cheap and stable, avoids span hashing.
+        static ulong Mix64(ulong x)
+        {
+            x ^= x >> 30;
+            x *= 0xBF58476D1CE4E5B9ul;
+            x ^= x >> 27;
+            x *= 0x94D049BB133111EBul;
+            x ^= x >> 31;
+            return x;
+        }
+
+        unsafe static ulong GetLow(UInt128 value) => ((ulong*)&value)[0];
+        unsafe static ulong GetHigh(UInt128 value) => ((ulong*)&value)[1];
+
+        var mLo = GetLow(materialKey.value);
+        var mHi = GetHigh(materialKey.value);
+        var pLo = GetLow(passKey.value);
+        var pHi = GetHigh(passKey.value);
+
+        // Distinct constants + cross-feeding to reduce structural collisions.
+        var lo = Mix64(mLo ^ (pLo + 0x9E3779B97F4A7C15ul) ^ (mHi * 0xD6E8FEB86659FD93ul));
+        var hi = Mix64(mHi ^ (pHi + 0xC2B2AE3D27D4EB4Ful) ^ (pLo * 0x165667B19E3779F9ul));
+
+        return new GraphicsPipelineKey(new UInt128(lo, hi));
     }
 
     public Result GetString(Span<char> destination)
@@ -88,49 +118,70 @@ public readonly struct GraphicsPipelineKey
     }
 }
 
-internal struct GraphicsPipelineHash
+public readonly struct MaterialPipelineKey : IEquatable<MaterialPipelineKey>
 {
-    [InlineArray(D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT)]
-    public struct rtv_array
-    {
-        public TextureFormat rtvFormats;
-    }
+    public readonly UInt128 value;
 
-    public ShaderPassKey Id
-    {
-        get; set;
-    }
-
-    public rtv_array RtvFormats;
-
-    public uint RtvCount
-    {
-        get; set;
-    }
-
-    public TextureFormat DsvFormat
-    {
-        get; set;
-    }
-
-    // Do we need to store blend state?
     // TODO: Variants
 
-    public readonly GraphicsPipelineKey GetKey()
+    public MaterialPipelineKey(ShaderPassKey passKey, PipelineState psoOptions)
     {
-        Span<ulong> data = stackalloc ulong[3 + D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
-        data[0] = Id.value;
-        data[1] = RtvCount;
-        data[2] = (ulong)DsvFormat;
+        // 32-bit packed key for states controlled by material / overrides.
+        // layout:
+        // 0..3   Blend (4 bits)
+        // 4..6   Cull  (3 bits)
+        // 7..10  DeafaultState (4 bits)
+        // 11     ZWrite (1 bit)
+        // 12..15 ColorMask (4 bits)
 
-        for (var i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
+        var key = 0u;
+        key |= ((uint)psoOptions.Blend & 0xFu) << 0;
+        key |= ((uint)psoOptions.Cull & 0x7u) << 4;
+        key |= ((uint)psoOptions.ZTest & 0xFu) << 7;
+        key |= ((uint)psoOptions.ZWrite & 0x1u) << 11;
+        key |= ((uint)psoOptions.ColorMask & 0xFu) << 12;
+
+        value = new UInt128(passKey.value, key);
+    }
+
+    public bool Equals(MaterialPipelineKey other) => value == other.value;
+    public override bool Equals(object? obj) => obj is MaterialPipelineKey other && Equals(other);
+    public override int GetHashCode() => value.GetHashCode();
+
+    public static bool operator ==(MaterialPipelineKey left, MaterialPipelineKey right) => left.Equals(right);
+    public static bool operator !=(MaterialPipelineKey left, MaterialPipelineKey right) => !(left == right);
+}
+
+public readonly struct PassPipelineKey : IEquatable<PassPipelineKey>
+{
+    public readonly UInt128 value;
+
+    public PassPipelineKey(ReadOnlySpan<TextureFormat> rtvFormats, TextureFormat dsvFormat)
+    {
+        if (rtvFormats.Length > 8)
         {
-            data[3 + i] = (ulong)RtvFormats[i];
+            throw new ArgumentException($"RTV formats length exceeds maximum supported count of {8}.");
         }
 
-        var bytes = MemoryMarshal.AsBytes(data);
-        return new GraphicsPipelineKey(XxHash3.HashToUInt64(bytes));
+        // layout:
+        // 0..64 8 RTV formats (8 bits each)
+        // 64..72 DSV format (8 bits)
+
+        var rtvPart = 0UL;
+        for (var i = 0; i < rtvFormats.Length; i++)
+        {
+            rtvPart |= ((ulong)(byte)rtvFormats[i]) << (i * 8);
+        }
+
+        value = new UInt128(rtvPart, (ulong)dsvFormat);
     }
+
+    public bool Equals(PassPipelineKey other) => value == other.value;
+    public override bool Equals(object? obj) => obj is PassPipelineKey other && Equals(other);
+    public override int GetHashCode() => value.GetHashCode();
+
+    public static bool operator ==(PassPipelineKey left, PassPipelineKey right) => left.Equals(right);
+    public static bool operator !=(PassPipelineKey left, PassPipelineKey right) => !(left == right);
 }
 
 public ref struct GraphicsPSODescriptor
@@ -140,27 +191,7 @@ public ref struct GraphicsPSODescriptor
         get; set;
     }
 
-    public ZTestOptions ZTest
-    {
-        get; set;
-    }
-
-    public ZWriteOptions ZWrite
-    {
-        get; set;
-    }
-
-    public CullOptions Cull
-    {
-        get; set;
-    }
-
-    public BlendOptions Blend
-    {
-        get; set;
-    }
-
-    public uint ColorMask
+    public PipelineState PipelineOption
     {
         get; set;
     }

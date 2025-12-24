@@ -100,8 +100,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
     private UnsafeHashMap<SamplerDesc, Identifier<Sampler>> _samplers;
     private UnsafeSlotMap<Mesh> _meshes;
     private UnsafeSlotMap<Material> _materials;
-    private readonly DynamicArray<Shader?> _shaders; // NOTE: We use a simple list since shader is not frequently added/removed. This can save 4 bytes for each ecs component.
-    // private UnsafeHashMap<ShaderPassKey, ShaderPass> _shaderPasses; // NOTE: The reason we use Dictionary here is that ShaderPassKey is a presistence identifier across multiple application sessions.
+    private readonly DynamicArray<Shader> _shaders; // TODO: Use SlotMap?
 
     private bool _disposed;
 
@@ -116,7 +115,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         _samplers = new UnsafeHashMap<SamplerDesc, Identifier<Sampler>>(32, Allocator.Persistent);
         _meshes = new UnsafeSlotMap<Mesh>(64, Allocator.Persistent, AllocationOption.Clear);
         _materials = new UnsafeSlotMap<Material>(16, Allocator.Persistent, AllocationOption.Clear);
-        _shaders = new DynamicArray<Shader?>(16);
+        _shaders = new DynamicArray<Shader>(16);
         // _shaderPasses = new UnsafeHashMap<ShaderPassKey, ShaderPass>(32, Allocator.Persistent);
     }
 
@@ -410,10 +409,10 @@ internal class D3D12ResourceDatabase : IResourceDatabase
     public bool HasShader(Identifier<Shader> id)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return id.Value >= 0 && id.Value < _shaders.Count && _shaders[id.Value] != null;
+        return id.Value >= 0 && id.Value < _shaders.Count;
     }
 
-    public Shader GetShaderReference(Identifier<Shader> id)
+    public ref Shader GetShaderReference(Identifier<Shader> id)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -422,8 +421,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
             throw new ArgumentOutOfRangeException(nameof(id), $"Shader id {id} is invalid.");
         }
 
-        var shader = _shaders[id.Value]!;
-        return shader;
+        return ref _shaders[id.Value];
     }
 
     public void ReleaseShader(Identifier<Shader> id)
@@ -470,11 +468,6 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         for (var i = 0; i < _shaders.Count; i++)
         {
             ref var shader = ref _shaders[i];
-            if (shader == null)
-            {
-                continue;
-            }
-
             ReleaseResource(ref shader);
         }
 

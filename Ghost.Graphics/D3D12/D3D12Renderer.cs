@@ -22,7 +22,7 @@ internal class D3D12Renderer : IRenderer
     // NOTE: Testing only.
     private readonly MeshRenderPass _pass;
 
-    public IRenderTargetStrategy? RenderTargetStrategy
+    public IRenderOutput? RenderOutput
     {
         get; set;
     }
@@ -47,31 +47,31 @@ internal class D3D12Renderer : IRenderer
 
     public Result Render(ICommandAllocator commandAllocator)
     {
-        if (RenderTargetStrategy is null)
+        if (RenderOutput is null)
         {
             return Result.Failure("Render target strategy is not set.");
         }
 
-        var target = RenderTargetStrategy.GetRenderTarget();
+        var target = RenderOutput.GetRenderTarget();
         if (target.IsInvalid)
         {
             return Result.Failure("Render target is invalid.");
         }
 
         _commandBuffer.Begin(commandAllocator);
-        RenderTargetStrategy.BeginRender(_commandBuffer);
+        RenderOutput.BeginRender(_commandBuffer);
 
         // NOTE: Temperary solution: render directly to the swap chain back buffer if available.
         // HACK: This is hard coded for testing purposes only.
 
-        var error = RenderScene(target, RenderTargetStrategy.Viewport, RenderTargetStrategy.Scissor);
+        var error = RenderScene(target, RenderOutput.Viewport, RenderOutput.Scissor);
         if (error != ErrorStatus.None)
         {
             _commandBuffer.End();
             return Result.Failure(error);
         }
 
-        RenderTargetStrategy.EndRender(_commandBuffer);
+        RenderOutput.EndRender(_commandBuffer);
         var r = _commandBuffer.End();
         if (r.IsFailure)
         {
@@ -79,7 +79,7 @@ internal class D3D12Renderer : IRenderer
         }
 
         _graphicsEngine.Device.GraphicsQueue.Submit(_commandBuffer);
-        RenderTargetStrategy.Present();
+        RenderOutput.Present();
 
         return Result.Success();
     }

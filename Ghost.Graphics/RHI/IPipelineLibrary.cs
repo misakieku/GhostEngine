@@ -22,5 +22,6 @@ public interface IPipelineLibrary : IDisposable
     /// <param name="filePath">File path. If null, load default library.</param>
     void InitializeLibrary(string? filePath);
     void SaveLibraryToDisk(string filePath);
+    bool HasPipeline(GraphicsPipelineKey key);
     Result<GraphicsPipelineKey> CompilePSO(ref readonly GraphicsPSODescriptor descriptor, ref readonly GraphicsCompiledResult compiled);
 }

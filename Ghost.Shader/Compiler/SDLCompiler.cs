@@ -128,20 +128,20 @@ internal static class SDLCompiler
         return $"{shader.name}_{pass.name}";
     }
 
-    private static PipelineDescriptor MeragePipeline(PipelineSemantic? semantic, PipelineDescriptor parent)
+    private static PipelineState MeragePipeline(PipelineSemantic? semantic, PipelineState parent)
     {
         if (semantic == null)
         {
             return parent;
         }
 
-        return new PipelineDescriptor
+        return new PipelineState
         {
-            zTest = semantic.zTest ?? parent.zTest,
-            zWrite = semantic.zWrite ?? parent.zWrite,
-            cull = semantic.cull ?? parent.cull,
-            blend = semantic.blend ?? parent.blend,
-            colorMask = semantic.colorMask ?? parent.colorMask
+            ZTest = semantic.zTest ?? parent.ZTest,
+            ZWrite = semantic.zWrite ?? parent.ZWrite,
+            Cull = semantic.cull ?? parent.Cull,
+            Blend = semantic.blend ?? parent.Blend,
+            ColorMask = semantic.colorMask ?? parent.ColorMask
         };
     }
 
@@ -208,7 +208,7 @@ internal static class SDLCompiler
         {
             foreach (var pass in semantics.passes)
             {
-                var localPipeline = MeragePipeline(pass.localPipeline, PipelineDescriptor.Default);
+                var localPipeline = MeragePipeline(pass.localPipeline, PipelineState.Default);
                 var fullPass = new FullPassDescriptor
                 {
                     uniqueIdentifier = GetPassUniqueId(semantics, pass),

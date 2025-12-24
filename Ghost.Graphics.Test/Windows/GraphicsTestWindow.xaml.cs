@@ -53,7 +53,7 @@ public sealed partial class GraphicsTestWindow : Window
             Target = SwapChainTarget.FromCompositionSurface(Panel)
         });
 
-        _renderer.RenderTargetStrategy = new SwapChainTargetStrategy(_swapChain);
+        _renderer.RenderOutput = new SwapChainRenderOutput(_swapChain);
 
         _renderSystem.Start();
         CompositionTarget.Rendering += OnRendering;
@@ -78,7 +78,7 @@ public sealed partial class GraphicsTestWindow : Window
 
     private void SwapChainPanel_SizeChanged(object sender, SizeChangedEventArgs e)
     {
-        if (_renderSystem == null || _swapChain == null)
+        if (_renderSystem == null || _swapChain == null || _renderer == null)
         {
             return;
         }
@@ -92,6 +92,8 @@ public sealed partial class GraphicsTestWindow : Window
         }
 
         _renderSystem.RequestSwapChainResize(_swapChain, new uint2(newWidth, newHeight));
+        _renderer.RenderOutput!.Viewport = new ViewportDesc { Width = newWidth, Height = newHeight, MinDepth = 0.0f, MaxDepth = 1.0f };
+        _renderer.RenderOutput!.Scissor = new RectDesc { Right = newWidth, Bottom = newHeight };
     }
 
     private void SwapChainPanel_CompositionScaleChanged(SwapChainPanel sender, object args)

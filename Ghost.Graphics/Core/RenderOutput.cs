@@ -4,7 +4,7 @@ using Ghost.Graphics.RHI;
 
 namespace Ghost.Graphics.Core;
 
-internal class SwapChainTargetStrategy : IRenderTargetStrategy
+internal class SwapChainRenderOutput : IRenderOutput
 {
     private readonly ISwapChain _swapChain;
 
@@ -18,7 +18,7 @@ internal class SwapChainTargetStrategy : IRenderTargetStrategy
         get; set;
     }
 
-    public SwapChainTargetStrategy(ISwapChain swapChain)
+    public SwapChainRenderOutput(ISwapChain swapChain)
     {
         _swapChain = swapChain;
 
@@ -47,7 +47,7 @@ internal class SwapChainTargetStrategy : IRenderTargetStrategy
     }
 }
 
-internal class TextureTargetStrategy : IRenderTargetStrategy
+internal class TextureRenderOutput : IRenderOutput
 {
     private readonly Handle<Texture> _texture;
 
@@ -61,7 +61,7 @@ internal class TextureTargetStrategy : IRenderTargetStrategy
         get; set;
     }
 
-    public TextureTargetStrategy(Handle<Texture> texture)
+    public TextureRenderOutput(Handle<Texture> texture)
     {
         _texture = texture;
     }

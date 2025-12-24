@@ -1,3 +1,4 @@
+using Misaki.HighPerformance.Mathematics;
 using System.Drawing;
 using System.Runtime.InteropServices;
 
@@ -84,6 +85,11 @@ public struct Color128 : IEquatable<Color128>
 
     public Color128(Color32 color32)
         : this(color32.r / 255.0f, color32.g / 255.0f, color32.b / 255.0f, color32.a / 255.0f)
+    {
+    }
+
+    public Color128(float4 v)
+        : this(v.x, v.y, v.z, v.w)
     {
     }
 

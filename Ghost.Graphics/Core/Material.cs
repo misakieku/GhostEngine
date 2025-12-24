@@ -1,11 +1,18 @@
 using Ghost.Core;
+using Ghost.Core.Graphics;
 using Ghost.Graphics.RHI;
-using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.Core;
+
+#if false
+public struct VariantMask
+{
+    private ulong _mask;
+}
+#endif
 
 internal struct CBufferCache : IResourceReleasable
 {
@@ -49,8 +56,16 @@ internal struct CBufferCache : IResourceReleasable
 
 public struct Material : IResourceReleasable, IHandleType
 {
+    private struct PipelineOverride
+    {
+        public ShaderPassKey shaderPass;
+        public PipelineState options;
+        public MaterialPipelineKey pipelineKey;
+    }
+
     private Identifier<Shader> _shader;
     private CBufferCache _cBufferCache;
+    private UnsafeArray<PipelineOverride> _passPipelineOverride;
 
     internal readonly CBufferCache CBufferCache => _cBufferCache;
 
@@ -67,6 +82,30 @@ public struct Material : IResourceReleasable, IHandleType
         _shader = shaderId;
 
         var shader = database.GetShaderReference(shaderId);
+
+        if (_passPipelineOverride.Count < shader.PassCount)
+        {
+            if (!_passPipelineOverride.IsCreated)
+            {
+                _passPipelineOverride = new UnsafeArray<PipelineOverride>(shader.PassCount, Allocator.Persistent);
+            }
+            else
+            {
+                _passPipelineOverride.Resize(shader.PassCount);
+            }
+        }
+
+        for (var i = 0; i < shader.PassCount; i++)
+        {
+            var pass = shader.GetPass(i);
+            _passPipelineOverride[i] = new PipelineOverride
+            {
+                shaderPass = pass.Identifier,
+                options = pass.DeafaultState,
+                pipelineKey = new MaterialPipelineKey(pass.Identifier, pass.DeafaultState),
+            };
+        }
+
         if (shader.CBufferSize != 0)
         {
             var desc = new BufferDesc
@@ -100,7 +139,7 @@ public struct Material : IResourceReleasable, IHandleType
     {
         if (_cBufferCache.Size == 0)
         {
-            return Span<byte>.Empty;
+            return [];
         }
 
         return _cBufferCache.CpuData.AsSpan(0, (int)_cBufferCache.Size);
@@ -136,6 +175,26 @@ public struct Material : IResourceReleasable, IHandleType
     {
         cmb.UploadBuffer(_cBufferCache.GpuResource, _cBufferCache.CpuData.AsSpan());
         cmb.ResourceBarrier(_cBufferCache.GpuResource.AsResource(), ResourceState.VertexAndConstantBuffer);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly PipelineState GetPassPipelineOverride(int passIndex)
+    {
+        return _passPipelineOverride[passIndex].options;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly void SetPassPipelineOverride(int passIndex, in PipelineState options)
+    {
+        ref var pipelineOverride = ref _passPipelineOverride[passIndex];
+        pipelineOverride.options = options;
+        pipelineOverride.pipelineKey = new MaterialPipelineKey(pipelineOverride.shaderPass, options);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal readonly MaterialPipelineKey GetPassPipelineKey(int passIndex)
+    {
+        return _passPipelineOverride[passIndex].pipelineKey;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

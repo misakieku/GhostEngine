@@ -5,6 +5,7 @@ using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using Misaki.HighPerformance.Mathematics;
+using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.Core;
 
@@ -163,29 +164,30 @@ public readonly unsafe ref struct RenderingContext
 
     // TODO: Ideally we should queue the draw call to our rendering system, and render it in a full rendering pipeline.
     // This is just a place holder for now for testing purpose.
-    public void DispatchMesh(Handle<Mesh> mesh, Handle<Material> material, string passName, uint numThreadsX)
+    public void DispatchMesh(Handle<Mesh> mesh, Handle<Material> material, Identifier<ShaderPass> passID, uint numThreadsX)
     {
         ref var meshRef = ref ResourceDatabase.GetMeshReference(mesh);
         ref var materialRef = ref ResourceDatabase.GetMaterialReference(material);
-        var shader = ResourceDatabase.GetShaderReference(materialRef.Shader);
+        ref var shader = ref ResourceDatabase.GetShaderReference(materialRef.Shader);
 
-        var keyResult = shader.TryGetPassKey(passName, out var passIndex);
-        if (keyResult.Error != ErrorStatus.None)
+        var passIndex = shader.GetPassIndex(passID);
+        if (passIndex == -1)
         {
-            throw new Exception(keyResult.ToString());
+            throw new InvalidOperationException("Shader pass not found in the material's shader.");
         }
 
-        var hash = new GraphicsPipelineHash
+        var passPipelineKey = new PassPipelineKey([TextureFormat.B8G8R8A8_UNorm], TextureFormat.Unknown);
+        var materialPipelineKey = materialRef.GetPassPipelineKey(passIndex);
+        var pipelineKey = GraphicsPipelineKey.Combine(materialPipelineKey, passPipelineKey);
+
+        if (!_engine.PipelineLibrary.HasPipeline(pipelineKey))
         {
-            Id = keyResult.Value.Identifier,
-            RtvCount = 1,
-            DsvFormat = TextureFormat.Unknown,
-        };
+            // TODO: Compile pso if not exist.
+            // _engine.PipelineLibrary.CompilePSO(pipelineKey, ref shader, passIndex, materialRef.GetPassPipelineOverride());
+            throw new InvalidOperationException("Pipeline state object not found in the pipeline library.");
+        }
 
-        hash.RtvFormats[0] = TextureFormat.B8G8R8A8_UNorm;
-        var pipelineKey = hash.GetKey();
         _directCmd.SetPipelineState(pipelineKey);
-
         _directCmd.SetConstantBufferView(RootSignatureLayout.PER_OBJECT_BUFFER_SLOT, meshRef.ObjectDataBuffer);
 
         // NOTE: We use fixed root signature layout for bindless rendering.

@@ -168,7 +168,7 @@ public interface IResourceDatabase : IDisposable
     /// </summary>
     /// <param name="id">The identifier of the shader to retrieve. Must refer to a valid shader.</param>
     /// <returns>A reference to the shader corresponding to the specified identifier.</returns>
-    Shader GetShaderReference(Identifier<Shader> id);
+    ref Shader GetShaderReference(Identifier<Shader> id);
 
     /// <summary>
     /// Releases the shader associated with the specified identifier, freeing any resources allocated to it.

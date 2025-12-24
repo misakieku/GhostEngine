@@ -5,7 +5,7 @@ using System.Numerics;
 //ShaderStructGenerator.GenerateHLSL([typeof(TestStruct), typeof(TestEnum), typeof(TestEnumFlags)], PackingRules.Exact, "C:/Users/Misaki/Downloads/Archive/Test.cs.hlsl");
 
 //return;
-
+#if false
 var source = File.ReadAllText("F:/csharp/GhostEngine/Ghost.Graphics/test.gshader");
 
 var lexer = new Lexer(source);
@@ -33,7 +33,7 @@ var descriptor = SDLCompiler.ResolveShader(model);
 SDLCompiler.GenerateShaderCode(descriptor, "C:/Users/Misaki/Downloads/Archive");
 
 Console.WriteLine("Shader compiled successfully:");
-
+#endif
 
 public struct TestStruct
 {

@@ -53,117 +53,71 @@ internal class PipelineBlock : IBlockParser<PipelineSyntax, PipelineSemantic>
                 switch (valueDecl.name.lexeme)
                 {
                     case TokenLexicon.KnownPipelineProperties.ZTEST:
-                        switch (valueDecl.value.lexeme)
+                        if (Enum.TryParse<ZTest>(valueDecl.value.lexeme, true, out var zTest))
                         {
-                            case "disable":
-                                semantic.zTest = ZTestOptions.Disabled;
-                                break;
-                            case "less":
-                                semantic.zTest = ZTestOptions.Less;
-                                break;
-                            case "less_equal":
-                                semantic.zTest = ZTestOptions.LessEqual;
-                                break;
-                            case "equal":
-                                semantic.zTest = ZTestOptions.Equal;
-                                break;
-                            case "greater_equal":
-                                semantic.zTest = ZTestOptions.GreaterEqual;
-                                break;
-                            case "greater":
-                                semantic.zTest = ZTestOptions.Greater;
-                                break;
-                            case "not_equal":
-                                semantic.zTest = ZTestOptions.NotEqual;
-                                break;
-                            case "always":
-                                semantic.zTest = ZTestOptions.Always;
-                                break;
-                            default:
-                                errors.Add(new SDLError
-                                {
-                                    message = $"Invalid ZTest option: {valueDecl.value.lexeme}",
-                                    line = valueDecl.value.line,
-                                    column = valueDecl.value.column
-                                });
-                                break;
+                            semantic.zTest = zTest;
+                        }
+                        else
+                        {
+                            errors.Add(new SDLError
+                            {
+                                message = $"Invalid ZTest option: {valueDecl.value.lexeme}",
+                                line = valueDecl.value.line,
+                                column = valueDecl.value.column
+                            });
                         }
                         break;
 
                     case TokenLexicon.KnownPipelineProperties.ZWRITE:
-                        switch (valueDecl.value.lexeme)
+                        if (Enum.TryParse<ZWrite>(valueDecl.value.lexeme, true, out var zWrite))
                         {
-                            case "on":
-                                semantic.zWrite = ZWriteOptions.On;
-                                break;
-                            case "off":
-                                semantic.zWrite = ZWriteOptions.Off;
-                                break;
-                            default:
-                                errors.Add(new SDLError
-                                {
-                                    message = $"Invalid ZWrite option: {valueDecl.value.lexeme}",
-                                    line = valueDecl.value.line,
-                                    column = valueDecl.value.column
-                                });
-                                break;
+                            semantic.zWrite = zWrite;
+                        }
+                        else
+                        {
+                            errors.Add(new SDLError
+                            {
+                                message = $"Invalid ZWrite option: {valueDecl.value.lexeme}",
+                                line = valueDecl.value.line,
+                                column = valueDecl.value.column
+                            });
                         }
                         break;
 
                     case TokenLexicon.KnownPipelineProperties.CULL:
-                        switch (valueDecl.value.lexeme)
+                        if (Enum.TryParse<Cull>(valueDecl.value.lexeme, true, out var cull))
                         {
-                            case "off":
-                                semantic.cull = CullOptions.Off;
-                                break;
-                            case "front":
-                                semantic.cull = CullOptions.Front;
-                                break;
-                            case "back":
-                                semantic.cull = CullOptions.Back;
-                                break;
-                            default:
-                                errors.Add(new SDLError
-                                {
-                                    message = $"Invalid Cull option: {valueDecl.value.lexeme}",
-                                    line = valueDecl.value.line,
-                                    column = valueDecl.value.column
-                                });
-                                break;
+                            semantic.cull = cull;
+                        }
+                        else
+                        {
+                            errors.Add(new SDLError
+                            {
+                                message = $"Invalid Cull option: {valueDecl.value.lexeme}",
+                                line = valueDecl.value.line,
+                                column = valueDecl.value.column
+                            });
                         }
                         break;
 
                     case TokenLexicon.KnownPipelineProperties.BLEND:
-                        switch (valueDecl.value.lexeme)
+                        if (Enum.TryParse<Blend>(valueDecl.value.lexeme, true, out var blend))
                         {
-                            case "opaque":
-                                semantic.blend = BlendOptions.Opaque;
-                                break;
-                            case "alpha":
-                                semantic.blend = BlendOptions.Alpha;
-                                break;
-                            case "additive":
-                                semantic.blend = BlendOptions.Additive;
-                                break;
-                            case "multiply":
-                                semantic.blend = BlendOptions.Multiply;
-                                break;
-                            case "premultiplied":
-                                semantic.blend = BlendOptions.PremultipliedAlpha;
-                                break;
-                            default:
-                                errors.Add(new SDLError
-                                {
-                                    message = $"Invalid Blend option: {valueDecl.value.lexeme}",
-                                    line = valueDecl.value.line,
-                                    column = valueDecl.value.column
-                                });
-                                break;
+                            semantic.blend = blend;
+                        }
+                        else
+                        {
+                            errors.Add(new SDLError
+                            {
+                                message = $"Invalid Blend option: {valueDecl.value.lexeme}",
+                                line = valueDecl.value.line,
+                                column = valueDecl.value.column
+                            });
                         }
                         break;
 
                     case TokenLexicon.KnownPipelineProperties.COLORMASK:
-                        if (uint.TryParse(valueDecl.value.lexeme, out var colorMask))
+                        if (Enum.TryParse<ColorWriteMask>(valueDecl.value.lexeme, true, out var colorMask))
                         {
                             semantic.colorMask = colorMask;
                         }

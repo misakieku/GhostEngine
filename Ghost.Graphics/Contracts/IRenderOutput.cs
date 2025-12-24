@@ -4,16 +4,16 @@ using Ghost.Graphics.RHI;
 
 namespace Ghost.Graphics.Contracts;
 
-public interface IRenderTargetStrategy
+public interface IRenderOutput
 {
     ViewportDesc Viewport
     {
-        get;
+        get; set;
     }
 
     RectDesc Scissor
     {
-        get;
+        get; set;
     }
 
     /// <summary>
@@ -21,16 +21,19 @@ public interface IRenderTargetStrategy
     /// </summary>
     /// <returns>A handle to the texture that is currently set as the render target.</returns>
     Handle<Texture> GetRenderTarget();
+
     /// <summary>
     /// Begins a rendering operation using the specified command buffer. Typically this will include resource barriers,
     /// </summary>
     /// <param name="cmd">The command buffer that records rendering commands.</param>
+    /// 
     void BeginRender(ICommandBuffer cmd);
     /// <summary>
     /// Finalizes the rendering process using the specified command buffer.
     /// </summary>
     /// <param name="cmd">The command buffer that contains the rendering commands to be finalized.</param>
     void EndRender(ICommandBuffer cmd);
+
     /// <summary>
     /// Displays the current frame to the output device or screen.
     /// </summary>

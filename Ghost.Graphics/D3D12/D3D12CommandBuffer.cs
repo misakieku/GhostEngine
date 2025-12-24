@@ -26,7 +26,9 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
     private readonly CommandBufferType _type;
 
+#if !DEBUG
     private CommandError _lastError;
+#endif
     private ushort _commandCount;
     private bool _isRecording;
     private bool _disposed;
@@ -166,10 +168,12 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         _commandList.Get()->Close();
         _isRecording = false;
 
+#if !DEBUG
         if (_lastError.Status != ErrorStatus.None)
         {
             return Result.Failure($"Command buffer ended with errors at {_lastError.CommandIndex}, command '{_lastError.CommandName}': {_lastError.Status}");
         }
+#endif
 
         return Result.Success();
     }
@@ -178,6 +182,12 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();
+#if !DEBUG
+        if (_lastError.Status != ErrorStatus.None)
+        {
+            return;
+        }
+#endif
         IncrementCommandCount();
 
         var d3d12Rect = new RECT((int)rect.Left, (int)rect.Top, (int)rect.Right, (int)rect.Bottom);
@@ -188,6 +198,12 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();
+#if !DEBUG
+        if (_lastError.Status != ErrorStatus.None)
+        {
+            return;
+        }
+#endif
         IncrementCommandCount();
 
         var count = 0u;
@@ -238,6 +254,12 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();
+#if !DEBUG
+        if (_lastError.Status != ErrorStatus.None)
+        {
+            return;
+        }
+#endif
         IncrementCommandCount();
 
         if (stateBefore == stateAfter)
@@ -264,6 +286,12 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();
+#if !DEBUG
+        if (_lastError.Status != ErrorStatus.None)
+        {
+            return;
+        }
+#endif
         IncrementCommandCount();
 
         var recordResult = _resourceDatabase.GetResourceRecord(resource);
@@ -290,6 +318,12 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();
+#if !DEBUG
+        if (_lastError.Status != ErrorStatus.None)
+        {
+            return;
+        }
+#endif
         IncrementCommandCount();
 
         var pRtvHandles = stackalloc D3D12_CPU_DESCRIPTOR_HANDLE[renderTargets.Length];
@@ -337,6 +371,12 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();
+#if !DEBUG
+        if (_lastError.Status != ErrorStatus.None)
+        {
+            return;
+        }
+#endif
         IncrementCommandCount();
 
         var pRtvDescs = stackalloc D3D12_RENDER_PASS_RENDER_TARGET_DESC[rtDescs.Length];
@@ -419,6 +459,12 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();
+#if !DEBUG
+        if (_lastError.Status != ErrorStatus.None)
+        {
+            return;
+        }
+#endif
         IncrementCommandCount();
 
         _commandList.Get()->EndRenderPass();
@@ -428,6 +474,12 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();
+#if !DEBUG
+        if (_lastError.Status != ErrorStatus.None)
+        {
+            return;
+        }
+#endif
         IncrementCommandCount();
 
         var d3d12Viewport = new D3D12_VIEWPORT(viewport.X, viewport.Y, viewport.Width, viewport.Height, viewport.MinDepth, viewport.MaxDepth);
@@ -438,14 +490,18 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();
+#if !DEBUG
+        if (_lastError.Status != ErrorStatus.None)
+        {
+            return;
+        }
+#endif
         IncrementCommandCount();
 
         var psor = _pipelineLibrary.GetGraphicsPSO(pipelineKey);
         if (psor.Error != ErrorStatus.None)
         {
-#if DEBUG || GHOST_EDITOR
-            Logger.LogError($"Failed to get graphics pipeline state object for key {pipelineKey}: {psor.Error}");
-#endif
+            RecordError(nameof(SetPipelineState), psor.Error);
             return;
         }
 
@@ -457,6 +513,12 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();
+#if !DEBUG
+        if (_lastError.Status != ErrorStatus.None)
+        {
+            return;
+        }
+#endif
         IncrementCommandCount();
 
         var resource = _resourceDatabase.GetResource(buffer.AsResource());
@@ -467,6 +529,12 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();
+#if !DEBUG
+        if (_lastError.Status != ErrorStatus.None)
+        {
+            return;
+        }
+#endif
         IncrementCommandCount();
 
         var recordResult = _resourceDatabase.GetResourceRecord(buffer.AsResource());
@@ -491,6 +559,12 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();
+#if !DEBUG
+        if (_lastError.Status != ErrorStatus.None)
+        {
+            return;
+        }
+#endif
         IncrementCommandCount();
 
         var resource = _resourceDatabase.GetResource(buffer.AsResource());
@@ -508,6 +582,12 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();
+#if !DEBUG
+        if (_lastError.Status != ErrorStatus.None)
+        {
+            return;
+        }
+#endif
         IncrementCommandCount();
 
         var d3d12Topology = topology switch
@@ -525,6 +605,12 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();
+#if !DEBUG
+        if (_lastError.Status != ErrorStatus.None)
+        {
+            return;
+        }
+#endif
         IncrementCommandCount();
 
         _commandList.Get()->DrawInstanced(vertexCount, instanceCount, startVertex, startInstance);
@@ -534,6 +620,12 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();
+#if !DEBUG
+        if (_lastError.Status != ErrorStatus.None)
+        {
+            return;
+        }
+#endif
         IncrementCommandCount();
 
         _commandList.Get()->DrawIndexedInstanced(indexCount, instanceCount, startIndex, baseVertex, startInstance);
@@ -543,6 +635,12 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();
+#if !DEBUG
+        if (_lastError.Status != ErrorStatus.None)
+        {
+            return;
+        }
+#endif
         IncrementCommandCount();
 
         _commandList.Get()->Dispatch(threadGroupCountX, threadGroupCountY, threadGroupCountZ);
@@ -552,6 +650,12 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();
+#if !DEBUG
+        if (_lastError.Status != ErrorStatus.None)
+        {
+            return;
+        }
+#endif
         IncrementCommandCount();
 
         _commandList.Get()->DispatchMesh(threadGroupCountX, threadGroupCountY, threadGroupCountZ);
@@ -573,6 +677,12 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();
+#if !DEBUG
+        if (_lastError.Status != ErrorStatus.None)
+        {
+            return;
+        }
+#endif
         IncrementCommandCount();
 
         var sizeInBytes = (uint)(data.Length * sizeof(T));
@@ -599,6 +709,12 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();
+#if !DEBUG
+        if (_lastError.Status != ErrorStatus.None)
+        {
+            return;
+        }
+#endif
         IncrementCommandCount();
 
         var resource = _resourceDatabase.GetResource(texture.AsResource());
@@ -634,6 +750,12 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();
+#if !DEBUG
+        if (_lastError.Status != ErrorStatus.None)
+        {
+            return;
+        }
+#endif
         IncrementCommandCount();
 
         var pDestResource = _resourceDatabase.GetResource(dest.AsResource());

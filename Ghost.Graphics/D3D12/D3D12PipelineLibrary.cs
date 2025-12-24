@@ -233,23 +233,23 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
         return Result.Success(cbufferInfo);
     }
 
-    private static D3D12_COMPARISON_FUNC ToD3DCompare(ZTestOptions z) => z switch
+    private static D3D12_COMPARISON_FUNC ToD3DCompare(ZTest z) => z switch
     {
-        ZTestOptions.Disabled => D3D12_COMPARISON_FUNC_NEVER,
-        ZTestOptions.Less => D3D12_COMPARISON_FUNC_LESS,
-        ZTestOptions.LessEqual => D3D12_COMPARISON_FUNC_LESS_EQUAL,
-        ZTestOptions.Equal => D3D12_COMPARISON_FUNC_EQUAL,
-        ZTestOptions.GreaterEqual => D3D12_COMPARISON_FUNC_GREATER_EQUAL,
-        ZTestOptions.Greater => D3D12_COMPARISON_FUNC_GREATER,
-        ZTestOptions.NotEqual => D3D12_COMPARISON_FUNC_NOT_EQUAL,
-        ZTestOptions.Always => D3D12_COMPARISON_FUNC_ALWAYS,
+        ZTest.Disabled => D3D12_COMPARISON_FUNC_NEVER,
+        ZTest.Less => D3D12_COMPARISON_FUNC_LESS,
+        ZTest.LessEqual => D3D12_COMPARISON_FUNC_LESS_EQUAL,
+        ZTest.Equal => D3D12_COMPARISON_FUNC_EQUAL,
+        ZTest.GreaterEqual => D3D12_COMPARISON_FUNC_GREATER_EQUAL,
+        ZTest.Greater => D3D12_COMPARISON_FUNC_GREATER,
+        ZTest.NotEqual => D3D12_COMPARISON_FUNC_NOT_EQUAL,
+        ZTest.Always => D3D12_COMPARISON_FUNC_ALWAYS,
         _ => D3D12_COMPARISON_FUNC_LESS_EQUAL
     };
 
-    private static D3D12_DEPTH_STENCIL_DESC BuildDepthStencil(ZTestOptions ztest, ZWriteOptions zwrite)
+    private static D3D12_DEPTH_STENCIL_DESC BuildDepthStencil(ZTest ztest, ZWrite zwrite)
     {
-        var depthEnabled = ztest != ZTestOptions.Disabled;
-        var writeEnabled = zwrite == ZWriteOptions.On;
+        var depthEnabled = ztest != ZTest.Disabled;
+        var writeEnabled = zwrite == ZWrite.On;
         var cmp = ToD3DCompare(ztest);
         return D3D12Utility.D3D12_DEPTH_STENCIL_DESC_CREATE(depthEnabled, writeEnabled, cmp);
     }
@@ -295,23 +295,16 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
             return psr.Value;
         }
 
-        var hash = new GraphicsPipelineHash
+        if (descriptor.RtvFormats.Length > D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT)
         {
-            Id = descriptor.PassId,
-            RtvCount = (uint)descriptor.RtvFormats.Length,
-            DsvFormat = descriptor.DsvFormat,
-        };
-
-        var rtvCount = (uint)Math.Min(descriptor.RtvFormats.Length, D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT);
-
-        for (var i = 0; i < rtvCount && i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
-        {
-            hash.RtvFormats[i] = descriptor.RtvFormats[i];
+            return Result.Failure($"RTV format count exceeds the maximum supported render target count of {D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT}.");
         }
 
-        var key = hash.GetKey();
+        var passPipelineKey = new PassPipelineKey(descriptor.RtvFormats, descriptor.DsvFormat);
+        var materialPipelineKey = new MaterialPipelineKey(descriptor.PassId, descriptor.PipelineOption);
+        var pipelineKey = GraphicsPipelineKey.Combine(materialPipelineKey, passPipelineKey);
 
-        if (!_pipelineCache.ContainsKey(key))
+        if (!_pipelineCache.ContainsKey(pipelineKey))
         {
             var result = ValidatePassReflectionData(in compiled);
             if (result.IsFailure)
@@ -327,26 +320,26 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
                 PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
                 SampleMask = UINT32_MAX,
                 SampleDesc = new DXGI_SAMPLE_DESC(1, 0),
-                NumRenderTargets = rtvCount,
+                NumRenderTargets = (uint)descriptor.RtvFormats.Length,
                 DSVFormat = descriptor.DsvFormat.ToDXGIFormat(),
-                DepthStencilState = BuildDepthStencil(descriptor.ZTest, descriptor.ZWrite),
+                DepthStencilState = BuildDepthStencil(descriptor.PipelineOption.ZTest, descriptor.PipelineOption.ZWrite),
                 NodeMask = 0,
                 Flags = D3D12_PIPELINE_STATE_FLAG_NONE,
 
-                BlendState = descriptor.Blend switch
+                BlendState = descriptor.PipelineOption.Blend switch
                 {
-                    BlendOptions.Opaque => D3D12Utility.D3D12_BLEND_DESC_OPAQUE,
-                    BlendOptions.Alpha => D3D12Utility.D3D12_BLEND_DESC_ALPHA_BLEND,
-                    BlendOptions.Additive => D3D12Utility.D3D12_BLEND_DESC_ADDITIVE,
-                    BlendOptions.Multiply => D3D12Utility.D3D12_BLEND_DESC_MULTIPLY,
-                    BlendOptions.PremultipliedAlpha => D3D12Utility.D3D12_BLEND_DESC_PREMULTIPLIED,
+                    Blend.Opaque => D3D12Utility.D3D12_BLEND_DESC_OPAQUE,
+                    Blend.Alpha => D3D12Utility.D3D12_BLEND_DESC_ALPHA_BLEND,
+                    Blend.Additive => D3D12Utility.D3D12_BLEND_DESC_ADDITIVE,
+                    Blend.Multiply => D3D12Utility.D3D12_BLEND_DESC_MULTIPLY,
+                    Blend.PremultipliedAlpha => D3D12Utility.D3D12_BLEND_DESC_PREMULTIPLIED,
                     _ => D3D12Utility.D3D12_BLEND_DESC_OPAQUE
                 },
-                RasterizerState = descriptor.Cull switch
+                RasterizerState = descriptor.PipelineOption.Cull switch
                 {
-                    CullOptions.Off => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_NONE,
-                    CullOptions.Front => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_CLOCKWISE,
-                    CullOptions.Back => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_COUNTER_CLOCKWISE,
+                    Cull.Off => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_NONE,
+                    Cull.Front => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_CLOCKWISE,
+                    Cull.Back => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_COUNTER_CLOCKWISE,
                     _ => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_NONE
                 },
             };
@@ -356,10 +349,10 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
                 desc.AS = new D3D12_SHADER_BYTECODE(compiled.tsResult.bytecode.GetUnsafePtr(), (nuint)compiled.tsResult.bytecode.Count);
             }
 
-            for (var i = 0; i < rtvCount && i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
+            for (var i = 0; i < descriptor.RtvFormats.Length; i++)
             {
                 desc.RTVFormats[i] = descriptor.RtvFormats[i].ToDXGIFormat();
-                desc.BlendState.RenderTarget[i].RenderTargetWriteMask = (byte)(descriptor.ColorMask & 0x0F);
+                desc.BlendState.RenderTarget[i].RenderTargetWriteMask = (byte)((int)descriptor.PipelineOption.ColorMask & 0x0F);
             }
 
             var meshStream = new CD3DX12_PIPELINE_MESH_STATE_STREAM(in desc);
@@ -373,7 +366,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
 
             var pKeyStr = stackalloc char[GraphicsPipelineKey.KEY_STRING_LENGTH];
             var keySpan = new Span<char>(pKeyStr, GraphicsPipelineKey.KEY_STRING_LENGTH);
-            var kr = key.GetString(keySpan);
+            var kr = pipelineKey.GetString(keySpan);
             if (kr.IsFailure)
             {
                 return kr;
@@ -396,10 +389,15 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
             pso.psoDesc = desc;
             pso.pso.Attach(pPipelineState);
 
-            _pipelineCache[key] = pso;
+            _pipelineCache[pipelineKey] = pso;
         }
 
-        return key;
+        return pipelineKey;
+    }
+
+    public bool HasPipeline(GraphicsPipelineKey key)
+    {
+        return _pipelineCache.ContainsKey(key);
     }
 
     public Result<SharedPtr<ID3D12PipelineState>, ErrorStatus> GetGraphicsPSO(GraphicsPipelineKey key)

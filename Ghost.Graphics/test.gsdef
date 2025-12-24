@@ -18,7 +18,7 @@ shader "MyShader/Standard"
             zwrite = off;
             cull = off;
             blend = opaque;
-            color_mask = 15;
+            color_mask = all;
         }
 
         ms("F:/csharp/GhostEngine/Ghost.Graphics/RenderPasses/ShaderCode.hlsl", "MSMain");

@@ -18,11 +18,11 @@ internal class PropertySemantic
 
 internal class PipelineSemantic
 {
-    public ZTestOptions? zTest;
-    public ZWriteOptions? zWrite;
-    public CullOptions? cull;
-    public BlendOptions? blend;
-    public uint? colorMask;
+    public ZTest? zTest;
+    public ZWrite? zWrite;
+    public Cull? cull;
+    public Blend? blend;
+    public ColorWriteMask? colorMask;
 }
 
 internal class PassSemantic

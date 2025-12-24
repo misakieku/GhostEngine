@@ -8,7 +8,7 @@ namespace Ghost.Graphics.RHI;
 /// </summary>
 public interface IRenderer : IDisposable
 {
-    IRenderTargetStrategy? RenderTargetStrategy
+    IRenderOutput? RenderOutput
     {
         get; set;
     }

@@ -33,24 +33,6 @@ public struct KeywordsGroup
     public List<string>? keywords;
 }
 
-public struct PipelineDescriptor
-{
-    public ZTestOptions zTest;
-    public ZWriteOptions zWrite;
-    public CullOptions cull;
-    public BlendOptions blend;
-    public uint colorMask;
-
-    public static PipelineDescriptor Default = new PipelineDescriptor
-    {
-        zTest = ZTestOptions.LessEqual,
-        zWrite = ZWriteOptions.On,
-        cull = CullOptions.Back,
-        blend = BlendOptions.Opaque,
-        colorMask = 0
-    };
-}
-
 public interface IPassDescriptor
 {
     public string Identifier
@@ -81,7 +63,7 @@ public class FullPassDescriptor : IPassDescriptor
     public ShaderEntryPoint pixelShader;
     public List<string>? defines;
     public List<KeywordsGroup>? keywords;
-    public PipelineDescriptor localPipeline;
+    public PipelineState localPipeline;
 
     public string Identifier => uniqueIdentifier;
     public string Name => name;
