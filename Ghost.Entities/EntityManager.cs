@@ -100,7 +100,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <summary>
     /// Create an entity with specified components.
     /// </summary>
-    /// <param name="set">A set of component type IDs to add to the entities.</param>
+    /// <param name="set">A set of component space IDs to add to the entities.</param>
     /// <returns>The created entity.</returns>
     public Entity CreateEntity(ComponentSet set)
     {
@@ -162,7 +162,7 @@ public unsafe partial class EntityManager : IDisposable
     /// Create multiple entities with specified components.
     /// </summary>
     /// <param name="entities">The span to store the created entities.</param>
-    /// <param name="set">A set of component type IDs to add to the entities.</param>
+    /// <param name="set">A set of component space IDs to add to the entities.</param>
     /// <returns>An array of the created entities.</returns>
     public void CreateEntities(Span<Entity> entities, ComponentSet set)
     {
@@ -198,7 +198,7 @@ public unsafe partial class EntityManager : IDisposable
     /// Create multiple entities with specified components.
     /// </summary>
     /// <param name="count">The number of entities to create.</param>
-    /// <param name="set">A set of component type IDs to add to the entities.</param>
+    /// <param name="set">A set of component space IDs to add to the entities.</param>
     public void CreateEntities(int count, ComponentSet set)
     {
         var hash = set.GetHashCode();
@@ -380,7 +380,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <summary>
     /// Create a singleton entity with the specified component.
     /// </summary>
-    /// <param name="componentID">The component type ID of the singleton.</param>
+    /// <param name="componentID">The component space ID of the singleton.</param>
     /// <param name="pComponent">Pointer to the component data.</param>
     /// <returns>The result status of the operation.</returns>
     public ErrorStatus CreateSingleton(Identifier<IComponent> componentID, void* pComponent)
@@ -421,7 +421,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <summary>
     /// Create a singleton entity with the specified component.
     /// </summary>
-    /// <typeparam name="T">The component type.</typeparam>
+    /// <typeparam name="T">The component space.</typeparam>
     /// <param name="component">The component data.</param>
     /// <returns>The result status of the operation.</returns>
     public ErrorStatus CreateSingleton<T>(T component = default)
@@ -433,7 +433,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <summary>
     /// Get a pointer to the singleton component data.
     /// </summary>
-    /// <param name="componentID">The component type ID of the singleton.</param>
+    /// <param name="componentID">The component space ID of the singleton.</param>
     /// <returns>Pointer to the component data, or null if not found.</returns>
     public void* GetSingleton(Identifier<IComponent> componentID)
     {
@@ -461,7 +461,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <summary>
     /// Get a reference to the singleton component data.
     /// </summary>
-    /// <typeparam name="T">The component type.</typeparam>
+    /// <typeparam name="T">The component space.</typeparam>
     /// <returns>Reference to the component data. null ref if not found.</returns>
     public ref T GetSingleton<T>()
         where T : unmanaged, IComponent
@@ -473,7 +473,7 @@ public unsafe partial class EntityManager : IDisposable
     private static void CopyData(ref Archetype oldArch, int oldChunk, int oldRow,
                                  ref Archetype newArch, int newChunk, int newRow)
     {
-        // Iterate every component type in the OLD archetype
+        // Iterate every component space in the OLD archetype
         for (var i = 0; i < oldArch._layouts.Count; i++)
         {
             var layout = oldArch._layouts[i];
@@ -497,7 +497,7 @@ public unsafe partial class EntityManager : IDisposable
     /// Add a component to the specified entity.
     /// </summary>
     /// <param name="entity">The entity to add the component to.</param>
-    /// <param name="componentID">The component type ID to add.</param>
+    /// <param name="componentID">The component space ID to add.</param>
     /// <param name="pComponent">Pointer to the component data.</param>
     /// <returns>The result status of the operation.</returns>
     public ErrorStatus AddComponent(Entity entity, Identifier<IComponent> componentID, void* pComponent)
@@ -589,7 +589,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <summary>
     /// Add a component to the specified entity.
     /// </summary>
-    /// <typeparam name="T">The component type.</typeparam>
+    /// <typeparam name="T">The component space.</typeparam>
     /// <param name="entity">The entity to add the component to.</param>
     /// <param name="component">The component data.</param>
     /// <returns>The result status of the operation.</returns>
@@ -603,7 +603,7 @@ public unsafe partial class EntityManager : IDisposable
     /// Remove a component from the specified entity.
     /// </summary>
     /// <param name="entity">The entity to remove the component from.</param>
-    /// <param name="componentID">The component type ID to remove.</param>
+    /// <param name="componentID">The component space ID to remove.</param>
     /// <returns>The result status of the operation.</returns>
     public ErrorStatus RemoveComponent(Entity entity, Identifier<IComponent> componentID)
     {
@@ -693,7 +693,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <summary>
     /// Remove a component from the specified entity.
     /// </summary>
-    /// <typeparam name="T">The component type.</typeparam>
+    /// <typeparam name="T">The component space.</typeparam>
     /// <param name="entity">The entity to remove the component from.</param>
     /// <returns>The result status of the operation.</returns>
     public ErrorStatus RemoveComponent<T>(Entity entity)
@@ -706,7 +706,7 @@ public unsafe partial class EntityManager : IDisposable
     /// Set the component data for the specified entity.
     /// </summary>
     /// <param name="entity">The entity to set the component data for.</param>
-    /// <param name="componentID">The component type ID to set.</param>
+    /// <param name="componentID">The component space ID to set.</param>
     /// <param name="pComponent">Pointer to the component data.</param>
     /// <returns>The result status of the operation.</returns>
     public ErrorStatus SetComponent(Entity entity, Identifier<IComponent> componentID, void* pComponent)
@@ -725,7 +725,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <summary>
     /// Set the component data for the specified entity.
     /// </summary>
-    /// <typeparam name="T">The component type.</typeparam>
+    /// <typeparam name="T">The component space.</typeparam>
     /// <param name="entity">The entity to set the component data for.</param>
     /// <param name="component">The component data.</param>
     public ErrorStatus SetComponent<T>(Entity entity, T component)
@@ -738,7 +738,7 @@ public unsafe partial class EntityManager : IDisposable
     /// Get a pointer to the component data for the specified entity.
     /// </summary>
     /// <param name="entity">The entity to get the component data for.</param>
-    /// <param name="componentID">The component type ID to get.</param>
+    /// <param name="componentID">The component space ID to get.</param>
     /// <returns>Pointer to the component data, or null if not found.</returns>
     public void* GetComponent(Entity entity, Identifier<IComponent> componentID)
     {
@@ -754,7 +754,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <summary>
     /// Get a reference to the component data for the specified entity.
     /// </summary>
-    /// <typeparam name="T">The component type.</typeparam>
+    /// <typeparam name="T">The component space.</typeparam>
     /// <param name="entity">The entity to get the component data for.</param>
     /// <returns>Reference to the component data. null ref if not found.</returns>
     public ref T GetComponent<T>(Entity entity)
@@ -768,7 +768,7 @@ public unsafe partial class EntityManager : IDisposable
     /// Check if the specified entity has the specified component.
     /// </summary>
     /// <param name="entity">The entity to check.</param>
-    /// <param name="componentID">The component type ID to check.</param>
+    /// <param name="componentID">The component space ID to check.</param>
     /// <returns>True if the entity has the component, false otherwise.</returns>
     public bool HasComponent(Entity entity, Identifier<IComponent> componentID)
     {
@@ -784,7 +784,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <summary>
     /// Check if the specified entity has the specified component.
     /// </summary>
-    /// <typeparam name="T">The component type.</typeparam>
+    /// <typeparam name="T">The component space.</typeparam>
     /// <param name="entity">The entity to check.</param>
     /// <returns>True if the entity has the component, false otherwise.</returns>
     public bool HasComponent<T>(Entity entity)
@@ -797,7 +797,7 @@ public unsafe partial class EntityManager : IDisposable
     /// Set the enabled state of an enableable component for the specified entity.
     /// </summary>
     /// <param name="entity">The entity to set the enabled state for.</param>
-    /// <param name="componentID">The component type ID of the enableable component.</
+    /// <param name="componentID">The component space ID of the enableable component.</
     /// <param name="enabled">True to enable the component, false to disable it.</param>
     /// <returns>The result status of the operation.</returns>
     public ErrorStatus SetEnabled(Entity entity, Identifier<IComponent> componentID, bool enabled)
@@ -839,7 +839,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <summary>
     /// Set the enabled state of an enableable component for the specified entity.
     /// </summary>
-    /// <typeparam name="T">The enableable component type.</typeparam>
+    /// <typeparam name="T">The enableable component space.</typeparam>
     /// <param name="entity">The entity to set the enabled state for.</param>
     /// <param name="enabled">True to enable the component, false to disable it.</
     /// <returns>The result status of the operation.</returns>

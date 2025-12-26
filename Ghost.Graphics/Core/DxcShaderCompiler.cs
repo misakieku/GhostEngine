@@ -13,7 +13,7 @@ using TerraFX.Interop.Windows;
 
 using static TerraFX.Interop.DirectX.DXC;
 
-namespace Ghost.Graphics.Utilities;
+namespace Ghost.Graphics.Core;
 
 internal sealed partial class DxcShaderCompiler
 {
@@ -120,6 +120,7 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
     private UniquePtr<IDxcCompiler3> _compiler;
     private UniquePtr<IDxcUtils> _utils;
     // NOTE: This is just a temporary cache for compiled shader code. We will implement a proper disk cache later.
+    // TODO: This should be shader variant specific cache instead of pass specific.
     private readonly Dictionary<ShaderPassKey, GraphicsCompiledResult> _compiledResults;
 
     private bool _disposed;
@@ -149,7 +150,6 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
     private Result<ShaderReflectionData> PerformDXCReflection(IDxcBlob* pReflectionBlob)
     {
         ID3D12ShaderReflection* pReflection = default;
-        var pDxcReflectionBlob = (IDxcBlob*)pReflectionBlob;
 
         try
         {
@@ -159,8 +159,8 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
             // Create reflection interface from blob
             var reflectionBuffer = new DxcBuffer
             {
-                Ptr = pDxcReflectionBlob->GetBufferPointer(),
-                Size = pDxcReflectionBlob->GetBufferSize(),
+                Ptr = pReflectionBlob->GetBufferPointer(),
+                Size = pReflectionBlob->GetBufferSize(),
                 Encoding = DXC_CP_ACP
             };
 
@@ -436,15 +436,18 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
             return Result.Failure("Pixel shader expected.");
         }
 
-        return new GraphicsCompiledResult
+        var compiled = new GraphicsCompiledResult
         {
             tsResult = tsResult,
             msResult = msResult,
             psResult = psResult,
         };
+
+        _compiledResults[new ShaderPassKey(fullDescriptor.Identifier)] = compiled;
+        return compiled;
     }
 
-    public Result<GraphicsCompiledResult> LoadCompiledCache(ShaderPassKey key)
+    public Result<GraphicsCompiledResult, ErrorStatus> LoadCompiledCache(ShaderPassKey key)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -452,10 +455,8 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
         {
             return compiledResult;
         }
-        else
-        {
-            return Result.Failure("Key not found.");
-        }
+
+        return ErrorStatus.NotFound;
     }
 
     public void Dispose()
@@ -463,6 +464,11 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
         if (_disposed)
         {
             return;
+        }
+
+        foreach (var kvp in _compiledResults)
+        {
+            kvp.Value.Dispose();
         }
 
         _compiler.Dispose();

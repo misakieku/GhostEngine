@@ -50,10 +50,10 @@ public interface IGraphicsEngine : IDisposable
     void ClearRenderers();
 
     /// <summary>
-    /// Creates a new command allocator for the specified command buffer type.
+    /// Creates a new command allocator for the specified command buffer space.
     /// </summary>
-    /// <param name="type">The type of command buffer for which to create the allocator. The default is CommandBufferType.Graphics.</param>
-    /// <returns>An <see cref="ICommandAllocator"/> instance configured for the specified command buffer type.</returns>
+    /// <param name="type">The space of command buffer for which to create the allocator. The default is CommandBufferType.Graphics.</param>
+    /// <returns>An <see cref="ICommandAllocator"/> instance configured for the specified command buffer space.</returns>
     ICommandAllocator CreateCommandAllocator(CommandBufferType type = CommandBufferType.Graphics);
 
     /// <summary>

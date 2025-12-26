@@ -6,7 +6,7 @@ namespace Ghost.Entities;
 public ref partial struct QueryBuilder
 {
     /// <summary>
-    /// Adds the specified component type(s) to the 'All' filter of the query.
+    /// Adds the specified component space(s) to the 'All' filter of the query.
     /// Targets entities that have all of the specified component types and those component(s) must be enabled.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -19,7 +19,7 @@ public ref partial struct QueryBuilder
     }
 
     /// <summary>
-    /// Adds the specified component type(s) to the 'All' filter of the query and requires read-write access.
+    /// Adds the specified component space(s) to the 'All' filter of the query and requires read-write access.
     /// Targets entities that have all of the specified component types and those component(s) must be enabled.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -33,7 +33,7 @@ public ref partial struct QueryBuilder
     }
 
     /// <summary>
-    /// Adds the specified component type(s) to the 'Any' filter of the query.
+    /// Adds the specified component space(s) to the 'Any' filter of the query.
     /// Targets entities that have at least one of the specified component types and those component(s) must be enabled.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -46,7 +46,7 @@ public ref partial struct QueryBuilder
     }
 
     /// <summary>
-    /// Adds the specified component type(s) to the 'Absent' filter of the query.
+    /// Adds the specified component space(s) to the 'Absent' filter of the query.
     /// Targets entities that do not have any of the specified component types.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -59,7 +59,7 @@ public ref partial struct QueryBuilder
     }
 
     /// <summary>
-    /// Adds the specified component type(s) to the 'None' filter of the query.
+    /// Adds the specified component space(s) to the 'None' filter of the query.
     /// Targets entities that do not have any of the specified component types, or those component(s) are disabled.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -72,7 +72,7 @@ public ref partial struct QueryBuilder
     }
 
     /// <summary>
-    /// Adds the specified component type(s) to the 'Disabled' filter of the query.
+    /// Adds the specified component space(s) to the 'Disabled' filter of the query.
     /// Targets entities that have all of the specified component types and those component(s) are disabled.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -85,7 +85,7 @@ public ref partial struct QueryBuilder
     }
 
     /// <summary>
-    /// Adds the specified component type(s) to the 'Present' filter of the query.
+    /// Adds the specified component space(s) to the 'Present' filter of the query.
     /// Targets entities that have all of the specified component types, regardless of whether those component(s) are enabled or disabled.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -98,7 +98,7 @@ public ref partial struct QueryBuilder
     }
 
     /// <summary>
-    /// Adds the specified component type(s) to the 'Present' filter of the query and requires read-write access.
+    /// Adds the specified component space(s) to the 'Present' filter of the query and requires read-write access.
     /// Targets entities that have all of the specified component types, regardless of whether those component(s) are enabled or disabled.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -112,7 +112,7 @@ public ref partial struct QueryBuilder
     }
 
     /// <summary>
-    /// Adds the specified component type(s) to the 'All' filter of the query.
+    /// Adds the specified component space(s) to the 'All' filter of the query.
     /// Targets entities that have all of the specified component types and those component(s) must be enabled.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -127,7 +127,7 @@ public ref partial struct QueryBuilder
     }
 
     /// <summary>
-    /// Adds the specified component type(s) to the 'All' filter of the query and requires read-write access.
+    /// Adds the specified component space(s) to the 'All' filter of the query and requires read-write access.
     /// Targets entities that have all of the specified component types and those component(s) must be enabled.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -144,7 +144,7 @@ public ref partial struct QueryBuilder
     }
 
     /// <summary>
-    /// Adds the specified component type(s) to the 'Any' filter of the query.
+    /// Adds the specified component space(s) to the 'Any' filter of the query.
     /// Targets entities that have at least one of the specified component types and those component(s) must be enabled.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -159,7 +159,7 @@ public ref partial struct QueryBuilder
     }
 
     /// <summary>
-    /// Adds the specified component type(s) to the 'Absent' filter of the query.
+    /// Adds the specified component space(s) to the 'Absent' filter of the query.
     /// Targets entities that do not have any of the specified component types.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -174,7 +174,7 @@ public ref partial struct QueryBuilder
     }
 
     /// <summary>
-    /// Adds the specified component type(s) to the 'None' filter of the query.
+    /// Adds the specified component space(s) to the 'None' filter of the query.
     /// Targets entities that do not have any of the specified component types, or those component(s) are disabled.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -189,7 +189,7 @@ public ref partial struct QueryBuilder
     }
 
     /// <summary>
-    /// Adds the specified component type(s) to the 'Disabled' filter of the query.
+    /// Adds the specified component space(s) to the 'Disabled' filter of the query.
     /// Targets entities that have all of the specified component types and those component(s) are disabled.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -204,7 +204,7 @@ public ref partial struct QueryBuilder
     }
 
     /// <summary>
-    /// Adds the specified component type(s) to the 'Present' filter of the query.
+    /// Adds the specified component space(s) to the 'Present' filter of the query.
     /// Targets entities that have all of the specified component types, regardless of whether those component(s) are enabled or disabled.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -219,7 +219,7 @@ public ref partial struct QueryBuilder
     }
 
     /// <summary>
-    /// Adds the specified component type(s) to the 'Present' filter of the query and requires read-write access.
+    /// Adds the specified component space(s) to the 'Present' filter of the query and requires read-write access.
     /// Targets entities that have all of the specified component types, regardless of whether those component(s) are enabled or disabled.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -236,7 +236,7 @@ public ref partial struct QueryBuilder
     }
 
     /// <summary>
-    /// Adds the specified component type(s) to the 'All' filter of the query.
+    /// Adds the specified component space(s) to the 'All' filter of the query.
     /// Targets entities that have all of the specified component types and those component(s) must be enabled.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -253,7 +253,7 @@ public ref partial struct QueryBuilder
     }
 
     /// <summary>
-    /// Adds the specified component type(s) to the 'All' filter of the query and requires read-write access.
+    /// Adds the specified component space(s) to the 'All' filter of the query and requires read-write access.
     /// Targets entities that have all of the specified component types and those component(s) must be enabled.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -273,7 +273,7 @@ public ref partial struct QueryBuilder
     }
 
     /// <summary>
-    /// Adds the specified component type(s) to the 'Any' filter of the query.
+    /// Adds the specified component space(s) to the 'Any' filter of the query.
     /// Targets entities that have at least one of the specified component types and those component(s) must be enabled.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -290,7 +290,7 @@ public ref partial struct QueryBuilder
     }
 
     /// <summary>
-    /// Adds the specified component type(s) to the 'Absent' filter of the query.
+    /// Adds the specified component space(s) to the 'Absent' filter of the query.
     /// Targets entities that do not have any of the specified component types.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -307,7 +307,7 @@ public ref partial struct QueryBuilder
     }
 
     /// <summary>
-    /// Adds the specified component type(s) to the 'None' filter of the query.
+    /// Adds the specified component space(s) to the 'None' filter of the query.
     /// Targets entities that do not have any of the specified component types, or those component(s) are disabled.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -324,7 +324,7 @@ public ref partial struct QueryBuilder
     }
 
     /// <summary>
-    /// Adds the specified component type(s) to the 'Disabled' filter of the query.
+    /// Adds the specified component space(s) to the 'Disabled' filter of the query.
     /// Targets entities that have all of the specified component types and those component(s) are disabled.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -341,7 +341,7 @@ public ref partial struct QueryBuilder
     }
 
     /// <summary>
-    /// Adds the specified component type(s) to the 'Present' filter of the query.
+    /// Adds the specified component space(s) to the 'Present' filter of the query.
     /// Targets entities that have all of the specified component types, regardless of whether those component(s) are enabled or disabled.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -358,7 +358,7 @@ public ref partial struct QueryBuilder
     }
 
     /// <summary>
-    /// Adds the specified component type(s) to the 'Present' filter of the query and requires read-write access.
+    /// Adds the specified component space(s) to the 'Present' filter of the query and requires read-write access.
     /// Targets entities that have all of the specified component types, regardless of whether those component(s) are enabled or disabled.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

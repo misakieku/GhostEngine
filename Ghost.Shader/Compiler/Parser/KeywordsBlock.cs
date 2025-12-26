@@ -54,11 +54,11 @@ internal class KeywordsBlock : IBlockParser<List<FunctionCallDeclaration>, List<
             var group = new KeywordsGroup();
             switch (keyword.name.lexeme)
             {
-                case TokenLexicon.KnownFunctions.DYNAMIC:
-                    group.type = KeywordType.Dynamic;
+                case TokenLexicon.KnownFunctions.LOCAL:
+                    group.space = KeywordSpace.Local;
                     break;
-                case TokenLexicon.KnownFunctions.STATIC:
-                    group.type = KeywordType.Static;
+                case TokenLexicon.KnownFunctions.GLOBAL:
+                    group.space = KeywordSpace.Global;
                     break;
                 default:
                     errors.Add(new SDLError

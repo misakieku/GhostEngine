@@ -20,7 +20,7 @@ public interface IResourceDatabase : IDisposable
     /// <summary>
     /// Imports an external unmanaged resource and returns a handle for use within the resource management system.
     /// </summary>
-    /// <typeparam name="T">The type of the unmanaged resource pointer to import.</typeparam>
+    /// <typeparam name="T">The space of the unmanaged resource pointer to import.</typeparam>
     /// <param name="resourcePtr">A pointer to the external unmanaged resource to be imported. Must remain valid for the duration of the resource's usage.</param>
     /// <param name="initialState">The initial state to assign to the imported resource.</param>
     /// <returns>A handle representing the imported resource, which can be used for subsequent operations.</returns>

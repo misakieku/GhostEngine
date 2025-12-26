@@ -1,9 +1,9 @@
 namespace Ghost.Core.Graphics;
 
-public enum KeywordType
+public enum KeywordSpace
 {
-    Static,
-    Dynamic,
+    Local,
+    Global,
 }
 
 public enum ShaderPropertyType
@@ -29,7 +29,7 @@ public struct ShaderEntryPoint
 
 public struct KeywordsGroup
 {
-    public KeywordType type;
+    public KeywordSpace space;
     public List<string>? keywords;
 }
 

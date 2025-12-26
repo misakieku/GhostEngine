@@ -141,8 +141,8 @@ internal static class TokenLexicon
         public const string MESH_SHADER = "ms";
         public const string PIXEL_SHADER = "ps";
         public const string COMPUTE_SHADER = "cs";
-        public const string DYNAMIC = "dynamic";
-        public const string STATIC = "static";
+        public const string LOCAL = "local";
+        public const string GLOBAL = "global";
         public const string FALLBACK = "fallback";
     }
 
@@ -208,8 +208,8 @@ internal static class TokenLexicon
         KnownFunctions.PIXEL_SHADER,
         KnownFunctions.MESH_SHADER,
         KnownFunctions.COMPUTE_SHADER,
-        KnownFunctions.DYNAMIC,
-        KnownFunctions.STATIC,
+        KnownFunctions.LOCAL,
+        KnownFunctions.GLOBAL,
     };
 
     private static readonly HashSet<string> s_types = new()

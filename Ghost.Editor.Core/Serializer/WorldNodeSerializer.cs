@@ -101,7 +101,7 @@ internal class WorldNodeSerializer : CustomSerializer<WorldNode>
         //foreach (var componentElement in element.GetProperty(Property.COMPONENTS).EnumerateObject())
         //{
         //    var typeName = componentElement.Name;
-        //    var type = Type.GetType(typeName) ?? throw new Exception($"Type {typeName} not found.");
+        //    var space = Type.GetType(typeName) ?? throw new Exception($"Type {typeName} not found.");
 
         //    foreach (var dataElement in componentElement.Value.EnumerateArray())
         //    {
@@ -109,10 +109,10 @@ internal class WorldNodeSerializer : CustomSerializer<WorldNode>
         //        var entity = new Entity(entityID, 0);
 
         //        var dataProperty = dataElement.GetProperty(Property.DATA);
-        //        var component = JsonSerializer.Deserialize(dataProperty.GetRawText(), type, options);
+        //        var component = JsonSerializer.Deserialize(dataProperty.GetRawText(), space, options);
         //        if (component is IComponent data)
         //        {
-        //            world.EntityManager.AddComponent(entity, data, type);
+        //            world.EntityManager.AddComponent(entity, data, space);
         //        }
         //    }
         //}

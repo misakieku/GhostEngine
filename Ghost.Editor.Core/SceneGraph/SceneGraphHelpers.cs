@@ -12,7 +12,7 @@ public class SceneGraphHelpers
     /// <param name="entity">The entity to be wrapped in the <see cref="EntityNode"/>.</param>
     public static EntityNode CreateEntityNode(WorldNode owner, Entity entity, string name)
     {
-        owner.World.EntityManager.AddComponent(entity, LocalToWorld.Identity);
+        owner.World.EntityManager.AddComponent(entity, new LocalToWorld { matrix = Misaki.HighPerformance.Mathematics.float4x4.identity });
         owner.World.EntityManager.AddComponent(entity, Hierarchy.Root);
         return new EntityNode(owner, entity, name);
     }

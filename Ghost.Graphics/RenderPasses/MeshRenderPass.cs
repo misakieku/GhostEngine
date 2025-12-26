@@ -51,29 +51,29 @@ internal class MeshRenderPass : IRenderPass
 
     public void Initialize(ref readonly RenderingContext ctx)
     {
-        var shaderDescriptor = SDLCompiler.CompileShader("F:/csharp/GhostEngine/Ghost.Graphics/test.gshader", "C:/Users/Misaki/Downloads/Archive").GetValueOrThrow();
+        var shaderDescriptor = SDLCompiler.CompileShader("F:/csharp/GhostEngine/Ghost.Graphics/test.gsdef", "C:/Users/Misaki/Downloads/Archive").GetValueOrThrow();
 
         _compileResults = new GraphicsCompiledResult[shaderDescriptor.passes.Count];
         for (var i = 0; i < shaderDescriptor.passes.Count; i++)
         {
             var pass = shaderDescriptor.passes[i];
             var compiled = ctx.ShaderCompiler.CompilePass(pass, shaderDescriptor.generatedCodePath).GetValueOrThrow();
-            if (pass is not FullPassDescriptor fullPass)
-            {
-                continue;
-            }
+            //if (pass is not FullPassDescriptor fullPass)
+            //{
+            //    continue;
+            //}
 
-            var psoDes = new GraphicsPSODescriptor
-            {
-                PassId = new ShaderPassKey(fullPass.Identifier),
-                PipelineOption = fullPass.localPipeline,
+            //var psoDes = new GraphicsPSODescriptor
+            //{
+            //    PassId = new ShaderPassKey(fullPass.Identifier),
+            //    PipelineOption = fullPass.localPipeline,
 
-                RtvFormats = [TextureFormat.B8G8R8A8_UNorm],
-                DsvFormat = TextureFormat.Unknown,
-            };
+            //    RtvFormats = [TextureFormat.B8G8R8A8_UNorm],
+            //    DsvFormat = TextureFormat.Unknown,
+            //};
 
-            _compileResults[i] = compiled;
-            ctx.PipelineLibrary.CompilePSO(in psoDes, in _compileResults[i]).GetValueOrThrow();
+            //_compileResults[i] = compiled;
+            //ctx.PipelineLibrary.CompilePSO(in psoDes, in _compileResults[i]).GetValueOrThrow();
         }
 
         MeshBuilder.CreateCube(0.75f, default, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent, out var vertices, out var indices);
@@ -128,6 +128,10 @@ internal class MeshRenderPass : IRenderPass
 
         Debug.Assert(matRef.SetPropertyCache(in matProps) == ErrorStatus.None);
         matRef.UploadData(ctx.DirectCommandBuffer);
+
+        var pso = matRef.GetPassPipelineOverride(0);
+        pso.Cull = Cull.Back;
+        matRef.SetPassPipelineOverride(0, in pso);
 
         _forwardPassID = Shader.GetPassID("Forward");
     }

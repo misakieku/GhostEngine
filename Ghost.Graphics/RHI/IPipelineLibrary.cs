@@ -6,7 +6,7 @@ namespace Ghost.Graphics.RHI;
 public interface IShaderPipeline
 {
     /// <summary>
-    /// Pipeline type
+    /// Pipeline space
     /// </summary>
     PipelineType Type
     {

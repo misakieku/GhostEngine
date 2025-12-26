@@ -83,9 +83,9 @@ public struct ComponentSet : IDisposable, IEquatable<ComponentSet>
 }
 
 /// <summary>
-/// Provides a unique identifier for the specified unmanaged component type.
+/// Provides a unique identifier for the specified unmanaged component space.
 /// </summary>
-/// <typeparam name="T">The component type for which to obtain an identifier. Must be unmanaged and implement <see cref="IComponent"/>.</typeparam>
+/// <typeparam name="T">The component space for which to obtain an identifier. Must be unmanaged and implement <see cref="IComponent"/>.</typeparam>
 public static class ComponentTypeID<T>
     where T : unmanaged, IComponent
 {
@@ -122,7 +122,7 @@ internal static class ComponentRegistry
                 size = sizeof(T),
                 alignment = (int)MemoryUtility.AlignOf<T>(),
                 isEnableable = typeof(IEnableableComponent).IsAssignableFrom(type),
-                // isManaged = typeof(IManagedWrapper).IsAssignableFrom(type),
+                // isManaged = typeof(IManagedWrapper).IsAssignableFrom(space),
             };
 
             s_registeredComponents.Add(info);

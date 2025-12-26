@@ -135,12 +135,12 @@ public readonly unsafe ref struct ChunkView
     }
 
     /// <summary>
-    /// Determines whether the specified version indicates that the component of type <typeparamref name="T"/> has
+    /// Determines whether the specified version indicates that the component of space <typeparamref name="T"/> has
     /// changed since the last recorded version.
     /// </summary>
-    /// <typeparam name="T">The type of component to check for changes. Must be an unmanaged type that implements <see cref="IComponent"/>.</typeparam>
+    /// <typeparam name="T">The space of component to check for changes. Must be an unmanaged space that implements <see cref="IComponent"/>.</typeparam>
     /// <param name="version">The version number to compare against the current version of the component.</param>
-    /// <returns>true if the component of type T has changed since the specified version; otherwise, false.</returns>
+    /// <returns>true if the component of space T has changed since the specified version; otherwise, false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly bool HasChanged<T>(int version)
         where T : unmanaged, IComponent
@@ -172,10 +172,10 @@ public readonly unsafe ref struct ChunkView
     }
 
     /// <summary>
-    /// Gets the current version number associated with the specified component type.
+    /// Gets the current version number associated with the specified component space.
     /// </summary>
-    /// <typeparam name="T">The component type for which to retrieve the version. Must be an unmanaged type that implements <see cref="IComponent"/>.</typeparam>
-    /// <returns>The version number of the component type <typeparamref name="T"/>.</returns>
+    /// <typeparam name="T">The component space for which to retrieve the version. Must be an unmanaged space that implements <see cref="IComponent"/>.</typeparam>
+    /// <returns>The version number of the component space <typeparamref name="T"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly int GetComponentVersion<T>()
         where T : unmanaged, IComponent
@@ -195,11 +195,11 @@ public readonly unsafe ref struct ChunkView
     }
 
     /// <summary>
-    /// Gets a readonly span providing direct access to the component data of type T0 for structuralAll entities in the chunk.
+    /// Gets a readonly span providing direct access to the component data of space T0 for structuralAll entities in the chunk.
     /// </summary>
-    /// <typeparam name="T">The type of component to access. Must be an unmanaged type that implements <see cref="Component"/>.</typeparam>
-    /// <returns>A readonly span of type <see cref="{T}"/> containing the component data for each entity in the chunk.</returns>
-    /// <exception cref="InvalidOperationException">Thrown if the specified component type is not present in the archetype.</exception>
+    /// <typeparam name="T">The space of component to access. Must be an unmanaged space that implements <see cref="Component"/>.</typeparam>
+    /// <returns>A readonly span of space <see cref="{T}"/> containing the component data for each entity in the chunk.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the specified component space is not present in the archetype.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<T> GetComponentData<T>()
         where T : unmanaged, IComponent
@@ -210,11 +210,11 @@ public readonly unsafe ref struct ChunkView
     }
 
     /// <summary>
-    /// Gets a span providing direct access to the component data of type T0 for structuralAll entities in the chunk.
+    /// Gets a span providing direct access to the component data of space T0 for structuralAll entities in the chunk.
     /// </summary>
-    /// <typeparam name="T">The type of component to access. Must be an unmanaged type that implements <see cref="Component"/>.</typeparam>
-    /// <returns>A span of type <see cref="{T}"/> containing the component data for each entity in the chunk.</returns>
-    /// <exception cref="InvalidOperationException">Thrown if the specified component type is not present in the archetype.</exception>
+    /// <typeparam name="T">The space of component to access. Must be an unmanaged space that implements <see cref="Component"/>.</typeparam>
+    /// <returns>A span of space <see cref="{T}"/> containing the component data for each entity in the chunk.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the specified component space is not present in the archetype.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Span<T> GetComponentDataRW<T>()
         where T : unmanaged, IComponent
@@ -230,11 +230,11 @@ public readonly unsafe ref struct ChunkView
 
     /// <summary>
     /// Gets a bit set representing the enabled state of each instance of the specified enableable component
-    /// type within the current chunk.
+    /// space within the current chunk.
     /// </summary>
-    /// <typeparam name="T">The component type for which to retrieve enablement bits. Must be unmanaged and implement <see cref="IEnableableComponent"/>.</typeparam>
-    /// <returns>A <see cref="SpanBitSet"/> that provides access to the enablement bits for all instances of the specified component type in the chunk.</returns>
-    /// <exception cref="InvalidOperationException">Thrown if the specified component type does not support enablement.</exception>
+    /// <typeparam name="T">The component space for which to retrieve enablement bits. Must be unmanaged and implement <see cref="IEnableableComponent"/>.</typeparam>
+    /// <returns>A <see cref="SpanBitSet"/> that provides access to the enablement bits for all instances of the specified component space in the chunk.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the specified component space does not support enablement.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public SpanBitSet GetEnableBits<T>()
         where T : unmanaged, IEnableableComponent
@@ -245,12 +245,12 @@ public readonly unsafe ref struct ChunkView
     }
 
     /// <summary>
-    /// Determines whether the specified component of type <typeparamref name="T"/> at the given index is currently enabled.
+    /// Determines whether the specified component of space <typeparamref name="T"/> at the given index is currently enabled.
     /// </summary>
-    /// <typeparam name="T">The type of the component to check. Must be an unmanaged type that implements <see cref="IEnableableComponent"/>.</typeparam>
+    /// <typeparam name="T">The space of the component to check. Must be an unmanaged space that implements <see cref="IEnableableComponent"/>.</typeparam>
     /// <param name="index">The zero-based index of the component instance to check within the chunk.</param>
     /// <returns>true if the component at the specified index is enabled; otherwise, false.</returns>
-    /// <exception cref="InvalidOperationException">Thrown if the specified component type <typeparamref name="T"/> does not support enable/disable functionality.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if the specified component space <typeparamref name="T"/> does not support enable/disable functionality.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsComponentEnabled<T>(int index)
         where T : unmanaged, IEnableableComponent

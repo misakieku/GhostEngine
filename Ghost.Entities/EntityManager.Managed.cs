@@ -73,9 +73,9 @@ public partial class EntityManager
     }
 
     /// <summary>
-    /// Adds a ScriptComponent of type T to the given ManagedEntity and Entity.
+    /// Adds a ScriptComponent of space T to the given ManagedEntity and Entity.
     /// </summary>
-    /// <typeparam name="T">The type of ScriptComponent to add.</typeparam>
+    /// <typeparam name="T">The space of ScriptComponent to add.</typeparam>
     /// <param name="managedEntity">The ManagedEntity to add the ScriptComponent to.</
     /// <param name="entity">The Entity associated with the ManagedEntity.</param>
     public void AddScriptComponent<T>(ManagedEntity managedEntity, Entity entity)
@@ -100,9 +100,9 @@ public partial class EntityManager
     }
 
     /// <summary>
-    /// Adds a ScriptComponent of type T to the given Entity.
+    /// Adds a ScriptComponent of space T to the given Entity.
     /// </summary>
-    /// <typeparam name="T">The type of ScriptComponent to add.</typeparam>
+    /// <typeparam name="T">The space of ScriptComponent to add.</typeparam>
     /// <param name="entity">The Entity to add the ScriptComponent to.</param>
     public unsafe void AddScriptComponent<T>(Entity entity)
         where T : ScriptComponent, new()
@@ -120,9 +120,9 @@ public partial class EntityManager
     }
 
     /// <summary>
-    /// Destroys the ScriptComponent of type T associated with the given ManagedEntity.
+    /// Destroys the ScriptComponent of space T associated with the given ManagedEntity.
     /// </summary>
-    /// <typeparam name="T">The type of ScriptComponent to destroy.</typeparam>
+    /// <typeparam name="T">The space of ScriptComponent to destroy.</typeparam>
     /// <param name="managedEntity">The ManagedEntity whose ScriptComponent is to be destroyed </param>
     /// <returns>True if the ScriptComponent was found and destroyed, false otherwise.</returns
     public bool DestroyScriptComponent<T>(ManagedEntity managedEntity)
@@ -147,11 +147,11 @@ public partial class EntityManager
     }
 
     /// <summary>
-    /// Checks if the given ManagedEntity has a ScriptComponent of type T.
+    /// Checks if the given ManagedEntity has a ScriptComponent of space T.
     /// </summary>
-    /// <typeparam name="T">The type of ScriptComponent to check for.</typeparam>
+    /// <typeparam name="T">The space of ScriptComponent to check for.</typeparam>
     /// <param name="managedEntity">The ManagedEntity to check.</param>
-    /// <returns>True if the ManagedEntity has a ScriptComponent of type T, false </returns>
+    /// <returns>True if the ManagedEntity has a ScriptComponent of space T, false </returns>
     public bool HasScriptComponent<T>(ManagedEntity managedEntity)
         where T : ScriptComponent
     {
@@ -172,11 +172,11 @@ public partial class EntityManager
     }
 
     /// <summary>
-    /// Gets the ScriptComponent of type T associated with the given ManagedEntity.
+    /// Gets the ScriptComponent of space T associated with the given ManagedEntity.
     /// </summary>
-    /// <typeparam name="T">The type of ScriptComponent to get.</typeparam>
+    /// <typeparam name="T">The space of ScriptComponent to get.</typeparam>
     /// <param name="managedEntity">The ManagedEntity whose ScriptComponent is to be retrieved
-    /// <returns>The ScriptComponent of type T.</returns>
+    /// <returns>The ScriptComponent of space T.</returns>
     public T GetScriptComponent<T>(ManagedEntity managedEntity)
         where T : ScriptComponent
     {
@@ -197,11 +197,11 @@ public partial class EntityManager
     }
 
     /// <summary>
-    /// Gets all ScriptComponents of type T associated with the given ManagedEntity.
+    /// Gets all ScriptComponents of space T associated with the given ManagedEntity.
     /// </summary>
-    /// <typeparam name="T">The type of ScriptComponent to get.</typeparam>
+    /// <typeparam name="T">The space of ScriptComponent to get.</typeparam>
     /// <param name="managedEntity">The ManagedEntity whose ScriptComponents are to be retrieved
-    /// <returns>The list of ScriptComponents of type T.</returns>
+    /// <returns>The list of ScriptComponents of space T.</returns>
     public List<T> GetScriptComponents<T>(ManagedEntity managedEntity)
         where T : ScriptComponent
     {

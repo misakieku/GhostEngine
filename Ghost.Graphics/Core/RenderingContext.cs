@@ -182,9 +182,24 @@ public readonly unsafe ref struct RenderingContext
 
         if (!_engine.PipelineLibrary.HasPipeline(pipelineKey))
         {
-            // TODO: Compile pso if not exist.
-            // _engine.PipelineLibrary.CompilePSO(pipelineKey, ref shader, passIndex, materialRef.GetPassPipelineOverride());
-            throw new InvalidOperationException("Pipeline state object not found in the pipeline library.");
+            var pass = shader.GetPassReference(passIndex);
+            var r = _engine.ShaderCompiler.LoadCompiledCache(pass.Identifier);
+            if (r.IsFailure)
+            {
+                throw new InvalidOperationException("Failed to load compiled shader cache for pipeline state object creation.");
+            }
+
+            var psoDes = new GraphicsPSODescriptor
+            {
+                PassId = pass.Identifier,
+                PipelineOption = materialRef.GetPassPipelineOverride(passIndex),
+
+                RtvFormats = [TextureFormat.B8G8R8A8_UNorm],
+                DsvFormat = TextureFormat.Unknown,
+            };
+
+            var compiled = r.Value;
+            _engine.PipelineLibrary.CompilePSO(in psoDes, in compiled).GetValueOrThrow();
         }
 
         _directCmd.SetPipelineState(pipelineKey);

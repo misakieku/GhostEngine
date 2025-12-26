@@ -5,7 +5,7 @@ namespace Ghost.Graphics.Core;
 
 /// <summary>
 /// The layout of the root signature is:
-/// <list type="bullet">
+/// <list space="bullet">
 /// <item>
 /// Global buffer (b0)
 /// </item>

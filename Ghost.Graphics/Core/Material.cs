@@ -66,16 +66,32 @@ public struct Material : IResourceReleasable, IHandleType
     private Identifier<Shader> _shader;
     private CBufferCache _cBufferCache;
     private UnsafeArray<PipelineOverride> _passPipelineOverride;
+    private LocalKeywordSet _keywordMask;
+
+    private bool _isDirty;
 
     internal readonly CBufferCache CBufferCache => _cBufferCache;
 
     public readonly Identifier<Shader> Shader => _shader;
+    public readonly bool IsDirty => _isDirty;
 
-    public Result SetShader(Identifier<Shader> shaderId, IResourceAllocator allocator, IResourceDatabase database)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void SetDirty()
+    {
+        _isDirty = true;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal readonly MaterialPipelineKey GetPassPipelineKey(int passIndex)
+    {
+        return _passPipelineOverride[passIndex].pipelineKey;
+    }
+
+    public ErrorStatus SetShader(Identifier<Shader> shaderId, IResourceAllocator allocator, IResourceDatabase database)
     {
         if (!shaderId.IsValid)
         {
-            return Result.Failure("Shader ID is invalid.");
+            return ErrorStatus.InvalidArgument;
         }
 
         _cBufferCache.ReleaseResource(database);
@@ -95,9 +111,10 @@ public struct Material : IResourceReleasable, IHandleType
             }
         }
 
+        _keywordMask.Clear();
         for (var i = 0; i < shader.PassCount; i++)
         {
-            var pass = shader.GetPass(i);
+            ref var pass = ref shader.GetPassReference(i);
             _passPipelineOverride[i] = new PipelineOverride
             {
                 shaderPass = pass.Identifier,
@@ -119,7 +136,7 @@ public struct Material : IResourceReleasable, IHandleType
             _cBufferCache = new CBufferCache(buffer, shader.CBufferSize);
         }
 
-        return Result.Success();
+        return ErrorStatus.None;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -135,7 +152,7 @@ public struct Material : IResourceReleasable, IHandleType
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Span<byte> GetRawPropertyCache()
+    public readonly ReadOnlySpan<byte> GetRawPropertyCache()
     {
         if (_cBufferCache.Size == 0)
         {
@@ -146,7 +163,7 @@ public struct Material : IResourceReleasable, IHandleType
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly unsafe ErrorStatus SetPropertyCache<T>(ref readonly T data)
+    public unsafe ErrorStatus SetPropertyCache<T>(ref readonly T data)
         where T : unmanaged
     {
         if (sizeof(T) != _cBufferCache.Size)
@@ -155,11 +172,13 @@ public struct Material : IResourceReleasable, IHandleType
         }
 
         Unsafe.WriteUnaligned(_cBufferCache.CpuData.GetUnsafePtr(), data);
+        SetDirty();
+
         return ErrorStatus.None;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly unsafe ErrorStatus SetRawPropertyCache(ReadOnlySpan<byte> data)
+    public unsafe ErrorStatus SetRawPropertyCache(ReadOnlySpan<byte> data)
     {
         if (data.Length != _cBufferCache.Size)
         {
@@ -167,7 +186,46 @@ public struct Material : IResourceReleasable, IHandleType
         }
 
         Unsafe.WriteUnaligned(_cBufferCache.CpuData.GetUnsafePtr(), data);
+        SetDirty();
+
         return ErrorStatus.None;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly PipelineState GetPassPipelineOverride(int passIndex)
+    {
+        return _passPipelineOverride[passIndex].options;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void SetPassPipelineOverride(int passIndex, ref readonly PipelineState options)
+    {
+        ref var pipelineOverride = ref _passPipelineOverride[passIndex];
+        pipelineOverride.options = options;
+        pipelineOverride.pipelineKey = new MaterialPipelineKey(pipelineOverride.shaderPass, options);
+        SetDirty();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ErrorStatus SetKeyword(IResourceDatabase resourceDatabase, int keywordId, bool enabled)
+    {
+        ref var shader = ref resourceDatabase.GetShaderReference(_shader);
+        var localIndex = shader.GetLocalKeywordIndex(keywordId);
+        if (localIndex == -1)
+        {
+            return ErrorStatus.NotFound;
+        }
+
+        _keywordMask.SetKeyword(localIndex, enabled);
+        SetDirty();
+
+        return ErrorStatus.None;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly bool IsKeywordEnabled(int keywordId)
+    {
+        return _keywordMask.IsKeywordEnabled(keywordId);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -178,28 +236,9 @@ public struct Material : IResourceReleasable, IHandleType
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly PipelineState GetPassPipelineOverride(int passIndex)
-    {
-        return _passPipelineOverride[passIndex].options;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void SetPassPipelineOverride(int passIndex, in PipelineState options)
-    {
-        ref var pipelineOverride = ref _passPipelineOverride[passIndex];
-        pipelineOverride.options = options;
-        pipelineOverride.pipelineKey = new MaterialPipelineKey(pipelineOverride.shaderPass, options);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal readonly MaterialPipelineKey GetPassPipelineKey(int passIndex)
-    {
-        return _passPipelineOverride[passIndex].pipelineKey;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     void IResourceReleasable.ReleaseResource(IResourceDatabase database)
     {
         _cBufferCache.ReleaseResource(database);
+        _passPipelineOverride.Dispose();
     }
 }

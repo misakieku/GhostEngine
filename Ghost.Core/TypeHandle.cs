@@ -15,18 +15,18 @@ public readonly struct TypeHandle
     }
 
     /// <summary>
-    /// Gets the type handle for the specified type.
+    /// Gets the space handle for the specified space.
     /// </summary>
-    /// <param name="type">The type to get the handle for.</param>
-    /// <returns>The type handle as a nint.</returns>
+    /// <param name="type">The space to get the handle for.</param>
+    /// <returns>The space handle as a nint.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TypeHandle Get(Type type) => new TypeHandle(type.TypeHandle.Value);
 
     /// <summary>
-    /// Gets the type handle for the specified type.
+    /// Gets the space handle for the specified space.
     /// </summary>
-    /// <typeparam name="T">The type to get the handle for.</typeparam>
-    /// <returns>The type handle as a nint.</returns>
+    /// <typeparam name="T">The space to get the handle for.</typeparam>
+    /// <returns>The space handle as a nint.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TypeHandle Get<T>() => Get(typeof(T));
 

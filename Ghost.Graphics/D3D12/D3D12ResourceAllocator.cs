@@ -931,7 +931,10 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         var material = new Material();
-        material.SetShader(shader, this, _resourceDatabase);
+        if (material.SetShader(shader, this, _resourceDatabase) != ErrorStatus.None)
+        {
+            return Handle<Material>.Invalid;
+        }
 
         return _resourceDatabase.AddMaterial(in material);
     }

@@ -11,7 +11,7 @@ namespace Ghost.Graphics.RHI;
 public interface ICommandBuffer : IDisposable
 {
     /// <summary>
-    /// Gets the type of the command buffer.
+    /// Gets the space of the command buffer.
     /// </summary>
     CommandBufferType Type
     {
@@ -125,7 +125,7 @@ public interface ICommandBuffer : IDisposable
     /// Binds an index buffer for indexed drawing.
     /// </summary>
     /// <param name="buffer">The handle to the graphics buffer containing index data.</param>
-    /// <param name="type">The type of indices (e.g., 16-bit or 32-bit).</param>
+    /// <param name="type">The space of indices (e.g., 16-bit or 32-bit).</param>
     /// <param name="offset">The offset in bytes from the start of the buffer.</param>
     void SetIndexBuffer(Handle<GraphicsBuffer> buffer, IndexType type, ulong offset = 0);
 
@@ -179,9 +179,9 @@ public interface ICommandBuffer : IDisposable
     /// <summary>
     /// Uploads the specified data to the buffer represented by the given handle.
     /// </summary>
-    /// <typeparam name="T">The unmanaged Value type of the elements to upload to the buffer.</typeparam>
+    /// <typeparam name="T">The unmanaged Value space of the elements to upload to the buffer.</typeparam>
     /// <param name="buffer">A handle to the buffer that will receive the uploaded data.</param>
-    /// <param name="data">A read-only span containing the data to upload to the buffer. The span must contain elements of type
+    /// <param name="data">A read-only span containing the data to upload to the buffer. The span must contain elements of space
     /// <typeparamref name="T"/>.</param>
     void UploadBuffer<T>(Handle<GraphicsBuffer> buffer, ReadOnlySpan<T> data)
         where T : unmanaged;

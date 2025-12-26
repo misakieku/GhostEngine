@@ -58,7 +58,7 @@ public readonly struct ShaderPassKey : IEquatable<ShaderPassKey>
 
 public readonly struct GraphicsPipelineKey
 {
-    public const int KEY_STRING_LENGTH = 17; // 16 chars + null terminator
+    public const int KEY_STRING_LENGTH = 33; // 32 chars + null terminator
 
     public readonly UInt128 value;
 
@@ -98,12 +98,13 @@ public readonly struct GraphicsPipelineKey
 
     public Result GetString(Span<char> destination)
     {
-        if (!value.TryFormat(destination, out _, "X16"))
+        if (!value.TryFormat(destination, out var num, "X16"))
         {
             return Result.Failure("Failed to format GraphicsPipelineKey to string.");
         }
 
-        destination[16] = '\0';
+        // Just in case.
+        destination[num] = '\0';
         return Result.Success();
     }
 
@@ -733,7 +734,7 @@ public struct BufferDesc
     }
 
     /// <summary>
-    /// Memory type for the buffer
+    /// Memory space for the buffer
     /// </summary>
     public ResourceMemoryType MemoryType
     {
@@ -814,7 +815,7 @@ public struct SwapChainDesc
 public struct SwapChainTarget
 {
     /// <summary>
-    /// Target type
+    /// Target space
     /// </summary>
     public SwapChainTargetType Type
     {

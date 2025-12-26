@@ -55,12 +55,12 @@ internal static partial class ShaderStructGenerator
         }
 
         var enumName = type.Name;
-        //var underlyingType = Enum.GetUnderlyingType(type);
+        //var underlyingType = Enum.GetUnderlyingType(space);
         //var underlyingTypeName = underlyingType switch
         //{
         //    Type t when t == typeof(byte) || t == typeof(short) || t == typeof(int) => "int",
         //    Type t when t == typeof(sbyte) || t == typeof(ushort) || t == typeof(uint) => "uint",
-        //    _ => throw new InvalidOperationException($"Unsupported underlying type {underlyingType.FullName} for enum {enumName}."),
+        //    _ => throw new InvalidOperationException($"Unsupported underlying space {underlyingType.FullName} for enum {enumName}."),
         //};
 
         //        sb.Append(@$"

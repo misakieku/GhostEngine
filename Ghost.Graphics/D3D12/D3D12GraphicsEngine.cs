@@ -5,7 +5,7 @@
 using Ghost.Core;
 using Ghost.Graphics.Contracts;
 using Ghost.Graphics.RHI;
-using Ghost.Graphics.Utilities;
+using Ghost.Graphics.Core;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 

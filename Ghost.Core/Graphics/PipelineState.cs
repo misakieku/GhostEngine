@@ -1,6 +1,6 @@
 namespace Ghost.Core.Graphics;
 
-public enum ZTest
+public enum ZTest : byte
 {
     Disabled,
     Less,
@@ -12,20 +12,20 @@ public enum ZTest
     Always
 }
 
-public enum ZWrite
+public enum ZWrite : byte
 {
     Off,
     On
 }
 
-public enum Cull
+public enum Cull : byte
 {
     Off,
     Front,
     Back
 }
 
-public enum Blend
+public enum Blend : byte
 {
     Opaque,
     Alpha,
@@ -35,7 +35,7 @@ public enum Blend
 }
 
 [Flags]
-public enum ColorWriteMask
+public enum ColorWriteMask : byte
 {
     None = 0,
     Red = 1 << 0,
