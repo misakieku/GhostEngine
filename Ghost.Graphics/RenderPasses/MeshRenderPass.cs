@@ -57,7 +57,15 @@ internal class MeshRenderPass : IRenderPass
         for (var i = 0; i < shaderDescriptor.passes.Count; i++)
         {
             var pass = shaderDescriptor.passes[i];
-            var compiled = ctx.ShaderCompiler.CompilePass(pass, shaderDescriptor.generatedCodePath).GetValueOrThrow();
+
+            var config = new ShaderCompilationConfig
+            {
+                optimizeLevel = CompilerOptimizeLevel.O3,
+                options = CompilerOption.KeepReflections,
+                tier = CompilerTier.Tier2
+            };
+
+            var compiled = ctx.ShaderCompiler.CompilePass(pass, in config, shaderDescriptor.generatedCodePath).GetValueOrThrow();
             //if (pass is not FullPassDescriptor fullPass)
             //{
             //    continue;

@@ -49,7 +49,7 @@ internal sealed partial class DxcShaderCompiler
         };
     }
 
-    private static List<string> GetCompilerArguments(ref readonly CompilerConfig config)
+    private static List<string> GetCompilerArguments(ref readonly ShaderCompilationConfig config)
     {
         var argsArray = new List<string>
         {
@@ -242,16 +242,12 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
         }
     }
 
-    public Result<ShaderCompileResult> Compile(ref readonly CompilerConfig config, Allocator allocator)
+    public Result<ShaderCompileResult> Compile(ref readonly ShaderCompilationConfig config, Allocator allocator)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         using ComPtr<IDxcIncludeHandler> includeHandler = default;
         using ComPtr<IDxcBlobEncoding> sourceBlob = default;
-
-        // Create DXC _compiler.Get() and _utils.Get()
-        var dxccID = CLSID.CLSID_DxcCompiler;
-        var dxcuID = CLSID.CLSID_DxcUtils;
 
         ThrowIfFailed(_utils.Get()->CreateDefaultIncludeHandler(includeHandler.GetAddressOf()));
 
@@ -344,7 +340,9 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
         }
     }
 
-    public Result<GraphicsCompiledResult> CompilePass(IPassDescriptor descriptor, string? generatedCodePath)
+    // TODO: This should be shader variant specific compile instead of pass specific.
+    // TODO: Build final shader code in memory before compiling.
+    public Result<GraphicsCompiledResult> CompilePass(IPassDescriptor descriptor, ref readonly ShaderCompilationConfig additionalConfig, string? generatedCodePath)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -353,20 +351,23 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
             return Result.Failure("FullPassDescriptor expected.");
         }
 
+        var fullDefines = fullDescriptor.defines ?? new List<string>();
+        fullDefines.AddRange(additionalConfig.defines);
+
         ShaderCompileResult tsResult = default;
         var tsEntry = fullDescriptor.taskShader;
         if (tsEntry.IsCreated)
         {
-            var config = new CompilerConfig
+            var config = new ShaderCompilationConfig
             {
-                defines = fullDescriptor.defines.AsSpan(),
+                defines = fullDefines.AsSpan(),
                 include = generatedCodePath,
                 shaderPath = tsEntry.shader,
                 entryPoint = tsEntry.entry,
                 stage = ShaderStage.TaskShader,
-                tier = CompilerTier.Tier0,
-                optimizeLevel = CompilerOptimizeLevel.O3,
-                options = CompilerOption.KeepReflections,
+                tier = additionalConfig.tier,
+                optimizeLevel = additionalConfig.optimizeLevel,
+                options = additionalConfig.options,
             };
 
             var result = Compile(ref config, Allocator.Persistent);
@@ -382,16 +383,16 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
         var msEntry = fullDescriptor.meshShader;
         if (msEntry.IsCreated)
         {
-            var config = new CompilerConfig
+            var config = new ShaderCompilationConfig
             {
-                defines = fullDescriptor.defines.AsSpan(),
+                defines = fullDefines.AsSpan(),
                 include = generatedCodePath,
                 shaderPath = msEntry.shader,
                 entryPoint = msEntry.entry,
                 stage = ShaderStage.MeshShader,
-                tier = CompilerTier.Tier0,
-                optimizeLevel = CompilerOptimizeLevel.O3,
-                options = CompilerOption.KeepReflections,
+                tier = additionalConfig.tier,
+                optimizeLevel = additionalConfig.optimizeLevel,
+                options = additionalConfig.options,
             };
 
             var result = Compile(ref config, Allocator.Persistent);
@@ -411,16 +412,16 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
         var psEntry = fullDescriptor.pixelShader;
         if (psEntry.IsCreated)
         {
-            var config = new CompilerConfig
+            var config = new ShaderCompilationConfig
             {
-                defines = fullDescriptor.defines.AsSpan(),
+                defines = fullDefines.AsSpan(),
                 include = generatedCodePath,
                 shaderPath = psEntry.shader,
                 entryPoint = psEntry.entry,
                 stage = ShaderStage.PixelShader,
-                tier = CompilerTier.Tier0,
-                optimizeLevel = CompilerOptimizeLevel.O3,
-                options = CompilerOption.KeepReflections,
+                tier = additionalConfig.tier,
+                optimizeLevel = additionalConfig.optimizeLevel,
+                options = additionalConfig.options,
             };
 
             var result = Compile(ref config, Allocator.Persistent);

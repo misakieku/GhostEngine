@@ -36,6 +36,7 @@ public partial struct Shader
     private static int s_nextPropertyID = 0;
 
     private static readonly Dictionary<string, int> s_keywordNameToID = new Dictionary<string, int>();
+    private static readonly Dictionary<int, string> s_keywordIDToName = new Dictionary<int, string>();
     private static int s_nextkeywordID = 0;
 
     public static Identifier<ShaderPass> GetPassID(string passName)
@@ -68,7 +69,18 @@ public partial struct Shader
             id = s_nextkeywordID++;
         }
 
+        s_keywordIDToName[id] = keywordName;
         return id;
+    }
+
+    public static string? GetKeywordName(int keywordID)
+    {
+        if (s_keywordIDToName.TryGetValue(keywordID, out var name))
+        {
+            return name;
+        }
+
+        return null;
     }
 
     // TODO: Global keywords
