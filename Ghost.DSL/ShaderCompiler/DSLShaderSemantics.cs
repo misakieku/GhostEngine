@@ -1,6 +1,6 @@
 using Ghost.Core.Graphics;
 
-namespace Ghost.SDL.Compiler;
+namespace Ghost.DSL.ShaderCompiler;
 
 public enum PropertyScope
 {
@@ -36,7 +36,7 @@ internal class PassSemantic
     public PipelineSemantic? localPipeline;
 }
 
-internal class SDLSemantics
+internal class DSLShaderSemantics
 {
     public string name = string.Empty;
     public string fallback = string.Empty;

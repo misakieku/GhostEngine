@@ -108,7 +108,7 @@ public partial class EntityManager
         where T : ScriptComponent, new()
     {
         var location = _entityLocations.GetElementAt(entity.ID, entity.Generation);
-        ref var archetype = ref _world.GetArchetypeReference(location.archetypeID);
+        ref var archetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
 
         var pManagedEntityRef = (ManagedEntityRef*)archetype.GetComponentData(location.chunkIndex, location.rowIndex, ComponentTypeID<ManagedEntityRef>.Value);
         if (pManagedEntityRef == null)

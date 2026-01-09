@@ -1,47 +1,20 @@
 using System.Runtime.Intrinsics;
-
+using TerraFX.Interop.Windows;
 using ElementType = uint;
 
 namespace Ghost.Graphics.Core;
 
 public unsafe struct LocalKeywordSet
 {
-    public struct ReadOnly
-    {
-        private LocalKeywordSet _set;
-
-        internal ReadOnly(LocalKeywordSet set)
-        {
-            _set = set;
-        }
-
-        public bool IsKeywordEnabled(int id)
-        {
-            return _set.IsKeywordEnabled(id);
-        }
-
-        public static ReadOnly operator |(in ReadOnly a, in ReadOnly b)
-        {
-            var resultSet = a._set | b._set;
-            return new ReadOnly(resultSet);
-        }
-
-        public static ReadOnly operator &(in ReadOnly a, in ReadOnly b)
-        {
-            var resultSet = a._set & b._set;
-            return new ReadOnly(resultSet);
-        }
-    }
-
     private const int _DATA_ARRAY_LENGTH = 4; // 4 * 32 = 128 bits
-    private const int _SIZE_OF_ELEMENT = sizeof(ElementType);
+    private const int _BITS_PER_ELEMENT = sizeof(ElementType) * 8;
 
     private fixed ElementType _data[_DATA_ARRAY_LENGTH];
 
     public void SetKeyword(int localIndex, bool enabled)
     {
-        var index = localIndex / _SIZE_OF_ELEMENT;
-        var bit = localIndex % _SIZE_OF_ELEMENT;
+        var index = localIndex / _BITS_PER_ELEMENT;
+        var bit = localIndex % _BITS_PER_ELEMENT;
         if (enabled)
         {
             _data[index] |= (uint)(1 << bit);
@@ -54,8 +27,8 @@ public unsafe struct LocalKeywordSet
 
     public bool IsKeywordEnabled(int localIndex)
     {
-        var index = localIndex / _SIZE_OF_ELEMENT;
-        var bit = localIndex % _SIZE_OF_ELEMENT;
+        var index = localIndex / _BITS_PER_ELEMENT;
+        var bit = localIndex % _BITS_PER_ELEMENT;
         return (_data[index] & (uint)(1 << bit)) != 0;
     }
 
@@ -67,10 +40,30 @@ public unsafe struct LocalKeywordSet
         }
     }
 
-    public readonly ReadOnly AsReadOnly()
+    public ulong GetHash64()
     {
-        return new ReadOnly(this);
+        ulong hash = 14695981039346656037ul; // FNV offset basis
+
+        for (var i = 0; i < _DATA_ARRAY_LENGTH; i++)
+        {
+            hash ^= _data[i];
+            hash *= 1099511628211ul; // FNV prime
+        }
+
+        return hash;
     }
+
+    public override int GetHashCode()
+    {
+        var hash = 17;
+        for (var i = 0; i < _DATA_ARRAY_LENGTH; i++)
+        {
+            hash = hash * 31 + _data[i].GetHashCode();
+        }
+
+        return hash;
+    }
+
 
     public static LocalKeywordSet operator |(in LocalKeywordSet a, in LocalKeywordSet b)
     {
@@ -83,10 +76,11 @@ public unsafe struct LocalKeywordSet
             {
                 for (var i = 0; i < _DATA_ARRAY_LENGTH; i += Vector128<ElementType>.Count)
                 {
-                    var vecA = Vector128.LoadUnsafe(ref *pDataA, (uint)(i * _SIZE_OF_ELEMENT));
-                    var vecB = Vector128.LoadUnsafe(ref *pDataB, (uint)(i * _SIZE_OF_ELEMENT));
+                    var elementOffset = (nuint)i;
+                    var vecA = Vector128.LoadUnsafe(ref *pDataA, elementOffset);
+                    var vecB = Vector128.LoadUnsafe(ref *pDataB, elementOffset);
                     var vecResult = Vector128.BitwiseOr(vecA, vecB);
-                    vecResult.StoreUnsafe(ref result._data[0], (uint)(i * _SIZE_OF_ELEMENT));
+                    vecResult.StoreUnsafe(ref result._data[0], elementOffset);
                 }
             }
         }
@@ -112,10 +106,11 @@ public unsafe struct LocalKeywordSet
             {
                 for (var i = 0; i < _DATA_ARRAY_LENGTH; i += Vector128<ElementType>.Count)
                 {
-                    var vecA = Vector128.LoadUnsafe(ref *pDataA, (uint)(i * _SIZE_OF_ELEMENT));
-                    var vecB = Vector128.LoadUnsafe(ref *pDataB, (uint)(i * _SIZE_OF_ELEMENT));
+                    var elementOffset = (nuint)i;
+                    var vecA = Vector128.LoadUnsafe(ref *pDataA, elementOffset);
+                    var vecB = Vector128.LoadUnsafe(ref *pDataB, elementOffset);
                     var vecResult = Vector128.BitwiseAnd(vecA, vecB);
-                    vecResult.StoreUnsafe(ref result._data[0], (uint)(i * _SIZE_OF_ELEMENT));
+                    vecResult.StoreUnsafe(ref result._data[0], elementOffset);
                 }
             }
         }

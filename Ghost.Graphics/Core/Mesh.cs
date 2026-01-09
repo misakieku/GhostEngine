@@ -9,7 +9,7 @@ using Misaki.HighPerformance.Mathematics.Geometry;
 
 namespace Ghost.Graphics.Core;
 
-public struct Mesh : IResourceReleasable, IHandleType
+public struct Mesh : IResourceReleasable
 {
     private UnsafeList<Vertex> _vertices;
     private UnsafeList<uint> _indices;

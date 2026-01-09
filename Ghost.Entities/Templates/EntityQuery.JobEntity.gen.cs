@@ -1114,7 +1114,7 @@ public unsafe partial struct EntityQuery
         // Iterate the Query's matching archetypes
         foreach (var archID in _matchingArchetypes)
         {
-            ref var arch = ref world.GetArchetypeReference(archID);
+            ref var arch = ref world.ComponentManager.GetArchetypeReference(archID);
 
             if (arch.ChunkCount == 0)
             {
@@ -1255,7 +1255,7 @@ public unsafe partial struct EntityQuery
         // Iterate the Query's matching archetypes
         foreach (var archID in _matchingArchetypes)
         {
-            ref var arch = ref world.GetArchetypeReference(archID);
+            ref var arch = ref world.ComponentManager.GetArchetypeReference(archID);
 
             if (arch.ChunkCount == 0)
             {
@@ -1423,7 +1423,7 @@ public unsafe partial struct EntityQuery
         // Iterate the Query's matching archetypes
         foreach (var archID in _matchingArchetypes)
         {
-            ref var arch = ref world.GetArchetypeReference(archID);
+            ref var arch = ref world.ComponentManager.GetArchetypeReference(archID);
 
             if (arch.ChunkCount == 0)
             {
@@ -1618,7 +1618,7 @@ public unsafe partial struct EntityQuery
         // Iterate the Query's matching archetypes
         foreach (var archID in _matchingArchetypes)
         {
-            ref var arch = ref world.GetArchetypeReference(archID);
+            ref var arch = ref world.ComponentManager.GetArchetypeReference(archID);
 
             if (arch.ChunkCount == 0)
             {
@@ -1840,7 +1840,7 @@ public unsafe partial struct EntityQuery
         // Iterate the Query's matching archetypes
         foreach (var archID in _matchingArchetypes)
         {
-            ref var arch = ref world.GetArchetypeReference(archID);
+            ref var arch = ref world.ComponentManager.GetArchetypeReference(archID);
 
             if (arch.ChunkCount == 0)
             {
@@ -2089,7 +2089,7 @@ public unsafe partial struct EntityQuery
         // Iterate the Query's matching archetypes
         foreach (var archID in _matchingArchetypes)
         {
-            ref var arch = ref world.GetArchetypeReference(archID);
+            ref var arch = ref world.ComponentManager.GetArchetypeReference(archID);
 
             if (arch.ChunkCount == 0)
             {
@@ -2365,7 +2365,7 @@ public unsafe partial struct EntityQuery
         // Iterate the Query's matching archetypes
         foreach (var archID in _matchingArchetypes)
         {
-            ref var arch = ref world.GetArchetypeReference(archID);
+            ref var arch = ref world.ComponentManager.GetArchetypeReference(archID);
 
             if (arch.ChunkCount == 0)
             {
@@ -2668,7 +2668,7 @@ public unsafe partial struct EntityQuery
         // Iterate the Query's matching archetypes
         foreach (var archID in _matchingArchetypes)
         {
-            ref var arch = ref world.GetArchetypeReference(archID);
+            ref var arch = ref world.ComponentManager.GetArchetypeReference(archID);
 
             if (arch.ChunkCount == 0)
             {

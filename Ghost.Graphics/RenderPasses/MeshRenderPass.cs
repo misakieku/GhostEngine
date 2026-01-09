@@ -1,12 +1,13 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
+using Ghost.DSL.ShaderCompiler;
 using Ghost.Graphics.Contracts;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Utilities;
-using Ghost.SDL.Compiler;
 using Misaki.HighPerformance.Image;
 using Misaki.HighPerformance.Mathematics;
+using Misaki.HighPerformance.Utilities;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
@@ -37,8 +38,6 @@ internal class MeshRenderPass : IRenderPass
     private Handle<Material> _material;
     private Handle<Texture>[]? _textures;
 
-    private GraphicsCompiledResult[]? _compileResults;
-
     private Identifier<ShaderPass> _forwardPassID;
 
     // Texture file paths for this demo
@@ -49,14 +48,41 @@ internal class MeshRenderPass : IRenderPass
         "C:/Users/Misaki/Downloads/Im/yande.re 1134666 blue_archive nakamasa_ichika sugarhigh.jpg"
     ];
 
+    private static IEnumerable<List<string>> GetAllVariantCombination(List<KeywordsGroup> keywordsGroups)
+    {
+        if (keywordsGroups.Count == 0)
+        {
+            yield return [];
+            yield break;
+        }
+
+        var firstGroup = keywordsGroups[0];
+        var remainingGroups = keywordsGroups.Skip(1).ToList();
+        foreach (var keyword in firstGroup.keywords)
+        {
+            foreach (var combination in GetAllVariantCombination(remainingGroups))
+            {
+                combination.Insert(0, keyword);
+                yield return combination;
+            }
+        }
+    }
+
     public void Initialize(ref readonly RenderingContext ctx)
     {
-        var shaderDescriptor = SDLCompiler.CompileShader("F:/csharp/GhostEngine/Ghost.Graphics/test.gsdef", "C:/Users/Misaki/Downloads/Archive").GetValueOrThrow();
+        var shaderDescriptor = DSLShaderCompiler.CompileShader("F:/csharp/GhostEngine/Ghost.Graphics/test.gsdef", "C:/Users/Misaki/Downloads/Archive").GetValueOrThrow();
 
-        _compileResults = new GraphicsCompiledResult[shaderDescriptor.passes.Count];
+        _shader = ctx.ResourceAllocator.CreateGraphicsShader(shaderDescriptor);
+        _material = ctx.ResourceAllocator.CreateMaterial(_shader);
+
         for (var i = 0; i < shaderDescriptor.passes.Count; i++)
         {
             var pass = shaderDescriptor.passes[i];
+
+            if (pass is not PassDescriptor fullPass)
+            {
+                continue;
+            }
 
             var config = new ShaderCompilationConfig
             {
@@ -65,32 +91,51 @@ internal class MeshRenderPass : IRenderPass
                 tier = CompilerTier.Tier2
             };
 
-            var compiled = ctx.ShaderCompiler.CompilePass(pass, in config, shaderDescriptor.generatedCodePath).GetValueOrThrow();
-            //if (pass is not FullPassDescriptor fullPass)
-            //{
-            //    continue;
-            //}
+            // TODO: Ideally, in editor mode, we compile a single variant when it's needed during rendering. Before the compilation is done, we fallback to a special "compilation in progress" shader.
+            // During the build process, we can precompile all the variants and store them in the cache for fast loading in runtime.
+            // After the compilation, we should store the compiled result in the disk cache even in editor mode. This allows us to avoid recompiling the same variant, same code hash and same version) multiple times.
+            if (fullPass.keywords == null)
+            {
+                var emptyKeywords = new LocalKeywordSet();
+                var variantKey = RHIUtility.CreateShaderVariantKey(
+                    RHIUtility.CreateShaderPassKey(pass.Identifier),
+                    in emptyKeywords);
 
-            //var psoDes = new GraphicsPSODescriptor
-            //{
-            //    PassId = new ShaderPassKey(fullPass.Identifier),
-            //    PipelineOption = fullPass.localPipeline,
+                ctx.ShaderCompiler.CompilePass(pass, in config, variantKey).GetValueOrThrow();
+            }
+            else
+            {
+                ref var shaderRef = ref ctx.ResourceDatabase.GetShaderReference(_shader);
 
-            //    RtvFormats = [TextureFormat.B8G8R8A8_UNorm],
-            //    DsvFormat = TextureFormat.Unknown,
-            //};
+                foreach (var keyGroup in GetAllVariantCombination(fullPass.keywords))
+                {
+                    config.defines = keyGroup.AsSpan();
+                    var keywordsSet = new LocalKeywordSet();
 
-            //_compileResults[i] = compiled;
-            //ctx.PipelineLibrary.CompilePSO(in psoDes, in _compileResults[i]).GetValueOrThrow();
+                    foreach (var key in keyGroup)
+                    {
+                        var localIndex = shaderRef.GetLocalKeywordIndex(Shader.GetKeywordID(key));
+                        if (localIndex == -1)
+                        {
+                            continue;
+                        }
+
+                        keywordsSet.SetKeyword(localIndex, true);
+                    }
+
+                    var variantKey = RHIUtility.CreateShaderVariantKey(
+                        RHIUtility.CreateShaderPassKey(pass.Identifier),
+                        in keywordsSet);
+
+                    ctx.ShaderCompiler.CompilePass(pass, in config, variantKey).GetValueOrThrow();
+                }
+            }
         }
 
         MeshBuilder.CreateCube(0.75f, default, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent, out var vertices, out var indices);
 
         _mesh = ctx.CreateMesh(vertices, indices, true);
         ctx.UpdateObjectData(_mesh, float4x4.identity);
-
-        _shader = ctx.ResourceAllocator.CreateGraphicsShader(shaderDescriptor);
-        _material = ctx.ResourceAllocator.CreateMaterial(_shader);
 
         _textures = new Handle<Texture>[_textureFiles.Length];
         for (var i = 0; i < _textureFiles.Length; i++)
@@ -160,14 +205,6 @@ internal class MeshRenderPass : IRenderPass
             foreach (var texture in _textures)
             {
                 resourceDatabase.ReleaseResource(texture.AsResource());
-            }
-        }
-
-        if (_compileResults != null)
-        {
-            for (var i = 0; i < _compileResults.Length; i++)
-            {
-                _compileResults[i].Dispose();
             }
         }
     }

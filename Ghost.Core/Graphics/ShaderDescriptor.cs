@@ -30,7 +30,7 @@ public struct ShaderEntryPoint
 public struct KeywordsGroup
 {
     public KeywordSpace space;
-    public List<string>? keywords;
+    public List<string> keywords;
 }
 
 public interface IPassDescriptor
@@ -53,7 +53,7 @@ public struct PropertyDescriptor
     public object? defaultValue;
 }
 
-public class FullPassDescriptor : IPassDescriptor
+public class PassDescriptor : IPassDescriptor
 {
     public string uniqueIdentifier = string.Empty;
     public string name = string.Empty;
@@ -70,19 +70,9 @@ public class FullPassDescriptor : IPassDescriptor
     public string Name => name;
 }
 
-public class FallbackPassDescriptor : IPassDescriptor
-{
-    public string fallbackPassIdentifier = string.Empty;
-    public string name = string.Empty;
-
-    public string Identifier => fallbackPassIdentifier;
-    public string Name => name;
-}
-
 public class ShaderDescriptor
 {
     public string name = string.Empty;
-    public string? generatedCodePath;
     public uint cbufferSize;
     public List<PropertyDescriptor> globalProperties = new();
     public List<PropertyDescriptor> properties = new();

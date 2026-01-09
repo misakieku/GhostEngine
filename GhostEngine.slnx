@@ -38,5 +38,5 @@
     <Project Path="Ghost.Shader.Test/Ghost.Shader.Test.csproj" />
     <Project Path="Ghost.Test.Core/Ghost.Test.Core.csproj" />
   </Folder>
-  <Project Path="Ghost.Shader/Ghost.SDL.csproj" />
+  <Project Path="Ghost.DSL/Ghost.DSL.csproj" />
 </Solution>

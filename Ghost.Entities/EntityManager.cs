@@ -116,7 +116,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="entities">The span to store the created entities.</param>
     public void CreateEntities(Span<Entity> entities)
     {
-        ref var emptyArchetype = ref _world.GetArchetypeReference(World.EmptyArchetypeID);
+        ref var emptyArchetype = ref _world.ComponentManager.GetArchetypeReference(World.EmptyArchetypeID);
         emptyArchetype.AllocateEntity(out var chunkIndex, out var rowIndex);
 
         for (var i = 0; i < entities.Length; i++)
@@ -141,7 +141,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="count">The number of entities to create.</param>
     public void CreateEntities(int count)
     {
-        ref var emptyArchetype = ref _world.GetArchetypeReference(World.EmptyArchetypeID);
+        ref var emptyArchetype = ref _world.ComponentManager.GetArchetypeReference(World.EmptyArchetypeID);
         emptyArchetype.AllocateEntity(out var chunkIndex, out var rowIndex);
 
         for (var i = 0; i < count; i++)
@@ -167,14 +167,14 @@ public unsafe partial class EntityManager : IDisposable
     public void CreateEntities(Span<Entity> entities, ComponentSet set)
     {
         var hash = set.GetHashCode();
-        var arcID = _world.GetArchetypeIDBySignatureHash(hash);
+        var arcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(hash);
 
         if (arcID.IsInvalid)
         {
-            arcID = _world.CreateArchetype(set.Components, hash);
+            arcID = _world.ComponentManager.CreateArchetype(set.Components, hash);
         }
 
-        ref var archetype = ref _world.GetArchetypeReference(arcID);
+        ref var archetype = ref _world.ComponentManager.GetArchetypeReference(arcID);
 
         for (var i = 0; i < entities.Length; i++)
         {
@@ -202,14 +202,14 @@ public unsafe partial class EntityManager : IDisposable
     public void CreateEntities(int count, ComponentSet set)
     {
         var hash = set.GetHashCode();
-        var arcID = _world.GetArchetypeIDBySignatureHash(hash);
+        var arcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(hash);
 
         if (arcID.IsInvalid)
         {
-            arcID = _world.CreateArchetype(set.Components, hash);
+            arcID = _world.ComponentManager.CreateArchetype(set.Components, hash);
         }
 
-        ref var archetype = ref _world.GetArchetypeReference(arcID);
+        ref var archetype = ref _world.ComponentManager.GetArchetypeReference(arcID);
 
         for (var i = 0; i < count; i++)
         {
@@ -247,7 +247,7 @@ public unsafe partial class EntityManager : IDisposable
             return ErrorStatus.NotFound;
         }
 
-        ref var archetype = ref _world.GetArchetypeReference(location.archetypeID);
+        ref var archetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
 
         DestoryManagedEntityIfExists(in archetype, location);
         var r = archetype.RemoveEntity(location.chunkIndex, location.rowIndex);
@@ -332,7 +332,7 @@ public unsafe partial class EntityManager : IDisposable
             {
                 // FLUSH PREVIOUS BATCH
                 // We must retrieve the Archetype of the *Previous* batch, not the current 'loc'
-                ref var prevArchetype = ref _world.GetArchetypeReference(prevArchetypeID);
+                ref var prevArchetype = ref _world.ComponentManager.GetArchetypeReference(prevArchetypeID);
 
                 // Remove Managed Entities first
                 RemoveManagedEntity(rowIndicesCache.AsSpan(), in prevArchetype, prevChunkIndex);
@@ -353,7 +353,7 @@ public unsafe partial class EntityManager : IDisposable
         // Process the stragglers remaining in the cache
         if (rowIndicesCache.Count > 0)
         {
-            ref var lastArchetype = ref _world.GetArchetypeReference(prevArchetypeID);
+            ref var lastArchetype = ref _world.ComponentManager.GetArchetypeReference(prevArchetypeID);
 
             RemoveManagedEntity(rowIndicesCache.AsSpan(), in lastArchetype, prevChunkIndex);
             lastArchetype.RemoveEntities(prevChunkIndex, rowIndicesCache.AsSpan());
@@ -392,16 +392,16 @@ public unsafe partial class EntityManager : IDisposable
 
         // Check if singleton already exists
         var signatureHash = ComponentRegistry.GetHashCode(componentID);
-        var arcID = _world.GetArchetypeIDBySignatureHash(signatureHash);
+        var arcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(signatureHash);
 
         if (arcID.IsValid)
         {
             return ErrorStatus.InvalidArgument;
         }
 
-        arcID = _world.CreateArchetype([componentID], signatureHash);
+        arcID = _world.ComponentManager.CreateArchetype([componentID], signatureHash);
 
-        ref var archetype = ref _world.GetArchetypeReference(arcID);
+        ref var archetype = ref _world.ComponentManager.GetArchetypeReference(arcID);
         archetype.AllocateEntity(out var chunkIndex, out var rowIndex);
 
         var id = _entityLocations.Add(new EntityLocation
@@ -438,14 +438,14 @@ public unsafe partial class EntityManager : IDisposable
     public void* GetSingleton(Identifier<IComponent> componentID)
     {
         var signatureHash = ComponentRegistry.GetHashCode(componentID);
-        var arcID = _world.GetArchetypeIDBySignatureHash(signatureHash);
+        var arcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(signatureHash);
 
         if (arcID.IsInvalid)
         {
             return null;
         }
 
-        ref var archetype = ref _world.GetArchetypeReference(arcID);
+        ref var archetype = ref _world.ComponentManager.GetArchetypeReference(arcID);
         var layoutResult = archetype.GetLayout(componentID);
         if (layoutResult.Error != ErrorStatus.None)
         {
@@ -510,7 +510,7 @@ public unsafe partial class EntityManager : IDisposable
         }
 
         // Build new archetype signature
-        ref var oldArchetype = ref _world.GetArchetypeReference(location.archetypeID);
+        ref var oldArchetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
         var oldSignature = oldArchetype._signature;
 
         if (oldSignature.IsSet(componentID))
@@ -543,7 +543,7 @@ public unsafe partial class EntityManager : IDisposable
 
             // Find or create new archetype
             var newSignatureHash = newSignature.GetHashCode();
-            newArcID = _world.GetArchetypeIDBySignatureHash(newSignatureHash);
+            newArcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(newSignatureHash);
             if (newArcID.IsInvalid)
             {
                 // Create new archetype
@@ -556,14 +556,14 @@ public unsafe partial class EntityManager : IDisposable
                     componentTypeIDs[i++] = index;
                 }
 
-                newArcID = _world.CreateArchetype(componentTypeIDs, newSignatureHash);
+                newArcID = _world.ComponentManager.CreateArchetype(componentTypeIDs, newSignatureHash);
             }
 
             oldArchetype.AddEdgeAdd(componentID, newArcID);
         }
 
         // Move entity data
-        ref var newArchetype = ref _world.GetArchetypeReference(newArcID);
+        ref var newArchetype = ref _world.ComponentManager.GetArchetypeReference(newArcID);
         newArchetype.AllocateEntity(out var newChunkIndex, out var newRowIndex);
         CopyData(ref oldArchetype, location.chunkIndex, location.rowIndex,
                  ref newArchetype, newChunkIndex, newRowIndex);
@@ -615,7 +615,7 @@ public unsafe partial class EntityManager : IDisposable
         }
 
         // Build new archetype signature
-        ref var oldArchetype = ref _world.GetArchetypeReference(location.archetypeID);
+        ref var oldArchetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
         var oldSignature = oldArchetype._signature;
 
         var newArcID = oldArchetype.GetEdgeRemove(componentID);
@@ -642,7 +642,7 @@ public unsafe partial class EntityManager : IDisposable
 
             // Find or create new archetype
             var newSignatureHash = newSignature.GetHashCode();
-            newArcID = _world.GetArchetypeIDBySignatureHash(newSignatureHash);
+            newArcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(newSignatureHash);
             if (newArcID.IsInvalid)
             {
                 // Create new archetype
@@ -655,14 +655,14 @@ public unsafe partial class EntityManager : IDisposable
                     componentTypeIDs[i++] = index;
                 }
 
-                newArcID = _world.CreateArchetype(componentTypeIDs, newSignatureHash);
+                newArcID = _world.ComponentManager.CreateArchetype(componentTypeIDs, newSignatureHash);
             }
 
             oldArchetype.AddEdgeRemove(componentID, newArcID);
         }
 
         // Move entity data
-        ref var newArchetype = ref _world.GetArchetypeReference(newArcID);
+        ref var newArchetype = ref _world.ComponentManager.GetArchetypeReference(newArcID);
         newArchetype.AllocateEntity(out var newChunkIndex, out var newRowIndex);
         CopyData(ref oldArchetype, location.chunkIndex, location.rowIndex,
                  ref newArchetype, newChunkIndex, newRowIndex);
@@ -716,7 +716,7 @@ public unsafe partial class EntityManager : IDisposable
             return ErrorStatus.NotFound;
         }
 
-        ref var archetype = ref _world.GetArchetypeReference(location.archetypeID);
+        ref var archetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
         archetype.SetComponentData(location.chunkIndex, location.rowIndex, componentID, pComponent);
 
         return ErrorStatus.None;
@@ -747,7 +747,7 @@ public unsafe partial class EntityManager : IDisposable
             return null;
         }
 
-        ref var archetype = ref _world.GetArchetypeReference(location.archetypeID);
+        ref var archetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
         return archetype.GetComponentData(location.chunkIndex, location.rowIndex, componentID);
     }
 
@@ -777,7 +777,7 @@ public unsafe partial class EntityManager : IDisposable
             return false;
         }
 
-        ref var archetype = ref _world.GetArchetypeReference(location.archetypeID);
+        ref var archetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
         return archetype.HasComponent(componentID);
     }
 
@@ -807,7 +807,7 @@ public unsafe partial class EntityManager : IDisposable
             return ErrorStatus.NotFound;
         }
 
-        ref var archetype = ref _world.GetArchetypeReference(location.archetypeID);
+        ref var archetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
         var chunkIndex = location.chunkIndex;
         var rowIndex = location.rowIndex;
 

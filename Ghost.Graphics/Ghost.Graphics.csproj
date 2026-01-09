@@ -47,7 +47,7 @@
 
   <ItemGroup>
         <ProjectReference Include="../Ghost.Core/Ghost.Core.csproj" />
-        <ProjectReference Include="../Ghost.Shader/Ghost.SDL.csproj" />
+        <ProjectReference Include="../Ghost.DSL/Ghost.DSL.csproj" />
   </ItemGroup>
 
   <ItemGroup>

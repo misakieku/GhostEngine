@@ -45,7 +45,7 @@ public abstract class SystemBase : ISystem
 
         foreach (var queryID in _requiredQueries)
         {
-            ref var query = ref World.GetEntityQueryReference(new Identifier<EntityQuery>(queryID));
+            ref var query = ref World.ComponentManager.GetEntityQueryReference(new Identifier<EntityQuery>(queryID));
             if (query.GetEntityCount() == 0)
             {
                 return false;
@@ -197,7 +197,7 @@ public abstract class SystemGroup : ISystem
     private static List<ISystem> Sort(List<ISystem> systems)
     {
         // 1. Build the Graph
-        // Key: The System, Value: Systems that MUST run before the Key
+        // Key64: The System, Value: Systems that MUST run before the Key64
         var dependencies = new Dictionary<Type, HashSet<Type>>();
         var systemMap = systems.ToDictionary(s => s.GetType(), s => s);
 

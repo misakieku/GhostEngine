@@ -13,7 +13,7 @@ namespace Ghost.Editor.Core.SceneGraph;
 
 public partial class EntityNode : SceneGraphNode
 {
-    public WorldNode Owner
+    public SceneNode Owner
     {
         get;
         set;
@@ -26,7 +26,7 @@ public partial class EntityNode : SceneGraphNode
 
     public override SceneGraphNodeType NodeType => SceneGraphNodeType.Entity;
 
-    public EntityNode(WorldNode owner, Entity entity, string name)
+    public EntityNode(SceneNode owner, Entity entity, string name)
     {
         Owner = owner;
         Entity = entity;
@@ -80,7 +80,7 @@ public partial class EntityNode : IInspectable
     {
         get
         {
-            var r = Owner.World.EntityManager.GetEntityLocation(Entity);
+            var r = Owner.Scene.World.EntityManager.GetEntityLocation(Entity);
             if (!r)
             {
                 return null;
@@ -93,7 +93,7 @@ public partial class EntityNode : IInspectable
             };
 
             var location = r.Value;
-            ref var archetype = ref Owner.World.GetArchetypeReference(location.archetypeID);
+            ref var archetype = ref Owner.Scene.World.ComponentManager.GetArchetypeReference(location.archetypeID);
 
             var it = archetype._signature.GetIterator();
             while (it.Next(out var typeID))
@@ -114,7 +114,7 @@ public partial class EntityNode : IInspectable
                     continue;
                 }
 
-                var componentView = new ComponentView(t.Name, Owner.World, Entity, t);
+                var componentView = new ComponentView(t.Name, Owner.Scene.World, Entity, t);
                 root.Children.Add(componentView);
             }
 

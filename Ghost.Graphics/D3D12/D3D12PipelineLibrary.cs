@@ -21,7 +21,7 @@ internal struct D3D12PipelineState : IDisposable
 {
     public D3DX12_MESH_SHADER_PIPELINE_STATE_DESC psoDesc;
     public UniquePtr<ID3D12PipelineState> pso;
-    public ShaderPassKey shaderPass;
+    public Key64<ShaderVariant> shaderVariant;
 
     public void Dispose()
     {
@@ -37,7 +37,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
     private UniquePtr<ID3D12PipelineLibrary1> _library;
     private UniquePtr<ID3D12RootSignature> _defaultRootSignature;
 
-    private readonly Dictionary<GraphicsPipelineKey, D3D12PipelineState> _pipelineCache;
+    private readonly Dictionary<Key128<GraphicsPipeline>, D3D12PipelineState> _pipelineCache;
 
     public ID3D12RootSignature* DefaultRootSignature => _defaultRootSignature.Get();
 
@@ -46,7 +46,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
         _device = device;
         _resourceDatabase = resourceDatabase;
 
-        _pipelineCache = new Dictionary<GraphicsPipelineKey, D3D12PipelineState>();
+        _pipelineCache = new Dictionary<Key128<GraphicsPipeline>, D3D12PipelineState>();
 
         CreateDefaultRootSignature().ThrowIfFailed();
     }
@@ -58,6 +58,8 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
 
         // NOTE: Since we are targeting SM 6.6, we can use ResourceDescriptorHeap and SamplerDescriptorHeap directly without needing to set up viewGroup tables.
         var rootParameters = stackalloc D3D12_ROOT_PARAMETER1[RootSignatureLayout.ROOT_PARAMETER_COUNT];
+
+#if false
         rootParameters[0] = new D3D12_ROOT_PARAMETER1
         {
             ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
@@ -85,39 +87,19 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
             ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
             Descriptor = new D3D12_ROOT_DESCRIPTOR1(RootSignatureLayout.PER_MATERIAL_BUFFER_SLOT, 0), // b3
         };
-
-#if USE_TRADITIONAL_BINDLESS
-        // Descriptor table for bindless textures
-        var srvRange = new D3D12_DESCRIPTOR_RANGE1(
-            D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
-            ~0u,
-            0,
-            0,
-            D3D12_DESCRIPTOR_RANGE_FLAGS_DATA_VOLATILE);
-
-        rootParameters[4] = new D3D12_ROOT_PARAMETER1
+#else
+        rootParameters[0] = new D3D12_ROOT_PARAMETER1
         {
-            ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
+            ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS,
             ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
-            DescriptorTable = new D3D12_ROOT_DESCRIPTOR_TABLE1(1, &srvRange)
-        };
-
-        // Descriptor table for bindless samplers
-        var sampRange = new D3D12_DESCRIPTOR_RANGE1(
-            D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER,
-            ~0u,
-            0,
-            0,
-            D3D12_DESCRIPTOR_RANGE_FLAGS_DATA_VOLATILE);
-
-        rootParameters[5] = new D3D12_ROOT_PARAMETER1
-        {
-            ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
-            ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
-            DescriptorTable = new D3D12_ROOT_DESCRIPTOR_TABLE1(1, &sampRange)
+            Constants = new D3D12_ROOT_CONSTANTS
+            {
+                ShaderRegister = 0, // b0
+                RegisterSpace = 0,  // space0
+                Num32BitValues = 4  // Global, View, Object, Material indices
+            }
         };
 #endif
-
         var rootSignatureDesc = new D3D12_ROOT_SIGNATURE_DESC1
         {
             NumParameters = RootSignatureLayout.ROOT_PARAMETER_COUNT,
@@ -125,10 +107,8 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
             NumStaticSamplers = 0,
             pStaticSamplers = null,
             Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
-#if !USE_TRADITIONAL_BINDLESS
                 | D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED
                 | D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED
-#endif
         };
 
         var versionedDesc = new D3D12_VERSIONED_ROOT_SIGNATURE_DESC
@@ -195,40 +175,30 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
 
     private static Result<CBufferInfo> ValidateReflectionData(ShaderReflectionData reflectionData)
     {
-        var cbufferInfo = default(CBufferInfo);
-
-        foreach (var info in reflectionData.ResourcesBindings)
+        if (reflectionData.ResourcesBindings.Count != RootSignatureLayout.ROOT_PARAMETER_COUNT)
         {
-            if (info.BindPoint >= RootSignatureLayout.ROOT_PARAMETER_COUNT)
-            {
-                return Result.Failure($"Resource binding point {info.BindPoint} is out of range. Only binding points 0-3 are supported in the current root signature.");
-            }
-
-            if (info.Type != ShaderInputType.ConstantBuffer)
-            {
-                return Result.Failure($"Resource binding type {info.Type} is not supported. Please consider using bindless resources for buffers, textures and samplers.");
-            }
-
-            if (info.BindPoint == RootSignatureLayout.PER_OBJECT_BUFFER_SLOT)
-            {
-                if (info.Size != sizeof(PerObjectData))
-                {
-                    return Result.Failure($"Per-object constant buffer size mismatch. Expected size: {sizeof(PerObjectData)}, Actual size: {info.Size}");
-                }
-            }
-
-            if (info.BindPoint == RootSignatureLayout.PER_MATERIAL_BUFFER_SLOT)
-            {
-                cbufferInfo = new CBufferInfo
-                {
-                    Name = info.Name,
-                    RegisterSlot = info.BindPoint,
-                    RegisterSpace = info.Space,
-                    SizeInBytes = info.Size,
-                    Properties = info.Properties ?? [],
-                };
-            }
+            return Result.Failure($"Shader must use all {RootSignatureLayout.ROOT_PARAMETER_COUNT} constant buffer slots defined in the root signature.");
         }
+
+        var rootConstant = reflectionData.ResourcesBindings[0];
+        if (rootConstant.Type != ShaderInputType.ConstantBuffer)
+        {
+            return Result.Failure($"Root constant parameter must be a constant buffer.");
+        }
+
+        if (rootConstant.Size != sizeof(PushConstantsData))
+        {
+            return Result.Failure($"Root constant buffer size must be {sizeof(PushConstantsData)} bytes.");
+        }
+
+        var cbufferInfo = new CBufferInfo
+        {
+            Name = rootConstant.Name,
+            RegisterSlot = rootConstant.BindPoint,
+            RegisterSpace = rootConstant.Space,
+            SizeInBytes = rootConstant.Size,
+            Properties = rootConstant.Properties
+        };
 
         return Result.Success(cbufferInfo);
     }
@@ -254,7 +224,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
         return D3D12Utility.D3D12_DEPTH_STENCIL_DESC_CREATE(depthEnabled, writeEnabled, cmp);
     }
 
-    public Result<GraphicsPipelineKey> CompilePSO(ref readonly GraphicsPSODescriptor descriptor, ref readonly GraphicsCompiledResult compiled)
+    public Result<Key128<GraphicsPipeline>> CompilePSO(ref readonly GraphicsPSODescriptor descriptor, ref readonly GraphicsCompiledResult compiled)
     {
         static Result<CBufferInfo> ValidatePassReflectionData(ref readonly GraphicsCompiledResult compiled)
         {
@@ -300,9 +270,8 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
             return Result.Failure($"RTV format count exceeds the maximum supported render target count of {D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT}.");
         }
 
-        var passPipelineKey = new PassPipelineKey(descriptor.RtvFormats, descriptor.DsvFormat);
-        var materialPipelineKey = new MaterialPipelineKey(descriptor.PassId, descriptor.PipelineOption);
-        var pipelineKey = GraphicsPipelineKey.Combine(materialPipelineKey, passPipelineKey);
+        var passPipelineKey = new PassPipelineHash(descriptor.RtvFormats, descriptor.DsvFormat);
+        var pipelineKey = RHIUtility.CreateGraphicsPipelineKey(descriptor.VariantKey, descriptor.PipelineOption, passPipelineKey);
 
         if (!_pipelineCache.ContainsKey(pipelineKey))
         {
@@ -364,12 +333,11 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
 
             ID3D12PipelineState* pPipelineState = default;
 
-            var pKeyStr = stackalloc char[GraphicsPipelineKey.KEY_STRING_LENGTH];
-            var keySpan = new Span<char>(pKeyStr, GraphicsPipelineKey.KEY_STRING_LENGTH);
-            var kr = pipelineKey.GetString(keySpan);
-            if (kr.IsFailure)
+            var pKeyStr = stackalloc char[33]; // 32 for 128 bits key + 1 for null terminator
+            var keySpan = new Span<char>(pKeyStr, 33);
+            if (!pipelineKey.TryGetString(keySpan))
             {
-                return kr;
+                return Result.Failure("Failed to convert pipeline key to string.");
             }
 
             var hr = _library.Get()->LoadPipeline(pKeyStr, &streamDesc, __uuidof(pPipelineState), (void**)&pPipelineState);
@@ -385,7 +353,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
             }
 
             D3D12PipelineState pso = default;
-            pso.shaderPass = descriptor.PassId;
+            pso.shaderVariant = descriptor.VariantKey;
             pso.psoDesc = desc;
             pso.pso.Attach(pPipelineState);
 
@@ -395,12 +363,12 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
         return pipelineKey;
     }
 
-    public bool HasPipeline(GraphicsPipelineKey key)
+    public bool HasPipeline(Key128<GraphicsPipeline> key)
     {
         return _pipelineCache.ContainsKey(key);
     }
 
-    public Result<SharedPtr<ID3D12PipelineState>, ErrorStatus> GetGraphicsPSO(GraphicsPipelineKey key)
+    public Result<SharedPtr<ID3D12PipelineState>, ErrorStatus> GetGraphicsPSO(Key128<GraphicsPipeline> key)
     {
         if (_pipelineCache.TryGetValue(key, out var cacheEntry))
         {

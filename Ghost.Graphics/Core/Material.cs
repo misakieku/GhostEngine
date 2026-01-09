@@ -7,33 +7,22 @@ using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.Core;
 
-#if false
-public struct VariantMask
-{
-    private ulong _mask;
-}
-#endif
-
 internal struct CBufferCache : IResourceReleasable
 {
     private UnsafeArray<byte> _cpuData;
     private Handle<GraphicsBuffer> _gpuResource;
     private uint _size;
-    private uint _alignedSize;
 
     public readonly UnsafeArray<byte> CpuData => _cpuData;
     public readonly Handle<GraphicsBuffer> GpuResource => _gpuResource;
     public readonly uint Size => _size;
-    public readonly uint AlignedSize => _alignedSize;
 
     public readonly bool IsCreated => _size != 0 && _gpuResource.IsValid && _cpuData.IsCreated;
 
     public CBufferCache(Handle<GraphicsBuffer> buffer, uint bufferSize)
     {
         _size = bufferSize;
-        _alignedSize = (bufferSize + 255u) & ~255u;
-
-        _cpuData = new UnsafeArray<byte>((int)AlignedSize, Allocator.Persistent);
+        _cpuData = new UnsafeArray<byte>((int)bufferSize, Allocator.Persistent);
         _gpuResource = buffer;
     }
 
@@ -50,27 +39,24 @@ internal struct CBufferCache : IResourceReleasable
         _gpuResource = Handle<GraphicsBuffer>.Invalid;
 
         _size = 0;
-        _alignedSize = 0;
     }
 }
 
-public struct Material : IResourceReleasable, IHandleType
+public struct Material : IResourceReleasable
 {
     private struct PipelineOverride
     {
-        public ShaderPassKey shaderPass;
+        public Key64<ShaderPass> shaderPass;
         public PipelineState options;
-        public MaterialPipelineKey pipelineKey;
     }
 
     private Identifier<Shader> _shader;
-    private CBufferCache _cBufferCache;
     private UnsafeArray<PipelineOverride> _passPipelineOverride;
-    private LocalKeywordSet _keywordMask;
-
     private bool _isDirty;
 
-    internal readonly CBufferCache CBufferCache => _cBufferCache;
+    internal CBufferCache _cBufferCache;
+    internal LocalKeywordSet _keywordMask;
+
 
     public readonly Identifier<Shader> Shader => _shader;
     public readonly bool IsDirty => _isDirty;
@@ -79,12 +65,6 @@ public struct Material : IResourceReleasable, IHandleType
     private void SetDirty()
     {
         _isDirty = true;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal readonly MaterialPipelineKey GetPassPipelineKey(int passIndex)
-    {
-        return _passPipelineOverride[passIndex].pipelineKey;
     }
 
     public ErrorStatus SetShader(Identifier<Shader> shaderId, IResourceAllocator allocator, IResourceDatabase database)
@@ -117,9 +97,8 @@ public struct Material : IResourceReleasable, IHandleType
             ref var pass = ref shader.GetPassReference(i);
             _passPipelineOverride[i] = new PipelineOverride
             {
-                shaderPass = pass.Identifier,
+                shaderPass = pass.Key,
                 options = pass.DeafaultState,
-                pipelineKey = new MaterialPipelineKey(pass.Identifier, pass.DeafaultState),
             };
         }
 
@@ -128,7 +107,7 @@ public struct Material : IResourceReleasable, IHandleType
             var desc = new BufferDesc
             {
                 Size = shader.CBufferSize,
-                Usage = BufferUsage.Constant,
+                Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
                 MemoryType = ResourceMemoryType.Default,
             };
 
@@ -202,7 +181,6 @@ public struct Material : IResourceReleasable, IHandleType
     {
         ref var pipelineOverride = ref _passPipelineOverride[passIndex];
         pipelineOverride.options = options;
-        pipelineOverride.pipelineKey = new MaterialPipelineKey(pipelineOverride.shaderPass, options);
         SetDirty();
     }
 
@@ -223,16 +201,27 @@ public struct Material : IResourceReleasable, IHandleType
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly bool IsKeywordEnabled(int keywordId)
+    public readonly bool IsKeywordEnabled(IResourceDatabase resourceDatabase, int keywordId)
     {
-        return _keywordMask.IsKeywordEnabled(keywordId);
+        ref var shader = ref resourceDatabase.GetShaderReference(_shader);
+        var localIndex = shader.GetLocalKeywordIndex(keywordId);
+        if (localIndex == -1)
+        {
+            return false;
+        }
+
+        return _keywordMask.IsKeywordEnabled(localIndex);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void UploadData(ICommandBuffer cmb)
+    public readonly void UploadData(ICommandBuffer cmb, bool pixelOnlyResource = true)
     {
         cmb.UploadBuffer(_cBufferCache.GpuResource, _cBufferCache.CpuData.AsSpan());
-        cmb.ResourceBarrier(_cBufferCache.GpuResource.AsResource(), ResourceState.VertexAndConstantBuffer);
+
+        var state = pixelOnlyResource
+            ? ResourceState.PixelShaderResource
+            : ResourceState.NonPixelShaderResource | ResourceState.PixelShaderResource;
+        cmb.ResourceBarrier(_cBufferCache.GpuResource.AsResource(), state);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

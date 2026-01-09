@@ -70,7 +70,7 @@ internal unsafe sealed class ChunkDebugView
             return [];
         }
 
-        ref var archetype = ref r.Value.GetArchetypeReference(archetypeID);
+        ref var archetype = ref r.Value.ComponentManager.GetArchetypeReference(archetypeID);
         var it = archetype._signature.GetIterator();
         while (it.Next(out var index))
         {

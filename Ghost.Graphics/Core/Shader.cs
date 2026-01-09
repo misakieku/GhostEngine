@@ -9,7 +9,7 @@ namespace Ghost.Graphics.Core;
 
 public readonly struct ShaderPass
 {
-    public ShaderPassKey Identifier
+    public Key64<ShaderPass> Key
     {
         get; init;
     }
@@ -19,7 +19,7 @@ public readonly struct ShaderPass
         get; init;
     }
 
-    public LocalKeywordSet.ReadOnly KeywordIDs
+    public LocalKeywordSet KeywordIDs
     {
         get; init;
     }
@@ -89,7 +89,7 @@ public partial struct Shader
 /// <summary>
 /// A representation of a GPU shader, including all the passes it contains.
 /// </summary>
-public partial struct Shader : IResourceReleasable, IIdentifierType
+public partial struct Shader : IResourceReleasable
 {
     private readonly uint _cbufferSize;
     private UnsafeArray<ShaderPass> _shaderPasses;
@@ -111,18 +111,18 @@ public partial struct Shader : IResourceReleasable, IIdentifierType
             var pass = descriptor.passes[i];
 
             // TODO: Handle inherited passes
-            if (pass is not FullPassDescriptor fullPass)
+            if (pass is not PassDescriptor fullPass)
             {
                 continue;
             }
 
-            var passKey = new ShaderPassKey(pass.Identifier);
+            var passKey = RHIUtility.CreateShaderPassKey(pass.Identifier);
             var keywords = default(LocalKeywordSet);
 
             if (fullPass.keywords != null && fullPass.keywords.Count > 0)
             {
                 var localKeywordIndex = 0;
-                
+
                 for (var j = 0; j < fullPass.keywords.Count; j++)
                 {
                     var group = fullPass.keywords[j];
@@ -149,9 +149,9 @@ public partial struct Shader : IResourceReleasable, IIdentifierType
 
             _shaderPasses[i] = new ShaderPass
             {
-                Identifier = passKey,
+                Key = passKey,
                 DeafaultState = fullPass.localPipeline,
-                KeywordIDs = keywords.AsReadOnly(),
+                KeywordIDs = keywords,
             };
 
             _passIDToLocal[GetPassID(pass.Name)] = (ushort)i;
@@ -207,6 +207,7 @@ public partial struct Shader : IResourceReleasable, IIdentifierType
 
     void IResourceReleasable.ReleaseResource(IResourceDatabase database)
     {
+        _keywordIDToLocal.Dispose();
         _shaderPasses.Dispose();
         _passIDToLocal.Dispose();
     }

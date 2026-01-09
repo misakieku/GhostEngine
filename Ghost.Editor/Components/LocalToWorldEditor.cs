@@ -3,41 +3,45 @@ using Ghost.Editor.Core.Inspector;
 using Ghost.Engine.Components;
 using Ghost.Engine.Utilities;
 using Microsoft.UI.Xaml.Controls;
+using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Editor.Components;
 
 [CustomEditor(typeof(LocalToWorld))]
 internal class LocalToWorldEditor : ComponentEditor
 {
-    private Vector3Field _translationField = null!;
-    private Vector3Field _rotationField = null!;
-    private Vector3Field _scaleField = null!;
+    private Float3Field _translationField = null!;
+    private Float3Field _rotationField = null!;
+    private Float3Field _scaleField = null!;
 
     public override void Create(StackPanel container)
     {
-        _translationField = new Vector3Field();
-        _rotationField = new Vector3Field();
-        _scaleField = new Vector3Field();
+        _translationField = new Float3Field();
+        _rotationField = new Float3Field();
+        _scaleField = new Float3Field();
 
         _translationField.OnValueChanged += (s, e) =>
         {
-            var data = ComponentObject.GetData<LocalToWorld>();
-            MatrixUtility.GetTRS(data.ValueRO.matrix, out var _, out var oldRotation, out var oldScale);
-            data.ValueRW.matrix = MatrixUtility.CreateTRS(e.NewValue, oldRotation, oldScale);
+            ref var data = ref ComponentObject.GetData<LocalToWorld>();
+            data.matrix.c3.xyz = e.NewValue;
         };
 
         _rotationField.OnValueChanged += (s, e) =>
         {
-            var data = ComponentObject.GetData<LocalToWorld>();
-            MatrixUtility.GetTRS(data.ValueRO.matrix, out var oldTranslation, out var _, out var oldScale);
-            data.ValueRW.matrix = MatrixUtility.CreateTRS(oldTranslation, e.NewValue.ToQuaternion(), oldScale);
+            ref var data = ref ComponentObject.GetData<LocalToWorld>();
+            var newRotation = quaternion.EulerXYZ(e.NewValue * math.TORADIANS);
+
+            data.matrix.GetTRS(out var oldTranslation, out var _, out var oldScale);
+            data.matrix = float4x4.TRS(oldTranslation, newRotation, oldScale);
         };
 
         _scaleField.OnValueChanged += (s, e) =>
         {
-            var data = ComponentObject.GetData<LocalToWorld>();
-            MatrixUtility.GetTRS(data.ValueRO.matrix, out var oldTranslation, out var oldRotation, out var _);
-            data.ValueRW.matrix = MatrixUtility.CreateTRS(oldTranslation, oldRotation, e.NewValue);
+            ref var data = ref ComponentObject.GetData<LocalToWorld>();
+            var newScale = e.NewValue;
+
+            data.matrix.GetTRS(out var oldTranslation, out var oldRotation, out var _);
+            data.matrix = float4x4.TRS(oldTranslation, oldRotation, newScale);
         };
 
         container.Children.Add(new PropertyField() { Label = "Position", Content = _translationField });
@@ -48,10 +52,10 @@ internal class LocalToWorldEditor : ComponentEditor
     public override void Update()
     {
         var data = ComponentObject.GetData<LocalToWorld>();
-        MatrixUtility.GetTRS(data.ValueRO.matrix, out var translation, out var rotation, out var scale);
+        data.matrix.GetTRS(out var position, out var rotation, out var scale);
 
-        _translationField.Value = translation;
-        _rotationField.Value = VectorUtility.CreateFromQuaternion(rotation);
+        _translationField.Value = position;
+        _rotationField.Value = math.degrees(math.EulerXYZ(rotation));
         _scaleField.Value = scale;
     }
 

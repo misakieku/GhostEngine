@@ -2,10 +2,10 @@ using Ghost.Core;
 
 namespace Ghost.Graphics.D3D12;
 
-internal readonly struct RTVDescriptor : IIdentifierType;
-internal readonly struct DSVDescriptor : IIdentifierType;
-internal readonly struct CbvSrvUavDescriptor : IIdentifierType;
-internal readonly struct SamplerDescriptor : IIdentifierType;
+internal readonly struct RTVDescriptor;
+internal readonly struct DSVDescriptor;
+internal readonly struct CbvSrvUavDescriptor;
+internal readonly struct SamplerDescriptor;
 
 internal struct ResourceViewGroup
 {

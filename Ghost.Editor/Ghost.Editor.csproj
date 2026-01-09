@@ -8,6 +8,8 @@
     <PublishProfile>win-$(Platform).pubxml</PublishProfile>
     <UseWinUI>true</UseWinUI>
     <EnableMsixTooling>true</EnableMsixTooling>
+    <!-- in .net 10, field keyword is not preview anymore, but we are still waiting roslyn team to update their code analyzer packages -->
+    <langversion>preview</langversion>
   </PropertyGroup>
 
   <ItemGroup>

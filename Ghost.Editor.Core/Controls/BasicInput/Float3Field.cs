@@ -1,24 +1,24 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using System.Numerics;
+using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Editor.Core.Controls;
 
 [TemplatePart(Name = "XComponent", Type = typeof(NumberBox))]
 [TemplatePart(Name = "YComponent", Type = typeof(NumberBox))]
 [TemplatePart(Name = "ZComponent", Type = typeof(NumberBox))]
-public sealed partial class Vector3Field : ValueControl<Vector3>
+public sealed partial class Float3Field : ValueControl<float3>
 {
     private NumberBox? _xComponent;
     private NumberBox? _yComponent;
     private NumberBox? _zComponent;
 
-    public Vector3Field()
+    public Float3Field()
     {
-        DefaultStyleKey = typeof(Vector3Field);
+        DefaultStyleKey = typeof(Float3Field);
     }
 
-    protected override void ValueChanged(Vector3 oldValue, Vector3 newValue)
+    protected override void ValueChanged(float3 oldValue, float3 newValue)
     {
         SyncFromValue();
     }
@@ -45,9 +45,9 @@ public sealed partial class Vector3Field : ValueControl<Vector3>
     private void SyncFromValue()
     {
         SuppressChangedEvent = true;
-        _xComponent?.Value = Value.X;
-        _yComponent?.Value = Value.Y;
-        _zComponent?.Value = Value.Z;
+        _xComponent?.Value = Value.x;
+        _yComponent?.Value = Value.y;
+        _zComponent?.Value = Value.z;
         SuppressChangedEvent = false;
     }
 
@@ -58,7 +58,7 @@ public sealed partial class Vector3Field : ValueControl<Vector3>
             return;
         }
 
-        var newValue = new Vector3(
+        var newValue = new float3(
             (float)(_xComponent?.Value ?? 0),
             (float)(_yComponent?.Value ?? 0),
             (float)(_zComponent?.Value ?? 0));

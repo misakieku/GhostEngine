@@ -1,5 +1,47 @@
 # Architecture Design Document
 
+<!--toc:start-->
+- [Architecture Design Document](#architecture-design-document)
+  - [Ghost Shader Concept - Technical Deep Dive](#ghost-shader-concept-technical-deep-dive)
+    - [Overview](#overview)
+  - [Memory Layout & Cache Efficiency](#memory-layout-cache-efficiency)
+    - [KeywordSet (64 bytes, cache-line friendly)](#keywordset-64-bytes-cache-line-friendly)
+    - [MaterialPropertyBlock (Variable Size, GPU-aligned)](#materialpropertyblock-variable-size-gpu-aligned)
+  - [Variant Compilation & Caching](#variant-compilation-caching)
+    - [Two-Level Caching Strategy](#two-level-caching-strategy)
+  - [Batching Algorithm](#batching-algorithm)
+    - [Phase 1: Grouping (O(N))](#phase-1-grouping-on)
+    - [Phase 2: Sorting (O(K log K))](#phase-2-sorting-ok-log-k)
+  - [Thread Safety Model](#thread-safety-model)
+    - [Lock-Free Operations](#lock-free-operations)
+    - [Fine-Grained Locks](#fine-grained-locks)
+  - [Pass System Design](#pass-system-design)
+    - [Why Multi-Pass?](#why-multi-pass)
+    - [Per-Pass Overrides](#per-pass-overrides)
+  - [Keyword System Philosophy](#keyword-system-philosophy)
+    - [Global vs Local](#global-vs-local)
+  - [Performance Targets](#performance-targets)
+    - [Microbenchmarks](#microbenchmarks)
+    - [Real-World Expected](#real-world-expected)
+  - [Unsafe Code Justification](#unsafe-code-justification)
+    - [Where & Why](#where-why)
+    - [Safety Measures](#safety-measures)
+  - [Extension & Customization Points](#extension-customization-points)
+    - [1. Custom Property Types](#1-custom-property-types)
+    - [2. Custom Batching Logic](#2-custom-batching-logic)
+    - [3. Material Inheritance](#3-material-inheritance)
+  - [Comparison to Production Engines](#comparison-to-production-engines)
+    - [Unity URP (Scriptable Render Pipeline)](#unity-urp-scriptable-render-pipeline)
+    - [Unreal Engine 5](#unreal-engine-5)
+    - [Godot 4](#godot-4)
+  - [Future Optimizations](#future-optimizations)
+    - [1. GPU-Driven Rendering](#1-gpu-driven-rendering)
+    - [2. Parallel Compilation](#2-parallel-compilation)
+    - [3. Material LOD](#3-material-lod)
+    - [4. Texture Streaming](#4-texture-streaming)
+  - [Conclusion](#conclusion)
+<!--toc:end-->
+
 ## Ghost Shader Concept - Technical Deep Dive
 
 ### Overview

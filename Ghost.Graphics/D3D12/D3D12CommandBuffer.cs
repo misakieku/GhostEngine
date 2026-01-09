@@ -486,7 +486,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         _commandList.Get()->RSSetViewports(1, &d3d12Viewport);
     }
 
-    public void SetPipelineState(GraphicsPipelineKey pipelineKey)
+    public void SetPipelineState(Key128<GraphicsPipeline> pipelineKey)
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();
@@ -601,6 +601,24 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         _commandList.Get()->IASetPrimitiveTopology(d3d12Topology);
     }
 
+    public void SetGraphicsRoot32Constants(uint rootIndex, ReadOnlySpan<uint> constantBuffer, uint offsetIn32Bits = 0)
+    {
+        ThrowIfDisposed();
+        ThrowIfNotRecording();
+#if !DEBUG
+        if (_lastError.Status != ErrorStatus.None)
+        {
+            return;
+        }
+#endif
+        IncrementCommandCount();
+
+        fixed (uint* pConstants = constantBuffer)
+        {
+            _commandList.Get()->SetGraphicsRoot32BitConstants(rootIndex, (uint)constantBuffer.Length, pConstants, offsetIn32Bits);
+        }
+    }
+
     public void Draw(uint vertexCount, uint instanceCount = 1, uint startVertex = 0, uint startInstance = 0)
     {
         ThrowIfDisposed();
@@ -670,6 +688,32 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         // IncrementCommandCount();
 
         // _device.Get()->DispatchRays();
+    }
+
+    public void DispatchGraph()
+    {
+        throw new NotImplementedException();
+    }
+
+    public void ExecuteIndirect(Handle<GraphicsBuffer> argumentBuffer, ulong argumentOffset, Handle<GraphicsBuffer> countBuffer, ulong countBufferOffset)
+    {
+        throw new NotImplementedException();
+
+        ThrowIfDisposed();
+        ThrowIfNotRecording();
+#if !DEBUG
+        if (_lastError.Status != ErrorStatus.None)
+        {
+            return;
+        }
+#endif
+
+        IncrementCommandCount();
+        var resource = _resourceDatabase.GetResource(argumentBuffer.AsResource());
+        var countResource = _resourceDatabase.GetResource(countBuffer.AsResource());
+        _commandList.Get()->ExecuteIndirect(null, 0,
+            resource, argumentOffset, countResource, countBufferOffset);
+
     }
 
     public void UploadBuffer<T>(Handle<GraphicsBuffer> buffer, ReadOnlySpan<T> data)

@@ -2,162 +2,19 @@ using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Graphics.Core;
 using Misaki.HighPerformance.Mathematics;
-using Misaki.HighPerformance.Utilities;
-using System.IO.Hashing;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.RHI;
 
-public readonly struct ShaderPassKey : IEquatable<ShaderPassKey>
-{
-    public readonly ulong value;
+public readonly struct ShaderVariant;
+public readonly struct GraphicsPipeline;
 
-    public ShaderPassKey(ulong value)
-    {
-        this.value = value;
-    }
-
-    public ShaderPassKey(string passId)
-    {
-        var passIdSpan = passId.AsSpan();
-        value = XxHash3.HashToUInt64(MemoryMarshal.AsBytes(passIdSpan));
-    }
-
-    public override string ToString()
-    {
-        return value.ToString("X16");
-    }
-
-    public bool Equals(ShaderPassKey other)
-    {
-        return value == other.value;
-    }
-
-    public override int GetHashCode()
-    {
-        return value.GetHashCode();
-    }
-
-    public override bool Equals(object? obj)
-    {
-        return obj is ShaderPassKey key && Equals(key);
-    }
-
-    public static bool operator ==(ShaderPassKey left, ShaderPassKey right)
-    {
-        return left.Equals(right);
-    }
-
-    public static bool operator !=(ShaderPassKey left, ShaderPassKey right)
-    {
-        return !(left == right);
-    }
-}
-
-
-public readonly struct GraphicsPipelineKey
-{
-    public const int KEY_STRING_LENGTH = 33; // 32 chars + null terminator
-
-    public readonly UInt128 value;
-
-    public GraphicsPipelineKey(UInt128 value)
-    {
-        this.value = value;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static GraphicsPipelineKey Combine(MaterialPipelineKey materialKey, PassPipelineKey passKey)
-    {
-        // Order-sensitive 128-bit mix. Cheap and stable, avoids span hashing.
-        static ulong Mix64(ulong x)
-        {
-            x ^= x >> 30;
-            x *= 0xBF58476D1CE4E5B9ul;
-            x ^= x >> 27;
-            x *= 0x94D049BB133111EBul;
-            x ^= x >> 31;
-            return x;
-        }
-
-        unsafe static ulong GetLow(UInt128 value) => ((ulong*)&value)[0];
-        unsafe static ulong GetHigh(UInt128 value) => ((ulong*)&value)[1];
-
-        var mLo = GetLow(materialKey.value);
-        var mHi = GetHigh(materialKey.value);
-        var pLo = GetLow(passKey.value);
-        var pHi = GetHigh(passKey.value);
-
-        // Distinct constants + cross-feeding to reduce structural collisions.
-        var lo = Mix64(mLo ^ (pLo + 0x9E3779B97F4A7C15ul) ^ (mHi * 0xD6E8FEB86659FD93ul));
-        var hi = Mix64(mHi ^ (pHi + 0xC2B2AE3D27D4EB4Ful) ^ (pLo * 0x165667B19E3779F9ul));
-
-        return new GraphicsPipelineKey(new UInt128(lo, hi));
-    }
-
-    public Result GetString(Span<char> destination)
-    {
-        if (!value.TryFormat(destination, out var num, "X16"))
-        {
-            return Result.Failure("Failed to format GraphicsPipelineKey to string.");
-        }
-
-        // Just in case.
-        destination[num] = '\0';
-        return Result.Success();
-    }
-
-    public override string ToString()
-    {
-        return value.ToString("X16");
-    }
-
-    public override int GetHashCode()
-    {
-        return value.GetHashCode();
-    }
-}
-
-public readonly struct MaterialPipelineKey : IEquatable<MaterialPipelineKey>
+public readonly struct PassPipelineHash : IEquatable<PassPipelineHash>
 {
     public readonly UInt128 value;
 
-    // TODO: Variants
-
-    public MaterialPipelineKey(ShaderPassKey passKey, PipelineState psoOptions)
-    {
-        // 32-bit packed key for states controlled by material / overrides.
-        // layout:
-        // 0..3   Blend (4 bits)
-        // 4..6   Cull  (3 bits)
-        // 7..10  DeafaultState (4 bits)
-        // 11     ZWrite (1 bit)
-        // 12..15 ColorMask (4 bits)
-
-        var key = 0u;
-        key |= ((uint)psoOptions.Blend & 0xFu) << 0;
-        key |= ((uint)psoOptions.Cull & 0x7u) << 4;
-        key |= ((uint)psoOptions.ZTest & 0xFu) << 7;
-        key |= ((uint)psoOptions.ZWrite & 0x1u) << 11;
-        key |= ((uint)psoOptions.ColorMask & 0xFu) << 12;
-
-        value = new UInt128(passKey.value, key);
-    }
-
-    public bool Equals(MaterialPipelineKey other) => value == other.value;
-    public override bool Equals(object? obj) => obj is MaterialPipelineKey other && Equals(other);
-    public override int GetHashCode() => value.GetHashCode();
-
-    public static bool operator ==(MaterialPipelineKey left, MaterialPipelineKey right) => left.Equals(right);
-    public static bool operator !=(MaterialPipelineKey left, MaterialPipelineKey right) => !(left == right);
-}
-
-public readonly struct PassPipelineKey : IEquatable<PassPipelineKey>
-{
-    public readonly UInt128 value;
-
-    public PassPipelineKey(ReadOnlySpan<TextureFormat> rtvFormats, TextureFormat dsvFormat)
+    public PassPipelineHash(ReadOnlySpan<TextureFormat> rtvFormats, TextureFormat dsvFormat)
     {
         if (rtvFormats.Length > 8)
         {
@@ -177,17 +34,17 @@ public readonly struct PassPipelineKey : IEquatable<PassPipelineKey>
         value = new UInt128(rtvPart, (ulong)dsvFormat);
     }
 
-    public bool Equals(PassPipelineKey other) => value == other.value;
-    public override bool Equals(object? obj) => obj is PassPipelineKey other && Equals(other);
+    public bool Equals(PassPipelineHash other) => value == other.value;
+    public override bool Equals(object? obj) => obj is PassPipelineHash other && Equals(other);
     public override int GetHashCode() => value.GetHashCode();
 
-    public static bool operator ==(PassPipelineKey left, PassPipelineKey right) => left.Equals(right);
-    public static bool operator !=(PassPipelineKey left, PassPipelineKey right) => !(left == right);
+    public static bool operator ==(PassPipelineHash left, PassPipelineHash right) => left.Equals(right);
+    public static bool operator !=(PassPipelineHash left, PassPipelineHash right) => !(left == right);
 }
 
 public ref struct GraphicsPSODescriptor
 {
-    public ShaderPassKey PassId
+    public Key64<ShaderVariant> VariantKey
     {
         get; set;
     }
@@ -248,7 +105,7 @@ public readonly struct CBufferInfo
         get; init;
     }
 
-    public IReadOnlyList<CBufferPropertyInfo> Properties
+    public IReadOnlyList<CBufferPropertyInfo>? Properties
     {
         get; init;
     }

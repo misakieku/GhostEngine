@@ -1,6 +1,6 @@
 using Ghost.Core.Graphics;
 
-namespace Ghost.SDL.Compiler.Parser;
+namespace Ghost.DSL.ShaderCompiler.Parser;
 
 internal class PipelineBlock : IBlockParser<PipelineSyntax, PipelineSemantic>
 {
@@ -38,7 +38,7 @@ internal class PipelineBlock : IBlockParser<PipelineSyntax, PipelineSemantic>
         return pipeline;
     }
 
-    public static PipelineSemantic? SemanticAnalysis(PipelineSyntax? syntax, List<SDLError> errors)
+    public static PipelineSemantic? SemanticAnalysis(PipelineSyntax? syntax, List<DSLShaderError> errors)
     {
         if (syntax == null)
         {
@@ -59,7 +59,7 @@ internal class PipelineBlock : IBlockParser<PipelineSyntax, PipelineSemantic>
                         }
                         else
                         {
-                            errors.Add(new SDLError
+                            errors.Add(new DSLShaderError
                             {
                                 message = $"Invalid ZTest option: {valueDecl.value.lexeme}",
                                 line = valueDecl.value.line,
@@ -75,7 +75,7 @@ internal class PipelineBlock : IBlockParser<PipelineSyntax, PipelineSemantic>
                         }
                         else
                         {
-                            errors.Add(new SDLError
+                            errors.Add(new DSLShaderError
                             {
                                 message = $"Invalid ZWrite option: {valueDecl.value.lexeme}",
                                 line = valueDecl.value.line,
@@ -91,7 +91,7 @@ internal class PipelineBlock : IBlockParser<PipelineSyntax, PipelineSemantic>
                         }
                         else
                         {
-                            errors.Add(new SDLError
+                            errors.Add(new DSLShaderError
                             {
                                 message = $"Invalid Cull option: {valueDecl.value.lexeme}",
                                 line = valueDecl.value.line,
@@ -107,7 +107,7 @@ internal class PipelineBlock : IBlockParser<PipelineSyntax, PipelineSemantic>
                         }
                         else
                         {
-                            errors.Add(new SDLError
+                            errors.Add(new DSLShaderError
                             {
                                 message = $"Invalid Blend option: {valueDecl.value.lexeme}",
                                 line = valueDecl.value.line,
@@ -123,7 +123,7 @@ internal class PipelineBlock : IBlockParser<PipelineSyntax, PipelineSemantic>
                         }
                         else
                         {
-                            errors.Add(new SDLError
+                            errors.Add(new DSLShaderError
                             {
                                 message = $"Invalid Color Mask value: {valueDecl.value.lexeme}",
                                 line = valueDecl.value.line,

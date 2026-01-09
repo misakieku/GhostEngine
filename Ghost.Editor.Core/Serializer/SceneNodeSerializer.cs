@@ -1,5 +1,4 @@
 using Ghost.Editor.Core.SceneGraph;
-using Ghost.Engine;
 using Ghost.Engine.IO;
 using Ghost.Engine.Utilities;
 using Ghost.Entities;
@@ -7,7 +6,7 @@ using System.Text.Json;
 
 namespace Ghost.Editor.Core.Serializer;
 
-internal class WorldNodeSerializer : CustomSerializer<WorldNode>
+internal class SceneNodeSerializer : CustomSerializer<SceneNode>
 {
     private static class Property
     {
@@ -22,19 +21,19 @@ internal class WorldNodeSerializer : CustomSerializer<WorldNode>
 
     public override bool CanConvert(Type typeToConvert)
     {
-        return typeToConvert == typeof(WorldNode) || typeToConvert.IsSubclassOf(typeof(WorldNode));
+        return typeToConvert == typeof(SceneNode) || typeToConvert.IsSubclassOf(typeof(SceneNode));
     }
 
-    public unsafe override void SerializeJson(Utf8JsonWriter writer, WorldNode value, JsonSerializerOptions options)
+    public unsafe override void SerializeJson(Utf8JsonWriter writer, SceneNode value, JsonSerializerOptions options)
     {
         writer.WriteObject(() =>
         {
             writer.WriteString(Property.NAME, value.Name);
             writer.WriteStartArray(Property.ENTITIES);
 
-            for (var i = 0; i < value.World.ArchetypeCount; i++)
+            for (var i = 0; i < value.Scene.World.ComponentManager.ArchetypeCount; i++)
             {
-                ref var archetype = ref value.World.GetArchetypeReference(i);
+                ref var archetype = ref value.Scene.World.ComponentManager.GetArchetypeReference(i);
 
                 for (var j = 0; j < archetype.ChunkCount; j++)
                 {
@@ -64,7 +63,7 @@ internal class WorldNodeSerializer : CustomSerializer<WorldNode>
 
             writer.WriteEndArray();
 
-            writer.WriteArray(Property.SYSTEMS, value.World.SystemManager.Systems, system =>
+            writer.WriteArray(Property.SYSTEMS, value.Scene.World.SystemManager.Systems, system =>
             {
                 var name = system.GetType().AssemblyQualifiedName;
                 if (name == null)
@@ -77,7 +76,7 @@ internal class WorldNodeSerializer : CustomSerializer<WorldNode>
         });
     }
 
-    public override WorldNode? DeserializeJson(ref Utf8JsonReader reader, JsonSerializerOptions options)
+    public override SceneNode? DeserializeJson(ref Utf8JsonReader reader, JsonSerializerOptions options)
     {
         throw new NotImplementedException();
 
@@ -137,12 +136,12 @@ internal class WorldNodeSerializer : CustomSerializer<WorldNode>
         //return result;
     }
 
-    public override void SerializeBinary(BinaryWriter writer, WorldNode value)
+    public override void SerializeBinary(BinaryWriter writer, SceneNode value)
     {
         throw new NotImplementedException();
     }
 
-    public override WorldNode? DeserializeBinary(BinaryReader reader)
+    public override SceneNode? DeserializeBinary(BinaryReader reader)
     {
         throw new NotImplementedException();
     }

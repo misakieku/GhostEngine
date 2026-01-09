@@ -1,7 +1,5 @@
 using Ghost.Core;
 using Misaki.HighPerformance.Jobs;
-using Misaki.HighPerformance.LowLevel.Buffer;
-using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities;
@@ -85,18 +83,11 @@ public partial class World : IDisposable, IEquatable<World>
     private readonly EntityCommandBuffer _entityCommandBuffer;
     private readonly EntityCommandBuffer[]? _threadLocalECBs;
 
+    private readonly ComponentManager _componentManager;
     private readonly SystemManager _systemManager;
-
-    private UnsafeList<Archetype> _archetypes;
-    private UnsafeList<EntityQuery> _entityQueries;
-
-    private UnsafeHashMap<int, Identifier<Archetype>> _archetypeLookup; // Signature Hash to Archetype ID
-    private UnsafeHashMap<int, Identifier<EntityQuery>> _querieLookup; // Query Mask Hash to Query ID
 
     private int _version;
     private bool _disposed = false;
-
-    internal int ArchetypeCount => _archetypes.Count;
 
     /// <summary>
     /// Gets the unique identifier of this world.
@@ -112,6 +103,11 @@ public partial class World : IDisposable, IEquatable<World>
     /// Gets the publicntity manager for this world.
     /// </summary>
     public EntityManager EntityManager => _entityManager;
+
+    /// <summary>
+    /// Gets the component manager for this world.
+    /// </summary>
+    public ComponentManager ComponentManager => _componentManager;
 
     /// <summary>
     /// Gets the system manager for this world.
@@ -139,13 +135,8 @@ public partial class World : IDisposable, IEquatable<World>
         _entityManager = new EntityManager(this, entityCapacity);
         _entityCommandBuffer = new EntityCommandBuffer(_entityManager);
 
+        _componentManager = new ComponentManager(this);
         _systemManager = new SystemManager(this);
-
-        _archetypes = new UnsafeList<Archetype>(16, Allocator.Persistent);
-        _entityQueries = new UnsafeList<EntityQuery>(16, Allocator.Persistent);
-
-        _archetypeLookup = new UnsafeHashMap<int, Identifier<Archetype>>(16, Allocator.Persistent);
-        _querieLookup = new UnsafeHashMap<int, Identifier<EntityQuery>>(16, Allocator.Persistent);
 
         if (jobScheduler != null)
         {
@@ -155,74 +146,11 @@ public partial class World : IDisposable, IEquatable<World>
                 _threadLocalECBs[i] = new EntityCommandBuffer(_entityManager);
             }
         }
-
-        // Create the empty archetype
-        CreateArchetype(ReadOnlySpan<Identifier<IComponent>>.Empty, 0);
     }
 
     ~World()
     {
         Dispose();
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal Identifier<Archetype> CreateArchetype(ReadOnlySpan<Identifier<IComponent>> componentTypeIDs, int signatureHash)
-    {
-        var arcID = new Identifier<Archetype>(_archetypes.Count);
-        _archetypes.Add(new Archetype(arcID, _id, componentTypeIDs));
-        _archetypeLookup.Add(signatureHash, arcID);
-
-        for (int i = 0; i < _entityQueries.Count; i++)
-        {
-            ref var query = ref _entityQueries[i];
-            query.AddArchetypeIfMatch(in _archetypes[arcID.Value]);
-        }
-
-        return arcID;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal Identifier<Archetype> GetArchetypeIDBySignatureHash(int signatureHash)
-    {
-        if (_archetypeLookup.TryGetValue(signatureHash, out var arcID))
-        {
-            return arcID;
-        }
-
-        return Identifier<Archetype>.Invalid;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal ref Archetype GetArchetypeReference(Identifier<Archetype> id)
-    {
-        return ref _archetypes[id.Value];
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal Identifier<EntityQuery> CreateEntityQuery(EntityQueryMask mask, int maskHash)
-    {
-        var queryID = new Identifier<EntityQuery>(_entityQueries.Count);
-        _entityQueries.Add(new EntityQuery(queryID, _id, mask));
-        _querieLookup.Add(maskHash, queryID);
-
-        ref var query = ref _entityQueries[queryID.Value];
-        for (var i = 0; i < _archetypes.Count; i++)
-        {
-            query.AddArchetypeIfMatch(in _archetypes[i]);
-        }
-
-        return queryID;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal Identifier<EntityQuery> GetEntityQueryIDByMaskHash(int maskHash)
-    {
-        if (_querieLookup.TryGetValue(maskHash, out var queryID))
-        {
-            return queryID;
-        }
-
-        return Identifier<EntityQuery>.Invalid;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -243,15 +171,6 @@ public partial class World : IDisposable, IEquatable<World>
     internal int AdvanceVersion()
     {
         return Interlocked.Increment(ref _version);
-    }
-
-    /// <summary>
-    /// Gets a reference to the entity query with the specified identifier.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ref EntityQuery GetEntityQueryReference(Identifier<EntityQuery> id)
-    {
-        return ref _entityQueries[id.Value];
     }
 
     /// <summary>
@@ -300,16 +219,6 @@ public partial class World : IDisposable, IEquatable<World>
             return;
         }
 
-        foreach (ref var archetype in _archetypes)
-        {
-            archetype.Dispose();
-        }
-
-        foreach (ref var query in _entityQueries)
-        {
-            query.Dispose();
-        }
-
         _entityManager.Dispose();
         _entityCommandBuffer.Dispose();
 
@@ -320,11 +229,6 @@ public partial class World : IDisposable, IEquatable<World>
                 v.Dispose();
             }
         }
-
-        _archetypes.Dispose();
-        _entityQueries.Dispose();
-        _archetypeLookup.Dispose();
-        _querieLookup.Dispose();
 
         s_freeWorldSlots.Enqueue(_id);
         s_worlds[_id] = null;

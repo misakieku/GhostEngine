@@ -1,15 +1,15 @@
-namespace Ghost.SDL.Compiler.Parser;
+namespace Ghost.DSL.ShaderCompiler.Parser;
 
-internal class ShaderBlock : IBlockParser<SDLSyntax, SDLSemantics>
+internal class ShaderBlock : IBlockParser<DSLShaderSyntax, DSLShaderSemantics>
 {
     public static bool ShouldEnter(Token token)
     {
         return token.Match(TokenType.Keyword, TokenLexicon.KnownKeywords.SHADER);
     }
 
-    public static SDLSyntax Parse(TokenStreamSlice stream)
+    public static DSLShaderSyntax Parse(TokenStreamSlice stream)
     {
-        var shader = new SDLSyntax();
+        var shader = new DSLShaderSyntax();
 
         stream.Expect(TokenType.Keyword);
         shader.name = stream.Expect(TokenType.StringLiteral);
@@ -49,14 +49,14 @@ internal class ShaderBlock : IBlockParser<SDLSyntax, SDLSemantics>
         return shader;
     }
 
-    public static SDLSemantics? SemanticAnalysis(SDLSyntax? syntax, List<SDLError> errors)
+    public static DSLShaderSemantics? SemanticAnalysis(DSLShaderSyntax? syntax, List<DSLShaderError> errors)
     {
         if (syntax == null)
         {
             return null;
         }
 
-        var shaderModel = new SDLSemantics
+        var shaderModel = new DSLShaderSemantics
         {
             name = syntax.name.lexeme,
             properties = PropertiesBlock.SemanticAnalysis(syntax.properties, errors),
@@ -85,7 +85,7 @@ internal class ShaderBlock : IBlockParser<SDLSyntax, SDLSemantics>
                     case TokenLexicon.KnownFunctions.FALLBACK:
                         if (func.arguments == null || func.arguments.Count != 1)
                         {
-                            errors.Add(new SDLError
+                            errors.Add(new DSLShaderError
                             {
                                 message = "Fallback declaration requires exactly one arguments: (fallback shader name).",
                                 line = func.name.line,
@@ -98,7 +98,7 @@ internal class ShaderBlock : IBlockParser<SDLSyntax, SDLSemantics>
                         shaderModel.fallback = func.arguments[0].lexeme;
                         break;
                     default:
-                        errors.Add(new SDLError
+                        errors.Add(new DSLShaderError
                         {
                             message = $"Unknown function '{func.name.lexeme}' in shader.",
                             line = func.name.line,

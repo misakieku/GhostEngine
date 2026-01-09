@@ -433,20 +433,6 @@ internal sealed unsafe partial class D3D12ResourceAllocator
         return uavDesc;
     }
 
-    private static DXGI_FORMAT ConvertTextureFormat(TextureFormat format)
-    {
-        return format switch
-        {
-            TextureFormat.R8G8B8A8_UNorm => DXGI_FORMAT_R8G8B8A8_UNORM,
-            TextureFormat.B8G8R8A8_UNorm => DXGI_FORMAT_B8G8R8A8_UNORM,
-            TextureFormat.R16G16B16A16_Float => DXGI_FORMAT_R16G16B16A16_FLOAT,
-            TextureFormat.R32G32B32A32_Float => DXGI_FORMAT_R32G32B32A32_FLOAT,
-            TextureFormat.D24_UNorm_S8_UInt => DXGI_FORMAT_D24_UNORM_S8_UINT,
-            TextureFormat.D32_Float => DXGI_FORMAT_D32_FLOAT,
-            _ => throw new ArgumentException($"Unsupported texture format: {format}")
-        };
-    }
-
     private static D3D12_RESOURCE_FLAGS ConvertTextureUsage(TextureUsage usage)
     {
         var flags = D3D12_RESOURCE_FLAG_NONE;
@@ -569,29 +555,6 @@ internal sealed unsafe partial class D3D12ResourceAllocator
         return D3D12_RESOURCE_STATE_COMMON;
 #endif
     }
-
-    private static ResourceState D3D12StatesToRHIState(D3D12_RESOURCE_STATES states)
-    {
-        return states switch
-        {
-            //case ResourceStates.None:
-            //case ResourceStates.Present:
-            D3D12_RESOURCE_STATE_COMMON => ResourceState.Common,
-            D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER => ResourceState.VertexAndConstantBuffer,
-            D3D12_RESOURCE_STATE_INDEX_BUFFER => ResourceState.IndexBuffer,
-            D3D12_RESOURCE_STATE_RENDER_TARGET => ResourceState.RenderTarget,
-            D3D12_RESOURCE_STATE_UNORDERED_ACCESS => ResourceState.UnorderedAccess,
-            D3D12_RESOURCE_STATE_DEPTH_WRITE => ResourceState.DepthWrite,
-            D3D12_RESOURCE_STATE_DEPTH_READ => ResourceState.DepthRead,
-            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE => ResourceState.PixelShaderResource,
-            //case ResourceStates.Predication:
-            D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT => ResourceState.IndirectArgument,
-            D3D12_RESOURCE_STATE_COPY_DEST => ResourceState.CopyDest,
-            D3D12_RESOURCE_STATE_COPY_SOURCE => ResourceState.CopySource,
-            D3D12_RESOURCE_STATE_GENERIC_READ => ResourceState.GenericRead,
-            _ => ResourceState.Common,
-        };
-    }
 }
 
 // TODO: Dedicated pool for copy, render graph, and persistent resources
@@ -648,7 +611,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Handle<GPUResource> TrackResource(D3D12MA_Allocation* allocation, D3D12_RESOURCE_STATES state, ResourceViewGroup resourceDescriptor, ResourceDesc desc, bool isTemp)
     {
-        var handle = _resourceDatabase.AddResource(allocation, _fenceSynchronizer.CPUFenceValue, D3D12StatesToRHIState(state), resourceDescriptor, desc);
+        var handle = _resourceDatabase.AddResource(allocation, _fenceSynchronizer.CPUFenceValue, D3D12Utility.ToResourceState(state) , resourceDescriptor, desc);
 
         if (isTemp)
         {
@@ -664,7 +627,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
         CheckTexture2DSize(desc.Width, desc.Height);
 
-        var d3d12Format = ConvertTextureFormat(desc.Format);
+        var dxgiFormat = D3D12Utility.ToDXGIFormat(desc.Format);
         var maxDimension = Math.Max(desc.Width, Math.Max(desc.Height, desc.Slice));
         var mipLevels = desc.MipLevels == 0
             ? (ushort)(1 + Math.Floor(Math.Log2(maxDimension)))
@@ -674,33 +637,33 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         var resourceDesc = desc.Dimension switch
         {
             TextureDimension.Texture2D => D3D12_RESOURCE_DESC.Tex2D(
-                                d3d12Format,
+                                dxgiFormat,
                                 desc.Width,
                                 desc.Height,
                                 mipLevels: mipLevels,
                                 flags: resourceFlags),
             TextureDimension.Texture3D => D3D12_RESOURCE_DESC.Tex3D(
-                                d3d12Format,
+                                dxgiFormat,
                                 desc.Width,
                                 desc.Height,
                                 (ushort)desc.Slice,
                                 flags: resourceFlags),
             TextureDimension.TextureCube => D3D12_RESOURCE_DESC.Tex2D(
-                                d3d12Format,
+                                dxgiFormat,
                                 desc.Width,
                                 desc.Height,
                                 mipLevels: mipLevels,
                                 arraySize: 6,
                                 flags: resourceFlags),
             TextureDimension.Texture2DArray => D3D12_RESOURCE_DESC.Tex2D(
-                                d3d12Format,
+                                dxgiFormat,
                                 desc.Width,
                                 desc.Height,
                                 mipLevels: mipLevels,
                                 arraySize: (ushort)desc.Slice,
                                 flags: resourceFlags),
             TextureDimension.TextureCubeArray => D3D12_RESOURCE_DESC.Tex2D(
-                                d3d12Format,
+                                dxgiFormat,
                                 desc.Width,
                                 desc.Height,
                                 mipLevels: mipLevels,
@@ -906,7 +869,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         {
             Size = (uint)sizeof(PerObjectData),
             Stride = (uint)sizeof(PerObjectData),
-            Usage = BufferUsage.Constant,
+            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
             MemoryType = ResourceMemoryType.Default,
         };
 

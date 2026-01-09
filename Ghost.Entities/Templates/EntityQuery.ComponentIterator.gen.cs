@@ -113,7 +113,7 @@ public unsafe partial struct EntityQuery
                     _currentArchetypeIndex++;
                     if (_currentArchetypeIndex < _matchingArchetypes.Count)
                     {
-                        _currentArchetype = ref _world.GetArchetypeReference(_matchingArchetypes[_currentArchetypeIndex]);
+                        _currentArchetype = ref _world.ComponentManager.GetArchetypeReference(_matchingArchetypes[_currentArchetypeIndex]);
 
                         _currentChunkIndex = 0;
                         if (_currentArchetype.ChunkCount > 0)
@@ -142,7 +142,7 @@ public unsafe partial struct EntityQuery
 
                 if (_matchingArchetypes.Count > 0)
                 {
-                    _currentArchetype = ref _world.GetArchetypeReference(_matchingArchetypes[0]);
+                    _currentArchetype = ref _world.ComponentManager.GetArchetypeReference(_matchingArchetypes[0]);
                     if (_currentArchetype.ChunkCount > 0)
                     {
                         SetChunk(0);
@@ -309,7 +309,7 @@ public unsafe partial struct EntityQuery
                     _currentArchetypeIndex++;
                     if (_currentArchetypeIndex < _matchingArchetypes.Count)
                     {
-                        _currentArchetype = ref _world.GetArchetypeReference(_matchingArchetypes[_currentArchetypeIndex]);
+                        _currentArchetype = ref _world.ComponentManager.GetArchetypeReference(_matchingArchetypes[_currentArchetypeIndex]);
 
                         _currentChunkIndex = 0;
                         if (_currentArchetype.ChunkCount > 0)
@@ -338,7 +338,7 @@ public unsafe partial struct EntityQuery
 
                 if (_matchingArchetypes.Count > 0)
                 {
-                    _currentArchetype = ref _world.GetArchetypeReference(_matchingArchetypes[0]);
+                    _currentArchetype = ref _world.ComponentManager.GetArchetypeReference(_matchingArchetypes[0]);
                     if (_currentArchetype.ChunkCount > 0)
                     {
                         SetChunk(0);
@@ -515,7 +515,7 @@ public unsafe partial struct EntityQuery
                     _currentArchetypeIndex++;
                     if (_currentArchetypeIndex < _matchingArchetypes.Count)
                     {
-                        _currentArchetype = ref _world.GetArchetypeReference(_matchingArchetypes[_currentArchetypeIndex]);
+                        _currentArchetype = ref _world.ComponentManager.GetArchetypeReference(_matchingArchetypes[_currentArchetypeIndex]);
 
                         _currentChunkIndex = 0;
                         if (_currentArchetype.ChunkCount > 0)
@@ -544,7 +544,7 @@ public unsafe partial struct EntityQuery
 
                 if (_matchingArchetypes.Count > 0)
                 {
-                    _currentArchetype = ref _world.GetArchetypeReference(_matchingArchetypes[0]);
+                    _currentArchetype = ref _world.ComponentManager.GetArchetypeReference(_matchingArchetypes[0]);
                     if (_currentArchetype.ChunkCount > 0)
                     {
                         SetChunk(0);
@@ -731,7 +731,7 @@ public unsafe partial struct EntityQuery
                     _currentArchetypeIndex++;
                     if (_currentArchetypeIndex < _matchingArchetypes.Count)
                     {
-                        _currentArchetype = ref _world.GetArchetypeReference(_matchingArchetypes[_currentArchetypeIndex]);
+                        _currentArchetype = ref _world.ComponentManager.GetArchetypeReference(_matchingArchetypes[_currentArchetypeIndex]);
 
                         _currentChunkIndex = 0;
                         if (_currentArchetype.ChunkCount > 0)
@@ -760,7 +760,7 @@ public unsafe partial struct EntityQuery
 
                 if (_matchingArchetypes.Count > 0)
                 {
-                    _currentArchetype = ref _world.GetArchetypeReference(_matchingArchetypes[0]);
+                    _currentArchetype = ref _world.ComponentManager.GetArchetypeReference(_matchingArchetypes[0]);
                     if (_currentArchetype.ChunkCount > 0)
                     {
                         SetChunk(0);
@@ -957,7 +957,7 @@ public unsafe partial struct EntityQuery
                     _currentArchetypeIndex++;
                     if (_currentArchetypeIndex < _matchingArchetypes.Count)
                     {
-                        _currentArchetype = ref _world.GetArchetypeReference(_matchingArchetypes[_currentArchetypeIndex]);
+                        _currentArchetype = ref _world.ComponentManager.GetArchetypeReference(_matchingArchetypes[_currentArchetypeIndex]);
 
                         _currentChunkIndex = 0;
                         if (_currentArchetype.ChunkCount > 0)
@@ -986,7 +986,7 @@ public unsafe partial struct EntityQuery
 
                 if (_matchingArchetypes.Count > 0)
                 {
-                    _currentArchetype = ref _world.GetArchetypeReference(_matchingArchetypes[0]);
+                    _currentArchetype = ref _world.ComponentManager.GetArchetypeReference(_matchingArchetypes[0]);
                     if (_currentArchetype.ChunkCount > 0)
                     {
                         SetChunk(0);
@@ -1193,7 +1193,7 @@ public unsafe partial struct EntityQuery
                     _currentArchetypeIndex++;
                     if (_currentArchetypeIndex < _matchingArchetypes.Count)
                     {
-                        _currentArchetype = ref _world.GetArchetypeReference(_matchingArchetypes[_currentArchetypeIndex]);
+                        _currentArchetype = ref _world.ComponentManager.GetArchetypeReference(_matchingArchetypes[_currentArchetypeIndex]);
 
                         _currentChunkIndex = 0;
                         if (_currentArchetype.ChunkCount > 0)
@@ -1222,7 +1222,7 @@ public unsafe partial struct EntityQuery
 
                 if (_matchingArchetypes.Count > 0)
                 {
-                    _currentArchetype = ref _world.GetArchetypeReference(_matchingArchetypes[0]);
+                    _currentArchetype = ref _world.ComponentManager.GetArchetypeReference(_matchingArchetypes[0]);
                     if (_currentArchetype.ChunkCount > 0)
                     {
                         SetChunk(0);
@@ -1439,7 +1439,7 @@ public unsafe partial struct EntityQuery
                     _currentArchetypeIndex++;
                     if (_currentArchetypeIndex < _matchingArchetypes.Count)
                     {
-                        _currentArchetype = ref _world.GetArchetypeReference(_matchingArchetypes[_currentArchetypeIndex]);
+                        _currentArchetype = ref _world.ComponentManager.GetArchetypeReference(_matchingArchetypes[_currentArchetypeIndex]);
 
                         _currentChunkIndex = 0;
                         if (_currentArchetype.ChunkCount > 0)
@@ -1468,7 +1468,7 @@ public unsafe partial struct EntityQuery
 
                 if (_matchingArchetypes.Count > 0)
                 {
-                    _currentArchetype = ref _world.GetArchetypeReference(_matchingArchetypes[0]);
+                    _currentArchetype = ref _world.ComponentManager.GetArchetypeReference(_matchingArchetypes[0]);
                     if (_currentArchetype.ChunkCount > 0)
                     {
                         SetChunk(0);
@@ -1695,7 +1695,7 @@ public unsafe partial struct EntityQuery
                     _currentArchetypeIndex++;
                     if (_currentArchetypeIndex < _matchingArchetypes.Count)
                     {
-                        _currentArchetype = ref _world.GetArchetypeReference(_matchingArchetypes[_currentArchetypeIndex]);
+                        _currentArchetype = ref _world.ComponentManager.GetArchetypeReference(_matchingArchetypes[_currentArchetypeIndex]);
 
                         _currentChunkIndex = 0;
                         if (_currentArchetype.ChunkCount > 0)
@@ -1724,7 +1724,7 @@ public unsafe partial struct EntityQuery
 
                 if (_matchingArchetypes.Count > 0)
                 {
-                    _currentArchetype = ref _world.GetArchetypeReference(_matchingArchetypes[0]);
+                    _currentArchetype = ref _world.ComponentManager.GetArchetypeReference(_matchingArchetypes[0]);
                     if (_currentArchetype.ChunkCount > 0)
                     {
                         SetChunk(0);

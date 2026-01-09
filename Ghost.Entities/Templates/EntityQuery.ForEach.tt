@@ -58,7 +58,7 @@ public unsafe partial struct EntityQuery
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
+            ref var archetype = ref world.ComponentManager.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < <#= i #>; index++)
             {

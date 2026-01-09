@@ -37,7 +37,7 @@ public unsafe partial struct EntityQuery
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
+            ref var archetype = ref world.ComponentManager.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 1; index++)
             {
@@ -124,7 +124,7 @@ public unsafe partial struct EntityQuery
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
+            ref var archetype = ref world.ComponentManager.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 2; index++)
             {
@@ -215,7 +215,7 @@ public unsafe partial struct EntityQuery
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
+            ref var archetype = ref world.ComponentManager.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 3; index++)
             {
@@ -310,7 +310,7 @@ public unsafe partial struct EntityQuery
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
+            ref var archetype = ref world.ComponentManager.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 4; index++)
             {
@@ -409,7 +409,7 @@ public unsafe partial struct EntityQuery
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
+            ref var archetype = ref world.ComponentManager.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 5; index++)
             {
@@ -512,7 +512,7 @@ public unsafe partial struct EntityQuery
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
+            ref var archetype = ref world.ComponentManager.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 6; index++)
             {
@@ -619,7 +619,7 @@ public unsafe partial struct EntityQuery
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
+            ref var archetype = ref world.ComponentManager.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 7; index++)
             {
@@ -730,7 +730,7 @@ public unsafe partial struct EntityQuery
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
+            ref var archetype = ref world.ComponentManager.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 8; index++)
             {
@@ -821,7 +821,7 @@ public unsafe partial struct EntityQuery
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
+            ref var archetype = ref world.ComponentManager.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 1; index++)
             {
@@ -909,7 +909,7 @@ public unsafe partial struct EntityQuery
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
+            ref var archetype = ref world.ComponentManager.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 2; index++)
             {
@@ -1001,7 +1001,7 @@ public unsafe partial struct EntityQuery
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
+            ref var archetype = ref world.ComponentManager.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 3; index++)
             {
@@ -1097,7 +1097,7 @@ public unsafe partial struct EntityQuery
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
+            ref var archetype = ref world.ComponentManager.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 4; index++)
             {
@@ -1197,7 +1197,7 @@ public unsafe partial struct EntityQuery
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
+            ref var archetype = ref world.ComponentManager.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 5; index++)
             {
@@ -1301,7 +1301,7 @@ public unsafe partial struct EntityQuery
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
+            ref var archetype = ref world.ComponentManager.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 6; index++)
             {
@@ -1409,7 +1409,7 @@ public unsafe partial struct EntityQuery
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
+            ref var archetype = ref world.ComponentManager.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 7; index++)
             {
@@ -1521,7 +1521,7 @@ public unsafe partial struct EntityQuery
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            ref var archetype = ref world.GetArchetypeReference(_matchingArchetypes[i]);
+            ref var archetype = ref world.ComponentManager.GetArchetypeReference(_matchingArchetypes[i]);
             var hasAllComponents = true;
             for (var index = 0; index < 8; index++)
             {

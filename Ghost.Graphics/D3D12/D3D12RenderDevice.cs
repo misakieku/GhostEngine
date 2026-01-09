@@ -28,6 +28,11 @@ internal unsafe class D3D12RenderDevice : IRenderDevice
     public ICommandQueue ComputeQueue => _computeQueue;
     public ICommandQueue CopyQueue => _copyQueue;
 
+    public FeatureSupport FeatureSupport
+    {
+        get;
+    }
+
     public SharedPtr<IDXGIFactory7> DXGIFactory => _dxgiFactory.Share();
     public SharedPtr<ID3D12Device14> NativeDevice => _device.Share();
     public SharedPtr<IDXGIAdapter1> Adapter => _adapter.Share();
@@ -51,6 +56,8 @@ internal unsafe class D3D12RenderDevice : IRenderDevice
         _graphicsQueue = new D3D12CommandQueue(_device.Get(), CommandQueueType.Graphics);
         _computeQueue = new D3D12CommandQueue(_device.Get(), CommandQueueType.Compute);
         _copyQueue = new D3D12CommandQueue(_device.Get(), CommandQueueType.Copy);
+
+        FeatureSupport = GetFeatureSupport();
     }
 
     ~D3D12RenderDevice()
@@ -95,7 +102,7 @@ internal unsafe class D3D12RenderDevice : IRenderDevice
         _device.Attach(pDevice);
     }
 
-    public FeatureSupport GetFeatureSupport()
+    private FeatureSupport GetFeatureSupport()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -139,6 +146,15 @@ internal unsafe class D3D12RenderDevice : IRenderDevice
             if (options7.SamplerFeedbackTier != D3D12_SAMPLER_FEEDBACK_TIER_NOT_SUPPORTED)
             {
                 support |= FeatureSupport.SamplerFeedback;
+            }
+        }
+
+        D3D12_FEATURE_DATA_D3D12_OPTIONS21 options9 = default;
+        if (_device.Get()->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS21, &options9, (uint)sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS8)).SUCCEEDED)
+        {
+            if (options9.WorkGraphsTier != D3D12_WORK_GRAPHS_TIER.D3D12_WORK_GRAPHS_TIER_NOT_SUPPORTED)
+            {
+                support |= FeatureSupport.WorkGraphs;
             }
         }
 

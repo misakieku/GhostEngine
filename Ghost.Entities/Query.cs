@@ -285,7 +285,7 @@ public unsafe partial struct EntityQuery : IDisposable
             {
                 get
                 {
-                    ref var archetype = ref _iterator._world.GetArchetypeReference(_iterator._matchingArchetypes[_archetypeIndex]);
+                    ref var archetype = ref _iterator._world.ComponentManager.GetArchetypeReference(_iterator._matchingArchetypes[_archetypeIndex]);
                     ref var chunk = ref archetype.GetChunkReference(_chunkIndex);
                     return new ChunkView(in archetype, in chunk);
                 }
@@ -297,7 +297,7 @@ public unsafe partial struct EntityQuery : IDisposable
 
                 while (_archetypeIndex < _iterator._matchingArchetypes.Count)
                 {
-                    ref var archetype = ref _iterator._world.GetArchetypeReference(_iterator._matchingArchetypes[_archetypeIndex]);
+                    ref var archetype = ref _iterator._world.ComponentManager.GetArchetypeReference(_iterator._matchingArchetypes[_archetypeIndex]);
                     if (_chunkIndex < archetype.ChunkCount)
                     {
                         return true;
@@ -452,7 +452,7 @@ public unsafe partial struct EntityQuery : IDisposable
         for(var i = 0; i < _matchingArchetypes.Count; i++)
         {
             var archetypeID = _matchingArchetypes[i];
-            ref var archetype = ref world.GetArchetypeReference(archetypeID);
+            ref var archetype = ref world.ComponentManager.GetArchetypeReference(archetypeID);
             for (var j = 0; j < archetype.ChunkCount; j++)
             {
                 ref var chunk = ref archetype.GetChunkReference(j);
@@ -577,12 +577,12 @@ public ref partial struct QueryBuilder
 
         // 4. Ask World for the Query (Cached)
         var maskHash = mask.GetHashCode();
-        var queryID = world.GetEntityQueryIDByMaskHash(maskHash);
+        var queryID = world.ComponentManager.GetEntityQueryIDByMaskHash(maskHash);
         if (queryID.IsValid)
         {
             // Check if the masks are actually equal (Hash collision?).
             // Really worth it? It's unlikely to have collisions here.
-            if (world.GetEntityQueryReference(queryID)._mask.Equals(mask))
+            if (world.ComponentManager.GetEntityQueryReference(queryID)._mask.Equals(mask))
             {
                 mask.Dispose();
                 goto Return;
@@ -590,7 +590,7 @@ public ref partial struct QueryBuilder
         }
 
         // NOTE: We do not dispose the mask here, as it is now owned by the EntityQuery.
-        queryID = world.CreateEntityQuery(mask, maskHash);
+        queryID = world.ComponentManager.CreateEntityQuery(mask, maskHash);
 
     Return:
         Dispose();

@@ -12,16 +12,16 @@ public enum OpenWorldMode
     AdditiveWithoutLoading
 }
 
-public static class EditorWorldManager
+public static class EditorSceneManager
 {
     // TODO: Use guid keys instead of string paths for better performance and uniqueness
-    private static readonly Dictionary<string, WorldNode> s_loadedWorlds = new();
-    public static IEnumerable<WorldNode> LoadedWorlds => s_loadedWorlds.Values;
+    private static readonly Dictionary<string, SceneNode> s_loadedWorlds = new();
+    public static IEnumerable<SceneNode> LoadedWorlds => s_loadedWorlds.Values;
 
-    public static event Action<WorldNode>? OnWorldLoaded;
-    public static event Action<WorldNode>? OnWorldUnloaded;
+    public static event Action<SceneNode>? OnWorldLoaded;
+    public static event Action<SceneNode>? OnWorldUnloaded;
 
-    public static async Task LoadWorld(string worldPath)
+    public static async Task LoadSceneAsync(string worldPath)
     {
         if (s_loadedWorlds.ContainsKey(worldPath)
             || !File.Exists(worldPath)
@@ -40,7 +40,7 @@ public static class EditorWorldManager
         }
 
         await using var readStream = new FileStream(worldPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        var deserializedScene = await JsonSerializer.DeserializeAsync<WorldNode>(readStream, Engine.Resources.EngineResource.defaultSerializerOptions) ?? throw new Exception("Deserialization failed.");
+        var deserializedScene = await JsonSerializer.DeserializeAsync<SceneNode>(readStream, Engine.Resources.EngineResource.defaultSerializerOptions) ?? throw new Exception("Deserialization failed.");
 
         s_loadedWorlds.Clear();
 

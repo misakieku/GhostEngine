@@ -9,6 +9,7 @@ public enum FeatureSupport
     MeshShaders = 1 << 2,
     SamplerFeedback = 1 << 3,
     BindlessResources = 1 << 4,
+    WorkGraphs = 1 << 5,
 }
 
 /// <summary>
@@ -40,5 +41,8 @@ public interface IRenderDevice : IDisposable
         get;
     }
 
-    public FeatureSupport GetFeatureSupport();
+    public FeatureSupport FeatureSupport
+    {
+        get;
+    }
 }

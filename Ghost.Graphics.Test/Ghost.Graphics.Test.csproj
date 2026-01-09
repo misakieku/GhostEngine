@@ -15,6 +15,7 @@
   <ItemGroup>
     <None Remove="Controls\DebugConsole.xaml" />
     <None Remove="Windows\DebugOutputWindow.xaml" />
+    <None Remove="Windows\WorkGraphTestWindow.xaml" />
   </ItemGroup>
 
   <ItemGroup>
@@ -55,6 +56,11 @@
   <ItemGroup>
     <ProjectReference Include="..\Ghost.Engine\Ghost.Engine.csproj" />
     <ProjectReference Include="..\Ghost.Test.Core\Ghost.Test.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Windows\WorkGraphTestWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
 
   <!-- 

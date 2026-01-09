@@ -1,3 +1,10 @@
+using Ghost.Core;
+using Ghost.Core.Graphics;
+using Ghost.Core.Utilities;
+using Ghost.Graphics.Core;
+using System.IO.Hashing;
+using System.Runtime.InteropServices;
+
 namespace Ghost.Graphics.RHI;
 
 internal static class RHIUtility
@@ -27,7 +34,7 @@ internal static class RHIUtility
         var packed = false;
         var planar = false;
         var bpe = 0u;
-        
+
         //switch (Format)
         //{
         //    case Format.BC1Typeless:
@@ -126,5 +133,50 @@ internal static class RHIUtility
             rowCount = height;
             slicePitch = rowPitch * height;
         }
+    }
+
+    public static Key64<ShaderPass> CreateShaderPassKey(string passID)
+    {
+        var passIdSpan = passID.AsSpan();
+        return new Key64<ShaderPass>(XxHash3.HashToUInt64(MemoryMarshal.AsBytes(passIdSpan)));
+    }
+
+    public static Key64<ShaderVariant> CreateShaderVariantKey(Key64<ShaderPass> passKey, ref readonly LocalKeywordSet keywords)
+    {
+        var passHash = passKey.Value;
+        var keywordHash = keywords.GetHash64();
+        return new Key64<ShaderVariant>(Hash.Hash64(passHash, keywordHash));
+    }
+
+    public static unsafe Key128<GraphicsPipeline> CreateGraphicsPipelineKey(Key64<ShaderVariant> shaderVariantKey, PipelineState pipelineState, PassPipelineHash passKey)
+    {
+        // Order-sensitive 128-bit mix. Cheap and stable, avoids span hashing.
+        static ulong Mix64(ulong x)
+        {
+            x ^= x >> 30;
+            x *= 0xBF58476D1CE4E5B9ul;
+            x ^= x >> 27;
+            x *= 0x94D049BB133111EBul;
+            x ^= x >> 31;
+            return x;
+        }
+
+        var mLo = shaderVariantKey.Value;
+        var mHi = pipelineState.GetHashCode64();
+
+        var pPasskey = (ulong*)&passKey.value;
+        var pLo = pPasskey[0];
+        var pHi = pPasskey[1];
+
+        // Distinct constants + cross-feeding to reduce structural collisions.
+        var lo = Mix64(mLo ^ (pLo + 0x9E3779B97F4A7C15ul) ^ (mHi * 0xD6E8FEB86659FD93ul));
+        var hi = Mix64(mHi ^ (pHi + 0xC2B2AE3D27D4EB4Ful) ^ (pLo * 0x165667B19E3779F9ul));
+
+        return new Key128<GraphicsPipeline>(new UInt128(lo, hi));
+    }
+
+    public static bool TryGetString(this Key128<GraphicsPipeline> key, Span<char> destination)
+    {
+        return key.Value.TryFormat(destination, out var _, "X16");
     }
 }

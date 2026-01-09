@@ -1,6 +1,6 @@
 using Ghost.Core.Graphics;
 
-namespace Ghost.SDL.Compiler.Parser;
+namespace Ghost.DSL.ShaderCompiler.Parser;
 
 internal class KeywordsBlock : IBlockParser<List<FunctionCallDeclaration>, List<KeywordsGroup>>
 {
@@ -30,7 +30,7 @@ internal class KeywordsBlock : IBlockParser<List<FunctionCallDeclaration>, List<
         return keywords;
     }
 
-    public static List<KeywordsGroup>? SemanticAnalysis(List<FunctionCallDeclaration>? syntax, List<SDLError> errors)
+    public static List<KeywordsGroup>? SemanticAnalysis(List<FunctionCallDeclaration>? syntax, List<DSLShaderError> errors)
     {
         if (syntax == null)
         {
@@ -42,7 +42,7 @@ internal class KeywordsBlock : IBlockParser<List<FunctionCallDeclaration>, List<
         {
             if (keyword.arguments == null || keyword.arguments.Count == 0)
             {
-                errors.Add(new SDLError
+                errors.Add(new DSLShaderError
                 {
                     message = $"Function '{keyword.name.lexeme}' must have at least one argument.",
                     line = keyword.name.line,
@@ -61,7 +61,7 @@ internal class KeywordsBlock : IBlockParser<List<FunctionCallDeclaration>, List<
                     group.space = KeywordSpace.Global;
                     break;
                 default:
-                    errors.Add(new SDLError
+                    errors.Add(new DSLShaderError
                     {
                         message = $"Unknown function name '{keyword.name.lexeme}'.",
                         line = keyword.name.line,

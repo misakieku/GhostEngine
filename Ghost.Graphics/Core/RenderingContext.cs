@@ -64,6 +64,8 @@ public readonly unsafe ref struct RenderingContext
         if (staticMesh)
         {
             meshData.ReleaseCpuResources();
+            _directCmd.ResourceBarrier(vertexHandle, ResourceState.NonPixelShaderResource);
+            _directCmd.ResourceBarrier(indexHandle, ResourceState.NonPixelShaderResource);
         }
 
         return mesh;
@@ -91,7 +93,7 @@ public readonly unsafe ref struct RenderingContext
     {
         ref var meshRef = ref ResourceDatabase.GetMeshReference(mesh);
 
-        _directCmd.ResourceBarrier(meshRef.VertexBuffer.AsResource(),ResourceState.CopyDest);
+        _directCmd.ResourceBarrier(meshRef.VertexBuffer.AsResource(), ResourceState.CopyDest);
         _directCmd.ResourceBarrier(meshRef.IndexBuffer.AsResource(), ResourceState.CopyDest);
 
         _directCmd.UploadBuffer(meshRef.VertexBuffer, meshRef.Vertices.AsSpan());
@@ -122,7 +124,7 @@ public readonly unsafe ref struct RenderingContext
 
         _directCmd.ResourceBarrier(bufferHandle, ResourceState.CopyDest);
         _directCmd.UploadBuffer(meshData.ObjectDataBuffer, [data]);
-        _directCmd.ResourceBarrier(bufferHandle, ResourceState.VertexAndConstantBuffer);
+        _directCmd.ResourceBarrier(bufferHandle, ResourceState.NonPixelShaderResource | ResourceState.PixelShaderResource);
     }
 
     public Handle<Texture> CreateTexture<T>(ref readonly TextureDesc desc, ReadOnlySpan<T> data, bool tempResource = false)
@@ -176,14 +178,20 @@ public readonly unsafe ref struct RenderingContext
             throw new InvalidOperationException("Shader pass not found in the material's shader.");
         }
 
-        var passPipelineKey = new PassPipelineKey([TextureFormat.B8G8R8A8_UNorm], TextureFormat.Unknown);
-        var materialPipelineKey = materialRef.GetPassPipelineKey(passIndex);
-        var pipelineKey = GraphicsPipelineKey.Combine(materialPipelineKey, passPipelineKey);
+        ref var pass = ref shader.GetPassReference(passIndex);
+
+        var passPipelineHash = new PassPipelineHash([TextureFormat.B8G8R8A8_UNorm], TextureFormat.Unknown);
+        var materialPipeline = materialRef.GetPassPipelineOverride(passIndex);
+
+        // Mask out the keywords that are not used in this pass.
+        var variantMask = materialRef._keywordMask & pass.KeywordIDs;
+        var shaderVariantKey = RHIUtility.CreateShaderVariantKey(pass.Key, in variantMask);
+
+        var pipelineKey = RHIUtility.CreateGraphicsPipelineKey(shaderVariantKey, materialPipeline, passPipelineHash);
 
         if (!_engine.PipelineLibrary.HasPipeline(pipelineKey))
         {
-            var pass = shader.GetPassReference(passIndex);
-            var r = _engine.ShaderCompiler.LoadCompiledCache(pass.Identifier);
+            var r = _engine.ShaderCompiler.LoadCompiledCache(shaderVariantKey);
             if (r.IsFailure)
             {
                 throw new InvalidOperationException("Failed to load compiled shader cache for pipeline state object creation.");
@@ -191,7 +199,7 @@ public readonly unsafe ref struct RenderingContext
 
             var psoDes = new GraphicsPSODescriptor
             {
-                PassId = pass.Identifier,
+                VariantKey = shaderVariantKey,
                 PipelineOption = materialRef.GetPassPipelineOverride(passIndex),
 
                 RtvFormats = [TextureFormat.B8G8R8A8_UNorm],
@@ -203,14 +211,15 @@ public readonly unsafe ref struct RenderingContext
         }
 
         _directCmd.SetPipelineState(pipelineKey);
-        _directCmd.SetConstantBufferView(RootSignatureLayout.PER_OBJECT_BUFFER_SLOT, meshRef.ObjectDataBuffer);
 
-        // NOTE: We use fixed root signature layout for bindless rendering.
-        var cache = materialRef.CBufferCache;
-        if (cache.IsCreated)
+        var data = new PushConstantsData
         {
-            _directCmd.SetConstantBufferView(RootSignatureLayout.PER_MATERIAL_BUFFER_SLOT, cache.GpuResource);
-        }
+            objectIndex = _engine.ResourceDatabase.GetBindlessIndex(meshRef.ObjectDataBuffer.AsResource()).GetValueOrThrow(),
+            materialIndex = _engine.ResourceDatabase.GetBindlessIndex(materialRef._cBufferCache.GpuResource.AsResource()).GetValueOrThrow(),
+        };
+
+        var pushConstantSpan = new ReadOnlySpan<uint>(&data, sizeof(PushConstantsData) / sizeof(uint));
+        _directCmd.SetGraphicsRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, pushConstantSpan);
 
         var threadGroupCountX = ((uint)meshRef.IndexCount + numThreadsX - 1) / numThreadsX;
         _directCmd.DispatchMesh(threadGroupCountX, 1, 1);

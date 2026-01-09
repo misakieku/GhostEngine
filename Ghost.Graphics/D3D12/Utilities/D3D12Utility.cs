@@ -77,41 +77,136 @@ internal unsafe static class D3D12Utility
 
     public static D3D12_RESOURCE_STATES ToD3D12States(this ResourceState state)
     {
-        return state switch
+        var d3dStates = D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_COMMON;
+
+        if (state.HasFlag(ResourceState.VertexAndConstantBuffer))
         {
-            ResourceState.Common or ResourceState.Present => D3D12_RESOURCE_STATE_COMMON,
-            ResourceState.VertexAndConstantBuffer => D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
-            ResourceState.IndexBuffer => D3D12_RESOURCE_STATE_INDEX_BUFFER,
-            ResourceState.RenderTarget => D3D12_RESOURCE_STATE_RENDER_TARGET,
-            ResourceState.UnorderedAccess => D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-            ResourceState.DepthWrite => D3D12_RESOURCE_STATE_DEPTH_WRITE,
-            ResourceState.DepthRead => D3D12_RESOURCE_STATE_DEPTH_READ,
-            ResourceState.PixelShaderResource => D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-            ResourceState.CopyDest => D3D12_RESOURCE_STATE_COPY_DEST,
-            ResourceState.CopySource => D3D12_RESOURCE_STATE_COPY_SOURCE,
-            ResourceState.GenericRead => D3D12_RESOURCE_STATE_GENERIC_READ,
-            ResourceState.IndirectArgument => D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT,
-            ResourceState.NonPixelShaderResource => D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
-            _ => throw new ArgumentException($"Unknown resource state: {state}")
-        };
+            d3dStates |= D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+        }
+
+        if (state.HasFlag(ResourceState.IndexBuffer))
+        {
+            d3dStates |= D3D12_RESOURCE_STATE_INDEX_BUFFER;
+        }
+
+        if (state.HasFlag(ResourceState.RenderTarget))
+        {
+            d3dStates |= D3D12_RESOURCE_STATE_RENDER_TARGET;
+        }
+
+        if (state.HasFlag(ResourceState.UnorderedAccess))
+        {
+            d3dStates |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+        }
+
+        if (state.HasFlag(ResourceState.DepthWrite))
+        {
+            d3dStates |= D3D12_RESOURCE_STATE_DEPTH_WRITE;
+        }
+
+        if (state.HasFlag(ResourceState.DepthRead))
+        {
+            d3dStates |= D3D12_RESOURCE_STATE_DEPTH_READ;
+        }
+
+        if (state.HasFlag(ResourceState.PixelShaderResource))
+        {
+            d3dStates |= D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+        }
+
+        if (state.HasFlag(ResourceState.CopyDest))
+        {
+            d3dStates |= D3D12_RESOURCE_STATE_COPY_DEST;
+        }
+
+        if (state.HasFlag(ResourceState.CopySource))
+        {
+            d3dStates |= D3D12_RESOURCE_STATE_COPY_SOURCE;
+        }
+
+        if (state.HasFlag(ResourceState.GenericRead))
+        {
+            d3dStates |= D3D12_RESOURCE_STATE_GENERIC_READ;
+        }
+
+        if (state.HasFlag(ResourceState.IndirectArgument))
+        {
+            d3dStates |= D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
+        }
+
+        if (state.HasFlag(ResourceState.NonPixelShaderResource))
+        {
+            d3dStates |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+        }
+
+        return d3dStates;
     }
 
     public static ResourceState ToResourceState(this D3D12_RESOURCE_STATES states)
     {
-        return states switch
+        var resourceState = ResourceState.Common;
+
+        if (states.HasFlag(D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER))
         {
-            D3D12_RESOURCE_STATE_COMMON => ResourceState.Common,
-            D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER => ResourceState.VertexAndConstantBuffer,
-            D3D12_RESOURCE_STATE_INDEX_BUFFER => ResourceState.IndexBuffer,
-            D3D12_RESOURCE_STATE_RENDER_TARGET => ResourceState.RenderTarget,
-            D3D12_RESOURCE_STATE_UNORDERED_ACCESS => ResourceState.UnorderedAccess,
-            D3D12_RESOURCE_STATE_DEPTH_WRITE => ResourceState.DepthWrite,
-            D3D12_RESOURCE_STATE_DEPTH_READ => ResourceState.DepthRead,
-            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE => ResourceState.PixelShaderResource,
-            D3D12_RESOURCE_STATE_COPY_DEST => ResourceState.CopyDest,
-            D3D12_RESOURCE_STATE_COPY_SOURCE => ResourceState.CopySource,
-            _ => throw new ArgumentException($"Unknown D3D12 resource state: {states}")
-        };
+            resourceState |= ResourceState.VertexAndConstantBuffer;
+        }
+
+        if (states.HasFlag(D3D12_RESOURCE_STATE_INDEX_BUFFER))
+        {
+            resourceState |= ResourceState.IndexBuffer;
+        }
+
+        if (states.HasFlag(D3D12_RESOURCE_STATE_RENDER_TARGET))
+        {
+            resourceState |= ResourceState.RenderTarget;
+        }
+
+        if (states.HasFlag(D3D12_RESOURCE_STATE_UNORDERED_ACCESS))
+        {
+            resourceState |= ResourceState.UnorderedAccess;
+        }
+
+        if (states.HasFlag(D3D12_RESOURCE_STATE_DEPTH_WRITE))
+        {
+            resourceState |= ResourceState.DepthWrite;
+        }
+
+        if (states.HasFlag(D3D12_RESOURCE_STATE_DEPTH_READ))
+        {
+            resourceState |= ResourceState.DepthRead;
+        }
+
+        if (states.HasFlag(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE))
+        {
+            resourceState |= ResourceState.PixelShaderResource;
+        }
+
+        if (states.HasFlag(D3D12_RESOURCE_STATE_COPY_DEST))
+        {
+            resourceState |= ResourceState.CopyDest;
+        }
+
+        if (states.HasFlag(D3D12_RESOURCE_STATE_COPY_SOURCE))
+        {
+            resourceState |= ResourceState.CopySource;
+        }
+
+        if (states.HasFlag(D3D12_RESOURCE_STATE_GENERIC_READ))
+        {
+            resourceState |= ResourceState.GenericRead;
+        }
+
+        if (states.HasFlag(D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT))
+        {
+            resourceState |= ResourceState.IndirectArgument;
+        }
+
+        if (states.HasFlag(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE))
+        {
+            resourceState |= ResourceState.NonPixelShaderResource;
+        }
+
+        return resourceState;
     }
 
     public static D3D12_FILTER ToD3D12Filter(this TextureFilterMode filterMode)

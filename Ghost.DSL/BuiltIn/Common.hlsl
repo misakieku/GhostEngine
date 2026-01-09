@@ -10,8 +10,6 @@ struct Vertex
     float4 color;
 };
 
-#define SIZEOF_VERTEX 80 // bytes
-
 // Resource descriptor heap definitions
 
 #define GLOBAL_TEXTURE2D_HEAP ResourceDescriptorHeap
@@ -50,7 +48,10 @@ struct Vertex
 #define SAMPLE_TEXTURE2D_LEVEL(texId, sampId, uv, level) SampleTexture2DLevel(texId, sampId, uv, level)
 #define SAMPLE_TEXTURE2D_ARRAY(texId, sampId, uvw) SampleTextureArray(texId, sampId, uvw)
 
-#define MESH_SHADER_THREADS(x) [NumThreads(x, 1, 1)]
+
+#define MESH_SHADER_THREADS(x) NumThreads(x, 1, 1)
+#define OUTPUT_TRIANGLE_TOPOLOGY OutputTopology("triangle")
+#define OUTPUT_LINE_TOPOLOGY OutputTopology("line")
 
 
 static inline float4 SampleTexture2D(uint texId, uint sampId, float2 uv)
@@ -76,24 +77,21 @@ static inline float4 SampleTextureArray(uint texId, uint sampId, float3 uvw)
 
 static inline Vertex LoadVertexData(uint vertexID, uint groupID, BYTE_ADDRESS_BUFFER vertexBuffer, BYTE_ADDRESS_BUFFER indexBuffer)
 {
-    // Fetch bindless buffers
     ByteAddressBuffer vertices = GET_BUFFER(vertexBuffer);
     ByteAddressBuffer indices = GET_BUFFER(indexBuffer);
-    
+
     // Compute the triangle’s vertex indices
     uint indexOffset = (groupID * 3 + vertexID) * 4; // uint32 index
     uint vertexIndex = indices.Load(indexOffset);
-    
-    // Load vertex attributes
-    uint vertexOffset = vertexIndex * SIZEOF_VERTEX;
-    Vertex v;
-    v.position = asfloat(vertices.Load4(vertexOffset + 0));
-    v.normal = asfloat(vertices.Load4(vertexOffset + 16));
-    v.tangent = asfloat(vertices.Load4(vertexOffset + 32));
-    v.uv = asfloat(vertices.Load4(vertexOffset + 48));
-    v.color = asfloat(vertices.Load4(vertexOffset + 64));
-    
-    return v;
+
+    return vertices.Load<Vertex>(vertexIndex * sizeof(Vertex));
+}
+
+template<typename T>
+static inline T LoadData(BYTE_ADDRESS_BUFFER buffer, uint index)
+{
+    ByteAddressBuffer buf = GET_BUFFER(buffer);
+    return buf.Load<T>(index * sizeof(T));
 }
 
 #endif // BUILTIN_COMMON_HLSL

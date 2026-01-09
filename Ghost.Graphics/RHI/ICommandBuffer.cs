@@ -104,7 +104,7 @@ public interface ICommandBuffer : IDisposable
     /// Sets the pipeline state object
     /// </summary>
     /// <param name="pipelineKey">Pipeline state to set</param>
-    void SetPipelineState(GraphicsPipelineKey pipelineKey);
+    void SetPipelineState(Key128<GraphicsPipeline> pipelineKey);
 
     /// <summary>
     /// Sets the constant buffer view for the specified slot in the graphics pipeline.
@@ -134,6 +134,14 @@ public interface ICommandBuffer : IDisposable
     /// </summary>
     /// <param name="topology">The primitive topology that determines how the input vertices are interpreted during rendering.</param>
     void SetPrimitiveTopology(PrimitiveTopology topology);
+
+    /// <summary>
+    /// Sets a 32-bit constant value in the graphics root signature at the specified index.
+    /// </summary>
+    /// <param name="rootIndex">The zero-based index of the root parameter in the graphics root signature to set the constant for.</param>
+    /// <param name="constantBuffer">A read-only span containing the 32-bit constant values to set.</param>
+    /// <param name="offsetIn32Bits">The offset, in 32-bit values, from the start of the root parameter where the constants will be set.</param>
+    void SetGraphicsRoot32Constants(uint rootIndex, ReadOnlySpan<uint> constantBuffer, uint offsetIn32Bits = 0);
 
     /// <summary>
     /// Issues a non-indexed draw call.

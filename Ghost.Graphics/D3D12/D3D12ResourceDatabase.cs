@@ -464,7 +464,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
             ThrowMemoryLeakException("materials", _materials.Count);
         }
 
-        // SDL are reference space, it will be managed by GC, so we don't throw exception here.
+        // DSL are reference space, it will be managed by GC, so we don't throw exception here.
         for (var i = 0; i < _shaders.Count; i++)
         {
             ref var shader = ref _shaders[i];

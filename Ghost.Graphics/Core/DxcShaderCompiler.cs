@@ -66,14 +66,6 @@ internal sealed partial class DxcShaderCompiler
             argsArray.Add(define);
         }
 
-        // HACK: Currently DXC does not support force include, we have to use GENERATED_CODE_PATH define as a workaround.
-        // User must to write '#include GENERATED_CODE_PATH' in their shader code manually.
-        if (File.Exists(config.include))
-        {
-            argsArray.Add("-D");
-            argsArray.Add($"GENERATED_CODE_PATH={'"' + config.include.Replace("\\", "/") + '"'}");
-        }
-
         if (!config.options.HasFlag(CompilerOption.KeepDebugInfo))
         {
             argsArray.Add("-Qstrip_debug");
@@ -95,6 +87,27 @@ internal sealed partial class DxcShaderCompiler
         }
 
         return argsArray;
+    }
+
+    private static Result<string, ErrorStatus> GetFinalShaderCode(string shaderPath, ReadOnlySpan<string> includes)
+    {
+        if (!File.Exists(shaderPath))
+        {
+            return ErrorStatus.NotFound;
+        }
+
+        var shaderCode = File.ReadAllText(shaderPath);
+
+        var sb = new System.Text.StringBuilder();
+        foreach (var includePath in includes)
+        {
+            sb.AppendLine($"#include \"{includePath}\"");
+        }
+
+        sb.AppendLine($"#line {includes.Length + 1} \"{shaderPath}\"");
+        sb.AppendLine(shaderCode);
+
+        return sb.ToString();
     }
 
     private static ShaderInputType ToInputType(D3D_SHADER_INPUT_TYPE type)
@@ -121,7 +134,7 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
     private UniquePtr<IDxcUtils> _utils;
     // NOTE: This is just a temporary cache for compiled shader code. We will implement a proper disk cache later.
     // TODO: This should be shader variant specific cache instead of pass specific.
-    private readonly Dictionary<ShaderPassKey, GraphicsCompiledResult> _compiledResults;
+    private readonly Dictionary<Key64<ShaderVariant>, GraphicsCompiledResult> _compiledResults;
 
     private bool _disposed;
 
@@ -139,7 +152,7 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
         _compiler.Attach(pCompiler);
         _utils.Attach(pUtils);
 
-        _compiledResults = new Dictionary<ShaderPassKey, GraphicsCompiledResult>();
+        _compiledResults = new Dictionary<Key64<ShaderVariant>, GraphicsCompiledResult>();
     }
 
     ~DxcShaderCompiler()
@@ -194,41 +207,41 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
                 switch (bindDesc.Type)
                 {
                     case D3D_SHADER_INPUT_TYPE.D3D_SIT_CBUFFER:
-                    {
-                        var cbuffer = pReflection->GetConstantBufferByName(bindDesc.Name);
-                        D3D12_SHADER_BUFFER_DESC cbufferDesc;
-                        ThrowIfFailed(cbuffer->GetDesc(&cbufferDesc));
-
-                        var variables = new List<CBufferPropertyInfo>((int)cbufferDesc.Variables);
-
-                        // Now we iterate all variables for *every* cbuffer, not just b3
-                        for (uint j = 0; j < cbufferDesc.Variables; j++)
                         {
-                            var variable = cbuffer->GetVariableByIndex(j);
-                            D3D12_SHADER_VARIABLE_DESC varDesc;
-                            variable->GetDesc(&varDesc);
+                            var cbuffer = pReflection->GetConstantBufferByName(bindDesc.Name);
+                            D3D12_SHADER_BUFFER_DESC cbufferDesc;
+                            ThrowIfFailed(cbuffer->GetDesc(&cbufferDesc));
 
-                            var variableName = Marshal.PtrToStringUTF8((IntPtr)varDesc.Name);
-                            if (variableName == null)
+                            var variables = new List<CBufferPropertyInfo>((int)cbufferDesc.Variables);
+
+                            // Now we iterate all variables for *every* cbuffer, not just b3
+                            for (uint j = 0; j < cbufferDesc.Variables; j++)
                             {
-                                continue;
+                                var variable = cbuffer->GetVariableByIndex(j);
+                                D3D12_SHADER_VARIABLE_DESC varDesc;
+                                variable->GetDesc(&varDesc);
+
+                                var variableName = Marshal.PtrToStringUTF8((IntPtr)varDesc.Name);
+                                if (variableName == null)
+                                {
+                                    continue;
+                                }
+
+                                variables.Add(new CBufferPropertyInfo
+                                {
+                                    Name = variableName,
+                                    StartOffset = varDesc.StartOffset,
+                                    Size = varDesc.Size
+                                });
                             }
 
-                            variables.Add(new CBufferPropertyInfo
-                            {
-                                Name = variableName,
-                                StartOffset = varDesc.StartOffset,
-                                Size = varDesc.Size
-                            });
+                            info.Size = cbufferDesc.Size;
+                            info.Properties = variables;
+
+                            break;
                         }
 
-                        info.Size = cbufferDesc.Size;
-                        info.Properties = variables;
-
-                        break;
-                    }
-
-                    // NOTE: Currently we do not support resource bindings yet, everything access through bindless heaps.
+                        // NOTE: Currently we do not support resource bindings yet, everything access through bindless heaps.
                 }
 
                 reflectionData.ResourcesBindings.Add(info);
@@ -252,12 +265,24 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
         ThrowIfFailed(_utils.Get()->CreateDefaultIncludeHandler(includeHandler.GetAddressOf()));
 
         // Create source blob
-        fixed (char* pPath = config.shaderPath)
+        // fixed (char* pPath = config.shaderPath)
+        // {
+        //     if (_utils.Get()->LoadFile(pPath, null, sourceBlob.GetAddressOf()).FAILED)
+        //     {
+        //         return Result.Failure($"Failed to load shader file: {config.shaderPath}");
+        //     }
+        // }
+        var finalShaderCodeResult = GetFinalShaderCode(config.shaderPath, config.includes);
+        if (finalShaderCodeResult.IsFailure)
         {
-            if (_utils.Get()->LoadFile(pPath, null, sourceBlob.GetAddressOf()).FAILED)
-            {
-                return Result.Failure($"Failed to load shader file: {config.shaderPath}");
-            }
+            return Result.Failure(finalShaderCodeResult.Error);
+        }
+
+        var finalShaderCode = finalShaderCodeResult.Value;
+        fixed (byte* pCode = System.Text.Encoding.UTF8.GetBytes(finalShaderCode))
+        {
+            var sizeInBytes = System.Text.Encoding.UTF8.GetByteCount(finalShaderCode);
+            ThrowIfFailed(_utils.Get()->CreateBlobFromPinned(pCode, (uint)sizeInBytes, DXC_CP_UTF8, sourceBlob.GetAddressOf()));
         }
 
         var argsArray = GetCompilerArguments(in config);
@@ -342,11 +367,11 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
 
     // TODO: This should be shader variant specific compile instead of pass specific.
     // TODO: Build final shader code in memory before compiling.
-    public Result<GraphicsCompiledResult> CompilePass(IPassDescriptor descriptor, ref readonly ShaderCompilationConfig additionalConfig, string? generatedCodePath)
+    public Result<GraphicsCompiledResult> CompilePass(IPassDescriptor descriptor, ref readonly ShaderCompilationConfig additionalConfig, Key64<ShaderVariant> key)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        if (descriptor is not FullPassDescriptor fullDescriptor)
+        if (descriptor is not PassDescriptor fullDescriptor)
         {
             return Result.Failure("FullPassDescriptor expected.");
         }
@@ -361,7 +386,7 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
             var config = new ShaderCompilationConfig
             {
                 defines = fullDefines.AsSpan(),
-                include = generatedCodePath,
+                includes = fullDescriptor.includes.AsSpan(),
                 shaderPath = tsEntry.shader,
                 entryPoint = tsEntry.entry,
                 stage = ShaderStage.TaskShader,
@@ -386,7 +411,7 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
             var config = new ShaderCompilationConfig
             {
                 defines = fullDefines.AsSpan(),
-                include = generatedCodePath,
+                includes = fullDescriptor.includes.AsSpan(),
                 shaderPath = msEntry.shader,
                 entryPoint = msEntry.entry,
                 stage = ShaderStage.MeshShader,
@@ -415,7 +440,7 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
             var config = new ShaderCompilationConfig
             {
                 defines = fullDefines.AsSpan(),
-                include = generatedCodePath,
+                includes = fullDescriptor.includes.AsSpan(),
                 shaderPath = psEntry.shader,
                 entryPoint = psEntry.entry,
                 stage = ShaderStage.PixelShader,
@@ -444,11 +469,11 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
             psResult = psResult,
         };
 
-        _compiledResults[new ShaderPassKey(fullDescriptor.Identifier)] = compiled;
+        _compiledResults[key] = compiled;
         return compiled;
     }
 
-    public Result<GraphicsCompiledResult, ErrorStatus> LoadCompiledCache(ShaderPassKey key)
+    public Result<GraphicsCompiledResult, ErrorStatus> LoadCompiledCache(Key64<ShaderVariant> key)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 

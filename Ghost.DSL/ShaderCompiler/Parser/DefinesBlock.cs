@@ -1,4 +1,4 @@
-namespace Ghost.SDL.Compiler.Parser;
+namespace Ghost.DSL.ShaderCompiler.Parser;
 
 internal class DefinesBlock : IBlockParser<List<Token>, List<string>>
 {
@@ -27,7 +27,7 @@ internal class DefinesBlock : IBlockParser<List<Token>, List<string>>
         return defines;
     }
 
-    public static List<string>? SemanticAnalysis(List<Token>? syntax, List<SDLError> errors)
+    public static List<string>? SemanticAnalysis(List<Token>? syntax, List<DSLShaderError> errors)
     {
         if (syntax == null)
         {

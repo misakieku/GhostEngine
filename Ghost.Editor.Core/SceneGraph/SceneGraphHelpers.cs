@@ -10,10 +10,10 @@ public class SceneGraphHelpers
     /// </summary>
     /// <param name="world">The world context where the entity will be created.</param>
     /// <param name="entity">The entity to be wrapped in the <see cref="EntityNode"/>.</param>
-    public static EntityNode CreateEntityNode(WorldNode owner, Entity entity, string name)
+    public static EntityNode CreateEntityNode(SceneNode owner, Entity entity, string name)
     {
-        owner.World.EntityManager.AddComponent(entity, new LocalToWorld { matrix = Misaki.HighPerformance.Mathematics.float4x4.identity });
-        owner.World.EntityManager.AddComponent(entity, Hierarchy.Root);
+        owner.Scene.World.EntityManager.AddComponent(entity, new LocalToWorld { matrix = Misaki.HighPerformance.Mathematics.float4x4.identity });
+        owner.Scene.World.EntityManager.AddComponent(entity, Hierarchy.Root);
         return new EntityNode(owner, entity, name);
     }
 
@@ -21,9 +21,9 @@ public class SceneGraphHelpers
     /// Creates a new <see cref="Entity"/> and <see cref="EntityNode"/> entity with default components.
     /// </summary>
     /// <param name="owner">The world context where the entity will be created.</param>
-    public static EntityNode CreateEntityNode(WorldNode owner, string name)
+    public static EntityNode CreateEntityNode(SceneNode owner, string name)
     {
-        var entity = owner.World.EntityManager.CreateEntity();
+        var entity = owner.Scene.World.EntityManager.CreateEntity();
         return CreateEntityNode(owner, entity, name);
     }
 
@@ -33,10 +33,10 @@ public class SceneGraphHelpers
     /// <param name="world">The world context where the entities exist.</param>
     /// <param name="parentNode">The parent entity to which the child will be attached.</param>
     /// <param name="childNode">The child entity to be attached.</param>
-    public static void AttachChild(WorldNode scene, EntityNode parentNode, EntityNode childNode)
+    public static void AttachChild(SceneNode scene, EntityNode parentNode, EntityNode childNode)
     {
         // 1) If the child already has a parent, detach it first
-        var childHierarchy = scene.World.EntityManager.GetComponent<Hierarchy>(childNode.Entity);
+        var childHierarchy = scene.Scene.World.EntityManager.GetComponent<Hierarchy>(childNode.Entity);
         if (childHierarchy.parent != Entity.Invalid)
         {
             DetachFromParent(scene, childNode);
@@ -46,14 +46,14 @@ public class SceneGraphHelpers
         childHierarchy.parent = parentNode.Entity;
 
         // 3) Insert child at the head of parent's child list
-        var parentHierarchy = scene.World.EntityManager.GetComponent<Hierarchy>(parentNode.Entity);
+        var parentHierarchy = scene.Scene.World.EntityManager.GetComponent<Hierarchy>(parentNode.Entity);
 
         childHierarchy.nextSibling = parentHierarchy.firstChild;
         parentHierarchy.firstChild = childNode.Entity;
 
         // 4) Write back
-        scene.World.EntityManager.SetComponent(parentNode.Entity, parentHierarchy);
-        scene.World.EntityManager.SetComponent(childNode.Entity, childHierarchy);
+        scene.Scene.World.EntityManager.SetComponent(parentNode.Entity, parentHierarchy);
+        scene.Scene.World.EntityManager.SetComponent(childNode.Entity, childHierarchy);
 
         // 5) Update children list in parent node
         parentNode.AddChild(childNode);
@@ -64,16 +64,16 @@ public class SceneGraphHelpers
     /// </summary>
     /// <param name="world">The world context where the entities exist.</param>
     /// <param name="node">The entity to detach from its parent.</param>
-    public static void DetachFromParent(WorldNode scene, EntityNode node)
+    public static void DetachFromParent(SceneNode scene, EntityNode node)
     {
-        var hierarchy = scene.World.EntityManager.GetComponent<Hierarchy>(node.Entity);
+        var hierarchy = scene.Scene.World.EntityManager.GetComponent<Hierarchy>(node.Entity);
         var parent = hierarchy.parent;
         if (parent == Entity.Invalid)
         {
             return; // already root
         }
 
-        var parentHierarchy = scene.World.EntityManager.GetComponent<Hierarchy>(parent);
+        var parentHierarchy = scene.Scene.World.EntityManager.GetComponent<Hierarchy>(parent);
 
         // If entity is the first child, simply move head
         if (parentHierarchy.firstChild == node.Entity)
@@ -86,11 +86,11 @@ public class SceneGraphHelpers
             var prevSibling = parentHierarchy.firstChild;
             while (prevSibling != Entity.Invalid)
             {
-                var prevHierarchy = scene.World.EntityManager.GetComponent<Hierarchy>(prevSibling);
+                var prevHierarchy = scene.Scene.World.EntityManager.GetComponent<Hierarchy>(prevSibling);
                 if (prevHierarchy.nextSibling == node.Entity)
                 {
                     prevHierarchy.nextSibling = hierarchy.nextSibling;
-                    scene.World.EntityManager.SetComponent(prevSibling, prevHierarchy);
+                    scene.Scene.World.EntityManager.SetComponent(prevSibling, prevHierarchy);
                     break;
                 }
 
@@ -103,8 +103,8 @@ public class SceneGraphHelpers
         hierarchy.nextSibling = Entity.Invalid;
 
         // Write back
-        scene.World.EntityManager.SetComponent(parent, parentHierarchy);
-        scene.World.EntityManager.SetComponent(node.Entity, hierarchy);
+        scene.Scene.World.EntityManager.SetComponent(parent, parentHierarchy);
+        scene.Scene.World.EntityManager.SetComponent(node.Entity, hierarchy);
 
         // Remove from parent's children list
         scene.EntityNodeLookup[parent].RemoveChild(node);

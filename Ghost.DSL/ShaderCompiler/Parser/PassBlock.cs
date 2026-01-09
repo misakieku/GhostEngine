@@ -1,6 +1,6 @@
 using Ghost.Core.Graphics;
 
-namespace Ghost.SDL.Compiler.Parser;
+namespace Ghost.DSL.ShaderCompiler.Parser;
 
 // TODO: Add pass template support.
 //   Pass templates let user to inject their own custom code into the generated HLSL code.
@@ -35,6 +35,10 @@ internal class PassBlock : IBlockParser<PassSyntax, PassSemantic>
             {
                 pass.localPipeline = PipelineBlock.Parse(bodyStream.SliceNextBlock());
             }
+            else if (IncludesBlock.ShouldEnter(nextToken))
+            {
+                pass.includes = IncludesBlock.Parse(bodyStream.SliceNextBlock());
+            }
             else if (nextToken.Match(TokenType.Identifier))
             {
                 var func = ParseUtility.ParseFunction(ref bodyStream, TokenType.StringLiteral);
@@ -53,7 +57,7 @@ internal class PassBlock : IBlockParser<PassSyntax, PassSemantic>
         return pass;
     }
 
-    public static PassSemantic? SemanticAnalysis(PassSyntax? syntax, List<SDLError> errors)
+    public static PassSemantic? SemanticAnalysis(PassSyntax? syntax, List<DSLShaderError> errors)
     {
         if (syntax == null)
         {
@@ -87,7 +91,7 @@ internal class PassBlock : IBlockParser<PassSyntax, PassSemantic>
                         break;
 
                     default:
-                        errors.Add(new SDLError
+                        errors.Add(new DSLShaderError
                         {
                             message = $"Unknown function '{func.name.lexeme}' in pass {syntax.name.lexeme}.",
                             line = func.name.line,
@@ -102,7 +106,7 @@ internal class PassBlock : IBlockParser<PassSyntax, PassSemantic>
         {
             // TODO: Inheritance from base pass.
             // TODO: Add mesh shader support.
-            errors.Add(new SDLError
+            errors.Add(new DSLShaderError
             {
                 message = $"Pass {syntax.name.lexeme} must contain a mesh shader (ms) and a pixel shader (ps) declaration.",
                 line = syntax.name.line,
@@ -113,11 +117,11 @@ internal class PassBlock : IBlockParser<PassSyntax, PassSemantic>
         return semantic;
     }
 
-    private static void AnalysisShaderEntry(List<SDLError> errors, FunctionCallDeclaration func, ref ShaderEntryPoint shaderEntryPoint)
+    private static void AnalysisShaderEntry(List<DSLShaderError> errors, FunctionCallDeclaration func, ref ShaderEntryPoint shaderEntryPoint)
     {
         if (func.arguments?.Count != 2)
         {
-            errors.Add(new SDLError
+            errors.Add(new DSLShaderError
             {
                 message = "Shader declaration requires exactly two arguments: (shaderPath, entryPoint).",
                 line = func.name.line,

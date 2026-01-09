@@ -1,4 +1,4 @@
-namespace Ghost.SDL.Compiler.Parser;
+namespace Ghost.DSL.ShaderCompiler.Parser;
 
 internal static class ParseUtility
 {

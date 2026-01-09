@@ -1,4 +1,4 @@
-namespace Ghost.SDL.Compiler;
+namespace Ghost.DSL.ShaderCompiler;
 
 internal struct FunctionCallDeclaration
 {
@@ -20,6 +20,11 @@ internal struct ValueDeclaration
     public Token value;
 }
 
+internal struct HlslDeclaration
+{
+    public List<Token>? tokens;
+}
+
 internal class PropertiesSyntax
 {
     public List<PropertyDeclaration>? properties;
@@ -36,12 +41,14 @@ internal class PassSyntax
 {
     public Token name;
     public PipelineSyntax? localPipeline;
+    public HlslDeclaration? hlsl;
     public List<Token>? defines;
+    public List<Token>? includes;
     public List<FunctionCallDeclaration>? keywords;
     public List<FunctionCallDeclaration>? functionCalls;
 }
 
-internal class SDLSyntax
+internal class DSLShaderSyntax
 {
     public Token name;
     public PropertiesSyntax? properties;

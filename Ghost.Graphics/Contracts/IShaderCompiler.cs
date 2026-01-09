@@ -36,7 +36,7 @@ public struct GraphicsCompiledResult : IDisposable
 public ref struct ShaderCompilationConfig
 {
     public ReadOnlySpan<string> defines;
-    public string? include;
+    public ReadOnlySpan<string> includes;
     public string shaderPath;
     public string entryPoint;
     public ShaderStage stage;
@@ -144,6 +144,6 @@ public readonly struct ShaderReflectionData
 public interface IShaderCompiler : IDisposable
 {
     Result<ShaderCompileResult> Compile(ref readonly ShaderCompilationConfig config, Allocator allocator);
-    Result<GraphicsCompiledResult> CompilePass(IPassDescriptor descriptor, ref readonly ShaderCompilationConfig additionalConfig, string? generatedCodePath);
-    Result<GraphicsCompiledResult, ErrorStatus> LoadCompiledCache(ShaderPassKey key);
+    Result<GraphicsCompiledResult> CompilePass(IPassDescriptor descriptor, ref readonly ShaderCompilationConfig additionalConfig, Key64<ShaderVariant> key);
+    Result<GraphicsCompiledResult, ErrorStatus> LoadCompiledCache(Key64<ShaderVariant> key);
 }

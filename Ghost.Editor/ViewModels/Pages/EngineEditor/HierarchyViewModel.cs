@@ -8,31 +8,31 @@ namespace Ghost.Editor.ViewModels.Pages.EngineEditor;
 internal partial class HierarchyViewModel : ObservableObject, INavigationAware
 {
     [ObservableProperty]
-    public partial ObservableCollection<WorldNode> SceneList
+    public partial ObservableCollection<SceneNode> SceneList
     {
         get;
         private set;
-    } = new(EditorWorldManager.LoadedWorlds);
+    } = new(EditorSceneManager.LoadedWorlds);
 
-    private void OnWorldLoaded(WorldNode node)
+    private void OnWorldLoaded(SceneNode node)
     {
         SceneList.Add(node);
     }
 
-    private void OnWorldUnloaded(WorldNode node)
+    private void OnWorldUnloaded(SceneNode node)
     {
         SceneList.Remove(node);
     }
 
     public void OnNavigatedTo(object? parameter)
     {
-        EditorWorldManager.OnWorldLoaded += OnWorldLoaded;
-        EditorWorldManager.OnWorldUnloaded += OnWorldUnloaded;
+        EditorSceneManager.OnWorldLoaded += OnWorldLoaded;
+        EditorSceneManager.OnWorldUnloaded += OnWorldUnloaded;
     }
 
     public void OnNavigatedFrom()
     {
-        EditorWorldManager.OnWorldLoaded -= OnWorldLoaded;
-        EditorWorldManager.OnWorldUnloaded -= OnWorldUnloaded;
+        EditorSceneManager.OnWorldLoaded -= OnWorldLoaded;
+        EditorSceneManager.OnWorldUnloaded -= OnWorldUnloaded;
     }
 }

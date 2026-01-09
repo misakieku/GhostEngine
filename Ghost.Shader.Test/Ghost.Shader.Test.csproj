@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Ghost.Shader\Ghost.SDL.csproj" />
+    <ProjectReference Include="..\Ghost.DSL\Ghost.DSL.csproj" />
   </ItemGroup>
 
 </Project>

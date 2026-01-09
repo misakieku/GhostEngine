@@ -2,11 +2,11 @@ using Ghost.Core;
 
 namespace Ghost.Graphics.Core;
 
-public readonly struct GPUResource : IHandleType;
-public readonly struct Texture : IHandleType;
-public readonly struct GraphicsBuffer : IHandleType;
+public readonly struct GPUResource;
+public readonly struct Texture;
+public readonly struct GraphicsBuffer;
 
-public readonly struct Sampler : IIdentifierType;
+public readonly struct Sampler;
 
 public static class ResourceHandleExtensions
 {

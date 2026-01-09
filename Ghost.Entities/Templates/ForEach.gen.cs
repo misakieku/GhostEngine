@@ -1,3 +1,4 @@
+
 namespace Ghost.Entities;
 
 public delegate void ForEach<T0>(ref T0 component0)

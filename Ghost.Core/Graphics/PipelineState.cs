@@ -81,4 +81,30 @@ public struct PipelineState
         Blend = Blend.Opaque,
         ColorMask = ColorWriteMask.All
     };
+
+    public readonly ulong GetHashCode64()
+    {
+        // 32-bit packed key for states controlled by material / overrides.
+        // layout:
+        // 0..3   Blend (4 bits)
+        // 4..6   Cull  (3 bits)
+        // 7..10  DeafaultState (4 bits)
+        // 11     ZWrite (1 bit)
+        // 12..15 ColorMask (4 bits)
+
+        var key = 0u;
+        key |= ((uint)Blend & 0xFu) << 0;
+        key |= ((uint)Cull & 0x7u) << 4;
+        key |= ((uint)ZTest & 0xFu) << 7;
+        key |= ((uint)ZWrite & 0x1u) << 11;
+        key |= ((uint)ColorMask & 0xFu) << 12;
+
+        return key;
+    }
+
+    public override readonly int GetHashCode()
+    {
+        var code64 = GetHashCode64();
+        return ((int)code64) ^ (int)(code64 >> 32);
+    }
 }
