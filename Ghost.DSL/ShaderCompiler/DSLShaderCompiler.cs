@@ -145,8 +145,13 @@ internal static class DSLShaderCompiler
         };
     }
 
-    private static uint CalculateCBufferSize(List<PropertyDescriptor> properties)
+    private static uint CalculateCBufferSize(ReadOnlySpan<PropertyDescriptor> properties)
     {
+        if (properties.IsEmpty)
+        {
+            return 0;
+        }
+
         var currentOffset = 0u;
 
         foreach (var prop in properties)
@@ -180,7 +185,7 @@ internal static class DSLShaderCompiler
                 name = p.name,
                 type = p.type,
                 defaultValue = p.defaultValue
-            }).ToList();
+            }).ToArray();
 
         var shaderLocalProperties = semantics.properties?
             .Where(p => p.scope == PropertyScope.Local)
@@ -189,40 +194,36 @@ internal static class DSLShaderCompiler
                 name = p.name,
                 type = p.type,
                 defaultValue = p.defaultValue
-            }).ToList();
+            }).ToArray();
 
-        if (shaderGlobalProperties != null)
-        {
-            descriptor.globalProperties ??= new List<PropertyDescriptor>();
-            descriptor.globalProperties.AddRange(shaderGlobalProperties);
-        }
-
-        if (shaderLocalProperties != null)
-        {
-            descriptor.properties ??= new List<PropertyDescriptor>();
-            descriptor.properties.AddRange(shaderLocalProperties);
-            descriptor.cbufferSize = CalculateCBufferSize(descriptor.properties);
-        }
+        descriptor.globalProperties = shaderGlobalProperties ?? Array.Empty<PropertyDescriptor>();
+        descriptor.properties = shaderLocalProperties ?? Array.Empty<PropertyDescriptor>();
+        descriptor.cbufferSize = CalculateCBufferSize(descriptor.properties);
 
         if (semantics.passes != null)
         {
-            foreach (var pass in semantics.passes)
+            descriptor.passes = new PassDescriptor[semantics.passes.Count];
+            for (int i = 0; i < semantics.passes.Count; i++)
             {
+                var pass = semantics.passes[i];
                 var localPipeline = MeragePipeline(pass.localPipeline, PipelineState.Default);
-                var fullPass = new PassDescriptor
+                descriptor.passes[i] = new PassDescriptor
                 {
-                    uniqueIdentifier = GetPassUniqueId(semantics, pass),
+                    identifier = GetPassUniqueId(semantics, pass),
                     name = pass.name,
                     taskShader = pass.taskShader,
                     meshShader = pass.meshShader,
                     pixelShader = pass.pixelShader,
                     localPipeline = localPipeline,
-                    defines = pass.defines,
-                    keywords = pass.keywords,
+                    defines = pass.defines?.ToArray() ?? Array.Empty<string>(),
+                    includes = pass.includes?.ToArray() ?? Array.Empty<string>(),
+                    keywords = pass.keywords?.ToArray() ?? Array.Empty<KeywordsGroup>()
                 };
-
-                descriptor.passes.Add(fullPass);
             }
+        }
+        else
+        {
+            descriptor.passes = Array.Empty<PassDescriptor>();
         }
 
         return descriptor;
@@ -237,6 +238,11 @@ internal static class DSLShaderCompiler
             var lexer = new Lexer(source);
             var stream = new TokenStream(lexer.Tokenize());
             var shaderInfo = ParseShaders(stream);
+            if (shaderInfo.Count == 0)
+            {
+                return Result.Failure("No shader found in the provided file.");
+            }
+
             var model = SemanticAnalysis(shaderInfo[0], out var errors);
 
             if (errors.Count != 0 || model == null)
@@ -263,14 +269,21 @@ internal static class DSLShaderCompiler
                 return Result.Failure("Failed to generate pass files: " + generatedResult.Message);
             }
 
-            foreach (var pass in desc.passes)
+            foreach (ref var pass in desc.passes.AsSpan())
             {
-                if (pass is PassDescriptor fullPass)
+                if (pass.includes == null)
                 {
-                    fullPass.includes ??= new List<string>();
-                    fullPass.includes.Add(globalPropResult.Value);
-                    fullPass.includes.Add(generatedResult.Value);
+                    pass.includes = new string[2];
                 }
+                else
+                {
+                    Array.Resize(ref pass.includes, pass.includes.Length + 2);
+                    // Shift existing includes to make room for the two new includes at the front.
+                    pass.includes.AsSpan(0, pass.includes.Length - 2).CopyTo(pass.includes.AsSpan(2));
+                }
+
+                pass.includes[0] = globalPropResult.Value;
+                pass.includes[1] = generatedResult.Value;
             }
 
             return desc;
@@ -360,7 +373,7 @@ struct PerMaterialData
         return outputFilePath;
     }
 
-    public static Result<string> GenerateGlobalProperties(List<PropertyDescriptor> globalProperties, string targetDirectory)
+    public static Result<string> GenerateGlobalProperties(ReadOnlySpan<PropertyDescriptor> globalProperties, string targetDirectory)
     {
         if (!Directory.Exists(targetDirectory))
         {

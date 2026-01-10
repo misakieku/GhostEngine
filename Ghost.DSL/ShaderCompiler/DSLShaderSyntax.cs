@@ -11,7 +11,7 @@ internal struct PropertyDeclaration
     public Token scope;
     public Token type;
     public Token name;
-    public FunctionCallDeclaration? propertyConstructor;
+    public List<Token>? propertyInitializer;
 }
 
 internal struct ValueDeclaration
@@ -44,7 +44,7 @@ internal class PassSyntax
     public HlslDeclaration? hlsl;
     public List<Token>? defines;
     public List<Token>? includes;
-    public List<FunctionCallDeclaration>? keywords;
+    public List<List<Token>>? keywords;
     public List<FunctionCallDeclaration>? functionCalls;
 }
 

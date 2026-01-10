@@ -218,14 +218,18 @@ internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySem
             {
                 case TokenType.Equals:
                 {
-                    var constructorTypeToken = bodyStream.Expect(TokenType.Identifier);
-                    var args = ParseUtility.ParseFunctionArguments(ref bodyStream, TokenType.Identifier | TokenType.Number);
-                    shaderProperty.propertyConstructor = new FunctionCallDeclaration
+                    bodyStream.Expect(TokenType.LBrace);
+                    while (!bodyStream.Match(TokenType.RBrace))
                     {
-                        name = constructorTypeToken,
-                        arguments = args
-                    };
+                        var token = bodyStream.Consume();
+                        if (!token.Match(TokenType.Comma))
+                        {
+                            shaderProperty.propertyInitializer ??= new List<Token>();
+                            shaderProperty.propertyInitializer.Add(token);
+                        }
+                    }
 
+                    bodyStream.Expect(TokenType.RBrace);
                     bodyStream.Expect(TokenType.Semicolon);
 
                     break;
@@ -282,9 +286,9 @@ internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySem
                     continue;
                 }
 
-                if (property.propertyConstructor != null)
+                if (property.propertyInitializer != null)
                 {
-                    flowControl = ValidatePropertyConstructor(errors, property, model);
+                    flowControl = ValidatePropertyInitializer(errors, property, model);
                     if (!flowControl)
                     {
                         continue;
@@ -346,41 +350,16 @@ internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySem
         return true;
     }
 
-    private static bool ValidatePropertyConstructor(List<DSLShaderError> errors, PropertyDeclaration property, PropertySemantic model)
+    private static bool ValidatePropertyInitializer(List<DSLShaderError> errors, PropertyDeclaration property, PropertySemantic model)
     {
-        var constructor = property.propertyConstructor;
-        if (!constructor.HasValue)
+        var initializer = property.propertyInitializer;
+        if (initializer == null)
         {
             errors.Add(new DSLShaderError
             {
-                message = "Shader property constructor is null.",
+                message = "Shader property initializer is null.",
                 line = property.name.line,
                 column = property.name.column
-            });
-
-            return false;
-        }
-
-        var constructorValue = constructor.Value;
-        if (string.IsNullOrWhiteSpace(constructorValue.name.lexeme))
-        {
-            errors.Add(new DSLShaderError
-            {
-                message = "Shader property constructor has an empty name.",
-                line = constructorValue.name.line,
-                column = constructorValue.name.column
-            });
-
-            return false;
-        }
-
-        if (constructorValue.name.lexeme != property.type.lexeme)
-        {
-            errors.Add(new DSLShaderError
-            {
-                message = $"Shader property constructor name '{constructorValue.name.lexeme}' does not match property type '{property.type.lexeme}'.",
-                line = constructorValue.name.line,
-                column = constructorValue.name.column
             });
 
             return false;
@@ -390,34 +369,21 @@ internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySem
         {
             errors.Add(new DSLShaderError
             {
-                message = $"No constructor metadata registered for property type '{model.type}'.",
-                line = constructorValue.name.line,
-                column = constructorValue.name.column
+                message = $"No initializer metadata registered for property type '{model.type}'.",
+                line = property.name.line,
+                column = property.name.column
             });
 
             return false;
         }
 
-        // Count check
-        if (constructorValue.arguments == null)
+        if (initializer.Count != info.ArgCount)
         {
             errors.Add(new DSLShaderError
             {
-                message = "Shader property constructor arguments are null.",
-                line = constructorValue.name.line,
-                column = constructorValue.name.column
-            });
-
-            return false;
-        }
-
-        if (constructorValue.arguments.Count != info.ArgCount)
-        {
-            errors.Add(new DSLShaderError
-            {
-                message = $"Shader property constructor for type '{property.type.lexeme}' expects {info.ArgCount} argument(s), but got {constructorValue.arguments.Count}.",
-                line = constructorValue.name.line,
-                column = constructorValue.name.column
+                message = $"Shader property constructor for type '{property.type.lexeme}' expects {info.ArgCount} argument(s), but got {initializer.Count}.",
+                line = property.name.line,
+                column = property.name.column
             });
 
             return false;
@@ -425,9 +391,9 @@ internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySem
 
         // Type check (uniform requirement for all args)
         var hasError = false;
-        for (var i = 0; i < constructorValue.arguments.Count; i++)
+        for (var i = 0; i < initializer.Count; i++)
         {
-            var arg = constructorValue.arguments[i];
+            var arg = initializer[i];
             if (!arg.Match(info.ArgTokenType))
             {
                 errors.Add(new DSLShaderError
@@ -451,15 +417,15 @@ internal class PropertiesBlock : IBlockParser<PropertiesSyntax, List<PropertySem
         {
             try
             {
-                model.defaultValue = info.Builder(constructorValue.arguments, errors);
+                model.defaultValue = info.Builder(initializer, errors);
             }
             catch (Exception ex)
             {
                 errors.Add(new DSLShaderError
                 {
                     message = $"Failed to construct default value for property '{property.name.lexeme}': {ex.Message}",
-                    line = constructorValue.name.line,
-                    column = constructorValue.name.column
+                    line = property.name.line,
+                    column = property.name.column
                 });
 
                 return false;

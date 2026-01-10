@@ -102,30 +102,23 @@ public partial struct Shader : IResourceReleasable
     internal Shader(ShaderDescriptor descriptor)
     {
         _cbufferSize = descriptor.cbufferSize;
-        _shaderPasses = new UnsafeArray<ShaderPass>(descriptor.passes.Count, Allocator.Persistent);
-        _passIDToLocal = new UnsafeHashMap<int, int>(descriptor.passes.Count, Allocator.Persistent);
+        _shaderPasses = new UnsafeArray<ShaderPass>(descriptor.passes.Length, Allocator.Persistent);
+        _passIDToLocal = new UnsafeHashMap<int, int>(descriptor.passes.Length, Allocator.Persistent);
         _keywordIDToLocal = new UnsafeHashMap<int, int>(32, Allocator.Persistent);
 
-        for (var i = 0; i < descriptor.passes.Count; i++)
+        for (var i = 0; i < descriptor.passes.Length; i++)
         {
             var pass = descriptor.passes[i];
-
-            // TODO: Handle inherited passes
-            if (pass is not PassDescriptor fullPass)
-            {
-                continue;
-            }
-
-            var passKey = RHIUtility.CreateShaderPassKey(pass.Identifier);
+            var passKey = RHIUtility.CreateShaderPassKey(pass.identifier);
             var keywords = default(LocalKeywordSet);
 
-            if (fullPass.keywords != null && fullPass.keywords.Count > 0)
+            if (pass.keywords.Length > 0)
             {
                 var localKeywordIndex = 0;
 
-                for (var j = 0; j < fullPass.keywords.Count; j++)
+                for (var j = 0; j < pass.keywords.Length; j++)
                 {
-                    var group = fullPass.keywords[j];
+                    var group = pass.keywords[j];
                     if (group.keywords == null)
                     {
                         continue;
@@ -150,11 +143,11 @@ public partial struct Shader : IResourceReleasable
             _shaderPasses[i] = new ShaderPass
             {
                 Key = passKey,
-                DeafaultState = fullPass.localPipeline,
+                DeafaultState = pass.localPipeline,
                 KeywordIDs = keywords,
             };
 
-            _passIDToLocal[GetPassID(pass.Name)] = (ushort)i;
+            _passIDToLocal[GetPassID(pass.name)] = (ushort)i;
         }
     }
 

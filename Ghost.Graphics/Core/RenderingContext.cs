@@ -116,8 +116,8 @@ public readonly unsafe ref struct RenderingContext
             localToWorld = localToWorld,
             worldBoundsMin = meshData.BoundingBox.Min,
             worldBoundsMax = meshData.BoundingBox.Max,
-            vertexBuffer = _engine.ResourceDatabase.GetBindlessIndex(meshData.VertexBuffer.AsResource()).GetValueOrThrow(),
-            indexBuffer = _engine.ResourceDatabase.GetBindlessIndex(meshData.IndexBuffer.AsResource()).GetValueOrThrow(),
+            vertexBuffer = _engine.ResourceDatabase.GetBindlessIndex(meshData.VertexBuffer.AsResource()),
+            indexBuffer = _engine.ResourceDatabase.GetBindlessIndex(meshData.IndexBuffer.AsResource()),
         };
 
         var bufferHandle = meshData.ObjectDataBuffer.AsResource();
@@ -214,8 +214,8 @@ public readonly unsafe ref struct RenderingContext
 
         var data = new PushConstantsData
         {
-            objectIndex = _engine.ResourceDatabase.GetBindlessIndex(meshRef.ObjectDataBuffer.AsResource()).GetValueOrThrow(),
-            materialIndex = _engine.ResourceDatabase.GetBindlessIndex(materialRef._cBufferCache.GpuResource.AsResource()).GetValueOrThrow(),
+            objectIndex = _engine.ResourceDatabase.GetBindlessIndex(meshRef.ObjectDataBuffer.AsResource()),
+            materialIndex = _engine.ResourceDatabase.GetBindlessIndex(materialRef._cBufferCache.GpuResource.AsResource()),
         };
 
         var pushConstantSpan = new ReadOnlySpan<uint>(&data, sizeof(PushConstantsData) / sizeof(uint));

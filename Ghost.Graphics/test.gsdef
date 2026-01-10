@@ -2,11 +2,11 @@ shader "MyShader/Standard"
 {
     properties
     {
-        float4 color = float4(1, 1, 1, 1);
-        tex2d texture1 = tex2d(black);
-        tex2d texture2 = tex2d(white);
-        tex2d texture3 = tex2d(grey);
-        tex2d texture4 = tex2d(normal);
+        float4 color = { 1, 1, 1, 1 };
+        tex2d texture1 = { black };
+        tex2d texture2 = { white };
+        tex2d texture3 = { grey };
+        tex2d texture4 = { normal };
         sampler tex_sampler;
     }
 
@@ -21,7 +21,21 @@ shader "MyShader/Standard"
             color_mask = all;
         }
 
-        ms("F:/csharp/GhostEngine/Ghost.Graphics/RenderPasses/ShaderCode.hlsl", "MSMain");
-        ps("F:/csharp/GhostEngine/Ghost.Graphics/RenderPasses/ShaderCode.hlsl", "PSMain");
+        keywords
+        {
+            local TEST_KEYWORD, TEST_KEYWORD2;
+            local TEST_KEYWORD3;
+        }
+
+        hlsl
+        {
+            float Test()
+            {
+                return 1.0;
+            }
+        }
+
+        mesh "F:/csharp/GhostEngine/Ghost.Graphics/RenderPasses/ShaderCode.hlsl" : "MSMain";
+        pixel "F:/csharp/GhostEngine/Ghost.Graphics/RenderPasses/ShaderCode.hlsl" : "PSMain";
     }
 }

@@ -244,14 +244,14 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         return r.Value.desc;
     }
 
-    public Result<uint, ErrorStatus> GetBindlessIndex(Handle<GPUResource> handle)
+    public uint GetBindlessIndex(Handle<GPUResource> handle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         ref var info = ref GetResourceRecord(handle, out var exist);
         if (!exist || !info.Allocated)
         {
-            return ErrorStatus.NotFound;
+            return ~0u;
         }
 
         return (uint)info.viewGroup.srv.Value;

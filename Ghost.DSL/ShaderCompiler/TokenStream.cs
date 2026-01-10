@@ -2,12 +2,17 @@ namespace Ghost.DSL.ShaderCompiler;
 
 internal static class TokenStreamImple
 {
-    public static Token Peek(ReadOnlySpan<Token> tokens, ref int index, int length)
+    public static Token Peek(ReadOnlySpan<Token> tokens, int index, int length)
     {
-        return index + length < tokens.Length ? tokens[index + length] : throw new InvalidOperationException("No more tokens available");
+        if (index + length < tokens.Length)
+        {
+            return tokens[index + length];
+        }
+
+        throw new IndexOutOfRangeException();
     }
 
-    public static bool TryPeek(ReadOnlySpan<Token> tokens, ref int index, int length, out Token token)
+    public static bool TryPeek(ReadOnlySpan<Token> tokens, int index, int length, out Token token)
     {
         if (index + length < tokens.Length)
         {
@@ -31,29 +36,33 @@ internal static class TokenStreamImple
         return false;
     }
 
-    public static Token Consume(ReadOnlySpan<Token> tokens, ref int index)
+    public static Token Consume(ReadOnlySpan<Token> tokens, ref int index, int count = 1)
     {
-        return index < tokens.Length ? tokens[index++] : throw new InvalidOperationException("No more tokens available");
+        if (index + count <= tokens.Length)
+        {
+            index += count;
+            return tokens[index - 1];
+        }
+
+        throw new IndexOutOfRangeException();
     }
 
-    public static bool Match(ReadOnlySpan<Token> tokens, ref int index, TokenType type, string? lexeme)
+    public static bool Match(ReadOnlySpan<Token> tokens, int index, TokenType type, string? lexeme)
     {
-        var t = Peek(tokens, ref index, 0);
+        var t = Peek(tokens, index, 0);
         if (!t.Match(type, lexeme))
         {
             return false;
         }
 
-        //index++;
         return true;
     }
 
-    public static int MatchMany(ReadOnlySpan<Token> tokens, ref int index, TokenType type, string? lexeme)
+    public static int MatchMany(ReadOnlySpan<Token> tokens, int index, TokenType type, string? lexeme)
     {
         var count = 0;
-        while (TryPeek(tokens, ref index, 0, out var t) && t.Match(type, lexeme))
+        while (TryPeek(tokens, index, 0, out var t) && t.Match(type, lexeme))
         {
-            index++;
             count++;
         }
 
@@ -62,7 +71,7 @@ internal static class TokenStreamImple
 
     public static Token Expect(ReadOnlySpan<Token> tokens, ref int index, TokenType type, string? lexeme)
     {
-        if (!TryPeek(tokens, ref index, 0, out var t))
+        if (!TryPeek(tokens, index, 0, out var t))
         {
             throw new InvalidOperationException("Expected token but reached end of stream");
         }
@@ -110,17 +119,17 @@ internal class TokenStream
 
     public Token Peek(int length = 0)
     {
-        return TokenStreamImple.Peek(_tokens, ref _index, length);
+        return TokenStreamImple.Peek(_tokens, _index, length);
     }
 
     public bool TryPeek(out Token token)
     {
-        return TokenStreamImple.TryPeek(_tokens, ref _index, 0, out token);
+        return TokenStreamImple.TryPeek(_tokens, _index, 0, out token);
     }
 
     public bool TryPeek(int length, out Token token)
     {
-        return TokenStreamImple.TryPeek(_tokens, ref _index, length, out token);
+        return TokenStreamImple.TryPeek(_tokens, _index, length, out token);
     }
 
     public bool TryConsume(out Token token)
@@ -128,19 +137,19 @@ internal class TokenStream
         return TokenStreamImple.TryConsume(_tokens, ref _index, out token);
     }
 
-    public Token Consume()
+    public Token Consume(int count = 1)
     {
-        return TokenStreamImple.Consume(_tokens, ref _index);
+        return TokenStreamImple.Consume(_tokens, ref _index, count);
     }
 
     public bool Match(TokenType type, string? lexeme = null)
     {
-        return TokenStreamImple.Match(_tokens, ref _index, type, lexeme);
+        return TokenStreamImple.Match(_tokens, _index, type, lexeme);
     }
 
     public int MatchMany(TokenType type, string? lexeme = null)
     {
-        return TokenStreamImple.MatchMany(_tokens, ref _index, type, lexeme);
+        return TokenStreamImple.MatchMany(_tokens, _index, type, lexeme);
     }
 
     public Token Expect(TokenType type, string? lexeme = null)
@@ -224,17 +233,17 @@ internal ref struct TokenStreamSlice
 
     public Token Peek(int length = 0)
     {
-        return TokenStreamImple.Peek(_tokens, ref _index, length);
+        return TokenStreamImple.Peek(_tokens, _index, length);
     }
 
     public bool TryPeek(out Token token)
     {
-        return TokenStreamImple.TryPeek(_tokens, ref _index, 0, out token);
+        return TokenStreamImple.TryPeek(_tokens, _index, 0, out token);
     }
 
     public bool TryPeek(int length, out Token token)
     {
-        return TokenStreamImple.TryPeek(_tokens, ref _index, length, out token);
+        return TokenStreamImple.TryPeek(_tokens, _index, length, out token);
     }
 
     public bool TryConsume(out Token token)
@@ -242,19 +251,19 @@ internal ref struct TokenStreamSlice
         return TokenStreamImple.TryConsume(_tokens, ref _index, out token);
     }
 
-    public Token Consume()
+    public Token Consume(int count = 1)
     {
-        return TokenStreamImple.Consume(_tokens, ref _index);
+        return TokenStreamImple.Consume(_tokens, ref _index, count);
     }
 
     public bool Match(TokenType type, string? lexeme = null)
     {
-        return TokenStreamImple.Match(_tokens, ref _index, type, lexeme);
+        return TokenStreamImple.Match(_tokens, _index, type, lexeme);
     }
 
     public int MatchMany(TokenType type, string? lexeme = null)
     {
-        return TokenStreamImple.MatchMany(_tokens, ref _index, type, lexeme);
+        return TokenStreamImple.MatchMany(_tokens, _index, type, lexeme);
     }
 
     public Token Expect(TokenType type, string? lexeme = null)

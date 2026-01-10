@@ -68,6 +68,7 @@ internal class PassBlock : IBlockParser<PassSyntax, PassSemantic>
         {
             name = syntax.name.lexeme,
             defines = DefinesBlock.SemanticAnalysis(syntax.defines, errors),
+            includes = IncludesBlock.SemanticAnalysis(syntax.includes, errors),
             keywords = KeywordsBlock.SemanticAnalysis(syntax.keywords, errors),
             localPipeline = PipelineBlock.SemanticAnalysis(syntax.localPipeline, errors),
         };

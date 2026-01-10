@@ -48,22 +48,31 @@ internal class MeshRenderPass : IRenderPass
         "C:/Users/Misaki/Downloads/Im/yande.re 1134666 blue_archive nakamasa_ichika sugarhigh.jpg"
     ];
 
-    private static IEnumerable<List<string>> GetAllVariantCombination(List<KeywordsGroup> keywordsGroups)
+    private static IEnumerable<ReadOnlyMemory<string>> GetAllVariantCombination(KeywordsGroup[] keywordsGroups)
     {
-        if (keywordsGroups.Count == 0)
+        if (keywordsGroups.Length == 0)
         {
-            yield return [];
+            yield return ReadOnlyMemory<string>.Empty;
             yield break;
         }
 
         var firstGroup = keywordsGroups[0];
-        var remainingGroups = keywordsGroups.Skip(1).ToList();
+        var remainingGroups = keywordsGroups[1..];
+
+        foreach (var combination in GetAllVariantCombination(remainingGroups))
+        {
+            yield return combination;
+        }
+
         foreach (var keyword in firstGroup.keywords)
         {
             foreach (var combination in GetAllVariantCombination(remainingGroups))
             {
-                combination.Insert(0, keyword);
-                yield return combination;
+                var array = new string[combination.Length + 1];
+                array[0] = keyword;
+                combination.Span.CopyTo(array.AsSpan(1));
+
+                yield return array;
             }
         }
     }
@@ -75,15 +84,9 @@ internal class MeshRenderPass : IRenderPass
         _shader = ctx.ResourceAllocator.CreateGraphicsShader(shaderDescriptor);
         _material = ctx.ResourceAllocator.CreateMaterial(_shader);
 
-        for (var i = 0; i < shaderDescriptor.passes.Count; i++)
+        for (var i = 0; i < shaderDescriptor.passes.Length; i++)
         {
-            var pass = shaderDescriptor.passes[i];
-
-            if (pass is not PassDescriptor fullPass)
-            {
-                continue;
-            }
-
+            ref var pass = ref shaderDescriptor.passes[i];
             var config = new ShaderCompilationConfig
             {
                 optimizeLevel = CompilerOptimizeLevel.O3,
@@ -94,25 +97,25 @@ internal class MeshRenderPass : IRenderPass
             // TODO: Ideally, in editor mode, we compile a single variant when it's needed during rendering. Before the compilation is done, we fallback to a special "compilation in progress" shader.
             // During the build process, we can precompile all the variants and store them in the cache for fast loading in runtime.
             // After the compilation, we should store the compiled result in the disk cache even in editor mode. This allows us to avoid recompiling the same variant, same code hash and same version) multiple times.
-            if (fullPass.keywords == null)
+            if (pass.keywords.Length == 0)
             {
                 var emptyKeywords = new LocalKeywordSet();
                 var variantKey = RHIUtility.CreateShaderVariantKey(
-                    RHIUtility.CreateShaderPassKey(pass.Identifier),
+                    RHIUtility.CreateShaderPassKey(pass.identifier),
                     in emptyKeywords);
 
-                ctx.ShaderCompiler.CompilePass(pass, in config, variantKey).GetValueOrThrow();
+                ctx.ShaderCompiler.CompilePass(in pass, in config, variantKey).GetValueOrThrow();
             }
             else
             {
                 ref var shaderRef = ref ctx.ResourceDatabase.GetShaderReference(_shader);
 
-                foreach (var keyGroup in GetAllVariantCombination(fullPass.keywords))
+                foreach (var keyGroup in GetAllVariantCombination(pass.keywords))
                 {
-                    config.defines = keyGroup.AsSpan();
+                    config.defines = keyGroup.Span;
                     var keywordsSet = new LocalKeywordSet();
 
-                    foreach (var key in keyGroup)
+                    foreach (var key in keyGroup.Span)
                     {
                         var localIndex = shaderRef.GetLocalKeywordIndex(Shader.GetKeywordID(key));
                         if (localIndex == -1)
@@ -124,10 +127,10 @@ internal class MeshRenderPass : IRenderPass
                     }
 
                     var variantKey = RHIUtility.CreateShaderVariantKey(
-                        RHIUtility.CreateShaderPassKey(pass.Identifier),
+                        RHIUtility.CreateShaderPassKey(pass.identifier),
                         in keywordsSet);
 
-                    ctx.ShaderCompiler.CompilePass(pass, in config, variantKey).GetValueOrThrow();
+                    ctx.ShaderCompiler.CompilePass(in pass, in config, variantKey).GetValueOrThrow();
                 }
             }
         }
@@ -172,10 +175,10 @@ internal class MeshRenderPass : IRenderPass
         var matProps = new ShaderProperties_MyShader_Standard
         {
             color = new float4(1.0f, 1.0f, 1.0f, 1.0f),
-            texture1 = ctx.ResourceDatabase.GetBindlessIndex(_textures[0].AsResource()).GetValueOrThrow(),
-            texture2 = ctx.ResourceDatabase.GetBindlessIndex(_textures[1].AsResource()).GetValueOrThrow(),
-            texture3 = ctx.ResourceDatabase.GetBindlessIndex(_textures[2].AsResource()).GetValueOrThrow(),
-            texture4 = ctx.ResourceDatabase.GetBindlessIndex(_textures[3].AsResource()).GetValueOrThrow(),
+            texture1 = ctx.ResourceDatabase.GetBindlessIndex(_textures[0].AsResource()),
+            texture2 = ctx.ResourceDatabase.GetBindlessIndex(_textures[1].AsResource()),
+            texture3 = ctx.ResourceDatabase.GetBindlessIndex(_textures[2].AsResource()),
+            texture4 = ctx.ResourceDatabase.GetBindlessIndex(_textures[3].AsResource()),
             tex_sampler = (uint)sampler.Value,
         };
 

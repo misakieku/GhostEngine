@@ -33,19 +33,6 @@ public struct KeywordsGroup
     public List<string> keywords;
 }
 
-public interface IPassDescriptor
-{
-    public string Identifier
-    {
-        get;
-    }
-
-    public string Name
-    {
-        get;
-    }
-}
-
 public struct PropertyDescriptor
 {
     public ShaderPropertyType type;
@@ -53,30 +40,27 @@ public struct PropertyDescriptor
     public object? defaultValue;
 }
 
-public class PassDescriptor : IPassDescriptor
+public struct PassDescriptor
 {
-    public string uniqueIdentifier = string.Empty;
-    public string name = string.Empty;
+    public string identifier;
+    public string name;
 
     public ShaderEntryPoint taskShader;
     public ShaderEntryPoint meshShader;
     public ShaderEntryPoint pixelShader;
-    public List<string>? defines;
-    public List<string>? includes;
-    public List<KeywordsGroup>? keywords;
+    public string[] defines;
+    public string[] includes;
+    public KeywordsGroup[] keywords;
     public PipelineState localPipeline;
-
-    public string Identifier => uniqueIdentifier;
-    public string Name => name;
 }
 
 public class ShaderDescriptor
 {
     public string name = string.Empty;
     public uint cbufferSize;
-    public List<PropertyDescriptor> globalProperties = new();
-    public List<PropertyDescriptor> properties = new();
-    public List<IPassDescriptor> passes = new();
+    public PropertyDescriptor[] globalProperties = null!;
+    public PropertyDescriptor[] properties = null!;
+    public PassDescriptor[] passes = null!;
 }
 
 public static class ShaderDescriptorExtensions

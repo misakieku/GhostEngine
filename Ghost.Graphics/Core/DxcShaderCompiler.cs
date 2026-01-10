@@ -367,26 +367,23 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
 
     // TODO: This should be shader variant specific compile instead of pass specific.
     // TODO: Build final shader code in memory before compiling.
-    public Result<GraphicsCompiledResult> CompilePass(IPassDescriptor descriptor, ref readonly ShaderCompilationConfig additionalConfig, Key64<ShaderVariant> key)
+    public Result<GraphicsCompiledResult> CompilePass(ref readonly PassDescriptor descriptor, ref readonly ShaderCompilationConfig additionalConfig, Key64<ShaderVariant> key)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        if (descriptor is not PassDescriptor fullDescriptor)
-        {
-            return Result.Failure("FullPassDescriptor expected.");
-        }
-
-        var fullDefines = fullDescriptor.defines ?? new List<string>();
-        fullDefines.AddRange(additionalConfig.defines);
+        var defineCountInDescriptor = descriptor.defines?.Length ?? 0;
+        var fullDefines = new string[defineCountInDescriptor + additionalConfig.defines.Length];
+        descriptor.defines?.CopyTo(fullDefines);
+        additionalConfig.defines.CopyTo(fullDefines.AsSpan(defineCountInDescriptor));
 
         ShaderCompileResult tsResult = default;
-        var tsEntry = fullDescriptor.taskShader;
+        var tsEntry = descriptor.taskShader;
         if (tsEntry.IsCreated)
         {
             var config = new ShaderCompilationConfig
             {
                 defines = fullDefines.AsSpan(),
-                includes = fullDescriptor.includes.AsSpan(),
+                includes = descriptor.includes.AsSpan(),
                 shaderPath = tsEntry.shader,
                 entryPoint = tsEntry.entry,
                 stage = ShaderStage.TaskShader,
@@ -405,13 +402,13 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
         }
 
         ShaderCompileResult msResult;
-        var msEntry = fullDescriptor.meshShader;
+        var msEntry = descriptor.meshShader;
         if (msEntry.IsCreated)
         {
             var config = new ShaderCompilationConfig
             {
                 defines = fullDefines.AsSpan(),
-                includes = fullDescriptor.includes.AsSpan(),
+                includes = descriptor.includes.AsSpan(),
                 shaderPath = msEntry.shader,
                 entryPoint = msEntry.entry,
                 stage = ShaderStage.MeshShader,
@@ -434,13 +431,13 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
         }
 
         ShaderCompileResult psResult;
-        var psEntry = fullDescriptor.pixelShader;
+        var psEntry = descriptor.pixelShader;
         if (psEntry.IsCreated)
         {
             var config = new ShaderCompilationConfig
             {
                 defines = fullDefines.AsSpan(),
-                includes = fullDescriptor.includes.AsSpan(),
+                includes = descriptor.includes.AsSpan(),
                 shaderPath = psEntry.shader,
                 entryPoint = psEntry.entry,
                 stage = ShaderStage.PixelShader,

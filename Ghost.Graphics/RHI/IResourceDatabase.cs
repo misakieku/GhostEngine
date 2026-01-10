@@ -59,8 +59,8 @@ public interface IResourceDatabase : IDisposable
     /// Retrieves the bindless index associated with the specified GPU resource handle.
     /// </summary>
     /// <param name="handle">A handle to the GPU resource for which to obtain the bindless index. Must reference a valid, currently registered resource.</param>
-    /// <returns>The bindless index corresponding to the specified GPU resource handle. -1 if the resource does not support bindless access or is not found.</returns>
-    Result<uint, ErrorStatus> GetBindlessIndex(Handle<GPUResource> handle);
+    /// <returns>The bindless index corresponding to the specified GPU resource handle. ~0 if the resource does not support bindless access or is not found.</returns>
+    uint GetBindlessIndex(Handle<GPUResource> handle);
 
     /// <summary>
     /// Retrieves the name of the GPU resource associated with the specified handle.
