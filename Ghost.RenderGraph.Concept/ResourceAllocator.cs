@@ -1,9 +1,12 @@
+using Ghost.Core.Utilities;
+using ZLinq;
+
 namespace Ghost.RenderGraph.Concept;
 
 /// <summary>
 /// Represents a physical memory allocation that can be shared by multiple transient resources
 /// </summary>
-internal class PhysicalResourceAllocation
+internal struct PhysicalResourceAllocation
 {
     public int AllocationId { get; }
     public ulong SizeInBytes { get; }
@@ -28,6 +31,12 @@ internal class ResourceAllocator
     private readonly List<PhysicalResourceAllocation> _allocations = new();
     private int _allocationIdCounter = 0;
 
+    public void Reset()
+    {
+        _allocations.Clear();
+        _allocationIdCounter = 0;
+    }
+
     public IReadOnlyList<PhysicalResourceAllocation> Allocations => _allocations;
 
     /// <summary>
@@ -37,26 +46,27 @@ internal class ResourceAllocator
         IReadOnlyList<ResourceLifetime> resourceLifetimes,
         List<RenderGraphPass> passes)
     {
-        Console.WriteLine("\n[RG] ===== RESOURCE ALIASING ANALYSIS =====");
+        //ConsoleAPI.WriteLine("\n[RG] ===== RESOURCE ALIASING ANALYSIS =====");
 
         // Separate imported and transient resources
         // Sort by SIZE FIRST (descending), then by FIRST USE (ascending)
         // This allows smaller resources (A, B) to alias into larger resources' (C) space
         // Example: C=10MB[1..2], A=4MB[0..1], B=6MB[0..1] → Allocate C first, then A and B alias into C's space
-        var transientResources = resourceLifetimes
+
+        // TODO: Avoid linq for performance-critical path
+        var transientResources = resourceLifetimes.AsValueEnumerable()
             .Where(lt => !lt.Handle.IsImported && lt.FirstUse != int.MaxValue)
             .OrderByDescending(lt => GetResourceSize(lt.Handle))
-            .ThenBy(lt => lt.FirstUse)
-            .ToList();
+            .ThenBy(lt => lt.FirstUse).ToArray();
 
-        if (!transientResources.Any())
+        if (transientResources.Length == 0)
         {
-            Console.WriteLine("No transient resources to allocate.");
+            //ConsoleAPI.WriteLine("No transient resources to allocate.");
             return;
         }
 
         // Track which allocation slots are occupied at each pass
-        var allocationSlots = new List<AllocationSlot>();
+        var allocationSlots = Core.Utilities.ListPool<AllocationSlot>.Rent();
 
         foreach (var resource in transientResources)
         {
@@ -83,9 +93,7 @@ internal class ResourceAllocator
                 ulong offsetInAllocation = reuseSlot.FindFreeOffset(size, alignment, resource);
                 reuseSlot.AddResource(resource, offsetInAllocation, size);
                 
-                Console.WriteLine($"[ALIAS] '{resource.Handle.Name}' aliases with '{reuseSlot.Allocation.DebugName}' " +
-                                $"(heap offset: {reuseSlot.Allocation.OffsetInBytes}, resource offset: {offsetInAllocation}, size: {size} bytes, " +
-                                $"lifetime: [{resource.FirstUse}..{resource.LastUse}])");
+                //ConsoleAPI.WriteLine($"[ALIAS] '{resource.Handle.Name}' aliases with '{reuseSlot.Allocation.DebugName}' " + $"(heap offset: {reuseSlot.Allocation.OffsetInBytes}, resource offset: {offsetInAllocation}, size: {size} bytes, " + $"lifetime: [{resource.FirstUse}..{resource.LastUse}])");
             }
             else
             {
@@ -105,24 +113,28 @@ internal class ResourceAllocator
                 newSlot.AddResource(resource, 0, size); // Offset 0 within this new allocation
                 allocationSlots.Add(newSlot);
 
-                Console.WriteLine($"[ALLOC] '{resource.Handle.Name}' gets new allocation '{allocation.DebugName}' " +
-                                $"(heap offset: {heapOffset}, size: {size} bytes, lifetime: [{resource.FirstUse}..{resource.LastUse}])");
+                //ConsoleAPI.WriteLine($"[ALLOC] '{resource.Handle.Name}' gets new allocation '{allocation.DebugName}' " + $"(heap offset: {heapOffset}, size: {size} bytes, lifetime: [{resource.FirstUse}..{resource.LastUse}])");
             }
         }
 
-        _allocations.AddRange(allocationSlots.Select(s => s.Allocation));
+        foreach (var slot in allocationSlots)
+        {
+            _allocations.Add(slot.Allocation);
+        }
+
+        ListPool<AllocationSlot>.Return(allocationSlots);
 
         // Print summary
-        Console.WriteLine($"\n[RG] Memory Statistics:");
+        //ConsoleAPI.WriteLine($"\n[RG] Memory Statistics:");
         var totalWithoutAliasing = transientResources.Sum(r => (long)GetResourceSize(r.Handle));
         var totalWithAliasing = _allocations.Sum(a => (long)a.SizeInBytes);
         var savedMemory = totalWithoutAliasing - totalWithAliasing;
         var savingPercentage = totalWithoutAliasing > 0 ? (savedMemory * 100.0 / totalWithoutAliasing) : 0;
 
-        Console.WriteLine($"     Total memory without aliasing: {FormatBytes(totalWithoutAliasing)}");
-        Console.WriteLine($"     Total memory with aliasing: {FormatBytes(totalWithAliasing)}");
-        Console.WriteLine($"     Memory saved: {FormatBytes(savedMemory)} ({savingPercentage:F1}%)");
-        Console.WriteLine($"     Allocations: {_allocations.Count} physical allocations for {transientResources.Count} resources");
+        //ConsoleAPI.WriteLine($"     Total memory without aliasing: {FormatBytes(totalWithoutAliasing)}");
+        //ConsoleAPI.WriteLine($"     Total memory with aliasing: {FormatBytes(totalWithAliasing)}");
+        //ConsoleAPI.WriteLine($"     Memory saved: {FormatBytes(savedMemory)} ({savingPercentage:F1}%)");
+        //ConsoleAPI.WriteLine($"     Allocations: {_allocations.Count} physical allocations for {transientResources.Count()} resources");
     }
 
     private bool CanAlias(AllocationSlot slot, ResourceLifetime resource, ulong requiredSize, ulong requiredAlignment)
@@ -153,10 +165,10 @@ internal class ResourceAllocator
 
     private ulong GetResourceSize(RenderGraphResourceHandle handle)
     {
-        return handle switch
+        return handle.Type switch
         {
-            RenderGraphTextureHandle texture => CalculateTextureSize(texture.Descriptor),
-            RenderGraphBufferHandle buffer => (ulong)buffer.Descriptor.SizeInBytes,
+            ResourceType.Texture => CalculateTextureSize(handle.Descriptor.texture),
+            ResourceType.Buffer => (ulong)handle.Descriptor.buffer.SizeInBytes,
             _ => 0
         };
     }
@@ -164,10 +176,10 @@ internal class ResourceAllocator
     private ulong GetResourceAlignment(RenderGraphResourceHandle handle)
     {
         // In a real implementation, this would query D3D12_RESOURCE_ALLOCATION_INFO
-        return handle switch
+        return handle.Type switch
         {
-            RenderGraphTextureHandle => 65536, // 64KB texture alignment (typical)
-            RenderGraphBufferHandle => 256,    // 256 byte buffer alignment
+            ResourceType.Texture => 65536, // 64KB texture alignment (typical)
+            ResourceType.Buffer => 256,    // 256 byte buffer alignment
             _ => 256
         };
     }
@@ -199,7 +211,19 @@ internal class ResourceAllocator
 
     public PhysicalResourceAllocation? GetAllocation(RenderGraphResourceHandle handle)
     {
-        return _allocations.FirstOrDefault(a => a.AliasedResources.Any(r => r.Id == handle.Id));
+        // return _allocations.FirstOrDefault(a => a.AliasedResources.Any(r => r.Id == handle.Id));
+        foreach (var allocation in _allocations)
+        {
+            foreach (var aliased in allocation.AliasedResources)
+            {
+                if (aliased.Id == handle.Id)
+                {
+                    return allocation;
+                }
+            }
+        }
+
+        return null;
     }
 
     private class AllocationSlot
@@ -230,19 +254,19 @@ internal class ResourceAllocator
             }
             
             // Sort regions by offset
-            var sortedRegions = _occupiedRegions.OrderBy(r => r.Offset).ToList();
+            var sortedRegions = _occupiedRegions.AsValueEnumerable().OrderBy(r => r.Offset).ToArray();
             
             // Try to fit at the beginning (offset 0)
             ulong candidateOffset = 0;
             bool fitsAtStart = true;
             
-            foreach (var region in sortedRegions)
+            foreach (var (Offset, Size, Resource) in sortedRegions)
             {
                 // Check if this region overlaps with our candidate position
-                if (region.Offset < requiredSize)
+                if (Offset < requiredSize)
                 {
                     // Check lifetime - if no overlap, we can still use this space
-                    if (LifetimesOverlap(region.Resource, newResource))
+                    if (LifetimesOverlap(Resource, newResource))
                     {
                         fitsAtStart = false;
                         break;
@@ -256,7 +280,7 @@ internal class ResourceAllocator
             }
             
             // Try gaps between regions
-            for (int i = 0; i < sortedRegions.Count; i++)
+            for (int i = 0; i < sortedRegions.Length; i++)
             {
                 var current = sortedRegions[i];
                 
@@ -270,7 +294,7 @@ internal class ResourceAllocator
                 candidateOffset = AlignUp(current.Offset + current.Size, alignment);
                 
                 // Check if it fits before the next region (or end of allocation)
-                ulong nextRegionStart = (i + 1 < sortedRegions.Count) 
+                ulong nextRegionStart = (i + 1 < sortedRegions.Length) 
                     ? sortedRegions[i + 1].Offset 
                     : Allocation.SizeInBytes;
                 
@@ -278,7 +302,7 @@ internal class ResourceAllocator
                 {
                     // Check no lifetime conflicts with any regions in this range
                     bool hasConflict = false;
-                    for (int j = i + 1; j < sortedRegions.Count; j++)
+                    for (int j = i + 1; j < sortedRegions.Length; j++)
                     {
                         var other = sortedRegions[j];
                         if (other.Offset < candidateOffset + requiredSize)
@@ -299,7 +323,7 @@ internal class ResourceAllocator
             }
             
             // Try placing at the end
-            if (sortedRegions.Count > 0)
+            if (sortedRegions.Length > 0)
             {
                 var last = sortedRegions[^1];
                 if (!LifetimesOverlap(last.Resource, newResource))

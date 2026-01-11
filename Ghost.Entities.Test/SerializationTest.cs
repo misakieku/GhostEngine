@@ -40,9 +40,9 @@ public class SerializationTest : ITest
         writer.WriteString("Name", "world 1");
         writer.WriteStartArray("Entities");
 
-        for (var i = 0; i < _world.ArchetypeCount; i++)
+        for (var i = 0; i < _world.ComponentManager.ArchetypeCount; i++)
         {
-            ref var archetype = ref _world.GetArchetypeReference(i);
+            ref var archetype = ref _world.ComponentManager.GetArchetypeReference(i);
 
             for (var j = 0; j < archetype.ChunkCount; j++)
             {

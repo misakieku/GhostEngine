@@ -1,6 +1,6 @@
 namespace Ghost.RenderGraph.Concept;
 
-internal class ResourceUsage
+internal struct ResourceUsage
 {
     public RenderGraphResourceHandle Handle { get; }
     public ResourceState State { get; }
@@ -14,16 +14,23 @@ internal class ResourceUsage
     }
 }
 
-internal class ResourceLifetime
+internal struct ResourceLifetime
 {
-    public RenderGraphResourceHandle Handle { get; }
+    public RenderGraphResourceHandle Handle { get; private set; }
     public int FirstUse { get; set; } = int.MaxValue;
     public int LastUse { get; set; } = -1;
     public List<ResourceUsage> Usages { get; } = new();
 
-    public ResourceLifetime(RenderGraphResourceHandle handle)
+    public ResourceLifetime()
+    {
+    }
+
+    public void Initialize(RenderGraphResourceHandle handle)
     {
         Handle = handle;
+        FirstUse = int.MaxValue;
+        LastUse = -1;
+        Usages.Clear();
     }
 
     public void AddUsage(ResourceState state, int passIndex)

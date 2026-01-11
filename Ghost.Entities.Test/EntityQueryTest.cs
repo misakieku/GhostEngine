@@ -48,7 +48,7 @@ public partial class EntityQueryTest : ITest
         _world.EntityManager.CreateEntities(entities, set);
 
         var queryID = new QueryBuilder().WithAllRW<Transform>().Build(_world);
-        ref var query = ref _world.GetEntityQueryReference(queryID);
+        ref var query = ref _world.ComponentManager.GetEntityQueryReference(queryID);
 
         _world.AdvanceVersion();
 

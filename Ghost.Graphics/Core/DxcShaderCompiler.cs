@@ -89,23 +89,45 @@ internal sealed partial class DxcShaderCompiler
         return argsArray;
     }
 
-    private static Result<string, ErrorStatus> GetFinalShaderCode(string shaderPath, ReadOnlySpan<string> includes)
+    private static Result<string, ErrorStatus> GetFinalShaderCode(string shaderPath, ReadOnlySpan<string> includes, string? injectedCode)
     {
-        if (!File.Exists(shaderPath))
+        string shaderCode;
+        if (shaderPath == "hlsl_block")
         {
-            return ErrorStatus.NotFound;
-        }
+            if (string.IsNullOrEmpty(injectedCode))
+            {
+                return ErrorStatus.InvalidArgument;
+            }
 
-        var shaderCode = File.ReadAllText(shaderPath);
+            shaderCode = string.Empty;
+        }
+        else
+        {
+            if (!File.Exists(shaderPath))
+            {
+                return ErrorStatus.NotFound;
+            }
+
+            shaderCode = File.ReadAllText(shaderPath);
+        }
 
         var sb = new System.Text.StringBuilder();
         foreach (var includePath in includes)
         {
             sb.AppendLine($"#include \"{includePath}\"");
         }
+        
+        if (!string.IsNullOrEmpty(injectedCode))
+        {
+            sb.AppendLine($"#line 1 \"hlsl_block\"");
+            sb.AppendLine(injectedCode);
+        }
 
-        sb.AppendLine($"#line {includes.Length + 1} \"{shaderPath}\"");
-        sb.AppendLine(shaderCode);
+        if (!string.IsNullOrEmpty(shaderCode))
+        {
+            sb.AppendLine($"#line 1 \"{shaderPath}\"");
+            sb.AppendLine(shaderCode);
+        }
 
         return sb.ToString();
     }
@@ -264,15 +286,7 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
 
         ThrowIfFailed(_utils.Get()->CreateDefaultIncludeHandler(includeHandler.GetAddressOf()));
 
-        // Create source blob
-        // fixed (char* pPath = config.shaderPath)
-        // {
-        //     if (_utils.Get()->LoadFile(pPath, null, sourceBlob.GetAddressOf()).FAILED)
-        //     {
-        //         return Result.Failure($"Failed to load shader file: {config.shaderPath}");
-        //     }
-        // }
-        var finalShaderCodeResult = GetFinalShaderCode(config.shaderPath, config.includes);
+        var finalShaderCodeResult = GetFinalShaderCode(config.shaderPath, config.includes, config.injectedCode);
         if (finalShaderCodeResult.IsFailure)
         {
             return Result.Failure(finalShaderCodeResult.Error);
@@ -386,6 +400,7 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
                 includes = descriptor.includes.AsSpan(),
                 shaderPath = tsEntry.shader,
                 entryPoint = tsEntry.entry,
+                injectedCode = descriptor.hlsl + additionalConfig.injectedCode,
                 stage = ShaderStage.TaskShader,
                 tier = additionalConfig.tier,
                 optimizeLevel = additionalConfig.optimizeLevel,
@@ -411,6 +426,7 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
                 includes = descriptor.includes.AsSpan(),
                 shaderPath = msEntry.shader,
                 entryPoint = msEntry.entry,
+                injectedCode = descriptor.hlsl + additionalConfig.injectedCode,
                 stage = ShaderStage.MeshShader,
                 tier = additionalConfig.tier,
                 optimizeLevel = additionalConfig.optimizeLevel,
@@ -440,6 +456,7 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
                 includes = descriptor.includes.AsSpan(),
                 shaderPath = psEntry.shader,
                 entryPoint = psEntry.entry,
+                injectedCode = descriptor.hlsl + additionalConfig.injectedCode,
                 stage = ShaderStage.PixelShader,
                 tier = additionalConfig.tier,
                 optimizeLevel = additionalConfig.optimizeLevel,

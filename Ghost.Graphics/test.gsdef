@@ -21,20 +21,6 @@ shader "MyShader/Standard"
             color_mask = all;
         }
 
-        keywords
-        {
-            local TEST_KEYWORD, TEST_KEYWORD2;
-            local TEST_KEYWORD3;
-        }
-
-        hlsl
-        {
-            float Test()
-            {
-                return 1.0;
-            }
-        }
-
         mesh "F:/csharp/GhostEngine/Ghost.Graphics/RenderPasses/ShaderCode.hlsl" : "MSMain";
         pixel "F:/csharp/GhostEngine/Ghost.Graphics/RenderPasses/ShaderCode.hlsl" : "PSMain";
     }

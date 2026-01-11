@@ -8,7 +8,7 @@ public enum PropertyScope
     Local,
 }
 
-internal class PropertySemantic
+public class PropertySemantic
 {
     public PropertyScope scope;
     public ShaderPropertyType type;
@@ -16,7 +16,7 @@ internal class PropertySemantic
     public object? defaultValue;
 }
 
-internal class PipelineSemantic
+public class PipelineSemantic
 {
     public ZTest? zTest;
     public ZWrite? zWrite;
@@ -25,22 +25,23 @@ internal class PipelineSemantic
     public ColorWriteMask? colorMask;
 }
 
-internal class PassSemantic
+public class PassSemantic
 {
     public string name = string.Empty;
     public ShaderEntryPoint taskShader;
     public ShaderEntryPoint meshShader;
     public ShaderEntryPoint pixelShader;
+    public string? hlsl;
     public List<string>? defines;
     public List<string>? includes;
     public List<KeywordsGroup>? keywords;
     public PipelineSemantic? localPipeline;
 }
 
-internal class DSLShaderSemantics
+public class DSLShaderSemantics
 {
     public string name = string.Empty;
-    public string fallback = string.Empty;
+    public string? hlsl;
     public List<PropertySemantic>? properties;
     public PipelineSemantic? pipeline;
     public List<PassSemantic>? passes;

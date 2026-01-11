@@ -11,46 +11,53 @@ public interface IRenderGraphBuilder
     RenderGraphBufferHandle CreateBuffer(BufferDescriptor descriptor);
 }
 
-public class RenderGraphPassBuilder<TPassData> : IRenderGraphBuilder, IDisposable
+public ref struct RenderGraphPassBuilder<TPassData>
     where TPassData : class, new()
 {
     private readonly RenderGraph _graph;
     private readonly string _passName;
     private readonly int _passIndex;
-    private readonly List<(RenderGraphResourceHandle handle, ResourceState state)> _resourceAccesses = new();
+    private RenderQueueType _queueType;
+    private readonly List<(RenderGraphResourceHandle handle, ResourceState state)> _resourceAccesses;
     private Action<TPassData, ICommandBuffer>? _renderFunc;
     private bool _committed;
-    private bool _allowCulling = true;
+    private bool _allowCulling;
 
     public TPassData PassData { get; }
 
-    internal RenderGraphPassBuilder(RenderGraph graph, string passName, int passIndex)
+    internal RenderGraphPassBuilder(RenderGraph graph, string passName, int passIndex, List<(RenderGraphResourceHandle handle, ResourceState state)> resourceAccesses)
     {
         _graph = graph;
         _passName = passName;
         _passIndex = passIndex;
         PassData = new TPassData();
+        _resourceAccesses = resourceAccesses;
+        _queueType = RenderQueueType.Graphics;
+        _allowCulling = true;
+        _committed = false;
+        _renderFunc = null;
     }
 
     internal IReadOnlyList<(RenderGraphResourceHandle handle, ResourceState state)> ResourceAccesses => _resourceAccesses;
+    internal RenderQueueType QueueType => _queueType;
     internal Action<TPassData, ICommandBuffer>? RenderFunc => _renderFunc;
     internal bool AllowCulling => _allowCulling;
 
     public RenderGraphTextureHandle ReadTexture(RenderGraphTextureHandle handle)
     {
-        _resourceAccesses.Add((handle, ResourceState.ShaderResource));
+        _resourceAccesses.Add((handle._handle, ResourceState.ShaderResource));
         return handle;
     }
 
     public RenderGraphTextureHandle WriteTexture(RenderGraphTextureHandle handle)
     {
-        _resourceAccesses.Add((handle, ResourceState.RenderTarget));
+        _resourceAccesses.Add((handle._handle, ResourceState.RenderTarget));
         return handle;
     }
 
     public RenderGraphTextureHandle UseDepthBuffer(RenderGraphTextureHandle handle, bool writeAccess)
     {
-        _resourceAccesses.Add((handle, writeAccess ? ResourceState.DepthWrite : ResourceState.DepthRead));
+        _resourceAccesses.Add((handle._handle, writeAccess ? ResourceState.DepthWrite : ResourceState.DepthRead));
         return handle;
     }
 
@@ -62,13 +69,13 @@ public class RenderGraphPassBuilder<TPassData> : IRenderGraphBuilder, IDisposabl
 
     public RenderGraphBufferHandle ReadBuffer(RenderGraphBufferHandle handle)
     {
-        _resourceAccesses.Add((handle, ResourceState.ShaderResource));
+        _resourceAccesses.Add((handle._handle, ResourceState.ShaderResource));
         return handle;
     }
 
     public RenderGraphBufferHandle WriteBuffer(RenderGraphBufferHandle handle)
     {
-        _resourceAccesses.Add((handle, ResourceState.UnorderedAccess));
+        _resourceAccesses.Add((handle._handle, ResourceState.UnorderedAccess));
         return handle;
     }
 
@@ -78,9 +85,16 @@ public class RenderGraphPassBuilder<TPassData> : IRenderGraphBuilder, IDisposabl
         return handle;
     }
 
-    public void SetRenderFunc(Action<TPassData, ICommandBuffer> renderFunc)
+    public void SetRenderFunc(Action<TPassData, RasterRenderContext> renderFunc)
     {
-        _renderFunc = renderFunc;
+        _queueType = RenderQueueType.Graphics;
+        _renderFunc = (data, cmd) => renderFunc(data, new RasterRenderContext(cmd));
+    }
+
+    public void SetComputeFunc(Action<TPassData, ComputeRenderContext> computeFunc, bool asyncCompute = false)
+    {
+        _queueType = asyncCompute ? RenderQueueType.AsyncCompute : RenderQueueType.Compute;
+        _renderFunc = (data, cmd) => computeFunc(data, new ComputeRenderContext(cmd));
     }
 
     /// <summary>
@@ -92,6 +106,7 @@ public class RenderGraphPassBuilder<TPassData> : IRenderGraphBuilder, IDisposabl
     {
         _allowCulling = allowCulling;
     }
+
 
     public void Dispose()
     {

@@ -52,6 +52,7 @@ public struct PassDescriptor
     public string[] includes;
     public KeywordsGroup[] keywords;
     public PipelineState localPipeline;
+    public string? hlsl;
 }
 
 public class ShaderDescriptor
@@ -61,6 +62,7 @@ public class ShaderDescriptor
     public PropertyDescriptor[] globalProperties = null!;
     public PropertyDescriptor[] properties = null!;
     public PassDescriptor[] passes = null!;
+    public string? hlsl;
 }
 
 public static class ShaderDescriptorExtensions

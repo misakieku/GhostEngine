@@ -34,7 +34,6 @@
       <Deploy />
     </Project>
     <Project Path="Ghost.RenderGraph.Concept/Ghost.RenderGraph.Concept.csproj" />
-    <Project Path="Ghost.Shader.Concept/Ghost.Shader.Concept.csproj" Id="23f21a60-bf61-4bb9-acf1-332a31322ee9" />
     <Project Path="Ghost.Shader.Test/Ghost.Shader.Test.csproj" />
     <Project Path="Ghost.Test.Core/Ghost.Test.Core.csproj" />
   </Folder>

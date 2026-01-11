@@ -39,6 +39,7 @@ public ref struct ShaderCompilationConfig
     public ReadOnlySpan<string> includes;
     public string shaderPath;
     public string entryPoint;
+    public string? injectedCode;
     public ShaderStage stage;
     public CompilerTier tier;
     public CompilerOptimizeLevel optimizeLevel;

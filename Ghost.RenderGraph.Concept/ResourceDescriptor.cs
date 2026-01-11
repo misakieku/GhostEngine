@@ -15,14 +15,14 @@ public enum TextureFormat
     R32Uint
 }
 
-public record TextureDescriptor(
+public record struct TextureDescriptor(
     int Width,
     int Height,
     TextureFormat Format,
     string DebugName = "Unnamed Texture"
 );
 
-public record BufferDescriptor(
+public record struct BufferDescriptor(
     int SizeInBytes,
     string DebugName = "Unnamed Buffer"
 );
