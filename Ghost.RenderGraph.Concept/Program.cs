@@ -1,41 +1,43 @@
 using Ghost.RenderGraph.Concept;
 
-
-//ConsoleAPI.WriteLine("==================================================");
-//ConsoleAPI.WriteLine("     Transient Render Graph - Proof of Concept");
-//ConsoleAPI.WriteLine("     Using Typed Pass Data and Blackboard Pattern");
-//ConsoleAPI.WriteLine("==================================================\n");
-
 var renderGraph = new RenderGraph();
 
-for (int i = 0; i < 500; i++)
+#if !DEBUG
+const int _ITERATION = 500;
+for (var i = 0; i < _ITERATION; i++)
 {
-    BuildGraph(renderGraph);
+    ExecuteGraph(renderGraph);
 }
 
+GC.Collect();
+GC.WaitForPendingFinalizers();
+// Thread.Sleep(1000); // Leave a gap in visual studio allocations timeline
 var sw = new System.Diagnostics.Stopwatch();
 var gcBefore = GC.GetAllocatedBytesForCurrentThread();
 sw.Start();
 
-for (int i = 0; i < 500; i++)
+for (var i = 0; i < _ITERATION; i++)
 {
-    BuildGraph(renderGraph);
+    ExecuteGraph(renderGraph);
 }
-
-//BuildGraph(renderGraph);
 
 sw.Stop();
 var gcAfter = GC.GetAllocatedBytesForCurrentThread();
 
-Console.WriteLine($"{sw.Elapsed.TotalNanoseconds / 500} ns");
-Console.WriteLine($"GC Allocated Bytes: {(gcAfter - gcBefore) / 500} bytes");
+Console.WriteLine($"{sw.Elapsed.TotalNanoseconds / _ITERATION} ns (per iteration)");
+Console.WriteLine($"GC Allocated Bytes: {(gcAfter - gcBefore) / _ITERATION} bytes (per iteration)");
+#else
+// Run twice to demonstrate cache hit
+Console.WriteLine("=== FRAME 1 (Cache Miss Expected) ===");
+ExecuteGraph(renderGraph);
 
-//Console.WriteLine("\nPress any key to exit...");
-//Console.ReadKey();
+Console.WriteLine("\n\n=== FRAME 2 (Cache Hit Expected) ===");
+ExecuteGraph(renderGraph);
+#endif
 
-static void BuildGraph(RenderGraph renderGraph)
+static void ExecuteGraph(RenderGraph renderGraph)
 {
-    renderGraph.Reset();
+    renderGraph.Reset(); // new RenderGraph()
 
     // Import external resources
     var backbuffer = renderGraph.ImportTexture(
@@ -56,7 +58,7 @@ static void BuildGraph(RenderGraph renderGraph)
         gbufferData.Normal = builder.WriteTexture(normal);
         gbufferData.Depth = builder.UseDepthBuffer(depth, writeAccess: true);
 
-        builder.SetRenderFunc((data, cmd) =>
+        builder.SetRenderFunc<GBufferData>((data, cmd) =>
         {
             cmd.SetRenderTarget(data.Albedo.Name);
             cmd.SetRenderTarget(data.Normal.Name);
@@ -87,7 +89,7 @@ static void BuildGraph(RenderGraph renderGraph)
             new TextureDescriptor(1920, 1080, TextureFormat.RGBA16F, "LightingResult"));
         lightingData.OutputLighting = builder.WriteTexture(lightingOutput);
 
-        builder.SetRenderFunc((data, cmd) =>
+        builder.SetRenderFunc<LightingPassData>((data, cmd) =>
         {
             cmd.BindShaderResource(data.GBufferAlbedo.Name, 0);
             cmd.BindShaderResource(data.GBufferNormal.Name, 1);
@@ -112,7 +114,7 @@ static void BuildGraph(RenderGraph renderGraph)
         ssaoData.OutputSSAO = builder.WriteTexture(ssaoOutput);
 
         // Use SetComputeFunc with asyncCompute: true
-        builder.SetComputeFunc((data, cmd) =>
+        builder.SetComputeFunc<SSAOPassData>((data, cmd) =>
         {
             cmd.BindShaderResource(data.GBufferDepth.Name, 0);
             cmd.BindShaderResource(data.GBufferNormal.Name, 1);
@@ -132,7 +134,7 @@ static void BuildGraph(RenderGraph renderGraph)
             new TextureDescriptor(1920, 1080, TextureFormat.RGBA8, "BloomDownsample"));
         bloomData.Output = builder.WriteTexture(bloomOutput);
 
-        builder.SetRenderFunc((data, cmd) =>
+        builder.SetRenderFunc<BloomDownsampleData>((data, cmd) =>
         {
             cmd.BindShaderResource(data.Input.Name, 0);
             cmd.SetRenderTarget(data.Output.Name);
@@ -150,7 +152,7 @@ static void BuildGraph(RenderGraph renderGraph)
             new TextureDescriptor(1920, 1080, TextureFormat.RGBA16F, "TAA.Result"));
         taaData.OutputTAA = builder.WriteTexture(taaOutput);
 
-        builder.SetRenderFunc((data, cmd) =>
+        builder.SetRenderFunc<TAAPassData>((data, cmd) =>
         {
             cmd.BindShaderResource(data.InputLighting.Name, 0);
             cmd.SetRenderTarget(data.OutputTAA.Name);
@@ -166,7 +168,7 @@ static void BuildGraph(RenderGraph renderGraph)
         postData.InputBloom = builder.ReadTexture(bloomOutput);
         postData.OutputBackbuffer = builder.WriteTexture(backbuffer);
 
-        builder.SetRenderFunc((data, cmd) =>
+        builder.SetRenderFunc<PostProcessingPassDataV2>((data, cmd) =>
         {
             cmd.BindShaderResource(data.InputTAA.Name, 0);
             cmd.BindShaderResource(data.InputSSAO.Name, 1);
@@ -180,7 +182,7 @@ static void BuildGraph(RenderGraph renderGraph)
     using (var builder = renderGraph.AddRenderPass<ProfilerMarkerData>("GPU Profiler Begin Frame", out var profilerData))
     {
         builder.SetAllowCulling(false); // Never cull this - it's for debugging/profiling
-        builder.SetRenderFunc((data, cmd) =>
+        builder.SetRenderFunc<ProfilerMarkerData>((data, cmd) =>
         {
             // Note: In a real implementation we would have specific profiler commands
             // For now, since RasterRenderContext doesn't expose generic console write, we skip the print
@@ -194,7 +196,7 @@ static void BuildGraph(RenderGraph renderGraph)
         debugData.DebugTexture = builder.WriteTexture(
             builder.CreateTexture(new TextureDescriptor(512, 512, TextureFormat.RGBA8, "DebugTexture")));
 
-        builder.SetRenderFunc((data, cmd) =>
+        builder.SetRenderFunc<DebugPassData>((data, cmd) =>
         {
             cmd.SetRenderTarget(data.DebugTexture.Name);
             cmd.ClearRenderTarget(data.DebugTexture.Name, 1, 0, 1, 1);
