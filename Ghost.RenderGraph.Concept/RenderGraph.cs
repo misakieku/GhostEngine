@@ -1,7 +1,8 @@
+using Ghost.Core;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.IO.Hashing;
-using System.Threading;
+using TerraFX.Interop.Windows;
 
 namespace Ghost.RenderGraph.Concept;
 
@@ -28,9 +29,6 @@ public sealed class RenderGraph
     private readonly List<ResourceBarrier> _barriers = new(128);
     private readonly RenderGraphCompilationCache _compilationCache = new();
 
-    private readonly XxHash64 _hasher = new();
-
-    private int _passCount;
     private bool _compiled;
 
     public RenderGraphBlackboard Blackboard { get; } = new();
@@ -60,13 +58,13 @@ public sealed class RenderGraph
         _barriers.Clear();
 
         // Return passes to the pool and reset count
-        for (var i = 0; i < _passCount; i++)
+        for (var i = 0; i < _passes.Count; i++)
         {
             var pass = _passes[i];
-            pass.Clear();
-            _objectPool.Release(pass);
+            pass.Reset(_objectPool);
         }
-        _passCount = 0;
+
+        _passes.Clear();
 
         // Clear compiled passes list
         _compiledPasses.Clear();
@@ -76,57 +74,34 @@ public sealed class RenderGraph
     /// <summary>
     /// Imports an external texture into the render graph.
     /// </summary>
-    public RenderGraphTextureHandle ImportTexture(string name, TextureDescriptor descriptor)
+    public Identifier<RGTexture> ImportTexture(TextureDescriptor descriptor)
     {
         return _resources.ImportTexture(descriptor);
     }
 
-    /// <summary>
-    /// Adds a new render pass to the graph.
-    /// </summary>
-    public RenderGraphBuilder AddRenderPass<TPassData>(string name, out TPassData passData)
+    public IRasterRenderGraphBuilder AddRasterRenderPass<TPassData>(string name, out TPassData passData)
         where TPassData : class, new()
     {
-        // Get or create pass from pool
-        RenderGraphPass<TPassData> pass;
-        if (_passCount < _passes.Count)
-        {
-            // Reuse existing slot
-            var existingPass = _passes[_passCount];
-            if (existingPass is RenderGraphPass<TPassData> typedPass)
-            {
-                pass = typedPass;
-                pass.Reset();
-            }
-            else
-            {
-                // Type mismatch, need to replace
-                _objectPool.Release(existingPass);
-                pass = _objectPool.Get<RenderGraphPass<TPassData>>();
-                pass.Reset();
-                _passes[_passCount] = pass;
-            }
-        }
-        else
-        {
-            // Need to grow the list
-            pass = _objectPool.Get<RenderGraphPass<TPassData>>();
-            pass.Reset();
-            _passes.Add(pass);
-        }
+        var renderPass = _objectPool.Rent<RasterRenderGraphPass<TPassData>>();
+        renderPass.Init(_passes.Count, _objectPool.Rent<TPassData>(), name, RenderPassType.Raster);
+        passData = renderPass.passData;
 
-        // Initialize pass
-        pass.Name = name;
-        pass.Index = _passCount;
+        _passes.Add(renderPass);
 
-        // Get or create pass data from pool
-        passData = _objectPool.Get<TPassData>();
-        pass.PassData = passData;
+        _builder.Init(this, renderPass, _resources);
+        return _builder;
+    }
 
-        _passCount++;
+    public IComputeRenderGraphBuilder AddComputeRenderPass<TPassData>(string name, out TPassData passData)
+        where TPassData : class, new()
+    {
+        var renderPass = _objectPool.Rent<ComputeRenderGraphPass<TPassData>>();
+        renderPass.Init(_passes.Count, _objectPool.Rent<TPassData>(), name, RenderPassType.Compute);
+        passData = renderPass.passData;
 
-        // Initialize builder
-        _builder.Initialize(pass, _resources);
+        _passes.Add(renderPass);
+
+        _builder.Init(this, renderPass, _resources);
         return _builder;
     }
 
@@ -138,82 +113,84 @@ public sealed class RenderGraph
     private unsafe ulong ComputeGraphHash()
     {
         using var scope = AllocationManager.CreateStackScope();
-        var bufferPool = new UnsafeList<byte>(4096, scope.AllocationHandle);
-        int offset = 0;
+        var bufferPool = new UnsafeList<byte>(2048, scope.AllocationHandle);
         var pData = (byte*)bufferPool.GetUnsafePtr();
-
-        _hasher.Reset();
+        var offset = 0;
 
         // Hash pass count
-        _hasher.AppendInt(_passCount);
+        *(int*)(pData + offset) = _passes.Count;
+        offset += sizeof(int);
 
         // Hash each pass structure (excluding names)
-        for (int i = 0; i < _passCount; i++)
+        for (var i = 0; i < _passes.Count; i++)
         {
             var pass = _passes[i];
-            // Save 0.004ms.
 
-            //// Hash pass properties that affect compilation
-            //_hasher.AppendEnum(pass.Type);
-            //_hasher.AppendBool(pass.AllowCulling);
-            //_hasher.AppendBool(pass.AsyncCompute);
-            
-            //// Hash texture dependencies (only indices, not versions or names)
-            //_hasher.AppendHandleList(pass.TextureReads);
-            //_hasher.AppendHandleList(pass.TextureWrites);
-            //_hasher.AppendHandleList(pass.TextureCreates);
-            *(RenderPassType*)(pData + offset) = pass.Type;
+            *(RenderPassType*)(pData + offset) = pass.type;
             offset += sizeof(RenderPassType);
 
-            *(bool*)(pData + offset) = pass.AllowCulling;
+            *(bool*)(pData + offset) = pass.allowCulling;
             offset += sizeof(bool);
 
-            *(bool*)(pData + offset) = pass.AsyncCompute;
+            *(bool*)(pData + offset) = pass.asyncCompute;
             offset += sizeof(bool);
 
-            *(int*)(pData + offset) = pass.TextureReads.Count;
+            *(TextureAccess*)(pData + offset) = pass.depthAccess;
+            offset += sizeof(TextureAccess);
+
+            *(int*)(pData + offset) = pass.maxColorIndex;
             offset += sizeof(int);
-            for (int j = 0; j < pass.TextureReads.Count; j++)
+            for (var j = 0; j <= pass.maxColorIndex; j++)
             {
-                *(int*)(pData + offset) = pass.TextureReads[j].Index;
+                *(TextureAccess*)(pData + offset) = pass.colorAccess[j];
+                offset += sizeof(TextureAccess);
+            }
+
+            *(int*)(pData + offset) = pass.resourceReads.Count;
+            offset += sizeof(int);
+            for (var j = 0; j < pass.resourceReads.Count; j++)
+            {
+                *(int*)(pData + offset) = pass.resourceReads[j].Value;
                 offset += sizeof(int);
             }
 
-            *(int*)(pData + offset) = pass.TextureWrites.Count;
+            *(int*)(pData + offset) = pass.resourceWrites.Count;
             offset += sizeof(int);
-            for (int j = 0; j < pass.TextureWrites.Count; j++)
+            for (var j = 0; j < pass.resourceWrites.Count; j++)
             {
-                *(int*)(pData + offset) = pass.TextureWrites[j].Index;
+                *(int*)(pData + offset) = pass.resourceWrites[j].Value;
                 offset += sizeof(int);
             }
 
-            *(int*)(pData + offset) = pass.TextureCreates.Count;
+            *(int*)(pData + offset) = pass.resourceCreates.Count;
             offset += sizeof(int);
-            for (int j = 0; j < pass.TextureCreates.Count; j++)
+            for (var j = 0; j < pass.resourceCreates.Count; j++)
             {
-                *(int*)(pData + offset) = pass.TextureCreates[j].Index;
+                *(int*)(pData + offset) = pass.resourceCreates[j].Value;
                 offset += sizeof(int);
             }
         }
 
         // Hash resource descriptors
-        for (int i = 0; i < _resources.TextureResourceCount; i++)
+        for (var i = 0; i < _resources.TextureResourceCount; i++)
         {
             var resource = _resources.GetTextureResourceByIndex(i);
 
             *(int*)(pData + offset) = resource.Descriptor.Width;
             offset += sizeof(int);
+
             *(int*)(pData + offset) = resource.Descriptor.Height;
             offset += sizeof(int);
+
             *(TextureFormat*)(pData + offset) = resource.Descriptor.Format;
             offset += sizeof(TextureFormat);
+
             *(bool*)(pData + offset) = resource.IsImported;
             offset += sizeof(bool);
         }
 
         var span = new Span<byte>(pData, offset);
-        _hasher.Append(span);
-        return _hasher.GetCurrentHashAsUInt64();
+        return XxHash64.HashToUInt64(span);
     }
 
     /// <summary>
@@ -222,14 +199,16 @@ public sealed class RenderGraph
     public void Compile()
     {
         if (_compiled)
+        {
             return;
+        }
 
 #if DEBUG
         var sw = System.Diagnostics.Stopwatch.StartNew();
 #endif
 
         // Step 0: Check cache
-        ulong graphHash = ComputeGraphHash();
+        var graphHash = ComputeGraphHash(); // 1321433047288519964
 
 #if DEBUG
         var hashTime = sw.Elapsed.TotalMicroseconds;
@@ -257,18 +236,18 @@ public sealed class RenderGraph
         _compiledPasses.Clear();
 
         // Step 1: Mark passes with side effects (writes to imported resources)
-        for (var i = 0; i < _passCount; i++)
+        for (var i = 0; i < _passes.Count; i++)
         {
             var pass = _passes[i];
 
             // Check if this pass writes to any imported textures
-            for (var j = 0; j < pass.TextureWrites.Count; j++)
+            for (var j = 0; j < pass.resourceWrites.Count; j++)
             {
-                var writeHandle = pass.TextureWrites[j];
-                var resource = _resources.GetTextureResource(writeHandle);
+                var writeHandle = pass.resourceWrites[j];
+                var resource = _resources.GetResource(writeHandle);
                 if (resource.IsImported)
                 {
-                    pass.HasSideEffects = true;
+                    pass.hasSideEffects = true;
                     break;
                 }
             }
@@ -276,33 +255,33 @@ public sealed class RenderGraph
 
         // Step 2: Cull passes based on dependency analysis
         // Mark all passes as culled initially
-        for (var i = 0; i < _passCount; i++)
+        for (var i = 0; i < _passes.Count; i++)
         {
-            _passes[i].Culled = _passes[i].AllowCulling && !_passes[i].HasSideEffects;
+            _passes[i].culled = _passes[i].allowCulling && !_passes[i].hasSideEffects;
         }
 
         // Step 3: Traverse backwards from passes with side effects
-        for (var i = _passCount - 1; i >= 0; i--)
+        for (var i = _passes.Count - 1; i >= 0; i--)
         {
             var pass = _passes[i];
-            if (!pass.Culled)
+            if (!pass.culled)
             {
                 UnculDependencies(pass);
             }
         }
 
         // Step 4: Build final pass list (only non-culled passes)
-        for (var i = 0; i < _passCount; i++)
+        for (var i = 0; i < _passes.Count; i++)
         {
             var pass = _passes[i];
-            if (!pass.Culled)
+            if (!pass.culled)
             {
                 _compiledPasses.Add(pass);
             }
         }
 
         // Step 5: Perform resource aliasing to minimize memory usage
-        _aliasingManager.AssignPhysicalResources(_resources, _passCount);
+        _aliasingManager.AssignPhysicalResources(_resources, _passes.Count);
 
         // Step 6: Generate barriers for state transitions and aliasing
         GenerateBarriers();
@@ -320,16 +299,16 @@ public sealed class RenderGraph
     {
         // Restore compiled pass list
         _compiledPasses.Clear();
-        for (int i = 0; i < cached.CompiledPassIndices.Count; i++)
+        for (var i = 0; i < cached.CompiledPassIndices.Count; i++)
         {
-            int passIndex = cached.CompiledPassIndices[i];
+            var passIndex = cached.CompiledPassIndices[i];
             _compiledPasses.Add(_passes[passIndex]);
         }
 
         // Restore culling flags
-        for (int i = 0; i < _passCount && i < cached.PassCulledFlags.Count; i++)
+        for (var i = 0; i < _passes.Count && i < cached.PassCulledFlags.Count; i++)
         {
-            _passes[i].Culled = cached.PassCulledFlags[i];
+            _passes[i].culled = cached.PassCulledFlags[i];
         }
 
         // Restore aliasing mappings (need to update ResourceAliasingManager)
@@ -337,7 +316,7 @@ public sealed class RenderGraph
 
         // Restore barriers (deep copy to avoid shared references)
         _barriers.Clear();
-        for (int i = 0; i < cached.Barriers.Count; i++)
+        for (var i = 0; i < cached.Barriers.Count; i++)
         {
             _barriers.Add(cached.Barriers[i]);
         }
@@ -358,22 +337,22 @@ public sealed class RenderGraph
         var cacheData = new CachedCompilation();
 
         // Store compiled pass indices
-        for (int i = 0; i < _compiledPasses.Count; i++)
+        for (var i = 0; i < _compiledPasses.Count; i++)
         {
-            cacheData.CompiledPassIndices.Add(_compiledPasses[i].Index);
+            cacheData.CompiledPassIndices.Add(_compiledPasses[i].index);
         }
 
         // Store culling flags for all passes
-        for (int i = 0; i < _passCount; i++)
+        for (var i = 0; i < _passes.Count; i++)
         {
-            cacheData.PassCulledFlags.Add(_passes[i].Culled);
+            cacheData.PassCulledFlags.Add(_passes[i].culled);
         }
 
         // Store aliasing mappings
         _aliasingManager.StoreToCache(cacheData.LogicalToPhysical, cacheData.PhysicalResources);
 
         // Store barriers
-        for (int i = 0; i < _barriers.Count; i++)
+        for (var i = 0; i < _barriers.Count; i++)
         {
             cacheData.Barriers.Add(_barriers[i]);
         }
@@ -393,17 +372,17 @@ public sealed class RenderGraph
     private void UnculDependencies(RenderGraphPassBase pass)
     {
         // Un-cull all producers of textures we read
-        for (var i = 0; i < pass.TextureReads.Count; i++)
+        for (var i = 0; i < pass.resourceReads.Count; i++)
         {
-            var readHandle = pass.TextureReads[i];
-            var resource = _resources.GetTextureResource(readHandle);
+            var readHandle = pass.resourceReads[i];
+            var resource = _resources.GetResource(readHandle);
 
             if (resource.ProducerPass >= 0)
             {
                 var producer = _passes[resource.ProducerPass];
-                if (producer.Culled)
+                if (producer.culled)
                 {
-                    producer.Culled = false;
+                    producer.culled = false;
                     UnculDependencies(producer);
                 }
             }
@@ -446,46 +425,43 @@ public sealed class RenderGraph
     private void InsertAliasingBarriers(RenderGraphPassBase pass, int passIdx)
     {
         // Check all resources written by this pass
-        for (int i = 0; i < pass.TextureWrites.Count; i++)
+        for (var i = 0; i < pass.resourceWrites.Count; i++)
         {
-            var handle = pass.TextureWrites[i];
-            var resource = _resources.GetTextureResource(handle);
-            
+            var id = pass.resourceWrites[i];
+            var resource = _resources.GetResource(id);
+
             // Skip imported resources
             if (resource.IsImported)
                 continue;
 
             // Check if this is the first use of this logical resource
-            if (resource.FirstUsePass == pass.Index)
+            if (resource.FirstUsePass == pass.index)
             {
-                // Get the physical resource
-                int physicalIndex = _aliasingManager.GetPhysicalResourceIndex(handle.Index);
+                // Rent the physical resource
+                var physicalIndex = _aliasingManager.GetPhysicalResourceIndex(id.Value);
                 if (physicalIndex >= 0)
                 {
                     var physical = _aliasingManager.GetPhysicalResource(physicalIndex);
-                    
+
                     // If this physical resource has multiple aliased resources,
                     // we need an aliasing barrier when switching between them
                     if (physical != null && physical.AliasedLogicalResources.Count > 1)
                     {
                         // Find the resource that used this physical memory most recently before this pass
-                        RenderGraphTextureHandle resourceBefore = default;
-                        int mostRecentLastUse = -1;
-                        
-                        foreach (int otherLogicalIndex in physical.AliasedLogicalResources)
+                        Identifier<RGResource> resourceBefore = default;
+                        var mostRecentLastUse = -1;
+
+                        foreach (var otherLogicalIndex in physical.AliasedLogicalResources)
                         {
-                            if (otherLogicalIndex != handle.Index)
+                            if (otherLogicalIndex != id.Value)
                             {
                                 var otherResource = _resources.GetTextureResourceByIndex(otherLogicalIndex);
                                 // Check if this resource finished before our resource starts
-                                if (otherResource.LastUsePass < pass.Index && 
+                                if (otherResource.LastUsePass < pass.index &&
                                     otherResource.LastUsePass > mostRecentLastUse)
                                 {
                                     mostRecentLastUse = otherResource.LastUsePass;
-                                    resourceBefore = new RenderGraphTextureHandle(
-                                        otherLogicalIndex, 
-                                        otherResource.Version, 
-                                        otherResource.Descriptor.Name);
+                                    resourceBefore = otherLogicalIndex;
                                 }
                             }
                         }
@@ -495,7 +471,7 @@ public sealed class RenderGraph
                         {
                             var barrier = ResourceBarrier.CreateAliasingBarrier(
                                 resourceBefore,
-                                handle,
+                                id,
                                 passIdx
                             );
                             _barriers.Add(barrier);
@@ -516,42 +492,65 @@ public sealed class RenderGraph
     private void InsertTransitionBarriers(RenderGraphPassBase pass, int passIdx)
     {
         // Process reads (transition to shader resource)
-        for (var i = 0; i < pass.TextureReads.Count; i++)
+        for (var i = 0; i < pass.resourceReads.Count; i++)
         {
-            var handle = pass.TextureReads[i];
+            var handle = pass.resourceReads[i];
             InsertTransitionIfNeeded(handle, ResourceState.ShaderResource, passIdx);
         }
 
-        // Process writes (transition to render target or UAV)
-        for (var i = 0; i < pass.TextureWrites.Count; i++)
+        switch (pass.type)
         {
-            var handle = pass.TextureWrites[i];
-            var targetState = ResourceState.RenderTarget; // Could be UAV for compute
-            InsertTransitionIfNeeded(handle, targetState, passIdx);
+            case RenderPassType.Raster:
+                for (var i = 0; i <= pass.maxColorIndex; i++)
+                {
+                    var access = pass.colorAccess[i];
+                    InsertTransitionIfNeeded(access.id.AsResource(), ResourceState.RenderTarget, passIdx);
+                }
+
+                if (pass.depthAccess.id.IsValid)
+                {
+                    var depthAccess = pass.depthAccess;
+                    InsertTransitionIfNeeded(depthAccess.id.AsResource(), ResourceState.DepthWrite, passIdx);
+                }
+
+                for (var i = 0; i < pass.randomAccess.Count; i++)
+                {
+                    InsertTransitionIfNeeded(pass.randomAccess[i], ResourceState.UnorderedAccess, passIdx);
+                }
+
+                break;
+            case RenderPassType.Compute:
+                for (var i = 0; i < pass.resourceWrites.Count; i++)
+                {
+                    var id = pass.resourceWrites[i];
+                    InsertTransitionIfNeeded(id, ResourceState.UnorderedAccess, passIdx);
+                }
+
+                break;
         }
     }
 
     /// <summary>
     /// Inserts a transition barrier if the resource state changes.
     /// </summary>
-    private void InsertTransitionIfNeeded(RenderGraphTextureHandle handle, ResourceState newState, int passIdx)
+    private void InsertTransitionIfNeeded(Identifier<RGResource> resource, ResourceState newState, int passIdx)
     {
-        if (!_resourceStates.TryGetValue(handle.Index, out var currentState))
+        if (!_resourceStates.TryGetValue(resource.Value, out var currentState))
         {
             // First time seeing this resource, assume undefined
-            currentState = ResourceState.Undefined;
+            currentState = ResourceState.Common;
         }
 
         if (currentState != newState)
         {
             var barrier = ResourceBarrier.CreateTransitionBarrier(
-                handle,
+                resource,
                 currentState,
                 newState,
                 passIdx
             );
             _barriers.Add(barrier);
-            _resourceStates[handle.Index] = newState;
+            _resourceStates[resource.Value] = newState;
 
 #if DEBUG
             Console.WriteLine($"  {barrier}");
@@ -570,11 +569,11 @@ public sealed class RenderGraph
         }
 
         // Execute each non-culled pass
-        int barrierIndex = 0;
-        for (int i = 0; i < _compiledPasses.Count; i++)
+        var barrierIndex = 0;
+        for (var i = 0; i < _compiledPasses.Count; i++)
         {
             var pass = _compiledPasses[i];
-            
+
             // Execute all barriers for this pass
 #if DEBUG
             bool hasBarriers = false;
@@ -584,14 +583,23 @@ public sealed class RenderGraph
 #if DEBUG
                 if (!hasBarriers)
                 {
-                    Console.WriteLine($"\n=== Barriers before Pass {i}: {pass.Name} ===");
+                    Console.WriteLine($"\n=== Barriers before Pass {i}: {pass.name} ===");
                     hasBarriers = true;
                 }
-                Console.WriteLine($"  {_barriers[barrierIndex]}");
+
+                var barrier = _barriers[barrierIndex];
+                if (barrier.Type == BarrierType.Transition)
+                {
+                    _commandBuffer.ResourceBarrier(
+                        barrier.Resource,
+                        barrier.StateBefore,
+                        barrier.StateAfter
+                    );
+                }
 #endif
                 // In a real implementation, you would execute the barrier here:
                 // ExecuteBarrier(_barriers[barrierIndex]);
-                
+
                 barrierIndex++;
             }
 #if DEBUG
@@ -600,7 +608,7 @@ public sealed class RenderGraph
                 Console.WriteLine("=====================================\n");
             }
 #endif
-            
+
             pass.Execute(_renderContext);
         }
     }

@@ -104,7 +104,7 @@ internal sealed class ResourceAliasingManager
 #endif
 
         // Build list of all logical resources with their lifetimes
-        var logicalResources = ListPool<(int index, TextureResource resource)>.Rent();
+        var logicalResources = ListPool<(int index, RenderGraphResource resource)>.Rent();
         
         for (int i = 0; i < registry.TextureResourceCount; i++)
         {
@@ -194,7 +194,7 @@ internal sealed class ResourceAliasingManager
         Console.WriteLine("================================\n");
 #endif
 
-        ListPool<(int index, TextureResource resource)>.Return(logicalResources);
+        ListPool<(int index, RenderGraphResource resource)>.Return(logicalResources);
     }
 
     public int GetPhysicalResourceIndex(int logicalIndex)
@@ -209,7 +209,7 @@ internal sealed class ResourceAliasingManager
             : null;
     }
 
-    private bool HasLifetimeOverlap(PhysicalResource physical, TextureResource logical)
+    private bool HasLifetimeOverlap(PhysicalResource physical, RenderGraphResource logical)
     {
         // Check if the lifetimes overlap
         // No overlap if: logical.First > physical.Last OR logical.Last < physical.First
@@ -227,7 +227,7 @@ internal sealed class ResourceAliasingManager
         }
         else
         {
-            resource = _pool.Get<PhysicalResource>();
+            resource = _pool.Rent<PhysicalResource>();
             resource.Reset();
             _physicalResources.Add(resource);
         }
@@ -254,7 +254,7 @@ internal sealed class ResourceAliasingManager
     {
         for (int i = 0; i < _physicalResources.Count; i++)
         {
-            _pool.Release(_physicalResources[i]);
+            _pool.Return(_physicalResources[i]);
         }
         _physicalResources.Clear();
         _physicalResourceCount = 0;
@@ -284,7 +284,7 @@ internal sealed class ResourceAliasingManager
             }
             else
             {
-                physical = _pool.Get<PhysicalResource>();
+                physical = _pool.Rent<PhysicalResource>();
                 physical.Reset();
                 _physicalResources.Add(physical);
             }

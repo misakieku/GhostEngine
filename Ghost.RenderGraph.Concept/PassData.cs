@@ -1,3 +1,5 @@
+using Ghost.Core;
+
 namespace Ghost.RenderGraph.Concept;
 
 // ===== Pass Data Structures =====
@@ -5,44 +7,44 @@ namespace Ghost.RenderGraph.Concept;
 
 public sealed class GBufferData : IPassData
 {
-    public RenderGraphTextureHandle Albedo;
-    public RenderGraphTextureHandle Normal;
-    public RenderGraphTextureHandle Depth;
+    public Identifier<RGTexture> Albedo;
+    public Identifier<RGTexture> Normal;
+    public Identifier<RGTexture> Depth;
 }
 
 public sealed class LightingPassData : IPassData
 {
-    public RenderGraphTextureHandle GBufferAlbedo;
-    public RenderGraphTextureHandle GBufferNormal;
-    public RenderGraphTextureHandle GBufferDepth;
-    public RenderGraphTextureHandle OutputLighting;
+    public Identifier<RGTexture> GBufferAlbedo;
+    public Identifier<RGTexture> GBufferNormal;
+    public Identifier<RGTexture> GBufferDepth;
+    public Identifier<RGTexture> OutputLighting;
 }
 
 public sealed class SSAOPassData : IPassData
 {
-    public RenderGraphTextureHandle GBufferDepth;
-    public RenderGraphTextureHandle GBufferNormal;
-    public RenderGraphTextureHandle OutputSSAO;
+    public Identifier<RGTexture> GBufferDepth;
+    public Identifier<RGTexture> GBufferNormal;
+    public Identifier<RGTexture> OutputSSAO;
 }
 
 public sealed class BloomDownsampleData : IPassData
 {
-    public RenderGraphTextureHandle Input;
-    public RenderGraphTextureHandle Output;
+    public Identifier<RGTexture> Input;
+    public Identifier<RGTexture> Output;
 }
 
 public sealed class TAAPassData : IPassData
 {
-    public RenderGraphTextureHandle InputLighting;
-    public RenderGraphTextureHandle OutputTAA;
+    public Identifier<RGTexture> InputLighting;
+    public Identifier<RGTexture> OutputTAA;
 }
 
 public sealed class PostProcessingPassDataV2 : IPassData
 {
-    public RenderGraphTextureHandle InputTAA;
-    public RenderGraphTextureHandle InputSSAO;
-    public RenderGraphTextureHandle InputBloom;
-    public RenderGraphTextureHandle OutputBackbuffer;
+    public Identifier<RGTexture> InputTAA;
+    public Identifier<RGTexture> InputSSAO;
+    public Identifier<RGTexture> InputBloom;
+    public Identifier<RGTexture> OutputBackbuffer;
 }
 
 public sealed class ProfilerMarkerData : IPassData
@@ -51,5 +53,5 @@ public sealed class ProfilerMarkerData : IPassData
 
 public sealed class DebugPassData : IPassData
 {
-    public RenderGraphTextureHandle DebugTexture;
+    public Identifier<RGTexture> DebugTexture;
 }

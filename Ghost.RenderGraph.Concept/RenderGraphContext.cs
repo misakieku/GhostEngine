@@ -1,36 +1,38 @@
+using Ghost.Core;
+
 namespace Ghost.RenderGraph.Concept;
 
 /// <summary>
 /// Mock command buffer for recording GPU commands.
 /// In a real implementation, this would wrap D3D12 command lists.
 /// </summary>
-public sealed class MockCommandBuffer
+internal sealed class MockCommandBuffer
 {
-    public void SetRenderTarget(string name)
+    public void SetRenderTarget(Identifier<RGTexture> texture)
     {
 #if DEBUG
-        Console.WriteLine(nameof(SetRenderTarget) + ": " + name);
+        Console.WriteLine(nameof(SetRenderTarget) + ": " + texture);
 #endif
     }
 
-    public void SetDepthStencil(string name)
+    public void SetDepthStencil(Identifier<RGTexture> texture)
     {
 #if DEBUG
-        Console.WriteLine(nameof(SetDepthStencil) + ": " + name);
+        Console.WriteLine(nameof(SetDepthStencil) + ": " + texture);
 #endif
     }
 
-    public void ClearRenderTarget(string name, float r, float g, float b, float a)
+    public void ClearRenderTarget(Identifier<RGTexture> texture, float r, float g, float b, float a)
     {
 #if DEBUG
-        Console.WriteLine(nameof(ClearRenderTarget) + ": " + name);
+        Console.WriteLine(nameof(ClearRenderTarget) + ": " + texture);
 #endif
     }
 
-    public void ClearDepth(string name, float depth)
+    public void ClearDepth(Identifier<RGTexture> texture, float depth)
     {
 #if DEBUG
-        Console.WriteLine(nameof(ClearDepth) + ": " + name);
+        Console.WriteLine(nameof(ClearDepth) + ": " + texture);
 #endif
     }
 
@@ -41,17 +43,17 @@ public sealed class MockCommandBuffer
 #endif
     }
 
-    public void BindShaderResource(string name, int slot)
+    public void BindShaderResource(Identifier<RGResource> resource, int slot)
     {
 #if DEBUG
-        Console.WriteLine(nameof(BindShaderResource) + ": " + name + ", slot " + slot);
+        Console.WriteLine(nameof(BindShaderResource) + ": " + resource + ", slot " + slot);
 #endif
     }
 
-    public void BindUnorderedAccess(string name, int slot)
+    public void BindUnorderedAccess(Identifier<RGResource> resource, int slot)
     {
 #if DEBUG
-        Console.WriteLine(nameof(BindUnorderedAccess) + ": " + name + ", slot " + slot);
+        Console.WriteLine(nameof(BindUnorderedAccess) + ": " + resource + ", slot " + slot);
 #endif
     }
 
@@ -62,14 +64,14 @@ public sealed class MockCommandBuffer
 #endif
     }
 
-    public void ResourceBarrier(string resourceName, string stateBefore, string stateAfter)
+    public void ResourceBarrier(Identifier<RGResource> resource, ResourceState stateBefore, ResourceState stateAfter)
     {
 #if DEBUG
-        Console.WriteLine(nameof(ResourceBarrier) + ": " + resourceName + " from " + stateBefore + " to " + stateAfter);
+        Console.WriteLine(nameof(ResourceBarrier) + ": " + resource + " from " + stateBefore + " to " + stateAfter);
 #endif
     }
 
-    public void AliasBarrier(string resourceBefore, string resourceAfter)
+    public void AliasBarrier(Identifier<RGResource> resourceBefore, Identifier<RGResource> resourceAfter)
     {
 #if DEBUG
         Console.WriteLine(nameof(AliasBarrier) + ": " + resourceBefore + " to " + resourceAfter);
@@ -85,18 +87,18 @@ public readonly struct RasterRenderContext
 {
     private readonly MockCommandBuffer _cmd;
 
-    public RasterRenderContext(MockCommandBuffer cmd)
+    internal RasterRenderContext(MockCommandBuffer cmd)
     {
         _cmd = cmd;
     }
 
     // Expose command buffer methods directly
-    public void SetRenderTarget(string name) => _cmd.SetRenderTarget(name);
-    public void SetDepthStencil(string name) => _cmd.SetDepthStencil(name);
-    public void ClearRenderTarget(string name, float r, float g, float b, float a) => _cmd.ClearRenderTarget(name, r, g, b, a);
-    public void ClearDepth(string name, float depth) => _cmd.ClearDepth(name, depth);
+    public void SetRenderTarget(Identifier<RGTexture> texture) => _cmd.SetRenderTarget(texture);
+    public void SetDepthStencil(Identifier<RGTexture> texture) => _cmd.SetDepthStencil(texture);
+    public void ClearRenderTarget(Identifier<RGTexture> texture, float r, float g, float b, float a) => _cmd.ClearRenderTarget(texture, r, g, b, a);
+    public void ClearDepth(Identifier<RGTexture> texture, float depth) => _cmd.ClearDepth(texture, depth);
     public void Draw(int vertexCount) => _cmd.Draw(vertexCount);
-    public void BindShaderResource(string name, int slot) => _cmd.BindShaderResource(name, slot);
+    public void BindShaderResource(Identifier<RGResource> resource, int slot) => _cmd.BindShaderResource(resource, slot);
 }
 
 /// <summary>
@@ -107,14 +109,14 @@ public readonly struct ComputeRenderContext
 {
     private readonly MockCommandBuffer _cmd;
 
-    public ComputeRenderContext(MockCommandBuffer cmd)
+    internal ComputeRenderContext(MockCommandBuffer cmd)
     {
         _cmd = cmd;
     }
 
     // Expose command buffer methods directly
-    public void BindShaderResource(string name, int slot) => _cmd.BindShaderResource(name, slot);
-    public void BindUnorderedAccess(string name, int slot) => _cmd.BindUnorderedAccess(name, slot);
+    public void BindShaderResource(Identifier<RGResource> resource, int slot) => _cmd.BindShaderResource(resource, slot);
+    public void BindUnorderedAccess(Identifier<RGResource> resource, int slot) => _cmd.BindUnorderedAccess(resource, slot);
     public void Dispatch(int x, int y, int z) => _cmd.Dispatch(x, y, z);
 }
 

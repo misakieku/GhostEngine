@@ -1,3 +1,4 @@
+using Ghost.Core;
 using System.Runtime.InteropServices;
 
 namespace Ghost.RenderGraph.Concept;
@@ -9,7 +10,7 @@ namespace Ghost.RenderGraph.Concept;
 [Flags]
 public enum ResourceState
 {
-    Undefined = 0,
+    Common = 0,
     RenderTarget = 1 << 0,
     DepthWrite = 1 << 1,
     DepthRead = 1 << 2,
@@ -27,7 +28,6 @@ public enum BarrierType
 {
     Transition,     // State transition (e.g., RenderTarget -> ShaderResource)
     Aliasing,       // Aliasing barrier (new resource reusing memory)
-    UAV,            // UAV barrier (synchronize UAV access)
 }
 
 /// <summary>
@@ -41,71 +41,69 @@ internal struct ResourceBarrier
     {
         internal struct barrier_union_transition
         {
-            public RenderGraphTextureHandle Resource;
-            public ResourceState StateBefore;
-            public ResourceState StateAfter;
+            public Identifier<RGResource> resource;
+            public ResourceState stateBefore;
+            public ResourceState stateAfter;
         }
 
         internal struct barrier_union_aliasing
         {
-            public RenderGraphTextureHandle ResourceBefore;
-            public RenderGraphTextureHandle ResourceAfter;
+            public Identifier<RGResource> resourceBefore;
+            public Identifier<RGResource> resourceAfter;
         }
 
         // TODO: union can not have non-blittable types
 
         [FieldOffset(0)]
-        public barrier_union_transition Transition;
+        public barrier_union_transition transition;
         [FieldOffset(0)]
-        public barrier_union_aliasing Aliasing;
+        public barrier_union_aliasing aliasing;
     }
 
-    public BarrierType Type;
-    
-    // For Transition and UAV barriers
-    public RenderGraphTextureHandle Resource;
-    public ResourceState StateBefore;
-    public ResourceState StateAfter;
-    
-    // For Aliasing barriers (D3D12_RESOURCE_BARRIER::Aliasing)
-    public RenderGraphTextureHandle ResourceBefore;  // pResourceBefore
-    public RenderGraphTextureHandle ResourceAfter;   // pResourceAfter
-    
-    public int PassIndex;
+    private barrier_union _union;
 
-    // Constructor for Transition and UAV barriers
-    public ResourceBarrier(BarrierType type, RenderGraphTextureHandle resource, 
-        ResourceState before, ResourceState after, int passIndex)
+    public BarrierType Type
     {
-        Type = type;
-        Resource = resource;
-        StateBefore = before;
-        StateAfter = after;
-        ResourceBefore = default;
-        ResourceAfter = default;
-        PassIndex = passIndex;
+        get; init;
     }
+
+    public int PassIndex
+    {
+        get; init;
+    }
+
+    // For Transition and UAV barriers
+    public readonly Identifier<RGResource> Resource => _union.transition.resource;
+    public readonly ResourceState StateBefore => _union.transition.stateBefore;
+    public readonly ResourceState StateAfter => _union.transition.stateAfter;
+
+    // For Aliasing barriers (D3D12_RESOURCE_BARRIER::Aliasing)
+    public readonly Identifier<RGResource> ResourceBefore => _union.aliasing.resourceBefore;
+    public readonly Identifier<RGResource> ResourceAfter => _union.aliasing.resourceAfter;
 
     // Constructor for Aliasing barriers
     public static ResourceBarrier CreateAliasingBarrier(
-        RenderGraphTextureHandle resourceBefore, 
-        RenderGraphTextureHandle resourceAfter, 
+        Identifier<RGResource> resourceBefore,
+        Identifier<RGResource> resourceAfter,
         int passIndex)
     {
         return new ResourceBarrier
         {
             Type = BarrierType.Aliasing,
-            ResourceBefore = resourceBefore,
-            ResourceAfter = resourceAfter,
             PassIndex = passIndex,
-            Resource = default,
-            StateBefore = ResourceState.Undefined,
-            StateAfter = ResourceState.Undefined
+            _union = new barrier_union
+            {
+                aliasing = new barrier_union.barrier_union_aliasing
+                {
+                    resourceBefore = resourceBefore,
+                    resourceAfter = resourceAfter
+                }
+            }
         };
     }
 
     public static ResourceBarrier CreateTransitionBarrier(
-        RenderGraphTextureHandle resource,
+        Identifier<RGResource> resource,
         ResourceState before,
         ResourceState after,
         int passIndex)
@@ -113,27 +111,18 @@ internal struct ResourceBarrier
         return new ResourceBarrier
         {
             Type = BarrierType.Transition,
-            Resource = resource,
-            StateBefore = before,
-            StateAfter = after,
             PassIndex = passIndex,
-            ResourceBefore = default,
-            ResourceAfter = default
+            _union = new barrier_union
+            {
+                transition = new barrier_union.barrier_union_transition
+                {
+                    resource = resource,
+                    stateBefore = before,
+                    stateAfter = after
+                }
+            }
         };
     }
-
-#if DEBUG
-    public override readonly string ToString()
-    {
-        return Type switch
-        {
-            BarrierType.Transition => $"[Pass {PassIndex}] TRANSITION: {Resource.Name} ({StateBefore} -> {StateAfter})",
-            BarrierType.Aliasing => $"[Pass {PassIndex}] ALIASING: {ResourceBefore.Name} -> {ResourceAfter.Name} (reusing physical memory)",
-            BarrierType.UAV => $"[Pass {PassIndex}] UAV: {Resource.Name}",
-            _ => $"[Pass {PassIndex}] UNKNOWN BARRIER"
-        };
-    }
-#endif
 }
 
 /// <summary>
@@ -142,13 +131,13 @@ internal struct ResourceBarrier
 internal sealed class ResourceStateTracker
 {
     public int ResourceIndex;
-    public ResourceState CurrentState = ResourceState.Undefined;
+    public ResourceState CurrentState = ResourceState.Common;
     public int LastAccessPass = -1;
 
     public void Reset()
     {
         ResourceIndex = -1;
-        CurrentState = ResourceState.Undefined;
+        CurrentState = ResourceState.Common;
         LastAccessPass = -1;
     }
 }

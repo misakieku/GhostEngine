@@ -7,12 +7,13 @@ namespace Ghost.RenderGraph.Concept;
 /// </summary>
 public sealed class RenderGraphBlackboard
 {
-    private readonly Dictionary<Type, object> _data = new(16);
+    private readonly Dictionary<Type, IPassData> _data = new(16);
 
     /// <summary>
     /// Adds or updates pass data in the blackboard.
     /// </summary>
-    public void Add<T>(T data) where T : class, IPassData
+    public void Add<T>(T data)
+        where T : class, IPassData
     {
         var type = typeof(T);
         _data[type] = data;
@@ -21,20 +22,23 @@ public sealed class RenderGraphBlackboard
     /// <summary>
     /// Retrieves pass data from the blackboard.
     /// </summary>
-    public T Get<T>() where T : class, IPassData
+    public T Get<T>()
+        where T : class, IPassData
     {
         var type = typeof(T);
         if (_data.TryGetValue(type, out var obj))
         {
             return (T)obj;
         }
+
         throw new KeyNotFoundException($"Pass data of type {type.Name} not found in blackboard");
     }
 
     /// <summary>
     /// Tries to get pass data from the blackboard.
     /// </summary>
-    public bool TryGet<T>(out T? data) where T : class, IPassData
+    public bool TryGet<T>(out T? data)
+        where T : class, IPassData
     {
         var type = typeof(T);
         if (_data.TryGetValue(type, out var obj))
@@ -42,6 +46,7 @@ public sealed class RenderGraphBlackboard
             data = (T)obj;
             return true;
         }
+
         data = null;
         return false;
     }

@@ -1,30 +1,57 @@
+using Ghost.Core;
+using System.Runtime.CompilerServices;
+
 namespace Ghost.RenderGraph.Concept;
 
-/// <summary>
-/// Opaque handle to a render graph texture resource.
-/// </summary>
-public readonly struct RenderGraphTextureHandle : IEquatable<RenderGraphTextureHandle>
+internal enum RenderGraphResourceType
 {
-    public readonly int Index;
-    public readonly int Version;
-    internal readonly string InternalName;
+    Texture,
+    Buffer,
+    AccelerationStructure,
+    Count
+}
 
-    public RenderGraphTextureHandle(int index, int version, string name = "")
+public struct RGResource;
+public struct RGTexture;
+public struct RGBuffer;
+
+public static class RGResourceExtensions
+{
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Identifier<RGResource> AsResource(this Identifier<RGTexture> texture)
     {
-        Index = index;
-        Version = version;
-        InternalName = name;
+        return new Identifier<RGResource>(texture.Value);
     }
 
-    public string Name => InternalName;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Identifier<RGResource> AsResource(this Identifier<RGBuffer> buffer)
+    {
+        return new Identifier<RGResource>(buffer.Value);
+    }
 
-    public bool IsValid() => Index >= 0;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Identifier<RGTexture> AsTexture(this Identifier<RGResource> resource)
+    {
+        return new Identifier<RGTexture>(resource.Value);
+    }
 
-    public readonly bool Equals(RenderGraphTextureHandle other) => Index == other.Index && Version == other.Version;
-    public override readonly bool Equals(object? obj) => obj is RenderGraphTextureHandle other && Equals(other);
-    public override readonly int GetHashCode() => HashCode.Combine(Index, Version);
-    public static bool operator ==(RenderGraphTextureHandle left, RenderGraphTextureHandle right) => left.Equals(right);
-    public static bool operator !=(RenderGraphTextureHandle left, RenderGraphTextureHandle right) => !left.Equals(right);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Identifier<RGBuffer> AsBuffer(this Identifier<RGResource> resource)
+    {
+        return new Identifier<RGBuffer>(resource.Value);
+    }
+}
+
+internal readonly struct TextureAccess
+{
+    public readonly Identifier<RGTexture> id;
+    public readonly AccessFlags accessFlags;
+
+    public TextureAccess(Identifier<RGTexture> id, AccessFlags accessFlags)
+    {
+        this.id = id;
+        this.accessFlags = accessFlags;
+    }
 }
 
 /// <summary>
