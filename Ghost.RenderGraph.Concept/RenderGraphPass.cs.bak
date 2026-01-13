@@ -1,4 +1,5 @@
 using Ghost.Core;
+using System.IO;
 
 namespace Ghost.RenderGraph.Concept;
 
@@ -30,23 +31,13 @@ internal abstract class RenderGraphPassBase
     public List<Identifier<RGResource>> randomAccess = new(8);
 
     // Resource dependencies
-    public readonly List<Identifier<RGResource>>[] resourceReads = new List<Identifier<RGResource>>[(int)RenderGraphResourceType.Count];
-    public readonly List<Identifier<RGResource>>[] resourceWrites = new List<Identifier<RGResource>>[(int)RenderGraphResourceType.Count];
-    public readonly List<Identifier<RGResource>>[] resourceCreates = new List<Identifier<RGResource>>[(int)RenderGraphResourceType.Count];
-
+    public readonly List<Identifier<RGResource>> resourceReads = new(8);
+    public readonly List<Identifier<RGResource>> resourceWrites = new(4);
+    public readonly List<Identifier<RGResource>> resourceCreates = new(4);
+    
     // Execution state
     public bool culled;
     public bool hasSideEffects;
-
-    public RenderGraphPassBase()
-    {
-        for (int i = 0; i < (int)RenderGraphResourceType.Count; i++)
-        {
-            resourceReads[i] = new List<Identifier<RGResource>>(8);
-            resourceWrites[i] = new List<Identifier<RGResource>>(4);
-            resourceCreates[i] = new List<Identifier<RGResource>>(4);
-        }
-    }
 
     public abstract void Execute(RenderContext context);
     public abstract void Clear();
@@ -59,20 +50,16 @@ internal abstract class RenderGraphPassBase
         type = RenderPassType.Raster;
         allowCulling = true;
         asyncCompute = false;
-
+        
         depthAccess = default;
         colorAccess.AsSpan().Clear();
         maxColorIndex = -1;
 
         randomAccess.Clear();
 
-        for (var i = 0; i < (int)RenderGraphResourceType.Count; i++)
-        {
-            resourceReads[i].Clear();
-            resourceWrites[i].Clear();
-            resourceCreates[i].Clear();
-        }
-
+        resourceReads.Clear();
+        resourceWrites.Clear();
+        resourceCreates.Clear();
         culled = false;
         hasSideEffects = false;
     }

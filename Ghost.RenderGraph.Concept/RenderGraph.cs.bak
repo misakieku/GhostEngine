@@ -166,42 +166,35 @@ public sealed class RenderGraph
                 offset = ComputeTextureHash(pData, offset, pass.colorAccess[j].id);
             }
 
-            for (var j = 0; j < (int)RenderGraphResourceType.Count; j++)
+            *(int*)(pData + offset) = pass.resourceReads.Count;
+            offset += sizeof(int);
+            for (var j = 0; j < pass.resourceReads.Count; j++)
             {
-                var readList = pass.resourceReads[j];
-                var writeList = pass.resourceWrites[j];
-                var createList = pass.resourceCreates[j];
-
-                *(int*)(pData + offset) = readList.Count;
+                *(int*)(pData + offset) = pass.resourceReads[j].Value;
                 offset += sizeof(int);
-                for (var k = 0; k < readList.Count; k++)
-                {
-                    *(int*)(pData + offset) = readList[k].Value;
-                    offset += sizeof(int);
-                }
+            }
 
-                *(int*)(pData + offset) = writeList.Count;
+            *(int*)(pData + offset) = pass.resourceWrites.Count;
+            offset += sizeof(int);
+            for (var j = 0; j < pass.resourceWrites.Count; j++)
+            {
+                *(int*)(pData + offset) = pass.resourceWrites[j].Value;
                 offset += sizeof(int);
-                for (var k = 0; k < writeList.Count; k++)
-                {
-                    *(int*)(pData + offset) = writeList[k].Value;
-                    offset += sizeof(int);
-                }
+            }
 
-                *(int*)(pData + offset) = createList.Count;
+            *(int*)(pData + offset) = pass.resourceCreates.Count;
+            offset += sizeof(int);
+            for (var j = 0; j < pass.resourceCreates.Count; j++)
+            {
+                *(int*)(pData + offset) = pass.resourceCreates[j].Value;
                 offset += sizeof(int);
-                for (var k = 0; k < createList.Count; k++)
-                {
-                    *(int*)(pData + offset) = createList[k].Value;
-                    offset += sizeof(int);
-                }
             }
         }
 
         //// Hash resource descriptors
-        //for (var j = 0; j < _resources.TextureResourceCount; j++)
+        //for (var i = 0; i < _resources.TextureResourceCount; i++)
         //{
-        //    var resource = _resources.GetTextureResourceByIndex(j);
+        //    var resource = _resources.GetTextureResourceByIndex(i);
 
         //    *(int*)(pData + offset) = resource.descriptor.width;
         //    offset += sizeof(int);
@@ -267,19 +260,15 @@ public sealed class RenderGraph
         {
             var pass = _passes[i];
 
-            // Check if this pass writes to any imported resources
-            for (var j = 0; j < (int)RenderGraphResourceType.Count; j++)
+            // Check if this pass writes to any imported textures
+            for (var j = 0; j < pass.resourceWrites.Count; j++)
             {
-                var writeList = pass.resourceWrites[j];
-                for (var k = 0; k < writeList.Count; k++)
+                var writeHandle = pass.resourceWrites[j];
+                var resource = _resources.GetResource(writeHandle);
+                if (resource.isImported)
                 {
-                    var writeHandle = writeList[k];
-                    var resource = _resources.GetResource(writeHandle);
-                    if (resource.isImported)
-                    {
-                        pass.hasSideEffects = true;
-                        break;
-                    }
+                    pass.hasSideEffects = true;
+                    break;
                 }
             }
         }
@@ -414,17 +403,13 @@ public sealed class RenderGraph
     private void UnculDependencies(RenderGraphPassBase pass)
     {
         // Un-cull producers of read resources
-        for (var i = 0; i < (int)RenderGraphResourceType.Count; i++)
+        for (var i = 0; i < pass.resourceReads.Count; i++)
         {
-            var readList = pass.resourceReads[i];
-            for (var j = 0; j < readList.Count; j++)
-            {
-                UnculProducer(readList[j]);
-            }
+            UnculProducer(pass.resourceReads[i]);
         }
 
         // Un-cull producers of color attachments
-        for (var i = 0; i < pass.maxColorIndex; i++)
+        for (var i = 0; i <= pass.maxColorIndex; i++)
         {
             if (pass.colorAccess[i].id.IsValid)
             {
@@ -548,20 +533,16 @@ public sealed class RenderGraph
     private void InsertTransitionBarriers(RenderGraphPassBase pass, int passIdx)
     {
         // Process reads (transition to shader resource)
-        for (var i = 0; i < (int)RenderGraphResourceType.Count; i++)
+        for (var i = 0; i < pass.resourceReads.Count; i++)
         {
-            var readList = pass.resourceReads[i];
-            for (var j = 0; j < readList.Count; j++)
-            {
-                var handle = readList[j];
-                InsertTransitionIfNeeded(handle, ResourceState.ShaderResource, passIdx);
-            }
+            var handle = pass.resourceReads[i];
+            InsertTransitionIfNeeded(handle, ResourceState.ShaderResource, passIdx);
         }
 
         switch (pass.type)
         {
             case RenderPassType.Raster:
-                for (var i = 0; i < pass.maxColorIndex; i++)
+                for (var i = 0; i <= pass.maxColorIndex; i++)
                 {
                     var access = pass.colorAccess[i];
                     InsertTransitionIfNeeded(access.id.AsResource(), ResourceState.RenderTarget, passIdx);
@@ -580,14 +561,10 @@ public sealed class RenderGraph
 
                 break;
             case RenderPassType.Compute:
-                for (var i = 0; i < (int)RenderGraphResourceType.Count; i++)
+                for (var i = 0; i < pass.resourceWrites.Count; i++)
                 {
-                    var writeList = pass.resourceWrites[i];
-                    for (var j = 0; j < writeList.Count; j++)
-                    {
-                        var id = writeList[j];
-                        InsertTransitionIfNeeded(id, ResourceState.UnorderedAccess, passIdx);
-                    }
+                    var id = pass.resourceWrites[i];
+                    InsertTransitionIfNeeded(id, ResourceState.UnorderedAccess, passIdx);
                 }
 
                 break;

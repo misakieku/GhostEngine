@@ -383,7 +383,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         for (var i = 0; i < rtDescs.Length; i++)
         {
             var rtDesc = rtDescs[i];
-            if (!rtDesc.Texture.IsValid)
+            if (rtDesc.Texture.IsInvalid)
             {
                 RecordError(nameof(BeginRenderPass), ErrorStatus.InvalidArgument);
                 continue;
@@ -396,7 +396,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
                 continue;
             }
 
-            var record = recordResult.Value;
+            ref var record = ref recordResult.Value;
             var cpuHandle = _descriptorAllocator.GetCpuHandle(record.viewGroup.rtv);
             var format = record.desc.TextureDescription.Format.ToDXGIFormat();
             var clearColor = rtDesc.ClearColor;
@@ -431,7 +431,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
                 return;
             }
 
-            var record = recordResult.Value;
+            ref var record = ref recordResult.Value;
             var cpuHandle = _descriptorAllocator.GetCpuHandle(record.viewGroup.dsv);
             var format = record.desc.TextureDescription.Format.ToDXGIFormat();
 
@@ -544,7 +544,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
             return;
         }
 
-        var record = recordResult.Value;
+        ref var record = ref recordResult.Value;
         var vbView = new D3D12_VERTEX_BUFFER_VIEW
         {
             BufferLocation = record.ResourcePtr.Get()->GetGPUVirtualAddress() + offset,
