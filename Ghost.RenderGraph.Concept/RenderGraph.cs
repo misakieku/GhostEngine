@@ -105,11 +105,32 @@ public sealed class RenderGraph
         return _builder;
     }
 
-    /// <summary>
-    /// Computes a _hasher of the render graph structure for caching.
-    /// Does NOT include pass names (they don't affect compilation).
-    /// Uses XxHash3 with SIMD optimizations for fast hashing.
-    /// </summary>
+    private unsafe int ComputeTextureHash(byte* pData, int offset, Identifier<RGTexture> texture)
+    {
+        if (texture.IsInvalid)
+        {
+            return offset;
+        }
+
+        var resource = _resources.GetResource(texture.AsResource());
+
+        // In real implementation, we typically need to handle imported resources differently.
+
+        *(pData + offset) = resource.isImported ? (byte)1 : (byte)0;
+        offset += sizeof(byte);
+
+        *(TextureFormat*)(pData + offset) = resource.descriptor.format;
+        offset += sizeof(TextureFormat);
+        
+        *(int*)(pData + offset) = resource.descriptor.width;
+        offset += sizeof(int);
+
+        *(int*)(pData + offset) = resource.descriptor.height;
+        offset += sizeof(int);
+
+        return offset;
+    }
+
     private unsafe ulong ComputeGraphHash()
     {
         using var scope = AllocationManager.CreateStackScope();
@@ -135,15 +156,14 @@ public sealed class RenderGraph
             *(bool*)(pData + offset) = pass.asyncCompute;
             offset += sizeof(bool);
 
-            *(TextureAccess*)(pData + offset) = pass.depthAccess;
-            offset += sizeof(TextureAccess);
+            // Hash depth attachment
+            offset = ComputeTextureHash(pData, offset, pass.depthAccess.id);
 
             *(int*)(pData + offset) = pass.maxColorIndex;
             offset += sizeof(int);
             for (var j = 0; j <= pass.maxColorIndex; j++)
             {
-                *(TextureAccess*)(pData + offset) = pass.colorAccess[j];
-                offset += sizeof(TextureAccess);
+                offset = ComputeTextureHash(pData, offset, pass.colorAccess[j].id);
             }
 
             *(int*)(pData + offset) = pass.resourceReads.Count;
@@ -171,23 +191,23 @@ public sealed class RenderGraph
             }
         }
 
-        // Hash resource descriptors
-        for (var i = 0; i < _resources.TextureResourceCount; i++)
-        {
-            var resource = _resources.GetTextureResourceByIndex(i);
+        //// Hash resource descriptors
+        //for (var i = 0; i < _resources.TextureResourceCount; i++)
+        //{
+        //    var resource = _resources.GetTextureResourceByIndex(i);
 
-            *(int*)(pData + offset) = resource.Descriptor.Width;
-            offset += sizeof(int);
+        //    *(int*)(pData + offset) = resource.descriptor.width;
+        //    offset += sizeof(int);
 
-            *(int*)(pData + offset) = resource.Descriptor.Height;
-            offset += sizeof(int);
+        //    *(int*)(pData + offset) = resource.descriptor.height;
+        //    offset += sizeof(int);
 
-            *(TextureFormat*)(pData + offset) = resource.Descriptor.Format;
-            offset += sizeof(TextureFormat);
+        //    *(TextureFormat*)(pData + offset) = resource.descriptor.format;
+        //    offset += sizeof(TextureFormat);
 
-            *(bool*)(pData + offset) = resource.IsImported;
-            offset += sizeof(bool);
-        }
+        //    *(bool*)(pData + offset) = resource.isImported;
+        //    offset += sizeof(bool);
+        //}
 
         var span = new Span<byte>(pData, offset);
         return XxHash64.HashToUInt64(span);
@@ -208,7 +228,7 @@ public sealed class RenderGraph
 #endif
 
         // Step 0: Check cache
-        var graphHash = ComputeGraphHash(); // 1321433047288519964
+        var graphHash = ComputeGraphHash(); // 17020363347016000737
 
 #if DEBUG
         var hashTime = sw.Elapsed.TotalMicroseconds;
@@ -245,7 +265,7 @@ public sealed class RenderGraph
             {
                 var writeHandle = pass.resourceWrites[j];
                 var resource = _resources.GetResource(writeHandle);
-                if (resource.IsImported)
+                if (resource.isImported)
                 {
                     pass.hasSideEffects = true;
                     break;
@@ -299,31 +319,31 @@ public sealed class RenderGraph
     {
         // Restore compiled pass list
         _compiledPasses.Clear();
-        for (var i = 0; i < cached.CompiledPassIndices.Count; i++)
+        for (var i = 0; i < cached.compiledPassIndices.Count; i++)
         {
-            var passIndex = cached.CompiledPassIndices[i];
+            var passIndex = cached.compiledPassIndices[i];
             _compiledPasses.Add(_passes[passIndex]);
         }
 
         // Restore culling flags
-        for (var i = 0; i < _passes.Count && i < cached.PassCulledFlags.Count; i++)
+        for (var i = 0; i < _passes.Count && i < cached.passCulledFlags.Count; i++)
         {
-            _passes[i].culled = cached.PassCulledFlags[i];
+            _passes[i].culled = cached.passCulledFlags[i];
         }
 
         // Restore aliasing mappings (need to update ResourceAliasingManager)
-        _aliasingManager.RestoreFromCache(cached.LogicalToPhysical, cached.PhysicalResources);
+        _aliasingManager.RestoreFromCache(cached.logicalToPhysical, cached.physicalResources);
 
         // Restore barriers (deep copy to avoid shared references)
         _barriers.Clear();
-        for (var i = 0; i < cached.Barriers.Count; i++)
+        for (var i = 0; i < cached.barriers.Count; i++)
         {
-            _barriers.Add(cached.Barriers[i]);
+            _barriers.Add(cached.barriers[i]);
         }
 
         // Restore resource states
         _resourceStates.Clear();
-        foreach (var kvp in cached.ResourceStates)
+        foreach (var kvp in cached.resourceStates)
         {
             _resourceStates[kvp.Key] = kvp.Value;
         }
@@ -339,53 +359,74 @@ public sealed class RenderGraph
         // Store compiled pass indices
         for (var i = 0; i < _compiledPasses.Count; i++)
         {
-            cacheData.CompiledPassIndices.Add(_compiledPasses[i].index);
+            cacheData.compiledPassIndices.Add(_compiledPasses[i].index);
         }
 
         // Store culling flags for all passes
         for (var i = 0; i < _passes.Count; i++)
         {
-            cacheData.PassCulledFlags.Add(_passes[i].culled);
+            cacheData.passCulledFlags.Add(_passes[i].culled);
         }
 
         // Store aliasing mappings
-        _aliasingManager.StoreToCache(cacheData.LogicalToPhysical, cacheData.PhysicalResources);
+        _aliasingManager.StoreToCache(cacheData.logicalToPhysical, cacheData.physicalResources);
 
         // Store barriers
         for (var i = 0; i < _barriers.Count; i++)
         {
-            cacheData.Barriers.Add(_barriers[i]);
+            cacheData.barriers.Add(_barriers[i]);
         }
 
         // Store resource states
         foreach (var kvp in _resourceStates)
         {
-            cacheData.ResourceStates[kvp.Key] = kvp.Value;
+            cacheData.resourceStates[kvp.Key] = kvp.Value;
         }
 
         _compilationCache.Store(graphHash, cacheData);
     }
 
-    /// <summary>
-    /// Recursively un-cull passes that a given pass depends on.
-    /// </summary>
+    private void UnculProducer(Identifier<RGResource> resource)
+    {
+        var res = _resources.GetResource(resource);
+        if (res.producerPass >= 0)
+        {
+            var producer = _passes[res.producerPass];
+            if (producer.culled)
+            {
+                producer.culled = false;
+                UnculDependencies(producer);
+            }
+        }
+    }
+
     private void UnculDependencies(RenderGraphPassBase pass)
     {
-        // Un-cull all producers of textures we read
+        // Un-cull producers of read resources
         for (var i = 0; i < pass.resourceReads.Count; i++)
         {
-            var readHandle = pass.resourceReads[i];
-            var resource = _resources.GetResource(readHandle);
+            UnculProducer(pass.resourceReads[i]);
+        }
 
-            if (resource.ProducerPass >= 0)
+        // Un-cull producers of color attachments
+        for (var i = 0; i <= pass.maxColorIndex; i++)
+        {
+            if (pass.colorAccess[i].id.IsValid)
             {
-                var producer = _passes[resource.ProducerPass];
-                if (producer.culled)
-                {
-                    producer.culled = false;
-                    UnculDependencies(producer);
-                }
+                UnculProducer(pass.colorAccess[i].id.AsResource());
             }
+        }
+
+        // Un-cull producer of depth attachment
+        if (pass.depthAccess.id.IsValid)
+        {
+            UnculProducer(pass.depthAccess.id.AsResource());
+        }
+
+        // Un-cull producers of UAV resources (if not already in reads/writes)
+        for (var i = 0; i < pass.randomAccess.Count; i++)
+        {
+            UnculProducer(pass.randomAccess[i]);
         }
     }
 
@@ -431,11 +472,11 @@ public sealed class RenderGraph
             var resource = _resources.GetResource(id);
 
             // Skip imported resources
-            if (resource.IsImported)
+            if (resource.isImported)
                 continue;
 
             // Check if this is the first use of this logical resource
-            if (resource.FirstUsePass == pass.index)
+            if (resource.firstUsePass == pass.index)
             {
                 // Rent the physical resource
                 var physicalIndex = _aliasingManager.GetPhysicalResourceIndex(id.Value);
@@ -445,22 +486,22 @@ public sealed class RenderGraph
 
                     // If this physical resource has multiple aliased resources,
                     // we need an aliasing barrier when switching between them
-                    if (physical != null && physical.AliasedLogicalResources.Count > 1)
+                    if (physical != null && physical.aliasedLogicalResources.Count > 1)
                     {
                         // Find the resource that used this physical memory most recently before this pass
                         Identifier<RGResource> resourceBefore = default;
                         var mostRecentLastUse = -1;
 
-                        foreach (var otherLogicalIndex in physical.AliasedLogicalResources)
+                        foreach (var otherLogicalIndex in physical.aliasedLogicalResources)
                         {
                             if (otherLogicalIndex != id.Value)
                             {
                                 var otherResource = _resources.GetTextureResourceByIndex(otherLogicalIndex);
                                 // Check if this resource finished before our resource starts
-                                if (otherResource.LastUsePass < pass.index &&
-                                    otherResource.LastUsePass > mostRecentLastUse)
+                                if (otherResource.lastUsePass < pass.index &&
+                                    otherResource.lastUsePass > mostRecentLastUse)
                                 {
-                                    mostRecentLastUse = otherResource.LastUsePass;
+                                    mostRecentLastUse = otherResource.lastUsePass;
                                     resourceBefore = otherLogicalIndex;
                                 }
                             }
@@ -594,6 +635,13 @@ public sealed class RenderGraph
                         barrier.Resource,
                         barrier.StateBefore,
                         barrier.StateAfter
+                    );
+                }
+                else if (barrier.Type == BarrierType.Aliasing)
+                {
+                    _commandBuffer.AliasBarrier(
+                        barrier.ResourceBefore,
+                        barrier.ResourceAfter
                     );
                 }
 #endif

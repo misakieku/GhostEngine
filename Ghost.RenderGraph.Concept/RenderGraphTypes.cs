@@ -71,27 +71,27 @@ public enum TextureFormat : int
 /// </summary>
 public readonly struct TextureDescriptor : IEquatable<TextureDescriptor>
 {
-    public readonly int Width;
-    public readonly int Height;
-    public readonly TextureFormat Format;
-    public readonly string Name;
+    public readonly int width;
+    public readonly int height;
+    public readonly TextureFormat format;
+    public readonly string name;
 
     public TextureDescriptor(int width, int height, TextureFormat format, string name)
     {
-        Width = width;
-        Height = height;
-        Format = format;
-        Name = name;
+        this.width = width;
+        this.height = height;
+        this.format = format;
+        this.name = name;
     }
 
     public readonly bool Equals(TextureDescriptor other) =>
-        Width == other.Width &&
-        Height == other.Height &&
-        Format == other.Format &&
-        Name == other.Name;
+        width == other.width &&
+        height == other.height &&
+        format == other.format &&
+        name == other.name;
 
     public override readonly bool Equals(object? obj) => obj is TextureDescriptor other && Equals(other);
-    public override readonly int GetHashCode() => HashCode.Combine(Width, Height, Format, Name);
+    public override readonly int GetHashCode() => HashCode.Combine(width, height, format, name);
 }
 
 /// <summary>

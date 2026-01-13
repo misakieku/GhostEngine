@@ -73,7 +73,7 @@ public class RenderGraphBenchmark
             // Create output texture
             lightingOutput = builder.CreateTexture(
                 new TextureDescriptor(1920, 1080, TextureFormat.RGBA16F, "LightingResult"));
-            builder.SetColorAttachment(lightingOutput, 1);
+            builder.SetColorAttachment(lightingOutput, 0);
 
             lightingData.OutputLighting = lightingOutput;
 

@@ -5,7 +5,7 @@ namespace Ghost.Core.Utilities;
 public class CollectionPool<TCollection, TItem>
     where TCollection : class, ICollection<TItem>, new()
 {
-    internal static readonly ObjectPool<TCollection> s_pool = new ObjectPool<TCollection>(() => new TCollection(), 1);
+    internal static readonly ObjectPool<TCollection> s_pool = new ObjectPool<TCollection>(() => new TCollection(), null, 1);
 
     public static TCollection Rent()
     {

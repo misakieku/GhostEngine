@@ -123,6 +123,16 @@ internal struct ResourceBarrier
             }
         };
     }
+
+    public override readonly string ToString()
+    {
+        return Type switch
+        {
+            BarrierType.Transition => $"[Pass {PassIndex}] Transition Barrier: Resource {Resource.Value} from {StateBefore} to {StateAfter}",
+            BarrierType.Aliasing => $"[Pass {PassIndex}] Aliasing Barrier: ResourceBefore {ResourceBefore.Value} to ResourceAfter {ResourceAfter.Value}",
+            _ => "Unknown Barrier Type"
+        };
+    }
 }
 
 /// <summary>

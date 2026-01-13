@@ -2,7 +2,6 @@ using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
-using Ghost.Graphics.Core;
 
 namespace Ghost.Graphics.Core;
 

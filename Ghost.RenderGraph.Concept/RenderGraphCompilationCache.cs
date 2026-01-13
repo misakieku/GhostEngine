@@ -9,31 +9,31 @@ namespace Ghost.RenderGraph.Concept;
 internal sealed class CachedCompilation
 {
     // Compiled pass indices (indices into the _passes list)
-    public readonly List<int> CompiledPassIndices = new(64);
-    
+    public readonly List<int> compiledPassIndices = new(64);
+
     // Culling decisions for each pass
-    public readonly List<bool> PassCulledFlags = new(64);
+    public readonly List<bool> passCulledFlags = new(64);
     
     // Physical resource aliasing mappings (logical index -> physical index)
-    public readonly Dictionary<int, int> LogicalToPhysical = new(128);
+    public readonly Dictionary<int, int> logicalToPhysical = new(128);
     
     // Physical resource metadata
-    public readonly List<PhysicalResourceData> PhysicalResources = new(32);
+    public readonly List<PhysicalResourceData> physicalResources = new(32);
     
     // Resource barriers
-    public readonly List<ResourceBarrier> Barriers = new(128);
+    public readonly List<ResourceBarrier> barriers = new(128);
     
     // Resource state mappings (for barrier generation)
-    public readonly Dictionary<int, ResourceState> ResourceStates = new(128);
+    public readonly Dictionary<int, ResourceState> resourceStates = new(128);
 
     public void Clear()
     {
-        CompiledPassIndices.Clear();
-        PassCulledFlags.Clear();
-        LogicalToPhysical.Clear();
-        PhysicalResources.Clear();
-        Barriers.Clear();
-        ResourceStates.Clear();
+        compiledPassIndices.Clear();
+        passCulledFlags.Clear();
+        logicalToPhysical.Clear();
+        physicalResources.Clear();
+        barriers.Clear();
+        resourceStates.Clear();
     }
 }
 
@@ -42,12 +42,12 @@ internal sealed class CachedCompilation
 /// </summary>
 internal struct PhysicalResourceData
 {
-    public int Index;
-    public int Width;
-    public int Height;
-    public TextureFormat Format;
-    public int FirstUsePass;
-    public int LastUsePass;
+    public int index;
+    public int width;
+    public int height;
+    public TextureFormat format;
+    public int firstUsePass;
+    public int lastUsePass;
 }
 
 /// <summary>
@@ -92,20 +92,20 @@ internal sealed class RenderGraphCompilationCache
         // Deep copy the data
         _cached.Clear();
         
-        _cached.CompiledPassIndices.AddRange(data.CompiledPassIndices);
-        _cached.PassCulledFlags.AddRange(data.PassCulledFlags);
+        _cached.compiledPassIndices.AddRange(data.compiledPassIndices);
+        _cached.passCulledFlags.AddRange(data.passCulledFlags);
         
-        foreach (var kvp in data.LogicalToPhysical)
+        foreach (var kvp in data.logicalToPhysical)
         {
-            _cached.LogicalToPhysical[kvp.Key] = kvp.Value;
+            _cached.logicalToPhysical[kvp.Key] = kvp.Value;
         }
         
-        _cached.PhysicalResources.AddRange(data.PhysicalResources);
-        _cached.Barriers.AddRange(data.Barriers);
+        _cached.physicalResources.AddRange(data.physicalResources);
+        _cached.barriers.AddRange(data.barriers);
         
-        foreach (var kvp in data.ResourceStates)
+        foreach (var kvp in data.resourceStates)
         {
-            _cached.ResourceStates[kvp.Key] = kvp.Value;
+            _cached.resourceStates[kvp.Key] = kvp.Value;
         }
     }
 

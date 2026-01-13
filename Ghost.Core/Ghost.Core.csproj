@@ -20,7 +20,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Misaki.HighPerformance" Version="1.0.3" />
+    <PackageReference Include="Misaki.HighPerformance" Version="1.0.4" />
     <PackageReference Include="Misaki.HighPerformance.Jobs" Version="1.2.2" />
     <PackageReference Include="Misaki.HighPerformance.LowLevel" Version="1.3.3" />
     <PackageReference Include="Misaki.HighPerformance.Mathematics" Version="1.3.1" />

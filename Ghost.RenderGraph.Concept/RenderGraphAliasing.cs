@@ -7,54 +7,54 @@ namespace Ghost.RenderGraph.Concept;
 /// </summary>
 internal sealed class PhysicalResource
 {
-    public int Index;
-    public int Width;
-    public int Height;
-    public TextureFormat Format;
-    public int SizeInBytes;
+    public int index;
+    public int width;
+    public int height;
+    public TextureFormat format;
+    public int sizeInBytes;
     
     // Lifetime tracking
-    public int FirstUsePass = int.MaxValue;
-    public int LastUsePass = -1;
+    public int firstUsePass = int.MaxValue;
+    public int lastUsePass = -1;
     
     // Aliasing tracking
-    public readonly List<int> AliasedLogicalResources = new(4);
+    public readonly List<int> aliasedLogicalResources = new(4);
 
     public void Reset()
     {
-        Index = -1;
-        Width = 0;
-        Height = 0;
-        Format = TextureFormat.RGBA8;
-        SizeInBytes = 0;
-        FirstUsePass = int.MaxValue;
-        LastUsePass = -1;
-        AliasedLogicalResources.Clear();
+        index = -1;
+        width = 0;
+        height = 0;
+        format = TextureFormat.RGBA8;
+        sizeInBytes = 0;
+        firstUsePass = int.MaxValue;
+        lastUsePass = -1;
+        aliasedLogicalResources.Clear();
     }
 
     public bool CanAlias(TextureDescriptor descriptor)
     {
         // For aliasing, resources must be identical in size and format
         // In a real implementation, you could be more flexible (e.g., same size but different format)
-        return Width == descriptor.Width &&
-               Height == descriptor.Height &&
-               Format == descriptor.Format;
+        return width == descriptor.width &&
+               height == descriptor.height &&
+               format == descriptor.format;
     }
 
     public void UpdateLifetime(int passIndex)
     {
-        FirstUsePass = Math.Min(FirstUsePass, passIndex);
-        LastUsePass = Math.Max(LastUsePass, passIndex);
+        firstUsePass = Math.Min(firstUsePass, passIndex);
+        lastUsePass = Math.Max(lastUsePass, passIndex);
     }
 
     public bool IsAliveAt(int passIndex)
     {
-        return passIndex >= FirstUsePass && passIndex <= LastUsePass;
+        return passIndex >= firstUsePass && passIndex <= lastUsePass;
     }
 
     public int CalculateSize()
     {
-        int bytesPerPixel = Format switch
+        int bytesPerPixel = format switch
         {
             TextureFormat.RGBA8 => 4,
             TextureFormat.RGBA16F => 8,
@@ -63,7 +63,7 @@ internal sealed class PhysicalResource
             TextureFormat.Depth24Stencil8 => 4,
             _ => 4
         };
-        return Width * Height * bytesPerPixel;
+        return width * height * bytesPerPixel;
     }
 }
 
@@ -109,21 +109,21 @@ internal sealed class ResourceAliasingManager
         for (int i = 0; i < registry.TextureResourceCount; i++)
         {
             var resource = registry.GetTextureResourceByIndex(i);
-            if (!resource.IsImported) // Don't alias imported resources
+            if (!resource.isImported) // Don't alias imported resources
             {
                 logicalResources.Add((i, resource));
 #if DEBUG
-                int size = CalculateSize(resource.Descriptor);
+                int size = CalculateSize(resource.descriptor);
                 totalLogicalSize += size;
-                Console.WriteLine($"Logical Resource {i}: {resource.Descriptor.Name}");
-                Console.WriteLine($"  Lifetime: Pass {resource.FirstUsePass} -> {resource.LastUsePass}");
+                Console.WriteLine($"Logical Resource {i}: {resource.descriptor.name}");
+                Console.WriteLine($"  Lifetime: Pass {resource.firstUsePass} -> {resource.lastUsePass}");
                 Console.WriteLine($"  Size: {size / 1024.0:F2} KB");
 #endif
             }
         }
 
         // Sort by first use pass (earlier resources first)
-        logicalResources.Sort((a, b) => a.resource.FirstUsePass.CompareTo(b.resource.FirstUsePass));
+        logicalResources.Sort((a, b) => a.resource.firstUsePass.CompareTo(b.resource.firstUsePass));
 
         // Greedy interval scheduling: assign each logical resource to a physical resource
         foreach (var (logicalIndex, logicalResource) in logicalResources)
@@ -137,7 +137,7 @@ internal sealed class ResourceAliasingManager
             {
                 var physical = _physicalResources[i];
                 
-                if (physical.CanAlias(logicalResource.Descriptor) &&
+                if (physical.CanAlias(logicalResource.descriptor) &&
                     !HasLifetimeOverlap(physical, logicalResource))
                 {
                     assignedPhysical = physical;
@@ -149,40 +149,40 @@ internal sealed class ResourceAliasingManager
             if (assignedPhysical == null)
             {
                 assignedPhysical = GetOrCreatePhysicalResource();
-                assignedPhysical.Index = _physicalResourceCount - 1;
-                assignedPhysical.Width = logicalResource.Descriptor.Width;
-                assignedPhysical.Height = logicalResource.Descriptor.Height;
-                assignedPhysical.Format = logicalResource.Descriptor.Format;
-                assignedPhysical.SizeInBytes = assignedPhysical.CalculateSize();
+                assignedPhysical.index = _physicalResourceCount - 1;
+                assignedPhysical.width = logicalResource.descriptor.width;
+                assignedPhysical.height = logicalResource.descriptor.height;
+                assignedPhysical.format = logicalResource.descriptor.format;
+                assignedPhysical.sizeInBytes = assignedPhysical.CalculateSize();
                 
 #if DEBUG
-                Console.WriteLine($"\nAllocated NEW Physical Resource {assignedPhysical.Index}:");
-                Console.WriteLine($"  Size: {assignedPhysical.Width}x{assignedPhysical.Height}");
-                Console.WriteLine($"  Format: {assignedPhysical.Format}");
-                Console.WriteLine($"  Memory: {assignedPhysical.SizeInBytes / 1024.0:F2} KB");
+                Console.WriteLine($"\nAllocated NEW Physical Resource {assignedPhysical.index}:");
+                Console.WriteLine($"  Size: {assignedPhysical.width}x{assignedPhysical.height}");
+                Console.WriteLine($"  Format: {assignedPhysical.format}");
+                Console.WriteLine($"  Memory: {assignedPhysical.sizeInBytes / 1024.0:F2} KB");
 #endif
             }
 #if DEBUG
             else
             {
-                Console.WriteLine($"\nALIASING: {logicalResource.Descriptor.Name} -> Physical Resource {assignedPhysical.Index}");
+                Console.WriteLine($"\nALIASING: {logicalResource.descriptor.name} -> Physical Resource {assignedPhysical.index}");
             }
 #endif
 
             // Update physical resource lifetime
-            assignedPhysical.UpdateLifetime(logicalResource.FirstUsePass);
-            assignedPhysical.UpdateLifetime(logicalResource.LastUsePass);
-            assignedPhysical.AliasedLogicalResources.Add(logicalIndex);
+            assignedPhysical.UpdateLifetime(logicalResource.firstUsePass);
+            assignedPhysical.UpdateLifetime(logicalResource.lastUsePass);
+            assignedPhysical.aliasedLogicalResources.Add(logicalIndex);
 
             // Record the mapping
-            _logicalToPhysical[logicalIndex] = assignedPhysical.Index;
+            _logicalToPhysical[logicalIndex] = assignedPhysical.index;
         }
 
 #if DEBUG
         int totalPhysicalSize = 0;
         for (int i = 0; i < _physicalResourceCount; i++)
         {
-            totalPhysicalSize += _physicalResources[i].SizeInBytes;
+            totalPhysicalSize += _physicalResources[i].sizeInBytes;
         }
         
         Console.WriteLine($"\n=== Aliasing Summary ===");
@@ -213,8 +213,8 @@ internal sealed class ResourceAliasingManager
     {
         // Check if the lifetimes overlap
         // No overlap if: logical.First > physical.Last OR logical.Last < physical.First
-        return !(logical.FirstUsePass > physical.LastUsePass || 
-                 logical.LastUsePass < physical.FirstUsePass);
+        return !(logical.firstUsePass > physical.lastUsePass || 
+                 logical.lastUsePass < physical.firstUsePass);
     }
 
     private PhysicalResource GetOrCreatePhysicalResource()
@@ -238,7 +238,7 @@ internal sealed class ResourceAliasingManager
 
     private static int CalculateSize(TextureDescriptor descriptor)
     {
-        int bytesPerPixel = descriptor.Format switch
+        int bytesPerPixel = descriptor.format switch
         {
             TextureFormat.RGBA8 => 4,
             TextureFormat.RGBA16F => 8,
@@ -247,7 +247,7 @@ internal sealed class ResourceAliasingManager
             TextureFormat.Depth24Stencil8 => 4,
             _ => 4
         };
-        return descriptor.Width * descriptor.Height * bytesPerPixel;
+        return descriptor.width * descriptor.height * bytesPerPixel;
     }
 
     public void Clear()
@@ -290,13 +290,13 @@ internal sealed class ResourceAliasingManager
             }
 
             var data = physicalData[i];
-            physical.Index = data.Index;
-            physical.Width = data.Width;
-            physical.Height = data.Height;
-            physical.Format = data.Format;
-            physical.FirstUsePass = data.FirstUsePass;
-            physical.LastUsePass = data.LastUsePass;
-            physical.SizeInBytes = physical.CalculateSize();
+            physical.index = data.index;
+            physical.width = data.width;
+            physical.height = data.height;
+            physical.format = data.format;
+            physical.firstUsePass = data.firstUsePass;
+            physical.lastUsePass = data.lastUsePass;
+            physical.sizeInBytes = physical.CalculateSize();
         }
     }
 
@@ -317,12 +317,12 @@ internal sealed class ResourceAliasingManager
             var physical = _physicalResources[i];
             outPhysicalData.Add(new PhysicalResourceData
             {
-                Index = physical.Index,
-                Width = physical.Width,
-                Height = physical.Height,
-                Format = physical.Format,
-                FirstUsePass = physical.FirstUsePass,
-                LastUsePass = physical.LastUsePass
+                index = physical.index,
+                width = physical.width,
+                height = physical.height,
+                format = physical.format,
+                firstUsePass = physical.firstUsePass,
+                lastUsePass = physical.lastUsePass
             });
         }
     }

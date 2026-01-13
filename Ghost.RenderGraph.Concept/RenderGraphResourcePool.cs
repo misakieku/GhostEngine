@@ -23,7 +23,7 @@ internal sealed class RenderGraphObjectPool
 
         private static ObjectPool<T> AllocatePool()
         {
-            var newPool = new ObjectPool<T>(() => new T());
+            var newPool = new ObjectPool<T>(() => new T(), null);
             // Storing instance to clear the static pool of the same type if needed
             s_allocatedPools.Add(new SharedObjectPool<T>());
             return newPool;
@@ -42,6 +42,8 @@ internal sealed class RenderGraphObjectPool
         /// Rent a new instance from the pool.
         /// </summary>
         /// <returns></returns>
+        // FIX: ObjectPool<T>.Rent() has a critical bug that it will put the newly created object into the pool directly and give out the same instance again.
+        // This will cause multiple renters to get the same instance.
         public static T Rent() => s_pool.Rent();
 
         /// <summary>
@@ -78,25 +80,25 @@ internal sealed class RenderGraphObjectPool
 internal sealed class RenderGraphResource
 {
     public RenderGraphResourceType type;
-    public int Index;
-    public TextureDescriptor Descriptor;
-    public bool IsImported;
-    public int FirstUsePass = -1;
-    public int LastUsePass = -1;
-    public int ProducerPass = -1;
-    public List<int> ConsumerPasses = new(4);
-    public int RefCount;
+    public int index;
+    public TextureDescriptor descriptor;
+    public bool isImported;
+    public int firstUsePass = -1;
+    public int lastUsePass = -1;
+    public int producerPass = -1;
+    public List<int> consumerPasses = new(4);
+    public int refCount;
 
     public void Reset()
     {
-        Index = -1;
-        Descriptor = default;
-        IsImported = false;
-        FirstUsePass = -1;
-        LastUsePass = -1;
-        ProducerPass = -1;
-        ConsumerPasses.Clear();
-        RefCount = 0;
+        index = -1;
+        descriptor = default;
+        isImported = false;
+        firstUsePass = -1;
+        lastUsePass = -1;
+        producerPass = -1;
+        consumerPasses.Clear();
+        refCount = 0;
     }
 }
 
@@ -108,102 +110,73 @@ internal sealed class RenderGraphResourceRegistry
 {
     private readonly List<RenderGraphResource> _resources = new(64);
     private readonly RenderGraphObjectPool _pool = new();
-    private int _textureResourceCount;
 
-    public int TextureResourceCount => _textureResourceCount;
+    public int TextureResourceCount => _resources.Count;
 
     public void BeginFrame()
     {
-        // Don't clear the lists, just reset the count
-        // This avoids reallocating the backing arrays
-        _textureResourceCount = 0;
+        for (var i = 0; i < _resources.Count; i++)
+        {
+            _pool.Return(_resources[i]);
+        }
+
+        _resources.Clear();
     }
 
     public Identifier<RGTexture> ImportTexture(TextureDescriptor descriptor)
     {
-        var resource = GetOrCreateTextureResource();
-        resource.Index = _textureResourceCount - 1;
-        resource.Descriptor = descriptor;
-        resource.IsImported = true;
+        var resource = _pool.Rent<RenderGraphResource>();
+        resource.type = RenderGraphResourceType.Texture;
+        resource.index = _resources.Count;
+        resource.descriptor = descriptor;
+        resource.isImported = true;
 
-        return new Identifier<RGTexture>(resource.Index);
+        _resources.Add(resource);
+
+        return new Identifier<RGTexture>(resource.index);
     }
 
     public Identifier<RGTexture> CreateTexture(TextureDescriptor descriptor)
     {
-        var resource = GetOrCreateTextureResource();
-        resource.Index = _textureResourceCount - 1;
-        resource.Descriptor = descriptor;
-        resource.IsImported = false;
+        var resource = _pool.Rent<RenderGraphResource>();
+        resource.type = RenderGraphResourceType.Texture;
+        resource.index = _resources.Count;
+        resource.descriptor = descriptor;
+        resource.isImported = false;
 
-        return new Identifier<RGTexture>(resource.Index);
+        _resources.Add(resource);
+
+        return new Identifier<RGTexture>(resource.index);
     }
 
     public RenderGraphResource GetResource(Identifier<RGResource> resource)
     {
-        if (resource.Value < 0 || resource.Value >= _textureResourceCount)
-            throw new ArgumentException($"Invalid texture handle: {resource}");
-
         return _resources[resource.Value];
     }
 
     public RenderGraphResource GetTextureResourceByIndex(int index)
     {
-        if (index < 0 || index >= _textureResourceCount)
-            throw new ArgumentException($"Invalid texture index: {index}");
-
         return _resources[index];
     }
 
     public void SetProducer(Identifier<RGResource> resourceID, int passIndex)
     {
         var resource = GetResource(resourceID);
-        resource.ProducerPass = passIndex;
-        if (resource.FirstUsePass < 0)
+        resource.producerPass = passIndex;
+        if (resource.firstUsePass < 0)
         {
-            resource.FirstUsePass = passIndex;
+            resource.firstUsePass = passIndex;
         }
     }
 
     public void AddConsumer(Identifier<RGResource> resourceID, int passIndex)
     {
         var resource = GetResource(resourceID);
-        resource.ConsumerPasses.Add(passIndex);
-        resource.LastUsePass = passIndex;
-        if (resource.FirstUsePass < 0)
+        resource.consumerPasses.Add(passIndex);
+        resource.lastUsePass = passIndex;
+        if (resource.firstUsePass < 0)
         {
-            resource.FirstUsePass = passIndex;
+            resource.firstUsePass = passIndex;
         }
-    }
-
-    private RenderGraphResource GetOrCreateTextureResource()
-    {
-        RenderGraphResource resource;
-        if (_textureResourceCount < _resources.Count)
-        {
-            // Reuse existing slot
-            resource = _resources[_textureResourceCount];
-            resource.Reset();
-        }
-        else
-        {
-            // Need to grow the list
-            resource = _pool.Rent<RenderGraphResource>();
-            resource.Reset();
-            _resources.Add(resource);
-        }
-
-        _textureResourceCount++;
-        return resource;
-    }
-
-    public void Clear()
-    {
-        for (var i = 0; i < _resources.Count; i++)
-        {
-            _pool.Return(_resources[i]);
-        }
-        _resources.Clear();
-        _textureResourceCount = 0;
     }
 }
