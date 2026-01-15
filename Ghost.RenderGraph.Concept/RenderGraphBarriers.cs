@@ -19,6 +19,7 @@ public enum ResourceState
     CopySource = 1 << 5,
     CopyDest = 1 << 6,
     Present = 1 << 7,
+    IndirectArgument = 1 << 8,
 }
 
 /// <summary>
@@ -140,14 +141,14 @@ internal struct ResourceBarrier
 /// </summary>
 internal sealed class ResourceStateTracker
 {
-    public int ResourceIndex;
-    public ResourceState CurrentState = ResourceState.Common;
-    public int LastAccessPass = -1;
+    public int resourceIndex;
+    public ResourceState currentState = ResourceState.Common;
+    public int lastAccessPass = -1;
 
     public void Reset()
     {
-        ResourceIndex = -1;
-        CurrentState = ResourceState.Common;
-        LastAccessPass = -1;
+        resourceIndex = -1;
+        currentState = ResourceState.Common;
+        lastAccessPass = -1;
     }
 }

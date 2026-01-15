@@ -11,11 +11,12 @@ const int _ITERATION = 500000;
 for (var i = 0; i < _ITERATION; i++)
 {
     RenderGraphBenchmark.ExecuteGraph(renderGraph);
+    renderGraph.Reset();
 }
 
 GC.Collect();
 GC.WaitForPendingFinalizers();
-//Thread.Sleep(1000); // Leave a gap in visual studio allocations timeline
+Thread.Sleep(1000); // Leave a gap in visual studio allocations timeline
 var sw = new System.Diagnostics.Stopwatch();
 var gcBefore = GC.GetAllocatedBytesForCurrentThread();
 sw.Start();
@@ -23,6 +24,7 @@ sw.Start();
 for (var i = 0; i < _ITERATION; i++)
 {
     RenderGraphBenchmark.ExecuteGraph(renderGraph);
+    renderGraph.Reset();
 }
 
 sw.Stop();
@@ -37,6 +39,9 @@ var renderGraph = new RenderGraph();
 Console.WriteLine("=== FRAME 1 (Cache Miss Expected) ===");
 RenderGraphBenchmark.ExecuteGraph(renderGraph);
 
-Console.WriteLine("\n\n=== FRAME 2 (Cache Hit Expected) ===");
-RenderGraphBenchmark.ExecuteGraph(renderGraph);
+//Thread.Sleep(5000);
+
+//renderGraph.Reset();
+//Console.WriteLine("\n\n=== FRAME 2 (Cache Hit Expected) ===");
+//RenderGraphBenchmark.ExecuteGraph(renderGraph);
 #endif

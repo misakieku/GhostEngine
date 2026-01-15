@@ -127,10 +127,10 @@ public readonly unsafe ref struct RenderingContext
         _directCmd.ResourceBarrier(bufferHandle, ResourceState.NonPixelShaderResource | ResourceState.PixelShaderResource);
     }
 
-    public Handle<Texture> CreateTexture<T>(ref readonly TextureDesc desc, ReadOnlySpan<T> data, bool tempResource = false)
+    public Handle<Texture> CreateTexture<T>(ref readonly TextureDesc desc, ReadOnlySpan<T> data, string name)
         where T : unmanaged
     {
-        var handle = ResourceAllocator.CreateTexture(in desc, tempResource);
+        var handle = ResourceAllocator.CreateTexture(in desc, name);
         UploadTexture(handle, data);
 
         return handle;

@@ -57,7 +57,7 @@ public partial class World
         var world = s_worlds[id.Value];
         return world is null ? throw new InvalidOperationException("World not found.") : world;
 #else
-        return s_worlds[id.value]!;
+        return s_worlds[id.Value]!;
 #endif
     }
 

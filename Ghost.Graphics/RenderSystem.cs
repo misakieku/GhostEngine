@@ -264,7 +264,11 @@ internal class RenderSystem : IRenderSystem
                         var newSize = kvp.Value;
                         swapChain.Resize(newSize.x, newSize.y);
                     }
+
+                    _resizeRequest.Clear();
                 }
+
+                frameResource.CommandAllocator.Reset();
 
                 var r = _graphicsEngine.RenderFrame(frameResource.CommandAllocator);
                 if (r.IsFailure)

@@ -42,6 +42,25 @@ public static class RGResourceExtensions
     }
 }
 
+/// <summary>
+/// Hints for how a buffer will be used in a pass.
+/// Used to determine correct resource state transitions.
+/// </summary>
+[Flags]
+public enum BufferHint
+{
+    /// <summary>
+    /// No special usage - buffer will be used as shader resource (SRV) or UAV based on AccessFlags.
+    /// </summary>
+    None = 0,
+    
+    /// <summary>
+    /// Buffer will be used as indirect argument buffer (ExecuteIndirect).
+    /// Requires ResourceState.IndirectArgument.
+    /// </summary>
+    IndirectArgument = 1 << 0,
+}
+
 internal readonly struct TextureAccess
 {
     public readonly Identifier<RGTexture> id;
@@ -51,6 +70,23 @@ internal readonly struct TextureAccess
     {
         this.id = id;
         this.accessFlags = accessFlags;
+    }
+}
+
+/// <summary>
+/// Tracks buffer access information including usage hints.
+/// </summary>
+internal readonly struct BufferAccess
+{
+    public readonly Identifier<RGBuffer> id;
+    public readonly AccessFlags accessFlags;
+    public readonly BufferHint hint;
+
+    public BufferAccess(Identifier<RGBuffer> id, AccessFlags accessFlags, BufferHint hint = BufferHint.None)
+    {
+        this.id = id;
+        this.accessFlags = accessFlags;
+        this.hint = hint;
     }
 }
 
@@ -164,4 +200,71 @@ public readonly struct BufferDescriptor : IEquatable<BufferDescriptor>
 /// </summary>
 public interface IPassData
 {
+}
+
+/// <summary>
+/// Specifies how to load attachment contents at the beginning of a render pass.
+/// </summary>
+public enum AttachmentLoadOp
+{
+    /// <summary>
+    /// Load existing contents from memory. Required when reading previous data.
+    /// </summary>
+    Load,
+    
+    /// <summary>
+    /// Clear attachment to a specified value.
+    /// </summary>
+    Clear,
+    
+    /// <summary>
+    /// Don't care about previous contents (best performance on TBDR GPUs).
+    /// Use when you guarantee to overwrite all pixels.
+    /// </summary>
+    DontCare
+}
+
+/// <summary>
+/// Specifies how to store attachment contents at the end of a render pass.
+/// </summary>
+public enum AttachmentStoreOp
+{
+    /// <summary>
+    /// Store contents to memory. Required if resource is used after this pass.
+    /// </summary>
+    Store,
+    
+    /// <summary>
+    /// Don't care about storing contents (best performance on TBDR GPUs).
+    /// Use when resource is not needed after this pass.
+    /// </summary>
+    DontCare
+}
+
+/// <summary>
+/// Information about a render target attachment in a native render pass.
+/// </summary>
+internal struct RenderTargetInfo
+{
+    public Identifier<RGTexture> texture;
+    public AccessFlags access;
+    public AttachmentLoadOp loadOp;
+    public AttachmentStoreOp storeOp;
+    public float clearR;
+    public float clearG;
+    public float clearB;
+    public float clearA;
+}
+
+/// <summary>
+/// Information about a depth-stencil attachment in a native render pass.
+/// </summary>
+internal struct DepthStencilInfo
+{
+    public Identifier<RGTexture> texture;
+    public AccessFlags access;
+    public AttachmentLoadOp loadOp;
+    public AttachmentStoreOp storeOp;
+    public float clearDepth;
+    public byte clearStencil;
 }

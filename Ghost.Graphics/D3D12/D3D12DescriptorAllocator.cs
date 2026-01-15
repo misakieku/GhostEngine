@@ -386,22 +386,22 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
     #region Utility Methods
 
     /// <summary>
-    /// Gets the RTV heap for binding to the command list.
+    /// Gets the RTV Heap for binding to the command list.
     /// </summary>
     public ID3D12DescriptorHeap* GetRTVHeap() => _rtvHeap.Heap;
 
     /// <summary>
-    /// Gets the DSV heap for binding to the command list.
+    /// Gets the DSV Heap for binding to the command list.
     /// </summary>
     public ID3D12DescriptorHeap* GetDSVHeap() => _dsvHeap.Heap;
 
     /// <summary>
-    /// Gets the CBV/SRV/UAV heap for binding to the command list.
+    /// Gets the CBV/SRV/UAV Heap for binding to the command list.
     /// </summary>
     public ID3D12DescriptorHeap* GetCbvSrvUavHeap() => _cbvSrvUavHeap.ShaderVisibleHeap;
 
     /// <summary>
-    /// Gets the sampler heap for binding to the command list.
+    /// Gets the sampler Heap for binding to the command list.
     /// </summary>
     public ID3D12DescriptorHeap* GetSamplerHeap() => _samplerHeap.ShaderVisibleHeap;
 

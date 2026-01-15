@@ -12,18 +12,20 @@ public class RenderGraphBenchmark
     public void Setup()
     {
         _renderGraph = new RenderGraph();
+
+        // Warm up
+        ExecuteGraph(_renderGraph);
     }
 
     [Benchmark]
     public void Execute()
     {
+        _renderGraph.Reset();
         ExecuteGraph(_renderGraph);
     }
 
-    public static void ExecuteGraph(RenderGraph renderGraph)
+    public static void ExecuteGraph(RenderGraph renderGraph, int idx = 0)
     {
-        renderGraph.Reset(); // new RenderGraph()
-
         // Import external resources
         var backbuffer = renderGraph.ImportTexture(
             new TextureDescriptor(1920, 1080, TextureFormat.RGBA8, "Backbuffer"));
@@ -88,6 +90,7 @@ public class RenderGraphBenchmark
 
         // ===== SSAO Pass (Async Compute) =====
         Identifier<RGTexture> ssaoOutput;
+        Identifier<RGBuffer> ssaoBufferOutput;
         using (var builder = renderGraph.AddComputeRenderPass<SSAOPassData>("SSAO Pass (Async)", out var ssaoData))
         {
             var gbuffer = renderGraph.Blackboard.Get<GBufferData>();
@@ -99,6 +102,9 @@ public class RenderGraphBenchmark
             ssaoOutput = builder.CreateTexture(
                 new TextureDescriptor(1920, 1080, TextureFormat.RGBA8, "SSAO"));
             ssaoData.OutputSSAO = builder.UseTexture(ssaoOutput, AccessFlags.Write);
+            ssaoBufferOutput = builder.CreateBuffer(
+                new BufferDescriptor(1920 * 1080 * 4, sizeof(byte), BufferUsage.UnorderedAccess, "SSAO.Buffer"));
+            ssaoData.OutputSSAOBuffer = builder.UseBuffer(ssaoBufferOutput, AccessFlags.WriteAll);
 
             builder.EnableAsyncCompute(true);
 
@@ -122,6 +128,7 @@ public class RenderGraphBenchmark
             bloomOutput = builder.CreateTexture(
                 new TextureDescriptor(1920, 1080, TextureFormat.RGBA8, "BloomDownsample"));
             builder.SetColorAttachment(bloomOutput, 0);
+            builder.UseBuffer(ssaoBufferOutput, AccessFlags.Read);
 
             bloomData.Output = bloomOutput;
 
@@ -152,14 +159,25 @@ public class RenderGraphBenchmark
         }
 
         // ===== Post Processing Pass =====
-        using (var builder = renderGraph.AddRasterRenderPass<PostProcessingPassDataV2>("Post Processing", out var postData))
+        using (var builder = renderGraph.AddRasterRenderPass<PostProcessingPassDataV1>("Post Processing 1", out var postData))
+        {
+            postData.InputLighting = lightingOutput;
+
+            builder.SetColorAttachment(backbuffer, 0);
+            builder.SetRenderFunc<PostProcessingPassDataV1>(static (data, cmd) =>
+            {
+                cmd.BindShaderResource(data.InputLighting.AsResource(), 0);
+                cmd.Draw(3);
+            });
+        }
+
+        using (var builder = renderGraph.AddRasterRenderPass<PostProcessingPassDataV2>("Post Processing 2", out var postData))
         {
             postData.InputTAA = builder.UseTexture(taaOutput, AccessFlags.Read);
             postData.InputSSAO = builder.UseTexture(ssaoOutput, AccessFlags.Read);
             postData.InputBloom = builder.UseTexture(bloomOutput, AccessFlags.Read);
 
             builder.SetColorAttachment(backbuffer, 0);
-
             builder.SetRenderFunc<PostProcessingPassDataV2>(static (data, cmd) =>
             {
                 cmd.BindShaderResource(data.InputTAA.AsResource(), 0);

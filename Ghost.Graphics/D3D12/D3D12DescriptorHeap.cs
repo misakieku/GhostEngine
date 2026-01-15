@@ -138,7 +138,7 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
         }
 
         // NOTE: In dynamic allocation, we use arena-style allocation without freeing.
-        // We reset the offset at the beginning of each frame instead.
+        // We reset the Offset at the beginning of each frame instead.
 
         lock (_lock)
         {

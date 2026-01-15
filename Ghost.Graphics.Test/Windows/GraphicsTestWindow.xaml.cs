@@ -71,9 +71,7 @@ public sealed partial class GraphicsTestWindow : Window
         _swapChain?.Dispose();
         _renderSystem?.Dispose();
 
-#if DEBUG
         Misaki.HighPerformance.LowLevel.Buffer.AllocationManager.Dispose();
-#endif
     }
 
     private void SwapChainPanel_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -110,10 +108,7 @@ public sealed partial class GraphicsTestWindow : Window
 
         if (_renderSystem.CPUFenceValue < _renderSystem.GPUFenceValue + _renderSystem.MaxFrameLatency)
         {
-            DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.High, () =>
-            {
-                _renderSystem.SignalCPUReady();
-            });
+            _renderSystem.SignalCPUReady();
         }
     }
 }

@@ -111,7 +111,7 @@ public struct Material : IResourceReleasable
                 MemoryType = ResourceMemoryType.Default,
             };
 
-            var buffer = allocator.CreateBuffer(ref desc);
+            var buffer = allocator.CreateBuffer(ref desc, "MaterialCBuffer");
             _cBufferCache = new CBufferCache(buffer, shader.CBufferSize);
         }
 
@@ -214,14 +214,15 @@ public struct Material : IResourceReleasable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void UploadData(ICommandBuffer cmb, bool pixelOnlyResource = true)
+    public readonly void UploadData(ICommandBuffer cmd, bool pixelOnlyResource = true)
     {
-        cmb.UploadBuffer(_cBufferCache.GpuResource, _cBufferCache.CpuData.AsSpan());
+        cmd.ResourceBarrier(_cBufferCache.GpuResource.AsResource(), ResourceState.CopyDest);
+        cmd.UploadBuffer(_cBufferCache.GpuResource, _cBufferCache.CpuData.AsSpan());
 
         var state = pixelOnlyResource
             ? ResourceState.PixelShaderResource
             : ResourceState.NonPixelShaderResource | ResourceState.PixelShaderResource;
-        cmb.ResourceBarrier(_cBufferCache.GpuResource.AsResource(), state);
+        cmd.ResourceBarrier(_cBufferCache.GpuResource.AsResource(), state);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

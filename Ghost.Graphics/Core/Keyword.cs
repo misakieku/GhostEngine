@@ -42,7 +42,7 @@ public unsafe struct LocalKeywordSet
 
     public ulong GetHash64()
     {
-        ulong hash = 14695981039346656037ul; // FNV offset basis
+        ulong hash = 14695981039346656037ul; // FNV Offset basis
 
         for (var i = 0; i < _DATA_ARRAY_LENGTH; i++)
         {

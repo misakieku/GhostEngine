@@ -5,9 +5,11 @@ using Ghost.Graphics.Core;
 using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Xml.Linq;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 
@@ -512,9 +514,9 @@ internal sealed unsafe partial class D3D12ResourceAllocator
 
         var state = D3D12_RESOURCE_STATE_COMMON;
 #if true
+        // D3D12 does not support state other than COMMON for buffers at creation.
         return state;
 #else
-        // D3D12 does not support state other than COMMON for buffers at creation.
         if (usage.HasFlag(BufferUsage.Vertex) || usage.HasFlag(BufferUsage.Constant))
         {
             // Vertex and Constant buffers can share this state
@@ -557,13 +559,11 @@ internal sealed unsafe partial class D3D12ResourceAllocator
     }
 }
 
-// TODO: Dedicated pool for copy, render graph, and persistent resources
-
-// TODO: Thread safety for resource allocator
-// A common solution is to use ticket. Each pAllocation request create a ticket and put it into a thread-safe queue. A dedicated thread process the queue and fulfill the requests.
-
 internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 {
+    private const uint _UPLOAD_BATCH_SIZE = 64 * 1024 * 1024; // 64 MB
+    private const uint _MAX_RESOURCE_SIZE_TO_FIT_IN_UPLOAD_BATCH = 16 * 1024 * 1024; // 16 MB
+
     private UniquePtr<D3D12MA_Allocator> _d3d12MA;
 
     private readonly IFenceSynchronizer _fenceSynchronizer;
@@ -573,6 +573,9 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
     private readonly D3D12PipelineLibrary _pipelineLibrary;
 
     private UnsafeQueue<Handle<GPUResource>> _tempResources;
+
+    private readonly Handle<GraphicsBuffer> _uploadBatch;
+    private ulong _uploadBatchOffset;
 
     private bool _disposed;
 
@@ -600,7 +603,18 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         _resourceDatabase = resourceDatabase;
         _pipelineLibrary = pipelineLibrary;
 
-        _tempResources = new UnsafeQueue<Handle<GPUResource>>(64, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
+        _tempResources = new UnsafeQueue<Handle<GPUResource>>(64, Allocator.Persistent);
+
+        // Create an upload batch
+        var uploadDesc = new BufferDesc
+        {
+            Size = _UPLOAD_BATCH_SIZE,
+            Usage = BufferUsage.Upload,
+            MemoryType = ResourceMemoryType.Upload,
+        };
+
+        _uploadBatch = CreateBuffer(in uploadDesc, "D3D12ResourceAllocator_UploadBatch");
+        _uploadBatchOffset = 0;
     }
 
     ~D3D12ResourceAllocator()
@@ -609,9 +623,9 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Handle<GPUResource> TrackResource(D3D12MA_Allocation* allocation, D3D12_RESOURCE_STATES state, ResourceViewGroup resourceDescriptor, ResourceDesc desc, bool isTemp)
+    private Handle<GPUResource> TrackResource(D3D12MA_Allocation* allocation, D3D12_RESOURCE_STATES state, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string name, bool isTemp)
     {
-        var handle = _resourceDatabase.AddResource(allocation, _fenceSynchronizer.CPUFenceValue, D3D12Utility.ToResourceState(state) , resourceDescriptor, desc);
+        var handle = _resourceDatabase.AddAllocation(allocation, _fenceSynchronizer.CPUFenceValue, D3D12Utility.ToResourceState(state), resourceDescriptor, desc, name);
 
         if (isTemp)
         {
@@ -621,7 +635,70 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         return handle;
     }
 
-    public Handle<Texture> CreateTexture(ref readonly TextureDesc desc, bool isTemp = false)
+    private HRESULT CreateResource(D3D12MA_ALLOCATION_DESC* pAllocationDesc, D3D12_RESOURCE_DESC* pResourceDesc, D3D12_RESOURCE_STATES initialState, CreationOptions options, void** ppv)
+    {
+        var hr = S.S_OK;
+        var iid = IID.IID_NULL;
+
+        if (options.AllocationType == ResourceAllocationType.RenderGraphTransient)
+        {
+            // pAllocation should be the render graph Heap. ppvResource should be the out resource.
+            var result = _resourceDatabase.GetResourceRecord(options.Heap);
+            if (result.IsFailure)
+            {
+                return E.E_NOTFOUND;
+            }
+
+            hr = _d3d12MA.Get()->CreateAliasingResource(result.Value.resource.allocation.Get(), options.Offset, pResourceDesc, initialState, null, &iid, ppv);
+        }
+        else
+        {
+            hr = _d3d12MA.Get()->CreateResource(pAllocationDesc, pResourceDesc, initialState, null, (D3D12MA_Allocation**)ppv, &iid, null);
+        }
+
+        return hr;
+    }
+
+    public Handle<GPUResource> Allocate(ref readonly AllocationDesc desc, string name)
+    {
+        var allocDesc = new D3D12MA_ALLOCATION_DESC
+        {
+            HeapType = desc.HeapType switch
+            {
+                HeapType.Default => D3D12_HEAP_TYPE_DEFAULT,
+                HeapType.Upload => D3D12_HEAP_TYPE_UPLOAD,
+                HeapType.Readback => D3D12_HEAP_TYPE_READBACK,
+                _ => D3D12_HEAP_TYPE_DEFAULT
+            },
+            Flags = D3D12MA_ALLOCATION_FLAG_COMMITTED,
+            ExtraHeapFlags = desc.HeapFlags switch
+            {
+                HeapFlags.None => D3D12_HEAP_FLAG_NONE,
+                HeapFlags.AllowBuffers => D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS,
+                HeapFlags.AllowTextures => D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES,
+                HeapFlags.AllowRTAndDS => D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES,
+                HeapFlags.AlowBufferAndTexture => D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES,
+                _ => D3D12_HEAP_FLAG_NONE
+            }
+        };
+
+        // SizeInBytes must be aligned to 64KB for committed resources
+        var allocInfo = new D3D12_RESOURCE_ALLOCATION_INFO
+        {
+            SizeInBytes = desc.Size + 65535 & ~65535u,
+            Alignment = desc.Alignment
+        };
+
+        D3D12MA_Allocation* alloc = default;
+        if (_d3d12MA.Get()->AllocateMemory(&allocDesc, &allocInfo, &alloc).FAILED)
+        {
+            return Handle<GPUResource>.Invalid;
+        }
+
+        return TrackResource(alloc, D3D12_RESOURCE_STATE_COMMON, ResourceViewGroup.Invalid, default, name, false);
+    }
+
+    public Handle<Texture> CreateTexture(ref readonly TextureDesc desc, string name, CreationOptions options = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -681,14 +758,17 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         var initialState = DetermineInitialTextureState(desc.Usage);
 
         D3D12MA_Allocation* pAllocation = default;
-        var iid = IID.IID_NULL;
-        ThrowIfFailed(_d3d12MA.Get()->CreateResource(&allocationDesc, &resourceDesc, initialState, null, &pAllocation, &iid, null));
+        if (CreateResource(&allocationDesc, &resourceDesc, initialState, options, (void**)&pAllocation).FAILED)
+        {
+            return Handle<Texture>.Invalid;
+        }
 
+        var isTemp = options.AllocationType == ResourceAllocationType.Temporary;
         var resourceDescriptor = ResourceViewGroup.Invalid;
         if (desc.Usage.HasFlag(TextureUsage.ShaderResource))
         {
             resourceDescriptor.srv = _descriptorAllocator.AllocateCbvSrvUav(isTemp);
-            // TODO: Maybe use non-shader-visible descriptor first then batch copy to shader-visible heap later?
+            // TODO: Maybe use non-shader-visible descriptor first then batch copy to shader-visible Heap later?
             var cpuHandle = _descriptorAllocator.GetCpuHandleShaderVisible(resourceDescriptor.srv);
 
             var isCubeMap = desc.Dimension == TextureDimension.TextureCube || desc.Dimension == TextureDimension.TextureCubeArray;
@@ -724,20 +804,20 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             _device.NativeDevice.Get()->CreateUnorderedAccessView(pAllocation->GetResource(), null, &uavDesc, cpuHandle);
         }
 
-        var handle = TrackResource(pAllocation, initialState, resourceDescriptor, ResourceDesc.Texture(desc), isTemp);
+        var handle = TrackResource(pAllocation, initialState, resourceDescriptor, ResourceDesc.Texture(desc), name, isTemp);
 
         return handle.AsTexture();
     }
 
-    public Handle<Texture> CreateRenderTarget(ref readonly RenderTargetDesc desc, bool isTemp = false)
+    public Handle<Texture> CreateRenderTarget(ref readonly RenderTargetDesc desc, string name, CreationOptions options = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         var textureDesc = desc.ToTextureDescripton();
-        return CreateTexture(in textureDesc, isTemp);
+        return CreateTexture(in textureDesc, name, options);
     }
 
-    public Handle<GraphicsBuffer> CreateBuffer(ref readonly BufferDesc desc, bool isTemp = false)
+    public Handle<GraphicsBuffer> CreateBuffer(ref readonly BufferDesc desc, string name, CreationOptions options = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         CheckBufferSize(desc.Size);
@@ -749,21 +829,24 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             alignedSize = (uint)(desc.Size + 255) & ~255u;
         }
 
-        var resourceDescription = D3D12_RESOURCE_DESC.Buffer(alignedSize, ConvertBufferUsage(desc.Usage));
+        var resourceDesc = D3D12_RESOURCE_DESC.Buffer(alignedSize, ConvertBufferUsage(desc.Usage));
         var isRaw = desc.Usage.HasFlag(BufferUsage.Raw);
 
         var allocationDesc = new D3D12MA_ALLOCATION_DESC
         {
             HeapType = ConvertMemoryType(desc.MemoryType),
-            Flags = D3D12MA_ALLOCATION_FLAG_NONE
+            Flags = D3D12MA_ALLOCATION_FLAG_NONE,
         };
 
         var initialState = DetermineInitialBufferState(desc.Usage, desc.MemoryType);
 
         D3D12MA_Allocation* pAllocation = default;
-        var iid = IID.IID_NULL;
-        ThrowIfFailed(_d3d12MA.Get()->CreateResource(&allocationDesc, &resourceDescription, initialState, null, &pAllocation, &iid, null));
+        if (CreateResource(&allocationDesc, &resourceDesc, initialState, options, (void**)&pAllocation).FAILED)
+        {
+            return Handle<GraphicsBuffer>.Invalid;
+        }
 
+        var isTemp = options.AllocationType == ResourceAllocationType.Temporary;
         var resourceDescriptor = ResourceViewGroup.Invalid;
         var pResource = pAllocation->GetResource();
 
@@ -798,22 +881,35 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             _device.NativeDevice.Get()->CreateUnorderedAccessView(pResource, null, &uavDesc, cpuHandle);
         }
 
-        var handle = TrackResource(pAllocation, initialState, resourceDescriptor, ResourceDesc.Buffer(desc), isTemp);
+        var handle = TrackResource(pAllocation, initialState, resourceDescriptor, ResourceDesc.Buffer(desc), name, isTemp);
         return handle.AsGraphicsBuffer();
     }
 
-    public Handle<GraphicsBuffer> CreateUploadBuffer(ulong size, bool isTemp = true)
+    public Handle<GraphicsBuffer> CreateTempUploadBuffer(ulong sizeInBytes, out ulong offset)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        var desc = new BufferDesc
+        if (sizeInBytes <= _MAX_RESOURCE_SIZE_TO_FIT_IN_UPLOAD_BATCH && sizeInBytes + _uploadBatchOffset <= _UPLOAD_BATCH_SIZE)
         {
-            Size = size,
-            Usage = BufferUsage.Upload,
-            MemoryType = ResourceMemoryType.Upload,
-        };
+            offset = _uploadBatchOffset;
+            _uploadBatchOffset += sizeInBytes;
+            return _uploadBatch;
+        }
+        else
+        {
+            var bufferDesc = new BufferDesc
+            {
+                Size = (uint)sizeInBytes,
+                Usage = BufferUsage.Upload,
+                MemoryType = ResourceMemoryType.Upload,
+            };
 
-        return CreateBuffer(in desc, isTemp);
+            var options = new CreationOptions
+            {
+                AllocationType = ResourceAllocationType.Temporary,
+            };
+
+            offset = 0;
+            return CreateBuffer(in bufferDesc, "TempUploadBuffer", options);
+        }
     }
 
     public Identifier<Sampler> CreateSampler(ref readonly SamplerDesc desc)
@@ -873,9 +969,9 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             MemoryType = ResourceMemoryType.Default,
         };
 
-        var vertexBuffer = CreateBuffer(in vertexBufferDesc);
-        var indexBuffer = CreateBuffer(in indexBufferDesc);
-        var objectBuffer = CreateBuffer(in objectBufferDesc);
+        var vertexBuffer = CreateBuffer(in vertexBufferDesc, "VertexBuffer");
+        var indexBuffer = CreateBuffer(in indexBufferDesc, "IndexBuffer");
+        var objectBuffer = CreateBuffer(in objectBufferDesc, "ObjectBuffer");
 
         var data = new Mesh
         {
@@ -935,6 +1031,8 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             _resourceDatabase.ReleaseResource(handle);
             _tempResources.Dequeue();
         }
+
+        _uploadBatchOffset = 0;
     }
 
     public void Dispose()
@@ -950,6 +1048,8 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         {
             _resourceDatabase.ReleaseResource(handle);
         }
+
+        _resourceDatabase.ReleaseResource(_uploadBatch.AsResource());
 
         _d3d12MA.Dispose();
         _tempResources.Dispose();

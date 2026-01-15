@@ -77,6 +77,21 @@ internal sealed class MockCommandBuffer
         Console.WriteLine(nameof(AliasBarrier) + ": " + resourceBefore + " to " + resourceAfter);
 #endif
     }
+
+    public void BeginRenderPass(int nativePassIndex, int colorAttachmentCount, bool hasDepth)
+    {
+#if DEBUG
+        Console.WriteLine($"\n=== BeginRenderPass (Native Pass {nativePassIndex}) ===");
+        Console.WriteLine($"  Color attachments: {colorAttachmentCount}, Depth: {hasDepth}");
+#endif
+    }
+
+    public void EndRenderPass()
+    {
+#if DEBUG
+        Console.WriteLine("=== EndRenderPass ===\n");
+#endif
+    }
 }
 
 /// <summary>

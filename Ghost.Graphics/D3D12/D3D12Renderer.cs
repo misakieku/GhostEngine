@@ -95,6 +95,8 @@ internal class D3D12Renderer : IRenderer
             {
                 Texture = target,
                 ClearColor = clearColor,
+                LoadOp = AttachmentLoadOp.Clear,
+                StoreOp = AttachmentStoreOp.Store,
             },
         ];
 
@@ -103,6 +105,10 @@ internal class D3D12Renderer : IRenderer
             Texture = Handle<Texture>.Invalid,
             ClearDepth = 1.0f,
             ClearStencil = 0,
+            DepthLoadOp = AttachmentLoadOp.Clear,
+            StencilLoadOp = AttachmentLoadOp.Clear,
+            DepthStoreOp = AttachmentStoreOp.Store,
+            StencilStoreOp = AttachmentStoreOp.Store,
         };
 
         // NOTE: Testing only.

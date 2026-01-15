@@ -34,14 +34,5 @@
             Height="4"
             HorizontalAlignment="Stretch"
             Background="{ThemeResource SystemControlBackgroundBaseLowBrush}" />
-
-        <!--  Debug Console  -->
-        <Border
-            Grid.Row="2"
-            Background="{ThemeResource SystemControlBackgroundAltHighBrush}"
-            BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}"
-            BorderThickness="0,1,0,0">
-            <controls:DebugConsole x:Name="DebugConsole" />
-        </Border>
     </Grid>
 </Window>

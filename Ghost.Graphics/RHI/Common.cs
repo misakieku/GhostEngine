@@ -224,6 +224,22 @@ public struct PassRenderTargetDesc
         get; set;
     }
 
+    /// <summary>
+    /// Specifies how to load the render target at the start of the render pass.
+    /// </summary>
+    public AttachmentLoadOp LoadOp
+    {
+        get; set;
+    }
+
+    /// <summary>
+    /// Specifies how to store the render target at the end of the render pass.
+    /// </summary>
+    public AttachmentStoreOp StoreOp
+    {
+        get; set;
+    }
+
 }
 
 public struct PassDepthStencilDesc
@@ -239,6 +255,38 @@ public struct PassDepthStencilDesc
     }
 
     public byte ClearStencil
+    {
+        get; set;
+    }
+
+    /// <summary>
+    /// Specifies how to load the depth buffer at the start of the render pass.
+    /// </summary>
+    public AttachmentLoadOp DepthLoadOp
+    {
+        get; set;
+    }
+
+    /// <summary>
+    /// Specifies how to store the depth buffer at the end of the render pass.
+    /// </summary>
+    public AttachmentStoreOp DepthStoreOp
+    {
+        get; set;
+    }
+
+    /// <summary>
+    /// Specifies how to load the stencil buffer at the start of the render pass.
+    /// </summary>
+    public AttachmentLoadOp StencilLoadOp
+    {
+        get; set;
+    }
+
+    /// <summary>
+    /// Specifies how to store the stencil buffer at the end of the render pass.
+    /// </summary>
+    public AttachmentStoreOp StencilStoreOp
     {
         get; set;
     }
@@ -704,7 +752,7 @@ public struct SwapChainTarget
         {
             Type = SwapChainTargetType.WindowHandle,
             WindowHandle = hwnd,
-            CompositionSurface = null
+            CompositionSurface = 0
         };
     }
 
@@ -877,4 +925,43 @@ public enum ComparisonFunction
     NotEqual,
     GreaterEqual,
     Always
+}
+
+/// <summary>
+/// Specifies how to load attachment contents at the start of a render pass.
+/// </summary>
+public enum AttachmentLoadOp
+{
+    /// <summary>
+    /// Load existing contents from memory. Use when you need to preserve previous data.
+    /// </summary>
+    Load,
+
+    /// <summary>
+    /// Clear the attachment to a specified value. Use when you want to start with a clean slate.
+    /// </summary>
+    Clear,
+
+    /// <summary>
+    /// Don't care about previous contents. Use when you'll overwrite all pixels (fullscreen pass).
+    /// On tile-based deferred renderers (TBDR), this can save significant memory bandwidth.
+    /// </summary>
+    DontCare
+}
+
+/// <summary>
+/// Specifies how to store attachment contents at the end of a render pass.
+/// </summary>
+public enum AttachmentStoreOp
+{
+    /// <summary>
+    /// Store the contents to memory for later use.
+    /// </summary>
+    Store,
+
+    /// <summary>
+    /// Discard the contents (not needed after this pass).
+    /// On tile-based deferred renderers (TBDR), this can save significant memory bandwidth.
+    /// </summary>
+    DontCare
 }

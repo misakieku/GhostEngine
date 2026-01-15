@@ -11,7 +11,6 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
-
 using static TerraFX.Aliases.DXGI_Alias;
 
 namespace Ghost.Graphics.D3D12;
@@ -71,7 +70,8 @@ internal unsafe class D3D12SwapChain : ISwapChain
         CreateBackBuffers();
         SetScale(desc.ScaleX, desc.ScaleY);
 
-        _compositionSurface = desc.Target.CompositionSurface;
+        if (desc.Target.Type == SwapChainTargetType.Composition)
+            _compositionSurface = desc.Target.CompositionSurface;
     }
 
     ~D3D12SwapChain()
@@ -106,12 +106,12 @@ internal unsafe class D3D12SwapChain : ISwapChain
             case SwapChainTargetType.Composition:
                 ThrowIfFailed(pFactory->CreateSwapChainForComposition((IUnknown*)pCommandQueue, &swapChainDesc, null, &pTempSwapChain));
 
-                // Set the composition surface
                 if (desc.Target.CompositionSurface != null)
                 {
-                    using var swapChainPanelNative = ISwapChainPanelNative.FromSwapChainPanel(desc.Target.CompositionSurface);
-                    swapChainPanelNative.SetSwapChain((IntPtr)pTempSwapChain);
+                    using var compositionSurface = ISwapChainPanelNative.FromSwapChainPanel(desc.Target.CompositionSurface);
+                    compositionSurface.SetSwapChain((nint)pTempSwapChain);
                 }
+
                 break;
 
             case SwapChainTargetType.WindowHandle:
@@ -213,7 +213,7 @@ internal unsafe class D3D12SwapChain : ISwapChain
         var inverseScaleX = 1.0f / scaleX;
         var inverseScaleY = 1.0f / scaleY;
 
-        DXGI_MATRIX_3X2_F inverseScaleMatrix = new DXGI_MATRIX_3X2_F
+        var inverseScaleMatrix = new DXGI_MATRIX_3X2_F
         {
             _11 = inverseScaleX, // Scale X
             _22 = inverseScaleY, // Scale Y
@@ -238,8 +238,8 @@ internal unsafe class D3D12SwapChain : ISwapChain
 
         if (_compositionSurface != null)
         {
-            using var panelNative = ISwapChainPanelNative.FromSwapChainPanel(_compositionSurface);
-            panelNative.SetSwapChain(IntPtr.Zero);
+            using var compositionSurface = ISwapChainPanelNative.FromSwapChainPanel(_compositionSurface);
+            compositionSurface.SetSwapChain(0);
         }
 
         for (var i = 0; i < _backBuffers.Count; i++)

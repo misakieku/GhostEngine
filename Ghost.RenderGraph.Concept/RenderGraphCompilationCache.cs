@@ -17,8 +17,8 @@ internal sealed class CachedCompilation
     // Physical resource aliasing mappings (logical index -> physical index)
     public readonly Dictionary<int, int> logicalToPhysical = new(128);
     
-    // Physical resource metadata
-    public readonly List<PhysicalResourceData> physicalResources = new(32);
+    // Placed resource metadata
+    public readonly List<PlacedResourceData> placedResources = new(32);
     
     // Resource barriers
     public readonly List<ResourceBarrier> barriers = new(128);
@@ -31,21 +31,24 @@ internal sealed class CachedCompilation
         compiledPassIndices.Clear();
         passCulledFlags.Clear();
         logicalToPhysical.Clear();
-        physicalResources.Clear();
+        placedResources.Clear();
         barriers.Clear();
         resourceStates.Clear();
     }
 }
 
 /// <summary>
-/// Physical resource data for caching.
+/// Placed resource data for caching.
 /// </summary>
-internal struct PhysicalResourceData
+internal struct PlacedResourceData
 {
     public int index;
-    public int width;
-    public int height;
-    public TextureFormat format;
+    public RenderGraphResourceType type;
+    public int heapIndex;
+    public ulong heapOffset;
+    public ulong sizeInBytes;
+    public TextureDescriptor textureDesc;
+    public BufferDescriptor bufferDesc;
     public int firstUsePass;
     public int lastUsePass;
 }
@@ -100,7 +103,7 @@ internal sealed class RenderGraphCompilationCache
             _cached.logicalToPhysical[kvp.Key] = kvp.Value;
         }
         
-        _cached.physicalResources.AddRange(data.physicalResources);
+        _cached.placedResources.AddRange(data.placedResources);
         _cached.barriers.AddRange(data.barriers);
         
         foreach (var kvp in data.resourceStates)

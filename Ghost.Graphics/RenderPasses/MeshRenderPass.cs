@@ -157,7 +157,7 @@ internal class MeshRenderPass : IRenderPass
                 Usage = TextureUsage.ShaderResource,
             };
 
-            _textures[i] = ctx.CreateTexture(in desc, imageData.AsSpan());
+            _textures[i] = ctx.CreateTexture(in desc, imageData.AsSpan(), $"Texture_{i}");
         }
 
         var samplerDesc = new SamplerDesc
@@ -182,12 +182,8 @@ internal class MeshRenderPass : IRenderPass
             tex_sampler = (uint)sampler.Value,
         };
 
-        Debug.Assert(matRef.SetPropertyCache(in matProps) == ErrorStatus.None);
+        matRef.SetPropertyCache(in matProps).ThrowIfFailed();
         matRef.UploadData(ctx.DirectCommandBuffer);
-
-        var pso = matRef.GetPassPipelineOverride(0);
-        pso.Cull = Cull.Back;
-        matRef.SetPassPipelineOverride(0, in pso);
 
         _forwardPassID = Shader.GetPassID("Forward");
     }

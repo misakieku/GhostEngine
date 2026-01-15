@@ -165,7 +165,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
         }
 
         var size = _library.Get()->GetSerializedSize();
-        using var buffer = new UnsafeArray<byte>((int)size, Allocator.Persistent); // We use persistent heap allocation instead of stack allocation to avoid stack overflow for large pipeline libraries.
+        using var buffer = new UnsafeArray<byte>((int)size, Allocator.Persistent); // We use persistent Heap allocation instead of stack allocation to avoid stack overflow for large pipeline libraries.
 
         ThrowIfFailed(_library.Get()->Serialize(buffer.GetUnsafePtr(), size));
 

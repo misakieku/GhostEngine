@@ -151,8 +151,8 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
             // Set descriptor heaps for bindless resources and samplers
 
             var heaps = stackalloc ID3D12DescriptorHeap*[2];
-            heaps[0] = _descriptorAllocator.GetCbvSrvUavHeap(); // Bindless resource heap
-            heaps[1] = _descriptorAllocator.GetSamplerHeap();   // Bindless sampler heap
+            heaps[0] = _descriptorAllocator.GetCbvSrvUavHeap(); // Bindless resource Heap
+            heaps[1] = _descriptorAllocator.GetSamplerHeap();   // Bindless sampler Heap
             _commandList.Get()->SetDescriptorHeaps(2, heaps);
         }
 
@@ -401,20 +401,39 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
             var format = record.desc.TextureDescription.Format.ToDXGIFormat();
             var clearColor = rtDesc.ClearColor;
 
+            // Map load operation
+            var loadAccessType = rtDesc.LoadOp switch
+            {
+                AttachmentLoadOp.Load => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE,
+                AttachmentLoadOp.Clear => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR,
+                AttachmentLoadOp.DontCare => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD,
+                _ => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE
+            };
+
+            // Map store operation
+            var storeAccessType = rtDesc.StoreOp switch
+            {
+                AttachmentStoreOp.Store => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE,
+                AttachmentStoreOp.DontCare => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD,
+                _ => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE
+            };
+
             var desc = new D3D12_RENDER_PASS_RENDER_TARGET_DESC
             {
                 cpuDescriptor = cpuHandle,
                 BeginningAccess = new D3D12_RENDER_PASS_BEGINNING_ACCESS
                 {
-                    Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR,
-                    Clear = new D3D12_RENDER_PASS_BEGINNING_ACCESS_CLEAR_PARAMETERS
-                    {
-                        ClearValue = new D3D12_CLEAR_VALUE(format, (float*)&clearColor)
-                    }
+                    Type = loadAccessType,
+                    Clear = loadAccessType == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR
+                        ? new D3D12_RENDER_PASS_BEGINNING_ACCESS_CLEAR_PARAMETERS
+                        {
+                            ClearValue = new D3D12_CLEAR_VALUE(format, (float*)&clearColor)
+                        }
+                        : default
                 },
                 EndingAccess = new D3D12_RENDER_PASS_ENDING_ACCESS
                 {
-                    Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE
+                    Type = storeAccessType
                 }
             };
 
@@ -435,16 +454,70 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
             var cpuHandle = _descriptorAllocator.GetCpuHandle(record.viewGroup.dsv);
             var format = record.desc.TextureDescription.Format.ToDXGIFormat();
 
+            // Map depth load operation
+            var depthLoadAccessType = depthDesc.DepthLoadOp switch
+            {
+                AttachmentLoadOp.Load => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE,
+                AttachmentLoadOp.Clear => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR,
+                AttachmentLoadOp.DontCare => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD,
+                _ => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE
+            };
+
+            // Map depth store operation
+            var depthStoreAccessType = depthDesc.DepthStoreOp switch
+            {
+                AttachmentStoreOp.Store => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE,
+                AttachmentStoreOp.DontCare => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD,
+                _ => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE
+            };
+
+            // Map stencil load operation
+            var stencilLoadAccessType = depthDesc.StencilLoadOp switch
+            {
+                AttachmentLoadOp.Load => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE,
+                AttachmentLoadOp.Clear => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR,
+                AttachmentLoadOp.DontCare => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD,
+                _ => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE
+            };
+
+            // Map stencil store operation
+            var stencilStoreAccessType = depthDesc.StencilStoreOp switch
+            {
+                AttachmentStoreOp.Store => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE,
+                AttachmentStoreOp.DontCare => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD,
+                _ => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE
+            };
+
             var desc = new D3D12_RENDER_PASS_DEPTH_STENCIL_DESC
             {
                 cpuDescriptor = cpuHandle,
                 DepthBeginningAccess = new D3D12_RENDER_PASS_BEGINNING_ACCESS
                 {
-                    Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR,
-                    Clear = new D3D12_RENDER_PASS_BEGINNING_ACCESS_CLEAR_PARAMETERS
-                    {
-                        ClearValue = new D3D12_CLEAR_VALUE(format, depthDesc.ClearDepth, depthDesc.ClearStencil)
-                    }
+                    Type = depthLoadAccessType,
+                    Clear = depthLoadAccessType == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR
+                        ? new D3D12_RENDER_PASS_BEGINNING_ACCESS_CLEAR_PARAMETERS
+                        {
+                            ClearValue = new D3D12_CLEAR_VALUE(format, depthDesc.ClearDepth, depthDesc.ClearStencil)
+                        }
+                        : default
+                },
+                DepthEndingAccess = new D3D12_RENDER_PASS_ENDING_ACCESS
+                {
+                    Type = depthStoreAccessType
+                },
+                StencilBeginningAccess = new D3D12_RENDER_PASS_BEGINNING_ACCESS
+                {
+                    Type = stencilLoadAccessType,
+                    Clear = stencilLoadAccessType == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR
+                        ? new D3D12_RENDER_PASS_BEGINNING_ACCESS_CLEAR_PARAMETERS
+                        {
+                            ClearValue = new D3D12_CLEAR_VALUE(format, depthDesc.ClearDepth, depthDesc.ClearStencil)
+                        }
+                        : default
+                },
+                StencilEndingAccess = new D3D12_RENDER_PASS_ENDING_ACCESS
+                {
+                    Type = stencilStoreAccessType
                 }
             };
 
@@ -731,22 +804,19 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
 
         var sizeInBytes = (uint)(data.Length * sizeof(T));
 
-        var uploadHandle = _resourceAllocator.CreateUploadBuffer(sizeInBytes);
+        var uploadHandle = _resourceAllocator.CreateTempUploadBuffer(sizeInBytes, out var offset);
         var uploadResource = _resourceDatabase.GetResource(uploadHandle.AsResource());
 
         void* pMappedData;
         uploadResource.Get()->Map(0, null, &pMappedData);
         fixed (T* pData = data)
         {
-            MemoryUtility.MemCpy(pMappedData, pData, sizeInBytes);
+            MemoryUtility.MemCpy((byte*)pMappedData + offset, pData, sizeInBytes);
         }
         uploadResource.Get()->Unmap(0, null);
 
         var pResource = _resourceDatabase.GetResource(buffer.AsResource());
-
-        _commandList.Get()->CopyBufferRegion(pResource, 0, uploadResource, 0, sizeInBytes);
-        // D3D12 transition resource to COPY_DEST when copying
-        _resourceDatabase.SetResourceState(buffer.AsResource(), ResourceState.CopyDest);
+        _commandList.Get()->CopyBufferRegion(pResource, 0, uploadResource, offset, sizeInBytes);
     }
 
     public void UploadTexture(Handle<Texture> texture, ReadOnlySpan<SubResourceData> subresources)
@@ -766,7 +836,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         var resourceDesc = resource.Get()->GetDesc();
         var requiredSize = GetRequiredIntermediateSize(resource, 0, (uint)subresources.Length);
 
-        var uploadHandle = _resourceAllocator.CreateUploadBuffer(requiredSize);
+        var uploadHandle = _resourceAllocator.CreateTempUploadBuffer(requiredSize, out var offset);
         var pUploadResource = _resourceDatabase.GetResource(uploadHandle.AsResource());
 
         var d3d12Subresources = stackalloc D3D12_SUBRESOURCE_DATA[subresources.Length];
@@ -784,7 +854,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
             (ID3D12GraphicsCommandList*)_commandList.Get(),
             resource,
             pUploadResource,
-            0,
+            offset,
             0,
             (uint)subresources.Length,
             d3d12Subresources);

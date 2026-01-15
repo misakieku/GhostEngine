@@ -25,6 +25,7 @@ public sealed class SSAOPassData : IPassData
     public Identifier<RGTexture> GBufferDepth;
     public Identifier<RGTexture> GBufferNormal;
     public Identifier<RGTexture> OutputSSAO;
+    public Identifier<RGBuffer> OutputSSAOBuffer;
 }
 
 public sealed class BloomDownsampleData : IPassData
@@ -37,6 +38,12 @@ public sealed class TAAPassData : IPassData
 {
     public Identifier<RGTexture> InputLighting;
     public Identifier<RGTexture> OutputTAA;
+}
+
+public sealed class PostProcessingPassDataV1 : IPassData
+{
+    public Identifier<RGTexture> InputLighting;
+    public Identifier<RGTexture> OutputBackbuffer;
 }
 
 public sealed class PostProcessingPassDataV2 : IPassData

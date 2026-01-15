@@ -75,13 +75,14 @@ internal sealed class RenderGraphObjectPool
 }
 
 /// <summary>
-/// Represents a texture resource in the render graph.
+/// Represents a resource in the render graph (texture or buffer).
 /// </summary>
 internal sealed class RenderGraphResource
 {
     public RenderGraphResourceType type;
     public int index;
-    public TextureDescriptor descriptor;
+    public TextureDescriptor textureDescriptor;
+    public BufferDescriptor bufferDescriptor;
     public bool isImported;
     public int firstUsePass = -1;
     public int lastUsePass = -1;
@@ -91,8 +92,10 @@ internal sealed class RenderGraphResource
 
     public void Reset()
     {
+        type = RenderGraphResourceType.Texture;
         index = -1;
-        descriptor = default;
+        textureDescriptor = default;
+        bufferDescriptor = default;
         isImported = false;
         firstUsePass = -1;
         lastUsePass = -1;
@@ -105,21 +108,48 @@ internal sealed class RenderGraphResource
 /// <summary>
 /// Registry for managing all resources in the render graph.
 /// Uses pooling to minimize allocations after the first frame.
+/// Uses a single unified list for both textures and buffers with global indexing.
 /// </summary>
 internal sealed class RenderGraphResourceRegistry
 {
     private readonly List<RenderGraphResource> _resources = new(64);
     private readonly RenderGraphObjectPool _pool = new();
 
-    public int TextureResourceCount => _resources.Count;
+    public int ResourceCount => _resources.Count;
+    public int TextureResourceCount
+    {
+        get
+        {
+            int count = 0;
+            for (int i = 0; i < _resources.Count; i++)
+            {
+                if (_resources[i].type == RenderGraphResourceType.Texture)
+                    count++;
+            }
+            return count;
+        }
+    }
+    public int BufferResourceCount
+    {
+        get
+        {
+            int count = 0;
+            for (int i = 0; i < _resources.Count; i++)
+            {
+                if (_resources[i].type == RenderGraphResourceType.Buffer)
+                    count++;
+            }
+            return count;
+        }
+    }
 
     public void BeginFrame()
     {
+        // Return all resources to pool
         for (var i = 0; i < _resources.Count; i++)
         {
             _pool.Return(_resources[i]);
         }
-
         _resources.Clear();
     }
 
@@ -128,7 +158,7 @@ internal sealed class RenderGraphResourceRegistry
         var resource = _pool.Rent<RenderGraphResource>();
         resource.type = RenderGraphResourceType.Texture;
         resource.index = _resources.Count;
-        resource.descriptor = descriptor;
+        resource.textureDescriptor = descriptor;
         resource.isImported = true;
 
         _resources.Add(resource);
@@ -141,20 +171,59 @@ internal sealed class RenderGraphResourceRegistry
         var resource = _pool.Rent<RenderGraphResource>();
         resource.type = RenderGraphResourceType.Texture;
         resource.index = _resources.Count;
-        resource.descriptor = descriptor;
+        resource.textureDescriptor = descriptor;
         resource.isImported = false;
 
         _resources.Add(resource);
 
         return new Identifier<RGTexture>(resource.index);
     }
+    
+    public Identifier<RGBuffer> ImportBuffer(BufferDescriptor descriptor)
+    {
+        var resource = _pool.Rent<RenderGraphResource>();
+        resource.type = RenderGraphResourceType.Buffer;
+        resource.index = _resources.Count;
+        resource.bufferDescriptor = descriptor;
+        resource.isImported = true;
+
+        _resources.Add(resource);
+
+        return new Identifier<RGBuffer>(resource.index);
+    }
+
+    public Identifier<RGBuffer> CreateBuffer(BufferDescriptor descriptor)
+    {
+        var resource = _pool.Rent<RenderGraphResource>();
+        resource.type = RenderGraphResourceType.Buffer;
+        resource.index = _resources.Count;
+        resource.bufferDescriptor = descriptor;
+        resource.isImported = false;
+
+        _resources.Add(resource);
+
+        return new Identifier<RGBuffer>(resource.index);
+    }
 
     public RenderGraphResource GetResource(Identifier<RGResource> resource)
     {
         return _resources[resource.Value];
     }
-
-    public RenderGraphResource GetTextureResourceByIndex(int index)
+    
+    public RenderGraphResource GetResource(Identifier<RGTexture> texture)
+    {
+        return _resources[texture.Value];
+    }
+    
+    public RenderGraphResource GetResource(Identifier<RGBuffer> buffer)
+    {
+        return _resources[buffer.Value];
+    }
+    
+    /// <summary>
+    /// Gets resource by global index. Use this when iterating over all resources.
+    /// </summary>
+    public RenderGraphResource GetResourceByIndex(int index)
     {
         return _resources[index];
     }

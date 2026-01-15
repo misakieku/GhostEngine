@@ -36,17 +36,17 @@ internal class D3D12ResourceDatabase : IResourceDatabase
 
         public ResourceDesc desc;
         public ResourceViewGroup viewGroup;
-        public ResourceUnion resourceUnion;
+        public ResourceUnion resource;
         public ResourceState state;
         public uint cpuFenceValue;
         public readonly bool isExternal;
 
-        public readonly bool Allocated => isExternal ? resourceUnion.resource.Get() != null : resourceUnion.allocation.Get() != null;
-        public readonly SharedPtr<ID3D12Resource> ResourcePtr => isExternal ? resourceUnion.resource.Get() : resourceUnion.allocation.Get()->GetResource();
+        public readonly bool Allocated => isExternal ? resource.resource.Get() != null : resource.allocation.Get() != null;
+        public readonly SharedPtr<ID3D12Resource> ResourcePtr => isExternal ? resource.resource.Get() : resource.allocation.Get()->GetResource();
 
         public ResourceRecord(D3D12MA_Allocation* allocation, uint cpuFenceValue, ResourceState state, ResourceViewGroup resourceDescriptor, ResourceDesc desc)
         {
-            this.resourceUnion = new ResourceUnion(allocation);
+            this.resource = new ResourceUnion(allocation);
             this.isExternal = false;
 
             this.viewGroup = resourceDescriptor;
@@ -57,7 +57,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
 
         public ResourceRecord(ID3D12Resource* resource, ResourceState state, ResourceViewGroup viewGroup)
         {
-            this.resourceUnion = new ResourceUnion(resource);
+            this.resource = new ResourceUnion(resource);
             this.isExternal = true;
 
             this.viewGroup = viewGroup;
@@ -73,17 +73,17 @@ internal class D3D12ResourceDatabase : IResourceDatabase
             {
                 if (isExternal)
                 {
-                    refCount = resourceUnion.resource.Get()->Release();
+                    refCount = resource.resource.Get()->Release();
                 }
                 else
                 {
-                    refCount = resourceUnion.allocation.Get()->Release();
+                    refCount = resource.allocation.Get()->Release();
                 }
             }
 
             descriptorAllocator.Release(viewGroup);
 
-            resourceUnion = default;
+            resource = default;
             viewGroup = default;
 
             return refCount;
@@ -116,7 +116,6 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         _meshes = new UnsafeSlotMap<Mesh>(64, Allocator.Persistent, AllocationOption.Clear);
         _materials = new UnsafeSlotMap<Material>(16, Allocator.Persistent, AllocationOption.Clear);
         _shaders = new DynamicArray<Shader>(16);
-        // _shaderPasses = new UnsafeHashMap<ShaderPassKey, ShaderPass>(32, Allocator.Persistent);
     }
 
     ~D3D12ResourceDatabase()
@@ -149,7 +148,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         return handle;
     }
 
-    public unsafe Handle<GPUResource> AddResource(D3D12MA_Allocation* allocation, uint cpuFenceValue, ResourceState initialState, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string? name = null)
+    public unsafe Handle<GPUResource> AddAllocation(D3D12MA_Allocation* allocation, uint cpuFenceValue, ResourceState initialState, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string? name = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -160,6 +159,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         if (!string.IsNullOrEmpty(name))
         {
             allocation->SetName(name);
+            allocation->GetResource()->SetName(name);
             _resourceName[handle] = name;
         }
 #endif
@@ -475,7 +475,6 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         _samplers.Dispose();
         _meshes.Dispose();
         _materials.Dispose();
-        // _shaderPasses.Dispose();
 
         _disposed = true;
 

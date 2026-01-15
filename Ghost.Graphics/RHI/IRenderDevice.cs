@@ -10,6 +10,7 @@ public enum FeatureSupport
     SamplerFeedback = 1 << 3,
     BindlessResources = 1 << 4,
     WorkGraphs = 1 << 5,
+    AliasBuffersAndTextures = 1 << 6,
 }
 
 /// <summary>

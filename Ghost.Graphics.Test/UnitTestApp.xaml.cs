@@ -1,3 +1,4 @@
+using Ghost.Core;
 using Ghost.Graphics.Test.Windows;
 
 using Microsoft.UI.Xaml;
@@ -49,13 +50,15 @@ public partial class UnitTestApp : Application
     {
         LoadDll();
 
-        Microsoft.VisualStudio.TestPlatform.TestExecutor.UnitTestClient.CreateDefaultUI();
-
         _window = new GraphicsTestWindow();
         _window.Activate();
 
-        UITestMethodAttribute.DispatcherQueue = _window.DispatcherQueue;
-
-        Microsoft.VisualStudio.TestPlatform.TestExecutor.UnitTestClient.Run(Environment.CommandLine);
+        UnhandledException += (sender, e) =>
+        {
+            Logger.LogError(e.Exception);
+#if DEBUG
+            System.Diagnostics.Debugger.Break();
+#endif
+        };
     }
 }

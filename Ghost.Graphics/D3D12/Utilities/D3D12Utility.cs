@@ -79,62 +79,62 @@ internal unsafe static class D3D12Utility
     {
         var d3dStates = D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_COMMON;
 
-        if (state.HasFlag(ResourceState.VertexAndConstantBuffer))
+        if ((state & ResourceState.VertexAndConstantBuffer) == ResourceState.VertexAndConstantBuffer)
         {
             d3dStates |= D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
         }
 
-        if (state.HasFlag(ResourceState.IndexBuffer))
+        if ((state & ResourceState.IndexBuffer) == ResourceState.IndexBuffer)
         {
             d3dStates |= D3D12_RESOURCE_STATE_INDEX_BUFFER;
         }
 
-        if (state.HasFlag(ResourceState.RenderTarget))
+        if ((state & ResourceState.RenderTarget) == ResourceState.RenderTarget)
         {
             d3dStates |= D3D12_RESOURCE_STATE_RENDER_TARGET;
         }
 
-        if (state.HasFlag(ResourceState.UnorderedAccess))
+        if ((state & ResourceState.UnorderedAccess) == ResourceState.UnorderedAccess)
         {
             d3dStates |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
         }
 
-        if (state.HasFlag(ResourceState.DepthWrite))
+        if ((state & ResourceState.DepthWrite) == ResourceState.DepthWrite)
         {
             d3dStates |= D3D12_RESOURCE_STATE_DEPTH_WRITE;
         }
 
-        if (state.HasFlag(ResourceState.DepthRead))
+        if ((state & ResourceState.DepthRead) == ResourceState.DepthRead)
         {
             d3dStates |= D3D12_RESOURCE_STATE_DEPTH_READ;
         }
 
-        if (state.HasFlag(ResourceState.PixelShaderResource))
+        if ((state & ResourceState.PixelShaderResource) == ResourceState.PixelShaderResource)
         {
             d3dStates |= D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
         }
 
-        if (state.HasFlag(ResourceState.CopyDest))
+        if ((state & ResourceState.CopyDest) == ResourceState.CopyDest)
         {
             d3dStates |= D3D12_RESOURCE_STATE_COPY_DEST;
         }
 
-        if (state.HasFlag(ResourceState.CopySource))
+        if ((state & ResourceState.CopySource) == ResourceState.CopySource)
         {
             d3dStates |= D3D12_RESOURCE_STATE_COPY_SOURCE;
         }
 
-        if (state.HasFlag(ResourceState.GenericRead))
+        if ((state & ResourceState.GenericRead) == ResourceState.GenericRead)
         {
             d3dStates |= D3D12_RESOURCE_STATE_GENERIC_READ;
         }
 
-        if (state.HasFlag(ResourceState.IndirectArgument))
+        if ((state & ResourceState.IndirectArgument) == ResourceState.IndirectArgument)
         {
             d3dStates |= D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
         }
 
-        if (state.HasFlag(ResourceState.NonPixelShaderResource))
+        if ((state & ResourceState.NonPixelShaderResource) == ResourceState.NonPixelShaderResource)
         {
             d3dStates |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
         }

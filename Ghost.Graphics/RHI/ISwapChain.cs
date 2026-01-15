@@ -49,7 +49,7 @@ public interface ISwapChain : IDisposable
     /// <summary>
     /// Gets all back buffer textures
     /// </summary>
-    /// <returns>All back buffer textures</returns>
+    /// <returns>AlowBufferAndTexture back buffer textures</returns>
     ReadOnlySpan<Handle<Texture>> GetBackBuffers();
 
     /// <summary>

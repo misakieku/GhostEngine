@@ -1,4 +1,5 @@
 using Ghost.Core;
+using System.Runtime.CompilerServices;
 
 namespace Ghost.RenderGraph.Concept;
 
@@ -34,6 +35,9 @@ internal abstract class RenderGraphPassBase
     public readonly List<Identifier<RGResource>>[] resourceWrites = new List<Identifier<RGResource>>[(int)RenderGraphResourceType.Count];
     public readonly List<Identifier<RGResource>>[] resourceCreates = new List<Identifier<RGResource>>[(int)RenderGraphResourceType.Count];
 
+    // Buffer usage hints (maps buffer resource ID to hint)
+    public readonly Dictionary<int, BufferHint> bufferHints = new(8);
+
     // Execution state
     public bool culled;
     public bool hasSideEffects;
@@ -49,8 +53,8 @@ internal abstract class RenderGraphPassBase
     }
 
     public abstract void Execute(RenderContext context);
-    public abstract void Clear();
     public abstract bool HasRenderFunc();
+    public abstract int GetRenderFuncHashCode();
 
     public virtual void Reset(RenderGraphObjectPool pool)
     {
@@ -72,6 +76,8 @@ internal abstract class RenderGraphPassBase
             resourceWrites[i].Clear();
             resourceCreates[i].Clear();
         }
+
+        bufferHints.Clear();
 
         culled = false;
         hasSideEffects = false;
@@ -97,17 +103,24 @@ internal abstract class RenderGraphPassT<TPassData, TRenderContext> : RenderGrap
         return renderFunc != null;
     }
 
-    public override void Clear()
+    public override int GetRenderFuncHashCode()
     {
-        passData = null!;
-        renderFunc = null;
+        if (renderFunc == null)
+        {
+            return 0;
+        }
+
+        var methodHashCode = RuntimeHelpers.GetHashCode(renderFunc.Method);
+        return renderFunc.Target == null ? methodHashCode : methodHashCode ^ RuntimeHelpers.GetHashCode(renderFunc.Target); // static deleget does not have target
     }
 
     public override void Reset(RenderGraphObjectPool pool)
     {
         base.Reset(pool);
         pool.Return(passData);
-        Clear();
+
+        passData = null!;
+        renderFunc = null;
     }
 }
 

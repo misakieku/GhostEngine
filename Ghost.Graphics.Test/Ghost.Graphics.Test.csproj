@@ -12,11 +12,6 @@
     <EnableMsixTooling>true</EnableMsixTooling>
     <Nullable>enable</Nullable>
   </PropertyGroup>
-  <ItemGroup>
-    <None Remove="Controls\DebugConsole.xaml" />
-    <None Remove="Windows\DebugOutputWindow.xaml" />
-    <None Remove="Windows\WorkGraphTestWindow.xaml" />
-  </ItemGroup>
 
   <ItemGroup>
     <Page Remove="UnitTestApp.xaml" />
@@ -48,19 +43,14 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.TestPlatform.TestHost" Version="18.0.1" />
-    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.7175" />
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.251106002" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.7463" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260101001" />
     <PackageReference Include="MSTest.TestAdapter" Version="4.0.2" />
     <PackageReference Include="MSTest.TestFramework" Version="4.0.2" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Ghost.Engine\Ghost.Engine.csproj" />
     <ProjectReference Include="..\Ghost.Test.Core\Ghost.Test.Core.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <Page Update="Windows\WorkGraphTestWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
   </ItemGroup>
 
   <!-- 

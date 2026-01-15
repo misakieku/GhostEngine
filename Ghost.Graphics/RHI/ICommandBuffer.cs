@@ -118,7 +118,7 @@ public interface ICommandBuffer : IDisposable
     /// </summary>
     /// <param name="slot">The vertex buffer slot to bind to.</param>
     /// <param name="buffer">The handle to the graphics buffer containing vertex data.</param>
-    /// <param name="offset">The offset in bytes from the start of the buffer.</param>
+    /// <param name="offset">The Offset in bytes from the start of the buffer.</param>
     void SetVertexBuffer(uint slot, Handle<GraphicsBuffer> buffer, ulong offset = 0);
 
     /// <summary>
@@ -126,7 +126,7 @@ public interface ICommandBuffer : IDisposable
     /// </summary>
     /// <param name="buffer">The handle to the graphics buffer containing index data.</param>
     /// <param name="type">The space of indices (e.g., 16-bit or 32-bit).</param>
-    /// <param name="offset">The offset in bytes from the start of the buffer.</param>
+    /// <param name="offset">The Offset in bytes from the start of the buffer.</param>
     void SetIndexBuffer(Handle<GraphicsBuffer> buffer, IndexType type, ulong offset = 0);
 
     /// <summary>
@@ -140,7 +140,7 @@ public interface ICommandBuffer : IDisposable
     /// </summary>
     /// <param name="rootIndex">The zero-based index of the root parameter in the graphics root signature to set the constant for.</param>
     /// <param name="constantBuffer">A read-only span containing the 32-bit constant values to set.</param>
-    /// <param name="offsetIn32Bits">The offset, in 32-bit values, from the start of the root parameter where the constants will be set.</param>
+    /// <param name="offsetIn32Bits">The Offset, in 32-bit values, from the start of the root parameter where the constants will be set.</param>
     void SetGraphicsRoot32Constants(uint rootIndex, ReadOnlySpan<uint> constantBuffer, uint offsetIn32Bits = 0);
 
     /// <summary>
@@ -209,8 +209,8 @@ public interface ICommandBuffer : IDisposable
     /// </summary>
     /// <param name="dest">The handle to the destination graphics buffer where data will be written. Cannot be null.</param>
     /// <param name="src">The handle to the source graphics buffer from which data will be read. Cannot be null.</param>
-    /// <param name="destOffset">The byte offset in the destination buffer at which to begin writing. Must be zero or greater.</param>
-    /// <param name="srcOffset">The byte offset in the source buffer at which to begin reading. Must be zero or greater.</param>
+    /// <param name="destOffset">The byte Offset in the destination buffer at which to begin writing. Must be zero or greater.</param>
+    /// <param name="srcOffset">The byte Offset in the source buffer at which to begin reading. Must be zero or greater.</param>
     /// <param name="numBytes">The number of bytes to copy. If zero, copies the remaining bytes from the source buffer starting at <paramref name="srcOffset"/>.</param>
     void CopyBuffer(Handle<GraphicsBuffer> dest, Handle<GraphicsBuffer> src, ulong destOffset = 0, ulong srcOffset = 0, ulong numBytes = 0);
 }
