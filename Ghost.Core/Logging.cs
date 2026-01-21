@@ -69,9 +69,15 @@ public static class Logger
     private class LoggerImpl : ILogger
     {
         private readonly ObservableCollection<LogMessage> _logs = new();
+        private readonly ReadOnlyObservableCollection<LogMessage> _readOnly;
         private readonly Lock _lock = new();
 
-        public ReadOnlyObservableCollection<LogMessage> Logs => new(_logs);
+        public ReadOnlyObservableCollection<LogMessage> Logs => _readOnly;
+
+        public LoggerImpl()
+        {
+            _readOnly = new ReadOnlyObservableCollection<LogMessage>(_logs);
+        }
 
         public void Log(string message, LogLevel level)
         {

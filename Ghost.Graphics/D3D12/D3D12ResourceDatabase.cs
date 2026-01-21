@@ -133,6 +133,13 @@ internal class D3D12ResourceDatabase : IResourceDatabase
     public unsafe Handle<GPUResource> ImportExternalResource(ID3D12Resource* pResource, ResourceState initialState, ResourceViewGroup viewGroup, string? name = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+        if (pResource == null)
+        {
+#if DEBUG
+            System.Diagnostics.Debugger.Break();
+#endif
+            return Handle<GPUResource>.Invalid;
+        }
 
         var id = _resources.Add(new ResourceRecord(pResource, initialState, viewGroup), out var generation);
         var handle = new Handle<GPUResource>(id, generation);
@@ -151,6 +158,13 @@ internal class D3D12ResourceDatabase : IResourceDatabase
     public unsafe Handle<GPUResource> AddAllocation(D3D12MA_Allocation* allocation, uint cpuFenceValue, ResourceState initialState, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string? name = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+        if (allocation == null)
+        {
+#if DEBUG
+            System.Diagnostics.Debugger.Break();
+#endif
+            return Handle<GPUResource>.Invalid;
+        }
 
         var id = _resources.Add(new ResourceRecord(allocation, cpuFenceValue, initialState, resourceDescriptor, desc), out var generation);
         var handle = new Handle<GPUResource>(id, generation);
@@ -159,7 +173,11 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         if (!string.IsNullOrEmpty(name))
         {
             allocation->SetName(name);
-            allocation->GetResource()->SetName(name);
+            var pResource = allocation->GetResource();
+            if (pResource != null)
+            {
+                pResource->SetName(name);
+            }
             _resourceName[handle] = name;
         }
 #endif
@@ -186,18 +204,10 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         return RefResult<ResourceRecord, ErrorStatus>.Success(ref info);
     }
 
-    public ref ResourceRecord GetResourceRecord(Handle<GPUResource> handle, out bool exist)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        return ref _resources.GetElementReferenceAt(handle.ID, handle.Generation, out exist);
-    }
-
     public SharedPtr<ID3D12Resource> GetResource(Handle<GPUResource> handle)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
         var r = GetResourceRecord(handle);
-        if (r.Error != ErrorStatus.None)
+        if (r.IsFailure)
         {
             return null;
         }
@@ -207,10 +217,8 @@ internal class D3D12ResourceDatabase : IResourceDatabase
 
     public Result<ResourceState, ErrorStatus> GetResourceState(Handle<GPUResource> handle)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
         var r = GetResourceRecord(handle);
-        if (!r)
+        if (r.IsFailure)
         {
             return r.Error;
         }
@@ -218,25 +226,22 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         return r.Value.state;
     }
 
-    public void SetResourceState(Handle<GPUResource> handle, ResourceState state)
+    public ErrorStatus SetResourceState(Handle<GPUResource> handle, ResourceState state)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        ref var info = ref _resources.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
-        if (!exist || !info.Allocated)
+        var r = GetResourceRecord(handle);
+        if (r.IsFailure)
         {
-            throw new KeyNotFoundException($"Resource with handle {handle} not found.");
+            return r.Error;
         }
 
-        info.state = state;
+        r.Value.state = state;
+        return ErrorStatus.None;
     }
 
     public Result<ResourceDesc, ErrorStatus> GetResourceDescription(Handle<GPUResource> handle)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
         var r = GetResourceRecord(handle);
-        if (!r)
+        if (r.IsFailure)
         {
             return r.Error;
         }
@@ -246,15 +251,13 @@ internal class D3D12ResourceDatabase : IResourceDatabase
 
     public uint GetBindlessIndex(Handle<GPUResource> handle)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        ref var info = ref GetResourceRecord(handle, out var exist);
-        if (!exist || !info.Allocated)
+        var r = GetResourceRecord(handle);
+        if (r.IsFailure || !r.Value.Allocated)
         {
             return ~0u;
         }
 
-        return (uint)info.viewGroup.srv.Value;
+        return (uint)r.Value.viewGroup.srv.Value;
     }
 
     public string? GetResourceName(Handle<GPUResource> handle)
@@ -329,17 +332,15 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         return _meshes.Contains(handle.ID, handle.Generation);
     }
 
-    public ref Mesh GetMeshReference(Handle<Mesh> handle)
+    public RefResult<Mesh, ErrorStatus> GetMeshReference(Handle<Mesh> handle)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
         ref var mesh = ref _meshes.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
         if (!exist)
         {
-            throw new ArgumentOutOfRangeException(nameof(handle), $"Mesh {handle} is invalid.");
+            return ErrorStatus.NotFound;
         }
 
-        return ref mesh;
+        return RefResult<Mesh, ErrorStatus>.Success(ref mesh);
     }
 
     public void ReleaseMesh(Handle<Mesh> handle)
@@ -370,17 +371,15 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         return _materials.Contains(handle.ID, handle.Generation);
     }
 
-    public ref Material GetMaterialReference(Handle<Material> handle)
+    public RefResult<Material, ErrorStatus> GetMaterialReference(Handle<Material> handle)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
         ref var material = ref _materials.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
         if (!exist)
         {
-            throw new ArgumentOutOfRangeException(nameof(handle), $"Material handle {handle} is invalid.");
+            return ErrorStatus.NotFound;
         }
 
-        return ref material;
+        return RefResult<Material, ErrorStatus>.Success(ref material);
     }
 
     public void ReleaseMaterial(Handle<Material> handle)
@@ -412,16 +411,14 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         return id.Value >= 0 && id.Value < _shaders.Count;
     }
 
-    public ref Shader GetShaderReference(Identifier<Shader> id)
+    public RefResult<Shader, ErrorStatus> GetShaderReference(Identifier<Shader> id)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
         if (!HasShader(id))
         {
-            throw new ArgumentOutOfRangeException(nameof(id), $"Shader id {id} is invalid.");
+            return ErrorStatus.NotFound;
         }
 
-        return ref _shaders[id.Value];
+        return RefResult<Shader, ErrorStatus>.Success(ref _shaders[id.Value]);
     }
 
     public void ReleaseShader(Identifier<Shader> id)

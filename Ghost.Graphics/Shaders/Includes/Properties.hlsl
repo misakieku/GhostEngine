@@ -1,7 +1,7 @@
 #ifndef BUILTIN_PROPERTIES_HLSL
 #define BUILTIN_PROPERTIES_HLSL
 
-#include "F:/csharp/GhostEngine/Ghost.DSL/BuiltIn/Common.hlsl"
+#include "F:/csharp/GhostEngine/Ghost.Graphics/Shaders/Includes/Common.hlsl"
 
 struct PushConstantData
 {

@@ -1,7 +1,7 @@
 using Ghost.Core.Utilities;
+using Ghost.Graphics.D3D12.Utilities;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Collections;
-using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Diagnostics;
 using System.Numerics;
 using TerraFX.Interop.DirectX;
@@ -22,10 +22,7 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
     private D3D12_CPU_DESCRIPTOR_HANDLE _startCpuHandleShaderVisible;
     private D3D12_GPU_DESCRIPTOR_HANDLE _startGpuHandleShaderVisible;
     private int _searchStart;
-    private UnsafeArray<bool> _allocatedDescriptors;
-
-    private readonly int _dynamicHeapStart;
-    private int _currentDynamicOffset;
+    private UnsafeBitSet _allocatedDescriptors;
 
     private readonly Lock _lock = new();
 
@@ -57,7 +54,7 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
     public readonly ID3D12DescriptorHeap* Heap => _heap.Get();
     public readonly ID3D12DescriptorHeap* ShaderVisibleHeap => _shaderVisibleHeap.Get();
 
-    public D3D12DescriptorHeap(string name, D3D12RenderDevice device, D3D12_DESCRIPTOR_HEAP_TYPE type, int numDescriptors, int dynamicHeapStart)
+    public D3D12DescriptorHeap(string name, D3D12RenderDevice device, D3D12_DESCRIPTOR_HEAP_TYPE type, int numDescriptors)
     {
         numDescriptors = Math.Max(64, numDescriptors);
 
@@ -68,16 +65,13 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
         ShaderVisible = type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV || type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
         Stride = device.NativeDevice.Get()->GetDescriptorHandleIncrementSize(type);
 
-        _dynamicHeapStart = Math.Clamp(dynamicHeapStart, 0, numDescriptors);
-        _currentDynamicOffset = 0;
-
         var success = AllocateResources(numDescriptors);
         Debug.Assert(success);
 
-        _heap.Get()->SetName(name.AsSpan().GetUnsafePtr());
+        _heap.Get()->SetName(name);
         if (ShaderVisible)
         {
-            _shaderVisibleHeap.Get()->SetName($"{name} Shader Visible".AsSpan().GetUnsafePtr());
+            _shaderVisibleHeap.Get()->SetName($"{name} Shader Visible");
         }
     }
 
@@ -94,7 +88,7 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
             // Find a contiguous range of 'count' indices for which _allocatedDescriptors[index] is false
             for (var index = _searchStart; index < NumDescriptors; index++)
             {
-                if (_allocatedDescriptors[index])
+                if (_allocatedDescriptors.IsSet(index))
                 {
                     freeCount = 0;
                 }
@@ -111,52 +105,25 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
                 }
             }
 
-            if (!found || foundIndex >= _dynamicHeapStart)
+            if (!found)
             {
-                Debug.Assert(false, "ERROR: Descriptor heap is full!");
-                return _INVALID_DESCRIPTOR_INDEX;
+                foundIndex = NumDescriptors;
+
+                if (!Grow(NumDescriptors + count))
+                {
+                    Debug.WriteLine("Error: Failed to grow descriptor heap.");
+                    return _INVALID_DESCRIPTOR_INDEX;
+                }
             }
 
             for (var index = foundIndex; index < foundIndex + count; index++)
             {
-                _allocatedDescriptors[index] = true;
+                _allocatedDescriptors.SetBit(index);
             }
 
             NumAllocatedDescriptors += count;
             _searchStart = foundIndex + count;
             return foundIndex;
-        }
-    }
-
-    public int AllocateDescriptorDynamic() => AllocateDescriptorsDynamic(1);
-
-    public int AllocateDescriptorsDynamic(int count)
-    {
-        if (count <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(count), "Count must be greater than zero.");
-        }
-
-        // NOTE: In dynamic allocation, we use arena-style allocation without freeing.
-        // We reset the Offset at the beginning of each frame instead.
-
-        lock (_lock)
-        {
-            var baseIndex = _currentDynamicOffset + _dynamicHeapStart;
-            _currentDynamicOffset += count;
-
-            var requiredSize = baseIndex + count;
-            if (requiredSize > NumDescriptors)
-            {
-                if (!Grow(requiredSize))
-                {
-                    Debug.Assert(false, "ERROR: Failed to grow a descriptor heap!");
-                    return _INVALID_DESCRIPTOR_INDEX;
-                }
-            }
-
-            NumAllocatedDescriptors += count;
-            return baseIndex;
         }
     }
 
@@ -174,24 +141,18 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
             return;
         }
 
-        if (baseIndex >= _dynamicHeapStart)
-        {
-            // Dynamic allocations are not released individually.
-            return;
-        }
-
         lock (_lock)
         {
             for (var index = baseIndex; index < baseIndex + count; index++)
             {
 #if DEBUG || GHOST_EDITOR
-                if (!_allocatedDescriptors[index])
+                if (!_allocatedDescriptors.IsSet(index))
                 {
                     Debug.WriteLine("Error: Attempted to release an un-allocated descriptor");
                 }
 #endif
 
-                _allocatedDescriptors[index] = false;
+                _allocatedDescriptors.ClearBit(index);
             }
 
             NumAllocatedDescriptors -= count;
@@ -200,14 +161,6 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
             {
                 _searchStart = baseIndex;
             }
-        }
-    }
-
-    public void ResetDynamicHeap()
-    {
-        lock (_lock)
-        {
-            _currentDynamicOffset = 0;
         }
     }
 
@@ -251,19 +204,6 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
         return _startGpuHandleShaderVisible.Offset(index, Stride);
     }
 
-    public int CopyToPersistentHeap(int index, int count = 1)
-    {
-        if (index < _dynamicHeapStart)
-        {
-            return index;
-        }
-
-        var newLocation = AllocateDescriptors(count);
-        _device.NativeDevice.Get()->CopyDescriptorsSimple((uint)count, GetCpuHandle(index), GetCpuHandle(newLocation), HeapType);
-
-        return newLocation;
-    }
-
     public readonly void CopyToShaderVisibleHeap(int index, int count = 1)
     {
         _device.NativeDevice.Get()->CopyDescriptorsSimple((uint)count, GetCpuHandleShaderVisible(index), GetCpuHandle(index), HeapType);
@@ -296,7 +236,7 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
 
         if (!_allocatedDescriptors.IsCreated)
         {
-            _allocatedDescriptors = new UnsafeArray<bool>(numDescriptors, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent, Misaki.HighPerformance.LowLevel.Buffer.AllocationOption.Clear);
+            _allocatedDescriptors = new UnsafeBitSet(numDescriptors, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent, Misaki.HighPerformance.LowLevel.Buffer.AllocationOption.Clear);
         }
         else
         {

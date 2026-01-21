@@ -33,7 +33,6 @@
       <Platform Solution="*|x86" Project="x86" />
       <Deploy />
     </Project>
-    <Project Path="Ghost.RenderGraph.Concept/Ghost.RenderGraph.Concept.csproj" />
     <Project Path="Ghost.Shader.Test/Ghost.Shader.Test.csproj" />
     <Project Path="Ghost.Test.Core/Ghost.Test.Core.csproj" />
   </Folder>

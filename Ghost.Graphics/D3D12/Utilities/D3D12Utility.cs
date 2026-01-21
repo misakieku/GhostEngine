@@ -42,7 +42,7 @@ internal unsafe static class D3D12Utility
             D3D12_RESOURCE_DIMENSION.D3D12_RESOURCE_DIMENSION_TEXTURE1D => TextureDimension.Texture2D,
             D3D12_RESOURCE_DIMENSION.D3D12_RESOURCE_DIMENSION_TEXTURE2D => TextureDimension.Texture2D,
             D3D12_RESOURCE_DIMENSION.D3D12_RESOURCE_DIMENSION_TEXTURE3D => TextureDimension.Texture3D,
-            _ => TextureDimension.Unknown,
+            _ => throw new NotSupportedException($"Resource dimension {dimension} is not supported."),
         };
     }
 
@@ -71,7 +71,7 @@ internal unsafe static class D3D12Utility
             DXGI_FORMAT_R32G32B32A32_FLOAT => TextureFormat.R32G32B32A32_Float,
             DXGI_FORMAT_D24_UNORM_S8_UINT => TextureFormat.D24_UNorm_S8_UInt,
             DXGI_FORMAT_D32_FLOAT => TextureFormat.D32_Float,
-            _ => TextureFormat.Unknown,
+            _ => throw new NotSupportedException($"DXGI format {format} is not supported.")
         };
     }
 

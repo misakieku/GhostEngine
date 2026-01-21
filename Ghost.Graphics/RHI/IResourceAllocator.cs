@@ -9,7 +9,7 @@ public enum ResourceAllocationType
 {
     Default,
     Temporary,
-    RenderGraphTransient,
+    Suballocation,
 }
 
 public struct CreationOptions

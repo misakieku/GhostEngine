@@ -59,35 +59,6 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
         // NOTE: Since we are targeting SM 6.6, we can use ResourceDescriptorHeap and SamplerDescriptorHeap directly without needing to set up viewGroup tables.
         var rootParameters = stackalloc D3D12_ROOT_PARAMETER1[RootSignatureLayout.ROOT_PARAMETER_COUNT];
 
-#if false
-        rootParameters[0] = new D3D12_ROOT_PARAMETER1
-        {
-            ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
-            ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
-            Descriptor = new D3D12_ROOT_DESCRIPTOR1(RootSignatureLayout.GLOBAL_BUFFER_SLOT, 0), // b0
-        };
-
-        rootParameters[1] = new D3D12_ROOT_PARAMETER1
-        {
-            ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
-            ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
-            Descriptor = new D3D12_ROOT_DESCRIPTOR1(RootSignatureLayout.PER_VIEW_BUFFER_SLOT, 0), // b1
-        };
-
-        rootParameters[2] = new D3D12_ROOT_PARAMETER1
-        {
-            ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
-            ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
-            Descriptor = new D3D12_ROOT_DESCRIPTOR1(RootSignatureLayout.PER_OBJECT_BUFFER_SLOT, 0), // b2
-        };
-
-        rootParameters[3] = new D3D12_ROOT_PARAMETER1
-        {
-            ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
-            ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
-            Descriptor = new D3D12_ROOT_DESCRIPTOR1(RootSignatureLayout.PER_MATERIAL_BUFFER_SLOT, 0), // b3
-        };
-#else
         rootParameters[0] = new D3D12_ROOT_PARAMETER1
         {
             ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS,
@@ -99,7 +70,7 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
                 Num32BitValues = 4  // Global, View, Object, Material indices
             }
         };
-#endif
+
         var rootSignatureDesc = new D3D12_ROOT_SIGNATURE_DESC1
         {
             NumParameters = RootSignatureLayout.ROOT_PARAMETER_COUNT,
@@ -175,9 +146,14 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
 
     private static Result<CBufferInfo> ValidateReflectionData(ShaderReflectionData reflectionData)
     {
-        if (reflectionData.ResourcesBindings.Count != RootSignatureLayout.ROOT_PARAMETER_COUNT)
+        if (reflectionData.ResourcesBindings.Count > RootSignatureLayout.ROOT_PARAMETER_COUNT)
         {
-            return Result.Failure($"Shader must use all {RootSignatureLayout.ROOT_PARAMETER_COUNT} constant buffer slots defined in the root signature.");
+            return Result.Failure($"Shader uses more root parameters than supported ({RootSignatureLayout.ROOT_PARAMETER_COUNT}).");
+        }
+
+        if (reflectionData.ResourcesBindings.Count == 0)
+        {
+            return Result.Success(default(CBufferInfo));
         }
 
         var rootConstant = reflectionData.ResourcesBindings[0];
@@ -275,11 +251,11 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
 
         if (!_pipelineCache.ContainsKey(pipelineKey))
         {
-            var result = ValidatePassReflectionData(in compiled);
-            if (result.IsFailure)
-            {
-                return Result.Failure(result.Message);
-            }
+            //var result = ValidatePassReflectionData(in compiled);
+            //if (result.IsFailure)
+            //{
+            //    return Result.Failure(result.Message);
+            //}
 
             var desc = new D3DX12_MESH_SHADER_PIPELINE_STATE_DESC
             {

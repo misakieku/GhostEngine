@@ -46,7 +46,7 @@ public partial class World
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static World GetWorldUncheck(Identifier<World> id)
+    public static World GetWorldUncheck(Identifier<World> id)
     {
 #if DEBUG || GHOST_EDITOR
         if (id.Value < 0 || id.Value >= s_worlds.Count)
@@ -62,15 +62,14 @@ public partial class World
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Result<World, ErrorStatus> GetWorld(Identifier<World> id)
+    public static World? GetWorld(Identifier<World> id)
     {
         if (id.Value < 0 || id.Value >= s_worlds.Count)
         {
-            return ErrorStatus.InvalidArgument;
+            return null;
         }
 
-        var world = s_worlds[id.Value];
-        return world is null ? ErrorStatus.NotFound : world;
+        return s_worlds[id.Value];
     }
 }
 

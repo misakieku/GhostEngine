@@ -128,9 +128,6 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         }
 
         _resourceAllocator.ReleaseTempResources();
-        _descriptorAllocator.ResetCbvSrvUavDynamicHeap();
-        _descriptorAllocator.ResetDSVDynamicHeap();
-        _descriptorAllocator.ResetRTVDynamicHeap();
 
         return r;
     }
@@ -140,6 +137,11 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         if (_disposed)
         {
             return;
+        }
+
+        foreach (var renderer in _renderers)
+        {
+            renderer.Dispose();
         }
 
         _resourceAllocator.Dispose();

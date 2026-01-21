@@ -53,7 +53,7 @@ public partial class EntityQueryTest : ITest
         _world.AdvanceVersion();
 
         var testJob = new TestChunkQueryJob();
-        var handle = query.ScheduleChunkParallel(testJob, 64, JobHandle.Invalid);
+        var handle = query.ScheduleChunkParallel(testJob, 1, JobHandle.Invalid);
         _jobScheduler.WaitComplete(handle);
 
         query.ForEach<Transform>((e, ref t) =>

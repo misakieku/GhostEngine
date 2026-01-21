@@ -10,7 +10,7 @@ public readonly struct Result
 
     public readonly string? Message => _message;
     public readonly bool IsSuccess => _isSuccess;
-    public readonly bool IsFailure => !_isSuccess;
+    public readonly bool IsFailure => !IsSuccess;
 
     public Result(bool success, string? message = null)
     {
@@ -65,12 +65,15 @@ public readonly struct Result<T>
     private readonly string? _message;
     private readonly bool _isSuccess;
 
+    /// <summary>
+    /// Gets the value. Undefined if the result is a failure.
+    /// </summary>
     public T Value
     {
         get
         {
 #if DEBUG || GHOST_EDITOR
-            if (!_isSuccess)
+            if (IsFailure)
             {
                 throw new InvalidOperationException($"Cannot access Value when Result is a failure. {_message}");
             }
@@ -81,7 +84,7 @@ public readonly struct Result<T>
 
     public readonly string? Message => _message;
     public readonly bool IsSuccess => _isSuccess;
-    public readonly bool IsFailure => !_isSuccess;
+    public readonly bool IsFailure => !IsSuccess;
 
     public Result(bool success, T value, string? message = null)
     {
@@ -136,14 +139,16 @@ public readonly struct Result<T, E>
 {
     private readonly T _value;
     private readonly E _error;
-    private readonly bool _isSuccess;
 
+    /// <summary>
+    /// Gets the value. Undefined if the result is a failure.
+    /// </summary>
     public T Value
     {
         get
         {
 #if DEBUG || GHOST_EDITOR
-            if (!_isSuccess)
+            if (IsFailure)
             {
                 throw new InvalidOperationException($"Cannot access Value when Result is a failure. Error: {_error}");
             }
@@ -153,37 +158,35 @@ public readonly struct Result<T, E>
     }
 
     public E Error => _error;
-    public bool IsSuccess => _isSuccess;
-    public bool IsFailure => !_isSuccess;
+    public bool IsSuccess => EqualityComparer<E>.Default.Equals(_error, default);
+    public bool IsFailure => !IsSuccess;
 
-    public Result(T value, E status, bool isSuccess)
+    public Result(T value, E status)
     {
         _value = value;
         _error = status;
-        _isSuccess = isSuccess;
     }
 
     public static Result<T, E> Success(T value)
     {
-        return new Result<T, E>(value, default, true);
+        return new Result<T, E>(value, default);
     }
 
     public static Result<T, E> Failure(E status)
     {
-        return new Result<T, E>(default!, status, false);
+        return new Result<T, E>(default!, status);
     }
 
-    public void Deconstruct(out bool success, out T value, out E status)
+    public void Deconstruct(out T value, out E status)
     {
-        success = IsSuccess;
         value = Value;
         status = Error;
     }
 
     public override string ToString() => $"Value: {_value}, Status: {_error}";
 
-    public static implicit operator Result<T, E>(T data) => new(data, default, true);
-    public static implicit operator Result<T, E>(E status) => new(default!, status, false);
+    public static implicit operator Result<T, E>(T data) => new(data, default);
+    public static implicit operator Result<T, E>(E status) => new(default!, status);
     public static implicit operator bool(Result<T, E> result) => result.IsSuccess;
 }
 
@@ -191,15 +194,17 @@ public readonly ref struct RefResult<T, E>
     where E : struct, Enum
 {
     private readonly ref T _value;
-    private readonly E _error;
-    private readonly bool _isSuccess;
+    private readonly E  _error;
 
+    /// <summary>
+    /// Gets a reference to the value. Undefined if the result is a failure.
+    /// </summary>
     public ref T Value
     {
         get
         {
 #if DEBUG || GHOST_EDITOR
-            if (!_isSuccess)
+            if (IsFailure)
             {
                 throw new InvalidOperationException($"Cannot access Value when Result is a failure. Error: {_error}");
             }
@@ -209,24 +214,23 @@ public readonly ref struct RefResult<T, E>
     }
 
     public E Error => _error;
-    public bool IsSuccess => _isSuccess;
-    public bool IsFailure => !_isSuccess;
+    public bool IsSuccess => EqualityComparer<E>.Default.Equals(_error, default);
+    public bool IsFailure => !IsSuccess;
 
-    public RefResult(ref T value, E error, bool isSuccess)
+    public RefResult(ref T value, E error)
     {
         _value = ref value;
         _error = error;
-        _isSuccess = isSuccess;
     }
 
     public static RefResult<T, E> Success(ref T value)
     {
-        return new RefResult<T, E>(ref value, default, true);
+        return new RefResult<T, E>(ref value, default);
     }
 
     public static RefResult<T, E> Failure(E error)
     {
-        return new RefResult<T, E>(ref Unsafe.NullRef<T>(), error, false);
+        return new RefResult<T, E>(ref Unsafe.NullRef<T>(), error);
     }
 
     public void Deconstruct(out bool success, out Ref<T> value, out E status)
@@ -238,8 +242,8 @@ public readonly ref struct RefResult<T, E>
 
     public override string ToString() => $"Value: {_value}, Status: {_error}";
 
-    public static implicit operator RefResult<T, E>(Ref<T> data) => new(ref data.Get(), default, true);
-    public static implicit operator RefResult<T, E>(E error) => new(ref Unsafe.NullRef<T>(), error, false);
+    public static implicit operator RefResult<T, E>(Ref<T> data) => new(ref data.Get(), default);
+    public static implicit operator RefResult<T, E>(E error) => new(ref Unsafe.NullRef<T>(), error);
     public static implicit operator bool(RefResult<T, E> result) => result.IsSuccess;
 }
 

@@ -47,7 +47,12 @@ public unsafe partial struct EntityQuery
     public JobHandle ScheduleChunkParallel<TJob>(TJob job, int batchSize, JobHandle dependency)
         where TJob : unmanaged, IJobChunk
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow();
+        var world = World.GetWorld(_worldID);
+        if (world is null)
+        {
+            return JobHandle.Invalid;
+        }
+
         if (world.JobScheduler == null)
         {
             throw new InvalidOperationException("The World has no JobScheduler assigned.");

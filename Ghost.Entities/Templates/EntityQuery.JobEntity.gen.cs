@@ -1095,7 +1095,12 @@ public unsafe partial struct EntityQuery
         where TJob : unmanaged, IJobEntity<T0>
         where T0 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow();
+        var world = World.GetWorld(_worldID);
+        if (world is null)
+        {
+            return JobHandle.Invalid;
+        }
+
         if (world.JobScheduler == null)
         {
             throw new InvalidOperationException("The World has no JobScheduler assigned.");
@@ -1232,7 +1237,12 @@ public unsafe partial struct EntityQuery
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow();
+        var world = World.GetWorld(_worldID);
+        if (world is null)
+        {
+            return JobHandle.Invalid;
+        }
+
         if (world.JobScheduler == null)
         {
             throw new InvalidOperationException("The World has no JobScheduler assigned.");
@@ -1396,7 +1406,12 @@ public unsafe partial struct EntityQuery
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow();
+        var world = World.GetWorld(_worldID);
+        if (world is null)
+        {
+            return JobHandle.Invalid;
+        }
+
         if (world.JobScheduler == null)
         {
             throw new InvalidOperationException("The World has no JobScheduler assigned.");
@@ -1587,7 +1602,12 @@ public unsafe partial struct EntityQuery
         where T2 : unmanaged, IComponent
         where T3 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow();
+        var world = World.GetWorld(_worldID);
+        if (world is null)
+        {
+            return JobHandle.Invalid;
+        }
+
         if (world.JobScheduler == null)
         {
             throw new InvalidOperationException("The World has no JobScheduler assigned.");
@@ -1805,7 +1825,12 @@ public unsafe partial struct EntityQuery
         where T3 : unmanaged, IComponent
         where T4 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow();
+        var world = World.GetWorld(_worldID);
+        if (world is null)
+        {
+            return JobHandle.Invalid;
+        }
+
         if (world.JobScheduler == null)
         {
             throw new InvalidOperationException("The World has no JobScheduler assigned.");
@@ -2050,7 +2075,12 @@ public unsafe partial struct EntityQuery
         where T4 : unmanaged, IComponent
         where T5 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow();
+        var world = World.GetWorld(_worldID);
+        if (world is null)
+        {
+            return JobHandle.Invalid;
+        }
+
         if (world.JobScheduler == null)
         {
             throw new InvalidOperationException("The World has no JobScheduler assigned.");
@@ -2322,7 +2352,12 @@ public unsafe partial struct EntityQuery
         where T5 : unmanaged, IComponent
         where T6 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow();
+        var world = World.GetWorld(_worldID);
+        if (world is null)
+        {
+            return JobHandle.Invalid;
+        }
+
         if (world.JobScheduler == null)
         {
             throw new InvalidOperationException("The World has no JobScheduler assigned.");
@@ -2621,7 +2656,12 @@ public unsafe partial struct EntityQuery
         where T6 : unmanaged, IComponent
         where T7 : unmanaged, IComponent
     {
-        var world = World.GetWorld(_worldID).GetValueOrThrow();
+        var world = World.GetWorld(_worldID);
+        if (world is null)
+        {
+            return JobHandle.Invalid;
+        }
+
         if (world.JobScheduler == null)
         {
             throw new InvalidOperationException("The World has no JobScheduler assigned.");

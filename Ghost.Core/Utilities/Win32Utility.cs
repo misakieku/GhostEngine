@@ -2,10 +2,8 @@ using Misaki.HighPerformance.LowLevel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using TerraFX.Interop.Windows;
-using TerraFX.Interop.WinRT;
 
 namespace Ghost.Core.Utilities;
 
@@ -62,12 +60,10 @@ internal static unsafe partial class Win32Utility
     public static void Dispose<T>(ref this UniquePtr<T> uPtr)
         where T : unmanaged, IUnknown.Interface
     {
-        T* ptr = uPtr.Get();
+        var ptr = uPtr.Detach();
         if (ptr != null)
         {
-            uPtr = default;
             ptr->Release();
-            //MemoryLeakException.ThrowIfRefCountNonZero(ptr->Release());
         }
     }
 
@@ -78,7 +74,7 @@ internal static unsafe partial class Win32Utility
         {
             return Result.Success();
         }
-        
+
         return Result.Failure($"{op} failed with code {hr}");
     }
 

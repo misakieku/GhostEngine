@@ -294,28 +294,41 @@ public struct PassDepthStencilDesc
 }
 
 
+[StructLayout(LayoutKind.Explicit)]
 public struct BarrierDesc
 {
-    public Handle<GPUResource> Resource
+    public struct barrierdesc_transition
     {
-        get; set;
+        public Handle<GPUResource> resource;
+        public ResourceState stateBefore;
+        public ResourceState stateAfter;
     }
 
-    public ResourceState StateBefore
+    public struct barrierdesc_aliasing
     {
-        get; set;
+        public Handle<GPUResource> resourceBefore;
+        public Handle<GPUResource> resourceAfter;
     }
 
-    public ResourceState StateAfter
+    public struct barrierdesc_uav
     {
-        get; set;
+        public Handle<GPUResource> resource;
     }
+
+    [FieldOffset(0)]
+    public BarrierType type;
+    [FieldOffset(4)]
+    public barrierdesc_transition transition;
+    [FieldOffset(4)]
+    public barrierdesc_aliasing aliasing;
+    [FieldOffset(4)]
+    public barrierdesc_uav uav;
 }
 
 public struct ResourceDesc
 {
     [StructLayout(LayoutKind.Explicit)]
-    private struct resource_union
+    internal struct resource_union
     {
         [FieldOffset(0)]
         public TextureDesc textureDescription;
@@ -323,7 +336,7 @@ public struct ResourceDesc
         public BufferDesc bufferDescription;
     }
 
-    private resource_union _desc;
+    internal resource_union _desc;
 
     public TextureDesc TextureDescription
     {
@@ -774,9 +787,17 @@ public enum SwapChainTargetType
 }
 
 
-[Flags]
-public enum ResourceState
+public enum BarrierType : int
 {
+    Transition,
+    Aliasing,
+    UAV
+}
+
+[Flags]
+public enum ResourceState : int
+{
+    Auto = -1,
     Common = 0,
     VertexAndConstantBuffer = 1 << 0,
     IndexBuffer = 1 << 1,

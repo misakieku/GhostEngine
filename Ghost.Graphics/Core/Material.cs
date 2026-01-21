@@ -61,6 +61,11 @@ public struct Material : IResourceReleasable
     public readonly Identifier<Shader> Shader => _shader;
     public readonly bool IsDirty => _isDirty;
 
+    public int ActivePassIndex
+    {
+        get; set;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void SetDirty()
     {
@@ -77,8 +82,13 @@ public struct Material : IResourceReleasable
         _cBufferCache.ReleaseResource(database);
         _shader = shaderId;
 
-        var shader = database.GetShaderReference(shaderId);
+        var r = database.GetShaderReference(shaderId);
+        if (r.IsFailure)
+        {
+            return r.Error;
+        }
 
+        ref readonly var shader = ref r.Value;
         if (_passPipelineOverride.Count < shader.PassCount)
         {
             if (!_passPipelineOverride.IsCreated)
@@ -187,7 +197,13 @@ public struct Material : IResourceReleasable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ErrorStatus SetKeyword(IResourceDatabase resourceDatabase, int keywordId, bool enabled)
     {
-        ref var shader = ref resourceDatabase.GetShaderReference(_shader);
+        var r = resourceDatabase.GetShaderReference(_shader);
+        if (r.IsFailure)
+        {
+            return r.Error;
+        }
+
+        ref readonly var shader = ref r.Value;
         var localIndex = shader.GetLocalKeywordIndex(keywordId);
         if (localIndex == -1)
         {
@@ -203,7 +219,13 @@ public struct Material : IResourceReleasable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly bool IsKeywordEnabled(IResourceDatabase resourceDatabase, int keywordId)
     {
-        ref var shader = ref resourceDatabase.GetShaderReference(_shader);
+        var r = resourceDatabase.GetShaderReference(_shader);
+        if (r.IsFailure)
+        {
+            return false;
+        }
+
+        ref readonly var shader = ref r.Value;
         var localIndex = shader.GetLocalKeywordIndex(keywordId);
         if (localIndex == -1)
         {
@@ -216,13 +238,18 @@ public struct Material : IResourceReleasable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly void UploadData(ICommandBuffer cmd, bool pixelOnlyResource = true)
     {
-        cmd.ResourceBarrier(_cBufferCache.GpuResource.AsResource(), ResourceState.CopyDest);
+        if (!_isDirty)
+        {
+            return;
+        }
+
+        cmd.TransitionBarrier(_cBufferCache.GpuResource.AsResource(), ResourceState.CopyDest);
         cmd.UploadBuffer(_cBufferCache.GpuResource, _cBufferCache.CpuData.AsSpan());
 
         var state = pixelOnlyResource
             ? ResourceState.PixelShaderResource
             : ResourceState.NonPixelShaderResource | ResourceState.PixelShaderResource;
-        cmd.ResourceBarrier(_cBufferCache.GpuResource.AsResource(), state);
+        cmd.TransitionBarrier(_cBufferCache.GpuResource.AsResource(), state);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

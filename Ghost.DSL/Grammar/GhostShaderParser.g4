@@ -75,11 +75,16 @@ keywordStatement:
 
 hlslBlock:
     HLSL LBRACE
-        hlslCode
+        hlslBody
     RBRACE;
 
-hlslCode:
-    .*? ;  // Capture everything inside hlsl block
+// Recursively matches content, ensuring braces are balanced.
+hlslBody:
+    (
+        ~(LBRACE | RBRACE)   // Match ANY token except open/close braces
+        | 
+        LBRACE hlslBody RBRACE  // Or match a nested block recursively
+    )*;
 
 shaderEntry:
     IDENTIFIER STRING_LITERAL COLON STRING_LITERAL SEMICOLON;

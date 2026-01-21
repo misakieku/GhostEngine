@@ -17,12 +17,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="RenderGraphModule\**" />
-    <EmbeddedResource Remove="RenderGraphModule\**" />
-    <None Remove="RenderGraphModule\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Remove="runtime\win-x64\native\dxcompiler.dll" />
     <None Remove="runtime\win-x64\native\dxil.dll" />
   </ItemGroup>

@@ -3,6 +3,7 @@ using Ghost.Graphics.RHI;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RenderPasses;
 using Ghost.Graphics.Contracts;
+using Ghost.Graphics.RenderGraphModule;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -15,6 +16,7 @@ internal class D3D12Renderer : IRenderer
     private readonly D3D12ResourceDatabase _resourceDatabase;
 
     private readonly ICommandBuffer _commandBuffer;
+    private readonly RenderGraph _renderGraph;
 
     private uint _frameIndex;
     private bool _disposed;
@@ -35,6 +37,7 @@ internal class D3D12Renderer : IRenderer
         _resourceDatabase = resourceDatabase;
 
         _commandBuffer = _graphicsEngine.CreateCommandBuffer(CommandBufferType.Graphics);
+        _renderGraph = new RenderGraph(_graphicsEngine);
 
         // NOTE: Testing only.
         _pass = new();
@@ -61,7 +64,7 @@ internal class D3D12Renderer : IRenderer
         _commandBuffer.Begin(commandAllocator);
         RenderOutput.BeginRender(_commandBuffer);
 
-        // NOTE: Temperary solution: render directly to the swap chain back buffer if available.
+        // NOTE: Temporary solution: render directly to the swap chain back buffer if available.
         // HACK: This is hard coded for testing purposes only.
 
         var error = RenderScene(target, RenderOutput.Viewport, RenderOutput.Scissor);
@@ -87,30 +90,6 @@ internal class D3D12Renderer : IRenderer
     // TODO: A proper render graph integration.
     private ErrorStatus RenderScene(Handle<Texture> target, ViewportDesc viewport, RectDesc rect)
     {
-        var clearColor = new Color128 { r = 1.0f, g = 0.0f, b = 1.0f, a = 1.0f };
-
-        Span<PassRenderTargetDesc> rtDesc =
-        [
-            new PassRenderTargetDesc
-            {
-                Texture = target,
-                ClearColor = clearColor,
-                LoadOp = AttachmentLoadOp.Clear,
-                StoreOp = AttachmentStoreOp.Store,
-            },
-        ];
-
-        var depthDesc = new PassDepthStencilDesc
-        {
-            Texture = Handle<Texture>.Invalid,
-            ClearDepth = 1.0f,
-            ClearStencil = 0,
-            DepthLoadOp = AttachmentLoadOp.Clear,
-            StencilLoadOp = AttachmentLoadOp.Clear,
-            DepthStoreOp = AttachmentStoreOp.Store,
-            StencilStoreOp = AttachmentStoreOp.Store,
-        };
-
         // NOTE: Testing only.
         var ctx = new RenderingContext(_graphicsEngine, _commandBuffer);
         if (_frameIndex == 0)
@@ -118,14 +97,23 @@ internal class D3D12Renderer : IRenderer
             _pass.Initialize(ref ctx);
         }
 
-        _commandBuffer.BeginRenderPass(rtDesc, depthDesc, false);
+        //_commandBuffer.BeginRenderPass(rtDesc, depthDesc, false);
         _commandBuffer.SetViewport(viewport);
         _commandBuffer.SetScissorRect(rect);
 
-        // NOTE: Testing only.
-        _pass.Execute(ref ctx);
+        _renderGraph.Reset();
 
-        _commandBuffer.EndRenderPass();
+        var backBuffer = _renderGraph.ImportTexture(target, "Back Buffer");
+        _pass.Build(_renderGraph, backBuffer);
+
+        // Create view state from viewport
+        var viewState = new ViewState((uint)viewport.Width, (uint)viewport.Height);
+
+        // Compile with view state
+        _renderGraph.Compile(in viewState);
+        _renderGraph.Execute(_commandBuffer);
+
+        //_commandBuffer.EndRenderPass();
         _frameIndex++;
 
         return ErrorStatus.None;
@@ -140,6 +128,7 @@ internal class D3D12Renderer : IRenderer
 
         // NOTE: Testing only.
         _pass.Cleanup(_resourceDatabase);
+        _renderGraph.Dispose();
 
         _commandBuffer.Dispose();
 

@@ -66,6 +66,10 @@ public interface ICommandBuffer : IDisposable
     /// <param name="depthTarget">A handle to the texture to be used as the depth Target. Specify a invalid handle if no depth Target is required.</param>
     void SetRenderTargets(ReadOnlySpan<Handle<Texture>> renderTargets, Handle<Texture> depthTarget);
 
+    void ClearRenderTargetView(Handle<Texture> renderTarget, Color128 clearColor);
+
+    void ClearDepthStencilView(Handle<Texture> depthStencil, bool inlcudeDepth, bool includeStencil, float clearDepth = 1.0f, byte clearStencil = 0);
+
     /// <summary>
     /// Begins a render pass with the specified render Target
     /// </summary>
@@ -79,8 +83,10 @@ public interface ICommandBuffer : IDisposable
     /// </summary>
     void EndRenderPass();
 
+    // TODO: Enhanced barriers.
+
     /// <summary>
-    /// Inserts multiple resource barriers for state transitions.
+    /// Inserts multiple resource barriers.
     /// </summary>
     /// <param name="barrierDescs">Resource barrier descriptions</param>
     void ResourceBarrier(ReadOnlySpan<BarrierDesc> barrierDescs);
@@ -91,14 +97,21 @@ public interface ICommandBuffer : IDisposable
     /// <param name="resource">A handle to the GPU resource to transition.</param>
     /// <param name="stateBefore">The current state of the resource before the transition.</param>
     /// <param name="stateAfter">The desired state of the resource after the transition.</param>
-    void ResourceBarrier(Handle<GPUResource> resource, ResourceState stateBefore, ResourceState stateAfter);
+    void TransitionBarrier(Handle<GPUResource> resource, ResourceState stateBefore, ResourceState stateAfter);
 
     /// <summary>
     /// Inserts a resource barrier for state transitions. The current state is tracked internally.
     /// </summary>
     /// <param name="resource">A handle to the GPU resource to transition.</param>
     /// <param name="stateAfter">The desired state of the resource after the transition.</param>
-    void ResourceBarrier(Handle<GPUResource> resource, ResourceState stateAfter);
+    void TransitionBarrier(Handle<GPUResource> resource, ResourceState stateAfter);
+
+    /// <summary>
+    /// Inserts a barrier to ensure correct aliasing transitions between two GPU resources.
+    /// </summary>
+    /// <param name="resourceBefore">A handle to the GPU resource representing the state before the aliasing transition</param>
+    /// <param name="resourceAfter">A handle to the GPU resource representing the state after the aliasing transition</param>
+    void AliasBarrier(Handle<GPUResource> resourceBefore, Handle<GPUResource> resourceAfter);
 
     /// <summary>
     /// Sets the pipeline state object
@@ -207,8 +220,8 @@ public interface ICommandBuffer : IDisposable
     /// <summary>
     /// Copies a specified number of bytes from the source graphics buffer to the destination graphics buffer.
     /// </summary>
-    /// <param name="dest">The handle to the destination graphics buffer where data will be written. Cannot be null.</param>
-    /// <param name="src">The handle to the source graphics buffer from which data will be read. Cannot be null.</param>
+    /// <param name="dest">The handle to the destination graphics buffer where data will be written.</param>
+    /// <param name="src">The handle to the source graphics buffer from which data will be read.</param>
     /// <param name="destOffset">The byte Offset in the destination buffer at which to begin writing. Must be zero or greater.</param>
     /// <param name="srcOffset">The byte Offset in the source buffer at which to begin reading. Must be zero or greater.</param>
     /// <param name="numBytes">The number of bytes to copy. If zero, copies the remaining bytes from the source buffer starting at <paramref name="srcOffset"/>.</param>

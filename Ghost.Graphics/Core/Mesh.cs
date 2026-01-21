@@ -95,12 +95,6 @@ public struct Mesh : IResourceReleasable
         get; internal set;
     }
 
-    public Mesh()
-    {
-        VertexBuffer = Handle<GraphicsBuffer>.Invalid;
-        IndexBuffer = Handle<GraphicsBuffer>.Invalid;
-    }
-
     internal Mesh(ReadOnlySpan<Vertex> vertices, ReadOnlySpan<uint> indices, Handle<GraphicsBuffer> vertexBuffer, Handle<GraphicsBuffer> indexBuffer)
     {
         Vertices = new UnsafeList<Vertex>(vertices.Length, Allocator.Persistent);
@@ -119,7 +113,7 @@ public struct Mesh : IResourceReleasable
         _indices.Dispose();
     }
 
-    void IResourceReleasable.ReleaseResource(IResourceDatabase database)
+    readonly void IResourceReleasable.ReleaseResource(IResourceDatabase database)
     {
         ReleaseCpuResources();
 

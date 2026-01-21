@@ -434,7 +434,12 @@ public unsafe partial struct EntityQuery : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly ChunkIterator GetChunkIterator()
     {
-        var world = World.GetWorld(_worldID).Value;
+        var world = World.GetWorld(_worldID);
+        if (world is null)
+        {
+            return default;
+        }
+
         return new ChunkIterator(_matchingArchetypes.AsReadOnly(), world);
     }
 
@@ -442,13 +447,12 @@ public unsafe partial struct EntityQuery : IDisposable
     public readonly int GetEntityCount()
     {
         var total = 0;
-        var r = World.GetWorld(_worldID);
-        if (r.IsFailure)
+        var world = World.GetWorld(_worldID);
+        if (world is null)
         {
             return 0;
         }
 
-        var world = r.Value;
         for(var i = 0; i < _matchingArchetypes.Count; i++)
         {
             var archetypeID = _matchingArchetypes[i];

@@ -257,7 +257,20 @@ internal class RenderSystem : IRenderSystem
 
                 if (!_resizeRequest.IsEmpty)
                 {
-                    WaitIdle();
+                    //WaitIdle();
+                    _gpuFenceValue++;
+                    var flushFence = _graphicsEngine.Device.GraphicsQueue.Signal(_gpuFenceValue);
+                    _graphicsEngine.Device.GraphicsQueue.WaitForValue(flushFence);
+
+                    // Sync the current frame resource to this new fence to keep state consistent
+                    frameResource.FenceValue = flushFence;
+
+
+                    foreach (var resource in _frameResources)
+                    {
+                        resource.CommandAllocator.Reset();
+                    }
+
                     foreach (var kvp in _resizeRequest)
                     {
                         var swapChain = kvp.Key;

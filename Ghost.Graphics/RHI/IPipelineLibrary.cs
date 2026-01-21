@@ -3,17 +3,6 @@ using Ghost.Graphics.Contracts;
 
 namespace Ghost.Graphics.RHI;
 
-public interface IShaderPipeline
-{
-    /// <summary>
-    /// Pipeline space
-    /// </summary>
-    PipelineType Type
-    {
-        get;
-    }
-}
-
 public interface IPipelineLibrary : IDisposable
 {
     /// <summary>

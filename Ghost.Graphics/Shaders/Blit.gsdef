@@ -1,0 +1,74 @@
+shader "Hidden/Blit"
+{
+    properties
+    {
+        tex2d mainTex = { white };
+        sampler sampler_mainTex;
+    }
+
+    pass "Blit"
+    {
+        pipeline
+        {
+            ztest = always;
+            zwrite = off;
+            cull = off;
+            blend = opaque;
+            color_mask = all;
+        }
+
+        includes
+        {
+            "F:/csharp/GhostEngine/Ghost.Graphics/Shaders/Includes/Common.hlsl";
+            "F:/csharp/GhostEngine/Ghost.Graphics/Shaders/Includes/Color.hlsl";
+            "F:/csharp/GhostEngine/Ghost.Graphics/Shaders/Includes/Properties.hlsl";
+        }
+
+        hlsl
+        {
+            struct PSInput
+            {
+                float4 position : SV_POSITION;
+                float4 uv : TEXCOORD0;
+            };
+
+            [MESH_SHADER_THREADS(4)]
+            [OUTPUT_TRIANGLE_TOPOLOGY]
+            void MSMain(
+                uint gtid : SV_GroupThreadID,
+                out vertices PSInput verts[4],
+                out indices uint3 tris[2]
+            )
+            {
+                SetMeshOutputCounts(4, 2);
+
+                float2 uv = float2(gtid & 1, (gtid >> 1) & 1);
+
+                verts[gtid].position = float4(uv * 2.0 - 1.0, 0.0, 1.0);
+                // verts[gtid].position.y *= -1.0;
+                verts[gtid].uv = float4(uv, 0.0, 0.0);
+
+                if (gtid == 0)
+                {
+                    tris[0] = uint3(0, 1, 2); // First triangle
+                    tris[1] = uint3(1, 3, 2); // Second triangle
+                }
+            }
+
+            float4 PSMain(PSInput input) : SV_TARGET
+            {
+                PerMaterialData perMaterialData = LoadData<PerMaterialData>(g_PushConstantData.perMaterialBuffer, 0);
+
+                float2 uv = input.uv.xy;
+                float4 color = SAMPLE_TEXTURE2D(perMaterialData.mainTex, perMaterialData.sampler_mainTex, uv);
+            #ifdef LINEAR_COLORSPACE
+                color = LinearToSRGB(color);
+            #endif
+                return color;
+            }
+        }
+
+        mesh "hlsl_block" : "MSMain";
+        pixel "hlsl_block" : "PSMain";
+    }
+}

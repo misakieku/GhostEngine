@@ -199,7 +199,13 @@ public unsafe partial struct EntityQuery
     public readonly EntityComponentIterator<T0> GetEntityComponentIterator<T0>()
         where T0 : unmanaged, IComponent
     {
-        return new EntityComponentIterator<T0>(_matchingArchetypes.AsReadOnly(), _mask, World.GetWorld(_worldID).GetValueOrThrow());
+        var world = World.GetWorld(_worldID);
+        if (world is null)
+        {
+            return default;
+        }
+
+        return new EntityComponentIterator<T0>(_matchingArchetypes.AsReadOnly(), _mask, world);
     }
 
     public readonly ref struct EntityComponentIterator<T0, T1>
@@ -403,7 +409,13 @@ public unsafe partial struct EntityQuery
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
     {
-        return new EntityComponentIterator<T0, T1>(_matchingArchetypes.AsReadOnly(), _mask, World.GetWorld(_worldID).GetValueOrThrow());
+        var world = World.GetWorld(_worldID);
+        if (world is null)
+        {
+            return default;
+        }
+
+        return new EntityComponentIterator<T0, T1>(_matchingArchetypes.AsReadOnly(), _mask, world);
     }
 
     public readonly ref struct EntityComponentIterator<T0, T1, T2>
@@ -617,7 +629,13 @@ public unsafe partial struct EntityQuery
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent
     {
-        return new EntityComponentIterator<T0, T1, T2>(_matchingArchetypes.AsReadOnly(), _mask, World.GetWorld(_worldID).GetValueOrThrow());
+        var world = World.GetWorld(_worldID);
+        if (world is null)
+        {
+            return default;
+        }
+
+        return new EntityComponentIterator<T0, T1, T2>(_matchingArchetypes.AsReadOnly(), _mask, world);
     }
 
     public readonly ref struct EntityComponentIterator<T0, T1, T2, T3>
@@ -841,7 +859,13 @@ public unsafe partial struct EntityQuery
         where T2 : unmanaged, IComponent
         where T3 : unmanaged, IComponent
     {
-        return new EntityComponentIterator<T0, T1, T2, T3>(_matchingArchetypes.AsReadOnly(), _mask, World.GetWorld(_worldID).GetValueOrThrow());
+        var world = World.GetWorld(_worldID);
+        if (world is null)
+        {
+            return default;
+        }
+
+        return new EntityComponentIterator<T0, T1, T2, T3>(_matchingArchetypes.AsReadOnly(), _mask, world);
     }
 
     public readonly ref struct EntityComponentIterator<T0, T1, T2, T3, T4>
@@ -1075,7 +1099,13 @@ public unsafe partial struct EntityQuery
         where T3 : unmanaged, IComponent
         where T4 : unmanaged, IComponent
     {
-        return new EntityComponentIterator<T0, T1, T2, T3, T4>(_matchingArchetypes.AsReadOnly(), _mask, World.GetWorld(_worldID).GetValueOrThrow());
+        var world = World.GetWorld(_worldID);
+        if (world is null)
+        {
+            return default;
+        }
+
+        return new EntityComponentIterator<T0, T1, T2, T3, T4>(_matchingArchetypes.AsReadOnly(), _mask, world);
     }
 
     public readonly ref struct EntityComponentIterator<T0, T1, T2, T3, T4, T5>
@@ -1319,7 +1349,13 @@ public unsafe partial struct EntityQuery
         where T4 : unmanaged, IComponent
         where T5 : unmanaged, IComponent
     {
-        return new EntityComponentIterator<T0, T1, T2, T3, T4, T5>(_matchingArchetypes.AsReadOnly(), _mask, World.GetWorld(_worldID).GetValueOrThrow());
+        var world = World.GetWorld(_worldID);
+        if (world is null)
+        {
+            return default;
+        }
+
+        return new EntityComponentIterator<T0, T1, T2, T3, T4, T5>(_matchingArchetypes.AsReadOnly(), _mask, world);
     }
 
     public readonly ref struct EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6>
@@ -1573,7 +1609,13 @@ public unsafe partial struct EntityQuery
         where T5 : unmanaged, IComponent
         where T6 : unmanaged, IComponent
     {
-        return new EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6>(_matchingArchetypes.AsReadOnly(), _mask, World.GetWorld(_worldID).GetValueOrThrow());
+        var world = World.GetWorld(_worldID);
+        if (world is null)
+        {
+            return default;
+        }
+
+        return new EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6>(_matchingArchetypes.AsReadOnly(), _mask, world);
     }
 
     public readonly ref struct EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>
@@ -1837,7 +1879,13 @@ public unsafe partial struct EntityQuery
         where T6 : unmanaged, IComponent
         where T7 : unmanaged, IComponent
     {
-        return new EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>(_matchingArchetypes.AsReadOnly(), _mask, World.GetWorld(_worldID).GetValueOrThrow());
+        var world = World.GetWorld(_worldID);
+        if (world is null)
+        {
+            return default;
+        }
+
+        return new EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>(_matchingArchetypes.AsReadOnly(), _mask, world);
     }
 
 }

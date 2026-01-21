@@ -222,7 +222,13 @@ public unsafe partial struct EntityQuery
     public readonly EntityComponentIterator<<#= generics#>> GetEntityComponentIterator<<#= generics#>>()
 <#= restrictions #>
     {
-        return new EntityComponentIterator<<#= generics#>>(_matchingArchetypes.AsReadOnly(), _mask, World.GetWorld(_worldID).GetValueOrThrow());
+        var world = World.GetWorld(_worldID);
+        if (world is null)
+        {
+            return default;
+        }
+
+        return new EntityComponentIterator<<#= generics#>>(_matchingArchetypes.AsReadOnly(), _mask, world);
     }
 
 <# } #>

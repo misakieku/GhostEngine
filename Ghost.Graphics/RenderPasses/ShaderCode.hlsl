@@ -1,5 +1,5 @@
-#include "F:/csharp/GhostEngine/Ghost.DSL/BuiltIn/Properties.hlsl"
-#include "F:/csharp/GhostEngine/Ghost.DSL/BuiltIn/Common.hlsl"
+#include "F:/csharp/GhostEngine/Ghost.Graphics/Shaders/Includes/Properties.hlsl"
+#include "F:/csharp/GhostEngine/Ghost.Graphics/Shaders/Includes/Common.hlsl"
 
 struct PixelInput
 {
@@ -46,5 +46,5 @@ float4 PSMain(PixelInput input) : SV_TARGET
     float4 color4 = SAMPLE_TEXTURE2D(perMaterialData.texture4, perMaterialData.tex_sampler, input.uv.xy);
 
     float4 blendedColor = (color1 + color2 + color3 + color4) * 0.25f;
-    return perMaterialData.color * blendedColor;
+    return perMaterialData.color * blendedColor + input.color;
 }

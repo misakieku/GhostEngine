@@ -5,7 +5,6 @@ using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Utilities;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
@@ -115,7 +114,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if DEBUG
-    [DoesNotReturn]
+    [System.Diagnostics.CodeAnalysis.DoesNotReturn]
     private static void RecordError(string cmdName, ErrorStatus status)
 #else
     private void RecordError(string cmdName, ErrorStatus status)
@@ -206,51 +205,82 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
 #endif
         IncrementCommandCount();
 
+        if (barrierDescs.IsEmpty)
+        {
+            return;
+        }
+
         var count = 0u;
         var pBarriers = stackalloc D3D12_RESOURCE_BARRIER[barrierDescs.Length];
 
         for (var i = 0; i < barrierDescs.Length; i++)
         {
             var desc = barrierDescs[i];
-            if (desc.StateBefore == desc.StateAfter)
-            {
-                continue;
-            }
+            D3D12_RESOURCE_BARRIER barrier = default;
 
-            if (!desc.Resource.IsValid)
+            switch (desc.type)
             {
-                RecordError(nameof(ResourceBarrier), ErrorStatus.InvalidArgument);
-                continue;
-            }
+                case BarrierType.Transition:
+                    if (desc.transition.stateBefore == desc.transition.stateAfter)
+                    {
+                        continue;
+                    }
 
-            var recordResult = _resourceDatabase.GetResourceRecord(desc.Resource);
-            if (recordResult.Error != ErrorStatus.None)
-            {
-                RecordError(nameof(ResourceBarrier), recordResult.Error);
-                continue;
-            }
+                    var recordResult = _resourceDatabase.GetResourceRecord(desc.transition.resource);
+                    if (recordResult.Error != ErrorStatus.None)
+                    {
+                        RecordError(nameof(TransitionBarrier), recordResult.Error);
+                        continue;
+                    }
 
-            ref var record = ref recordResult.Value;
-            if (record.state != desc.StateBefore)
-            {
-                RecordError(nameof(ResourceBarrier), ErrorStatus.InvalidState);
-                continue;
-            }
+                    ref var record = ref recordResult.Value;
+                    var stateBefore = desc.transition.stateBefore == ResourceState.Auto ? record.state : desc.transition.stateBefore;
+                    
+                    barrier = D3D12_RESOURCE_BARRIER.InitTransition(record.ResourcePtr,
+                        stateBefore.ToD3D12States(), desc.transition.stateAfter.ToD3D12States());
 
-            var barrier = D3D12_RESOURCE_BARRIER.InitTransition(record.ResourcePtr,
-                desc.StateBefore.ToD3D12States(), desc.StateAfter.ToD3D12States());
+                    record.state = desc.transition.stateAfter;
+                    break;
+
+                case BarrierType.Aliasing:
+                    var recordBeforeResult = _resourceDatabase.GetResourceRecord(desc.aliasing.resourceBefore);
+                    if (recordBeforeResult.Error != ErrorStatus.None)
+                    {
+                        RecordError(nameof(TransitionBarrier), recordBeforeResult.Error);
+                        continue;
+                    }
+
+                    var recordAfterResult = _resourceDatabase.GetResourceRecord(desc.aliasing.resourceAfter);
+                    if (recordAfterResult.Error != ErrorStatus.None)
+                    {
+                        RecordError(nameof(TransitionBarrier), recordAfterResult.Error);
+                        continue;
+                    }
+
+                    barrier = D3D12_RESOURCE_BARRIER.InitAliasing(
+                        recordBeforeResult.Value.ResourcePtr,
+                        recordAfterResult.Value.ResourcePtr);
+                    break;
+                case BarrierType.UAV:
+                    var recordUavResult = _resourceDatabase.GetResourceRecord(desc.uav.resource);
+                    if (recordUavResult.Error != ErrorStatus.None)
+                    {
+                        RecordError(nameof(TransitionBarrier), recordUavResult.Error);
+                        continue;
+                    }
+
+                    barrier = D3D12_RESOURCE_BARRIER.InitUAV(recordUavResult.Value.ResourcePtr);
+                    break;
+            }
 
             pBarriers[count] = barrier;
             count++;
-
-            // Update the resource state in the database
-            record.state = desc.StateAfter;
         }
-
+        
         _commandList.Get()->ResourceBarrier(count, pBarriers);
     }
 
-    public void ResourceBarrier(Handle<GPUResource> resource, ResourceState stateBefore, ResourceState stateAfter)
+    public void TransitionBarrier(Handle<GPUResource> resource, ResourceState stateBefore, ResourceState stateAfter)
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();
@@ -270,7 +300,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         var recordResult = _resourceDatabase.GetResourceRecord(resource);
         if (recordResult.Error != ErrorStatus.None)
         {
-            RecordError(nameof(ResourceBarrier), recordResult.Error);
+            RecordError(nameof(TransitionBarrier), recordResult.Error);
             return;
         }
 
@@ -282,7 +312,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         record.state = stateAfter;
     }
 
-    public void ResourceBarrier(Handle<GPUResource> resource, ResourceState stateAfter)
+    public void TransitionBarrier(Handle<GPUResource> resource, ResourceState stateAfter)
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();
@@ -297,7 +327,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         var recordResult = _resourceDatabase.GetResourceRecord(resource);
         if (recordResult.Error != ErrorStatus.None)
         {
-            RecordError(nameof(ResourceBarrier), recordResult.Error);
+            RecordError(nameof(TransitionBarrier), recordResult.Error);
             return;
         }
 
@@ -312,6 +342,38 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
 
         _commandList.Get()->ResourceBarrier(1, &barrier);
         record.state = stateAfter;
+    }
+
+    public void AliasBarrier(Handle<GPUResource> resourceBefore, Handle<GPUResource> resourceAfter)
+    {
+        ThrowIfDisposed();
+        ThrowIfNotRecording();
+#if !DEBUG
+        if (_lastError.Status != ErrorStatus.None)
+        {
+            return;
+        }
+#endif
+        IncrementCommandCount();
+
+        var recordBeforeResult = _resourceDatabase.GetResourceRecord(resourceBefore);
+        if (recordBeforeResult.Error != ErrorStatus.None)
+        {
+            RecordError(nameof(AliasBarrier), recordBeforeResult.Error);
+            return;
+        }
+
+        var recordAfterResult = _resourceDatabase.GetResourceRecord(resourceAfter);
+        if (recordAfterResult.Error != ErrorStatus.None)
+        {
+            RecordError(nameof(AliasBarrier), recordAfterResult.Error);
+            return;
+        }
+
+        var barrier = D3D12_RESOURCE_BARRIER.InitAliasing(
+            recordBeforeResult.Value.ResourcePtr,
+            recordAfterResult.Value.ResourcePtr);
+        _commandList.Get()->ResourceBarrier(1, &barrier);
     }
 
     public void SetRenderTargets(ReadOnlySpan<Handle<Texture>> renderTargets, Handle<Texture> depthTarget)
@@ -365,6 +427,69 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         }
 
         _commandList.Get()->OMSetRenderTargets(rtvCount, pRtvHandles, FALSE, pDsvHandle);
+    }
+
+    public void ClearRenderTargetView(Handle<Texture> renderTarget, Color128 clearColor)
+    {
+        ThrowIfDisposed();
+        ThrowIfNotRecording();
+#if !DEBUG
+        if (_lastError.Status != ErrorStatus.None)
+        {
+            return;
+        }
+#endif
+        IncrementCommandCount();
+        
+        var recordResult = _resourceDatabase.GetResourceRecord(renderTarget.AsResource());
+        if (recordResult.Error != ErrorStatus.None)
+        {
+            RecordError(nameof(ClearRenderTargetView), recordResult.Error);
+            return;
+        }
+
+        ref var record = ref recordResult.Value;
+        var cpuHandle = _descriptorAllocator.GetCpuHandle(record.viewGroup.rtv);
+        var color = stackalloc float[4]
+        {
+            clearColor.r,
+            clearColor.g,
+            clearColor.b,
+            clearColor.a
+        };
+
+        _commandList.Get()->ClearRenderTargetView(cpuHandle, color, 0, null);
+    }
+
+    public void ClearDepthStencilView(Handle<Texture> depthStencil, bool inlcudeDepth, bool includeStencil, float clearDepth = 1.0f, byte clearStencil = 0)
+    {
+        ThrowIfDisposed();
+        ThrowIfNotRecording();
+#if !DEBUG
+        if (_lastError.Status != ErrorStatus.None)
+        {
+            return;
+        }
+#endif
+        IncrementCommandCount();
+
+        var recordResult = _resourceDatabase.GetResourceRecord(depthStencil.AsResource());
+        if (recordResult.Error != ErrorStatus.None)
+        {
+            RecordError(nameof(ClearDepthStencilView), recordResult.Error);
+            return;
+        }
+
+        ref var record = ref recordResult.Value;
+        var cpuHandle = _descriptorAllocator.GetCpuHandle(record.viewGroup.dsv);
+        var flag = (inlcudeDepth ? D3D12_CLEAR_FLAG_DEPTH : 0) | (includeStencil ? D3D12_CLEAR_FLAG_STENCIL : 0);
+
+        _commandList.Get()->ClearDepthStencilView(cpuHandle,
+            flag,
+            clearDepth,
+            clearStencil,
+            0,
+            null);
     }
 
     public void BeginRenderPass(ReadOnlySpan<PassRenderTargetDesc> rtDescs, PassDepthStencilDesc depthDesc, bool allowUAVWrites = false)

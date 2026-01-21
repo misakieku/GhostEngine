@@ -264,7 +264,7 @@ internal static class DSLShaderCompiler
 #ifndef {fileDefine}
 #define {fileDefine}
 
-#include ""F:/csharp/GhostEngine/Ghost.DSL/BuiltIn/Common.hlsl""");
+#include ""F:/csharp/GhostEngine/Ghost.Graphics/Shaders/Includes/Common.hlsl""");
 
         sb.Append(@"
 struct PerMaterialData
@@ -303,7 +303,7 @@ struct PerMaterialData
 #ifndef GLOBALDATA_G_HLSL
 #define GLOBALDATA_G_HLSL
 
-#include ""F:/csharp/GhostEngine/Ghost.DSL/BuiltIn/Common.hlsl""
+#include ""F:/csharp/GhostEngine/Ghost.Graphics/Shaders/Includes/Common.hlsl""
 
 struct GlobalData
 {");

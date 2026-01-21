@@ -9,6 +9,8 @@ namespace Ghost.Graphics.RHI;
 
 internal static class RHIUtility
 {
+    public const int MAX_RENDER_TARGETS = 8;
+
     public static uint GetBytesPerPixel(this TextureFormat format)
     {
         return format switch

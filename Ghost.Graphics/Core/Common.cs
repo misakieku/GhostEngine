@@ -1,6 +1,8 @@
+using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
 using System.Drawing;
 using System.Runtime.InteropServices;
+using TerraFX.Interop.DirectX;
 
 namespace Ghost.Graphics.Core;
 
@@ -117,4 +119,27 @@ public struct Color128 : IEquatable<Color128>
     {
         return !(left == right);
     }
+}
+
+
+[StructLayout(LayoutKind.Sequential)]
+public struct Vertex
+{
+    public static class Semantic
+    {
+        public const DXGI_FORMAT ALIGNED_FORMAT = DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_FLOAT;
+        public const int COUNT = 5;
+
+        public static readonly FixedText32 Position = new("POSITION");
+        public static readonly FixedText32 Normal = new("NORMAL");
+        public static readonly FixedText32 Tangent = new("TANGENT");
+        public static readonly FixedText32 Uv = new("TEXCOORD");
+        public static readonly FixedText32 Color = new("COLOR");
+    }
+
+    public float4 position;
+    public float4 normal;
+    public float4 tangent;
+    public float4 uv;
+    public Color128 color;
 }

@@ -50,13 +50,18 @@ public readonly unsafe ref struct RenderingContext
     public Handle<Mesh> CreateMesh(UnsafeList<Vertex> vertices, UnsafeList<uint> indices, bool staticMesh)
     {
         var mesh = ResourceAllocator.CreateMesh(vertices, indices);
-        ref var meshData = ref ResourceDatabase.GetMeshReference(mesh);
+        var r = ResourceDatabase.GetMeshReference(mesh);
+        if (r.IsFailure)
+        {
+            return mesh;
+        }
 
+        ref readonly var meshData = ref r.Value;
         var vertexHandle = meshData.VertexBuffer.AsResource();
         var indexHandle = meshData.IndexBuffer.AsResource();
 
-        _directCmd.ResourceBarrier(vertexHandle, ResourceState.CopyDest);
-        _directCmd.ResourceBarrier(indexHandle, ResourceState.CopyDest);
+        _directCmd.TransitionBarrier(vertexHandle, ResourceState.CopyDest);
+        _directCmd.TransitionBarrier(indexHandle, ResourceState.CopyDest);
 
         _directCmd.UploadBuffer(meshData.VertexBuffer, meshData.Vertices.AsSpan());
         _directCmd.UploadBuffer(meshData.IndexBuffer, meshData.Indices.AsSpan());
@@ -64,8 +69,8 @@ public readonly unsafe ref struct RenderingContext
         if (staticMesh)
         {
             meshData.ReleaseCpuResources();
-            _directCmd.ResourceBarrier(vertexHandle, ResourceState.NonPixelShaderResource);
-            _directCmd.ResourceBarrier(indexHandle, ResourceState.NonPixelShaderResource);
+            _directCmd.TransitionBarrier(vertexHandle, ResourceState.NonPixelShaderResource);
+            _directCmd.TransitionBarrier(indexHandle, ResourceState.NonPixelShaderResource);
         }
 
         return mesh;
@@ -91,16 +96,22 @@ public readonly unsafe ref struct RenderingContext
     /// <param name="markMeshStatic">Whether to mark the mesh as static. If it's true, the cpu buffer of the mesh will not be avaliable any more</param>
     public void UploadMesh(Handle<Mesh> mesh, bool markMeshStatic)
     {
-        ref var meshRef = ref ResourceDatabase.GetMeshReference(mesh);
+        var r = ResourceDatabase.GetMeshReference(mesh);
+        if (r.IsFailure)
+        {
+            return;
+        }
 
-        _directCmd.ResourceBarrier(meshRef.VertexBuffer.AsResource(), ResourceState.CopyDest);
-        _directCmd.ResourceBarrier(meshRef.IndexBuffer.AsResource(), ResourceState.CopyDest);
+        ref readonly var meshRef = ref r.Value;
+
+        _directCmd.TransitionBarrier(meshRef.VertexBuffer.AsResource(), ResourceState.CopyDest);
+        _directCmd.TransitionBarrier(meshRef.IndexBuffer.AsResource(), ResourceState.CopyDest);
 
         _directCmd.UploadBuffer(meshRef.VertexBuffer, meshRef.Vertices.AsSpan());
         _directCmd.UploadBuffer(meshRef.IndexBuffer, meshRef.Indices.AsSpan());
 
-        _directCmd.ResourceBarrier(meshRef.VertexBuffer.AsResource(), ResourceState.NonPixelShaderResource);
-        _directCmd.ResourceBarrier(meshRef.IndexBuffer.AsResource(), ResourceState.NonPixelShaderResource);
+        _directCmd.TransitionBarrier(meshRef.VertexBuffer.AsResource(), ResourceState.NonPixelShaderResource);
+        _directCmd.TransitionBarrier(meshRef.IndexBuffer.AsResource(), ResourceState.NonPixelShaderResource);
 
         if (markMeshStatic)
         {
@@ -110,7 +121,13 @@ public readonly unsafe ref struct RenderingContext
 
     public void UpdateObjectData(Handle<Mesh> mesh, float4x4 localToWorld)
     {
-        ref var meshData = ref ResourceDatabase.GetMeshReference(mesh);
+        var r = ResourceDatabase.GetMeshReference(mesh);
+        if (r.IsFailure)
+        {
+            return;
+        }
+
+        ref readonly var meshData = ref r.Value;
         var data = new PerObjectData
         {
             localToWorld = localToWorld,
@@ -122,9 +139,9 @@ public readonly unsafe ref struct RenderingContext
 
         var bufferHandle = meshData.ObjectDataBuffer.AsResource();
 
-        _directCmd.ResourceBarrier(bufferHandle, ResourceState.CopyDest);
+        _directCmd.TransitionBarrier(bufferHandle, ResourceState.CopyDest);
         _directCmd.UploadBuffer(meshData.ObjectDataBuffer, [data]);
-        _directCmd.ResourceBarrier(bufferHandle, ResourceState.NonPixelShaderResource | ResourceState.PixelShaderResource);
+        _directCmd.TransitionBarrier(bufferHandle, ResourceState.NonPixelShaderResource | ResourceState.PixelShaderResource);
     }
 
     public Handle<Texture> CreateTexture<T>(ref readonly TextureDesc desc, ReadOnlySpan<T> data, string name)
@@ -149,7 +166,7 @@ public readonly unsafe ref struct RenderingContext
 
         desc.TextureDescription.Format.GetSurfaceInfo(desc.TextureDescription.Width, desc.TextureDescription.Height, out var rowPitch, out var slicePitch, out _);
 
-        _directCmd.ResourceBarrier(texture.AsResource(), ResourceState.CopyDest);
+        _directCmd.TransitionBarrier(texture.AsResource(), ResourceState.CopyDest);
 
         fixed (T* pData = data)
         {
@@ -162,66 +179,5 @@ public readonly unsafe ref struct RenderingContext
 
             _directCmd.UploadTexture(texture, [subresourceData]);
         }
-    }
-
-    // TODO: Ideally we should queue the draw call to our rendering system, and render it in a full rendering pipeline.
-    // This is just a place holder for now for testing purpose.
-    public void DispatchMesh(Handle<Mesh> mesh, Handle<Material> material, Identifier<ShaderPass> passID, uint numThreadsX)
-    {
-        ref var meshRef = ref ResourceDatabase.GetMeshReference(mesh);
-        ref var materialRef = ref ResourceDatabase.GetMaterialReference(material);
-        ref var shader = ref ResourceDatabase.GetShaderReference(materialRef.Shader);
-
-        var passIndex = shader.GetPassIndex(passID);
-        if (passIndex == -1)
-        {
-            throw new InvalidOperationException("Shader pass not found in the material's shader.");
-        }
-
-        ref var pass = ref shader.GetPassReference(passIndex);
-
-        var passPipelineHash = new PassPipelineHash([TextureFormat.B8G8R8A8_UNorm], TextureFormat.Unknown);
-        var materialPipeline = materialRef.GetPassPipelineOverride(passIndex);
-
-        // Mask out the keywords that are not used in this pass.
-        var variantMask = materialRef._keywordMask & pass.KeywordIDs;
-        var shaderVariantKey = RHIUtility.CreateShaderVariantKey(pass.Key, in variantMask);
-
-        var pipelineKey = RHIUtility.CreateGraphicsPipelineKey(shaderVariantKey, materialPipeline, passPipelineHash);
-
-        if (!_engine.PipelineLibrary.HasPipeline(pipelineKey))
-        {
-            var r = _engine.ShaderCompiler.LoadCompiledCache(shaderVariantKey);
-            if (r.IsFailure)
-            {
-                throw new InvalidOperationException("Failed to load compiled shader cache for pipeline state object creation.");
-            }
-
-            var psoDes = new GraphicsPSODescriptor
-            {
-                VariantKey = shaderVariantKey,
-                PipelineOption = materialRef.GetPassPipelineOverride(passIndex),
-
-                RtvFormats = [TextureFormat.B8G8R8A8_UNorm],
-                DsvFormat = TextureFormat.Unknown,
-            };
-
-            var compiled = r.Value;
-            _engine.PipelineLibrary.CompilePSO(in psoDes, in compiled).GetValueOrThrow();
-        }
-
-        _directCmd.SetPipelineState(pipelineKey);
-
-        var data = new PushConstantsData
-        {
-            objectIndex = _engine.ResourceDatabase.GetBindlessIndex(meshRef.ObjectDataBuffer.AsResource()),
-            materialIndex = _engine.ResourceDatabase.GetBindlessIndex(materialRef._cBufferCache.GpuResource.AsResource()),
-        };
-
-        var pushConstantSpan = new ReadOnlySpan<uint>(&data, sizeof(PushConstantsData) / sizeof(uint));
-        _directCmd.SetGraphicsRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, pushConstantSpan);
-
-        var threadGroupCountX = ((uint)meshRef.IndexCount + numThreadsX - 1) / numThreadsX;
-        _directCmd.DispatchMesh(threadGroupCountX, 1, 1);
     }
 }

@@ -46,7 +46,8 @@ public interface IResourceDatabase : IDisposable
     /// </summary>
     /// <param name="handle">The handle that identifies the resource whose state will be updated.</param>
     /// <param name="state">The new state to assign to the resource represented by <paramref name="handle"/>.</param>
-    void SetResourceState(Handle<GPUResource> handle, ResourceState state);
+    /// <returns>An ErrorStatus indicating the success or failure of the operation.</returns>
+    ErrorStatus SetResourceState(Handle<GPUResource> handle, ResourceState state);
 
     /// <summary>
     /// Retrieves the description of a GPU resource associated with the specified handle.
@@ -113,8 +114,8 @@ public interface IResourceDatabase : IDisposable
     /// Returns a reference to the mesh associated with the specified handle.
     /// </summary>
     /// <param name="handle">The handle of the mesh to retrieve. Must refer to a valid mesh; otherwise, the behavior is undefined.</param>
-    /// <returns>A reference to the mesh corresponding to the specified handle.</returns>
-    ref Mesh GetMeshReference(Handle<Mesh> handle);
+    /// <returns>A result containing a reference to the mesh corresponding to the specified handle, or an error status if the handle is invalid.</returns>
+    RefResult<Mesh, ErrorStatus> GetMeshReference(Handle<Mesh> handle);
 
     /// <summary>
     /// Releases the mesh resource associated with the specified handle, freeing any resources held by it. Includes both CPU and GPU resources.
@@ -140,8 +141,8 @@ public interface IResourceDatabase : IDisposable
     /// Gets a reference to the material associated with the specified handle.
     /// </summary>
     /// <param name="handle">The handle of the material to retrieve. Must refer to a valid material.</param>
-    /// <returns>A reference to the material corresponding to the specified handle.</returns>
-    ref Material GetMaterialReference(Handle<Material> handle);
+    /// <returns>A result containing a reference to the material corresponding to the specified handle, or an error status if the handle is invalid.</returns>
+    RefResult<Material, ErrorStatus> GetMaterialReference(Handle<Material> handle);
 
     /// <summary>
     /// Releases the material associated with the specified handle, making it available for reuse or disposal.
@@ -167,8 +168,8 @@ public interface IResourceDatabase : IDisposable
     /// Returns a reference to the shader associated with the specified identifier.
     /// </summary>
     /// <param name="id">The identifier of the shader to retrieve. Must refer to a valid shader.</param>
-    /// <returns>A reference to the shader corresponding to the specified identifier.</returns>
-    ref Shader GetShaderReference(Identifier<Shader> id);
+    /// <returns>A result containing a reference to the shader corresponding to the specified identifier, or an error status if the identifier is invalid.</returns>
+    RefResult<Shader, ErrorStatus> GetShaderReference(Identifier<Shader> id);
 
     /// <summary>
     /// Releases the shader associated with the specified identifier, freeing any resources allocated to it.
