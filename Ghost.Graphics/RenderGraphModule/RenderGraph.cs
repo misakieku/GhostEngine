@@ -3,8 +3,8 @@ using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using System.Diagnostics;
 using System.IO.Hashing;
-using TerraFX.Interop.Windows;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
@@ -25,10 +25,10 @@ public sealed class RenderGraph : IDisposable
     private readonly RenderGraphBuilder _builder;
     private readonly ResourceAliasingManager _aliasingManager;
 
-    private readonly Dictionary<int, ResourceState> _resourceStates;
-    private readonly List<ResourceBarrier> _barriers;
+    private readonly Dictionary<int, ResourceBarrierData> _resourceStates = new(128);
+    private readonly List<ResourceBarrier> _barriers = new(128);
 
-    private readonly RenderGraphCompilationCache _compilationCache;
+    private readonly RenderGraphCompilationCache _compilationCache = new();
     private readonly RenderGraphContext _context;
 
     private bool _compiled;
@@ -54,7 +54,7 @@ public sealed class RenderGraph : IDisposable
         _builder = new RenderGraphBuilder();
         _aliasingManager = new ResourceAliasingManager(_objectPool);
 
-        _resourceStates = new Dictionary<int, ResourceState>(64);
+        _resourceStates = new Dictionary<int, ResourceBarrierData>(64);
         _barriers = new List<ResourceBarrier>(128);
 
         _compilationCache = new RenderGraphCompilationCache();
@@ -70,6 +70,7 @@ public sealed class RenderGraph : IDisposable
         Blackboard = new RenderGraphBlackboard();
     }
 
+
     /// <summary>
     /// Resets the render graph for a new frame.
     /// Reuses existing allocations to minimize GC.
@@ -80,10 +81,10 @@ public sealed class RenderGraph : IDisposable
         Blackboard.Clear();
 
         // Reset resources but keep allocations
-        _resources.BeginFrame();
+        _resources.Reset();
 
         // Reset aliasing manager
-        _aliasingManager.BeginFrame();
+        _aliasingManager.Reset();
 
         // Clear resource states and barriers
         _resourceStates.Clear();
@@ -116,7 +117,9 @@ public sealed class RenderGraph : IDisposable
     /// </summary>
     /// <param name="texture">The external texture handle.</param>
     /// <returns>The identifier of the imported render graph texture. Invalid if import fails.</returns>
-    public Identifier<RGTexture> ImportTexture(Handle<Texture> texture, string name)
+    public Identifier<RGTexture> ImportTexture(Handle<Texture> texture, string name,
+        Color128 clearColor = default, float clearDepth = 1.0f, byte clearStencil = 0,
+        bool clearAtFirstUse = true, bool discardAtLastUse = true)
     {
         var r = _graphicsEngine.ResourceDatabase.GetResourceDescription(texture.AsResource());
         if (r.IsFailure)
@@ -125,7 +128,7 @@ public sealed class RenderGraph : IDisposable
         }
 
         var desc = r.Value;
-        return _resources.ImportTexture(in desc._desc.textureDescription, texture, name);
+        return _resources.ImportTexture(in desc._desc.textureDescription, texture, name, clearColor, clearDepth, clearStencil, clearAtFirstUse, discardAtLastUse);
     }
 
     /// <summary>
@@ -329,17 +332,6 @@ public sealed class RenderGraph : IDisposable
                     *(int*)(pData + offset) = pass.randomAccess[k].Value;
                     offset += sizeof(int);
                 }
-
-                // Hash buffer hints (important for correct barrier generation)
-                *(int*)(pData + offset) = pass.bufferHints.Count;
-                offset += sizeof(int);
-                foreach (var kvp in pass.bufferHints)
-                {
-                    *(int*)(pData + offset) = kvp.Key;  // Buffer resource ID
-                    offset += sizeof(int);
-                    *(int*)(pData + offset) = (int)kvp.Value;  // BufferHint flags
-                    offset += sizeof(int);
-                }
             }
 
             *(int*)(pData + offset) = pass.GetRenderFuncHashCode();
@@ -439,7 +431,7 @@ public sealed class RenderGraph : IDisposable
         _aliasingManager.AssignPhysicalResources(_resources, _passes.Count);
         AllocateResource();
 
-        GenerateBarriers();
+        GenerateAliasingBarriers();
         BuildNativeRenderPasses();
         StoreInCache(graphHash);
 
@@ -570,6 +562,8 @@ public sealed class RenderGraph : IDisposable
                 res.backingResource = cached.backingResources[i];
             }
         }
+
+        BuildNativeRenderPasses();
     }
 
     /// <summary>
@@ -667,9 +661,9 @@ public sealed class RenderGraph : IDisposable
     }
 
     /// <summary>
-    /// Generates resource barriers for state transitions and aliasing.
+    /// Generates aliasing barriers to synchronize resources sharing memory.
     /// </summary>
-    private void GenerateBarriers()
+    private void GenerateAliasingBarriers()
     {
         _barriers.Clear();
         _resourceStates.Clear();
@@ -681,9 +675,6 @@ public sealed class RenderGraph : IDisposable
 
             // Insert aliasing barriers for resources that reuse physical memory
             InsertAliasingBarriers(pass, passIdx);
-
-            // Insert transition barriers for state changes
-            InsertTransitionBarriers(pass, passIdx);
         }
     }
 
@@ -741,27 +732,16 @@ public sealed class RenderGraph : IDisposable
                                 }
                             }
 
-                            // If we found a previous resource, insert aliasing barrier
+                            // If we found a previous resource, insert aliasing barrier (sync update)
                             if (mostRecentLastUse >= 0)
                             {
-                                BarrierDesc desc;
-                                if (resource.type == RenderGraphResourceType.Texture)
-                                {
-                                     desc = BarrierDesc.Texture(resource.backingResource, 
-                                        BarrierSync.All, BarrierSync.None, 
-                                        BarrierAccess.NoAccess, BarrierAccess.NoAccess,
-                                        BarrierLayout.Undefined, BarrierLayout.Common, 
-                                        discard: true); 
-                                }
-                                else
-                                {
-                                     desc = BarrierDesc.Buffer(resource.backingResource,
-                                        BarrierSync.All, BarrierSync.None,
-                                        BarrierAccess.NoAccess, BarrierAccess.NoAccess);
-                                }
-
-                                var barrier = ResourceBarrier.Create(passIdx, desc, id);
+                                // Aliasing Requirement: Transition to Undefined, Sync with Predecessor
+                                var targetState = new ResourceBarrierData(BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierSync.None);
+                                var barrier = ResourceBarrier.CreateAliasing(passIdx, id, resourceBefore, targetState);
                                 _barriers.Add(barrier);
+                                
+                                // Update local tracker so subsequent transitions know it's Undefined
+                                _resourceStates[id.Value] = targetState;
                             }
                         }
                     }
@@ -770,227 +750,24 @@ public sealed class RenderGraph : IDisposable
         }
     }
 
-    /// <summary>
-    /// Inserts transition barriers when a resource changes state.
-    /// </summary>
-    private void InsertTransitionBarriers(RenderGraphPassBase pass, int passIdx)
+    private ResourceBarrierData GetBufferReadBarrierData(Identifier<RGResource> handle, RenderGraphPassBase pass, RenderGraphResourceType resourceType)
     {
-        // Process reads (transition to appropriate state based on resource type and hints)
-        for (var i = 0; i < (int)RenderGraphResourceType.Count; i++)
-        {
-            var readList = pass.resourceReads[i];
-            for (var j = 0; j < readList.Count; j++)
-            {
-                var handle = readList[j];
-                var state = GetBufferReadState(handle, pass, (RenderGraphResourceType)i);
-                InsertTransitionIfNeeded(handle, state, passIdx);
-            }
-        }
-
-        switch (pass.type)
-        {
-            case RenderPassType.Raster:
-                for (var i = 0; i < pass.maxColorIndex; i++)
-                {
-                    var access = pass.colorAccess[i];
-                    InsertTransitionIfNeeded(access.id.AsResource(), ResourceState.RenderTarget, passIdx);
-                }
-
-                if (pass.depthAccess.id.IsValid)
-                {
-                    var depthAccess = pass.depthAccess;
-                    InsertTransitionIfNeeded(depthAccess.id.AsResource(), ResourceState.DepthWrite, passIdx);
-                }
-
-                for (var i = 0; i < pass.randomAccess.Count; i++)
-                {
-                    InsertTransitionIfNeeded(pass.randomAccess[i], ResourceState.UnorderedAccess, passIdx);
-                }
-
-                break;
-            case RenderPassType.Compute:
-                for (var i = 0; i < (int)RenderGraphResourceType.Count; i++)
-                {
-                    var writeList = pass.resourceWrites[i];
-                    for (var j = 0; j < writeList.Count; j++)
-                    {
-                        var id = writeList[j];
-                        InsertTransitionIfNeeded(id, ResourceState.UnorderedAccess, passIdx);
-                    }
-                }
-
-                break;
-            case RenderPassType.Unsafe:
-                for (var i = 0; i < (int)RenderGraphResourceType.Count; i++)
-                {
-                    var writeList = pass.resourceWrites[i];
-                    for (var j = 0; j < writeList.Count; j++)
-                    {
-                        var id = writeList[j];
-                        InsertTransitionIfNeeded(id, ResourceState.RenderTarget, passIdx);
-                    }
-                }
-
-                for (var i = 0; i < pass.randomAccess.Count; i++)
-                {
-                    InsertTransitionIfNeeded(pass.randomAccess[i], ResourceState.UnorderedAccess, passIdx);
-                }
-                break;
-        }
-
-    }
-
-    /// <summary>
-    /// Inserts a transition barrier if the resource state changes.
-    /// </summary>
-    private void InsertTransitionIfNeeded(Identifier<RGResource> resource, ResourceState newState, int passIdx)
-    {
-        if (!_resourceStates.TryGetValue(resource.Value, out var currentState))
-        {
-            // First time seeing this resource, assume undefined
-            // currentState = ResourceState.Common;
-            var r = _graphicsEngine.ResourceDatabase.GetResourceState(_resources.GetResource(resource).backingResource);
-            currentState = r.IsSuccess ? r.Value : ResourceState.Common;
-        }
-
-        if (currentState != newState)
-        {
-            var res = _resources.GetResource(resource);
-            GetBarrierInfo(currentState, out var syncBefore, out var accessBefore, out var layoutBefore);
-            GetBarrierInfo(newState, out var syncAfter, out var accessAfter, out var layoutAfter);
-            
-            BarrierDesc desc;
-            if (res.type == RenderGraphResourceType.Texture)
-            {
-                desc = BarrierDesc.Texture(res.backingResource, 
-                    syncBefore, syncAfter, 
-                    accessBefore, accessAfter, 
-                    layoutBefore, layoutAfter);
-            }
-            else
-            {
-                desc = BarrierDesc.Buffer(res.backingResource, 
-                    syncBefore, syncAfter, 
-                    accessBefore, accessAfter);
-            }
-
-            var barrier = ResourceBarrier.Create(passIdx, desc, resource);
-            _barriers.Add(barrier);
-            _resourceStates[resource.Value] = newState;
-        }
-    }
-
-    private static void GetBarrierInfo(ResourceState state, out BarrierSync sync, out BarrierAccess access, out BarrierLayout layout)
-    {
-        sync = BarrierSync.None;
-        access = BarrierAccess.Common;
-        layout = BarrierLayout.Common;
-
-        if (state == ResourceState.Common)
-        {
-            return;
-        }
-        
-        if (state.HasFlag(ResourceState.RenderTarget))
-        {
-            sync |= BarrierSync.RenderTarget;
-            access |= BarrierAccess.RenderTarget;
-            layout = BarrierLayout.RenderTarget;
-        }
-        if (state.HasFlag(ResourceState.DepthWrite))
-        {
-            sync |= BarrierSync.DepthStencil;
-            access |= BarrierAccess.DepthStencilWrite;
-            layout = BarrierLayout.DepthStencilWrite;
-        }
-        if (state.HasFlag(ResourceState.DepthRead))
-        {
-            sync |= BarrierSync.DepthStencil;
-            access |= BarrierAccess.DepthStencilRead;
-            layout = BarrierLayout.DepthStencilRead;
-        }
-        if (state.HasFlag(ResourceState.UnorderedAccess))
-        {
-            sync |= BarrierSync.AllShading; 
-            access |= BarrierAccess.UnorderedAccess;
-            layout = BarrierLayout.UnorderedAccess;
-        }
-        if (state.HasFlag(ResourceState.PixelShaderResource))
-        {
-            sync |= BarrierSync.PixelShading;
-            access |= BarrierAccess.ShaderResource;
-            layout = BarrierLayout.ShaderResource;
-        }
-        if (state.HasFlag(ResourceState.NonPixelShaderResource))
-        {
-            sync |= BarrierSync.NonPixelShading;
-            access |= BarrierAccess.ShaderResource;
-            layout = BarrierLayout.ShaderResource;
-        }
-        if (state.HasFlag(ResourceState.CopyDest))
-        {
-            sync |= BarrierSync.Copy;
-            access |= BarrierAccess.CopyDest;
-            layout = BarrierLayout.CopyDest;
-        }
-        if (state.HasFlag(ResourceState.CopySource))
-        {
-            sync |= BarrierSync.Copy;
-            access |= BarrierAccess.CopySource;
-            layout = BarrierLayout.CopySource;
-        }
-        if (state.HasFlag(ResourceState.VertexAndConstantBuffer))
-        {
-            sync |= BarrierSync.VertexShading;
-            access |= BarrierAccess.VertexBuffer | BarrierAccess.ConstantBuffer;
-            layout = BarrierLayout.Common; 
-        }
-        if (state.HasFlag(ResourceState.IndexBuffer))
-        {
-            sync |= BarrierSync.IndexInput;
-            access |= BarrierAccess.IndexBuffer;
-            layout = BarrierLayout.Common;
-        }
-        if (state.HasFlag(ResourceState.IndirectArgument))
-        {
-            sync |= BarrierSync.ExecuteIndirect;
-            access |= BarrierAccess.IndirectArgument;
-            layout = BarrierLayout.GenericRead;
-        }
-        if (state.HasFlag(ResourceState.GenericRead))
-        {
-            layout = BarrierLayout.GenericRead;
-        }
-        if (state.HasFlag(ResourceState.Present))
-        {
-            sync = BarrierSync.All;
-            access = BarrierAccess.Common;
-            layout = BarrierLayout.Present;
-        }
-    }
-
-    /// <summary>
-    /// Determines the appropriate resource state for a buffer read operation based on usage hints.
-    /// </summary>
-    private static ResourceState GetBufferReadState(Identifier<RGResource> handle, RenderGraphPassBase pass, RenderGraphResourceType resourceType)
-    {
-        // Textures always use ShaderResource state
         if (resourceType == RenderGraphResourceType.Texture)
         {
-            return ResourceState.PixelShaderResource | ResourceState.NonPixelShaderResource;
+            return new ResourceBarrierData(BarrierLayout.ShaderResource, BarrierAccess.ShaderResource, BarrierSync.PixelShading | BarrierSync.NonPixelShading);
         }
 
-        // Check for buffer-specific usage hints
-        if (pass.bufferHints.TryGetValue(handle.Value, out var hint))
+        var sync = BarrierSync.PixelShading | BarrierSync.NonPixelShading;
+        var access = BarrierAccess.ShaderResource;
+        
+        var resource = _resources.GetResource(handle);
+        if (resource.bufferDesc.Usage.HasFlag(BufferUsage.IndirectArgument))
         {
-            if (hint.HasFlag(BufferHint.IndirectArgument))
-            {
-                return ResourceState.IndirectArgument;
-            }
+            sync = BarrierSync.ExecuteIndirect;
+            access = BarrierAccess.IndirectArgument;
         }
 
-        // Default: ByteAddressBuffer read (SRV) - matches bindless architecture
-        return ResourceState.PixelShaderResource | ResourceState.NonPixelShaderResource;
+        return new ResourceBarrierData(BarrierLayout.Undefined, access, sync);
     }
 
     /// <summary>
@@ -1442,35 +1219,193 @@ public sealed class RenderGraph : IDisposable
     /// </summary>
     private unsafe void ExecuteBarriersForPass(ICommandBuffer cmd, int passIndex, ref int barrierIndex)
     {
-        int start = barrierIndex;
-        int count = 0;
+        const int MaxBatch = 64;
+        var barriers = stackalloc BarrierDesc[MaxBatch];
+        var barrierCount = 0;
 
-        while (barrierIndex < _barriers.Count && _barriers[barrierIndex].PassIndex == passIndex)
+        void Flush()
         {
-            count++;
-            barrierIndex++;
-        }
-
-        if (count > 0)
-        {
-            const int BatchSize = 64;
-            var descs = stackalloc BarrierDesc[BatchSize];
-            int processed = 0;
-            while (processed < count)
+            if (barrierCount > 0)
             {
-                int batch = Math.Min(count - processed, BatchSize);
-                for (int i = 0; i < batch; i++)
-                {
-                    descs[i] = _barriers[start + processed + i].Desc;
-                }
-                cmd.ResourceBarrier(new ReadOnlySpan<BarrierDesc>(descs, batch));
-                processed += batch;
+                cmd.ResourceBarrier(new ReadOnlySpan<BarrierDesc>(barriers, barrierCount));
+                barrierCount = 0;
             }
         }
+
+        // 1. Process Aliasing Barriers (Explicitly scheduled)
+        while (barrierIndex < _barriers.Count && _barriers[barrierIndex].PassIndex == passIndex)
+        {
+            var barrierReq = _barriers[barrierIndex++];
+            var resourceHandle = _resources.GetResource(barrierReq.Resource).backingResource;
+
+            BarrierLayout layoutBefore;
+            BarrierAccess accessBefore;
+            BarrierSync syncBefore;
+
+            if (barrierReq.AliasingPredecessor.IsValid)
+            {
+                var predHandle = _resources.GetResource(barrierReq.AliasingPredecessor).backingResource;
+                var predState = _graphicsEngine.ResourceDatabase.GetResourceBarrierData(predHandle).GetValueOrThrow();
+
+                layoutBefore = BarrierLayout.Undefined;
+                accessBefore = BarrierAccess.NoAccess;
+                syncBefore = predState.Sync;
+            }
+            else
+            {
+                var currentState = _graphicsEngine.ResourceDatabase.GetResourceBarrierData(resourceHandle).GetValueOrThrow();
+                layoutBefore = currentState.Layout;
+                accessBefore = currentState.Access;
+                syncBefore = currentState.Sync;
+            }
+
+            var target = barrierReq.TargetState;
+            var resType = _resources.GetResource(barrierReq.Resource).type;
+
+            BarrierDesc desc;
+            if (resType == RenderGraphResourceType.Texture)
+            {
+                desc = BarrierDesc.Texture(resourceHandle,
+                    syncBefore, target.Sync,
+                    accessBefore, target.Access,
+                    layoutBefore, target.Layout,
+                    discard: barrierReq.Flags.HasFlag(BarrierFlags.Discard));
+            }
+            else
+            {
+                desc = BarrierDesc.Buffer(resourceHandle,
+                    syncBefore, target.Sync,
+                    accessBefore, target.Access);
+            }
+
+            if (barrierCount >= MaxBatch)
+            {
+                Flush();
+            }
+
+            barriers[barrierCount++] = desc;
+
+            //_graphicsEngine.ResourceDatabase.SetResourceBarrierData(resourceHandle, target);
+        }
+
+        // 2. Process Implicit Transitions (Iterate pass resources)
+        var pass = _compiledPasses[passIndex];
+
+        // Helper to check and issue transition
+        void IssueTransition(Identifier<RGResource> id, ResourceBarrierData target)
+        {
+            var resource = _resources.GetResource(id);
+            var handle = resource.backingResource;
+            var current = _graphicsEngine.ResourceDatabase.GetResourceBarrierData(handle).GetValueOrThrow();
+
+            if (current.Layout != target.Layout || current.Access != target.Access || current.Sync != target.Sync)
+            {
+                BarrierDesc desc;
+                if (resource.type == RenderGraphResourceType.Texture)
+                {
+                    desc = BarrierDesc.Texture(handle,
+                        current.Sync, target.Sync,
+                        current.Access, target.Access,
+                        current.Layout, target.Layout);
+                }
+                else
+                {
+                    desc = BarrierDesc.Buffer(handle,
+                        current.Sync, target.Sync,
+                        current.Access, target.Access);
+                }
+
+                if (barrierCount >= MaxBatch) Flush();
+                barriers[barrierCount++] = desc;
+
+                //_graphicsEngine.ResourceDatabase.SetResourceBarrierData(handle, target);
+            }
+        }
+
+        // Reads
+        for (var i = 0; i < (int)RenderGraphResourceType.Count; i++)
+        {
+            var readList = pass.resourceReads[i];
+            for (var j = 0; j < readList.Count; j++)
+            {
+                var handle = readList[j];
+                var targetState = GetBufferReadBarrierData(handle, pass, (RenderGraphResourceType)i);
+                IssueTransition(handle, targetState);
+            }
+        }
+
+        switch (pass.type)
+        {
+            case RenderPassType.Raster:
+                for (var i = 0; i <= pass.maxColorIndex; i++)
+                {
+                    if (pass.colorAccess[i].id.IsValid)
+                    {
+                        var usage = pass.colorAccess[i].usage;
+                        var targetState = new ResourceBarrierData(usage.Layout, usage.Access, usage.Sync);
+                        IssueTransition(pass.colorAccess[i].id.AsResource(), targetState);
+                    }
+                }
+
+                if (pass.depthAccess.id.IsValid)
+                {
+                    var usage = pass.depthAccess.usage;
+                    var targetState = new ResourceBarrierData(usage.Layout, usage.Access, usage.Sync);
+                    IssueTransition(pass.depthAccess.id.AsResource(), targetState);
+                }
+
+                var uavState = new ResourceBarrierData(BarrierLayout.UnorderedAccess, BarrierAccess.UnorderedAccess, BarrierSync.AllShading);
+                for (var i = 0; i < pass.randomAccess.Count; i++)
+                {
+                    IssueTransition(pass.randomAccess[i], uavState);
+                }
+                break;
+
+            case RenderPassType.Compute:
+                var computeUavState = new ResourceBarrierData(BarrierLayout.UnorderedAccess, BarrierAccess.UnorderedAccess, BarrierSync.ComputeShading);
+                for (var i = 0; i < (int)RenderGraphResourceType.Count; i++)
+                {
+                    var writeList = pass.resourceWrites[i];
+                    for (var j = 0; j < writeList.Count; j++)
+                    {
+                        IssueTransition(writeList[j], computeUavState);
+                    }
+                }
+                break;
+
+            case RenderPassType.Unsafe:
+                var rtState = new ResourceBarrierData(BarrierLayout.RenderTarget, BarrierAccess.RenderTarget, BarrierSync.RenderTarget);
+                for (var i = 0; i < (int)RenderGraphResourceType.Count; i++)
+                {
+                    var writeList = pass.resourceWrites[i];
+                    for (var j = 0; j < writeList.Count; j++)
+                    {
+                        IssueTransition(writeList[j], rtState);
+                    }
+                }
+
+                var unsafeUavState = new ResourceBarrierData(BarrierLayout.UnorderedAccess, BarrierAccess.UnorderedAccess, BarrierSync.AllShading);
+                for (var i = 0; i < pass.randomAccess.Count; i++)
+                {
+                    IssueTransition(pass.randomAccess[i], unsafeUavState);
+                }
+                break;
+        }
+
+        Flush();
     }
 
     public void Dispose()
     {
+        foreach (var resource in _resources.Resources)
+        {
+            _graphicsEngine.ResourceDatabase.ReleaseResource(resource.backingResource);
+        }
+
         _graphicsEngine.ResourceDatabase.ReleaseResource(_resourceHeap);
+
+        // We need to reset the whole graph to return resources to the pool
+        // FIX: Ideally we should call dispose here for each subsystem
+        Reset();
     }
 }

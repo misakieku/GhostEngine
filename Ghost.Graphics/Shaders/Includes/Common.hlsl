@@ -49,7 +49,6 @@ struct Vertex
 #define SAMPLE_TEXTURE2D_ARRAY(texId, sampId, uvw) SampleTextureArray(texId, sampId, uvw)
 
 
-#define MESH_SHADER_THREADS(x) NumThreads(x, 1, 1)
 #define OUTPUT_TRIANGLE_TOPOLOGY OutputTopology("triangle")
 #define OUTPUT_LINE_TOPOLOGY OutputTopology("line")
 

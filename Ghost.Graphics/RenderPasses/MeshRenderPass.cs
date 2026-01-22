@@ -233,7 +233,7 @@ internal class MeshRenderPass : IRenderPass
             throw new InvalidOperationException("Failed to get material reference.");
         }
 
-        ref readonly var matRef = ref meshResult.Value;
+        ref var matRef = ref meshResult.Value;
         var matProps = new ShaderProperties_MyShader_Standard
         {
             color = new float4(1.0f, 1.0f, 1.0f, 1.0f),
@@ -271,7 +271,6 @@ internal class MeshRenderPass : IRenderPass
             });
         }
 
-        // FIX: We can not upload the blit material properties during a native render pass.
         using (var builder = graph.AddUnsafeRenderPass<BlitPassData>("Blit Pass", out var passData))
         {
             passData.source = renderTarget;
@@ -281,7 +280,7 @@ internal class MeshRenderPass : IRenderPass
 
             builder.UseTexture(passData.source, AccessFlags.Read);
             builder.UseTexture(passData.destination, AccessFlags.WriteAll);
-            
+
             builder.SetRenderFunc<BlitPassData>(static (data, ctx) =>
             {
                 var r = ctx.ResourceDatabase.GetMaterialReference(data.blitMaterial);
@@ -290,7 +289,7 @@ internal class MeshRenderPass : IRenderPass
                     return;
                 }
 
-                ref readonly var matRef = ref r.Value;
+                ref var matRef = ref r.Value;
                 var blitProps = new ShaderProperties_Hidden_Blit
                 {
                     mainTex = ctx.ResourceDatabase.GetBindlessIndex(ctx.GetActualResource(data.source.AsResource())),
@@ -311,9 +310,12 @@ internal class MeshRenderPass : IRenderPass
 
     public void Cleanup(IResourceDatabase resourceDatabase)
     {
+        resourceDatabase.ReleaseMaterial(_blitMaterial);
+
         resourceDatabase.ReleaseMaterial(_material);
         resourceDatabase.ReleaseShader(_shader);
         resourceDatabase.ReleaseMesh(_mesh);
+        resourceDatabase.ReleaseSampler(_sampler);
 
         if (_textures != null)
         {

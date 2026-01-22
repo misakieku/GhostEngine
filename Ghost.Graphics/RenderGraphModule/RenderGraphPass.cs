@@ -37,9 +37,6 @@ internal abstract class RenderGraphPassBase
     public readonly List<Identifier<RGResource>>[] resourceWrites = new List<Identifier<RGResource>>[(int)RenderGraphResourceType.Count];
     public readonly List<Identifier<RGResource>>[] resourceCreates = new List<Identifier<RGResource>>[(int)RenderGraphResourceType.Count];
 
-    // Buffer usage hints (maps buffer resource ID to hint)
-    public readonly Dictionary<int, BufferHint> bufferHints = new(8);
-
     // Execution state
     public bool culled;
     public bool hasSideEffects;
@@ -78,8 +75,6 @@ internal abstract class RenderGraphPassBase
             resourceWrites[i].Clear();
             resourceCreates[i].Clear();
         }
-
-        bufferHints.Clear();
 
         culled = false;
         hasSideEffects = false;

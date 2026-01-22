@@ -32,7 +32,7 @@ shader "Hidden/Blit"
                 float4 uv : TEXCOORD0;
             };
 
-            [MESH_SHADER_THREADS(4)]
+            [NumThreads(4, 1, 1)]
             [OUTPUT_TRIANGLE_TOPOLOGY]
             void MSMain(
                 uint gtid : SV_GroupThreadID,
@@ -45,7 +45,6 @@ shader "Hidden/Blit"
                 float2 uv = float2(gtid & 1, (gtid >> 1) & 1);
 
                 verts[gtid].position = float4(uv * 2.0 - 1.0, 0.0, 1.0);
-                // verts[gtid].position.y *= -1.0;
                 verts[gtid].uv = float4(uv, 0.0, 0.0);
 
                 if (gtid == 0)

@@ -149,7 +149,8 @@ internal unsafe class D3D12SwapChain : ISwapChain
             pBackBuffer->SetName($"SwapChain_BackBuffer_{i}");
 
             var rtv = _descriptorAllocator.AllocateRTV();
-            _renderDevice.NativeDevice.Get()->CreateRenderTargetView(pBackBuffer, null, _descriptorAllocator.GetCpuHandle(rtv));
+            var cpuHandle = _descriptorAllocator.GetCpuHandle(rtv);
+            _renderDevice.NativeDevice.Get()->CreateRenderTargetView(pBackBuffer, null, cpuHandle);
 
             var view = ResourceViewGroup.Invalid with
             {

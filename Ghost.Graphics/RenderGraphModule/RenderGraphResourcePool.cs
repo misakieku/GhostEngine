@@ -168,7 +168,7 @@ internal sealed class RenderGraphResourceRegistry
         }
     }
 
-    public void BeginFrame()
+    public void Reset()
     {
         // Return all resources to pool
         for (var i = 0; i < _resources.Count; i++)
@@ -179,13 +179,30 @@ internal sealed class RenderGraphResourceRegistry
         _resources.Clear();
     }
 
-    public Identifier<RGTexture> ImportTexture(ref readonly TextureDesc desc, Handle<Texture> texture, string name)
+    public Identifier<RGTexture> ImportTexture(ref readonly TextureDesc desc, Handle<Texture> texture, string name,
+        Color128 clearColor, float clearDepth, byte clearStencil,
+        bool clearAtFirstUse, bool discardAtLastUse)
     {
         var resource = _pool.Rent<RenderGraphResource>();
         resource.name = name;
         resource.type = RenderGraphResourceType.Texture;
         resource.index = _resources.Count;
-        resource.rgTextureDesc = RGTextureDesc.FromTextureDesc(in desc);
+        resource.rgTextureDesc = new RGTextureDesc
+        {
+            sizeMode = RGTextureSizeMode.Absolute,
+            width = desc.Width,
+            height = desc.Height,
+            format = desc.Format,
+            clearColor = clearColor,
+            clearDepth = clearDepth,
+            clearStencil = clearStencil,
+            clearAtFirstUse = clearAtFirstUse,
+            discardAtLastUse = discardAtLastUse,
+            dimension = desc.Dimension,
+            mipLevels = desc.MipLevels,
+            slice = desc.Slice,
+            usage = desc.Usage
+        };
         resource.isImported = true;
         resource.backingResource = texture.AsResource();
         resource.resolvedWidth = desc.Width;

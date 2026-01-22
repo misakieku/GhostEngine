@@ -248,7 +248,15 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
                     break;
                 case BarrierType.Buffer:
                 {
-                    var resource = _resourceDatabase.GetResource(desc.Resource);
+                    var r = _resourceDatabase.GetResourceRecord(desc.Resource);
+                    if (r.IsFailure)
+                    {
+                        RecordError(nameof(ResourceBarrier), r.Error);
+                        continue;
+                    }
+
+                    ref var record = ref r.Value;
+                    var resource = record.ResourcePtr;
                     pBufferBarriers[bufferIndex++] = new D3D12_BUFFER_BARRIER
                     {
                         SyncBefore = (D3D12_BARRIER_SYNC)desc.SyncBefore,
@@ -259,11 +267,21 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
                         Offset = 0,
                         Size = ulong.MaxValue
                     };
+
+                    record.barrierData = new ResourceBarrierData(BarrierLayout.Undefined, desc.AccessAfter, desc.SyncAfter);
                 }
                 break;
                 case BarrierType.Texture:
                 {
-                    var resource = _resourceDatabase.GetResource(desc.Resource);
+                    var r = _resourceDatabase.GetResourceRecord(desc.Resource);
+                    if (r.IsFailure)
+                    {
+                        RecordError(nameof(ResourceBarrier), r.Error);
+                        continue;
+                    }
+
+                    ref var record = ref r.Value;
+                    var resource = record.ResourcePtr;
                     pTextureBarriers[textureIndex++] = new D3D12_TEXTURE_BARRIER
                     {
                         SyncBefore = (D3D12_BARRIER_SYNC)desc.SyncBefore,
@@ -282,6 +300,8 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
                         },
                         Flags = desc.Discard ? D3D12_TEXTURE_BARRIER_FLAGS.D3D12_TEXTURE_BARRIER_FLAG_DISCARD : D3D12_TEXTURE_BARRIER_FLAGS.D3D12_TEXTURE_BARRIER_FLAG_NONE
                     };
+
+                    record.barrierData = new ResourceBarrierData(desc.LayoutAfter, desc.AccessAfter, desc.SyncAfter);
                 }
                 break;
             }

@@ -323,6 +323,15 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         return _samplers.TryGetValue(desc, out id);
     }
 
+    public void ReleaseSampler(Identifier<Sampler> id)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        // NOTE: We almost never release samplers individually, because they are cheap and can be reused.
+        // Ideally we would release all samplers at once when disposing the ResourceDatabase.
+        _descriptorAllocator.Release(new Identifier<SamplerDescriptor>(id.Value));
+    }
+
     public Handle<Mesh> AddMesh(ref readonly Mesh mesh)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);

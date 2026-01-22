@@ -8,7 +8,7 @@ struct PixelInput
     float4 uv : TEXCOORD0;
 };
 
-[MESH_SHADER_THREADS(3)] // 3 threads per triangle
+[NumThreads(3, 1, 1)] // 3 threads per triangle
 [OUTPUT_TRIANGLE_TOPOLOGY]
 void MSMain(
     uint3 groupThreadID : SV_GroupThreadID,

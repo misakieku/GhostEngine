@@ -111,6 +111,12 @@ public interface IResourceDatabase : IDisposable
     bool TryGetSampler(ref readonly SamplerDesc desc, out Identifier<Sampler> id);
 
     /// <summary>
+    /// Releases the sampler associated with the specified identifier and frees any resources allocated to it.
+    /// </summary>
+    /// <param name="id">The identifier of the sampler to release. Must reference a valid, existing sampler.</param>
+    void ReleaseSampler(Identifier<Sampler> id);
+
+    /// <summary>
     /// Adds a mesh to the resource database and returns its handle.
     /// </summary>
     /// <param name="mesh">The mesh data to be added to the database.</param>

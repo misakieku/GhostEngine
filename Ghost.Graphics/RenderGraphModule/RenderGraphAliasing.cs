@@ -322,7 +322,7 @@ internal sealed class ResourceAliasingManager
         _logicalToPlaced = new Dictionary<int, int>(64);
     }
 
-    public void BeginFrame()
+    public void Reset()
     {
         for (var i = 0; i < _placedResources.Count; i++)
         {

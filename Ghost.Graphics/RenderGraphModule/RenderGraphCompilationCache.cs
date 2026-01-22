@@ -27,7 +27,7 @@ internal sealed class CachedCompilation
     public readonly List<ResourceBarrier> barriers = new(128);
     
     // Resource state mappings (for barrier generation)
-    public readonly Dictionary<int, ResourceState> resourceStates = new(128);
+    public readonly Dictionary<int, ResourceBarrierData> resourceStates = new(128);
 
     // Real gpu resource
     public readonly List<Handle<GPUResource>> backingResources = new(32);

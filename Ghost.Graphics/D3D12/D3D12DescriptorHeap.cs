@@ -10,7 +10,7 @@ using static TerraFX.Aliases.D3D12_Alias;
 
 namespace Ghost.Graphics.D3D12;
 
-internal unsafe struct D3D12DescriptorHeap : IDisposable
+internal unsafe class D3D12DescriptorHeap : IDisposable
 {
     private const int _INVALID_DESCRIPTOR_INDEX = -1;
 
@@ -51,8 +51,8 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
         get;
     }
 
-    public readonly ID3D12DescriptorHeap* Heap => _heap.Get();
-    public readonly ID3D12DescriptorHeap* ShaderVisibleHeap => _shaderVisibleHeap.Get();
+    public ID3D12DescriptorHeap* Heap => _heap.Get();
+    public ID3D12DescriptorHeap* ShaderVisibleHeap => _shaderVisibleHeap.Get();
 
     public D3D12DescriptorHeap(string name, D3D12RenderDevice device, D3D12_DESCRIPTOR_HEAP_TYPE type, int numDescriptors)
     {
@@ -164,32 +164,18 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
         }
     }
 
-    public readonly D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle(int index)
+    public D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle(int index)
     {
         if (index < 0 || index >= NumDescriptors)
         {
             throw new ArgumentOutOfRangeException(nameof(index), "Descriptor index is out of range.");
         }
 
-        return _startCpuHandle.Offset(index, Stride);
+        var handle = _startCpuHandle;
+        return handle.Offset(index, Stride);
     }
 
-    public readonly D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandleShaderVisible(int index)
-    {
-        if (index < 0 || index >= NumDescriptors)
-        {
-            throw new ArgumentOutOfRangeException(nameof(index), "Descriptor index is out of range.");
-        }
-
-        if (!ShaderVisible)
-        {
-            throw new InvalidOperationException("Descriptor heap is not shader visible.");
-        }
-
-        return _startCpuHandleShaderVisible.Offset(index, Stride);
-    }
-
-    public readonly D3D12_GPU_DESCRIPTOR_HANDLE GetGpuHandle(int index)
+    public D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandleShaderVisible(int index)
     {
         if (index < 0 || index >= NumDescriptors)
         {
@@ -201,10 +187,27 @@ internal unsafe struct D3D12DescriptorHeap : IDisposable
             throw new InvalidOperationException("Descriptor heap is not shader visible.");
         }
 
-        return _startGpuHandleShaderVisible.Offset(index, Stride);
+        var handle = _startCpuHandleShaderVisible;
+        return handle.Offset(index, Stride);
     }
 
-    public readonly void CopyToShaderVisibleHeap(int index, int count = 1)
+    public D3D12_GPU_DESCRIPTOR_HANDLE GetGpuHandle(int index)
+    {
+        if (index < 0 || index >= NumDescriptors)
+        {
+            throw new ArgumentOutOfRangeException(nameof(index), "Descriptor index is out of range.");
+        }
+
+        if (!ShaderVisible)
+        {
+            throw new InvalidOperationException("Descriptor heap is not shader visible.");
+        }
+
+        var handle = _startGpuHandleShaderVisible;
+        return handle.Offset(index, Stride);
+    }
+
+    public void CopyToShaderVisibleHeap(int index, int count = 1)
     {
         _device.NativeDevice.Get()->CopyDescriptorsSimple((uint)count, GetCpuHandleShaderVisible(index), GetCpuHandle(index), HeapType);
     }

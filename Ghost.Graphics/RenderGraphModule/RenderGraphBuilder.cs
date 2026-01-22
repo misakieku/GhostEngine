@@ -53,9 +53,9 @@ public interface IRenderGraphBuilder : IDisposable
     /// </summary>
     /// <param name="buffer">The identifier of the buffer to be used in the render graph pass.</param>
     /// <param name="accessMode">The access mode specifying how the buffer will be read or written during the pass.</param>
-    /// <param name="hint">Optional hint about how the buffer will be used (e.g., IndirectArgument). Default is None (ByteAddressBuffer SRV).</param>
+    /// <param name="hint">Optional hint about how the buffer will be used.</param>
     /// <returns>An identifier for the buffer.</returns>
-    Identifier<RGBuffer> UseBuffer(Identifier<RGBuffer> buffer, AccessFlags accessMode, BufferHint hint = BufferHint.None);
+    Identifier<RGBuffer> UseBuffer(Identifier<RGBuffer> buffer, AccessFlags accessMode);
 }
 
 public interface IRasterRenderGraphBuilder : IRenderGraphBuilder
@@ -212,16 +212,9 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         return UseResource(texture.AsResource(), flags, RenderGraphResourceType.Texture).AsTexture();
     }
     
-    public Identifier<RGBuffer> UseBuffer(Identifier<RGBuffer> buffer, AccessFlags flags, BufferHint hint = BufferHint.None)
+    public Identifier<RGBuffer> UseBuffer(Identifier<RGBuffer> buffer, AccessFlags flags)
     {
         ThrowIfDisposed();
-        
-        // Store buffer hint if not None
-        if (hint != BufferHint.None)
-        {
-            _pass.bufferHints[buffer.AsResource().Value] = hint;
-        }
-        
         return UseResource(buffer.AsResource(), flags, RenderGraphResourceType.Buffer).AsBuffer();
     }
 
@@ -255,7 +248,8 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         if (_pass.colorAccess[index].id == id || _pass.colorAccess[index].id.IsInvalid)
         {
             _pass.maxColorIndex = Math.Max(_pass.maxColorIndex, index);
-            _pass.colorAccess[index] = new TextureAccess(id, flags);
+            var usage = new ResourceBarrierData(BarrierLayout.RenderTarget, BarrierAccess.RenderTarget, BarrierSync.RenderTarget);
+            _pass.colorAccess[index] = new TextureAccess(id, flags, usage);
         }
         else
         {
@@ -263,14 +257,18 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         }
     }
 
-    public void SetDepthAttachment(Identifier<RGTexture> texture, AccessFlags flags = AccessFlags.Write)
+    public void SetDepthAttachment(Identifier<RGTexture> texture, AccessFlags flags = AccessFlags.ReadWrite)
     {
         ThrowIfDisposed();
 
         var id = UseTexture(texture, flags);
         if (_pass.depthAccess.id == id || _pass.depthAccess.id.IsInvalid)
         {
-            _pass.depthAccess = new TextureAccess(id, flags);
+            var layout = flags.HasFlag(AccessFlags.Write) ? BarrierLayout.DepthStencilWrite : BarrierLayout.DepthStencilRead;
+            var access = flags.HasFlag(AccessFlags.Write) ? BarrierAccess.DepthStencilWrite : BarrierAccess.DepthStencilRead;
+            var sync = BarrierSync.DepthStencil;
+            var usage = new ResourceBarrierData(layout, access, sync);
+            _pass.depthAccess = new TextureAccess(id, flags, usage);
         }
         else
         {

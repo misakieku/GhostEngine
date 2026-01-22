@@ -837,36 +837,36 @@ public enum BarrierType
 }
 
 [Flags]
-public enum BarrierSync : uint
+public enum BarrierSync
 {
     None = 0x0,
-    All = 0x0,
-    Draw = 0x1,
-    IndexInput = 0x2,
-    VertexShading = 0x4,
-    PixelShading = 0x8,
-    DepthStencil = 0x10,
-    RenderTarget = 0x20,
-    ComputeShading = 0x40,
-    Raytracing = 0x80,
-    Copy = 0x100,
-    Resolve = 0x200,
-    ExecuteIndirect = 0x400,
+    All = 0x1,
+    Draw = 0x2,
+    IndexInput = 0x4,
+    VertexShading = 0x8,
+    PixelShading = 0x10,
+    DepthStencil = 0x20,
+    RenderTarget = 0x40,
+    ComputeShading = 0x80,
+    Raytracing = 0x100,
+    Copy = 0x200,
+    Resolve = 0x400,
+    ExecuteIndirect = 0x800,
     Predication = 0x800,
-    AllShading = VertexShading | PixelShading | ComputeShading | Raytracing,
-    NonPixelShading = VertexShading | ComputeShading | Raytracing,
-    EmitRaytracingAccelerationStructurePostbuildInfo = 0x1000,
-    ClearUnorderedAccessView = 0x2000,
-    VideoDecode = 0x40000,
-    VideoProcess = 0x80000,
-    VideoEncode = 0x100000,
-    BuildRaytracingAccelerationStructure = 0x200000,
-    CopyRaytracingAccelerationStructure = 0x400000,
-    Split = 0x800000
+    AllShading = 0x1000,
+    NonPixelShading = 0x2000,
+    EmitRaytracingAccelerationStructurePostbuildInfo = 0x4000,
+    ClearUnorderedAccessView = 0x8000,
+    VideoDecode = 0x100000,
+    VideoProcess = 0x200000,
+    VideoEncode = 0x400000,
+    BuildRaytracingAccelerationStructure = 0x800000,
+    CopyRaytracingAccelerationStructure = 0x1000000,
+    Split = unchecked((int)0x80000000)
 }
 
 [Flags]
-public enum BarrierAccess : uint
+public enum BarrierAccess
 {
     Common = 0,
     VertexBuffer = 0x1,
@@ -879,6 +879,7 @@ public enum BarrierAccess : uint
     ShaderResource = 0x80,
     StreamOutput = 0x100,
     IndirectArgument = 0x200,
+    Predication = 0x200,
     CopyDest = 0x400,
     CopySource = 0x800,
     ResolveDest = 0x1000,
@@ -892,7 +893,7 @@ public enum BarrierAccess : uint
     VideoProcessWrite = 0x100000,
     VideoEncodeRead = 0x200000,
     VideoEncodeWrite = 0x400000,
-    NoAccess = 0x80000000
+    NoAccess = unchecked((int)0x80000000)
 }
 
 public enum BarrierLayout
@@ -906,10 +907,10 @@ public enum BarrierLayout
     DepthStencilWrite = 4,
     DepthStencilRead = 5,
     ShaderResource = 6,
-    CopyDest = 7,
-    CopySource = 8,
-    ResolveDest = 9,
-    ResolveSource = 10,
+    CopySource = 7,
+    CopyDest = 8,
+    ResolveSource = 9,
+    ResolveDest = 10,
     ShadingRateSource = 11,
     VideoDecodeRead = 12,
     VideoDecodeWrite = 13,
@@ -918,8 +919,18 @@ public enum BarrierLayout
     VideoEncodeRead = 16,
     VideoEncodeWrite = 17,
     DirectQueueCommon = 18,
-    ComputeQueueCommon = 19,
-    VideoQueueCommon = 20
+    DirectQueueGenericRead = 19,
+    DirectQueueUnorderedAccess = 20,
+    DirectQueueShaderResource = 21,
+    DirectQueueCopySource = 22,
+    DirectQueueCopyDest = 23,
+    ComputeQueueCommon = 24,
+    ComputeQueueGenericRead = 25,
+    ComputeQueueUnorderedAccess = 26,
+    ComputeQueueShaderResource = 27,
+    ComputeQueueCopySource = 28,
+    ComputeQueueCopyDest = 29,
+    DirectQueueGenericReadComputeQueueAccessible = 31,
 }
 
 [Flags]
