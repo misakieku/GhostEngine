@@ -193,7 +193,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         _commandList.Get()->RSSetScissorRects(1, &d3d12Rect);
     }
 
-    public void ResourceBarrier(ReadOnlySpan<BarrierDesc> barrierDescs)
+    public void ResourceBarrier(params ReadOnlySpan<BarrierDesc> barrierDescs)
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();
@@ -210,170 +210,120 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
             return;
         }
 
-        var count = 0u;
-        var pBarriers = stackalloc D3D12_RESOURCE_BARRIER[barrierDescs.Length];
+        var globalCount = 0;
+        var bufferCount = 0;
+        var textureCount = 0;
+
+        for (var i = 0; i < barrierDescs.Length; i++)
+        {
+            switch (barrierDescs[i].Type)
+            {
+                case BarrierType.Global: globalCount++; break;
+                case BarrierType.Buffer: bufferCount++; break;
+                case BarrierType.Texture: textureCount++; break;
+            }
+        }
+
+        var pGlobalBarriers = stackalloc D3D12_GLOBAL_BARRIER[globalCount];
+        var pBufferBarriers = stackalloc D3D12_BUFFER_BARRIER[bufferCount];
+        var pTextureBarriers = stackalloc D3D12_TEXTURE_BARRIER[textureCount];
+
+        var globalIndex = 0;
+        var bufferIndex = 0;
+        var textureIndex = 0;
 
         for (var i = 0; i < barrierDescs.Length; i++)
         {
             var desc = barrierDescs[i];
-            D3D12_RESOURCE_BARRIER barrier = default;
-
-            switch (desc.type)
+            switch (desc.Type)
             {
-                case BarrierType.Transition:
-                    if (desc.transition.stateBefore == desc.transition.stateAfter)
+                case BarrierType.Global:
+                    pGlobalBarriers[globalIndex++] = new D3D12_GLOBAL_BARRIER
                     {
-                        continue;
-                    }
-
-                    var recordResult = _resourceDatabase.GetResourceRecord(desc.transition.resource);
-                    if (recordResult.Error != ErrorStatus.None)
-                    {
-                        RecordError(nameof(TransitionBarrier), recordResult.Error);
-                        continue;
-                    }
-
-                    ref var record = ref recordResult.Value;
-                    var stateBefore = desc.transition.stateBefore == ResourceState.Auto ? record.state : desc.transition.stateBefore;
-                    
-                    barrier = D3D12_RESOURCE_BARRIER.InitTransition(record.ResourcePtr,
-                        stateBefore.ToD3D12States(), desc.transition.stateAfter.ToD3D12States());
-
-                    record.state = desc.transition.stateAfter;
+                        SyncBefore = (D3D12_BARRIER_SYNC)desc.SyncBefore,
+                        SyncAfter = (D3D12_BARRIER_SYNC)desc.SyncAfter,
+                        AccessBefore = (D3D12_BARRIER_ACCESS)desc.AccessBefore,
+                        AccessAfter = (D3D12_BARRIER_ACCESS)desc.AccessAfter
+                    };
                     break;
-
-                case BarrierType.Aliasing:
-                    var recordBeforeResult = _resourceDatabase.GetResourceRecord(desc.aliasing.resourceBefore);
-                    if (recordBeforeResult.Error != ErrorStatus.None)
+                case BarrierType.Buffer:
+                {
+                    var resource = _resourceDatabase.GetResource(desc.Resource);
+                    pBufferBarriers[bufferIndex++] = new D3D12_BUFFER_BARRIER
                     {
-                        RecordError(nameof(TransitionBarrier), recordBeforeResult.Error);
-                        continue;
-                    }
-
-                    var recordAfterResult = _resourceDatabase.GetResourceRecord(desc.aliasing.resourceAfter);
-                    if (recordAfterResult.Error != ErrorStatus.None)
+                        SyncBefore = (D3D12_BARRIER_SYNC)desc.SyncBefore,
+                        SyncAfter = (D3D12_BARRIER_SYNC)desc.SyncAfter,
+                        AccessBefore = (D3D12_BARRIER_ACCESS)desc.AccessBefore,
+                        AccessAfter = (D3D12_BARRIER_ACCESS)desc.AccessAfter,
+                        pResource = resource,
+                        Offset = 0,
+                        Size = ulong.MaxValue
+                    };
+                }
+                break;
+                case BarrierType.Texture:
+                {
+                    var resource = _resourceDatabase.GetResource(desc.Resource);
+                    pTextureBarriers[textureIndex++] = new D3D12_TEXTURE_BARRIER
                     {
-                        RecordError(nameof(TransitionBarrier), recordAfterResult.Error);
-                        continue;
-                    }
-
-                    barrier = D3D12_RESOURCE_BARRIER.InitAliasing(
-                        recordBeforeResult.Value.ResourcePtr,
-                        recordAfterResult.Value.ResourcePtr);
-                    break;
-                case BarrierType.UAV:
-                    var recordUavResult = _resourceDatabase.GetResourceRecord(desc.uav.resource);
-                    if (recordUavResult.Error != ErrorStatus.None)
-                    {
-                        RecordError(nameof(TransitionBarrier), recordUavResult.Error);
-                        continue;
-                    }
-
-                    barrier = D3D12_RESOURCE_BARRIER.InitUAV(recordUavResult.Value.ResourcePtr);
-                    break;
+                        SyncBefore = (D3D12_BARRIER_SYNC)desc.SyncBefore,
+                        SyncAfter = (D3D12_BARRIER_SYNC)desc.SyncAfter,
+                        AccessBefore = (D3D12_BARRIER_ACCESS)desc.AccessBefore,
+                        AccessAfter = (D3D12_BARRIER_ACCESS)desc.AccessAfter,
+                        LayoutBefore = (D3D12_BARRIER_LAYOUT)desc.LayoutBefore,
+                        LayoutAfter = (D3D12_BARRIER_LAYOUT)desc.LayoutAfter,
+                        pResource = resource,
+                        Subresources = new D3D12_BARRIER_SUBRESOURCE_RANGE
+                        {
+                            IndexOrFirstMipLevel = desc.Subresources.IndexOrFirstMipLevel,
+                            NumMipLevels = desc.Subresources.NumMipLevels,
+                            FirstArraySlice = desc.Subresources.FirstArraySlice,
+                            NumArraySlices = desc.Subresources.NumArraySlices
+                        },
+                        Flags = desc.Discard ? D3D12_TEXTURE_BARRIER_FLAGS.D3D12_TEXTURE_BARRIER_FLAG_DISCARD : D3D12_TEXTURE_BARRIER_FLAGS.D3D12_TEXTURE_BARRIER_FLAG_NONE
+                    };
+                }
+                break;
             }
-
-            pBarriers[count] = barrier;
-            count++;
         }
-        
-        _commandList.Get()->ResourceBarrier(count, pBarriers);
-    }
 
-    public void TransitionBarrier(Handle<GPUResource> resource, ResourceState stateBefore, ResourceState stateAfter)
-    {
-        ThrowIfDisposed();
-        ThrowIfNotRecording();
-#if !DEBUG
-        if (_lastError.Status != ErrorStatus.None)
+        var groups = stackalloc D3D12_BARRIER_GROUP[3];
+        var groupCount = 0u;
+
+        if (globalCount > 0)
         {
-            return;
+            groups[groupCount] = new D3D12_BARRIER_GROUP
+            {
+                Type = D3D12_BARRIER_TYPE.D3D12_BARRIER_TYPE_GLOBAL,
+                NumBarriers = (uint)globalCount,
+            };
+            groups[groupCount].Anonymous.pGlobalBarriers = pGlobalBarriers;
+            groupCount++;
         }
-#endif
-        IncrementCommandCount();
 
-        if (stateBefore == stateAfter)
+        if (bufferCount > 0)
         {
-            return;
+            groups[groupCount] = new D3D12_BARRIER_GROUP
+            {
+                Type = D3D12_BARRIER_TYPE.D3D12_BARRIER_TYPE_BUFFER,
+                NumBarriers = (uint)bufferCount,
+            };
+            groups[groupCount].Anonymous.pBufferBarriers = pBufferBarriers;
+            groupCount++;
         }
 
-        var recordResult = _resourceDatabase.GetResourceRecord(resource);
-        if (recordResult.Error != ErrorStatus.None)
+        if (textureCount > 0)
         {
-            RecordError(nameof(TransitionBarrier), recordResult.Error);
-            return;
+            groups[groupCount] = new D3D12_BARRIER_GROUP
+            {
+                Type = D3D12_BARRIER_TYPE.D3D12_BARRIER_TYPE_TEXTURE,
+                NumBarriers = (uint)textureCount,
+            };
+            groups[groupCount].Anonymous.pTextureBarriers = pTextureBarriers;
+            groupCount++;
         }
 
-        ref var record = ref recordResult.Value;
-        var barrier = D3D12_RESOURCE_BARRIER.InitTransition(record.ResourcePtr,
-            stateBefore.ToD3D12States(), stateAfter.ToD3D12States());
-
-        _commandList.Get()->ResourceBarrier(1, &barrier);
-        record.state = stateAfter;
-    }
-
-    public void TransitionBarrier(Handle<GPUResource> resource, ResourceState stateAfter)
-    {
-        ThrowIfDisposed();
-        ThrowIfNotRecording();
-#if !DEBUG
-        if (_lastError.Status != ErrorStatus.None)
-        {
-            return;
-        }
-#endif
-        IncrementCommandCount();
-
-        var recordResult = _resourceDatabase.GetResourceRecord(resource);
-        if (recordResult.Error != ErrorStatus.None)
-        {
-            RecordError(nameof(TransitionBarrier), recordResult.Error);
-            return;
-        }
-
-        ref var record = ref recordResult.Value;
-        if (record.state == stateAfter)
-        {
-            return;
-        }
-
-        var barrier = D3D12_RESOURCE_BARRIER.InitTransition(record.ResourcePtr,
-            record.state.ToD3D12States(), stateAfter.ToD3D12States());
-
-        _commandList.Get()->ResourceBarrier(1, &barrier);
-        record.state = stateAfter;
-    }
-
-    public void AliasBarrier(Handle<GPUResource> resourceBefore, Handle<GPUResource> resourceAfter)
-    {
-        ThrowIfDisposed();
-        ThrowIfNotRecording();
-#if !DEBUG
-        if (_lastError.Status != ErrorStatus.None)
-        {
-            return;
-        }
-#endif
-        IncrementCommandCount();
-
-        var recordBeforeResult = _resourceDatabase.GetResourceRecord(resourceBefore);
-        if (recordBeforeResult.Error != ErrorStatus.None)
-        {
-            RecordError(nameof(AliasBarrier), recordBeforeResult.Error);
-            return;
-        }
-
-        var recordAfterResult = _resourceDatabase.GetResourceRecord(resourceAfter);
-        if (recordAfterResult.Error != ErrorStatus.None)
-        {
-            RecordError(nameof(AliasBarrier), recordAfterResult.Error);
-            return;
-        }
-
-        var barrier = D3D12_RESOURCE_BARRIER.InitAliasing(
-            recordBeforeResult.Value.ResourcePtr,
-            recordAfterResult.Value.ResourcePtr);
-        _commandList.Get()->ResourceBarrier(1, &barrier);
+        _commandList.Get()->Barrier(groupCount, groups);
     }
 
     public void SetRenderTargets(ReadOnlySpan<Handle<Texture>> renderTargets, Handle<Texture> depthTarget)
@@ -440,7 +390,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         }
 #endif
         IncrementCommandCount();
-        
+
         var recordResult = _resourceDatabase.GetResourceRecord(renderTarget.AsResource());
         if (recordResult.Error != ErrorStatus.None)
         {
@@ -914,7 +864,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
 
     }
 
-    public void UploadBuffer<T>(Handle<GraphicsBuffer> buffer, ReadOnlySpan<T> data)
+    public void UploadBuffer<T>(Handle<GraphicsBuffer> buffer, params ReadOnlySpan<T> data)
         where T : unmanaged
     {
         ThrowIfDisposed();
@@ -944,7 +894,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         _commandList.Get()->CopyBufferRegion(pResource, 0, uploadResource, offset, sizeInBytes);
     }
 
-    public void UploadTexture(Handle<Texture> texture, ReadOnlySpan<SubResourceData> subresources)
+    public void UploadTexture(Handle<Texture> texture, params ReadOnlySpan<SubResourceData> subresources)
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();

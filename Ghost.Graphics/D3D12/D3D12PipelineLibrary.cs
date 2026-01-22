@@ -179,24 +179,11 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
         return Result.Success(cbufferInfo);
     }
 
-    private static D3D12_COMPARISON_FUNC ToD3DCompare(ZTest z) => z switch
-    {
-        ZTest.Disabled => D3D12_COMPARISON_FUNC_NEVER,
-        ZTest.Less => D3D12_COMPARISON_FUNC_LESS,
-        ZTest.LessEqual => D3D12_COMPARISON_FUNC_LESS_EQUAL,
-        ZTest.Equal => D3D12_COMPARISON_FUNC_EQUAL,
-        ZTest.GreaterEqual => D3D12_COMPARISON_FUNC_GREATER_EQUAL,
-        ZTest.Greater => D3D12_COMPARISON_FUNC_GREATER,
-        ZTest.NotEqual => D3D12_COMPARISON_FUNC_NOT_EQUAL,
-        ZTest.Always => D3D12_COMPARISON_FUNC_ALWAYS,
-        _ => D3D12_COMPARISON_FUNC_LESS_EQUAL
-    };
-
     private static D3D12_DEPTH_STENCIL_DESC BuildDepthStencil(ZTest ztest, ZWrite zwrite)
     {
         var depthEnabled = ztest != ZTest.Disabled;
         var writeEnabled = zwrite == ZWrite.On;
-        var cmp = ToD3DCompare(ztest);
+        var cmp = ztest.ToD3DCompare();
         return D3D12Utility.D3D12_DEPTH_STENCIL_DESC_CREATE(depthEnabled, writeEnabled, cmp);
     }
 

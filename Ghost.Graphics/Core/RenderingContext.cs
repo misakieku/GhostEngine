@@ -5,7 +5,6 @@ using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using Misaki.HighPerformance.Mathematics;
-using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.Core;
 
@@ -47,6 +46,37 @@ public readonly unsafe ref struct RenderingContext
         queue.WaitIdle();
     }
 
+    private void TransitionBarrier(Handle<GPUResource> resource, bool isTexture, BarrierLayout newLayout, BarrierAccess newAccess, BarrierSync newSync)
+    {
+        var r = ResourceDatabase.GetResourceBarrierData(resource);
+        if (r.IsFailure)
+        {
+            return;
+        }
+
+        var data = r.Value;
+        if (data.Layout == newLayout && data.Access == newAccess && data.Sync == newSync)
+        {
+            return;
+        }
+
+        // For buffers, layout is usually Undefined/Common and doesn't change, but Access/Sync do.
+        // For textures, layout changes matter.
+        var desc = isTexture ?
+            BarrierDesc.Texture(
+            resource,
+            data.Sync, newSync,
+            data.Access, newAccess,
+            data.Layout, newLayout)
+            : BarrierDesc.Buffer(
+            resource,
+            data.Sync, newSync,
+            data.Access, newAccess);
+
+        _directCmd.ResourceBarrier(new ReadOnlySpan<BarrierDesc>(in desc));
+        ResourceDatabase.SetResourceBarrierData(resource, new ResourceBarrierData(newLayout, newAccess, newSync));
+    }
+
     public Handle<Mesh> CreateMesh(UnsafeList<Vertex> vertices, UnsafeList<uint> indices, bool staticMesh)
     {
         var mesh = ResourceAllocator.CreateMesh(vertices, indices);
@@ -60,8 +90,8 @@ public readonly unsafe ref struct RenderingContext
         var vertexHandle = meshData.VertexBuffer.AsResource();
         var indexHandle = meshData.IndexBuffer.AsResource();
 
-        _directCmd.TransitionBarrier(vertexHandle, ResourceState.CopyDest);
-        _directCmd.TransitionBarrier(indexHandle, ResourceState.CopyDest);
+        TransitionBarrier(vertexHandle, false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
+        TransitionBarrier(indexHandle, false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
 
         _directCmd.UploadBuffer(meshData.VertexBuffer, meshData.Vertices.AsSpan());
         _directCmd.UploadBuffer(meshData.IndexBuffer, meshData.Indices.AsSpan());
@@ -69,8 +99,8 @@ public readonly unsafe ref struct RenderingContext
         if (staticMesh)
         {
             meshData.ReleaseCpuResources();
-            _directCmd.TransitionBarrier(vertexHandle, ResourceState.NonPixelShaderResource);
-            _directCmd.TransitionBarrier(indexHandle, ResourceState.NonPixelShaderResource);
+            TransitionBarrier(vertexHandle, false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.VertexShading);
+            TransitionBarrier(indexHandle, false, BarrierLayout.Undefined, BarrierAccess.IndexBuffer, BarrierSync.IndexInput);
         }
 
         return mesh;
@@ -103,15 +133,17 @@ public readonly unsafe ref struct RenderingContext
         }
 
         ref readonly var meshRef = ref r.Value;
+        var vertexHandle = meshRef.VertexBuffer.AsResource();
+        var indexHandle = meshRef.IndexBuffer.AsResource();
 
-        _directCmd.TransitionBarrier(meshRef.VertexBuffer.AsResource(), ResourceState.CopyDest);
-        _directCmd.TransitionBarrier(meshRef.IndexBuffer.AsResource(), ResourceState.CopyDest);
+        TransitionBarrier(vertexHandle, false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
+        TransitionBarrier(indexHandle, false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
 
         _directCmd.UploadBuffer(meshRef.VertexBuffer, meshRef.Vertices.AsSpan());
         _directCmd.UploadBuffer(meshRef.IndexBuffer, meshRef.Indices.AsSpan());
 
-        _directCmd.TransitionBarrier(meshRef.VertexBuffer.AsResource(), ResourceState.NonPixelShaderResource);
-        _directCmd.TransitionBarrier(meshRef.IndexBuffer.AsResource(), ResourceState.NonPixelShaderResource);
+        TransitionBarrier(vertexHandle, false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.VertexShading);
+        TransitionBarrier(indexHandle, false, BarrierLayout.Undefined, BarrierAccess.IndexBuffer, BarrierSync.IndexInput);
 
         if (markMeshStatic)
         {
@@ -139,9 +171,9 @@ public readonly unsafe ref struct RenderingContext
 
         var bufferHandle = meshData.ObjectDataBuffer.AsResource();
 
-        _directCmd.TransitionBarrier(bufferHandle, ResourceState.CopyDest);
-        _directCmd.UploadBuffer(meshData.ObjectDataBuffer, [data]);
-        _directCmd.TransitionBarrier(bufferHandle, ResourceState.NonPixelShaderResource | ResourceState.PixelShaderResource);
+        TransitionBarrier(bufferHandle, false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
+        _directCmd.UploadBuffer(meshData.ObjectDataBuffer, data);
+        TransitionBarrier(bufferHandle, false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.PixelShading | BarrierSync.NonPixelShading);
     }
 
     public Handle<Texture> CreateTexture<T>(ref readonly TextureDesc desc, ReadOnlySpan<T> data, string name)
@@ -166,7 +198,7 @@ public readonly unsafe ref struct RenderingContext
 
         desc.TextureDescription.Format.GetSurfaceInfo(desc.TextureDescription.Width, desc.TextureDescription.Height, out var rowPitch, out var slicePitch, out _);
 
-        _directCmd.TransitionBarrier(texture.AsResource(), ResourceState.CopyDest);
+        TransitionBarrier(texture.AsResource(), true, BarrierLayout.CopyDest, BarrierAccess.CopyDest, BarrierSync.Copy);
 
         fixed (T* pData = data)
         {

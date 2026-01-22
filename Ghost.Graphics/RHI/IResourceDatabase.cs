@@ -11,6 +11,20 @@ public interface IResourceReleasable
     void ReleaseResource(IResourceDatabase database);
 }
 
+public struct ResourceBarrierData
+{
+    public BarrierLayout Layout;
+    public BarrierAccess Access;
+    public BarrierSync Sync;
+
+    public ResourceBarrierData(BarrierLayout layout, BarrierAccess access, BarrierSync sync)
+    {
+        Layout = layout;
+        Access = access;
+        Sync = sync;
+    }
+}
+
 // TODO: Consider adding methods for resource enumeration, statistics, and bulk operations.
 // TODO: Consider adding async resource loading and streaming support.
 // TODO: Mesh, Material, Shader management could be separated into their own interfaces for better modularity because they are not bound to specific graphics API.
@@ -35,19 +49,19 @@ public interface IResourceDatabase : IDisposable
     bool HasResource(Handle<GPUResource> handle);
 
     /// <summary>
-    /// Retrieves the current state of the specified resource.
+    /// Retrieves the current barrier data of the specified resource.
     /// </summary>
-    /// <param name="handle">The handle that uniquely identifies the resource whose state is to be retrieved.</param>
-    /// <returns>A ResourceState Value representing the current state of the resource associated with the specified handle.</returns>
-    Result<ResourceState, ErrorStatus> GetResourceState(Handle<GPUResource> handle);
+    /// <param name="handle">The handle that uniquely identifies the resource.</param>
+    /// <returns>A ResourceBarrierData value representing the current barrier state.</returns>
+    Result<ResourceBarrierData, ErrorStatus> GetResourceBarrierData(Handle<GPUResource> handle);
 
     /// <summary>
-    /// Sets the state of the specified resource handle to the given Value.
+    /// Sets the barrier data of the specified resource handle.
     /// </summary>
-    /// <param name="handle">The handle that identifies the resource whose state will be updated.</param>
-    /// <param name="state">The new state to assign to the resource represented by <paramref name="handle"/>.</param>
+    /// <param name="handle">The handle that identifies the resource.</param>
+    /// <param name="data">The new barrier data.</param>
     /// <returns>An ErrorStatus indicating the success or failure of the operation.</returns>
-    ErrorStatus SetResourceState(Handle<GPUResource> handle, ResourceState state);
+    ErrorStatus SetResourceBarrierData(Handle<GPUResource> handle, ResourceBarrierData data);
 
     /// <summary>
     /// Retrieves the description of a GPU resource associated with the specified handle.

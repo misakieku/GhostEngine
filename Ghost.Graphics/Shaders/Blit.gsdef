@@ -10,7 +10,7 @@ shader "Hidden/Blit"
     {
         pipeline
         {
-            ztest = always;
+            ztest = disabled;
             zwrite = off;
             cull = off;
             blend = opaque;

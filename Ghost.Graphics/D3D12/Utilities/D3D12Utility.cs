@@ -1,3 +1,4 @@
+using Ghost.Core.Graphics;
 using Ghost.Graphics.RHI;
 using TerraFX.Interop.DirectX;
 
@@ -79,62 +80,62 @@ internal unsafe static class D3D12Utility
     {
         var d3dStates = D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_COMMON;
 
-        if ((state & ResourceState.VertexAndConstantBuffer) == ResourceState.VertexAndConstantBuffer)
+        if (state.HasFlag(ResourceState.VertexAndConstantBuffer))
         {
             d3dStates |= D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
         }
 
-        if ((state & ResourceState.IndexBuffer) == ResourceState.IndexBuffer)
+        if (state.HasFlag(ResourceState.IndexBuffer))
         {
             d3dStates |= D3D12_RESOURCE_STATE_INDEX_BUFFER;
         }
 
-        if ((state & ResourceState.RenderTarget) == ResourceState.RenderTarget)
+        if (state.HasFlag(ResourceState.RenderTarget))
         {
             d3dStates |= D3D12_RESOURCE_STATE_RENDER_TARGET;
         }
 
-        if ((state & ResourceState.UnorderedAccess) == ResourceState.UnorderedAccess)
+        if (state.HasFlag(ResourceState.UnorderedAccess))
         {
             d3dStates |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
         }
 
-        if ((state & ResourceState.DepthWrite) == ResourceState.DepthWrite)
+        if (state.HasFlag(ResourceState.DepthWrite))
         {
             d3dStates |= D3D12_RESOURCE_STATE_DEPTH_WRITE;
         }
 
-        if ((state & ResourceState.DepthRead) == ResourceState.DepthRead)
+        if (state.HasFlag(ResourceState.DepthRead))
         {
             d3dStates |= D3D12_RESOURCE_STATE_DEPTH_READ;
         }
 
-        if ((state & ResourceState.PixelShaderResource) == ResourceState.PixelShaderResource)
+        if (state.HasFlag(ResourceState.PixelShaderResource))
         {
             d3dStates |= D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
         }
 
-        if ((state & ResourceState.CopyDest) == ResourceState.CopyDest)
+        if (state.HasFlag(ResourceState.CopyDest))
         {
             d3dStates |= D3D12_RESOURCE_STATE_COPY_DEST;
         }
 
-        if ((state & ResourceState.CopySource) == ResourceState.CopySource)
+        if (state.HasFlag(ResourceState.CopySource))
         {
             d3dStates |= D3D12_RESOURCE_STATE_COPY_SOURCE;
         }
 
-        if ((state & ResourceState.GenericRead) == ResourceState.GenericRead)
+        if (state.HasFlag(ResourceState.GenericRead))
         {
             d3dStates |= D3D12_RESOURCE_STATE_GENERIC_READ;
         }
 
-        if ((state & ResourceState.IndirectArgument) == ResourceState.IndirectArgument)
+        if (state.HasFlag(ResourceState.IndirectArgument))
         {
             d3dStates |= D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
         }
 
-        if ((state & ResourceState.NonPixelShaderResource) == ResourceState.NonPixelShaderResource)
+        if (state.HasFlag(ResourceState.NonPixelShaderResource))
         {
             d3dStates |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
         }
@@ -247,6 +248,22 @@ internal unsafe static class D3D12Utility
             ComparisonFunction.GreaterEqual => D3D12_COMPARISON_FUNC_GREATER_EQUAL,
             ComparisonFunction.Always => D3D12_COMPARISON_FUNC_ALWAYS,
             _ => throw new ArgumentException($"Unknown comparison function: {func}")
+        };
+    }
+
+    public static D3D12_COMPARISON_FUNC ToD3DCompare(this ZTest z)
+    {
+        return z switch
+        {
+            ZTest.Disabled => D3D12_COMPARISON_FUNC_NEVER,
+            ZTest.Less => D3D12_COMPARISON_FUNC_LESS,
+            ZTest.LessEqual => D3D12_COMPARISON_FUNC_LESS_EQUAL,
+            ZTest.Equal => D3D12_COMPARISON_FUNC_EQUAL,
+            ZTest.GreaterEqual => D3D12_COMPARISON_FUNC_GREATER_EQUAL,
+            ZTest.Greater => D3D12_COMPARISON_FUNC_GREATER,
+            ZTest.NotEqual => D3D12_COMPARISON_FUNC_NOT_EQUAL,
+            ZTest.Always => D3D12_COMPARISON_FUNC_ALWAYS,
+            _ => D3D12_COMPARISON_FUNC_LESS_EQUAL
         };
     }
 

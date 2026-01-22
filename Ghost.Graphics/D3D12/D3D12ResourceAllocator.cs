@@ -10,7 +10,6 @@ using Misaki.HighPerformance.LowLevel.Collections;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Xml.Linq;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 
@@ -480,84 +479,6 @@ internal sealed unsafe partial class D3D12ResourceAllocator
             _ => throw new ArgumentException($"Unsupported memory type: {memoryType}")
         };
     }
-
-    private static D3D12_RESOURCE_STATES DetermineInitialTextureState(TextureUsage usage)
-    {
-        if (usage.HasFlag(TextureUsage.RenderTarget))
-        {
-            return D3D12_RESOURCE_STATE_RENDER_TARGET;
-        }
-
-        if (usage.HasFlag(TextureUsage.DepthStencil))
-        {
-            return D3D12_RESOURCE_STATE_DEPTH_WRITE;
-        }
-
-        if (usage.HasFlag(TextureUsage.UnorderedAccess))
-        {
-            return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-        }
-
-        return D3D12_RESOURCE_STATE_COMMON;
-    }
-
-    private static D3D12_RESOURCE_STATES DetermineInitialBufferState(BufferUsage usage, ResourceMemoryType memoryType)
-    {
-        if (memoryType == ResourceMemoryType.Upload)
-        {
-            return D3D12_RESOURCE_STATE_GENERIC_READ;
-        }
-
-        if (memoryType == ResourceMemoryType.Readback)
-        {
-            return D3D12_RESOURCE_STATE_COPY_DEST;
-        }
-
-        var state = D3D12_RESOURCE_STATE_COMMON;
-#if true
-        // D3D12 does not support state other than COMMON for buffers at creation.
-        return state;
-#else
-        if (usage.HasFlag(BufferUsage.Vertex) || usage.HasFlag(BufferUsage.Constant))
-        {
-            // Vertex and Constant buffers can share this state
-            state |= D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-        }
-
-        if (usage.HasFlag(BufferUsage.Index))
-        {
-            state |= D3D12_RESOURCE_STATE_INDEX_BUFFER;
-        }
-
-        if (usage.HasFlag(BufferUsage.UnorderedAccess))
-        {
-            state |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-        }
-
-        if (usage.HasFlag(BufferUsage.IndirectArgument))
-        {
-            state |= D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
-        }
-
-        // If only one state is set (e.g., just IndexBuffer), return it directly
-        // This is a common optimization to avoid an initial barrier
-        if (math.ispow2((int)state))
-        {
-            return state;
-        }
-
-        // If multiple roles (e.g., Vertex and Index), start in COMMON
-        // or return the combined state if they are compatible
-        // For simplicity, we'll just check for the common "Vertex/Constant" combo
-        if (state == D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER)
-        {
-            return D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-        }
-
-        // If it's a mix, start in common and let the user barrier
-        return D3D12_RESOURCE_STATE_COMMON;
-#endif
-    }
 }
 
 internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
@@ -624,9 +545,9 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Handle<GPUResource> TrackAllocation(D3D12MA_Allocation* allocation, D3D12_RESOURCE_STATES state, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string name, bool isTemp)
+    private Handle<GPUResource> TrackAllocation(D3D12MA_Allocation* allocation, ResourceBarrierData barrierData, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string name, bool isTemp)
     {
-        var handle = _resourceDatabase.AddAllocation(allocation, _fenceSynchronizer.CPUFenceValue, state.ToResourceState(), resourceDescriptor, desc, name);
+        var handle = _resourceDatabase.AddAllocation(allocation, _fenceSynchronizer.CPUFenceValue, barrierData, resourceDescriptor, desc, name);
 
         if (isTemp)
         {
@@ -653,8 +574,8 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         }
         else
         {
-            var nuliid = IID.IID_NULL;
-            hr = _d3d12MA.Get()->CreateResource(pAllocationDesc, pResourceDesc, initialState, null, (D3D12MA_Allocation**)ppv, &nuliid, null);
+            var iid_null = IID.IID_NULL;
+            hr = _d3d12MA.Get()->CreateResource(pAllocationDesc, pResourceDesc, initialState, null, (D3D12MA_Allocation**)ppv, &iid_null, null);
         }
 
         return hr;
@@ -696,7 +617,14 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             return Handle<GPUResource>.Invalid;
         }
 
-        return TrackAllocation(alloc, D3D12_RESOURCE_STATE_COMMON, ResourceViewGroup.Invalid, default, name, false);
+        var barrierData = new ResourceBarrierData
+        {
+            Access = BarrierAccess.NoAccess,
+            Layout = BarrierLayout.Common,
+            Sync = BarrierSync.None
+        };
+
+        return TrackAllocation(alloc, barrierData, ResourceViewGroup.Invalid, default, name, false);
     }
 
     public Handle<Texture> CreateTexture(ref readonly TextureDesc desc, string name, CreationOptions options = default)
@@ -756,7 +684,6 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             Flags = D3D12MA_ALLOCATION_FLAG_NONE
         };
 
-        var initialState = DetermineInitialTextureState(desc.Usage);
         var isSubAllocation = options.AllocationType == ResourceAllocationType.Suballocation;
         D3D12MA_Allocation* pAllocation = default;
         ID3D12Resource* pResource = default;
@@ -764,18 +691,18 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
         if (isSubAllocation)
         {
-            hr = CreateResource(&allocationDesc, &resourceDesc, initialState, options, __uuidof(pResource), (void**)&pResource);
+            hr = CreateResource(&allocationDesc, &resourceDesc, D3D12_RESOURCE_STATE_COMMON, options, __uuidof(pResource), (void**)&pResource);
         }
         else
         {
-            hr = CreateResource(&allocationDesc, &resourceDesc, initialState, options, null, (void**)&pAllocation);
+            hr = CreateResource(&allocationDesc, &resourceDesc, D3D12_RESOURCE_STATE_COMMON, options, null, (void**)&pAllocation);
             pResource = pAllocation->GetResource();
         }
 
         if (hr.FAILED)
         {
 #if DEBUG
-            Marshal.ThrowExceptionForHR(hr);
+            ThrowIfFailed(hr);
 #endif
             return Handle<Texture>.Invalid;
         }
@@ -822,14 +749,21 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             _descriptorAllocator.CopyToShaderVisible(resourceDescriptor.uav);
         }
 
+        var barrierData = new ResourceBarrierData
+        {
+            Access = BarrierAccess.NoAccess,
+            Layout = BarrierLayout.Common,
+            Sync = BarrierSync.None
+        };
+
         Handle<GPUResource> resource;
         if (isSubAllocation)
         {
-            resource = _resourceDatabase.ImportExternalResource(pResource, initialState.ToResourceState(), resourceDescriptor, name);
+            resource = _resourceDatabase.ImportExternalResource(pResource, barrierData, resourceDescriptor, name);
         }
         else
         {
-            resource = TrackAllocation(pAllocation, initialState, resourceDescriptor, ResourceDesc.Texture(desc), name, isTemp);
+            resource = TrackAllocation(pAllocation, barrierData, resourceDescriptor, ResourceDesc.Texture(desc), name, isTemp);
         }
 
         return resource.AsTexture();
@@ -864,11 +798,18 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             Flags = D3D12MA_ALLOCATION_FLAG_NONE,
         };
 
-        var initialState = DetermineInitialBufferState(desc.Usage, desc.MemoryType);
         var isSubAllocation = options.Heap.IsValid;
         D3D12MA_Allocation* pAllocation = default;
         ID3D12Resource* pResource = default;
         HRESULT hr;
+
+        var initialState = desc.MemoryType switch
+        {
+            ResourceMemoryType.Default => D3D12_RESOURCE_STATE_COMMON,
+            ResourceMemoryType.Upload => D3D12_RESOURCE_STATE_GENERIC_READ,
+            ResourceMemoryType.Readback => D3D12_RESOURCE_STATE_COPY_DEST,
+            _ => D3D12_RESOURCE_STATE_COMMON
+        };
 
         if (isSubAllocation)
         {
@@ -876,12 +817,15 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         }
         else
         {
-            hr = CreateResource(&allocationDesc, &resourceDesc, initialState, options, null,  (void**)&pAllocation);
+            hr = CreateResource(&allocationDesc, &resourceDesc, initialState, options, null, (void**)&pAllocation);
             pResource = pAllocation->GetResource();
         }
 
         if (hr.FAILED)
         {
+#if DEBUG
+            ThrowIfFailed(hr);
+#endif
             return Handle<GraphicsBuffer>.Invalid;
         }
 
@@ -922,14 +866,21 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             _descriptorAllocator.CopyToShaderVisible(resourceDescriptor.uav);
         }
 
+        var barrierData = new ResourceBarrierData
+        {
+            Access = BarrierAccess.NoAccess,
+            Layout = BarrierLayout.Undefined,
+            Sync = BarrierSync.None
+        };
+
         Handle<GPUResource> resource;
         if (isSubAllocation)
         {
-            resource = _resourceDatabase.ImportExternalResource(pResource, initialState.ToResourceState(), resourceDescriptor, name);
+            resource = _resourceDatabase.ImportExternalResource(pResource, barrierData, resourceDescriptor, name);
         }
         else
         {
-            resource = TrackAllocation(pAllocation, initialState, resourceDescriptor, ResourceDesc.Buffer(desc), name, isTemp);
+            resource = TrackAllocation(pAllocation, barrierData, resourceDescriptor, ResourceDesc.Buffer(desc), name, isTemp);
         }
 
         return resource.AsGraphicsBuffer();

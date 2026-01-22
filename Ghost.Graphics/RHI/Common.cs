@@ -294,35 +294,122 @@ public struct PassDepthStencilDesc
 }
 
 
-[StructLayout(LayoutKind.Explicit)]
+public struct BarrierSubresourceRange
+{
+    public uint IndexOrFirstMipLevel
+    {
+        get; set;
+    }
+
+    public uint NumMipLevels
+    {
+        get; set;
+    }
+
+    public uint FirstArraySlice
+    {
+        get; set;
+    }
+
+    public uint NumArraySlices
+    {
+        get; set;
+    }
+}
+
 public struct BarrierDesc
 {
-    public struct barrierdesc_transition
+    public BarrierType Type
     {
-        public Handle<GPUResource> resource;
-        public ResourceState stateBefore;
-        public ResourceState stateAfter;
+        get; set;
     }
 
-    public struct barrierdesc_aliasing
+    public BarrierSync SyncBefore
     {
-        public Handle<GPUResource> resourceBefore;
-        public Handle<GPUResource> resourceAfter;
+        get; set;
     }
 
-    public struct barrierdesc_uav
+    public BarrierSync SyncAfter
     {
-        public Handle<GPUResource> resource;
+        get; set;
     }
 
-    [FieldOffset(0)]
-    public BarrierType type;
-    [FieldOffset(4)]
-    public barrierdesc_transition transition;
-    [FieldOffset(4)]
-    public barrierdesc_aliasing aliasing;
-    [FieldOffset(4)]
-    public barrierdesc_uav uav;
+    public BarrierAccess AccessBefore
+    {
+        get; set;
+    }
+
+    public BarrierAccess AccessAfter
+    {
+        get; set;
+    }
+
+    public BarrierLayout LayoutBefore
+    {
+        get; set;
+    }
+
+    public BarrierLayout LayoutAfter
+    {
+        get; set;
+    }
+
+    public Handle<GPUResource> Resource
+    {
+        get; set;
+    }
+
+    public BarrierSubresourceRange Subresources
+    {
+        get; set;
+    }
+
+    public bool Discard
+    {
+        get; set;
+    }
+
+    public static BarrierDesc Global(BarrierSync syncBefore, BarrierSync syncAfter, BarrierAccess accessBefore, BarrierAccess accessAfter)
+    {
+        return new BarrierDesc
+        {
+            Type = BarrierType.Global,
+            SyncBefore = syncBefore,
+            SyncAfter = syncAfter,
+            AccessBefore = accessBefore,
+            AccessAfter = accessAfter
+        };
+    }
+
+    public static BarrierDesc Buffer(Handle<GPUResource> resource, BarrierSync syncBefore, BarrierSync syncAfter, BarrierAccess accessBefore, BarrierAccess accessAfter)
+    {
+        return new BarrierDesc
+        {
+            Type = BarrierType.Buffer,
+            Resource = resource,
+            SyncBefore = syncBefore,
+            SyncAfter = syncAfter,
+            AccessBefore = accessBefore,
+            AccessAfter = accessAfter
+        };
+    }
+
+    public static BarrierDesc Texture(Handle<GPUResource> resource, BarrierSync syncBefore, BarrierSync syncAfter, BarrierAccess accessBefore, BarrierAccess accessAfter, BarrierLayout layoutBefore, BarrierLayout layoutAfter, BarrierSubresourceRange subresources = default, bool discard = false)
+    {
+        return new BarrierDesc
+        {
+            Type = BarrierType.Texture,
+            Resource = resource,
+            SyncBefore = syncBefore,
+            SyncAfter = syncAfter,
+            AccessBefore = accessBefore,
+            AccessAfter = accessAfter,
+            LayoutBefore = layoutBefore,
+            LayoutAfter = layoutAfter,
+            Subresources = subresources,
+            Discard = discard
+        };
+    }
 }
 
 public struct ResourceDesc
@@ -574,9 +661,6 @@ public struct TextureDesc
     }
 }
 
-/// <summary>
-/// Describes the parameters used to configure a texture sampler for graphics rendering operations.
-/// </summary>
 public record struct SamplerDesc
 {
     public TextureFilterMode FilterMode
@@ -625,14 +709,8 @@ public record struct SamplerDesc
     }
 }
 
-/// <summary>
-/// Buffer description
-/// </summary>
 public struct BufferDesc
 {
-    /// <summary>
-    /// Size of the buffer in bytes
-    /// </summary>
     public ulong Size
     {
         get; set;
@@ -643,17 +721,11 @@ public struct BufferDesc
         get; set;
     }
 
-    /// <summary>
-    /// Buffer usage flags
-    /// </summary>
     public BufferUsage Usage
     {
         get; set;
     }
 
-    /// <summary>
-    /// Memory space for the buffer
-    /// </summary>
     public ResourceMemoryType MemoryType
     {
         get; set;
@@ -678,22 +750,13 @@ public struct CommandError
     }
 }
 
-/// <summary>
-/// Swap chain description
-/// </summary>
 public struct SwapChainDesc
 {
-    /// <summary>
-    /// Width of the swap chain
-    /// </summary>
     public uint Width
     {
         get; set;
     }
 
-    /// <summary>
-    /// Height of the swap chain
-    /// </summary>
     public uint Height
     {
         get; set;
@@ -709,50 +772,29 @@ public struct SwapChainDesc
         get; set;
     }
 
-    /// <summary>
-    /// Back buffer Format
-    /// </summary>
     public TextureFormat Format
     {
         get; set;
     }
 
-
-    /// <summary>
-    /// Target for presentation (window handle or composition Target)
-    /// </summary>
     public SwapChainTarget Target
     {
         get; set;
     }
 }
 
-/// <summary>
-/// Swap chain Target (window handle or composition surface)
-/// </summary>
 public struct SwapChainTarget
 {
-    /// <summary>
-    /// Target space
-    /// </summary>
     public SwapChainTargetType Type
     {
         get; set;
     }
 
-
-    /// <summary>
-    /// Window handle for HWND targets
-    /// </summary>
     public nint WindowHandle
     {
         get; set;
     }
 
-
-    /// <summary>
-    /// Composition surface for UWP/WinUI targets
-    /// </summary>
     public object? CompositionSurface
     {
         get; set;
@@ -787,11 +829,97 @@ public enum SwapChainTargetType
 }
 
 
-public enum BarrierType : int
+public enum BarrierType
 {
-    Transition,
-    Aliasing,
-    UAV
+    Global,
+    Texture,
+    Buffer
+}
+
+[Flags]
+public enum BarrierSync : uint
+{
+    None = 0x0,
+    All = 0x0,
+    Draw = 0x1,
+    IndexInput = 0x2,
+    VertexShading = 0x4,
+    PixelShading = 0x8,
+    DepthStencil = 0x10,
+    RenderTarget = 0x20,
+    ComputeShading = 0x40,
+    Raytracing = 0x80,
+    Copy = 0x100,
+    Resolve = 0x200,
+    ExecuteIndirect = 0x400,
+    Predication = 0x800,
+    AllShading = VertexShading | PixelShading | ComputeShading | Raytracing,
+    NonPixelShading = VertexShading | ComputeShading | Raytracing,
+    EmitRaytracingAccelerationStructurePostbuildInfo = 0x1000,
+    ClearUnorderedAccessView = 0x2000,
+    VideoDecode = 0x40000,
+    VideoProcess = 0x80000,
+    VideoEncode = 0x100000,
+    BuildRaytracingAccelerationStructure = 0x200000,
+    CopyRaytracingAccelerationStructure = 0x400000,
+    Split = 0x800000
+}
+
+[Flags]
+public enum BarrierAccess : uint
+{
+    Common = 0,
+    VertexBuffer = 0x1,
+    ConstantBuffer = 0x2,
+    IndexBuffer = 0x4,
+    RenderTarget = 0x8,
+    UnorderedAccess = 0x10,
+    DepthStencilWrite = 0x20,
+    DepthStencilRead = 0x40,
+    ShaderResource = 0x80,
+    StreamOutput = 0x100,
+    IndirectArgument = 0x200,
+    CopyDest = 0x400,
+    CopySource = 0x800,
+    ResolveDest = 0x1000,
+    ResolveSource = 0x2000,
+    RaytracingAccelerationStructureRead = 0x4000,
+    RaytracingAccelerationStructureWrite = 0x8000,
+    ShadingRateSource = 0x10000,
+    VideoDecodeRead = 0x20000,
+    VideoDecodeWrite = 0x40000,
+    VideoProcessRead = 0x80000,
+    VideoProcessWrite = 0x100000,
+    VideoEncodeRead = 0x200000,
+    VideoEncodeWrite = 0x400000,
+    NoAccess = 0x80000000
+}
+
+public enum BarrierLayout
+{
+    Undefined = -1,
+    Common = 0,
+    Present = 0,
+    GenericRead = 1,
+    RenderTarget = 2,
+    UnorderedAccess = 3,
+    DepthStencilWrite = 4,
+    DepthStencilRead = 5,
+    ShaderResource = 6,
+    CopyDest = 7,
+    CopySource = 8,
+    ResolveDest = 9,
+    ResolveSource = 10,
+    ShadingRateSource = 11,
+    VideoDecodeRead = 12,
+    VideoDecodeWrite = 13,
+    VideoProcessRead = 14,
+    VideoProcessWrite = 15,
+    VideoEncodeRead = 16,
+    VideoEncodeWrite = 17,
+    DirectQueueCommon = 18,
+    ComputeQueueCommon = 19,
+    VideoQueueCommon = 20
 }
 
 [Flags]
@@ -948,41 +1076,15 @@ public enum ComparisonFunction
     Always
 }
 
-/// <summary>
-/// Specifies how to load attachment contents at the start of a render pass.
-/// </summary>
 public enum AttachmentLoadOp
 {
-    /// <summary>
-    /// Load existing contents from memory. Use when you need to preserve previous data.
-    /// </summary>
     Load,
-
-    /// <summary>
-    /// Clear the attachment to a specified value. Use when you want to start with a clean slate.
-    /// </summary>
     Clear,
-
-    /// <summary>
-    /// Don't care about previous contents. Use when you'll overwrite all pixels (fullscreen pass).
-    /// On tile-based deferred renderers (TBDR), this can save significant memory bandwidth.
-    /// </summary>
     DontCare
 }
 
-/// <summary>
-/// Specifies how to store attachment contents at the end of a render pass.
-/// </summary>
 public enum AttachmentStoreOp
 {
-    /// <summary>
-    /// Store the contents to memory for later use.
-    /// </summary>
     Store,
-
-    /// <summary>
-    /// Discard the contents (not needed after this pass).
-    /// On tile-based deferred renderers (TBDR), this can save significant memory bandwidth.
-    /// </summary>
     DontCare
 }

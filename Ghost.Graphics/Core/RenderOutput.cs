@@ -33,12 +33,22 @@ internal class SwapChainRenderOutput : IRenderOutput
 
     public void BeginRender(ICommandBuffer cmd)
     {
-        cmd.TransitionBarrier(GetRenderTarget().AsResource(), ResourceState.Present, ResourceState.RenderTarget);
+        var barrierDesc = BarrierDesc.Texture(_swapChain.GetCurrentBackBuffer().AsResource(),
+            BarrierSync.None, BarrierSync.RenderTarget,
+            BarrierAccess.NoAccess, BarrierAccess.RenderTarget,
+            BarrierLayout.Present, BarrierLayout.RenderTarget);
+
+        cmd.ResourceBarrier(barrierDesc);
     }
 
     public void EndRender(ICommandBuffer cmd)
     {
-        cmd.TransitionBarrier(GetRenderTarget().AsResource(), ResourceState.RenderTarget, ResourceState.Present);
+        var barrierDesc = BarrierDesc.Texture(_swapChain.GetCurrentBackBuffer().AsResource(),
+            BarrierSync.RenderTarget, BarrierSync.None,
+            BarrierAccess.RenderTarget, BarrierAccess.NoAccess,
+            BarrierLayout.RenderTarget, BarrierLayout.Present);
+
+        cmd.ResourceBarrier(barrierDesc);
     }
 
     public void Present()

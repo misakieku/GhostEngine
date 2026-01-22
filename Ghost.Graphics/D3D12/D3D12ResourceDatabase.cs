@@ -37,32 +37,37 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         public ResourceDesc desc;
         public ResourceViewGroup viewGroup;
         public ResourceUnion resource;
-        public ResourceState state;
+
+        //public BarrierLayout layout;
+        //public BarrierAccess access;
+        //public BarrierSync sync;
+        public ResourceBarrierData barrierData;
+
         public uint cpuFenceValue;
         public readonly bool isExternal;
 
         public readonly bool Allocated => isExternal ? resource.resource.Get() != null : resource.allocation.Get() != null;
         public readonly SharedPtr<ID3D12Resource> ResourcePtr => isExternal ? resource.resource.Get() : resource.allocation.Get()->GetResource();
 
-        public ResourceRecord(D3D12MA_Allocation* allocation, uint cpuFenceValue, ResourceState state, ResourceViewGroup resourceDescriptor, ResourceDesc desc)
+        public ResourceRecord(D3D12MA_Allocation* allocation, uint cpuFenceValue, ResourceBarrierData barrierData, ResourceViewGroup resourceDescriptor, ResourceDesc desc)
         {
             this.resource = new ResourceUnion(allocation);
             this.isExternal = false;
 
             this.viewGroup = resourceDescriptor;
             this.cpuFenceValue = cpuFenceValue;
-            this.state = state;
+            this.barrierData = barrierData;
             this.desc = desc;
         }
 
-        public ResourceRecord(ID3D12Resource* resource, ResourceState state, ResourceViewGroup viewGroup)
+        public ResourceRecord(ID3D12Resource* resource, ResourceBarrierData barrierData, ResourceViewGroup viewGroup)
         {
             this.resource = new ResourceUnion(resource);
             this.isExternal = true;
 
             this.viewGroup = viewGroup;
             this.cpuFenceValue = ~0u;
-            this.state = state;
+            this.barrierData = barrierData;
             this.desc = resource->GetDesc().ToResourceDesc();
         }
 
@@ -130,7 +135,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         resource = default!;
     }
 
-    public unsafe Handle<GPUResource> ImportExternalResource(ID3D12Resource* pResource, ResourceState initialState, ResourceViewGroup viewGroup, string? name = null)
+    public unsafe Handle<GPUResource> ImportExternalResource(ID3D12Resource* pResource, ResourceBarrierData initialBarrierData, ResourceViewGroup viewGroup, string? name = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         if (pResource == null)
@@ -141,7 +146,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
             return Handle<GPUResource>.Invalid;
         }
 
-        var id = _resources.Add(new ResourceRecord(pResource, initialState, viewGroup), out var generation);
+        var id = _resources.Add(new ResourceRecord(pResource, initialBarrierData, viewGroup), out var generation);
         var handle = new Handle<GPUResource>(id, generation);
 
 #if DEBUG || GHOST_EDITOR
@@ -155,7 +160,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         return handle;
     }
 
-    public unsafe Handle<GPUResource> AddAllocation(D3D12MA_Allocation* allocation, uint cpuFenceValue, ResourceState initialState, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string? name = null)
+    public unsafe Handle<GPUResource> AddAllocation(D3D12MA_Allocation* allocation, uint cpuFenceValue, ResourceBarrierData initialBarrierData, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string? name = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         if (allocation == null)
@@ -166,7 +171,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
             return Handle<GPUResource>.Invalid;
         }
 
-        var id = _resources.Add(new ResourceRecord(allocation, cpuFenceValue, initialState, resourceDescriptor, desc), out var generation);
+        var id = _resources.Add(new ResourceRecord(allocation, cpuFenceValue, initialBarrierData, resourceDescriptor, desc), out var generation);
         var handle = new Handle<GPUResource>(id, generation);
 
 #if DEBUG || GHOST_EDITOR
@@ -215,7 +220,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         return r.Value.ResourcePtr;
     }
 
-    public Result<ResourceState, ErrorStatus> GetResourceState(Handle<GPUResource> handle)
+    public Result<ResourceBarrierData, ErrorStatus> GetResourceBarrierData(Handle<GPUResource> handle)
     {
         var r = GetResourceRecord(handle);
         if (r.IsFailure)
@@ -223,10 +228,10 @@ internal class D3D12ResourceDatabase : IResourceDatabase
             return r.Error;
         }
 
-        return r.Value.state;
+        return r.Value.barrierData;
     }
 
-    public ErrorStatus SetResourceState(Handle<GPUResource> handle, ResourceState state)
+    public ErrorStatus SetResourceBarrierData(Handle<GPUResource> handle, ResourceBarrierData data)
     {
         var r = GetResourceRecord(handle);
         if (r.IsFailure)
@@ -234,7 +239,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
             return r.Error;
         }
 
-        r.Value.state = state;
+        r.Value.barrierData = data;
         return ErrorStatus.None;
     }
 

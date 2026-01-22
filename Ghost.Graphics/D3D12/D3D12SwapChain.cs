@@ -156,7 +156,14 @@ internal unsafe class D3D12SwapChain : ISwapChain
                 rtv = rtv
             };
 
-            var handle = _resourceDatabase.ImportExternalResource(pBackBuffer, ResourceState.Present, view);
+            var barrierData = new ResourceBarrierData
+            {
+                Access = BarrierAccess.NoAccess,
+                Layout = BarrierLayout.Present,
+                Sync = BarrierSync.None,
+            };
+
+            var handle = _resourceDatabase.ImportExternalResource(pBackBuffer, barrierData, view);
             _backBuffers[i] = handle.AsTexture();
         }
     }

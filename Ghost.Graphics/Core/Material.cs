@@ -235,21 +235,39 @@ public struct Material : IResourceReleasable
         return _keywordMask.IsKeywordEnabled(localIndex);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void UploadData(ICommandBuffer cmd, bool pixelOnlyResource = true)
+    public readonly void UploadData(ICommandBuffer cmd, IResourceDatabase resourceDatabase)
     {
         if (!_isDirty)
         {
             return;
         }
 
-        cmd.TransitionBarrier(_cBufferCache.GpuResource.AsResource(), ResourceState.CopyDest);
-        cmd.UploadBuffer(_cBufferCache.GpuResource, _cBufferCache.CpuData.AsSpan());
+        var cbufferResource = _cBufferCache.GpuResource.AsResource();
+        var r = resourceDatabase.GetResourceBarrierData(cbufferResource);
+        if (r.IsFailure)
+        {
+            return;
+        }
 
-        var state = pixelOnlyResource
-            ? ResourceState.PixelShaderResource
-            : ResourceState.NonPixelShaderResource | ResourceState.PixelShaderResource;
-        cmd.TransitionBarrier(_cBufferCache.GpuResource.AsResource(), state);
+        var barrierData = r.Value;
+        var desc = BarrierDesc.Buffer(
+            cbufferResource,
+            barrierData.Sync,
+            BarrierSync.Copy,
+            barrierData.Access,
+            BarrierAccess.CopyDest);
+
+        cmd.ResourceBarrier(desc);
+        cmd.UploadBuffer(_cBufferCache.GpuResource, _cBufferCache.CpuData.AsSpan());
+        
+        desc = BarrierDesc.Buffer(
+            cbufferResource,
+            BarrierSync.Copy,
+            BarrierSync.AllShading,
+            BarrierAccess.CopyDest,
+            BarrierAccess.ShaderResource);
+
+        cmd.ResourceBarrier(desc);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

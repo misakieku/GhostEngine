@@ -245,7 +245,7 @@ internal class MeshRenderPass : IRenderPass
         };
 
         matRef.SetPropertyCache(in matProps).ThrowIfFailed();
-        matRef.UploadData(ctx.DirectCommandBuffer);
+        matRef.UploadData(ctx.DirectCommandBuffer, ctx.ResourceDatabase);
     }
 
     public void Build(RenderGraph graph, Identifier<RGTexture> backbuffer)
@@ -298,7 +298,7 @@ internal class MeshRenderPass : IRenderPass
                 };
 
                 matRef.SetPropertyCache(in blitProps).ThrowIfFailed();
-                matRef.UploadData(ctx.CommandBuffer);
+                matRef.UploadData(ctx.CommandBuffer, ctx.ResourceDatabase);
 
                 ctx.CommandBuffer.SetRenderTargets([ctx.GetActualTexture(data.destination)], Handle<Texture>.Invalid);
 

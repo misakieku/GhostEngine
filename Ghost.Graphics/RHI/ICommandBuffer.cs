@@ -68,7 +68,7 @@ public interface ICommandBuffer : IDisposable
 
     void ClearRenderTargetView(Handle<Texture> renderTarget, Color128 clearColor);
 
-    void ClearDepthStencilView(Handle<Texture> depthStencil, bool inlcudeDepth, bool includeStencil, float clearDepth = 1.0f, byte clearStencil = 0);
+    void ClearDepthStencilView(Handle<Texture> depthStencil, bool inlcludeDepth, bool includeStencil, float clearDepth = 1.0f, byte clearStencil = 0);
 
     /// <summary>
     /// Begins a render pass with the specified render Target
@@ -89,29 +89,7 @@ public interface ICommandBuffer : IDisposable
     /// Inserts multiple resource barriers.
     /// </summary>
     /// <param name="barrierDescs">Resource barrier descriptions</param>
-    void ResourceBarrier(ReadOnlySpan<BarrierDesc> barrierDescs);
-
-    /// <summary>
-    /// Inserts a resource barrier for state transitions.
-    /// </summary>
-    /// <param name="resource">A handle to the GPU resource to transition.</param>
-    /// <param name="stateBefore">The current state of the resource before the transition.</param>
-    /// <param name="stateAfter">The desired state of the resource after the transition.</param>
-    void TransitionBarrier(Handle<GPUResource> resource, ResourceState stateBefore, ResourceState stateAfter);
-
-    /// <summary>
-    /// Inserts a resource barrier for state transitions. The current state is tracked internally.
-    /// </summary>
-    /// <param name="resource">A handle to the GPU resource to transition.</param>
-    /// <param name="stateAfter">The desired state of the resource after the transition.</param>
-    void TransitionBarrier(Handle<GPUResource> resource, ResourceState stateAfter);
-
-    /// <summary>
-    /// Inserts a barrier to ensure correct aliasing transitions between two GPU resources.
-    /// </summary>
-    /// <param name="resourceBefore">A handle to the GPU resource representing the state before the aliasing transition</param>
-    /// <param name="resourceAfter">A handle to the GPU resource representing the state after the aliasing transition</param>
-    void AliasBarrier(Handle<GPUResource> resourceBefore, Handle<GPUResource> resourceAfter);
+    void ResourceBarrier(params ReadOnlySpan<BarrierDesc> barrierDescs);
 
     /// <summary>
     /// Sets the pipeline state object
@@ -204,18 +182,16 @@ public interface ICommandBuffer : IDisposable
     /// <param name="buffer">A handle to the buffer that will receive the uploaded data.</param>
     /// <param name="data">A read-only span containing the data to upload to the buffer. The span must contain elements of space
     /// <typeparamref name="T"/>.</param>
-    void UploadBuffer<T>(Handle<GraphicsBuffer> buffer, ReadOnlySpan<T> data)
+    void UploadBuffer<T>(Handle<GraphicsBuffer> buffer, params ReadOnlySpan<T> data)
         where T : unmanaged;
 
     /// <summary>
     /// Uploads texture data to the specified texture resource starting at the given subresource index.
     /// </summary>
     /// <param name="texture">The texture resource to which the subresource data will be uploaded. Must be a valid, initialized texture handle.</param>
-    /// <param name="firstSubresource">The index of the first subresource in the texture to receive data. Must be less than the total number of subresources in the texture.</param>
     /// <param name="subresources">A reference to the structure containing the subresource data to upload. The data must match the Format and layout expected by the texture.</param>
-    /// <param name="numSubresources">The number of subresources to upload, starting from <paramref name="firstSubresource"/>.
     /// Must be greater than zero and not exceed the remaining subresources in the texture.</param>
-    void UploadTexture(Handle<Texture> texture, ReadOnlySpan<SubResourceData> subresources);
+    void UploadTexture(Handle<Texture> texture, params ReadOnlySpan<SubResourceData> subresources);
 
     /// <summary>
     /// Copies a specified number of bytes from the source graphics buffer to the destination graphics buffer.

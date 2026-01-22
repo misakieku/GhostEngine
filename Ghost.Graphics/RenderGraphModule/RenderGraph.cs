@@ -744,11 +744,23 @@ public sealed class RenderGraph : IDisposable
                             // If we found a previous resource, insert aliasing barrier
                             if (mostRecentLastUse >= 0)
                             {
-                                var barrier = ResourceBarrier.CreateAliasingBarrier(
-                                    resourceBefore,
-                                    id,
-                                    passIdx
-                                );
+                                BarrierDesc desc;
+                                if (resource.type == RenderGraphResourceType.Texture)
+                                {
+                                     desc = BarrierDesc.Texture(resource.backingResource, 
+                                        BarrierSync.All, BarrierSync.None, 
+                                        BarrierAccess.NoAccess, BarrierAccess.NoAccess,
+                                        BarrierLayout.Undefined, BarrierLayout.Common, 
+                                        discard: true); 
+                                }
+                                else
+                                {
+                                     desc = BarrierDesc.Buffer(resource.backingResource,
+                                        BarrierSync.All, BarrierSync.None,
+                                        BarrierAccess.NoAccess, BarrierAccess.NoAccess);
+                                }
+
+                                var barrier = ResourceBarrier.Create(passIdx, desc, id);
                                 _barriers.Add(barrier);
                             }
                         }
@@ -843,14 +855,117 @@ public sealed class RenderGraph : IDisposable
 
         if (currentState != newState)
         {
-            var barrier = ResourceBarrier.CreateTransitionBarrier(
-                resource,
-                currentState,
-                newState,
-                passIdx
-            );
+            var res = _resources.GetResource(resource);
+            GetBarrierInfo(currentState, out var syncBefore, out var accessBefore, out var layoutBefore);
+            GetBarrierInfo(newState, out var syncAfter, out var accessAfter, out var layoutAfter);
+            
+            BarrierDesc desc;
+            if (res.type == RenderGraphResourceType.Texture)
+            {
+                desc = BarrierDesc.Texture(res.backingResource, 
+                    syncBefore, syncAfter, 
+                    accessBefore, accessAfter, 
+                    layoutBefore, layoutAfter);
+            }
+            else
+            {
+                desc = BarrierDesc.Buffer(res.backingResource, 
+                    syncBefore, syncAfter, 
+                    accessBefore, accessAfter);
+            }
+
+            var barrier = ResourceBarrier.Create(passIdx, desc, resource);
             _barriers.Add(barrier);
             _resourceStates[resource.Value] = newState;
+        }
+    }
+
+    private static void GetBarrierInfo(ResourceState state, out BarrierSync sync, out BarrierAccess access, out BarrierLayout layout)
+    {
+        sync = BarrierSync.None;
+        access = BarrierAccess.Common;
+        layout = BarrierLayout.Common;
+
+        if (state == ResourceState.Common)
+        {
+            return;
+        }
+        
+        if (state.HasFlag(ResourceState.RenderTarget))
+        {
+            sync |= BarrierSync.RenderTarget;
+            access |= BarrierAccess.RenderTarget;
+            layout = BarrierLayout.RenderTarget;
+        }
+        if (state.HasFlag(ResourceState.DepthWrite))
+        {
+            sync |= BarrierSync.DepthStencil;
+            access |= BarrierAccess.DepthStencilWrite;
+            layout = BarrierLayout.DepthStencilWrite;
+        }
+        if (state.HasFlag(ResourceState.DepthRead))
+        {
+            sync |= BarrierSync.DepthStencil;
+            access |= BarrierAccess.DepthStencilRead;
+            layout = BarrierLayout.DepthStencilRead;
+        }
+        if (state.HasFlag(ResourceState.UnorderedAccess))
+        {
+            sync |= BarrierSync.AllShading; 
+            access |= BarrierAccess.UnorderedAccess;
+            layout = BarrierLayout.UnorderedAccess;
+        }
+        if (state.HasFlag(ResourceState.PixelShaderResource))
+        {
+            sync |= BarrierSync.PixelShading;
+            access |= BarrierAccess.ShaderResource;
+            layout = BarrierLayout.ShaderResource;
+        }
+        if (state.HasFlag(ResourceState.NonPixelShaderResource))
+        {
+            sync |= BarrierSync.NonPixelShading;
+            access |= BarrierAccess.ShaderResource;
+            layout = BarrierLayout.ShaderResource;
+        }
+        if (state.HasFlag(ResourceState.CopyDest))
+        {
+            sync |= BarrierSync.Copy;
+            access |= BarrierAccess.CopyDest;
+            layout = BarrierLayout.CopyDest;
+        }
+        if (state.HasFlag(ResourceState.CopySource))
+        {
+            sync |= BarrierSync.Copy;
+            access |= BarrierAccess.CopySource;
+            layout = BarrierLayout.CopySource;
+        }
+        if (state.HasFlag(ResourceState.VertexAndConstantBuffer))
+        {
+            sync |= BarrierSync.VertexShading;
+            access |= BarrierAccess.VertexBuffer | BarrierAccess.ConstantBuffer;
+            layout = BarrierLayout.Common; 
+        }
+        if (state.HasFlag(ResourceState.IndexBuffer))
+        {
+            sync |= BarrierSync.IndexInput;
+            access |= BarrierAccess.IndexBuffer;
+            layout = BarrierLayout.Common;
+        }
+        if (state.HasFlag(ResourceState.IndirectArgument))
+        {
+            sync |= BarrierSync.ExecuteIndirect;
+            access |= BarrierAccess.IndirectArgument;
+            layout = BarrierLayout.GenericRead;
+        }
+        if (state.HasFlag(ResourceState.GenericRead))
+        {
+            layout = BarrierLayout.GenericRead;
+        }
+        if (state.HasFlag(ResourceState.Present))
+        {
+            sync = BarrierSync.All;
+            access = BarrierAccess.Common;
+            layout = BarrierLayout.Present;
         }
     }
 
@@ -1327,55 +1442,30 @@ public sealed class RenderGraph : IDisposable
     /// </summary>
     private unsafe void ExecuteBarriersForPass(ICommandBuffer cmd, int passIndex, ref int barrierIndex)
     {
-        var pBarrierDescs = stackalloc BarrierDesc[16]; // batch by 16
-        var count = 0;
-        var hasRemain = false;
+        int start = barrierIndex;
+        int count = 0;
 
-    Start:
         while (barrierIndex < _barriers.Count && _barriers[barrierIndex].PassIndex == passIndex)
         {
-            var barrier = _barriers[barrierIndex];
-
-            var desc = new BarrierDesc();
-            desc.type = barrier.Type;
-            switch (desc.type)
-            {
-                case BarrierType.Transition:
-                    desc.transition.resource = _resources.GetResource(barrier.Resource).backingResource;
-                    desc.transition.stateBefore = barrier.StateBefore;
-                    desc.transition.stateAfter = barrier.StateAfter;
-                    break;
-                case BarrierType.Aliasing:
-                    desc.aliasing.resourceBefore = _resources.GetResource(barrier.ResourceBefore).backingResource;
-                    desc.aliasing.resourceAfter = _resources.GetResource(barrier.ResourceAfter).backingResource;
-                    break;
-                case BarrierType.UAV:
-                    desc.uav.resource = _resources.GetResource(barrier.Resource).backingResource;
-                    break;
-            }
-
-            pBarrierDescs[count] = desc;
             count++;
-
             barrierIndex++;
-
-            if (count == 16)
-            {
-                hasRemain = _barriers.Count > barrierIndex && _barriers[barrierIndex].PassIndex == passIndex;
-                break;
-            }
         }
 
         if (count > 0)
         {
-            cmd.ResourceBarrier(new ReadOnlySpan<BarrierDesc>(pBarrierDescs, count));
-        }
-
-        if (hasRemain)
-        {
-            count = 0;
-            hasRemain = false;
-            goto Start;
+            const int BatchSize = 64;
+            var descs = stackalloc BarrierDesc[BatchSize];
+            int processed = 0;
+            while (processed < count)
+            {
+                int batch = Math.Min(count - processed, BatchSize);
+                for (int i = 0; i < batch; i++)
+                {
+                    descs[i] = _barriers[start + processed + i].Desc;
+                }
+                cmd.ResourceBarrier(new ReadOnlySpan<BarrierDesc>(descs, batch));
+                processed += batch;
+            }
         }
     }
 
