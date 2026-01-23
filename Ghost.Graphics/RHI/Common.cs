@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Graphics.Core;
 using Misaki.HighPerformance.Mathematics;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -424,23 +425,45 @@ public struct ResourceDesc
     }
 
     internal resource_union _desc;
+    
+    public ResourceType Type
+    {
+        get; init;
+    }
 
     public TextureDesc TextureDescription
     {
-        readonly get => _desc.textureDescription;
-        set => _desc.textureDescription = value;
+        readonly get
+        {
+            Debug.Assert(Type == ResourceType.Texture);
+            return _desc.textureDescription;
+        }
+        set
+        {
+            Debug.Assert(Type == ResourceType.Texture);
+            _desc.textureDescription = value;
+        }
     }
 
     public BufferDesc BufferDescription
     {
-        readonly get => _desc.bufferDescription;
-        set => _desc.bufferDescription = value;
+        readonly get
+        {
+            Debug.Assert(Type == ResourceType.Buffer);
+            return _desc.bufferDescription;
+        }
+        set
+        {
+            Debug.Assert(Type == ResourceType.Buffer);
+            _desc.bufferDescription = value;
+        }
     }
 
     public static ResourceDesc Buffer(BufferDesc desc)
     {
         return new ResourceDesc
         {
+            Type = ResourceType.Buffer,
             BufferDescription = desc
         };
     }
@@ -449,6 +472,7 @@ public struct ResourceDesc
     {
         return new ResourceDesc
         {
+            Type = ResourceType.Texture,
             TextureDescription = desc
         };
     }
@@ -988,6 +1012,12 @@ public enum ResourceMemoryType
     Default,    // GPU memory
     Upload,     // CPU-to-GPU memory
     Readback    // GPU-to-CPU memory
+}
+
+public enum ResourceType
+{
+    Texture,
+    Buffer
 }
 
 [Flags]

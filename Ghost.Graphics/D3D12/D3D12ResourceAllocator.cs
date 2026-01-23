@@ -435,40 +435,6 @@ internal sealed unsafe partial class D3D12ResourceAllocator
         return uavDesc;
     }
 
-    private static D3D12_RESOURCE_FLAGS ConvertTextureUsage(TextureUsage usage)
-    {
-        var flags = D3D12_RESOURCE_FLAG_NONE;
-
-        if (usage.HasFlag(TextureUsage.RenderTarget))
-        {
-            flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-        }
-
-        if (usage.HasFlag(TextureUsage.DepthStencil))
-        {
-            flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-        }
-
-        if (usage.HasFlag(TextureUsage.UnorderedAccess))
-        {
-            flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-        }
-
-        return flags;
-    }
-
-    private static D3D12_RESOURCE_FLAGS ConvertBufferUsage(BufferUsage usage)
-    {
-        var flags = D3D12_RESOURCE_FLAG_NONE;
-
-        if (usage.HasFlag(BufferUsage.Raw) || usage.HasFlag(BufferUsage.UnorderedAccess))
-        {
-            flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-        }
-
-        return flags;
-    }
-
     private static D3D12_HEAP_TYPE ConvertMemoryType(ResourceMemoryType memoryType)
     {
         return memoryType switch
@@ -559,7 +525,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
     private HRESULT CreateResource(D3D12MA_ALLOCATION_DESC* pAllocationDesc, D3D12_RESOURCE_DESC* pResourceDesc, D3D12_RESOURCE_STATES initialState, CreationOptions options, Guid* riid, void** ppv)
     {
-        var hr = S.S_OK;
+        HRESULT hr;
 
         if (options.AllocationType == ResourceAllocationType.Suballocation)
         {
@@ -579,6 +545,26 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         }
 
         return hr;
+    }
+
+    public ResourceSizeInfo GetSizeInfo(ResourceDesc desc)
+    {
+        D3D12_RESOURCE_DESC d3d12Desc;
+        if (desc.Type == ResourceType.Texture)
+        {
+            d3d12Desc = desc.TextureDescription.ToD3D12ResourceDesc();
+        }
+        else
+        {
+            d3d12Desc = desc.BufferDescription.ToD3D12ResourceDesc();
+        }
+
+        var info = _device.NativeDevice.Get()->GetResourceAllocationInfo(0, 1, &d3d12Desc);
+        return new ResourceSizeInfo
+        {
+            Size = info.SizeInBytes,
+            Alignment = info.Alignment
+        };
     }
 
     public Handle<GPUResource> Allocate(ref readonly AllocationDesc desc, string name)
@@ -632,52 +618,8 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         CheckTexture2DSize(desc.Width, desc.Height);
-
-        var dxgiFormat = D3D12Utility.ToDXGIFormat(desc.Format);
-        var maxDimension = Math.Max(desc.Width, Math.Max(desc.Height, desc.Slice));
-        var mipLevels = desc.MipLevels == 0
-            ? (ushort)(1 + Math.Floor(Math.Log2(maxDimension)))
-            : (ushort)desc.MipLevels;
-
-        var resourceFlags = ConvertTextureUsage(desc.Usage);
-        var resourceDesc = desc.Dimension switch
-        {
-            TextureDimension.Texture2D => D3D12_RESOURCE_DESC.Tex2D(
-                                dxgiFormat,
-                                desc.Width,
-                                desc.Height,
-                                mipLevels: mipLevels,
-                                flags: resourceFlags),
-            TextureDimension.Texture3D => D3D12_RESOURCE_DESC.Tex3D(
-                                dxgiFormat,
-                                desc.Width,
-                                desc.Height,
-                                (ushort)desc.Slice,
-                                flags: resourceFlags),
-            TextureDimension.TextureCube => D3D12_RESOURCE_DESC.Tex2D(
-                                dxgiFormat,
-                                desc.Width,
-                                desc.Height,
-                                mipLevels: mipLevels,
-                                arraySize: 6,
-                                flags: resourceFlags),
-            TextureDimension.Texture2DArray => D3D12_RESOURCE_DESC.Tex2D(
-                                dxgiFormat,
-                                desc.Width,
-                                desc.Height,
-                                mipLevels: mipLevels,
-                                arraySize: (ushort)desc.Slice,
-                                flags: resourceFlags),
-            TextureDimension.TextureCubeArray => D3D12_RESOURCE_DESC.Tex2D(
-                                dxgiFormat,
-                                desc.Width,
-                                desc.Height,
-                                mipLevels: mipLevels,
-                                arraySize: (ushort)(desc.Slice * 6),
-                                flags: resourceFlags),
-            _ => throw new ArgumentException($"Unsupported texture dimension: {desc.Dimension}"),
-        };
-
+        
+        var resourceDesc = desc.ToD3D12ResourceDesc();
         var allocationDesc = new D3D12MA_ALLOCATION_DESC
         {
             HeapType = D3D12_HEAP_TYPE_DEFAULT,
@@ -715,7 +657,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             var cpuHandle = _descriptorAllocator.GetCpuHandle(resourceDescriptor.srv);
 
             var isCubeMap = desc.Dimension == TextureDimension.TextureCube || desc.Dimension == TextureDimension.TextureCubeArray;
-            var srvDesc = CreateTextureSrvDesc(pResource, mipLevels, desc.Slice, isCubeMap);
+            var srvDesc = CreateTextureSrvDesc(pResource, resourceDesc.MipLevels, resourceDesc.DepthOrArraySize, isCubeMap);
 
             _device.NativeDevice.Get()->CreateShaderResourceView(pResource, &srvDesc, cpuHandle);
             _descriptorAllocator.CopyToShaderVisible(resourceDescriptor.srv);
@@ -782,14 +724,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         ObjectDisposedException.ThrowIf(_disposed, this);
         CheckBufferSize(desc.Size);
 
-        var alignedSize = desc.Size;
-        if (desc.Usage.HasFlag(BufferUsage.Constant))
-        {
-            // D3D12 CBV size must be 256-byte aligned
-            alignedSize = (uint)(desc.Size + 255) & ~255u;
-        }
-
-        var resourceDesc = D3D12_RESOURCE_DESC.Buffer(alignedSize, ConvertBufferUsage(desc.Usage));
+        var resourceDesc = desc.ToD3D12ResourceDesc();
         var isRaw = desc.Usage.HasFlag(BufferUsage.Raw);
 
         var allocationDesc = new D3D12MA_ALLOCATION_DESC
@@ -839,7 +774,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             var cbvDesc = new D3D12_CONSTANT_BUFFER_VIEW_DESC
             {
                 BufferLocation = pResource->GetGPUVirtualAddress(),
-                SizeInBytes = (uint)alignedSize
+                SizeInBytes = (uint)resourceDesc.Width,
             };
 
             _device.NativeDevice.Get()->CreateConstantBufferView(&cbvDesc, cpuHandle);

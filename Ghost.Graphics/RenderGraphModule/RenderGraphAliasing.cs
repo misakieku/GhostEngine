@@ -285,6 +285,7 @@ internal sealed class PlacedResource
 /// </summary>
 internal sealed class ResourceAliasingManager
 {
+    private readonly IResourceAllocator _allocator;
     private readonly RenderGraphObjectPool _pool;
 
     private readonly ResourceHeap _heap;
@@ -306,17 +307,20 @@ internal sealed class ResourceAliasingManager
         if (resource.type == RenderGraphResourceType.Texture)
         {
             var textureDesc = resource.rgTextureDesc.ToTextureDesc(resource.resolvedWidth, resource.resolvedHeight);
-            return AlignUp(textureDesc.GetTotalBytes(), _DEFAULT_TEXTURE_ALIGNMENT);
+            return _allocator.GetSizeInfo(ResourceDesc.Texture(textureDesc)).Size;
         }
         else // Buffer
         {
-            return resource.bufferDesc.Size;
+            //return resource.bufferDesc.Size;
+            return _allocator.GetSizeInfo(ResourceDesc.Buffer(resource.bufferDesc)).Size;
         }
     }
 
-    public ResourceAliasingManager(RenderGraphObjectPool pool)
+    public ResourceAliasingManager(IResourceAllocator allocator, RenderGraphObjectPool pool)
     {
+        _allocator = allocator;
         _pool = pool;
+
         _heap = new ResourceHeap(0);
         _placedResources = new List<PlacedResource>(32);
         _logicalToPlaced = new Dictionary<int, int>(64);

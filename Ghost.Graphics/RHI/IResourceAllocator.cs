@@ -69,8 +69,23 @@ public struct AllocationDesc
     }
 }
 
+public readonly struct ResourceSizeInfo
+{
+    public ulong Size
+    {
+        get; init;
+    }
+
+    public ulong Alignment
+    {
+        get; init;
+    }
+}
+
 public interface IResourceAllocator : IDisposable
 {
+    ResourceSizeInfo GetSizeInfo(ResourceDesc desc);
+
     /// <summary>
     /// Allocates a block of memory on the GPU
     /// </summary>

@@ -294,7 +294,6 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         }
 
         info.Release(_descriptorAllocator);
-        //System.Diagnostics.Debug.Assert(info.Release(_descriptorAllocator) == 0);
 #if DEBUG || GHOST_EDITOR
         _resourceName.Remove(handle, out var name);
 #endif

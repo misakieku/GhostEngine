@@ -23,11 +23,8 @@ internal sealed class CachedCompilation
     // Placed resource metadata
     public readonly List<PlacedResourceData> placedResources = new(32);
     
-    // Resource barriers
-    public readonly List<ResourceBarrier> barriers = new(128);
-    
-    // Resource state mappings (for barrier generation)
-    public readonly Dictionary<int, ResourceBarrierData> resourceStates = new(128);
+    // Compiled barriers (stores only target states, queries before state from ResourceDatabase)
+    public readonly List<CompiledBarrier> compiledBarriers = new(128);
 
     // Real gpu resource
     public readonly List<Handle<GPUResource>> backingResources = new(32);
@@ -41,8 +38,7 @@ internal sealed class CachedCompilation
         passCulledFlags.Clear();
         logicalToPhysical.Clear();
         placedResources.Clear();
-        barriers.Clear();
-        resourceStates.Clear();
+        compiledBarriers.Clear();
         backingResources.Clear();
         viewState = default;
     }
@@ -112,12 +108,7 @@ internal sealed class RenderGraphCompilationCache
         }
         
         _cached.placedResources.AddRange(data.placedResources);
-        _cached.barriers.AddRange(data.barriers);
-        
-        foreach (var kvp in data.resourceStates)
-        {
-            _cached.resourceStates[kvp.Key] = kvp.Value;
-        }
+        _cached.compiledBarriers.AddRange(data.compiledBarriers);
 
         _cached.backingResources.AddRange(data.backingResources);
     }
