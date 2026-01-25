@@ -5,8 +5,8 @@ The Scene Graph is a hierarchical structure that represents all the objects and 
 ## Scene Graph (Editor representation of runtime data)
 
 There should be two main types of nodes in the Scene Graph:
-1. **Entity Node**: Represents an individual entity within a scene.
-2. **Scene Node**: Represents a Scene object, which can contain multiple entities.
+1. **Entity Node**: Represents an individual entity within a scene. Name stored here, not runtime component.
+2. **Scene Node**: Represents a Scene object, which can contain multiple entities. Name stored here not runtime data.
 
 ### Editor World
 
@@ -56,7 +56,7 @@ When loading a scene, we need to reconstruct the entities and their relationship
 
 ### Data format
 The scene data should be stored in a structured format (e.g., JSON or binary) that includes:
- - Scene metadata (e.g., name, ID)
+ - Scene metadata (e.g., name, ID. Note that name of entity and scene are editor only data, should be included inside SceneNode and EntityNode, not runtime data)
  - List of entities with their components and properties (Entities must in the order that file local id directly maps to the index in the list)
  - References between entities using file local IDs
 
