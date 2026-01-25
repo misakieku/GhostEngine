@@ -510,6 +510,42 @@ public ref partial struct QueryBuilder
         }
     }
 
+    public void WithAll(params Span<Identifier<IComponent>> componentIDs)
+    {
+        _all.AddRange(componentIDs, componentIDs.Length);
+    }
+
+    public void WithAny(params Span<Identifier<IComponent>> componentIDs)
+    {
+        _any.AddRange(componentIDs, componentIDs.Length);
+    }
+
+    public void WithAbsent(params Span<Identifier<IComponent>> componentIDs)
+    {
+        _absent.AddRange(componentIDs, componentIDs.Length);
+    }
+
+    public void WithNone(params Span<Identifier<IComponent>> componentIDs)
+    {
+        _none.AddRange(componentIDs, componentIDs.Length);
+    }
+
+    public void WithDisabled(params Span<Identifier<IComponent>> componentIDs)
+    {
+        _disabled.AddRange(componentIDs, componentIDs.Length);
+    }
+
+    public void WithPresent(params Span<Identifier<IComponent>> componentIDs)
+    {
+        _present.AddRange(componentIDs, componentIDs.Length);
+    }
+
+    public void WithPresentRW(params Span<Identifier<IComponent>> componentIDs)
+    {
+        _present.AddRange(componentIDs, componentIDs.Length);
+        _rw.AddRange(componentIDs, componentIDs.Length);
+    }
+
     public Identifier<EntityQuery> Build(World world, Allocator allocator = Allocator.Persistent)
     {
         // 1. Calculate max component ID to size the BitSets

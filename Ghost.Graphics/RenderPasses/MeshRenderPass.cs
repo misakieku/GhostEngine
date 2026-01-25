@@ -106,7 +106,7 @@ internal class MeshRenderPass : IRenderPass
 
     private void CompileBlitShader(ref readonly RenderingContext ctx)
     {
-        var shaderDescriptor = DSLShaderCompiler.CompileShader("F:/csharp/GhostEngine/Ghost.Graphics/Shaders/Blit.gsdef", "C:/Users/Misaki/Downloads/Archive").GetValueOrThrow();
+        var shaderDescriptor = DSLShaderCompiler.CompileShader("F:/csharp/GhostEngine/Ghost.Graphics/Shaders/Blit.gshdr", "C:/Users/Misaki/Downloads/Archive").GetValueOrThrow();
         _blitShader = ctx.ResourceAllocator.CreateGraphicsShader(shaderDescriptor);
         _blitMaterial = ctx.ResourceAllocator.CreateMaterial(_blitShader);
 
@@ -130,7 +130,7 @@ internal class MeshRenderPass : IRenderPass
     {
         CompileBlitShader(in ctx);
 
-        var shaderDescriptor = DSLShaderCompiler.CompileShader("F:/csharp/GhostEngine/Ghost.Graphics/test.gsdef", "C:/Users/Misaki/Downloads/Archive").GetValueOrThrow();
+        var shaderDescriptor = DSLShaderCompiler.CompileShader("F:/csharp/GhostEngine/Ghost.Graphics/test.gshdr", "C:/Users/Misaki/Downloads/Archive").GetValueOrThrow();
 
         _shader = ctx.ResourceAllocator.CreateGraphicsShader(shaderDescriptor);
         _material = ctx.ResourceAllocator.CreateMaterial(_shader);

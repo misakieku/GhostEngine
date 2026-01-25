@@ -24,4 +24,12 @@
     <ProjectReference Include="..\Ghost.Graphics\Ghost.Graphics.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Services\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MemoryPack" Version="1.21.4" />
+  </ItemGroup>
+
 </Project>
