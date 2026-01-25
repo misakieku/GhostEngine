@@ -159,9 +159,9 @@ internal unsafe class D3D12SwapChain : ISwapChain
 
             var barrierData = new ResourceBarrierData
             {
-                Access = BarrierAccess.NoAccess,
-                Layout = BarrierLayout.Present,
-                Sync = BarrierSync.None,
+                access = BarrierAccess.NoAccess,
+                layout = BarrierLayout.Present,
+                sync = BarrierSync.None,
             };
 
             var handle = _resourceDatabase.ImportExternalResource(pBackBuffer, barrierData, view);

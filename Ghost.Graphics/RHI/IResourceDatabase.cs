@@ -13,16 +13,23 @@ public interface IResourceReleasable
 
 public struct ResourceBarrierData
 {
-    public BarrierLayout Layout;
-    public BarrierAccess Access;
-    public BarrierSync Sync;
+    public BarrierLayout layout;
+    public BarrierAccess access;
+    public BarrierSync sync;
 
     public ResourceBarrierData(BarrierLayout layout, BarrierAccess access, BarrierSync sync)
     {
-        Layout = layout;
-        Access = access;
-        Sync = sync;
+        this.layout = layout;
+        this.access = access;
+        this.sync = sync;
     }
+}
+
+public enum BindlessAccess
+{
+    ShaderResource,
+    ConstantBuffer,
+    UnorderedAccess,
 }
 
 // TODO: Consider adding methods for resource enumeration, statistics, and bulk operations.
@@ -53,29 +60,30 @@ public interface IResourceDatabase : IDisposable
     /// </summary>
     /// <param name="handle">The handle that uniquely identifies the resource.</param>
     /// <returns>A ResourceBarrierData value representing the current barrier state.</returns>
-    Result<ResourceBarrierData, ErrorStatus> GetResourceBarrierData(Handle<GPUResource> handle);
+    Result<ResourceBarrierData, Error> GetResourceBarrierData(Handle<GPUResource> handle);
 
     /// <summary>
     /// Sets the barrier data of the specified resource handle.
     /// </summary>
     /// <param name="handle">The handle that identifies the resource.</param>
     /// <param name="data">The new barrier data.</param>
-    /// <returns>An ErrorStatus indicating the success or failure of the operation.</returns>
-    ErrorStatus SetResourceBarrierData(Handle<GPUResource> handle, ResourceBarrierData data);
+    /// <returns>An Error indicating the success or failure of the operation.</returns>
+    Error SetResourceBarrierData(Handle<GPUResource> handle, ResourceBarrierData data);
 
     /// <summary>
     /// Retrieves the description of a GPU resource associated with the specified handle.
     /// </summary>
     /// <param name="handle">A handle that identifies the GPU resource for which to obtain the description. Must reference a valid resource.</param>
     /// <returns>A ResourceDesc structure containing details about the specified GPU resource.</returns>
-    Result<ResourceDesc, ErrorStatus> GetResourceDescription(Handle<GPUResource> handle);
+    Result<ResourceDesc, Error> GetResourceDescription(Handle<GPUResource> handle);
 
     /// <summary>
     /// Retrieves the bindless index associated with the specified GPU resource handle.
     /// </summary>
     /// <param name="handle">A handle to the GPU resource for which to obtain the bindless index. Must reference a valid, currently registered resource.</param>
+    /// <param name="access">The type of bindless access for which to obtain the index.</param>
     /// <returns>The bindless index corresponding to the specified GPU resource handle. ~0 if the resource does not support bindless access or is not found.</returns>
-    uint GetBindlessIndex(Handle<GPUResource> handle);
+    uint GetBindlessIndex(Handle<GPUResource> handle, BindlessAccess access = BindlessAccess.ShaderResource);
 
     /// <summary>
     /// Retrieves the name of the GPU resource associated with the specified handle.
@@ -135,7 +143,7 @@ public interface IResourceDatabase : IDisposable
     /// </summary>
     /// <param name="handle">The handle of the mesh to retrieve. Must refer to a valid mesh; otherwise, the behavior is undefined.</param>
     /// <returns>A result containing a reference to the mesh corresponding to the specified handle, or an error status if the handle is invalid.</returns>
-    RefResult<Mesh, ErrorStatus> GetMeshReference(Handle<Mesh> handle);
+    RefResult<Mesh, Error> GetMeshReference(Handle<Mesh> handle);
 
     /// <summary>
     /// Releases the mesh resource associated with the specified handle, freeing any resources held by it. Includes both CPU and GPU resources.
@@ -162,7 +170,7 @@ public interface IResourceDatabase : IDisposable
     /// </summary>
     /// <param name="handle">The handle of the material to retrieve. Must refer to a valid material.</param>
     /// <returns>A result containing a reference to the material corresponding to the specified handle, or an error status if the handle is invalid.</returns>
-    RefResult<Material, ErrorStatus> GetMaterialReference(Handle<Material> handle);
+    RefResult<Material, Error> GetMaterialReference(Handle<Material> handle);
 
     /// <summary>
     /// Releases the material associated with the specified handle, making it available for reuse or disposal.
@@ -189,7 +197,7 @@ public interface IResourceDatabase : IDisposable
     /// </summary>
     /// <param name="id">The identifier of the shader to retrieve. Must refer to a valid shader.</param>
     /// <returns>A result containing a reference to the shader corresponding to the specified identifier, or an error status if the identifier is invalid.</returns>
-    RefResult<Shader, ErrorStatus> GetShaderReference(Identifier<Shader> id);
+    RefResult<Shader, Error> GetShaderReference(Identifier<Shader> id);
 
     /// <summary>
     /// Releases the shader associated with the specified identifier, freeing any resources allocated to it.

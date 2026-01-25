@@ -186,12 +186,12 @@ public partial struct Shader : IResourceReleasable
         return ref _shaderPasses[index];
     }
 
-    public readonly Result<ShaderPass, ErrorStatus> TryGetPass(Identifier<ShaderPass> passID, out int passIndex)
+    public readonly Result<ShaderPass, Error> TryGetPass(Identifier<ShaderPass> passID, out int passIndex)
     {
         if (_passIDToLocal.TryGetValue(passID.Value, out var index))
         {
             passIndex = -1;
-            return ErrorStatus.NotFound;
+            return Error.NotFound;
         }
 
         passIndex = index;

@@ -47,6 +47,7 @@ internal sealed class RenderGraphContext : IRasterRenderContext, IComputeRenderC
 
     private readonly TextureFormat[] _rtvFormats;
     private TextureFormat _dsvFormat;
+    private int _rtvCount;
 
     private Handle<GraphicsBuffer> _activePerMaterialData;
     private Handle<GraphicsBuffer> _activePerMeshData;
@@ -82,6 +83,7 @@ internal sealed class RenderGraphContext : IRasterRenderContext, IComputeRenderC
         }
 
         _dsvFormat = dsvFormat;
+        _rtvCount = rtvFormats.Length;
     }
 
     public Handle<GPUResource> GetActualResource(Identifier<RGResource> resource)
@@ -145,7 +147,7 @@ internal sealed class RenderGraphContext : IRasterRenderContext, IComputeRenderC
                 VariantKey = shaderVariantKey,
                 PipelineOption = materialPipeline,
 
-                RtvFormats = _rtvFormats,
+                RtvFormats = _rtvFormats.AsSpan(0, _rtvCount),
                 DsvFormat = _dsvFormat,
             };
 

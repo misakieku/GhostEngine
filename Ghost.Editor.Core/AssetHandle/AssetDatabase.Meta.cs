@@ -31,16 +31,16 @@ public static partial class AssetDatabase
         s_watcher.Renamed += OnAssetRenamed;
     }
 
-    private static Result<string, ErrorStatus> GetMetaFilePath(string assetPath)
+    private static Result<string, Error> GetMetaFilePath(string assetPath)
     {
         if (Directory.Exists(assetPath))
         {
-            return ErrorStatus.NotFound;
+            return Error.NotFound;
         }
 
         if (Path.GetExtension(assetPath).Equals(".meta", StringComparison.OrdinalIgnoreCase))
         {
-            return ErrorStatus.InvalidState;
+            return Error.InvalidState;
         }
 
         return assetPath + ".meta";

@@ -173,22 +173,22 @@ internal sealed class RenderGraphExecutor
 
                 layoutBefore = BarrierLayout.Undefined;
                 accessBefore = BarrierAccess.NoAccess;
-                syncBefore = predState.Sync;
+                syncBefore = predState.sync;
             }
             else
             {
-                layoutBefore = currentState.Layout;
-                accessBefore = currentState.Access;
-                syncBefore = currentState.Sync;
+                layoutBefore = currentState.layout;
+                accessBefore = currentState.access;
+                syncBefore = currentState.sync;
             }
 
             var target = compiledBarrier.TargetState;
 
             // Skip if already in target state (optimization)
             if (!compiledBarrier.AliasingPredecessor.IsValid && 
-                layoutBefore == target.Layout && 
-                accessBefore == target.Access && 
-                syncBefore == target.Sync)
+                layoutBefore == target.layout && 
+                accessBefore == target.access && 
+                syncBefore == target.sync)
             {
                 continue;
             }
@@ -198,16 +198,16 @@ internal sealed class RenderGraphExecutor
             if (compiledBarrier.ResourceType == RenderGraphResourceType.Texture)
             {
                 desc = BarrierDesc.Texture(resourceHandle,
-                    syncBefore, target.Sync,
-                    accessBefore, target.Access,
-                    layoutBefore, target.Layout,
+                    syncBefore, target.sync,
+                    accessBefore, target.access,
+                    layoutBefore, target.layout,
                     discard: compiledBarrier.Flags.HasFlag(BarrierFlags.Discard));
             }
             else
             {
                 desc = BarrierDesc.Buffer(resourceHandle,
-                    syncBefore, target.Sync,
-                    accessBefore, target.Access);
+                    syncBefore, target.sync,
+                    accessBefore, target.access);
             }
 
             if (barrierCount >= MaxBatch)

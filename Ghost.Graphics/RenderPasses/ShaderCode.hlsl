@@ -8,7 +8,7 @@ struct PixelInput
     float4 uv : TEXCOORD0;
 };
 
-[NumThreads(3, 1, 1)] // 3 threads per triangle
+[numthreads(3, 1, 1)] // 3 threads per triangle
 [OUTPUT_TRIANGLE_TOPOLOGY]
 void MSMain(
     uint3 groupThreadID : SV_GroupThreadID,
@@ -22,7 +22,6 @@ void MSMain(
     Vertex v = LoadVertexData(vertexId, groupID.x, perObjectData.vertexBuffer, perObjectData.indexBuffer);
 
     SetMeshOutputCounts(3, 1);
-    //v.position = mul(g_PerViewData.cameraMatrix, mul(g_PerObjectData.localToWorld, v.position));
 
     // Write vertex output
     outVerts[vertexId].position = v.position;

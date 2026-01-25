@@ -115,9 +115,9 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if DEBUG
     [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-    private static void RecordError(string cmdName, ErrorStatus status)
+    private static void RecordError(string cmdName, Error status)
 #else
-    private void RecordError(string cmdName, ErrorStatus status)
+    private void RecordError(string cmdName, Error status)
 #endif
     {
 #if DEBUG
@@ -168,7 +168,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         _isRecording = false;
 
 #if !DEBUG
-        if (_lastError.Status != ErrorStatus.None)
+        if (_lastError.Status != Error.None)
         {
             return Result.Failure($"Command buffer ended with errors at {_lastError.CommandIndex}, command '{_lastError.CommandName}': {_lastError.Status}");
         }
@@ -182,7 +182,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         ThrowIfDisposed();
         ThrowIfNotRecording();
 #if !DEBUG
-        if (_lastError.Status != ErrorStatus.None)
+        if (_lastError.Status != Error.None)
         {
             return;
         }
@@ -198,7 +198,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         ThrowIfDisposed();
         ThrowIfNotRecording();
 #if !DEBUG
-        if (_lastError.Status != ErrorStatus.None)
+        if (_lastError.Status != Error.None)
         {
             return;
         }
@@ -351,7 +351,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         ThrowIfDisposed();
         ThrowIfNotRecording();
 #if !DEBUG
-        if (_lastError.Status != ErrorStatus.None)
+        if (_lastError.Status != Error.None)
         {
             return;
         }
@@ -365,12 +365,12 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
             var handle = renderTargets[i];
             if (!handle.IsValid)
             {
-                RecordError(nameof(SetRenderTargets), ErrorStatus.InvalidArgument);
+                RecordError(nameof(SetRenderTargets), Error.InvalidArgument);
                 continue;
             }
 
             var recordResult = _resourceDatabase.GetResourceRecord(handle.AsResource());
-            if (recordResult.Error != ErrorStatus.None)
+            if (recordResult.Error != Error.None)
             {
                 RecordError(nameof(SetRenderTargets), recordResult.Error);
                 continue;
@@ -386,7 +386,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         if (pDsvHandle != null)
         {
             var recordResult = _resourceDatabase.GetResourceRecord(depthTarget.AsResource());
-            if (recordResult.Error != ErrorStatus.None)
+            if (recordResult.Error != Error.None)
             {
                 RecordError(nameof(SetRenderTargets), recordResult.Error);
                 return;
@@ -404,7 +404,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         ThrowIfDisposed();
         ThrowIfNotRecording();
 #if !DEBUG
-        if (_lastError.Status != ErrorStatus.None)
+        if (_lastError.Status != Error.None)
         {
             return;
         }
@@ -412,7 +412,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         IncrementCommandCount();
 
         var recordResult = _resourceDatabase.GetResourceRecord(renderTarget.AsResource());
-        if (recordResult.Error != ErrorStatus.None)
+        if (recordResult.Error != Error.None)
         {
             RecordError(nameof(ClearRenderTargetView), recordResult.Error);
             return;
@@ -436,7 +436,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         ThrowIfDisposed();
         ThrowIfNotRecording();
 #if !DEBUG
-        if (_lastError.Status != ErrorStatus.None)
+        if (_lastError.Status != Error.None)
         {
             return;
         }
@@ -444,7 +444,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         IncrementCommandCount();
 
         var recordResult = _resourceDatabase.GetResourceRecord(depthStencil.AsResource());
-        if (recordResult.Error != ErrorStatus.None)
+        if (recordResult.Error != Error.None)
         {
             RecordError(nameof(ClearDepthStencilView), recordResult.Error);
             return;
@@ -467,7 +467,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         ThrowIfDisposed();
         ThrowIfNotRecording();
 #if !DEBUG
-        if (_lastError.Status != ErrorStatus.None)
+        if (_lastError.Status != Error.None)
         {
             return;
         }
@@ -480,12 +480,12 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
             var rtDesc = rtDescs[i];
             if (rtDesc.Texture.IsInvalid)
             {
-                RecordError(nameof(BeginRenderPass), ErrorStatus.InvalidArgument);
+                RecordError(nameof(BeginRenderPass), Error.InvalidArgument);
                 continue;
             }
 
             var recordResult = _resourceDatabase.GetResourceRecord(rtDesc.Texture.AsResource());
-            if (recordResult.Error != ErrorStatus.None)
+            if (recordResult.Error != Error.None)
             {
                 RecordError(nameof(BeginRenderPass), recordResult.Error);
                 continue;
@@ -539,7 +539,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         if (pDsvDesc != null)
         {
             var recordResult = _resourceDatabase.GetResourceRecord(depthDesc.Texture.AsResource());
-            if (recordResult.Error != ErrorStatus.None)
+            if (recordResult.Error != Error.None)
             {
                 RecordError(nameof(BeginRenderPass), recordResult.Error);
                 return;
@@ -628,7 +628,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         ThrowIfDisposed();
         ThrowIfNotRecording();
 #if !DEBUG
-        if (_lastError.Status != ErrorStatus.None)
+        if (_lastError.Status != Error.None)
         {
             return;
         }
@@ -643,7 +643,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         ThrowIfDisposed();
         ThrowIfNotRecording();
 #if !DEBUG
-        if (_lastError.Status != ErrorStatus.None)
+        if (_lastError.Status != Error.None)
         {
             return;
         }
@@ -659,7 +659,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         ThrowIfDisposed();
         ThrowIfNotRecording();
 #if !DEBUG
-        if (_lastError.Status != ErrorStatus.None)
+        if (_lastError.Status != Error.None)
         {
             return;
         }
@@ -667,7 +667,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         IncrementCommandCount();
 
         var psor = _pipelineLibrary.GetGraphicsPSO(pipelineKey);
-        if (psor.Error != ErrorStatus.None)
+        if (psor.Error != Error.None)
         {
             RecordError(nameof(SetPipelineState), psor.Error);
             return;
@@ -682,7 +682,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         ThrowIfDisposed();
         ThrowIfNotRecording();
 #if !DEBUG
-        if (_lastError.Status != ErrorStatus.None)
+        if (_lastError.Status != Error.None)
         {
             return;
         }
@@ -698,7 +698,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         ThrowIfDisposed();
         ThrowIfNotRecording();
 #if !DEBUG
-        if (_lastError.Status != ErrorStatus.None)
+        if (_lastError.Status != Error.None)
         {
             return;
         }
@@ -706,7 +706,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         IncrementCommandCount();
 
         var recordResult = _resourceDatabase.GetResourceRecord(buffer.AsResource());
-        if (recordResult.Error != ErrorStatus.None)
+        if (recordResult.Error != Error.None)
         {
             RecordError(nameof(BeginRenderPass), recordResult.Error);
             return;
@@ -728,7 +728,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         ThrowIfDisposed();
         ThrowIfNotRecording();
 #if !DEBUG
-        if (_lastError.Status != ErrorStatus.None)
+        if (_lastError.Status != Error.None)
         {
             return;
         }
@@ -751,7 +751,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         ThrowIfDisposed();
         ThrowIfNotRecording();
 #if !DEBUG
-        if (_lastError.Status != ErrorStatus.None)
+        if (_lastError.Status != Error.None)
         {
             return;
         }
@@ -774,7 +774,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         ThrowIfDisposed();
         ThrowIfNotRecording();
 #if !DEBUG
-        if (_lastError.Status != ErrorStatus.None)
+        if (_lastError.Status != Error.None)
         {
             return;
         }
@@ -792,7 +792,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         ThrowIfDisposed();
         ThrowIfNotRecording();
 #if !DEBUG
-        if (_lastError.Status != ErrorStatus.None)
+        if (_lastError.Status != Error.None)
         {
             return;
         }
@@ -807,7 +807,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         ThrowIfDisposed();
         ThrowIfNotRecording();
 #if !DEBUG
-        if (_lastError.Status != ErrorStatus.None)
+        if (_lastError.Status != Error.None)
         {
             return;
         }
@@ -822,7 +822,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         ThrowIfDisposed();
         ThrowIfNotRecording();
 #if !DEBUG
-        if (_lastError.Status != ErrorStatus.None)
+        if (_lastError.Status != Error.None)
         {
             return;
         }
@@ -837,7 +837,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         ThrowIfDisposed();
         ThrowIfNotRecording();
 #if !DEBUG
-        if (_lastError.Status != ErrorStatus.None)
+        if (_lastError.Status != Error.None)
         {
             return;
         }
@@ -870,7 +870,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         ThrowIfDisposed();
         ThrowIfNotRecording();
 #if !DEBUG
-        if (_lastError.Status != ErrorStatus.None)
+        if (_lastError.Status != Error.None)
         {
             return;
         }
@@ -890,7 +890,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         ThrowIfDisposed();
         ThrowIfNotRecording();
 #if !DEBUG
-        if (_lastError.Status != ErrorStatus.None)
+        if (_lastError.Status != Error.None)
         {
             return;
         }
@@ -919,7 +919,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         ThrowIfDisposed();
         ThrowIfNotRecording();
 #if !DEBUG
-        if (_lastError.Status != ErrorStatus.None)
+        if (_lastError.Status != Error.None)
         {
             return;
         }
@@ -960,7 +960,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         ThrowIfDisposed();
         ThrowIfNotRecording();
 #if !DEBUG
-        if (_lastError.Status != ErrorStatus.None)
+        if (_lastError.Status != Error.None)
         {
             return;
         }
@@ -971,7 +971,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         var pSrcResource = _resourceDatabase.GetResource(src.AsResource());
         if (pSrcResource == null || pDestResource == null)
         {
-            RecordError(nameof(CopyBuffer), ErrorStatus.InvalidArgument);
+            RecordError(nameof(CopyBuffer), Error.InvalidArgument);
             return;
         }
 

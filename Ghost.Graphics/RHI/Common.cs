@@ -601,7 +601,7 @@ public struct RenderTargetDesc
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public TextureDesc ToTextureDescripton()
+    public TextureDesc ToTextureDescription()
     {
         var usage = Type == RenderTargetType.Color ? TextureUsage.RenderTarget : TextureUsage.DepthStencil;
         if (CreationFlags.HasFlag(RenderTargetCreationFlags.AllowUAV))
@@ -768,7 +768,7 @@ public struct CommandError
         get; set;
     }
 
-    public ErrorStatus Status
+    public Error Status
     {
         get; set;
     }

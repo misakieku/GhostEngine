@@ -28,7 +28,7 @@ public readonly struct Result
         return new Result(false, message);
     }
 
-    public static Result Failure(ErrorStatus status)
+    public static Result Failure(Error status)
     {
         return new Result(false, status.ToString());
     }
@@ -43,7 +43,7 @@ public readonly struct Result
         return Result<T>.Failure(message);
     }
 
-    public static Result<T> Failure<T>(ErrorStatus status)
+    public static Result<T> Failure<T>(Error status)
     {
         return Result<T>.Failure(status.ToString());
     }
@@ -117,7 +117,7 @@ public readonly struct Result<T>
     public static implicit operator bool(Result<T> result) => result.IsSuccess;
 }
 
-public enum ErrorStatus : byte
+public enum Error : byte
 {
     None,
     NotFound,
@@ -249,9 +249,9 @@ public readonly ref struct RefResult<T, E>
 
 public static class ResultExtensions
 {
-    public static void ThrowIfFailed(this ErrorStatus result, [CallerArgumentExpression(nameof(result))] string? op = null)
+    public static void ThrowIfFailed(this Error result, [CallerArgumentExpression(nameof(result))] string? op = null)
     {
-        if (result != ErrorStatus.None)
+        if (result != Error.None)
         {
             throw new InvalidOperationException($"{op} failed: {result}");
         }

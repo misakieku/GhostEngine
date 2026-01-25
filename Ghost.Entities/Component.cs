@@ -64,7 +64,7 @@ internal static class ComponentRegistry
                 size = sizeof(T),
                 alignment = (int)MemoryUtility.AlignOf<T>(),
                 isEnableable = typeof(IEnableableComponent).IsAssignableFrom(type),
-                // isShared = typeof(ISharedComponent).IsAssignableFrom(type),
+                //isShared = typeof(ISharedComponent).IsAssignableFrom(type),
             };
 
             s_registeredComponents.Add(info);

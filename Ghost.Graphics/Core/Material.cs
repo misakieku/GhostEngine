@@ -3,7 +3,9 @@ using Ghost.Core.Graphics;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.Core;
 
@@ -66,17 +68,11 @@ public struct Material : IResourceReleasable
         get; set;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void SetDirty()
-    {
-        _isDirty = true;
-    }
-
-    public ErrorStatus SetShader(Identifier<Shader> shaderId, IResourceAllocator allocator, IResourceDatabase database)
+    public Error SetShader(Identifier<Shader> shaderId, IResourceAllocator allocator, IResourceDatabase database)
     {
         if (!shaderId.IsValid)
         {
-            return ErrorStatus.InvalidArgument;
+            return Error.InvalidArgument;
         }
 
         _cBufferCache.ReleaseResource(database);
@@ -125,16 +121,16 @@ public struct Material : IResourceReleasable
             _cBufferCache = new CBufferCache(buffer, shader.CBufferSize);
         }
 
-        return ErrorStatus.None;
+        return Error.None;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly unsafe Result<T, ErrorStatus> GetPropertyCache<T>()
+    public readonly unsafe Result<T, Error> GetPropertyCache<T>()
         where T : unmanaged
     {
         if (sizeof(T) != _cBufferCache.Size)
         {
-            return ErrorStatus.InvalidArgument;
+            return Error.InvalidArgument;
         }
 
         return *(T*)_cBufferCache.CpuData.GetUnsafePtr();
@@ -152,32 +148,45 @@ public struct Material : IResourceReleasable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public unsafe ErrorStatus SetPropertyCache<T>(ref readonly T data)
+    public unsafe Error SetPropertyCache<T>(ref readonly T data)
         where T : unmanaged
     {
         if (sizeof(T) != _cBufferCache.Size)
         {
-            return ErrorStatus.InvalidArgument;
+            return Error.InvalidArgument;
         }
 
-        Unsafe.WriteUnaligned(_cBufferCache.CpuData.GetUnsafePtr(), data);
-        SetDirty();
+        var dataSpan = MemoryMarshal.AsBytes(new ReadOnlySpan<T>(in data));
+        var cacheSpan = _cBufferCache.CpuData.AsSpan();
+        if (cacheSpan.SequenceEqual(dataSpan))
+        {
+            return Error.None;
+        }
 
-        return ErrorStatus.None;
+        dataSpan.CopyTo(cacheSpan);
+
+        _isDirty = true;
+        return Error.None;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public unsafe ErrorStatus SetRawPropertyCache(ReadOnlySpan<byte> data)
+    public Error SetRawPropertyCache(ReadOnlySpan<byte> data)
     {
         if (data.Length != _cBufferCache.Size)
         {
-            return ErrorStatus.InvalidArgument;
+            return Error.InvalidArgument;
         }
 
-        Unsafe.WriteUnaligned(_cBufferCache.CpuData.GetUnsafePtr(), data);
-        SetDirty();
+        var cacheSpan = _cBufferCache.CpuData.AsSpan();
+        if (cacheSpan.SequenceEqual(data))
+        {
+            return Error.None;
+        }
 
-        return ErrorStatus.None;
+        data.CopyTo(cacheSpan);
+
+        _isDirty = true;
+        return Error.None;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -191,11 +200,11 @@ public struct Material : IResourceReleasable
     {
         ref var pipelineOverride = ref _passPipelineOverride[passIndex];
         pipelineOverride.options = options;
-        SetDirty();
+        _isDirty = true;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ErrorStatus SetKeyword(IResourceDatabase resourceDatabase, int keywordId, bool enabled)
+    public Error SetKeyword(IResourceDatabase resourceDatabase, int keywordId, bool enabled)
     {
         var r = resourceDatabase.GetShaderReference(_shader);
         if (r.IsFailure)
@@ -207,13 +216,13 @@ public struct Material : IResourceReleasable
         var localIndex = shader.GetLocalKeywordIndex(keywordId);
         if (localIndex == -1)
         {
-            return ErrorStatus.NotFound;
+            return Error.NotFound;
         }
 
         _keywordMask.SetKeyword(localIndex, enabled);
-        SetDirty();
+        _isDirty = true;
 
-        return ErrorStatus.None;
+        return Error.None;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -252,14 +261,14 @@ public struct Material : IResourceReleasable
         var barrierData = r.Value;
         var desc = BarrierDesc.Buffer(
             cbufferResource,
-            barrierData.Sync,
+            barrierData.sync,
             BarrierSync.Copy,
-            barrierData.Access,
+            barrierData.access,
             BarrierAccess.CopyDest);
 
         cmd.ResourceBarrier(desc);
         cmd.UploadBuffer(_cBufferCache.GpuResource, _cBufferCache.CpuData.AsSpan());
-        
+
         desc = BarrierDesc.Buffer(
             cbufferResource,
             BarrierSync.Copy,

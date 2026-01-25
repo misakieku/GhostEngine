@@ -355,7 +355,7 @@ public unsafe partial struct EntityQuery : IDisposable
         {
             // Get the EnableBitmask for this component in this chunk
             var layoutResult = archetype.GetLayout(id);
-            if (layoutResult.Error != ErrorStatus.None
+            if (layoutResult.Error != Error.None
                 // Not enableable, always true
                 || layoutResult.Value.enableBitsOffset == -1)
             {
@@ -374,7 +374,7 @@ public unsafe partial struct EntityQuery : IDisposable
         while (it.Next(out var id))
         {
             var layoutResult = archetype.GetLayout(id);
-            if (layoutResult.Error != ErrorStatus.None)
+            if (layoutResult.Error != Error.None)
             {
                 continue;
             }
@@ -395,7 +395,7 @@ public unsafe partial struct EntityQuery : IDisposable
         while (it.Next(out var id))
         {
             var layoutResult = archetype.GetLayout(id);
-            if (layoutResult.Error != ErrorStatus.None)
+            if (layoutResult.Error != Error.None)
             {
                 continue;
             }

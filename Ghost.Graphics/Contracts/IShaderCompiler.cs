@@ -146,5 +146,5 @@ public interface IShaderCompiler : IDisposable
 {
     Result<ShaderCompileResult> Compile(ref readonly ShaderCompilationConfig config, Allocator allocator);
     Result<GraphicsCompiledResult> CompilePass(ref readonly PassDescriptor descriptor, ref readonly ShaderCompilationConfig additionalConfig, Key64<ShaderVariant> key);
-    Result<GraphicsCompiledResult, ErrorStatus> LoadCompiledCache(Key64<ShaderVariant> key);
+    Result<GraphicsCompiledResult, Error> LoadCompiledCache(Key64<ShaderVariant> key);
 }

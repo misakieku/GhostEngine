@@ -392,10 +392,10 @@ internal unsafe struct Archetype : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly ErrorStatus SetComponentData(int chunkIndex, int rowIndex, Identifier<IComponent> componentID, void* pComponent)
+    public readonly Error SetComponentData(int chunkIndex, int rowIndex, Identifier<IComponent> componentID, void* pComponent)
     {
         var r = GetLayout(componentID);
-        if (r.Error != ErrorStatus.None)
+        if (r.Error != Error.None)
         {
             return r.Error;
         }
@@ -412,14 +412,14 @@ internal unsafe struct Archetype : IDisposable
         var world = World.GetWorldUncheck(_worldID);
         MarkChanged(chunkIndex, componentID, world.Version);
 
-        return ErrorStatus.None;
+        return Error.None;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly void* GetComponentData(int chunkIndex, int rowIndex, Identifier<IComponent> componentID)
     {
         var r = GetLayout(componentID);
-        if (r.Error != ErrorStatus.None)
+        if (r.Error != Error.None)
         {
             return null;
         }
@@ -439,24 +439,24 @@ internal unsafe struct Archetype : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Result<ComponentMemoryLayout, ErrorStatus> GetLayout(int componentID)
+    public readonly Result<ComponentMemoryLayout, Error> GetLayout(int componentID)
     {
         if (componentID >= _componentIDToLayoutIndex.Count)
         {
-            return ErrorStatus.InvalidArgument;
+            return Error.InvalidArgument;
         }
 
         var layoutIndex = _componentIDToLayoutIndex[componentID];
         if (layoutIndex == -1)
         {
-            return ErrorStatus.NotFound;
+            return Error.NotFound;
         }
 
         return _layouts[layoutIndex];
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly ErrorStatus MarkChanged(int chunkIndex, int componentTypeId, int globalVersion)
+    public readonly Error MarkChanged(int chunkIndex, int componentTypeId, int globalVersion)
     {
         var layoutResult = GetLayout(componentTypeId);
         if (layoutResult.IsFailure)
@@ -467,14 +467,14 @@ internal unsafe struct Archetype : IDisposable
         ref var chunk = ref _chunks[chunkIndex];
         chunk.GetVersionUnsafePtr()[layoutResult.Value.versionIndex] = globalVersion;
 
-        return ErrorStatus.None;
+        return Error.None;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Result<int, ErrorStatus> GetVersion(int chunkIndex, int componentTypeId)
+    public readonly Result<int, Error> GetVersion(int chunkIndex, int componentTypeId)
     {
         var layoutResult = GetLayout(componentTypeId);
-        if (layoutResult.Error != ErrorStatus.None)
+        if (layoutResult.Error != Error.None)
         {
             return layoutResult.Error;
         }
@@ -483,11 +483,11 @@ internal unsafe struct Archetype : IDisposable
         return chunk.GetVersionUnsafePtr()[layoutResult.Value.versionIndex];
     }
 
-    public ErrorStatus RemoveEntity(int chunkIndex, int rowIndex)
+    public Error RemoveEntity(int chunkIndex, int rowIndex)
     {
         if (chunkIndex < 0 || chunkIndex >= _chunks.Count)
         {
-            return ErrorStatus.InvalidArgument;
+            return Error.InvalidArgument;
         }
 
         var world = World.GetWorldUncheck(_worldID);
@@ -502,7 +502,7 @@ internal unsafe struct Archetype : IDisposable
             var pRowEntity = chunkBase + _entityIdsOffset + (sizeof(Entity) * rowIndex);
 
             var result = world.EntityManager.UpdateEntityLocation(*(Entity*)pLastEntity, _id, chunkIndex, rowIndex);
-            if (result != ErrorStatus.None)
+            if (result != Error.None)
             {
                 return result;
             }
@@ -524,19 +524,19 @@ internal unsafe struct Archetype : IDisposable
         chunk._count--;
         chunk._structuralVersion = world.Version;
 
-        return ErrorStatus.None;
+        return Error.None;
     }
 
-    public ErrorStatus RemoveEntities(int chunkIndex, ReadOnlySpan<int> sortedIndicesToRemove)
+    public Error RemoveEntities(int chunkIndex, ReadOnlySpan<int> sortedIndicesToRemove)
     {
         if (chunkIndex < 0 || chunkIndex >= _chunks.Count)
         {
-            return ErrorStatus.InvalidArgument;
+            return Error.InvalidArgument;
         }
 
         if (sortedIndicesToRemove.Length == 0)
         {
-            return ErrorStatus.None;
+            return Error.None;
         }
 
         ref var chunk = ref _chunks[chunkIndex];
@@ -603,7 +603,7 @@ internal unsafe struct Archetype : IDisposable
             // 1. Update the Map (Critical Step)
             // We tell the world: "The entity that WAS at 'candidateIndex' is now at 'holeIndex'"
             var result = world.EntityManager.UpdateEntityLocation(*(Entity*)pFillerEntity, _id, chunkIndex, holeIndex);
-            if (result != ErrorStatus.None)
+            if (result != Error.None)
             {
                 return result;
             }
@@ -628,7 +628,7 @@ internal unsafe struct Archetype : IDisposable
         chunk._count = newCount;
         chunk._structuralVersion = world.Version;
 
-        return ErrorStatus.None;
+        return Error.None;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -605,9 +605,9 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
         var barrierData = new ResourceBarrierData
         {
-            Access = BarrierAccess.NoAccess,
-            Layout = BarrierLayout.Common,
-            Sync = BarrierSync.None
+            access = BarrierAccess.NoAccess,
+            layout = BarrierLayout.Common,
+            sync = BarrierSync.None
         };
 
         return TrackAllocation(alloc, barrierData, ResourceViewGroup.Invalid, default, name, false);
@@ -693,9 +693,9 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
         var barrierData = new ResourceBarrierData
         {
-            Access = BarrierAccess.NoAccess,
-            Layout = BarrierLayout.Common,
-            Sync = BarrierSync.None
+            access = BarrierAccess.NoAccess,
+            layout = BarrierLayout.Common,
+            sync = BarrierSync.None
         };
 
         Handle<GPUResource> resource;
@@ -715,7 +715,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        var textureDesc = desc.ToTextureDescripton();
+        var textureDesc = desc.ToTextureDescription();
         return CreateTexture(in textureDesc, name, options);
     }
 
@@ -803,9 +803,9 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
         var barrierData = new ResourceBarrierData
         {
-            Access = BarrierAccess.NoAccess,
-            Layout = BarrierLayout.Undefined,
-            Sync = BarrierSync.None
+            access = BarrierAccess.NoAccess,
+            layout = BarrierLayout.Undefined,
+            sync = BarrierSync.None
         };
 
         Handle<GPUResource> resource;
@@ -927,7 +927,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         var material = new Material();
-        if (material.SetShader(shader, this, _resourceDatabase) != ErrorStatus.None)
+        if (material.SetShader(shader, this, _resourceDatabase) != Error.None)
         {
             return Handle<Material>.Invalid;
         }

@@ -68,7 +68,6 @@ public sealed class RenderGraph : IDisposable
         Blackboard = new RenderGraphBlackboard();
     }
 
-
     /// <summary>
     /// Resets the render graph for a new frame.
     /// Reuses existing allocations to minimize GC.
@@ -224,7 +223,7 @@ public sealed class RenderGraph : IDisposable
     {
         _compiler.Dispose();
 
-        // We need to reset the whole graph to return resources to the pool
+        // HACK: Ideally, we should have a Dispose method. But for now, we just reset to release resources.
         Reset();
     }
 }

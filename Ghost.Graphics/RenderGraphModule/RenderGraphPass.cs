@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Graphics.RHI;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.RenderGraphModule;
@@ -27,7 +28,7 @@ internal abstract class RenderGraphPassBase
     public bool asyncCompute;
 
     public TextureAccess depthAccess;
-    public TextureAccess[] colorAccess = new TextureAccess[8];
+    public TextureAccess[] colorAccess = new TextureAccess[RHIUtility.MAX_RENDER_TARGETS];
     public int maxColorIndex = -1;
 
     public List<Identifier<RGResource>> randomAccess = new(8);

@@ -68,7 +68,7 @@ internal class D3D12Renderer : IRenderer
         // HACK: This is hard coded for testing purposes only.
 
         var error = RenderScene(target, RenderOutput.Viewport, RenderOutput.Scissor);
-        if (error != ErrorStatus.None)
+        if (error != Error.None)
         {
             _commandBuffer.End();
             return Result.Failure(error);
@@ -88,7 +88,7 @@ internal class D3D12Renderer : IRenderer
     }
 
     // TODO: A proper render graph integration.
-    private ErrorStatus RenderScene(Handle<Texture> target, ViewportDesc viewport, RectDesc rect)
+    private Error RenderScene(Handle<Texture> target, ViewportDesc viewport, RectDesc rect)
     {
         // NOTE: Testing only.
         var ctx = new RenderingContext(_graphicsEngine, _commandBuffer);
@@ -116,7 +116,7 @@ internal class D3D12Renderer : IRenderer
         //_commandBuffer.EndRenderPass();
         _frameIndex++;
 
-        return ErrorStatus.None;
+        return Error.None;
     }
 
     public void Dispose()

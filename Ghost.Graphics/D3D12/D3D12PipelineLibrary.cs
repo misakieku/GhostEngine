@@ -331,14 +331,14 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
         return _pipelineCache.ContainsKey(key);
     }
 
-    public Result<SharedPtr<ID3D12PipelineState>, ErrorStatus> GetGraphicsPSO(Key128<GraphicsPipeline> key)
+    public Result<SharedPtr<ID3D12PipelineState>, Error> GetGraphicsPSO(Key128<GraphicsPipeline> key)
     {
         if (_pipelineCache.TryGetValue(key, out var cacheEntry))
         {
             return cacheEntry.pso.Share();
         }
 
-        return ErrorStatus.NotFound;
+        return Error.NotFound;
     }
 
     public void Dispose()

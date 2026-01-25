@@ -89,14 +89,14 @@ internal sealed partial class DxcShaderCompiler
         return argsArray;
     }
 
-    private static Result<string, ErrorStatus> GetFinalShaderCode(string shaderPath, ReadOnlySpan<string> includes, string? injectedCode)
+    private static Result<string, Error> GetFinalShaderCode(string shaderPath, ReadOnlySpan<string> includes, string? injectedCode)
     {
         string shaderCode;
         if (shaderPath == "hlsl_block")
         {
             if (string.IsNullOrEmpty(injectedCode))
             {
-                return ErrorStatus.InvalidArgument;
+                return Error.InvalidArgument;
             }
 
             shaderCode = string.Empty;
@@ -105,7 +105,7 @@ internal sealed partial class DxcShaderCompiler
         {
             if (!File.Exists(shaderPath))
             {
-                return ErrorStatus.NotFound;
+                return Error.NotFound;
             }
 
             shaderCode = File.ReadAllText(shaderPath);
@@ -487,7 +487,7 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
         return compiled;
     }
 
-    public Result<GraphicsCompiledResult, ErrorStatus> LoadCompiledCache(Key64<ShaderVariant> key)
+    public Result<GraphicsCompiledResult, Error> LoadCompiledCache(Key64<ShaderVariant> key)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -496,7 +496,7 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
             return compiledResult;
         }
 
-        return ErrorStatus.NotFound;
+        return Error.NotFound;
     }
 
     public void Dispose()

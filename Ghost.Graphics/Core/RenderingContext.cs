@@ -55,23 +55,27 @@ public readonly unsafe ref struct RenderingContext
         }
 
         var data = r.Value;
-        if (data.Layout == newLayout && data.Access == newAccess && data.Sync == newSync)
+        if (data.layout == newLayout && data.access == newAccess && data.sync == newSync)
         {
             return;
         }
 
-        // For buffers, layout is usually Undefined/Common and doesn't change, but Access/Sync do.
-        // For textures, layout changes matter.
-        var desc = isTexture ?
-            BarrierDesc.Texture(
+        BarrierDesc desc;
+        if (isTexture)
+        {
+            desc = BarrierDesc.Texture(
             resource,
-            data.Sync, newSync,
-            data.Access, newAccess,
-            data.Layout, newLayout)
-            : BarrierDesc.Buffer(
+            data.sync, newSync,
+            data.access, newAccess,
+            data.layout, newLayout);
+        }
+        else
+        {
+            desc = BarrierDesc.Buffer(
             resource,
-            data.Sync, newSync,
-            data.Access, newAccess);
+            data.sync, newSync,
+            data.access, newAccess);
+        }
 
         _directCmd.ResourceBarrier(new ReadOnlySpan<BarrierDesc>(in desc));
         ResourceDatabase.SetResourceBarrierData(resource, new ResourceBarrierData(newLayout, newAccess, newSync));
@@ -188,13 +192,13 @@ public readonly unsafe ref struct RenderingContext
     public void UploadTexture<T>(Handle<Texture> texture, ReadOnlySpan<T> data)
         where T : unmanaged
     {
-        var desc = ResourceDatabase.GetResourceDescription(texture.AsResource())
-            .GetValueOrThrow();
-
-        if (data.Length * sizeof(T) != desc.TextureDescription.GetTotalBytes())
-        {
-            throw new ArgumentException("Data size does not match texture size.");
-        }
+        var desc = ResourceDatabase.GetResourceDescription(texture.AsResource()).GetValueOrThrow();
+        
+        //var size = ResourceAllocator.GetSizeInfo(desc).Size;
+        //if ((ulong)(data.Length * sizeof(T)) != ResourceAllocator.GetSizeInfo(desc).Size)
+        //{
+        //    throw new ArgumentException("Data size does not match texture size.");
+        //}
 
         desc.TextureDescription.Format.GetSurfaceInfo(desc.TextureDescription.Width, desc.TextureDescription.Height, out var rowPitch, out var slicePitch, out _);
 
@@ -209,7 +213,7 @@ public readonly unsafe ref struct RenderingContext
                 slicePitch = slicePitch
             };
 
-            _directCmd.UploadTexture(texture, [subresourceData]);
+            _directCmd.UploadTexture(texture, subresourceData);
         }
     }
 }

@@ -50,8 +50,8 @@ internal struct ResourceBarrier
     public override readonly string ToString()
     {
         return AliasingPredecessor.IsValid 
-            ? $"[Pass {PassIndex}] Aliasing Barrier: {AliasingPredecessor.Value}->{Resource.Value} Target: {TargetState.Layout}" 
-            : $"[Pass {PassIndex}] Barrier: {Resource.Value} Target: {TargetState.Layout}";
+            ? $"[Pass {PassIndex}] Aliasing Barrier: {AliasingPredecessor.Value}->{Resource.Value} Target: {TargetState.layout}" 
+            : $"[Pass {PassIndex}] Barrier: {Resource.Value} Target: {TargetState.layout}";
     }
 }
 
@@ -88,8 +88,8 @@ internal struct CompiledBarrier
     public override readonly string ToString()
     {
         return AliasingPredecessor.IsValid 
-            ? $"[Pass {PassIndex}] Aliasing: {AliasingPredecessor.Value}->{Resource.Value} -> {TargetState.Layout}" 
-            : $"[Pass {PassIndex}] Transition: {Resource.Value} -> {TargetState.Layout}";
+            ? $"[Pass {PassIndex}] Aliasing: {AliasingPredecessor.Value}->{Resource.Value} -> {TargetState.layout}" 
+            : $"[Pass {PassIndex}] Transition: {Resource.Value} -> {TargetState.layout}";
     }
 }
 
@@ -254,7 +254,7 @@ internal static class RenderGraphBarriers
                     if (pass.colorAccess[i].id.IsValid)
                     {
                         var usage = pass.colorAccess[i].usage;
-                        var targetState = new ResourceBarrierData(usage.Layout, usage.Access, usage.Sync);
+                        var targetState = new ResourceBarrierData(usage.layout, usage.access, usage.sync);
                         AddTransition(pass.colorAccess[i].id.AsResource(), targetState);
                     }
                 }
@@ -263,7 +263,7 @@ internal static class RenderGraphBarriers
                 if (pass.depthAccess.id.IsValid)
                 {
                     var usage = pass.depthAccess.usage;
-                    var targetState = new ResourceBarrierData(usage.Layout, usage.Access, usage.Sync);
+                    var targetState = new ResourceBarrierData(usage.layout, usage.access, usage.sync);
                     AddTransition(pass.depthAccess.id.AsResource(), targetState);
                 }
 
