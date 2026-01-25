@@ -1,17 +1,14 @@
 using Ghost.Editor.Core.AssetHandle;
 using Ghost.Editor.Core.Inspector;
 using Ghost.Editor.Core.Resources;
-using Ghost.Editor.Core.Serializer;
 using Ghost.Engine.Components;
 using Ghost.Engine.Core;
-using Ghost.Engine.IO;
 using Ghost.Entities;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
 namespace Ghost.Editor.Core.SceneGraph;
 
-[CustomSerializer(typeof(SceneNodeSerializer))]
 public partial class SceneNode : SceneGraphNode, IEquatable<SceneNode>
 {
     private Scene _scene;
