@@ -56,9 +56,10 @@ When loading a scene, we need to reconstruct the entities and their relationship
 
 ### Data format
 The scene data should be stored in a structured format (e.g., JSON or binary) that includes:
- - Scene metadata (e.g., name, ID. Note that name of entity and scene are editor only data, should be included inside SceneNode and EntityNode, not runtime data)
  - List of entities with their components and properties (Entities must in the order that file local id directly maps to the index in the list)
  - References between entities using file local IDs
+
+ > The name of the saved scene file should match the name of the scene node in the editor.
 
 JSON should only be used in the editor and JSON serialization/deserialization logic should also only exist in the editor codebase (Ghost.Editor.Core). Reflection is allowed here.
 Binary format should be used in the runtime for better performance. The runtime codebase (Ghost.Engine) must be aot compatible.
@@ -66,3 +67,11 @@ Binary format should be used in the runtime for better performance. The runtime 
 Currently we strict the IComponent to must be unmanaged and blittable types.
 However, we also support ManagedEntity and ManagedEntityRef with ScriptComponent to allow OOP like logic for common gameplay logic that DOD pattern is not suitable for.
 Serializing/deserializing with those components will be tricky. We can use MemoryPack for binary serialization/deserialization because it supports both unmanaged and managed types.
+
+## What you need to implement
+ - Scene type for the runtime representation
+ - Scene Graph data structures (SceneNode, EntityNode)
+ - Editor World management (loading/unloading scenes, managing entities)
+ - Scene saving/loading logic with file local ID remapping
+ - Serialization/deserialization logic for scene data (JSON for editor, binary for runtime)
+ - Leave the actual UI implementation (TreeView) for later, focus on the data structures and logic first but make sure the data structures are compatible with TreeView binding in WinUI 3.

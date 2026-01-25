@@ -4,102 +4,141 @@ using System.Collections.ObjectModel;
 namespace Ghost.Editor.Core.SceneGraph;
 
 /// <summary>
-/// Represents an Entity node in the editor hierarchy.
-/// Contains editor-only metadata like name and selection state.
-/// References the actual entity data in the ECS world via EntityId.
+/// Represents an entity node in the editor scene graph hierarchy.
+/// Contains editor-only metadata like display name and hierarchy information.
 /// </summary>
 public class EntityNode
 {
-    public string Name { get; set; }
-    public Entity EntityId { get; private set; }
-    
-    /// <summary>
-    /// File-local ID within the scene (used for serialization).
-    /// Only set when loaded from a scene file; may be -1 if not yet assigned.
-    /// </summary>
-    public int FileLocalId { get; set; } = -1;
+    private string _name;
+    private readonly ObservableCollection<EntityNode> _children;
 
     /// <summary>
-    /// Child entity nodes (parent-child relationships in hierarchy).
+    /// Gets or sets the entity this node represents.
     /// </summary>
-    public ObservableCollection<EntityNode> Children { get; }
+    public Entity Entity { get; set; }
 
     /// <summary>
-    /// Reference to parent entity node, if any.
+    /// Gets or sets the display name for this entity in the editor.
+    /// This is NOT stored in runtime components.
     /// </summary>
-    public EntityNode? ParentNode { get; set; }
-
-    /// <summary>
-    /// Whether this node is expanded in the editor UI.
-    /// </summary>
-    public bool IsExpanded { get; set; }
-
-    /// <summary>
-    /// Whether this node is selected in the editor UI.
-    /// </summary>
-    public bool IsSelected { get; set; }
-
-    public EntityNode(string name, Entity entityId)
+    public string Name
     {
-        Name = name;
-        EntityId = entityId;
-        Children = new ObservableCollection<EntityNode>();
-        IsExpanded = false;
-        IsSelected = false;
+        get => _name;
+        set
+        {
+            _name = value;
+            OnNameChanged?.Invoke(this);
+        }
     }
 
     /// <summary>
-    /// Finds a child entity node recursively by its global entity ID.
+    /// Gets the parent node of this entity node.
     /// </summary>
-    public EntityNode? FindRecursive(Entity entityId)
-    {
-        foreach (var child in Children)
-        {
-            if (child.EntityId == entityId)
-                return child;
+    public EntityNode? Parent { get; internal set; }
 
-            var found = child.FindRecursive(entityId);
+    /// <summary>
+    /// Gets the scene node that contains this entity.
+    /// </summary>
+    public SceneNode? OwnerScene { get; internal set; }
+
+    /// <summary>
+    /// Gets the collection of child entity nodes.
+    /// </summary>
+    public ObservableCollection<EntityNode> Children => _children;
+
+    /// <summary>
+    /// Event raised when the name property changes.
+    /// </summary>
+    public event Action<EntityNode>? OnNameChanged;
+
+    /// <summary>
+    /// Event raised when children collection changes.
+    /// </summary>
+    public event Action<EntityNode>? OnChildrenChanged;
+
+    public EntityNode(Entity entity, string name = "Entity")
+    {
+        Entity = entity;
+        _name = name;
+        _children = [];
+        _children.CollectionChanged += (s, e) => OnChildrenChanged?.Invoke(this);
+    }
+
+    /// <summary>
+    /// Adds a child entity node to this node.
+    /// </summary>
+    /// <param name="child">The child node to add.</param>
+    public void AddChild(EntityNode child)
+    {
+        if (child.Parent != null)
+        {
+            child.Parent.RemoveChild(child);
+        }
+
+        child.Parent = this;
+        child.OwnerScene = OwnerScene;
+        _children.Add(child);
+    }
+
+    /// <summary>
+    /// Removes a child entity node from this node.
+    /// </summary>
+    /// <param name="child">The child node to remove.</param>
+    /// <returns>True if the child was removed, false otherwise.</returns>
+    public bool RemoveChild(EntityNode child)
+    {
+        if (_children.Remove(child))
+        {
+            child.Parent = null;
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Gets all descendants of this node (children, grandchildren, etc.) in depth-first order.
+    /// </summary>
+    /// <returns>An enumerable of all descendant nodes.</returns>
+    public IEnumerable<EntityNode> GetAllDescendants()
+    {
+        foreach (var child in _children)
+        {
+            yield return child;
+
+            foreach (var descendant in child.GetAllDescendants())
+            {
+                yield return descendant;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Finds an entity node by its entity reference.
+    /// </summary>
+    /// <param name="entity">The entity to search for.</param>
+    /// <returns>The entity node if found, null otherwise.</returns>
+    public EntityNode? FindNode(Entity entity)
+    {
+        if (Entity.Equals(entity))
+        {
+            return this;
+        }
+
+        foreach (var child in _children)
+        {
+            var found = child.FindNode(entity);
             if (found != null)
+            {
                 return found;
+            }
         }
 
         return null;
     }
 
-    /// <summary>
-    /// Gets the depth of this node in the hierarchy.
-    /// Root nodes have depth 0.
-    /// </summary>
-    public int GetDepth()
+    public override string ToString()
     {
-        int depth = 0;
-        var current = ParentNode;
-        while (current != null)
-        {
-            depth++;
-            current = current.ParentNode;
-        }
-        return depth;
+        return $"{Name} (Entity: {Entity})";
     }
-
-    /// <summary>
-    /// Gets all descendant nodes in breadth-first order.
-    /// </summary>
-    public IEnumerable<EntityNode> GetAllDescendants()
-    {
-        var queue = new Queue<EntityNode>();
-        queue.Enqueue(this);
-
-        while (queue.Count > 0)
-        {
-            var node = queue.Dequeue();
-            foreach (var child in node.Children)
-            {
-                yield return child;
-                queue.Enqueue(child);
-            }
-        }
-    }
-
-    public override string ToString() => $"Entity: {Name} (ID: {EntityId})";
 }
