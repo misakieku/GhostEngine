@@ -12,7 +12,8 @@ internal partial class ProjectService
     private const string _TEMPLATE_CONTENT_FILE = "content.zip";
 
     public const string ASSETS_FOLDER = "Assets";
-    public const string CONFIG_FOLDER = "ProjectConfig";
+    public const string CACHE_FOLDER = "Caches";
+    public const string CONFIG_FOLDER = "Configs";
 
     public static ProjectMetadataInfo CurrentProject
     {

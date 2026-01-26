@@ -33,6 +33,7 @@
       <Platform Solution="*|x86" Project="x86" />
       <Deploy />
     </Project>
+    <Project Path="Ghost.MicroTest/Ghost.MicroTest.csproj" Id="8c8ffa4b-e1e4-46a1-9221-7b508a109edd" />
     <Project Path="Ghost.Shader.Test/Ghost.Shader.Test.csproj" />
     <Project Path="Ghost.Test.Core/Ghost.Test.Core.csproj" />
   </Folder>

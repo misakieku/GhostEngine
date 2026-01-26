@@ -2,8 +2,6 @@ namespace Ghost.Data.Models;
 
 public class ProjectMetadata
 {
-    public const string PROJECT_EXTENSION = "ghostproj";
-
     public Guid ID
     {
         get; set;
@@ -39,7 +37,9 @@ public class ProjectMetadata
     }
 
     // Parameterless constructor for deserialization
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public ProjectMetadata()
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     {
     }
 }
