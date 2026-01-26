@@ -5,7 +5,7 @@ internal class AssetMeta
     public Guid Guid
     {
         get;
-        internal set;
+        set;
     }
 
     public ImporterSettings? Settings

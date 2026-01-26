@@ -6,8 +6,6 @@ public static partial class AssetDatabase
 {
     private static FileSystemWatcher? s_watcher;
 
-    private static readonly Dictionary<Guid, string> s_assetPathLookup = new();
-
     public static DirectoryInfo? AssetsDirectory
     {
         get;

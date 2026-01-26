@@ -1,3 +1,4 @@
+using Ghost.Core;
 using Ghost.Editor.Core.Utilities;
 using System.Diagnostics;
 using System.Reflection;
@@ -24,7 +25,7 @@ public static partial class AssetDatabase
             {
                 if (_assetOpenHandlers.ContainsKey(ext))
                 {
-                    throw new InvalidOperationException($"Duplicate handler for extension '{ext}'");
+                    Logger.LogError($"Duplicate asset open handler for extension '{ext}' found in method '{method.Name}'. Existing handler will be overwritten.");
                 }
 
                 _assetOpenHandlers[ext] = del;

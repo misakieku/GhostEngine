@@ -129,6 +129,11 @@ public static class Logger
         s_logger.Log(message, level);
     }
 
+    public static void Log(LogLevel level, string format, params object?[] args)
+    {
+        s_logger.Log(string.Format(format, args), level);
+    }
+
     public static void LogInfo(object? message)
     {
         s_logger.Log(message?.ToString() ?? "null", LogLevel.Info);
@@ -137,6 +142,11 @@ public static class Logger
     public static void LogInfo(string message)
     {
         s_logger.Log(message, LogLevel.Info);
+    }
+
+    public static void LogInfo(string format, params object?[] args)
+    {
+        s_logger.Log(string.Format(format, args), LogLevel.Info);
     }
 
     public static void LogWarning(object? message)
@@ -149,6 +159,11 @@ public static class Logger
         s_logger.Log(message, LogLevel.Warning);
     }
 
+    public static void LogWarning(string format, params object?[] args)
+    {
+        s_logger.Log(string.Format(format, args), LogLevel.Warning);
+    }
+
     public static void LogError(object? message)
     {
         s_logger.Log(message?.ToString() ?? "null", LogLevel.Error);
@@ -157,6 +172,11 @@ public static class Logger
     public static void LogError(string message)
     {
         s_logger.Log(message, LogLevel.Error);
+    }
+
+    public static void LogError(string format, params object?[] args)
+    {
+        s_logger.Log(string.Format(format, args), LogLevel.Error);
     }
 
     public static void LogError(Exception ex)

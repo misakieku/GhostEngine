@@ -8,6 +8,8 @@ namespace Ghost.Editor.Core.AssetHandle;
 public static partial class AssetDatabase
 {
     private static readonly Dictionary<string, Type> s_importerTypeLookup = new();
+    private static readonly Dictionary<Guid, string> s_assetPathLookup = new();
+    private static readonly Dictionary<string, Guid> s_pathAssetLookup = new();
 
     private static void InitializeMetaData()
     {
@@ -38,12 +40,12 @@ public static partial class AssetDatabase
             return Error.NotFound;
         }
 
-        if (Path.GetExtension(assetPath).Equals(".meta", StringComparison.OrdinalIgnoreCase))
+        if (Path.GetExtension(assetPath).Equals(FileExtensions.META_FILE_EXTENSION, StringComparison.OrdinalIgnoreCase))
         {
             return Error.InvalidState;
         }
 
-        return assetPath + ".meta";
+        return assetPath + FileExtensions.META_FILE_EXTENSION;
     }
 
     private static ImporterSettings? GetDefaultSettingsForAsset(string assetPath)
@@ -64,37 +66,46 @@ public static partial class AssetDatabase
         return null;
     }
 
-    private static void WriteMetaFile(string metaFilePath, AssetMeta metaData)
+    private static async Task<Result> WriteMetaFileAsync(string metaFilePath, AssetMeta metaData)
     {
         using var fileStream = File.Create(metaFilePath);
 
         try
         {
-            JsonSerializer.Serialize(fileStream, metaData);
+            await JsonSerializer.SerializeAsync(fileStream, metaData);
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex);
+            return Result.Failure(ex.Message);
         }
+
+        return Result.Success();
     }
 
-    internal static Result GenerateMetaFile(string assetPath)
+    internal static async Task<Result> GenerateMetaFileAsync(string assetPath)
     {
+        Result r;
+
         var metaFileResult = GetMetaFilePath(assetPath);
-        if (!metaFileResult.IsSuccess)
+        if (metaFileResult.IsFailure)
         {
-            return Result.Failure(metaFileResult.Error.ToString());
+            return Result.Failure(metaFileResult.Error);
         }
 
         if (File.Exists(metaFileResult.Value))
         {
-            var existingMeta = JsonSerializer.Deserialize<AssetMeta>(File.ReadAllText(metaFileResult.Value));
+            using var fileStream = File.OpenRead(metaFileResult.Value);
+            var existingMeta = await JsonSerializer.DeserializeAsync<AssetMeta>(fileStream);
             if (existingMeta != null && s_assetPathLookup.TryGetValue(existingMeta.Guid, out var path))
             {
                 if (assetPath != path)
                 {
                     existingMeta.Guid = Guid.NewGuid();
-                    WriteMetaFile(metaFileResult.Value, existingMeta);
+                    r = await WriteMetaFileAsync(metaFileResult.Value, existingMeta);
+                    if (r.IsFailure)
+                    {
+                        return r;
+                    }
                 }
             }
 
@@ -108,14 +119,14 @@ public static partial class AssetDatabase
             Settings = defaultSettings
         };
 
-        WriteMetaFile(metaFileResult.Value, metaData);
+        r = await WriteMetaFileAsync(metaFileResult.Value, metaData);
 
-        return Result.Success();
+        return r;
     }
 
-    private static void OnAssetCreated(object sender, FileSystemEventArgs e)
+    private static async void OnAssetCreated(object sender, FileSystemEventArgs e)
     {
-        GenerateMetaFile(e.FullPath);
+        await GenerateMetaFileAsync(e.FullPath);
     }
 
     private static void OnAssetDeleted(object sender, FileSystemEventArgs e)
@@ -142,10 +153,10 @@ public static partial class AssetDatabase
         }
     }
 
-    private static void OnAssetRenamed(object sender, RenamedEventArgs e)
+    private static async void OnAssetRenamed(object sender, RenamedEventArgs e)
     {
-        var oldMetaPath = e.OldFullPath + ".meta";
-        var newMetaPath = e.FullPath + ".meta";
+        var oldMetaPath = e.OldFullPath + FileExtensions.META_FILE_EXTENSION;
+        var newMetaPath = e.FullPath + FileExtensions.META_FILE_EXTENSION;
 
         if (File.Exists(oldMetaPath))
         {
@@ -153,7 +164,7 @@ public static partial class AssetDatabase
         }
         else
         {
-            GenerateMetaFile(e.FullPath);
+            await GenerateMetaFileAsync(e.FullPath);
         }
     }
 }
