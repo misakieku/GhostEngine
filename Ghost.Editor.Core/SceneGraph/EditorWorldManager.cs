@@ -1,3 +1,4 @@
+using Ghost.Engine.Components;
 using Ghost.Engine.Core;
 using Ghost.Entities;
 using System.Collections.ObjectModel;
@@ -124,7 +125,7 @@ public class EditorWorldManager
     {
         // Create runtime entity with SceneID component
         var entity = _editorWorld.EntityManager.CreateEntity();
-        _editorWorld.EntityManager.AddComponent(entity, new Components.SceneID { id = sceneNode.Scene.ID });
+        _editorWorld.EntityManager.AddComponent(entity, new SceneID { id = sceneNode.Scene.ID });
 
         // Create entity node
         var entityNode = new EntityNode(entity, name);
@@ -135,7 +136,7 @@ public class EditorWorldManager
             parent.AddChild(entityNode);
 
             // Add Hierarchy component
-            _editorWorld.EntityManager.AddComponent(entity, new Components.Hierarchy
+            _editorWorld.EntityManager.AddComponent(entity, new Hierarchy
             {
                 parent = parent.Entity,
                 firstChild = Entity.Invalid,
@@ -147,7 +148,7 @@ public class EditorWorldManager
             sceneNode.AddRootEntity(entityNode);
 
             // Add root hierarchy component
-            _editorWorld.EntityManager.AddComponent(entity, Components.Hierarchy.Root);
+            _editorWorld.EntityManager.AddComponent(entity, Hierarchy.Root);
         }
 
         // Track entity node
@@ -224,7 +225,7 @@ public class EditorWorldManager
 
         // Build query for entities in this scene
         var builder = new QueryBuilder();
-        builder.WithAll([ComponentTypeID<Components.SceneID>.Value, ComponentTypeID<Components.Hierarchy>.Value]);
+        builder.WithAll([ComponentTypeID<SceneID>.Value, ComponentTypeID<Hierarchy>.Value]);
         var queryID = builder.Build(_editorWorld);
         ref var query = ref _editorWorld.ComponentManager.GetEntityQueryReference(queryID);
 
@@ -234,7 +235,7 @@ public class EditorWorldManager
         foreach (var chunk in query.GetChunkIterator())
         {
             var entities = chunk.GetEntities();
-            var sceneIDs = chunk.GetComponentData<Components.SceneID>();
+            var sceneIDs = chunk.GetComponentData<SceneID>();
 
             for (int i = 0; i < chunk.Count; i++)
             {
@@ -258,8 +259,8 @@ public class EditorWorldManager
         foreach (var chunk in query.GetChunkIterator())
         {
             var entities = chunk.GetEntities();
-            var sceneIDs = chunk.GetComponentData<Components.SceneID>();
-            var hierarchies = chunk.GetComponentData<Components.Hierarchy>();
+            var sceneIDs = chunk.GetComponentData<SceneID>();
+            var hierarchies = chunk.GetComponentData<Hierarchy>();
 
             for (int i = 0; i < chunk.Count; i++)
             {

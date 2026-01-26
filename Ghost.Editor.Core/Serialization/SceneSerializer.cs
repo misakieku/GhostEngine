@@ -161,7 +161,7 @@ public class SceneSerializer
             var componentTypeId = layout.componentID;
 
             // Skip SceneID component - it's implicit
-            if (componentTypeId == ComponentTypeID<SceneID>.Value.Value)
+            if (componentTypeId == ComponentTypeID<SceneID>.Value)
             {
                 continue;
             }
