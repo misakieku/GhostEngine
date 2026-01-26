@@ -7,7 +7,7 @@ namespace Ghost.Editor.Core.AssetHandle;
 
 public static partial class AssetDatabase
 {
-    private static readonly Dictionary<string, Action<string>> _assetOpenHandlers = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, Action<string>> s_assetOpenHandlers = new(StringComparer.OrdinalIgnoreCase);
 
     private static void InitializeAssetHandle()
     {
@@ -23,12 +23,12 @@ public static partial class AssetDatabase
             var del = (Action<string>)Delegate.CreateDelegate(typeof(Action<string>), method);
             foreach (var ext in attr.Extensions)
             {
-                if (_assetOpenHandlers.ContainsKey(ext))
+                if (s_assetOpenHandlers.ContainsKey(ext))
                 {
                     Logger.LogError($"Duplicate asset open handler for extension '{ext}' found in method '{method.Name}'. Existing handler will be overwritten.");
                 }
 
-                _assetOpenHandlers[ext] = del;
+                s_assetOpenHandlers[ext] = del;
             }
         }
     }
@@ -36,7 +36,7 @@ public static partial class AssetDatabase
     public static void OpenAsset(string path)
     {
         var extension = Path.GetExtension(path);
-        if (_assetOpenHandlers.TryGetValue(extension, out var handler))
+        if (s_assetOpenHandlers.TryGetValue(extension, out var handler))
         {
             handler(path);
         }

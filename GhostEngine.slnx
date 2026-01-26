@@ -36,6 +36,9 @@
     <Project Path="Ghost.MicroTest/Ghost.MicroTest.csproj" Id="8c8ffa4b-e1e4-46a1-9221-7b508a109edd" />
     <Project Path="Ghost.Shader.Test/Ghost.Shader.Test.csproj" />
     <Project Path="Ghost.Test.Core/Ghost.Test.Core.csproj" />
+    <Project Path="Ghost.UnitTest/Ghost.UnitTest.csproj" Id="4da45668-456b-4dcc-acd8-6bfe154e6837">
+      <Platform Solution="Debug|x64" Project="x64" />
+    </Project>
   </Folder>
   <Project Path="Ghost.DSL/Ghost.DSL.csproj" />
 </Solution>
