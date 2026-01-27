@@ -1,7 +1,7 @@
 namespace Ghost.Editor.Core.AssetHandle;
 
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-public class AssetImporterAttribute : Attribute
+internal class AssetImporterAttribute : Attribute
 {
     public string[] SupportedExtensions
     {

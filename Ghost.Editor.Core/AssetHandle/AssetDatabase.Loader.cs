@@ -1,0 +1,242 @@
+using Ghost.Core;
+using Ghost.Data.Services;
+using System.Collections.Concurrent;
+using System.Text.Json;
+
+namespace Ghost.Editor.Core.AssetHandle;
+
+public static partial class AssetDatabase
+{
+    // Asset cache - stores loaded assets by GUID
+    private static readonly ConcurrentDictionary<Guid, Asset> s_assetCache = new();
+    
+    // LRU tracking - stores access time for each cached asset
+    private static readonly ConcurrentDictionary<Guid, DateTime> s_assetAccessTime = new();
+    
+    // Maximum number of cached assets before eviction starts
+    private const int MAX_CACHED_ASSETS = 1000;
+    
+    // Percentage of cache to evict when limit is reached (evict oldest 20%)
+    private const float CACHE_EVICTION_PERCENTAGE = 0.2f;
+
+    /// <summary>
+    /// Get the path to the imported asset data directory.
+    /// </summary>
+    private static Result<string> GetImportedAssetsDirectory()
+    {
+        if (AssetsDirectory == null)
+        {
+            return Result<string>.Failure("AssetsDirectory not initialized");
+        }
+
+        var cacheDir = Path.Combine(AssetsDirectory.Parent!.FullName, ProjectService.CACHE_FOLDER, "ImportedAssets");
+        
+        if (!Directory.Exists(cacheDir))
+        {
+            Directory.CreateDirectory(cacheDir);
+        }
+
+        return cacheDir;
+    }
+
+    /// <summary>
+    /// Get the path where imported asset data is stored for a specific GUID.
+    /// </summary>
+    /// <param name="guid">GUID of the asset.</param>
+    /// <returns>Full path to the imported asset data file.</returns>
+    private static Result<string> GetImportedAssetPath(Guid guid)
+    {
+        var importedDirResult = GetImportedAssetsDirectory();
+        if (importedDirResult.IsFailure)
+        {
+            return Result<string>.Failure(importedDirResult.Message);
+        }
+
+        // Store imported assets as {GUID}.asset
+        var assetDataPath = Path.Combine(importedDirResult.Value, $"{guid}.asset");
+        return assetDataPath;
+    }
+
+    /// <summary>
+    /// Load asset by GUID with caching (internal implementation).
+    /// </summary>
+    /// <typeparam name="T">Type of asset to load.</typeparam>
+    /// <param name="guid">GUID of the asset.</param>
+    /// <returns>The loaded asset.</returns>
+    private static Result<T> LoadAssetInternal<T>(Guid guid) where T : Asset
+    {
+        // Check cache first
+        if (s_assetCache.TryGetValue(guid, out var cachedAsset))
+        {
+            // Update access time for LRU
+            s_assetAccessTime[guid] = DateTime.UtcNow;
+            
+            if (cachedAsset is T typedAsset)
+            {
+                return typedAsset;
+            }
+            else
+            {
+                return Result<T>.Failure($"Cached asset is of type {cachedAsset.GetType().Name}, expected {typeof(T).Name}");
+            }
+        }
+
+        // Asset not in cache, load from disk
+        var assetPathResult = GetImportedAssetPath(guid);
+        if (assetPathResult.IsFailure)
+        {
+            return Result<T>.Failure(assetPathResult.Message);
+        }
+
+        var assetDataPath = assetPathResult.Value;
+        
+        if (!File.Exists(assetDataPath))
+        {
+            return Result<T>.Failure($"Imported asset data not found at {assetDataPath}. Asset may not have been imported yet.");
+        }
+
+        try
+        {
+            // Read and deserialize asset data
+            var json = File.ReadAllText(assetDataPath);
+            var asset = JsonSerializer.Deserialize<T>(json);
+            
+            if (asset == null)
+            {
+                return Result<T>.Failure("Failed to deserialize asset data");
+            }
+
+            // Add to cache
+            CacheAsset(guid, asset);
+            
+            return asset;
+        }
+        catch (Exception ex)
+        {
+            return Result<T>.Failure($"Failed to load asset: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Load asset by path with caching.
+    /// </summary>
+    /// <typeparam name="T">Type of asset to load.</typeparam>
+    /// <param name="assetPath">Full or relative path to the asset.</param>
+    /// <returns>The loaded asset.</returns>
+    public static Result<T> LoadAssetAtPath<T>(string assetPath) where T : Asset
+    {
+        var guidResult = PathToGuid(assetPath);
+        if (guidResult.IsFailure)
+        {
+            return Result<T>.Failure(guidResult.Message);
+        }
+
+        return LoadAsset<T>(guidResult.Value);
+    }
+
+    /// <summary>
+    /// Add an asset to the cache with LRU eviction if needed.
+    /// </summary>
+    private static void CacheAsset(Guid guid, Asset asset)
+    {
+        // Check if we need to evict old assets
+        if (s_assetCache.Count >= MAX_CACHED_ASSETS)
+        {
+            EvictOldestAssets();
+        }
+
+        s_assetCache[guid] = asset;
+        s_assetAccessTime[guid] = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Evict the oldest assets from cache based on LRU.
+    /// </summary>
+    private static void EvictOldestAssets()
+    {
+        var evictionCount = (int)(MAX_CACHED_ASSETS * CACHE_EVICTION_PERCENTAGE);
+        
+        // Sort by access time and remove oldest entries
+        var oldestAssets = s_assetAccessTime
+            .OrderBy(kvp => kvp.Value)
+            .Take(evictionCount)
+            .Select(kvp => kvp.Key)
+            .ToList();
+
+        foreach (var guid in oldestAssets)
+        {
+            s_assetCache.TryRemove(guid, out _);
+            s_assetAccessTime.TryRemove(guid, out _);
+        }
+    }
+
+    /// <summary>
+    /// Unload a specific asset from cache.
+    /// </summary>
+    /// <param name="guid">GUID of the asset to unload.</param>
+    public static void UnloadAsset(Guid guid)
+    {
+        s_assetCache.TryRemove(guid, out _);
+        s_assetAccessTime.TryRemove(guid, out _);
+    }
+
+    /// <summary>
+    /// Unload all assets from cache.
+    /// </summary>
+    public static void UnloadAllAssets()
+    {
+        s_assetCache.Clear();
+        s_assetAccessTime.Clear();
+    }
+
+    /// <summary>
+    /// Check if an asset is currently loaded in cache.
+    /// </summary>
+    /// <param name="guid">GUID of the asset.</param>
+    /// <returns>True if the asset is in cache.</returns>
+    public static bool IsAssetLoaded(Guid guid)
+    {
+        return s_assetCache.ContainsKey(guid);
+    }
+
+    /// <summary>
+    /// Get cache statistics.
+    /// </summary>
+    /// <returns>Tuple of (current cache size, max cache size).</returns>
+    public static (int currentSize, int maxSize) GetCacheStats()
+    {
+        return (s_assetCache.Count, MAX_CACHED_ASSETS);
+    }
+
+    /// <summary>
+    /// Save an imported asset to disk for later loading.
+    /// This should be called by importers after processing the source file.
+    /// </summary>
+    /// <typeparam name="T">Type of asset data.</typeparam>
+    /// <param name="guid">GUID of the asset.</param>
+    /// <param name="assetData">Processed asset data to save.</param>
+    /// <returns>Result indicating success or failure.</returns>
+    internal static Result SaveImportedAsset<T>(Guid guid, T assetData) where T : Asset
+    {
+        var assetPathResult = GetImportedAssetPath(guid);
+        if (assetPathResult.IsFailure)
+        {
+            return Result.Failure(assetPathResult.Message);
+        }
+
+        try
+        {
+            var json = JsonSerializer.Serialize(assetData, s_defaultJsonOptions);
+            File.WriteAllText(assetPathResult.Value, json);
+            
+            // Invalidate cache for this asset so it gets reloaded next time
+            UnloadAsset(guid);
+            
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure($"Failed to save imported asset: {ex.Message}");
+        }
+    }
+}

@@ -1,10 +1,12 @@
+using Ghost.Data.Models;
+
 namespace Ghost.Editor.Core.Utilities;
 
 internal static class FileExtensions
 {
     public const string META_FILE_EXTENSION = ".gmeta";
 
-    public const string PROJECT_FILE_EXTENSION = ".gproj";
+    public const string PROJECT_FILE_EXTENSION = "." + ProjectMetadata.PROJECT_FILE_EXTENSION_NAME;
     public const string TEMPLATE_FILE_EXTENSION = ".gtmpl";
     public const string SCENE_FILE_EXTENSION = ".gscene";
     public const string ASSET_FILE_EXTENSION = ".gasset";

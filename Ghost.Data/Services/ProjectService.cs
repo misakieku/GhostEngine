@@ -86,7 +86,7 @@ internal partial class ProjectService
             return Result<ProjectMetadataInfo>.Failure("Project folder structure is invalid.");
         }
 
-        var metadataPath = Directory.GetFiles(projectDirectory, $"*.{ProjectMetadata.PROJECT_EXTENSION}", SearchOption.TopDirectoryOnly).FirstOrDefault();
+        var metadataPath = Directory.GetFiles(projectDirectory, $"*.{ProjectMetadata.PROJECT_FILE_EXTENSION_NAME}", SearchOption.TopDirectoryOnly).FirstOrDefault();
         if (string.IsNullOrWhiteSpace(metadataPath) || !File.Exists(metadataPath))
         {
             return Result<ProjectMetadataInfo>.Failure("Project metadata file not found.");
@@ -193,7 +193,7 @@ internal partial class ProjectService
             }
 
             var metadata = new ProjectMetadata(projectName, engineVersion);
-            var metadataPath = Path.Combine(projectPath, $"{projectName}.{ProjectMetadata.PROJECT_EXTENSION}");
+            var metadataPath = Path.Combine(projectPath, $"{projectName}.{ProjectMetadata.PROJECT_FILE_EXTENSION_NAME}");
             await CreateMetadataFileAsync(metadataPath, metadata);
             await SetupRequestFolderAsync(projectPath, templatePath);
 

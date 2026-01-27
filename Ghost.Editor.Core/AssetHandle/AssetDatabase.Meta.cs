@@ -1,6 +1,8 @@
 using Ghost.Core;
 using Ghost.Editor.Core.Utilities;
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 namespace Ghost.Editor.Core.AssetHandle;
@@ -8,8 +10,6 @@ namespace Ghost.Editor.Core.AssetHandle;
 public static partial class AssetDatabase
 {
     private static readonly Dictionary<string, Type> s_importerTypeLookup = new();
-    private static readonly Dictionary<Guid, string> s_assetPathLookup = new();
-    private static readonly Dictionary<string, Guid> s_pathAssetLookup = new();
 
     private static void InitializeMetaData()
     {
@@ -31,18 +31,19 @@ public static partial class AssetDatabase
         s_watcher.Created += OnAssetCreated;
         s_watcher.Deleted += OnAssetDeleted;
         s_watcher.Renamed += OnAssetRenamed;
+        s_watcher.Changed += OnAssetChanged;
     }
 
-    private static Result<string, Error> GetMetaFilePath(string assetPath)
+    private static Result<string> GetMetaFilePath(string assetPath)
     {
         if (Directory.Exists(assetPath))
         {
-            return Error.NotFound;
+            return Result<string>.Failure("Cannot create metadata for directories");
         }
 
         if (Path.GetExtension(assetPath).Equals(FileExtensions.META_FILE_EXTENSION, StringComparison.OrdinalIgnoreCase))
         {
-            return Error.InvalidState;
+            return Result<string>.Failure("Cannot create metadata for metadata files");
         }
 
         return assetPath + FileExtensions.META_FILE_EXTENSION;
@@ -66,105 +67,294 @@ public static partial class AssetDatabase
         return null;
     }
 
-    private static async Task<Result> WriteMetaFileAsync(string metaFilePath, AssetMeta metaData)
+    /// <summary>
+    /// Calculate SHA256 hash of a file for change detection.
+    /// </summary>
+    private static async Task<string> CalculateFileHashAsync(string filePath)
     {
-        using var fileStream = File.Create(metaFilePath);
-
         try
         {
-            await JsonSerializer.SerializeAsync(fileStream, metaData);
+            await using var stream = File.OpenRead(filePath);
+            var hash = await SHA256.HashDataAsync(stream);
+            return Convert.ToHexString(hash);
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }
+
+    private static async Task<Result> WriteMetaFileAsync(string metaFilePath, AssetMeta metaData)
+    {
+        try
+        {
+            await using var fileStream = File.Create(metaFilePath);
+            await JsonSerializer.SerializeAsync(fileStream, metaData, s_defaultJsonOptions);
+            return Result.Success();
         }
         catch (Exception ex)
         {
             return Result.Failure(ex.Message);
         }
-
-        return Result.Success();
     }
 
-    internal static async Task<Result> GenerateMetaFileAsync(string assetPath)
+    /// <summary>
+    /// Read metadata from a .gmeta file.
+    /// </summary>
+    private static async ValueTask<Result<AssetMeta>> ReadMetaFileAsync(string assetPath, CancellationToken token = default)
+    {
+        var metaFileResult = GetMetaFilePath(assetPath);
+        if (metaFileResult.IsFailure)
+        {
+            return Result<AssetMeta>.Failure(metaFileResult.Message);
+        }
+
+        if (!File.Exists(metaFileResult.Value))
+        {
+            return Result<AssetMeta>.Failure("Metadata file does not exist");
+        }
+
+        try
+        {
+            await using var fileStream = File.OpenRead(metaFileResult.Value);
+            var meta = await JsonSerializer.DeserializeAsync<AssetMeta>(fileStream, s_defaultJsonOptions, token);
+            if (meta == null)
+            {
+                return Result<AssetMeta>.Failure("Failed to deserialize metadata");
+            }
+
+            return meta;
+        }
+        catch (Exception ex)
+        {
+            return Result<AssetMeta>.Failure($"Failed to read metadata: {ex.Message}");
+        }
+    }
+
+    internal static async ValueTask<Result> GenerateMetaFileAsync(string assetPath, CancellationToken token = default)
     {
         Result r;
 
         var metaFileResult = GetMetaFilePath(assetPath);
         if (metaFileResult.IsFailure)
         {
-            return Result.Failure(metaFileResult.Error);
+            return Result.Failure(metaFileResult.Message);
         }
 
         if (File.Exists(metaFileResult.Value))
         {
-            using var fileStream = File.OpenRead(metaFileResult.Value);
-            var existingMeta = await JsonSerializer.DeserializeAsync<AssetMeta>(fileStream);
-            if (existingMeta != null && s_assetPathLookup.TryGetValue(existingMeta.Guid, out var path))
+            var existingMetaResult = await ReadMetaFileAsync(assetPath);
+            if (existingMetaResult.IsSuccess)
             {
-                if (assetPath != path)
+                var existingMeta = existingMetaResult.Value;
+                if (s_assetPathLookup.TryGetValue(existingMeta.Guid, out var path))
                 {
-                    existingMeta.Guid = Guid.NewGuid();
-                    r = await WriteMetaFileAsync(metaFileResult.Value, existingMeta);
-                    if (r.IsFailure)
+                    var relResult = GetRelativePath(assetPath);
+                    if (relResult.IsSuccess && assetPath != path)
                     {
-                        return r;
+                        // GUID conflict - regenerate
+                        existingMeta.Guid = Guid.NewGuid();
+                        r = await WriteMetaFileAsync(metaFileResult.Value, existingMeta);
+                        if (r.IsFailure)
+                        {
+                            return r;
+                        }
                     }
                 }
-            }
 
-            return Result.Success();
+                // Calculate file hash and update database
+                var fileHash = await CalculateFileHashAsync(assetPath);
+                await UpsertAssetAsync(assetPath, existingMeta, fileHash);
+                return Result.Success();
+            }
         }
+
+        // Calculate initial file hash
+        var fileHash2 = await CalculateFileHashAsync(assetPath);
 
         var defaultSettings = GetDefaultSettingsForAsset(assetPath);
         var metaData = new AssetMeta
         {
-            Guid = Guid.NewGuid(),
-            Settings = defaultSettings
+            Guid = Guid.NewGuid()
         };
 
+        if (defaultSettings != null)
+        {
+            metaData.SetImporterSettings(defaultSettings.GetType().Name, defaultSettings);
+        }
+
         r = await WriteMetaFileAsync(metaFileResult.Value, metaData);
+        if (r.IsFailure)
+        {
+            return r;
+        }
+
+        // Add to database
+        await UpsertAssetAsync(assetPath, metaData, fileHash2);
 
         return r;
     }
 
     private static async void OnAssetCreated(object sender, FileSystemEventArgs e)
     {
+        // Skip meta files
+        if (Path.GetExtension(e.FullPath).Equals(FileExtensions.META_FILE_EXTENSION, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        // Debounce to prevent duplicate events
+        if (!ShouldProcessFileOperation(e.FullPath))
+        {
+            return;
+        }
+
         await GenerateMetaFileAsync(e.FullPath);
     }
 
-    private static void OnAssetDeleted(object sender, FileSystemEventArgs e)
+    private static async void OnAssetDeleted(object sender, FileSystemEventArgs e)
     {
+        // Skip meta files
+        if (Path.GetExtension(e.FullPath).Equals(FileExtensions.META_FILE_EXTENSION, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        // Debounce to prevent duplicate events
+        if (!ShouldProcessFileOperation(e.FullPath))
+        {
+            return;
+        }
+
         var metaFileResult = GetMetaFilePath(e.FullPath);
         if (metaFileResult.IsSuccess && File.Exists(metaFileResult.Value))
         {
             try
             {
-                var meta = JsonSerializer.Deserialize<AssetMeta>(File.ReadAllText(metaFileResult.Value));
-                if (meta != null
-                    && s_assetPathLookup.TryGetValue(meta.Guid, out var path)
-                    && path == e.FullPath)
+                var metaResult = await ReadMetaFileAsync(e.FullPath);
+                if (metaResult.IsSuccess)
                 {
-                    s_assetPathLookup.Remove(meta.Guid);
+                    var meta = metaResult.Value;
+
+                    // Remove from database
+                    await RemoveAssetFromDatabaseAsync(meta.Guid);
+
+                    // Mark dependent assets as dirty
+                    await MarkDependentAssetsDirtyAsync(meta.Guid);
                 }
 
                 File.Delete(metaFileResult.Value);
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex);
+                Console.WriteLine($"Error deleting asset metadata: {ex.Message}");
             }
         }
     }
 
     private static async void OnAssetRenamed(object sender, RenamedEventArgs e)
     {
+        // Skip meta files
+        if (Path.GetExtension(e.FullPath).Equals(FileExtensions.META_FILE_EXTENSION, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        // Debounce to prevent duplicate events
+        if (!ShouldProcessFileOperation(e.FullPath))
+        {
+            return;
+        }
+
         var oldMetaPath = e.OldFullPath + FileExtensions.META_FILE_EXTENSION;
         var newMetaPath = e.FullPath + FileExtensions.META_FILE_EXTENSION;
 
-        if (File.Exists(oldMetaPath))
+        if (File.Exists(newMetaPath))
         {
+            // Validate and update
+            await GenerateMetaFileAsync(e.FullPath);
+        }
+        else if (File.Exists(oldMetaPath))
+        {
+            // Move meta file
             File.Move(oldMetaPath, newMetaPath);
+
+            // Update database with new path and recalculated hash
+            var metaResult = await ReadMetaFileAsync(e.FullPath);
+            if (metaResult.IsSuccess)
+            {
+                var fileHash = await CalculateFileHashAsync(e.FullPath);
+                await UpsertAssetAsync(e.FullPath, metaResult.Value, fileHash);
+            }
         }
         else
         {
+            // Generate new meta file
             await GenerateMetaFileAsync(e.FullPath);
+        }
+
+        // Delete old meta if it still exists
+        if (File.Exists(oldMetaPath) && oldMetaPath != newMetaPath)
+        {
+            try
+            {
+                File.Delete(oldMetaPath);
+            }
+            catch
+            {
+                // Ignore
+            }
+        }
+    }
+
+    private static async void OnAssetChanged(object sender, FileSystemEventArgs e)
+    {
+        // Skip meta files
+        if (Path.GetExtension(e.FullPath).Equals(FileExtensions.META_FILE_EXTENSION, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        // Debounce to prevent duplicate events
+        if (!ShouldProcessFileOperation(e.FullPath))
+        {
+            return;
+        }
+
+        // Check if file hash changed
+        var metaResult = await ReadMetaFileAsync(e.FullPath);
+        if (metaResult.IsFailure)
+        {
+            return;
+        }
+
+        // Calculate new hash and compare against database
+        var newHash = await CalculateFileHashAsync(e.FullPath);
+        var oldHash = await GetFileHashAsync(metaResult.Value.Guid);
+        
+        if (oldHash != newHash)
+        {
+            // File changed - update database and mark as dirty
+            await UpsertAssetAsync(e.FullPath, metaResult.Value, newHash);
+            await MarkAssetDirtyAsync(metaResult.Value.Guid, true);
+        }
+    }
+
+    /// <summary>
+    /// Mark all assets that depend on the specified asset as dirty.
+    /// </summary>
+    private static async Task MarkDependentAssetsDirtyAsync(Guid assetGuid)
+    {
+        // Query database for all assets and check their dependencies
+        var allAssets = GetAllAssets();
+
+        foreach (var kvp in allAssets)
+        {
+            var dependencies = await GetDependenciesAsync(kvp.Key);
+            if (dependencies.Contains(assetGuid))
+            {
+                await MarkAssetDirtyAsync(kvp.Key, true);
+            }
         }
     }
 }

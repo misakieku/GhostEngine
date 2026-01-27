@@ -2,6 +2,8 @@ namespace Ghost.Data.Models;
 
 public class ProjectMetadata
 {
+    public const string PROJECT_FILE_EXTENSION_NAME = "gproj";
+
     public Guid ID
     {
         get; set;
