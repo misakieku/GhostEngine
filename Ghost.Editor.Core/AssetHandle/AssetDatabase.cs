@@ -1,8 +1,32 @@
+using Ghost.Core;
 using Ghost.Data.Services;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.Channels;
 
 namespace Ghost.Editor.Core.AssetHandle;
+
+/// <summary>
+/// Command types for asset database operations.
+/// </summary>
+internal enum AssetCommandType
+{
+    FileCreated,
+    FileModified,
+    FileDeleted,
+    FileRenamed,
+    ManualRefresh
+}
+
+/// <summary>
+/// Represents a command to process an asset operation.
+/// </summary>
+internal readonly record struct AssetCommand(
+    AssetCommandType Type,
+    string Path,
+    string? OldPath = null,
+    DateTime Timestamp = default
+);
 
 /// <summary>
 /// Centralized asset database that manages all assets in the project.
@@ -15,15 +39,23 @@ public static partial class AssetDatabase
     private static readonly Lock s_dbLock = new();
     private static readonly Dictionary<Guid, string> s_assetPathLookup = new();
     private static readonly Dictionary<string, Guid> s_pathAssetLookup = new();
-    
-    // Debouncing for file system watcher to prevent duplicate events
-    private static readonly Dictionary<string, DateTime> s_pendingFileOperations = new();
-    private static readonly Lock s_pendingOperationsLock = new();
-    private static readonly TimeSpan s_debounceDelay = TimeSpan.FromMilliseconds(100);
-    
+
+    // In-memory dirty asset tracking (for runtime modifications only)
+    private static readonly HashSet<Guid> s_dirtyAssets = new();
+
+    // Command buffer pattern - Channel for file system event commands
+    private static Channel<AssetCommand>? s_commandChannel;
+    private static Timer? s_commandProcessorTimer;
+    private static readonly HashSet<string> s_pendingCommandPaths = new(); // Track paths with pending commands
+    private static readonly Lock s_commandLock = new();
+    private static bool s_autoRefreshEnabled = true;
+    private static readonly Queue<AssetCommand> s_waitingCommands = new(); // Commands waiting for manual refresh
+
     // Initialization guard
     private static readonly Lock s_initializationLock = new();
     private static bool s_initialized = false;
+
+    private static readonly TimeSpan s_debounceDelay = TimeSpan.FromMilliseconds(100);
 
     private static readonly JsonSerializerOptions s_defaultJsonOptions = new()
     {
@@ -45,7 +77,7 @@ public static partial class AssetDatabase
     /// Initialize the asset database.
     /// Must be called after project is loaded.
     /// </summary>
-    internal static async void Initialize()
+    internal static async void Initialize(CancellationToken token = default)
     {
         lock (s_initializationLock)
         {
@@ -63,11 +95,21 @@ public static partial class AssetDatabase
 
         AssetsDirectory = new DirectoryInfo(Path.Combine(Path.GetDirectoryName(ProjectService.CurrentProject.Path)!, ProjectService.ASSETS_FOLDER));
 
+        // Initialize command channel (unbounded for simplicity)
+        s_commandChannel = Channel.CreateUnbounded<AssetCommand>(new UnboundedChannelOptions
+        {
+            SingleReader = false, // Timer callback reads
+            SingleWriter = false  // Multiple FS events can write
+        });
+
+        // Initialize command processor timer (starts disabled, triggered by events)
+        s_commandProcessorTimer = new Timer(ProcessPendingCommands, null, Timeout.Infinite, Timeout.Infinite);
+
         // Initialize database
-        await InitializeDatabaseAsync();
+        await InitializeDatabaseAsync(token);
 
         // Load asset cache from database
-        await LoadAssetCacheFromDatabaseAsync();
+        await LoadAssetCacheFromDatabaseAsync(token);
 
         // Initialize file system watcher
         s_watcher = new FileSystemWatcher
@@ -82,26 +124,25 @@ public static partial class AssetDatabase
         InitializeMetaData();
 
         // Validate and fix database on startup
-        await ValidateAndFixDatabaseAsync();
+        await ValidateAndFixDatabaseAsync(token);
     }
 
     /// <summary>
     /// Validate the asset database and fix any inconsistencies.
     /// Checks for missing/corrupted assets and regenerates metadata as needed.
     /// </summary>
-    private static async Task<Ghost.Core.Result> ValidateAndFixDatabaseAsync()
+    private static async Task<Result> ValidateAndFixDatabaseAsync(CancellationToken token = default)
     {
         if (AssetsDirectory == null)
         {
-            return Ghost.Core.Result.Failure("AssetsDirectory not initialized");
+            return Result.Failure("AssetsDirectory not initialized");
         }
 
         try
         {
             // Scan all files in assets directory
             var allFiles = Directory.GetFiles(AssetsDirectory.FullName, "*.*", SearchOption.AllDirectories)
-                .Where(f => !f.EndsWith(Utilities.FileExtensions.META_FILE_EXTENSION, StringComparison.OrdinalIgnoreCase))
-                .ToList();
+                .Where(f => !f.EndsWith(Utilities.FileExtensions.META_FILE_EXTENSION, StringComparison.OrdinalIgnoreCase));
 
             // Ensure all files have metadata
             foreach (var file in allFiles)
@@ -109,91 +150,372 @@ public static partial class AssetDatabase
                 var metaPath = file + Utilities.FileExtensions.META_FILE_EXTENSION;
                 if (!File.Exists(metaPath))
                 {
-                    await GenerateMetaFileAsync(file);
+                    await GenerateMetaFileAsync(file, token);
                 }
                 else
                 {
                     // Validate and update database
-                    var metaResult = await ReadMetaFileAsync(file);
+                    var metaResult = await ReadMetaFileAsync(file, token);
                     if (metaResult.IsSuccess)
                     {
-                        var fileHash = await CalculateFileHashAsync(file);
-                        await UpsertAssetAsync(file, metaResult.Value, fileHash);
+                        var fileHash = await CalculateFileHashAsync(file, token);
+                        await UpsertAssetAsync(file, metaResult.Value, fileHash, null, token);
                     }
                     else
                     {
                         // Corrupted meta file - regenerate
-                        await GenerateMetaFileAsync(file);
+                        await GenerateMetaFileAsync(file, token);
                     }
                 }
             }
 
             // Remove orphaned entries from database (files that no longer exist)
-            await RemoveOrphanedEntriesAsync();
+            await RemoveOrphanedEntriesAsync(token);
 
-            return Ghost.Core.Result.Success();
+            return Result.Success();
         }
         catch (Exception ex)
         {
-            return Ghost.Core.Result.Failure($"Failed to validate database: {ex.Message}");
+            return Result.Failure($"Failed to validate database: {ex.Message}");
         }
     }
 
     /// <summary>
     /// Refresh the asset database manually.
-    /// Scans the project directory for changes.
+    /// Scans the project directory for changes and processes any queued file system events.
     /// </summary>
-    public static async Task<Ghost.Core.Result> RefreshAsync()
+    public static async Task<Result> RefreshAsync(CancellationToken token = default)
     {
-        return await ValidateAndFixDatabaseAsync();
+        // Flush waiting commands to channel
+        lock (s_commandLock)
+        {
+            while (s_waitingCommands.TryDequeue(out var cmd))
+            {
+                s_commandChannel?.Writer.TryWrite(cmd);
+            }
+        }
+
+        // Post manual refresh command
+        s_commandChannel?.Writer.TryWrite(new AssetCommand(AssetCommandType.ManualRefresh, string.Empty));
+
+        // Trigger timer immediately
+        s_commandProcessorTimer?.Change(TimeSpan.Zero, Timeout.InfiniteTimeSpan);
+
+        // Wait a bit for processing to complete (this is best-effort)
+        await Task.Delay(200, token);
+
+        return Result.Success();
     }
 
     /// <summary>
-    /// Check if a file operation should be processed or debounced.
-    /// Returns true if the operation should proceed.
+    /// Mark an asset as dirty (modified in memory but not yet saved).
+    /// This state is NOT persisted and will be lost on application restart.
     /// </summary>
-    private static bool ShouldProcessFileOperation(string filePath)
+    public static void MarkDirty(Guid assetGuid)
     {
-        lock (s_pendingOperationsLock)
+        lock (s_dbLock)
         {
-            var now = DateTime.UtcNow;
-            
-            // Clean up old entries
-            var toRemove = s_pendingFileOperations
-                .Where(kvp => now - kvp.Value > s_debounceDelay * 2)
-                .Select(kvp => kvp.Key)
-                .ToList();
-            
-            foreach (var key in toRemove)
-            {
-                s_pendingFileOperations.Remove(key);
-            }
-            
-            // Check if this operation was recently processed
-            if (s_pendingFileOperations.TryGetValue(filePath, out var lastTime))
-            {
-                if (now - lastTime < s_debounceDelay)
-                {
-                    // Too soon, skip this event
-                    return false;
-                }
-            }
-            
-            // Update timestamp and allow processing
-            s_pendingFileOperations[filePath] = now;
-            return true;
+            s_dirtyAssets.Add(assetGuid);
         }
     }
 
     /// <summary>
-    /// Register a file operation to prevent the file watcher from processing it.
-    /// Used by file operations (move, copy, etc.) to prevent duplicate processing.
+    /// Check if an asset is marked as dirty.
     /// </summary>
-    private static void RegisterFileOperation(string filePath)
+    public static bool IsDirty(Guid assetGuid)
     {
-        lock (s_pendingOperationsLock)
+        lock (s_dbLock)
         {
-            s_pendingFileOperations[filePath] = DateTime.UtcNow;
+            return s_dirtyAssets.Contains(assetGuid);
+        }
+    }
+
+    /// <summary>
+    /// Get all dirty assets.
+    /// </summary>
+    public static Guid[] GetDirtyAssets()
+    {
+        lock (s_dbLock)
+        {
+            return s_dirtyAssets.ToArray();
+        }
+    }
+
+    /// <summary>
+    /// Clear dirty flag for an asset (typically after saving).
+    /// </summary>
+    public static void ClearDirty(Guid assetGuid)
+    {
+        lock (s_dbLock)
+        {
+            s_dirtyAssets.Remove(assetGuid);
+        }
+    }
+
+    /// <summary>
+    /// Clear all dirty flags.
+    /// </summary>
+    public static void ClearAllDirty()
+    {
+        lock (s_dbLock)
+        {
+            s_dirtyAssets.Clear();
+        }
+    }
+
+    /// <summary>
+    /// Enable or disable automatic asset database refresh.
+    /// When disabled, file system events are queued and processed only when RefreshAsync() is called.
+    /// </summary>
+    public static void SetAutoRefresh(bool enabled)
+    {
+        s_autoRefreshEnabled = enabled;
+    }
+
+    /// <summary>
+    /// Process all pending commands immediately (synchronous, for testing).
+    /// </summary>
+    internal static void FlushPendingCommands()
+    {
+        // Stop timer temporarily
+        s_commandProcessorTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+
+        // Give a tiny bit of time for any in-flight file watcher events to post to channel
+        Thread.Sleep(50);
+
+        // Process all commands now
+        ProcessPendingCommands(null);
+    }
+
+    /// <summary>
+    /// Post a command to the command channel for processing.
+    /// </summary>
+    private static void PostCommand(AssetCommand command)
+    {
+        if (s_commandChannel == null)
+        {
+            return;
+        }
+
+        if (s_autoRefreshEnabled)
+        {
+            // Add to pending paths for temp file tracking
+            lock (s_commandLock)
+            {
+                s_pendingCommandPaths.Add(command.Path);
+                if (command.OldPath != null)
+                {
+                    s_pendingCommandPaths.Add(command.OldPath);
+                }
+            }
+
+            // Write to channel (lock-free, async-safe)
+            s_commandChannel.Writer.TryWrite(command);
+
+            // Start or reset timer (safe even if not initialized yet)
+            s_commandProcessorTimer?.Change(s_debounceDelay, Timeout.InfiniteTimeSpan);
+        }
+        else
+        {
+            // Queue for manual refresh
+            lock (s_commandLock)
+            {
+                s_waitingCommands.Enqueue(command);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Timer callback to process pending commands.
+    /// </summary>
+    private static void ProcessPendingCommands(object? state)
+    {
+        try
+        {
+            // Collect all pending commands
+            var commands = new List<AssetCommand>();
+
+            while (s_commandChannel?.Reader.TryRead(out var cmd) == true)
+            {
+                commands.Add(cmd);
+            }
+
+            // Group commands by path (last command wins)
+            var commandsByPath = new Dictionary<string, AssetCommand>();
+            foreach (var cmd in commands)
+            {
+                commandsByPath[cmd.Path] = cmd;
+            }
+
+            // Filter out temp files (files that were created then deleted)
+            lock (s_commandLock)
+            {
+                var pathsToProcess = commandsByPath.Keys.ToList();
+                foreach (var path in pathsToProcess)
+                {
+                    // If file was created/modified but doesn't exist anymore, skip
+                    if (!File.Exists(path) && commandsByPath[path].Type != AssetCommandType.FileDeleted)
+                    {
+                        commandsByPath.Remove(path);
+                    }
+                }
+
+                // Clear pending paths
+                s_pendingCommandPaths.Clear();
+            }
+
+            // Execute commands
+            foreach (var cmd in commandsByPath.Values)
+            {
+                ExecuteCommandAsync(cmd).GetAwaiter().GetResult();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error processing commands: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Execute a single asset command.
+    /// </summary>
+    private static async Task ExecuteCommandAsync(AssetCommand command)
+    {
+        switch (command.Type)
+        {
+            case AssetCommandType.FileCreated:
+                await HandleFileCreatedAsync(command.Path);
+                break;
+
+            case AssetCommandType.FileModified:
+                await HandleFileModifiedAsync(command.Path);
+                break;
+
+            case AssetCommandType.FileDeleted:
+                await HandleFileDeletedAsync(command.Path);
+                break;
+
+            case AssetCommandType.FileRenamed:
+                if (command.OldPath != null)
+                {
+                    await HandleFileRenamedAsync(command.OldPath, command.Path);
+                }
+                break;
+
+            case AssetCommandType.ManualRefresh:
+                await ValidateAndFixDatabaseAsync(CancellationToken.None);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Handle file created event.
+    /// </summary>
+    private static async Task HandleFileCreatedAsync(string path)
+    {
+        await GenerateMetaFileAsync(path, CancellationToken.None);
+    }
+
+    /// <summary>
+    /// Handle file modified event.
+    /// </summary>
+    private static async Task HandleFileModifiedAsync(string path)
+    {
+        // Check if file hash changed
+        var metaResult = await ReadMetaFileAsync(path, CancellationToken.None);
+        if (metaResult.IsFailure)
+        {
+            // No .gmeta file - treat this as a new file creation
+            await HandleFileCreatedAsync(path);
+            return;
+        }
+
+        // Calculate new hash and compare against database
+        var newHash = await CalculateFileHashAsync(path, CancellationToken.None);
+        var oldHash = await GetFileHashAsync(metaResult.Value.Guid, CancellationToken.None);
+
+        if (oldHash != newHash)
+        {
+            // File changed - update database and mark as dirty
+            await UpsertAssetAsync(path, metaResult.Value, newHash, null, CancellationToken.None);
+            MarkDirty(metaResult.Value.Guid);
+        }
+    }
+
+    /// <summary>
+    /// Handle file deleted event.
+    /// </summary>
+    private static async Task HandleFileDeletedAsync(string path)
+    {
+        var metaFileResult = GetMetaFilePath(path);
+        if (metaFileResult.IsSuccess && File.Exists(metaFileResult.Value))
+        {
+            try
+            {
+                var metaResult = await ReadMetaFileAsync(path, CancellationToken.None);
+                if (metaResult.IsSuccess)
+                {
+                    var meta = metaResult.Value;
+
+                    // Remove from database
+                    await RemoveAssetFromDatabaseAsync(meta.Guid, CancellationToken.None);
+
+                    // Mark dependent assets as dirty
+                    await MarkDependentAssetsDirtyAsync(meta.Guid);
+                }
+
+                File.Delete(metaFileResult.Value);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error deleting asset metadata: {ex.Message}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Handle file renamed event.
+    /// </summary>
+    private static async Task HandleFileRenamedAsync(string oldPath, string newPath)
+    {
+        var oldMetaPath = oldPath + Utilities.FileExtensions.META_FILE_EXTENSION;
+        var newMetaPath = newPath + Utilities.FileExtensions.META_FILE_EXTENSION;
+
+        if (File.Exists(newMetaPath))
+        {
+            // Validate and update
+            await GenerateMetaFileAsync(newPath, CancellationToken.None);
+        }
+        else if (File.Exists(oldMetaPath))
+        {
+            // Move meta file
+            File.Move(oldMetaPath, newMetaPath);
+
+            // Update database with new path and recalculated hash
+            var metaResult = await ReadMetaFileAsync(newPath, CancellationToken.None);
+            if (metaResult.IsSuccess)
+            {
+                var fileHash = await CalculateFileHashAsync(newPath, CancellationToken.None);
+                await UpsertAssetAsync(newPath, metaResult.Value, fileHash, null, CancellationToken.None);
+            }
+        }
+        else
+        {
+            // Generate new meta file
+            await GenerateMetaFileAsync(newPath, CancellationToken.None);
+        }
+
+        // Delete old meta if it still exists
+        if (File.Exists(oldMetaPath) && oldMetaPath != newMetaPath)
+        {
+            try
+            {
+                File.Delete(oldMetaPath);
+            }
+            catch
+            {
+                // Ignore
+            }
         }
     }
 
@@ -213,15 +535,20 @@ public static partial class AssetDatabase
             s_watcher?.Dispose();
             s_watcher = null;
 
+            s_commandProcessorTimer?.Dispose();
+            s_commandProcessorTimer = null;
+
             s_dbConnection?.Close();
             s_dbConnection?.Dispose();
             s_dbConnection = null;
 
             s_assetPathLookup.Clear();
             s_pathAssetLookup.Clear();
+            s_dirtyAssets.Clear();
+            s_pendingCommandPaths.Clear();
+            s_waitingCommands.Clear();
             s_importerInstances.Clear();
             s_importerTypeLookup.Clear();
-            s_pendingFileOperations.Clear();
 
             s_initialized = false;
         }

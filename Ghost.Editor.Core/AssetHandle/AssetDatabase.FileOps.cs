@@ -11,7 +11,7 @@ public static partial class AssetDatabase
     /// <param name="assetPath">Path to create the asset at.</param>
     /// <param name="content">Content to write to the asset file.</param>
     /// <returns>Result indicating success or failure.</returns>
-    public static async Task<Result> CreateAssetAsync(string assetPath, byte[] content)
+    public static async ValueTask<Result> CreateAssetAsync(string assetPath, ReadOnlyMemory<byte> content, CancellationToken token = default)
     {
         if (AssetsDirectory == null)
         {
@@ -36,11 +36,12 @@ public static partial class AssetDatabase
                 Directory.CreateDirectory(directory);
             }
 
-            await File.WriteAllBytesAsync(assetPath, content);
+            using var fs = File.Create(assetPath);
+            await fs.WriteAsync(content, token);
 
             // GenerateMetaFileAsync will be called automatically by the file watcher
             // But we'll call it directly to ensure it's created immediately
-            await GenerateMetaFileAsync(assetPath);
+            await GenerateMetaFileAsync(assetPath, token);
 
             return Result.Success();
         }
@@ -56,9 +57,9 @@ public static partial class AssetDatabase
     /// </summary>
     /// <param name="assetPath">Path to create the asset at.</param>
     /// <returns>Result indicating success or failure.</returns>
-    public static async Task<Result> CreateAssetAsync(string assetPath)
+    public static ValueTask<Result> CreateAssetAsync(string assetPath, CancellationToken token = default)
     {
-        return await CreateAssetAsync(assetPath, Array.Empty<byte>());
+        return CreateAssetAsync(assetPath, ReadOnlyMemory<byte>.Empty, token);
     }
 
     /// <summary>
@@ -66,7 +67,7 @@ public static partial class AssetDatabase
     /// </summary>
     /// <param name="guid">GUID of the asset to delete.</param>
     /// <returns>Result indicating success or failure.</returns>
-    public static async Task<Result> DeleteAssetAsync(Guid guid)
+    public static async ValueTask<Result> DeleteAssetAsync(Guid guid, CancellationToken token = default)
     {
         var pathResult = GuidToPath(guid);
         if (pathResult.IsFailure)
@@ -98,7 +99,7 @@ public static partial class AssetDatabase
             }
 
             // Remove from database
-            await RemoveAssetFromDatabaseAsync(guid);
+            await RemoveAssetFromDatabaseAsync(guid, token);
 
             return Result.Success();
         }
@@ -113,15 +114,15 @@ public static partial class AssetDatabase
     /// </summary>
     /// <param name="assetPath">Path to the asset to delete.</param>
     /// <returns>Result indicating success or failure.</returns>
-    public static async Task<Result> DeleteAssetAsync(string assetPath)
+    public static ValueTask<Result> DeleteAssetAsync(string assetPath, CancellationToken token = default)
     {
         var guidResult = PathToGuid(assetPath);
         if (guidResult.IsFailure)
         {
-            return Result.Failure(guidResult.Message);
+            return new ValueTask<Result>(Task.FromResult(Result.Failure(guidResult.Message)));
         }
 
-        return await DeleteAssetAsync(guidResult.Value);
+        return DeleteAssetAsync(guidResult.Value, token);
     }
 
     /// <summary>
@@ -130,7 +131,7 @@ public static partial class AssetDatabase
     /// <param name="guid">GUID of the asset to move.</param>
     /// <param name="newPath">New path for the asset (relative or absolute).</param>
     /// <returns>Result indicating success or failure.</returns>
-    public static async Task<Result> MoveAssetAsync(Guid guid, string newPath)
+    public static async ValueTask<Result> MoveAssetAsync(Guid guid, string newPath, CancellationToken token = default)
     {
         var oldPathResult = GuidToPath(guid);
         if (oldPathResult.IsFailure)
@@ -174,45 +175,27 @@ public static partial class AssetDatabase
             }
 
             // Read metadata and calculate hash before moving
-            var metaResult = await ReadMetaFileAsync(oldFullPathResult.Value);
+            var metaResult = await ReadMetaFileAsync(oldFullPathResult.Value, token);
             if (metaResult.IsFailure)
             {
                 return Result.Failure(metaResult.Message);
             }
 
-            var fileHash = await CalculateFileHashAsync(oldFullPathResult.Value);
+            var fileHash = await CalculateFileHashAsync(oldFullPathResult.Value, token);
 
-            // Temporarily disable file watcher to prevent race conditions
-            var watcherWasEnabled = s_watcher?.EnableRaisingEvents ?? false;
-            if (s_watcher != null)
+            // Move the asset file
+            File.Move(oldFullPathResult.Value, newPath);
+
+            // Move the .gmeta file
+            var oldMetaPath = oldFullPathResult.Value + Utilities.FileExtensions.META_FILE_EXTENSION;
+            var newMetaPath = newPath + Utilities.FileExtensions.META_FILE_EXTENSION;
+            if (File.Exists(oldMetaPath))
             {
-                s_watcher.EnableRaisingEvents = false;
+                File.Move(oldMetaPath, newMetaPath);
             }
 
-            try
-            {
-                // Move the asset file
-                File.Move(oldFullPathResult.Value, newPath);
-
-                // Move the .gmeta file
-                var oldMetaPath = oldFullPathResult.Value + Utilities.FileExtensions.META_FILE_EXTENSION;
-                var newMetaPath = newPath + Utilities.FileExtensions.META_FILE_EXTENSION;
-                if (File.Exists(oldMetaPath))
-                {
-                    File.Move(oldMetaPath, newMetaPath);
-                }
-
-                // Update database with new path (hash remains the same since content didn't change)
-                await UpsertAssetAsync(newPath, metaResult.Value, fileHash);
-            }
-            finally
-            {
-                // Re-enable file watcher
-                if (s_watcher != null && watcherWasEnabled)
-                {
-                    s_watcher.EnableRaisingEvents = true;
-                }
-            }
+            // Update database directly (bypassing file watcher)
+            await UpsertAssetAsync(newPath, metaResult.Value, fileHash, null, token);
 
             return Result.Success();
         }
@@ -228,15 +211,15 @@ public static partial class AssetDatabase
     /// <param name="oldPath">Current path of the asset.</param>
     /// <param name="newPath">New path for the asset (relative or absolute).</param>
     /// <returns>Result indicating success or failure.</returns>
-    public static async Task<Result> MoveAssetAsync(string oldPath, string newPath)
+    public static ValueTask<Result> MoveAssetAsync(string oldPath, string newPath, CancellationToken token = default)
     {
         var guidResult = PathToGuid(oldPath);
         if (guidResult.IsFailure)
         {
-            return Result.Failure(guidResult.Message);
+            return ValueTask.FromResult(Result.Failure(guidResult.Message));
         }
-
-        return await MoveAssetAsync(guidResult.Value, newPath);
+        
+        return MoveAssetAsync(guidResult.Value, newPath, token);
     }
 
     /// <summary>
@@ -245,7 +228,7 @@ public static partial class AssetDatabase
     /// <param name="guid">GUID of the asset to copy.</param>
     /// <param name="newPath">New path for the copied asset (relative or absolute).</param>
     /// <returns>Result containing the new asset's GUID.</returns>
-    public static async Task<Result<Guid>> CopyAssetAsync(Guid guid, string newPath)
+    public static async ValueTask<Result<Guid>> CopyAssetAsync(Guid guid, string newPath, CancellationToken token = default)
     {
         var oldPathResult = GuidToPath(guid);
         if (oldPathResult.IsFailure)
@@ -288,10 +271,12 @@ public static partial class AssetDatabase
                 Directory.CreateDirectory(directory);
             }
 
-            File.Copy(oldFullPathResult.Value, newPath);
+            await using var oldFs = File.OpenRead(oldFullPathResult.Value);
+            await using var newFs = File.Create(newPath);
+            await oldFs.CopyToAsync(newFs, token);
 
             // Generate new metadata with new GUID
-            await GenerateMetaFileAsync(newPath);
+            await GenerateMetaFileAsync(newPath, token);
 
             // Get the new GUID
             var newGuidResult = PathToGuid(newPath);
@@ -314,47 +299,54 @@ public static partial class AssetDatabase
     /// <param name="sourcePath">Path of the asset to copy.</param>
     /// <param name="destPath">New path for the copied asset (relative or absolute).</param>
     /// <returns>Result containing the new asset's GUID.</returns>
-    public static async Task<Result<Guid>> CopyAssetAsync(string sourcePath, string destPath)
+    public static ValueTask<Result<Guid>> CopyAssetAsync(string sourcePath, string destPath, CancellationToken token = default)
     {
         var guidResult = PathToGuid(sourcePath);
         if (guidResult.IsFailure)
         {
-            return Result<Guid>.Failure(guidResult.Message);
+            return new ValueTask<Result<Guid>>(Task.FromResult(Result<Guid>.Failure(guidResult.Message)));
         }
 
-        return await CopyAssetAsync(guidResult.Value, destPath);
+        return CopyAssetAsync(guidResult.Value, destPath, token);
     }
 
     /// <summary>
-    /// Mark an asset as dirty for re-importing.
+    /// Mark an asset as dirty for re-importing (in-memory only).
     /// </summary>
     /// <param name="guid">GUID of the asset to mark dirty.</param>
     /// <returns>Result indicating success or failure.</returns>
-    public static async Task<Result> MarkDirtyAsync(Guid guid)
+    public static Result MarkDirtyAsync(Guid guid, CancellationToken token = default)
     {
-        return await MarkAssetDirtyAsync(guid, true);
+        MarkDirty(guid);
+        return Result.Success();
     }
 
     /// <summary>
     /// Import all dirty assets.
     /// </summary>
     /// <returns>Result indicating success or failure.</returns>
-    public static async Task<Result> ImportDirtyAssetsAsync()
+    public static async Task<Result> ImportDirtyAssetsAsync(CancellationToken token = default)
     {
-        var dirtyAssets = await GetDirtyAssetsAsync();
+        var dirtyGuids = GetDirtyAssets();
 
-        foreach (var (guid, path) in dirtyAssets)
+        foreach (var guid in dirtyGuids)
         {
-            var fullPathResult = GetFullPath(path);
+            var pathResult = GuidToPath(guid);
+            if (pathResult.IsFailure)
+            {
+                continue;
+            }
+
+            var fullPathResult = GetFullPath(pathResult.Value);
             if (fullPathResult.IsFailure)
             {
                 continue;
             }
 
-            var result = await ImportAssetAsync(fullPathResult.Value);
+            var result = await ImportAssetAsync(fullPathResult.Value, token);
             if (result.IsSuccess)
             {
-                await MarkAssetDirtyAsync(guid, false);
+                ClearDirty(guid);
             }
         }
 

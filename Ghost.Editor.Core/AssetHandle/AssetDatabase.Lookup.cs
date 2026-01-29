@@ -119,7 +119,7 @@ public static partial class AssetDatabase
             return Result<List<string>>.Failure(fullPathResult.Message);
         }
 
-        var metaResult = await ReadMetaFileAsync(fullPathResult.Value);
+        var metaResult = await ReadMetaFileAsync(fullPathResult.Value, token);
         if (metaResult.IsFailure)
         {
             return Result<List<string>>.Failure(metaResult.Message);
@@ -134,7 +134,7 @@ public static partial class AssetDatabase
     /// <param name="guid">GUID of the asset.</param>
     /// <param name="tags">New tags for the asset.</param>
     /// <returns>Result indicating success or failure.</returns>
-    public static async ValueTask<Result> SetAssetTagsAsync(Guid guid, List<string> tags)
+    public static async ValueTask<Result> SetAssetTagsAsync(Guid guid, List<string> tags, CancellationToken token = default)
     {
         var pathResult = GuidToPath(guid);
         if (pathResult.IsFailure)
@@ -148,7 +148,7 @@ public static partial class AssetDatabase
             return Result.Failure(fullPathResult.Message);
         }
 
-        var metaResult = await ReadMetaFileAsync(fullPathResult.Value);
+        var metaResult = await ReadMetaFileAsync(fullPathResult.Value, token);
         if (metaResult.IsFailure)
         {
             return Result.Failure(metaResult.Message);
@@ -157,15 +157,15 @@ public static partial class AssetDatabase
         metaResult.Value.Tags = tags;
         
         // Write updated metadata to .gmeta file
-        var writeResult = await WriteMetaFileAsync(fullPathResult.Value + Utilities.FileExtensions.META_FILE_EXTENSION, metaResult.Value);
+        var writeResult = await WriteMetaFileAsync(fullPathResult.Value + Utilities.FileExtensions.META_FILE_EXTENSION, metaResult.Value, token);
         if (writeResult.IsFailure)
         {
             return writeResult;
         }
 
         // Update database with new tags
-        var fileHash = await CalculateFileHashAsync(fullPathResult.Value);
-        return await UpsertAssetAsync(fullPathResult.Value, metaResult.Value, fileHash);
+        var fileHash = await CalculateFileHashAsync(fullPathResult.Value, token);
+        return await UpsertAssetAsync(fullPathResult.Value, metaResult.Value, fileHash, null, token);
     }
 
     /// <summary>
@@ -174,9 +174,9 @@ public static partial class AssetDatabase
     /// </summary>
     /// <param name="namePattern">Search pattern (e.g., "*.txt", "player?", "test*").</param>
     /// <returns>List of matching asset GUIDs.</returns>
-    public static async Task<List<Guid>> FindAssetsByNameAsync(string namePattern)
+    public static async Task<List<Guid>> FindAssetsByNameAsync(string namePattern, CancellationToken token = default)
     {
-        return await GetAssetsByNameAsync(namePattern);
+        return await GetAssetsByNameAsync(namePattern, token);
     }
 
     /// <summary>
@@ -184,9 +184,9 @@ public static partial class AssetDatabase
     /// </summary>
     /// <param name="tag">Tag to search for.</param>
     /// <returns>List of asset GUIDs with the specified tag.</returns>
-    public static async Task<List<Guid>> FindAssetsByTagAsync(string tag)
+    public static async Task<List<Guid>> FindAssetsByTagAsync(string tag, CancellationToken token = default)
     {
-        return await GetAssetsByTagAsync(tag);
+        return await GetAssetsByTagAsync(tag, token);
     }
 
     /// <summary>

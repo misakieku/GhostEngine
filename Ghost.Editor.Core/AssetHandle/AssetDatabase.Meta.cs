@@ -70,12 +70,12 @@ public static partial class AssetDatabase
     /// <summary>
     /// Calculate SHA256 hash of a file for change detection.
     /// </summary>
-    private static async Task<string> CalculateFileHashAsync(string filePath)
+    private static async Task<string> CalculateFileHashAsync(string filePath, CancellationToken token = default)
     {
         try
         {
             await using var stream = File.OpenRead(filePath);
-            var hash = await SHA256.HashDataAsync(stream);
+            var hash = await SHA256.HashDataAsync(stream, token);
             return Convert.ToHexString(hash);
         }
         catch
@@ -84,12 +84,12 @@ public static partial class AssetDatabase
         }
     }
 
-    private static async Task<Result> WriteMetaFileAsync(string metaFilePath, AssetMeta metaData)
+    private static async Task<Result> WriteMetaFileAsync(string metaFilePath, AssetMeta metaData, CancellationToken token = default)
     {
         try
         {
             await using var fileStream = File.Create(metaFilePath);
-            await JsonSerializer.SerializeAsync(fileStream, metaData, s_defaultJsonOptions);
+            await JsonSerializer.SerializeAsync(fileStream, metaData, s_defaultJsonOptions, token);
             return Result.Success();
         }
         catch (Exception ex)
@@ -143,7 +143,7 @@ public static partial class AssetDatabase
 
         if (File.Exists(metaFileResult.Value))
         {
-            var existingMetaResult = await ReadMetaFileAsync(assetPath);
+            var existingMetaResult = await ReadMetaFileAsync(assetPath, token);
             if (existingMetaResult.IsSuccess)
             {
                 var existingMeta = existingMetaResult.Value;
@@ -154,7 +154,7 @@ public static partial class AssetDatabase
                     {
                         // GUID conflict - regenerate
                         existingMeta.Guid = Guid.NewGuid();
-                        r = await WriteMetaFileAsync(metaFileResult.Value, existingMeta);
+                        r = await WriteMetaFileAsync(metaFileResult.Value, existingMeta, token);
                         if (r.IsFailure)
                         {
                             return r;
@@ -163,14 +163,14 @@ public static partial class AssetDatabase
                 }
 
                 // Calculate file hash and update database
-                var fileHash = await CalculateFileHashAsync(assetPath);
-                await UpsertAssetAsync(assetPath, existingMeta, fileHash);
+                var fileHash = await CalculateFileHashAsync(assetPath, token);
+                await UpsertAssetAsync(assetPath, existingMeta, fileHash, null, token);
                 return Result.Success();
             }
         }
 
         // Calculate initial file hash
-        var fileHash2 = await CalculateFileHashAsync(assetPath);
+        var fileHash2 = await CalculateFileHashAsync(assetPath, token);
 
         var defaultSettings = GetDefaultSettingsForAsset(assetPath);
         var metaData = new AssetMeta
@@ -183,19 +183,19 @@ public static partial class AssetDatabase
             metaData.SetImporterSettings(defaultSettings.GetType().Name, defaultSettings);
         }
 
-        r = await WriteMetaFileAsync(metaFileResult.Value, metaData);
+        r = await WriteMetaFileAsync(metaFileResult.Value, metaData, token);
         if (r.IsFailure)
         {
             return r;
         }
 
         // Add to database
-        await UpsertAssetAsync(assetPath, metaData, fileHash2);
+        await UpsertAssetAsync(assetPath, metaData, fileHash2, null, token);
 
         return r;
     }
 
-    private static async void OnAssetCreated(object sender, FileSystemEventArgs e)
+    private static void OnAssetCreated(object sender, FileSystemEventArgs e)
     {
         // Skip meta files
         if (Path.GetExtension(e.FullPath).Equals(FileExtensions.META_FILE_EXTENSION, StringComparison.OrdinalIgnoreCase))
@@ -203,16 +203,10 @@ public static partial class AssetDatabase
             return;
         }
 
-        // Debounce to prevent duplicate events
-        if (!ShouldProcessFileOperation(e.FullPath))
-        {
-            return;
-        }
-
-        await GenerateMetaFileAsync(e.FullPath);
+        PostCommand(new AssetCommand(AssetCommandType.FileCreated, e.FullPath, Timestamp: DateTime.UtcNow));
     }
 
-    private static async void OnAssetDeleted(object sender, FileSystemEventArgs e)
+    private static void OnAssetDeleted(object sender, FileSystemEventArgs e)
     {
         // Skip meta files
         if (Path.GetExtension(e.FullPath).Equals(FileExtensions.META_FILE_EXTENSION, StringComparison.OrdinalIgnoreCase))
@@ -220,39 +214,10 @@ public static partial class AssetDatabase
             return;
         }
 
-        // Debounce to prevent duplicate events
-        if (!ShouldProcessFileOperation(e.FullPath))
-        {
-            return;
-        }
-
-        var metaFileResult = GetMetaFilePath(e.FullPath);
-        if (metaFileResult.IsSuccess && File.Exists(metaFileResult.Value))
-        {
-            try
-            {
-                var metaResult = await ReadMetaFileAsync(e.FullPath);
-                if (metaResult.IsSuccess)
-                {
-                    var meta = metaResult.Value;
-
-                    // Remove from database
-                    await RemoveAssetFromDatabaseAsync(meta.Guid);
-
-                    // Mark dependent assets as dirty
-                    await MarkDependentAssetsDirtyAsync(meta.Guid);
-                }
-
-                File.Delete(metaFileResult.Value);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error deleting asset metadata: {ex.Message}");
-            }
-        }
+        PostCommand(new AssetCommand(AssetCommandType.FileDeleted, e.FullPath, Timestamp: DateTime.UtcNow));
     }
 
-    private static async void OnAssetRenamed(object sender, RenamedEventArgs e)
+    private static void OnAssetRenamed(object sender, RenamedEventArgs e)
     {
         // Skip meta files
         if (Path.GetExtension(e.FullPath).Equals(FileExtensions.META_FILE_EXTENSION, StringComparison.OrdinalIgnoreCase))
@@ -260,54 +225,10 @@ public static partial class AssetDatabase
             return;
         }
 
-        // Debounce to prevent duplicate events
-        if (!ShouldProcessFileOperation(e.FullPath))
-        {
-            return;
-        }
-
-        var oldMetaPath = e.OldFullPath + FileExtensions.META_FILE_EXTENSION;
-        var newMetaPath = e.FullPath + FileExtensions.META_FILE_EXTENSION;
-
-        if (File.Exists(newMetaPath))
-        {
-            // Validate and update
-            await GenerateMetaFileAsync(e.FullPath);
-        }
-        else if (File.Exists(oldMetaPath))
-        {
-            // Move meta file
-            File.Move(oldMetaPath, newMetaPath);
-
-            // Update database with new path and recalculated hash
-            var metaResult = await ReadMetaFileAsync(e.FullPath);
-            if (metaResult.IsSuccess)
-            {
-                var fileHash = await CalculateFileHashAsync(e.FullPath);
-                await UpsertAssetAsync(e.FullPath, metaResult.Value, fileHash);
-            }
-        }
-        else
-        {
-            // Generate new meta file
-            await GenerateMetaFileAsync(e.FullPath);
-        }
-
-        // Delete old meta if it still exists
-        if (File.Exists(oldMetaPath) && oldMetaPath != newMetaPath)
-        {
-            try
-            {
-                File.Delete(oldMetaPath);
-            }
-            catch
-            {
-                // Ignore
-            }
-        }
+        PostCommand(new AssetCommand(AssetCommandType.FileRenamed, e.FullPath, e.OldFullPath, DateTime.UtcNow));
     }
 
-    private static async void OnAssetChanged(object sender, FileSystemEventArgs e)
+    private static void OnAssetChanged(object sender, FileSystemEventArgs e)
     {
         // Skip meta files
         if (Path.GetExtension(e.FullPath).Equals(FileExtensions.META_FILE_EXTENSION, StringComparison.OrdinalIgnoreCase))
@@ -315,29 +236,7 @@ public static partial class AssetDatabase
             return;
         }
 
-        // Debounce to prevent duplicate events
-        if (!ShouldProcessFileOperation(e.FullPath))
-        {
-            return;
-        }
-
-        // Check if file hash changed
-        var metaResult = await ReadMetaFileAsync(e.FullPath);
-        if (metaResult.IsFailure)
-        {
-            return;
-        }
-
-        // Calculate new hash and compare against database
-        var newHash = await CalculateFileHashAsync(e.FullPath);
-        var oldHash = await GetFileHashAsync(metaResult.Value.Guid);
-        
-        if (oldHash != newHash)
-        {
-            // File changed - update database and mark as dirty
-            await UpsertAssetAsync(e.FullPath, metaResult.Value, newHash);
-            await MarkAssetDirtyAsync(metaResult.Value.Guid, true);
-        }
+        PostCommand(new AssetCommand(AssetCommandType.FileModified, e.FullPath, Timestamp: DateTime.UtcNow));
     }
 
     /// <summary>
@@ -350,10 +249,10 @@ public static partial class AssetDatabase
 
         foreach (var kvp in allAssets)
         {
-            var dependencies = await GetDependenciesAsync(kvp.Key);
+            var dependencies = await GetDependenciesAsync(kvp.Key, CancellationToken.None);
             if (dependencies.Contains(assetGuid))
             {
-                await MarkAssetDirtyAsync(kvp.Key, true);
+                MarkDirty(kvp.Key);
             }
         }
     }

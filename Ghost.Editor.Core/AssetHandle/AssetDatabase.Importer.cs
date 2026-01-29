@@ -12,7 +12,7 @@ public static partial class AssetDatabase
     /// </summary>
     /// <param name="assetPath">Full path to the asset file.</param>
     /// <returns>Result indicating success or failure.</returns>
-    private static async Task<Result> ImportAssetAsync(string assetPath)
+    private static async ValueTask<Result> ImportAssetAsync(string assetPath, CancellationToken token = default)
     {
         var extension = Path.GetExtension(assetPath);
 
@@ -35,13 +35,15 @@ public static partial class AssetDatabase
         }
 
         // Read metadata
-        var metaResult = await ReadMetaFileAsync(assetPath);
+        var metaResult = await ReadMetaFileAsync(assetPath, token);
         if (metaResult.IsFailure)
         {
             return Result.Failure($"Failed to read asset metadata: {metaResult.Message}");
         }
 
-        // Find and invoke the ImportAsync method
+        // TODO: Avoid reflection.
+        // Find and invoke the ImportAsync method. Support importers that accept (string, AssetMeta)
+        // or (string, AssetMeta, CancellationToken).
         var importMethod = importerType.GetMethod("ImportAsync", BindingFlags.Public | BindingFlags.Instance);
         if (importMethod == null)
         {
@@ -50,8 +52,23 @@ public static partial class AssetDatabase
 
         try
         {
-            var task = importMethod.Invoke(importerInstance, new object[] { assetPath, metaResult.Value }) as Task<Result>;
-            if (task == null)
+            var parameters = importMethod.GetParameters();
+            object? invokeResult;
+
+            if (parameters.Length == 2)
+            {
+                invokeResult = importMethod.Invoke(importerInstance, new object[] { assetPath, metaResult.Value });
+            }
+            else if (parameters.Length == 3 && parameters[2].ParameterType == typeof(CancellationToken))
+            {
+                invokeResult = importMethod.Invoke(importerInstance, new object[] { assetPath, metaResult.Value, token });
+            }
+            else
+            {
+                return Result.Failure($"Unsupported ImportAsync signature on importer {importerType.Name}");
+            }
+
+            if (invokeResult is not Task<Result> task)
             {
                 return Result.Failure("Importer did not return a valid Task<Result>");
             }
@@ -93,7 +110,7 @@ public static partial class AssetDatabase
     /// <param name="assetPath">Full path where the asset should be saved.</param>
     /// <param name="assetData">In-memory asset data to export.</param>
     /// <returns>Result with the GUID of the exported asset.</returns>
-    public static async Task<Result<Guid>> ExportAssetAsync<T>(string assetPath, T assetData) where T : class
+    public static async ValueTask<Result<Guid>> ExportAssetAsync<T>(string assetPath, T assetData, CancellationToken token = default) where T : class
     {
         var extension = Path.GetExtension(assetPath);
 
@@ -124,16 +141,31 @@ public static partial class AssetDatabase
         try
         {
             // Generate metadata for the new asset
-            await GenerateMetaFileAsync(assetPath);
+            await GenerateMetaFileAsync(assetPath, token);
             
-            var metaResult = await ReadMetaFileAsync(assetPath);
+            var metaResult = await ReadMetaFileAsync(assetPath, token);
             if (metaResult.IsFailure)
             {
                 return Result<Guid>.Failure($"Failed to generate metadata: {metaResult.Message}");
             }
 
-            var task = exportMethod.Invoke(importerInstance, new object[] { assetPath, assetData, metaResult.Value }) as Task<Result>;
-            if (task == null)
+            var parameters = exportMethod.GetParameters();
+            object? invokeResult;
+
+            if (parameters.Length == 3)
+            {
+                invokeResult = exportMethod.Invoke(importerInstance, new object[] { assetPath, assetData, metaResult.Value });
+            }
+            else if (parameters.Length == 4 && parameters[3].ParameterType == typeof(CancellationToken))
+            {
+                invokeResult = exportMethod.Invoke(importerInstance, new object[] { assetPath, assetData, metaResult.Value, token });
+            }
+            else
+            {
+                return Result<Guid>.Failure($"Unsupported ExportAsync signature on importer {importerType.Name}");
+            }
+
+            if (invokeResult is not Task<Result> task)
             {
                 return Result<Guid>.Failure("Exporter did not return a valid Task<Result>");
             }
@@ -145,8 +177,8 @@ public static partial class AssetDatabase
             }
 
             // Calculate file hash and update database
-            var fileHash = await CalculateFileHashAsync(assetPath);
-            await UpsertAssetAsync(assetPath, metaResult.Value, fileHash);
+            var fileHash = await CalculateFileHashAsync(assetPath, token);
+            await UpsertAssetAsync(assetPath, metaResult.Value, fileHash, null, token);
 
             return metaResult.Value.Guid;
         }

@@ -12,7 +12,7 @@ public static partial class AssetDatabase
     /// <summary>
     /// Initialize the SQLite database for asset caching.
     /// </summary>
-    private static async Task InitializeDatabaseAsync()
+    private static async Task InitializeDatabaseAsync(CancellationToken token = default)
     {
         if (AssetsDirectory == null)
         {
@@ -34,7 +34,7 @@ public static partial class AssetDatabase
         }.ToString();
 
         s_dbConnection = new SqliteConnection(connectionString);
-        await s_dbConnection.OpenAsync();
+        await s_dbConnection.OpenAsync(token);
 
         // Create tables
         await using var cmd = s_dbConnection.CreateCommand();
@@ -46,13 +46,11 @@ public static partial class AssetDatabase
                 Tags TEXT,
                 FileHash TEXT,
                 DependencyGuids TEXT,
-                IsDirty INTEGER NOT NULL DEFAULT 0,
                 LastModified INTEGER NOT NULL
             );
             CREATE INDEX IF NOT EXISTS idx_path ON Assets(Path);
-            CREATE INDEX IF NOT EXISTS idx_dirty ON Assets(IsDirty);
         ";
-        await cmd.ExecuteNonQueryAsync();
+        await cmd.ExecuteNonQueryAsync(token);
     }
 
     /// <summary>
@@ -116,7 +114,7 @@ public static partial class AssetDatabase
     /// <summary>
     /// Remove an asset from the database.
     /// </summary>
-    private static async Task<Result> RemoveAssetFromDatabaseAsync(Guid guid)
+    private static async Task<Result> RemoveAssetFromDatabaseAsync(Guid guid, CancellationToken token = default)
     {
         if (s_dbConnection == null)
         {
@@ -138,7 +136,7 @@ public static partial class AssetDatabase
             cmd.CommandText = "DELETE FROM Assets WHERE Guid = @guid";
             cmd.Parameters.AddWithValue("@guid", guid.ToString());
 
-            await cmd.ExecuteNonQueryAsync();
+            await cmd.ExecuteNonQueryAsync(token);
             return Result.Success();
         }
         catch (Exception ex)
@@ -147,73 +145,12 @@ public static partial class AssetDatabase
         }
     }
 
-    /// <summary>
-    /// Mark an asset as dirty for re-importing.
-    /// </summary>
-    private static async Task<Result> MarkAssetDirtyAsync(Guid guid, bool isDirty = true)
-    {
-        if (s_dbConnection == null)
-        {
-            return Result.Failure("Database not initialized");
-        }
 
-        try
-        {
-            await using var cmd = s_dbConnection.CreateCommand();
-            cmd.CommandText = "UPDATE Assets SET IsDirty = @dirty WHERE Guid = @guid";
-            cmd.Parameters.AddWithValue("@dirty", isDirty ? 1 : 0);
-            cmd.Parameters.AddWithValue("@guid", guid.ToString());
-
-            await cmd.ExecuteNonQueryAsync();
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure($"Failed to mark asset dirty: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Get all dirty assets that need re-importing.
-    /// </summary>
-    private static async Task<List<(Guid guid, string path)>> GetDirtyAssetsAsync()
-    {
-        var result = new List<(Guid guid, string path)>();
-
-        if (s_dbConnection == null)
-        {
-            return result;
-        }
-
-        try
-        {
-            await using var cmd = s_dbConnection.CreateCommand();
-            cmd.CommandText = "SELECT Guid, Path FROM Assets WHERE IsDirty = 1";
-
-            await using var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                var guidStr = reader.GetString(0);
-                var path = reader.GetString(1);
-
-                if (Guid.TryParse(guidStr, out var guid))
-                {
-                    result.Add((guid, path));
-                }
-            }
-        }
-        catch
-        {
-            // Silently fail - we'll return empty list
-        }
-
-        return result;
-    }
 
     /// <summary>
     /// Load all assets from the database into memory cache.
     /// </summary>
-    private static async Task LoadAssetCacheFromDatabaseAsync()
+    private static async Task LoadAssetCacheFromDatabaseAsync(CancellationToken token = default)
     {
         if (s_dbConnection == null)
         {
@@ -225,8 +162,8 @@ public static partial class AssetDatabase
             await using var cmd = s_dbConnection.CreateCommand();
             cmd.CommandText = "SELECT Guid, Path FROM Assets";
 
-            await using var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
+            await using var reader = await cmd.ExecuteReaderAsync(token);
+            while (await reader.ReadAsync(token))
             {
                 var guidStr = reader.GetString(0);
                 var path = reader.GetString(1);
@@ -250,7 +187,7 @@ public static partial class AssetDatabase
     /// <summary>
     /// Get assets by tag.
     /// </summary>
-    private static async Task<List<Guid>> GetAssetsByTagAsync(string tag)
+    private static async Task<List<Guid>> GetAssetsByTagAsync(string tag, CancellationToken token = default)
     {
         var result = new List<Guid>();
 
@@ -264,8 +201,8 @@ public static partial class AssetDatabase
             await using var cmd = s_dbConnection.CreateCommand();
             cmd.CommandText = "SELECT Guid, Tags FROM Assets";
 
-            await using var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
+            await using var reader = await cmd.ExecuteReaderAsync(token);
+            while (await reader.ReadAsync(token))
             {
                 var guidStr = reader.GetString(0);
                 var tagsJson = reader.GetString(1);
@@ -291,7 +228,7 @@ public static partial class AssetDatabase
     /// <summary>
     /// Get the file hash for an asset from the database.
     /// </summary>
-    private static async Task<string?> GetFileHashAsync(Guid guid)
+    private static async Task<string?> GetFileHashAsync(Guid guid, CancellationToken token = default)
     {
         if (s_dbConnection == null)
         {
@@ -304,7 +241,7 @@ public static partial class AssetDatabase
             cmd.CommandText = "SELECT FileHash FROM Assets WHERE Guid = @guid";
             cmd.Parameters.AddWithValue("@guid", guid.ToString());
 
-            var result = await cmd.ExecuteScalarAsync();
+            var result = await cmd.ExecuteScalarAsync(token);
             return result?.ToString();
         }
         catch
@@ -316,7 +253,7 @@ public static partial class AssetDatabase
     /// <summary>
     /// Get the dependencies for an asset from the database.
     /// </summary>
-    private static async Task<List<Guid>> GetDependenciesAsync(Guid guid)
+    private static async Task<List<Guid>> GetDependenciesAsync(Guid guid, CancellationToken token = default)
     {
         if (s_dbConnection == null)
         {
@@ -329,7 +266,7 @@ public static partial class AssetDatabase
             cmd.CommandText = "SELECT DependencyGuids FROM Assets WHERE Guid = @guid";
             cmd.Parameters.AddWithValue("@guid", guid.ToString());
 
-            var result = await cmd.ExecuteScalarAsync();
+            var result = await cmd.ExecuteScalarAsync(token);
             if (result != null)
             {
                 var json = result.ToString();
@@ -348,7 +285,7 @@ public static partial class AssetDatabase
     /// Find assets by name pattern using database query with wildcards.
     /// </summary>
     /// <param name="namePattern">Pattern supporting * (any chars) and ? (single char).</param>
-    private static async Task<List<Guid>> GetAssetsByNameAsync(string namePattern)
+    private static async Task<List<Guid>> GetAssetsByNameAsync(string namePattern, CancellationToken token = default)
     {
         var results = new List<Guid>();
 
@@ -373,8 +310,8 @@ public static partial class AssetDatabase
             ";
             cmd.Parameters.AddWithValue("@pattern", sqlPattern);
 
-            await using var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
+            await using var reader = await cmd.ExecuteReaderAsync(token);
+            while (await reader.ReadAsync(token))
             {
                 var guidStr = reader.GetString(0);
                 var path = reader.GetString(1);
@@ -407,7 +344,7 @@ public static partial class AssetDatabase
     /// <summary>
     /// Remove orphaned entries from database (assets that no longer exist on disk).
     /// </summary>
-    private static async Task RemoveOrphanedEntriesAsync()
+    private static async Task RemoveOrphanedEntriesAsync(CancellationToken token = default)
     {
         if (s_dbConnection == null || AssetsDirectory == null)
         {
@@ -421,8 +358,8 @@ public static partial class AssetDatabase
             await using var cmd = s_dbConnection.CreateCommand();
             cmd.CommandText = "SELECT Guid, Path FROM Assets";
 
-            await using var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
+            await using var reader = await cmd.ExecuteReaderAsync(token);
+            while (await reader.ReadAsync(token))
             {
                 var guidStr = reader.GetString(0);
                 var path = reader.GetString(1);
@@ -439,10 +376,10 @@ public static partial class AssetDatabase
             }
 
             // Remove orphaned entries
-            foreach (var guid in orphanedGuids)
-            {
-                await RemoveAssetFromDatabaseAsync(guid);
-            }
+                foreach (var guid in orphanedGuids)
+                {
+                    await RemoveAssetFromDatabaseAsync(guid, token);
+                }
         }
         catch
         {

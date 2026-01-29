@@ -383,4 +383,25 @@ public static class ResultExtensions
 
         return result;
     }
+
+    public static Result<U> Then<T, U>(this Result<T> result, Func<T, Result<U>> func)
+    {
+        if (result.IsFailure)
+        {
+            return Result<U>.Failure(result.Message);
+        }
+
+        return func(result.Value);
+    }
+
+    public static Result<U, E> Then<T, U, E>(this Result<T, E> result, Func<T, Result<U, E>> func)
+        where E : struct, Enum
+    {
+        if (result.IsFailure)
+        {
+            return Result<U, E>.Failure(result.Error);
+        }
+
+        return func(result.Value);
+    }
 }

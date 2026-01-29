@@ -9,7 +9,7 @@ public static class TypeCache
 
     static TypeCache()
     {
-        var loadableTypes = new List<Type>();
+        var loadableTypes = new List<Type>(512);
         var assembliesToScan = AppDomain.CurrentDomain.GetAssemblies()
             .Where(a => a.GetCustomAttribute<EngineAssemblyAttribute>() != null);
 

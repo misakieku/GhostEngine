@@ -63,7 +63,7 @@ When loading a scene, we need to reconstruct the entities and their relationship
 
 ### Data format
 
-The scene data should be stored in a structured format (e.g., JSON or binary) that includes:
+The scene data should be stored in a structured format (JSON and binary) that includes:
 
 - List of entities with their components and properties (Entities must in the order that file local id directly maps to the index in the list)
 - References between entities using file local IDs
@@ -75,7 +75,7 @@ Binary format should be used in the runtime for better performance. The runtime 
 
 Currently we strict the IComponent to must be unmanaged and blittable types.
 However, we also support ManagedEntity and ManagedEntityRef with ScriptComponent to allow OOP like logic for common gameplay logic that DOD pattern is not suitable for.
-Serializing/deserializing with those components will be tricky. We can use MemoryPack for binary serialization/deserialization because it supports both unmanaged and managed types.
+Serializing/deserializing with those components will be tricky. We can use MemoryPack (already installed) for binary serialization/deserialization because it supports both unmanaged and managed types.
 
 ## What need to implement
 
