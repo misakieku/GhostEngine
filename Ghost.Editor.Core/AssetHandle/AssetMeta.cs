@@ -8,7 +8,7 @@ namespace Ghost.Editor.Core.AssetHandle;
 /// Contains GUID, version, tags, and importer settings.
 /// FileHash and Dependencies are stored in the database only, not in .gmeta files.
 /// </summary>
-internal class AssetMeta
+public class AssetMeta
 {
     /// <summary>
     /// Unique identifier for the asset.

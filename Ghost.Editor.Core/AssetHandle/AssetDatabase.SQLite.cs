@@ -180,7 +180,7 @@ public static partial class AssetDatabase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Failed to load asset cache: {ex.Message}");
+            Logger.LogError($"Failed to load asset cache: {ex.Message}");
         }
     }
 

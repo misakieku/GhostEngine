@@ -5,7 +5,7 @@ namespace Ghost.Editor.Core.AssetHandle;
 
 public static partial class AssetDatabase
 {
-    private static readonly Dictionary<Type, object> s_importerInstances = new();
+    private static readonly Dictionary<Type, AssetImporter> s_importerInstances = new();
 
     /// <summary>
     /// Import an asset at the specified path.
@@ -25,8 +25,8 @@ public static partial class AssetDatabase
         // Get or create importer instance
         if (!s_importerInstances.TryGetValue(importerType, out var importerInstance))
         {
-            importerInstance = Activator.CreateInstance(importerType);
-            if (importerInstance == null)
+            importerInstance = Activator.CreateInstance(importerType) as AssetImporter;
+            if (importerInstance is null)
             {
                 return Result.Failure($"Failed to create importer instance for type {importerType.Name}");
             }
@@ -41,45 +41,7 @@ public static partial class AssetDatabase
             return Result.Failure($"Failed to read asset metadata: {metaResult.Message}");
         }
 
-        // TODO: Avoid reflection.
-        // Find and invoke the ImportAsync method. Support importers that accept (string, AssetMeta)
-        // or (string, AssetMeta, CancellationToken).
-        var importMethod = importerType.GetMethod("ImportAsync", BindingFlags.Public | BindingFlags.Instance);
-        if (importMethod == null)
-        {
-            return Result.Failure($"ImportAsync method not found on importer {importerType.Name}");
-        }
-
-        try
-        {
-            var parameters = importMethod.GetParameters();
-            object? invokeResult;
-
-            if (parameters.Length == 2)
-            {
-                invokeResult = importMethod.Invoke(importerInstance, new object[] { assetPath, metaResult.Value });
-            }
-            else if (parameters.Length == 3 && parameters[2].ParameterType == typeof(CancellationToken))
-            {
-                invokeResult = importMethod.Invoke(importerInstance, new object[] { assetPath, metaResult.Value, token });
-            }
-            else
-            {
-                return Result.Failure($"Unsupported ImportAsync signature on importer {importerType.Name}");
-            }
-
-            if (invokeResult is not Task<Result> task)
-            {
-                return Result.Failure("Importer did not return a valid Task<Result>");
-            }
-
-            var result = await task;
-            return result;
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure($"Asset import failed: {ex.Message}");
-        }
+        return await importerInstance.ImportAsync(assetPath, metaResult.Value, token);
     }
 
     /// <summary>
@@ -122,8 +84,8 @@ public static partial class AssetDatabase
         // Get or create importer instance
         if (!s_importerInstances.TryGetValue(importerType, out var importerInstance))
         {
-            importerInstance = Activator.CreateInstance(importerType);
-            if (importerInstance == null)
+            importerInstance = Activator.CreateInstance(importerType) as AssetImporter;
+            if (importerInstance is null)
             {
                 return Result<Guid>.Failure($"Failed to create importer instance for type {importerType.Name}");
             }
@@ -138,53 +100,29 @@ public static partial class AssetDatabase
             return Result<Guid>.Failure($"ExportAsync method not found on importer {importerType.Name}. This importer does not support exporting.");
         }
 
-        try
+        // Generate metadata for the new asset
+        var result = await GenerateMetaFileAsync(assetPath, token);
+        if (result.IsFailure)
         {
-            // Generate metadata for the new asset
-            await GenerateMetaFileAsync(assetPath, token);
-            
-            var metaResult = await ReadMetaFileAsync(assetPath, token);
-            if (metaResult.IsFailure)
-            {
-                return Result<Guid>.Failure($"Failed to generate metadata: {metaResult.Message}");
-            }
-
-            var parameters = exportMethod.GetParameters();
-            object? invokeResult;
-
-            if (parameters.Length == 3)
-            {
-                invokeResult = exportMethod.Invoke(importerInstance, new object[] { assetPath, assetData, metaResult.Value });
-            }
-            else if (parameters.Length == 4 && parameters[3].ParameterType == typeof(CancellationToken))
-            {
-                invokeResult = exportMethod.Invoke(importerInstance, new object[] { assetPath, assetData, metaResult.Value, token });
-            }
-            else
-            {
-                return Result<Guid>.Failure($"Unsupported ExportAsync signature on importer {importerType.Name}");
-            }
-
-            if (invokeResult is not Task<Result> task)
-            {
-                return Result<Guid>.Failure("Exporter did not return a valid Task<Result>");
-            }
-
-            var result = await task;
-            if (result.IsFailure)
-            {
-                return Result<Guid>.Failure(result.Message);
-            }
-
-            // Calculate file hash and update database
-            var fileHash = await CalculateFileHashAsync(assetPath, token);
-            await UpsertAssetAsync(assetPath, metaResult.Value, fileHash, null, token);
-
-            return metaResult.Value.Guid;
+            return Result<Guid>.Failure($"Failed to generate metadata: {result.Message}");
         }
-        catch (Exception ex)
+
+        var metaResult = await ReadMetaFileAsync(assetPath, token);
+        if (metaResult.IsFailure)
         {
-            return Result<Guid>.Failure($"Asset export failed: {ex.Message}");
+            return Result<Guid>.Failure($"Failed to read metadata: {metaResult.Message}");
         }
+
+        result = await importerInstance.ExportAsync(assetPath, assetData, metaResult.Value, token);
+        if (result.IsFailure)
+        {
+            return Result<Guid>.Failure(result.Message);
+        }
+
+        // Calculate file hash and update database
+        var fileHash = await CalculateFileHashAsync(assetPath, token);
+        await UpsertAssetAsync(assetPath, metaResult.Value, fileHash, null, token);
+
+        return metaResult.Value.Guid;
     }
 }

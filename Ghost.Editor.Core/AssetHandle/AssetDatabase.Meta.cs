@@ -2,7 +2,6 @@ using Ghost.Core;
 using Ghost.Editor.Core.Utilities;
 using System.Reflection;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 
 namespace Ghost.Editor.Core.AssetHandle;

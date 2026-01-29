@@ -164,8 +164,8 @@ public struct Material : IResourceReleasable
         }
 
         dataSpan.CopyTo(cacheSpan);
-
         _isDirty = true;
+
         return Error.None;
     }
 
@@ -184,8 +184,8 @@ public struct Material : IResourceReleasable
         }
 
         data.CopyTo(cacheSpan);
-
         _isDirty = true;
+
         return Error.None;
     }
 

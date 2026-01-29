@@ -47,7 +47,7 @@ public class AssetDatabaseIntegrationTest
         ProjectService.CurrentProject = projectMetadataInfo;
 
         // Initialize AssetDatabase
-        AssetDatabase.Initialize(TestContext.CancellationToken);
+        await AssetDatabase.Initialize(TestContext.CancellationToken);
 
         // Give the file system watcher time to start
         await Task.Delay(100, TestContext.CancellationToken);

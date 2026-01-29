@@ -1,3 +1,4 @@
+using Ghost.Core;
 using Ghost.Entities;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
@@ -58,7 +59,7 @@ public readonly struct Scene : IEquatable<Scene>
 
     public override string ToString()
     {
-        return $"Scene {{ ID: {_id} }}";
+        return $"Scene(ID: {_id})";
     }
 }
 
@@ -69,24 +70,17 @@ public readonly struct Scene : IEquatable<Scene>
 /// This is a minimal runtime representation. All metadata (like scene names) 
 /// should be stored in editor-only classes (SceneNode).
 /// </remarks>
-public class SceneManager
+public static class SceneManager
 {
-    private readonly World _world;
-    private short _nextSceneID;
-
-    internal SceneManager(World world)
-    {
-        _world = world;
-        _nextSceneID = 0;
-    }
+    private static short s_nextSceneID;
 
     /// <summary>
     /// Creates a new scene in the world.
     /// </summary>
     /// <returns>The created scene.</returns>
-    public Scene CreateScene()
+    public static Scene CreateScene()
     {
-        var scene = new Scene(_nextSceneID++);
+        var scene = new Scene(s_nextSceneID++);
         return scene;
     }
 
@@ -94,13 +88,11 @@ public class SceneManager
     /// Destroys all entities belonging to the specified scene.
     /// </summary>
     /// <param name="scene">The scene to unload.</param>
-    public void UnloadScene(Scene scene)
+    /// <param name="world">The world containing the entities.</param>
+    public static void UnloadScene(Scene scene, World world)
     {
-        // Build query for entities with SceneID
-        var builder = new QueryBuilder();
-        builder.WithAll([ComponentTypeID<Components.SceneID>.Value]);
-        var queryID = builder.Build(_world);
-        ref var query = ref _world.ComponentManager.GetEntityQueryReference(queryID);
+        var queryID = new QueryBuilder().WithAll<Components.SceneID>().Build(world);
+        ref var query = ref world.ComponentManager.GetEntityQueryReference(queryID);
 
         using var scope = AllocationManager.CreateStackScope();
         var entitiesToDestroy = new UnsafeList<Entity>(128, scope.AllocationHandle);
@@ -120,22 +112,20 @@ public class SceneManager
             }
         }
 
-        _world.EntityManager.DestroyEntities(entitiesToDestroy.AsSpan());
+        world.EntityManager.DestroyEntities(entitiesToDestroy.AsSpan());
     }
 
     /// <summary>
     /// Gets all entities belonging to the specified scene.
     /// </summary>
     /// <param name="scene">The scene to query.</param>
+    /// <param name="world">The world containing the entities.</param>
     /// <param name="entities">Span to store the entities.</param>
     /// <returns>The number of entities written to the span.</returns>
-    public int GetSceneEntities(Scene scene, Span<Entity> entities)
+    public static int GetSceneEntities(Scene scene, World world, Span<Entity> entities)
     {
-        // Build query for entities with SceneID
-        var builder = new QueryBuilder();
-        builder.WithAll([ComponentTypeID<Components.SceneID>.Value]);
-        var queryID = builder.Build(_world);
-        ref var query = ref _world.ComponentManager.GetEntityQueryReference(queryID);
+        var queryID = new QueryBuilder().WithAll<Components.SceneID>().Build(world);
+        ref var query = ref world.ComponentManager.GetEntityQueryReference(queryID);
 
         var index = 0;
 

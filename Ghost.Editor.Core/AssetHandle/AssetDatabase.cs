@@ -51,6 +51,8 @@ public static partial class AssetDatabase
     private static bool s_autoRefreshEnabled = true;
     private static readonly Queue<AssetCommand> s_waitingCommands = new(); // Commands waiting for manual refresh
 
+    private static TaskCompletionSource<bool>? s_refreshTcs;
+
     // Initialization guard
     private static readonly Lock s_initializationLock = new();
     private static bool s_initialized = false;
@@ -77,7 +79,7 @@ public static partial class AssetDatabase
     /// Initialize the asset database.
     /// Must be called after project is loaded.
     /// </summary>
-    internal static async void Initialize(CancellationToken token = default)
+    internal static async Task Initialize(CancellationToken token = default)
     {
         lock (s_initializationLock)
         {
@@ -95,7 +97,6 @@ public static partial class AssetDatabase
 
         AssetsDirectory = new DirectoryInfo(Path.Combine(Path.GetDirectoryName(ProjectService.CurrentProject.Path)!, ProjectService.ASSETS_FOLDER));
 
-        // Initialize command channel (unbounded for simplicity)
         s_commandChannel = Channel.CreateUnbounded<AssetCommand>(new UnboundedChannelOptions
         {
             SingleReader = false, // Timer callback reads
@@ -105,13 +106,9 @@ public static partial class AssetDatabase
         // Initialize command processor timer (starts disabled, triggered by events)
         s_commandProcessorTimer = new Timer(ProcessPendingCommands, null, Timeout.Infinite, Timeout.Infinite);
 
-        // Initialize database
         await InitializeDatabaseAsync(token);
-
-        // Load asset cache from database
         await LoadAssetCacheFromDatabaseAsync(token);
 
-        // Initialize file system watcher
         s_watcher = new FileSystemWatcher
         {
             Path = AssetsDirectory.FullName,
@@ -123,7 +120,6 @@ public static partial class AssetDatabase
         InitializeAssetHandle();
         InitializeMetaData();
 
-        // Validate and fix database on startup
         await ValidateAndFixDatabaseAsync(token);
     }
 
@@ -193,16 +189,17 @@ public static partial class AssetDatabase
             {
                 s_commandChannel?.Writer.TryWrite(cmd);
             }
+
+            s_refreshTcs = new TaskCompletionSource<bool>();
         }
 
-        // Post manual refresh command
         s_commandChannel?.Writer.TryWrite(new AssetCommand(AssetCommandType.ManualRefresh, string.Empty));
-
-        // Trigger timer immediately
         s_commandProcessorTimer?.Change(TimeSpan.Zero, Timeout.InfiniteTimeSpan);
 
-        // Wait a bit for processing to complete (this is best-effort)
-        await Task.Delay(200, token);
+        if (!await s_refreshTcs.Task.WaitAsync(token))
+        {
+            return Result.Failure("Asset database refresh failed");
+        }
 
         return Result.Success();
     }
@@ -328,7 +325,7 @@ public static partial class AssetDatabase
     /// <summary>
     /// Timer callback to process pending commands.
     /// </summary>
-    private static void ProcessPendingCommands(object? state)
+    private static async void ProcessPendingCommands(object? state)
     {
         try
         {
@@ -347,32 +344,38 @@ public static partial class AssetDatabase
                 commandsByPath[cmd.Path] = cmd;
             }
 
-            // Filter out temp files (files that were created then deleted)
-            lock (s_commandLock)
-            {
-                var pathsToProcess = commandsByPath.Keys.ToList();
-                foreach (var path in pathsToProcess)
-                {
-                    // If file was created/modified but doesn't exist anymore, skip
-                    if (!File.Exists(path) && commandsByPath[path].Type != AssetCommandType.FileDeleted)
-                    {
-                        commandsByPath.Remove(path);
-                    }
-                }
+            // NOTE: We handle the temp file filtering in each command handler now
+            // We should able to remove this allocation heavy code
 
-                // Clear pending paths
-                s_pendingCommandPaths.Clear();
-            }
+            // Filter out temp files (files that were created then deleted)
+            // lock (s_commandLock)
+            // {
+            //     var pathsToProcess = commandsByPath.Keys.ToList();
+            //     foreach (var path in pathsToProcess)
+            //     {
+            //         // If file was created/modified but doesn't exist anymore, skip
+            //         if (!File.Exists(path) && commandsByPath[path].Type != AssetCommandType.FileDeleted)
+            //         {
+            //             commandsByPath.Remove(path);
+            //         }
+            //     }
+            //
+            //     // Clear pending paths
+            //     s_pendingCommandPaths.Clear();
+            // }
 
             // Execute commands
             foreach (var cmd in commandsByPath.Values)
             {
-                ExecuteCommandAsync(cmd).GetAwaiter().GetResult();
+                await ExecuteCommandAsync(cmd);
             }
+
+            s_refreshTcs?.SetResult(true);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error processing commands: {ex.Message}");
+            Logger.LogError($"Error processing commands: {ex.Message}");
+            s_refreshTcs?.SetResult(false);
         }
     }
 
@@ -413,6 +416,11 @@ public static partial class AssetDatabase
     /// </summary>
     private static async Task HandleFileCreatedAsync(string path)
     {
+        if (!File.Exists(path))
+        {
+            return;
+        }
+
         await GenerateMetaFileAsync(path, CancellationToken.None);
     }
 
@@ -421,6 +429,11 @@ public static partial class AssetDatabase
     /// </summary>
     private static async Task HandleFileModifiedAsync(string path)
     {
+        if (!File.Exists(path))
+        {
+            return;
+        }
+
         // Check if file hash changed
         var metaResult = await ReadMetaFileAsync(path, CancellationToken.None);
         if (metaResult.IsFailure)
@@ -447,6 +460,11 @@ public static partial class AssetDatabase
     /// </summary>
     private static async Task HandleFileDeletedAsync(string path)
     {
+        if (!File.Exists(path))
+        {
+            return;
+        }
+
         var metaFileResult = GetMetaFilePath(path);
         if (metaFileResult.IsSuccess && File.Exists(metaFileResult.Value))
         {
@@ -468,7 +486,7 @@ public static partial class AssetDatabase
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error deleting asset metadata: {ex.Message}");
+                Logger.LogError($"Error deleting asset metadata: {ex.Message}");
             }
         }
     }
@@ -478,6 +496,17 @@ public static partial class AssetDatabase
     /// </summary>
     private static async Task HandleFileRenamedAsync(string oldPath, string newPath)
     {
+        if (!File.Exists(oldPath))
+        {
+            return;
+        }
+
+        if (File.Exists(newPath))
+        {
+            Logger.LogWarning($"Cannot rename asset from '{oldPath}' to '{newPath}': target file already exists.");
+            return;
+        }
+
         var oldMetaPath = oldPath + Utilities.FileExtensions.META_FILE_EXTENSION;
         var newMetaPath = newPath + Utilities.FileExtensions.META_FILE_EXTENSION;
 
