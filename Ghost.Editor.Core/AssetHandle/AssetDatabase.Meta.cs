@@ -1,6 +1,7 @@
 using Ghost.Core;
 using Ghost.Editor.Core.Utilities;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -27,10 +28,10 @@ public static partial class AssetDatabase
             }
         }
 
-        s_watcher.Created += OnAssetCreated;
-        s_watcher.Deleted += OnAssetDeleted;
+        s_watcher.Created += OnFSEvent;
+        s_watcher.Deleted += OnFSEvent;
+        s_watcher.Changed += OnFSEvent;
         s_watcher.Renamed += OnAssetRenamed;
-        s_watcher.Changed += OnAssetChanged;
     }
 
     private static Result<string> GetMetaFilePath(string assetPath)
@@ -194,48 +195,38 @@ public static partial class AssetDatabase
         return r;
     }
 
-    private static void OnAssetCreated(object sender, FileSystemEventArgs e)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsMetaFile(string path)
     {
-        // Skip meta files
-        if (Path.GetExtension(e.FullPath).Equals(FileExtensions.META_FILE_EXTENSION, StringComparison.OrdinalIgnoreCase))
-        {
-            return;
-        }
-
-        PostCommand(new AssetCommand(AssetCommandType.FileCreated, e.FullPath, Timestamp: DateTime.UtcNow));
+        return Path.GetExtension(path).Equals(FileExtensions.META_FILE_EXTENSION, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static void OnAssetDeleted(object sender, FileSystemEventArgs e)
+    private static async void OnFSEvent(object sender, FileSystemEventArgs e)
     {
-        // Skip meta files
-        if (Path.GetExtension(e.FullPath).Equals(FileExtensions.META_FILE_EXTENSION, StringComparison.OrdinalIgnoreCase))
+        if (IsMetaFile(e.FullPath))
         {
             return;
         }
 
-        PostCommand(new AssetCommand(AssetCommandType.FileDeleted, e.FullPath, Timestamp: DateTime.UtcNow));
+        var type = e.ChangeType switch
+        {
+            WatcherChangeTypes.Created => AssetCommandType.FileCreated,
+            WatcherChangeTypes.Deleted => AssetCommandType.FileDeleted,
+            WatcherChangeTypes.Changed => AssetCommandType.FileModified,
+            _ => throw new InvalidOperationException("Unsupported file system event type")
+        };
+
+        await PostCommandAsync(new AssetCommand(type, e.FullPath, Timestamp: DateTime.UtcNow));
     }
 
-    private static void OnAssetRenamed(object sender, RenamedEventArgs e)
+    private static async void OnAssetRenamed(object sender, RenamedEventArgs e)
     {
-        // Skip meta files
-        if (Path.GetExtension(e.FullPath).Equals(FileExtensions.META_FILE_EXTENSION, StringComparison.OrdinalIgnoreCase))
+        if (IsMetaFile(e.FullPath))
         {
             return;
         }
 
-        PostCommand(new AssetCommand(AssetCommandType.FileRenamed, e.FullPath, e.OldFullPath, DateTime.UtcNow));
-    }
-
-    private static void OnAssetChanged(object sender, FileSystemEventArgs e)
-    {
-        // Skip meta files
-        if (Path.GetExtension(e.FullPath).Equals(FileExtensions.META_FILE_EXTENSION, StringComparison.OrdinalIgnoreCase))
-        {
-            return;
-        }
-
-        PostCommand(new AssetCommand(AssetCommandType.FileModified, e.FullPath, Timestamp: DateTime.UtcNow));
+        await PostCommandAsync(new AssetCommand(AssetCommandType.FileRenamed, e.FullPath, e.OldFullPath, DateTime.UtcNow));
     }
 
     /// <summary>
@@ -243,6 +234,8 @@ public static partial class AssetDatabase
     /// </summary>
     private static async Task MarkDependentAssetsDirtyAsync(Guid assetGuid)
     {
+        // TODO: We should have a reverse dependency lookup in the database to avoid scanning all assets.
+
         // Query database for all assets and check their dependencies
         var allAssets = GetAllAssets();
 

@@ -35,7 +35,7 @@ public abstract class AssetImporter
     /// </summary>
     /// <param name="dependencies">List of dependency GUIDs extracted from the asset.</param>
     /// <returns>Result indicating if all dependencies are valid.</returns>
-    protected virtual ValueTask<Result> ValidateDependenciesAsync(List<Guid> dependencies)
+    protected virtual ValueTask<Result> ValidateDependenciesAsync(List<Guid> dependencies, CancellationToken token = default)
     {
         foreach (var dependencyGuid in dependencies)
         {

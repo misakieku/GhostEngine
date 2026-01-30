@@ -9,19 +9,16 @@ public static partial class AssetDatabase
 {
     // Asset cache - stores loaded assets by GUID
     private static readonly ConcurrentDictionary<Guid, Asset> s_assetCache = new();
-    
+
     // LRU tracking - stores access time for each cached asset
     private static readonly ConcurrentDictionary<Guid, DateTime> s_assetAccessTime = new();
-    
+
     // Maximum number of cached assets before eviction starts
     private const int MAX_CACHED_ASSETS = 1000;
-    
-    // Percentage of cache to evict when limit is reached (evict oldest 20%)
-    private const float CACHE_EVICTION_PERCENTAGE = 0.2f;
 
-    /// <summary>
-    /// Get the path to the imported asset data directory.
-    /// </summary>
+    // Percentage of cache to evict when limit is reached (evict oldest 20%)
+    private const float _CACHE_EVICTION_PERCENTAGE = 0.2f;
+
     private static Result<string> GetImportedAssetsDirectory()
     {
         if (AssetsDirectory == null)
@@ -30,7 +27,6 @@ public static partial class AssetDatabase
         }
 
         var cacheDir = Path.Combine(AssetsDirectory.Parent!.FullName, ProjectService.CACHE_FOLDER, "ImportedAssets");
-        
         if (!Directory.Exists(cacheDir))
         {
             Directory.CreateDirectory(cacheDir);
@@ -39,11 +35,6 @@ public static partial class AssetDatabase
         return cacheDir;
     }
 
-    /// <summary>
-    /// Get the path where imported asset data is stored for a specific GUID.
-    /// </summary>
-    /// <param name="guid">GUID of the asset.</param>
-    /// <returns>Full path to the imported asset data file.</returns>
     private static Result<string> GetImportedAssetPath(Guid guid)
     {
         var importedDirResult = GetImportedAssetsDirectory();
@@ -57,12 +48,6 @@ public static partial class AssetDatabase
         return assetDataPath;
     }
 
-    /// <summary>
-    /// Load asset by GUID with caching (internal implementation).
-    /// </summary>
-    /// <typeparam name="T">Type of asset to load.</typeparam>
-    /// <param name="guid">GUID of the asset.</param>
-    /// <returns>The loaded asset.</returns>
     private static Result<T> LoadAssetInternal<T>(Guid guid) where T : Asset
     {
         // Check cache first
@@ -70,7 +55,7 @@ public static partial class AssetDatabase
         {
             // Update access time for LRU
             s_assetAccessTime[guid] = DateTime.UtcNow;
-            
+
             if (cachedAsset is T typedAsset)
             {
                 return typedAsset;
@@ -89,7 +74,6 @@ public static partial class AssetDatabase
         }
 
         var assetDataPath = assetPathResult.Value;
-        
         if (!File.Exists(assetDataPath))
         {
             return Result<T>.Failure($"Imported asset data not found at {assetDataPath}. Asset may not have been imported yet.");
@@ -100,7 +84,6 @@ public static partial class AssetDatabase
             // Read and deserialize asset data
             var json = File.ReadAllText(assetDataPath);
             var asset = JsonSerializer.Deserialize<T>(json);
-            
             if (asset == null)
             {
                 return Result<T>.Failure("Failed to deserialize asset data");
@@ -108,7 +91,6 @@ public static partial class AssetDatabase
 
             // Add to cache
             CacheAsset(guid, asset);
-            
             return asset;
         }
         catch (Exception ex)
@@ -117,12 +99,6 @@ public static partial class AssetDatabase
         }
     }
 
-    /// <summary>
-    /// Load asset by path with caching.
-    /// </summary>
-    /// <typeparam name="T">Type of asset to load.</typeparam>
-    /// <param name="assetPath">Full or relative path to the asset.</param>
-    /// <returns>The loaded asset.</returns>
     public static Result<T> LoadAssetAtPath<T>(string assetPath) where T : Asset
     {
         var guidResult = PathToGuid(assetPath);
@@ -134,9 +110,6 @@ public static partial class AssetDatabase
         return LoadAsset<T>(guidResult.Value);
     }
 
-    /// <summary>
-    /// Add an asset to the cache with LRU eviction if needed.
-    /// </summary>
     private static void CacheAsset(Guid guid, Asset asset)
     {
         // Check if we need to evict old assets
@@ -149,13 +122,10 @@ public static partial class AssetDatabase
         s_assetAccessTime[guid] = DateTime.UtcNow;
     }
 
-    /// <summary>
-    /// Evict the oldest assets from cache based on LRU.
-    /// </summary>
     private static void EvictOldestAssets()
     {
-        var evictionCount = (int)(MAX_CACHED_ASSETS * CACHE_EVICTION_PERCENTAGE);
-        
+        var evictionCount = (int)(MAX_CACHED_ASSETS * _CACHE_EVICTION_PERCENTAGE);
+
         // Sort by access time and remove oldest entries
         var oldestAssets = s_assetAccessTime
             .OrderBy(kvp => kvp.Value)
@@ -216,7 +186,8 @@ public static partial class AssetDatabase
     /// <param name="guid">GUID of the asset.</param>
     /// <param name="assetData">Processed asset data to save.</param>
     /// <returns>Result indicating success or failure.</returns>
-    internal static Result SaveImportedAsset<T>(Guid guid, T assetData) where T : Asset
+    public static Result SaveImportedAsset<T>(Guid guid, T assetData)
+        where T : Asset
     {
         var assetPathResult = GetImportedAssetPath(guid);
         if (assetPathResult.IsFailure)
@@ -228,10 +199,9 @@ public static partial class AssetDatabase
         {
             var json = JsonSerializer.Serialize(assetData, s_defaultJsonOptions);
             File.WriteAllText(assetPathResult.Value, json);
-            
+
             // Invalidate cache for this asset so it gets reloaded next time
             UnloadAsset(guid);
-            
             return Result.Success();
         }
         catch (Exception ex)

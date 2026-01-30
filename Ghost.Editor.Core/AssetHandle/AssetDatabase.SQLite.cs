@@ -50,6 +50,7 @@ public static partial class AssetDatabase
             );
             CREATE INDEX IF NOT EXISTS idx_path ON Assets(Path);
         ";
+
         await cmd.ExecuteNonQueryAsync(token);
     }
 

@@ -1,5 +1,6 @@
 using Ghost.Editor.Core.AssetHandle;
 using Ghost.Data.Services;
+using Ghost.Core;
 
 namespace Ghost.UnitTest;
 
@@ -89,9 +90,23 @@ public class AssetDatabaseIntegrationTest
     {
         await Task.Delay(delayMs, TestContext.CancellationToken);
         AssetDatabase.FlushPendingCommands();
-        
+
         // Give a bit more time after flush for any final processing
         await Task.Delay(50, TestContext.CancellationToken);
+    }
+
+    private static void CheckInternalErrors()
+    {
+        if (Logger.Logs.Count > 0)
+        {
+            foreach (var log in Logger.Logs)
+            {
+                if (log.Level == LogLevel.Error)
+                {
+                    Assert.Fail($"Internal error logged: {log.Message}");
+                }
+            }
+        }
     }
 
     [TestMethod]
@@ -111,6 +126,8 @@ public class AssetDatabaseIntegrationTest
         // Verify meta file content
         var metaContent = await File.ReadAllTextAsync(metaFile, TestContext.CancellationToken);
         Assert.Contains("Guid", metaContent, "Meta file should contain GUID");
+
+        CheckInternalErrors();
     }
 
     [TestMethod]
@@ -136,6 +153,8 @@ public class AssetDatabaseIntegrationTest
         // Test exact match
         results = await AssetDatabase.FindAssetsByNameAsync("enemy.txt", TestContext.CancellationToken);
         Assert.HasCount(1, results, "Should find 1 file matching 'enemy.txt'");
+
+        CheckInternalErrors();
     }
 
     [TestMethod]
@@ -164,6 +183,8 @@ public class AssetDatabaseIntegrationTest
         var newGuidResult = AssetDatabase.PathToGuid(newPath);
         Assert.IsTrue(newGuidResult.IsSuccess, "Should be able to get GUID after rename");
         Assert.AreEqual(guid, newGuidResult.Value, "GUID should be preserved after rename");
+
+        CheckInternalErrors();
     }
 
     [TestMethod]
@@ -182,6 +203,7 @@ public class AssetDatabaseIntegrationTest
         File.Delete(filePath);
         await WaitForFileSystemEvents();
 
+        await Task.Delay(1000, TestContext.CancellationToken);
         // Meta file should also be deleted
         var metaPath = filePath + ".gmeta";
         Assert.IsFalse(File.Exists(metaPath), "Meta file should be deleted with asset");
@@ -189,6 +211,8 @@ public class AssetDatabaseIntegrationTest
         // Asset should be removed from database
         var pathResult = AssetDatabase.GuidToPath(guid);
         Assert.IsTrue(pathResult.IsFailure, "Asset should be removed from database");
+
+        CheckInternalErrors();
     }
 
     [TestMethod]
@@ -207,6 +231,8 @@ public class AssetDatabaseIntegrationTest
         // Should be in database
         var guidResult = AssetDatabase.PathToGuid(filePath);
         Assert.IsTrue(guidResult.IsSuccess, "Asset should be in database");
+
+        CheckInternalErrors();
     }
 
     [TestMethod]
@@ -240,6 +266,8 @@ public class AssetDatabaseIntegrationTest
         // GUID should be preserved
         var newGuid = AssetDatabase.PathToGuid(destPath).Value;
         Assert.AreEqual(guid, newGuid, "GUID should be preserved");
+
+        CheckInternalErrors();
     }
 
     [TestMethod]
@@ -264,6 +292,8 @@ public class AssetDatabaseIntegrationTest
         // Both should have different GUIDs
         var destGuid = AssetDatabase.PathToGuid(destPath).Value;
         Assert.AreNotEqual(sourceGuid, destGuid, "Copied asset should have different GUID");
+
+        CheckInternalErrors();
     }
 
     [TestMethod]
@@ -287,6 +317,8 @@ public class AssetDatabaseIntegrationTest
         // Should be removed from database
         var pathResult = AssetDatabase.GuidToPath(guid);
         Assert.IsTrue(pathResult.IsFailure, "Asset should be removed from database");
+
+        CheckInternalErrors();
     }
 
     [TestMethod]
@@ -323,6 +355,8 @@ public class AssetDatabaseIntegrationTest
             var metaContent = await File.ReadAllTextAsync(metaPath, TestContext.CancellationToken);
             Assert.Contains("Guid", metaContent, $"Meta file should be valid for {fileName}");
         }
+
+        CheckInternalErrors();
     }
 
     [TestMethod]
@@ -351,6 +385,8 @@ public class AssetDatabaseIntegrationTest
 
         var playerAssets = await AssetDatabase.FindAssetsByTagAsync("Player", TestContext.CancellationToken);
         Assert.HasCount(1, playerAssets, "Should find 1 asset with 'Player' tag");
+
+        CheckInternalErrors();
     }
 
     [TestMethod]
@@ -375,13 +411,24 @@ public class AssetDatabaseIntegrationTest
         // Only one meta file should exist
         var metaFiles = Directory.GetFiles(_testAssetsDir, "refresh.txt.gmeta");
         Assert.HasCount(1, metaFiles, "Should have exactly one meta file");
+
+        CheckInternalErrors();
     }
 
     [TestMethod]
     public async Task ThreadSafetyTest()
     {
-        var testFile = Path.Combine(_testAssetsDir, "test.txt");
-        await File.WriteAllTextAsync(testFile, "Hello World", TestContext.CancellationToken);
-        await AssetDatabase.RefreshAsync(TestContext.CancellationToken); // This will cause race conditions if not handle properly because both AssetDatabase and FileSystemWatcher are involved
+        try
+        {
+            var testFile = Path.Combine(_testAssetsDir, "test.txt");
+            await File.WriteAllTextAsync(testFile, "Hello World", TestContext.CancellationToken);
+            await AssetDatabase.RefreshAsync(TestContext.CancellationToken); // This will cause race conditions if not handle properly because both AssetDatabase and FileSystemWatcher are involved
+        }
+        catch (Exception ex)
+        {
+            Assert.Fail(ex.Message);
+        }
+
+        CheckInternalErrors();
     }
 }

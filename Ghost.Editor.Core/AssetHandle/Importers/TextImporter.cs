@@ -27,7 +27,7 @@ internal class TextImporterSettings : ImporterSettings
 [AssetImporter(".txt", ".md")]
 internal class TextImporter : AssetImporter<TextImporterSettings>
 {
-    public override async Task<Result> ImportAsync(string assetPath, AssetMeta meta)
+    public override async ValueTask<Result> ImportAsync(string assetPath, AssetMeta meta, CancellationToken token = default)
     {
         var settings = GetSettings(meta);
 
@@ -45,7 +45,7 @@ internal class TextImporter : AssetImporter<TextImporterSettings>
         try
         {
             // Read the file
-            var content = await File.ReadAllTextAsync(assetPath);
+            var content = await File.ReadAllTextAsync(assetPath, token);
 
             if (settings.TrimWhitespace)
             {

@@ -73,7 +73,7 @@ internal class TextureImporterSettings : ImporterSettings
 [AssetImporter(".png", ".jpg", ".jpeg", ".dds", ".tga", ".bmp")]
 internal class TextureImporter : AssetImporter<TextureImporterSettings>
 {
-    public override async Task<Result> ImportAsync(string assetPath, AssetMeta meta)
+    public override async ValueTask<Result> ImportAsync(string assetPath, AssetMeta meta, CancellationToken token = default)
     {
         var settings = GetSettings(meta);
 
@@ -82,7 +82,7 @@ internal class TextureImporter : AssetImporter<TextureImporterSettings>
         var dependencies = new List<Guid>();
 
         // Validate dependencies
-        var depResult = await ValidateDependenciesAsync(dependencies);
+        var depResult = await ValidateDependenciesAsync(dependencies, token);
         if (depResult.IsFailure)
         {
             return depResult;
@@ -97,8 +97,8 @@ internal class TextureImporter : AssetImporter<TextureImporterSettings>
             }
 
             // Get image dimensions (simplified - in real implementation would use image library)
-            var (width, height) = await GetImageDimensionsAsync(assetPath);
-            
+            var (width, height) = GetImageDimensions(assetPath);
+
             if (width == 0 || height == 0)
             {
                 return Result.Failure("Failed to read image dimensions");
@@ -160,38 +160,38 @@ internal class TextureImporter : AssetImporter<TextureImporterSettings>
     /// Get image dimensions from file.
     /// Simplified implementation - in production, use an image library.
     /// </summary>
-    private async Task<(uint width, uint height)> GetImageDimensionsAsync(string imagePath)
+    private static (uint width, uint height) GetImageDimensions(string imagePath)
     {
         // This is a placeholder implementation
         // In a real implementation, you would use a library like:
         // - ImageSharp
         // - StbImageSharp
         // - DirectXTex (for DDS files)
-        
+
         var extension = Path.GetExtension(imagePath).ToLowerInvariant();
-        
+
         if (extension == ".dds")
         {
             // For DDS files, read the header
             // DDS header format: https://docs.microsoft.com/en-us/windows/win32/direct3ddds/dds-header
-            return await ReadDDSHeaderAsync(imagePath);
+            return ReadDDSHeader(imagePath);
         }
         else
         {
             // For PNG/JPG/etc, we would use an image library
             // For now, return placeholder values
-            return await Task.FromResult<(uint, uint)>((1024, 1024));
+            return (1024, 1024);
         }
     }
 
     /// <summary>
     /// Read DDS file header to get dimensions.
     /// </summary>
-    private async Task<(uint width, uint height)> ReadDDSHeaderAsync(string ddsPath)
+    private static (uint width, uint height) ReadDDSHeader(string ddsPath)
     {
         try
         {
-            await using var stream = File.OpenRead(ddsPath);
+            using var stream = File.OpenRead(ddsPath);
             using var reader = new BinaryReader(stream);
 
             // Read magic number (should be "DDS ")
@@ -226,7 +226,7 @@ internal class TextureImporter : AssetImporter<TextureImporterSettings>
     /// <summary>
     /// Export a texture asset from memory to disk.
     /// </summary>
-    public override async Task<Result> ExportAsync<T>(string assetPath, T assetData, AssetMeta meta)
+    public override async ValueTask<Result> ExportAsync<T>(string assetPath, T assetData, AssetMeta meta, CancellationToken token = default)
     {
         if (assetData is not TextureAsset textureAsset)
         {
@@ -239,14 +239,14 @@ internal class TextureImporter : AssetImporter<TextureImporterSettings>
             // 1. Convert the texture data to the appropriate format
             // 2. Write the image file (PNG, DDS, etc.)
             // 3. Save metadata
-            
+
             // For now, just save metadata as JSON
             var json = JsonSerializer.Serialize(textureAsset, new JsonSerializerOptions
             {
                 WriteIndented = true
             });
 
-            await File.WriteAllTextAsync(assetPath, json);
+            await File.WriteAllTextAsync(assetPath, json, token);
 
             return Result.Success();
         }
