@@ -12,6 +12,7 @@ namespace Ghost.UnitTest;
 [DoNotParallelize] // AssetDatabase is a singleton, tests must run sequentially
 public class AssetDatabaseIntegrationTest
 {
+    private string _tempPath = string.Empty;
     private string _testProjectDir = string.Empty;
     private string _testAssetsDir = string.Empty;
 
@@ -21,7 +22,8 @@ public class AssetDatabaseIntegrationTest
     public async Task Setup()
     {
         // Create temporary test project structure
-        _testProjectDir = Path.Combine(Path.GetTempPath(), "GhostAssetDBIntegration_" + Guid.NewGuid().ToString());
+        _tempPath = Path.GetTempPath();
+        _testProjectDir = Path.Combine(_tempPath, "GhostAssetDBIntegration_" + Guid.NewGuid().ToString());
         _testAssetsDir = Path.Combine(_testProjectDir, ProjectService.ASSETS_FOLDER);
 
         Directory.CreateDirectory(_testProjectDir);
@@ -68,13 +70,13 @@ public class AssetDatabaseIntegrationTest
         }
 
         // Clean up test directory
-        if (Directory.Exists(_testProjectDir))
+        if (Directory.Exists(_tempPath))
         {
             try
             {
                 // Add delay to allow file handles to be released
                 Thread.Sleep(100);
-                Directory.Delete(_testProjectDir, true);
+                Directory.Delete(_tempPath, true);
             }
             catch
             {
