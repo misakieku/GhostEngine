@@ -4,7 +4,6 @@ using Ghost.Editor.Core.Inspector;
 using Ghost.Editor.Core.Notifications;
 using Ghost.Editor.Core.Progress;
 using Ghost.Editor.Utilities;
-using Ghost.Engine.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;

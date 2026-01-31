@@ -49,31 +49,13 @@ internal sealed partial class HierarchyPage : NavigationTabPage
 
 internal partial class HierarchyTemplateSector : DataTemplateSelector
 {
-    public DataTemplate? WorldTemplate
-    {
-        get;
-        set;
-    }
-
-    public DataTemplate? EntityTemplate
-    {
-        get;
-        set;
-    }
-
     protected override DataTemplate SelectTemplateCore(object item)
     {
-        if (WorldTemplate == null || EntityTemplate == null)
+        if (item is not SceneGraphNode node)
         {
             return base.SelectTemplateCore(item);
         }
 
-        var node = (SceneGraphNode)item;
-        return node.NodeType switch
-        {
-            SceneGraphNodeType.Scene => WorldTemplate,
-            SceneGraphNodeType.Entity => EntityTemplate,
-            _ => base.SelectTemplateCore(item)
-        };
+        return node.GetSceneHierarchyTemplate();
     }
 }

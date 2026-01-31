@@ -26,19 +26,19 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <IconSourceElement
+            <!--<IconSourceElement
                 Grid.Column="0"
                 Margin="0,0,15,0"
                 HorizontalAlignment="Left"
                 VerticalAlignment="Center"
-                IconSource="{x:Bind ViewModel.Inspectable.Icon, Mode=OneWay}" />
-            <ContentPresenter Grid.Column="1" Content="{x:Bind ViewModel.Inspectable.HeaderContent, Mode=OneWay}" />
+                IconSource="{x:Bind ViewModel.Inspectable.Icon, Mode=OneWay}" />-->
+            <!--<ContentPresenter Grid.Column="1" Content="{x:Bind ViewModel.Inspectable.HeaderContent, Mode=OneWay}" />-->
         </Grid>
 
         <!--  Content  -->
         <Grid Grid.Row="1" Padding="0,0,0,0">
             <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                <ContentPresenter Content="{x:Bind ViewModel.Inspectable.InspectorContent, Mode=OneWay}" />
+                <!--<ContentPresenter Content="{x:Bind ViewModel.Inspectable.InspectorContent, Mode=OneWay}" />-->
             </ScrollViewer>
         </Grid>
     </Grid>

@@ -35,10 +35,10 @@
     </internal:NavigationTabPage.Resources>
 
     <Grid Padding="4,6" Background="{ThemeResource LayerFillColorDefaultBrush}">
-        <TreeView ItemsSource="{x:Bind ViewModel.SceneList}" SelectionChanged="TreeView_SelectionChanged">
+        <!--<TreeView ItemsSource="{x:Bind ViewModel.SceneList}" SelectionChanged="TreeView_SelectionChanged">
             <TreeView.ItemTemplateSelector>
-                <local:HierarchyTemplateSector EntityTemplate="{StaticResource EntityTemplate}" WorldTemplate="{StaticResource SceneTemplate}" />
+                <local:HierarchyTemplateSector />
             </TreeView.ItemTemplateSelector>
-        </TreeView>
+        </TreeView>-->
     </Grid>
 </internal:NavigationTabPage>

@@ -5,18 +5,9 @@ namespace Ghost.Editor.Core.Inspector;
 
 public interface IInspectable
 {
-    public IconSource? Icon
-    {
-        get;
-    }
+    public IconSource? CreateIcon();
 
-    public UIElement? HeaderContent
-    {
-        get;
-    }
+    public UIElement? CreateHeader();
 
-    public UIElement? InspectorContent
-    {
-        get;
-    }
+    public UIElement? CreateInspector();
 }

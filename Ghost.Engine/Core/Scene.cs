@@ -1,4 +1,3 @@
-using Ghost.Core;
 using Ghost.Entities;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
@@ -73,6 +72,7 @@ public readonly struct Scene : IEquatable<Scene>
 public static class SceneManager
 {
     private static short s_nextSceneID;
+    private static readonly Queue<short> s_recycledSceneIDs = new();
 
     /// <summary>
     /// Creates a new scene in the world.
@@ -80,8 +80,12 @@ public static class SceneManager
     /// <returns>The created scene.</returns>
     public static Scene CreateScene()
     {
-        var scene = new Scene(s_nextSceneID++);
-        return scene;
+        if (!s_recycledSceneIDs.TryDequeue(out var id))
+        {
+            id = s_nextSceneID++;
+        }
+
+        return new Scene(id);
     }
 
     /// <summary>
@@ -105,7 +109,7 @@ public static class SceneManager
 
             for (var i = 0; i < chunk.Count; i++)
             {
-                if (sceneIDs[i].id == scene.ID)
+                if (sceneIDs[i].scene.ID == scene.ID)
                 {
                     entitiesToDestroy.Add(entities[i]);
                 }
@@ -113,6 +117,7 @@ public static class SceneManager
         }
 
         world.EntityManager.DestroyEntities(entitiesToDestroy.AsSpan());
+        s_recycledSceneIDs.Enqueue(scene.ID);
     }
 
     /// <summary>
@@ -122,12 +127,12 @@ public static class SceneManager
     /// <param name="world">The world containing the entities.</param>
     /// <param name="entities">Span to store the entities.</param>
     /// <returns>The number of entities written to the span.</returns>
-    public static int GetSceneEntities(Scene scene, World world, Span<Entity> entities)
+    public static UnsafeList<Entity> GetSceneEntities(Scene scene, World world, AllocationHandle handle)
     {
         var queryID = new QueryBuilder().WithAll<Components.SceneID>().Build(world);
         ref var query = ref world.ComponentManager.GetEntityQueryReference(queryID);
 
-        var index = 0;
+        var entities = new UnsafeList<Entity>(128, handle);
 
         // Iterate through all matching entities
         foreach (var chunk in query.GetChunkIterator())
@@ -135,15 +140,15 @@ public static class SceneManager
             var chunkEntities = chunk.GetEntities();
             var sceneIDs = chunk.GetComponentData<Components.SceneID>();
 
-            for (var i = 0; i < chunk.Count && index < entities.Length; i++)
+            for (var i = 0; i < chunk.Count; i++)
             {
-                if (sceneIDs[i].id == scene.ID)
+                if (sceneIDs[i].scene.ID == scene.ID)
                 {
-                    entities[index++] = chunkEntities[i];
+                    entities.Add(chunkEntities[i]);
                 }
             }
         }
 
-        return index;
+        return entities;
     }
 }

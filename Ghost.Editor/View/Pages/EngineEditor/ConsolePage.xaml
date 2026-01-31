@@ -72,7 +72,7 @@
                     <TextBlock
                         IsTextSelectionEnabled="True"
                         Style="{StaticResource CaptionTextBlockStyle}"
-                        Text="{x:Bind ViewModel.SelectedLog.ToStringWithStackTrace(), Mode=OneWay}"
+                        Text="{x:Bind ViewModel.SelectedLog.ToString(), Mode=OneWay}"
                         TextWrapping="Wrap" />
                 </ScrollViewer>
             </Grid>

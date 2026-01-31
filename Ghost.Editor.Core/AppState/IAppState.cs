@@ -7,22 +7,22 @@ internal interface IAppState
     /// <summary>
     /// Called when exiting the state.
     /// </summary>
-    public Task<Result> OnExitingAsync();
+    public ValueTask<Result> OnExitingAsync();
 
     /// <summary>
     /// Called when entering the state, right after OnEnteringAsync.
     /// <paramref name="parameter">can be used to pass data into the state, such as a project to load.</summary>
     /// </summary>
-    public Task<Result> OnEnteringAsync(object? parameter);
+    public ValueTask<Result> OnEnteringAsync(object? parameter);
 
     /// <summary>
     /// Called when exiting the state, specifically for pose transitions.
     /// </summary>
-    public Task<Result> OnExitedAsync();
+    public ValueTask<Result> OnExitedAsync();
 
     /// <summary>
     /// Called when entered the state, specifically after the state has been fully initialized and is ready for interaction.
     /// </summary>
     /// <param name="parameter">can be used to pass data into the state, such as a project to load.</param>
-    public Task<Result> OnEnteredAsync(object? parameter);
+    public ValueTask<Result> OnEnteredAsync(object? parameter);
 }

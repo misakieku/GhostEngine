@@ -1,3 +1,4 @@
+using Ghost.Core;
 using Ghost.Editor.View.Windows;
 
 namespace Ghost.Editor.Core.AppState;
@@ -6,36 +7,36 @@ internal class LandingState : IAppState
 {
     private LandingWindow? _window;
 
-    public Task OnExitingAsync()
+    public ValueTask<Result> OnExitingAsync()
     {
         if (App.Window == _window)
         {
             App.Window = null;
         }
 
-        return Task.CompletedTask;
+        return ValueTask.FromResult(Result.Success());
     }
 
-    public Task OnEnteringAsync(object? parameter)
+    public ValueTask<Result> OnEnteringAsync(object? parameter)
     {
         _window = App.GetService<LandingWindow>();
         _window.Activate();
 
         App.Window = _window;
 
-        return Task.CompletedTask;
+        return ValueTask.FromResult(Result.Success());
     }
 
-    public Task OnExitedAsync()
+    public ValueTask<Result> OnExitedAsync()
     {
         _window?.Close();
         _window = null;
 
-        return Task.CompletedTask;
+        return ValueTask.FromResult(Result.Success());
     }
 
-    public Task OnEnteredAsync(object? parameter)
+    public ValueTask<Result> OnEnteredAsync(object? parameter)
     {
-        return Task.CompletedTask;
+        return ValueTask.FromResult(Result.Success());
     }
 }

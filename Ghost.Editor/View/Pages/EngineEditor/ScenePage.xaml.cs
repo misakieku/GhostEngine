@@ -1,45 +1,45 @@
 using Ghost.Editor.Controls.Internal;
-using Ghost.Graphics.Contracts;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using WinRT;
+//using Ghost.Graphics.Contracts;
+//using Microsoft.UI.Xaml;
+//using Microsoft.UI.Xaml.Controls;
+//using WinRT;
 
 namespace Ghost.Editor.View.Pages.EngineEditor;
 
 internal sealed partial class ScenePage : NavigationTabPage
 {
-    private Renderer? _renderView;
-    private ISwapChainPanelNative _swapChainPanelNative;
+    //private Renderer? _renderView;
+    //private ISwapChainPanelNative _swapChainPanelNative;
 
     public ScenePage()
     {
         InitializeComponent();
 
-        SwapChainPanel.Loaded += SwapChainPanel_Loaded;
-        SwapChainPanel.Unloaded += SwapChainPanel_Unloaded;
-        SwapChainPanel.SizeChanged += SwapChainPanel_SizeChanged;
+        //SwapChainPanel.Loaded += SwapChainPanel_Loaded;
+        //SwapChainPanel.Unloaded += SwapChainPanel_Unloaded;
+        //SwapChainPanel.SizeChanged += SwapChainPanel_SizeChanged;
     }
 
-    private void SwapChainPanel_Loaded(object sender, RoutedEventArgs e)
-    {
-        var guid = typeof(ISwapChainPanelNative.Interface).GUID;
-        ((IWinRTObject)SwapChainPanel).NativeObject.TryAs(guid, out var swapChainPanelNativeHandle);
-        _swapChainPanelNative = new ISwapChainPanelNative(swapChainPanelNativeHandle);
+    //private void SwapChainPanel_Loaded(object sender, RoutedEventArgs e)
+    //{
+    //    var guid = typeof(ISwapChainPanelNative.Interface).GUID;
+    //    ((IWinRTObject)SwapChainPanel).NativeObject.TryAs(guid, out var swapChainPanelNativeHandle);
+    //    _swapChainPanelNative = new ISwapChainPanelNative(swapChainPanelNativeHandle);
 
-        _renderView = GraphicsPipeline.GraphicsDevice.CreateRenderer(new(_swapChainPanelNative, (uint)SwapChainPanel.ActualWidth, (uint)SwapChainPanel.ActualHeight));
-    }
+    //    _renderView = GraphicsPipeline.GraphicsDevice.CreateRenderer(new(_swapChainPanelNative, (uint)SwapChainPanel.ActualWidth, (uint)SwapChainPanel.ActualHeight));
+    //}
 
-    private void SwapChainPanel_Unloaded(object sender, RoutedEventArgs e)
-    {
-        _swapChainPanelNative.Dispose();
-        _renderView?.Dispose();
-    }
+    //private void SwapChainPanel_Unloaded(object sender, RoutedEventArgs e)
+    //{
+    //    _swapChainPanelNative.Dispose();
+    //    _renderView?.Dispose();
+    //}
 
-    private void SwapChainPanel_SizeChanged(object sender, SizeChangedEventArgs e)
-    {
-        if (e.NewSize.Width > 8.0 && e.NewSize.Height > 8.0)
-        {
-            _renderView?.RequestResize((uint)e.NewSize.Width, (uint)e.NewSize.Height);
-        }
-    }
+    //private void SwapChainPanel_SizeChanged(object sender, SizeChangedEventArgs e)
+    //{
+    //    if (e.NewSize.Width > 8.0 && e.NewSize.Height > 8.0)
+    //    {
+    //        _renderView?.RequestResize((uint)e.NewSize.Width, (uint)e.NewSize.Height);
+    //    }
+    //}
 }

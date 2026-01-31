@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 
 namespace Ghost.Core;
 
@@ -79,6 +80,7 @@ public static class Logger
             _readOnly = new ReadOnlyObservableCollection<LogMessage>(_logs);
         }
 
+        [StackTraceHidden]
         public void Log(string message, LogLevel level)
         {
             lock (_lock)
@@ -87,6 +89,7 @@ public static class Logger
             }
         }
 
+        [StackTraceHidden]
         public void Log(Exception exception)
         {
             lock (_lock)
@@ -95,6 +98,7 @@ public static class Logger
             }
         }
 
+        [StackTraceHidden]
         public void Assert(bool condition, string message)
         {
             lock (_lock)
@@ -119,71 +123,85 @@ public static class Logger
 
     public static ReadOnlyObservableCollection<LogMessage> Logs => s_logger.Logs;
 
+    [StackTraceHidden]
     public static void Log(LogLevel level, object? message)
     {
         s_logger.Log(message?.ToString() ?? "null", level);
     }
 
+    [StackTraceHidden]
     public static void Log(LogLevel level, string message)
     {
         s_logger.Log(message, level);
     }
 
+    [StackTraceHidden]
     public static void Log(LogLevel level, string format, params object?[] args)
     {
         s_logger.Log(string.Format(format, args), level);
     }
 
+    [StackTraceHidden]
     public static void LogInfo(object? message)
     {
         s_logger.Log(message?.ToString() ?? "null", LogLevel.Info);
     }
 
+    [StackTraceHidden]
     public static void LogInfo(string message)
     {
         s_logger.Log(message, LogLevel.Info);
     }
 
+    [StackTraceHidden]
     public static void LogInfo(string format, params object?[] args)
     {
         s_logger.Log(string.Format(format, args), LogLevel.Info);
     }
 
+    [StackTraceHidden]
     public static void LogWarning(object? message)
     {
         s_logger.Log(message?.ToString() ?? "null", LogLevel.Warning);
     }
 
+    [StackTraceHidden]
     public static void LogWarning(string message)
     {
         s_logger.Log(message, LogLevel.Warning);
     }
 
+    [StackTraceHidden]
     public static void LogWarning(string format, params object?[] args)
     {
         s_logger.Log(string.Format(format, args), LogLevel.Warning);
     }
 
+    [StackTraceHidden]
     public static void LogError(object? message)
     {
         s_logger.Log(message?.ToString() ?? "null", LogLevel.Error);
     }
 
+    [StackTraceHidden]
     public static void LogError(string message)
     {
         s_logger.Log(message, LogLevel.Error);
     }
 
+    [StackTraceHidden]
     public static void LogError(string format, params object?[] args)
     {
         s_logger.Log(string.Format(format, args), LogLevel.Error);
     }
 
+    [StackTraceHidden]
     public static void LogError(Exception ex)
     {
         s_logger.Log(ex);
     }
 
+    [StackTraceHidden]
     public static void Assert(bool condition, string message)
     {
         s_logger.Assert(condition, message);

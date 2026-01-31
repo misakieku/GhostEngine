@@ -1,18 +1,13 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Ghost.Engine.Models;
-using Ghost.Engine.Services;
+using Ghost.Core;
 using System.Collections.ObjectModel;
 
 namespace Ghost.Editor.ViewModels.Pages.EngineEditor;
 
 internal partial class ConsoleViewModel : ObservableObject
 {
-    [ObservableProperty]
-    public partial ObservableCollection<LogMessage> Logs
-    {
-        get; set;
-    } = new();
+    public ReadOnlyObservableCollection<LogMessage> Logs => Logger.Logs;
 
     [ObservableProperty]
     public partial bool ShowInfo
@@ -44,44 +39,10 @@ internal partial class ConsoleViewModel : ObservableObject
         get; set;
     }
 
-    public ConsoleViewModel()
-    {
-        foreach (var log in Logger.Logs)
-        {
-            Logs.Add(log);
-        }
-
-        Logger.OnLogsUpdate += UpdateLogs;
-    }
-
-    ~ConsoleViewModel()
-    {
-        Logger.OnLogsUpdate -= UpdateLogs;
-    }
-
-    private void UpdateLogs(LogChangeContext ctx)
-    {
-        switch (ctx.changeType)
-        {
-            case LogChangeType.LogAdded:
-                Logs.Add(Logger.Logs[ctx.index]);
-                break;
-            case LogChangeType.LogRemoved:
-                if (Logs.Count > 0)
-                {
-                    Logs.RemoveAt(ctx.index);
-                }
-                break;
-            case LogChangeType.LogsCleared:
-                Logs.Clear();
-                break;
-        }
-    }
-
     partial void OnShowStackTraceChanged(bool value)
     {
-        Logger.HasStackTrace = value;
-        Logger.LogInfo($"Stack trace visibility set to {value}.");
+        //Logger.HasStackTrace = value;
+        //Logger.LogInfo($"Stack trace visibility set to {value}.");
     }
 
     [RelayCommand]
