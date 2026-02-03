@@ -208,7 +208,7 @@ public static partial class AssetDatabase
     /// <summary>
     /// Move an asset to a new location by path.
     /// </summary>
-    /// <param name="oldPath">Current path of the asset.</param>
+    /// <param name="oldPath">CurrentApplication path of the asset.</param>
     /// <param name="newPath">New path for the asset (relative or absolute).</param>
     /// <returns>Result indicating success or failure.</returns>
     public static ValueTask<Result> MoveAssetAsync(string oldPath, string newPath, CancellationToken token = default)

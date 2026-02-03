@@ -1,7 +1,9 @@
 using CommunityToolkit.WinUI.Behaviors;
+using Ghost.Editor.Core.Contracts;
+using Ghost.Editor.Core.Notifications;
 using Microsoft.UI.Xaml.Controls;
 
-namespace Ghost.Editor.Core.Notifications;
+namespace Ghost.Editor.Core.Services;
 
 public class NotificationService : INotificationService
 {

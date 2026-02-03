@@ -1,9 +1,10 @@
 using CommunityToolkit.WinUI;
+using Ghost.Editor.Core.Contracts;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System.Runtime.CompilerServices;
 
-namespace Ghost.Editor.Core.Progress;
+namespace Ghost.Editor.Core.Services;
 
 public class ProgressService : IProgressService
 {

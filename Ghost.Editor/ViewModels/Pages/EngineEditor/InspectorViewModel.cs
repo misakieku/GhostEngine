@@ -1,6 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Ghost.Editor.Core.Contracts;
-using Ghost.Editor.Core.Inspector;
 
 namespace Ghost.Editor.ViewModels.Pages.EngineEditor;
 
@@ -16,7 +15,7 @@ internal partial class InspectorViewModel(IInspectorService inspectorService) : 
     public void OnNavigatedTo(object? parameter)
     {
         inspectorService.OnSelectionChanged += OnSelectionChanged;
-        Inspectable = inspectorService.SelectedInspectable;
+        Inspectable = inspectorService.Selected;
     }
 
     public void OnNavigatedFrom()
@@ -25,8 +24,8 @@ internal partial class InspectorViewModel(IInspectorService inspectorService) : 
         Inspectable = null;
     }
 
-    private void OnSelectionChanged()
+    private void OnSelectionChanged(object? sender, EventArgs e)
     {
-        Inspectable = inspectorService.SelectedInspectable;
+        Inspectable = inspectorService.Selected;
     }
 }

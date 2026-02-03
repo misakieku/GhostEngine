@@ -1,5 +1,4 @@
 using Ghost.Core;
-using Ghost.Data.Services;
 using Microsoft.Data.Sqlite;
 using System.Text.Json;
 
@@ -19,7 +18,7 @@ public static partial class AssetDatabase
             throw new InvalidOperationException("AssetsDirectory is not set. Initialize() must be called first.");
         }
 
-        var dbPath = Path.Combine(AssetsDirectory.Parent!.FullName, ProjectService.CACHE_FOLDER, "AssetDatabase.db");
+        var dbPath = Path.Combine(AssetsDirectory.Parent!.FullName, EditorApplication.CACHES_FOLDER_NAME, "AssetDatabase.db");
         var cacheDir = Path.GetDirectoryName(dbPath);
         if (!Directory.Exists(cacheDir))
         {
@@ -301,7 +300,7 @@ public static partial class AssetDatabase
             var sqlPattern = namePattern.Replace('*', '%').Replace('?', '_');
 
             await using var cmd = s_dbConnection.CreateCommand();
-            
+
             // Extract just the filename from the path for matching
             // SQLite doesn't have a built-in path manipulation, so we search in the full path
             // and filter by checking if the pattern matches the filename part
@@ -319,12 +318,12 @@ public static partial class AssetDatabase
 
                 // Extract filename and check if it matches the pattern
                 var fileName = Path.GetFileName(path);
-                
+
                 // Convert pattern to regex for proper matching
                 var regexPattern = "^" + System.Text.RegularExpressions.Regex.Escape(namePattern)
                     .Replace("\\*", ".*")
                     .Replace("\\?", ".") + "$";
-                
+
                 if (System.Text.RegularExpressions.Regex.IsMatch(fileName, regexPattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase))
                 {
                     if (Guid.TryParse(guidStr, out var guid))
@@ -377,10 +376,10 @@ public static partial class AssetDatabase
             }
 
             // Remove orphaned entries
-                foreach (var guid in orphanedGuids)
-                {
-                    await RemoveAssetFromDatabaseAsync(guid, token);
-                }
+            foreach (var guid in orphanedGuids)
+            {
+                await RemoveAssetFromDatabaseAsync(guid, token);
+            }
         }
         catch
         {

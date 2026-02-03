@@ -1,4 +1,4 @@
-namespace Ghost.Editor.Core.Progress;
+namespace Ghost.Editor.Core.Contracts;
 
 public interface IProgressService
 {

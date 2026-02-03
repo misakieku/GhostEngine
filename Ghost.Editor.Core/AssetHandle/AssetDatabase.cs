@@ -1,5 +1,4 @@
 using Ghost.Core;
-using Ghost.Data.Services;
 using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -92,12 +91,7 @@ public static partial class AssetDatabase
             s_initialized = true;
         }
 
-        if (ProjectService.CurrentProject.Metadata == null)
-        {
-            throw new InvalidOperationException("Project metadata is not initialized. Ensure that the project is loaded before accessing the AssetDatabase.");
-        }
-
-        AssetsDirectory = new DirectoryInfo(Path.Combine(Path.GetDirectoryName(ProjectService.CurrentProject.Path)!, ProjectService.ASSETS_FOLDER));
+        AssetsDirectory = new DirectoryInfo(Path.Combine(EditorApplication.CurrentProjectPath, EditorApplication.ASSETS_FOLDER_NAME));
 
         s_commandChannel = Channel.CreateUnbounded<AssetCommand>(new UnboundedChannelOptions
         {

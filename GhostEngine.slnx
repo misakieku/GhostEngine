@@ -5,7 +5,6 @@
     <Platform Name="x86" />
   </Configurations>
   <Folder Name="/Editor/">
-    <Project Path="Ghost.Data/Ghost.Data.csproj" />
     <Project Path="Ghost.Editor.Core/Ghost.Editor.Core.csproj" />
     <Project Path="Ghost.Editor/Ghost.Editor.csproj">
       <Platform Solution="*|ARM64" Project="ARM64" />

@@ -21,7 +21,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Ghost.Data\Ghost.Data.csproj" />
     <ProjectReference Include="..\Ghost.Core\Ghost.Core.csproj" />
     <ProjectReference Include="..\Ghost.Engine\Ghost.Engine.csproj" />
   </ItemGroup>

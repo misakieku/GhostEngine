@@ -1,5 +1,4 @@
 using Ghost.Core;
-using Ghost.Data.Services;
 using System.Collections.Concurrent;
 using System.Text.Json;
 
@@ -26,7 +25,7 @@ public static partial class AssetDatabase
             return Result<string>.Failure("AssetsDirectory not initialized");
         }
 
-        var cacheDir = Path.Combine(AssetsDirectory.Parent!.FullName, ProjectService.CACHE_FOLDER, "ImportedAssets");
+        var cacheDir = Path.Combine(AssetsDirectory.Parent!.FullName, EditorApplication.CACHES_FOLDER_NAME, "ImportedAssets");
         if (!Directory.Exists(cacheDir))
         {
             Directory.CreateDirectory(cacheDir);

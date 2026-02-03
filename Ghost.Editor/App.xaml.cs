@@ -1,15 +1,18 @@
 using Ghost.Core;
-using Ghost.Editor.Core.AppState;
-using Ghost.Editor.Core.Inspector;
-using Ghost.Editor.Core.Notifications;
-using Ghost.Editor.Core.Progress;
-using Ghost.Editor.Utilities;
+using Ghost.Editor.Core;
+using Ghost.Editor.Core.Contracts;
+using Ghost.Editor.Core.Services;
+using Ghost.Editor.View.Pages.EngineEditor;
+using Ghost.Editor.View.Windows;
+using Ghost.Editor.ViewModels.Controls;
+using Ghost.Editor.ViewModels.Pages.EngineEditor;
+using Ghost.Editor.ViewModels.Windows;
+using Ghost.Engine;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
-
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
+using System.Diagnostics;
+using WinUIEx;
 
 namespace Ghost.Editor;
 
@@ -53,13 +56,32 @@ public partial class App : Application
             UseContentRoot(AppContext.BaseDirectory).
             ConfigureServices((context, services) =>
             {
-                HostHelper.AddLandingScope(context, services);
-                HostHelper.AddEngineScope(context, services);
+                services.AddSingleton<IEngineContext, EngineCore>();
 
-                services.AddSingleton<AppStateMachine>();
                 services.AddSingleton<INotificationService, NotificationService>();
                 services.AddSingleton<IProgressService, ProgressService>();
                 services.AddSingleton<IInspectorService, InspectorService>();
+                services.AddSingleton<IPreviewService, PreviewService>();
+
+                services.AddSingleton<EngineEditorViewModel>();
+
+                services.AddTransient<ProjectBrowserViewModel>();
+
+                #region Should be deleted
+                services.AddTransient<ScenePage>();
+
+                services.AddTransient<HierarchyPage>();
+                services.AddTransient<HierarchyViewModel>();
+
+                services.AddTransient<ProjectPage>();
+                services.AddTransient<ProjectViewModel>();
+
+                services.AddTransient<ConsolePage>();
+                services.AddTransient<ConsoleViewModel>();
+
+                services.AddTransient<InspectorPage>();
+                services.AddTransient<InspectorViewModel>();
+                #endregion
             })
             .Build();
 
@@ -81,32 +103,55 @@ public partial class App : Application
         return service;
     }
 
-    /// <summary>
-    /// Invoked when the application is launched.
-    /// </summary>
-    /// <param name="args">Details about the launch request and process.</param>
     protected override async void OnLaunched(LaunchActivatedEventArgs args)
     {
         base.OnLaunched(args);
 
+        var arguments = ActivationHandler.ParseArguments("--project-path F:/GhostProject/Test2 --project-name Test2"); // args.Arguments
+        if (!arguments.IsValid())
+        {
+            Exit();
+            return;
+        }
+
+        EditorApplication.Initialize(Host.Services, arguments.ProjectPath, arguments.ProjectName);
+
+        var splashWindow = new SplashWindow();
+        splashWindow.Activate();
+        Window = splashWindow;
+
         await Host.StartAsync();
-        ActivationHandler.Handle(args);
+        await ActivationHandler.HandleAsync(arguments);
 
-        var stateMachine = GetService<AppStateMachine>();
-        stateMachine.RegisterState(StateKey.Landing, () => new LandingState());
-        stateMachine.RegisterState(StateKey.EngineEditor, () => new EditorState());
+        splashWindow.Hide();
 
-        await stateMachine.TransitionToAsync(StateKey.Landing);
+        var editorWindow = new EngineEditorWindow();
+        editorWindow.Activate();
+        Window = editorWindow;
+
+        splashWindow.Close();
     }
 
     private void OnClosed(object? sender, WindowEventArgs args)
     {
-        Host.StopAsync().GetAwaiter().GetResult();
-        Host.Dispose();
+        try
+        {
+            Host.StopAsync().GetAwaiter().GetResult();
+            Host.Dispose();
+
+            EditorApplication.Shutdown();
+        }
+        catch (Exception ex)
+        {
+            Debugger.BreakForUserUnhandledException(ex);
+        }
     }
 
     private void App_UnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
     {
         Logger.LogError(e.Exception);
+#if DEBUG
+        Debugger.BreakForUserUnhandledException(e.Exception);
+#endif
     }
 }

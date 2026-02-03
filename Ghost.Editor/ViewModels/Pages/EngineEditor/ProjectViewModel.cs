@@ -1,5 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using Ghost.Data.Services;
+using Ghost.Editor.Core;
 using Ghost.Editor.Core.AssetHandle;
 using Ghost.Editor.Models;
 using System.Collections.ObjectModel;
@@ -36,12 +36,7 @@ internal partial class ProjectViewModel : ObservableObject
 
     public ProjectViewModel()
     {
-        if (ProjectService.CurrentProject.Metadata == null)
-        {
-            throw new InvalidOperationException("Current project is not set.");
-        }
-
-        var assetsRootItem = new ExplorerItem("Assets", Path.Combine(Path.GetDirectoryName(ProjectService.CurrentProject.Path)!, ProjectService.ASSETS_FOLDER), true);
+        var assetsRootItem = new ExplorerItem("Assets", Path.Combine(EditorApplication.CurrentProjectPath, EditorApplication.ASSETS_FOLDER_NAME), true);
         LoadSubFolderRecursive(ref assetsRootItem);
 
         SubDirectories.Add(assetsRootItem);

@@ -29,6 +29,12 @@ public static class TypeCache
         s_types = loadableTypes.Select(t => t.GetTypeInfo()).ToArray();
     }
 
+    internal static void Init()
+    {
+        // Intentionally left blank.
+        // This method exists to force the static constructor to run.
+    }
+
     public static Type[] GetTypes()
     {
         return s_types;

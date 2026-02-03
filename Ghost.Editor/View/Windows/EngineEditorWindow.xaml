@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:behaviors="using:CommunityToolkit.WinUI.Behaviors"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
+    xmlns:controls1="using:Ghost.Editor.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:ee="using:Ghost.Editor.View.Pages.EngineEditor"
     xmlns:interactivity="using:Microsoft.Xaml.Interactivity"
@@ -12,15 +13,13 @@
     xmlns:local="using:Ghost.Editor.View.Windows"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:winex="using:WinUIEx"
-    Activated="WindowEx_Activated"
-    Closed="WindowEx_Closed"
     mc:Ignorable="d">
 
     <Window.SystemBackdrop>
         <MicaBackdrop />
     </Window.SystemBackdrop>
 
-    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    <Grid Loaded="MainGrid_Loaded" Unloaded="MainGrid_Unloaded">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -29,29 +28,21 @@
         </Grid.RowDefinitions>
 
         <!--  Titlebar  -->
-        <StackPanel
+        <TitleBar
+            x:Name="PART_TitleBar"
             Grid.Row="0"
-            Padding="8"
-            Orientation="Horizontal">
-            <ImageIcon
-                Width="24"
-                Height="24"
-                VerticalAlignment="Center"
-                Source="ms-appx:///Assets/Icon.targetsize-32.png" />
-            <TextBlock
-                Margin="8,0,0,0"
-                VerticalAlignment="Center"
-                Style="{StaticResource CaptionTextBlockStyle}"
-                Text="{x:Bind ViewModel.engineVersionDescriptor}" />
-            <TextBlock
-                Margin="8,0,0,0"
-                VerticalAlignment="Center"
-                Style="{StaticResource CaptionTextBlockStyle}"
-                Text="{x:Bind ViewModel.CurrentProject.Metadata.Name, Mode=OneWay}" />
-        </StackPanel>
+            Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}"
+            Subtitle="Ghost Engine">
+            <TitleBar.IconSource>
+                <ImageIconSource ImageSource="ms-appx:///Assets/icon.targetsize-48.png" />
+            </TitleBar.IconSource>
+        </TitleBar>
 
         <!--  Toolbar  -->
-        <Grid Grid.Row="1" Margin="4,4">
+        <Grid
+            Grid.Row="1"
+            Padding="4,0,4,4"
+            Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}">
             <controls:TabbedCommandBar>
                 <controls:TabbedCommandBar.MenuItems>
                     <controls:TabbedCommandBarItem Header="Home">
@@ -132,7 +123,7 @@
                         <TabViewItem.IconSource>
                             <FontIconSource Glyph="&#xEC50;" />
                         </TabViewItem.IconSource>
-                        <ee:ProjectPage />
+                        <controls1:ProjectBrowser />
                     </TabViewItem>
                     <TabViewItem Header="Console">
                         <TabViewItem.IconSource>
@@ -148,7 +139,7 @@
         <Grid
             Grid.Row="3"
             Height="25"
-            Background="{ThemeResource SolidBackgroundFillColorBaseAltBrush}">
+            Background="{ThemeResource SmokeFillColorDefaultBrush}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
@@ -201,6 +192,7 @@
             </Grid>
         </Grid>
 
+        <!--  Info and Progress  -->
         <Grid Grid.Row="0" Grid.RowSpan="4">
             <InfoBar
                 x:Name="InfoBar"

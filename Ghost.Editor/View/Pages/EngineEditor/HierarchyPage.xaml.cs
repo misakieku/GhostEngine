@@ -1,5 +1,5 @@
 using Ghost.Editor.Controls.Internal;
-using Ghost.Editor.Core.Inspector;
+using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.SceneGraph;
 using Ghost.Editor.ViewModels.Pages.EngineEditor;
 using Microsoft.UI.Xaml;
@@ -38,11 +38,11 @@ internal sealed partial class HierarchyPage : NavigationTabPage
     {
         if (args.AddedItems.Count > 0 && args.AddedItems[0] is IInspectable inspectable)
         {
-            _inspectorService.SelectedInspectable = inspectable;
+            _inspectorService.SetSelected(inspectable, ViewModel);
         }
         else
         {
-            _inspectorService.SelectedInspectable = null;
+            _inspectorService.SetSelected(null, ViewModel);
         }
     }
 }

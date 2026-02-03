@@ -3,7 +3,7 @@ using Misaki.HighPerformance.Jobs;
 
 namespace Ghost.Engine;
 
-public interface IEngineContext
+public interface IEngineContext : IDisposable
 {
     JobScheduler JobScheduler { get; }
 }
