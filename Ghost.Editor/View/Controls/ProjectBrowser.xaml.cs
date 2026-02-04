@@ -3,11 +3,18 @@ using Ghost.Editor.Models;
 using Ghost.Editor.ViewModels.Controls;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 
-namespace Ghost.Editor.Controls;
+namespace Ghost.Editor.View.Controls;
 
 internal sealed partial class ProjectBrowser : UserControl
 {
+    public static ProjectBrowser? LastFocused
+    {
+        get;
+        private set;
+    }
+
     private readonly IInspectorService _inspectorService;
     private bool _isUpdatingSelection = false;
 
@@ -25,6 +32,18 @@ internal sealed partial class ProjectBrowser : UserControl
 
         Loaded += ProjectBrowser_Loaded;
         Unloaded += ProjectBrowser_Unloaded;
+
+        GettingFocus += ProjectBrowser_GettingFocus;
+    }
+
+    private void ProjectBrowser_GettingFocus(UIElement sender, GettingFocusEventArgs args)
+    {
+        if (_isUpdatingSelection)
+        {
+            return;
+        }
+
+        LastFocused = this;
     }
 
     private void ProjectBrowser_Loaded(object sender, RoutedEventArgs e)

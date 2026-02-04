@@ -1,4 +1,4 @@
-using Ghost.Editor.Controls.Internal;
+using Ghost.Editor.Controls;
 using Ghost.Editor.ViewModels.Pages.EngineEditor;
 
 namespace Ghost.Editor.View.Pages.EngineEditor;

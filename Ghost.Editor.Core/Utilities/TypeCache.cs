@@ -1,13 +1,21 @@
 using Ghost.Core.Attributes;
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Editor.Core.Utilities;
 
 public static class TypeCache
 {
-    private static readonly TypeInfo[] s_types;
+    private static TypeInfo[] s_types;
+    private static Dictionary<nint, List<MethodInfo>> s_attributeMethodCache;
 
     static TypeCache()
+    {
+        s_types = LoadTypes();
+        s_attributeMethodCache = FindMethodWithAttribute();
+    }
+
+    private static TypeInfo[] LoadTypes()
     {
         var loadableTypes = new List<Type>(512);
         var assembliesToScan = AppDomain.CurrentDomain.GetAssemblies()
@@ -26,7 +34,32 @@ public static class TypeCache
             }
         }
 
-        s_types = loadableTypes.Select(t => t.GetTypeInfo()).ToArray();
+        return loadableTypes.Select(t => t.GetTypeInfo()).ToArray();
+    }
+
+    private static Dictionary<nint, List<MethodInfo>> FindMethodWithAttribute()
+    {
+        var dict = new Dictionary<nint, List<MethodInfo>>();
+        foreach (var type in s_types)
+        {
+            foreach (var method in type.DeclaredMethods)
+            {
+                var attrs = method.GetCustomAttributes<DiscoverableAttributeBase>(false);
+                foreach (var attr in attrs)
+                {
+                    var key = attr.GetType().TypeHandle.Value;
+                    ref var methodList = ref CollectionsMarshal.GetValueRefOrAddDefault(dict, key, out var exist);
+                    if (!exist)
+                    {
+                        methodList = new List<MethodInfo>();
+                    }
+
+                    methodList!.Add(method);
+                }
+            }
+        }
+
+        return dict;
     }
 
     internal static void Init()
@@ -35,8 +68,26 @@ public static class TypeCache
         // This method exists to force the static constructor to run.
     }
 
-    public static Type[] GetTypes()
+    internal static void Reload()
+    {
+        s_types = LoadTypes();
+        s_attributeMethodCache = FindMethodWithAttribute();
+    }
+
+    public static IReadOnlyCollection<TypeInfo> GetTypes()
     {
         return s_types;
+    }
+
+    public static IReadOnlyCollection<MethodInfo>? GetMethodsWithAttribute<T>()
+        where T : DiscoverableAttributeBase
+    {
+        var key = typeof(T).TypeHandle.Value;
+        if (s_attributeMethodCache.TryGetValue(key, out var methods))
+        {
+            return methods;
+        }
+
+        return null;
     }
 }

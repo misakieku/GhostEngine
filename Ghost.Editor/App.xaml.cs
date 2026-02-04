@@ -10,6 +10,7 @@ using Ghost.Editor.ViewModels.Windows;
 using Ghost.Engine;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using System.Diagnostics;
 using WinUIEx;
@@ -115,6 +116,9 @@ public partial class App : Application
         }
 
         EditorApplication.Initialize(Host.Services, arguments.ProjectPath, arguments.ProjectName);
+
+        // NOTE: We must call DispatcherQueue.GetForCurrentThread() on the UI thread before any await.
+        EditorApplication.SetDispatcherQueue(DispatcherQueue.GetForCurrentThread());
 
         var splashWindow = new SplashWindow();
         splashWindow.Activate();

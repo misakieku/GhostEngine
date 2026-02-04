@@ -2,7 +2,7 @@ using Ghost.Editor.Core.Contracts;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
-namespace Ghost.Editor.Controls.Internal;
+namespace Ghost.Editor.Controls;
 
 public partial class NavigationTabPage : TabViewItem, INavigationAware
 {

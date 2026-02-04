@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <UserControl
-    x:Class="Ghost.Editor.Controls.ProjectBrowser"
+    x:Class="Ghost.Editor.View.Controls.ProjectBrowser"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:community="using:CommunityToolkit.WinUI.Controls"
     xmlns:converter="using:Ghost.Editor.Utilities.Converters"
-    xmlns:ctc="using:CommunityToolkit.WinUI.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:local="using:Ghost.Editor.Controls"
+    xmlns:ghost="using:Ghost.Editor.Core.Controls"
+    xmlns:local="using:Ghost.Editor.View.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:model="using:Ghost.Editor.Models"
     xmlns:sys="using:System"
@@ -164,13 +165,13 @@
                                         </MenuFlyout>
                                     </Grid.ContextFlyout>
 
-                                    <ctc:ConstrainedBox Grid.Row="0" AspectRatio="1:1">
+                                    <community:ConstrainedBox Grid.Row="0" AspectRatio="1:1">
                                         <Image HorizontalAlignment="Center">
                                             <Image.Source>
                                                 <BitmapImage DecodePixelWidth="48" UriSource="{x:Bind Converter={StaticResource ExplorerItemToIconUriConverter}}" />
                                             </Image.Source>
                                         </Image>
-                                    </ctc:ConstrainedBox>
+                                    </community:ConstrainedBox>
                                     <TextBlock
                                         Grid.Row="1"
                                         HorizontalAlignment="Center"
@@ -190,7 +191,7 @@
                             MinRowSpacing="4" />
                     </ItemsView.Layout>
                     <ItemsView.ContextFlyout>
-                        <MenuFlyout>
+                        <ghost:ContextFlyout Tag="project-browser">
                             <MenuFlyoutSubItem Text="Create">
                                 <MenuFlyoutItem Text="Folder" />
                                 <MenuFlyoutItem Text="Script" />
@@ -199,11 +200,8 @@
                                     <MenuFlyoutItem Text="Volume Profile" />
                                 </MenuFlyoutSubItem>
                             </MenuFlyoutSubItem>
-                            <MenuFlyoutItem Text="Show in Explorer" />
                             <MenuFlyoutSeparator />
-                            <MenuFlyoutItem Text="Refresh" />
-                            <MenuFlyoutItem Text="Reimport All" />
-                        </MenuFlyout>
+                        </ghost:ContextFlyout>
                     </ItemsView.ContextFlyout>
                 </ItemsView>
 

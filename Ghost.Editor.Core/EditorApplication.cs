@@ -1,3 +1,4 @@
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 
 namespace Ghost.Editor.Core;
@@ -11,15 +12,35 @@ public static class EditorApplication
     private static string s_currentProjectPath = string.Empty;
     private static string s_currentProjectName = string.Empty;
 
+    private static DispatcherQueue? s_dispatcherQueue;
+
     internal static Application CurrentApplication => Application.Current;
     internal static string CurrentProjectPath => s_currentProjectPath;
     internal static string CurrentProjectName => s_currentProjectName;
+
+    public static DispatcherQueue DispatcherQueue
+    {
+        get
+        {
+            if (s_dispatcherQueue is null)
+            {
+                throw new InvalidOperationException("DispatcherQueue is not initialized.");
+            }
+
+            return s_dispatcherQueue;
+        }
+    }
 
     internal static void Initialize(IServiceProvider serviceProvider, string projectPath, string projectName)
     {
         s_serviceProvider = serviceProvider;
         s_currentProjectPath = projectPath;
         s_currentProjectName = projectName;
+    }
+
+    internal static void SetDispatcherQueue(DispatcherQueue dispatcherQueue)
+    {
+        s_dispatcherQueue = dispatcherQueue;
     }
 
     public static T GetService<T>()

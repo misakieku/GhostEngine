@@ -1,7 +1,6 @@
 using Ghost.Editor.Core;
 using Microsoft.UI.Xaml;
 using Windows.ApplicationModel;
-using Windows.Storage;
 using WinUIEx;
 
 namespace Ghost.Editor.View.Windows;
@@ -20,7 +19,7 @@ internal sealed partial class SplashWindow : WindowEx
         IsMinimizable = false;
         ExtendsContentIntoTitleBar = true;
 
-        //this.CenterOnScreen(750, 400);
+        this.CenterOnScreen(750, 400);
     }
 
     private void MainGrid_Loaded(object sender, RoutedEventArgs e)

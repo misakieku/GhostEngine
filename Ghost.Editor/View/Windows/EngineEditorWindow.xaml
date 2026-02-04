@@ -4,12 +4,12 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:behaviors="using:CommunityToolkit.WinUI.Behaviors"
-    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
-    xmlns:controls1="using:Ghost.Editor.Controls"
+    xmlns:controls="using:Ghost.Editor.View.Controls"
+    xmlns:ctc="using:CommunityToolkit.WinUI.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:ee="using:Ghost.Editor.View.Pages.EngineEditor"
+    xmlns:ghost="using:Ghost.Editor.Controls"
     xmlns:interactivity="using:Microsoft.Xaml.Interactivity"
-    xmlns:internal="using:Ghost.Editor.Controls.Internal"
     xmlns:local="using:Ghost.Editor.View.Windows"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:winex="using:WinUIEx"
@@ -43,25 +43,25 @@
             Grid.Row="1"
             Padding="4,0,4,4"
             Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}">
-            <controls:TabbedCommandBar>
-                <controls:TabbedCommandBar.MenuItems>
-                    <controls:TabbedCommandBarItem Header="Home">
+            <ctc:TabbedCommandBar>
+                <ctc:TabbedCommandBar.MenuItems>
+                    <ctc:TabbedCommandBarItem Header="Home">
                         <AppBarButton Label="Undo" />
                         <AppBarButton Label="Redo" />
                         <AppBarButton Label="Paste" />
-                    </controls:TabbedCommandBarItem>
-                    <controls:TabbedCommandBarItem Header="Home">
+                    </ctc:TabbedCommandBarItem>
+                    <ctc:TabbedCommandBarItem Header="Home">
                         <AppBarButton Label="Undo" />
                         <AppBarButton Label="Redo" />
                         <AppBarButton Label="Paste" />
-                    </controls:TabbedCommandBarItem>
-                    <controls:TabbedCommandBarItem Header="Home">
+                    </ctc:TabbedCommandBarItem>
+                    <ctc:TabbedCommandBarItem Header="Home">
                         <AppBarButton Label="Undo" />
                         <AppBarButton Label="Redo" />
                         <AppBarButton Label="Paste" />
-                    </controls:TabbedCommandBarItem>
-                </controls:TabbedCommandBar.MenuItems>
-            </controls:TabbedCommandBar>
+                    </ctc:TabbedCommandBarItem>
+                </ctc:TabbedCommandBar.MenuItems>
+            </ctc:TabbedCommandBar>
         </Grid>
 
         <!--  Editor  -->
@@ -78,52 +78,52 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <internal:NavigationTabView
+                <ghost:NavigationTabView
                     Grid.Column="0"
                     Width="350"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch">
-                    <internal:NavigationTabView.TabItems>
+                    <ghost:NavigationTabView.TabItems>
                         <ee:HierarchyPage Header="Hierarchy">
                             <ee:HierarchyPage.IconSource>
                                 <FontIconSource Glyph="&#xE8A4;" />
                             </ee:HierarchyPage.IconSource>
                         </ee:HierarchyPage>
-                    </internal:NavigationTabView.TabItems>
-                </internal:NavigationTabView>
+                    </ghost:NavigationTabView.TabItems>
+                </ghost:NavigationTabView>
 
-                <internal:NavigationTabView Grid.Column="1">
-                    <internal:NavigationTabView.TabItems>
+                <ghost:NavigationTabView Grid.Column="1">
+                    <ghost:NavigationTabView.TabItems>
                         <ee:ScenePage Header="Scene">
                             <ee:ScenePage.IconSource>
                                 <FontIconSource Glyph="&#xF159;" />
                             </ee:ScenePage.IconSource>
                         </ee:ScenePage>
-                    </internal:NavigationTabView.TabItems>
-                </internal:NavigationTabView>
+                    </ghost:NavigationTabView.TabItems>
+                </ghost:NavigationTabView>
 
-                <internal:NavigationTabView
+                <ghost:NavigationTabView
                     Grid.Column="2"
                     Width="350"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch">
-                    <internal:NavigationTabView.TabItems>
+                    <ghost:NavigationTabView.TabItems>
                         <ee:InspectorPage Header="Inspector">
                             <ee:InspectorPage.IconSource>
                                 <FontIconSource Glyph="&#xEC7A;" />
                             </ee:InspectorPage.IconSource>
                         </ee:InspectorPage>
-                    </internal:NavigationTabView.TabItems>
-                </internal:NavigationTabView>
+                    </ghost:NavigationTabView.TabItems>
+                </ghost:NavigationTabView>
             </Grid>
 
-            <internal:NavigationTabView Grid.Row="1" Height="350">
-                <internal:NavigationTabView.TabItems>
+            <ghost:NavigationTabView Grid.Row="1" Height="350">
+                <ghost:NavigationTabView.TabItems>
                     <TabViewItem Header="Project">
                         <TabViewItem.IconSource>
                             <FontIconSource Glyph="&#xEC50;" />
                         </TabViewItem.IconSource>
-                        <controls1:ProjectBrowser />
+                        <controls:ProjectBrowser />
                     </TabViewItem>
                     <TabViewItem Header="Console">
                         <TabViewItem.IconSource>
@@ -131,8 +131,8 @@
                         </TabViewItem.IconSource>
                         <ee:ConsolePage />
                     </TabViewItem>
-                </internal:NavigationTabView.TabItems>
-            </internal:NavigationTabView>
+                </ghost:NavigationTabView.TabItems>
+            </ghost:NavigationTabView>
         </Grid>
 
         <!--  Status Bar  -->

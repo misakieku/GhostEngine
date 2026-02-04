@@ -35,6 +35,11 @@ internal partial class ProjectBrowserViewModel : ObservableObject
         }
     }
 
+    public string CurrentDirectoryPath
+    {
+        get; set;
+    } = string.Empty;
+
     public ProjectBrowserViewModel(IInspectorService inspectorService)
     {
         _inspectorService = inspectorService;
@@ -84,6 +89,8 @@ internal partial class ProjectBrowserViewModel : ObservableObject
             var fileItem = new ExplorerItem(Path.GetFileName(file), file, false);
             Files.Add(fileItem);
         }
+
+        CurrentDirectoryPath = path;
     }
 
     internal (ExplorerItem?, int) OpenSelected()

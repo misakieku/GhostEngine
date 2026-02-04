@@ -1,4 +1,4 @@
-using Ghost.Editor.Controls.Internal;
+using Ghost.Editor.Controls;
 //using Ghost.Graphics.Contracts;
 //using Microsoft.UI.Xaml;
 //using Microsoft.UI.Xaml.Controls;
