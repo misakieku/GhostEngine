@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace Ghost.Editor.Core.AssetHandle;
 
-public static partial class AssetDatabase
+public static partial class AssetService
 {
     // Asset cache - stores loaded assets by GUID
     private static readonly ConcurrentDictionary<Guid, Asset> s_assetCache = new();

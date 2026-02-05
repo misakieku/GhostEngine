@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace Ghost.Editor.Core.AssetHandle;
 
-public static partial class AssetDatabase
+public static partial class AssetService
 {
     /// <summary>
     /// Get the relative path from the assets directory.
@@ -96,7 +96,7 @@ public static partial class AssetDatabase
     /// <returns>The loaded asset.</returns>
     public static Result<T> LoadAsset<T>(Guid guid) where T : Asset
     {
-        // Implemented in AssetDatabase.Loader.cs
+        // Implemented in AssetService.Loader.cs
         return LoadAssetInternal<T>(guid);
     }
 

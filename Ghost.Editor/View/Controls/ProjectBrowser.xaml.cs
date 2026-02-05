@@ -54,6 +54,11 @@ internal sealed partial class ProjectBrowser : UserControl
     private void ProjectBrowser_Unloaded(object sender, RoutedEventArgs e)
     {
         _inspectorService.OnSelectionChanged -= _inspectorService_OnSelectionChanged;
+
+        if (LastFocused == this)
+        {
+            LastFocused = null;
+        }
     }
 
     private void _inspectorService_OnSelectionChanged(object? sender, InspectorSelectionChangedEventArgs e)

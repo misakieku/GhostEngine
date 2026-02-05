@@ -39,7 +39,7 @@ public abstract class AssetImporter
     {
         foreach (var dependencyGuid in dependencies)
         {
-            var path = AssetDatabase.GuidToPath(dependencyGuid);
+            var path = AssetService.GuidToPath(dependencyGuid);
             if (path.IsFailure)
             {
                 return ValueTask.FromResult(Result.Failure($"Missing dependency: {dependencyGuid}"));

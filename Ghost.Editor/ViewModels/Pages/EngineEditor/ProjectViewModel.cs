@@ -124,7 +124,7 @@ internal partial class ProjectViewModel : ObservableObject
         }
         else
         {
-            AssetDatabase.OpenAsset(SelectedAsset.FullName);
+            AssetService.OpenAsset(SelectedAsset.FullName);
         }
     }
 

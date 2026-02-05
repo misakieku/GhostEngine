@@ -63,6 +63,7 @@ public partial class App : Application
                 services.AddSingleton<IProgressService, ProgressService>();
                 services.AddSingleton<IInspectorService, InspectorService>();
                 services.AddSingleton<IPreviewService, PreviewService>();
+                services.AddSingleton<IAssetService, AssetService>();
 
                 services.AddSingleton<EngineEditorViewModel>();
 

@@ -2,7 +2,7 @@ using Ghost.Core;
 
 namespace Ghost.Editor.Core.AssetHandle;
 
-public static partial class AssetDatabase
+public static partial class AssetService
 {
     /// <summary>
     /// Create a new asset at the specified path.

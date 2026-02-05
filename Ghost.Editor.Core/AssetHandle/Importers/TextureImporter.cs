@@ -134,7 +134,7 @@ internal class TextureImporter : AssetImporter<TextureImporterSettings>
             };
 
             // Save the imported asset data
-            var saveResult = AssetDatabase.SaveImportedAsset(meta.Guid, textureAsset);
+            var saveResult = AssetService.SaveImportedAsset(meta.Guid, textureAsset);
             if (saveResult.IsFailure)
             {
                 return Result.Failure($"Failed to save texture asset: {saveResult.Message}");

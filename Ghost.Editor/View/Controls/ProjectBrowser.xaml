@@ -150,7 +150,8 @@
                                     Padding="8"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
-                                    RowSpacing="4">
+                                    RowSpacing="4"
+                                    ToolTipService.ToolTip="{x:Bind Name}">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="*" />
                                         <RowDefinition Height="Auto" />
@@ -191,17 +192,7 @@
                             MinRowSpacing="4" />
                     </ItemsView.Layout>
                     <ItemsView.ContextFlyout>
-                        <ghost:ContextFlyout Tag="project-browser">
-                            <MenuFlyoutSubItem Text="Create">
-                                <MenuFlyoutItem Text="Folder" />
-                                <MenuFlyoutItem Text="Script" />
-                                <MenuFlyoutSubItem Text="Rendering">
-                                    <MenuFlyoutItem Text="Material" />
-                                    <MenuFlyoutItem Text="Volume Profile" />
-                                </MenuFlyoutSubItem>
-                            </MenuFlyoutSubItem>
-                            <MenuFlyoutSeparator />
-                        </ghost:ContextFlyout>
+                        <ghost:ContextFlyout Tag="project-browser" />
                     </ItemsView.ContextFlyout>
                 </ItemsView>
 

@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace Ghost.Editor.Core.AssetHandle;
 
-public static partial class AssetDatabase
+public static partial class AssetService
 {
     private static readonly Dictionary<string, Action<string>> s_assetOpenHandlers = new(StringComparer.OrdinalIgnoreCase);
 

@@ -33,7 +33,7 @@ internal readonly record struct AssetCommand(
 /// Handles asset registration, lookup, importing, and dependency management.
 /// Uses SQLite for persistent storage and efficient querying.
 /// </summary>
-public static partial class AssetDatabase
+public static partial class AssetService
 {
     private static FileSystemWatcher? s_watcher;
     private static readonly Lock s_dbLock = new();
@@ -47,7 +47,6 @@ public static partial class AssetDatabase
     // Command buffer pattern - Channel for file system event commands
     private static Channel<AssetCommand>? s_commandChannel;
     private static Timer? s_commandProcessorTimer;
-    private static readonly Lock s_commandLock = new();
     private static readonly ConcurrentQueue<AssetCommand> s_waitingCommands = new(); // Commands waiting for manual refresh
     private static bool s_autoRefreshEnabled = true;
 
@@ -56,7 +55,7 @@ public static partial class AssetDatabase
     private static bool s_initialized = false;
 
     private static readonly TimeSpan s_debounceDelay = TimeSpan.FromMilliseconds(100);
-    private static ManualResetEventSlim s_resetEventSlim = new(false);
+    private static readonly ManualResetEventSlim s_resetEventSlim = new(false);
 
     private static readonly JsonSerializerOptions s_defaultJsonOptions = new()
     {
@@ -78,7 +77,6 @@ public static partial class AssetDatabase
     /// Initialize the asset database.
     /// Must be called after project is loaded.
     /// </summary>
-
     internal static async Task Initialize(CancellationToken token = default)
     {
         lock (s_initializationLock)

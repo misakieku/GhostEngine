@@ -20,3 +20,6 @@ public class CollectionPool<TCollection, TItem>
 }
 
 public class ListPool<T> : CollectionPool<List<T>, T>;
+public class HashSetPool<T> : CollectionPool<HashSet<T>, T>;
+public class DictionaryPool<TKey, TValue> : CollectionPool<Dictionary<TKey, TValue>, KeyValuePair<TKey, TValue>>
+    where TKey : notnull;

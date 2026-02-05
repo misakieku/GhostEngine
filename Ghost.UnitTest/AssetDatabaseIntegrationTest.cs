@@ -5,11 +5,11 @@ using Ghost.Core;
 namespace Ghost.UnitTest;
 
 /// <summary>
-/// Comprehensive integration tests for AssetDatabase.
+/// Comprehensive integration tests for AssetService.
 /// Tests database operations, file system watchers, searching, importing, and race conditions.
 /// </summary>
 [TestClass]
-[DoNotParallelize] // AssetDatabase is a singleton, tests must run sequentially
+[DoNotParallelize] // AssetService is a singleton, tests must run sequentially
 public class AssetDatabaseIntegrationTest
 {
     private string _tempPath = string.Empty;
@@ -49,8 +49,8 @@ public class AssetDatabaseIntegrationTest
         var projectMetadataInfo = new Data.Models.ProjectMetadataInfo(projectPath, metadata);
         ProjectService.CurrentProject = projectMetadataInfo;
 
-        // Initialize AssetDatabase
-        await AssetDatabase.Initialize(TestContext.CancellationToken);
+        // Initialize AssetService
+        await AssetService.Initialize(TestContext.CancellationToken);
 
         // Give the file system watcher time to start
         await Task.Delay(100, TestContext.CancellationToken);
@@ -59,10 +59,10 @@ public class AssetDatabaseIntegrationTest
     [TestCleanup]
     public void Cleanup()
     {
-        // Shutdown AssetDatabase to release file watchers
+        // Shutdown AssetService to release file watchers
         try
         {
-            AssetDatabase.Shutdown();
+            AssetService.Shutdown();
         }
         catch
         {
@@ -91,7 +91,7 @@ public class AssetDatabaseIntegrationTest
     private async Task WaitForFileSystemEvents(int delayMs = 300)
     {
         await Task.Delay(delayMs, TestContext.CancellationToken);
-        AssetDatabase.FlushPendingCommands();
+        AssetService.FlushPendingCommands();
 
         // Give a bit more time after flush for any final processing
         await Task.Delay(50, TestContext.CancellationToken);
@@ -145,15 +145,15 @@ public class AssetDatabaseIntegrationTest
         await WaitForFileSystemEvents();
 
         // Test wildcard search: player*
-        var results = await AssetDatabase.FindAssetsByNameAsync("player*", TestContext.CancellationToken);
+        var results = await AssetService.FindAssetsByNameAsync("player*", TestContext.CancellationToken);
         Assert.HasCount(3, results, "Should find 3 files matching 'player*'");
 
         // Test single character wildcard: player?
-        results = await AssetDatabase.FindAssetsByNameAsync("player?.txt", TestContext.CancellationToken);
+        results = await AssetService.FindAssetsByNameAsync("player?.txt", TestContext.CancellationToken);
         Assert.HasCount(2, results, "Should find 2 files matching 'player?.txt'");
 
         // Test exact match
-        results = await AssetDatabase.FindAssetsByNameAsync("enemy.txt", TestContext.CancellationToken);
+        results = await AssetService.FindAssetsByNameAsync("enemy.txt", TestContext.CancellationToken);
         Assert.HasCount(1, results, "Should find 1 file matching 'enemy.txt'");
 
         CheckInternalErrors();
@@ -168,7 +168,7 @@ public class AssetDatabaseIntegrationTest
         await WaitForFileSystemEvents();
 
         // Get the GUID before rename
-        var guidResult = AssetDatabase.PathToGuid(originalPath);
+        var guidResult = AssetService.PathToGuid(originalPath);
         Assert.IsTrue(guidResult.IsSuccess, "Should be able to get GUID before rename");
         var guid = guidResult.Value;
 
@@ -182,7 +182,7 @@ public class AssetDatabaseIntegrationTest
         Assert.IsTrue(File.Exists(newMetaPath), "Meta file should be moved with the asset");
 
         // Verify GUID is preserved
-        var newGuidResult = AssetDatabase.PathToGuid(newPath);
+        var newGuidResult = AssetService.PathToGuid(newPath);
         Assert.IsTrue(newGuidResult.IsSuccess, "Should be able to get GUID after rename");
         Assert.AreEqual(guid, newGuidResult.Value, "GUID should be preserved after rename");
 
@@ -197,7 +197,7 @@ public class AssetDatabaseIntegrationTest
         await File.WriteAllTextAsync(filePath, "data", TestContext.CancellationToken);
         await WaitForFileSystemEvents();
 
-        var guidResult = AssetDatabase.PathToGuid(filePath);
+        var guidResult = AssetService.PathToGuid(filePath);
         Assert.IsTrue(guidResult.IsSuccess);
         var guid = guidResult.Value;
 
@@ -211,7 +211,7 @@ public class AssetDatabaseIntegrationTest
         Assert.IsFalse(File.Exists(metaPath), "Meta file should be deleted with asset");
 
         // Asset should be removed from database
-        var pathResult = AssetDatabase.GuidToPath(guid);
+        var pathResult = AssetService.GuidToPath(guid);
         Assert.IsTrue(pathResult.IsFailure, "Asset should be removed from database");
 
         CheckInternalErrors();
@@ -223,7 +223,7 @@ public class AssetDatabaseIntegrationTest
         var filePath = Path.Combine(_testAssetsDir, "apiCreated.txt");
 
         // Create via API
-        var result = await AssetDatabase.CreateAssetAsync(filePath, TestContext.CancellationToken);
+        var result = await AssetService.CreateAssetAsync(filePath, TestContext.CancellationToken);
         Assert.IsTrue(result.IsSuccess, "Should create asset successfully");
 
         // File and meta should exist
@@ -231,7 +231,7 @@ public class AssetDatabaseIntegrationTest
         Assert.IsTrue(File.Exists(filePath + ".gmeta"), "Meta file should exist");
 
         // Should be in database
-        var guidResult = AssetDatabase.PathToGuid(filePath);
+        var guidResult = AssetService.PathToGuid(filePath);
         Assert.IsTrue(guidResult.IsSuccess, "Asset should be in database");
 
         CheckInternalErrors();
@@ -245,7 +245,7 @@ public class AssetDatabaseIntegrationTest
         await File.WriteAllTextAsync(sourcePath, "data", TestContext.CancellationToken);
         await WaitForFileSystemEvents();
 
-        var guid = AssetDatabase.PathToGuid(sourcePath).Value;
+        var guid = AssetService.PathToGuid(sourcePath).Value;
 
         // Create subdirectory
         var subDir = Path.Combine(_testAssetsDir, "SubFolder");
@@ -254,7 +254,7 @@ public class AssetDatabaseIntegrationTest
         var destPath = Path.Combine(subDir, "source.txt");
 
         // Move via API
-        var result = await AssetDatabase.MoveAssetAsync(sourcePath, destPath, TestContext.CancellationToken);
+        var result = await AssetService.MoveAssetAsync(sourcePath, destPath, TestContext.CancellationToken);
         Assert.IsTrue(result.IsSuccess, $"Should move asset successfully. Error: {result.Message}");
 
         // Old file should not exist
@@ -266,7 +266,7 @@ public class AssetDatabaseIntegrationTest
         Assert.IsTrue(File.Exists(destPath + ".gmeta"), "Destination meta should exist");
 
         // GUID should be preserved
-        var newGuid = AssetDatabase.PathToGuid(destPath).Value;
+        var newGuid = AssetService.PathToGuid(destPath).Value;
         Assert.AreEqual(guid, newGuid, "GUID should be preserved");
 
         CheckInternalErrors();
@@ -280,11 +280,11 @@ public class AssetDatabaseIntegrationTest
         await File.WriteAllTextAsync(sourcePath, "data", TestContext.CancellationToken);
         await WaitForFileSystemEvents();
 
-        var sourceGuid = AssetDatabase.PathToGuid(sourcePath).Value;
+        var sourceGuid = AssetService.PathToGuid(sourcePath).Value;
         var destPath = Path.Combine(_testAssetsDir, "copied.txt");
 
         // Copy via API
-        var result = await AssetDatabase.CopyAssetAsync(sourcePath, destPath, TestContext.CancellationToken);
+        var result = await AssetService.CopyAssetAsync(sourcePath, destPath, TestContext.CancellationToken);
         Assert.IsTrue(result.IsSuccess, "Should copy asset successfully");
 
         // Both files should exist
@@ -292,7 +292,7 @@ public class AssetDatabaseIntegrationTest
         Assert.IsTrue(File.Exists(destPath), "Destination file should exist");
 
         // Both should have different GUIDs
-        var destGuid = AssetDatabase.PathToGuid(destPath).Value;
+        var destGuid = AssetService.PathToGuid(destPath).Value;
         Assert.AreNotEqual(sourceGuid, destGuid, "Copied asset should have different GUID");
 
         CheckInternalErrors();
@@ -306,10 +306,10 @@ public class AssetDatabaseIntegrationTest
         await File.WriteAllTextAsync(filePath, "data", TestContext.CancellationToken);
         await WaitForFileSystemEvents();
 
-        var guid = AssetDatabase.PathToGuid(filePath).Value;
+        var guid = AssetService.PathToGuid(filePath).Value;
 
         // Delete via API
-        var result = await AssetDatabase.DeleteAssetAsync(filePath, TestContext.CancellationToken);
+        var result = await AssetService.DeleteAssetAsync(filePath, TestContext.CancellationToken);
         Assert.IsTrue(result.IsSuccess, "Should delete asset successfully");
 
         // File and meta should not exist
@@ -317,7 +317,7 @@ public class AssetDatabaseIntegrationTest
         Assert.IsFalse(File.Exists(filePath + ".gmeta"), "Meta should be deleted");
 
         // Should be removed from database
-        var pathResult = AssetDatabase.GuidToPath(guid);
+        var pathResult = AssetService.GuidToPath(guid);
         Assert.IsTrue(pathResult.IsFailure, "Asset should be removed from database");
 
         CheckInternalErrors();
@@ -374,18 +374,18 @@ public class AssetDatabaseIntegrationTest
         await File.WriteAllTextAsync(file3, "data", TestContext.CancellationToken);
         await WaitForFileSystemEvents();
 
-        var guid1 = AssetDatabase.PathToGuid(file1).Value;
-        var guid2 = AssetDatabase.PathToGuid(file2).Value;
+        var guid1 = AssetService.PathToGuid(file1).Value;
+        var guid2 = AssetService.PathToGuid(file2).Value;
 
         // Add tags
-        await AssetDatabase.SetAssetTagsAsync(guid1, new List<string> { "Test", "Player" }, TestContext.CancellationToken);
-        await AssetDatabase.SetAssetTagsAsync(guid2, new List<string> { "Test", "Enemy" }, TestContext.CancellationToken);
+        await AssetService.SetAssetTagsAsync(guid1, new List<string> { "Test", "Player" }, TestContext.CancellationToken);
+        await AssetService.SetAssetTagsAsync(guid2, new List<string> { "Test", "Enemy" }, TestContext.CancellationToken);
 
         // Search by tag
-        var testAssets = await AssetDatabase.FindAssetsByTagAsync("Test", TestContext.CancellationToken);
+        var testAssets = await AssetService.FindAssetsByTagAsync("Test", TestContext.CancellationToken);
         Assert.HasCount(2, testAssets, "Should find 2 assets with 'Test' tag");
 
-        var playerAssets = await AssetDatabase.FindAssetsByTagAsync("Player", TestContext.CancellationToken);
+        var playerAssets = await AssetService.FindAssetsByTagAsync("Player", TestContext.CancellationToken);
         Assert.HasCount(1, playerAssets, "Should find 1 asset with 'Player' tag");
 
         CheckInternalErrors();
@@ -399,15 +399,15 @@ public class AssetDatabaseIntegrationTest
         await File.WriteAllTextAsync(filePath, "data", TestContext.CancellationToken);
         await WaitForFileSystemEvents();
 
-        var guid1 = AssetDatabase.PathToGuid(filePath).Value;
+        var guid1 = AssetService.PathToGuid(filePath).Value;
 
         // Call RefreshAsync multiple times
-        await AssetDatabase.RefreshAsync(TestContext.CancellationToken);
-        await AssetDatabase.RefreshAsync(TestContext.CancellationToken);
-        await AssetDatabase.RefreshAsync(TestContext.CancellationToken);
+        await AssetService.RefreshAsync(TestContext.CancellationToken);
+        await AssetService.RefreshAsync(TestContext.CancellationToken);
+        await AssetService.RefreshAsync(TestContext.CancellationToken);
 
         // GUID should remain the same
-        var guid2 = AssetDatabase.PathToGuid(filePath).Value;
+        var guid2 = AssetService.PathToGuid(filePath).Value;
         Assert.AreEqual(guid1, guid2, "GUID should not change after refresh");
 
         // Only one meta file should exist
@@ -424,7 +424,7 @@ public class AssetDatabaseIntegrationTest
         {
             var testFile = Path.Combine(_testAssetsDir, "test.txt");
             await File.WriteAllTextAsync(testFile, "Hello World", TestContext.CancellationToken);
-            await AssetDatabase.RefreshAsync(TestContext.CancellationToken); // This will cause race conditions if not handle properly because both AssetDatabase and FileSystemWatcher are involved
+            await AssetService.RefreshAsync(TestContext.CancellationToken); // This will cause race conditions if not handle properly because both AssetService and FileSystemWatcher are involved
         }
         catch (Exception ex)
         {

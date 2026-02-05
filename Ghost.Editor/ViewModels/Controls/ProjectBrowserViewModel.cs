@@ -108,7 +108,7 @@ internal partial class ProjectBrowserViewModel : ObservableObject
         }
         else
         {
-            AssetDatabase.OpenAsset(SelectedItem.FullName);
+            AssetService.OpenAsset(SelectedItem.FullName);
             return (null, 1);
         }
     }

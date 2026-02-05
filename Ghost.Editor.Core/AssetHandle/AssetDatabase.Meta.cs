@@ -7,7 +7,7 @@ using System.Text.Json;
 
 namespace Ghost.Editor.Core.AssetHandle;
 
-public static partial class AssetDatabase
+public static partial class AssetService
 {
     private static readonly Dictionary<string, Type> s_importerTypeLookup = new();
 

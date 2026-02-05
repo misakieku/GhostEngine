@@ -8,6 +8,35 @@ namespace Ghost.Editor.Core.Controls;
 
 public sealed partial class ContextFlyout : MenuFlyout
 {
+    private class MenuNode
+    {
+        public required string Name
+        {
+            get; init;
+        }
+
+        public MethodInfo? Method
+        {
+            get; set;
+        }
+
+        public List<MenuNode> Children
+        {
+            get;
+        } = new();
+
+        public int RawGroup
+        {
+            get; set;
+        } = int.MaxValue;
+
+        // The calculated group used for sorting (min of children for folders)
+        public int EffectiveGroup
+        {
+            get; set;
+        }
+    }
+
     private bool _isPopulated;
 
     public string Tag
@@ -20,6 +49,89 @@ public sealed partial class ContextFlyout : MenuFlyout
         Opening += ContextFlyout_Opening;
     }
 
+    // Recursively sorts nodes and calculates folder groups
+    private static void PrepareNodes(List<MenuNode> nodes)
+    {
+        if (nodes.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var node in nodes)
+        {
+            if (node.Children.Count > 0)
+            {
+                // Go deep first
+                PrepareNodes(node.Children);
+
+                // A folder's group is determined by its highest priority child (lowest group number).
+                // This ensures a "File" folder (containing Group 0 items) sits at the top 
+                // alongside other Group 0 leaf items.
+                node.EffectiveGroup = node.Children.Min(c => c.EffectiveGroup);
+            }
+            else
+            {
+                node.EffectiveGroup = node.RawGroup;
+            }
+        }
+
+        // Sort by Group, then by Name
+        nodes.Sort((a, b) =>
+        {
+            var groupCompare = a.EffectiveGroup.CompareTo(b.EffectiveGroup);
+            return groupCompare != 0
+                ? groupCompare
+                : string.CompareOrdinal(a.Name, b.Name);
+        });
+    }
+
+    // Recursively builds the UI elements
+    private static void BuildNodes(List<MenuNode> nodes, IList<MenuFlyoutItemBase> targetCollection)
+    {
+        if (nodes.Count == 0)
+        {
+            return;
+        }
+
+        int currentGroup = nodes[0].EffectiveGroup;
+
+        foreach (var node in nodes)
+        {
+            if (node.EffectiveGroup != currentGroup)
+            {
+                targetCollection.Add(new MenuFlyoutSeparator());
+                currentGroup = node.EffectiveGroup;
+            }
+
+            if (node.Children.Count > 0)
+            {
+                var subItem = new MenuFlyoutSubItem
+                {
+                    Text = node.Name
+                };
+
+                // Recursively render children into the subitem
+                BuildNodes(node.Children, subItem.Items);
+                targetCollection.Add(subItem);
+            }
+            else
+            {
+                var menuItem = new MenuFlyoutItem
+                {
+                    Text = node.Name
+                };
+
+                var methodToInvoke = node.Method;
+                menuItem.Click += (_, _) =>
+                {
+                    methodToInvoke?.Invoke(null, null);
+                };
+
+                targetCollection.Add(menuItem);
+            }
+        }
+    }
+
     private void PopulateContextMenu()
     {
         var methods = TypeCache.GetMethodsWithAttribute<ContextMenuItemAttribute>();
@@ -28,58 +140,66 @@ public sealed partial class ContextFlyout : MenuFlyout
             return;
         }
 
-        var list = new List<(ContextMenuItemAttribute attr, MethodInfo method)>();
+        // 1. Build the Tree
+        var rootNodes = new List<MenuNode>();
+
         foreach (var method in methods)
         {
-            var attributes = method.GetCustomAttributes(typeof(ContextMenuItemAttribute), false);
-            var attribute = (ContextMenuItemAttribute)attributes[0];
-
-            if (!string.Equals(attribute.Tag, Tag, StringComparison.OrdinalIgnoreCase))
+            var attr = method.GetCustomAttribute<ContextMenuItemAttribute>();
+            if (attr == null)
             {
                 continue;
             }
 
-            list.Add((attribute, method));
-        }
-
-        var span = CollectionsMarshal.AsSpan(list);
-        span.Sort((a, b) =>
-        {
-            var result = a.attr.Group.CompareTo(b.attr.Group);
-            if (result == 0)
+            // Filter tags
+            if (!string.Equals(attr.Tag, Tag, StringComparison.OrdinalIgnoreCase))
             {
-                result = string.CompareOrdinal(a.attr.Name, b.attr.Name);
+                continue;
             }
 
-            return result;
-        });
+            var nameSpan = attr.Name.AsSpan();
+            var pathParts = nameSpan.Split('/');
 
-        // itemContainer may be a main thread only collection (for example, ObservableCollection), we run it on the UI thread
-        var i = 0;
-        var group = 0;
-        while (i < list.Count)
-        {
-            var (attr, method) = list[i];
-            if (attr.Group != group)
+            var currentLevel = rootNodes;
+            MenuNode? currentNode = null;
+
+            foreach (var range in pathParts)
             {
-                Items.Add(new MenuFlyoutSeparator());
-                group = attr.Group;
+                var part = nameSpan[range.Start..range.End];
+
+                MenuNode? foundNode = null;
+
+                // Try to find existing node in the current level
+                foreach (var node in currentLevel)
+                {
+                    if (part.Equals(node.Name.AsSpan(), StringComparison.Ordinal))
+                    {
+                        foundNode = node;
+                        break;
+                    }
+                }
+
+                if (foundNode == null)
+                {
+                    foundNode = new MenuNode { Name = part.ToString() };
+                    currentLevel.Add(foundNode);
+                }
+
+                currentNode = foundNode;
+
+                // If this is the last part, it's the executable item
+                if (range.End.Value == nameSpan.Length)
+                {
+                    currentNode.Method = method;
+                    currentNode.RawGroup = attr.Group;
+                }
+
+                currentLevel = currentNode.Children;
             }
-
-            // TODO: Group items with / in the name into submenus
-            var menuItem = new MenuFlyoutItem
-            {
-                Text = attr.Name
-            };
-
-            menuItem.Click += (_, _) =>
-            {
-                method.Invoke(null, null);
-            };
-
-            Items.Add(menuItem);
-            i++;
         }
+
+        PrepareNodes(rootNodes);
+        BuildNodes(rootNodes, Items);
     }
 
     private async void ContextFlyout_Opening(object? sender, object e)

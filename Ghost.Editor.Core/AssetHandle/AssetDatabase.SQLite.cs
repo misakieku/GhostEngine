@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace Ghost.Editor.Core.AssetHandle;
 
-public static partial class AssetDatabase
+public static partial class AssetService
 {
     private static SqliteConnection? s_dbConnection;
 
