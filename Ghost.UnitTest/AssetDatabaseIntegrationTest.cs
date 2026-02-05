@@ -49,7 +49,7 @@ public class AssetDatabaseIntegrationTest
         var projectMetadataInfo = new Data.Models.ProjectMetadataInfo(projectPath, metadata);
         ProjectService.CurrentProject = projectMetadataInfo;
 
-        // Initialize AssetService
+        // Init AssetService
         await AssetService.Initialize(TestContext.CancellationToken);
 
         // Give the file system watcher time to start

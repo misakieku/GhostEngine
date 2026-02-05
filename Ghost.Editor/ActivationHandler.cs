@@ -1,4 +1,5 @@
 using Ghost.Editor.Core;
+using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.Utilities;
 using Ghost.Editor.Models;
 using Ghost.Engine;
@@ -61,7 +62,9 @@ internal static class ActivationHandler
             ((EngineCore)App.GetService<IEngineContext>()).Init();
         });
 
-        // TODO: Initialize other subsystems here.
+        await ((Core.AssetHandle.AssetService)App.GetService<IAssetService>()).Init();
+
+        // TODO: Init other subsystems here.
         // await Task.Delay(10000); // Wait 10 seconds to simulate work.
     }
 }

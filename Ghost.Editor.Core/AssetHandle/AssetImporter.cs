@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Editor.Core.Contracts;
 
 namespace Ghost.Editor.Core.AssetHandle;
 
@@ -11,7 +12,7 @@ public abstract class AssetImporter
     /// <param name="meta">Metadata for the asset.</param>
     /// <param name="token">Cancellation token.</param>
     /// <returns>Result indicating success or failure.</returns>
-    public abstract ValueTask<Result> ImportAsync(string assetPath, AssetMeta meta, CancellationToken token = default);
+    public abstract ValueTask<Result> ImportAsync(string assetPath, AssetMeta meta, IAssetService assetService, CancellationToken token = default);
 
     /// <summary>
     /// Export in-memory asset data to disk.
@@ -34,12 +35,13 @@ public abstract class AssetImporter
     /// Dependencies are extracted from asset content during import and stored in the database.
     /// </summary>
     /// <param name="dependencies">List of dependency GUIDs extracted from the asset.</param>
+    /// <param name="assetService">The asset service instance.</param>
     /// <returns>Result indicating if all dependencies are valid.</returns>
-    protected virtual ValueTask<Result> ValidateDependenciesAsync(List<Guid> dependencies, CancellationToken token = default)
+    protected virtual ValueTask<Result> ValidateDependenciesAsync(List<Guid> dependencies, IAssetService assetService, CancellationToken token = default)
     {
         foreach (var dependencyGuid in dependencies)
         {
-            var path = AssetService.GuidToPath(dependencyGuid);
+            var path = assetService.GuidToPath(dependencyGuid);
             if (path.IsFailure)
             {
                 return ValueTask.FromResult(Result.Failure($"Missing dependency: {dependencyGuid}"));

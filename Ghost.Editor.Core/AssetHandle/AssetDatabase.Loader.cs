@@ -4,21 +4,21 @@ using System.Text.Json;
 
 namespace Ghost.Editor.Core.AssetHandle;
 
-public static partial class AssetService
+public partial class AssetService
 {
     // Asset cache - stores loaded assets by GUID
-    private static readonly ConcurrentDictionary<Guid, Asset> s_assetCache = new();
+    private readonly ConcurrentDictionary<Guid, Asset> _assetCache = new();
 
     // LRU tracking - stores access time for each cached asset
-    private static readonly ConcurrentDictionary<Guid, DateTime> s_assetAccessTime = new();
+    private readonly ConcurrentDictionary<Guid, DateTime> _assetAccessTime = new();
 
     // Maximum number of cached assets before eviction starts
-    private const int MAX_CACHED_ASSETS = 1000;
+    private const int _MAX_CACHED_ASSETS = 1000;
 
     // Percentage of cache to evict when limit is reached (evict oldest 20%)
     private const float _CACHE_EVICTION_PERCENTAGE = 0.2f;
 
-    private static Result<string> GetImportedAssetsDirectory()
+    private Result<string> GetImportedAssetsDirectory()
     {
         if (AssetsDirectory == null)
         {
@@ -34,7 +34,7 @@ public static partial class AssetService
         return cacheDir;
     }
 
-    private static Result<string> GetImportedAssetPath(Guid guid)
+    private Result<string> GetImportedAssetPath(Guid guid)
     {
         var importedDirResult = GetImportedAssetsDirectory();
         if (importedDirResult.IsFailure)
@@ -47,13 +47,13 @@ public static partial class AssetService
         return assetDataPath;
     }
 
-    private static Result<T> LoadAssetInternal<T>(Guid guid) where T : Asset
+    private Result<T> LoadAssetInternal<T>(Guid guid) where T : Asset
     {
         // Check cache first
-        if (s_assetCache.TryGetValue(guid, out var cachedAsset))
+        if (_assetCache.TryGetValue(guid, out var cachedAsset))
         {
             // Update access time for LRU
-            s_assetAccessTime[guid] = DateTime.UtcNow;
+            _assetAccessTime[guid] = DateTime.UtcNow;
 
             if (cachedAsset is T typedAsset)
             {
@@ -98,7 +98,7 @@ public static partial class AssetService
         }
     }
 
-    public static Result<T> LoadAssetAtPath<T>(string assetPath) where T : Asset
+    public Result<T> LoadAssetAtPath<T>(string assetPath) where T : Asset
     {
         var guidResult = PathToGuid(assetPath);
         if (guidResult.IsFailure)
@@ -109,24 +109,24 @@ public static partial class AssetService
         return LoadAsset<T>(guidResult.Value);
     }
 
-    private static void CacheAsset(Guid guid, Asset asset)
+    private void CacheAsset(Guid guid, Asset asset)
     {
         // Check if we need to evict old assets
-        if (s_assetCache.Count >= MAX_CACHED_ASSETS)
+        if (_assetCache.Count >= _MAX_CACHED_ASSETS)
         {
             EvictOldestAssets();
         }
 
-        s_assetCache[guid] = asset;
-        s_assetAccessTime[guid] = DateTime.UtcNow;
+        _assetCache[guid] = asset;
+        _assetAccessTime[guid] = DateTime.UtcNow;
     }
 
-    private static void EvictOldestAssets()
+    private void EvictOldestAssets()
     {
-        var evictionCount = (int)(MAX_CACHED_ASSETS * _CACHE_EVICTION_PERCENTAGE);
+        var evictionCount = (int)(_MAX_CACHED_ASSETS * _CACHE_EVICTION_PERCENTAGE);
 
         // Sort by access time and remove oldest entries
-        var oldestAssets = s_assetAccessTime
+        var oldestAssets = _assetAccessTime
             .OrderBy(kvp => kvp.Value)
             .Take(evictionCount)
             .Select(kvp => kvp.Key)
@@ -134,8 +134,8 @@ public static partial class AssetService
 
         foreach (var guid in oldestAssets)
         {
-            s_assetCache.TryRemove(guid, out _);
-            s_assetAccessTime.TryRemove(guid, out _);
+            _assetCache.TryRemove(guid, out _);
+            _assetAccessTime.TryRemove(guid, out _);
         }
     }
 
@@ -143,19 +143,19 @@ public static partial class AssetService
     /// Unload a specific asset from cache.
     /// </summary>
     /// <param name="guid">GUID of the asset to unload.</param>
-    public static void UnloadAsset(Guid guid)
+    public void UnloadAsset(Guid guid)
     {
-        s_assetCache.TryRemove(guid, out _);
-        s_assetAccessTime.TryRemove(guid, out _);
+        _assetCache.TryRemove(guid, out _);
+        _assetAccessTime.TryRemove(guid, out _);
     }
 
     /// <summary>
     /// Unload all assets from cache.
     /// </summary>
-    public static void UnloadAllAssets()
+    public void UnloadAllAssets()
     {
-        s_assetCache.Clear();
-        s_assetAccessTime.Clear();
+        _assetCache.Clear();
+        _assetAccessTime.Clear();
     }
 
     /// <summary>
@@ -163,18 +163,18 @@ public static partial class AssetService
     /// </summary>
     /// <param name="guid">GUID of the asset.</param>
     /// <returns>True if the asset is in cache.</returns>
-    public static bool IsAssetLoaded(Guid guid)
+    public bool IsAssetLoaded(Guid guid)
     {
-        return s_assetCache.ContainsKey(guid);
+        return _assetCache.ContainsKey(guid);
     }
 
     /// <summary>
     /// Get cache statistics.
     /// </summary>
     /// <returns>Tuple of (current cache size, max cache size).</returns>
-    public static (int currentSize, int maxSize) GetCacheStats()
+    public (int currentSize, int maxSize) GetCacheStats()
     {
-        return (s_assetCache.Count, MAX_CACHED_ASSETS);
+        return (_assetCache.Count, _MAX_CACHED_ASSETS);
     }
 
     /// <summary>
@@ -185,7 +185,7 @@ public static partial class AssetService
     /// <param name="guid">GUID of the asset.</param>
     /// <param name="assetData">Processed asset data to save.</param>
     /// <returns>Result indicating success or failure.</returns>
-    public static Result SaveImportedAsset<T>(Guid guid, T assetData)
+    public Result SaveImportedAsset<T>(Guid guid, T assetData)
         where T : Asset
     {
         var assetPathResult = GetImportedAssetPath(guid);
@@ -196,7 +196,7 @@ public static partial class AssetService
 
         try
         {
-            var json = JsonSerializer.Serialize(assetData, s_defaultJsonOptions);
+            var json = JsonSerializer.Serialize(assetData, _defaultJsonOptions);
             File.WriteAllText(assetPathResult.Value, json);
 
             // Invalidate cache for this asset so it gets reloaded next time

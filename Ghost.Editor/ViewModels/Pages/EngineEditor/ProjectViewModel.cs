@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Ghost.Editor.Core;
 using Ghost.Editor.Core.AssetHandle;
+using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Models;
 using System.Collections.ObjectModel;
 
@@ -8,6 +9,8 @@ namespace Ghost.Editor.ViewModels.Pages.EngineEditor;
 
 internal partial class ProjectViewModel : ObservableObject
 {
+    private readonly IAssetService _assetService;
+
     public ObservableCollection<ExplorerItem> SubDirectories
     {
         get;
@@ -34,8 +37,10 @@ internal partial class ProjectViewModel : ObservableObject
         set;
     }
 
-    public ProjectViewModel()
+    public ProjectViewModel(IAssetService assetService)
     {
+        _assetService = assetService;
+
         var assetsRootItem = new ExplorerItem("Assets", Path.Combine(EditorApplication.CurrentProjectPath, EditorApplication.ASSETS_FOLDER_NAME), true);
         LoadSubFolderRecursive(ref assetsRootItem);
 
@@ -124,7 +129,7 @@ internal partial class ProjectViewModel : ObservableObject
         }
         else
         {
-            AssetService.OpenAsset(SelectedAsset.FullName);
+            _assetService.OpenAsset(SelectedAsset.FullName);
         }
     }
 

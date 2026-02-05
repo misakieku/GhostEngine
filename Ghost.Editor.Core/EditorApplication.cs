@@ -1,3 +1,4 @@
+using Ghost.Editor.Core.Contracts;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 
@@ -56,5 +57,9 @@ public static class EditorApplication
 
     internal static void Shutdown()
     {
+        if (s_serviceProvider?.GetService(typeof(IAssetService)) is AssetHandle.AssetService assetService)
+        {
+            assetService.Shutdown();
+        }
     }
 }

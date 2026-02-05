@@ -7,13 +7,13 @@ using System.Text.Json;
 
 namespace Ghost.Editor.Core.AssetHandle;
 
-public static partial class AssetService
+public partial class AssetService
 {
-    private static readonly Dictionary<string, Type> s_importerTypeLookup = new();
+    private readonly Dictionary<string, Type> _importerTypeLookup = new();
 
-    private static void InitializeMetaData()
+    private void InitializeMetaData()
     {
-        if (s_watcher == null)
+        if (_watcher == null)
         {
             throw new InvalidOperationException("AssetDatabase is not initialized. Ensure that Initialize() is called before registering asset importers.");
         }
@@ -24,17 +24,17 @@ public static partial class AssetService
             var attribute = type.GetCustomAttribute<AssetImporterAttribute>()!;
             foreach (var extension in attribute.SupportedExtensions)
             {
-                s_importerTypeLookup[extension] = type;
+                _importerTypeLookup[extension] = type;
             }
         }
 
-        s_watcher.Created += OnFSEvent;
-        s_watcher.Deleted += OnFSEvent;
-        s_watcher.Changed += OnFSEvent;
-        s_watcher.Renamed += OnAssetRenamed;
+        _watcher.Created += OnFSEvent;
+        _watcher.Deleted += OnFSEvent;
+        _watcher.Changed += OnFSEvent;
+        _watcher.Renamed += OnAssetRenamed;
     }
 
-    private static Result<string> GetMetaFilePath(string assetPath)
+    private Result<string> GetMetaFilePath(string assetPath)
     {
         if (Directory.Exists(assetPath))
         {
@@ -49,11 +49,11 @@ public static partial class AssetService
         return assetPath + FileExtensions.META_FILE_EXTENSION;
     }
 
-    private static ImporterSettings? GetDefaultSettingsForAsset(string assetPath)
+    private ImporterSettings? GetDefaultSettingsForAsset(string assetPath)
     {
         var extension = Path.GetExtension(assetPath);
 
-        if (s_importerTypeLookup.TryGetValue(extension, out var importerType))
+        if (_importerTypeLookup.TryGetValue(extension, out var importerType))
         {
             var settingsType = importerType.BaseType?.GetGenericArguments()[0];
             if (settingsType == null || !typeof(ImporterSettings).IsAssignableFrom(settingsType))
@@ -70,7 +70,7 @@ public static partial class AssetService
     /// <summary>
     /// Calculate SHA256 hash of a file for change detection.
     /// </summary>
-    private static async Task<string> CalculateFileHashAsync(string filePath, CancellationToken token = default)
+    private async Task<string> CalculateFileHashAsync(string filePath, CancellationToken token = default)
     {
         try
         {
@@ -84,12 +84,12 @@ public static partial class AssetService
         }
     }
 
-    private static async Task<Result> WriteMetaFileAsync(string metaFilePath, AssetMeta metaData, CancellationToken token = default)
+    private async Task<Result> WriteMetaFileAsync(string metaFilePath, AssetMeta metaData, CancellationToken token = default)
     {
         try
         {
             await using var fileStream = File.Create(metaFilePath);
-            await JsonSerializer.SerializeAsync(fileStream, metaData, s_defaultJsonOptions, token);
+            await JsonSerializer.SerializeAsync(fileStream, metaData, _defaultJsonOptions, token);
             return Result.Success();
         }
         catch (Exception ex)
@@ -101,7 +101,7 @@ public static partial class AssetService
     /// <summary>
     /// Read metadata from a .gmeta file.
     /// </summary>
-    private static async ValueTask<Result<AssetMeta>> ReadMetaFileAsync(string assetPath, CancellationToken token = default)
+    private async ValueTask<Result<AssetMeta>> ReadMetaFileAsync(string assetPath, CancellationToken token = default)
     {
         var metaFileResult = GetMetaFilePath(assetPath);
         if (metaFileResult.IsFailure)
@@ -117,7 +117,7 @@ public static partial class AssetService
         try
         {
             await using var fileStream = File.OpenRead(metaFileResult.Value);
-            var meta = await JsonSerializer.DeserializeAsync<AssetMeta>(fileStream, s_defaultJsonOptions, token);
+            var meta = await JsonSerializer.DeserializeAsync<AssetMeta>(fileStream, _defaultJsonOptions, token);
             if (meta == null)
             {
                 return Result<AssetMeta>.Failure("Failed to deserialize metadata");
@@ -131,7 +131,7 @@ public static partial class AssetService
         }
     }
 
-    internal static async ValueTask<Result> GenerateMetaFileAsync(string assetPath, CancellationToken token = default)
+    internal async ValueTask<Result> GenerateMetaFileAsync(string assetPath, CancellationToken token = default)
     {
         Result r;
 
@@ -147,7 +147,7 @@ public static partial class AssetService
             if (existingMetaResult.IsSuccess)
             {
                 var existingMeta = existingMetaResult.Value;
-                if (s_assetPathLookup.TryGetValue(existingMeta.Guid, out var path))
+                if (_assetPathLookup.TryGetValue(existingMeta.Guid, out var path))
                 {
                     var relResult = GetRelativePath(assetPath);
                     if (relResult.IsSuccess && assetPath != path)
@@ -196,12 +196,12 @@ public static partial class AssetService
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsMetaFile(string path)
+    private bool IsMetaFile(string path)
     {
         return Path.GetExtension(path).Equals(FileExtensions.META_FILE_EXTENSION, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static async void OnFSEvent(object sender, FileSystemEventArgs e)
+    private async void OnFSEvent(object sender, FileSystemEventArgs e)
     {
         if (IsMetaFile(e.FullPath))
         {
@@ -219,7 +219,7 @@ public static partial class AssetService
         await PostCommandAsync(new AssetCommand(type, e.FullPath, Timestamp: DateTime.UtcNow));
     }
 
-    private static async void OnAssetRenamed(object sender, RenamedEventArgs e)
+    private async void OnAssetRenamed(object sender, RenamedEventArgs e)
     {
         if (IsMetaFile(e.FullPath))
         {
@@ -232,7 +232,7 @@ public static partial class AssetService
     /// <summary>
     /// Mark all assets that depend on the specified asset as dirty.
     /// </summary>
-    private static async Task MarkDependentAssetsDirtyAsync(Guid assetGuid)
+    private async Task MarkDependentAssetsDirtyAsync(Guid assetGuid)
     {
         // TODO: We should have a reverse dependency lookup in the database to avoid scanning all assets.
 

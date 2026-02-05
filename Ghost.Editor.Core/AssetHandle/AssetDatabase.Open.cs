@@ -5,11 +5,11 @@ using System.Reflection;
 
 namespace Ghost.Editor.Core.AssetHandle;
 
-public static partial class AssetService
+public partial class AssetService
 {
-    private static readonly Dictionary<string, Action<string>> s_assetOpenHandlers = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Action<string>> _assetOpenHandlers = new(StringComparer.OrdinalIgnoreCase);
 
-    private static void InitializeAssetHandle()
+    private void InitializeAssetHandle()
     {
         var methods = TypeCache.GetTypes()
             .SelectMany(t => t.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic))
@@ -23,20 +23,20 @@ public static partial class AssetService
             var del = (Action<string>)Delegate.CreateDelegate(typeof(Action<string>), method);
             foreach (var ext in attr.Extensions)
             {
-                if (s_assetOpenHandlers.ContainsKey(ext))
+                if (_assetOpenHandlers.ContainsKey(ext))
                 {
                     Logger.LogError($"Duplicate asset open handler for extension '{ext}' found in method '{method.Name}'. Existing handler will be overwritten.");
                 }
 
-                s_assetOpenHandlers[ext] = del;
+                _assetOpenHandlers[ext] = del;
             }
         }
     }
 
-    public static void OpenAsset(string path)
+    public void OpenAsset(string path)
     {
         var extension = Path.GetExtension(path);
-        if (s_assetOpenHandlers.TryGetValue(extension, out var handler))
+        if (_assetOpenHandlers.TryGetValue(extension, out var handler))
         {
             handler(path);
         }

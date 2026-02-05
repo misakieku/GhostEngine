@@ -2,7 +2,7 @@ using Ghost.Core;
 
 namespace Ghost.Editor.Core.AssetHandle;
 
-public static partial class AssetService
+public partial class AssetService
 {
     /// <summary>
     /// Create a new asset at the specified path.
@@ -11,7 +11,7 @@ public static partial class AssetService
     /// <param name="assetPath">Path to create the asset at.</param>
     /// <param name="content">Content to write to the asset file.</param>
     /// <returns>Result indicating success or failure.</returns>
-    public static async ValueTask<Result> CreateAssetAsync(string assetPath, ReadOnlyMemory<byte> content, CancellationToken token = default)
+    public async ValueTask<Result> CreateAssetAsync(string assetPath, ReadOnlyMemory<byte> content, CancellationToken token = default)
     {
         if (AssetsDirectory == null)
         {
@@ -57,7 +57,7 @@ public static partial class AssetService
     /// </summary>
     /// <param name="assetPath">Path to create the asset at.</param>
     /// <returns>Result indicating success or failure.</returns>
-    public static ValueTask<Result> CreateAssetAsync(string assetPath, CancellationToken token = default)
+    public ValueTask<Result> CreateAssetAsync(string assetPath, CancellationToken token = default)
     {
         return CreateAssetAsync(assetPath, ReadOnlyMemory<byte>.Empty, token);
     }
@@ -67,7 +67,7 @@ public static partial class AssetService
     /// </summary>
     /// <param name="guid">GUID of the asset to delete.</param>
     /// <returns>Result indicating success or failure.</returns>
-    public static async ValueTask<Result> DeleteAssetAsync(Guid guid, CancellationToken token = default)
+    public async ValueTask<Result> DeleteAssetAsync(Guid guid, CancellationToken token = default)
     {
         var pathResult = GuidToPath(guid);
         if (pathResult.IsFailure)
@@ -114,7 +114,7 @@ public static partial class AssetService
     /// </summary>
     /// <param name="assetPath">Path to the asset to delete.</param>
     /// <returns>Result indicating success or failure.</returns>
-    public static ValueTask<Result> DeleteAssetAsync(string assetPath, CancellationToken token = default)
+    public ValueTask<Result> DeleteAssetAsync(string assetPath, CancellationToken token = default)
     {
         var guidResult = PathToGuid(assetPath);
         if (guidResult.IsFailure)
@@ -131,7 +131,7 @@ public static partial class AssetService
     /// <param name="guid">GUID of the asset to move.</param>
     /// <param name="newPath">New path for the asset (relative or absolute).</param>
     /// <returns>Result indicating success or failure.</returns>
-    public static async ValueTask<Result> MoveAssetAsync(Guid guid, string newPath, CancellationToken token = default)
+    public async ValueTask<Result> MoveAssetAsync(Guid guid, string newPath, CancellationToken token = default)
     {
         var oldPathResult = GuidToPath(guid);
         if (oldPathResult.IsFailure)
@@ -211,7 +211,7 @@ public static partial class AssetService
     /// <param name="oldPath">CurrentApplication path of the asset.</param>
     /// <param name="newPath">New path for the asset (relative or absolute).</param>
     /// <returns>Result indicating success or failure.</returns>
-    public static ValueTask<Result> MoveAssetAsync(string oldPath, string newPath, CancellationToken token = default)
+    public ValueTask<Result> MoveAssetAsync(string oldPath, string newPath, CancellationToken token = default)
     {
         var guidResult = PathToGuid(oldPath);
         if (guidResult.IsFailure)
@@ -228,7 +228,7 @@ public static partial class AssetService
     /// <param name="guid">GUID of the asset to copy.</param>
     /// <param name="newPath">New path for the copied asset (relative or absolute).</param>
     /// <returns>Result containing the new asset's GUID.</returns>
-    public static async ValueTask<Result<Guid>> CopyAssetAsync(Guid guid, string newPath, CancellationToken token = default)
+    public async ValueTask<Result<Guid>> CopyAssetAsync(Guid guid, string newPath, CancellationToken token = default)
     {
         var oldPathResult = GuidToPath(guid);
         if (oldPathResult.IsFailure)
@@ -299,7 +299,7 @@ public static partial class AssetService
     /// <param name="sourcePath">Path of the asset to copy.</param>
     /// <param name="destPath">New path for the copied asset (relative or absolute).</param>
     /// <returns>Result containing the new asset's GUID.</returns>
-    public static ValueTask<Result<Guid>> CopyAssetAsync(string sourcePath, string destPath, CancellationToken token = default)
+    public ValueTask<Result<Guid>> CopyAssetAsync(string sourcePath, string destPath, CancellationToken token = default)
     {
         var guidResult = PathToGuid(sourcePath);
         if (guidResult.IsFailure)
@@ -315,7 +315,7 @@ public static partial class AssetService
     /// </summary>
     /// <param name="guid">GUID of the asset to mark dirty.</param>
     /// <returns>Result indicating success or failure.</returns>
-    public static Result MarkDirtyAsync(Guid guid, CancellationToken token = default)
+    public Result MarkDirtyAsync(Guid guid, CancellationToken token = default)
     {
         MarkDirty(guid);
         return Result.Success();
@@ -325,7 +325,7 @@ public static partial class AssetService
     /// Import all dirty assets.
     /// </summary>
     /// <returns>Result indicating success or failure.</returns>
-    public static async Task<Result> ImportDirtyAssetsAsync(CancellationToken token = default)
+    public async Task<Result> ImportDirtyAssetsAsync(CancellationToken token = default)
     {
         var dirtyGuids = GetDirtyAssets();
 

@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Editor.Core.Contracts;
 using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -33,31 +34,31 @@ internal readonly record struct AssetCommand(
 /// Handles asset registration, lookup, importing, and dependency management.
 /// Uses SQLite for persistent storage and efficient querying.
 /// </summary>
-public static partial class AssetService
+public partial class AssetService : IAssetService
 {
-    private static FileSystemWatcher? s_watcher;
-    private static readonly Lock s_dbLock = new();
-    private static readonly Dictionary<Guid, string> s_assetPathLookup = new();
-    private static readonly Dictionary<string, Guid> s_pathAssetLookup = new();
+    private FileSystemWatcher? _watcher;
+    private readonly Lock _dbLock = new();
+    private readonly Dictionary<Guid, string> _assetPathLookup = new();
+    private readonly Dictionary<string, Guid> _pathAssetLookup = new();
 
     // In-memory dirty asset tracking (for runtime modifications only)
     // TODO: We do not handle the reimporting of dirty assets yet
-    private static readonly HashSet<Guid> s_dirtyAssets = new();
+    private readonly HashSet<Guid> _dirtyAssets = new();
 
     // Command buffer pattern - Channel for file system event commands
-    private static Channel<AssetCommand>? s_commandChannel;
-    private static Timer? s_commandProcessorTimer;
-    private static readonly ConcurrentQueue<AssetCommand> s_waitingCommands = new(); // Commands waiting for manual refresh
-    private static bool s_autoRefreshEnabled = true;
+    private Channel<AssetCommand>? _commandChannel;
+    private Timer? _commandProcessorTimer;
+    private readonly ConcurrentQueue<AssetCommand> _waitingCommands = new(); // Commands waiting for manual refresh
+    private bool _autoRefreshEnabled = true;
 
     // Initialization guard
-    private static readonly Lock s_initializationLock = new();
-    private static bool s_initialized = false;
+    private readonly Lock _initializationLock = new();
+    private bool _initialized = false;
 
-    private static readonly TimeSpan s_debounceDelay = TimeSpan.FromMilliseconds(100);
-    private static readonly ManualResetEventSlim s_resetEventSlim = new(false);
+    private readonly TimeSpan _debounceDelay = TimeSpan.FromMilliseconds(100);
+    private readonly ManualResetEventSlim _resetEventSlim = new(false);
 
-    private static readonly JsonSerializerOptions s_defaultJsonOptions = new()
+    private readonly JsonSerializerOptions _defaultJsonOptions = new()
     {
         WriteIndented = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -67,43 +68,43 @@ public static partial class AssetService
         }
     };
 
-    public static DirectoryInfo? AssetsDirectory
+    public DirectoryInfo? AssetsDirectory
     {
         get;
         private set;
     }
 
     /// <summary>
-    /// Initialize the asset database.
+    /// Init the asset database.
     /// Must be called after project is loaded.
     /// </summary>
-    internal static async Task Initialize(CancellationToken token = default)
+    internal async Task Init(CancellationToken token = default)
     {
-        lock (s_initializationLock)
+        lock (_initializationLock)
         {
-            if (s_initialized)
+            if (_initialized)
             {
                 return;
             }
 
-            s_initialized = true;
+            _initialized = true;
         }
 
         AssetsDirectory = new DirectoryInfo(Path.Combine(EditorApplication.CurrentProjectPath, EditorApplication.ASSETS_FOLDER_NAME));
 
-        s_commandChannel = Channel.CreateUnbounded<AssetCommand>(new UnboundedChannelOptions
+        _commandChannel = Channel.CreateUnbounded<AssetCommand>(new UnboundedChannelOptions
         {
             SingleReader = false,
             SingleWriter = false
         });
 
-        // Initialize command processor timer (starts disabled, triggered by events)
-        s_commandProcessorTimer = new Timer(ProcessPendingCommands, null, Timeout.Infinite, Timeout.Infinite);
+        // Init command processor timer (starts disabled, triggered by events)
+        _commandProcessorTimer = new Timer(ProcessPendingCommands, null, Timeout.Infinite, Timeout.Infinite);
 
         await InitializeDatabaseAsync(token);
         await LoadAssetCacheFromDatabaseAsync(token);
 
-        s_watcher = new FileSystemWatcher
+        _watcher = new FileSystemWatcher
         {
             Path = AssetsDirectory.FullName,
             IncludeSubdirectories = true,
@@ -122,7 +123,7 @@ public static partial class AssetService
     /// Validate the asset database and fix any inconsistencies.
     /// Checks for missing/corrupted assets and regenerates metadata as needed.
     /// </summary>
-    private static async Task<Result> ValidateAndFixDatabaseAsync(CancellationToken token = default)
+    private async Task<Result> ValidateAndFixDatabaseAsync(CancellationToken token = default)
     {
         if (AssetsDirectory == null)
         {
@@ -175,19 +176,19 @@ public static partial class AssetService
     /// Refresh the asset database manually.
     /// Scans the project directory for changes and processes any queued file system events.
     /// </summary>
-    public static async Task<Result> RefreshAsync(CancellationToken token = default)
+    public async Task<Result> RefreshAsync(CancellationToken token = default)
     {
         // Flush waiting commands to channel
-        while (s_waitingCommands.TryDequeue(out var cmd))
+        while (_waitingCommands.TryDequeue(out var cmd))
         {
-            s_commandChannel?.Writer.TryWrite(cmd);
+            _commandChannel?.Writer.TryWrite(cmd);
         }
 
-        s_resetEventSlim.Reset();
-        s_commandChannel?.Writer.TryWrite(new AssetCommand(AssetCommandType.ManualRefresh, string.Empty));
-        s_commandProcessorTimer?.Change(TimeSpan.Zero, Timeout.InfiniteTimeSpan);
+        _resetEventSlim.Reset();
+        _commandChannel?.Writer.TryWrite(new AssetCommand(AssetCommandType.ManualRefresh, string.Empty));
+        _commandProcessorTimer?.Change(TimeSpan.Zero, Timeout.InfiniteTimeSpan);
 
-        await Task.Run(s_resetEventSlim.Wait, token);
+        await Task.Run(_resetEventSlim.Wait, token);
         return Result.Success();
     }
 
@@ -195,55 +196,55 @@ public static partial class AssetService
     /// Mark an asset as dirty (modified in memory but not yet saved).
     /// This state is NOT persisted and will be lost on application restart.
     /// </summary>
-    public static void MarkDirty(Guid assetGuid)
+    public void MarkDirty(Guid assetGuid)
     {
-        lock (s_dbLock)
+        lock (_dbLock)
         {
-            s_dirtyAssets.Add(assetGuid);
+            _dirtyAssets.Add(assetGuid);
         }
     }
 
     /// <summary>
     /// Check if an asset is marked as dirty.
     /// </summary>
-    public static bool IsDirty(Guid assetGuid)
+    public bool IsDirty(Guid assetGuid)
     {
-        lock (s_dbLock)
+        lock (_dbLock)
         {
-            return s_dirtyAssets.Contains(assetGuid);
+            return _dirtyAssets.Contains(assetGuid);
         }
     }
 
     /// <summary>
     /// Get all dirty assets.
     /// </summary>
-    public static Guid[] GetDirtyAssets()
+    public Guid[] GetDirtyAssets()
     {
-        lock (s_dbLock)
+        lock (_dbLock)
         {
-            return s_dirtyAssets.ToArray();
+            return _dirtyAssets.ToArray();
         }
     }
 
     /// <summary>
     /// Clear dirty flag for an asset (typically after saving).
     /// </summary>
-    public static void ClearDirty(Guid assetGuid)
+    public void ClearDirty(Guid assetGuid)
     {
-        lock (s_dbLock)
+        lock (_dbLock)
         {
-            s_dirtyAssets.Remove(assetGuid);
+            _dirtyAssets.Remove(assetGuid);
         }
     }
 
     /// <summary>
     /// Clear all dirty flags.
     /// </summary>
-    public static void ClearAllDirty()
+    public void ClearAllDirty()
     {
-        lock (s_dbLock)
+        lock (_dbLock)
         {
-            s_dirtyAssets.Clear();
+            _dirtyAssets.Clear();
         }
     }
 
@@ -251,15 +252,15 @@ public static partial class AssetService
     /// Enable or disable automatic asset database refresh.
     /// When disabled, file system events are queued and processed only when RefreshAsync() is called.
     /// </summary>
-    public static void SetAutoRefresh(bool enabled)
+    public void SetAutoRefresh(bool enabled)
     {
-        s_autoRefreshEnabled = enabled;
+        _autoRefreshEnabled = enabled;
     }
 
-    internal static void FlushPendingCommands()
+    internal void FlushPendingCommands()
     {
         // Stop timer temporarily
-        s_commandProcessorTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+        _commandProcessorTimer?.Change(Timeout.Infinite, Timeout.Infinite);
 
         // Give a tiny bit of time for any in-flight file watcher events to post to channel
         Thread.Sleep(50);
@@ -268,27 +269,27 @@ public static partial class AssetService
         ProcessPendingCommands(null);
     }
 
-    private static async ValueTask PostCommandAsync(AssetCommand command, CancellationToken token = default)
+    private async ValueTask PostCommandAsync(AssetCommand command, CancellationToken token = default)
     {
-        if (s_commandChannel == null)
+        if (_commandChannel == null)
         {
             return;
         }
 
-        if (s_autoRefreshEnabled)
+        if (_autoRefreshEnabled)
         {
-            await s_commandChannel.Writer.WriteAsync(command, token);
-            s_commandProcessorTimer?.Change(s_debounceDelay, Timeout.InfiniteTimeSpan);
+            await _commandChannel.Writer.WriteAsync(command, token);
+            _commandProcessorTimer?.Change(_debounceDelay, Timeout.InfiniteTimeSpan);
         }
         else
         {
-            s_waitingCommands.Enqueue(command);
+            _waitingCommands.Enqueue(command);
         }
     }
 
-    private static async void ProcessPendingCommands(object? state)
+    private async void ProcessPendingCommands(object? state)
     {
-        if (s_commandChannel == null)
+        if (_commandChannel == null)
         {
             return;
         }
@@ -298,7 +299,7 @@ public static partial class AssetService
             // // Collect all pending commands
             // var commands = new List<AssetCommand>();
             //
-            // while (s_commandChannel.Reader.TryRead(out var cmd))
+            // while (_commandChannel.Reader.TryRead(out var cmd))
             // {
             //     commands.Add(cmd);
             // }
@@ -333,12 +334,12 @@ public static partial class AssetService
             // Execute commands
             // NOTE: We many don't need to collect all commands first, just process as we read.
             // Channel in c# is thread-safe for multiple readers/writers.
-            //await foreach (var cmd in s_commandChannel.Reader.ReadAllAsync())
+            //await foreach (var cmd in _commandChannel.Reader.ReadAllAsync())
             //{
             //    await ExecuteCommandAsync(cmd);
             //}
 
-            while (s_commandChannel.Reader.TryRead(out var cmd))
+            while (_commandChannel.Reader.TryRead(out var cmd))
             {
                 await ExecuteCommandAsync(cmd);
             }
@@ -351,11 +352,11 @@ public static partial class AssetService
         }
         finally
         {
-            s_resetEventSlim.Set();
+            _resetEventSlim.Set();
         }
     }
 
-    private static async ValueTask ExecuteCommandAsync(AssetCommand command)
+    private async ValueTask ExecuteCommandAsync(AssetCommand command)
     {
         switch (command.Type)
         {
@@ -384,7 +385,7 @@ public static partial class AssetService
         }
     }
 
-    private static async ValueTask HandleFileCreatedAsync(string path)
+    private async ValueTask HandleFileCreatedAsync(string path)
     {
         if (!File.Exists(path))
         {
@@ -394,7 +395,7 @@ public static partial class AssetService
         await GenerateMetaFileAsync(path, CancellationToken.None);
     }
 
-    private static async ValueTask HandleFileModifiedAsync(string path)
+    private async ValueTask HandleFileModifiedAsync(string path)
     {
         if (!File.Exists(path))
         {
@@ -421,7 +422,7 @@ public static partial class AssetService
         }
     }
 
-    private static async ValueTask HandleFileDeletedAsync(string path)
+    private async ValueTask HandleFileDeletedAsync(string path)
     {
         var metaFileResult = GetMetaFilePath(path);
         if (metaFileResult.IsSuccess && File.Exists(metaFileResult.Value))
@@ -449,7 +450,7 @@ public static partial class AssetService
         }
     }
 
-    private static async ValueTask HandleFileRenamedAsync(string oldPath, string newPath)
+    private async ValueTask HandleFileRenamedAsync(string oldPath, string newPath)
     {
         var oldMetaPath = oldPath + Utilities.FileExtensions.META_FILE_EXTENSION;
         var newMetaPath = newPath + Utilities.FileExtensions.META_FILE_EXTENSION;
@@ -491,33 +492,33 @@ public static partial class AssetService
         }
     }
 
-    internal static void Shutdown()
+    internal void Shutdown()
     {
-        lock (s_initializationLock)
+        lock (_initializationLock)
         {
-            if (!s_initialized)
+            if (!_initialized)
             {
                 return;
             }
 
-            s_watcher?.Dispose();
-            s_watcher = null;
+            _watcher?.Dispose();
+            _watcher = null;
 
-            s_commandProcessorTimer?.Dispose();
-            s_commandProcessorTimer = null;
+            _commandProcessorTimer?.Dispose();
+            _commandProcessorTimer = null;
 
-            s_dbConnection?.Close();
-            s_dbConnection?.Dispose();
-            s_dbConnection = null;
+            _dbConnection?.Close();
+            _dbConnection?.Dispose();
+            _dbConnection = null;
 
-            s_assetPathLookup.Clear();
-            s_pathAssetLookup.Clear();
-            s_dirtyAssets.Clear();
-            s_waitingCommands.Clear();
-            s_importerInstances.Clear();
-            s_importerTypeLookup.Clear();
+            _assetPathLookup.Clear();
+            _pathAssetLookup.Clear();
+            _dirtyAssets.Clear();
+            _waitingCommands.Clear();
+            _importerInstances.Clear();
+            _importerTypeLookup.Clear();
 
-            s_initialized = false;
+            _initialized = false;
         }
     }
 }

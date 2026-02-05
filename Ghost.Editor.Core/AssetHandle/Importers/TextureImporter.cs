@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Editor.Core.Contracts;
 using System.Text.Json;
 
 namespace Ghost.Editor.Core.AssetHandle.Importers;
@@ -73,20 +74,19 @@ internal class TextureImporterSettings : ImporterSettings
 [AssetImporter(".png", ".jpg", ".jpeg", ".dds", ".tga", ".bmp")]
 internal class TextureImporter : AssetImporter<TextureImporterSettings>
 {
-    public override async ValueTask<Result> ImportAsync(string assetPath, AssetMeta meta, CancellationToken token = default)
+    public override async ValueTask<Result> ImportAsync(string assetPath, AssetMeta meta, IAssetService assetService, CancellationToken token = default)
     {
         var settings = GetSettings(meta);
 
         // Textures typically don't reference other assets as dependencies
-        // If they did (e.g., normal maps referencing base textures), extract here
-        var dependencies = new List<Guid>();
+        //var dependencies = new List<Guid>();
 
-        // Validate dependencies
-        var depResult = await ValidateDependenciesAsync(dependencies, token);
-        if (depResult.IsFailure)
-        {
-            return depResult;
-        }
+        //// Validate dependencies
+        //var depResult = await ValidateDependenciesAsync(dependencies, assetService, token);
+        //if (depResult.IsFailure)
+        //{
+        //    return depResult;
+        //}
 
         try
         {
@@ -134,7 +134,7 @@ internal class TextureImporter : AssetImporter<TextureImporterSettings>
             };
 
             // Save the imported asset data
-            var saveResult = AssetService.SaveImportedAsset(meta.Guid, textureAsset);
+            var saveResult = assetService.SaveImportedAsset(meta.Guid, textureAsset);
             if (saveResult.IsFailure)
             {
                 return Result.Failure($"Failed to save texture asset: {saveResult.Message}");

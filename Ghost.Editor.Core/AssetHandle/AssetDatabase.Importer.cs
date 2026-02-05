@@ -3,27 +3,27 @@ using System.Reflection;
 
 namespace Ghost.Editor.Core.AssetHandle;
 
-public static partial class AssetService
+public partial class AssetService
 {
-    private static readonly Dictionary<Type, AssetImporter> s_importerInstances = new();
+    private readonly Dictionary<Type, AssetImporter> _importerInstances = new();
 
     /// <summary>
     /// Import an asset at the specified path.
     /// </summary>
     /// <param name="assetPath">Full path to the asset file.</param>
     /// <returns>Result indicating success or failure.</returns>
-    private static async ValueTask<Result> ImportAssetAsync(string assetPath, CancellationToken token = default)
+    private async ValueTask<Result> ImportAssetAsync(string assetPath, CancellationToken token = default)
     {
         var extension = Path.GetExtension(assetPath);
 
-        if (!s_importerTypeLookup.TryGetValue(extension, out var importerType))
+        if (!_importerTypeLookup.TryGetValue(extension, out var importerType))
         {
             // No importer registered for this file type
             return Result.Success();
         }
 
         // Get or create importer instance
-        if (!s_importerInstances.TryGetValue(importerType, out var importerInstance))
+        if (!_importerInstances.TryGetValue(importerType, out var importerInstance))
         {
             importerInstance = Activator.CreateInstance(importerType) as AssetImporter;
             if (importerInstance is null)
@@ -31,7 +31,7 @@ public static partial class AssetService
                 return Result.Failure($"Failed to create importer instance for type {importerType.Name}");
             }
 
-            s_importerInstances[importerType] = importerInstance;
+            _importerInstances[importerType] = importerInstance;
         }
 
         // Read metadata
@@ -41,7 +41,7 @@ public static partial class AssetService
             return Result.Failure($"Failed to read asset metadata: {metaResult.Message}");
         }
 
-        return await importerInstance.ImportAsync(assetPath, metaResult.Value, token);
+        return await importerInstance.ImportAsync(assetPath, metaResult.Value, this, token);
     }
 
     /// <summary>
@@ -49,9 +49,9 @@ public static partial class AssetService
     /// </summary>
     /// <param name="extension">File extension (e.g., ".png").</param>
     /// <returns>The importer type if found, otherwise null.</returns>
-    public static Type? GetImporterType(string extension)
+    public Type? GetImporterType(string extension)
     {
-        s_importerTypeLookup.TryGetValue(extension, out var importerType);
+        _importerTypeLookup.TryGetValue(extension, out var importerType);
         return importerType;
     }
 
@@ -59,9 +59,9 @@ public static partial class AssetService
     /// Get all registered importer types and their supported extensions.
     /// </summary>
     /// <returns>Dictionary mapping extensions to importer types.</returns>
-    public static Dictionary<string, Type> GetAllImporters()
+    public Dictionary<string, Type> GetAllImporters()
     {
-        return new Dictionary<string, Type>(s_importerTypeLookup);
+        return new Dictionary<string, Type>(_importerTypeLookup);
     }
 
     /// <summary>
@@ -72,17 +72,18 @@ public static partial class AssetService
     /// <param name="assetPath">Full path where the asset should be saved.</param>
     /// <param name="assetData">In-memory asset data to export.</param>
     /// <returns>Result with the GUID of the exported asset.</returns>
-    public static async ValueTask<Result<Guid>> ExportAssetAsync<T>(string assetPath, T assetData, CancellationToken token = default) where T : class
+    public async ValueTask<Result<Guid>> ExportAssetAsync<T>(string assetPath, T assetData, CancellationToken token = default)
+        where T : class
     {
         var extension = Path.GetExtension(assetPath);
 
-        if (!s_importerTypeLookup.TryGetValue(extension, out var importerType))
+        if (!_importerTypeLookup.TryGetValue(extension, out var importerType))
         {
             return Result<Guid>.Failure($"No importer registered for extension {extension}");
         }
 
         // Get or create importer instance
-        if (!s_importerInstances.TryGetValue(importerType, out var importerInstance))
+        if (!_importerInstances.TryGetValue(importerType, out var importerInstance))
         {
             importerInstance = Activator.CreateInstance(importerType) as AssetImporter;
             if (importerInstance is null)
@@ -90,14 +91,7 @@ public static partial class AssetService
                 return Result<Guid>.Failure($"Failed to create importer instance for type {importerType.Name}");
             }
 
-            s_importerInstances[importerType] = importerInstance;
-        }
-
-        // Find and invoke the ExportAsync method
-        var exportMethod = importerType.GetMethod("ExportAsync", BindingFlags.Public | BindingFlags.Instance);
-        if (exportMethod == null)
-        {
-            return Result<Guid>.Failure($"ExportAsync method not found on importer {importerType.Name}. This importer does not support exporting.");
+            _importerInstances[importerType] = importerInstance;
         }
 
         // Generate metadata for the new asset

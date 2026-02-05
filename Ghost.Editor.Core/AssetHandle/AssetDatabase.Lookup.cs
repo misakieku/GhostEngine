@@ -3,12 +3,12 @@ using System.Text.Json;
 
 namespace Ghost.Editor.Core.AssetHandle;
 
-public static partial class AssetService
+public partial class AssetService
 {
     /// <summary>
     /// Get the relative path from the assets directory.
     /// </summary>
-    private static Result<string> GetRelativePath(string fullPath)
+    private Result<string> GetRelativePath(string fullPath)
     {
         if (AssetsDirectory == null)
         {
@@ -26,7 +26,7 @@ public static partial class AssetService
     /// <summary>
     /// Get the full path from a relative path.
     /// </summary>
-    private static Result<string> GetFullPath(string relativePath)
+    private Result<string> GetFullPath(string relativePath)
     {
         if (AssetsDirectory == null)
         {
@@ -41,7 +41,7 @@ public static partial class AssetService
     /// </summary>
     /// <param name="assetPath">Full or relative path to the asset.</param>
     /// <returns>The GUID of the asset if found.</returns>
-    public static Result<Guid> PathToGuid(string assetPath)
+    public Result<Guid> PathToGuid(string assetPath)
     {
         var relativePath = assetPath;
 
@@ -59,9 +59,9 @@ public static partial class AssetService
         // Normalize path separators
         relativePath = relativePath.Replace('\\', '/');
 
-        lock (s_dbLock)
+        lock (_dbLock)
         {
-            if (s_pathAssetLookup.TryGetValue(relativePath, out var guid))
+            if (_pathAssetLookup.TryGetValue(relativePath, out var guid))
             {
                 return guid;
             }
@@ -75,11 +75,11 @@ public static partial class AssetService
     /// </summary>
     /// <param name="guid">GUID of the asset.</param>
     /// <returns>The relative path to the asset if found.</returns>
-    public static Result<string> GuidToPath(Guid guid)
+    public Result<string> GuidToPath(Guid guid)
     {
-        lock (s_dbLock)
+        lock (_dbLock)
         {
-            if (s_assetPathLookup.TryGetValue(guid, out var path))
+            if (_assetPathLookup.TryGetValue(guid, out var path))
             {
                 return path;
             }
@@ -94,7 +94,7 @@ public static partial class AssetService
     /// <typeparam name="T">Type of asset to load.</typeparam>
     /// <param name="guid">GUID of the asset.</param>
     /// <returns>The loaded asset.</returns>
-    public static Result<T> LoadAsset<T>(Guid guid) where T : Asset
+    public Result<T> LoadAsset<T>(Guid guid) where T : Asset
     {
         // Implemented in AssetService.Loader.cs
         return LoadAssetInternal<T>(guid);
@@ -105,7 +105,7 @@ public static partial class AssetService
     /// </summary>
     /// <param name="guid">GUID of the asset.</param>
     /// <returns>List of tags associated with the asset.</returns>
-    public static async ValueTask<Result<List<string>>> GetAssetTagsAsync(Guid guid, CancellationToken token = default)
+    public async ValueTask<Result<List<string>>> GetAssetTagsAsync(Guid guid, CancellationToken token = default)
     {
         var pathResult = GuidToPath(guid);
         if (pathResult.IsFailure)
@@ -134,7 +134,7 @@ public static partial class AssetService
     /// <param name="guid">GUID of the asset.</param>
     /// <param name="tags">New tags for the asset.</param>
     /// <returns>Result indicating success or failure.</returns>
-    public static async ValueTask<Result> SetAssetTagsAsync(Guid guid, List<string> tags, CancellationToken token = default)
+    public async ValueTask<Result> SetAssetTagsAsync(Guid guid, List<string> tags, CancellationToken token = default)
     {
         var pathResult = GuidToPath(guid);
         if (pathResult.IsFailure)
@@ -174,7 +174,7 @@ public static partial class AssetService
     /// </summary>
     /// <param name="namePattern">Search pattern (e.g., "*.txt", "player?", "test*").</param>
     /// <returns>List of matching asset GUIDs.</returns>
-    public static async Task<List<Guid>> FindAssetsByNameAsync(string namePattern, CancellationToken token = default)
+    public async Task<List<Guid>> FindAssetsByNameAsync(string namePattern, CancellationToken token = default)
     {
         return await GetAssetsByNameAsync(namePattern, token);
     }
@@ -184,7 +184,7 @@ public static partial class AssetService
     /// </summary>
     /// <param name="tag">Tag to search for.</param>
     /// <returns>List of asset GUIDs with the specified tag.</returns>
-    public static async Task<List<Guid>> FindAssetsByTagAsync(string tag, CancellationToken token = default)
+    public async Task<List<Guid>> FindAssetsByTagAsync(string tag, CancellationToken token = default)
     {
         return await GetAssetsByTagAsync(tag, token);
     }
@@ -193,11 +193,11 @@ public static partial class AssetService
     /// Get all assets in the database.
     /// </summary>
     /// <returns>Dictionary mapping GUIDs to relative paths.</returns>
-    public static IReadOnlyDictionary<Guid, string> GetAllAssets()
+    public IReadOnlyDictionary<Guid, string> GetAllAssets()
     {
-        lock (s_dbLock)
+        lock (_dbLock)
         {
-            return s_assetPathLookup.AsReadOnly();
+            return _assetPathLookup.AsReadOnly();
         }
     }
 }

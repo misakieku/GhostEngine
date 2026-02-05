@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Editor.Core.Contracts;
 
 namespace Ghost.Editor.Core.AssetHandle.Importers;
 
@@ -27,7 +28,7 @@ internal class TextImporterSettings : ImporterSettings
 [AssetImporter(".txt", ".md")]
 internal class TextImporter : AssetImporter<TextImporterSettings>
 {
-    public override async ValueTask<Result> ImportAsync(string assetPath, AssetMeta meta, CancellationToken token = default)
+    public override async ValueTask<Result> ImportAsync(string assetPath, AssetMeta meta, IAssetService assetService, CancellationToken token = default)
     {
         var settings = GetSettings(meta);
 
@@ -36,7 +37,7 @@ internal class TextImporter : AssetImporter<TextImporterSettings>
         var dependencies = new List<Guid>();
 
         // Validate dependencies
-        var depResult = await ValidateDependenciesAsync(dependencies);
+        var depResult = await ValidateDependenciesAsync(dependencies, assetService, token);
         if (depResult.IsFailure)
         {
             return depResult;
