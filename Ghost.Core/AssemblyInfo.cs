@@ -1,7 +1,0 @@
-using Ghost.Core.Attributes;
-using System.Runtime.CompilerServices;
-
-[assembly: InternalsVisibleTo("Ghost.Graphics")]
-[assembly: InternalsVisibleTo("Ghost.Engine")]
-
-[assembly: EngineAssembly]

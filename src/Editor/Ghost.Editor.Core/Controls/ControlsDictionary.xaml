@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="ms-appx:///Ghost.Editor.Core/Controls/BasicInput/PropertyField.xaml" />
+        <ResourceDictionary Source="ms-appx:///Ghost.Editor.Core/Controls/BasicInput/Float3Field.xaml" />
+
+        <ResourceDictionary Source="ms-appx:///Ghost.Editor.Core/Controls/Internal/ComponentView.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+</ResourceDictionary>

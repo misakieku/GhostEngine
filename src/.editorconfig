@@ -1,0 +1,13 @@
+[*]
+max_line_length = 400
+
+[*.cs]
+csharp_new_line_before_open_brace = all
+csharp_preserve_single_line_statements = true
+csharp_preserve_single_line_blocks = true
+csharp_style_prefer_primary_constructors = false
+dotnet_sort_system_directives_first = false
+dotnet_separate_import_directive_groups = false
+
+dotnet_style_prefer_collection_expression = false
+dotnet_style_collection_initializer = false

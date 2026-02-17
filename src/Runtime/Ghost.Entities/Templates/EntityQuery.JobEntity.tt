@@ -1,0 +1,243 @@
+<#@ template language="C#" #>
+<#@ output extension="gen.cs" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ include file="Helpers.ttinclude" #>
+using Ghost.Core;
+using Misaki.HighPerformance.Jobs;
+using Misaki.HighPerformance.LowLevel.Collections;
+
+namespace Ghost.Entities;
+
+<# for (var i = 1; i <= Amount; i++)
+{
+    var generics = AppendGenerics(i);
+    var restrictions = AppendGenericRestrictionsMultiline(i, "unmanaged, IComponent", 1);
+#>
+public interface IJobEntity<<#= generics #>>
+<#= restrictions #>
+{
+    void Execute(Entity entity, <#= AppendParameters(i, "ref T{0} component{0}") #>, int threadIndex);
+}
+
+internal unsafe struct JobEntityBatch<TJob, <#= generics #>> : IJobParallelFor
+    where TJob : unmanaged, IJobEntity<<#= generics #>>
+<#= restrictions #>
+{
+    public fixed int componentIDs[<#= i #>];
+    public fixed bool componentRW[<#= i #>];
+
+    public TJob userJob;
+
+    public UnsafeList<IntPtr> chunks;
+    public UnsafeList<IntPtr> chunkVersions;
+    public UnsafeList<int> chunkCount;
+    public UnsafeList<int> entityOffset;
+
+<# for (var j = 0; j < i; j++){ #>
+    public UnsafeList<int> offsets<#= j #>;
+    public UnsafeList<int> bitsOffsets<#= j #>;
+    public UnsafeList<int> versionindices<#= j #>;
+
+<# } #>
+    public int version;
+
+    public void Execute(int loopIndex, int threadIndex)
+    {
+        // 1. Get the specific pChunk for this thread
+        var pChunk = (byte*)chunks[loopIndex];
+        var pVersions = (int*)chunkVersions[loopIndex];
+        var count = chunkCount[loopIndex];
+
+<# for (var j = 0; j < i; j++){ #>
+        var off<#= j #> = offsets<#= j #>[loopIndex];
+        var enableOff<#= j #> = bitsOffsets<#= j #>[loopIndex];
+        var versionIndex<#= j #> = versionindices<#= j #>[loopIndex];
+
+<# } #>
+        var pEntity = (Entity*)(pChunk + entityOffset[loopIndex]);
+<# for (var j = 0; j < i; j++){ #>
+        var ptr<#= j #> = (<#= "T" + j #>*)(pChunk + off<#= j #>);
+<# } #>
+
+        // 2. Update versions for RW components
+<# for (var j = 0; j < i; j++){ #>
+        if (componentRW[<#= j #>])
+        {
+            pVersions[versionIndex<#= j #>] = version;
+        }
+
+<# } #>
+        // 3. Iterate all entities in this chunk
+        for (var i = 0; i < count; i++)
+        {
+<# for (var j = 0; j < i; j++){ #>
+            if (enableOff<#= j #> != -1 && !EntityQuery.CheckBit(pChunk + enableOff<#= j #>, i))
+            {
+                continue;
+            }
+
+<# } #>
+            userJob.Execute(pEntity[i], <#= AppendParameters(i, "ref ptr{0}[i]") #>, threadIndex);
+        }
+    }
+}
+
+<# } #>
+public unsafe partial struct EntityQuery
+{
+<# for (var i = 1; i <= Amount; i++)
+{
+    var generics = AppendGenerics(i);
+    var restrictions = AppendGenericRestrictionsMultiline(i, "unmanaged, IComponent", 2);
+#>
+    private struct DisposeJobEntity<#= i #> : IJob
+    {
+        public UnsafeList<IntPtr> chunks;
+        public UnsafeList<IntPtr> chunkVersions;
+        public UnsafeList<int> chunkEntityCounts;
+        public UnsafeList<int> entityOffsets;
+
+<# for (var j = 0; j < i; j++){ #>
+        public UnsafeList<int> offsets<#= j #>;
+        public UnsafeList<int> bitsOffsets<#= j #>;
+        public UnsafeList<int> versionindices<#= j #>;
+
+<# } #>
+        public void Execute(int threadIndex)
+        {
+            chunks.Dispose();
+            chunkVersions.Dispose();
+            chunkEntityCounts.Dispose();
+            entityOffsets.Dispose();
+
+<# for (var j = 0; j < i; j++){ #>
+            offsets<#= j #>.Dispose();
+            bitsOffsets<#= j #>.Dispose();
+            versionindices<#= j #>.Dispose();
+
+<# } #>
+        }
+    }
+
+    public JobHandle ScheduleEntityParallel<TJob, <#= generics #>>(TJob jobData, int batchSize, JobHandle dependency)
+        where TJob : unmanaged, IJobEntity<<#= generics #>>
+<#= restrictions #>
+    {
+        var world = World.GetWorld(_worldID);
+        if (world is null)
+        {
+            return JobHandle.Invalid;
+        }
+
+        if (world.JobScheduler == null)
+        {
+            throw new InvalidOperationException("The World has no JobScheduler assigned.");
+        }
+
+        // 1. Flatten the World
+        var chunks = new UnsafeList<IntPtr>(128, JobScheduler.TempAllocatorHandle);
+        var chunkVersions = new UnsafeList<IntPtr>(128, JobScheduler.TempAllocatorHandle);
+        var chunkEntityCounts = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var entityOffsets = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+
+<# for (var j = 0; j < i; j++){ #>
+        var offsets<#= j #> = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var bitsOffsets<#= j #> = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var versionIndices<#= j #> = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+
+<# } #>
+        // Iterate the Query's matching archetypes
+        foreach (var archID in _matchingArchetypes)
+        {
+            ref var arch = ref world.ComponentManager.GetArchetypeReference(archID);
+
+            if (arch.ChunkCount == 0)
+            {
+                continue;
+            }
+
+            // Get offsets ONCE per archetype
+<# for (var j = 0; j < i; j++){ #>
+            var layout<#= j #> = arch.GetLayout(ComponentTypeID<T<#= j #>>.Value)
+                .GetValueOrThrow();
+<# } #>
+
+            // Add all chunks from this archetype
+            for (var i = 0; i < arch.ChunkCount; i++)
+            {
+                ref var chunkRef = ref arch.GetChunkReference(i);
+
+                chunks.Add((IntPtr)chunkRef.GetUnsafePtr());
+                chunkVersions.Add((IntPtr)chunkRef.GetVersionUnsafePtr());
+                chunkEntityCounts.Add(chunkRef._count);
+                entityOffsets.Add(arch.EntityIDsOffset);
+
+<# for (var j = 0; j < i; j++){ #>
+                offsets<#= j #>.Add(layout<#= j #>.offset);
+                bitsOffsets<#= j #>.Add(layout<#= j #>.enableBitsOffset);
+                versionIndices<#= j #>.Add(layout<#= j #>.versionIndex);
+
+<# } #>
+            }
+        }
+
+        // 2. Create the Runner
+        var runner = new JobEntityBatch<TJob, <#= generics #>>
+        {
+            userJob = jobData,
+            chunks = chunks,
+            chunkVersions = chunkVersions,
+            chunkCount = chunkEntityCounts,
+            entityOffset = entityOffsets,
+
+<# for (var j = 0; j < i; j++){ #>
+            offsets<#= j #> = offsets<#= j #>,
+            bitsOffsets<#= j #> = bitsOffsets<#= j #>,
+            versionindices<#= j #> = versionIndices<#= j #>,
+
+<# } #>
+            version = world.Version,
+        };
+
+        runner.componentIDs[0] = ComponentTypeID<T0>.Value;
+
+        var it = _mask.writeAccess.GetIterator();
+        while (it.Next(out var id))
+        {
+            for (var i =0; i < 1; i++)
+            {
+                if (id == runner.componentIDs[i])
+                {
+                    runner.componentRW[i] = true;
+                    break;
+                }
+            }
+        }
+
+        var jobHandle = world.JobScheduler.ScheduleParallel(ref runner, chunks.Count, batchSize, dependency);
+
+        // 3. Dispose the temp lists
+        var disposeJob = new DisposeJobEntity<#= i #>
+        {
+            chunks = chunks,
+            chunkVersions = chunkVersions,
+            chunkEntityCounts = chunkEntityCounts,
+            entityOffsets = entityOffsets,
+
+<# for (var j = 0; j < i; j++){ #>
+            offsets<#= j #> = offsets<#= j #>,
+            bitsOffsets<#= j #> = bitsOffsets<#= j #>,
+            versionindices<#= j #> = versionIndices<#= j #>,
+
+<# } #>
+        };
+
+        world.JobScheduler.Schedule(ref disposeJob, jobHandle);
+
+        return jobHandle;
+    }
+
+<# } #>
+}

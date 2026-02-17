@@ -1,0 +1,16 @@
+using Ghost.Core;
+using Ghost.Graphics.Contracts;
+
+namespace Ghost.Graphics.RHI;
+
+public interface IPipelineLibrary : IDisposable
+{
+    /// <summary>
+    /// Load pipeline library from disk.
+    /// </summary>
+    /// <param name="filePath">File path. If null, load default library.</param>
+    void InitializeLibrary(string? filePath);
+    void SaveLibraryToDisk(string filePath);
+    bool HasPipeline(Key128<GraphicsPipeline> key);
+    Result<Key128<GraphicsPipeline>> CompilePSO(ref readonly GraphicsPSODescriptor descriptor, ref readonly GraphicsCompiledResult compiled);
+}

@@ -1,0 +1,47 @@
+<Solution>
+  <Configurations>
+    <Platform Name="ARM64" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Editor/">
+    <Project Path="Editor/Ghost.Editor.Core/Ghost.Editor.Core.csproj" />
+    <Project Path="Editor/Ghost.Editor/Ghost.Editor.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+      <Platform Solution="*|x86" Project="x86" />
+      <Deploy />
+    </Project>
+    <Project Path="Editor/Ghost.DSL/Ghost.DSL.csproj" />
+  </Folder>
+  <Folder Name="/ThridParty/">
+    <Project Path="ThridParty/Ghost.FMOD/Ghost.FMOD.csproj" />
+    <Project Path="ThridParty/Ghost.MeshOptimizer/Ghost.MeshOptimizer.csproj" />
+    <Project Path="ThridParty/Ghost.Nvtt/Ghost.Nvtt.csproj" />
+  </Folder>
+  <Folder Name="/Runtime/">
+    <Project Path="Runtime/Ghost.Core/Ghost.Core.csproj" />
+    <Project Path="Runtime/Ghost.Engine/Ghost.Engine.csproj" />
+    <Project Path="Runtime/Ghost.Entities/Ghost.Entities.csproj" />
+    <Project Path="Runtime/Ghost.Generator/Ghost.Generator.csproj" />
+    <Project Path="Runtime/Ghost.Graphics/Ghost.Graphics.csproj" />
+  </Folder>
+  <Folder Name="/Test/">
+    <Project Path="Test/Ghost.Entities.Test/Ghost.Entities.Test.csproj" />
+    <Project Path="Test/Ghost.Graphics.Test/Ghost.Graphics.Test.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+      <Platform Solution="*|x86" Project="x86" />
+      <Deploy />
+    </Project>
+    <Project Path="Test/Ghost.MicroTest/Ghost.MicroTest.csproj" Id="8c8ffa4b-e1e4-46a1-9221-7b508a109edd" />
+    <Project Path="Test/Ghost.Shader.Test/Ghost.Shader.Test.csproj" />
+    <Project Path="Test/Ghost.Test.Core/Ghost.Test.Core.csproj" />
+    <Project Path="Test/Ghost.UnitTest/Ghost.UnitTest.csproj" Id="4da45668-456b-4dcc-acd8-6bfe154e6837">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+      <Platform Solution="*|x86" Project="x86" />
+      <Deploy />
+    </Project>
+  </Folder>
+</Solution>

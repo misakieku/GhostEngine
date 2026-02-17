@@ -1,0 +1,142 @@
+<#@ template language="C#" #>
+<#@ output extension="gen.cs" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ include file="Helpers.ttinclude" #>
+using System.Runtime.CompilerServices;
+
+namespace Ghost.Entities;
+
+public ref partial struct QueryBuilder
+{
+<# for (var i = 1; i <= 3; i++)
+{
+    var generics = AppendGenerics(i);
+    var restrictions = AppendGenericRestrictionsMultiline(i, "unmanaged, IComponent", 2);
+    var enableRestrictions = AppendGenericRestrictionsMultiline(i, "unmanaged, IEnableableComponent", 2);
+#>
+    /// <summary>
+    /// Adds the specified component type(s) to the 'All' filter of the query.
+    /// Targets entities that have all of the specified component types and those component(s) must be enabled.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public QueryBuilder WithAll<<#= generics #>>()
+<#= restrictions #>
+    {
+<# for (var j = 0; j < i; j++) { #>
+        _all.Add(ComponentTypeID<T<#= j #>>.Value);
+<# } #>
+
+        return this;
+    }
+
+    /// <summary>
+    /// Adds the specified component type(s) to the 'All' filter of the query and requires read-write access.
+    /// Targets entities that have all of the specified component types and those component(s) must be enabled.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public QueryBuilder WithAllRW<<#= generics #>>()
+<#= restrictions #>
+    {
+<# for (var j = 0; j < i; j++) { #>
+        _all.Add(ComponentTypeID<T<#= j #>>.Value);
+        _rw.Add(ComponentTypeID<T<#= j #>>.Value);
+<# } #>
+
+        return this;
+    }
+
+    /// <summary>
+    /// Adds the specified component type(s) to the 'Any' filter of the query.
+    /// Targets entities that have at least one of the specified component types and those component(s) must be enabled.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public QueryBuilder WithAny<<#= generics #>>()
+<#= restrictions #>
+    {
+<# for (var j = 0; j < i; j++) { #>
+        _any.Add(ComponentTypeID<T<#= j #>>.Value);
+<# } #>
+
+        return this;
+    }
+
+    /// <summary>
+    /// Adds the specified component type(s) to the 'Absent' filter of the query.
+    /// Targets entities that do not have any of the specified component types.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public QueryBuilder WithAbsent<<#= generics #>>()
+<#= restrictions #>
+    {
+<# for (var j = 0; j < i; j++) { #>
+        _absent.Add(ComponentTypeID<T<#= j #>>.Value);
+<# } #>
+
+        return this;
+    }
+
+    /// <summary>
+    /// Adds the specified component type(s) to the 'None' filter of the query.
+    /// Targets entities that do not have any of the specified component types, or those component(s) are disabled.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public QueryBuilder WithNone<<#= generics #>>()
+<#= restrictions #>
+    {
+<# for (var j = 0; j < i; j++) { #>
+        _none.Add(ComponentTypeID<T<#= j #>>.Value);
+<# } #>
+
+        return this;
+    }
+
+    /// <summary>
+    /// Adds the specified component type(s) to the 'Disabled' filter of the query.
+    /// Targets entities that have all of the specified component types and those component(s) are disabled.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public QueryBuilder WithDisabled<<#= generics #>>()
+<#= enableRestrictions #>
+    {
+<# for (var j = 0; j < i; j++) { #>
+        _disabled.Add(ComponentTypeID<T<#= j #>>.Value);
+<# } #>
+
+        return this;
+    }
+
+    /// <summary>
+    /// Adds the specified component type(s) to the 'Present' filter of the query.
+    /// Targets entities that have all of the specified component types, regardless of whether those component(s) are enabled or disabled.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public QueryBuilder WithPresent<<#= generics #>>()
+<#= restrictions #>
+    {
+<# for (var j = 0; j < i; j++) { #>
+        _present.Add(ComponentTypeID<T<#= j #>>.Value);
+<# } #>
+
+        return this;
+    }
+
+    /// <summary>
+    /// Adds the specified component type(s) to the 'Present' filter of the query and requires read-write access.
+    /// Targets entities that have all of the specified component types, regardless of whether those component(s) are enabled or disabled.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public QueryBuilder WithPresentRW<<#= generics #>>()
+<#= restrictions #>
+    {
+<# for (var j = 0; j < i; j++) { #>
+        _present.Add(ComponentTypeID<T<#= j #>>.Value);
+        _rw.Add(ComponentTypeID<T<#= j #>>.Value);
+<# } #>
+
+        return this;
+    }
+
+<# } #>
+}

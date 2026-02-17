@@ -1,0 +1,119 @@
+<#@ template language="C#" #>
+<#@ output extension="gen.cs" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ include file="Helpers.ttinclude" #>
+namespace Ghost.Entities;
+
+public unsafe partial struct EntityQuery
+{
+<# for (var f = 0; f < 2; f++)
+{
+    var isForEachWithEntity = f != 0;
+#>
+<# for (var i = 1; i <= Amount; i++)
+{
+    var generics = AppendParameters(i, "T{0}");
+    var restrictions = AppendGenericRestrictionsMultiline(i, "unmanaged, IComponent", 2);
+
+    var delegateTupe = isForEachWithEntity ? "ForEachWithEntity" : "ForEach";
+#>
+    public readonly void ForEach<<#= generics #>>(<#= delegateTupe #><<#= generics #>> action)
+<#= restrictions #>
+    {
+        var world = World.GetWorldUncheck(_worldID);
+        var globalVersion = world.Version;
+
+<# for (var localIndex = 0; localIndex < i; localIndex++) { #>
+        var comp<#= localIndex #>TypeID = ComponentTypeID<T<#= localIndex #>>.Value;
+<# } #>
+
+        var compTypeIDs = stackalloc int[]
+        {
+<# for (var localIndex = 0; localIndex < i; localIndex++) { #>
+            comp<#= localIndex #>TypeID.Value,
+<# } #>
+        };
+
+        var changedCompIDs = stackalloc int[<#= i #>];
+        var offsets = stackalloc int[<#= i #>];
+        var basePtrs = stackalloc byte*[<#= i #>];
+
+        var changedCompCount = 0;
+
+        var it = _mask.writeAccess.GetIterator();
+        while (it.Next(out var id))
+        {
+            for (var i =0; i < <#= i #>; i++)
+            {
+                if (id == compTypeIDs[i])
+                {
+                    changedCompIDs[changedCompCount] = id;
+                    changedCompCount++;
+                    break;
+                }
+            }
+        }
+
+        for (var i = 0; i < _matchingArchetypes.Count; i++)
+        {
+            ref var archetype = ref world.ComponentManager.GetArchetypeReference(_matchingArchetypes[i]);
+            var hasAllComponents = true;
+            for (var index = 0; index < <#= i #>; index++)
+            {
+                var layoutResult = archetype.GetLayout(compTypeIDs[index]);
+                if (!layoutResult)
+                {
+                    hasAllComponents = false;
+                    break;
+                }
+
+                offsets[index] = layoutResult.Value.offset;
+            }
+
+            if (!hasAllComponents)
+            {
+                continue;
+            }
+
+            for (var chunkIndex = 0; chunkIndex < archetype.ChunkCount; chunkIndex++)
+            {
+                ref var chunk = ref archetype.GetChunkReference(chunkIndex);
+                var pChunkData = chunk.GetUnsafePtr();
+
+                for (var j = 0; j < changedCompCount; j++)
+                {
+                    archetype.MarkChanged(chunkIndex, changedCompIDs[j], globalVersion);
+                }
+
+                for (var index = 0; index < <#= i #>; index++)
+                {
+                    basePtrs[index] = pChunkData + offsets[index];
+                }
+
+                for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
+                {
+                    if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
+                    {
+                        continue;
+                    }
+
+<# for (var localIndex = 0; localIndex < i; localIndex++) { #>
+                    var pComp<#= localIndex #> = (T<#= localIndex #>*)(basePtrs[<#= localIndex #>] + (sizeof(T<#= localIndex #>) * entityIndex));
+<# } #>
+
+<# if (isForEachWithEntity) { #>
+                    var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
+                    action(*pEntity, <#= AppendParameters(i, "ref *pComp{0}") #>);
+<# } else { #>
+                    action(<#= AppendParameters(i, "ref *pComp{0}") #>);
+<# } #>
+                }
+            }
+        }
+    }
+
+<# } #>
+<# } #>
+}

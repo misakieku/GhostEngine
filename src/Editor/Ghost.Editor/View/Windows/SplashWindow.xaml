@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<winex:WindowEx
+    x:Class="Ghost.Editor.View.Windows.SplashWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:Ghost.Editor.View.Windows"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:winex="using:WinUIEx"
+    Title="SplashWindow"
+    mc:Ignorable="d">
+
+    <winex:WindowEx.SystemBackdrop>
+        <MicaBackdrop />
+    </winex:WindowEx.SystemBackdrop>
+
+    <Grid Margin="32,32,32,16" Loaded="MainGrid_Loaded">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" ColumnSpacing="24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="1.2*" />
+            </Grid.ColumnDefinitions>
+
+            <Grid Grid.Column="0" CornerRadius="8">
+                <Image
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Source="C:\Users\Misaki\Downloads\Screenshot 2024-07-20 035047.png"
+                    Stretch="UniformToFill" />
+            </Grid>
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <TextBlock
+                    Grid.Row="0"
+                    Style="{StaticResource TitleLargeTextBlockStyle}"
+                    Text="Ghost Engine" />
+                <TextBlock
+                    x:Name="VersionTextBlock"
+                    Grid.Row="1"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Style="{StaticResource BodyLargeStrongTextBlockStyle}" />
+                <TextBlock
+                    Grid.Row="2"
+                    Margin="0,32,0,0"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Text="An open-source, modern game engine designed for flexibility and performance."
+                    TextWrapping="WrapWholeWords" />
+            </Grid>
+        </Grid>
+        <ProgressBar
+            Grid.Row="1"
+            Margin="0,24,0,0"
+            IsIndeterminate="True" />
+        <TextBlock
+            x:Name="LoadingTextBlock"
+            Grid.Row="2"
+            Margin="0,4,0,0"
+            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+        <TextBlock
+            x:Name="CopyrightTextBlock"
+            Grid.Row="3"
+            Margin="0,24,0,0"
+            HorizontalAlignment="Center"
+            Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+            Style="{StaticResource CaptionTextBlockStyle}" />
+    </Grid>
+</winex:WindowEx>
