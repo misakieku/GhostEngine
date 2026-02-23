@@ -23,6 +23,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Runtime\Ghost.Core\Ghost.Core.csproj" />
     <ProjectReference Include="..\..\Runtime\Ghost.Engine\Ghost.Engine.csproj" />
+    <ProjectReference Include="..\..\ThridParty\Ghost.Nvtt\Ghost.Nvtt.csproj" />
   </ItemGroup>
 
   <ItemGroup>

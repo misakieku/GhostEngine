@@ -82,7 +82,7 @@ public unsafe partial struct EntityQuery
             chunkInfos = chunkInfos.AsReadOnly()
         };
 
-        var handle = world.JobScheduler.ScheduleParallel(ref batchJob, chunkInfos.Count, batchSize, dependency);
+        var handle = world.JobScheduler.ScheduleParallelFor(ref batchJob, chunkInfos.Count, batchSize, dependency);
 
         var disposeJob = new DisposeJobChunk
         {

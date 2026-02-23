@@ -41,13 +41,6 @@ public enum TextureCompressionLevel : uint
     High
 }
 
-public enum TextureCompressionEffort : uint
-{
-    Fastest,
-    Normal,
-    Production
-}
-
 public enum MipmapFilter : uint
 {
     Box,
@@ -59,14 +52,17 @@ public enum MipmapFilter : uint
 public class TextureAsset : Asset
 {
     internal const string _TYPE_ID = "0906F4EB-C3F0-431B-BCEA-132C88AB0C3F";
-
     internal static readonly Guid s_typeGuid = Guid.Parse(_TYPE_ID);
 
-    public override Guid TypeID => s_typeGuid;
+    private readonly Handle<Texture> _texture;
 
-    public TextureAsset(Guid id, Guid[] dependencies, IAssetSettings? settings)
+    public override Guid TypeID => s_typeGuid;
+    public Handle<Texture> Texture => _texture;
+
+    public TextureAsset(Guid id, Guid[] dependencies, IAssetSettings? settings, Handle<Texture> texture)
         : base(id, dependencies, settings)
     {
+        _texture = texture;
     }
 }
 
@@ -142,21 +138,16 @@ public class TextureAssetSettings : IAssetSettings
             get; set;
         } = TextureCompressionLevel.Normal;
 
-        public TextureCompressionEffort CompressionEffort
-        {
-            get; set;
-        } = TextureCompressionEffort.Normal;
-
         public bool UseBorderColor
         {
             get; set;
         } = false;
 
-        public Color32 BorderColor
+        public Color128 BorderColor
         {
             get; set;
-        } = new Color32(0, 0, 0, 0);
-
+        } = new Color128(0, 0, 0, 0);
+        
         public bool ZeroAlphaBorder
         {
             get; set;
@@ -254,11 +245,12 @@ public class TextureAssetSettings : IAssetSettings
 
         try
         {
-            ref byte address = ref MemoryMarshal.GetReference(tempArray);
             await stream.ReadAsync(tempArray.AsMemory(0, size), token).ConfigureAwait(false);
-            var basic = Unsafe.ReadUnaligned<BasicSettings>(ref address);
-            var advanced = Unsafe.ReadUnaligned<AdvancedSettings>(ref Unsafe.Add(ref address, Unsafe.SizeOf<BasicSettings>()));
-            var sampler = Unsafe.ReadUnaligned<SamplerSettings>(ref Unsafe.Add(ref address, Unsafe.SizeOf<BasicSettings>() + Unsafe.SizeOf<AdvancedSettings>()));
+
+            // Use index-based reads after the await to avoid 'ref across await' errors.
+            var basic    = Unsafe.ReadUnaligned<BasicSettings>(ref tempArray[0]);
+            var advanced = Unsafe.ReadUnaligned<AdvancedSettings>(ref tempArray[Unsafe.SizeOf<BasicSettings>()]);
+            var sampler  = Unsafe.ReadUnaligned<SamplerSettings>(ref tempArray[Unsafe.SizeOf<BasicSettings>() + Unsafe.SizeOf<AdvancedSettings>()]);
 
             var settings = new TextureAssetSettings
             {
@@ -280,6 +272,7 @@ public class TextureAssetSettings : IAssetSettings
     }
 }
 
+[CustomAssetHandler(ID = TextureAsset._TYPE_ID, SupportedExtensions = new[] { ".png", ".jpg", ".jpeg", ".tga", ".bmp", ".hdr" })]
 internal class TextureAssetHandler : IImportableAssetHandler
 {
     private const int _CURRENT_VERSION = 1;
@@ -291,28 +284,59 @@ internal class TextureAssetHandler : IImportableAssetHandler
 
     public async ValueTask<Result> ImportAsync(Stream sourceStream, Stream targetStream, Guid id, CancellationToken token = default)
     {
+        // ---- 1. Probe image info -----------------------------------------------
         var info = ImageInfo.FromStream(sourceStream);
         if (info.BitsPerChannel <= 0)
-        {
             return Result.Failure($"Unsupported image format with {info.BitsPerChannel} bits per channel.");
-        }
 
-        ref byte pData = ref Unsafe.NullRef<byte>();
-        var imageSize = 0ul;
         var isFloat = info.BitsPerChannel > 8;
+        var width   = info.Width;
+        var height  = info.Height;
+        var colorComponents = info.ColorComponents;
+
+        // ---- 2. Decode pixels into a managed byte[] ----------------------------
+        byte[] pixelBytes;
 
         if (isFloat)
         {
-            using var image = ImageResultFloat.FromStream(sourceStream, info.ColorComponents);
-            pData = ref MemoryMarshal.GetReference(MemoryMarshal.AsBytes(image.AsSpan()));
-            imageSize = image.Size;
+            using var image = ImageResultFloat.FromStream(sourceStream, colorComponents);
+            var span = MemoryMarshal.AsBytes(image.AsSpan());
+            pixelBytes = new byte[span.Length];
+            span.CopyTo(pixelBytes);
         }
         else
         {
-            using var image = ImageResult.FromStream(sourceStream, info.ColorComponents);
-            pData = ref MemoryMarshal.GetReference(MemoryMarshal.AsBytes(image.AsSpan()));
-            imageSize = image.Size;
+            using var image = ImageResult.FromStream(sourceStream, colorComponents);
+            var span = MemoryMarshal.AsBytes(image.AsSpan());
+            pixelBytes = new byte[span.Length];
+            span.CopyTo(pixelBytes);
         }
+
+        // ---- 3. Run NVTT compression on a thread-pool thread (side-effect only) -
+        // The cache path is derivable at any time from (id, settingsHash), so we
+        // do NOT store it in the asset file.  LoadAsync/SaveAsync will recompute it.
+        var settings = new TextureAssetSettings();
+        await Task.Run(() =>
+            TextureProcessor.CompressToCache(
+                EditorApplication.CachesFolderPath,
+                id,
+                pixelBytes,
+                width,
+                height,
+                isFloat,
+                colorComponents,
+                settings),
+            token).ConfigureAwait(false);
+
+        // ---- 4. Write asset file: header + settings + raw image data -----------
+        // Content layout (all little-endian):
+        //   int32  width
+        //   int32  height
+        //   byte   isFloat  (0 = byte, 1 = float)
+        //   int32  colorComponents  (cast of ColorComponents enum)
+        //   byte[] pixelBytes
+        const int _CONTENT_HEADER_SIZE = 4 + 4 + 1 + 4; // 13 bytes
+        var contentSize = _CONTENT_HEADER_SIZE + pixelBytes.Length;
 
         var header = new AssetMetadata(id, TextureAsset.s_typeGuid)
         {
@@ -320,58 +344,52 @@ internal class TextureAssetHandler : IImportableAssetHandler
             SettingsOffset = AssetMetadata.SIZE,
         };
 
+        // Reserve space for the header, then write settings
         targetStream.Seek(0, SeekOrigin.Begin);
         AssetMetadata.WriteToStream(targetStream, ref header);
 
         targetStream.Seek(header.SettingsOffset, SeekOrigin.Begin);
-        var settings = new TextureAssetSettings();
         var sizeResult = await settings.WriteToStreamAsync(targetStream, token).ConfigureAwait(false);
         if (sizeResult.IsFailure)
-        {
             return Result.Failure($"Failed to write texture asset settings: {sizeResult.Message}");
-        }
 
-        header.SettingsSize = sizeResult.Value;
+        header.SettingsSize  = sizeResult.Value;
         header.ContentOffset = header.SettingsOffset + sizeResult.Value;
-        header.ContentSize = (long)imageSize;
+        header.ContentSize   = contentSize;
 
+        // Write raw image content
         targetStream.Seek(header.ContentOffset, SeekOrigin.Begin);
 
-        var offset = 0;
-        var tempArray = ArrayPool<byte>.Shared.Rent((int)Math.Min(imageSize, 40960ul));
-        var remaining = imageSize;
-
+        var contentHeader = ArrayPool<byte>.Shared.Rent(_CONTENT_HEADER_SIZE);
         try
         {
-            while (remaining > 0)
-            {
-                var chunkSize = (int)Math.Min(remaining, (ulong)tempArray.Length);
-                Unsafe.CopyBlockUnaligned(ref tempArray[0], ref Unsafe.Add(ref pData, offset), (uint)chunkSize);
-                
-                await targetStream.WriteAsync(tempArray.AsMemory(0, chunkSize), token).ConfigureAwait(false);
-
-                offset += chunkSize;
-                remaining -= (ulong)chunkSize;
-            }
-
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure($"Failed to write texture asset content to stream: {ex.Message}");
+            BitConverter.TryWriteBytes(contentHeader.AsSpan(0, 4), width);
+            BitConverter.TryWriteBytes(contentHeader.AsSpan(4, 4), height);
+            contentHeader[8] = isFloat ? (byte)1 : (byte)0;
+            BitConverter.TryWriteBytes(contentHeader.AsSpan(9, 4), (int)colorComponents);
+            await targetStream.WriteAsync(contentHeader.AsMemory(0, _CONTENT_HEADER_SIZE), token).ConfigureAwait(false);
         }
         finally
         {
-            ArrayPool<byte>.Shared.Return(tempArray);
+            ArrayPool<byte>.Shared.Return(contentHeader);
         }
+
+        await targetStream.WriteAsync(pixelBytes, token).ConfigureAwait(false);
+        await targetStream.FlushAsync(token).ConfigureAwait(false);
+
+        // Patch header now that all sizes are known
+        targetStream.Seek(0, SeekOrigin.Begin);
+        AssetMetadata.WriteToStream(targetStream, ref header);
+
+        return Result.Success();
     }
 
-    public ValueTask<Result<Asset>> LoadAsync(Stream sourceStream, IAssetRegistry assetDatabase, CancellationToken token = default)
+    public ValueTask<Result<Asset>> LoadAsync(Stream sourceStream, IAssetRegistry assetRegistry, CancellationToken token = default)
     {
         throw new NotImplementedException();
     }
 
-    public ValueTask<Result> SaveAsync(Asset asset, Stream targetStream, IAssetRegistry assetDatabase, CancellationToken token = default)
+    public ValueTask<Result> SaveAsync(Asset asset, Stream targetStream, IAssetRegistry assetRegistry, CancellationToken token = default)
     {
         throw new NotImplementedException();
     }

@@ -1,4 +1,3 @@
-using Ghost.Editor.Core.Contracts;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 
@@ -7,7 +6,10 @@ namespace Ghost.Editor.Core;
 public static class EditorApplication
 {
     public const string ASSETS_FOLDER_NAME = "Assets";
+    public const string SOURCES_FOLDER_NAME = "Sources";
+    public const string PACKAGES_FOLDER_NAME = "Packages";
     public const string CACHES_FOLDER_NAME = "Caches";
+    public const string CONFIG_FOLDER_NAME = "Config";
 
     private static IServiceProvider? s_serviceProvider;
     private static string s_currentProjectPath = string.Empty;
@@ -16,8 +18,15 @@ public static class EditorApplication
     private static DispatcherQueue? s_dispatcherQueue;
 
     internal static Application CurrentApplication => Application.Current;
-    internal static string CurrentProjectPath => s_currentProjectPath;
-    internal static string CurrentProjectName => s_currentProjectName;
+
+    public static string ProjectPath => s_currentProjectPath;
+    public static string ProjectName => s_currentProjectName;
+
+    public static string AssetsFolderPath => Path.Combine(ProjectPath, ASSETS_FOLDER_NAME);
+    public static string SourcesFolderPath => Path.Combine(ProjectPath, SOURCES_FOLDER_NAME);
+    public static string PackagesFolderPath => Path.Combine(ProjectPath, PACKAGES_FOLDER_NAME);
+    public static string CachesFolderPath => Path.Combine(ProjectPath, CACHES_FOLDER_NAME);
+    public static string ConfigFolderPath => Path.Combine(ProjectPath, CONFIG_FOLDER_NAME);
 
     public static DispatcherQueue DispatcherQueue
     {
@@ -57,9 +66,5 @@ public static class EditorApplication
 
     internal static void Shutdown()
     {
-        if (s_serviceProvider?.GetService(typeof(IAssetService)) is AssetHandle.AssetService assetService)
-        {
-            assetService.Shutdown();
-        }
     }
 }

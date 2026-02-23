@@ -11,29 +11,23 @@ public sealed class CustomAssetHandlerAttribute : Attribute
         get; init;
     }
 
-    public bool AllowCaching
-    {
-        get; init;
-    } = true;
-
     public required string[] SupportedExtensions
     {
         get; init;
     }
-}
 
-public enum DependencyUpdateType
-{
-    Add,
-    Remove
+    public bool AllowCaching
+    {
+        get; init;
+    } = true;
 }
 
 public interface IAssetExportOptions;
 
 public interface IAssetHandler
 {
-    ValueTask<Result<Asset>> LoadAsync(Stream sourceStream, IAssetRegistry assetDatabase, CancellationToken token = default);
-    ValueTask<Result> SaveAsync(Asset asset, Stream targetStream, IAssetRegistry assetDatabase, CancellationToken token = default);
+    ValueTask<Result<Asset>> LoadAsync(Stream sourceStream, IAssetRegistry assetRegistry, CancellationToken token = default);
+    ValueTask<Result> SaveAsync(Asset asset, Stream targetStream, IAssetRegistry assetRegistry, CancellationToken token = default);
 }
 
 public interface IImportableAssetHandler : IAssetHandler

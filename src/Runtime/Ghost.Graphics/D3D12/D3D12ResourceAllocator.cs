@@ -5,11 +5,8 @@ using Ghost.Graphics.Core;
 using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
-using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 
@@ -454,21 +451,18 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
     private UniquePtr<D3D12MA_Allocator> _d3d12MA;
 
-    private readonly IFenceSynchronizer _fenceSynchronizer;
     private readonly D3D12RenderDevice _device;
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
     private readonly D3D12ResourceDatabase _resourceDatabase;
     private readonly D3D12PipelineLibrary _pipelineLibrary;
 
-    private UnsafeQueue<Handle<GPUResource>> _tempResources;
-
+    // TODO: We should use ring buffer pool in d3d12ma for upload buffer.
     private readonly Handle<GraphicsBuffer> _uploadBatch;
     private ulong _uploadBatchOffset;
 
     private bool _disposed;
 
     public D3D12ResourceAllocator(
-        IFenceSynchronizer fenceSynchronizer,
         D3D12RenderDevice device,
         D3D12DescriptorAllocator descriptorAllocator,
         D3D12ResourceDatabase resourceDatabase,
@@ -485,13 +479,10 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         ThrowIfFailed(D3D12MA_CreateAllocator(&desc, &pAllocator));
         _d3d12MA.Attach(pAllocator);
 
-        _fenceSynchronizer = fenceSynchronizer;
         _device = device;
         _descriptorAllocator = descriptorAllocator;
         _resourceDatabase = resourceDatabase;
         _pipelineLibrary = pipelineLibrary;
-
-        _tempResources = new UnsafeQueue<Handle<GPUResource>>(64, Allocator.Persistent);
 
         // Create an upload batch
         var uploadDesc = new BufferDesc
@@ -513,13 +504,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Handle<GPUResource> TrackAllocation(D3D12MA_Allocation* allocation, ResourceBarrierData barrierData, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string name, bool isTemp)
     {
-        var handle = _resourceDatabase.AddAllocation(allocation, _fenceSynchronizer.CPUFenceValue, barrierData, resourceDescriptor, desc, name);
-
-        if (isTemp)
-        {
-            _tempResources.Enqueue(handle);
-        }
-
+        var handle = _resourceDatabase.AddAllocation(allocation, barrierData, resourceDescriptor, desc, name);
         return handle;
     }
 
@@ -844,7 +829,10 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             };
 
             offset = 0;
-            return CreateBuffer(in bufferDesc, "TempUploadBuffer", options);
+            var handle = CreateBuffer(in bufferDesc, "TempUploadBuffer", options);
+
+            _resourceDatabase.ScheduleReleaseResource(handle.AsResource());
+            return handle;
         }
     }
 
@@ -943,35 +931,6 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         return _resourceDatabase.AddShader(shader);
     }
 
-    public void ReleaseTempResources()
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        while (_tempResources.Count > 0)
-        {
-            var handle = _tempResources.Peek();
-            var r = _resourceDatabase.GetResourceRecord(handle);
-            if (r.IsFailure || !r.Value.Allocated)
-            {
-                // Resource already released or invalid, just dequeue
-                _tempResources.Dequeue();
-                continue;
-            }
-
-            if (r.Value.cpuFenceValue > _fenceSynchronizer.GPUFenceValue)
-            {
-                // Resource still in use by GPU, stop processing.
-                // Since resources are enqueued in order, we can break here.
-                break;
-            }
-
-            _resourceDatabase.ReleaseResource(handle);
-            _tempResources.Dequeue();
-        }
-
-        _uploadBatchOffset = 0;
-    }
-
     public void Dispose()
     {
         if (_disposed)
@@ -979,17 +938,8 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             return;
         }
 
-        Debug.Assert(_tempResources.Count == 0, "Temporary resources should be released before disposing the allocator.");
-
-        foreach (var handle in _tempResources)
-        {
-            _resourceDatabase.ReleaseResource(handle);
-        }
-
-        _resourceDatabase.ReleaseResource(_uploadBatch.AsResource());
-
+        _resourceDatabase.ReleaseResourceImmediately(_uploadBatch.AsResource());
         _d3d12MA.Dispose();
-        _tempResources.Dispose();
 
         _disposed = true;
         GC.SuppressFinalize(this);

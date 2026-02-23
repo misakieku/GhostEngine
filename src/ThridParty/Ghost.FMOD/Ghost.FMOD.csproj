@@ -15,17 +15,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="fmod.dll" />
-    <None Remove="fmodstudio.dll" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="runtime\win-x64\native\fmod.dll">
+    <None Update="runtimes\win-x64\native\fmod.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="runtime\win-x64\native\fmodstudio.dll">
+    </None>
+    <None Update="runtimes\win-x64\native\fmodstudio.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    </None>
   </ItemGroup>
 
 </Project>

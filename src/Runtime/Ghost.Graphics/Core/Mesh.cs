@@ -117,9 +117,9 @@ public struct Mesh : IResourceReleasable
     {
         ReleaseCpuResources();
 
-        database.ReleaseResource(VertexBuffer.AsResource());
-        database.ReleaseResource(IndexBuffer.AsResource());
-        database.ReleaseResource(ObjectDataBuffer.AsResource());
+        database.ScheduleReleaseResource(VertexBuffer.AsResource());
+        database.ScheduleReleaseResource(IndexBuffer.AsResource());
+        database.ScheduleReleaseResource(ObjectDataBuffer.AsResource());
     }
 }
 

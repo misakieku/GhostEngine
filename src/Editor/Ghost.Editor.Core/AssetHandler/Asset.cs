@@ -1,8 +1,6 @@
-using Ghost.Core;
 using Ghost.Editor.Core.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Serialization;
 
 namespace Ghost.Editor.Core.AssetHandler;
 
@@ -178,8 +176,4 @@ public readonly struct AssetReference : IEquatable<AssetReference>
     }
 }
 
-public interface IAssetSettings
-{
-    ValueTask<Result<long>> WriteToStreamAsync(Stream stream, CancellationToken token = default);
-    ValueTask<Result<IAssetSettings>> ReadFromStreamAsync(Stream stream, CancellationToken token = default);
-}
+public interface IAssetSettings;

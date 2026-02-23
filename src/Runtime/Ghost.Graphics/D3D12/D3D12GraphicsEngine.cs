@@ -47,9 +47,9 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         _shaderCompiler = new DxcShaderCompiler();
         _descriptorAllocator = new D3D12DescriptorAllocator(_device);
 
-        _resourceDatabase = new D3D12ResourceDatabase(_descriptorAllocator);
+        _resourceDatabase = new D3D12ResourceDatabase(renderSystem, _descriptorAllocator);
         _pipelineLibrary = new D3D12PipelineLibrary(_device, _resourceDatabase);
-        _resourceAllocator = new D3D12ResourceAllocator(renderSystem, _device, _descriptorAllocator, _resourceDatabase, _pipelineLibrary);
+        _resourceAllocator = new D3D12ResourceAllocator(_device, _descriptorAllocator, _resourceDatabase, _pipelineLibrary);
 
         _renderers = ImmutableArray<IRenderer>.Empty;
 
@@ -127,7 +127,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
             }
         }
 
-        _resourceAllocator.ReleaseTempResources();
+        _resourceDatabase.EndFrame();
 
         return r;
     }
@@ -143,6 +143,8 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         {
             renderer.Dispose();
         }
+
+        _resourceDatabase.ReleaseAllResourcesImmediately();
 
         _resourceAllocator.Dispose();
         _pipelineLibrary.Dispose();

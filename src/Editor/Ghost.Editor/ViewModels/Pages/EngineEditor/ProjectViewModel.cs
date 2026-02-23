@@ -41,7 +41,7 @@ internal partial class ProjectViewModel : ObservableObject
     {
         _assetService = assetService;
 
-        var assetsRootItem = new ExplorerItem("Assets", Path.Combine(EditorApplication.CurrentProjectPath, EditorApplication.ASSETS_FOLDER_NAME), true);
+        var assetsRootItem = new ExplorerItem("Assets", Path.Combine(EditorApplication.ProjectPath, EditorApplication.ASSETS_FOLDER_NAME), true);
         LoadSubFolderRecursive(ref assetsRootItem);
 
         SubDirectories.Add(assetsRootItem);

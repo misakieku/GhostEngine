@@ -5,7 +5,6 @@ using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 
 namespace Ghost.Entities.Test;
 
@@ -66,8 +65,6 @@ public class QueryBenchmark
     public void QueryEntities()
     {
         ref var query = ref _world.ComponentManager.GetEntityQueryReference(_queryIdentifier);
-        var vecDT = Vector256.Create(_dt);
-
         foreach (var chunkView in query.GetChunkIterator())
         {
             var positions = chunkView.GetComponentDataRW<Position>();

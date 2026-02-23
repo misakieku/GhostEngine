@@ -216,7 +216,7 @@ public unsafe partial struct EntityQuery
             }
         }
 
-        var jobHandle = world.JobScheduler.ScheduleParallel(ref runner, chunks.Count, batchSize, dependency);
+        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, chunks.Count, batchSize, dependency);
 
         // 3. Dispose the temp lists
         var disposeJob = new DisposeJobEntity<#= i #>

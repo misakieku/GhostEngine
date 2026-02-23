@@ -2,7 +2,6 @@ using Ghost.Core;
 using Ghost.Graphics.Test.Windows;
 
 using Microsoft.UI.Xaml;
-using Microsoft.VisualStudio.TestTools.UnitTesting.AppContainer;
 using System.Runtime.InteropServices;
 
 // To learn more about WinUI, the WinUI project structure,
@@ -32,7 +31,7 @@ public partial class UnitTestApp : Application
                        OperatingSystem.IsLinux() ? "linux" :
                        OperatingSystem.IsMacOS() ? "osx" : "unknown";
         var arch = Environment.Is64BitProcess ? "x64" : "x86";
-        var nativeDllDir = Path.Combine(currentDir, "runtime", platform + "-" + arch, "native");
+        var nativeDllDir = Path.Combine(currentDir, "runtimes", platform + "-" + arch, "native");
         if (Directory.Exists(nativeDllDir))
         {
             foreach (var dll in Directory.EnumerateFiles(nativeDllDir, "*.dll"))

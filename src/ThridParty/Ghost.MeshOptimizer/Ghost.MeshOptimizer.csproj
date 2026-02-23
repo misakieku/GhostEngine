@@ -16,9 +16,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="runtime\win-x64\native\meshoptimizer.dll">
+    <None Update="runtimes\win-x64\native\meshoptimizer.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    </None>
   </ItemGroup>
 
 </Project>

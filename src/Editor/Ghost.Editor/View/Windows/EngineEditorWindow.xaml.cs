@@ -39,7 +39,7 @@ internal sealed partial class EngineEditorWindow : WindowEx
 
     private void MainGrid_Loaded(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
     {
-        PART_TitleBar.Title = EditorApplication.CurrentProjectName;
+        PART_TitleBar.Title = EditorApplication.ProjectName;
         PART_TitleBar.Subtitle = $"Ghost Engine {Package.Current.Id.Version.Major}.{Package.Current.Id.Version.Minor}.{Package.Current.Id.Version.Build}";
 
         _notificationService.SetReference(InfoBar, NotificationQueue);

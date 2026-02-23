@@ -26,7 +26,7 @@ internal sealed partial class SplashWindow : WindowEx
     {
         var version = Package.Current.Id.Version;
         VersionTextBlock.Text = $"Version {version.Major}.{version.Minor}.{version.Build}";
-        LoadingTextBlock.Text = $"Loading {EditorApplication.CurrentProjectName}...";
+        LoadingTextBlock.Text = $"Loading {EditorApplication.ProjectName}...";
         CopyrightTextBlock.Text = $"Copyright © {DateTime.Now.Year} Ghost Engine. All rights reserved.";
     }
 }

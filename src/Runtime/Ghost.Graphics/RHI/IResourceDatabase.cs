@@ -96,10 +96,16 @@ public interface IResourceDatabase : IDisposable
     string? GetResourceName(Handle<GPUResource> handle);
 
     /// <summary>
-    /// Removes a resource from the database using its handle.
+    /// Releases the GPU resource associated with the specified handle, freeing any resources allocated to it.
     /// </summary>
     /// <param name="handle">The handle of the resource to be removed.</param>
-    void ReleaseResource(Handle<GPUResource> handle);
+    void ScheduleReleaseResource(Handle<GPUResource> handle);
+
+    /// <summary>
+    /// Releases the GPU resource associated with the specified handle immediately, freeing any resources allocated to it.
+    /// </summary>
+    /// <param name="handle">The handle of the resource to be removed.</param>
+    void ReleaseResourceImmediately(Handle<GPUResource> handle);
 
     /// <summary>
     /// Retrieves an existing sampler identifier that matches the specified description, or creates a new one if none

@@ -1178,7 +1178,7 @@ public unsafe partial struct EntityQuery
             }
         }
 
-        var jobHandle = world.JobScheduler.ScheduleParallel(ref runner, chunks.Count, batchSize, dependency);
+        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, chunks.Count, batchSize, dependency);
 
         // 3. Dispose the temp lists
         var disposeJob = new DisposeJobEntity1
@@ -1334,7 +1334,7 @@ public unsafe partial struct EntityQuery
             }
         }
 
-        var jobHandle = world.JobScheduler.ScheduleParallel(ref runner, chunks.Count, batchSize, dependency);
+        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, chunks.Count, batchSize, dependency);
 
         // 3. Dispose the temp lists
         var disposeJob = new DisposeJobEntity2
@@ -1517,7 +1517,7 @@ public unsafe partial struct EntityQuery
             }
         }
 
-        var jobHandle = world.JobScheduler.ScheduleParallel(ref runner, chunks.Count, batchSize, dependency);
+        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, chunks.Count, batchSize, dependency);
 
         // 3. Dispose the temp lists
         var disposeJob = new DisposeJobEntity3
@@ -1727,7 +1727,7 @@ public unsafe partial struct EntityQuery
             }
         }
 
-        var jobHandle = world.JobScheduler.ScheduleParallel(ref runner, chunks.Count, batchSize, dependency);
+        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, chunks.Count, batchSize, dependency);
 
         // 3. Dispose the temp lists
         var disposeJob = new DisposeJobEntity4
@@ -1964,7 +1964,7 @@ public unsafe partial struct EntityQuery
             }
         }
 
-        var jobHandle = world.JobScheduler.ScheduleParallel(ref runner, chunks.Count, batchSize, dependency);
+        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, chunks.Count, batchSize, dependency);
 
         // 3. Dispose the temp lists
         var disposeJob = new DisposeJobEntity5
@@ -2228,7 +2228,7 @@ public unsafe partial struct EntityQuery
             }
         }
 
-        var jobHandle = world.JobScheduler.ScheduleParallel(ref runner, chunks.Count, batchSize, dependency);
+        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, chunks.Count, batchSize, dependency);
 
         // 3. Dispose the temp lists
         var disposeJob = new DisposeJobEntity6
@@ -2519,7 +2519,7 @@ public unsafe partial struct EntityQuery
             }
         }
 
-        var jobHandle = world.JobScheduler.ScheduleParallel(ref runner, chunks.Count, batchSize, dependency);
+        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, chunks.Count, batchSize, dependency);
 
         // 3. Dispose the temp lists
         var disposeJob = new DisposeJobEntity7
@@ -2837,7 +2837,7 @@ public unsafe partial struct EntityQuery
             }
         }
 
-        var jobHandle = world.JobScheduler.ScheduleParallel(ref runner, chunks.Count, batchSize, dependency);
+        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, chunks.Count, batchSize, dependency);
 
         // 3. Dispose the temp lists
         var disposeJob = new DisposeJobEntity8

@@ -321,7 +321,7 @@ internal class MeshRenderPass : IRenderPass
         {
             foreach (var texture in _textures)
             {
-                resourceDatabase.ReleaseResource(texture.AsResource());
+                resourceDatabase.ScheduleReleaseResource(texture.AsResource());
             }
         }
     }

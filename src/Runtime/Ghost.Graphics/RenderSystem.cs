@@ -265,7 +265,6 @@ internal class RenderSystem : IRenderSystem
                     // Sync the current frame resource to this new fence to keep state consistent
                     frameResource.FenceValue = flushFence;
 
-
                     foreach (var resource in _frameResources)
                     {
                         resource.CommandAllocator.Reset();

@@ -212,10 +212,10 @@ internal sealed class RenderGraphCompiler
                     continue;
                 }
 
-                _graphicsEngine.ResourceDatabase.ReleaseResource(res.backingResource);
+                _graphicsEngine.ResourceDatabase.ScheduleReleaseResource(res.backingResource);
             }
 
-            _graphicsEngine.ResourceDatabase.ReleaseResource(_resourceHeap);
+            _graphicsEngine.ResourceDatabase.ScheduleReleaseResource(_resourceHeap);
         }
 
         if (_aliasingManager.Heap.size == 0)
@@ -380,11 +380,11 @@ internal sealed class RenderGraphCompiler
             {
                 if (!res.isImported)
                 {
-                    _graphicsEngine.ResourceDatabase.ReleaseResource(res.backingResource);
+                    _graphicsEngine.ResourceDatabase.ScheduleReleaseResource(res.backingResource);
                 }
             }
 
-            _graphicsEngine.ResourceDatabase.ReleaseResource(_resourceHeap);
+            _graphicsEngine.ResourceDatabase.ScheduleReleaseResource(_resourceHeap);
             _resourceHeap = Handle<GPUResource>.Invalid;
         }
     }

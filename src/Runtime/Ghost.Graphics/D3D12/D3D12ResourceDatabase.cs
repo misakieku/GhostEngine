@@ -6,8 +6,6 @@ using Misaki.HighPerformance.Collections;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
 
@@ -43,19 +41,17 @@ internal class D3D12ResourceDatabase : IResourceDatabase
 
         public ResourceBarrierData barrierData;
 
-        public uint cpuFenceValue;
         public readonly bool isExternal;
 
         public readonly bool Allocated => isExternal ? resource.resource.Get() != null : resource.allocation.Get() != null;
         public readonly SharedPtr<ID3D12Resource> ResourcePtr => isExternal ? resource.resource.Get() : resource.allocation.Get()->GetResource();
 
-        public ResourceRecord(D3D12MA_Allocation* allocation, uint cpuFenceValue, ResourceBarrierData barrierData, ResourceViewGroup resourceDescriptor, ResourceDesc desc)
+        public ResourceRecord(D3D12MA_Allocation* allocation, ResourceBarrierData barrierData, ResourceViewGroup resourceDescriptor, ResourceDesc desc)
         {
             this.resource = new ResourceUnion(allocation);
             this.isExternal = false;
 
             this.viewGroup = resourceDescriptor;
-            this.cpuFenceValue = cpuFenceValue;
             this.barrierData = barrierData;
             this.desc = desc;
         }
@@ -66,7 +62,6 @@ internal class D3D12ResourceDatabase : IResourceDatabase
             this.isExternal = true;
 
             this.viewGroup = viewGroup;
-            this.cpuFenceValue = ~0u;
             this.barrierData = barrierData;
             this.desc = resource->GetDesc().ToResourceDesc();
         }
@@ -91,6 +86,19 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         }
     }
 
+    private readonly struct ReleaseEntry
+    {
+        public readonly ResourceRecord record;
+        public readonly uint fenceValue;
+
+        public ReleaseEntry(ResourceRecord record, uint fenceValue)
+        {
+            this.record = record;
+            this.fenceValue = fenceValue;
+        }
+    }
+
+    private readonly IFenceSynchronizer _fenceSynchronizer;
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
 
     private UnsafeSlotMap<ResourceRecord> _resources;
@@ -103,10 +111,13 @@ internal class D3D12ResourceDatabase : IResourceDatabase
     private UnsafeSlotMap<Material> _materials;
     private readonly DynamicArray<Shader> _shaders; // TODO: Use SlotMap?
 
+    private UnsafeQueue<ReleaseEntry> _releaseQueue;
+
     private bool _disposed;
 
-    public D3D12ResourceDatabase(D3D12DescriptorAllocator descriptorAllocator)
+    public D3D12ResourceDatabase(IFenceSynchronizer fenceSynchronizer, D3D12DescriptorAllocator descriptorAllocator)
     {
+        _fenceSynchronizer = fenceSynchronizer;
         _descriptorAllocator = descriptorAllocator;
 
         _resources = new UnsafeSlotMap<ResourceRecord>(64, Allocator.Persistent, AllocationOption.Clear);
@@ -117,6 +128,8 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         _meshes = new UnsafeSlotMap<Mesh>(64, Allocator.Persistent, AllocationOption.Clear);
         _materials = new UnsafeSlotMap<Material>(16, Allocator.Persistent, AllocationOption.Clear);
         _shaders = new DynamicArray<Shader>(16);
+
+        _releaseQueue = new UnsafeQueue<ReleaseEntry>(32, Allocator.Persistent);
     }
 
     ~D3D12ResourceDatabase()
@@ -124,14 +137,13 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         Dispose();
     }
 
-    private void ReleaseResource<T>(ref T resource)
+    private void ReleaseResource<T>(T resource)
         where T : IResourceReleasable
     {
         resource.ReleaseResource(this);
-        resource = default!;
     }
 
-    public unsafe Handle<GPUResource> ImportExternalResource(ID3D12Resource* pResource, ResourceBarrierData initialBarrierData, ResourceViewGroup viewGroup, string? name = null)
+    internal unsafe Handle<GPUResource> ImportExternalResource(ID3D12Resource* pResource, ResourceBarrierData initialBarrierData, ResourceViewGroup viewGroup, string? name = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -157,7 +169,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         return handle;
     }
 
-    public unsafe Handle<GPUResource> AddAllocation(D3D12MA_Allocation* allocation, uint cpuFenceValue, ResourceBarrierData initialBarrierData, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string? name = null)
+    public unsafe Handle<GPUResource> AddAllocation(D3D12MA_Allocation* allocation, ResourceBarrierData initialBarrierData, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string? name = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         if (allocation == null)
@@ -168,7 +180,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
             return Handle<GPUResource>.Invalid;
         }
 
-        var id = _resources.Add(new ResourceRecord(allocation, cpuFenceValue, initialBarrierData, resourceDescriptor, desc), out var generation);
+        var id = _resources.Add(new ResourceRecord(allocation, initialBarrierData, resourceDescriptor, desc), out var generation);
         var handle = new Handle<GPUResource>(id, generation);
 
 #if DEBUG || GHOST_EDITOR
@@ -281,15 +293,28 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         return null;
     }
 
-    // FIX: This should be queued to be released after GPU is done with it.
-    public void ReleaseResource(Handle<GPUResource> handle)
+    public void ScheduleReleaseResource(Handle<GPUResource> handle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        if (!handle.IsValid)
+        if (_resources.TryGetElementAt(handle.ID, handle.Generation, out var record))
         {
             return;
         }
+
+        var entry = new ReleaseEntry(record, _fenceSynchronizer.CPUFenceValue);
+
+        _releaseQueue.Enqueue(entry);
+        _resources.Remove(handle.ID, handle.Generation);
+
+#if DEBUG || GHOST_EDITOR
+        _resourceName.Remove(handle, out var name);
+#endif
+    }
+
+    public void ReleaseResourceImmediately(Handle<GPUResource> handle)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
 
         ref var info = ref _resources.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
         if (!exist || !info.Allocated)
@@ -298,10 +323,6 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         }
 
         info.Release(_descriptorAllocator);
-#if DEBUG || GHOST_EDITOR
-        _resourceName.Remove(handle, out var name);
-#endif
-
         _resources.Remove(handle.ID, handle.Generation);
     }
 
@@ -370,7 +391,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
             return;
         }
 
-        ReleaseResource(ref mesh);
+        ReleaseResource(mesh);
         _meshes.Remove(handle.ID, handle.Generation);
     }
 
@@ -409,7 +430,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
             return;
         }
 
-        ReleaseResource(ref material);
+        ReleaseResource(material);
         _materials.Remove(handle.ID, handle.Generation);
     }
 
@@ -448,49 +469,64 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         }
 
         ref var shader = ref _shaders[id.Value]!;
-        ReleaseResource(ref shader);
+        ReleaseResource(shader);
+    }
+
+    public void EndFrame()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        while (_releaseQueue.Count > 0)
+        {
+            var toRelease = _releaseQueue.Peek();
+            if (toRelease.fenceValue > _fenceSynchronizer.GPUFenceValue)
+            {
+                break;
+            }
+
+            _releaseQueue.Dequeue();
+
+            toRelease.record.Release(_descriptorAllocator);
+        }
+    }
+
+    internal void ReleaseAllResourcesImmediately()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        foreach (var mesh in _meshes)
+        {
+            ReleaseResource(mesh);
+        }
+
+        foreach (var material in _materials)
+        {
+            ReleaseResource(material);
+        }
+
+        foreach (var shader in _shaders)
+        {
+            ReleaseResource(shader);
+        }
+
+        foreach (ref var record in _resources)
+        {
+            record.Release(_descriptorAllocator);
+        }
     }
 
     public void Dispose()
     {
-        [DoesNotReturn]
-        [Conditional("DEBUG")]
-        static void ThrowMemoryLeakException(string resourceType, int count)
-        {
-            throw new MemoryLeakException($"ResourceAllocator is being disposed with {count} {resourceType} still registered. Ensure all resources are released before disposing.");
-        }
-
         if (_disposed)
         {
             return;
-        }
-
-        if (_resources.Count > 0)
-        {
-            ThrowMemoryLeakException("GPU resources", _resources.Count);
-        }
-
-        if (_meshes.Count > 0)
-        {
-            ThrowMemoryLeakException("meshes", _meshes.Count);
-        }
-
-        if (_materials.Count > 0)
-        {
-            ThrowMemoryLeakException("materials", _materials.Count);
-        }
-
-        // DSL are reference space, it will be managed by GC, so we don't throw exception here.
-        for (var i = 0; i < _shaders.Count; i++)
-        {
-            ref var shader = ref _shaders[i];
-            ReleaseResource(ref shader);
         }
 
         _resources.Dispose();
         _samplers.Dispose();
         _meshes.Dispose();
         _materials.Dispose();
+        _releaseQueue.Dispose();
 
         _disposed = true;
 

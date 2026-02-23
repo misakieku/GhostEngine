@@ -16,13 +16,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="runtime\win-x64\native\nvtt.dll" />
+    <Using Include="Ghost.Nvtt.Native" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="runtime\win-x64\native\nvtt.dll">
+    <None Update="runtimes\win-x64\native\nvtt.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    </None>
   </ItemGroup>
 
 </Project>

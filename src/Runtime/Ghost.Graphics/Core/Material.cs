@@ -35,10 +35,9 @@ internal struct CBufferCache : IResourceReleasable
         }
 
         _cpuData.Dispose();
+        database.ScheduleReleaseResource(_gpuResource.AsResource());
 
-        database.ReleaseResource(GpuResource.AsResource());
         _gpuResource = Handle<GraphicsBuffer>.Invalid;
-
         _size = 0;
     }
 }

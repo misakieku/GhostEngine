@@ -205,7 +205,7 @@ internal unsafe class D3D12SwapChain : ISwapChain
         // Release old back buffers and render targets
         for (var i = 0; i < _backBuffers.Count; i++)
         {
-            _resourceDatabase.ReleaseResource(_backBuffers[i].AsResource());
+            _resourceDatabase.ReleaseResourceImmediately(_backBuffers[i].AsResource());
         }
 
         ThrowIfFailed(_swapChain.Get()->ResizeBuffers((uint)_backBuffers.Count, width, height, DXGI_FORMAT_B8G8R8A8_UNORM, (uint)DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING));
@@ -252,7 +252,7 @@ internal unsafe class D3D12SwapChain : ISwapChain
 
         for (var i = 0; i < _backBuffers.Count; i++)
         {
-            _resourceDatabase.ReleaseResource(_backBuffers[i].AsResource());
+            _resourceDatabase.ScheduleReleaseResource(_backBuffers[i].AsResource());
         }
 
         _backBuffers.Dispose();
