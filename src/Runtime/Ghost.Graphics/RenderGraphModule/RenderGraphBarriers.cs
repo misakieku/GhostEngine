@@ -74,7 +74,7 @@ internal sealed class ResourceStateTracker
 
 /// <summary>
 /// Represents a compiled barrier with only the target state.
-/// The before state is always queried from ResourceDatabase at execution time.
+/// The before state is always queried from ResourceManager at execution time.
 /// </summary>
 internal struct CompiledBarrier
 {
@@ -208,7 +208,7 @@ internal static class RenderGraphBarriers
 
     /// <summary>
     /// Compiles implicit state transitions for all resources accessed by a pass.
-    /// Stores only the target state - the before state will be queried from ResourceDatabase at execution time.
+    /// Stores only the target state - the before state will be queried from ResourceManager at execution time.
     /// </summary>
     private static void CompileImplicitTransitions(
         RenderGraphPassBase pass,

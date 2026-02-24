@@ -1,8 +1,8 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.DSL.ShaderCompiler;
-using Ghost.Graphics.Contracts;
 using Ghost.Graphics.Core;
+using Ghost.Graphics.Core.Contracts;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Utilities;
@@ -159,7 +159,7 @@ internal class MeshRenderPass : IRenderPass
             }
             else
             {
-                var shaderResult = ctx.ResourceDatabase.GetShaderReference(_shader);
+                var shaderResult = ctx.ResourceManager.GetShaderReference(_shader);
                 if (shaderResult.IsFailure)
                 {
                     throw new InvalidOperationException("Failed to get shader reference.");
@@ -201,7 +201,6 @@ internal class MeshRenderPass : IRenderPass
         {
             using var stream = File.OpenRead(_textureFiles[i]);
             using var imageData = ImageResult.FromStream(stream, ColorComponents.RGBA);
-
             var desc = new TextureDesc
             {
                 Width = imageData.Width,
@@ -227,7 +226,7 @@ internal class MeshRenderPass : IRenderPass
 
         _sampler = ctx.ResourceAllocator.CreateSampler(in samplerDesc);
 
-        var meshResult = ctx.ResourceDatabase.GetMaterialReference(_material);
+        var meshResult = ctx.ResourceManager.GetMaterialReference(_material);
         if (meshResult.IsFailure)
         {
             throw new InvalidOperationException("Failed to get material reference.");
@@ -283,7 +282,7 @@ internal class MeshRenderPass : IRenderPass
 
             builder.SetRenderFunc<BlitPassData>(static (data, ctx) =>
             {
-                var r = ctx.ResourceDatabase.GetMaterialReference(data.blitMaterial);
+                var r = ctx.ResourceManager.GetMaterialReference(data.blitMaterial);
                 if (r.IsFailure)
                 {
                     return;
@@ -292,12 +291,12 @@ internal class MeshRenderPass : IRenderPass
                 ref var matRef = ref r.Value;
                 var blitProps = new ShaderProperties_Hidden_Blit
                 {
-                    mainTex = ctx.ResourceDatabase.GetBindlessIndex(ctx.GetActualResource(data.source.AsResource())),
+                    mainTex = ctx.ResourceManager.ResourceDatabase.GetBindlessIndex(ctx.GetActualResource(data.source.AsResource())),
                     sampler_mainTex = (uint)data.sampler.Value,
                 };
 
                 matRef.SetPropertyCache(in blitProps).ThrowIfFailed();
-                matRef.UploadData(ctx.CommandBuffer, ctx.ResourceDatabase);
+                matRef.UploadData(ctx.CommandBuffer, ctx.ResourceManager.ResourceDatabase);
 
                 ctx.CommandBuffer.SetRenderTargets([ctx.GetActualTexture(data.destination)], Handle<Texture>.Invalid);
 
@@ -308,20 +307,20 @@ internal class MeshRenderPass : IRenderPass
         }
     }
 
-    public void Cleanup(IResourceDatabase resourceDatabase)
+    public void Cleanup(IResourceManager resourceManager)
     {
-        resourceDatabase.ReleaseMaterial(_blitMaterial);
+        resourceManager.ReleaseMaterial(_blitMaterial);
 
-        resourceDatabase.ReleaseMaterial(_material);
-        resourceDatabase.ReleaseShader(_shader);
-        resourceDatabase.ReleaseMesh(_mesh);
-        resourceDatabase.ReleaseSampler(_sampler);
+        resourceManager.ReleaseMaterial(_material);
+        resourceManager.ReleaseShader(_shader);
+        resourceManager.ReleaseMesh(_mesh);
+        resourceManager.ResourceDatabase.ReleaseSampler(_sampler);
 
         if (_textures != null)
         {
             foreach (var texture in _textures)
             {
-                resourceDatabase.ScheduleReleaseResource(texture.AsResource());
+                resourceManager.ResourceDatabase.ScheduleReleaseResource(texture.AsResource());
             }
         }
     }

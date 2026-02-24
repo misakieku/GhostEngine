@@ -1,5 +1,4 @@
 using Ghost.Core;
-using Ghost.Graphics.Contracts;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Mathematics;
@@ -8,7 +7,7 @@ namespace Ghost.Graphics.RenderGraphModule;
 
 public interface IRenderGraphContext
 {
-    IResourceDatabase ResourceDatabase { get; }
+    IResourceManager ResourceManager { get; }
 
     Handle<GPUResource> GetActualResource(Identifier<RGResource> resource);
     Handle<Texture> GetActualTexture(Identifier<RGTexture> texture);
@@ -38,7 +37,7 @@ public interface IUnsafeRenderContext : IRasterRenderContext, IRenderGraphContex
 
 internal sealed class RenderGraphContext : IRasterRenderContext, IComputeRenderContext, IUnsafeRenderContext
 {
-    private readonly IResourceDatabase _resourceDatabase;
+    private readonly IResourceManager _resourceManager;
     private readonly IPipelineLibrary _pipelineLibrary;
     private readonly IShaderCompiler _shaderCompiler;
     private readonly RenderGraphResourceRegistry _resources;
@@ -53,15 +52,15 @@ internal sealed class RenderGraphContext : IRasterRenderContext, IComputeRenderC
     private Handle<GraphicsBuffer> _activePerMeshData;
     private int _activeMeshIndexCount;
 
-    public IResourceDatabase ResourceDatabase => _resourceDatabase;
+    public IResourceManager ResourceManager => _resourceManager;
     
     public int ActiveMeshIndexCount => _activeMeshIndexCount;
 
     public ICommandBuffer CommandBuffer => _commandBuffer;
 
-    internal RenderGraphContext(IResourceDatabase resourceDatabase, IPipelineLibrary pipelineLibrary, IShaderCompiler shaderCompiler, RenderGraphResourceRegistry resources)
+    internal RenderGraphContext(IResourceManager resourceManager, IPipelineLibrary pipelineLibrary, IShaderCompiler shaderCompiler, RenderGraphResourceRegistry resources)
     {
-        _resourceDatabase = resourceDatabase;
+        _resourceManager = resourceManager;
         _pipelineLibrary = pipelineLibrary;
         _shaderCompiler = shaderCompiler;
         _resources = resources;
@@ -103,7 +102,7 @@ internal sealed class RenderGraphContext : IRasterRenderContext, IComputeRenderC
 
     public void SetActiveMaterial(Handle<Material> material)
     {
-        var r = _resourceDatabase.GetMaterialReference(material);
+        var r = _resourceManager.GetMaterialReference(material);
         if (r.IsFailure)
         {
             _activePerMaterialData = Handle<GraphicsBuffer>.Invalid;
@@ -116,7 +115,7 @@ internal sealed class RenderGraphContext : IRasterRenderContext, IComputeRenderC
 
     public void SetActiveMaterial(ref readonly Material material)
     {
-        var shaderResult = _resourceDatabase.GetShaderReference(material.Shader);
+        var shaderResult = _resourceManager.GetShaderReference(material.Shader);
         if (shaderResult.IsFailure)
         {
             _activePerMaterialData = Handle<GraphicsBuffer>.Invalid;
@@ -161,7 +160,7 @@ internal sealed class RenderGraphContext : IRasterRenderContext, IComputeRenderC
 
     public void SetActiveMesh(Handle<Mesh> mesh)
     {
-        var r = _resourceDatabase.GetMeshReference(mesh);
+        var r = _resourceManager.GetMeshReference(mesh);
         if (r.IsFailure)
         {
             _activePerMeshData = Handle<GraphicsBuffer>.Invalid;
@@ -184,8 +183,8 @@ internal sealed class RenderGraphContext : IRasterRenderContext, IComputeRenderC
         // TODO: Global and view constants
         var data = new PushConstantsData
         {
-            objectIndex = _resourceDatabase.GetBindlessIndex(_activePerMeshData.AsResource()),
-            materialIndex = _resourceDatabase.GetBindlessIndex(_activePerMaterialData.AsResource()),
+            objectIndex = _resourceManager.ResourceDatabase.GetBindlessIndex(_activePerMeshData.AsResource()),
+            materialIndex = _resourceManager.ResourceDatabase.GetBindlessIndex(_activePerMaterialData.AsResource()),
         };
 
         var pushConstantSpan = new ReadOnlySpan<uint>(&data, sizeof(PushConstantsData) / sizeof(uint));

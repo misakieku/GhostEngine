@@ -1,5 +1,4 @@
 using Ghost.Core;
-using Ghost.Graphics.Contracts;
 using Ghost.Graphics.RHI;
 
 namespace Ghost.Graphics.Core;

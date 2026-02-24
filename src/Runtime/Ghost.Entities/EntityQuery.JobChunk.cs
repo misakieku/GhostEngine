@@ -1,4 +1,3 @@
-using Ghost.Core;
 using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.CompilerServices;
@@ -64,7 +63,7 @@ public unsafe partial struct EntityQuery
         {
             ref var arch = ref world.ComponentManager.GetArchetypeReference(archID);
 
-            for (int i = 0; i < arch.ChunkCount; i++)
+            for (var i = 0; i < arch.ChunkCount; i++)
             {
                 var pChunk = (Chunk*)arch._chunks.GetUnsafePtr() + i;
 

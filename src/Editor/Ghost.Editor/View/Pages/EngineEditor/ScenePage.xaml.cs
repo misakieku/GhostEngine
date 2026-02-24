@@ -37,9 +37,9 @@ internal sealed partial class ScenePage : NavigationTabPage
 
     //private void SwapChainPanel_SizeChanged(object sender, SizeChangedEventArgs e)
     //{
-    //    if (e.NewSize.Width > 8.0 && e.NewSize.Height > 8.0)
+    //    if (e.NewSize.ActualWidth > 8.0 && e.NewSize.ActualHeight > 8.0)
     //    {
-    //        _renderView?.RequestResize((uint)e.NewSize.Width, (uint)e.NewSize.Height);
+    //        _renderView?.RequestResize((uint)e.NewSize.ActualWidth, (uint)e.NewSize.ActualHeight);
     //    }
     //}
 }

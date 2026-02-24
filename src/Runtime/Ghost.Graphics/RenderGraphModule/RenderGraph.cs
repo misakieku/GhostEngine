@@ -1,5 +1,4 @@
 using Ghost.Core;
-using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 
 namespace Ghost.Graphics.RenderGraphModule;
@@ -10,7 +9,7 @@ namespace Ghost.Graphics.RenderGraphModule;
 /// </summary>
 public sealed class RenderGraph : IDisposable
 {
-    private readonly IGraphicsEngine _graphicsEngine;
+    private readonly IResourceManager _resourceManager;
 
     private readonly RenderGraphObjectPool _objectPool;
     private readonly RenderGraphResourceRegistry _resources;
@@ -31,16 +30,15 @@ public sealed class RenderGraph : IDisposable
     private readonly RenderGraphExecutor _executor;
     private readonly RenderGraphNativePassBuilder _nativePassBuilder;
 
+    private readonly RenderGraphBlackboard _blackboard;
+
     private bool _compiled;
 
-    public RenderGraphBlackboard Blackboard
-    {
-        get;
-    }
+    public RenderGraphBlackboard Blackboard => _blackboard;
 
-    public RenderGraph(IGraphicsEngine graphicsEngine)
+    public RenderGraph(IResourceManager resourceManager, IPipelineLibrary pipelineLibrary, IShaderCompiler shaderCompiler)
     {
-        _graphicsEngine = graphicsEngine;
+        _resourceManager = resourceManager;
 
         _objectPool = new RenderGraphObjectPool();
         _resources = new RenderGraphResourceRegistry(_objectPool);
@@ -50,40 +48,32 @@ public sealed class RenderGraph : IDisposable
         _nativePasses = new List<NativeRenderPass>(32);
 
         _builder = new RenderGraphBuilder();
-        _aliasingManager = new ResourceAliasingManager(graphicsEngine.ResourceAllocator, _objectPool);
+        _aliasingManager = new ResourceAliasingManager(resourceManager.ResourceAllocator, _objectPool);
 
         _compilationCache = new RenderGraphCompilationCache();
 
         _context = new RenderGraphContext(
-            _graphicsEngine.ResourceDatabase,
-            _graphicsEngine.PipelineLibrary,
-            _graphicsEngine.ShaderCompiler,
+            resourceManager,
+            pipelineLibrary,
+            shaderCompiler,
             _resources
         );
 
         _nativePassBuilder = new RenderGraphNativePassBuilder(_objectPool, _resources);
-        _compiler = new RenderGraphCompiler(_graphicsEngine, _resources, _aliasingManager, _nativePassBuilder, _compilationCache);
-        _executor = new RenderGraphExecutor(_graphicsEngine, _resources, _context);
+        _compiler = new RenderGraphCompiler(resourceManager, _resources, _aliasingManager, _nativePassBuilder, _compilationCache);
+        _executor = new RenderGraphExecutor(resourceManager, _resources, _context);
 
-        Blackboard = new RenderGraphBlackboard();
+        _blackboard = new RenderGraphBlackboard();
     }
 
     /// <summary>
     /// Resets the render graph for a new frame.
-    /// Reuses existing allocations to minimize GC.
     /// </summary>
     public void Reset()
     {
-        // Clear blackboard data
-        Blackboard.Clear();
-
-        // Reset resources but keep allocations
-        _resources.Reset();
-
-        // Reset aliasing manager
-        _aliasingManager.Reset();
-
-        // Clear compiled barriers
+        _blackboard.Clear();
+        _resources.Clear();
+        _aliasingManager.Clear();
         _compiledBarriers.Clear();
 
         // Return passes to the pool and reset count
@@ -94,11 +84,8 @@ public sealed class RenderGraph : IDisposable
         }
 
         _passes.Clear();
-
-        // Clear compiled passes list
         _compiledPasses.Clear();
 
-        // Return native passes to pool
         for (var i = 0; i < _nativePasses.Count; i++)
         {
             _objectPool.Return(_nativePasses[i]);
@@ -117,14 +104,14 @@ public sealed class RenderGraph : IDisposable
         Color128 clearColor = default, float clearDepth = 1.0f, byte clearStencil = 0,
         bool clearAtFirstUse = true, bool discardAtLastUse = true)
     {
-        var r = _graphicsEngine.ResourceDatabase.GetResourceDescription(texture.AsResource());
+        var r = _resourceManager.ResourceDatabase.GetResourceDescription(texture.AsResource());
         if (r.IsFailure)
         {
             return Identifier<RGTexture>.Invalid;
         }
 
         var desc = r.Value;
-        return _resources.ImportTexture(in desc._desc.textureDescription, texture, name, clearColor, clearDepth, clearStencil, clearAtFirstUse, discardAtLastUse);
+        return _resources.ImportTexture(in desc.TextureDescription, texture, name, clearColor, clearDepth, clearStencil, clearAtFirstUse, discardAtLastUse);
     }
 
     /// <summary>
@@ -134,14 +121,14 @@ public sealed class RenderGraph : IDisposable
     /// <returns>The identifier of the imported render graph buffer. Invalid if import fails.</returns>
     public Identifier<RGBuffer> ImportBuffer(Handle<GraphicsBuffer> buffer, string name)
     {
-        var r = _graphicsEngine.ResourceDatabase.GetResourceDescription(buffer.AsResource());
+        var r = _resourceManager.ResourceDatabase.GetResourceDescription(buffer.AsResource());
         if (r.IsFailure)
         {
             return Identifier<RGBuffer>.Invalid;
         }
 
         var desc = r.Value;
-        return _resources.ImportBuffer(in desc._desc.bufferDescription, buffer, name);
+        return _resources.ImportBuffer(in desc.BufferDescription, buffer, name);
     }
 
     public IRasterRenderGraphBuilder AddRasterRenderPass<TPassData>(string name, out TPassData passData)
@@ -199,7 +186,7 @@ public sealed class RenderGraph : IDisposable
 
         // Compute structural hash for caching
         var graphHash = RenderGraphHasher.ComputeGraphHash(_passes, _resources);
-        
+
         // Delegate to compiler
         _compiler.Compile(in viewState, graphHash, _passes, _compiledPasses, _nativePasses, _compiledBarriers);
         _compiled = true;

@@ -22,10 +22,6 @@ internal static unsafe class TextureProcessor
 {
     private const string _TEXTURE_CACHE_SUBFOLDER = "TextureCache";
 
-    // -------------------------------------------------------------------------
-    // Public entry point
-    // -------------------------------------------------------------------------
-
     /// <summary>
     /// Compresses <paramref name="pixelData"/> according to <paramref name="settings"/>
     /// and writes the result to the texture cache.
@@ -69,10 +65,6 @@ internal static unsafe class TextureProcessor
         return cachePath;
     }
 
-    // -------------------------------------------------------------------------
-    // NVTT pipeline
-    // -------------------------------------------------------------------------
-
     private static void RunNvttPipeline(
         string outputPath,
         ReadOnlySpan<byte> pixelData,
@@ -110,7 +102,7 @@ internal static unsafe class TextureProcessor
         if (settings.Advanced.StretchToPowerOfTwo)
         {
             surface.ResizeMakeSquare(maxExtent,
-                NvttRoundMode.NVTT_RoundMode_ToPreviousPowerOfTwo,
+                NvttRoundMode.NVTT_RoundMode_ToNearestPowerOfTwo,
                 NvttResizeFilter.NVTT_ResizeFilter_Box);
         }
         else if (surface.Width > maxExtent || surface.Height > maxExtent)
@@ -177,7 +169,7 @@ internal static unsafe class TextureProcessor
         }
 
         // ---- 8. enable CUDA if available ---------------------------------------
-        ctx.SetCudaAcceleration(Ghost.Nvtt.NvttGlobal.IsCudaSupported);
+        ctx.SetCudaAcceleration(NvttGlobal.IsCudaSupported);
 
         // ---- 9. write DDS header -----------------------------------------------
         ctx.OutputHeader(surface, mipmapCount, compOpts, outOpts);
@@ -185,18 +177,18 @@ internal static unsafe class TextureProcessor
         // ---- 10. compress mip chain using a working clone ----------------------
         using var mip = surface.Clone();
 
-        for (int level = 0; level < mipmapCount; level++)
+        for (var level = 0; level < mipmapCount; level++)
         {
             // Scale alpha for coverage on each mip (if requested)
             if (settings.Advanced.ScaleAlphaForMipCoverage && level > 0)
             {
-                float refCoverage = mip.AlphaTestCoverage(
+                var refCoverage = mip.AlphaTestCoverage(
                     settings.Advanced.ScaleAlphaForMipCoverageThreshold / 255f);
                 mip.ScaleAlphaToCoverage(refCoverage,
                     settings.Advanced.ScaleAlphaForMipCoverageThreshold / 255f);
             }
 
-            ctx.Compress(mip, face: 0, mipmap: level, compOpts, outOpts);
+            ctx.Compress(mip, 0, level, compOpts, outOpts);
 
             if (level + 1 < mipmapCount)
             {
@@ -205,53 +197,45 @@ internal static unsafe class TextureProcessor
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
-
     private static NvttFormat SelectFormat(TextureAssetSettings settings)
         => settings.Basic.TextureType switch
         {
-            TextureType.Normal        => NvttFormat.NVTT_Format_BC5,  // RG normal map
+            TextureType.Normal => NvttFormat.NVTT_Format_BC5,  // RG normal map
             TextureType.SingleChannel => NvttFormat.NVTT_Format_BC4,  // single channel
-            TextureType.Lightmap      => NvttFormat.NVTT_Format_BC6U, // HDR lightmap (unsigned)
-            _                         => NvttFormat.NVTT_Format_BC7,  // default colour
+            TextureType.Lightmap => NvttFormat.NVTT_Format_BC6U, // HDR lightmap (unsigned)
+            _ => NvttFormat.NVTT_Format_BC7,  // default colour
         };
 
     private static NvttQuality SelectQuality(TextureCompressionLevel level)
         => level switch
         {
-            TextureCompressionLevel.Low  => NvttQuality.NVTT_Quality_Fastest,
+            TextureCompressionLevel.Low => NvttQuality.NVTT_Quality_Fastest,
             TextureCompressionLevel.High => NvttQuality.NVTT_Quality_Production,
-            _                            => NvttQuality.NVTT_Quality_Normal,
+            _ => NvttQuality.NVTT_Quality_Normal,
         };
 
     private static NvttMipmapFilter SelectMipmapFilter(MipmapFilter filter)
         => filter switch
         {
-            MipmapFilter.Box               => NvttMipmapFilter.NVTT_MipmapFilter_Box,
-            MipmapFilter.Triangle          => NvttMipmapFilter.NVTT_MipmapFilter_Triangle,
+            MipmapFilter.Box => NvttMipmapFilter.NVTT_MipmapFilter_Box,
+            MipmapFilter.Triangle => NvttMipmapFilter.NVTT_MipmapFilter_Triangle,
             MipmapFilter.MitchellNetravali => NvttMipmapFilter.NVTT_MipmapFilter_Mitchell,
-            _                              => NvttMipmapFilter.NVTT_MipmapFilter_Kaiser,
+            _ => NvttMipmapFilter.NVTT_MipmapFilter_Kaiser,
         };
 
-    /// <summary>
-    /// Produces a stable 64-bit hash of the settings structs so the cache file
-    /// name changes whenever any setting changes.
-    /// </summary>
     private static ulong ComputeSettingsHash(TextureAssetSettings s)
     {
-        var basicSize    = Unsafe.SizeOf<TextureAssetSettings.BasicSettings>();
+        var basicSize = Unsafe.SizeOf<TextureAssetSettings.BasicSettings>();
         var advancedSize = Unsafe.SizeOf<TextureAssetSettings.AdvancedSettings>();
-        var samplerSize  = Unsafe.SizeOf<TextureAssetSettings.SamplerSettings>();
-        var total        = basicSize + advancedSize + samplerSize;
+        var samplerSize = Unsafe.SizeOf<TextureAssetSettings.SamplerSettings>();
+        var total = basicSize + advancedSize + samplerSize;
 
         Span<byte> buf = stackalloc byte[total];
-        var basic    = s.Basic;
+        var basic = s.Basic;
         var advanced = s.Advanced;
-        var sampler  = s.Sampler;
-        MemoryMarshal.Write(buf,                           in basic);
-        MemoryMarshal.Write(buf.Slice(basicSize),          in advanced);
+        var sampler = s.Sampler;
+        MemoryMarshal.Write(buf, in basic);
+        MemoryMarshal.Write(buf.Slice(basicSize), in advanced);
         MemoryMarshal.Write(buf.Slice(basicSize + advancedSize), in sampler);
 
         return XxHash64.HashToUInt64(buf);

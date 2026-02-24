@@ -1,0 +1,388 @@
+using Ghost.Core;
+using Ghost.Graphics.D3D12.Utilities;
+using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.Collections;
+using Misaki.HighPerformance.LowLevel;
+using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.LowLevel.Collections;
+using System.Runtime.InteropServices;
+using TerraFX.Interop.DirectX;
+
+namespace Ghost.Graphics.D3D12;
+
+// TODO: Thread safety
+internal class D3D12ResourceDatabase : IResourceDatabase
+{
+    internal unsafe record struct ResourceRecord
+    {
+        [StructLayout(LayoutKind.Explicit)]
+        public struct ResourceUnion
+        {
+            [FieldOffset(0)]
+            public UniquePtr<D3D12MA_Allocation> allocation;
+            [FieldOffset(0)]
+            public UniquePtr<ID3D12Resource> resource;
+
+            public ResourceUnion(D3D12MA_Allocation* allocation)
+            {
+                this.allocation = allocation;
+            }
+
+            public ResourceUnion(ID3D12Resource* resource)
+            {
+                this.resource = resource;
+            }
+        }
+
+        public ResourceDesc desc;
+        public ResourceViewGroup viewGroup;
+        public ResourceUnion resource;
+
+        public ResourceBarrierData barrierData;
+
+        public readonly bool isExternal;
+
+        public readonly bool Allocated => isExternal ? resource.resource.Get() != null : resource.allocation.Get() != null;
+        public readonly SharedPtr<ID3D12Resource> ResourcePtr => isExternal ? resource.resource.Get() : resource.allocation.Get()->GetResource();
+
+        public ResourceRecord(D3D12MA_Allocation* allocation, ResourceBarrierData barrierData, ResourceViewGroup resourceDescriptor, ResourceDesc desc)
+        {
+            this.resource = new ResourceUnion(allocation);
+            this.isExternal = false;
+
+            this.viewGroup = resourceDescriptor;
+            this.barrierData = barrierData;
+            this.desc = desc;
+        }
+
+        public ResourceRecord(ID3D12Resource* resource, ResourceBarrierData barrierData, ResourceViewGroup viewGroup)
+        {
+            this.resource = new ResourceUnion(resource);
+            this.isExternal = true;
+
+            this.viewGroup = viewGroup;
+            this.barrierData = barrierData;
+            this.desc = resource->GetDesc().ToResourceDesc();
+        }
+
+        public readonly uint Release(D3D12DescriptorAllocator descriptorAllocator)
+        {
+            var refCount = 0u;
+            if (Allocated)
+            {
+                if (isExternal)
+                {
+                    refCount = resource.resource.Get()->Release();
+                }
+                else
+                {
+                    refCount = resource.allocation.Get()->Release();
+                }
+            }
+
+            descriptorAllocator.Release(viewGroup);
+            return refCount;
+        }
+    }
+
+    private readonly struct ReleaseEntry
+    {
+        public readonly ResourceRecord record;
+        public readonly uint fenceValue;
+
+        public ReleaseEntry(ResourceRecord record, uint fenceValue)
+        {
+            this.record = record;
+            this.fenceValue = fenceValue;
+        }
+    }
+
+    private readonly IFenceSynchronizer _fenceSynchronizer;
+    private readonly D3D12DescriptorAllocator _descriptorAllocator;
+
+    private UnsafeSlotMap<ResourceRecord> _resources;
+    private UnsafeHashMap<SamplerDesc, Identifier<Sampler>> _samplers;
+#if DEBUG || GHOST_EDITOR
+    private readonly Dictionary<Handle<GPUResource>, string> _resourceName;
+#endif
+
+    private UnsafeQueue<ReleaseEntry> _releaseQueue;
+
+    private bool _disposed;
+
+    public D3D12ResourceDatabase(IFenceSynchronizer fenceSynchronizer, D3D12DescriptorAllocator descriptorAllocator)
+    {
+        _fenceSynchronizer = fenceSynchronizer;
+        _descriptorAllocator = descriptorAllocator;
+
+        _resources = new UnsafeSlotMap<ResourceRecord>(64, Allocator.Persistent, AllocationOption.Clear);
+        _samplers = new UnsafeHashMap<SamplerDesc, Identifier<Sampler>>(32, Allocator.Persistent);
+#if DEBUG || GHOST_EDITOR
+        _resourceName = new Dictionary<Handle<GPUResource>, string>(64);
+#endif
+
+        _releaseQueue = new UnsafeQueue<ReleaseEntry>(32, Allocator.Persistent);
+    }
+
+    ~D3D12ResourceDatabase()
+    {
+        Dispose();
+    }
+
+    internal unsafe Handle<GPUResource> ImportExternalResource(ID3D12Resource* pResource, ResourceBarrierData initialBarrierData, ResourceViewGroup viewGroup, string? name = null)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (pResource == null)
+        {
+#if DEBUG
+            System.Diagnostics.Debugger.Break();
+#endif
+            return Handle<GPUResource>.Invalid;
+        }
+
+        var id = _resources.Add(new ResourceRecord(pResource, initialBarrierData, viewGroup), out var generation);
+        var handle = new Handle<GPUResource>(id, generation);
+
+#if DEBUG || GHOST_EDITOR
+        if (!string.IsNullOrEmpty(name))
+        {
+            pResource->SetName(name);
+            _resourceName[handle] = name;
+        }
+#endif
+
+        return handle;
+    }
+
+    public unsafe Handle<GPUResource> AddAllocation(D3D12MA_Allocation* allocation, ResourceBarrierData initialBarrierData, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string? name = null)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (allocation == null)
+        {
+#if DEBUG
+            System.Diagnostics.Debugger.Break();
+#endif
+            return Handle<GPUResource>.Invalid;
+        }
+
+        var id = _resources.Add(new ResourceRecord(allocation, initialBarrierData, resourceDescriptor, desc), out var generation);
+        var handle = new Handle<GPUResource>(id, generation);
+
+#if DEBUG || GHOST_EDITOR
+        if (!string.IsNullOrEmpty(name))
+        {
+            allocation->SetName(name);
+            var pResource = allocation->GetResource();
+            if (pResource != null)
+            {
+                pResource->SetName(name);
+            }
+            _resourceName[handle] = name;
+        }
+#endif
+
+        return handle;
+    }
+
+    public bool HasResource(Handle<GPUResource> handle)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return _resources.Contains(handle.ID, handle.Generation);
+    }
+
+    public RefResult<ResourceRecord, Error> GetResourceRecord(Handle<GPUResource> handle)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        ref var info = ref _resources.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
+        if (!exist)
+        {
+            return Error.NotFound;
+        }
+
+        return RefResult<ResourceRecord, Error>.Success(ref info);
+    }
+
+    public SharedPtr<ID3D12Resource> GetResource(Handle<GPUResource> handle)
+    {
+        var r = GetResourceRecord(handle);
+        if (r.IsFailure)
+        {
+            return null;
+        }
+
+        return r.Value.ResourcePtr;
+    }
+
+    public Result<ResourceBarrierData, Error> GetResourceBarrierData(Handle<GPUResource> handle)
+    {
+        var r = GetResourceRecord(handle);
+        if (r.IsFailure)
+        {
+            return r.Error;
+        }
+
+        return r.Value.barrierData;
+    }
+
+    public Error SetResourceBarrierData(Handle<GPUResource> handle, ResourceBarrierData data)
+    {
+        var r = GetResourceRecord(handle);
+        if (r.IsFailure)
+        {
+            return r.Error;
+        }
+
+        r.Value.barrierData = data;
+        return Error.None;
+    }
+
+    public Result<ResourceDesc, Error> GetResourceDescription(Handle<GPUResource> handle)
+    {
+        var r = GetResourceRecord(handle);
+        if (r.IsFailure)
+        {
+            return r.Error;
+        }
+
+        return r.Value.desc;
+    }
+
+    public uint GetBindlessIndex(Handle<GPUResource> handle, BindlessAccess access = BindlessAccess.ShaderResource)
+    {
+        var r = GetResourceRecord(handle);
+        if (r.IsFailure || !r.Value.Allocated)
+        {
+            return ~0u;
+        }
+
+        return access switch
+        {
+            BindlessAccess.ShaderResource => (uint)r.Value.viewGroup.srv.Value,
+            BindlessAccess.ConstantBuffer => (uint)r.Value.viewGroup.cbv.Value,
+            BindlessAccess.UnorderedAccess => (uint)r.Value.viewGroup.uav.Value,
+            _ => ~0u,
+        };
+    }
+
+    public string? GetResourceName(Handle<GPUResource> handle)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+#if DEBUG || GHOST_EDITOR
+        if (_resourceName.TryGetValue(handle, out var name))
+        {
+            return name;
+        }
+#endif
+        return null;
+    }
+
+    public void ScheduleReleaseResource(Handle<GPUResource> handle)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (_resources.TryGetElementAt(handle.ID, handle.Generation, out var record))
+        {
+            return;
+        }
+
+        var entry = new ReleaseEntry(record, _fenceSynchronizer.CPUFenceValue);
+
+        _releaseQueue.Enqueue(entry);
+        _resources.Remove(handle.ID, handle.Generation);
+
+#if DEBUG || GHOST_EDITOR
+        _resourceName.Remove(handle, out var name);
+#endif
+    }
+
+    public void ReleaseResourceImmediately(Handle<GPUResource> handle)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        ref var info = ref _resources.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
+        if (!exist || !info.Allocated)
+        {
+            return;
+        }
+
+        info.Release(_descriptorAllocator);
+        _resources.Remove(handle.ID, handle.Generation);
+    }
+
+    public Identifier<Sampler> CreateSampler(ref readonly SamplerDesc desc, int id)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (_samplers.ContainsKey(desc))
+        {
+            throw new InvalidOperationException("Sampler already exists.");
+        }
+
+        var identifier = new Identifier<Sampler>(id);
+        _samplers.Add(desc, identifier);
+
+        return identifier;
+    }
+
+    public bool TryGetSampler(ref readonly SamplerDesc desc, out Identifier<Sampler> id)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return _samplers.TryGetValue(desc, out id);
+    }
+
+    public void ReleaseSampler(Identifier<Sampler> id)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        // NOTE: We almost never release samplers individually, because they are cheap and can be reused.
+        // Ideally we would release all samplers at once when disposing the ResourceDatabase.
+        _descriptorAllocator.Release(new Identifier<SamplerDescriptor>(id.Value));
+    }
+
+    public void EndFrame()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        while (_releaseQueue.Count > 0)
+        {
+            var toRelease = _releaseQueue.Peek();
+            if (toRelease.fenceValue > _fenceSynchronizer.GPUFenceValue)
+            {
+                break;
+            }
+
+            _releaseQueue.Dequeue();
+
+            toRelease.record.Release(_descriptorAllocator);
+        }
+    }
+
+    internal void ReleaseAllResourcesImmediately()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        foreach (ref var record in _resources)
+        {
+            record.Release(_descriptorAllocator);
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _resources.Dispose();
+        _samplers.Dispose();
+        _releaseQueue.Dispose();
+
+        _disposed = true;
+
+        GC.SuppressFinalize(this);
+    }
+}

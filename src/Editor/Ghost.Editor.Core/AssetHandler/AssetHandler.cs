@@ -52,7 +52,7 @@ public static class AssetHandlerExtensions
         return await handler.ExportAsync(assetStream, targetStream, options, token);
     }
 
-    public static async ValueTask<Result<Asset>> ReadAsync(this IAssetHandler handler, string assetFilePath, IAssetRegistry assetDatabase, CancellationToken token = default)
+    public static async ValueTask<Result<Asset>> LoadAsync(this IAssetHandler handler, string assetFilePath, IAssetRegistry assetDatabase, CancellationToken token = default)
     {
         await using var sourceStream = new FileStream(assetFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
         return await handler.LoadAsync(sourceStream, assetDatabase, token);

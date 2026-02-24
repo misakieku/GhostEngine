@@ -326,7 +326,7 @@ internal sealed class ResourceAliasingManager
         _logicalToPlaced = new Dictionary<int, int>(64);
     }
 
-    public void Reset()
+    public void Clear()
     {
         for (var i = 0; i < _placedResources.Count; i++)
         {

@@ -65,17 +65,17 @@ public struct Material : IResourceReleasable
         get; set;
     }
 
-    public Error SetShader(Identifier<Shader> shaderId, IResourceAllocator allocator, IResourceDatabase database)
+    public Error SetShader(Identifier<Shader> shaderId, IResourceManager manager)
     {
         if (!shaderId.IsValid)
         {
             return Error.InvalidArgument;
         }
 
-        _cBufferCache.ReleaseResource(database);
+        _cBufferCache.ReleaseResource(manager.ResourceDatabase);
         _shader = shaderId;
 
-        var r = database.GetShaderReference(shaderId);
+        var r = manager.GetShaderReference(shaderId);
         if (r.IsFailure)
         {
             return r.Error;
@@ -101,7 +101,7 @@ public struct Material : IResourceReleasable
             _passPipelineOverride[i] = new PipelineOverride
             {
                 shaderPass = pass.Key,
-                options = pass.DeafaultState,
+                options = pass.DefaultState,
             };
         }
 
@@ -114,7 +114,7 @@ public struct Material : IResourceReleasable
                 MemoryType = ResourceMemoryType.Default,
             };
 
-            var buffer = allocator.CreateBuffer(ref desc, "MaterialCBuffer");
+            var buffer = manager.ResourceAllocator.CreateBuffer(ref desc, "MaterialCBuffer");
             _cBufferCache = new CBufferCache(buffer, shader.CBufferSize);
         }
 
@@ -201,9 +201,9 @@ public struct Material : IResourceReleasable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Error SetKeyword(IResourceDatabase resourceDatabase, int keywordId, bool enabled)
+    public Error SetKeyword(IResourceManager manager, int keywordId, bool enabled)
     {
-        var r = resourceDatabase.GetShaderReference(_shader);
+        var r = manager.GetShaderReference(_shader);
         if (r.IsFailure)
         {
             return r.Error;
@@ -223,9 +223,9 @@ public struct Material : IResourceReleasable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly bool IsKeywordEnabled(IResourceDatabase resourceDatabase, int keywordId)
+    public readonly bool IsKeywordEnabled(IResourceManager manager, int keywordId)
     {
-        var r = resourceDatabase.GetShaderReference(_shader);
+        var r = manager.GetShaderReference(_shader);
         if (r.IsFailure)
         {
             return false;

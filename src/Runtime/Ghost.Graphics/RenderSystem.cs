@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Graphics.D3D12;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Mathematics;
 using System.Collections.Concurrent;
@@ -21,50 +22,6 @@ public struct RenderingConfig
     {
         get; set;
     }
-}
-
-public interface IFenceSynchronizer
-{
-    uint CPUFenceValue
-    {
-        get;
-    }
-
-    uint GPUFenceValue
-    {
-        get;
-    }
-
-    uint FrameIndex
-    {
-        get;
-    }
-
-    uint MaxFrameLatency
-    {
-        get;
-    }
-
-    bool WaitForGPUReady(int timeOut = -1);
-    void SignalCPUReady();
-    void WaitIdle();
-}
-
-public interface IRenderSystem : IFenceSynchronizer, IDisposable
-{
-    IGraphicsEngine GraphicsEngine
-    {
-        get;
-    }
-
-    bool IsRunning
-    {
-        get;
-    }
-
-    void Start();
-    void Stop();
-    void RequestSwapChainResize(ISwapChain swapChain, uint2 newSize);
 }
 
 /// <summary>
@@ -130,11 +87,25 @@ internal class RenderSystem : IRenderSystem
     public RenderSystem(RenderingConfig config)
     {
         _config = config;
-        _graphicsEngine = config.GraphicsAPI switch
+
+        switch (config.GraphicsAPI)
         {
-            GraphicsAPI.Direct3D12 => new D3D12.D3D12GraphicsEngine(this),
-            _ => throw new NotSupportedException($"Graphics API {config.GraphicsAPI} is not supported.")
-        };
+            case GraphicsAPI.Direct3D12:
+                if (OperatingSystem.IsWindowsVersionAtLeast(10, 0, 19041))
+                {
+                    _graphicsEngine = D3D12GraphicsEngineFactory.Create(this);
+                }
+                else
+                {
+                    // TODO: Fallback to Vulkan once it's implemented.
+                    throw new PlatformNotSupportedException("Direct3D12 requires Windows 10 version 2004 (build 19041) or later.");
+                }
+
+                break;
+
+            default:
+                throw new NotSupportedException($"The specified graphics API '{config.GraphicsAPI}' is not supported.");
+        }
 
         // Create frame resources for synchronization
         _frameResources = new FrameResource[config.FrameBufferCount];

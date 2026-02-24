@@ -5,6 +5,7 @@
     <Platform Name="x86" />
   </Configurations>
   <Folder Name="/Editor/">
+    <Project Path="Editor/Ghost.DSL/Ghost.DSL.csproj" />
     <Project Path="Editor/Ghost.Editor.Core/Ghost.Editor.Core.csproj" />
     <Project Path="Editor/Ghost.Editor/Ghost.Editor.csproj">
       <Platform Solution="*|ARM64" Project="ARM64" />
@@ -12,7 +13,6 @@
       <Platform Solution="*|x86" Project="x86" />
       <Deploy />
     </Project>
-    <Project Path="Editor/Ghost.DSL/Ghost.DSL.csproj" />
   </Folder>
   <Folder Name="/ThridParty/">
     <Project Path="ThridParty/Ghost.FMOD/Ghost.FMOD.csproj" />
@@ -24,6 +24,8 @@
     <Project Path="Runtime/Ghost.Engine/Ghost.Engine.csproj" />
     <Project Path="Runtime/Ghost.Entities/Ghost.Entities.csproj" />
     <Project Path="Runtime/Ghost.Generator/Ghost.Generator.csproj" />
+    <Project Path="Runtime/Ghost.Graphics.D3D12/Ghost.Graphics.D3D12.csproj" Id="e56a0674-beab-414f-8b42-01191a0238fc" />
+    <Project Path="Runtime/Ghost.Graphics.RHI/Ghost.Graphics.RHI.csproj" Id="d6831a89-ea86-4aef-9879-2bdd9b519d1e" />
     <Project Path="Runtime/Ghost.Graphics/Ghost.Graphics.csproj" />
   </Folder>
   <Folder Name="/Test/">

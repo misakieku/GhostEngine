@@ -1,5 +1,4 @@
 using Ghost.Core;
-using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using System.Diagnostics.CodeAnalysis;
 
@@ -23,7 +22,7 @@ internal sealed class CachedCompilation
     // Placed resource metadata
     public readonly List<PlacedResourceData> placedResources = new(32);
     
-    // Compiled barriers (stores only target states, queries before state from ResourceDatabase)
+    // Compiled barriers (stores only target states, queries before state from ResourceManager)
     public readonly List<CompiledBarrier> compiledBarriers = new(128);
 
     // Real gpu resource

@@ -9,6 +9,7 @@
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DebugType>embedded</DebugType>
+    <IsAotCompatible>True</IsAotCompatible>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -17,26 +18,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="runtimes\win-x64\native\dxcompiler.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="runtimes\win-x64\native\dxil.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Misaki.HighPerformance.Analyzer" Version="1.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Misaki.HighPerformance.Image" Version="1.1.0" />
-    <PackageReference Include="TerraFX.Interop.D3D12MemoryAllocator" Version="3.0.1" />
   </ItemGroup>
 
   <ItemGroup>
-        <ProjectReference Include="../../Runtime/Ghost.Core/Ghost.Core.csproj" />
-        <ProjectReference Include="../../Editor/Ghost.DSL/Ghost.DSL.csproj" />
+        <ProjectReference Include="..\..\Runtime\Ghost.Core\Ghost.Core.csproj" />
+        <ProjectReference Include="..\..\Editor\Ghost.DSL\Ghost.DSL.csproj" />
+        <ProjectReference Include="..\Ghost.Graphics.D3D12\Ghost.Graphics.D3D12.csproj" />
+        <ProjectReference Include="..\Ghost.Graphics.RHI\Ghost.Graphics.RHI.csproj" />
   </ItemGroup>
 
   <ItemGroup>

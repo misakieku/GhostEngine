@@ -7,24 +7,6 @@ using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.Core;
 
-public readonly struct ShaderPass
-{
-    public Key64<ShaderPass> Key
-    {
-        get; init;
-    }
-
-    public PipelineState DeafaultState
-    {
-        get; init;
-    }
-
-    public LocalKeywordSet KeywordIDs
-    {
-        get; init;
-    }
-}
-
 public struct ShaderProperty;
 
 public partial struct Shader
@@ -146,7 +128,7 @@ public partial struct Shader : IResourceReleasable
             _shaderPasses[i] = new ShaderPass
             {
                 Key = passKey,
-                DeafaultState = pass.localPipeline,
+                DefaultState = pass.localPipeline,
                 KeywordIDs = keywords,
             };
 

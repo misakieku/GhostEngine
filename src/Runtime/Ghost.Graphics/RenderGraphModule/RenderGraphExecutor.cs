@@ -1,5 +1,4 @@
 using Ghost.Core;
-using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 
 namespace Ghost.Graphics.RenderGraphModule;
@@ -9,16 +8,16 @@ namespace Ghost.Graphics.RenderGraphModule;
 /// </summary>
 internal sealed class RenderGraphExecutor
 {
-    private readonly IGraphicsEngine _graphicsEngine;
+    private readonly IResourceManager _resourceManager;
     private readonly RenderGraphResourceRegistry _resources;
     private readonly RenderGraphContext _context;
 
     public RenderGraphExecutor(
-        IGraphicsEngine graphicsEngine,
+        IResourceManager resourceManager,
         RenderGraphResourceRegistry resources,
         RenderGraphContext context)
     {
-        _graphicsEngine = graphicsEngine;
+        _resourceManager = resourceManager;
         _resources = resources;
         _context = context;
     }
@@ -130,7 +129,7 @@ internal sealed class RenderGraphExecutor
 
     /// <summary>
     /// Executes all barriers for a specific pass.
-    /// Uses pre-compiled barriers and queries before state from ResourceDatabase.
+    /// Uses pre-compiled barriers and queries before state from ResourceManager.
     /// </summary>
     private unsafe void ExecuteBarriersForPass(
         ICommandBuffer cmd,
@@ -158,8 +157,8 @@ internal sealed class RenderGraphExecutor
             var resource = _resources.GetResource(compiledBarrier.Resource);
             var resourceHandle = resource.backingResource;
 
-            // Always query the before state from ResourceDatabase (single source of truth)
-            var currentState = _graphicsEngine.ResourceDatabase.GetResourceBarrierData(resourceHandle).GetValueOrThrow();
+            // Always query the before state from ResourceManager (single source of truth)
+            var currentState = _resourceManager.ResourceDatabase.GetResourceBarrierData(resourceHandle).GetValueOrThrow();
 
             BarrierLayout layoutBefore;
             BarrierAccess accessBefore;
@@ -169,7 +168,7 @@ internal sealed class RenderGraphExecutor
             if (compiledBarrier.AliasingPredecessor.IsValid)
             {
                 var predHandle = _resources.GetResource(compiledBarrier.AliasingPredecessor).backingResource;
-                var predState = _graphicsEngine.ResourceDatabase.GetResourceBarrierData(predHandle).GetValueOrThrow();
+                var predState = _resourceManager.ResourceDatabase.GetResourceBarrierData(predHandle).GetValueOrThrow();
 
                 layoutBefore = BarrierLayout.Undefined;
                 accessBefore = BarrierAccess.NoAccess;

@@ -1,5 +1,6 @@
 using Ghost.Entities;
 using Ghost.Graphics;
+using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Jobs;
 
 namespace Ghost.Engine;

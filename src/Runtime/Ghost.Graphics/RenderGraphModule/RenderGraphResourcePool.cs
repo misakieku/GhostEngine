@@ -168,7 +168,7 @@ internal sealed class RenderGraphResourceRegistry
         }
     }
 
-    public void Reset()
+    public void Clear()
     {
         // Return all resources to pool
         for (var i = 0; i < _resources.Count; i++)

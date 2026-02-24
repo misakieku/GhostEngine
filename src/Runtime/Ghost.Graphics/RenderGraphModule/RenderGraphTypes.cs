@@ -36,16 +36,23 @@ public struct ViewState : IEquatable<ViewState>
 {
     public uint viewportWidth;
     public uint viewportHeight;
+
+    // For upscalers that need to know the original render target size before upscaling
+    public uint actualWidth;
+    public uint actualHeight;
     
-    public ViewState(uint width, uint height)
+    public ViewState(uint width, uint height, uint actualWidth, uint actualHeight)
     {
         viewportWidth = width;
         viewportHeight = height;
+        this.actualWidth = actualWidth;
+        this.actualHeight = actualHeight;
     }
     
     public readonly bool Equals(ViewState other)
     {
-        return viewportWidth == other.viewportWidth && viewportHeight == other.viewportHeight;
+        return viewportWidth == other.viewportWidth && viewportHeight == other.viewportHeight
+            && actualWidth == other.actualWidth && actualHeight == other.actualHeight;
     }
     
     public override readonly bool Equals(object? obj)

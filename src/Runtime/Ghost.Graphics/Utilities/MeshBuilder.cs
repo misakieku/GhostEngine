@@ -1,11 +1,11 @@
+using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
-using Ghost.Graphics.Core;
 
 namespace Ghost.Graphics.Utilities;
 
-public unsafe static class MeshBuilder
+public static unsafe class MeshBuilder
 {
     /// <summary>
     /// Creates a unit cube centered at the origin with size 1.

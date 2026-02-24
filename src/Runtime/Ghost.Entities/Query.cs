@@ -340,7 +340,7 @@ public unsafe partial struct EntityQuery : IDisposable
     private readonly Identifier<EntityQuery> _id;
     private readonly Identifier<World> _worldID;
 
-    internal EntityQuery(Identifier<EntityQuery> id, Identifier<World> worldID, EntityQueryMask mask)
+    internal EntityQuery(Identifier<EntityQuery> id, Identifier<World> worldID, ref readonly EntityQueryMask mask)
     {
         _id = id;
         _worldID = worldID;
@@ -632,7 +632,7 @@ public ref partial struct QueryBuilder
         }
 
         // NOTE: We do not dispose the mask here, as it is now owned by the EntityQuery.
-        queryID = world.ComponentManager.CreateEntityQuery(mask, maskHash);
+        queryID = world.ComponentManager.CreateEntityQuery(in mask, maskHash);
 
     Return:
         Dispose();
