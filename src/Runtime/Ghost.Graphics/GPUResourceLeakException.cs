@@ -1,5 +1,3 @@
-using Misaki.HighPerformance.LowLevel;
-
 namespace Ghost.Graphics;
 
 internal unsafe class GPUResourceLeakException : Exception

@@ -35,7 +35,7 @@ internal sealed class RenderGraphCompiler
     /// <summary>
     /// Compiles the render graph by culling passes, allocating resources, and preparing barriers.
     /// </summary>
-    public void Compile(
+    public Error Compile(
         in ViewState viewState,
         ulong graphHash,
         List<RenderGraphPassBase> passes,
@@ -43,6 +43,8 @@ internal sealed class RenderGraphCompiler
         List<NativeRenderPass> nativePasses,
         List<CompiledBarrier> compiledBarriers)
     {
+        Error error;
+
         // Try to restore from cache
         if (_compilationCache.TryGetCached(graphHash, out var cached))
         {
@@ -54,7 +56,11 @@ internal sealed class RenderGraphCompiler
                 RestoreFromCache(cached, compiledPasses, passes, nativePasses, compiledBarriers);
 
                 _aliasingManager.AssignPhysicalResources(_resources, passes.Count);
-                AllocateResources();
+                error = AllocateResources();
+                if (error != Error.None)
+                {
+                    return error;
+                }
 
                 cached.viewState = viewState;
             }
@@ -64,7 +70,7 @@ internal sealed class RenderGraphCompiler
                 RestoreFromCache(cached, compiledPasses, passes, nativePasses, compiledBarriers);
             }
 
-            return;
+            return Error.None;
         }
 
         // Fresh compilation needed
@@ -87,16 +93,19 @@ internal sealed class RenderGraphCompiler
         }
 
         _aliasingManager.AssignPhysicalResources(_resources, passes.Count);
-        AllocateResources();
+        error = AllocateResources();
+        if (error != Error.None)
+        {
+            return error;
+        }
 
         CompileBarriers(compiledPasses, compiledBarriers);
         _nativePassBuilder.BuildNativeRenderPasses(compiledPasses, nativePasses, compiledBarriers);
         StoreInCache(graphHash, viewState, compiledPasses, passes, compiledBarriers);
+
+        return Error.None;
     }
 
-    /// <summary>
-    /// Marks passes that write to imported resources as having side effects.
-    /// </summary>
     private void MarkPassesWithSideEffects(List<RenderGraphPassBase> passes)
     {
         for (var i = 0; i < passes.Count; i++)
@@ -121,9 +130,6 @@ internal sealed class RenderGraphCompiler
         }
     }
 
-    /// <summary>
-    /// Culls unused passes based on dependency analysis.
-    /// </summary>
     private void CullPasses(List<RenderGraphPassBase> passes)
     {
         // Mark all passes as culled initially
@@ -143,9 +149,6 @@ internal sealed class RenderGraphCompiler
         }
     }
 
-    /// <summary>
-    /// Recursively un-culls dependencies of a pass.
-    /// </summary>
     private void UnculDependencies(RenderGraphPassBase pass, List<RenderGraphPassBase> passes)
     {
         // Un-cull producers of read resources
@@ -180,9 +183,6 @@ internal sealed class RenderGraphCompiler
         }
     }
 
-    /// <summary>
-    /// Un-culls the producer of a resource.
-    /// </summary>
     private void UnculProducer(Identifier<RGResource> resource, List<RenderGraphPassBase> passes)
     {
         var res = _resources.GetResource(resource);
@@ -197,10 +197,7 @@ internal sealed class RenderGraphCompiler
         }
     }
 
-    /// <summary>
-    /// Allocates GPU resources for the render graph.
-    /// </summary>
-    private void AllocateResources()
+    private Error AllocateResources()
     {
         if (_resourceHeap.IsValid)
         {
@@ -211,15 +208,15 @@ internal sealed class RenderGraphCompiler
                     continue;
                 }
 
-                _resourceManager.ResourceDatabase.ScheduleReleaseResource(res.backingResource);
+                _resourceManager.ResourceDatabase.ReleaseResource(res.backingResource);
             }
 
-            _resourceManager.ResourceDatabase.ScheduleReleaseResource(_resourceHeap);
+            _resourceManager.ResourceDatabase.ReleaseResource(_resourceHeap);
         }
 
         if (_aliasingManager.Heap.size == 0)
         {
-            return;
+            return Error.None; // No resources to allocate
         }
 
         var allocationDesc = new AllocationDesc
@@ -231,6 +228,10 @@ internal sealed class RenderGraphCompiler
         };
 
         _resourceHeap = _resourceManager.ResourceAllocator.Allocate(in allocationDesc, "RenderGraphResourceHeap");
+        if (_resourceHeap.IsInvalid)
+        {
+            return Error.InvalidState;
+        }
 
         for (var i = 0; i < _resources.Resources.Count; i++)
         {
@@ -263,22 +264,22 @@ internal sealed class RenderGraphCompiler
                 throw new NotSupportedException();
             }
 
+            if (res.backingResource.IsInvalid)
+            {
+                return Error.InvalidState;
+            }
+
             _compilationCache.UpdateBackingResource(i, res.backingResource);
         }
+
+        return Error.None;
     }
 
-    /// <summary>
-    /// Compiles all barriers needed for execution.
-    /// Delegates to RenderGraphBarriers for the actual compilation logic.
-    /// </summary>
     private void CompileBarriers(List<RenderGraphPassBase> compiledPasses, List<CompiledBarrier> compiledBarriers)
     {
         RenderGraphBarriers.CompileBarriers(compiledPasses, compiledBarriers, _resources, _aliasingManager);
     }
 
-    /// <summary>
-    /// Restores the render graph state from cached compilation results.
-    /// </summary>
     private void RestoreFromCache(
         CachedCompilation cached,
         List<RenderGraphPassBase> compiledPasses,
@@ -323,9 +324,6 @@ internal sealed class RenderGraphCompiler
         _nativePassBuilder.BuildNativeRenderPasses(compiledPasses, nativePasses, compiledBarriers);
     }
 
-    /// <summary>
-    /// Stores current compilation results in the cache.
-    /// </summary>
     private void StoreInCache(
         ulong graphHash,
         in ViewState viewState,
@@ -368,9 +366,6 @@ internal sealed class RenderGraphCompiler
         _compilationCache.Store(graphHash, cacheData);
     }
 
-    /// <summary>
-    /// Releases allocated GPU resources.
-    /// </summary>
     public void Dispose()
     {
         if (_resourceHeap.IsValid)
@@ -379,11 +374,11 @@ internal sealed class RenderGraphCompiler
             {
                 if (!res.isImported)
                 {
-                    _resourceManager.ResourceDatabase.ScheduleReleaseResource(res.backingResource);
+                    _resourceManager.ResourceDatabase.ReleaseResource(res.backingResource);
                 }
             }
 
-            _resourceManager.ResourceDatabase.ScheduleReleaseResource(_resourceHeap);
+            _resourceManager.ResourceDatabase.ReleaseResource(_resourceHeap);
             _resourceHeap = Handle<GPUResource>.Invalid;
         }
     }

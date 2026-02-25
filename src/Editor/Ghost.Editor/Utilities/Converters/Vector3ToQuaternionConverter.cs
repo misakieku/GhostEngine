@@ -1,7 +1,5 @@
-using Ghost.Engine.Utilities;
 using Microsoft.UI.Xaml.Data;
 using Misaki.HighPerformance.Mathematics;
-using System.Numerics;
 
 namespace Ghost.Editor.Utilities.Converters;
 

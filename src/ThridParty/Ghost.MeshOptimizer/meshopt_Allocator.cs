@@ -1,4 +1,3 @@
-using Ghost.Zeux.MeshOptimizer;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;

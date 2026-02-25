@@ -47,7 +47,7 @@ public interface IRenderGraphBuilder : IDisposable
     /// <param name="accessMode">The access mode specifying how the texture will be read or written during the pass.</param>
     /// <returns>An identifier for the texture.</returns>
     Identifier<RGTexture> UseTexture(Identifier<RGTexture> texture, AccessFlags accessMode);
-    
+
     /// <summary>
     /// Registers the specified buffer for use in the current render graph pass with the given access mode.
     /// </summary>
@@ -195,7 +195,7 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         _resources.SetProducer(handle.AsResource(), _pass.index);
         return handle;
     }
-    
+
     public Identifier<RGBuffer> CreateBuffer(in BufferDesc desc, string name)
     {
         ThrowIfDisposed();
@@ -211,7 +211,7 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         ThrowIfDisposed();
         return UseResource(texture.AsResource(), flags, RenderGraphResourceType.Texture).AsTexture();
     }
-    
+
     public Identifier<RGBuffer> UseBuffer(Identifier<RGBuffer> buffer, AccessFlags flags)
     {
         ThrowIfDisposed();

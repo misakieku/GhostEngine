@@ -455,7 +455,7 @@ public unsafe partial struct EntityQuery : IDisposable
             return 0;
         }
 
-        for(var i = 0; i < _matchingArchetypes.Count; i++)
+        for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
             var archetypeID = _matchingArchetypes[i];
             ref var archetype = ref world.ComponentManager.GetArchetypeReference(archetypeID);

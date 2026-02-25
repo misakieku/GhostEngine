@@ -1,5 +1,4 @@
 using Ghost.Core;
-using Ghost.Core.Utilities;
 using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
@@ -869,8 +868,11 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
 #endif
 
         IncrementCommandCount();
+
         var resource = _resourceDatabase.GetResource(argumentBuffer.AsResource());
         var countResource = _resourceDatabase.GetResource(countBuffer.AsResource());
+
+        // TODO
         _commandList.Get()->ExecuteIndirect(null, 0,
             resource, argumentOffset, countResource, countBufferOffset);
 
@@ -947,7 +949,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
             d3d12Subresources);
     }
 
-    public void CopyBuffer(Handle<GraphicsBuffer> dest, Handle<GraphicsBuffer> src, ulong destOffset = 0, ulong srcOffset = 0, ulong numBytes = 0)
+    public void CopyBuffer(Handle<GraphicsBuffer> dst, Handle<GraphicsBuffer> src, ulong dstOffset = 0, ulong srcOffset = 0, ulong numBytes = 0)
     {
         ThrowIfDisposed();
         ThrowIfNotRecording();
@@ -957,11 +959,16 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
             return;
         }
 #endif
+        if (dst == src)
+        {
+            return;
+        }
+
         IncrementCommandCount();
 
-        var pDestResource = _resourceDatabase.GetResource(dest.AsResource());
+        var pDstResource = _resourceDatabase.GetResource(dst.AsResource());
         var pSrcResource = _resourceDatabase.GetResource(src.AsResource());
-        if (pSrcResource == null || pDestResource == null)
+        if (pSrcResource == null || pDstResource == null)
         {
             RecordError(nameof(CopyBuffer), Error.InvalidArgument);
             return;
@@ -969,12 +976,43 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
 
         if (numBytes == 0)
         {
-            _commandList.Get()->CopyResource(pDestResource, pSrcResource);
+            _commandList.Get()->CopyResource(pDstResource, pSrcResource);
         }
         else
         {
-            _commandList.Get()->CopyBufferRegion(pDestResource, destOffset, pSrcResource, srcOffset, numBytes);
+            _commandList.Get()->CopyBufferRegion(pDstResource, dstOffset, pSrcResource, srcOffset, numBytes);
         }
+    }
+
+    public void CopyTexture(Handle<Texture> dst, Handle<Texture> src)
+    {
+        throw new NotImplementedException();
+
+        ThrowIfDisposed();
+        ThrowIfNotRecording();
+#if !DEBUG
+        if (_lastError.Status != Error.None)
+        {
+            return;
+        }
+#endif
+        if (dst == src)
+        {
+            return;
+        }
+
+        IncrementCommandCount();
+
+        var pDstResource = _resourceDatabase.GetResource(dst.AsResource());
+        var pSrcResource = _resourceDatabase.GetResource(src.AsResource());
+        if (pSrcResource == null || pDstResource == null)
+        {
+            RecordError(nameof(CopyTexture), Error.InvalidArgument);
+            return;
+        }
+
+        // TODO
+        _commandList.Get()->CopyTextureRegion(null, 0, 0, 0, null, null);
     }
 
     public void Dispose()

@@ -24,7 +24,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i =0; i < 1; i++)
+            for (var i = 0; i < 1; i++)
             {
                 if (id == compTypeIDs[i])
                 {
@@ -111,7 +111,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i =0; i < 2; i++)
+            for (var i = 0; i < 2; i++)
             {
                 if (id == compTypeIDs[i])
                 {
@@ -202,7 +202,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i =0; i < 3; i++)
+            for (var i = 0; i < 3; i++)
             {
                 if (id == compTypeIDs[i])
                 {
@@ -297,7 +297,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i =0; i < 4; i++)
+            for (var i = 0; i < 4; i++)
             {
                 if (id == compTypeIDs[i])
                 {
@@ -396,7 +396,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i =0; i < 5; i++)
+            for (var i = 0; i < 5; i++)
             {
                 if (id == compTypeIDs[i])
                 {
@@ -499,7 +499,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i =0; i < 6; i++)
+            for (var i = 0; i < 6; i++)
             {
                 if (id == compTypeIDs[i])
                 {
@@ -606,7 +606,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i =0; i < 7; i++)
+            for (var i = 0; i < 7; i++)
             {
                 if (id == compTypeIDs[i])
                 {
@@ -717,7 +717,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i =0; i < 8; i++)
+            for (var i = 0; i < 8; i++)
             {
                 if (id == compTypeIDs[i])
                 {
@@ -808,7 +808,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i =0; i < 1; i++)
+            for (var i = 0; i < 1; i++)
             {
                 if (id == compTypeIDs[i])
                 {
@@ -896,7 +896,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i =0; i < 2; i++)
+            for (var i = 0; i < 2; i++)
             {
                 if (id == compTypeIDs[i])
                 {
@@ -988,7 +988,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i =0; i < 3; i++)
+            for (var i = 0; i < 3; i++)
             {
                 if (id == compTypeIDs[i])
                 {
@@ -1084,7 +1084,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i =0; i < 4; i++)
+            for (var i = 0; i < 4; i++)
             {
                 if (id == compTypeIDs[i])
                 {
@@ -1184,7 +1184,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i =0; i < 5; i++)
+            for (var i = 0; i < 5; i++)
             {
                 if (id == compTypeIDs[i])
                 {
@@ -1288,7 +1288,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i =0; i < 6; i++)
+            for (var i = 0; i < 6; i++)
             {
                 if (id == compTypeIDs[i])
                 {
@@ -1396,7 +1396,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i =0; i < 7; i++)
+            for (var i = 0; i < 7; i++)
             {
                 if (id == compTypeIDs[i])
                 {
@@ -1508,7 +1508,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i =0; i < 8; i++)
+            for (var i = 0; i < 8; i++)
             {
                 if (id == compTypeIDs[i])
                 {

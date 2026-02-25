@@ -5,7 +5,6 @@ namespace Ghost.Graphics.RenderGraphModule;
 
 /// <summary>
 /// Main render graph class that manages resource allocation and pass execution.
-/// Delegates complex operations to specialized components for better organization.
 /// </summary>
 public sealed class RenderGraph : IDisposable
 {
@@ -172,38 +171,38 @@ public sealed class RenderGraph : IDisposable
 
     /// <summary>
     /// Compiles the render graph by culling unused passes and determining resource lifetimes.
-    /// Delegates to RenderGraphCompiler for the actual compilation work.
     /// </summary>
-    public void Compile(in ViewState viewState)
+    public Error Compile(in ViewState viewState)
     {
         if (_compiled)
         {
-            return;
+            return Error.None;
         }
 
-        // Resolve texture sizes before computing hash
         _resources.ResolveTextureSizes(in viewState);
 
-        // Compute structural hash for caching
         var graphHash = RenderGraphHasher.ComputeGraphHash(_passes, _resources);
+        var error = _compiler.Compile(in viewState, graphHash, _passes, _compiledPasses, _nativePasses, _compiledBarriers);
+        if (error != Error.None)
+        {
+            return error;
+        }
 
-        // Delegate to compiler
-        _compiler.Compile(in viewState, graphHash, _passes, _compiledPasses, _nativePasses, _compiledBarriers);
         _compiled = true;
+        return Error.None;
     }
 
     /// <summary>
     /// Executes all compiled passes using native render passes where possible.
-    /// Delegates to RenderGraphExecutor for the actual execution work.
     /// </summary>
-    public void Execute(ICommandBuffer cmd)
+    public Error Execute(ICommandBuffer cmd)
     {
         if (!_compiled)
         {
-            throw new InvalidOperationException("Render graph must be compiled before execution. Call Compile(viewState) first.");
+            return Error.InvalidState;
         }
 
-        _executor.Execute(cmd, _compiledPasses, _nativePasses, _compiledBarriers);
+        return _executor.Execute(cmd, _compiledPasses, _nativePasses, _compiledBarriers);
     }
 
     public void Dispose()

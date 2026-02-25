@@ -1,61 +1,43 @@
 using Ghost.Core;
-using Ghost.Graphics.Core;
-using Ghost.Graphics.RHI;
+using Ghost.Core.Utilities;
 using Misaki.HighPerformance.LowLevel.Buffer;
-using Misaki.HighPerformance.LowLevel.Collections;
 using System.IO.Hashing;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
-/// <summary>
-/// Computes structural hashes of render graphs for compilation caching.
-/// Hashes are based on graph topology and resource configurations, not runtime values.
-/// </summary>
 internal static class RenderGraphHasher
 {
     /// <summary>
     /// Computes a hash of the entire render graph structure.
     /// Used for cache invalidation - same hash means same compilation result.
     /// </summary>
-    public static unsafe ulong ComputeGraphHash(List<RenderGraphPassBase> passes, RenderGraphResourceRegistry resources)
+    public static ulong ComputeGraphHash(List<RenderGraphPassBase> passes, RenderGraphResourceRegistry resources)
     {
         using var scope = AllocationManager.CreateStackScope();
-        var bufferPool = new UnsafeList<byte>(2048, scope.AllocationHandle);
-        var pData = (byte*)bufferPool.GetUnsafePtr();
-        var offset = 0;
+        var writer = new BufferWriter(2048, scope.AllocationHandle);
 
         // Hash pass count
-        *(int*)(pData + offset) = passes.Count;
-        offset += sizeof(int);
+        writer.Write(passes.Count);
 
         // Hash each pass structure (excluding names)
         for (var i = 0; i < passes.Count; i++)
         {
             var pass = passes[i];
 
-            *(RenderPassType*)(pData + offset) = pass.type;
-            offset += sizeof(RenderPassType);
-
-            *(bool*)(pData + offset) = pass.allowCulling;
-            offset += sizeof(bool);
-
-            *(bool*)(pData + offset) = pass.asyncCompute;
-            offset += sizeof(bool);
+            writer.Write(pass.type);
+            writer.Write(pass.allowCulling);
+            writer.Write(pass.asyncCompute);
 
             // Hash depth attachment
-            offset = ComputeTextureHash(pData, offset, pass.depthAccess.id, resources);
+            ComputeTextureHash(ref writer, pass.depthAccess.id, resources);
 
-            pData[offset] = (byte)pass.depthAccess.accessFlags;
-            offset += sizeof(AccessFlags);
+            writer.Write(pass.depthAccess.accessFlags);
+            writer.Write(pass.maxColorIndex);
 
-            *(int*)(pData + offset) = pass.maxColorIndex;
-            offset += sizeof(int);
             for (var j = 0; j <= pass.maxColorIndex; j++)
             {
-                offset = ComputeTextureHash(pData, offset, pass.colorAccess[j].id, resources);
-
-                pData[offset] = (byte)pass.colorAccess[j].accessFlags;
-                offset += sizeof(AccessFlags);
+                ComputeTextureHash(ref writer, pass.colorAccess[j].id, resources);
+                writer.Write(pass.colorAccess[j].accessFlags);
             }
 
             for (var j = 0; j < (int)RenderGraphResourceType.Count; j++)
@@ -64,45 +46,35 @@ internal static class RenderGraphHasher
                 var writeList = pass.resourceWrites[j];
                 var createList = pass.resourceCreates[j];
 
-                *(int*)(pData + offset) = readList.Count;
-                offset += sizeof(int);
+                writer.Write(readList.Count);
                 for (var k = 0; k < readList.Count; k++)
                 {
-                    *(int*)(pData + offset) = readList[k].Value;
-                    offset += sizeof(int);
+                    writer.Write(readList[k].Value);
                 }
 
-                *(int*)(pData + offset) = writeList.Count;
-                offset += sizeof(int);
+                writer.Write(writeList.Count);
                 for (var k = 0; k < writeList.Count; k++)
                 {
-                    *(int*)(pData + offset) = writeList[k].Value;
-                    offset += sizeof(int);
+                    writer.Write(writeList[k].Value);
                 }
 
-                *(int*)(pData + offset) = createList.Count;
-                offset += sizeof(int);
+                writer.Write(createList.Count);
                 for (var k = 0; k < createList.Count; k++)
                 {
-                    *(int*)(pData + offset) = createList[k].Value;
-                    offset += sizeof(int);
+                    writer.Write(createList[k].Value);
                 }
 
-                *(int*)(pData + offset) = pass.randomAccess.Count;
-                offset += sizeof(int);
+                writer.Write(pass.randomAccess.Count);
                 for (var k = 0; k < pass.randomAccess.Count; k++)
                 {
-                    *(int*)(pData + offset) = pass.randomAccess[k].Value;
-                    offset += sizeof(int);
+                    writer.Write(pass.randomAccess[k].Value);
                 }
             }
 
-            *(int*)(pData + offset) = pass.GetRenderFuncHashCode();
-            offset += sizeof(int);
+            writer.Write(pass.GetRenderFuncHashCode());
         }
 
-        var span = new Span<byte>(pData, offset);
-        return XxHash64.HashToUInt64(span);
+        return XxHash64.HashToUInt64(writer.AsSpan());
     }
 
     /// <summary>
@@ -110,68 +82,49 @@ internal static class RenderGraphHasher
     /// For imported textures, hashes the backing handle.
     /// For transient textures, hashes the descriptor (respecting size mode).
     /// </summary>
-    private static unsafe int ComputeTextureHash(byte* pData, int offset, Identifier<RGTexture> texture, RenderGraphResourceRegistry resources)
+    private static void ComputeTextureHash(ref BufferWriter writer, Identifier<RGTexture> texture, RenderGraphResourceRegistry resources)
     {
         if (texture.IsInvalid)
         {
-            return offset;
+            return;
         }
 
         var resource = resources.GetResource(texture.AsResource());
 
         // Hash imported flag
-        *(pData + offset) = resource.isImported ? (byte)1 : (byte)0;
-        offset += sizeof(byte);
+        writer.Write(resource.isImported);
 
         // For imported textures, hash the backing resource handle
         if (resource.isImported)
         {
-            *(int*)(pData + offset) = resource.backingResource.GetHashCode();
-            offset += sizeof(int);
-            return offset;
+            writer.Write(resource.backingResource.GetHashCode());
+            return;
         }
 
         var desc = resource.rgTextureDesc;
 
-        // Hash format (structural)
-        *(TextureFormat*)(pData + offset) = desc.format;
-        offset += sizeof(TextureFormat);
-
-        // Hash size mode (structural)
-        *(RGTextureSizeMode*)(pData + offset) = desc.sizeMode;
-        offset += sizeof(RGTextureSizeMode);
+        writer.Write(desc.format);
+        writer.Write(desc.sizeMode);
 
         // Hash size specification based on mode
         if (desc.sizeMode == RGTextureSizeMode.Absolute)
         {
             // Absolute mode: hash actual dimensions
-            *(uint*)(pData + offset) = desc.width;
-            offset += sizeof(uint);
-            *(uint*)(pData + offset) = desc.height;
-            offset += sizeof(uint);
+            writer.Write(desc.width);
+            writer.Write(desc.height);
         }
         else
         {
             // Relative mode: hash scale factors (NOT resolved dimensions)
-            *(float*)(pData + offset) = desc.scaleX;
-            offset += sizeof(float);
-            *(float*)(pData + offset) = desc.scaleY;
-            offset += sizeof(float);
+            writer.Write(desc.scaleX);
+            writer.Write(desc.scaleY);
         }
 
         // Hash other structural properties
-        *(TextureDimension*)(pData + offset) = desc.dimension;
-        offset += sizeof(TextureDimension);
-        *(uint*)(pData + offset) = desc.mipLevels;
-        offset += sizeof(uint);
-        *(TextureUsage*)(pData + offset) = desc.usage;
-        offset += sizeof(TextureUsage);
-
-        *(bool*)(pData + offset) = desc.clearAtFirstUse;
-        offset += sizeof(bool);
-        *(bool*)(pData + offset) = desc.discardAtLastUse;
-        offset += sizeof(bool);
-
-        return offset;
+        writer.Write(desc.dimension);
+        writer.Write(desc.mipLevels);
+        writer.Write(desc.usage);
+        writer.Write(desc.clearAtFirstUse);
+        writer.Write(desc.discardAtLastUse);
     }
 }

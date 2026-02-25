@@ -42,7 +42,7 @@ public partial class EntityQueryTest : ITest
     {
         var entities = (Span<Entity>)stackalloc Entity[1000];
 
-        using var scope  = AllocationManager.CreateStackScope();
+        using var scope = AllocationManager.CreateStackScope();
         using var set = new ComponentSet(scope.AllocationHandle, ComponentTypeID<Transform>.Value);
 
         _world.EntityManager.CreateEntities(entities, set);

@@ -222,14 +222,13 @@ internal sealed class ResourceManager : IResourceManager, IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        ref var mesh = ref _meshes.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
-        if (!exist)
+        if (!_meshes.TryGetElementAt(handle.ID, handle.Generation, out var mesh))
         {
             return;
         }
 
-        ReleaseResource(mesh);
         _meshes.Remove(handle.ID, handle.Generation);
+        mesh.ReleaseResource(_resourceDatabase);
     }
 
     public bool HasMaterial(Handle<Material> handle)
@@ -253,14 +252,14 @@ internal sealed class ResourceManager : IResourceManager, IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        ref var material = ref _materials.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
+        var material = _materials.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
         if (!exist)
         {
             return;
         }
 
-        ReleaseResource(material);
         _materials.Remove(handle.ID, handle.Generation);
+        material.ReleaseResource(_resourceDatabase);
     }
 
     public bool HasShader(Identifier<Shader> id)
@@ -288,14 +287,8 @@ internal sealed class ResourceManager : IResourceManager, IDisposable
             return;
         }
 
-        ref var shader = ref _shaders[id.Value]!;
-        ReleaseResource(shader);
-    }
-
-    private void ReleaseResource<T>(T resource)
-        where T : IResourceReleasable
-    {
-        resource.ReleaseResource(_resourceDatabase);
+        var shader = _shaders[id.Value];
+        shader.ReleaseResource(_resourceDatabase);
     }
 
     public void Dispose()
@@ -307,17 +300,17 @@ internal sealed class ResourceManager : IResourceManager, IDisposable
 
         foreach (var mesh in _meshes)
         {
-            ReleaseResource(mesh);
+            mesh.ReleaseResource(_resourceDatabase);
         }
 
         foreach (var material in _materials)
         {
-            ReleaseResource(material);
+            material.ReleaseResource(_resourceDatabase);
         }
 
         foreach (var shader in _shaders)
         {
-            ReleaseResource(shader);
+            shader.ReleaseResource(_resourceDatabase);
         }
 
         _meshes.Dispose();

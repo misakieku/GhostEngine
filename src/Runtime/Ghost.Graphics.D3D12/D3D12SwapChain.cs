@@ -249,7 +249,7 @@ internal unsafe class D3D12SwapChain : ISwapChain
 
         for (var i = 0; i < _backBuffers.Count; i++)
         {
-            _resourceDatabase.ScheduleReleaseResource(_backBuffers[i].AsResource());
+            _resourceDatabase.ReleaseResource(_backBuffers[i].AsResource());
         }
 
         _backBuffers.Dispose();

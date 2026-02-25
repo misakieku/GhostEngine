@@ -2,7 +2,6 @@ using Ghost.Editor.Core;
 using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.Services;
 using Ghost.Editor.ViewModels.Windows;
-using System.Diagnostics;
 using Windows.ApplicationModel;
 using WinUIEx;
 

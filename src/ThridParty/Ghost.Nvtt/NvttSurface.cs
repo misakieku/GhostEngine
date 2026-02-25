@@ -1,6 +1,3 @@
-using Ghost.Nvtt.Native;
-using System.Runtime.InteropServices;
-
 namespace Ghost.Nvtt;
 
 /// <summary>
@@ -20,7 +17,7 @@ public sealed unsafe class NvttSurfaceHandle : IDisposable
     // -------------------------------------------------------------------------
     // Construction / destruction
     // -------------------------------------------------------------------------
-    
+
     public NvttSurfaceHandle() => _ptr = Api.nvttCreateSurface();
 
     /// <summary>Wraps an existing raw pointer (takes ownership; will destroy on dispose).</summary>
@@ -150,8 +147,8 @@ public sealed unsafe class NvttSurfaceHandle : IDisposable
         get
         {
             ThrowIfDisposed();
-            float* p = Api.nvttSurfaceData(_ptr);
-            int count = Width * Height * Depth * 4;
+            var p = Api.nvttSurfaceData(_ptr);
+            var count = Width * Height * Depth * 4;
             return p == null ? Span<float>.Empty : new Span<float>(p, count);
         }
     }
@@ -163,8 +160,8 @@ public sealed unsafe class NvttSurfaceHandle : IDisposable
     public Span<float> Channel(int index)
     {
         ThrowIfDisposed();
-        float* p = Api.nvttSurfaceChannel(_ptr, index);
-        int count = Width * Height * Depth;
+        var p = Api.nvttSurfaceChannel(_ptr, index);
+        var count = Width * Height * Depth;
         return p == null ? Span<float>.Empty : new Span<float>(p, count);
     }
 
@@ -205,7 +202,7 @@ public sealed unsafe class NvttSurfaceHandle : IDisposable
         fixed (byte* p = utf8)
         {
             Ghost.Nvtt.Native.NvttBoolean nvAlpha;
-            bool ok = NvttInterop.ToBool(
+            var ok = NvttInterop.ToBool(
                 Api.nvttSurfaceLoad(_ptr, (sbyte*)p, &nvAlpha,
                     NvttInterop.ToNvtt(expectSigned), tc));
             hasAlpha = NvttInterop.ToBool(nvAlpha);
@@ -221,7 +218,7 @@ public sealed unsafe class NvttSurfaceHandle : IDisposable
         fixed (byte* p = data)
         {
             Ghost.Nvtt.Native.NvttBoolean nvAlpha;
-            bool ok = NvttInterop.ToBool(
+            var ok = NvttInterop.ToBool(
                 Api.nvttSurfaceLoadFromMemory(_ptr, p, (ulong)data.Length,
                     &nvAlpha, NvttInterop.ToNvtt(expectSigned), tc));
             hasAlpha = NvttInterop.ToBool(nvAlpha);
@@ -363,7 +360,7 @@ public sealed unsafe class NvttSurfaceHandle : IDisposable
         NvttTimingContext* tc = null)
     {
         ThrowIfDisposed();
-        float* color = stackalloc float[4] { r, g, b, a };
+        var color = stackalloc float[4] { r, g, b, a };
         return NvttInterop.ToBool(
             Api.nvttSurfaceBuildNextMipmapSolidColor(_ptr, color, tc));
     }

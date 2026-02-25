@@ -32,15 +32,15 @@ public sealed unsafe class NvttOutputOptionsHandle : IDisposable
     private delegate void ErrorDelegate(Ghost.Nvtt.Native.NvttError error);
 
     // Pinned delegate instances – must stay alive as long as native code may call them.
-    private BeginImageDelegate?  _beginImageDelegate;
-    private OutputDataDelegate?  _outputDataDelegate;
-    private ErrorDelegate?       _errorDelegate;
+    private BeginImageDelegate? _beginImageDelegate;
+    private OutputDataDelegate? _outputDataDelegate;
+    private ErrorDelegate? _errorDelegate;
 
     // Managed user-facing callbacks.
     private Action<int, int, int, int, int, int>? _beginImage;
-    private Func<nint, int, bool>?                _outputData;
-    private Action?                               _endImage;
-    private Action<NvttError>?                    _errorHandler;
+    private Func<nint, int, bool>? _outputData;
+    private Action? _endImage;
+    private Action<NvttError>? _errorHandler;
 
     // -------------------------------------------------------------------------
     // Construction / destruction
@@ -58,7 +58,7 @@ public sealed unsafe class NvttOutputOptionsHandle : IDisposable
         // Release delegate references so GC can collect them.
         _beginImageDelegate = null;
         _outputDataDelegate = null;
-        _errorDelegate      = null;
+        _errorDelegate = null;
     }
 
     // -------------------------------------------------------------------------
@@ -142,7 +142,7 @@ public sealed unsafe class NvttOutputOptionsHandle : IDisposable
         ThrowIfDisposed();
         _beginImage = beginImage;
         _outputData = outputData;
-        _endImage   = endImage;
+        _endImage = endImage;
         RebindOutputHandler();
     }
 
@@ -173,13 +173,13 @@ public sealed unsafe class NvttOutputOptionsHandle : IDisposable
 
         _outputDataDelegate = (data, size, lastChunk) =>
         {
-            bool ok = outputData?.Invoke((nint)data, size) ?? true;
+            var ok = outputData?.Invoke((nint)data, size) ?? true;
             return ok ? Ghost.Nvtt.Native.NvttBoolean.NVTT_True
                       : Ghost.Nvtt.Native.NvttBoolean.NVTT_False;
         };
 
-        nint beginPtr  = Marshal.GetFunctionPointerForDelegate(_beginImageDelegate);
-        nint outputPtr = Marshal.GetFunctionPointerForDelegate(_outputDataDelegate);
+        var beginPtr = Marshal.GetFunctionPointerForDelegate(_beginImageDelegate);
+        var outputPtr = Marshal.GetFunctionPointerForDelegate(_outputDataDelegate);
 
         Api.nvttSetOutputOptionsOutputHandler(
             _ptr,
@@ -193,7 +193,7 @@ public sealed unsafe class NvttOutputOptionsHandle : IDisposable
         var handler = _errorHandler;
         _errorDelegate = error => handler?.Invoke(error);
 
-        nint errorPtr = Marshal.GetFunctionPointerForDelegate(_errorDelegate);
+        var errorPtr = Marshal.GetFunctionPointerForDelegate(_errorDelegate);
         Api.nvttSetOutputOptionsErrorHandler(
             _ptr,
             (delegate* unmanaged[Cdecl]<Ghost.Nvtt.Native.NvttError, void>)errorPtr);

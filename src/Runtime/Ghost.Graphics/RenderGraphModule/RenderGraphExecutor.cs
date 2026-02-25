@@ -25,7 +25,7 @@ internal sealed class RenderGraphExecutor
     /// <summary>
     /// Executes all compiled passes using native render passes where possible.
     /// </summary>
-    public unsafe void Execute(
+    public unsafe Error Execute(
         ICommandBuffer cmd,
         List<RenderGraphPassBase> compiledPasses,
         List<NativeRenderPass> nativePasses,
@@ -53,7 +53,11 @@ internal sealed class RenderGraphExecutor
                 for (var i = 0; i < nativePass.mergedPassIndices.Count; i++)
                 {
                     var mergedPassIdx = nativePass.mergedPassIndices[i];
-                    ExecuteBarriersForPass(cmd, mergedPassIdx, ref barrierIndex, compiledBarriers);
+                    var e = ExecuteBarriersForPass(cmd, mergedPassIdx, ref barrierIndex, compiledBarriers);
+                    if (e != Error.None)
+                    {
+                        return e;
+                    }
                 }
 
                 // Begin native render pass
@@ -119,19 +123,25 @@ internal sealed class RenderGraphExecutor
             else
             {
                 // Compute pass or standalone raster pass (not merged) or Unsafe pass
-                ExecuteBarriersForPass(cmd, logicalPassIndex, ref barrierIndex, compiledBarriers);
+                var e = ExecuteBarriersForPass(cmd, logicalPassIndex, ref barrierIndex, compiledBarriers);
+                if (e != Error.None)
+                {
+                    return e;
+                }
+
                 pass.Execute(_context);
                 logicalPassIndex++;
             }
-
         }
+
+        return Error.None;
     }
 
     /// <summary>
     /// Executes all barriers for a specific pass.
     /// Uses pre-compiled barriers and queries before state from ResourceManager.
     /// </summary>
-    private unsafe void ExecuteBarriersForPass(
+    private unsafe Error ExecuteBarriersForPass(
         ICommandBuffer cmd,
         int passIndex,
         ref int barrierIndex,
@@ -158,7 +168,13 @@ internal sealed class RenderGraphExecutor
             var resourceHandle = resource.backingResource;
 
             // Always query the before state from ResourceManager (single source of truth)
-            var currentState = _resourceManager.ResourceDatabase.GetResourceBarrierData(resourceHandle).GetValueOrThrow();
+            var currentStateResult = _resourceManager.ResourceDatabase.GetResourceBarrierData(resourceHandle);
+            if (currentStateResult.IsFailure)
+            {
+                return currentStateResult.Error;
+            }
+
+            var currentState = currentStateResult.Value;
 
             BarrierLayout layoutBefore;
             BarrierAccess accessBefore;
@@ -168,7 +184,13 @@ internal sealed class RenderGraphExecutor
             if (compiledBarrier.AliasingPredecessor.IsValid)
             {
                 var predHandle = _resources.GetResource(compiledBarrier.AliasingPredecessor).backingResource;
-                var predState = _resourceManager.ResourceDatabase.GetResourceBarrierData(predHandle).GetValueOrThrow();
+                var predStateResult = _resourceManager.ResourceDatabase.GetResourceBarrierData(predHandle);
+                if (predStateResult.IsFailure)
+                {
+                    return predStateResult.Error;
+                }
+
+                var predState = predStateResult.Value;
 
                 layoutBefore = BarrierLayout.Undefined;
                 accessBefore = BarrierAccess.NoAccess;
@@ -184,9 +206,9 @@ internal sealed class RenderGraphExecutor
             var target = compiledBarrier.TargetState;
 
             // Skip if already in target state (optimization)
-            if (!compiledBarrier.AliasingPredecessor.IsValid && 
-                layoutBefore == target.layout && 
-                accessBefore == target.access && 
+            if (!compiledBarrier.AliasingPredecessor.IsValid &&
+                layoutBefore == target.layout &&
+                accessBefore == target.access &&
                 syncBefore == target.sync)
             {
                 continue;
@@ -218,5 +240,7 @@ internal sealed class RenderGraphExecutor
         }
 
         Flush();
+
+        return Error.None;
     }
 }

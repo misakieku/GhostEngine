@@ -1,7 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Ghost.Editor.Core.Contracts;
-using Ghost.Editor.Core.SceneGraph;
-using System.Collections.ObjectModel;
 
 namespace Ghost.Editor.ViewModels.Pages.EngineEditor;
 

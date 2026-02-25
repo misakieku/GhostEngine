@@ -1,13 +1,10 @@
 using Ghost.Core;
 using Ghost.Editor.Core.Contracts;
-using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Image;
 using System.Buffers;
-using System.Configuration;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using TerraFX.Interop.Windows;
 using static Ghost.Editor.Core.AssetHandler.TextureAssetSettings;
 
 namespace Ghost.Editor.Core.AssetHandler;
@@ -150,7 +147,7 @@ public class TextureAssetSettings : IAssetSettings
         {
             get; set;
         } = new Color128(0, 0, 0, 0);
-        
+
         public bool ZeroAlphaBorder
         {
             get; set;
@@ -228,7 +225,7 @@ internal class TextureAssetHandler : IImportableAssetHandler
 
         try
         {
-            ref byte address = ref MemoryMarshal.GetReference(tempArray);
+            ref var address = ref MemoryMarshal.GetReference(tempArray);
             Unsafe.WriteUnaligned(ref address, settings.Basic);
             Unsafe.WriteUnaligned(ref Unsafe.Add(ref address, Unsafe.SizeOf<BasicSettings>()), settings.Advanced);
             Unsafe.WriteUnaligned(ref Unsafe.Add(ref address, Unsafe.SizeOf<BasicSettings>() + Unsafe.SizeOf<AdvancedSettings>()), settings.Sampler);
@@ -295,8 +292,8 @@ internal class TextureAssetHandler : IImportableAssetHandler
         }
 
         var isFloat = info.BitsPerChannel > 8;
-        var width   = info.Width;
-        var height  = info.Height;
+        var width = info.Width;
+        var height = info.Height;
         var colorComponents = info.ColorComponents;
 
         // ---- 2. Decode pixels into a managed byte[] ----------------------------
@@ -356,9 +353,9 @@ internal class TextureAssetHandler : IImportableAssetHandler
         //   byte[] pixelBytes
         const int _CONTENT_HEADER_SIZE = 4 + 4 + 1 + 4; // 13 bytes
 
-        header.SettingsSize  = sizeResult.Value;
+        header.SettingsSize = sizeResult.Value;
         header.ContentOffset = header.SettingsOffset + sizeResult.Value;
-        header.ContentSize   = _CONTENT_HEADER_SIZE + pixelBytes.Length;
+        header.ContentSize = _CONTENT_HEADER_SIZE + pixelBytes.Length;
 
         // Write raw image content
         targetStream.Seek(header.ContentOffset, SeekOrigin.Begin);

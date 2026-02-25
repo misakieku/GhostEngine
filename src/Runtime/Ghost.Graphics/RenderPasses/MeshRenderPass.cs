@@ -107,8 +107,8 @@ internal class MeshRenderPass : IRenderPass
     private void CompileBlitShader(ref readonly RenderingContext ctx)
     {
         var shaderDescriptor = DSLShaderCompiler.CompileShader("F:/csharp/GhostEngine/src/Runtime/Ghost.Graphics/Shaders/Blit.gshdr", "C:/Users/Misaki/Downloads/Archive").GetValueOrThrow();
-        _blitShader = ctx.ResourceAllocator.CreateGraphicsShader(shaderDescriptor);
-        _blitMaterial = ctx.ResourceAllocator.CreateMaterial(_blitShader);
+        _blitShader = ctx.ResourceManager.CreateGraphicsShader(shaderDescriptor);
+        _blitMaterial = ctx.ResourceManager.CreateMaterial(_blitShader);
 
         var config = new ShaderCompilationConfig
         {
@@ -132,8 +132,8 @@ internal class MeshRenderPass : IRenderPass
 
         var shaderDescriptor = DSLShaderCompiler.CompileShader("F:/csharp/GhostEngine/src/Runtime/Ghost.Graphics/test.gshdr", "C:/Users/Misaki/Downloads/Archive").GetValueOrThrow();
 
-        _shader = ctx.ResourceAllocator.CreateGraphicsShader(shaderDescriptor);
-        _material = ctx.ResourceAllocator.CreateMaterial(_shader);
+        _shader = ctx.ResourceManager.CreateGraphicsShader(shaderDescriptor);
+        _material = ctx.ResourceManager.CreateMaterial(_shader);
 
         for (var i = 0; i < shaderDescriptor.passes.Length; i++)
         {
@@ -320,7 +320,7 @@ internal class MeshRenderPass : IRenderPass
         {
             foreach (var texture in _textures)
             {
-                resourceManager.ResourceDatabase.ScheduleReleaseResource(texture.AsResource());
+                resourceManager.ResourceDatabase.ReleaseResource(texture.AsResource());
             }
         }
     }

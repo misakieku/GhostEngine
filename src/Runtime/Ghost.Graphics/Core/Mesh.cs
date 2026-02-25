@@ -113,13 +113,13 @@ public struct Mesh : IResourceReleasable
         _indices.Dispose();
     }
 
-    readonly void IResourceReleasable.ReleaseResource(IResourceDatabase database)
+    public readonly void ReleaseResource(IResourceDatabase database)
     {
         ReleaseCpuResources();
 
-        database.ScheduleReleaseResource(VertexBuffer.AsResource());
-        database.ScheduleReleaseResource(IndexBuffer.AsResource());
-        database.ScheduleReleaseResource(ObjectDataBuffer.AsResource());
+        database.ReleaseResource(VertexBuffer.AsResource());
+        database.ReleaseResource(IndexBuffer.AsResource());
+        database.ReleaseResource(ObjectDataBuffer.AsResource());
     }
 }
 

@@ -1,7 +1,6 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.DSL.ShaderParser;
-using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Ghost.DSL.ShaderCompiler;
@@ -107,7 +106,7 @@ internal static class DSLShaderCompiler
         if (semantics.passes != null)
         {
             descriptor.passes = new PassDescriptor[semantics.passes.Count];
-            for (int i = 0; i < semantics.passes.Count; i++)
+            for (var i = 0; i < semantics.passes.Count; i++)
             {
                 var pass = semantics.passes[i];
                 var localPipeline = MeragePipeline(pass.localPipeline, PipelineState.Default);

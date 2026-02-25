@@ -1,9 +1,6 @@
-using Ghost.Editor.Core;
-using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.Utilities;
 using Ghost.Editor.Models;
 using Ghost.Engine;
-using Microsoft.UI.Xaml;
 using System.Reflection;
 
 namespace Ghost.Editor;

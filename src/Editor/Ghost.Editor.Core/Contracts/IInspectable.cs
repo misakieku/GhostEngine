@@ -5,9 +5,9 @@ namespace Ghost.Editor.Core.Contracts;
 
 public interface IInspectable
 {
-    public IconSource? CreateIcon();
+    IconSource? CreateIcon();
 
-    public UIElement? CreateHeader();
+    UIElement? CreateHeader();
 
-    public UIElement? CreateInspector();
+    UIElement? CreateInspector();
 }

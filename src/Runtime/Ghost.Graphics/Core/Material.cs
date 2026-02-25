@@ -35,7 +35,7 @@ internal struct CBufferCache : IResourceReleasable
         }
 
         _cpuData.Dispose();
-        database.ScheduleReleaseResource(_gpuResource.AsResource());
+        database.ReleaseResource(_gpuResource.AsResource());
 
         _gpuResource = Handle<GraphicsBuffer>.Invalid;
         _size = 0;
@@ -144,7 +144,6 @@ public struct Material : IResourceReleasable
         return _cBufferCache.CpuData.AsSpan(0, (int)_cBufferCache.Size);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public unsafe Error SetPropertyCache<T>(scoped ref readonly T data)
         where T : unmanaged
     {
@@ -166,7 +165,6 @@ public struct Material : IResourceReleasable
         return Error.None;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Error SetRawPropertyCache(ReadOnlySpan<byte> data)
     {
         if (data.Length != _cBufferCache.Size)
@@ -200,7 +198,6 @@ public struct Material : IResourceReleasable
         _isDirty = true;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Error SetKeyword(IResourceManager manager, int keywordId, bool enabled)
     {
         var r = manager.GetShaderReference(_shader);
@@ -222,7 +219,6 @@ public struct Material : IResourceReleasable
         return Error.None;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly bool IsKeywordEnabled(IResourceManager manager, int keywordId)
     {
         var r = manager.GetShaderReference(_shader);
@@ -276,8 +272,7 @@ public struct Material : IResourceReleasable
         cmd.ResourceBarrier(desc);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    void IResourceReleasable.ReleaseResource(IResourceDatabase database)
+    public void ReleaseResource(IResourceDatabase database)
     {
         _cBufferCache.ReleaseResource(database);
         _passPipelineOverride.Dispose();

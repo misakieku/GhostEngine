@@ -98,7 +98,7 @@ public interface IResourceDatabase : IDisposable
     /// Releases the GPU resource associated with the specified handle, freeing any resources allocated to it.
     /// </summary>
     /// <param name="handle">The handle of the resource to be removed.</param>
-    void ScheduleReleaseResource(Handle<GPUResource> handle);
+    void ReleaseResource(Handle<GPUResource> handle);
 
     /// <summary>
     /// Releases the GPU resource associated with the specified handle immediately, freeing any resources allocated to it.

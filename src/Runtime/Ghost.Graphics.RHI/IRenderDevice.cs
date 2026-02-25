@@ -21,7 +21,7 @@ public interface IRenderDevice : IDisposable
     /// <summary>
     /// Graphics command queue for rendering operations
     /// </summary>
-    public ICommandQueue GraphicsQueue
+    ICommandQueue GraphicsQueue
     {
         get;
     }
@@ -29,7 +29,7 @@ public interface IRenderDevice : IDisposable
     /// <summary>
     /// Compute command queue for compute shader operations
     /// </summary>
-    public ICommandQueue ComputeQueue
+    ICommandQueue ComputeQueue
     {
         get;
     }
@@ -37,12 +37,12 @@ public interface IRenderDevice : IDisposable
     /// <summary>
     /// Copy command queue for data transfer operations
     /// </summary>
-    public ICommandQueue CopyQueue
+    ICommandQueue CopyQueue
     {
         get;
     }
 
-    public FeatureSupport FeatureSupport
+    FeatureSupport FeatureSupport
     {
         get;
     }

@@ -95,7 +95,7 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
 
     #region DSV Methods
 
-    public Identifier<DSVDescriptor> AllocateDSV()  
+    public Identifier<DSVDescriptor> AllocateDSV()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 

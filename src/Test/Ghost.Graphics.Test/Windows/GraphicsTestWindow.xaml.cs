@@ -4,7 +4,6 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Misaki.HighPerformance.Mathematics;
-using static Ghost.Graphics.D3D12.D3D12ResourceDatabase;
 
 namespace Ghost.Graphics.Test.Windows;
 

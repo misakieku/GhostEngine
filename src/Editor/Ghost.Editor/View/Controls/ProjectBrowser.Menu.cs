@@ -31,7 +31,7 @@ internal partial class ProjectBrowser
         {
             return;
         }
-        
+
         var currentDir = viewModel.CurrentDirectoryPath;
         if (!Directory.Exists(currentDir))
         {

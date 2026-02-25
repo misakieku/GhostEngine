@@ -3,6 +3,7 @@ using Ghost.Core.Graphics;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.Core;
@@ -136,6 +137,7 @@ public partial struct Shader : IResourceReleasable
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal readonly int GetLocalKeywordIndex(int globalKeywordID)
     {
         if (_keywordIDToLocal.TryGetValue(globalKeywordID, out var localIndex))
@@ -146,6 +148,7 @@ public partial struct Shader : IResourceReleasable
         return -1;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly int GetPassIndex(Identifier<ShaderPass> passID)
     {
         if (_passIDToLocal.TryGetValue(passID.Value, out var index))
@@ -156,6 +159,7 @@ public partial struct Shader : IResourceReleasable
         return -1;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly int GetPassIndex(string passName)
     {
         if (_passIDToLocal.TryGetValue(GetPassID(passName), out var index))
@@ -166,11 +170,13 @@ public partial struct Shader : IResourceReleasable
         return -1;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly ref ShaderPass GetPassReference(int index)
     {
         return ref _shaderPasses[index];
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Result<ShaderPass, Error> TryGetPass(Identifier<ShaderPass> passID, out int passIndex)
     {
         if (_passIDToLocal.TryGetValue(passID.Value, out var index))
@@ -183,7 +189,7 @@ public partial struct Shader : IResourceReleasable
         return _shaderPasses[index];
     }
 
-    void IResourceReleasable.ReleaseResource(IResourceDatabase database)
+    public void ReleaseResource(IResourceDatabase database)
     {
         _keywordIDToLocal.Dispose();
         _shaderPasses.Dispose();

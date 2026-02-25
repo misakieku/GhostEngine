@@ -1,5 +1,3 @@
-using Ghost.Zeux.MeshOptimizer;
-
 namespace Ghost.MeshOptimizer
 {
     public partial struct meshopt_OverdrawStatistics

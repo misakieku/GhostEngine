@@ -66,7 +66,7 @@ public readonly struct Result<T>
     private readonly bool _isSuccess;
 
     /// <summary>
-    /// Gets the value. Undefined if the result is a failure.
+    /// Gets the value. Undefined behavior if the result is a failure.
     /// </summary>
     public T Value
     {
@@ -141,7 +141,7 @@ public readonly struct Result<T, E>
     private readonly E _error;
 
     /// <summary>
-    /// Gets the value. Undefined if the result is a failure.
+    /// Gets the value. Undefined behavior if the result is a failure.
     /// </summary>
     public T Value
     {
@@ -194,10 +194,10 @@ public readonly ref struct RefResult<T, E>
     where E : struct, Enum
 {
     private readonly ref T _value;
-    private readonly E  _error;
+    private readonly E _error;
 
     /// <summary>
-    /// Gets a reference to the value. Undefined if the result is a failure.
+    /// Gets a reference to the value. Undefined behavior if the result is a failure.
     /// </summary>
     public ref T Value
     {
@@ -249,6 +249,12 @@ public readonly ref struct RefResult<T, E>
 
 public static class ResultExtensions
 {
+    extension(Error error)
+    {
+        public bool IsSuccess => error == Error.None;
+        public bool IsFailure => error != Error.None;
+    }
+
     public static void ThrowIfFailed(this Error result, [CallerArgumentExpression(nameof(result))] string? op = null)
     {
         if (result != Error.None)

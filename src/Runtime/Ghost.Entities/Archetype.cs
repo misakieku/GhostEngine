@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities;
 
-internal unsafe sealed class ChunkDebugView
+internal sealed unsafe class ChunkDebugView
 {
     [DebuggerDisplay("{Name,nq}: {Data}")]
     internal class ComponentArrayView
@@ -541,27 +541,27 @@ internal unsafe struct Archetype : IDisposable
 
         ref var chunk = ref _chunks[chunkIndex];
 
-        int oldCount = chunk._count;
-        int removeCount = sortedIndicesToRemove.Length;
-        int newCount = oldCount - removeCount; // The boundary between "Keep" and "Drop"
+        var oldCount = chunk._count;
+        var removeCount = sortedIndicesToRemove.Length;
+        var newCount = oldCount - removeCount; // The boundary between "Keep" and "Drop"
 
         var chunkBase = chunk.GetUnsafePtr();
         var world = World.GetWorldUncheck(_worldID); // Typo fixed from 'wrold'
 
         // Pointers for the swap logic
         // 1. 'holePtr' tracks which index in the sorted list we are processing
-        int holePtr = 0;
+        var holePtr = 0;
 
         // 2. 'candidateIndex' starts at the end of the OLD array and moves backward
-        int candidateIndex = oldCount - 1;
+        var candidateIndex = oldCount - 1;
 
         // 3. 'removalTailPtr' tracks removals at the end of the array to skip them
-        int removalTailPtr = sortedIndicesToRemove.Length - 1;
+        var removalTailPtr = sortedIndicesToRemove.Length - 1;
 
         // Iterate through the holes that are strictly INSIDE the new valid range
         while (holePtr < removeCount)
         {
-            int holeIndex = sortedIndicesToRemove[holePtr];
+            var holeIndex = sortedIndicesToRemove[holePtr];
 
             // If the current hole is beyond the new count, it's in the "Drop Zone".
             // Since the list is sorted, all subsequent holes are also in the drop zone.
@@ -574,7 +574,7 @@ internal unsafe struct Archetype : IDisposable
             while (candidateIndex >= newCount)
             {
                 // Check if the current candidate is actually marked for removal
-                bool isCandidateRemoved = false;
+                var isCandidateRemoved = false;
 
                 // Because sortedIndices is sorted, we check the end of the list 
                 // to see if the candidateIndex matches a removal request.

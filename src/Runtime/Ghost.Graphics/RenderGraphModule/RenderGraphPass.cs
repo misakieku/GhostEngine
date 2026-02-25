@@ -44,7 +44,7 @@ internal abstract class RenderGraphPassBase
 
     public RenderGraphPassBase()
     {
-        for (int i = 0; i < (int)RenderGraphResourceType.Count; i++)
+        for (var i = 0; i < (int)RenderGraphResourceType.Count; i++)
         {
             resourceReads[i] = new List<Identifier<RGResource>>(8);
             resourceWrites[i] = new List<Identifier<RGResource>>(4);

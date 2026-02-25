@@ -1,10 +1,7 @@
 using Ghost.Core;
-using Ghost.Core.Graphics;
-using Ghost.Core.Utilities;
 using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
-using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
@@ -504,6 +501,11 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
     private Handle<GPUResource> TrackAllocation(D3D12MA_Allocation* allocation, ResourceBarrierData barrierData, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string name, bool isTemp)
     {
         var handle = _resourceDatabase.AddAllocation(allocation, barrierData, resourceDescriptor, desc, name);
+        if (isTemp)
+        {
+            _resourceDatabase.ReleaseResource(handle);
+        }
+
         return handle;
     }
 
@@ -830,7 +832,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             offset = 0;
             var handle = CreateBuffer(in bufferDesc, "TempUploadBuffer", options);
 
-            _resourceDatabase.ScheduleReleaseResource(handle.AsResource());
+            _resourceDatabase.ReleaseResource(handle.AsResource());
             return handle;
         }
     }

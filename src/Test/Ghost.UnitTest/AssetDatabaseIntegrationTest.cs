@@ -1,5 +1,3 @@
-using Ghost.Editor.Core.AssetHandle;
-using Ghost.Data.Services;
 using Ghost.Core;
 
 namespace Ghost.UnitTest;
@@ -330,7 +328,7 @@ public class AssetDatabaseIntegrationTest
         var tasks = new List<Task>();
         var fileNames = new List<string>();
 
-        for (int i = 0; i < 10; i++)
+        for (var i = 0; i < 10; i++)
         {
             var fileName = $"race{i}.txt";
             fileNames.Add(fileName);

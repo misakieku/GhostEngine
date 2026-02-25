@@ -114,7 +114,7 @@ public struct Color128 : IEquatable<Color128>
         return obj is Color128 color && Equals(color);
     }
 
-    public readonly override int GetHashCode()
+    public override readonly int GetHashCode()
     {
         return HashCode.Combine(r, g, b, a);
     }
@@ -587,7 +587,7 @@ public struct ResourceDesc
     }
 
     internal resource_union _desc;
-    
+
     public ResourceType Type
     {
         get; init;

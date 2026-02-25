@@ -205,7 +205,7 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
         // Get the text between the braces
         var start = context.LBRACE().Symbol.StopIndex + 1;
         var stop = context.RBRACE().Symbol.StartIndex - 1;
-        
+
         if (stop >= start)
         {
             var input = context.Start.InputStream;

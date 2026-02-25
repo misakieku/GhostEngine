@@ -331,8 +331,8 @@ namespace Ghost.FMOD.Core
     [StructLayout(LayoutKind.Sequential)]
     public struct PLUGINLIST
     {
-        PLUGINTYPE type;
-        IntPtr description;
+        private PLUGINTYPE type;
+        private IntPtr description;
     }
 
     [Flags]
@@ -1396,8 +1396,7 @@ namespace Ghost.FMOD.Core
         // System information functions.
         public RESULT getVersion(out uint version)
         {
-            uint buildnumber;
-            return getVersion(out version, out buildnumber);
+            return getVersion(out version, out var buildnumber);
         }
         public RESULT getVersion(out uint version, out uint buildnumber)
         {
@@ -2189,7 +2188,7 @@ namespace Ghost.FMOD.Core
     /*
         'ChannelControl' API
     */
-    interface IChannelControl
+    internal interface IChannelControl
     {
         RESULT getSystemObject(out System system);
 
@@ -3539,8 +3538,7 @@ namespace Ghost.FMOD.Core
         }
         public RESULT getParameterInfo(int index, out DSP_PARAMETER_DESC desc)
         {
-            IntPtr descPtr;
-            var result = FMOD5_DSP_GetParameterInfo(this.handle, index, out descPtr);
+            var result = FMOD5_DSP_GetParameterInfo(this.handle, index, out var descPtr);
             desc = (DSP_PARAMETER_DESC)Marshal.PtrToStructure<DSP_PARAMETER_DESC>(descPtr);
             return result;
         }
@@ -4060,7 +4058,7 @@ namespace Ghost.FMOD.Core
     [StructLayout(LayoutKind.Sequential)]
     public struct StringWrapper
     {
-        IntPtr nativeUtf8Ptr;
+        private IntPtr nativeUtf8Ptr;
 
         public StringWrapper(IntPtr ptr)
         {
@@ -4117,15 +4115,15 @@ namespace Ghost.FMOD.Core
         }
     }
 
-    static class StringHelper
+    internal static class StringHelper
     {
         public class ThreadSafeEncoding : IDisposable
         {
-            UTF8Encoding encoding = new UTF8Encoding();
-            byte[] encodedBuffer = new byte[128];
-            char[] decodedBuffer = new char[128];
-            bool inUse;
-            GCHandle gcHandle;
+            private UTF8Encoding encoding = new UTF8Encoding();
+            private byte[] encodedBuffer = new byte[128];
+            private char[] decodedBuffer = new char[128];
+            private bool inUse;
+            private GCHandle gcHandle;
 
             public bool InUse()
             {
@@ -4234,7 +4232,7 @@ namespace Ghost.FMOD.Core
             }
         }
 
-        static List<ThreadSafeEncoding> encoders = new List<ThreadSafeEncoding>(1);
+        private static List<ThreadSafeEncoding> encoders = new List<ThreadSafeEncoding>(1);
 
         public static ThreadSafeEncoding GetFreeHelper()
         {

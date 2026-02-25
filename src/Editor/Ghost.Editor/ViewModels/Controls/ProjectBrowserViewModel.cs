@@ -1,6 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Ghost.Editor.Core;
-using Ghost.Editor.Core.AssetHandle;
 using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.Utilities;
 using Ghost.Editor.Models;

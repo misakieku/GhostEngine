@@ -2,9 +2,9 @@ namespace Ghost.Test.Core;
 
 public interface ITest
 {
-    public void Setup();
+    void Setup();
 
-    public void Run();
+    void Run();
 
-    public void Cleanup();
+    void Cleanup();
 }

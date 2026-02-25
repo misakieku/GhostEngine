@@ -5,7 +5,7 @@ internal sealed class ArgumentNameAttribute : Attribute
 {
     public string Name
     {
-        get; 
+        get;
     }
 
     public ArgumentNameAttribute(string name)

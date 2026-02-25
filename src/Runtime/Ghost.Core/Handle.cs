@@ -23,12 +23,12 @@ public readonly struct Handle<T> : IEquatable<Handle<T>>
     public readonly bool IsValid => this != Invalid;
     public readonly bool IsInvalid => this == Invalid;
 
-    public readonly override int GetHashCode()
+    public override readonly int GetHashCode()
     {
         return ID + (Generation << 16);
     }
 
-    public readonly override bool Equals(object? obj)
+    public override readonly bool Equals(object? obj)
     {
         return obj is Handle<T> id && Equals(id);
     }
@@ -76,12 +76,12 @@ public readonly struct Identifier<T> : IEquatable<Identifier<T>>
     public readonly bool IsValid => this != Invalid;
     public readonly bool IsInvalid => this == Invalid;
 
-    public readonly override int GetHashCode()
+    public override readonly int GetHashCode()
     {
         return Value;
     }
 
-    public readonly override bool Equals(object? obj)
+    public override readonly bool Equals(object? obj)
     {
         return obj is Identifier<T> id && Equals(id);
     }
@@ -152,7 +152,7 @@ public readonly struct Key64<T> : IEquatable<Key64<T>>
     public bool IsValid => this != Invalid;
     public bool IsInvalid => this == Invalid;
 
-    public readonly override int GetHashCode()
+    public override readonly int GetHashCode()
     {
         return Value.GetHashCode();
     }
@@ -167,7 +167,7 @@ public readonly struct Key64<T> : IEquatable<Key64<T>>
         return Value.CompareTo(other.Value);
     }
 
-    public readonly override bool Equals(object? obj)
+    public override readonly bool Equals(object? obj)
     {
         return obj is Key64<T> id && Equals(id);
     }
@@ -205,7 +205,7 @@ public readonly struct Key128<T> : IEquatable<Key128<T>>
     public bool IsValid => this != Invalid;
     public bool IsInvalid => this == Invalid;
 
-    public readonly override int GetHashCode()
+    public override readonly int GetHashCode()
     {
         return Value.GetHashCode();
     }
@@ -220,7 +220,7 @@ public readonly struct Key128<T> : IEquatable<Key128<T>>
         return Value.CompareTo(other.Value);
     }
 
-    public readonly override bool Equals(object? obj)
+    public override readonly bool Equals(object? obj)
     {
         return obj is Key128<T> id && Equals(id);
     }

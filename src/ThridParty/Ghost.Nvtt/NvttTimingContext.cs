@@ -75,7 +75,7 @@ public sealed unsafe class NvttTimingContextHandle : IDisposable
         fixed (byte* p = buf)
         {
             Api.nvttTimingContextGetRecordSafe(_ptr, index, (sbyte*)p, (nuint)buf.Length, &seconds);
-            string desc = NvttInterop.FromUtf8((sbyte*)p) ?? string.Empty;
+            var desc = NvttInterop.FromUtf8((sbyte*)p) ?? string.Empty;
             return (desc, seconds);
         }
     }

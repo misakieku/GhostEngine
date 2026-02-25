@@ -181,7 +181,7 @@ public class ComponentManager : IDisposable
         _archetypes.Add(new Archetype(arcID, _world.ID, componentTypeIDs));
         _archetypeLookup.Add(signatureHash, arcID);
 
-        for (int i = 0; i < _entityQueries.Count; i++)
+        for (var i = 0; i < _entityQueries.Count; i++)
         {
             ref var query = ref _entityQueries[i];
             query.AddArchetypeIfMatch(in _archetypes[arcID.Value]);

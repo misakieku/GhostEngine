@@ -18,11 +18,11 @@ public static class Hash
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong Hash64(ulong a, ulong b, ulong c)
     {
-        ulong h1 = a * _PRIME1;
-        ulong h2 = b * _PRIME2;
-        ulong h3 = c * _PRIME3;
+        var h1 = a * _PRIME1;
+        var h2 = b * _PRIME2;
+        var h3 = c * _PRIME3;
 
-        ulong h = h1 ^ h2 ^ h3;
+        var h = h1 ^ h2 ^ h3;
 
         h = (h ^ (h >> 33)) * _PRIME4;
         return h ^ (h >> 29);
@@ -31,12 +31,12 @@ public static class Hash
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong Hash64(ulong a, ulong b, ulong c, ulong d)
     {
-        ulong h1 = a * _PRIME1;
-        ulong h2 = b * _PRIME2;
-        ulong h3 = c * _PRIME3;
-        ulong h4 = d * _PRIME4;
+        var h1 = a * _PRIME1;
+        var h2 = b * _PRIME2;
+        var h3 = c * _PRIME3;
+        var h4 = d * _PRIME4;
 
-        ulong h = h1 ^ h2 ^ h3 ^ h4;
+        var h = h1 ^ h2 ^ h3 ^ h4;
 
         h = (h ^ (h >> 33)) * _PRIME1;
         return h ^ (h >> 29);

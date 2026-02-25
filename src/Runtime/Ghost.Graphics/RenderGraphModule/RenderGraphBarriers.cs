@@ -1,6 +1,5 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
-using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
@@ -49,8 +48,8 @@ internal struct ResourceBarrier
 
     public override readonly string ToString()
     {
-        return AliasingPredecessor.IsValid 
-            ? $"[Pass {PassIndex}] Aliasing Barrier: {AliasingPredecessor.Value}->{Resource.Value} Target: {TargetState.layout}" 
+        return AliasingPredecessor.IsValid
+            ? $"[Pass {PassIndex}] Aliasing Barrier: {AliasingPredecessor.Value}->{Resource.Value} Target: {TargetState.layout}"
             : $"[Pass {PassIndex}] Barrier: {Resource.Value} Target: {TargetState.layout}";
     }
 }
@@ -87,8 +86,8 @@ internal struct CompiledBarrier
 
     public override readonly string ToString()
     {
-        return AliasingPredecessor.IsValid 
-            ? $"[Pass {PassIndex}] Aliasing: {AliasingPredecessor.Value}->{Resource.Value} -> {TargetState.layout}" 
+        return AliasingPredecessor.IsValid
+            ? $"[Pass {PassIndex}] Aliasing: {AliasingPredecessor.Value}->{Resource.Value} -> {TargetState.layout}"
             : $"[Pass {PassIndex}] Transition: {Resource.Value} -> {TargetState.layout}";
     }
 }
@@ -320,7 +319,7 @@ internal static class RenderGraphBarriers
 
         var sync = BarrierSync.PixelShading | BarrierSync.NonPixelShading;
         var access = BarrierAccess.ShaderResource;
-        
+
         var resource = resources.GetResource(handle);
         if (resource.bufferDesc.Usage.HasFlag(BufferUsage.IndirectArgument))
         {

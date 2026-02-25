@@ -204,7 +204,7 @@ public abstract class SystemGroup : ISystem
         foreach (var sys in systems)
         {
             var type = sys.GetType();
-            if (!dependencies.TryGetValue(type, out HashSet<Type>? value))
+            if (!dependencies.TryGetValue(type, out var value))
             {
                 value = [];
                 dependencies[type] = value;
@@ -234,7 +234,7 @@ public abstract class SystemGroup : ISystem
         // We loop until we have sorted everyone
         while (sortedList.Count < systems.Count)
         {
-            bool addedAny = false;
+            var addedAny = false;
 
             foreach (var sys in systems)
             {
@@ -242,7 +242,7 @@ public abstract class SystemGroup : ISystem
                 if (visited.Contains(type)) continue;
 
                 // Check if all dependencies for this system are already visited/sorted
-                bool canRun = true;
+                var canRun = true;
                 if (dependencies.TryGetValue(type, out var deps))
                 {
                     foreach (var dep in deps)

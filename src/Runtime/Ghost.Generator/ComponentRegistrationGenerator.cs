@@ -71,15 +71,15 @@ internal static class {name}
     public static void RegisterIComponentTypes()
     {{");
 
-        foreach (var symbol in components.Distinct(SymbolEqualityComparer.Default))
-        {
-            if (symbol is null) continue;
+            foreach (var symbol in components.Distinct(SymbolEqualityComparer.Default))
+            {
+                if (symbol is null) continue;
 
-            sb.Append($@"
+                sb.Append($@"
         global::Ghost.Entities.ComponentRegistry.GetOrRegisterComponentID<{symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}>();");
-        }
+            }
 
-        sb.Append(@"
+            sb.Append(@"
     }
 }");
 

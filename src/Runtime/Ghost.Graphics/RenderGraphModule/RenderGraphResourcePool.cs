@@ -1,5 +1,4 @@
 using Ghost.Core;
-using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Buffer;
 
@@ -85,15 +84,15 @@ internal sealed class RenderGraphResource
 
     public int index;
     public RenderGraphResourceType type;
-    
+
     // Resource descriptors (only one is valid based on type)
     public RGTextureDesc rgTextureDesc;
     public BufferDesc bufferDesc;
-    
+
     // Resolved dimensions (computed from rgTextureDesc + ViewState for textures)
     public uint resolvedWidth;
     public uint resolvedHeight;
-    
+
     public bool isImported;
     public int firstUsePass = -1;
     public int lastUsePass = -1;
@@ -145,8 +144,8 @@ internal sealed class RenderGraphResourceRegistry
     {
         get
         {
-            int count = 0;
-            for (int i = 0; i < _resources.Count; i++)
+            var count = 0;
+            for (var i = 0; i < _resources.Count; i++)
             {
                 if (_resources[i].type == RenderGraphResourceType.Texture)
                     count++;
@@ -158,8 +157,8 @@ internal sealed class RenderGraphResourceRegistry
     {
         get
         {
-            int count = 0;
-            for (int i = 0; i < _resources.Count; i++)
+            var count = 0;
+            for (var i = 0; i < _resources.Count; i++)
             {
                 if (_resources[i].type == RenderGraphResourceType.Buffer)
                     count++;
@@ -226,7 +225,7 @@ internal sealed class RenderGraphResourceRegistry
 
         return new Identifier<RGTexture>(resource.index);
     }
-    
+
     public Identifier<RGBuffer> ImportBuffer(ref readonly BufferDesc desc, Handle<GraphicsBuffer> buffer, string name)
     {
         var resource = _pool.Rent<RenderGraphResource>();
@@ -245,7 +244,7 @@ internal sealed class RenderGraphResourceRegistry
     public Identifier<RGBuffer> CreateBuffer(ref readonly BufferDesc desc, string name)
     {
         var resource = _pool.Rent<RenderGraphResource>();
-        resource.name= name;
+        resource.name = name;
         resource.type = RenderGraphResourceType.Buffer;
         resource.index = _resources.Count;
         resource.bufferDesc = desc;
@@ -260,17 +259,17 @@ internal sealed class RenderGraphResourceRegistry
     {
         return _resources[resource.Value];
     }
-    
+
     public RenderGraphResource GetResource(Identifier<RGTexture> texture)
     {
         return _resources[texture.Value];
     }
-    
+
     public RenderGraphResource GetResource(Identifier<RGBuffer> buffer)
     {
         return _resources[buffer.Value];
     }
-    
+
     /// <summary>
     /// Gets resource by global index. Use this when iterating over all resources.
     /// </summary>
@@ -299,7 +298,7 @@ internal sealed class RenderGraphResourceRegistry
             resource.firstUsePass = passIndex;
         }
     }
-    
+
     /// <summary>
     /// Resolves texture sizes based on current view state.
     /// Must be called after all resources are created and before compilation.
@@ -311,7 +310,7 @@ internal sealed class RenderGraphResourceRegistry
             var res = _resources[i];
             if (res.type != RenderGraphResourceType.Texture || res.isImported)
                 continue;
-            
+
             var desc = res.rgTextureDesc;
             if (desc.sizeMode == RGTextureSizeMode.Absolute)
             {

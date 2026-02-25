@@ -53,7 +53,7 @@ internal sealed class RenderGraphContext : IRasterRenderContext, IComputeRenderC
     private int _activeMeshIndexCount;
 
     public IResourceManager ResourceManager => _resourceManager;
-    
+
     public int ActiveMeshIndexCount => _activeMeshIndexCount;
 
     public ICommandBuffer CommandBuffer => _commandBuffer;
@@ -76,7 +76,7 @@ internal sealed class RenderGraphContext : IRasterRenderContext, IComputeRenderC
 
     internal void SetRenderTargetFormats(ReadOnlySpan<TextureFormat> rtvFormats, TextureFormat dsvFormat)
     {
-        for (int i = 0; i < RHIUtility.MAX_RENDER_TARGETS; i++)
+        for (var i = 0; i < RHIUtility.MAX_RENDER_TARGETS; i++)
         {
             _rtvFormats[i] = i < rtvFormats.Length ? rtvFormats[i] : TextureFormat.Unknown;
         }

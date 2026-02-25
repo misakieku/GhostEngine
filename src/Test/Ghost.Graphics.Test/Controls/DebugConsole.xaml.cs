@@ -1,13 +1,11 @@
-using System.Collections.ObjectModel;
-
 using Ghost.Graphics.Test.Models;
 using Ghost.Graphics.Test.Services;
-
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media;
+using System.Collections.ObjectModel;
 
 namespace Ghost.Graphics.Test.Controls;
 

@@ -38,18 +38,18 @@ internal sealed unsafe class NvttBindingTest : ITest
     {
         // ---- Test 1: Version ---------------------------------------------------
         Console.Write("[Test 1] nvttVersion ... ");
-        uint version = NvttGlobal.Version;
+        var version = NvttGlobal.Version;
         Assert(version > 0, $"Expected version > 0, got {version}");
         Console.WriteLine($"OK  (version = {version >> 16}.{(version >> 8) & 0xFF}.{version & 0xFF})");
 
         // ---- Test 2: CUDA support query (must not crash) ----------------------
         Console.Write("[Test 2] IsCudaSupported ... ");
-        bool cuda = NvttGlobal.IsCudaSupported;
+        var cuda = NvttGlobal.IsCudaSupported;
         Console.WriteLine($"OK  (cuda = {cuda})");
 
         // ---- Test 3: Global message callback ----------------------------------
         Console.Write("[Test 3] SetMessageCallback ... ");
-        int callbackFired = 0;
+        var callbackFired = 0;
         using (var token = NvttGlobal.SetMessageCallback((severity, error, msg) =>
         {
             callbackFired++;
@@ -66,7 +66,7 @@ internal sealed unsafe class NvttBindingTest : ITest
             $"Image not found: '{_IMAGE_PATH}'. Edit _IMAGE_PATH before running.");
 
         using var surface = new NvttSurfaceHandle();
-        bool loaded = surface.Load(_IMAGE_PATH, out bool hasAlpha);
+        var loaded = surface.Load(_IMAGE_PATH, out var hasAlpha);
         Assert(loaded, "nvttSurfaceLoad returned false");
         Assert(!surface.IsNull, "Surface is null after load");
         Assert(surface.Width > 0 && surface.Height > 0,
@@ -91,8 +91,8 @@ internal sealed unsafe class NvttBindingTest : ITest
 
         // ---- Test 7: CountMipmaps ---------------------------------------------
         Console.Write("[Test 7] CountMipmaps ... ");
-        int mipCount = surface.CountMipmaps();
-        int expectedMax = (int)Math.Log2(Math.Max(surface.Width, surface.Height)) + 1;
+        var mipCount = surface.CountMipmaps();
+        var expectedMax = (int)Math.Log2(Math.Max(surface.Width, surface.Height)) + 1;
         Assert(mipCount > 0 && mipCount <= expectedMax,
             $"Unexpected mip count: {mipCount} (expected 1..{expectedMax})");
         Console.WriteLine($"OK  ({mipCount} levels)");
@@ -100,16 +100,16 @@ internal sealed unsafe class NvttBindingTest : ITest
         // ---- Test 8: In-memory BC7 compression + mip chain -------------------
         Console.Write("[Test 8] Compress BC7 in-memory ... ");
         long totalBytesReceived = 0;
-        int  imagesBegun        = 0;
+        var imagesBegun = 0;
 
         using var compOpts = new NvttCompressionOptionsHandle();
-        compOpts.Format  = NvttFormat.NVTT_Format_BC7;
+        compOpts.Format = NvttFormat.NVTT_Format_BC7;
         compOpts.Quality = NvttQuality.NVTT_Quality_Fastest;
 
         using var outOpts = new NvttOutputOptionsHandle();
         outOpts.OutputHeader = true;
-        outOpts.Srgb         = true;
-        outOpts.Container    = NvttContainer.NVTT_Container_DDS10;
+        outOpts.Srgb = true;
+        outOpts.Container = NvttContainer.NVTT_Container_DDS10;
 
         outOpts.SetOutputHandler(
             beginImage: (size, w, h, d, face, mip) =>
@@ -130,12 +130,12 @@ internal sealed unsafe class NvttBindingTest : ITest
         ctx.SetCudaAcceleration(false); // CPU only for the test
 
         using var mip = surface.Clone();
-        bool headerOk = ctx.OutputHeader(mip, mipCount, compOpts, outOpts);
+        var headerOk = ctx.OutputHeader(mip, mipCount, compOpts, outOpts);
         Assert(headerOk, "OutputHeader returned false");
 
-        for (int level = 0; level < mipCount; level++)
+        for (var level = 0; level < mipCount; level++)
         {
-            bool compressOk = ctx.Compress(mip, face: 0, mipmap: level, compOpts, outOpts);
+            var compressOk = ctx.Compress(mip, face: 0, mipmap: level, compOpts, outOpts);
             Assert(compressOk, $"Compress returned false at mip level {level}");
 
             if (level + 1 < mipCount)
@@ -150,7 +150,7 @@ internal sealed unsafe class NvttBindingTest : ITest
 
         // ---- Test 9: EstimateSize consistency ---------------------------------
         Console.Write("[Test 9] EstimateSize ... ");
-        int estimated = ctx.EstimateSize(surface, mipCount, compOpts);
+        var estimated = ctx.EstimateSize(surface, mipCount, compOpts);
         // Estimate can differ from actual due to header overhead; just sanity-check it's > 0.
         Assert(estimated > 0, $"EstimateSize returned {estimated}");
         Console.WriteLine($"OK  (estimated = {estimated:N0} bytes, actual = {totalBytesReceived:N0} bytes)");
@@ -159,19 +159,19 @@ internal sealed unsafe class NvttBindingTest : ITest
         Console.Write("[Test 10] Compress to file ... ");
         using var outOptsFile = new NvttOutputOptionsHandle();
         outOptsFile.OutputHeader = true;
-        outOptsFile.Srgb         = true;
-        outOptsFile.Container    = NvttContainer.NVTT_Container_DDS10;
-        outOptsFile.FileName     = _outputDdsPath;
+        outOptsFile.Srgb = true;
+        outOptsFile.Container = NvttContainer.NVTT_Container_DDS10;
+        outOptsFile.FileName = _outputDdsPath;
 
         using var ctxFile = new NvttContextHandle();
         using var mipFile = surface.Clone();
 
-        bool fileHeaderOk = ctxFile.OutputHeader(mipFile, mipCount, compOpts, outOptsFile);
+        var fileHeaderOk = ctxFile.OutputHeader(mipFile, mipCount, compOpts, outOptsFile);
         Assert(fileHeaderOk, "File OutputHeader returned false");
 
-        for (int level = 0; level < mipCount; level++)
+        for (var level = 0; level < mipCount; level++)
         {
-            bool ok = ctxFile.Compress(mipFile, face: 0, mipmap: level, compOpts, outOptsFile);
+            var ok = ctxFile.Compress(mipFile, face: 0, mipmap: level, compOpts, outOptsFile);
             Assert(ok, $"File Compress returned false at level {level}");
 
             if (level + 1 < mipCount)
@@ -180,7 +180,7 @@ internal sealed unsafe class NvttBindingTest : ITest
 
         Assert(File.Exists(_outputDdsPath),
             $"DDS output file was not created: {_outputDdsPath}");
-        long fileSize = new FileInfo(_outputDdsPath).Length;
+        var fileSize = new FileInfo(_outputDdsPath).Length;
         Assert(fileSize > 128, $"DDS file suspiciously small: {fileSize} bytes");
         Console.WriteLine($"OK  ({fileSize:N0} bytes → {_outputDdsPath})");
 

@@ -1,8 +1,6 @@
-using Ghost.Core.Utilities;
 using Ghost.Graphics.D3D12.Utilities;
 using Misaki.HighPerformance.LowLevel;
 using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
 
 using static TerraFX.Aliases.DXGI_Alias;
 

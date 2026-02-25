@@ -1,7 +1,6 @@
 using Ghost.Core;
 using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
-using Misaki.HighPerformance.Collections;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
@@ -279,7 +278,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         return null;
     }
 
-    public void ScheduleReleaseResource(Handle<GPUResource> handle)
+    public void ReleaseResource(Handle<GPUResource> handle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 

@@ -15,19 +15,19 @@ internal sealed class CachedCompilation
 
     // Culling decisions for each pass
     public readonly List<bool> passCulledFlags = new(64);
-    
+
     // Physical resource aliasing mappings (logical index -> physical index)
     public readonly Dictionary<int, int> logicalToPhysical = new(128);
-    
+
     // Placed resource metadata
     public readonly List<PlacedResourceData> placedResources = new(32);
-    
+
     // Compiled barriers (stores only target states, queries before state from ResourceManager)
     public readonly List<CompiledBarrier> compiledBarriers = new(128);
 
     // Real gpu resource
     public readonly List<Handle<GPUResource>> backingResources = new(32);
-    
+
     // View state used for this compilation
     public ViewState viewState;
 
@@ -94,18 +94,18 @@ internal sealed class RenderGraphCompilationCache
     {
         _cachedHash = hash;
         _hasCachedData = true;
-        
+
         // Deep copy the data
         _cached.Clear();
-        
+
         _cached.compiledPassIndices.AddRange(data.compiledPassIndices);
         _cached.passCulledFlags.AddRange(data.passCulledFlags);
-        
+
         foreach (var kvp in data.logicalToPhysical)
         {
             _cached.logicalToPhysical[kvp.Key] = kvp.Value;
         }
-        
+
         _cached.placedResources.AddRange(data.placedResources);
         _cached.compiledBarriers.AddRange(data.compiledBarriers);
 
@@ -137,8 +137,8 @@ internal sealed class RenderGraphCompilationCache
     /// </summary>
     public (int hits, int misses, double hitRate) GetStatistics()
     {
-        int total = CacheHits + CacheMisses;
-        double hitRate = total > 0 ? (double)CacheHits / total : 0.0;
+        var total = CacheHits + CacheMisses;
+        var hitRate = total > 0 ? (double)CacheHits / total : 0.0;
         return (CacheHits, CacheMisses, hitRate);
     }
 }

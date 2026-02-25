@@ -94,7 +94,7 @@ internal sealed class ResourceHeap
             {
                 // Check if this offset range conflicts with ANY existing allocations
                 var canUseOffset = CanPlaceAtOffset(alignedOffset, alignedSize, firstUsePass, lastUsePass);
-                
+
                 if (canUseOffset)
                 {
                     var waste = block.size - alignedSize;
@@ -173,7 +173,7 @@ internal sealed class ResourceHeap
     private bool CanPlaceAtOffset(ulong offset, ulong size, int firstUsePass, int lastUsePass)
     {
         var endOffset = offset + size;
-        
+
         foreach (var block in _blocks)
         {
             // Skip free blocks - they don't have lifetime constraints
@@ -185,12 +185,12 @@ internal sealed class ResourceHeap
             // Check if this block's memory range overlaps with our target range
             var blockEnd = block.offset + block.size;
             var memoryOverlap = !(offset >= blockEnd || endOffset <= block.offset);
-            
+
             if (memoryOverlap)
             {
                 // Memory ranges overlap, check if lifetimes also overlap
                 var lifetimeOverlap = !(firstUsePass > block.lastUsePass || lastUsePass < block.firstUsePass);
-                
+
                 if (lifetimeOverlap)
                 {
                     // Both memory AND lifetime overlap - cannot place here!
@@ -198,7 +198,7 @@ internal sealed class ResourceHeap
                 }
             }
         }
-        
+
         return true;
     }
 
@@ -298,7 +298,7 @@ internal sealed class ResourceAliasingManager
     private const ulong _DEFAULT_BUFFER_ALIGNMENT = 65536;  // 64KB for D3D12
 
     public ResourceHeap Heap => _heap;
-    
+
     /// <summary>
     /// Helper method to get the size of a resource
     /// </summary>
@@ -374,8 +374,8 @@ internal sealed class ResourceAliasingManager
         foreach (var (logicalIndex, logicalResource) in logicalResources)
         {
             var size = GetResourceSize(logicalResource);
-            var alignment = logicalResource.type == RenderGraphResourceType.Texture 
-                ? _DEFAULT_TEXTURE_ALIGNMENT 
+            var alignment = logicalResource.type == RenderGraphResourceType.Texture
+                ? _DEFAULT_TEXTURE_ALIGNMENT
                 : _DEFAULT_BUFFER_ALIGNMENT;
 
             var (success, offset, block) = simulationHeap.TryAllocate(
@@ -393,7 +393,7 @@ internal sealed class ResourceAliasingManager
 
         // Get peak usage from simulation
         var peakMemoryUsage = simulationHeap.GetPeakUsage();
-        
+
         // Align peak usage to 64KB (D3D12 requirement)
         peakMemoryUsage = AlignUp(peakMemoryUsage, _DEFAULT_TEXTURE_ALIGNMENT);
 
@@ -405,8 +405,8 @@ internal sealed class ResourceAliasingManager
         foreach (var (logicalIndex, logicalResource) in logicalResources)
         {
             var size = GetResourceSize(logicalResource);
-            var alignment = logicalResource.type == RenderGraphResourceType.Texture 
-                ? _DEFAULT_TEXTURE_ALIGNMENT 
+            var alignment = logicalResource.type == RenderGraphResourceType.Texture
+                ? _DEFAULT_TEXTURE_ALIGNMENT
                 : _DEFAULT_BUFFER_ALIGNMENT;
 
             var (success, offset, block) = _heap.TryAllocate(
@@ -444,7 +444,7 @@ internal sealed class ResourceAliasingManager
         for (var i = 0; i < _placedResources.Count; i++)
         {
             var placed = _placedResources[i];
-            
+
             // Find all logical resources that share the same heap location
             for (var j = 0; j < _placedResources.Count; j++)
             {
@@ -454,7 +454,7 @@ internal sealed class ResourceAliasingManager
                 }
 
                 var other = _placedResources[j];
-                
+
                 // Check if they're at the same offset
                 if (other.heapOffset == placed.heapOffset)
                 {

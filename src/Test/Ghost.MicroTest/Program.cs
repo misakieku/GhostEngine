@@ -1,4 +1,4 @@
-using Ghost.Test.Core;
 using Ghost.MicroTest;
+using Ghost.Test.Core;
 
 TestRunner.Run<NvttBindingTest>();

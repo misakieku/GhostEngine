@@ -170,13 +170,13 @@ namespace Ghost.FMOD.Studio
     }
 
     // This is only need for loading memory and given our C# wrapper LOAD_MEMORY_POINT isn't feasible anyway
-    enum LOAD_MEMORY_MODE : int
+    internal enum LOAD_MEMORY_MODE : int
     {
         LOAD_MEMORY,
         LOAD_MEMORY_POINT,
     }
 
-    enum LOAD_MEMORY_ALIGNMENT : int
+    internal enum LOAD_MEMORY_ALIGNMENT : int
     {
         VALUE = 32
     }
@@ -235,7 +235,7 @@ namespace Ghost.FMOD.Studio
     };
 
     [StructLayout(LayoutKind.Explicit)]
-    struct Union_IntBoolFloatString
+    internal struct Union_IntBoolFloatString
     {
         [FieldOffset(0)]
         public int intvalue;
@@ -529,8 +529,7 @@ namespace Ghost.FMOD.Studio
             using (var encoder = StringHelper.GetFreeHelper())
             {
                 var stringMem = Marshal.AllocHGlobal(256);
-                var retrieved = 0;
-                var result = FMOD_Studio_System_GetParameterLabelByID(this.handle, id, labelindex, stringMem, 256, out retrieved);
+                var result = FMOD_Studio_System_GetParameterLabelByID(this.handle, id, labelindex, stringMem, 256, out var retrieved);
 
                 if (result == RESULT.ERR_TRUNCATED)
                 {
@@ -550,8 +549,7 @@ namespace Ghost.FMOD.Studio
         }
         public RESULT getParameterByID(PARAMETER_ID id, out float value)
         {
-            float finalValue;
-            return getParameterByID(id, out value, out finalValue);
+            return getParameterByID(id, out value, out var finalValue);
         }
         public RESULT getParameterByID(PARAMETER_ID id, out float value, out float finalvalue)
         {
@@ -574,8 +572,7 @@ namespace Ghost.FMOD.Studio
         }
         public RESULT getParameterByName(string name, out float value)
         {
-            float finalValue;
-            return getParameterByName(name, out value, out finalValue);
+            return getParameterByName(name, out value, out var finalValue);
         }
         public RESULT getParameterByName(string name, out float value, out float finalvalue)
         {
@@ -612,8 +609,7 @@ namespace Ghost.FMOD.Studio
 
             using var encoder = StringHelper.GetFreeHelper();
             var stringMem = Marshal.AllocHGlobal(256);
-            var retrieved = 0;
-            var result = FMOD_Studio_System_LookupPath(this.handle, ref id, stringMem, 256, out retrieved);
+            var result = FMOD_Studio_System_LookupPath(this.handle, ref id, stringMem, 256, out var retrieved);
 
             if (result == RESULT.ERR_TRUNCATED)
             {
@@ -1014,8 +1010,7 @@ namespace Ghost.FMOD.Studio
 
             using var encoder = StringHelper.GetFreeHelper();
             var stringMem = Marshal.AllocHGlobal(256);
-            var retrieved = 0;
-            var result = FMOD_Studio_EventDescription_GetParameterLabelByIndex(this.handle, index, labelindex, stringMem, 256, out retrieved);
+            var result = FMOD_Studio_EventDescription_GetParameterLabelByIndex(this.handle, index, labelindex, stringMem, 256, out var retrieved);
 
             if (result == RESULT.ERR_TRUNCATED)
             {
@@ -1038,9 +1033,8 @@ namespace Ghost.FMOD.Studio
 
             using var encoder = StringHelper.GetFreeHelper();
             var stringMem = Marshal.AllocHGlobal(256);
-            var retrieved = 0;
             var nameBytes = encoder.byteFromStringUTF8(name);
-            var result = FMOD_Studio_EventDescription_GetParameterLabelByName(this.handle, nameBytes, labelindex, stringMem, 256, out retrieved);
+            var result = FMOD_Studio_EventDescription_GetParameterLabelByName(this.handle, nameBytes, labelindex, stringMem, 256, out var retrieved);
 
             if (result == RESULT.ERR_TRUNCATED)
             {
@@ -1063,8 +1057,7 @@ namespace Ghost.FMOD.Studio
 
             using var encoder = StringHelper.GetFreeHelper();
             var stringMem = Marshal.AllocHGlobal(256);
-            var retrieved = 0;
-            var result = FMOD_Studio_EventDescription_GetParameterLabelByID(this.handle, id, labelindex, stringMem, 256, out retrieved);
+            var result = FMOD_Studio_EventDescription_GetParameterLabelByID(this.handle, id, labelindex, stringMem, 256, out var retrieved);
 
             if (result == RESULT.ERR_TRUNCATED)
             {
@@ -1413,8 +1406,7 @@ namespace Ghost.FMOD.Studio
         }
         public RESULT getParameterByID(PARAMETER_ID id, out float value)
         {
-            float finalvalue;
-            return getParameterByID(id, out value, out finalvalue);
+            return getParameterByID(id, out value, out var finalvalue);
         }
         public RESULT getParameterByID(PARAMETER_ID id, out float value, out float finalvalue)
         {
@@ -1437,8 +1429,7 @@ namespace Ghost.FMOD.Studio
         }
         public RESULT getParameterByName(string name, out float value)
         {
-            float finalValue;
-            return getParameterByName(name, out value, out finalValue);
+            return getParameterByName(name, out value, out var finalValue);
         }
         public RESULT getParameterByName(string name, out float value, out float finalvalue)
         {
@@ -1608,8 +1599,7 @@ namespace Ghost.FMOD.Studio
 
             using var encoder = StringHelper.GetFreeHelper();
             var stringMem = Marshal.AllocHGlobal(256);
-            var retrieved = 0;
-            var result = FMOD_Studio_Bus_GetPath(this.handle, stringMem, 256, out retrieved);
+            var result = FMOD_Studio_Bus_GetPath(this.handle, stringMem, 256, out var retrieved);
 
             if (result == RESULT.ERR_TRUNCATED)
             {
@@ -1628,8 +1618,7 @@ namespace Ghost.FMOD.Studio
         }
         public RESULT getVolume(out float volume)
         {
-            float finalVolume;
-            return getVolume(out volume, out finalVolume);
+            return getVolume(out volume, out var finalVolume);
         }
         public RESULT getVolume(out float volume, out float finalvolume)
         {
@@ -1762,8 +1751,7 @@ namespace Ghost.FMOD.Studio
 
             using var encoder = StringHelper.GetFreeHelper();
             var stringMem = Marshal.AllocHGlobal(256);
-            var retrieved = 0;
-            var result = FMOD_Studio_VCA_GetPath(this.handle, stringMem, 256, out retrieved);
+            var result = FMOD_Studio_VCA_GetPath(this.handle, stringMem, 256, out var retrieved);
 
             if (result == RESULT.ERR_TRUNCATED)
             {
@@ -1781,8 +1769,7 @@ namespace Ghost.FMOD.Studio
         }
         public RESULT getVolume(out float volume)
         {
-            float finalVolume;
-            return getVolume(out volume, out finalVolume);
+            return getVolume(out volume, out var finalVolume);
         }
         public RESULT getVolume(out float volume, out float finalvolume)
         {
@@ -1845,8 +1832,7 @@ namespace Ghost.FMOD.Studio
 
             using var encoder = StringHelper.GetFreeHelper();
             var stringMem = Marshal.AllocHGlobal(256);
-            var retrieved = 0;
-            var result = FMOD_Studio_Bank_GetPath(this.handle, stringMem, 256, out retrieved);
+            var result = FMOD_Studio_Bank_GetPath(this.handle, stringMem, 256, out var retrieved);
 
             if (result == RESULT.ERR_TRUNCATED)
             {
@@ -1895,8 +1881,7 @@ namespace Ghost.FMOD.Studio
 
             using var encoder = StringHelper.GetFreeHelper();
             var stringMem = Marshal.AllocHGlobal(256);
-            var retrieved = 0;
-            var result = FMOD_Studio_Bank_GetStringInfo(this.handle, index, out id, stringMem, 256, out retrieved);
+            var result = FMOD_Studio_Bank_GetStringInfo(this.handle, index, out id, stringMem, 256, out var retrieved);
 
             if (result == RESULT.ERR_TRUNCATED)
             {

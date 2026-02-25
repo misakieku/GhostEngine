@@ -8,7 +8,7 @@ public interface ICommandQueue : IDisposable
     /// <summary>
     /// Type of commands this queue can execute
     /// </summary>
-    public CommandQueueType Type
+    CommandQueueType Type
     {
         get;
     }
@@ -17,35 +17,35 @@ public interface ICommandQueue : IDisposable
     /// Submits a single command buffer for execution
     /// </summary>
     /// <param name="commandBuffer">Command buffer to submit</param>
-    public void Submit(ICommandBuffer commandBuffer);
+    void Submit(ICommandBuffer commandBuffer);
 
     /// <summary>
     /// Submits multiple command buffers for execution
     /// </summary>
     /// <param name="commandBuffers">Command buffers to submit</param>
-    public void Submit(params ReadOnlySpan<ICommandBuffer> commandBuffers);
+    void Submit(params ReadOnlySpan<ICommandBuffer> commandBuffers);
 
     /// <summary>
     /// Signals a fence with the specified Value
     /// </summary>
     /// <param name="value">Value to signal</param>
     /// <returns>The fence Value that was signaled</returns>
-    public ulong Signal(ulong value);
+    ulong Signal(ulong value);
 
     /// <summary>
     /// Waits for the fence to reach the specified Value
     /// </summary>
     /// <param name="value">Value to wait for</param>
-    public void WaitForValue(ulong value);
+    void WaitForValue(ulong value);
 
     /// <summary>
     /// Gets the last completed fence Value
     /// </summary>
     /// <returns>Last completed fence Value</returns>
-    public ulong GetCompletedValue();
+    ulong GetCompletedValue();
 
     /// <summary>
     /// Waits until all submitted commands have finished executing
     /// </summary>
-    public void WaitIdle();
+    void WaitIdle();
 }

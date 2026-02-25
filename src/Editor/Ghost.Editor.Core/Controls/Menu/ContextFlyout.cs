@@ -1,7 +1,6 @@
 using Ghost.Editor.Core.Utilities;
 using Microsoft.UI.Xaml.Controls;
 using System.Reflection;
-using System.Runtime.InteropServices;
 
 
 namespace Ghost.Editor.Core.Controls;
@@ -93,7 +92,7 @@ public sealed partial class ContextFlyout : MenuFlyout
             return;
         }
 
-        int currentGroup = nodes[0].EffectiveGroup;
+        var currentGroup = nodes[0].EffectiveGroup;
 
         foreach (var node in nodes)
         {

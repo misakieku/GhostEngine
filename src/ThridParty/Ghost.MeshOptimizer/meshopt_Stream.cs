@@ -1,5 +1,3 @@
-using Ghost.Zeux.MeshOptimizer;
-
 namespace Ghost.MeshOptimizer
 {
     public unsafe partial struct meshopt_Stream
