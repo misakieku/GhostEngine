@@ -5,6 +5,7 @@ using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
+using TerraFX.Interop.Gdiplus;
 using TerraFX.Interop.Windows;
 
 using static TerraFX.Aliases.D3D_Alias;
@@ -984,10 +985,32 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         }
     }
 
-    public void CopyTexture(Handle<Texture> dst, Handle<Texture> src)
+    private D3D12_TEXTURE_COPY_LOCATION GetTextureCopyLocation(SharedPtr<ID3D12Resource> texture, TextureSubresource subres)
     {
-        throw new NotImplementedException();
+        var flatIndex = subres.MipLevel + subres.ArrayLayer * texture.Get()->GetDesc().MipLevels;
 
+        return new D3D12_TEXTURE_COPY_LOCATION
+        {
+            pResource = texture,
+            Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+            SubresourceIndex = flatIndex
+        };
+    }
+
+    private bool AreTexturesIdentical(SharedPtr<ID3D12Resource> tex1, SharedPtr<ID3D12Resource> tex2)
+    {
+        var desc1 = tex1.Get()->GetDesc();
+        var desc2 = tex2.Get()->GetDesc();
+        return desc1.Width == desc2.Width
+               && desc1.Height == desc2.Height
+               && desc1.DepthOrArraySize == desc2.DepthOrArraySize
+               && desc1.MipLevels == desc2.MipLevels
+               && desc1.Format == desc2.Format
+               && desc1.SampleDesc.Count == desc2.SampleDesc.Count;
+    }
+
+    public void CopyTexture(Handle<Texture> dst, TextureRegion? dstRegion, Handle<Texture> src, TextureRegion? srcRegion)
+    {
         ThrowIfDisposed();
         ThrowIfNotRecording();
 #if !DEBUG
@@ -1011,8 +1034,34 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
             return;
         }
 
-        // TODO
-        _commandList.Get()->CopyTextureRegion(null, 0, 0, 0, null, null);
+        if (dstRegion == null || srcRegion == null)
+        {
+            if (!AreTexturesIdentical(pDstResource, pSrcResource))
+            {
+                RecordError(nameof(CopyTexture), Error.InvalidArgument);
+                return;
+            }
+
+            _commandList.Get()->CopyResource(pDstResource, pSrcResource);
+            return;
+        }
+
+        var dstRegionV = dstRegion.Value;
+        var srcRegionV = srcRegion.Value;
+
+        var dstLocation = GetTextureCopyLocation(pDstResource, dstRegionV.Subresource);
+        var srcLocation = GetTextureCopyLocation(pSrcResource, srcRegionV.Subresource);
+        var srcBoc = new D3D12_BOX
+        {
+            left = srcRegionV.X,
+            top = srcRegionV.Y,
+            front = srcRegionV.Z,
+            right = srcRegionV.X + srcRegionV.Width,
+            bottom = srcRegionV.Y + srcRegionV.Height,
+            back = srcRegionV.Z + srcRegionV.Depth
+        };
+
+        _commandList.Get()->CopyTextureRegion(&dstLocation, dstRegionV.X, dstRegionV.Y, dstRegionV.Z, &srcLocation, &srcBoc);
     }
 
     public void Dispose()

@@ -65,8 +65,21 @@ public interface ICommandBuffer : IDisposable
     /// <param name="depthTarget">A handle to the texture to be used as the depth Target. Specify a invalid handle if no depth Target is required.</param>
     void SetRenderTargets(ReadOnlySpan<Handle<Texture>> renderTargets, Handle<Texture> depthTarget);
 
+    /// <summary>
+    /// Clears the specified render target to a given color.
+    /// </summary>
+    /// <param name="renderTarget">A handle to the render target texture to be cleared. Must reference a valid render target.</param>
+    /// <param name="clearColor">The color value used to clear the render target. Specifies the RGBA components to fill the target.</param>
     void ClearRenderTargetView(Handle<Texture> renderTarget, Color128 clearColor);
 
+    /// <summary>
+    /// Clears the specified depth-stencil view by resetting its depth and/or stencil values.
+    /// </summary>
+    /// <param name="depthStencil">A handle to the depth-stencil texture to be cleared. Must reference a valid depth-stencil resource.</param>
+    /// <param name="inlcludeDepth">A value indicating whether the depth component should be cleared.</param>
+    /// <param name="includeStencil">A value indicating whether the stencil component should be cleared.</param>
+    /// <param name="clearDepth">The value to which the depth buffer will be set. Typically ranges from 0.0f (nearest) to 1.0f (farthest).</param>
+    /// <param name="clearStencil">The value to which the stencil buffer will be set. Must be a valid stencil value supported by the format.</param>
     void ClearDepthStencilView(Handle<Texture> depthStencil, bool inlcludeDepth, bool includeStencil, float clearDepth = 1.0f, byte clearStencil = 0);
 
     /// <summary>
@@ -201,4 +214,13 @@ public interface ICommandBuffer : IDisposable
     /// <param name="srcOffset">The byte Offset in the source buffer at which to begin reading. Must be zero or greater.</param>
     /// <param name="numBytes">The number of bytes to copy. If zero, copies the remaining bytes from the source buffer starting at <paramref name="srcOffset"/>.</param>
     void CopyBuffer(Handle<GraphicsBuffer> dest, Handle<GraphicsBuffer> src, ulong destOffset = 0, ulong srcOffset = 0, ulong numBytes = 0);
+
+    /// <summary>
+    /// Copies a region of a source texture to a destination texture. The source and destination regions can be specified to copy a subset of the textures, or the entire textures if the regions are null.
+    /// </summary>
+    /// <param name="dst">The handle to the destination texture where data will be written.</param>
+    /// <param name="dstRegion">The region of the destination texture to copy to. If null, the entire texture will be used.</param>
+    /// <param name="src">The handle to the source texture from which data will be read.</param>
+    /// <param name="srcRegion">The region of the source texture to copy from. If null, the entire texture will be used.</param>
+    void CopyTexture(Handle<Texture> dst, TextureRegion? dstRegion, Handle<Texture> src, TextureRegion? srcRegion);
 }

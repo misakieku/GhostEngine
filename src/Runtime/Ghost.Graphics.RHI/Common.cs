@@ -457,6 +457,58 @@ public struct PassDepthStencilDesc
 }
 
 
+public struct TextureSubresource
+{
+    public uint MipLevel
+    {
+        get; set;
+    }
+
+    public uint ArrayLayer
+    {
+        get; set;
+    }
+}
+
+public struct TextureRegion
+{
+    public TextureSubresource Subresource
+    {
+        get; set;
+    }
+
+    public uint X
+    {
+        get; set;
+    }
+
+    public uint Y
+    {
+        get; set;
+    }
+
+    public uint Z
+    {
+        get; set;
+    }
+
+    public uint Width
+    {
+        get; set;
+    }
+
+    public uint Height
+    {
+        get; set;
+    }
+
+    public uint Depth
+    {
+        get; set;
+    }
+}
+
+
 public struct BarrierSubresourceRange
 {
     public uint IndexOrFirstMipLevel
