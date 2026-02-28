@@ -3,6 +3,7 @@ using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Utilities;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Gdiplus;
@@ -24,9 +25,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
     private readonly CommandBufferType _type;
 
-#if !DEBUG
     private CommandError _lastError;
-#endif
     private ushort _commandCount;
     private bool _isRecording;
     private bool _disposed;
@@ -112,16 +111,9 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if DEBUG
-    [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-    private static void RecordError(string cmdName, Error status)
-#else
     private void RecordError(string cmdName, Error status)
-#endif
     {
-#if DEBUG
-        throw new InvalidOperationException($"Error at {cmdName} with {status}");
-#else
+        Debug.Fail($"Command '{cmdName}' failed with error: {status}");
 
         _lastError = new CommandError
         {
@@ -129,7 +121,6 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
             CommandIndex = _commandCount,
             Status = status
         };
-#endif
     }
 
     public void Begin(ICommandAllocator allocator)
