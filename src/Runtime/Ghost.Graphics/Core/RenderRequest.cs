@@ -5,6 +5,15 @@ using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.Core;
 
+public enum GateFit : uint
+{
+    Vertical,
+    Horizontal,
+    Fill,
+    Overscan,
+    None
+}
+
 [StructLayout(LayoutKind.Sequential, Pack = 4)]
 public struct Frustum
 {
@@ -33,6 +42,7 @@ public struct Frustum
     public float3 corner7;
 }
 
+// Since we are using ByteAddressBuffer in hlsl, we don't need to care about the 16 bytes alignment of the data like in CBuffer.
 [StructLayout(LayoutKind.Sequential, Pack = 4)]
 public struct RenderView
 {
@@ -46,13 +56,14 @@ public struct RenderView
     public float farClipPlane;
 
     public float2 sensorSize;
+    public GateFit gateFit;
     public float iso;
     public float shutterSpeed;
     public float aperture;
     public float focalLength;
     public float focusDistance;
 
-    public uint renderingLayerMask;
+    public RenderingLayerMask renderingLayerMask;
 }
 
 public unsafe struct RenderRequest

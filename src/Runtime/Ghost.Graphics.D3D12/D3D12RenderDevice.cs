@@ -116,7 +116,7 @@ internal unsafe class D3D12RenderDevice : IRenderDevice
                 support |= FeatureSupport.BindlessResources;
             }
 
-            if (options.ResourceHeapTier == D3D12_RESOURCE_HEAP_TIER.D3D12_RESOURCE_HEAP_TIER_2)
+            if (options.ResourceHeapTier == D3D12_RESOURCE_HEAP_TIER_2)
             {
                 support |= FeatureSupport.AliasBuffersAndTextures;
             }

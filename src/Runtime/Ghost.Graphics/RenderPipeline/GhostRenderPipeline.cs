@@ -3,13 +3,9 @@ using Ghost.Graphics.RHI;
 
 namespace Ghost.Graphics.RenderPipeline;
 
-public partial class GhostRenderPipeline : IRenderPipeline
+public partial class GhostRenderPipeline : RenderPipelineBase
 {
-    public void Render(RenderContext ctx, ReadOnlySpan<RenderRequest> requests)
-    {
-    }
-
-    public void Dispose()
+    public override void Render(RenderContext ctx, ReadOnlySpan<RenderRequest> requests)
     {
     }
 }

@@ -6,12 +6,14 @@ using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities;
 
-public interface IComponent
-{
-}
+public interface IComponent;
+public interface IEnableableComponent : IComponent;
 
-public interface IEnableableComponent : IComponent
+[AttributeUsage(AttributeTargets.Struct)]
+public class RequireComponentAttribute<T> : Attribute
+    where T : unmanaged, IComponent
 {
+    public Type RequiredType => typeof(T);
 }
 
 internal struct ComponentInfo
