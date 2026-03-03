@@ -6,6 +6,28 @@ using System.Collections.Concurrent;
 
 namespace Ghost.Graphics;
 
+public interface IRenderSystem : IFenceSynchronizer, IDisposable
+{
+    IGraphicsEngine GraphicsEngine
+    {
+        get;
+    }
+
+    IResourceManager ResourceManager
+    {
+        get;
+    }
+
+    bool IsRunning
+    {
+        get;
+    }
+
+    void Start();
+    void Stop();
+    void RequestSwapChainResize(ISwapChain swapChain, uint2 newSize);
+}
+
 public enum GraphicsAPI
 {
     Direct3D12
@@ -63,6 +85,7 @@ internal class RenderSystem : IRenderSystem
 
     private readonly RenderingConfig _config;
     private readonly IGraphicsEngine _graphicsEngine;
+    private readonly IResourceManager _resourceManager;
 
     private readonly FrameResource[] _frameResources;
     private readonly Thread _renderThread;
@@ -77,6 +100,7 @@ internal class RenderSystem : IRenderSystem
     private bool _disposed;
 
     public IGraphicsEngine GraphicsEngine => _graphicsEngine;
+    public IResourceManager ResourceManager => _resourceManager;
     public bool IsRunning => _isRunning;
 
     public uint CPUFenceValue => _cpuFenceValue;
@@ -106,6 +130,8 @@ internal class RenderSystem : IRenderSystem
             default:
                 throw new NotSupportedException($"The specified graphics API '{config.GraphicsAPI}' is not supported.");
         }
+
+        _resourceManager = new ResourceManager(_graphicsEngine.ResourceAllocator, _graphicsEngine.ResourceDatabase);
 
         // Create frame resources for synchronization
         _frameResources = new FrameResource[config.FrameBufferCount];

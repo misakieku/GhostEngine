@@ -3,30 +3,29 @@ using Ghost.Graphics.RHI;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
-/// <summary>
-/// Handles execution of compiled render graphs, including barrier execution and native render passes.
-/// </summary>
 internal sealed class RenderGraphExecutor
 {
     private readonly IResourceManager _resourceManager;
+    private readonly IResourceDatabase _resourceDatabase;
     private readonly RenderGraphResourceRegistry _resources;
     private readonly RenderGraphContext _context;
 
+    private uint _frameIndex;
+
     public RenderGraphExecutor(
         IResourceManager resourceManager,
+        IResourceDatabase resourceDatabase,
         RenderGraphResourceRegistry resources,
         RenderGraphContext context)
     {
         _resourceManager = resourceManager;
+        _resourceDatabase = resourceDatabase;
         _resources = resources;
         _context = context;
     }
 
-    /// <summary>
-    /// Executes all compiled passes using native render passes where possible.
-    /// </summary>
     public unsafe Error Execute(
-        ICommandBuffer cmd,
+        ICommandBuffer commandBuffer,
         List<RenderGraphPassBase> compiledPasses,
         List<NativeRenderPass> nativePasses,
         List<CompiledBarrier> compiledBarriers)
@@ -35,7 +34,7 @@ internal sealed class RenderGraphExecutor
         var nativePassIndex = 0;
         var logicalPassIndex = 0;
 
-        _context.SetCommandBuffer(cmd);
+        _context.BeginNewFrame(_frameIndex++, commandBuffer);
 
         var pPassRTDescs = stackalloc PassRenderTargetDesc[8];
         var pRtFormats = stackalloc TextureFormat[8];
@@ -53,7 +52,7 @@ internal sealed class RenderGraphExecutor
                 for (var i = 0; i < nativePass.mergedPassIndices.Count; i++)
                 {
                     var mergedPassIdx = nativePass.mergedPassIndices[i];
-                    var e = ExecuteBarriersForPass(cmd, mergedPassIdx, ref barrierIndex, compiledBarriers);
+                    var e = ExecuteBarriersForPass(commandBuffer, mergedPassIdx, ref barrierIndex, compiledBarriers);
                     if (e != Error.None)
                     {
                         return e;
@@ -94,7 +93,7 @@ internal sealed class RenderGraphExecutor
                         : AttachmentStoreOp.DontCare
                 };
 
-                cmd.BeginRenderPass(new Span<PassRenderTargetDesc>(pPassRTDescs, nativePass.colorAttachmentCount), depthDesc);
+                commandBuffer.BeginRenderPass(new Span<PassRenderTargetDesc>(pPassRTDescs, nativePass.colorAttachmentCount), depthDesc);
 
                 for (var i = 0; i < nativePass.colorAttachmentCount; i++)
                 {
@@ -117,13 +116,13 @@ internal sealed class RenderGraphExecutor
                     logicalPassIndex++;
                 }
 
-                cmd.EndRenderPass();
+                commandBuffer.EndRenderPass();
                 nativePassIndex++;
             }
             else
             {
                 // Compute pass or standalone raster pass (not merged) or Unsafe pass
-                var e = ExecuteBarriersForPass(cmd, logicalPassIndex, ref barrierIndex, compiledBarriers);
+                var e = ExecuteBarriersForPass(commandBuffer, logicalPassIndex, ref barrierIndex, compiledBarriers);
                 if (e != Error.None)
                 {
                     return e;
@@ -137,10 +136,6 @@ internal sealed class RenderGraphExecutor
         return Error.None;
     }
 
-    /// <summary>
-    /// Executes all barriers for a specific pass.
-    /// Uses pre-compiled barriers and queries before state from ResourceManager.
-    /// </summary>
     private unsafe Error ExecuteBarriersForPass(
         ICommandBuffer cmd,
         int passIndex,
@@ -168,7 +163,7 @@ internal sealed class RenderGraphExecutor
             var resourceHandle = resource.backingResource;
 
             // Always query the before state from ResourceManager (single source of truth)
-            var currentStateResult = _resourceManager.ResourceDatabase.GetResourceBarrierData(resourceHandle);
+            var currentStateResult = _resourceDatabase.GetResourceBarrierData(resourceHandle);
             if (currentStateResult.IsFailure)
             {
                 return currentStateResult.Error;
@@ -184,7 +179,7 @@ internal sealed class RenderGraphExecutor
             if (compiledBarrier.AliasingPredecessor.IsValid)
             {
                 var predHandle = _resources.GetResource(compiledBarrier.AliasingPredecessor).backingResource;
-                var predStateResult = _resourceManager.ResourceDatabase.GetResourceBarrierData(predHandle);
+                var predStateResult = _resourceDatabase.GetResourceBarrierData(predHandle);
                 if (predStateResult.IsFailure)
                 {
                     return predStateResult.Error;

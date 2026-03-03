@@ -28,20 +28,3 @@ public interface IFenceSynchronizer
     void SignalCPUReady();
     void WaitIdle();
 }
-
-public interface IRenderSystem : IFenceSynchronizer, IDisposable
-{
-    IGraphicsEngine GraphicsEngine
-    {
-        get;
-    }
-
-    bool IsRunning
-    {
-        get;
-    }
-
-    void Start();
-    void Stop();
-    void RequestSwapChainResize(ISwapChain swapChain, uint2 newSize);
-}

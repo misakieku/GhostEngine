@@ -1,12 +1,10 @@
 using Ghost.Core.Utilities;
 using Ghost.Graphics.RHI;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
-/// <summary>
-/// Represents a memory block within a heap.
-/// </summary>
 internal struct MemoryBlock
 {
     public ulong offset;
@@ -35,17 +33,12 @@ internal struct MemoryBlock
     }
 }
 
-/// <summary>
-/// Represents a GPU memory heap for placed resources.
-/// Supports D3D12-style heap tier 2 (buffers and textures can alias).
-/// </summary>
 internal sealed class ResourceHeap
 {
     public int index;
     public ulong size;
     private readonly List<MemoryBlock> _blocks = new(32);
 
-    // D3D12 heap alignment requirement (64KB for MSAA textures, 4KB for others)
     public const ulong DEFAULT_ALIGNMENT = 65536; // 64KB
 
     public ResourceHeap(int index, ulong initialSize = 16 * 1024 * 1024) // 16MB default
@@ -81,6 +74,7 @@ internal sealed class ResourceHeap
         var smallestWaste = ulong.MaxValue;
 
         // Find the best fit block that doesn't overlap with lifetime
+        // TODO: Is first-fit better? Since we already sort by size beforehand.
         var blockSpan = CollectionsMarshal.AsSpan(_blocks);
         for (var i = 0; i < blockSpan.Length; i++)
         {
@@ -166,10 +160,6 @@ internal sealed class ResourceHeap
         return (true, bestFitOffset, bestFit);
     }
 
-    /// <summary>
-    /// Checks if a resource can be placed at the given offset without lifetime conflicts.
-    /// Must check ALL blocks that overlap with this offset range.
-    /// </summary>
     private bool CanPlaceAtOffset(ulong offset, ulong size, int firstUsePass, int lastUsePass)
     {
         var endOffset = offset + size;
@@ -202,12 +192,9 @@ internal sealed class ResourceHeap
         return true;
     }
 
-    /// <summary>
-    /// Gets the total memory that would be used if no aliasing occurred.
-    /// </summary>
     public ulong GetTotalAllocatedWithoutAliasing()
     {
-        ulong total = 0;
+        var total = 0ul;
         foreach (var block in _blocks)
         {
             if (!block.isFree)
@@ -219,12 +206,9 @@ internal sealed class ResourceHeap
         return total;
     }
 
-    /// <summary>
-    /// Gets the peak memory usage considering aliasing (max offset + size).
-    /// </summary>
     public ulong GetPeakUsage()
     {
-        ulong peak = 0;
+        var peak = 0ul;
         foreach (var block in _blocks)
         {
             if (!block.isFree)
@@ -242,9 +226,6 @@ internal sealed class ResourceHeap
     }
 }
 
-/// <summary>
-/// Represents a placed resource within a heap.
-/// </summary>
 internal sealed class PlacedResource
 {
     public int index;
@@ -279,10 +260,6 @@ internal sealed class PlacedResource
     }
 }
 
-/// <summary>
-/// Manages physical resource allocation and aliasing using heap-based allocation.
-/// Supports D3D12 heap tier 2: buffers and textures can alias as long as lifetimes don't overlap.
-/// </summary>
 internal sealed class ResourceAliasingManager
 {
     private readonly IResourceAllocator _allocator;
@@ -293,15 +270,11 @@ internal sealed class ResourceAliasingManager
     // Mapping from logical resource index to placed resource index
     private readonly Dictionary<int, int> _logicalToPlaced;
 
-    // D3D12 alignment constants
     private const ulong _DEFAULT_TEXTURE_ALIGNMENT = 65536; // 64KB
-    private const ulong _DEFAULT_BUFFER_ALIGNMENT = 65536;  // 64KB for D3D12
+    private const ulong _DEFAULT_BUFFER_ALIGNMENT = 65536;  // 64KB
 
     public ResourceHeap Heap => _heap;
 
-    /// <summary>
-    /// Helper method to get the size of a resource
-    /// </summary>
     private ulong GetResourceSize(RenderGraphResource resource)
     {
         if (resource.type == RenderGraphResourceType.Texture)
@@ -311,7 +284,6 @@ internal sealed class ResourceAliasingManager
         }
         else // Buffer
         {
-            //return resource.bufferDesc.Size;
             return _allocator.GetSizeInfo(ResourceDesc.Buffer(resource.bufferDesc)).Size;
         }
     }
@@ -339,13 +311,6 @@ internal sealed class ResourceAliasingManager
         _heap.Reset();
     }
 
-    /// <summary>
-    /// Assigns physical resources (placed resources) to logical resources using heap-based allocation.
-    /// This is the modern D3D12 approach: check if resource fits in a hole, not if it matches size/format.
-    /// Uses a two-pass algorithm:
-    /// 1. First pass: Simulate allocation to determine peak memory usage
-    /// 2. Second pass: Create a single heap of the peak size and do the real allocation
-    /// </summary>
     public void AssignPhysicalResources(RenderGraphResourceRegistry registry, int passCount)
     {
         // Build list of all logical resources (both textures and buffers) with their lifetimes
@@ -369,7 +334,16 @@ internal sealed class ResourceAliasingManager
             return sizeB.CompareTo(sizeA); // Descending
         });
 
+        // NOTE: We assume we are at least D3D12 heap tier 2 (the engine won't even start if the hardware does not supports)
+        // so buffers and textures can alias as long as lifetimes don't overlap.
+
+
+        // TODO: Handle non-aliased resources like history buffers that need to persist across frames.
+        // They will be placed in the same heap but we can mark them as non-aliased and skip them when looking for aliasing candidates.
+        // We do not place them in a separate heap because our buffers are cached and reused across frames as long as the graph topology doesn't change.
+
         // ===== PASS 1: Simulate allocation to determine peak memory usage =====
+
         var simulationHeap = new ResourceHeap(0, ulong.MaxValue); // Unlimited size for simulation
         foreach (var (logicalIndex, logicalResource) in logicalResources)
         {
@@ -385,10 +359,7 @@ internal sealed class ResourceAliasingManager
                 logicalIndex,
                 alignment);
 
-            if (!success)
-            {
-                throw new InvalidOperationException("Simulation allocation failed - this should never happen with unlimited heap");
-            }
+            Debug.Assert(success, "Simulation allocation failed - heap should be unlimited in size");
         }
 
         // Get peak usage from simulation
@@ -398,12 +369,15 @@ internal sealed class ResourceAliasingManager
         peakMemoryUsage = AlignUp(peakMemoryUsage, _DEFAULT_TEXTURE_ALIGNMENT);
 
         // ===== PASS 2: Create a single heap of the peak size and do the real allocation =====
-        _heap.size = peakMemoryUsage;
+
         _heap.Reset();
+        _heap.size = peakMemoryUsage;
 
         // Allocate each logical resource in the heap
         foreach (var (logicalIndex, logicalResource) in logicalResources)
         {
+            // TODO: Currently we are recalculating the aliasing candidates in the real allocation pass.
+            // We can optimize this by caching the candidates from the simulation pass since the heap layout should be the same.
             var size = GetResourceSize(logicalResource);
             var alignment = logicalResource.type == RenderGraphResourceType.Texture
                 ? _DEFAULT_TEXTURE_ALIGNMENT
@@ -488,9 +462,6 @@ internal sealed class ResourceAliasingManager
         return (value + alignment - 1) & ~(alignment - 1);
     }
 
-    /// <summary>
-    /// Restores aliasing state from cache.
-    /// </summary>
     public void RestoreFromCache(Dictionary<int, int> logicalToPlaced, List<PlacedResourceData> placedData)
     {
         _logicalToPlaced.Clear();
@@ -518,9 +489,6 @@ internal sealed class ResourceAliasingManager
         }
     }
 
-    /// <summary>
-    /// Stores current aliasing state to cache.
-    /// </summary>
     public void StoreToCache(Dictionary<int, int> outLogicalToPlaced, List<PlacedResourceData> outPlacedData)
     {
         outLogicalToPlaced.Clear();

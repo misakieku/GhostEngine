@@ -4,10 +4,6 @@ using Misaki.HighPerformance.Buffer;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
-/// <summary>
-/// Object pool for reusing allocated objects across frames.
-/// This is key to minimizing GC allocations after the first frame.
-/// </summary>
 internal sealed class RenderGraphObjectPool
 {
     private static readonly List<SharedObjectPoolBase> s_allocatedPools = new();
@@ -18,7 +14,8 @@ internal sealed class RenderGraphObjectPool
         public virtual void Clear() { }
     }
 
-    private class SharedObjectPool<T> : SharedObjectPoolBase where T : class, new()
+    private class SharedObjectPool<T> : SharedObjectPoolBase
+        where T : class, new()
     {
         private static readonly ObjectPool<T> s_pool = AllocatePool();
 
@@ -30,28 +27,20 @@ internal sealed class RenderGraphObjectPool
             return newPool;
         }
 
-        /// <summary>
-        /// Clear the pool using SharedObjectPool instance.
-        /// </summary>
-        /// <returns></returns>
         public override void Clear()
         {
             s_pool.Reset();
         }
 
-        /// <summary>
-        /// Rent a new instance from the pool.
-        /// </summary>
-        /// <returns></returns>
-        // FIX: ObjectPool<T>.Rent() has a critical bug that it will put the newly created object into the pool directly and give out the same instance again.
-        // This will cause multiple renters to get the same instance.
-        public static T Rent() => s_pool.Rent();
+        public static T Rent()
+        {
+            return s_pool.Rent();
+        }
 
-        /// <summary>
-        /// Return an object to the pool.
-        /// </summary>
-        /// <param name="toRelease">instance to release.</param>
-        public static void Return(T toRelease) => s_pool.Return(toRelease);
+        public static void Return(T toRelease)
+        {
+            s_pool.Return(toRelease);
+        }
     }
 
     public T Rent<T>()
@@ -75,9 +64,6 @@ internal sealed class RenderGraphObjectPool
     }
 }
 
-/// <summary>
-/// Represents a resource in the render graph (texture or buffer).
-/// </summary>
 internal sealed class RenderGraphResource
 {
     public string name = string.Empty;
@@ -121,11 +107,6 @@ internal sealed class RenderGraphResource
     }
 }
 
-/// <summary>
-/// Registry for managing all resources in the render graph.
-/// Uses pooling to minimize allocations after the first frame.
-/// Uses a single unified list for both textures and buffers with global indexing.
-/// </summary>
 internal sealed class RenderGraphResourceRegistry
 {
     private readonly RenderGraphObjectPool _pool;

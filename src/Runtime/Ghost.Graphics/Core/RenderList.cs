@@ -148,6 +148,11 @@ public struct RenderList : IDisposable
 
     public void Dispose()
     {
+        if (!IsCreated)
+        {
+            return;
+        }
+
         for (int i = 0; i < _threadLocalRecords.Length; i++)
         {
             _threadLocalRecords[i].Dispose();

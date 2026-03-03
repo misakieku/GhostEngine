@@ -6,7 +6,6 @@ using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Gdiplus;
 using TerraFX.Interop.Windows;
 
 using static TerraFX.Aliases.D3D_Alias;

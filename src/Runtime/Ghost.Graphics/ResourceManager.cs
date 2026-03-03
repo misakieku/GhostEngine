@@ -9,16 +9,6 @@ namespace Ghost.Graphics;
 
 public interface IResourceManager
 {
-    IResourceAllocator ResourceAllocator
-    {
-        get;
-    }
-
-    IResourceDatabase ResourceDatabase
-    {
-        get;
-    }
-
     /// <summary>
     /// Creates a new mesh from the specified vertex and index data.
     /// </summary>
@@ -113,16 +103,13 @@ internal sealed class ResourceManager : IResourceManager, IDisposable
 
     private bool _disposed;
 
-    public IResourceAllocator ResourceAllocator => _resourceAllocator;
-    public IResourceDatabase ResourceDatabase => _resourceDatabase;
-
     public ResourceManager(IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase)
     {
         _resourceAllocator = resourceAllocator;
         _resourceDatabase = resourceDatabase;
 
         _meshes = new UnsafeSlotMap<Mesh>(64, Allocator.Persistent);
-        _materials = new UnsafeSlotMap<Material>(16, Allocator.Persistent);
+        _materials = new UnsafeSlotMap<Material>(64, Allocator.Persistent);
         _shaders = new UnsafeList<Shader>(16, Allocator.Persistent);
     }
 

@@ -12,6 +12,9 @@ public interface IRenderGraphContext
     Handle<GPUResource> GetActualResource(Identifier<RGResource> resource);
     Handle<Texture> GetActualTexture(Identifier<RGTexture> texture);
     Handle<GraphicsBuffer> GetActualBuffer(Identifier<RGBuffer> buffer);
+
+    Handle<Texture> GetHistoryTexture(ReadOnlySpan<Identifier<RGTexture>> texture, int historyOffset);
+    Handle<GraphicsBuffer> GetHistoryBuffer(ReadOnlySpan<Identifier<RGBuffer>> buffer, int historyOffset);
 }
 
 public interface IRasterRenderContext : IRenderGraphContext
@@ -38,11 +41,13 @@ public interface IUnsafeRenderContext : IRasterRenderContext, IRenderGraphContex
 internal sealed class RenderGraphContext : IRasterRenderContext, IComputeRenderContext, IUnsafeRenderContext
 {
     private readonly IResourceManager _resourceManager;
+    private readonly IResourceDatabase _resourceDatabase;
     private readonly IPipelineLibrary _pipelineLibrary;
     private readonly IShaderCompiler _shaderCompiler;
     private readonly RenderGraphResourceRegistry _resources;
 
-    private ICommandBuffer _commandBuffer = null!;
+    private uint _frameIndex;
+    private ICommandBuffer _commandBuffer;
 
     private readonly TextureFormat[] _rtvFormats;
     private TextureFormat _dsvFormat;
@@ -58,19 +63,23 @@ internal sealed class RenderGraphContext : IRasterRenderContext, IComputeRenderC
 
     public ICommandBuffer CommandBuffer => _commandBuffer;
 
-    internal RenderGraphContext(IResourceManager resourceManager, IPipelineLibrary pipelineLibrary, IShaderCompiler shaderCompiler, RenderGraphResourceRegistry resources)
+    internal RenderGraphContext(IResourceManager resourceManager, IResourceDatabase resourceDatabase, IPipelineLibrary pipelineLibrary, IShaderCompiler shaderCompiler, RenderGraphResourceRegistry resources)
     {
         _resourceManager = resourceManager;
+        _resourceDatabase = resourceDatabase;
         _pipelineLibrary = pipelineLibrary;
         _shaderCompiler = shaderCompiler;
         _resources = resources;
+
+        _commandBuffer = null!;
 
         _rtvFormats = new TextureFormat[RHIUtility.MAX_RENDER_TARGETS];
         _dsvFormat = TextureFormat.Unknown;
     }
 
-    internal void SetCommandBuffer(ICommandBuffer commandBuffer)
+    internal void BeginNewFrame(uint frameIndex, ICommandBuffer commandBuffer)
     {
+        _frameIndex = frameIndex;
         _commandBuffer = commandBuffer;
     }
 
@@ -98,6 +107,38 @@ internal sealed class RenderGraphContext : IRasterRenderContext, IComputeRenderC
     public Handle<GraphicsBuffer> GetActualBuffer(Identifier<RGBuffer> buffer)
     {
         return _resources.GetResource(buffer.AsResource()).backingResource.AsGraphicsBuffer();
+    }
+
+    public Handle<Texture> GetHistoryTexture(ReadOnlySpan<Identifier<RGTexture>> textures, int historyOffset)
+    {
+        if (historyOffset < 0 || historyOffset >= textures.Length)
+        {
+            return Handle<Texture>.Invalid;
+        }
+
+        var index = (int)(_frameIndex % textures.Length) - historyOffset;
+        if (index < 0)
+        {
+            index += textures.Length;
+        }
+
+        return GetActualTexture(textures[index]);
+    }
+
+    public Handle<GraphicsBuffer> GetHistoryBuffer(ReadOnlySpan<Identifier<RGBuffer>> buffers, int historyOffset)
+    {
+        if (historyOffset < 0 || historyOffset >= buffers.Length)
+        {
+            return Handle<GraphicsBuffer>.Invalid;
+        }
+
+        var index = (int)(_frameIndex % buffers.Length) - historyOffset;
+        if (index < 0)
+        {
+            index += buffers.Length;
+        }
+
+        return GetActualBuffer(buffers[index]);
     }
 
     public void SetActiveMaterial(Handle<Material> material)
@@ -183,8 +224,8 @@ internal sealed class RenderGraphContext : IRasterRenderContext, IComputeRenderC
         // TODO: Global and view constants
         var data = new PushConstantsData
         {
-            objectIndex = _resourceManager.ResourceDatabase.GetBindlessIndex(_activePerMeshData.AsResource()),
-            materialIndex = _resourceManager.ResourceDatabase.GetBindlessIndex(_activePerMaterialData.AsResource()),
+            objectIndex = _resourceDatabase.GetBindlessIndex(_activePerMeshData.AsResource()),
+            materialIndex = _resourceDatabase.GetBindlessIndex(_activePerMaterialData.AsResource()),
         };
 
         var pushConstantSpan = new ReadOnlySpan<uint>(&data, sizeof(PushConstantsData) / sizeof(uint));

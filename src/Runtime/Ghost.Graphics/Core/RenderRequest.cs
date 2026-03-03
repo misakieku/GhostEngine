@@ -46,9 +46,8 @@ public struct Frustum
 [StructLayout(LayoutKind.Sequential, Pack = 4)]
 public struct RenderView
 {
-    public float4x4 view;
-    public float4x4 projection;
-    public float4x4 viewProjection;
+    public float4x4 viewMatrix;
+    public float4x4 projectionMatrix;
     public float3 position;
 
     public Frustum frustum; // 192 bytes
@@ -69,8 +68,13 @@ public struct RenderView
 public unsafe struct RenderRequest
 {
     public RenderView view;
+
     public Handle<Texture> colorTarget;
     public Handle<Texture> depthTarget;
 
-    public delegate*<ref readonly RenderingContext, ref readonly RenderRequest, void> renderFunc;
+    public RenderList opaqueRenderList;
+    public RenderList transparentRenderList;
+    public RenderList shadowCasterRenderList;
+
+    public delegate*<ref readonly RenderContext, ref readonly RenderRequest, void> renderFunc;
 }

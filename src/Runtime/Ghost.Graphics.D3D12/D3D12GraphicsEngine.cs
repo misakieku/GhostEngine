@@ -13,9 +13,9 @@ namespace Ghost.Graphics.D3D12;
 
 public static class D3D12GraphicsEngineFactory
 {
-    public static IGraphicsEngine Create(IRenderSystem renderSystem)
+    public static IGraphicsEngine Create(IFenceSynchronizer fenceSynchronizer)
     {
-        return new D3D12GraphicsEngine(renderSystem);
+        return new D3D12GraphicsEngine(fenceSynchronizer);
     }
 }
 
@@ -23,7 +23,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
 {
     private GCHandle _thisHandle;
 
-    private readonly IRenderSystem _renderSystem;
+    private readonly IFenceSynchronizer _fenceSynchronizer;
 
 #if ENABLE_DEBUG
     private readonly D3D12DebugLayer _debugLayer;
@@ -45,9 +45,9 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
     public IResourceDatabase ResourceDatabase => _resourceDatabase;
     public IResourceAllocator ResourceAllocator => _resourceAllocator;
 
-    public D3D12GraphicsEngine(IRenderSystem renderSystem)
+    public D3D12GraphicsEngine(IFenceSynchronizer fenceSynchronizer)
     {
-        _renderSystem = renderSystem;
+        _fenceSynchronizer = fenceSynchronizer;
 
 #if ENABLE_DEBUG
         _debugLayer = new D3D12DebugLayer();
@@ -56,7 +56,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         _shaderCompiler = new DxcShaderCompiler();
         _descriptorAllocator = new D3D12DescriptorAllocator(_device);
 
-        _resourceDatabase = new D3D12ResourceDatabase(renderSystem, _descriptorAllocator);
+        _resourceDatabase = new D3D12ResourceDatabase(_fenceSynchronizer, _descriptorAllocator);
         _pipelineLibrary = new D3D12PipelineLibrary(_device, _resourceDatabase);
         _resourceAllocator = new D3D12ResourceAllocator(_device, _descriptorAllocator, _resourceDatabase, _pipelineLibrary);
 
@@ -118,7 +118,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
     public ISwapChain CreateSwapChain(SwapChainDesc desc)
     {
         ThrowIfDisposed();
-        return new D3D12SwapChain(_resourceDatabase, _descriptorAllocator, _device, desc, _renderSystem.MaxFrameLatency);
+        return new D3D12SwapChain(_resourceDatabase, _descriptorAllocator, _device, desc, _fenceSynchronizer.MaxFrameLatency);
     }
 
     public Result RenderFrame(ICommandAllocator commandAllocator)
