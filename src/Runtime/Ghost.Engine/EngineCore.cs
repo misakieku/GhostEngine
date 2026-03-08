@@ -1,6 +1,5 @@
 using Ghost.Entities;
 using Ghost.Graphics;
-using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Jobs;
 
 namespace Ghost.Engine;
@@ -30,7 +29,7 @@ internal sealed partial class EngineCore : IEngineContext
         _jobScheduler = new JobScheduler(Environment.ProcessorCount - 2); // We -2 here, one for main thread, one for render thread
 
         // TODO: Remove the windows dependency from RenderSystem.
-        var renderingConfig = new RenderingConfig
+        var renderingConfig = new RenderSystemDesc
         {
             FrameBufferCount = 2,
             GraphicsAPI = GraphicsAPI.Direct3D12,

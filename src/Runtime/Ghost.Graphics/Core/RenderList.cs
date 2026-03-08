@@ -1,13 +1,17 @@
 using Ghost.Core;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Graphics.Core;
 
 public record struct RenderRecord
 {
+    public float4x4 localToWorld;
     public Handle<Material> material;
     public Handle<Mesh> mesh;
+    public RenderingLayerMask renderingLayerMask;
+    public byte subMeshIndex;
 }
 
 public struct RenderList : IDisposable

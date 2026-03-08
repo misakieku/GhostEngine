@@ -96,9 +96,9 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         }
     }
 
-    private readonly IFenceSynchronizer _fenceSynchronizer;
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
 
+    // TODO: Change AOS to SOA? Does it even matter since we mostly access resources by handle which is essentially random access?
     private UnsafeSlotMap<ResourceRecord> _resources;
     private UnsafeHashMap<SamplerDesc, Identifier<Sampler>> _samplers;
 #if DEBUG || GHOST_EDITOR
@@ -107,11 +107,11 @@ internal class D3D12ResourceDatabase : IResourceDatabase
 
     private UnsafeQueue<ReleaseEntry> _releaseQueue;
 
+    private uint _currentFrameFenceValue;
     private bool _disposed;
 
-    public D3D12ResourceDatabase(IFenceSynchronizer fenceSynchronizer, D3D12DescriptorAllocator descriptorAllocator)
+    public D3D12ResourceDatabase(D3D12DescriptorAllocator descriptorAllocator)
     {
-        _fenceSynchronizer = fenceSynchronizer;
         _descriptorAllocator = descriptorAllocator;
 
         _resources = new UnsafeSlotMap<ResourceRecord>(64, Allocator.Persistent, AllocationOption.Clear);
@@ -287,7 +287,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
             return;
         }
 
-        var entry = new ReleaseEntry(record, _fenceSynchronizer.CPUFenceValue);
+        var entry = new ReleaseEntry(record, _currentFrameFenceValue);
 
         _releaseQueue.Enqueue(entry);
         _resources.Remove(handle.ID, handle.Generation);
@@ -311,7 +311,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         _resources.Remove(handle.ID, handle.Generation);
     }
 
-    public Identifier<Sampler> CreateSampler(ref readonly SamplerDesc desc, int id)
+    public Identifier<Sampler> AddSampler(ref readonly SamplerDesc desc, int id)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -341,14 +341,20 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         _descriptorAllocator.Release(new Identifier<SamplerDescriptor>(id.Value));
     }
 
-    public void EndFrame()
+    public void BeginFrame(uint currentFrameFenceValue)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        _currentFrameFenceValue = currentFrameFenceValue;
+    }
+
+    public void EndFrame(uint completedFenceValue)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         while (_releaseQueue.Count > 0)
         {
             var toRelease = _releaseQueue.Peek();
-            if (toRelease.fenceValue > _fenceSynchronizer.GPUFenceValue)
+            if (toRelease.fenceValue > completedFenceValue)
             {
                 break;
             }

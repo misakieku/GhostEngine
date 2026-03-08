@@ -37,7 +37,7 @@ public sealed partial class GraphicsTestWindow : Window
         Misaki.HighPerformance.LowLevel.Buffer.AllocationManager.EnableDebugLayer();
 #endif
 
-        _renderSystem = new RenderSystem(new RenderingConfig()
+        _renderSystem = new RenderSystem(new RenderSystemDesc()
         {
             FrameBufferCount = 2,
             GraphicsAPI = GraphicsAPI.Direct3D12

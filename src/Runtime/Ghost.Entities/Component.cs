@@ -23,7 +23,7 @@ internal struct ComponentInfo
     public int size;
     public int alignment;
     public bool isEnableable;
-    public bool isShared;
+    public bool isSharedWarper;
 }
 
 /// <summary>
@@ -42,7 +42,9 @@ internal static class ComponentRegistry
     private static readonly Dictionary<IntPtr, int> s_typeHandleToID = new();
     private static readonly Dictionary<string, int> s_nameToRuntimeID = new();
 
+#if DEBUG || GHOST_EDITOR
     internal static readonly Dictionary<int, Type> s_runtimeIDToType = new();
+#endif
 
     public static unsafe Identifier<IComponent> GetOrRegisterComponentID<T>()
         where T : unmanaged, IComponent
@@ -61,19 +63,21 @@ internal static class ComponentRegistry
             var stableName = typeof(T).FullName ?? typeof(T).Name;
             var info = new ComponentInfo
             {
-                // stableName = new FixedText64(stableName),
+                // stableName = stableName,
                 id = newID,
                 size = sizeof(T),
                 alignment = (int)MemoryUtility.AlignOf<T>(),
                 isEnableable = typeof(IEnableableComponent).IsAssignableFrom(type),
-                //isShared = typeof(ISharedComponent).IsAssignableFrom(type),
+                isSharedWarper = typeof(ISharedWarper).IsAssignableFrom(type),
             };
 
             s_registeredComponents.Add(info);
 
             s_typeHandleToID[typeHandle] = newID;
             s_nameToRuntimeID[stableName] = newID;
+#if DEBUG || GHOST_EDITOR
             s_runtimeIDToType[newID.Value] = typeof(T);
+#endif
 
             return newID;
         }
@@ -143,7 +147,7 @@ internal static class ComponentRegistry
     }
 }
 
-public class ComponentManager : IDisposable
+public partial class ComponentManager : IDisposable
 {
     private readonly World _world;
 

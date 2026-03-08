@@ -7,6 +7,8 @@ public readonly struct RenderContext
     public ICommandBuffer CommandBuffer { get; init; }
 }
 
+// TODO: We may don't need this anymore. We Use RenderExtractionSystem to extract render data from entities and pass them to IRenderPipeline to render.
+
 /// <summary>
 /// High-level renderer interface that uses RHI abstractions
 /// </summary>

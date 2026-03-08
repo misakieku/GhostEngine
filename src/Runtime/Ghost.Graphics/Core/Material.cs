@@ -65,17 +65,17 @@ public struct Material : IResourceReleasable
         get; set;
     }
 
-    public Error SetShader(Identifier<Shader> shaderId, IResourceManager manager)
+    public Error SetShader(Identifier<Shader> shaderId, IResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator)
     {
         if (!shaderId.IsValid)
         {
             return Error.InvalidArgument;
         }
 
-        _cBufferCache.ReleaseResource(manager.ResourceDatabase);
+        _cBufferCache.ReleaseResource(resourceDatabase);
         _shader = shaderId;
 
-        var r = manager.GetShaderReference(shaderId);
+        var r = resourceManager.GetShaderReference(shaderId);
         if (r.IsFailure)
         {
             return r.Error;
@@ -114,7 +114,7 @@ public struct Material : IResourceReleasable
                 MemoryType = ResourceMemoryType.Default,
             };
 
-            var buffer = manager.ResourceAllocator.CreateBuffer(ref desc, "MaterialCBuffer");
+            var buffer = resourceAllocator.CreateBuffer(ref desc, "MaterialCBuffer");
             _cBufferCache = new CBufferCache(buffer, shader.CBufferSize);
         }
 

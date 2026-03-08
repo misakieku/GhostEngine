@@ -8,15 +8,15 @@ public readonly ref struct SystemAPI
     {
         get; init;
     }
+
+    public World World
+    {
+        get; init;
+    }
 }
 
 public interface ISystem
 {
-    World World
-    {
-        get; init;
-    }
-
     void Initialize(ref readonly SystemAPI systemAPI);
     void Update(ref readonly SystemAPI systemAPI);
     void Cleanup(ref readonly SystemAPI systemAPI);
@@ -277,11 +277,7 @@ public abstract class SystemGroup : ISystem
     public void AddSystem<T>()
         where T : ISystem, new()
     {
-        _systems.Add(new T()
-        {
-            World = World
-        });
-
+        _systems.Add(new T());
         _version++;
     }
 
@@ -342,9 +338,7 @@ public abstract class SystemGroup : ISystem
     }
 }
 
-public class DefaultSystemGroup : SystemGroup
-{
-}
+public class DefaultSystemGroup : SystemGroup;
 
 public class SystemManager
 {
@@ -363,10 +357,7 @@ public class SystemManager
     public void AddSystem<T>()
         where T : ISystem, new()
     {
-        _systems.Add(new T()
-        {
-            World = _world
-        });
+        _systems.Add(new T());
     }
 
     public T GetSystem<T>()
@@ -383,24 +374,42 @@ public class SystemManager
         throw new InvalidOperationException($"System of type {typeof(T).FullName} not found in SystemManager.");
     }
 
-    internal void InitializeAll(ref readonly SystemAPI systemAPI)
+    internal void InitializeAll(TimeData timeData)
     {
+        var systemAPI = new SystemAPI
+        {
+            Time = timeData,
+            World = _world
+        };
+
         foreach (var system in _systems)
         {
             system.Initialize(in systemAPI);
         }
     }
 
-    internal void UpdateAll(ref readonly SystemAPI systemAPI)
+    internal void UpdateAll(TimeData timeData)
     {
+        var systemAPI = new SystemAPI
+        {
+            Time = timeData,
+            World = _world
+        };
+
         foreach (var system in _systems)
         {
             system.Update(in systemAPI);
         }
     }
 
-    internal void CleanupAll(ref readonly SystemAPI systemAPI)
+    internal void CleanupAll(TimeData timeData)
     {
+        var systemAPI = new SystemAPI
+        {
+            Time = timeData,
+            World = _world
+        };
+
         foreach (var system in _systems)
         {
             system.Cleanup(in systemAPI);

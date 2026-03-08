@@ -1,5 +1,3 @@
-using Misaki.HighPerformance.Mathematics;
-
 namespace Ghost.Graphics.RHI;
 
 public interface IFenceSynchronizer

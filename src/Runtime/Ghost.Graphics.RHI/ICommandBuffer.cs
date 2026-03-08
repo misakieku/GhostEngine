@@ -95,8 +95,6 @@ public interface ICommandBuffer : IDisposable
     /// </summary>
     void EndRenderPass();
 
-    // TODO: Enhanced barriers.
-
     /// <summary>
     /// Inserts multiple resource barriers.
     /// </summary>

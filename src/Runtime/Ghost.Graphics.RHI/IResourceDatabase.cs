@@ -33,7 +33,6 @@ public enum BindlessAccess
 
 // TODO: Consider adding methods for resource enumeration, statistics, and bulk operations.
 // TODO: Consider adding async resource loading and streaming support.
-// TODO: Mesh, Material, Shader management could be separated into their own interfaces for better modularity because they are not bound to specific graphics API.
 public interface IResourceDatabase : IDisposable
 {
     /*
@@ -114,7 +113,7 @@ public interface IResourceDatabase : IDisposable
     /// <param name="id">An integer identifier to associate with the sampler.</param>
     /// <returns>An <see cref="Identifier{Sampler}"/> representing the sampler that matches the specified description.
     ///     If a matching sampler does not exist, a new sampler is created and its identifier is returned.</returns>
-    Identifier<Sampler> CreateSampler(ref readonly SamplerDesc desc, int id);
+    Identifier<Sampler> AddSampler(ref readonly SamplerDesc desc, int id);
 
     /// <summary>
     /// Determines whether a sampler with the specified identifier exists.

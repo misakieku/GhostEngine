@@ -9,6 +9,7 @@ using Misaki.HighPerformance.Mathematics.Geometry;
 
 namespace Ghost.Graphics.Core;
 
+// TODO: Support sub-meshes and meshlets.
 public struct Mesh : IResourceReleasable
 {
     private UnsafeList<Vertex> _vertices;

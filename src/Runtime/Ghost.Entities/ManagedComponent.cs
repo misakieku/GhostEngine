@@ -24,7 +24,7 @@ public readonly struct Managed<T> : IComponent, IManagedWrapper
 public static class ManagedComponemtnID<T>
     where T : IManagedComponent
 {
-    public static readonly Identifier<IManagedComponent> value = ManagedComponentRegistry.GetOrRegisterComponent<T>();
+    public static readonly Identifier<IManagedComponent> Value = ManagedComponentRegistry.GetOrRegisterComponent<T>();
 }
 
 internal struct ManagedComponentInfo
@@ -67,7 +67,7 @@ internal static class ManagedComponentRegistry
             s_typeHandleToID[typeHandle] = newID;
             s_nameToRuntimeID[stableName] = newID;
 #if DEBUG || GHOST_EDITOR
-            s_runtimeIDToType[newID.value] = typeof(T);
+            s_runtimeIDToType[newID.Value] = typeof(T);
 #endif
 
             return newID;
@@ -109,7 +109,7 @@ internal class ManagedComponentStorage<T> : IManagedComponentStorage
 {
     private readonly SlotMap<T> _storage = new(16);
 
-    public Identifier<IManagedComponent> TypeID => ManagedComponemtnID<T>.value;
+    public Identifier<IManagedComponent> TypeID => ManagedComponemtnID<T>.Value;
 
     public Managed<T> Add(T component)
     {
@@ -177,20 +177,20 @@ public abstract class ScriptComponent : IManagedComponent
 
 public partial class EntityManager
 {
-    private IManagedComponentStorage[] _storages;
+    private IManagedComponentStorage[] _managedStorages;
 
-    internal IManagedComponentStorage[] Storages => _storages;
+    internal IManagedComponentStorage[] ManagedStorages => _managedStorages;
 
     private ManagedComponentStorage<T> GetOrCreateManagedComponentStorage<T>()
         where T : IManagedComponent
     {
-        var id = ManagedComponemtnID<T>.value;
-        if (_storages == null || _storages.Length <= id.value)
+        var id = ManagedComponemtnID<T>.Value;
+        if (_managedStorages == null || _managedStorages.Length <= id.Value)
         {
-            Array.Resize(ref _storages, id.value + 1);
+            Array.Resize(ref _managedStorages, id.Value + 1);
         }
 
-        ref var storage = ref _storages[id.value];
+        ref var storage = ref _managedStorages[id.Value];
         storage ??= new ManagedComponentStorage<T>();
 
         return (ManagedComponentStorage<T>)storage;

@@ -7,23 +7,20 @@ using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.D3D12;
 
 public static class D3D12GraphicsEngineFactory
 {
-    public static IGraphicsEngine Create(IFenceSynchronizer fenceSynchronizer)
+    public static IGraphicsEngine Create(GraphicsEngineDesc desc)
     {
-        return new D3D12GraphicsEngine(fenceSynchronizer);
+        return new D3D12GraphicsEngine(desc);
     }
 }
 
 internal class D3D12GraphicsEngine : IGraphicsEngine
 {
-    private GCHandle _thisHandle;
-
-    private readonly IFenceSynchronizer _fenceSynchronizer;
+    private readonly GraphicsEngineDesc _desc;
 
 #if ENABLE_DEBUG
     private readonly D3D12DebugLayer _debugLayer;
@@ -45,9 +42,9 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
     public IResourceDatabase ResourceDatabase => _resourceDatabase;
     public IResourceAllocator ResourceAllocator => _resourceAllocator;
 
-    public D3D12GraphicsEngine(IFenceSynchronizer fenceSynchronizer)
+    public D3D12GraphicsEngine(GraphicsEngineDesc desc)
     {
-        _fenceSynchronizer = fenceSynchronizer;
+        _desc = desc;
 
 #if ENABLE_DEBUG
         _debugLayer = new D3D12DebugLayer();
@@ -56,7 +53,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         _shaderCompiler = new DxcShaderCompiler();
         _descriptorAllocator = new D3D12DescriptorAllocator(_device);
 
-        _resourceDatabase = new D3D12ResourceDatabase(_fenceSynchronizer, _descriptorAllocator);
+        _resourceDatabase = new D3D12ResourceDatabase(_descriptorAllocator);
         _pipelineLibrary = new D3D12PipelineLibrary(_device, _resourceDatabase);
         _resourceAllocator = new D3D12ResourceAllocator(_device, _descriptorAllocator, _resourceDatabase, _pipelineLibrary);
 
@@ -118,15 +115,19 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
     public ISwapChain CreateSwapChain(SwapChainDesc desc)
     {
         ThrowIfDisposed();
-        return new D3D12SwapChain(_resourceDatabase, _descriptorAllocator, _device, desc, _fenceSynchronizer.MaxFrameLatency);
+        return new D3D12SwapChain(_resourceDatabase, _descriptorAllocator, _device, desc, _desc.FrameBufferCount);
     }
 
-    public Result RenderFrame(ICommandAllocator commandAllocator)
+    public Result RenderFrame(ICommandAllocator commandAllocator, uint cpuFenceValue, uint gpuFenceValue)
     {
         ThrowIfDisposed();
 
         var r = Result.Success();
 
+        _resourceDatabase.BeginFrame(cpuFenceValue);
+
+        // TODO: We should not handle renderers in graphics engine since the purpose of graphics engine is to provide low-level graphics resource management and command buffer creation.
+        // We need to migrate this to IRenderPipeline instead when it's ready.
         foreach (var renderer in _renderers)
         {
             r = renderer.Render(commandAllocator);
@@ -136,7 +137,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
             }
         }
 
-        _resourceDatabase.EndFrame();
+        _resourceDatabase.EndFrame(gpuFenceValue);
 
         return r;
     }
@@ -165,8 +166,6 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
 #if ENABLE_DEBUG
         _debugLayer.Dispose();
 #endif
-
-        _thisHandle.Free();
 
         _disposed = true;
         GC.SuppressFinalize(this);

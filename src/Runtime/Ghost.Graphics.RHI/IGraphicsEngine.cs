@@ -2,6 +2,14 @@ using Ghost.Core;
 
 namespace Ghost.Graphics.RHI;
 
+public readonly struct GraphicsEngineDesc
+{
+    public uint FrameBufferCount
+    {
+        get; init;
+    }
+}
+
 public interface IGraphicsEngine : IDisposable
 {
     IRenderDevice Device
@@ -73,6 +81,8 @@ public interface IGraphicsEngine : IDisposable
     /// Renders the current frame.
     /// </summary>
     /// <param name="commandAllocator">Command allocator to use for rendering</param>
+    /// <param name="cpuFenceValue">CPU fence value for synchronization</param>
+    /// <param name="gpuFenceValue">GPU fence value for synchronization</param>
     /// <returns>Result of the rendering operation</returns>
-    Result RenderFrame(ICommandAllocator commandAllocator);
+    Result RenderFrame(ICommandAllocator commandAllocator, uint cpuFenceValue, uint gpuFenceValue);
 }

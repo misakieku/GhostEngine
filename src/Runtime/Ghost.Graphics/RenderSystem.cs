@@ -33,7 +33,7 @@ public enum GraphicsAPI
     Direct3D12
 }
 
-public struct RenderingConfig
+public struct RenderSystemDesc
 {
     public GraphicsAPI GraphicsAPI
     {
@@ -83,7 +83,7 @@ internal class RenderSystem : IRenderSystem
         }
     }
 
-    private readonly RenderingConfig _config;
+    private readonly RenderSystemDesc _config;
     private readonly IGraphicsEngine _graphicsEngine;
     private readonly IResourceManager _resourceManager;
 
@@ -108,16 +108,21 @@ internal class RenderSystem : IRenderSystem
     public uint FrameIndex => _frameIndex;
     public uint MaxFrameLatency => _config.FrameBufferCount;
 
-    public RenderSystem(RenderingConfig config)
+    public RenderSystem(RenderSystemDesc desc)
     {
-        _config = config;
+        _config = desc;
 
-        switch (config.GraphicsAPI)
+        var engineDesc = new GraphicsEngineDesc
+        {
+            FrameBufferCount = desc.FrameBufferCount
+        };
+
+        switch (desc.GraphicsAPI)
         {
             case GraphicsAPI.Direct3D12:
                 if (OperatingSystem.IsWindowsVersionAtLeast(10, 0, 19041))
                 {
-                    _graphicsEngine = D3D12GraphicsEngineFactory.Create(this);
+                    _graphicsEngine = D3D12GraphicsEngineFactory.Create(engineDesc);
                 }
                 else
                 {
@@ -128,14 +133,14 @@ internal class RenderSystem : IRenderSystem
                 break;
 
             default:
-                throw new NotSupportedException($"The specified graphics API '{config.GraphicsAPI}' is not supported.");
+                throw new NotSupportedException($"The specified graphics API '{desc.GraphicsAPI}' is not supported.");
         }
 
         _resourceManager = new ResourceManager(_graphicsEngine.ResourceAllocator, _graphicsEngine.ResourceDatabase);
 
         // Create frame resources for synchronization
-        _frameResources = new FrameResource[config.FrameBufferCount];
-        for (var i = 0; i < config.FrameBufferCount; i++)
+        _frameResources = new FrameResource[desc.FrameBufferCount];
+        for (var i = 0; i < desc.FrameBufferCount; i++)
         {
             _frameResources[i] = new FrameResource
             {
@@ -275,11 +280,13 @@ internal class RenderSystem : IRenderSystem
                     }
 
                     _resizeRequest.Clear();
+
+                    continue; // Skip rendering this frame since we just resized and may have invalid render targets
                 }
 
                 frameResource.CommandAllocator.Reset();
 
-                var r = _graphicsEngine.RenderFrame(frameResource.CommandAllocator);
+                var r = _graphicsEngine.RenderFrame(frameResource.CommandAllocator, _cpuFenceValue, _gpuFenceValue);
                 if (r.IsFailure)
                 {
                     _isRunning = false;

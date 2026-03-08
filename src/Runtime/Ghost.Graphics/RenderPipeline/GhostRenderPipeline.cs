@@ -49,6 +49,8 @@ public unsafe partial class GhostRenderPipeline : IRenderPipeline
             {
                 request.renderFunc(in ctx, in request);
             }
+
+            // TODO: Set up the rendering pipeline using render graph based on the request data
         }
     }
 

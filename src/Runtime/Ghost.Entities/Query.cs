@@ -103,9 +103,9 @@ public readonly unsafe ref struct ChunkView
         _layouts = archetype._layouts.AsReadOnly();
         _layoutIndexLookup = archetype._componentIDToLayoutIndex.AsReadOnly();
         _pChunkData = chunk.GetUnsafePtr();
+        _pVersion = chunk.GetVersionUnsafePtr();
         _entityOffset = archetype.EntityIDsOffset;
         _entityCount = chunk._count;
-        _pVersion = chunk.GetVersionUnsafePtr();
 
         _structuralVersion = chunk._structuralVersion;
         _currentVersion = World.GetWorldUncheck(archetype.WorldID).Version;
@@ -476,7 +476,7 @@ public unsafe partial struct EntityQuery : IDisposable
     }
 }
 
-public ref partial struct QueryBuilder
+public ref partial struct QueryBuilder : IDisposable
 {
     private readonly Stack.Scope _scope;
 
@@ -503,52 +503,57 @@ public ref partial struct QueryBuilder
         _rw = new UnsafeList<Identifier<IComponent>>(4, _scope.AllocationHandle);
     }
 
+    public static QueryBuilder Create()
+    {
+        return new QueryBuilder();
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void FindMax(UnsafeList<Identifier<IComponent>> list, ref int max)
     {
         foreach (var id in list)
         {
-            if (id.Value > max) max = id.Value;
+            max = Math.Max(max, id.Value);
         }
     }
 
     public void WithAll(params Span<Identifier<IComponent>> componentIDs)
     {
-        _all.AddRange(componentIDs, componentIDs.Length);
+        _all.AddRange(componentIDs);
     }
 
     public void WithAny(params Span<Identifier<IComponent>> componentIDs)
     {
-        _any.AddRange(componentIDs, componentIDs.Length);
+        _any.AddRange(componentIDs);
     }
 
     public void WithAbsent(params Span<Identifier<IComponent>> componentIDs)
     {
-        _absent.AddRange(componentIDs, componentIDs.Length);
+        _absent.AddRange(componentIDs);
     }
 
     public void WithNone(params Span<Identifier<IComponent>> componentIDs)
     {
-        _none.AddRange(componentIDs, componentIDs.Length);
+        _none.AddRange(componentIDs);
     }
 
     public void WithDisabled(params Span<Identifier<IComponent>> componentIDs)
     {
-        _disabled.AddRange(componentIDs, componentIDs.Length);
+        _disabled.AddRange(componentIDs);
     }
 
     public void WithPresent(params Span<Identifier<IComponent>> componentIDs)
     {
-        _present.AddRange(componentIDs, componentIDs.Length);
+        _present.AddRange(componentIDs);
     }
 
     public void WithPresentRW(params Span<Identifier<IComponent>> componentIDs)
     {
-        _present.AddRange(componentIDs, componentIDs.Length);
-        _rw.AddRange(componentIDs, componentIDs.Length);
+        _present.AddRange(componentIDs);
+        _rw.AddRange(componentIDs);
     }
 
-    public Identifier<EntityQuery> Build(World world, Allocator allocator = Allocator.Persistent)
+    private void BuildQueryMask(AllocationHandle allocationHandle, out EntityQueryMask mask)
     {
         // 1. Calculate max component ID to size the BitSets
         var maxID = 0;
@@ -560,16 +565,16 @@ public ref partial struct QueryBuilder
         FindMax(_present, ref maxID);
 
         // 2. Create the Mask
-        var mask = new EntityQueryMask
+        mask = new EntityQueryMask
         {
-            structuralAll = new UnsafeBitSet(maxID + 1, allocator, AllocationOption.Clear),
-            structuralAny = new UnsafeBitSet(maxID + 1, allocator, AllocationOption.Clear),
-            structuralAbsent = new UnsafeBitSet(maxID + 1, allocator, AllocationOption.Clear),
-            requireEnabled = new UnsafeBitSet(maxID + 1, allocator, AllocationOption.Clear),
-            requireDisabled = new UnsafeBitSet(maxID + 1, allocator, AllocationOption.Clear),
-            rejectIfEnabled = new UnsafeBitSet(maxID + 1, allocator, AllocationOption.Clear),
+            structuralAll = new UnsafeBitSet(maxID + 1, allocationHandle, AllocationOption.Clear),
+            structuralAny = new UnsafeBitSet(maxID + 1, allocationHandle, AllocationOption.Clear),
+            structuralAbsent = new UnsafeBitSet(maxID + 1, allocationHandle, AllocationOption.Clear),
+            requireEnabled = new UnsafeBitSet(maxID + 1, allocationHandle, AllocationOption.Clear),
+            requireDisabled = new UnsafeBitSet(maxID + 1, allocationHandle, AllocationOption.Clear),
+            rejectIfEnabled = new UnsafeBitSet(maxID + 1, allocationHandle, AllocationOption.Clear),
 
-            writeAccess = new UnsafeBitSet(maxID + 1, allocator, AllocationOption.Clear),
+            writeAccess = new UnsafeBitSet(maxID + 1, allocationHandle, AllocationOption.Clear),
         };
 
         // 3. Fill BitSets
@@ -616,8 +621,30 @@ public ref partial struct QueryBuilder
         {
             mask.writeAccess.SetBit(id);
         }
+    }
 
-        // 4. Ask World for the Query (Cached)
+    public EntityQuery BuildWithoutCache(World world, AllocationHandle allocationHandle, bool dispose = true)
+    {
+        BuildQueryMask(allocationHandle, out var mask);
+        var query = new EntityQuery(Identifier<EntityQuery>.Invalid, world.ID, ref mask);
+
+        for (var i = 0; i < world.ComponentManager.ArchetypeCount; i++)
+        {
+            query.AddArchetypeIfMatch(in world.ComponentManager.GetArchetypeReference(i));
+        }
+
+        if (dispose)
+        {
+            Dispose();
+        }
+
+        return query;
+    }
+
+    public Identifier<EntityQuery> Build(World world, bool dispose = true)
+    {
+        BuildQueryMask(AllocationManager.GetAllocationHandle(Allocator.Persistent), out var mask);
+
         var maskHash = mask.GetHashCode();
         var queryID = world.ComponentManager.GetEntityQueryIDByMaskHash(maskHash);
         if (queryID.IsValid)
@@ -635,11 +662,26 @@ public ref partial struct QueryBuilder
         queryID = world.ComponentManager.CreateEntityQuery(in mask, maskHash);
 
     Return:
-        Dispose();
+        if (dispose)
+        {
+            Dispose();
+        }
+
         return queryID;
     }
 
-    private readonly void Dispose()
+    public void Clear()
+    {
+        _all.Clear();
+        _any.Clear();
+        _absent.Clear();
+        _none.Clear();
+        _disabled.Clear();
+        _present.Clear();
+        _rw.Clear();
+    }
+
+    public readonly void Dispose()
     {
         _scope.Dispose();
     }

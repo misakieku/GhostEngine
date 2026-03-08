@@ -864,7 +864,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         _device.NativeDevice.Get()->CreateSampler(&samplerDesc, cpuHandle);
         _descriptorAllocator.CopyToShaderVisible(samplerDescriptor);
 
-        return _resourceDatabase.CreateSampler(in desc, samplerDescriptor.Value);
+        return _resourceDatabase.AddSampler(in desc, samplerDescriptor.Value);
     }
 
     public void Dispose()
