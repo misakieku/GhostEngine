@@ -14,7 +14,7 @@ public sealed unsafe class NvttOutputOptionsHandle : IDisposable
 {
     private NvttOutputOptions* _ptr;
 
-    /// <summary>Raw pointer – use only when calling the native API directly.</summary>
+    /// <summary>Raw pointer - use only when calling the native API directly.</summary>
     public NvttOutputOptions* Ptr => _ptr;
 
     // -------------------------------------------------------------------------
@@ -31,7 +31,7 @@ public sealed unsafe class NvttOutputOptionsHandle : IDisposable
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate void ErrorDelegate(Ghost.Nvtt.Native.NvttError error);
 
-    // Pinned delegate instances – must stay alive as long as native code may call them.
+    // Pinned delegate instances - must stay alive as long as native code may call them.
     private BeginImageDelegate? _beginImageDelegate;
     private OutputDataDelegate? _outputDataDelegate;
     private ErrorDelegate? _errorDelegate;

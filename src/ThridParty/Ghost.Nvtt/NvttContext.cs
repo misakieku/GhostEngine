@@ -8,7 +8,7 @@ public sealed unsafe class NvttContextHandle : IDisposable
 {
     private NvttContext* _ptr;
 
-    /// <summary>Raw pointer – use only when calling the native API directly.</summary>
+    /// <summary>Raw pointer - use only when calling the native API directly.</summary>
     public NvttContext* Ptr => _ptr;
 
     // -------------------------------------------------------------------------
@@ -63,7 +63,7 @@ public sealed unsafe class NvttContextHandle : IDisposable
 
     /// <summary>
     /// Returns the timing context owned by this nvtt context.
-    /// The pointer is borrowed – do NOT dispose it separately.
+    /// The pointer is borrowed - do NOT dispose it separately.
     /// Returns <c>null</c> if timing was never enabled.
     /// </summary>
     public NvttTimingContext* GetTimingContextPtr()

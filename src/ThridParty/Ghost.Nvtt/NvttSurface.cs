@@ -11,7 +11,7 @@ public sealed unsafe class NvttSurfaceHandle : IDisposable
 {
     private NvttSurface* _ptr;
 
-    /// <summary>Raw pointer – use only when calling the native API directly.</summary>
+    /// <summary>Raw pointer - use only when calling the native API directly.</summary>
     public NvttSurface* Ptr => _ptr;
 
     // -------------------------------------------------------------------------

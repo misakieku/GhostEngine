@@ -1,4 +1,4 @@
-# Ghost.Nvtt – Usage Guide
+# Ghost.Nvtt - Usage Guide
 
 `Ghost.Nvtt` is a managed C# wrapper over the NVIDIA Texture Tools 3 (nvtt) native library.
 All wrapper classes are in the `Ghost.Nvtt` namespace.  Add a single `using Ghost.Nvtt;` and you have access to every wrapper class and every enum.
@@ -99,7 +99,7 @@ set.LoadDDS("texture_array.dds");
 Console.WriteLine($"{set.FaceCount} faces, {set.MipmapCount} mips, " +
                   $"{set.Width}x{set.Height}");
 
-// Access the raw pointer for face 0, mip 0 (borrowed – do not dispose)
+// Access the raw pointer for face 0, mip 0 (borrowed - do not dispose)
 var surfacePtr = set.GetSurfacePtr(faceId: 0, mipId: 0);
 ```
 
@@ -203,10 +203,10 @@ diff.Save("diff.png");
 
 | Returns | Ownership |
 |---------|-----------|
-| `new NvttSurface(...)` constructor overload accepting a raw pointer | **Takes** ownership – dispose when done |
+| `new NvttSurface(...)` constructor overload accepting a raw pointer | **Takes** ownership - dispose when done |
 | `NvttSurface.Clone()` | Caller owns result |
 | `NvttSurface.CreateSubImage()`, `CreateToksvigMap()` | Caller owns result |
 | `NvttCubeSurface.Unfold()`, `IrradianceFilter()`, `CosinePowerFilter()`, `FastResample()` | Caller owns result |
 | `NvttGlobal.Diff()`, `Histogram()`, `HistogramRange()` | Caller owns result |
-| `NvttCubeSurface.FacePtr()`, `NvttSurfaceSet.GetSurfacePtr()` | **Borrowed** – do NOT dispose |
-| `NvttContext.GetTimingContextPtr()` | **Borrowed** – do NOT dispose |
+| `NvttCubeSurface.FacePtr()`, `NvttSurfaceSet.GetSurfacePtr()` | **Borrowed** - do NOT dispose |
+| `NvttContext.GetTimingContextPtr()` | **Borrowed** - do NOT dispose |

@@ -341,6 +341,23 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         _descriptorAllocator.Release(new Identifier<SamplerDescriptor>(id.Value));
     }
 
+    public Error Swap(Handle<GPUResource> handleA, Handle<GPUResource> handleB)
+    {
+        ref var recordA = ref _resources.GetElementReferenceAt(handleA.ID, handleA.Generation, out var existA);
+        ref var recordB = ref _resources.GetElementReferenceAt(handleB.ID, handleB.Generation, out var existB);
+
+        if (!existA || !existB)
+        {
+            return Error.NotFound;
+        }
+
+        var temp = recordA;
+        recordA = recordB;
+        recordB = temp;
+
+        return Error.None;
+    }
+
     public void BeginFrame(uint currentFrameFenceValue)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);

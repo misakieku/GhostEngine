@@ -127,4 +127,12 @@ public interface IResourceDatabase : IDisposable
     /// </summary>
     /// <param name="id">The identifier of the sampler to release. Must reference a valid, existing sampler.</param>
     void ReleaseSampler(Identifier<Sampler> id);
+
+    /// <summary>
+    /// Swaps the resources associated with the two specified handles, effectively exchanging their identities and all associated data.
+    /// </summary>
+    /// <param name="handleA">The first handle whose associated resource is to be swapped.</param>
+    /// <param name="handleB">The second handle whose associated resource is to be swapped.</param>
+    /// <returns>An Error indicating the success or failure of the swap operation.</returns>
+    Error Swap(Handle<GPUResource> handleA, Handle<GPUResource> handleB);
 }

@@ -1,14 +1,14 @@
 namespace Ghost.Nvtt;
 
 /// <summary>
-/// Controls how a surface is compressed – format, quality, pixel layout and
+/// Controls how a surface is compressed - format, quality, pixel layout and
 /// optional quantization settings.
 /// </summary>
 public sealed unsafe class NvttCompressionOptionsHandle : IDisposable
 {
     private NvttCompressionOptions* _ptr;
 
-    /// <summary>Raw pointer – use only when calling the native API directly.</summary>
+    /// <summary>Raw pointer - use only when calling the native API directly.</summary>
     public NvttCompressionOptions* Ptr => _ptr;
 
     // -------------------------------------------------------------------------

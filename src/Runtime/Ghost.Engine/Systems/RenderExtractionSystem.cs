@@ -3,7 +3,6 @@ using Ghost.Engine.Components;
 using Ghost.Entities;
 using Ghost.Graphics.Core;
 using Misaki.HighPerformance.LowLevel.Buffer;
-using Misaki.HighPerformance.LowLevel.Utilities;
 
 namespace Ghost.Engine.Systems;
 
@@ -14,7 +13,6 @@ public class RenderExtractionSystem : ISystem
     public void Initialize(ref readonly SystemAPI systemAPI)
     {
         _queryID = new QueryBuilder()
-            // TODO: We also need to filter by MeshPalette.
             .WithAll<MeshInstance, LocalToWorld>()
             .Build(systemAPI.World);
     }
@@ -30,6 +28,7 @@ public class RenderExtractionSystem : ISystem
         var renderList = new RenderList(1, 64, Allocator.Temp);
 
         // TODO: We should extract the render record for each camera because different cameras may have different culling results.
+        // TODO: This chould be done in parallel jobs.
         foreach (var chunk in query.GetChunkIterator())
         {
             var meshInstances = chunk.GetComponentData<MeshInstance>();
@@ -47,7 +46,6 @@ public class RenderExtractionSystem : ISystem
                     // mesh = meshInstance.meshIndex,
                     // material = meshInstance.materialIndex,
                     renderingLayerMask = meshInstance.renderingLayerMask,
-                    subMeshIndex = meshInstance.subMeshIndex,
 
                 }, 0);
             }

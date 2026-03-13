@@ -10,7 +10,7 @@ public sealed unsafe class NvttTimingContextHandle : IDisposable
 {
     private NvttTimingContext* _ptr;
 
-    /// <summary>Raw pointer – use only when calling the native API directly.</summary>
+    /// <summary>Raw pointer - use only when calling the native API directly.</summary>
     public NvttTimingContext* Ptr => _ptr;
 
     // -------------------------------------------------------------------------

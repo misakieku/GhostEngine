@@ -8,10 +8,9 @@ namespace Ghost.Graphics.Core;
 public record struct RenderRecord
 {
     public float4x4 localToWorld;
-    public Handle<Material> material;
     public Handle<Mesh> mesh;
+    public Handle<Material> materialOffset;
     public RenderingLayerMask renderingLayerMask;
-    public byte subMeshIndex;
 }
 
 public struct RenderList : IDisposable

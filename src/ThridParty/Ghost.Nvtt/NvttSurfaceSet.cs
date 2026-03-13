@@ -8,7 +8,7 @@ public sealed unsafe class NvttSurfaceSetHandle : IDisposable
 {
     private NvttSurfaceSet* _ptr;
 
-    /// <summary>Raw pointer – use only when calling the native API directly.</summary>
+    /// <summary>Raw pointer - use only when calling the native API directly.</summary>
     public NvttSurfaceSet* Ptr => _ptr;
 
     // -------------------------------------------------------------------------
@@ -72,7 +72,7 @@ public sealed unsafe class NvttSurfaceSetHandle : IDisposable
 
     /// <summary>
     /// Returns the raw <see cref="NvttSurface"/> pointer for the given face
-    /// and mip level.  The pointer is owned by this surface set – do NOT dispose
+    /// and mip level.  The pointer is owned by this surface set - do NOT dispose
     /// it.
     /// </summary>
     public NvttSurface* GetSurfacePtr(int faceId, int mipId, bool expectSigned = false)

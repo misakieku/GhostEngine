@@ -20,7 +20,10 @@ internal sealed class SwapChainRecord
         while (true)
         {
             int current = Volatile.Read(ref _refCount);
-            if (current == 0) return false; // It's dead, let it go.
+            if (current == 0)
+            {
+                return false; // It's dead, let it go.
+            }
 
             if (Interlocked.CompareExchange(ref _refCount, current + 1, current) == current)
             {
@@ -66,7 +69,10 @@ internal class SwapChainManager
 
             if (record != null)
             {
-                if (record.TryAddRef()) return record.SwapChain;
+                if (record.TryAddRef())
+                {
+                    return record.SwapChain;
+                }
 
                 Thread.Yield();
                 continue;

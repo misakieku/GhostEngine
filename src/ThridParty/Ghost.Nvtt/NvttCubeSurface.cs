@@ -10,7 +10,7 @@ public sealed unsafe class NvttCubeSurfaceHandle : IDisposable
 {
     private NvttCubeSurface* _ptr;
 
-    /// <summary>Raw pointer – use only when calling the native API directly.</summary>
+    /// <summary>Raw pointer - use only when calling the native API directly.</summary>
     public NvttCubeSurface* Ptr => _ptr;
 
     // -------------------------------------------------------------------------
@@ -102,7 +102,7 @@ public sealed unsafe class NvttCubeSurfaceHandle : IDisposable
 
     /// <summary>
     /// Returns the raw <see cref="NvttSurface"/> pointer for the given face
-    /// (0–5).  The pointer is owned by this cube surface – do NOT dispose it.
+    /// (0–5).  The pointer is owned by this cube surface - do NOT dispose it.
     /// </summary>
     public NvttSurface* FacePtr(int face)
     {

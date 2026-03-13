@@ -8,7 +8,7 @@ public sealed unsafe class NvttBatchListHandle : IDisposable
 {
     private NvttBatchList* _ptr;
 
-    /// <summary>Raw pointer – use only when calling the native API directly.</summary>
+    /// <summary>Raw pointer - use only when calling the native API directly.</summary>
     public NvttBatchList* Ptr => _ptr;
 
     // -------------------------------------------------------------------------
@@ -62,7 +62,7 @@ public sealed unsafe class NvttBatchListHandle : IDisposable
 
     /// <summary>
     /// Returns the raw pointers for item <paramref name="index"/>.
-    /// The pointers are borrowed – do NOT dispose them.
+    /// The pointers are borrowed - do NOT dispose them.
     /// </summary>
     public void GetItem(uint index,
         out NvttSurface* surface, out int face, out int mipmap,
