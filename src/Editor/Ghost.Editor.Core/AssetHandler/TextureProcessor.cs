@@ -1,5 +1,5 @@
 using Ghost.Nvtt;
-using Ghost.Nvtt.Warper;
+using Ghost.Nvtt.Wrapper;
 using Misaki.HighPerformance.Image;
 using System.IO.Hashing;
 using System.Runtime.CompilerServices;

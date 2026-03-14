@@ -5,7 +5,8 @@ namespace Ghost.Ufbx
         [NativeTypeName("ufbx_vec3")]
         public Misaki.HighPerformance.Mathematics.float3 translation;
 
-        public ufbx_quat rotation;
+        [NativeTypeName("ufbx_quat")]
+        public Misaki.HighPerformance.Mathematics.quaternion rotation;
 
         [NativeTypeName("ufbx_vec3")]
         public Misaki.HighPerformance.Mathematics.float3 scale;

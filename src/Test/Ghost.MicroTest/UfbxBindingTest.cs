@@ -1,12 +1,9 @@
 using Ghost.Test.Core;
 using Ghost.Ufbx;
-using System.Diagnostics;
-using System.Text;
-using static Ghost.Ufbx.Api;
 
 namespace Ghost.MicroTest;
 
-internal unsafe class UfbxBindingTest : ITest
+internal class UfbxBindingTest : ITest
 {
     private static ReadOnlySpan<byte> TestFilePath => "F:/c/Third Parties/ufbx/data/blender_340_z_up_7400_binary.fbx"u8;
 
@@ -16,37 +13,60 @@ internal unsafe class UfbxBindingTest : ITest
 
     public void Run()
     {
-        ufbx_load_opts opts = default;
-        ufbx_error error;
-        ufbx_scene* pScene;
+        // Smoke-test LoadOpts heap-pointer shape (construct, set, read back, dispose)
+        using var opts = new LoadOpts();
+        opts.IgnoreAnimation = true;
+        opts.IgnoreEmbedded = true;
 
-        var path = TestFilePath;
-        fixed (byte* p = path)
-        {
-            pScene = ufbx_load_file((sbyte*)p, &opts, &error);
-        }
+        // Load scene using the safe high-level wrapper (no unsafe, no fixed blocks)
+        using var scene = Scene.LoadFile(TestFilePath, opts);
 
-        if (pScene == null)
+        // Enumerate nodes using the wrapper's NodeList (ref struct, no allocation)
+        for (var i = 0; i < scene.Nodes.Count; i++)
         {
-            Debug.Fail($"Failed to load scene: {Encoding.UTF8.GetString((byte*)error.description.data, (int)error.description.length)}");
-        }
-
-        for (nuint i = 0; i < pScene->nodes.count; i++)
-        {
-            var node = pScene->nodes.data[i];
-            if (node->is_root)
+            var node = scene.Nodes[i];
+            if (node.IsRoot)
             {
                 continue;
             }
 
-            Console.WriteLine($"Object: {Encoding.UTF8.GetString((byte*)node->name.data, (int)node->name.length)}");
-            if (node->mesh != null)
+            // node.Name is a string property — no manual ToString() needed
+            Console.WriteLine($"Object: {node.Name}");
+
+            if (node.HasMesh)
             {
-                Console.WriteLine($"-> mesh with {node->mesh->faces.count} faces");
+                Console.WriteLine($"-> mesh with {node.Mesh.NumFaces} faces");
             }
         }
 
-        ufbx_free_scene(pScene);
+        // Find a node by name using the new instance method (no unsafe, no fixed)
+        var rootNode = scene.FindNode("RootNode"u8);
+        if (!rootNode.IsNull)
+        {
+            Console.WriteLine($"Found root node: {rootNode.Name}");
+        }
+
+        // Find a material by name
+        var material = scene.FindMaterial("Material"u8);
+        if (!material.IsNull)
+        {
+            Console.WriteLine($"Found material: {material.Name}");
+            // Find a prop on the material's props using the instance method
+            var prop = material.Props.FindProp("DiffuseColor"u8);
+            if (!prop.IsNull)
+            {
+                Console.WriteLine($"  DiffuseColor prop type: {prop.Type}");
+            }
+        }
+
+        // Find an anim stack
+        var animStack = scene.FindAnimStack("Take 001"u8);
+        if (!animStack.IsNull)
+        {
+            Console.WriteLine($"Found anim stack: {animStack.Name}");
+        }
+
+        Console.WriteLine("Done.");
     }
 
     public void Cleanup()

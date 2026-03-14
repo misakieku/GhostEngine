@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.InteropServices;
 using static Ghost.Ufbx.ufbx_aperture_format;
 using static Ghost.Ufbx.ufbx_aperture_mode;
@@ -418,7 +419,8 @@ namespace Ghost.Ufbx
         public static extern Misaki.HighPerformance.Mathematics.float3 ufbx_evaluate_baked_vec3(ufbx_baked_vec3_list keyframes, double time);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern ufbx_quat ufbx_evaluate_baked_quat(ufbx_baked_quat_list keyframes, double time);
+        [return: NativeTypeName("ufbx_quat")]
+        public static extern Misaki.HighPerformance.Mathematics.quaternion ufbx_evaluate_baked_quat(ufbx_baked_quat_list keyframes, double time);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern ufbx_bone_pose* ufbx_get_bone_pose([NativeTypeName("const ufbx_pose *")] ufbx_pose* pose, [NativeTypeName("const ufbx_node *")] ufbx_node* node);
@@ -457,30 +459,35 @@ namespace Ghost.Ufbx
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("ufbx_real")]
-        public static extern float ufbx_quat_dot(ufbx_quat a, ufbx_quat b);
+        public static extern float ufbx_quat_dot([NativeTypeName("ufbx_quat")] Misaki.HighPerformance.Mathematics.quaternion a, [NativeTypeName("ufbx_quat")] Misaki.HighPerformance.Mathematics.quaternion b);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern ufbx_quat ufbx_quat_mul(ufbx_quat a, ufbx_quat b);
+        [return: NativeTypeName("ufbx_quat")]
+        public static extern Misaki.HighPerformance.Mathematics.quaternion ufbx_quat_mul([NativeTypeName("ufbx_quat")] Misaki.HighPerformance.Mathematics.quaternion a, [NativeTypeName("ufbx_quat")] Misaki.HighPerformance.Mathematics.quaternion b);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern ufbx_quat ufbx_quat_normalize(ufbx_quat q);
+        [return: NativeTypeName("ufbx_quat")]
+        public static extern Misaki.HighPerformance.Mathematics.quaternion ufbx_quat_normalize([NativeTypeName("ufbx_quat")] Misaki.HighPerformance.Mathematics.quaternion q);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern ufbx_quat ufbx_quat_fix_antipodal(ufbx_quat q, ufbx_quat reference);
+        [return: NativeTypeName("ufbx_quat")]
+        public static extern Misaki.HighPerformance.Mathematics.quaternion ufbx_quat_fix_antipodal([NativeTypeName("ufbx_quat")] Misaki.HighPerformance.Mathematics.quaternion q, [NativeTypeName("ufbx_quat")] Misaki.HighPerformance.Mathematics.quaternion reference);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern ufbx_quat ufbx_quat_slerp(ufbx_quat a, ufbx_quat b, [NativeTypeName("ufbx_real")] float t);
+        [return: NativeTypeName("ufbx_quat")]
+        public static extern Misaki.HighPerformance.Mathematics.quaternion ufbx_quat_slerp([NativeTypeName("ufbx_quat")] Misaki.HighPerformance.Mathematics.quaternion a, [NativeTypeName("ufbx_quat")] Misaki.HighPerformance.Mathematics.quaternion b, [NativeTypeName("ufbx_real")] float t);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("ufbx_vec3")]
-        public static extern Misaki.HighPerformance.Mathematics.float3 ufbx_quat_rotate_vec3(ufbx_quat q, [NativeTypeName("ufbx_vec3")] Misaki.HighPerformance.Mathematics.float3 v);
+        public static extern Misaki.HighPerformance.Mathematics.float3 ufbx_quat_rotate_vec3([NativeTypeName("ufbx_quat")] Misaki.HighPerformance.Mathematics.quaternion q, [NativeTypeName("ufbx_vec3")] Misaki.HighPerformance.Mathematics.float3 v);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("ufbx_vec3")]
-        public static extern Misaki.HighPerformance.Mathematics.float3 ufbx_quat_to_euler(ufbx_quat q, ufbx_rotation_order order);
+        public static extern Misaki.HighPerformance.Mathematics.float3 ufbx_quat_to_euler([NativeTypeName("ufbx_quat")] Misaki.HighPerformance.Mathematics.quaternion q, ufbx_rotation_order order);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern ufbx_quat ufbx_euler_to_quat([NativeTypeName("ufbx_vec3")] Misaki.HighPerformance.Mathematics.float3 v, ufbx_rotation_order order);
+        [return: NativeTypeName("ufbx_quat")]
+        public static extern Misaki.HighPerformance.Mathematics.quaternion ufbx_euler_to_quat([NativeTypeName("ufbx_vec3")] Misaki.HighPerformance.Mathematics.float3 v, ufbx_rotation_order order);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("ufbx_matrix")]

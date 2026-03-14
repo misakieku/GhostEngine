@@ -66,12 +66,14 @@ namespace Ghost.Ufbx
         [NativeTypeName("ufbx_vec3")]
         public Misaki.HighPerformance.Mathematics.float3 adjust_pre_translation;
 
-        public ufbx_quat adjust_pre_rotation;
+        [NativeTypeName("ufbx_quat")]
+        public Misaki.HighPerformance.Mathematics.quaternion adjust_pre_rotation;
 
         [NativeTypeName("ufbx_real")]
         public float adjust_pre_scale;
 
-        public ufbx_quat adjust_post_rotation;
+        [NativeTypeName("ufbx_quat")]
+        public Misaki.HighPerformance.Mathematics.quaternion adjust_post_rotation;
 
         [NativeTypeName("ufbx_real")]
         public float adjust_post_scale;

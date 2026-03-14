@@ -111,7 +111,8 @@ namespace Ghost.Ufbx
 
         public ufbx_mirror_axis handedness_conversion_axis;
 
-        public ufbx_quat root_rotation;
+        [NativeTypeName("ufbx_quat")]
+        public Misaki.HighPerformance.Mathematics.quaternion root_rotation;
 
         [NativeTypeName("ufbx_real")]
         public float root_scale;

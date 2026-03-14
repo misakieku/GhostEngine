@@ -1,5 +1,5 @@
 using Ghost.Nvtt;
-using Ghost.Nvtt.Warper;
+using Ghost.Nvtt.Wrapper;
 using Ghost.Test.Core;
 
 namespace Ghost.MicroTest;

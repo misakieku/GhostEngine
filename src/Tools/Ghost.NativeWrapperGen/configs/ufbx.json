@@ -1,0 +1,221 @@
+{
+  "libraryName": "ufbx",
+  "nativeNamespace": "Ghost.Ufbx",
+  "wrapperNamespace": "Ghost.Ufbx",
+  "nativeTypePrefix": "ufbx_",
+  "staticApiClassName": "Ufbx",
+  "skipTypes": [
+    "NativeAnnotationAttribute",
+    "NativeTypeNameAttribute"
+  ],
+  "wrappers": {
+    "defaultKind": "struct",
+    "defaultOwnedKind": "class",
+    "kinds": {
+      "ufbx_node": "ref struct",
+      "ufbx_mesh": "ref struct",
+      "ufbx_element": "ref struct",
+      "ufbx_anim": "ref struct",
+      "ufbx_material": "ref struct",
+      "ufbx_texture": "ref struct",
+      "ufbx_props": "ref struct",
+      "ufbx_prop": "ref struct",
+      "ufbx_load_opts": "class"
+    }
+  },
+  "specialTypes": {
+    "strings": [
+      {
+        "type": "ufbx_string",
+        "dataField": "data",
+        "lengthField": "length",
+        "charSize": 8,
+        "encoding": "utf8",
+        "emitRawSpanProperty": true,
+        "emitStringProperty": true
+      }
+    ],
+    "blobs": [
+      {
+        "type": "ufbx_blob",
+        "dataField": "data",
+        "lengthField": "size",
+        "elementType": "byte"
+      }
+    ]
+  },
+  "ownedTypes": [
+    {
+      "nativeType": "ufbx_scene",
+      "freeFunction": "ufbx_free_scene",
+      "retainFunction": "ufbx_retain_scene",
+      "wrapperKind": "class"
+    }
+  ],
+  "staticMethods": [
+    {
+      "nativeFunction": "ufbx_load_file_len",
+      "methodName": "LoadFile",
+      "throwOnNullReturn": true,
+      "failureMessageMember": "description",
+      "parameters": [
+        {
+          "native": "filename",
+          "adapter": "utf8Path",
+          "publicName": "pathUtf8"
+        },
+        {
+          "native": "filename_len",
+          "adapter": "utf8Length",
+          "source": "pathUtf8"
+        },
+        {
+          "native": "opts",
+          "adapter": "getPtr",
+          "type": "LoadOpts",
+          "publicName": "options"
+        },
+        {
+          "native": "error",
+          "adapter": "errorOut",
+          "type": "ufbx_error",
+          "publicName": "error"
+        }
+      ]
+    },
+    {
+      "nativeFunction": "ufbx_load_memory",
+      "methodName": "LoadMemory",
+      "throwOnNullReturn": true,
+      "failureMessageMember": "description",
+      "parameters": [
+        {
+          "native": "data",
+          "adapter": "byteSpan",
+          "publicName": "data"
+        },
+        {
+          "native": "data_size",
+          "adapter": "byteSpanLength",
+          "source": "data"
+        },
+        {
+          "native": "opts",
+          "adapter": "inValue",
+          "type": "ufbx_load_opts",
+          "publicName": "options",
+          "optionalDefault": true
+        },
+        {
+          "native": "error",
+          "adapter": "errorOut",
+          "type": "ufbx_error",
+          "publicName": "error"
+        }
+      ]
+    },
+    {
+      "nativeFunction": "ufbx_find_node_len",
+      "methodName": "FindNode",
+      "parameters": [
+        {
+          "native": "name",
+          "adapter": "utf8Path",
+          "publicName": "name"
+        },
+        {
+          "native": "name_len",
+          "adapter": "utf8Length",
+          "source": "name"
+        }
+      ]
+    },
+    {
+      "nativeFunction": "ufbx_find_element_len",
+      "methodName": "FindElement",
+      "parameters": [
+        {
+          "native": "name",
+          "adapter": "utf8Path",
+          "publicName": "name"
+        },
+        {
+          "native": "name_len",
+          "adapter": "utf8Length",
+          "source": "name"
+        }
+      ]
+    },
+    {
+      "nativeFunction": "ufbx_find_material_len",
+      "methodName": "FindMaterial",
+      "parameters": [
+        {
+          "native": "name",
+          "adapter": "utf8Path",
+          "publicName": "name"
+        },
+        {
+          "native": "name_len",
+          "adapter": "utf8Length",
+          "source": "name"
+        }
+      ]
+    },
+    {
+      "nativeFunction": "ufbx_find_anim_stack_len",
+      "methodName": "FindAnimStack",
+      "parameters": [
+        {
+          "native": "name",
+          "adapter": "utf8Path",
+          "publicName": "name"
+        },
+        {
+          "native": "name_len",
+          "adapter": "utf8Length",
+          "source": "name"
+        }
+      ]
+    },
+    {
+      "nativeFunction": "ufbx_find_prop_len",
+      "methodName": "FindProp",
+      "parameters": [
+        {
+          "native": "name",
+          "adapter": "utf8Path",
+          "publicName": "name"
+        },
+        {
+          "native": "name_len",
+          "adapter": "utf8Length",
+          "source": "name"
+        }
+      ]
+    }
+  ],
+  "marshalledTypes": [
+    {
+      "nativeType": "ufbx_load_opts",
+      "marshalledProperties": [
+        {
+          "native": "obj_mtl_path",
+          "type": "cstring"
+        },
+        {
+          "native": "filename",
+          "type": "cstring"
+        }
+      ]
+    }
+  ],
+  "typeNameOverrides": {
+    "ufbx_string": "UfbxString",
+    "ufbx_blob": "UfbxBlob"
+  },
+  "publicTypeOverrides": {
+    "ufbx_string": "string",
+    "ufbx_blob": "ReadOnlySpan<byte>"
+  }
+}

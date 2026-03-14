@@ -47,4 +47,7 @@
       <Deploy />
     </Project>
   </Folder>
+  <Folder Name="/Tools/">
+    <Project Path="Tools/Ghost.NativeWrapperGen/Ghost.NativeWrapperGen.csproj" />
+  </Folder>
 </Solution>

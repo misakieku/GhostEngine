@@ -4,7 +4,8 @@ namespace Ghost.Ufbx
     {
         public double time;
 
-        public ufbx_quat value;
+        [NativeTypeName("ufbx_quat")]
+        public Misaki.HighPerformance.Mathematics.quaternion value;
 
         public ufbx_baked_key_flags flags;
     }
