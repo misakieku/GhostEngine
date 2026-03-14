@@ -59,7 +59,7 @@ internal static class ActivationHandler
             ((EngineCore)App.GetService<IEngineContext>()).Init();
         });
 
-        await ((Core.AssetHandle.AssetService)App.GetService<IAssetService>()).Init();
+        // await ((Core.AssetHandle.AssetService)App.GetService<IAssetService>()).Init();
 
         // TODO: Init other subsystems here.
         // await Task.Delay(10000); // Wait 10 seconds to simulate work.

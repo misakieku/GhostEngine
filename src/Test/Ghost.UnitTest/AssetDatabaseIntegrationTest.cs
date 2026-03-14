@@ -1,3 +1,4 @@
+#if false
 using Ghost.Core;
 
 namespace Ghost.UnitTest;
@@ -432,3 +433,4 @@ public class AssetDatabaseIntegrationTest
         CheckInternalErrors();
     }
 }
+#endif

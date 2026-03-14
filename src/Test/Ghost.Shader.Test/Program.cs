@@ -1,7 +1,8 @@
+using Ghost.DSL.Generator;
 using Misaki.HighPerformance.Mathematics;
 using System.Numerics;
 
-//ShaderStructGenerator.GenerateHLSL([typeof(TestStruct), typeof(TestEnum), typeof(TestEnumFlags)], PackingRules.Exact, "C:/Users/Misaki/Downloads/Archive/Test.cs.hlsl");
+ShaderStructGenerator.GenerateHLSL([typeof(TestStruct), typeof(TestEnum), typeof(TestEnumFlags)], PackingRules.Exact, "C:/Users/Misaki/Downloads/Archive/Test.cs.hlsl");
 
 //return;
 #if false

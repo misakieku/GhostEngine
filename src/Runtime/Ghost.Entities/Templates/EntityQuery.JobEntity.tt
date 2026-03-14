@@ -18,7 +18,7 @@ namespace Ghost.Entities;
 public interface IJobEntity<<#= generics #>>
 <#= restrictions #>
 {
-    void Execute(Entity entity, <#= AppendParameters(i, "ref T{0} component{0}") #>, int threadIndex);
+    void Execute(Entity entity, <#= AppendParameters(i, "ref T{0} component{0}") #>, ref readonly JobExecutionContext ctx);
 }
 
 internal unsafe struct JobEntityBatch<TJob, <#= generics #>> : IJobParallelFor
@@ -38,12 +38,12 @@ internal unsafe struct JobEntityBatch<TJob, <#= generics #>> : IJobParallelFor
 <# for (var j = 0; j < i; j++){ #>
     public UnsafeList<int> offsets<#= j #>;
     public UnsafeList<int> bitsOffsets<#= j #>;
-    public UnsafeList<int> versionindices<#= j #>;
+    public UnsafeList<int> versionIndices<#= j #>;
 
 <# } #>
     public int version;
 
-    public void Execute(int loopIndex, int threadIndex)
+    public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {
         // 1. Get the specific pChunk for this thread
         var pChunk = (byte*)chunks[loopIndex];
@@ -53,7 +53,7 @@ internal unsafe struct JobEntityBatch<TJob, <#= generics #>> : IJobParallelFor
 <# for (var j = 0; j < i; j++){ #>
         var off<#= j #> = offsets<#= j #>[loopIndex];
         var enableOff<#= j #> = bitsOffsets<#= j #>[loopIndex];
-        var versionIndex<#= j #> = versionindices<#= j #>[loopIndex];
+        var versionIndex<#= j #> = versionIndices<#= j #>[loopIndex];
 
 <# } #>
         var pEntity = (Entity*)(pChunk + entityOffset[loopIndex]);
@@ -79,7 +79,7 @@ internal unsafe struct JobEntityBatch<TJob, <#= generics #>> : IJobParallelFor
             }
 
 <# } #>
-            userJob.Execute(pEntity[i], <#= AppendParameters(i, "ref ptr{0}[i]") #>, threadIndex);
+            userJob.Execute(pEntity[i], <#= AppendParameters(i, "ref ptr{0}[i]") #>, in ctx);
         }
     }
 }
@@ -102,10 +102,10 @@ public unsafe partial struct EntityQuery
 <# for (var j = 0; j < i; j++){ #>
         public UnsafeList<int> offsets<#= j #>;
         public UnsafeList<int> bitsOffsets<#= j #>;
-        public UnsafeList<int> versionindices<#= j #>;
+        public UnsafeList<int> versionIndices<#= j #>;
 
 <# } #>
-        public void Execute(int threadIndex)
+        public void Execute(ref readonly JobExecutionContext ctx)
         {
             chunks.Dispose();
             chunkVersions.Dispose();
@@ -115,7 +115,7 @@ public unsafe partial struct EntityQuery
 <# for (var j = 0; j < i; j++){ #>
             offsets<#= j #>.Dispose();
             bitsOffsets<#= j #>.Dispose();
-            versionindices<#= j #>.Dispose();
+            versionIndices<#= j #>.Dispose();
 
 <# } #>
         }
@@ -160,8 +160,7 @@ public unsafe partial struct EntityQuery
 
             // Get offsets ONCE per archetype
 <# for (var j = 0; j < i; j++){ #>
-            var layout<#= j #> = arch.GetLayout(ComponentTypeID<T<#= j #>>.Value)
-                .GetValueOrThrow();
+            var layout<#= j #> = arch.GetLayout(ComponentTypeID<T<#= j #>>.Value).GetValueOrThrow();
 <# } #>
 
             // Add all chunks from this archetype
@@ -195,7 +194,7 @@ public unsafe partial struct EntityQuery
 <# for (var j = 0; j < i; j++){ #>
             offsets<#= j #> = offsets<#= j #>,
             bitsOffsets<#= j #> = bitsOffsets<#= j #>,
-            versionindices<#= j #> = versionIndices<#= j #>,
+            versionIndices<#= j #> = versionIndices<#= j #>,
 
 <# } #>
             version = world.Version,
@@ -229,7 +228,7 @@ public unsafe partial struct EntityQuery
 <# for (var j = 0; j < i; j++){ #>
             offsets<#= j #> = offsets<#= j #>,
             bitsOffsets<#= j #> = bitsOffsets<#= j #>,
-            versionindices<#= j #> = versionIndices<#= j #>,
+            versionIndices<#= j #> = versionIndices<#= j #>,
 
 <# } #>
         };

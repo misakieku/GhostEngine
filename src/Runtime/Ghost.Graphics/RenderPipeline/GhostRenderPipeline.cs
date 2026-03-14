@@ -61,6 +61,8 @@ public unsafe partial class GhostRenderPipeline : IRenderPipeline
             return;
         }
 
+        _renderGraph.Dispose();
+
         _disposed = true;
         GC.SuppressFinalize(this);
     }

@@ -8,6 +8,7 @@ namespace Ghost.Graphics.RenderGraphModule;
 public interface IRenderGraphContext
 {
     IResourceManager ResourceManager { get; }
+    IResourceDatabase ResourceDatabase { get; }
 
     Handle<GPUResource> GetActualResource(Identifier<RGResource> resource);
     Handle<Texture> GetActualTexture(Identifier<RGTexture> texture);
@@ -58,6 +59,7 @@ internal sealed class RenderGraphContext : IRasterRenderContext, IComputeRenderC
     private int _activeMeshIndexCount;
 
     public IResourceManager ResourceManager => _resourceManager;
+    public IResourceDatabase ResourceDatabase => _resourceDatabase;
 
     public int ActiveMeshIndexCount => _activeMeshIndexCount;
 

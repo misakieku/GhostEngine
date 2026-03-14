@@ -19,8 +19,7 @@ internal class SystemTest : ITest
 
         group.SortSystems();
 
-        var api = new SystemAPI();
-        _world.SystemManager.InitializeAll(in api);
+        _world.SystemManager.InitializeAll(new TimeData());
     }
 
     public void Cleanup()

@@ -42,9 +42,8 @@ public class RenderExtractionSystem : ISystem
                 renderList.Add(new RenderRecord
                 {
                     localToWorld = localToWorld.matrix,
-                    // TODO: Get mesh and material from palette. This requires some changes to ISharedComponent since it's now fully functional right now.
-                    // mesh = meshInstance.meshIndex,
-                    // material = meshInstance.materialIndex,
+                    mesh = meshInstance.mesh,
+                    materialPaletteIndex = meshInstance.materialPaletteIndex,
                     renderingLayerMask = meshInstance.renderingLayerMask,
 
                 }, 0);

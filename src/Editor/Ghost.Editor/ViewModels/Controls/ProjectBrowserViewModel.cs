@@ -10,7 +10,7 @@ namespace Ghost.Editor.ViewModels.Controls;
 internal partial class ProjectBrowserViewModel : ObservableObject
 {
     private readonly IInspectorService _inspectorService;
-    private readonly IAssetService _assetService;
+    // private readonly IAssetService _assetService;
 
     private readonly Dictionary<string, ExplorerItem> _pathToDirectoryItemMap = new();
     private ExplorerItem? _selectedItem;
@@ -40,10 +40,10 @@ internal partial class ProjectBrowserViewModel : ObservableObject
         get; set;
     } = string.Empty;
 
-    public ProjectBrowserViewModel(IInspectorService inspectorService, IAssetService assetService)
+    public ProjectBrowserViewModel(IInspectorService inspectorService) // , IAssetService assetService)
     {
         _inspectorService = inspectorService;
-        _assetService = assetService;
+        // _assetService = assetService;
 
         var assetsRootItem = new ExplorerItem(EditorApplication.ASSETS_FOLDER_NAME, Path.Combine(EditorApplication.ProjectPath, EditorApplication.ASSETS_FOLDER_NAME), true);
         LoadSubFolderRecursive(assetsRootItem);
@@ -109,7 +109,7 @@ internal partial class ProjectBrowserViewModel : ObservableObject
         }
         else
         {
-            _assetService.OpenAsset(SelectedItem.FullName);
+            // _assetService.OpenAsset(SelectedItem.FullName);
             return (null, 1);
         }
     }

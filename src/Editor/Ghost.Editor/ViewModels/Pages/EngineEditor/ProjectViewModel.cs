@@ -7,7 +7,7 @@ namespace Ghost.Editor.ViewModels.Pages.EngineEditor;
 
 internal partial class ProjectViewModel : ObservableObject
 {
-    private readonly IAssetService _assetService;
+    // private readonly IAssetService _assetService;
 
     public ObservableCollection<ExplorerItem> SubDirectories
     {
@@ -35,15 +35,15 @@ internal partial class ProjectViewModel : ObservableObject
         set;
     }
 
-    public ProjectViewModel(IAssetService assetService)
-    {
-        _assetService = assetService;
+    // public ProjectViewModel(IAssetService assetService)
+    // {
+    //     _assetService = assetService;
 
-        var assetsRootItem = new ExplorerItem("Assets", Path.Combine(EditorApplication.ProjectPath, EditorApplication.ASSETS_FOLDER_NAME), true);
-        LoadSubFolderRecursive(ref assetsRootItem);
+    //     var assetsRootItem = new ExplorerItem("Assets", Path.Combine(EditorApplication.ProjectPath, EditorApplication.ASSETS_FOLDER_NAME), true);
+    //     LoadSubFolderRecursive(ref assetsRootItem);
 
-        SubDirectories.Add(assetsRootItem);
-    }
+    //     SubDirectories.Add(assetsRootItem);
+    // }
 
     private static void LoadSubFolderRecursive(ref ExplorerItem parentItem)
     {
@@ -127,7 +127,7 @@ internal partial class ProjectViewModel : ObservableObject
         }
         else
         {
-            _assetService.OpenAsset(SelectedAsset.FullName);
+            // _assetService.OpenAsset(SelectedAsset.FullName);
         }
     }
 

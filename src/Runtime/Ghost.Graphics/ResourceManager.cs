@@ -72,6 +72,38 @@ public interface IResourceManager
     void ReleaseMaterial(Handle<Material> handle);
 
     /// <summary>
+    /// Returns an existing material palette index for the specified material sequence or creates a new one.
+    /// </summary>
+    /// <param name="materials">The ordered material list for the palette.</param>
+    /// <returns>The palette index. Index 0 represents an empty palette.</returns>
+    int GetOrCreateMaterialPalette(ReadOnlySpan<Handle<Material>> materials);
+
+    /// <summary>
+    /// Determines whether the specified material palette index is valid.
+    /// </summary>
+    /// <param name="paletteIndex">The palette index to validate.</param>
+    bool HasMaterialPalette(int paletteIndex);
+
+    /// <summary>
+    /// Gets metadata for a material palette entry.
+    /// </summary>
+    /// <param name="paletteIndex">The palette index to query.</param>
+    MaterialPaletteInfo GetMaterialPaletteInfo(int paletteIndex);
+
+    /// <summary>
+    /// Gets a material handle from a palette entry by local material index.
+    /// </summary>
+    /// <param name="paletteIndex">The palette index to query.</param>
+    /// <param name="localMaterialIndex">The material slot inside the palette.</param>
+    Handle<Material> GetMaterialPaletteMaterial(int paletteIndex, int localMaterialIndex);
+
+    /// <summary>
+    /// Releases a material palette reference previously returned by <see cref="GetOrCreateMaterialPalette(ReadOnlySpan{Handle{Material}})"/>.
+    /// </summary>
+    /// <param name="paletteIndex">The palette index to release.</param>
+    void ReleaseMaterialPalette(int paletteIndex);
+
+    /// <summary>
     /// Determines whether a shader with the specified identifier exists in the collection.
     /// </summary>
     /// <param name="id">The identifier of the shader to check for existence.</param>
@@ -101,6 +133,8 @@ internal sealed class ResourceManager : IResourceManager, IDisposable
     private UnsafeSlotMap<Material> _materials;
     private UnsafeList<Shader> _shaders; // TODO: Use SlotMap?
 
+    private readonly MaterialPaletteStore _materialPalettes;
+
     private bool _disposed;
 
     public ResourceManager(IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase)
@@ -111,6 +145,7 @@ internal sealed class ResourceManager : IResourceManager, IDisposable
         _meshes = new UnsafeSlotMap<Mesh>(64, Allocator.Persistent);
         _materials = new UnsafeSlotMap<Material>(64, Allocator.Persistent);
         _shaders = new UnsafeList<Shader>(16, Allocator.Persistent);
+        _materialPalettes = new MaterialPaletteStore();
     }
 
     ~ResourceManager()
@@ -168,7 +203,7 @@ internal sealed class ResourceManager : IResourceManager, IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         var material = new Material();
-        if (material.SetShader(shader, this) != Error.None)
+        if (material.SetShader(shader, this, _resourceDatabase, _resourceAllocator) != Error.None)
         {
             return Handle<Material>.Invalid;
         }
@@ -249,6 +284,45 @@ internal sealed class ResourceManager : IResourceManager, IDisposable
         material.ReleaseResource(_resourceDatabase);
     }
 
+    public int GetOrCreateMaterialPalette(ReadOnlySpan<Handle<Material>> materials)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        foreach (var material in materials)
+        {
+            if (material.IsInvalid || !HasMaterial(material))
+            {
+                return 0;
+            }
+        }
+
+        return _materialPalettes.InsertOrGet(materials);
+    }
+
+    public bool HasMaterialPalette(int paletteIndex)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return _materialPalettes.IsValid(paletteIndex);
+    }
+
+    public MaterialPaletteInfo GetMaterialPaletteInfo(int paletteIndex)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return _materialPalettes.GetInfo(paletteIndex);
+    }
+
+    public Handle<Material> GetMaterialPaletteMaterial(int paletteIndex, int localMaterialIndex)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return _materialPalettes.GetMaterial(paletteIndex, localMaterialIndex);
+    }
+
+    public void ReleaseMaterialPalette(int paletteIndex)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        _materialPalettes.Release(paletteIndex);
+    }
+
     public bool HasShader(Identifier<Shader> id)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -303,6 +377,7 @@ internal sealed class ResourceManager : IResourceManager, IDisposable
         _meshes.Dispose();
         _materials.Dispose();
         _shaders.Dispose();
+        _materialPalettes.Dispose();
 
         _disposed = true;
         GC.SuppressFinalize(this);

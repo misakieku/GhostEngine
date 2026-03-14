@@ -5,11 +5,11 @@ using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Graphics.Core;
 
-public record struct RenderRecord
+public struct RenderRecord
 {
     public float4x4 localToWorld;
     public Handle<Mesh> mesh;
-    public Handle<Material> materialOffset;
+    public int materialPaletteIndex;
     public RenderingLayerMask renderingLayerMask;
 }
 

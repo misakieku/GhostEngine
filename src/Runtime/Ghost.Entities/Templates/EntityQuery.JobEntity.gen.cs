@@ -7,7 +7,7 @@ namespace Ghost.Entities;
 public interface IJobEntity<T0>
     where T0 : unmanaged, IComponent
 {
-    void Execute(Entity entity, ref T0 component0, int threadIndex);
+    void Execute(Entity entity, ref T0 component0, ref readonly JobExecutionContext ctx);
 }
 
 internal unsafe struct JobEntityBatch<TJob, T0> : IJobParallelFor
@@ -26,11 +26,11 @@ internal unsafe struct JobEntityBatch<TJob, T0> : IJobParallelFor
 
     public UnsafeList<int> offsets0;
     public UnsafeList<int> bitsOffsets0;
-    public UnsafeList<int> versionindices0;
+    public UnsafeList<int> versionIndices0;
 
     public int version;
 
-    public void Execute(int loopIndex, int threadIndex)
+    public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {
         // 1. Get the specific pChunk for this thread
         var pChunk = (byte*)chunks[loopIndex];
@@ -39,7 +39,7 @@ internal unsafe struct JobEntityBatch<TJob, T0> : IJobParallelFor
 
         var off0 = offsets0[loopIndex];
         var enableOff0 = bitsOffsets0[loopIndex];
-        var versionIndex0 = versionindices0[loopIndex];
+        var versionIndex0 = versionIndices0[loopIndex];
 
         var pEntity = (Entity*)(pChunk + entityOffset[loopIndex]);
         var ptr0 = (T0*)(pChunk + off0);
@@ -58,7 +58,7 @@ internal unsafe struct JobEntityBatch<TJob, T0> : IJobParallelFor
                 continue;
             }
 
-            userJob.Execute(pEntity[i], ref ptr0[i], threadIndex);
+            userJob.Execute(pEntity[i], ref ptr0[i], in ctx);
         }
     }
 }
@@ -67,7 +67,7 @@ public interface IJobEntity<T0, T1>
     where T0 : unmanaged, IComponent
     where T1 : unmanaged, IComponent
 {
-    void Execute(Entity entity, ref T0 component0, ref T1 component1, int threadIndex);
+    void Execute(Entity entity, ref T0 component0, ref T1 component1, ref readonly JobExecutionContext ctx);
 }
 
 internal unsafe struct JobEntityBatch<TJob, T0, T1> : IJobParallelFor
@@ -87,15 +87,15 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1> : IJobParallelFor
 
     public UnsafeList<int> offsets0;
     public UnsafeList<int> bitsOffsets0;
-    public UnsafeList<int> versionindices0;
+    public UnsafeList<int> versionIndices0;
 
     public UnsafeList<int> offsets1;
     public UnsafeList<int> bitsOffsets1;
-    public UnsafeList<int> versionindices1;
+    public UnsafeList<int> versionIndices1;
 
     public int version;
 
-    public void Execute(int loopIndex, int threadIndex)
+    public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {
         // 1. Get the specific pChunk for this thread
         var pChunk = (byte*)chunks[loopIndex];
@@ -104,11 +104,11 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1> : IJobParallelFor
 
         var off0 = offsets0[loopIndex];
         var enableOff0 = bitsOffsets0[loopIndex];
-        var versionIndex0 = versionindices0[loopIndex];
+        var versionIndex0 = versionIndices0[loopIndex];
 
         var off1 = offsets1[loopIndex];
         var enableOff1 = bitsOffsets1[loopIndex];
-        var versionIndex1 = versionindices1[loopIndex];
+        var versionIndex1 = versionIndices1[loopIndex];
 
         var pEntity = (Entity*)(pChunk + entityOffset[loopIndex]);
         var ptr0 = (T0*)(pChunk + off0);
@@ -138,7 +138,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1> : IJobParallelFor
                 continue;
             }
 
-            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], threadIndex);
+            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], in ctx);
         }
     }
 }
@@ -148,7 +148,7 @@ public interface IJobEntity<T0, T1, T2>
     where T1 : unmanaged, IComponent
     where T2 : unmanaged, IComponent
 {
-    void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, int threadIndex);
+    void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, ref readonly JobExecutionContext ctx);
 }
 
 internal unsafe struct JobEntityBatch<TJob, T0, T1, T2> : IJobParallelFor
@@ -169,19 +169,19 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2> : IJobParallelFor
 
     public UnsafeList<int> offsets0;
     public UnsafeList<int> bitsOffsets0;
-    public UnsafeList<int> versionindices0;
+    public UnsafeList<int> versionIndices0;
 
     public UnsafeList<int> offsets1;
     public UnsafeList<int> bitsOffsets1;
-    public UnsafeList<int> versionindices1;
+    public UnsafeList<int> versionIndices1;
 
     public UnsafeList<int> offsets2;
     public UnsafeList<int> bitsOffsets2;
-    public UnsafeList<int> versionindices2;
+    public UnsafeList<int> versionIndices2;
 
     public int version;
 
-    public void Execute(int loopIndex, int threadIndex)
+    public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {
         // 1. Get the specific pChunk for this thread
         var pChunk = (byte*)chunks[loopIndex];
@@ -190,15 +190,15 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2> : IJobParallelFor
 
         var off0 = offsets0[loopIndex];
         var enableOff0 = bitsOffsets0[loopIndex];
-        var versionIndex0 = versionindices0[loopIndex];
+        var versionIndex0 = versionIndices0[loopIndex];
 
         var off1 = offsets1[loopIndex];
         var enableOff1 = bitsOffsets1[loopIndex];
-        var versionIndex1 = versionindices1[loopIndex];
+        var versionIndex1 = versionIndices1[loopIndex];
 
         var off2 = offsets2[loopIndex];
         var enableOff2 = bitsOffsets2[loopIndex];
-        var versionIndex2 = versionindices2[loopIndex];
+        var versionIndex2 = versionIndices2[loopIndex];
 
         var pEntity = (Entity*)(pChunk + entityOffset[loopIndex]);
         var ptr0 = (T0*)(pChunk + off0);
@@ -239,7 +239,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2> : IJobParallelFor
                 continue;
             }
 
-            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], threadIndex);
+            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], in ctx);
         }
     }
 }
@@ -250,7 +250,7 @@ public interface IJobEntity<T0, T1, T2, T3>
     where T2 : unmanaged, IComponent
     where T3 : unmanaged, IComponent
 {
-    void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, ref T3 component3, int threadIndex);
+    void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, ref T3 component3, ref readonly JobExecutionContext ctx);
 }
 
 internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3> : IJobParallelFor
@@ -272,23 +272,23 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3> : IJobParallelFor
 
     public UnsafeList<int> offsets0;
     public UnsafeList<int> bitsOffsets0;
-    public UnsafeList<int> versionindices0;
+    public UnsafeList<int> versionIndices0;
 
     public UnsafeList<int> offsets1;
     public UnsafeList<int> bitsOffsets1;
-    public UnsafeList<int> versionindices1;
+    public UnsafeList<int> versionIndices1;
 
     public UnsafeList<int> offsets2;
     public UnsafeList<int> bitsOffsets2;
-    public UnsafeList<int> versionindices2;
+    public UnsafeList<int> versionIndices2;
 
     public UnsafeList<int> offsets3;
     public UnsafeList<int> bitsOffsets3;
-    public UnsafeList<int> versionindices3;
+    public UnsafeList<int> versionIndices3;
 
     public int version;
 
-    public void Execute(int loopIndex, int threadIndex)
+    public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {
         // 1. Get the specific pChunk for this thread
         var pChunk = (byte*)chunks[loopIndex];
@@ -297,19 +297,19 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3> : IJobParallelFor
 
         var off0 = offsets0[loopIndex];
         var enableOff0 = bitsOffsets0[loopIndex];
-        var versionIndex0 = versionindices0[loopIndex];
+        var versionIndex0 = versionIndices0[loopIndex];
 
         var off1 = offsets1[loopIndex];
         var enableOff1 = bitsOffsets1[loopIndex];
-        var versionIndex1 = versionindices1[loopIndex];
+        var versionIndex1 = versionIndices1[loopIndex];
 
         var off2 = offsets2[loopIndex];
         var enableOff2 = bitsOffsets2[loopIndex];
-        var versionIndex2 = versionindices2[loopIndex];
+        var versionIndex2 = versionIndices2[loopIndex];
 
         var off3 = offsets3[loopIndex];
         var enableOff3 = bitsOffsets3[loopIndex];
-        var versionIndex3 = versionindices3[loopIndex];
+        var versionIndex3 = versionIndices3[loopIndex];
 
         var pEntity = (Entity*)(pChunk + entityOffset[loopIndex]);
         var ptr0 = (T0*)(pChunk + off0);
@@ -361,7 +361,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3> : IJobParallelFor
                 continue;
             }
 
-            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], ref ptr3[i], threadIndex);
+            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], ref ptr3[i], in ctx);
         }
     }
 }
@@ -373,7 +373,7 @@ public interface IJobEntity<T0, T1, T2, T3, T4>
     where T3 : unmanaged, IComponent
     where T4 : unmanaged, IComponent
 {
-    void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, ref T3 component3, ref T4 component4, int threadIndex);
+    void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, ref T3 component3, ref T4 component4, ref readonly JobExecutionContext ctx);
 }
 
 internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4> : IJobParallelFor
@@ -396,27 +396,27 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4> : IJobParallelFo
 
     public UnsafeList<int> offsets0;
     public UnsafeList<int> bitsOffsets0;
-    public UnsafeList<int> versionindices0;
+    public UnsafeList<int> versionIndices0;
 
     public UnsafeList<int> offsets1;
     public UnsafeList<int> bitsOffsets1;
-    public UnsafeList<int> versionindices1;
+    public UnsafeList<int> versionIndices1;
 
     public UnsafeList<int> offsets2;
     public UnsafeList<int> bitsOffsets2;
-    public UnsafeList<int> versionindices2;
+    public UnsafeList<int> versionIndices2;
 
     public UnsafeList<int> offsets3;
     public UnsafeList<int> bitsOffsets3;
-    public UnsafeList<int> versionindices3;
+    public UnsafeList<int> versionIndices3;
 
     public UnsafeList<int> offsets4;
     public UnsafeList<int> bitsOffsets4;
-    public UnsafeList<int> versionindices4;
+    public UnsafeList<int> versionIndices4;
 
     public int version;
 
-    public void Execute(int loopIndex, int threadIndex)
+    public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {
         // 1. Get the specific pChunk for this thread
         var pChunk = (byte*)chunks[loopIndex];
@@ -425,23 +425,23 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4> : IJobParallelFo
 
         var off0 = offsets0[loopIndex];
         var enableOff0 = bitsOffsets0[loopIndex];
-        var versionIndex0 = versionindices0[loopIndex];
+        var versionIndex0 = versionIndices0[loopIndex];
 
         var off1 = offsets1[loopIndex];
         var enableOff1 = bitsOffsets1[loopIndex];
-        var versionIndex1 = versionindices1[loopIndex];
+        var versionIndex1 = versionIndices1[loopIndex];
 
         var off2 = offsets2[loopIndex];
         var enableOff2 = bitsOffsets2[loopIndex];
-        var versionIndex2 = versionindices2[loopIndex];
+        var versionIndex2 = versionIndices2[loopIndex];
 
         var off3 = offsets3[loopIndex];
         var enableOff3 = bitsOffsets3[loopIndex];
-        var versionIndex3 = versionindices3[loopIndex];
+        var versionIndex3 = versionIndices3[loopIndex];
 
         var off4 = offsets4[loopIndex];
         var enableOff4 = bitsOffsets4[loopIndex];
-        var versionIndex4 = versionindices4[loopIndex];
+        var versionIndex4 = versionIndices4[loopIndex];
 
         var pEntity = (Entity*)(pChunk + entityOffset[loopIndex]);
         var ptr0 = (T0*)(pChunk + off0);
@@ -504,7 +504,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4> : IJobParallelFo
                 continue;
             }
 
-            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], ref ptr3[i], ref ptr4[i], threadIndex);
+            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], ref ptr3[i], ref ptr4[i], in ctx);
         }
     }
 }
@@ -517,7 +517,7 @@ public interface IJobEntity<T0, T1, T2, T3, T4, T5>
     where T4 : unmanaged, IComponent
     where T5 : unmanaged, IComponent
 {
-    void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, ref T3 component3, ref T4 component4, ref T5 component5, int threadIndex);
+    void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, ref T3 component3, ref T4 component4, ref T5 component5, ref readonly JobExecutionContext ctx);
 }
 
 internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5> : IJobParallelFor
@@ -541,31 +541,31 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5> : IJobParall
 
     public UnsafeList<int> offsets0;
     public UnsafeList<int> bitsOffsets0;
-    public UnsafeList<int> versionindices0;
+    public UnsafeList<int> versionIndices0;
 
     public UnsafeList<int> offsets1;
     public UnsafeList<int> bitsOffsets1;
-    public UnsafeList<int> versionindices1;
+    public UnsafeList<int> versionIndices1;
 
     public UnsafeList<int> offsets2;
     public UnsafeList<int> bitsOffsets2;
-    public UnsafeList<int> versionindices2;
+    public UnsafeList<int> versionIndices2;
 
     public UnsafeList<int> offsets3;
     public UnsafeList<int> bitsOffsets3;
-    public UnsafeList<int> versionindices3;
+    public UnsafeList<int> versionIndices3;
 
     public UnsafeList<int> offsets4;
     public UnsafeList<int> bitsOffsets4;
-    public UnsafeList<int> versionindices4;
+    public UnsafeList<int> versionIndices4;
 
     public UnsafeList<int> offsets5;
     public UnsafeList<int> bitsOffsets5;
-    public UnsafeList<int> versionindices5;
+    public UnsafeList<int> versionIndices5;
 
     public int version;
 
-    public void Execute(int loopIndex, int threadIndex)
+    public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {
         // 1. Get the specific pChunk for this thread
         var pChunk = (byte*)chunks[loopIndex];
@@ -574,27 +574,27 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5> : IJobParall
 
         var off0 = offsets0[loopIndex];
         var enableOff0 = bitsOffsets0[loopIndex];
-        var versionIndex0 = versionindices0[loopIndex];
+        var versionIndex0 = versionIndices0[loopIndex];
 
         var off1 = offsets1[loopIndex];
         var enableOff1 = bitsOffsets1[loopIndex];
-        var versionIndex1 = versionindices1[loopIndex];
+        var versionIndex1 = versionIndices1[loopIndex];
 
         var off2 = offsets2[loopIndex];
         var enableOff2 = bitsOffsets2[loopIndex];
-        var versionIndex2 = versionindices2[loopIndex];
+        var versionIndex2 = versionIndices2[loopIndex];
 
         var off3 = offsets3[loopIndex];
         var enableOff3 = bitsOffsets3[loopIndex];
-        var versionIndex3 = versionindices3[loopIndex];
+        var versionIndex3 = versionIndices3[loopIndex];
 
         var off4 = offsets4[loopIndex];
         var enableOff4 = bitsOffsets4[loopIndex];
-        var versionIndex4 = versionindices4[loopIndex];
+        var versionIndex4 = versionIndices4[loopIndex];
 
         var off5 = offsets5[loopIndex];
         var enableOff5 = bitsOffsets5[loopIndex];
-        var versionIndex5 = versionindices5[loopIndex];
+        var versionIndex5 = versionIndices5[loopIndex];
 
         var pEntity = (Entity*)(pChunk + entityOffset[loopIndex]);
         var ptr0 = (T0*)(pChunk + off0);
@@ -668,7 +668,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5> : IJobParall
                 continue;
             }
 
-            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], ref ptr3[i], ref ptr4[i], ref ptr5[i], threadIndex);
+            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], ref ptr3[i], ref ptr4[i], ref ptr5[i], in ctx);
         }
     }
 }
@@ -682,7 +682,7 @@ public interface IJobEntity<T0, T1, T2, T3, T4, T5, T6>
     where T5 : unmanaged, IComponent
     where T6 : unmanaged, IComponent
 {
-    void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, ref T3 component3, ref T4 component4, ref T5 component5, ref T6 component6, int threadIndex);
+    void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, ref T3 component3, ref T4 component4, ref T5 component5, ref T6 component6, ref readonly JobExecutionContext ctx);
 }
 
 internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6> : IJobParallelFor
@@ -707,35 +707,35 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6> : IJobPa
 
     public UnsafeList<int> offsets0;
     public UnsafeList<int> bitsOffsets0;
-    public UnsafeList<int> versionindices0;
+    public UnsafeList<int> versionIndices0;
 
     public UnsafeList<int> offsets1;
     public UnsafeList<int> bitsOffsets1;
-    public UnsafeList<int> versionindices1;
+    public UnsafeList<int> versionIndices1;
 
     public UnsafeList<int> offsets2;
     public UnsafeList<int> bitsOffsets2;
-    public UnsafeList<int> versionindices2;
+    public UnsafeList<int> versionIndices2;
 
     public UnsafeList<int> offsets3;
     public UnsafeList<int> bitsOffsets3;
-    public UnsafeList<int> versionindices3;
+    public UnsafeList<int> versionIndices3;
 
     public UnsafeList<int> offsets4;
     public UnsafeList<int> bitsOffsets4;
-    public UnsafeList<int> versionindices4;
+    public UnsafeList<int> versionIndices4;
 
     public UnsafeList<int> offsets5;
     public UnsafeList<int> bitsOffsets5;
-    public UnsafeList<int> versionindices5;
+    public UnsafeList<int> versionIndices5;
 
     public UnsafeList<int> offsets6;
     public UnsafeList<int> bitsOffsets6;
-    public UnsafeList<int> versionindices6;
+    public UnsafeList<int> versionIndices6;
 
     public int version;
 
-    public void Execute(int loopIndex, int threadIndex)
+    public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {
         // 1. Get the specific pChunk for this thread
         var pChunk = (byte*)chunks[loopIndex];
@@ -744,31 +744,31 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6> : IJobPa
 
         var off0 = offsets0[loopIndex];
         var enableOff0 = bitsOffsets0[loopIndex];
-        var versionIndex0 = versionindices0[loopIndex];
+        var versionIndex0 = versionIndices0[loopIndex];
 
         var off1 = offsets1[loopIndex];
         var enableOff1 = bitsOffsets1[loopIndex];
-        var versionIndex1 = versionindices1[loopIndex];
+        var versionIndex1 = versionIndices1[loopIndex];
 
         var off2 = offsets2[loopIndex];
         var enableOff2 = bitsOffsets2[loopIndex];
-        var versionIndex2 = versionindices2[loopIndex];
+        var versionIndex2 = versionIndices2[loopIndex];
 
         var off3 = offsets3[loopIndex];
         var enableOff3 = bitsOffsets3[loopIndex];
-        var versionIndex3 = versionindices3[loopIndex];
+        var versionIndex3 = versionIndices3[loopIndex];
 
         var off4 = offsets4[loopIndex];
         var enableOff4 = bitsOffsets4[loopIndex];
-        var versionIndex4 = versionindices4[loopIndex];
+        var versionIndex4 = versionIndices4[loopIndex];
 
         var off5 = offsets5[loopIndex];
         var enableOff5 = bitsOffsets5[loopIndex];
-        var versionIndex5 = versionindices5[loopIndex];
+        var versionIndex5 = versionIndices5[loopIndex];
 
         var off6 = offsets6[loopIndex];
         var enableOff6 = bitsOffsets6[loopIndex];
-        var versionIndex6 = versionindices6[loopIndex];
+        var versionIndex6 = versionIndices6[loopIndex];
 
         var pEntity = (Entity*)(pChunk + entityOffset[loopIndex]);
         var ptr0 = (T0*)(pChunk + off0);
@@ -853,7 +853,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6> : IJobPa
                 continue;
             }
 
-            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], ref ptr3[i], ref ptr4[i], ref ptr5[i], ref ptr6[i], threadIndex);
+            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], ref ptr3[i], ref ptr4[i], ref ptr5[i], ref ptr6[i], in ctx);
         }
     }
 }
@@ -868,7 +868,7 @@ public interface IJobEntity<T0, T1, T2, T3, T4, T5, T6, T7>
     where T6 : unmanaged, IComponent
     where T7 : unmanaged, IComponent
 {
-    void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, ref T3 component3, ref T4 component4, ref T5 component5, ref T6 component6, ref T7 component7, int threadIndex);
+    void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, ref T3 component3, ref T4 component4, ref T5 component5, ref T6 component6, ref T7 component7, ref readonly JobExecutionContext ctx);
 }
 
 internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6, T7> : IJobParallelFor
@@ -894,39 +894,39 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6, T7> : IJ
 
     public UnsafeList<int> offsets0;
     public UnsafeList<int> bitsOffsets0;
-    public UnsafeList<int> versionindices0;
+    public UnsafeList<int> versionIndices0;
 
     public UnsafeList<int> offsets1;
     public UnsafeList<int> bitsOffsets1;
-    public UnsafeList<int> versionindices1;
+    public UnsafeList<int> versionIndices1;
 
     public UnsafeList<int> offsets2;
     public UnsafeList<int> bitsOffsets2;
-    public UnsafeList<int> versionindices2;
+    public UnsafeList<int> versionIndices2;
 
     public UnsafeList<int> offsets3;
     public UnsafeList<int> bitsOffsets3;
-    public UnsafeList<int> versionindices3;
+    public UnsafeList<int> versionIndices3;
 
     public UnsafeList<int> offsets4;
     public UnsafeList<int> bitsOffsets4;
-    public UnsafeList<int> versionindices4;
+    public UnsafeList<int> versionIndices4;
 
     public UnsafeList<int> offsets5;
     public UnsafeList<int> bitsOffsets5;
-    public UnsafeList<int> versionindices5;
+    public UnsafeList<int> versionIndices5;
 
     public UnsafeList<int> offsets6;
     public UnsafeList<int> bitsOffsets6;
-    public UnsafeList<int> versionindices6;
+    public UnsafeList<int> versionIndices6;
 
     public UnsafeList<int> offsets7;
     public UnsafeList<int> bitsOffsets7;
-    public UnsafeList<int> versionindices7;
+    public UnsafeList<int> versionIndices7;
 
     public int version;
 
-    public void Execute(int loopIndex, int threadIndex)
+    public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {
         // 1. Get the specific pChunk for this thread
         var pChunk = (byte*)chunks[loopIndex];
@@ -935,35 +935,35 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6, T7> : IJ
 
         var off0 = offsets0[loopIndex];
         var enableOff0 = bitsOffsets0[loopIndex];
-        var versionIndex0 = versionindices0[loopIndex];
+        var versionIndex0 = versionIndices0[loopIndex];
 
         var off1 = offsets1[loopIndex];
         var enableOff1 = bitsOffsets1[loopIndex];
-        var versionIndex1 = versionindices1[loopIndex];
+        var versionIndex1 = versionIndices1[loopIndex];
 
         var off2 = offsets2[loopIndex];
         var enableOff2 = bitsOffsets2[loopIndex];
-        var versionIndex2 = versionindices2[loopIndex];
+        var versionIndex2 = versionIndices2[loopIndex];
 
         var off3 = offsets3[loopIndex];
         var enableOff3 = bitsOffsets3[loopIndex];
-        var versionIndex3 = versionindices3[loopIndex];
+        var versionIndex3 = versionIndices3[loopIndex];
 
         var off4 = offsets4[loopIndex];
         var enableOff4 = bitsOffsets4[loopIndex];
-        var versionIndex4 = versionindices4[loopIndex];
+        var versionIndex4 = versionIndices4[loopIndex];
 
         var off5 = offsets5[loopIndex];
         var enableOff5 = bitsOffsets5[loopIndex];
-        var versionIndex5 = versionindices5[loopIndex];
+        var versionIndex5 = versionIndices5[loopIndex];
 
         var off6 = offsets6[loopIndex];
         var enableOff6 = bitsOffsets6[loopIndex];
-        var versionIndex6 = versionindices6[loopIndex];
+        var versionIndex6 = versionIndices6[loopIndex];
 
         var off7 = offsets7[loopIndex];
         var enableOff7 = bitsOffsets7[loopIndex];
-        var versionIndex7 = versionindices7[loopIndex];
+        var versionIndex7 = versionIndices7[loopIndex];
 
         var pEntity = (Entity*)(pChunk + entityOffset[loopIndex]);
         var ptr0 = (T0*)(pChunk + off0);
@@ -1059,7 +1059,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6, T7> : IJ
                 continue;
             }
 
-            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], ref ptr3[i], ref ptr4[i], ref ptr5[i], ref ptr6[i], ref ptr7[i], threadIndex);
+            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], ref ptr3[i], ref ptr4[i], ref ptr5[i], ref ptr6[i], ref ptr7[i], in ctx);
         }
     }
 }
@@ -1075,9 +1075,9 @@ public unsafe partial struct EntityQuery
 
         public UnsafeList<int> offsets0;
         public UnsafeList<int> bitsOffsets0;
-        public UnsafeList<int> versionindices0;
+        public UnsafeList<int> versionIndices0;
 
-        public void Execute(int threadIndex)
+        public void Execute(ref readonly JobExecutionContext ctx)
         {
             chunks.Dispose();
             chunkVersions.Dispose();
@@ -1086,7 +1086,7 @@ public unsafe partial struct EntityQuery
 
             offsets0.Dispose();
             bitsOffsets0.Dispose();
-            versionindices0.Dispose();
+            versionIndices0.Dispose();
 
         }
     }
@@ -1127,8 +1127,7 @@ public unsafe partial struct EntityQuery
             }
 
             // Get offsets ONCE per archetype
-            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value)
-                .GetValueOrThrow();
+            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
 
             // Add all chunks from this archetype
             for (var i = 0; i < arch.ChunkCount; i++)
@@ -1158,7 +1157,7 @@ public unsafe partial struct EntityQuery
 
             offsets0 = offsets0,
             bitsOffsets0 = bitsOffsets0,
-            versionindices0 = versionIndices0,
+            versionIndices0 = versionIndices0,
 
             version = world.Version,
         };
@@ -1168,7 +1167,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i = 0; i < 1; i++)
+            for (var i =0; i < 1; i++)
             {
                 if (id == runner.componentIDs[i])
                 {
@@ -1190,7 +1189,7 @@ public unsafe partial struct EntityQuery
 
             offsets0 = offsets0,
             bitsOffsets0 = bitsOffsets0,
-            versionindices0 = versionIndices0,
+            versionIndices0 = versionIndices0,
 
         };
 
@@ -1208,13 +1207,13 @@ public unsafe partial struct EntityQuery
 
         public UnsafeList<int> offsets0;
         public UnsafeList<int> bitsOffsets0;
-        public UnsafeList<int> versionindices0;
+        public UnsafeList<int> versionIndices0;
 
         public UnsafeList<int> offsets1;
         public UnsafeList<int> bitsOffsets1;
-        public UnsafeList<int> versionindices1;
+        public UnsafeList<int> versionIndices1;
 
-        public void Execute(int threadIndex)
+        public void Execute(ref readonly JobExecutionContext ctx)
         {
             chunks.Dispose();
             chunkVersions.Dispose();
@@ -1223,11 +1222,11 @@ public unsafe partial struct EntityQuery
 
             offsets0.Dispose();
             bitsOffsets0.Dispose();
-            versionindices0.Dispose();
+            versionIndices0.Dispose();
 
             offsets1.Dispose();
             bitsOffsets1.Dispose();
-            versionindices1.Dispose();
+            versionIndices1.Dispose();
 
         }
     }
@@ -1273,10 +1272,8 @@ public unsafe partial struct EntityQuery
             }
 
             // Get offsets ONCE per archetype
-            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value)
-                .GetValueOrThrow();
-            var layout1 = arch.GetLayout(ComponentTypeID<T1>.Value)
-                .GetValueOrThrow();
+            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
+            var layout1 = arch.GetLayout(ComponentTypeID<T1>.Value).GetValueOrThrow();
 
             // Add all chunks from this archetype
             for (var i = 0; i < arch.ChunkCount; i++)
@@ -1310,11 +1307,11 @@ public unsafe partial struct EntityQuery
 
             offsets0 = offsets0,
             bitsOffsets0 = bitsOffsets0,
-            versionindices0 = versionIndices0,
+            versionIndices0 = versionIndices0,
 
             offsets1 = offsets1,
             bitsOffsets1 = bitsOffsets1,
-            versionindices1 = versionIndices1,
+            versionIndices1 = versionIndices1,
 
             version = world.Version,
         };
@@ -1324,7 +1321,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i = 0; i < 1; i++)
+            for (var i =0; i < 1; i++)
             {
                 if (id == runner.componentIDs[i])
                 {
@@ -1346,11 +1343,11 @@ public unsafe partial struct EntityQuery
 
             offsets0 = offsets0,
             bitsOffsets0 = bitsOffsets0,
-            versionindices0 = versionIndices0,
+            versionIndices0 = versionIndices0,
 
             offsets1 = offsets1,
             bitsOffsets1 = bitsOffsets1,
-            versionindices1 = versionIndices1,
+            versionIndices1 = versionIndices1,
 
         };
 
@@ -1368,17 +1365,17 @@ public unsafe partial struct EntityQuery
 
         public UnsafeList<int> offsets0;
         public UnsafeList<int> bitsOffsets0;
-        public UnsafeList<int> versionindices0;
+        public UnsafeList<int> versionIndices0;
 
         public UnsafeList<int> offsets1;
         public UnsafeList<int> bitsOffsets1;
-        public UnsafeList<int> versionindices1;
+        public UnsafeList<int> versionIndices1;
 
         public UnsafeList<int> offsets2;
         public UnsafeList<int> bitsOffsets2;
-        public UnsafeList<int> versionindices2;
+        public UnsafeList<int> versionIndices2;
 
-        public void Execute(int threadIndex)
+        public void Execute(ref readonly JobExecutionContext ctx)
         {
             chunks.Dispose();
             chunkVersions.Dispose();
@@ -1387,15 +1384,15 @@ public unsafe partial struct EntityQuery
 
             offsets0.Dispose();
             bitsOffsets0.Dispose();
-            versionindices0.Dispose();
+            versionIndices0.Dispose();
 
             offsets1.Dispose();
             bitsOffsets1.Dispose();
-            versionindices1.Dispose();
+            versionIndices1.Dispose();
 
             offsets2.Dispose();
             bitsOffsets2.Dispose();
-            versionindices2.Dispose();
+            versionIndices2.Dispose();
 
         }
     }
@@ -1446,12 +1443,9 @@ public unsafe partial struct EntityQuery
             }
 
             // Get offsets ONCE per archetype
-            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value)
-                .GetValueOrThrow();
-            var layout1 = arch.GetLayout(ComponentTypeID<T1>.Value)
-                .GetValueOrThrow();
-            var layout2 = arch.GetLayout(ComponentTypeID<T2>.Value)
-                .GetValueOrThrow();
+            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
+            var layout1 = arch.GetLayout(ComponentTypeID<T1>.Value).GetValueOrThrow();
+            var layout2 = arch.GetLayout(ComponentTypeID<T2>.Value).GetValueOrThrow();
 
             // Add all chunks from this archetype
             for (var i = 0; i < arch.ChunkCount; i++)
@@ -1489,15 +1483,15 @@ public unsafe partial struct EntityQuery
 
             offsets0 = offsets0,
             bitsOffsets0 = bitsOffsets0,
-            versionindices0 = versionIndices0,
+            versionIndices0 = versionIndices0,
 
             offsets1 = offsets1,
             bitsOffsets1 = bitsOffsets1,
-            versionindices1 = versionIndices1,
+            versionIndices1 = versionIndices1,
 
             offsets2 = offsets2,
             bitsOffsets2 = bitsOffsets2,
-            versionindices2 = versionIndices2,
+            versionIndices2 = versionIndices2,
 
             version = world.Version,
         };
@@ -1507,7 +1501,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i = 0; i < 1; i++)
+            for (var i =0; i < 1; i++)
             {
                 if (id == runner.componentIDs[i])
                 {
@@ -1529,15 +1523,15 @@ public unsafe partial struct EntityQuery
 
             offsets0 = offsets0,
             bitsOffsets0 = bitsOffsets0,
-            versionindices0 = versionIndices0,
+            versionIndices0 = versionIndices0,
 
             offsets1 = offsets1,
             bitsOffsets1 = bitsOffsets1,
-            versionindices1 = versionIndices1,
+            versionIndices1 = versionIndices1,
 
             offsets2 = offsets2,
             bitsOffsets2 = bitsOffsets2,
-            versionindices2 = versionIndices2,
+            versionIndices2 = versionIndices2,
 
         };
 
@@ -1555,21 +1549,21 @@ public unsafe partial struct EntityQuery
 
         public UnsafeList<int> offsets0;
         public UnsafeList<int> bitsOffsets0;
-        public UnsafeList<int> versionindices0;
+        public UnsafeList<int> versionIndices0;
 
         public UnsafeList<int> offsets1;
         public UnsafeList<int> bitsOffsets1;
-        public UnsafeList<int> versionindices1;
+        public UnsafeList<int> versionIndices1;
 
         public UnsafeList<int> offsets2;
         public UnsafeList<int> bitsOffsets2;
-        public UnsafeList<int> versionindices2;
+        public UnsafeList<int> versionIndices2;
 
         public UnsafeList<int> offsets3;
         public UnsafeList<int> bitsOffsets3;
-        public UnsafeList<int> versionindices3;
+        public UnsafeList<int> versionIndices3;
 
-        public void Execute(int threadIndex)
+        public void Execute(ref readonly JobExecutionContext ctx)
         {
             chunks.Dispose();
             chunkVersions.Dispose();
@@ -1578,19 +1572,19 @@ public unsafe partial struct EntityQuery
 
             offsets0.Dispose();
             bitsOffsets0.Dispose();
-            versionindices0.Dispose();
+            versionIndices0.Dispose();
 
             offsets1.Dispose();
             bitsOffsets1.Dispose();
-            versionindices1.Dispose();
+            versionIndices1.Dispose();
 
             offsets2.Dispose();
             bitsOffsets2.Dispose();
-            versionindices2.Dispose();
+            versionIndices2.Dispose();
 
             offsets3.Dispose();
             bitsOffsets3.Dispose();
-            versionindices3.Dispose();
+            versionIndices3.Dispose();
 
         }
     }
@@ -1646,14 +1640,10 @@ public unsafe partial struct EntityQuery
             }
 
             // Get offsets ONCE per archetype
-            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value)
-                .GetValueOrThrow();
-            var layout1 = arch.GetLayout(ComponentTypeID<T1>.Value)
-                .GetValueOrThrow();
-            var layout2 = arch.GetLayout(ComponentTypeID<T2>.Value)
-                .GetValueOrThrow();
-            var layout3 = arch.GetLayout(ComponentTypeID<T3>.Value)
-                .GetValueOrThrow();
+            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
+            var layout1 = arch.GetLayout(ComponentTypeID<T1>.Value).GetValueOrThrow();
+            var layout2 = arch.GetLayout(ComponentTypeID<T2>.Value).GetValueOrThrow();
+            var layout3 = arch.GetLayout(ComponentTypeID<T3>.Value).GetValueOrThrow();
 
             // Add all chunks from this archetype
             for (var i = 0; i < arch.ChunkCount; i++)
@@ -1695,19 +1685,19 @@ public unsafe partial struct EntityQuery
 
             offsets0 = offsets0,
             bitsOffsets0 = bitsOffsets0,
-            versionindices0 = versionIndices0,
+            versionIndices0 = versionIndices0,
 
             offsets1 = offsets1,
             bitsOffsets1 = bitsOffsets1,
-            versionindices1 = versionIndices1,
+            versionIndices1 = versionIndices1,
 
             offsets2 = offsets2,
             bitsOffsets2 = bitsOffsets2,
-            versionindices2 = versionIndices2,
+            versionIndices2 = versionIndices2,
 
             offsets3 = offsets3,
             bitsOffsets3 = bitsOffsets3,
-            versionindices3 = versionIndices3,
+            versionIndices3 = versionIndices3,
 
             version = world.Version,
         };
@@ -1717,7 +1707,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i = 0; i < 1; i++)
+            for (var i =0; i < 1; i++)
             {
                 if (id == runner.componentIDs[i])
                 {
@@ -1739,19 +1729,19 @@ public unsafe partial struct EntityQuery
 
             offsets0 = offsets0,
             bitsOffsets0 = bitsOffsets0,
-            versionindices0 = versionIndices0,
+            versionIndices0 = versionIndices0,
 
             offsets1 = offsets1,
             bitsOffsets1 = bitsOffsets1,
-            versionindices1 = versionIndices1,
+            versionIndices1 = versionIndices1,
 
             offsets2 = offsets2,
             bitsOffsets2 = bitsOffsets2,
-            versionindices2 = versionIndices2,
+            versionIndices2 = versionIndices2,
 
             offsets3 = offsets3,
             bitsOffsets3 = bitsOffsets3,
-            versionindices3 = versionIndices3,
+            versionIndices3 = versionIndices3,
 
         };
 
@@ -1769,25 +1759,25 @@ public unsafe partial struct EntityQuery
 
         public UnsafeList<int> offsets0;
         public UnsafeList<int> bitsOffsets0;
-        public UnsafeList<int> versionindices0;
+        public UnsafeList<int> versionIndices0;
 
         public UnsafeList<int> offsets1;
         public UnsafeList<int> bitsOffsets1;
-        public UnsafeList<int> versionindices1;
+        public UnsafeList<int> versionIndices1;
 
         public UnsafeList<int> offsets2;
         public UnsafeList<int> bitsOffsets2;
-        public UnsafeList<int> versionindices2;
+        public UnsafeList<int> versionIndices2;
 
         public UnsafeList<int> offsets3;
         public UnsafeList<int> bitsOffsets3;
-        public UnsafeList<int> versionindices3;
+        public UnsafeList<int> versionIndices3;
 
         public UnsafeList<int> offsets4;
         public UnsafeList<int> bitsOffsets4;
-        public UnsafeList<int> versionindices4;
+        public UnsafeList<int> versionIndices4;
 
-        public void Execute(int threadIndex)
+        public void Execute(ref readonly JobExecutionContext ctx)
         {
             chunks.Dispose();
             chunkVersions.Dispose();
@@ -1796,23 +1786,23 @@ public unsafe partial struct EntityQuery
 
             offsets0.Dispose();
             bitsOffsets0.Dispose();
-            versionindices0.Dispose();
+            versionIndices0.Dispose();
 
             offsets1.Dispose();
             bitsOffsets1.Dispose();
-            versionindices1.Dispose();
+            versionIndices1.Dispose();
 
             offsets2.Dispose();
             bitsOffsets2.Dispose();
-            versionindices2.Dispose();
+            versionIndices2.Dispose();
 
             offsets3.Dispose();
             bitsOffsets3.Dispose();
-            versionindices3.Dispose();
+            versionIndices3.Dispose();
 
             offsets4.Dispose();
             bitsOffsets4.Dispose();
-            versionindices4.Dispose();
+            versionIndices4.Dispose();
 
         }
     }
@@ -1873,16 +1863,11 @@ public unsafe partial struct EntityQuery
             }
 
             // Get offsets ONCE per archetype
-            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value)
-                .GetValueOrThrow();
-            var layout1 = arch.GetLayout(ComponentTypeID<T1>.Value)
-                .GetValueOrThrow();
-            var layout2 = arch.GetLayout(ComponentTypeID<T2>.Value)
-                .GetValueOrThrow();
-            var layout3 = arch.GetLayout(ComponentTypeID<T3>.Value)
-                .GetValueOrThrow();
-            var layout4 = arch.GetLayout(ComponentTypeID<T4>.Value)
-                .GetValueOrThrow();
+            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
+            var layout1 = arch.GetLayout(ComponentTypeID<T1>.Value).GetValueOrThrow();
+            var layout2 = arch.GetLayout(ComponentTypeID<T2>.Value).GetValueOrThrow();
+            var layout3 = arch.GetLayout(ComponentTypeID<T3>.Value).GetValueOrThrow();
+            var layout4 = arch.GetLayout(ComponentTypeID<T4>.Value).GetValueOrThrow();
 
             // Add all chunks from this archetype
             for (var i = 0; i < arch.ChunkCount; i++)
@@ -1928,23 +1913,23 @@ public unsafe partial struct EntityQuery
 
             offsets0 = offsets0,
             bitsOffsets0 = bitsOffsets0,
-            versionindices0 = versionIndices0,
+            versionIndices0 = versionIndices0,
 
             offsets1 = offsets1,
             bitsOffsets1 = bitsOffsets1,
-            versionindices1 = versionIndices1,
+            versionIndices1 = versionIndices1,
 
             offsets2 = offsets2,
             bitsOffsets2 = bitsOffsets2,
-            versionindices2 = versionIndices2,
+            versionIndices2 = versionIndices2,
 
             offsets3 = offsets3,
             bitsOffsets3 = bitsOffsets3,
-            versionindices3 = versionIndices3,
+            versionIndices3 = versionIndices3,
 
             offsets4 = offsets4,
             bitsOffsets4 = bitsOffsets4,
-            versionindices4 = versionIndices4,
+            versionIndices4 = versionIndices4,
 
             version = world.Version,
         };
@@ -1954,7 +1939,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i = 0; i < 1; i++)
+            for (var i =0; i < 1; i++)
             {
                 if (id == runner.componentIDs[i])
                 {
@@ -1976,23 +1961,23 @@ public unsafe partial struct EntityQuery
 
             offsets0 = offsets0,
             bitsOffsets0 = bitsOffsets0,
-            versionindices0 = versionIndices0,
+            versionIndices0 = versionIndices0,
 
             offsets1 = offsets1,
             bitsOffsets1 = bitsOffsets1,
-            versionindices1 = versionIndices1,
+            versionIndices1 = versionIndices1,
 
             offsets2 = offsets2,
             bitsOffsets2 = bitsOffsets2,
-            versionindices2 = versionIndices2,
+            versionIndices2 = versionIndices2,
 
             offsets3 = offsets3,
             bitsOffsets3 = bitsOffsets3,
-            versionindices3 = versionIndices3,
+            versionIndices3 = versionIndices3,
 
             offsets4 = offsets4,
             bitsOffsets4 = bitsOffsets4,
-            versionindices4 = versionIndices4,
+            versionIndices4 = versionIndices4,
 
         };
 
@@ -2010,29 +1995,29 @@ public unsafe partial struct EntityQuery
 
         public UnsafeList<int> offsets0;
         public UnsafeList<int> bitsOffsets0;
-        public UnsafeList<int> versionindices0;
+        public UnsafeList<int> versionIndices0;
 
         public UnsafeList<int> offsets1;
         public UnsafeList<int> bitsOffsets1;
-        public UnsafeList<int> versionindices1;
+        public UnsafeList<int> versionIndices1;
 
         public UnsafeList<int> offsets2;
         public UnsafeList<int> bitsOffsets2;
-        public UnsafeList<int> versionindices2;
+        public UnsafeList<int> versionIndices2;
 
         public UnsafeList<int> offsets3;
         public UnsafeList<int> bitsOffsets3;
-        public UnsafeList<int> versionindices3;
+        public UnsafeList<int> versionIndices3;
 
         public UnsafeList<int> offsets4;
         public UnsafeList<int> bitsOffsets4;
-        public UnsafeList<int> versionindices4;
+        public UnsafeList<int> versionIndices4;
 
         public UnsafeList<int> offsets5;
         public UnsafeList<int> bitsOffsets5;
-        public UnsafeList<int> versionindices5;
+        public UnsafeList<int> versionIndices5;
 
-        public void Execute(int threadIndex)
+        public void Execute(ref readonly JobExecutionContext ctx)
         {
             chunks.Dispose();
             chunkVersions.Dispose();
@@ -2041,27 +2026,27 @@ public unsafe partial struct EntityQuery
 
             offsets0.Dispose();
             bitsOffsets0.Dispose();
-            versionindices0.Dispose();
+            versionIndices0.Dispose();
 
             offsets1.Dispose();
             bitsOffsets1.Dispose();
-            versionindices1.Dispose();
+            versionIndices1.Dispose();
 
             offsets2.Dispose();
             bitsOffsets2.Dispose();
-            versionindices2.Dispose();
+            versionIndices2.Dispose();
 
             offsets3.Dispose();
             bitsOffsets3.Dispose();
-            versionindices3.Dispose();
+            versionIndices3.Dispose();
 
             offsets4.Dispose();
             bitsOffsets4.Dispose();
-            versionindices4.Dispose();
+            versionIndices4.Dispose();
 
             offsets5.Dispose();
             bitsOffsets5.Dispose();
-            versionindices5.Dispose();
+            versionIndices5.Dispose();
 
         }
     }
@@ -2127,18 +2112,12 @@ public unsafe partial struct EntityQuery
             }
 
             // Get offsets ONCE per archetype
-            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value)
-                .GetValueOrThrow();
-            var layout1 = arch.GetLayout(ComponentTypeID<T1>.Value)
-                .GetValueOrThrow();
-            var layout2 = arch.GetLayout(ComponentTypeID<T2>.Value)
-                .GetValueOrThrow();
-            var layout3 = arch.GetLayout(ComponentTypeID<T3>.Value)
-                .GetValueOrThrow();
-            var layout4 = arch.GetLayout(ComponentTypeID<T4>.Value)
-                .GetValueOrThrow();
-            var layout5 = arch.GetLayout(ComponentTypeID<T5>.Value)
-                .GetValueOrThrow();
+            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
+            var layout1 = arch.GetLayout(ComponentTypeID<T1>.Value).GetValueOrThrow();
+            var layout2 = arch.GetLayout(ComponentTypeID<T2>.Value).GetValueOrThrow();
+            var layout3 = arch.GetLayout(ComponentTypeID<T3>.Value).GetValueOrThrow();
+            var layout4 = arch.GetLayout(ComponentTypeID<T4>.Value).GetValueOrThrow();
+            var layout5 = arch.GetLayout(ComponentTypeID<T5>.Value).GetValueOrThrow();
 
             // Add all chunks from this archetype
             for (var i = 0; i < arch.ChunkCount; i++)
@@ -2188,27 +2167,27 @@ public unsafe partial struct EntityQuery
 
             offsets0 = offsets0,
             bitsOffsets0 = bitsOffsets0,
-            versionindices0 = versionIndices0,
+            versionIndices0 = versionIndices0,
 
             offsets1 = offsets1,
             bitsOffsets1 = bitsOffsets1,
-            versionindices1 = versionIndices1,
+            versionIndices1 = versionIndices1,
 
             offsets2 = offsets2,
             bitsOffsets2 = bitsOffsets2,
-            versionindices2 = versionIndices2,
+            versionIndices2 = versionIndices2,
 
             offsets3 = offsets3,
             bitsOffsets3 = bitsOffsets3,
-            versionindices3 = versionIndices3,
+            versionIndices3 = versionIndices3,
 
             offsets4 = offsets4,
             bitsOffsets4 = bitsOffsets4,
-            versionindices4 = versionIndices4,
+            versionIndices4 = versionIndices4,
 
             offsets5 = offsets5,
             bitsOffsets5 = bitsOffsets5,
-            versionindices5 = versionIndices5,
+            versionIndices5 = versionIndices5,
 
             version = world.Version,
         };
@@ -2218,7 +2197,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i = 0; i < 1; i++)
+            for (var i =0; i < 1; i++)
             {
                 if (id == runner.componentIDs[i])
                 {
@@ -2240,27 +2219,27 @@ public unsafe partial struct EntityQuery
 
             offsets0 = offsets0,
             bitsOffsets0 = bitsOffsets0,
-            versionindices0 = versionIndices0,
+            versionIndices0 = versionIndices0,
 
             offsets1 = offsets1,
             bitsOffsets1 = bitsOffsets1,
-            versionindices1 = versionIndices1,
+            versionIndices1 = versionIndices1,
 
             offsets2 = offsets2,
             bitsOffsets2 = bitsOffsets2,
-            versionindices2 = versionIndices2,
+            versionIndices2 = versionIndices2,
 
             offsets3 = offsets3,
             bitsOffsets3 = bitsOffsets3,
-            versionindices3 = versionIndices3,
+            versionIndices3 = versionIndices3,
 
             offsets4 = offsets4,
             bitsOffsets4 = bitsOffsets4,
-            versionindices4 = versionIndices4,
+            versionIndices4 = versionIndices4,
 
             offsets5 = offsets5,
             bitsOffsets5 = bitsOffsets5,
-            versionindices5 = versionIndices5,
+            versionIndices5 = versionIndices5,
 
         };
 
@@ -2278,33 +2257,33 @@ public unsafe partial struct EntityQuery
 
         public UnsafeList<int> offsets0;
         public UnsafeList<int> bitsOffsets0;
-        public UnsafeList<int> versionindices0;
+        public UnsafeList<int> versionIndices0;
 
         public UnsafeList<int> offsets1;
         public UnsafeList<int> bitsOffsets1;
-        public UnsafeList<int> versionindices1;
+        public UnsafeList<int> versionIndices1;
 
         public UnsafeList<int> offsets2;
         public UnsafeList<int> bitsOffsets2;
-        public UnsafeList<int> versionindices2;
+        public UnsafeList<int> versionIndices2;
 
         public UnsafeList<int> offsets3;
         public UnsafeList<int> bitsOffsets3;
-        public UnsafeList<int> versionindices3;
+        public UnsafeList<int> versionIndices3;
 
         public UnsafeList<int> offsets4;
         public UnsafeList<int> bitsOffsets4;
-        public UnsafeList<int> versionindices4;
+        public UnsafeList<int> versionIndices4;
 
         public UnsafeList<int> offsets5;
         public UnsafeList<int> bitsOffsets5;
-        public UnsafeList<int> versionindices5;
+        public UnsafeList<int> versionIndices5;
 
         public UnsafeList<int> offsets6;
         public UnsafeList<int> bitsOffsets6;
-        public UnsafeList<int> versionindices6;
+        public UnsafeList<int> versionIndices6;
 
-        public void Execute(int threadIndex)
+        public void Execute(ref readonly JobExecutionContext ctx)
         {
             chunks.Dispose();
             chunkVersions.Dispose();
@@ -2313,31 +2292,31 @@ public unsafe partial struct EntityQuery
 
             offsets0.Dispose();
             bitsOffsets0.Dispose();
-            versionindices0.Dispose();
+            versionIndices0.Dispose();
 
             offsets1.Dispose();
             bitsOffsets1.Dispose();
-            versionindices1.Dispose();
+            versionIndices1.Dispose();
 
             offsets2.Dispose();
             bitsOffsets2.Dispose();
-            versionindices2.Dispose();
+            versionIndices2.Dispose();
 
             offsets3.Dispose();
             bitsOffsets3.Dispose();
-            versionindices3.Dispose();
+            versionIndices3.Dispose();
 
             offsets4.Dispose();
             bitsOffsets4.Dispose();
-            versionindices4.Dispose();
+            versionIndices4.Dispose();
 
             offsets5.Dispose();
             bitsOffsets5.Dispose();
-            versionindices5.Dispose();
+            versionIndices5.Dispose();
 
             offsets6.Dispose();
             bitsOffsets6.Dispose();
-            versionindices6.Dispose();
+            versionIndices6.Dispose();
 
         }
     }
@@ -2408,20 +2387,13 @@ public unsafe partial struct EntityQuery
             }
 
             // Get offsets ONCE per archetype
-            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value)
-                .GetValueOrThrow();
-            var layout1 = arch.GetLayout(ComponentTypeID<T1>.Value)
-                .GetValueOrThrow();
-            var layout2 = arch.GetLayout(ComponentTypeID<T2>.Value)
-                .GetValueOrThrow();
-            var layout3 = arch.GetLayout(ComponentTypeID<T3>.Value)
-                .GetValueOrThrow();
-            var layout4 = arch.GetLayout(ComponentTypeID<T4>.Value)
-                .GetValueOrThrow();
-            var layout5 = arch.GetLayout(ComponentTypeID<T5>.Value)
-                .GetValueOrThrow();
-            var layout6 = arch.GetLayout(ComponentTypeID<T6>.Value)
-                .GetValueOrThrow();
+            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
+            var layout1 = arch.GetLayout(ComponentTypeID<T1>.Value).GetValueOrThrow();
+            var layout2 = arch.GetLayout(ComponentTypeID<T2>.Value).GetValueOrThrow();
+            var layout3 = arch.GetLayout(ComponentTypeID<T3>.Value).GetValueOrThrow();
+            var layout4 = arch.GetLayout(ComponentTypeID<T4>.Value).GetValueOrThrow();
+            var layout5 = arch.GetLayout(ComponentTypeID<T5>.Value).GetValueOrThrow();
+            var layout6 = arch.GetLayout(ComponentTypeID<T6>.Value).GetValueOrThrow();
 
             // Add all chunks from this archetype
             for (var i = 0; i < arch.ChunkCount; i++)
@@ -2475,31 +2447,31 @@ public unsafe partial struct EntityQuery
 
             offsets0 = offsets0,
             bitsOffsets0 = bitsOffsets0,
-            versionindices0 = versionIndices0,
+            versionIndices0 = versionIndices0,
 
             offsets1 = offsets1,
             bitsOffsets1 = bitsOffsets1,
-            versionindices1 = versionIndices1,
+            versionIndices1 = versionIndices1,
 
             offsets2 = offsets2,
             bitsOffsets2 = bitsOffsets2,
-            versionindices2 = versionIndices2,
+            versionIndices2 = versionIndices2,
 
             offsets3 = offsets3,
             bitsOffsets3 = bitsOffsets3,
-            versionindices3 = versionIndices3,
+            versionIndices3 = versionIndices3,
 
             offsets4 = offsets4,
             bitsOffsets4 = bitsOffsets4,
-            versionindices4 = versionIndices4,
+            versionIndices4 = versionIndices4,
 
             offsets5 = offsets5,
             bitsOffsets5 = bitsOffsets5,
-            versionindices5 = versionIndices5,
+            versionIndices5 = versionIndices5,
 
             offsets6 = offsets6,
             bitsOffsets6 = bitsOffsets6,
-            versionindices6 = versionIndices6,
+            versionIndices6 = versionIndices6,
 
             version = world.Version,
         };
@@ -2509,7 +2481,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i = 0; i < 1; i++)
+            for (var i =0; i < 1; i++)
             {
                 if (id == runner.componentIDs[i])
                 {
@@ -2531,31 +2503,31 @@ public unsafe partial struct EntityQuery
 
             offsets0 = offsets0,
             bitsOffsets0 = bitsOffsets0,
-            versionindices0 = versionIndices0,
+            versionIndices0 = versionIndices0,
 
             offsets1 = offsets1,
             bitsOffsets1 = bitsOffsets1,
-            versionindices1 = versionIndices1,
+            versionIndices1 = versionIndices1,
 
             offsets2 = offsets2,
             bitsOffsets2 = bitsOffsets2,
-            versionindices2 = versionIndices2,
+            versionIndices2 = versionIndices2,
 
             offsets3 = offsets3,
             bitsOffsets3 = bitsOffsets3,
-            versionindices3 = versionIndices3,
+            versionIndices3 = versionIndices3,
 
             offsets4 = offsets4,
             bitsOffsets4 = bitsOffsets4,
-            versionindices4 = versionIndices4,
+            versionIndices4 = versionIndices4,
 
             offsets5 = offsets5,
             bitsOffsets5 = bitsOffsets5,
-            versionindices5 = versionIndices5,
+            versionIndices5 = versionIndices5,
 
             offsets6 = offsets6,
             bitsOffsets6 = bitsOffsets6,
-            versionindices6 = versionIndices6,
+            versionIndices6 = versionIndices6,
 
         };
 
@@ -2573,37 +2545,37 @@ public unsafe partial struct EntityQuery
 
         public UnsafeList<int> offsets0;
         public UnsafeList<int> bitsOffsets0;
-        public UnsafeList<int> versionindices0;
+        public UnsafeList<int> versionIndices0;
 
         public UnsafeList<int> offsets1;
         public UnsafeList<int> bitsOffsets1;
-        public UnsafeList<int> versionindices1;
+        public UnsafeList<int> versionIndices1;
 
         public UnsafeList<int> offsets2;
         public UnsafeList<int> bitsOffsets2;
-        public UnsafeList<int> versionindices2;
+        public UnsafeList<int> versionIndices2;
 
         public UnsafeList<int> offsets3;
         public UnsafeList<int> bitsOffsets3;
-        public UnsafeList<int> versionindices3;
+        public UnsafeList<int> versionIndices3;
 
         public UnsafeList<int> offsets4;
         public UnsafeList<int> bitsOffsets4;
-        public UnsafeList<int> versionindices4;
+        public UnsafeList<int> versionIndices4;
 
         public UnsafeList<int> offsets5;
         public UnsafeList<int> bitsOffsets5;
-        public UnsafeList<int> versionindices5;
+        public UnsafeList<int> versionIndices5;
 
         public UnsafeList<int> offsets6;
         public UnsafeList<int> bitsOffsets6;
-        public UnsafeList<int> versionindices6;
+        public UnsafeList<int> versionIndices6;
 
         public UnsafeList<int> offsets7;
         public UnsafeList<int> bitsOffsets7;
-        public UnsafeList<int> versionindices7;
+        public UnsafeList<int> versionIndices7;
 
-        public void Execute(int threadIndex)
+        public void Execute(ref readonly JobExecutionContext ctx)
         {
             chunks.Dispose();
             chunkVersions.Dispose();
@@ -2612,35 +2584,35 @@ public unsafe partial struct EntityQuery
 
             offsets0.Dispose();
             bitsOffsets0.Dispose();
-            versionindices0.Dispose();
+            versionIndices0.Dispose();
 
             offsets1.Dispose();
             bitsOffsets1.Dispose();
-            versionindices1.Dispose();
+            versionIndices1.Dispose();
 
             offsets2.Dispose();
             bitsOffsets2.Dispose();
-            versionindices2.Dispose();
+            versionIndices2.Dispose();
 
             offsets3.Dispose();
             bitsOffsets3.Dispose();
-            versionindices3.Dispose();
+            versionIndices3.Dispose();
 
             offsets4.Dispose();
             bitsOffsets4.Dispose();
-            versionindices4.Dispose();
+            versionIndices4.Dispose();
 
             offsets5.Dispose();
             bitsOffsets5.Dispose();
-            versionindices5.Dispose();
+            versionIndices5.Dispose();
 
             offsets6.Dispose();
             bitsOffsets6.Dispose();
-            versionindices6.Dispose();
+            versionIndices6.Dispose();
 
             offsets7.Dispose();
             bitsOffsets7.Dispose();
-            versionindices7.Dispose();
+            versionIndices7.Dispose();
 
         }
     }
@@ -2716,22 +2688,14 @@ public unsafe partial struct EntityQuery
             }
 
             // Get offsets ONCE per archetype
-            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value)
-                .GetValueOrThrow();
-            var layout1 = arch.GetLayout(ComponentTypeID<T1>.Value)
-                .GetValueOrThrow();
-            var layout2 = arch.GetLayout(ComponentTypeID<T2>.Value)
-                .GetValueOrThrow();
-            var layout3 = arch.GetLayout(ComponentTypeID<T3>.Value)
-                .GetValueOrThrow();
-            var layout4 = arch.GetLayout(ComponentTypeID<T4>.Value)
-                .GetValueOrThrow();
-            var layout5 = arch.GetLayout(ComponentTypeID<T5>.Value)
-                .GetValueOrThrow();
-            var layout6 = arch.GetLayout(ComponentTypeID<T6>.Value)
-                .GetValueOrThrow();
-            var layout7 = arch.GetLayout(ComponentTypeID<T7>.Value)
-                .GetValueOrThrow();
+            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
+            var layout1 = arch.GetLayout(ComponentTypeID<T1>.Value).GetValueOrThrow();
+            var layout2 = arch.GetLayout(ComponentTypeID<T2>.Value).GetValueOrThrow();
+            var layout3 = arch.GetLayout(ComponentTypeID<T3>.Value).GetValueOrThrow();
+            var layout4 = arch.GetLayout(ComponentTypeID<T4>.Value).GetValueOrThrow();
+            var layout5 = arch.GetLayout(ComponentTypeID<T5>.Value).GetValueOrThrow();
+            var layout6 = arch.GetLayout(ComponentTypeID<T6>.Value).GetValueOrThrow();
+            var layout7 = arch.GetLayout(ComponentTypeID<T7>.Value).GetValueOrThrow();
 
             // Add all chunks from this archetype
             for (var i = 0; i < arch.ChunkCount; i++)
@@ -2789,35 +2753,35 @@ public unsafe partial struct EntityQuery
 
             offsets0 = offsets0,
             bitsOffsets0 = bitsOffsets0,
-            versionindices0 = versionIndices0,
+            versionIndices0 = versionIndices0,
 
             offsets1 = offsets1,
             bitsOffsets1 = bitsOffsets1,
-            versionindices1 = versionIndices1,
+            versionIndices1 = versionIndices1,
 
             offsets2 = offsets2,
             bitsOffsets2 = bitsOffsets2,
-            versionindices2 = versionIndices2,
+            versionIndices2 = versionIndices2,
 
             offsets3 = offsets3,
             bitsOffsets3 = bitsOffsets3,
-            versionindices3 = versionIndices3,
+            versionIndices3 = versionIndices3,
 
             offsets4 = offsets4,
             bitsOffsets4 = bitsOffsets4,
-            versionindices4 = versionIndices4,
+            versionIndices4 = versionIndices4,
 
             offsets5 = offsets5,
             bitsOffsets5 = bitsOffsets5,
-            versionindices5 = versionIndices5,
+            versionIndices5 = versionIndices5,
 
             offsets6 = offsets6,
             bitsOffsets6 = bitsOffsets6,
-            versionindices6 = versionIndices6,
+            versionIndices6 = versionIndices6,
 
             offsets7 = offsets7,
             bitsOffsets7 = bitsOffsets7,
-            versionindices7 = versionIndices7,
+            versionIndices7 = versionIndices7,
 
             version = world.Version,
         };
@@ -2827,7 +2791,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i = 0; i < 1; i++)
+            for (var i =0; i < 1; i++)
             {
                 if (id == runner.componentIDs[i])
                 {
@@ -2849,35 +2813,35 @@ public unsafe partial struct EntityQuery
 
             offsets0 = offsets0,
             bitsOffsets0 = bitsOffsets0,
-            versionindices0 = versionIndices0,
+            versionIndices0 = versionIndices0,
 
             offsets1 = offsets1,
             bitsOffsets1 = bitsOffsets1,
-            versionindices1 = versionIndices1,
+            versionIndices1 = versionIndices1,
 
             offsets2 = offsets2,
             bitsOffsets2 = bitsOffsets2,
-            versionindices2 = versionIndices2,
+            versionIndices2 = versionIndices2,
 
             offsets3 = offsets3,
             bitsOffsets3 = bitsOffsets3,
-            versionindices3 = versionIndices3,
+            versionIndices3 = versionIndices3,
 
             offsets4 = offsets4,
             bitsOffsets4 = bitsOffsets4,
-            versionindices4 = versionIndices4,
+            versionIndices4 = versionIndices4,
 
             offsets5 = offsets5,
             bitsOffsets5 = bitsOffsets5,
-            versionindices5 = versionIndices5,
+            versionIndices5 = versionIndices5,
 
             offsets6 = offsets6,
             bitsOffsets6 = bitsOffsets6,
-            versionindices6 = versionIndices6,
+            versionIndices6 = versionIndices6,
 
             offsets7 = offsets7,
             bitsOffsets7 = bitsOffsets7,
-            versionindices7 = versionIndices7,
+            versionIndices7 = versionIndices7,
 
         };
 

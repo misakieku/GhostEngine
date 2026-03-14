@@ -64,7 +64,7 @@ public sealed class RenderGraph : IDisposable
         );
 
         _nativePassBuilder = new RenderGraphNativePassBuilder(_objectPool, _resources);
-        _compiler = new RenderGraphCompiler(_resourceManager, _resources, _aliasingManager, _nativePassBuilder, _compilationCache);
+        _compiler = new RenderGraphCompiler(_resourceManager, _resourceDatabase, _resourceAllocator, _resources, _aliasingManager, _nativePassBuilder, _compilationCache);
         _executor = new RenderGraphExecutor(_resourceManager, _resourceDatabase, _resources, _context);
 
         _blackboard = new RenderGraphBlackboard();

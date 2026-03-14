@@ -7,7 +7,7 @@ namespace Ghost.Entities.Test;
 
 internal struct TestEntityQueryJob : IJobEntity<Transform>
 {
-    public readonly void Execute(Entity entity, ref Transform transform, int threadIndex)
+    public readonly void Execute(Entity entity, ref Transform transform, ref readonly JobExecutionContext ctx)
     {
         transform.position += new float3(5, 5, 5);
     }
@@ -15,9 +15,9 @@ internal struct TestEntityQueryJob : IJobEntity<Transform>
 
 internal struct TestChunkQueryJob : IJobChunk
 {
-    public readonly void Execute(ChunkView view, int threadIndex)
+    public readonly void Execute(ChunkView view, ref readonly JobExecutionContext ctx)
     {
-        var random = new random((uint)threadIndex + 1u);
+        var random = new random((uint)ctx.ThreadIndex + 1u);
 
         var transforms = view.GetComponentDataRW<Transform>();
         for (var i = 0; i < view.Count; i++)
@@ -54,7 +54,7 @@ public partial class EntityQueryTest : ITest
 
         var testJob = new TestChunkQueryJob();
         var handle = query.ScheduleChunkParallel(testJob, 1, JobHandle.Invalid);
-        _jobScheduler.WaitComplete(handle);
+        _jobScheduler.Wait(handle);
 
         query.ForEach<Transform>((e, ref t) =>
         {

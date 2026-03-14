@@ -291,12 +291,12 @@ internal class MeshRenderPass : IRenderPass
                 ref var matRef = ref r.Value;
                 var blitProps = new ShaderProperties_Hidden_Blit
                 {
-                    mainTex = ctx.ResourceManager.ResourceDatabase.GetBindlessIndex(ctx.GetActualResource(data.source.AsResource())),
+                    mainTex = ctx.ResourceDatabase.GetBindlessIndex(ctx.GetActualResource(data.source.AsResource())),
                     sampler_mainTex = (uint)data.sampler.Value,
                 };
 
                 matRef.SetPropertyCache(in blitProps).ThrowIfFailed();
-                matRef.UploadData(ctx.CommandBuffer, ctx.ResourceManager.ResourceDatabase);
+                matRef.UploadData(ctx.CommandBuffer, ctx.ResourceDatabase);
 
                 ctx.CommandBuffer.SetRenderTargets([ctx.GetActualTexture(data.destination)], Handle<Texture>.Invalid);
 
@@ -307,20 +307,20 @@ internal class MeshRenderPass : IRenderPass
         }
     }
 
-    public void Cleanup(IResourceManager resourceManager)
+    public void Cleanup(IResourceManager resourceManager, IResourceDatabase resourceDatabase)
     {
         resourceManager.ReleaseMaterial(_blitMaterial);
 
         resourceManager.ReleaseMaterial(_material);
         resourceManager.ReleaseShader(_shader);
         resourceManager.ReleaseMesh(_mesh);
-        resourceManager.ResourceDatabase.ReleaseSampler(_sampler);
+        resourceDatabase.ReleaseSampler(_sampler);
 
         if (_textures != null)
         {
             foreach (var texture in _textures)
             {
-                resourceManager.ResourceDatabase.ReleaseResource(texture.AsResource());
+                resourceDatabase.ReleaseResource(texture.AsResource());
             }
         }
     }

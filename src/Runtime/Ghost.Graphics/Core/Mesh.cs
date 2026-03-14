@@ -9,11 +9,64 @@ using Misaki.HighPerformance.Mathematics.Geometry;
 
 namespace Ghost.Graphics.Core;
 
-// TODO: Support sub-meshes and meshlets.
+public struct Meshlet
+{
+    public SphereBounds boundingSphere;   // 16 bytes
+    public AABB boundingBox;              // 24 bytes
+    public uint vertexOffset;             // offset into meshlet vertex index array
+    public uint triangleOffset;           // offset into packed triangle array
+    public uint groupIndex;               // owning group
+    public float parentError;             // geometric refinement error carried into runtime LOD tests
+    public byte vertexCount;              // max 64
+    public byte triangleCount;            // max 124
+    public byte localMaterialIndex;       // mesh-local material slot
+    public byte lodLevel;                 // this meshlet's LOD level
+}
+
+public struct MeshletGroup
+{
+    public SphereBounds boundingSphere;   // 16 bytes
+    public AABB boundingBox;              // 24 bytes
+    public float parentError;             // error of refining to the previous level
+    public uint meshletStartIndex;        // contiguous meshlet range
+    public uint meshletCount;             // number of meshlets in the group
+    public uint lodLevel;                 // group LOD level
+}
+
+public struct MeshletHierarchyNode
+{
+    public SphereBounds boundingSphere;   // 16 bytes
+    public AABB boundingBox;              // 24 bytes
+    public float maxParentError;          // maximum error in this subtree
+    public uint nodeData;                 // packed leaf/internal metadata
+}
+
+public struct MeshletMeshData : IDisposable
+{
+    public UnsafeList<Meshlet> meshlets;
+    public UnsafeList<MeshletGroup> groups;
+    public UnsafeList<MeshletHierarchyNode> hierarchyNodes;
+    public UnsafeList<uint> meshletVertices;
+    public UnsafeList<byte> meshletTriangles;
+    public int lodLevelCount;
+    public int materialSlotCount;
+
+    public void Dispose()
+    {
+        meshlets.Dispose();
+        groups.Dispose();
+        hierarchyNodes.Dispose();
+        meshletVertices.Dispose();
+        meshletTriangles.Dispose();
+    }
+}
+
+// TODO: Support and meshlets.
 public struct Mesh : IResourceReleasable
 {
     private UnsafeList<Vertex> _vertices;
     private UnsafeList<uint> _indices;
+    private MeshletMeshData _meshletData;
 
     internal bool IsMeshDataDirty
     {
@@ -89,6 +142,14 @@ public struct Mesh : IResourceReleasable
     }
 
     /// <summary>
+    /// Gets the handle to the meshlet buffer on the GPU.
+    /// </summary>
+    public Handle<GraphicsBuffer> MeshLetBuffer
+    {
+        get; internal set;
+    }
+
+    /// <summary>
     /// Gets the handle to the mesh data buffer on the GPU.
     /// </summary>
     public Handle<GraphicsBuffer> ObjectDataBuffer
@@ -112,6 +173,7 @@ public struct Mesh : IResourceReleasable
     {
         _vertices.Dispose();
         _indices.Dispose();
+        _meshletData.Dispose();
     }
 
     public readonly void ReleaseResource(IResourceDatabase database)
@@ -120,6 +182,7 @@ public struct Mesh : IResourceReleasable
 
         database.ReleaseResource(VertexBuffer.AsResource());
         database.ReleaseResource(IndexBuffer.AsResource());
+        database.ReleaseResource(MeshLetBuffer.AsResource());
         database.ReleaseResource(ObjectDataBuffer.AsResource());
     }
 }

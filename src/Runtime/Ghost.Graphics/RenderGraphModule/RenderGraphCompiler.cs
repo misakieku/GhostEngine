@@ -10,6 +10,8 @@ namespace Ghost.Graphics.RenderGraphModule;
 internal sealed class RenderGraphCompiler
 {
     private readonly IResourceManager _resourceManager;
+    private readonly IResourceDatabase _resourceDatabase;
+    private readonly IResourceAllocator _resourceAllocator;
     private readonly RenderGraphResourceRegistry _resources;
     private readonly ResourceAliasingManager _aliasingManager;
     private readonly RenderGraphNativePassBuilder _nativePassBuilder;
@@ -19,12 +21,16 @@ internal sealed class RenderGraphCompiler
 
     public RenderGraphCompiler(
         IResourceManager resourceManager,
+        IResourceDatabase resourceDatabase,
+        IResourceAllocator resourceAllocator,
         RenderGraphResourceRegistry resources,
         ResourceAliasingManager aliasingManager,
         RenderGraphNativePassBuilder nativePassBuilder,
         RenderGraphCompilationCache compilationCache)
     {
         _resourceManager = resourceManager;
+        _resourceDatabase = resourceDatabase;
+        _resourceAllocator = resourceAllocator;
         _resources = resources;
         _aliasingManager = aliasingManager;
         _nativePassBuilder = nativePassBuilder;
@@ -208,10 +214,10 @@ internal sealed class RenderGraphCompiler
                     continue;
                 }
 
-                _resourceManager.ResourceDatabase.ReleaseResource(res.backingResource);
+                _resourceDatabase.ReleaseResource(res.backingResource);
             }
 
-            _resourceManager.ResourceDatabase.ReleaseResource(_resourceHeap);
+            _resourceDatabase.ReleaseResource(_resourceHeap);
         }
 
         if (_aliasingManager.Heap.size == 0)
@@ -227,7 +233,7 @@ internal sealed class RenderGraphCompiler
             HeapType = HeapType.Default
         };
 
-        _resourceHeap = _resourceManager.ResourceAllocator.Allocate(in allocationDesc, "RenderGraphResourceHeap");
+        _resourceHeap = _resourceAllocator.Allocate(in allocationDesc, "RenderGraphResourceHeap");
         if (_resourceHeap.IsInvalid)
         {
             return Error.InvalidState;
@@ -253,11 +259,11 @@ internal sealed class RenderGraphCompiler
             if (res.type == RenderGraphResourceType.Texture)
             {
                 var textureDesc = res.rgTextureDesc.ToTextureDesc(res.resolvedWidth, res.resolvedHeight);
-                res.backingResource = _resourceManager.ResourceAllocator.CreateTexture(in textureDesc, res.name, ops).AsResource();
+                res.backingResource = _resourceAllocator.CreateTexture(in textureDesc, res.name, ops).AsResource();
             }
             else if (res.type == RenderGraphResourceType.Buffer)
             {
-                res.backingResource = _resourceManager.ResourceAllocator.CreateBuffer(in res.bufferDesc, res.name, ops).AsResource();
+                res.backingResource = _resourceAllocator.CreateBuffer(in res.bufferDesc, res.name, ops).AsResource();
             }
             else
             {
@@ -374,11 +380,11 @@ internal sealed class RenderGraphCompiler
             {
                 if (!res.isImported)
                 {
-                    _resourceManager.ResourceDatabase.ReleaseResource(res.backingResource);
+                    _resourceDatabase.ReleaseResource(res.backingResource);
                 }
             }
 
-            _resourceManager.ResourceDatabase.ReleaseResource(_resourceHeap);
+            _resourceDatabase.ReleaseResource(_resourceHeap);
             _resourceHeap = Handle<GPUResource>.Invalid;
         }
     }

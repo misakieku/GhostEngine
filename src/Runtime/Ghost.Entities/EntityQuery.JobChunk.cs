@@ -6,7 +6,7 @@ namespace Ghost.Entities;
 
 public interface IJobChunk
 {
-    void Execute(ChunkView view, int threadIndex);
+    void Execute(ChunkView view, ref readonly JobExecutionContext ctx);
 }
 
 internal unsafe struct ChunkInfo
@@ -22,12 +22,12 @@ internal unsafe struct JobChunkBatch<TJob> : IJobParallelFor
     public TJob userJob;
     public ReadOnlyUnsafeCollection<ChunkInfo> chunkInfos;
 
-    public void Execute(int loopIndex, int threadIndex)
+    public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {
         var info = chunkInfos[loopIndex];
         var view = new ChunkView(in *info.pArchetype, in *info.pChunk);
 
-        userJob.Execute(view, threadIndex);
+        userJob.Execute(view, in ctx);
     }
 }
 
@@ -35,7 +35,7 @@ internal struct DisposeJobChunk : IJob
 {
     public UnsafeList<ChunkInfo> list;
 
-    public void Execute(int threadIndex)
+    public void Execute(ref readonly JobExecutionContext ctx)
     {
         list.Dispose();
     }

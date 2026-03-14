@@ -46,7 +46,7 @@
     <!--  Named Style  -->
     <Style
         x:Key="ToolbarButton"
-        BasedOn="{ThemeResource SubtleButtonStyle}"
+        BasedOn="{StaticResource SubtleButtonStyle}"
         TargetType="Button" />
 
     <!--  Named Resource  -->
