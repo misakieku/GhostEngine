@@ -34,7 +34,7 @@ public class RenderExtractionSystem : ISystem
             var meshInstances = chunk.GetComponentData<MeshInstance>();
             var localToWorlds = chunk.GetComponentData<LocalToWorld>();
 
-            for (int i = 0; i < chunk.Count; i++)
+            for (var i = 0; i < chunk.Count; i++)
             {
                 ref readonly var meshInstance = ref meshInstances[i];
                 ref readonly var localToWorld = ref localToWorlds[i];
@@ -43,7 +43,7 @@ public class RenderExtractionSystem : ISystem
                 {
                     localToWorld = localToWorld.matrix,
                     mesh = meshInstance.mesh,
-                    materialPaletteIndex = meshInstance.materialPaletteIndex,
+                    materialPalette = meshInstance.materialPalette,
                     renderingLayerMask = meshInstance.renderingLayerMask,
 
                 }, 0);

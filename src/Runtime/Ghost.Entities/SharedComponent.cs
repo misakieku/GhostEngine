@@ -9,7 +9,7 @@ namespace Ghost.Entities;
 public interface ISharedComponent;
 public interface ISharedWarper
 {
-    public int Index
+    int Index
     {
         get; set;
     }
@@ -24,7 +24,7 @@ public struct Shared<T> : IComponent, ISharedWarper
     }
 }
 
-internal unsafe sealed class SharedComponentStore : IDisposable
+internal sealed unsafe class SharedComponentStore : IDisposable
 {
     private struct EntryInfo
     {
@@ -88,7 +88,7 @@ internal unsafe sealed class SharedComponentStore : IDisposable
             // If collision: fall through to insert (you may want a secondary structure).
         }
 
-        int index = AllocateEntry(ref store);
+        var index = AllocateEntry(ref store);
 
         var dst = (byte*)store.data.GetUnsafePtr() + (index * store.typeSize);
         MemoryUtility.MemCpy(dst, data, (nuint)store.typeSize);
@@ -168,7 +168,7 @@ internal unsafe sealed class SharedComponentStore : IDisposable
         }
 
         // Remove from hash lookup (best-effort; collisions require more robust handling)
-        long key = ((long)componentTypeId << 32) ^ (uint)info.hashCode;
+        var key = ((long)componentTypeId << 32) ^ (uint)info.hashCode;
         store.hashLookup.Remove(key);
 
         // Push to free-list
@@ -226,16 +226,16 @@ internal unsafe sealed class SharedComponentStore : IDisposable
     {
         if (store.freeListHead != 0)
         {
-            int idx = store.freeListHead;
+            var idx = store.freeListHead;
             store.freeListHead = store.infos[idx].nextFree;
             store.infos[idx].nextFree = -1;
             return idx;
         }
 
-        int newIndex = store.infos.Count;
+        var newIndex = store.infos.Count;
         store.infos.Add(default);
 
-        int newByteCount = (newIndex + 1) * store.typeSize;
+        var newByteCount = (newIndex + 1) * store.typeSize;
         store.data.Resize(newByteCount);
 
         return newIndex;

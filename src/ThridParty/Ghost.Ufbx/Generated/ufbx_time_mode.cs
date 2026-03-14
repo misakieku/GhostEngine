@@ -1,0 +1,25 @@
+namespace Ghost.Ufbx
+{
+    public enum ufbx_time_mode
+    {
+        UFBX_TIME_MODE_DEFAULT,
+        UFBX_TIME_MODE_120_FPS,
+        UFBX_TIME_MODE_100_FPS,
+        UFBX_TIME_MODE_60_FPS,
+        UFBX_TIME_MODE_50_FPS,
+        UFBX_TIME_MODE_48_FPS,
+        UFBX_TIME_MODE_30_FPS,
+        UFBX_TIME_MODE_30_FPS_DROP,
+        UFBX_TIME_MODE_NTSC_DROP_FRAME,
+        UFBX_TIME_MODE_NTSC_FULL_FRAME,
+        UFBX_TIME_MODE_PAL,
+        UFBX_TIME_MODE_24_FPS,
+        UFBX_TIME_MODE_1000_FPS,
+        UFBX_TIME_MODE_FILM_FULL_FRAME,
+        UFBX_TIME_MODE_CUSTOM,
+        UFBX_TIME_MODE_96_FPS,
+        UFBX_TIME_MODE_72_FPS,
+        UFBX_TIME_MODE_59_94_FPS,
+        UFBX_TIME_MODE_FORCE_32BIT = 0x7fffffff,
+    }
+}

@@ -1,5 +1,5 @@
 using Ghost.Nvtt;
-using Ghost.Nvtt.Native;
+using Ghost.Nvtt.Warper;
 using Ghost.Test.Core;
 
 namespace Ghost.MicroTest;
@@ -22,7 +22,7 @@ namespace Ghost.MicroTest;
 /// </summary>
 internal sealed unsafe class NvttBindingTest : ITest
 {
-    private const string _IMAGE_PATH = @"C:\Users\Misaki\Downloads\Screenshot 2024-07-20 035047.png";
+    private const string _IMAGE_PATH = @"C:/Users/Misaki/Downloads/Screenshot 2024-07-20 035047.png";
 
     private string _outputDdsPath = string.Empty;
 
@@ -53,7 +53,7 @@ internal sealed unsafe class NvttBindingTest : ITest
         using (var token = NvttGlobal.SetMessageCallback((severity, error, msg) =>
         {
             callbackFired++;
-            Console.WriteLine($"\n         [NVTT] [{severity}] {error}: {msg}");
+            Console.WriteLine($"/n         [NVTT] [{severity}] {error}: {msg}");
         }))
         {
             // Just install + dispose — no assertion needed; must not throw.
@@ -124,7 +124,7 @@ internal sealed unsafe class NvttBindingTest : ITest
             endImage: null
         );
         outOpts.SetErrorHandler(err =>
-            Console.WriteLine($"\n         [NVTT Error] {err}"));
+            Console.WriteLine($"/n         [NVTT Error] {err}"));
 
         using var ctx = new NvttContextHandle();
         ctx.SetCudaAcceleration(false); // CPU only for the test
@@ -184,13 +184,13 @@ internal sealed unsafe class NvttBindingTest : ITest
         Assert(fileSize > 128, $"DDS file suspiciously small: {fileSize} bytes");
         Console.WriteLine($"OK  ({fileSize:N0} bytes → {_outputDdsPath})");
 
-        Console.WriteLine("\n[NvttBindingTest] All tests PASSED.");
+        Console.WriteLine("/n[NvttBindingTest] All tests PASSED.");
     }
 
     public void Cleanup()
     {
         // Leave the DDS file in place so you can inspect it.
-        Console.WriteLine($"\n[NvttBindingTest] Output DDS left at: {_outputDdsPath}");
+        Console.WriteLine($"/n[NvttBindingTest] Output DDS left at: {_outputDdsPath}");
     }
 
     // -------------------------------------------------------------------------

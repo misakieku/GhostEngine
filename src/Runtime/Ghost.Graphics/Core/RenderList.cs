@@ -9,7 +9,7 @@ public struct RenderRecord
 {
     public float4x4 localToWorld;
     public Handle<Mesh> mesh;
-    public int materialPaletteIndex;
+    public Identifier<MaterialPalette> materialPalette;
     public RenderingLayerMask renderingLayerMask;
 }
 
@@ -74,7 +74,7 @@ public struct RenderList : IDisposable
 
         _threadLocalRecords = new UnsafeArray<UnsafeList<RenderRecord>>(maxLevelOfConcurrency, allocationHandle);
 
-        for (int i = 0; i < maxLevelOfConcurrency; i++)
+        for (var i = 0; i < maxLevelOfConcurrency; i++)
         {
             _threadLocalRecords[i] = new UnsafeList<RenderRecord>(capacity, allocationHandle);
         }
@@ -114,7 +114,7 @@ public struct RenderList : IDisposable
     public readonly void Clear()
     {
         ThrowIfNotCreated();
-        for (int i = 0; i < _threadLocalRecords.Length; i++)
+        for (var i = 0; i < _threadLocalRecords.Length; i++)
         {
             _threadLocalRecords[i].Clear();
         }
@@ -134,7 +134,7 @@ public struct RenderList : IDisposable
         }
 
         var maxConcurrency = Math.Min(_threadLocalRecords.Length, other._threadLocalRecords.Length);
-        for (int i = 0; i < maxConcurrency; i++)
+        for (var i = 0; i < maxConcurrency; i++)
         {
             _threadLocalRecords[i].AddRange(other._threadLocalRecords[i].AsSpan());
         }
@@ -142,7 +142,7 @@ public struct RenderList : IDisposable
         if (other._threadLocalRecords.Length > _threadLocalRecords.Length)
         {
             // Add remaining records from other lists to the first list if other has more thread local lists than this
-            for (int i = _threadLocalRecords.Length; i < other._threadLocalRecords.Length; i++)
+            for (var i = _threadLocalRecords.Length; i < other._threadLocalRecords.Length; i++)
             {
                 _threadLocalRecords[0].AddRange(other._threadLocalRecords[i].AsSpan());
             }
@@ -156,7 +156,7 @@ public struct RenderList : IDisposable
             return;
         }
 
-        for (int i = 0; i < _threadLocalRecords.Length; i++)
+        for (var i = 0; i < _threadLocalRecords.Length; i++)
         {
             _threadLocalRecords[i].Dispose();
         }

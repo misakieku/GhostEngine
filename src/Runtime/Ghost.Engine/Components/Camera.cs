@@ -6,7 +6,6 @@ using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Engine.Components;
 
-[RequireComponent<LocalToWorld>]
 public unsafe struct Camera : IComponent
 {
     public float nearClipPlane;

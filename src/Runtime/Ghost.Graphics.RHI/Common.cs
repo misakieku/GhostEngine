@@ -138,11 +138,11 @@ public struct Vertex
     {
         public const int COUNT = 5;
 
-        public static readonly FixedText32 Position = new("POSITION");
-        public static readonly FixedText32 Normal = new("NORMAL");
-        public static readonly FixedText32 Tangent = new("TANGENT");
-        public static readonly FixedText32 Uv = new("TEXCOORD");
-        public static readonly FixedText32 Color = new("COLOR");
+        public static readonly FixedText32 Position = new("POSITION"u8);
+        public static readonly FixedText32 Normal = new("NORMAL"u8);
+        public static readonly FixedText32 Tangent = new("TANGENT"u8);
+        public static readonly FixedText32 Uv = new("TEXCOORD"u8);
+        public static readonly FixedText32 Color = new("COLOR"u8);
     }
 
     public float4 position;

@@ -4,8 +4,8 @@ namespace Ghost.Graphics.Core;
 
 public struct RenderingLayerMask : IEquatable<RenderingLayerMask>
 {
-    private static readonly Dictionary<string, uint> _layerNameToBit = new (32);
-    private static readonly Dictionary<uint, string> _bitToLayerName = new (32);
+    private static readonly Dictionary<string, uint> _layerNameToBit = new(32);
+    private static readonly Dictionary<uint, string> _bitToLayerName = new(32);
 
     internal static void SetLayerName(int layerIndex, string name)
     {

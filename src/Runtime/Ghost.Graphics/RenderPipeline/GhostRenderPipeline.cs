@@ -41,7 +41,7 @@ public unsafe partial class GhostRenderPipeline : IRenderPipeline
 
     public void Render(RenderContext ctx, ReadOnlySpan<RenderRequest> requests)
     {
-        for (int i = 0; i < requests.Length; i++)
+        for (var i = 0; i < requests.Length; i++)
         {
             ref readonly var request = ref requests[i];
 

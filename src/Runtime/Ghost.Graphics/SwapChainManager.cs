@@ -19,7 +19,7 @@ internal sealed class SwapChainRecord
     {
         while (true)
         {
-            int current = Volatile.Read(ref _refCount);
+            var current = Volatile.Read(ref _refCount);
             if (current == 0)
             {
                 return false; // It's dead, let it go.
@@ -36,7 +36,7 @@ internal sealed class SwapChainRecord
     {
         while (true)
         {
-            int current = Volatile.Read(ref _refCount);
+            var current = Volatile.Read(ref _refCount);
             if (current == 0)
             {
                 return false;

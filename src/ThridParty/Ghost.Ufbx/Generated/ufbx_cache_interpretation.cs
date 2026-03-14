@@ -1,0 +1,11 @@
+namespace Ghost.Ufbx
+{
+    public enum ufbx_cache_interpretation
+    {
+        UFBX_CACHE_INTERPRETATION_UNKNOWN,
+        UFBX_CACHE_INTERPRETATION_POINTS,
+        UFBX_CACHE_INTERPRETATION_VERTEX_POSITION,
+        UFBX_CACHE_INTERPRETATION_VERTEX_NORMAL,
+        UFBX_CACHE_INTERPRETATION_FORCE_32BIT = 0x7fffffff,
+    }
+}

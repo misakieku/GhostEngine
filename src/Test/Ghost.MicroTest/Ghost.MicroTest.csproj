@@ -16,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Test\Ghost.Test.Core\Ghost.Test.Core.csproj" />
     <ProjectReference Include="..\..\ThridParty\Ghost.Nvtt\Ghost.Nvtt.csproj" />
+    <ProjectReference Include="..\..\ThridParty\Ghost.Ufbx\Ghost.Ufbx.csproj" />
   </ItemGroup>
 
 </Project>

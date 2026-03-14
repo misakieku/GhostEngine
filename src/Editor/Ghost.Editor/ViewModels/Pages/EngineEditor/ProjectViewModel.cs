@@ -1,5 +1,4 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using Ghost.Editor.Core;
 using Ghost.Editor.Models;
 using System.Collections.ObjectModel;
 

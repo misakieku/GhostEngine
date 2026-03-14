@@ -7,7 +7,7 @@ namespace Ghost.Engine.Components;
 public struct MeshInstance : IComponent
 {
     public Handle<Mesh> mesh;
-    public int materialPaletteIndex;
+    public Identifier<MaterialPalette> materialPalette;
     public ShadowCastingMode shadowCastingMode;
     public RenderingLayerMask renderingLayerMask;
     public bool staticShadowCaster;

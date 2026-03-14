@@ -81,27 +81,27 @@ public interface IResourceManager
     /// <summary>
     /// Determines whether the specified material palette index is valid.
     /// </summary>
-    /// <param name="paletteIndex">The palette index to validate.</param>
-    bool HasMaterialPalette(int paletteIndex);
+    /// <param name="paletteID">The palette index to validate.</param>
+    bool HasMaterialPalette(Identifier<MaterialPalette> paletteID);
 
     /// <summary>
     /// Gets metadata for a material palette entry.
     /// </summary>
-    /// <param name="paletteIndex">The palette index to query.</param>
-    MaterialPaletteInfo GetMaterialPaletteInfo(int paletteIndex);
+    /// <param name="paletteID">The palette index to query.</param>
+    MaterialPalette GetMaterialPaletteInfo(Identifier<MaterialPalette> paletteID);
 
     /// <summary>
     /// Gets a material handle from a palette entry by local material index.
     /// </summary>
-    /// <param name="paletteIndex">The palette index to query.</param>
+    /// <param name="paletteID">The palette index to query.</param>
     /// <param name="localMaterialIndex">The material slot inside the palette.</param>
-    Handle<Material> GetMaterialPaletteMaterial(int paletteIndex, int localMaterialIndex);
+    Handle<Material> GetMaterialPaletteMaterial(Identifier<MaterialPalette> paletteID, int localMaterialIndex);
 
     /// <summary>
     /// Releases a material palette reference previously returned by <see cref="GetOrCreateMaterialPalette(ReadOnlySpan{Handle{Material}})"/>.
     /// </summary>
-    /// <param name="paletteIndex">The palette index to release.</param>
-    void ReleaseMaterialPalette(int paletteIndex);
+    /// <param name="paletteID">The palette index to release.</param>
+    void ReleaseMaterialPalette(Identifier<MaterialPalette> paletteID);
 
     /// <summary>
     /// Determines whether a shader with the specified identifier exists in the collection.
@@ -299,28 +299,28 @@ internal sealed class ResourceManager : IResourceManager, IDisposable
         return _materialPalettes.InsertOrGet(materials);
     }
 
-    public bool HasMaterialPalette(int paletteIndex)
+    public bool HasMaterialPalette(Identifier<MaterialPalette> paletteID)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return _materialPalettes.IsValid(paletteIndex);
+        return _materialPalettes.IsValid(paletteID);
     }
 
-    public MaterialPaletteInfo GetMaterialPaletteInfo(int paletteIndex)
+    public MaterialPalette GetMaterialPaletteInfo(Identifier<MaterialPalette> paletteID)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return _materialPalettes.GetInfo(paletteIndex);
+        return _materialPalettes.GetInfo(paletteID);
     }
 
-    public Handle<Material> GetMaterialPaletteMaterial(int paletteIndex, int localMaterialIndex)
+    public Handle<Material> GetMaterialPaletteMaterial(Identifier<MaterialPalette> paletteID, int localMaterialIndex)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return _materialPalettes.GetMaterial(paletteIndex, localMaterialIndex);
+        return _materialPalettes.GetMaterial(paletteID, localMaterialIndex);
     }
 
-    public void ReleaseMaterialPalette(int paletteIndex)
+    public void ReleaseMaterialPalette(Identifier<MaterialPalette> paletteID)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        _materialPalettes.Release(paletteIndex);
+        _materialPalettes.Release(paletteID);
     }
 
     public bool HasShader(Identifier<Shader> id)

@@ -5,12 +5,18 @@ using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.Core;
 
-public readonly struct MaterialPaletteInfo
+public readonly struct MaterialPalette
 {
-    public int MaterialCount
+    public readonly ReadOnlyUnsafeCollection<Handle<Material>> materials;
+
+    public unsafe MaterialPalette(Handle<Material>* pMaterials, int count)
     {
-        get;
-        init;
+        materials = new ReadOnlyUnsafeCollection<Handle<Material>>(pMaterials, count);
+    }
+
+    public MaterialPalette(ReadOnlyUnsafeCollection<Handle<Material>> materials)
+    {
+        this.materials = materials;
     }
 }
 
@@ -47,14 +53,6 @@ internal sealed class MaterialPaletteStore : IDisposable
         _entries = new UnsafeList<Entry>(initialCapacity + 1, Allocator.Persistent);
         _lookup = new UnsafeHashMap<ulong, int>(initialCapacity * 2, Allocator.Persistent);
         _freeListHead = 0;
-
-        _entries.Add(new Entry
-        {
-            materials = default,
-            refCount = int.MaxValue,
-            lookupHash = 0,
-            nextFree = -1,
-        });
     }
 
     ~MaterialPaletteStore()
@@ -66,14 +64,14 @@ internal sealed class MaterialPaletteStore : IDisposable
     {
         if (_freeListHead != 0)
         {
-            int index = _freeListHead;
+            var index = _freeListHead;
             ref var entry = ref _entries[index];
             _freeListHead = entry.nextFree;
             entry.nextFree = -1;
             return index;
         }
 
-        int newIndex = _entries.Count;
+        var newIndex = _entries.Count;
         _entries.Add(default);
         return newIndex;
     }
@@ -82,7 +80,7 @@ internal sealed class MaterialPaletteStore : IDisposable
     {
         const ulong offset = 14695981039346656037UL;
 
-        ulong hash = offset ^ seed;
+        var hash = offset ^ seed;
         hash = Mix(hash, (ulong)materials.Length);
 
         foreach (var material in materials)
@@ -112,7 +110,7 @@ internal sealed class MaterialPaletteStore : IDisposable
             return 0;
         }
 
-        ulong hash = ComputeLookupHash(materials, 0);
+        var hash = ComputeLookupHash(materials, 0);
         while (_lookup.TryGetValue(hash, out var existingIndex))
         {
             ref var entry = ref _entries[existingIndex];
@@ -125,7 +123,7 @@ internal sealed class MaterialPaletteStore : IDisposable
             hash = ComputeLookupHash(materials, hash);
         }
 
-        int index = AllocateEntry();
+        var index = AllocateEntry();
         ref var newEntry = ref _entries[index];
         newEntry.lookupHash = hash;
         newEntry.refCount = 1;
@@ -140,7 +138,7 @@ internal sealed class MaterialPaletteStore : IDisposable
             newEntry.materials.Clear();
         }
 
-        for (int i = 0; i < materials.Length; i++)
+        for (var i = 0; i < materials.Length; i++)
         {
             newEntry.materials.Add(materials[i]);
         }
@@ -149,36 +147,29 @@ internal sealed class MaterialPaletteStore : IDisposable
         return index;
     }
 
-    public bool IsValid(int paletteIndex)
+    public bool IsValid(Identifier<MaterialPalette> paletteID)
     {
-        if (paletteIndex == 0)
-        {
-            return true;
-        }
-
+        var paletteIndex = paletteID.Value;
         return paletteIndex > 0
             && paletteIndex < _entries.Count
             && _entries[paletteIndex].IsActive;
     }
 
-    public MaterialPaletteInfo GetInfo(int paletteIndex)
+    public MaterialPalette GetInfo(Identifier<MaterialPalette> paletteID)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        if (!IsValid(paletteIndex))
+        if (!IsValid(paletteID))
         {
             return default;
         }
 
-        if (paletteIndex == 0)
+        if (paletteID == 0)
         {
             return default;
         }
 
-        return new MaterialPaletteInfo
-        {
-            MaterialCount = _entries[paletteIndex].materials.Count,
-        };
+        return new MaterialPalette(_entries[paletteID].materials.AsReadOnly());
     }
 
     public Handle<Material> GetMaterial(int paletteIndex, int localMaterialIndex)
@@ -199,16 +190,16 @@ internal sealed class MaterialPaletteStore : IDisposable
         return entry.materials[localMaterialIndex];
     }
 
-    public void Release(int paletteIndex)
+    public void Release(Identifier<MaterialPalette> paletteID)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        if (paletteIndex == 0 || !IsValid(paletteIndex))
+        if (paletteID == 0 || !IsValid(paletteID))
         {
             return;
         }
 
-        ref var entry = ref _entries[paletteIndex];
+        ref var entry = ref _entries[paletteID];
         entry.refCount--;
         if (entry.refCount > 0)
         {
@@ -218,7 +209,7 @@ internal sealed class MaterialPaletteStore : IDisposable
         _lookup.Remove(entry.lookupHash);
         entry.materials.Clear();
         entry.nextFree = _freeListHead;
-        _freeListHead = paletteIndex;
+        _freeListHead = paletteID;
     }
 
     public void Dispose()
@@ -228,7 +219,7 @@ internal sealed class MaterialPaletteStore : IDisposable
             return;
         }
 
-        for (int i = 0; i < _entries.Count; i++)
+        for (var i = 0; i < _entries.Count; i++)
         {
             _entries[i].Dispose();
         }
