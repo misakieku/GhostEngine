@@ -1,54 +1,63 @@
 # Ghost.NativeWrapperGen
 
-`Ghost.NativeWrapperGen` is a CLI tool that reads low-level generated C# native bindings and emits a configurable wrapper layer.
+`Ghost.NativeWrapperGen` is a CLI tool that reads low-level generated C# native bindings (e.g. ClangSharp output) and emits a thin, config-driven wrapper layer that routes `DllImport` functions from the `Api` class onto the native struct types they belong to.
 
 It is built for bindings that look like ClangSharp output:
 
-- many `partial struct` native types
-- raw pointers like `foo_node*`
-- list structs shaped like `{ T* data; nuint count; }`
-- native methods inside a static `Api` class
+- many `unsafe partial struct` native types
+- raw pointer parameters like `NvttSurface*`
+- native methods inside a static `Api` class decorated with `[DllImport]`
 
-The generator is now config-driven in three key areas:
+## What it generates
 
-- wrapper kinds are configurable per type
-- string/blob special handling is configurable by type shape
-- static methods are generated from discovered native methods plus parameter adapters from config
+For each routed function the generator emits a method on the appropriate `partial struct` in a `*.nativegen.cs` file. No wrapper classes, no properties, no owned/marshalled types — just methods.
 
-## Current capabilities
+Example: `nvttDestroySurface(NvttSurface*)` → `public void Dispose()` on `NvttSurface`
 
-Implemented now:
+```csharp
+// NvttSurface.nativegen.cs  (auto-generated)
+public unsafe partial struct NvttSurface : System.IDisposable
+{
+    // From: nvttCreateSurface()
+    public static NvttSurface* Create() => Api.nvttCreateSurface();
 
-- parse top-level structs, enums, and `Api` methods
-- detect list structs automatically
-- generate wrapper types with configurable kinds: `class`, `struct`, `ref struct`, `readonly ref struct`
-- generate pointer-list wrappers for `T** + count`
-- generate raw void-list wrappers for `void* + count`
-- generate string/blob accessors from config instead of hardcoded type names
-- generate static wrapper methods from config-driven parameter adapters
-- generate owned-resource disposal from config
-- regenerate `ufbx` successfully and build `Ghost.Ufbx`
+    // From: nvttDestroySurface(NvttSurface*)
+    public void Dispose()
+    {
+        Api.nvttDestroySurface((NvttSurface*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
+    }
 
-Validated commands:
-
-```bash
-dotnet run --project src/Tools/Ghost.NativeWrapperGen/Ghost.NativeWrapperGen.csproj -- --config src/Tools/Ghost.NativeWrapperGen/configs/ufbx.json --input src/ThridParty/Ghost.Ufbx/Generated --output src/ThridParty/Ghost.Ufbx/Warper
-dotnet build src/ThridParty/Ghost.Ufbx/Ghost.Ufbx.csproj
+    // From: nvttSurfaceWidth(NvttSurface*)
+    public int Width()
+    {
+        return Api.nvttSurfaceWidth((NvttSurface*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
+    }
+}
 ```
 
 ## CLI usage
 
 ```bash
-dotnet run --project src/Tools/Ghost.NativeWrapperGen/Ghost.NativeWrapperGen.csproj -- --config <config-path> --input <generated-binding-folder> --output <wrapper-output-folder>
+dotnet run --project src/Tools/Ghost.NativeWrapperGen/Ghost.NativeWrapperGen.csproj -- \
+  --config <config-path> \
+  --input  <generated-binding-folder> \
+  --output <wrapper-output-folder>
 ```
 
 Arguments:
 
-- `--config`: JSON config for one library
-- `--input`: folder containing generated `.cs` binding files
-- `--output`: folder where `*.nativegen.cs` files are written
+- `--config` — JSON config for one library
+- `--input`  — folder containing generated `.cs` binding files (ClangSharp output)
+- `--output` — folder where `*.nativegen.cs` files are written
 
-The generator deletes all existing `*.nativegen.cs` files inside the output folder before writing new ones.
+The generator deletes all existing `*.nativegen.cs` files in the output folder before writing new ones.
+
+### Validated commands
+
+```bash
+dotnet run --project src/Tools/Ghost.NativeWrapperGen/Ghost.NativeWrapperGen.csproj -- --config src/Tools/Ghost.NativeWrapperGen/configs/nvtt.json --input src/ThridParty/Ghost.Nvtt/Generated --output src/ThridParty/Ghost.Nvtt/WrapperGen
+dotnet run --project src/Tools/Ghost.NativeWrapperGen/Ghost.NativeWrapperGen.csproj -- --config src/Tools/Ghost.NativeWrapperGen/configs/ufbx.json --input src/ThridParty/Ghost.Ufbx/Generated --output src/ThridParty/Ghost.Ufbx/Wrapper
+```
 
 ## Important files
 
@@ -56,497 +65,255 @@ The generator deletes all existing `*.nativegen.cs` files inside the output fold
 - `src/Tools/Ghost.NativeWrapperGen/Config/WrapperConfig.cs`
 - `src/Tools/Ghost.NativeWrapperGen/Parsing/BindingParser.cs`
 - `src/Tools/Ghost.NativeWrapperGen/Transform/NamingConventions.cs`
-- `src/Tools/Ghost.NativeWrapperGen/Transform/PublicTypeResolver.cs`
+- `src/Tools/Ghost.NativeWrapperGen/Transform/JsonConverter.cs`
 - `src/Tools/Ghost.NativeWrapperGen/Emit/WrapperGeneratorEmitter.cs`
+- `src/Tools/Ghost.NativeWrapperGen/configs/nvtt.json`
 - `src/Tools/Ghost.NativeWrapperGen/configs/ufbx.json`
 
 ## Config schema
 
-Example: `src/Tools/Ghost.NativeWrapperGen/configs/ufbx.json`
+Top-level fields:
+
+| Field             | Type            | Description |
+|-------------------|-----------------|-------------|
+| `libraryName`     | string          | Human-readable library name |
+| `nativeNamespace` | string          | Namespace of the low-level generated bindings |
+| `outputNamespace` | string          | Namespace used in emitted files |
+| `nativeTypePrefix`| string          | Prefix stripped when deriving method names (e.g. `"Nvtt"`, `"ufbx_"`) |
+| `skipTypes`       | string[]        | Types ignored by parsing/emission |
+| `skipFunctions`   | string[]        | Native function names excluded from routing |
+| `remaps`          | RemapConfig[]   | Parameter type remappings (e.g. `sbyte*` → `ReadOnlySpan<byte>`) |
+| `actions`         | ActionConfig[]  | Routing rules, evaluated in order (first match wins) |
+
+### `remaps`
+
+Each remap entry replaces a native parameter type with a C# type at the call site.
 
 ```json
 {
-  "libraryName": "ufbx",
-  "nativeNamespace": "Ghost.Ufbx",
-  "wrapperNamespace": "Ghost.Ufbx",
-  "nativeTypePrefix": "ufbx_",
-  "staticApiClassName": "Ufbx",
-  "skipTypes": [
-    "NativeAnnotationAttribute",
-    "NativeTypeNameAttribute"
-  ],
-  "wrappers": {
-    "defaultKind": "struct",
-    "defaultOwnedKind": "class",
-    "kinds": {
-      "ufbx_node": "ref struct",
-      "ufbx_mesh": "ref struct"
+  "src": "sbyte*",
+  "dst": "ReadOnlySpan<byte>",
+  "scope": ["parameter"],
+  "filter": [".*name", ".*path"],
+  "adapter": {
+    "convertBack": {
+      "wrapCall": "fixed (byte* p$arg = $arg) { $CALL }",
+      "passAs":   "(sbyte*)p$arg"
     }
-  },
-  "specialTypes": {
-    "strings": [
-      {
-        "type": "ufbx_string",
-        "dataField": "data",
-        "lengthField": "length",
-        "charSize": 8,
-        "encoding": "utf8",
-        "emitRawSpanProperty": true,
-        "emitStringProperty": true
-      }
-    ],
-    "blobs": [
-      {
-        "type": "ufbx_blob",
-        "dataField": "data",
-        "lengthField": "size",
-        "elementType": "byte"
-      }
-    ]
-  },
-  "ownedTypes": [
-    {
-      "nativeType": "ufbx_scene",
-      "freeFunction": "ufbx_free_scene",
-      "retainFunction": "ufbx_retain_scene",
-      "wrapperKind": "class"
-    }
-  ],
-  "staticMethods": [
-    {
-      "nativeFunction": "ufbx_load_file_len",
-      "methodName": "LoadFile",
-      "throwOnNullReturn": true,
-      "failureMessageMember": "description",
-      "parameters": [
-        { "native": "filename", "adapter": "utf8Path", "publicName": "pathUtf8" },
-        { "native": "filename_len", "adapter": "utf8Length", "source": "pathUtf8" },
-        { "native": "opts", "adapter": "inValue", "type": "ufbx_load_opts", "publicName": "options", "optionalDefault": true },
-        { "native": "error", "adapter": "errorOut", "type": "ufbx_error", "publicName": "error" }
-      ]
-    }
-  ]
-}
-```
-
-## Base config fields
-
-### `libraryName`
-
-Human-readable library name.
-
-### `nativeNamespace`
-
-Namespace containing the low-level generated bindings.
-
-### `wrapperNamespace`
-
-Namespace used for emitted wrapper files.
-
-### `nativeTypePrefix`
-
-Prefix removed before PascalCase naming.
-
-Examples:
-
-- `ufbx_scene` -> `Scene`
-- `ufbx_node_list` -> `NodeList`
-
-### `staticApiClassName`
-
-Name of the global static wrapper class used for methods that do not target a specific wrapper type.
-
-Example:
-
-- `Ufbx`
-
-### `skipTypes`
-
-Types ignored by parsing/emission.
-
-Use this for helper attributes or internal generated artifacts you do not want wrapped.
-
-### `typeNameOverrides`
-
-Overrides wrapper type names.
-
-Example:
-
-- `ufbx_string` -> `UfbxString`
-
-### `publicTypeOverrides`
-
-Overrides member property types.
-
-This is mainly useful for raw native value types that should expose another public type.
-
-## Wrapper kind configuration
-
-The generator no longer assumes everything should be `ref struct`.
-
-Config section:
-
-```json
-"wrappers": {
-  "defaultKind": "struct",
-  "defaultOwnedKind": "class",
-  "kinds": {
-    "ufbx_scene": "class",
-    "ufbx_node": "ref struct",
-    "ufbx_mesh": "ref struct"
   }
 }
 ```
 
-Supported values:
-
-- `class`
-- `struct`
-- `ref struct`
-- `readonly ref struct`
-
-Resolution order:
-
-1. `ownedTypes[].wrapperKind`
-2. `wrappers.kinds[nativeType]`
-3. `wrappers.defaultOwnedKind` for owned types
-4. `wrappers.defaultKind` for all other types
-
-Recommended defaults:
-
-- owning types: `class`
-- lightweight non-owning value wrappers: `struct`
-- hot traversal-only wrappers: `ref struct`
-
-## Special type configuration
-
-This replaces hardcoded `ufbx_string` and `ufbx_blob` behavior.
-
-### String special types
-
-Config shape:
-
-```json
-{
-  "type": "ufbx_string",
-  "dataField": "data",
-  "lengthField": "length",
-  "charSize": 8,
-  "encoding": "utf8",
-  "emitRawSpanProperty": true,
-  "emitStringProperty": true
-}
-```
-
 Fields:
 
-- `type`: native struct type name
-- `dataField`: pointer field containing character data
-- `lengthField`: element count field
-- `charSize`: 8, 16, or 32
-- `encoding`: `utf8`, `utf16`, or `utf32`
-- `emitRawSpanProperty`: whether to emit `<Name>Bytes`
-- `emitStringProperty`: whether to emit `<Name>` string property
+- `src` — native C# type to match
+- `dst` — public C# type to expose in the generated signature
+- `scope` — `"parameter"` and/or `"return"`
+- `filter` — optional regex list applied to parameter names; only matching parameters are remapped
+- `adapter.convertBack.wrapCall` — wraps the whole call site; `$arg` = param name, `$CALL` = the Api call expression
+- `adapter.convertBack.passAs` — expression passed as the native argument; `$arg` = param name
+- `derivesFrom` — if set, a sibling parameter (matched by name suffix) is consumed and replaced by an expression
 
-Generated helper methods look like:
+### `actions`
 
-```csharp
-public static ReadOnlySpan<byte> AsByteSpan(ufbx_string value)
-public static string GetString(ufbx_string value)
-```
-
-Generated wrapper members look like:
-
-```csharp
-public ReadOnlySpan<byte> NameBytes => NativeWrapperHelpers.AsByteSpan(_ptr->name);
-public string Name => NativeWrapperHelpers.GetString(_ptr->name);
-```
-
-### Blob special types
-
-Config shape:
+Actions are evaluated in order; the first one whose conditions all match is used.
 
 ```json
 {
-  "type": "ufbx_blob",
-  "dataField": "data",
-  "lengthField": "size",
-  "elementType": "byte"
-}
-```
-
-Generated helper methods look like:
-
-```csharp
-public static ReadOnlySpan<byte> AsSpan(ufbx_blob value)
-```
-
-Generated wrapper members look like:
-
-```csharp
-public ReadOnlySpan<byte> Data => NativeWrapperHelpers.AsSpan(_ptr->data);
-```
-
-## Owned type configuration
-
-Config shape:
-
-```json
-{
-  "nativeType": "ufbx_scene",
-  "freeFunction": "ufbx_free_scene",
-  "retainFunction": "ufbx_retain_scene",
-  "wrapperKind": "class"
-}
-```
-
-Fields:
-
-- `nativeType`: native pointer target type
-- `freeFunction`: optional free function in `Api`
-- `retainFunction`: reserved for future ownership helpers
-- `wrapperKind`: optional per-owned-type wrapper override
-- `staticType`: reserved target override for generated static methods
-
-Current effect:
-
-- if `freeFunction` is present, generator emits `Dispose()`
-- if wrapper kind is not otherwise specified, owning types use `wrappers.defaultOwnedKind`
-
-## Static method generation
-
-This replaces the old fixed `EntryPointConfig` model.
-
-Now you configure native methods by name and provide parameter adapters.
-
-Config shape:
-
-```json
-{
-  "nativeFunction": "ufbx_load_memory",
-  "methodName": "LoadMemory",
-  "throwOnNullReturn": true,
-  "failureMessageMember": "description",
-  "parameters": [
-    { "native": "data", "adapter": "byteSpan", "publicName": "data" },
-    { "native": "data_size", "adapter": "byteSpanLength", "source": "data" },
-    { "native": "opts", "adapter": "inValue", "type": "ufbx_load_opts", "publicName": "options", "optionalDefault": true },
-    { "native": "error", "adapter": "errorOut", "type": "ufbx_error", "publicName": "error" }
+  "filter":     "EXTERN_API",
+  "conditions": ["VOID_RETURN", "SELF_PTR", "NAME_CONDITION(.*Destroy$TBare)"],
+  "targetType": "FIRST_PARAM_TYPE",
+  "apply": [
+    {
+      "type": "INSTANCE_METHOD",
+      "opts": {
+        "removeFirstParam": true,
+        "passAs": "($TSelf*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this)",
+        "name": { "set": "Dispose" }
+      }
+    },
+    {
+      "type": "INHERITANCE",
+      "opts": { "baseType": ["System.IDisposable"] }
+    }
   ]
 }
 ```
 
-### Target selection
+#### `filter`
 
-By default:
+Only `"EXTERN_API"` is supported — matches all `[DllImport]` methods on the `Api` class.
 
-- if a native method returns `T*` and `T` has a wrapper, the static method is generated on `T`
-- otherwise it is generated on the global static type from `staticApiClassName`
+#### `conditions`
 
-You can override that later with `staticType`.
+All conditions must be true for the action to match. Evaluated left-to-right.
 
-### Current parameter adapters
+| Condition | Description |
+|-----------|-------------|
+| `SELF_PTR` | First parameter is `T*` where `T` is a known binding struct |
+| `FIRST_PARAM_OTHER_TYPE` | First parameter is NOT a known struct pointer |
+| `RETURN_BINDING_TYPE` | Return type is `T*` where `T` is a known binding struct |
+| `VOID_RETURN` | Return type is `void` |
+| `NAME_CONDITION(regex)` | Native function name matches the regex (case-insensitive). Supports `$TSelf` (full struct name, e.g. `NvttSurface`) and `$TBare` (struct name with `nativeTypePrefix` stripped, e.g. `Surface`) |
 
-Implemented adapters:
+#### `targetType`
 
-- `utf8Path`
-  - public parameter: `ReadOnlySpan<byte>`
-  - native argument: `sbyte*`
-- `utf8Length`
-  - emits `(nuint)<source>.Length`
-- `byteSpan`
-  - public parameter: `ReadOnlySpan<byte>`
-  - native argument: `byte*`
-- `byteSpanLength`
-  - emits `(nuint)<source>.Length`
-- `inValue`
-  - public parameter: `in T`
-  - native argument: `&localCopy`
-- `errorOut`
-  - hides error buffer from public signature
-  - emits a local native error value and passes pointer to native call
+Determines which struct the method is emitted on.
 
-### Return handling
+| Value | Description |
+|-------|-------------|
+| `FIRST_PARAM_TYPE` | The binding struct type of the first parameter |
+| `RETURN_TYPE` | The binding struct type of the return value |
 
-Current behavior:
+#### `apply`
 
-- if native return is `T*` and `T` has a wrapper, emitted return type is wrapper type
-- if `throwOnNullReturn` is `true`, a null pointer return throws `InvalidOperationException`
-- if `failureMessageMember` is set and the method has an `errorOut` parameter, the generator uses that configured member to build the exception message
-- primitive and raw returns are forwarded directly
+Can be a single object or an array of objects. Each apply step has a `type` and optional `opts`.
 
-### Example: `ufbx_load_file_len`
+**`opts` is dynamic** — fields are read directly from the JSON object by name. Missing fields return `null`.
 
-Native signature:
+##### Apply type: `INSTANCE_METHOD`
 
-```csharp
-public static extern ufbx_scene* ufbx_load_file_len(sbyte* filename, nuint filename_len, ufbx_load_opts* opts, ufbx_error* error);
-```
+Emits a `public` instance method on the target struct.
 
-Generated method:
+| `opts` field       | Type    | Description |
+|--------------------|---------|-------------|
+| `removeFirstParam` | bool    | If true, skip the first native parameter from the public signature (it becomes the self pointer) |
+| `passAs`           | string  | Expression used as the first native argument. `$TSelf` is replaced with the struct name |
+| `name.set`         | string  | Fixed method name (overrides `name.remove`) |
+| `name.remove`      | array   | Ordered list of removal tokens applied to derive the method name (see [Naming](#naming)) |
 
-```csharp
-public static Scene LoadFile(ReadOnlySpan<byte> pathUtf8, in ufbx_load_opts options = default)
-```
+##### Apply type: `STATIC_METHOD`
 
-### Example: `ufbx_load_memory`
+Same as `INSTANCE_METHOD` but emits a `public static` method. No self pointer is injected.
 
-Native signature:
+| `opts` field  | Type   | Description |
+|---------------|--------|-------------|
+| `name.set`    | string | Fixed method name |
+| `name.remove` | array  | Removal token list |
 
-```csharp
-public static extern ufbx_scene* ufbx_load_memory(void* data, nuint data_size, ufbx_load_opts* opts, ufbx_error* error);
-```
+##### Apply type: `INHERITANCE`
 
-Generated method:
+Adds one or more base types to the target struct's partial declaration header. Does not emit a method.
 
-```csharp
-public static Scene LoadMemory(ReadOnlySpan<byte> data, in ufbx_load_opts options = default)
-```
+| `opts` field | Type     | Description |
+|--------------|----------|-------------|
+| `baseType`   | string[] | Fully-qualified interface/type names to add (e.g. `["System.IDisposable"]`) |
 
-## List handling
+### Naming
 
-The parser recognizes list structs by shape:
+When `name.set` is given, it is used verbatim.
 
-- a `data` field
-- a `count` field
-- `count` type is `nuint`
-- `data` is a pointer type
+Otherwise `name.remove` is a list of tokens applied in sequence, each followed by underscore-trimming:
 
-### Value lists: `T* + count`
+| Token | Effect |
+|-------|--------|
+| `PREFIX` | Strip `nativeTypePrefix` from the start of the name (case-insensitive) |
+| `NO_PREFIX($TSelf)` | Strip the struct's bare name (struct name minus `nativeTypePrefix`) from the start or end of the name (case-insensitive) |
 
-Generated as `ReadOnlySpan<T>` properties.
+Examples with `nativeTypePrefix = "Nvtt"`, struct = `NvttSurface` (bare = `Surface`):
 
-### Pointer lists: `T** + count`
+| Native name | Tokens | Result |
+|---|---|---|
+| `nvttSurfaceWidth` | `["PREFIX", "NO_PREFIX($TSelf)"]` | `Width` |
+| `nvttCreateSurface` | `["PREFIX", "NO_PREFIX($TSelf)"]` | `Create` |
 
-Generated as iterable wrapper list types with:
-
-- `Count`
-- indexer
-- `foreach` enumerator
-
-### Void lists: `void* + count`
-
-Generated as lightweight wrappers exposing:
-
-- `Count`
-- `Data`
-
-## Current naming rules
-
-By default:
-
-1. remove `nativeTypePrefix`
-2. split by `_`
-3. convert to PascalCase
-
-Examples:
-
-- `ufbx_scene` -> `Scene`
-- `ufbx_node` -> `Node`
-- `ufbx_node_list` -> `NodeList`
-
-If a member name would equal the wrapper type name, `Value` is appended.
-
-Example:
-
-- wrapper `Props` with field `props` becomes `PropsValue`
-
-## How to use for another library
-
-Create a new config, for example `src/Tools/Ghost.NativeWrapperGen/configs/somelib.json`:
+## Full config example
 
 ```json
 {
-  "libraryName": "somelib",
-  "nativeNamespace": "Ghost.SomeLib",
-  "wrapperNamespace": "Ghost.SomeLib",
-  "nativeTypePrefix": "somelib_",
-  "staticApiClassName": "SomeLib",
-  "wrappers": {
-    "defaultKind": "struct",
-    "defaultOwnedKind": "class",
-    "kinds": {}
-  },
-  "specialTypes": {
-    "strings": [
-      {
-        "type": "somelib_string",
-        "dataField": "data",
-        "lengthField": "length",
-        "charSize": 8,
-        "encoding": "utf8"
-      }
-    ],
-    "blobs": []
-  },
-  "ownedTypes": [
+  "libraryName": "nvtt",
+  "nativeNamespace": "Ghost.Nvtt",
+  "outputNamespace": "Ghost.Nvtt",
+  "nativeTypePrefix": "Nvtt",
+  "skipTypes": ["NativeAnnotationAttribute", "NativeTypeNameAttribute"],
+  "skipFunctions": [],
+
+  "remaps": [
     {
-      "nativeType": "somelib_context",
-      "freeFunction": "somelib_free_context",
-      "wrapperKind": "class"
+      "src": "sbyte*",
+      "dst": "ReadOnlySpan<byte>",
+      "scope": ["parameter"],
+      "filter": [".*name", ".*filename", ".*path", ".*prop$"],
+      "adapter": {
+        "convertBack": {
+          "wrapCall": "fixed (byte* p$arg = $arg) { $CALL }",
+          "passAs":   "(sbyte*)p$arg"
+        }
+      }
     }
   ],
-  "staticMethods": [
+
+  "actions": [
     {
-      "nativeFunction": "somelib_load_file_len",
-      "methodName": "LoadFile",
-      "throwOnNullReturn": true,
-      "failureMessageMember": "message",
-      "parameters": [
-        { "native": "path", "adapter": "utf8Path", "publicName": "pathUtf8" },
-        { "native": "path_len", "adapter": "utf8Length", "source": "pathUtf8" },
-        { "native": "options", "adapter": "inValue", "type": "somelib_load_options", "optionalDefault": true },
-        { "native": "error", "adapter": "errorOut", "type": "somelib_error" }
+      "comment": "Dispose pattern: void return + T* param + name matches .*Destroy<Bare>",
+      "filter":     "EXTERN_API",
+      "conditions": ["VOID_RETURN", "SELF_PTR", "NAME_CONDITION(.*Destroy$TBare)"],
+      "targetType": "FIRST_PARAM_TYPE",
+      "apply": [
+        {
+          "type": "INSTANCE_METHOD",
+          "opts": {
+            "removeFirstParam": true,
+            "passAs": "($TSelf*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this)",
+            "name": { "set": "Dispose" }
+          }
+        },
+        {
+          "type": "INHERITANCE",
+          "opts": { "baseType": ["System.IDisposable"] }
+        }
       ]
+    },
+    {
+      "comment": "First param is T* → instance method on T",
+      "filter":     "EXTERN_API",
+      "conditions": ["SELF_PTR"],
+      "targetType": "FIRST_PARAM_TYPE",
+      "apply": {
+        "type": "INSTANCE_METHOD",
+        "opts": {
+          "removeFirstParam": true,
+          "passAs": "($TSelf*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this)",
+          "name": { "remove": ["PREFIX", "NO_PREFIX($TSelf)"] }
+        }
+      }
+    },
+    {
+      "comment": "Return type is T* → static method on T",
+      "filter":     "EXTERN_API",
+      "conditions": ["FIRST_PARAM_OTHER_TYPE", "RETURN_BINDING_TYPE"],
+      "targetType": "RETURN_TYPE",
+      "apply": {
+        "type": "STATIC_METHOD",
+        "opts": {
+          "name": { "remove": ["PREFIX", "NO_PREFIX($TSelf)"] }
+        }
+      }
     }
   ]
 }
 ```
-
-Run:
-
-```bash
-dotnet run --project src/Tools/Ghost.NativeWrapperGen/Ghost.NativeWrapperGen.csproj -- --config src/Tools/Ghost.NativeWrapperGen/configs/somelib.json --input src/ThridParty/Ghost.SomeLib/Generated --output src/ThridParty/Ghost.SomeLib/Wrapper
-```
-
-## Current limitations
-
-This README documents the current implementation, not a future idealized version.
-
-Not implemented yet:
-
-- automatic ownership inference
-- automatic retain/release policy generation
-- rich enum wrapper generation
-- source generator mode
-- MSBuild auto-hook integration
-- custom adapter plugins outside the built-in adapter set
-- direct generation from C headers
-- per-member exclusion config
-- fixed-buffer string decoding rules
-
-Also note:
-
-- `struct` wrappers that own native resources are possible, but not recommended as a default because copy semantics can duplicate ownership
-- current string support assumes pointer + length string structs
-- pointer-list wrappers are still emitted as `readonly ref struct` views for performance
 
 ## Recommended workflow
 
-When changing the generator:
-
 ```bash
+# 1. Build the tool
 dotnet build src/Tools/Ghost.NativeWrapperGen/Ghost.NativeWrapperGen.csproj
-dotnet run --project src/Tools/Ghost.NativeWrapperGen/Ghost.NativeWrapperGen.csproj -- --config src/Tools/Ghost.NativeWrapperGen/configs/ufbx.json --input src/ThridParty/Ghost.Ufbx/Generated --output src/ThridParty/Ghost.Ufbx/Warper
+
+# 2. Regenerate wrappers
+dotnet run --project src/Tools/Ghost.NativeWrapperGen/Ghost.NativeWrapperGen.csproj -- --config src/Tools/Ghost.NativeWrapperGen/configs/nvtt.json --input src/ThridParty/Ghost.Nvtt/Generated --output src/ThridParty/Ghost.Nvtt/WrapperGen
+dotnet run --project src/Tools/Ghost.NativeWrapperGen/Ghost.NativeWrapperGen.csproj -- --config src/Tools/Ghost.NativeWrapperGen/configs/ufbx.json --input src/ThridParty/Ghost.Ufbx/Generated --output src/ThridParty/Ghost.Ufbx/Wrapper
+
+# 3. Build the libraries
+dotnet build src/ThridParty/Ghost.Nvtt/Ghost.Nvtt.csproj
 dotnet build src/ThridParty/Ghost.Ufbx/Ghost.Ufbx.csproj
 ```
 
-## Summary
+## Adding a new library
 
-Use `Ghost.NativeWrapperGen` when you already have raw generated C# bindings and want a configurable modern wrapper layer without hand-writing hundreds of types.
+1. Create `src/Tools/Ghost.NativeWrapperGen/configs/mylib.json` following the schema above.
+2. Run the generator against your ClangSharp output folder.
+3. Add the output folder to your `.csproj` as a glob: `<Compile Include="WrapperGen\*.nativegen.cs" />`.
+4. Build and iterate.
 
-The important design idea is now:
-
-- keep parsing generic
-- move policy into config
-- keep adapters explicit when native signatures need shaping
+The key design principle: **keep policy in config, keep the emitter generic**.
