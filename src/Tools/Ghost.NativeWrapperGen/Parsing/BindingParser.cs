@@ -82,7 +82,7 @@ public sealed class BindingParser
                         ReturnType = NormalizeType(method.ReturnType.ToString()),
                         Parameters = method.ParameterList.Parameters.Select(static p => new NativeParameter
                         {
-                            Name = p.Identifier.ValueText,
+                            Name = p.Identifier.Text, // .Text preserves @ prefix for reserved keywords (e.g. @params, @base)
                             TypeName = NormalizeType(p.Type?.ToString() ?? "void"),
                         }).ToArray(),
                         IsDllImport = method.AttributeLists.SelectMany(static a => a.Attributes).Any(static a => a.Name.ToString().Contains("DllImport", StringComparison.Ordinal)),

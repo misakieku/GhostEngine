@@ -1,9 +1,10 @@
 using Ghost.Nvtt;
-using Ghost.Nvtt.Wrapper;
 using Misaki.HighPerformance.Image;
+using Misaki.HighPerformance.LowLevel;
 using System.IO.Hashing;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Ghost.Editor.Core.AssetHandler;
 
@@ -39,7 +40,6 @@ internal static unsafe class TextureProcessor
         ColorComponents colorComponents,
         TextureAssetSettings settings)
     {
-        // --- derive cache path --------------------------------------------------
         var cacheDir = Path.Combine(cachesFolderPath, _TEXTURE_CACHE_SUBFOLDER);
         Directory.CreateDirectory(cacheDir);
 
@@ -47,19 +47,16 @@ internal static unsafe class TextureProcessor
         var cacheFileName = $"{assetId:N}_{settingsHash:X16}.dds";
         var cachePath = Path.Combine(cacheDir, cacheFileName);
 
-        // --- check validity: same file name = same settings hash = already done -
         if (File.Exists(cachePath))
         {
             return cachePath;
         }
 
-        // --- delete any stale cache entries for this asset ----------------------
         foreach (var stale in Directory.EnumerateFiles(cacheDir, $"{assetId:N}_*.dds"))
         {
             File.Delete(stale);
         }
 
-        // --- run NVTT pipeline --------------------------------------------------
         RunNvttPipeline(cachePath, pixelData, width, height, isFloat, colorComponents, settings);
 
         return cachePath;
@@ -74,84 +71,75 @@ internal static unsafe class TextureProcessor
         ColorComponents colorComponents,
         TextureAssetSettings settings)
     {
-        using var surface = new NvttSurfaceHandle();
-        using var compOpts = new NvttCompressionOptionsHandle();
-        using var outOpts = new NvttOutputOptionsHandle();
-        using var ctx = new NvttContextHandle();
+        using var pSurface = new DisposablePtr<NvttSurface>(NvttSurface.Create());
+        using var pCompOpts = new DisposablePtr<NvttCompressionOptions>(NvttCompressionOptions.Create());
+        using var pOutOpts = new DisposablePtr<NvttOutputOptions>(NvttOutputOptions.Create());
+        using var pCtx = new DisposablePtr<NvttContext>(NvttContext.Create());
 
-        // ---- 1. load pixels into NVTT -----------------------------------------
-        // Misaki.HighPerformance.Image always decodes to RGBA channel order.
-        // Float images → RGBA_32F, byte images → BGRA_8UB.
-        // NOTE: NVTT BGRA_8UB expects Blue in byte[0]; stb decodes RGBA so we need
-        // to pass RGBA. There is no RGBA_8UB enum — we swizzle after load instead.
         var inputFormat = isFloat
             ? NvttInputFormat.NVTT_InputFormat_RGBA_32F
             : NvttInputFormat.NVTT_InputFormat_BGRA_8UB; // we'll swizzle RB below
 
-        surface.SetImageData(inputFormat, width, height, 1, pixelData);
+        fixed (void* pData = pixelData)
+        {
+            pSurface.Get()->SetImageData(inputFormat, width, height, 1, pData, NvttBoolean.NVTT_True, null);
+        }
 
         // stb gives us RGBA byte order; NVTT BGRA_8UB reads it as BGRA,
         // so channels R and B are swapped — fix with swizzle(2,1,0,3).
         if (!isFloat)
         {
-            surface.Swizzle(2, 1, 0, 3);
+            pSurface.Get()->Swizzle(2, 1, 0, 3, null);
         }
 
-        // ---- 2. resize ---------------------------------------------------------
         var maxExtent = (int)settings.Sampler.MaxSize;
         if (settings.Advanced.StretchToPowerOfTwo)
         {
-            surface.ResizeMakeSquare(maxExtent,
+            pSurface.Get()->ResizeMakeSquare(maxExtent,
                 NvttRoundMode.NVTT_RoundMode_ToNearestPowerOfTwo,
-                NvttResizeFilter.NVTT_ResizeFilter_Box);
+                NvttResizeFilter.NVTT_ResizeFilter_Box, null);
         }
-        else if (surface.Width > maxExtent || surface.Height > maxExtent)
+        else if (pSurface.Get()->Width() > maxExtent || pSurface.Get()->Height() > maxExtent)
         {
-            surface.ResizeMax(maxExtent,
+            pSurface.Get()->ResizeMax(maxExtent,
                 NvttRoundMode.NVTT_RoundMode_None,
-                NvttResizeFilter.NVTT_ResizeFilter_Box);
+                NvttResizeFilter.NVTT_ResizeFilter_Box, null);
         }
 
-        // ---- 2b. border color --------------------------------------------------
         if (settings.Advanced.UseBorderColor)
         {
             var c = settings.Advanced.BorderColor;
-            surface.SetBorder(c.r, c.g, c.b, c.a);
+            pSurface.Get()->SetBorder(c.r, c.g, c.b, c.a, null);
         }
         else if (settings.Advanced.ZeroAlphaBorder)
         {
-            surface.SetBorder(0f, 0f, 0f, 0f);
+            pSurface.Get()->SetBorder(0f, 0f, 0f, 0f, null);
         }
-
-        // ---- 3. colour-space: convert to linear before mip filtering -----------
+        
         if (settings.Basic.IsSRGB && settings.Advanced.GammaCorrection)
         {
-            surface.ToLinearFromSrgb();
+            pSurface.Get()->ToLinearFromSrgb(null);
         }
 
-        // ---- 4. premultiply alpha (before mip chain) ---------------------------
         if (settings.Advanced.PremultiplyAlpha)
         {
-            surface.PremultiplyAlpha();
+            pSurface.Get()->PremultiplyAlpha(null);
         }
 
-        // ---- 5. configure compression options ----------------------------------
-        compOpts.Format = SelectFormat(settings);
-        compOpts.Quality = SelectQuality(settings.Advanced.CompressionLevel);
+        pCompOpts.Get()->SetFormat(SelectFormat(settings));
+        pCompOpts.Get()->SetQuality(SelectQuality(settings.Advanced.CompressionLevel));
 
         if (settings.Advanced.CutoutAlpha)
         {
-            compOpts.SetQuantization(false, false, true,
+            pCompOpts.Get()->SetQuantization(false, false, true,
                 settings.Advanced.CutoutAlphaThreshold);
         }
 
-        // ---- 6. configure output options ---------------------------------------
-        outOpts.OutputHeader = true;
-        outOpts.Srgb = settings.Basic.IsSRGB;
-        outOpts.Container = NvttContainer.NVTT_Container_DDS10;
-        outOpts.FileName = outputPath;
+        pOutOpts.Get()->SetOutputHeader(true);
+        pOutOpts.Get()->SetSrgbFlag(settings.Basic.IsSRGB);
+        pOutOpts.Get()->SetContainer(NvttContainer.NVTT_Container_DDS10);
+        pOutOpts.Get()->SetFileName(Encoding.UTF8.GetBytes(outputPath));
 
-        // ---- 7. mipmap count ---------------------------------------------------
         var nvttFilter = SelectMipmapFilter(settings.Advanced.MipmapFilter);
 
         int mipmapCount;
@@ -161,38 +149,35 @@ internal static unsafe class TextureProcessor
         }
         else if (settings.Advanced.MipmapLevelCount == 0)
         {
-            mipmapCount = surface.CountMipmaps();
+            mipmapCount = pSurface.Get()->CountMipmaps(1);
         }
         else
         {
             mipmapCount = (int)settings.Advanced.MipmapLevelCount;
         }
 
-        // ---- 8. enable CUDA if available ---------------------------------------
-        ctx.SetCudaAcceleration(NvttGlobal.IsCudaSupported);
+        pCtx.Get()->SetCudaAcceleration(Api.nvttIsCudaSupported());
 
-        // ---- 9. write DDS header -----------------------------------------------
-        ctx.OutputHeader(surface, mipmapCount, compOpts, outOpts);
+        pCtx.Get()->OutputHeader(pSurface.Get(), mipmapCount, pCompOpts.Get(), pOutOpts.Get());
 
-        // ---- 10. compress mip chain using a working clone ----------------------
-        using var mip = surface.Clone();
+        using var pMip = new DisposablePtr<NvttSurface>(pSurface.Get()->Clone());
 
         for (var level = 0; level < mipmapCount; level++)
         {
-            // Scale alpha for coverage on each mip (if requested)
+            // Scale alpha for coverage on each pMip (if requested)
             if (settings.Advanced.ScaleAlphaForMipCoverage && level > 0)
             {
-                var refCoverage = mip.AlphaTestCoverage(
-                    settings.Advanced.ScaleAlphaForMipCoverageThreshold / 255f);
-                mip.ScaleAlphaToCoverage(refCoverage,
-                    settings.Advanced.ScaleAlphaForMipCoverageThreshold / 255f);
+                var refCoverage = pMip.Get()->AlphaTestCoverage(
+                    settings.Advanced.ScaleAlphaForMipCoverageThreshold / 255f, 3);
+                pMip.Get()->ScaleAlphaToCoverage(refCoverage,
+                    settings.Advanced.ScaleAlphaForMipCoverageThreshold / 255f, 3, null);
             }
 
-            ctx.Compress(mip, 0, level, compOpts, outOpts);
+            pCtx.Get()->Compress(pMip.Get(), 0, level, pCompOpts.Get(), pOutOpts.Get());
 
             if (level + 1 < mipmapCount)
             {
-                mip.BuildNextMipmap(nvttFilter);
+                pMip.Get()->BuildNextMipmapDefaults(nvttFilter, 1, null);
             }
         }
     }
@@ -203,7 +188,7 @@ internal static unsafe class TextureProcessor
             TextureType.Normal => NvttFormat.NVTT_Format_BC5,  // RG normal map
             TextureType.SingleChannel => NvttFormat.NVTT_Format_BC4,  // single channel
             TextureType.Lightmap => NvttFormat.NVTT_Format_BC6U, // HDR lightmap (unsigned)
-            _ => NvttFormat.NVTT_Format_BC7,  // default colour
+            _ => NvttFormat.NVTT_Format_BC7,  // default color
         };
 
     private static NvttQuality SelectQuality(TextureCompressionLevel level)

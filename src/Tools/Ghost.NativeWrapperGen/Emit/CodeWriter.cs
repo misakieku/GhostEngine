@@ -7,6 +7,8 @@ internal sealed class CodeWriter
     private readonly StringBuilder _builder = new();
     private int _indent;
 
+    public string CurrentIndentString => new(' ', _indent * 4);
+
     public void WriteLine(string line = "")
     {
         if (line.Length == 0)

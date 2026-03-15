@@ -1,1090 +1,635 @@
 using Ghost.NativeWrapperGen.Config;
 using Ghost.NativeWrapperGen.Model;
-using Ghost.NativeWrapperGen.Parsing;
 using Ghost.NativeWrapperGen.Transform;
+using System.Text.RegularExpressions;
 
 namespace Ghost.NativeWrapperGen.Emit;
 
+/// <summary>
+/// Emits partial struct files containing low-level method wrappers that route
+/// DllImport functions from the Api class into the native struct types they belong to.
+/// No wrapper classes, no properties, no owned/marshalled types — just methods.
+/// </summary>
 public sealed class WrapperGeneratorEmitter
 {
     public IEnumerable<GeneratedFile> Emit(NativeLibrary library, WrapperConfig config)
     {
         var naming = new NamingConventions(config);
-        var resolver = new PublicTypeResolver(library, config, naming);
-        var ownedTypes = config.OwnedTypes.ToDictionary(static o => o.NativeType, StringComparer.Ordinal);
-        var marshalledTypes = config.MarshalledTypes.ToDictionary(static m => m.NativeType, StringComparer.Ordinal);
-        var partialTypes = new HashSet<string>(config.PartialTypes, StringComparer.Ordinal);
-        var manualMethods = config.StaticMethods.ToDictionary(static m => m.NativeFunction, StringComparer.Ordinal);
+        var resolver = new BindingTypeResolver(library);
+        var skipFunctions = new HashSet<string>(config.SkipFunctions, StringComparer.Ordinal);
 
-        yield return EmitHelpers(config);
+        // Collect all DllImport functions, grouped by the target struct they'll be emitted on.
+        // Each struct tracks a list of methods AND a set of base types (from INHERITANCE apply steps).
+        var methodsByStruct = new Dictionary<string, List<RoutedMethod>>(StringComparer.Ordinal);
+        var baseTypesByStruct = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
 
-        foreach (var @struct in library.Structs.Where(static s => !s.Name.StartsWith("_", StringComparison.Ordinal)).OrderBy(static s => s.Name, StringComparer.Ordinal))
+        foreach (var func in library.Functions)
         {
-            if (@struct.IsList)
-            {
-                if (@struct.IsPointerList && @struct.ListElementType is not null && resolver.HasWrapper(@struct.ListElementType))
-                {
-                    yield return EmitPointerList(config, naming, @struct);
-                }
-                else if (string.Equals(@struct.ListElementType, "void", StringComparison.Ordinal))
-                {
-                    yield return EmitVoidList(config, naming, @struct);
-                }
-
-                continue;
-            }
-
-            ownedTypes.TryGetValue(@struct.Name, out var owned);
-            marshalledTypes.TryGetValue(@struct.Name, out var marshalled);
-            var isPartialType = partialTypes.Contains(@struct.Name);
-
-            if (marshalled is not null)
-            {
-                yield return EmitMarshalledWrapper(library, config, naming, resolver, @struct, marshalled, owned);
-            }
-            else
-            {
-                yield return EmitWrapper(library, config, naming, resolver, @struct, owned, isPartialType, manualMethods);
-            }
-        }
-
-        yield return EmitAutoStaticApi(library, config, naming, resolver, manualMethods);
-    }
-
-    // ─── Helpers file ────────────────────────────────────────────────────────
-
-    private static GeneratedFile EmitHelpers(WrapperConfig config)
-    {
-        var writer = new CodeWriter();
-        writer.WriteLine("using System.Text;");
-        writer.WriteLine();
-        writer.WriteLine($"namespace {config.WrapperNamespace};");
-        writer.WriteLine();
-        writer.WriteLine("internal static unsafe class NativeWrapperHelpers");
-        writer.WriteLine("{");
-        using (writer.IndentScope())
-        {
-            foreach (var stringType in config.SpecialTypes.Strings)
-            {
-                EmitStringHelpers(writer, stringType);
-                writer.WriteLine();
-            }
-
-            foreach (var blobType in config.SpecialTypes.Blobs)
-            {
-                EmitBlobHelpers(writer, blobType);
-                writer.WriteLine();
-            }
-
-            writer.WriteLine("public static void ThrowIfOutOfRange(int index, int count)");
-            writer.WriteLine("{");
-            using (writer.IndentScope())
-            {
-                writer.WriteLine("if ((uint)index >= (uint)count)");
-                writer.WriteLine("{");
-                using (writer.IndentScope())
-                {
-                    writer.WriteLine("throw new ArgumentOutOfRangeException(nameof(index));");
-                }
-                writer.WriteLine("}");
-            }
-            writer.WriteLine("}");
-        }
-        writer.WriteLine("}");
-
-        return new GeneratedFile
-        {
-            FileName = "NativeWrapperHelpers.nativegen.cs",
-            Content = writer.ToString(),
-        };
-    }
-
-    private static void EmitStringHelpers(CodeWriter writer, StringTypeConfig config)
-    {
-        writer.WriteLine($"public static ReadOnlySpan<byte> AsByteSpan({config.Type} value)");
-        writer.WriteLine("{");
-        using (writer.IndentScope())
-        {
-            writer.WriteLine($"if (value.{config.DataField} == null || value.{config.LengthField} == 0)");
-            writer.WriteLine("{");
-            using (writer.IndentScope())
-            {
-                writer.WriteLine("return ReadOnlySpan<byte>.Empty;");
-            }
-            writer.WriteLine("}");
-            writer.WriteLine();
-            writer.WriteLine($"return new ReadOnlySpan<byte>((byte*)value.{config.DataField}, checked((int)value.{config.LengthField}) * {Math.Max(1, config.CharSize / 8)});");
-        }
-        writer.WriteLine("}");
-        writer.WriteLine();
-        writer.WriteLine($"public static string GetString({config.Type} value)");
-        writer.WriteLine("{");
-        using (writer.IndentScope())
-        {
-            writer.WriteLine("var bytes = AsByteSpan(value);");
-            writer.WriteLine("if (bytes.IsEmpty)");
-            writer.WriteLine("{");
-            using (writer.IndentScope())
-            {
-                writer.WriteLine("return string.Empty;");
-            }
-            writer.WriteLine("}");
-            writer.WriteLine();
-            writer.WriteLine(config.Encoding.ToLowerInvariant() switch
-            {
-                "utf16" => "return Encoding.Unicode.GetString(bytes);",
-                "utf32" => "return Encoding.UTF32.GetString(bytes);",
-                _ => "return Encoding.UTF8.GetString(bytes);",
-            });
-        }
-        writer.WriteLine("}");
-    }
-
-    private static void EmitBlobHelpers(CodeWriter writer, BlobTypeConfig config)
-    {
-        writer.WriteLine($"public static ReadOnlySpan<{config.ElementType}> AsSpan({config.Type} value)");
-        writer.WriteLine("{");
-        using (writer.IndentScope())
-        {
-            writer.WriteLine($"if (value.{config.DataField} == null || value.{config.LengthField} == 0)");
-            writer.WriteLine("{");
-            using (writer.IndentScope())
-            {
-                writer.WriteLine($"return ReadOnlySpan<{config.ElementType}>.Empty;");
-            }
-            writer.WriteLine("}");
-            writer.WriteLine();
-            writer.WriteLine($"return new ReadOnlySpan<{config.ElementType}>(value.{config.DataField}, checked((int)value.{config.LengthField}));");
-        }
-        writer.WriteLine("}");
-    }
-
-    // ─── Marshalled type wrapper (heap-pointer struct) ────────────────────────
-
-    private static GeneratedFile EmitMarshalledWrapper(NativeLibrary library, WrapperConfig config, NamingConventions naming, PublicTypeResolver resolver, NativeStruct @struct, MarshalledTypeConfig marshalled, OwnedTypeConfig? owned)
-    {
-        var writer = new CodeWriter();
-        writer.WriteLine($"namespace {config.WrapperNamespace};");
-        writer.WriteLine();
-
-        var wrapperName = naming.GetWrapperTypeName(@struct.Name);
-        var wrapperKind = GetWrapperKind(config, @struct.Name, owned);
-        var marshalledPropsByNative = marshalled.MarshalledProperties.ToDictionary(static p => p.Native, StringComparer.Ordinal);
-
-        writer.WriteLine($"public unsafe partial {wrapperKind} {wrapperName} : System.IDisposable");
-        writer.WriteLine("{");
-        using (writer.IndentScope())
-        {
-            // Pointer + alloc flag
-            writer.WriteLine($"private {@struct.Name}* _ptr;");
-            writer.WriteLine("private bool _csAlloc;");
-            writer.WriteLine();
-
-            // Default constructor — alloc on heap, zero-fill
-            writer.WriteLine($"public {wrapperName}()");
-            writer.WriteLine("{");
-            using (writer.IndentScope())
-            {
-                writer.WriteLine($"_ptr = ({@struct.Name}*)System.Runtime.InteropServices.NativeMemory.AllocZeroed((nuint)sizeof({@struct.Name}));");
-                writer.WriteLine("_csAlloc = true;");
-            }
-            writer.WriteLine("}");
-            writer.WriteLine();
-
-            // Internal constructor from existing pointer (e.g. native API returned it)
-            writer.WriteLine($"internal {wrapperName}({@struct.Name}* ptr)");
-            writer.WriteLine("{");
-            using (writer.IndentScope())
-            {
-                writer.WriteLine("_ptr = ptr;");
-                writer.WriteLine("_csAlloc = false;");
-            }
-            writer.WriteLine("}");
-            writer.WriteLine();
-
-            writer.WriteLine("public bool IsNull => _ptr == null;");
-            writer.WriteLine();
-
-            // Partial Dispose stub — hand-written impl frees cstrings + conditionally frees _ptr
-            writer.WriteLine("public partial void Dispose();");
-            writer.WriteLine();
-
-            // Emit properties for each member
-            foreach (var member in @struct.Members.Where(static m =>
-                m.Name != "Anonymous"
-                && !m.Name.StartsWith("_", StringComparison.Ordinal)
-                && !m.TypeName.StartsWith("_", StringComparison.Ordinal)
-                && !m.TypeName.Contains("<", StringComparison.Ordinal)
-                && !m.TypeName.Contains("ref ", StringComparison.Ordinal)))
-            {
-                EmitMarshalledMember(writer, config, naming, resolver, wrapperName, member, marshalledPropsByNative);
-            }
-
-            writer.WriteLine($"internal {@struct.Name}* GetUnsafePtr() => _ptr;");
-        }
-        writer.WriteLine("}");
-
-        return new GeneratedFile
-        {
-            FileName = $"{wrapperName}.nativegen.cs",
-            Content = writer.ToString(),
-        };
-    }
-
-    private static void EmitMarshalledMember(CodeWriter writer, WrapperConfig config, NamingConventions naming, PublicTypeResolver resolver, string wrapperName, NativeMember member, Dictionary<string, MarshalledPropertyConfig> marshalledProps)
-    {
-        var propertyName = GetSafePropertyName(wrapperName, naming.GetPropertyName(member.Name));
-
-        // Marshalled property → emit partial property stub + backing field (hand-written impl manages cstring lifetime)
-        if (marshalledProps.TryGetValue(member.Name, out var marshalledProp))
-        {
-            var fieldName = "_" + char.ToLowerInvariant(propertyName[0]) + propertyName[1..];
-            writer.WriteLine($"private {marshalledProp.Type} {fieldName};");
-            writer.WriteLine($"public partial {marshalledProp.Type} {propertyName} {{ get; set; }}");
-            writer.WriteLine();
-            return;
-        }
-
-        var pointerDepth = BindingParser.GetPointerDepth(member.TypeName);
-
-        // Skip function pointer and deep pointer fields
-        if (pointerDepth > 1)
-        {
-            return;
-        }
-
-        // String special type → read-only helpers via pointer dereference
-        var stringType = config.SpecialTypes.Strings.FirstOrDefault(s => s.Type == member.TypeName);
-        if (stringType is not null)
-        {
-            if (stringType.EmitRawSpanProperty)
-            {
-                writer.WriteLine($"public ReadOnlySpan<byte> {propertyName}Bytes => NativeWrapperHelpers.AsByteSpan(_ptr->{member.Name});");
-            }
-            if (stringType.EmitStringProperty)
-            {
-                writer.WriteLine($"public string {propertyName} => NativeWrapperHelpers.GetString(_ptr->{member.Name});");
-            }
-            writer.WriteLine();
-            return;
-        }
-
-        // Blob special type → read-only span via pointer dereference
-        var blobType = config.SpecialTypes.Blobs.FirstOrDefault(b => b.Type == member.TypeName);
-        if (blobType is not null)
-        {
-            writer.WriteLine($"public ReadOnlySpan<{blobType.ElementType}> {propertyName} => NativeWrapperHelpers.AsSpan(_ptr->{member.Name});");
-            writer.WriteLine();
-            return;
-        }
-
-        // Pointer field (depth == 1) — expose raw pointer as read/write
-        if (pointerDepth == 1)
-        {
-            writer.WriteLine($"public {member.TypeName} {propertyName} {{ get => _ptr->{member.Name}; set => _ptr->{member.Name} = value; }}");
-            writer.WriteLine();
-            return;
-        }
-
-        // Plain value field — direct read/write through pointer
-        writer.WriteLine($"public {resolver.GetPublicType(member.TypeName)} {propertyName} {{ get => _ptr->{member.Name}; set => _ptr->{member.Name} = value; }}");
-        writer.WriteLine();
-    }
-
-    // ─── Pointer-based wrapper (read-only view) ───────────────────────────────
-
-    private static GeneratedFile EmitWrapper(NativeLibrary library, WrapperConfig config, NamingConventions naming, PublicTypeResolver resolver, NativeStruct @struct, OwnedTypeConfig? owned, bool isPartialType, Dictionary<string, StaticMethodConfig> manualMethods)
-    {
-        var writer = new CodeWriter();
-        writer.WriteLine($"namespace {config.WrapperNamespace};");
-        writer.WriteLine();
-
-        var wrapperName = naming.GetWrapperTypeName(@struct.Name);
-        var wrapperKind = GetWrapperKind(config, @struct.Name, owned);
-        var implementsIDisposable = wrapperKind == "class" && !string.IsNullOrWhiteSpace(owned?.FreeFunction);
-        var partialKeyword = isPartialType ? "partial " : string.Empty;
-
-        writer.WriteLine($"public unsafe {partialKeyword}{GetWrapperDeclaration(wrapperName, wrapperKind, implementsIDisposable)}");
-        writer.WriteLine("{");
-        using (writer.IndentScope())
-        {
-            writer.WriteLine(GetPointerFieldDeclaration(@struct.Name, wrapperKind));
-            writer.WriteLine();
-            writer.WriteLine($"internal {wrapperName}({@struct.Name}* ptr)");
-            writer.WriteLine("{");
-            using (writer.IndentScope())
-            {
-                writer.WriteLine("_ptr = ptr;");
-            }
-            writer.WriteLine("}");
-            writer.WriteLine();
-            writer.WriteLine("public bool IsNull => _ptr == null;");
-            writer.WriteLine();
-
-            if (!string.IsNullOrWhiteSpace(owned?.FreeFunction))
-            {
-                writer.WriteLine("public void Dispose()");
-                writer.WriteLine("{");
-                using (writer.IndentScope())
-                {
-                    writer.WriteLine("if (_ptr != null)");
-                    writer.WriteLine("{");
-                    using (writer.IndentScope())
-                    {
-                        writer.WriteLine($"Api.{owned.FreeFunction}(_ptr);");
-                        writer.WriteLine("_ptr = null;");
-                    }
-                    writer.WriteLine("}");
-                }
-                writer.WriteLine("}");
-                writer.WriteLine();
-            }
-
-            // Emit instance methods auto-routed to this wrapper type
-            foreach (var func in library.Functions.Where(f => f.IsDllImport))
-            {
-                var routing = ResolveAutoTarget(library, config, naming, func, manualMethods);
-                if (routing.TargetType != wrapperName)
-                {
-                    continue;
-                }
-
-                if (manualMethods.TryGetValue(func.Name, out var manual))
-                {
-                    EmitStaticMethod(writer, library, config, naming, resolver, manual, routing.Kind == RoutingKind.InstanceMethod ? wrapperName : null);
-                }
-                else
-                {
-                    EmitAutoMethod(writer, library, config, naming, resolver, func, routing.Kind == RoutingKind.InstanceMethod ? wrapperName : null);
-                }
-                writer.WriteLine();
-            }
-
-            foreach (var member in @struct.Members.Where(static m => m.Name != "Anonymous" && !m.Name.StartsWith("_", StringComparison.Ordinal)))
-            {
-                EmitMember(writer, library, config, naming, resolver, wrapperName, member);
-            }
-
-            writer.WriteLine($"internal {@struct.Name}* GetUnsafePtr() => _ptr;");
-        }
-        writer.WriteLine("}");
-
-        return new GeneratedFile
-        {
-            FileName = $"{wrapperName}.nativegen.cs",
-            Content = writer.ToString(),
-        };
-    }
-
-    // ─── Member emission (pointer-based) ─────────────────────────────────────
-
-    private static void EmitMember(CodeWriter writer, NativeLibrary library, WrapperConfig config, NamingConventions naming, PublicTypeResolver resolver, string wrapperName, NativeMember member)
-    {
-        if (member.TypeName.StartsWith("_", StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        if (member.TypeName.Contains("<", StringComparison.Ordinal) || member.TypeName.Contains("ref ", StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        var propertyName = GetSafePropertyName(wrapperName, naming.GetPropertyName(member.Name));
-        var pointerDepth = BindingParser.GetPointerDepth(member.TypeName);
-        var baseType = BindingParser.TrimPointers(member.TypeName);
-
-        var stringType = config.SpecialTypes.Strings.FirstOrDefault(s => s.Type == member.TypeName);
-        if (stringType is not null)
-        {
-            if (stringType.EmitRawSpanProperty)
-            {
-                writer.WriteLine($"public ReadOnlySpan<byte> {propertyName}Bytes => NativeWrapperHelpers.AsByteSpan(_ptr->{member.Name});");
-            }
-
-            if (stringType.EmitStringProperty)
-            {
-                writer.WriteLine($"public string {propertyName} => NativeWrapperHelpers.GetString(_ptr->{member.Name});");
-            }
-
-            writer.WriteLine();
-            return;
-        }
-
-        var blobType = config.SpecialTypes.Blobs.FirstOrDefault(b => b.Type == member.TypeName);
-        if (blobType is not null)
-        {
-            writer.WriteLine($"public ReadOnlySpan<{blobType.ElementType}> {propertyName} => NativeWrapperHelpers.AsSpan(_ptr->{member.Name});");
-            writer.WriteLine();
-            return;
-        }
-
-        if (library.StructsByName.TryGetValue(baseType, out var listStruct) && listStruct.IsList)
-        {
-            EmitListMember(writer, naming, resolver, member, listStruct, propertyName);
-            return;
-        }
-
-        if (pointerDepth == 1 && resolver.HasWrapper(baseType))
-        {
-            var wrapperType = resolver.GetPublicType(member.TypeName);
-            writer.WriteLine($"public bool Has{propertyName} => _ptr->{member.Name} != null;");
-            writer.WriteLine($"public {wrapperType} {propertyName} => _ptr->{member.Name} != null ? new(_ptr->{member.Name}) : throw new InvalidOperationException(\"{propertyName} is null.\");");
-            writer.WriteLine();
-            return;
-        }
-
-        if (pointerDepth > 0)
-        {
-            writer.WriteLine($"public {member.TypeName} {propertyName} => _ptr->{member.Name};");
-            writer.WriteLine();
-            return;
-        }
-
-        if (resolver.HasWrapper(baseType))
-        {
-            var wrapperType = naming.GetWrapperTypeName(baseType);
-            writer.WriteLine($"public {wrapperType} {propertyName} => new(({baseType}*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref _ptr->{member.Name}));");
-            writer.WriteLine();
-            return;
-        }
-
-        writer.WriteLine($"public {resolver.GetPublicType(member.TypeName)} {propertyName} => _ptr->{member.Name};");
-        writer.WriteLine();
-    }
-
-    private static void EmitListMember(CodeWriter writer, NamingConventions naming, PublicTypeResolver resolver, NativeMember member, NativeStruct listStruct, string propertyName)
-    {
-        if (listStruct.ListElementType is null)
-        {
-            writer.WriteLine($"public {member.TypeName} {propertyName} => _ptr->{member.Name};");
-            writer.WriteLine();
-            return;
-        }
-
-        if (listStruct.IsPointerList && resolver.HasWrapper(listStruct.ListElementType))
-        {
-            var listWrapperName = naming.GetWrapperTypeName(listStruct.Name);
-            writer.WriteLine($"public {listWrapperName} {propertyName} => new(_ptr->{member.Name}.data, _ptr->{member.Name}.count);");
-            writer.WriteLine();
-            return;
-        }
-
-        if (string.Equals(listStruct.ListElementType, "void", StringComparison.Ordinal))
-        {
-            var listWrapperName = naming.GetWrapperTypeName(listStruct.Name);
-            writer.WriteLine($"public {listWrapperName} {propertyName} => new(_ptr->{member.Name}.data, _ptr->{member.Name}.count);");
-            writer.WriteLine();
-            return;
-        }
-
-        var elementType = resolver.GetPublicType(listStruct.ListElementType);
-        writer.WriteLine($"public ReadOnlySpan<{elementType}> {propertyName} => _ptr->{member.Name}.data == null ? ReadOnlySpan<{elementType}>.Empty : new ReadOnlySpan<{elementType}>(_ptr->{member.Name}.data, checked((int)_ptr->{member.Name}.count));");
-        writer.WriteLine();
-    }
-
-    // ─── List wrappers ────────────────────────────────────────────────────────
-
-    private static GeneratedFile EmitPointerList(WrapperConfig config, NamingConventions naming, NativeStruct listStruct)
-    {
-        var writer = new CodeWriter();
-        var wrapperName = naming.GetWrapperTypeName(listStruct.Name);
-        var elementType = listStruct.ListElementType!;
-        var elementWrapperName = naming.GetWrapperTypeName(elementType);
-
-        writer.WriteLine($"namespace {config.WrapperNamespace};");
-        writer.WriteLine();
-        writer.WriteLine($"public unsafe readonly ref struct {wrapperName}");
-        writer.WriteLine("{");
-        using (writer.IndentScope())
-        {
-            writer.WriteLine($"private readonly {elementType}** _data;");
-            writer.WriteLine("public int Count { get; }");
-            writer.WriteLine();
-            writer.WriteLine($"internal {wrapperName}({elementType}** data, nuint count)");
-            writer.WriteLine("{");
-            using (writer.IndentScope())
-            {
-                writer.WriteLine("_data = data;");
-                writer.WriteLine("Count = checked((int)count);");
-            }
-            writer.WriteLine("}");
-            writer.WriteLine();
-            writer.WriteLine($"public {elementWrapperName} this[int index]");
-            writer.WriteLine("{");
-            using (writer.IndentScope())
-            {
-                writer.WriteLine("get");
-                writer.WriteLine("{");
-                using (writer.IndentScope())
-                {
-                    writer.WriteLine("NativeWrapperHelpers.ThrowIfOutOfRange(index, Count);");
-                    writer.WriteLine("return new(_data[index]);");
-                }
-                writer.WriteLine("}");
-            }
-            writer.WriteLine("}");
-            writer.WriteLine();
-            writer.WriteLine("public Enumerator GetEnumerator() => new(_data, Count);");
-            writer.WriteLine();
-            writer.WriteLine("public unsafe ref struct Enumerator");
-            writer.WriteLine("{");
-            using (writer.IndentScope())
-            {
-                writer.WriteLine($"private readonly {elementType}** _data;");
-                writer.WriteLine("private readonly int _count;");
-                writer.WriteLine("private int _index;");
-                writer.WriteLine();
-                writer.WriteLine($"internal Enumerator({elementType}** data, int count)");
-                writer.WriteLine("{");
-                using (writer.IndentScope())
-                {
-                    writer.WriteLine("_data = data;");
-                    writer.WriteLine("_count = count;");
-                    writer.WriteLine("_index = -1;");
-                }
-                writer.WriteLine("}");
-                writer.WriteLine();
-                writer.WriteLine($"public {elementWrapperName} Current => new(_data[_index]);");
-                writer.WriteLine();
-                writer.WriteLine("public bool MoveNext()");
-                writer.WriteLine("{");
-                using (writer.IndentScope())
-                {
-                    writer.WriteLine("var next = _index + 1;");
-                    writer.WriteLine("if (next >= _count)");
-                    writer.WriteLine("{");
-                    using (writer.IndentScope())
-                    {
-                        writer.WriteLine("return false;");
-                    }
-                    writer.WriteLine("}");
-                    writer.WriteLine();
-                    writer.WriteLine("_index = next;");
-                    writer.WriteLine("return true;");
-                }
-                writer.WriteLine("}");
-            }
-            writer.WriteLine("}");
-        }
-        writer.WriteLine("}");
-
-        return new GeneratedFile
-        {
-            FileName = $"{wrapperName}.nativegen.cs",
-            Content = writer.ToString(),
-        };
-    }
-
-    private static GeneratedFile EmitVoidList(WrapperConfig config, NamingConventions naming, NativeStruct listStruct)
-    {
-        var writer = new CodeWriter();
-        var wrapperName = naming.GetWrapperTypeName(listStruct.Name);
-
-        writer.WriteLine($"namespace {config.WrapperNamespace};");
-        writer.WriteLine();
-        writer.WriteLine($"public unsafe readonly ref struct {wrapperName}");
-        writer.WriteLine("{");
-        using (writer.IndentScope())
-        {
-            writer.WriteLine("private readonly void* _data;");
-            writer.WriteLine("public int Count { get; }");
-            writer.WriteLine();
-            writer.WriteLine($"internal {wrapperName}(void* data, nuint count)");
-            writer.WriteLine("{");
-            using (writer.IndentScope())
-            {
-                writer.WriteLine("_data = data;");
-                writer.WriteLine("Count = checked((int)count);");
-            }
-            writer.WriteLine("}");
-            writer.WriteLine();
-            writer.WriteLine("public void* Data => _data;");
-        }
-        writer.WriteLine("}");
-
-        return new GeneratedFile
-        {
-            FileName = $"{wrapperName}.nativegen.cs",
-            Content = writer.ToString(),
-        };
-    }
-
-    // ─── Auto-dispatch static API ─────────────────────────────────────────────
-
-    private static GeneratedFile EmitAutoStaticApi(NativeLibrary library, WrapperConfig config, NamingConventions naming, PublicTypeResolver resolver, Dictionary<string, StaticMethodConfig> manualMethods)
-    {
-        var staticTypeName = config.StaticApiClassName ?? (config.LibraryName + "Global");
-        var writer = new CodeWriter();
-
-        writer.WriteLine($"namespace {config.WrapperNamespace};");
-        writer.WriteLine();
-        writer.WriteLine($"public static unsafe class {staticTypeName}");
-        writer.WriteLine("{");
-        using (writer.IndentScope())
-        {
-        foreach (var func in library.Functions.Where(static f => f.IsDllImport).OrderBy(static f => f.Name, StringComparer.Ordinal))
-        {
-            var routing = ResolveAutoTarget(library, config, naming, func, manualMethods);
-            if (routing.TargetType != staticTypeName)
+            if (!func.IsDllImport)
             {
                 continue;
             }
 
-            if (manualMethods.TryGetValue(func.Name, out var manual))
+            if (skipFunctions.Contains(func.Name))
             {
-                EmitStaticMethod(writer, library, config, naming, resolver, manual, null);
+                continue;
             }
-            else
-            {
-                EmitAutoMethod(writer, library, config, naming, resolver, func, null);
-            }
-            writer.WriteLine();
-        }
-        }
-        writer.WriteLine("}");
 
-        return new GeneratedFile
+            RouteFunction(func, config, resolver, methodsByStruct, baseTypesByStruct);
+        }
+
+        // Emit one file per struct that has at least one routed method.
+        foreach (var (structName, methods) in methodsByStruct.OrderBy(static kv => kv.Key, StringComparer.Ordinal))
         {
-            FileName = $"{staticTypeName}.nativegen.cs",
-            Content = writer.ToString(),
-        };
+            baseTypesByStruct.TryGetValue(structName, out var baseTypes);
+            yield return EmitStructFile(structName, methods, baseTypes, config, naming);
+        }
     }
 
-    // ─── Auto routing ─────────────────────────────────────────────────────────
-
-    private enum RoutingKind { GlobalStatic, InstanceMethod, StaticOnType }
-
-    private sealed record RoutingResult(string TargetType, RoutingKind Kind);
+    // ─── Routing ─────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Classifies a native function into one of three routing categories:
-    /// a) TKnown* func(somethingElse...) → return-type wrapper class (static factory)
-    /// b) TKnown1 func(TKnown0*, ...) → first-param wrapper type (instance method)
-    /// c) everything else → global static class
-    /// Manual configs that set StaticType override the auto-routing.
-    /// Manual configs with selfPointer adapter force route (b).
+    /// Attempts to match the function against each action in order. On match, processes
+    /// every apply step in the action's Apply list — INSTANCE_METHOD/STATIC_METHOD steps
+    /// produce a RoutedMethod; INHERITANCE steps record base types on the target struct.
+    /// Only the first matching action is used (first-match-wins).
     /// </summary>
-    private static RoutingResult ResolveAutoTarget(NativeLibrary library, WrapperConfig config, NamingConventions naming, NativeFunction func, Dictionary<string, StaticMethodConfig> manualMethods)
+    private static void RouteFunction(
+        NativeFunction func,
+        WrapperConfig config,
+        BindingTypeResolver resolver,
+        Dictionary<string, List<RoutedMethod>> methodsByStruct,
+        Dictionary<string, HashSet<string>> baseTypesByStruct)
     {
-        var staticTypeName = config.StaticApiClassName ?? (config.LibraryName + "Global");
-
-        // Manual override: StaticType wins
-        if (manualMethods.TryGetValue(func.Name, out var manual) && !string.IsNullOrWhiteSpace(manual.StaticType))
+        foreach (var action in config.Actions)
         {
-            return new(manual.StaticType, RoutingKind.StaticOnType);
-        }
-
-        // Manual override: selfPointer wins (route to that type as instance method)
-        if (manualMethods.TryGetValue(func.Name, out manual))
-        {
-            var selfParam = manual.Parameters.FirstOrDefault(static p => p.Adapter == "selfPointer");
-            if (selfParam is not null)
+            if (!string.Equals(action.Filter, "EXTERN_API", StringComparison.Ordinal))
             {
-                var nativeParam = func.Parameters.FirstOrDefault(p => string.Equals(p.Name, selfParam.Native, StringComparison.Ordinal));
-                if (nativeParam is not null)
-                {
-                    var baseType = BindingParser.TrimPointers(nativeParam.TypeName);
-                    if (library.StructsByName.ContainsKey(baseType))
-                    {
-                        return new(naming.GetWrapperTypeName(baseType), RoutingKind.InstanceMethod);
-                    }
-                }
-            }
-        }
-
-        // Rule (b): first param is T* where T is a known wrapper type → instance on T
-        if (func.Parameters.Count > 0)
-        {
-            var firstParam = func.Parameters[0];
-            var firstBase = BindingParser.TrimPointers(firstParam.TypeName);
-            if (BindingParser.GetPointerDepth(firstParam.TypeName) == 1 && library.StructsByName.ContainsKey(firstBase))
-            {
-                return new(naming.GetWrapperTypeName(firstBase), RoutingKind.InstanceMethod);
-            }
-        }
-
-        // Rule (a): return type is T* where T is a known wrapper type → static on T
-        var returnPointerDepth = BindingParser.GetPointerDepth(func.ReturnType);
-        if (returnPointerDepth == 1)
-        {
-            var returnBase = BindingParser.TrimPointers(func.ReturnType);
-            if (library.StructsByName.ContainsKey(returnBase))
-            {
-                return new(naming.GetWrapperTypeName(returnBase), RoutingKind.StaticOnType);
-            }
-        }
-
-        // Rule (c): global static
-        return new(staticTypeName, RoutingKind.GlobalStatic);
-    }
-
-    // ─── Auto method emission ─────────────────────────────────────────────────
-
-    private static void EmitAutoMethod(CodeWriter writer, NativeLibrary library, WrapperConfig config, NamingConventions naming, PublicTypeResolver resolver, NativeFunction func, string? instanceTypeName)
-    {
-        var isInstanceMethod = instanceTypeName is not null;
-
-        // Build parameter list, skipping the first param if it's the self pointer
-        var parameters = new List<string>();
-        var argumentExpressions = new List<string>();
-        var marshalledTypes = config.MarshalledTypes.ToDictionary(static m => m.NativeType, StringComparer.Ordinal);
-        var skipFirst = isInstanceMethod;
-
-        foreach (var param in func.Parameters)
-        {
-            if (skipFirst)
-            {
-                skipFirst = false;
-                argumentExpressions.Add("_ptr");
                 continue;
             }
 
-            var publicName = NamingConventions.ToPascalCase(param.Name);
-            publicName = char.ToLowerInvariant(publicName[0]) + publicName[1..];
-
-            var pointerDepth = BindingParser.GetPointerDepth(param.TypeName);
-            var baseType = BindingParser.TrimPointers(param.TypeName);
-
-            if (pointerDepth == 1 && marshalledTypes.TryGetValue(baseType, out _))
+            // Determine the target struct name before evaluating NAME_CONDITION
+            // (because NAME_CONDITION may reference $TSelf / $TBare).
+            var targetStruct = ResolveTargetType(func, action.TargetType, resolver);
+            if (targetStruct is null)
             {
-                // Pass marshalled wrapper by pointer directly — no copy needed
-                var wrapperType = naming.GetWrapperTypeName(baseType);
-                parameters.Add($"{wrapperType} {publicName}");
-                argumentExpressions.Add($"{publicName}.GetUnsafePtr()");
+                continue;
             }
-            else if (pointerDepth == 1 && library.StructsByName.ContainsKey(baseType))
+
+            if (!EvaluateConditions(func, action.Conditions, resolver, targetStruct, config))
             {
-                var wrapperType = naming.GetWrapperTypeName(baseType);
-                parameters.Add($"{wrapperType} {publicName}");
-                argumentExpressions.Add($"{publicName}.GetUnsafePtr()");
+                continue;
             }
-            else
+
+            // Process each apply step.
+            foreach (var apply in action.Apply)
             {
-                parameters.Add($"{param.TypeName} {publicName}");
-                argumentExpressions.Add(publicName);
+                var applyType = apply.Type;
+
+                if (string.Equals(applyType, "INSTANCE_METHOD", StringComparison.Ordinal) ||
+                    string.Equals(applyType, "STATIC_METHOD", StringComparison.Ordinal))
+                {
+                    var isInstance = string.Equals(applyType, "INSTANCE_METHOD", StringComparison.Ordinal);
+
+                    var routed = new RoutedMethod
+                    {
+                        Function = func,
+                        TargetStructName = targetStruct,
+                        IsInstance = isInstance,
+                        Apply = apply,
+                    };
+
+                    if (!methodsByStruct.TryGetValue(targetStruct, out var list))
+                    {
+                        list = [];
+                        methodsByStruct[targetStruct] = list;
+                    }
+
+                    list.Add(routed);
+                }
+                else if (string.Equals(applyType, "INHERITANCE", StringComparison.Ordinal))
+                {
+                    var baseTypes = apply.Opts?.baseType as object?[];
+                    if (baseTypes is { Length: > 0 })
+                    {
+                        if (!baseTypesByStruct.TryGetValue(targetStruct, out var set))
+                        {
+                            set = new HashSet<string>(StringComparer.Ordinal);
+                            baseTypesByStruct[targetStruct] = set;
+                        }
+
+                        foreach (var bt in baseTypes)
+                        {
+                            if (bt is string s) set.Add(s);
+                        }
+                    }
+                }
+            }
+
+            // First-match-wins: stop after the first matching action.
+            return;
+        }
+    }
+
+    private static bool EvaluateConditions(
+        NativeFunction func,
+        List<string> conditions,
+        BindingTypeResolver resolver,
+        string targetStructName,
+        WrapperConfig config)
+    {
+        foreach (var condition in conditions)
+        {
+            // Handle parameterised conditions before the switch.
+            if (condition.StartsWith("NAME_CONDITION(", StringComparison.Ordinal) &&
+                condition.EndsWith(')'))
+            {
+                var pattern = condition["NAME_CONDITION(".Length..^1];
+                // $TSelf → full struct name (e.g. "NvttSurface")
+                // $TBare → struct name with the library prefix stripped (e.g. "Surface")
+                var bareName = StripPrefix(targetStructName, config.NativeTypePrefix);
+                var resolvedPattern = pattern
+                    .Replace("$TBare", bareName, StringComparison.Ordinal)
+                    .Replace("$TSelf", targetStructName, StringComparison.Ordinal);
+                if (!Regex.IsMatch(func.Name, resolvedPattern, RegexOptions.IgnoreCase))
+                {
+                    return false;
+                }
+
+                continue;
+            }
+
+            switch (condition)
+            {
+                case "SELF_PTR":
+                    if (func.Parameters.Count == 0 ||
+                        resolver.TryGetBindingStructName(func.Parameters[0].TypeName) is null)
+                    {
+                        return false;
+                    }
+
+                    break;
+
+                case "FIRST_PARAM_OTHER_TYPE":
+                    if (func.Parameters.Count > 0 &&
+                        resolver.TryGetBindingStructName(func.Parameters[0].TypeName) is not null)
+                    {
+                        return false;
+                    }
+
+                    break;
+
+                case "RETURN_BINDING_TYPE":
+                    if (resolver.TryGetBindingStructName(func.ReturnType) is null)
+                    {
+                        return false;
+                    }
+
+                    break;
+
+                case "VOID_RETURN":
+                    if (!string.Equals(func.ReturnType, "void", StringComparison.Ordinal))
+                    {
+                        return false;
+                    }
+
+                    break;
+
+                default:
+                    // Unknown condition — treat as not-matched.
+                    return false;
             }
         }
 
-        var (returnType, returnConversion) = ResolveReturnConversion(config, resolver, naming, func.ReturnType);
-        var methodName = naming.GetWrapperTypeName(func.Name);
-        var staticKeyword = isInstanceMethod ? string.Empty : "static ";
-        var signatureLine = $"public {staticKeyword}{returnType} {methodName}({string.Join(", ", parameters)})";
+        return true;
+    }
 
-        writer.WriteLine(signatureLine);
+    private static string? ResolveTargetType(
+        NativeFunction func,
+        string targetTypeRule,
+        BindingTypeResolver resolver)
+    {
+        return targetTypeRule switch
+        {
+            "FIRST_PARAM_TYPE" when func.Parameters.Count > 0 =>
+                resolver.TryGetBindingStructName(func.Parameters[0].TypeName),
+            "RETURN_TYPE" =>
+                resolver.TryGetBindingStructName(func.ReturnType),
+            _ => null,
+        };
+    }
+
+    // ─── Code emission ────────────────────────────────────────────────────────
+
+    private static GeneratedFile EmitStructFile(
+        string structName,
+        List<RoutedMethod> methods,
+        HashSet<string>? baseTypes,
+        WrapperConfig config,
+        NamingConventions naming)
+    {
+        var writer = new CodeWriter();
+
+        writer.WriteLine("// <auto-generated>");
+        writer.WriteLine("// This file is generated by Ghost.NativeWrapperGen. Do not edit manually.");
+        writer.WriteLine("// </auto-generated>");
+        writer.WriteLine();
+        writer.WriteLine($"namespace {config.OutputNamespace};");
+        writer.WriteLine();
+
+        // Build struct header with optional base-type list.
+        var baseTypeList = baseTypes is { Count: > 0 }
+            ? " : " + string.Join(", ", baseTypes.Order(StringComparer.Ordinal))
+            : "";
+        writer.WriteLine($"public unsafe partial struct {structName}{baseTypeList}");
         writer.WriteLine("{");
+
         using (writer.IndentScope())
         {
-            var callExpression = $"Api.{func.Name}({string.Join(", ", argumentExpressions)})";
-            var returnsWrappedType = BindingParser.GetPointerDepth(func.ReturnType) == 1 && resolver.HasWrapper(BindingParser.TrimPointers(func.ReturnType));
-            var returnsVoid = string.Equals(func.ReturnType, "void", StringComparison.Ordinal);
+            var first = true;
+            foreach (var method in methods)
+            {
+                if (!first)
+                {
+                    writer.WriteLine();
+                }
 
-            if (returnsWrappedType)
-            {
-                writer.WriteLine($"return new({callExpression});");
-            }
-            else if (returnsVoid)
-            {
-                writer.WriteLine($"{callExpression};");
-            }
-            else if (returnConversion is not null)
-            {
-                writer.WriteLine($"return {string.Format(returnConversion, callExpression)};");
-            }
-            else
-            {
-                writer.WriteLine($"return {callExpression};");
+                first = false;
+                EmitMethod(writer, method, config, naming);
             }
         }
+
+        writer.WriteLine("}");
+
+        return new GeneratedFile
+        {
+            FileName = $"{structName}.nativegen.cs",
+            Content = writer.ToString(),
+        };
+    }
+
+    private static void EmitMethod(
+        CodeWriter writer,
+        RoutedMethod routed,
+        WrapperConfig config,
+        NamingConventions naming)
+    {
+        var func = routed.Function;
+        var nameOpts = routed.Apply.Opts?.name;
+        var methodName = naming.GetMethodName(func.Name, nameOpts, routed.TargetStructName);
+
+        // Build the parameter plan: for each native parameter, determine the public type
+        // and how to pass it to the Api call (applying remaps).
+        var plan = BuildParameterPlan(func, config, routed);
+
+        // Comment showing the source function.
+        writer.WriteLine($"// From: {func.Name}({string.Join(", ", func.Parameters.Select(static p => p.TypeName))})");
+
+        // Signature
+        var staticModifier = routed.IsInstance ? "" : "static ";
+        var publicParams = plan.PublicParams;
+        var paramList = string.Join(", ", publicParams.Select(static p => $"{p.PublicType} {p.PublicName}"));
+        writer.WriteLine($"public {staticModifier}{func.ReturnType} {methodName}({paramList})");
+        writer.WriteLine("{");
+
+        using (writer.IndentScope())
+        {
+            EmitMethodBody(writer, func, routed, plan, config);
+        }
+
         writer.WriteLine("}");
     }
 
-    // ─── Manual method emission ───────────────────────────────────────────────
-
-    private static void EmitStaticMethod(CodeWriter writer, NativeLibrary library, WrapperConfig config, NamingConventions naming, PublicTypeResolver resolver, StaticMethodConfig methodConfig, string? wrapperName)
+    private static void EmitMethodBody(
+        CodeWriter writer,
+        NativeFunction func,
+        RoutedMethod routed,
+        ParameterPlan plan,
+        WrapperConfig config)
     {
-        if (!library.FunctionsByName.TryGetValue(methodConfig.NativeFunction, out var nativeFunction))
+        // Collect the remapped params that need wrapCall blocks, in order.
+        var wrappedParams = plan.PublicParams
+            .Where(static p => p.WrapCall is not null)
+            .ToList();
+
+        // Build the Api call arguments.
+        var args = new List<string>();
+
+        if (routed.IsInstance)
         {
+            // Self pointer — first native param is skipped from the public signature.
+            // Use the passAs expression from apply opts if present, substituting $TSelf.
+            var passAs = (string?)routed.Apply.Opts?.passAs;
+            if (passAs is not null)
+            {
+                args.Add(passAs.Replace("$TSelf", routed.TargetStructName, StringComparison.Ordinal));
+            }
+            else
+            {
+                // Fallback: construct the self pointer expression directly.
+                args.Add($"({routed.TargetStructName}*)Unsafe.AsPointer(ref this)");
+            }
+        }
+
+        foreach (var p in plan.AllNativeParams)
+        {
+            if (p.IsConsumedByDerivesFrom)
+            {
+                args.Add(p.DerivedExpr!);
+            }
+            else if (p.IsSelfParam)
+            {
+                // Already handled above.
+            }
+            else if (p.PassAs is not null)
+            {
+                args.Add(p.PassAs.Replace("$arg", p.PublicName, StringComparison.Ordinal));
+            }
+            else
+            {
+                args.Add(p.PublicName);
+            }
+        }
+
+        var hasReturn = !string.Equals(func.ReturnType, "void", StringComparison.Ordinal);
+        var returnKeyword = hasReturn ? "return " : "";
+
+        // Wrap the call in nested fixed() blocks (one per remapped parameter with a wrapCall).
+        EmitNestedWrapCall(writer, wrappedParams, 0, (w) =>
+        {
+            if (args.Count <= 1)
+            {
+                var callExpr = $"Api.{func.Name}({string.Join(", ", args)})";
+                w.WriteLine($"{returnKeyword}{callExpr};");
+            }
+            else
+            {
+                w.WriteLine($"{returnKeyword}Api.{func.Name}(");
+                using (w.IndentScope())
+                {
+                    for (var i = 0; i < args.Count; i++)
+                    {
+                        var trailing = i < args.Count - 1 ? "," : ");";
+                        w.WriteLine($"{args[i]}{trailing}");
+                    }
+                }
+            }
+        });
+    }
+
+    private static void EmitNestedWrapCall(
+        CodeWriter writer,
+        List<PublicParam> wrappedParams,
+        int index,
+        Action<CodeWriter> emitInner)
+    {
+        if (index >= wrappedParams.Count)
+        {
+            emitInner(writer);
             return;
         }
 
-        var signature = BuildMethodSignature(library, config, naming, resolver, methodConfig, nativeFunction, wrapperName);
-        writer.WriteLine(signature.SignatureLine);
-        writer.WriteLine("{");
-        using (writer.IndentScope())
+        var param = wrappedParams[index];
+        var wrapCall = param.WrapCall!;
+
+        var callPlaceholder = "$CALL";
+        var splitIndex = wrapCall.IndexOf(callPlaceholder, StringComparison.Ordinal);
+
+        if (splitIndex < 0)
         {
-            foreach (var line in signature.BodyLines)
-            {
-                writer.WriteLine(line);
-            }
+            writer.WriteLine(wrapCall.Replace("$arg", param.PublicName, StringComparison.Ordinal));
+            EmitNestedWrapCall(writer, wrappedParams, index + 1, emitInner);
+            return;
         }
-        writer.WriteLine("}");
-    }
 
-    private static GeneratedMethod BuildMethodSignature(NativeLibrary library, WrapperConfig config, NamingConventions naming, PublicTypeResolver resolver, StaticMethodConfig methodConfig, NativeFunction nativeFunction, string? wrapperName)
-    {
-        var parameters = new List<string>();
-        var preCallLines = new List<string>();
-        var argumentExpressions = new List<string>();
-        string? pendingSpanSource = null;
-        string? failureVariable = null;
-        var isInstanceMethod = false;
+        var before = wrapCall[..splitIndex].Replace("$arg", param.PublicName, StringComparison.Ordinal).Trim();
+        var after = wrapCall[(splitIndex + callPlaceholder.Length)..].Replace("$arg", param.PublicName, StringComparison.Ordinal).Trim();
 
-        foreach (var parameter in nativeFunction.Parameters)
+        if (before.EndsWith('{'))
         {
-            var configParameter = methodConfig.Parameters.FirstOrDefault(p => p.Native == parameter.Name);
-            if (configParameter is null)
+            writer.WriteLine(before[..^1].TrimEnd());
+            writer.WriteLine("{");
+            using (writer.IndentScope())
             {
-                // Implicit selfPointer: first unconfigured T* param where T is a known struct
-                if (!isInstanceMethod && argumentExpressions.Count == 0)
+                EmitNestedWrapCall(writer, wrappedParams, index + 1, emitInner);
+            }
+
+            if (after.StartsWith('}'))
+            {
+                writer.WriteLine("}");
+                var remaining = after[1..].Trim();
+                if (remaining.Length > 0)
                 {
-                    var pd = BindingParser.GetPointerDepth(parameter.TypeName);
-                    var bt = BindingParser.TrimPointers(parameter.TypeName);
-                    if (pd == 1 && library.StructsByName.ContainsKey(bt))
-                    {
-                        isInstanceMethod = true;
-                        argumentExpressions.Add("_ptr");
-                        continue;
-                    }
+                    writer.WriteLine(remaining);
                 }
-
-                argumentExpressions.Add(parameter.Name);
-                parameters.Add($"{parameter.TypeName} {parameter.Name}");
-                continue;
             }
-
-            var publicName = configParameter.PublicName ?? NamingConventions.ToPascalCase(parameter.Name);
-            publicName = char.ToLowerInvariant(publicName[0]) + publicName[1..];
-
-            switch (configParameter.Adapter)
-            {
-                case "selfPointer":
-                    isInstanceMethod = true;
-                    argumentExpressions.Add("_ptr");
-                    break;
-                case "utf8Path":
-                    parameters.Add($"ReadOnlySpan<byte> {publicName}");
-                    preCallLines.Add($"fixed (byte* {publicName}Ptr = {publicName})");
-                    argumentExpressions.Add($"(sbyte*){publicName}Ptr");
-                    pendingSpanSource = publicName;
-                    break;
-                case "utf8Length":
-                    argumentExpressions.Add($"(nuint){configParameter.Source ?? pendingSpanSource}.Length");
-                    break;
-                case "byteSpan":
-                    parameters.Add($"ReadOnlySpan<byte> {publicName}");
-                    preCallLines.Add($"fixed (byte* {publicName}Ptr = {publicName})");
-                    argumentExpressions.Add($"{publicName}Ptr");
-                    pendingSpanSource = publicName;
-                    break;
-                case "byteSpanLength":
-                    argumentExpressions.Add($"(nuint){configParameter.Source ?? pendingSpanSource}.Length");
-                    break;
-                case "inValue":
-                    {
-                        var typeName = configParameter.Type ?? parameter.TypeName.TrimEnd('*').Trim();
-                        var defaultValue = configParameter.OptionalDefault ? " = default" : string.Empty;
-                        parameters.Add($"in {typeName} {publicName}{defaultValue}");
-                        preCallLines.Add($"var {publicName}Local = {publicName};");
-                        argumentExpressions.Add($"&{publicName}Local");
-                        break;
-                    }
-                case "errorOut":
-                    {
-                        var typeName = configParameter.Type ?? parameter.TypeName.TrimEnd('*').Trim();
-                        failureVariable = publicName;
-                        preCallLines.Add($"{typeName} {publicName} = default;");
-                        argumentExpressions.Add($"&{publicName}");
-                        break;
-                    }
-                case "getPtr":
-                    {
-                        var typeName = configParameter.Type ?? parameter.TypeName.TrimEnd('*').Trim();
-                        parameters.Add($"{typeName} {publicName}");
-                        argumentExpressions.Add($"{publicName}.GetUnsafePtr()");
-                        break;
-                    }
-                default:
-                    parameters.Add($"{configParameter.Type ?? parameter.TypeName} {publicName}");
-                    argumentExpressions.Add(publicName);
-                    break;
-            }
-        }
-
-        var (returnType, returnConversion) = ResolveReturnConversion(config, resolver, naming, nativeFunction.ReturnType);
-        var methodName = methodConfig.MethodName ?? naming.GetWrapperTypeName(methodConfig.NativeFunction);
-        var staticKeyword = isInstanceMethod ? string.Empty : "static ";
-        var signatureLine = $"public {staticKeyword}{returnType} {methodName}({string.Join(", ", parameters)})";
-
-        var body = new List<string>();
-        var fixedLines = preCallLines.Where(static l => l.StartsWith("fixed ", StringComparison.Ordinal)).ToList();
-        var normalLines = preCallLines.Where(static l => !l.StartsWith("fixed ", StringComparison.Ordinal)).ToList();
-        body.AddRange(normalLines);
-
-        if (fixedLines.Count > 0)
-        {
-            foreach (var fixedLine in fixedLines)
-            {
-                body.Add(fixedLine);
-            }
-
-            body.Add("{");
-        }
-
-        var callExpression = $"Api.{nativeFunction.Name}({string.Join(", ", argumentExpressions)})";
-        var returnsWrappedType = BindingParser.GetPointerDepth(nativeFunction.ReturnType) == 1 && resolver.HasWrapper(BindingParser.TrimPointers(nativeFunction.ReturnType));
-
-        if (returnsWrappedType)
-        {
-            body.Add($"var value = {callExpression};");
-            if (methodConfig.ThrowOnNullReturn)
-            {
-                body.Add("if (value == null)");
-                body.Add("{");
-                if (!string.IsNullOrWhiteSpace(failureVariable) && !string.IsNullOrWhiteSpace(methodConfig.FailureMessageMember))
-                {
-                    body.Add($"    throw new InvalidOperationException(NativeWrapperHelpers.GetString({failureVariable}.{methodConfig.FailureMessageMember}));");
-                }
-                else
-                {
-                    body.Add("    throw new InvalidOperationException(\"Native call failed.\");");
-                }
-                body.Add("}");
-            }
-
-            body.Add("return new(value);");
-        }
-        else if (string.Equals(nativeFunction.ReturnType, "void", StringComparison.Ordinal))
-        {
-            body.Add($"{callExpression};");
-        }
-        else if (returnConversion is not null)
-        {
-            body.Add($"return {string.Format(returnConversion, callExpression)};");
         }
         else
         {
-            body.Add($"return {callExpression};");
-        }
-
-        if (fixedLines.Count > 0)
-        {
-            body.Add("}");
-        }
-
-        return new GeneratedMethod(signatureLine, body);
-    }
-
-    // ─── Helpers ──────────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Returns (publicReturnType, conversionWrapper) where conversionWrapper is
-    /// a format string like "NativeWrapperHelpers.GetString({0})" if the native
-    /// return type is a special string/blob that needs conversion, or null otherwise.
-    /// </summary>
-    private static (string PublicType, string? ConversionFormat) ResolveReturnConversion(
-        WrapperConfig config, PublicTypeResolver resolver, NamingConventions naming, string nativeReturnType)
-    {
-        // Bare void
-        if (string.Equals(nativeReturnType, "void", StringComparison.Ordinal))
-        {
-            return ("void", null);
-        }
-
-        // Special string types (e.g. ufbx_string → string via GetString)
-        var stringType = config.SpecialTypes.Strings.FirstOrDefault(s =>
-            string.Equals(s.Type, nativeReturnType, StringComparison.Ordinal));
-        if (stringType is not null)
-        {
-            return ("string", "NativeWrapperHelpers.GetString({0})");
-        }
-
-        // Special blob types (e.g. ufbx_blob → ReadOnlySpan<byte> via AsSpan)
-        var blobType = config.SpecialTypes.Blobs.FirstOrDefault(b =>
-            string.Equals(b.Type, nativeReturnType, StringComparison.Ordinal));
-        if (blobType is not null)
-        {
-            return ($"ReadOnlySpan<{blobType.ElementType}>", "NativeWrapperHelpers.AsSpan({0})");
-        }
-
-        var publicType = ResolveGeneratedReturnType(resolver, naming, nativeReturnType);
-        return (publicType, null);
-    }
-
-    private static string ResolveGeneratedReturnType(PublicTypeResolver resolver, NamingConventions naming, string nativeReturnType)
-    {
-        // Bare void — never convert to void*
-        if (string.Equals(nativeReturnType, "void", StringComparison.Ordinal))
-        {
-            return "void";
-        }
-
-        var pointerDepth = BindingParser.GetPointerDepth(nativeReturnType);
-        if (pointerDepth == 1)
-        {
-            var baseType = BindingParser.TrimPointers(nativeReturnType);
-            if (resolver.HasWrapper(baseType))
+            writer.WriteLine(before);
+            using (writer.IndentScope())
             {
-                return naming.GetWrapperTypeName(baseType);
+                EmitNestedWrapCall(writer, wrappedParams, index + 1, emitInner);
+            }
+
+            if (after.Length > 0)
+            {
+                writer.WriteLine(after);
+            }
+        }
+    }
+
+    // ─── Parameter planning ───────────────────────────────────────────────────
+
+    private static ParameterPlan BuildParameterPlan(
+        NativeFunction func,
+        WrapperConfig config,
+        RoutedMethod routed)
+    {
+        var allNativeParams = new List<NativeParamInfo>();
+        var publicParams = new List<PublicParam>();
+
+        var consumedByDerivesFrom = new HashSet<int>();
+        var derivedExprs = new Dictionary<int, string>();
+        var remapHasSibling = new HashSet<int>();
+
+        for (var i = 0; i < func.Parameters.Count; i++)
+        {
+            var param = func.Parameters[i];
+            var remap = FindRemap(param, config);
+            if (remap?.DerivesFrom is null)
+            {
+                continue;
+            }
+
+            var expectedSiblingName = param.Name + remap.DerivesFrom.ParamSuffix;
+            for (var j = i + 1; j < func.Parameters.Count; j++)
+            {
+                if (string.Equals(func.Parameters[j].Name, expectedSiblingName, StringComparison.Ordinal))
+                {
+                    consumedByDerivesFrom.Add(j);
+                    derivedExprs[j] = remap.DerivesFrom.Expr.Replace("$arg", param.Name, StringComparison.Ordinal);
+                    remapHasSibling.Add(i);
+                    break;
+                }
             }
         }
 
-        return resolver.GetPublicType(nativeReturnType);
-    }
+        var selfParamIndex = routed.IsInstance ? 0 : -1;
 
-    private static string GetWrapperKind(WrapperConfig config, string nativeTypeName, OwnedTypeConfig? owned)
-    {
-        if (owned?.WrapperKind is not null)
+        for (var i = 0; i < func.Parameters.Count; i++)
         {
-            return owned.WrapperKind;
+            var param = func.Parameters[i];
+            var isSelf = i == selfParamIndex;
+            var isConsumed = consumedByDerivesFrom.Contains(i);
+
+            if (isSelf)
+            {
+                allNativeParams.Add(new NativeParamInfo
+                {
+                    NativeName = param.Name,
+                    PublicName = param.Name,
+                    IsSelfParam = true,
+                });
+                continue;
+            }
+
+            if (isConsumed)
+            {
+                allNativeParams.Add(new NativeParamInfo
+                {
+                    NativeName = param.Name,
+                    PublicName = param.Name,
+                    IsConsumedByDerivesFrom = true,
+                    DerivedExpr = derivedExprs[i],
+                });
+                continue;
+            }
+
+            var matchedRemap = FindRemap(param, config);
+
+            if (matchedRemap?.DerivesFrom is not null && !remapHasSibling.Contains(i))
+            {
+                matchedRemap = null;
+            }
+
+            if (matchedRemap?.Adapter?.ConvertBack is not null)
+            {
+                var convertBack = matchedRemap.Adapter.ConvertBack;
+                var publicParam = new PublicParam
+                {
+                    PublicType = matchedRemap.Dst,
+                    PublicName = param.Name,
+                    WrapCall = convertBack.WrapCall,
+                    PassAs = convertBack.PassAs,
+                };
+                publicParams.Add(publicParam);
+                allNativeParams.Add(new NativeParamInfo
+                {
+                    NativeName = param.Name,
+                    PublicName = param.Name,
+                    PassAs = convertBack.PassAs,
+                });
+            }
+            else
+            {
+                publicParams.Add(new PublicParam
+                {
+                    PublicType = param.TypeName,
+                    PublicName = param.Name,
+                });
+                allNativeParams.Add(new NativeParamInfo
+                {
+                    NativeName = param.Name,
+                    PublicName = param.Name,
+                });
+            }
         }
 
-        if (config.Wrappers.Kinds.TryGetValue(nativeTypeName, out var kind))
+        return new ParameterPlan
         {
-            return kind;
-        }
-
-        return owned is null ? config.Wrappers.DefaultKind : config.Wrappers.DefaultOwnedKind;
-    }
-
-    private static string GetWrapperDeclaration(string wrapperName, string wrapperKind, bool implementsIDisposable = false)
-    {
-        var baseDeclaration = wrapperKind switch
-        {
-            "class" => $"class {wrapperName}",
-            "ref struct" => $"ref struct {wrapperName}",
-            "readonly ref struct" => $"readonly ref struct {wrapperName}",
-            _ => $"struct {wrapperName}",
+            PublicParams = publicParams,
+            AllNativeParams = allNativeParams,
         };
+    }
 
-        if (implementsIDisposable && wrapperKind == "class")
+    private static string StripPrefix(string name, string? prefix)
+    {
+        if (string.IsNullOrEmpty(prefix))
         {
-            return $"{baseDeclaration} : IDisposable";
+            return name;
         }
 
-        return baseDeclaration;
-    }
-
-    private static string GetPointerFieldDeclaration(string nativeTypeName, string wrapperKind)
-    {
-        return wrapperKind switch
+        if (name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
         {
-            "class" => $"private {nativeTypeName}* _ptr;",
-            "ref struct" => $"private {nativeTypeName}* _ptr;",
-            "readonly ref struct" => $"private readonly {nativeTypeName}* _ptr;",
-            _ => $"private {nativeTypeName}* _ptr;",
-        };
-    }
-
-    private static string GetSafePropertyName(string wrapperName, string propertyName)
-    {
-        if (string.Equals(wrapperName, propertyName, StringComparison.Ordinal))
-        {
-            return propertyName + "Value";
+            return name[prefix.Length..];
         }
 
-        return propertyName;
+        return name;
     }
 
-    private sealed record GeneratedMethod(string SignatureLine, IReadOnlyList<string> BodyLines);
+    private static RemapConfig? FindRemap(NativeParameter param, WrapperConfig config)
+    {
+        foreach (var remap in config.Remaps)
+        {
+            if (!remap.Scope.Contains("parameter", StringComparer.Ordinal))
+            {
+                continue;
+            }
+
+            if (!string.Equals(remap.Src, param.TypeName, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (remap.Filter is { Count: > 0 } filters)
+            {
+                var matches = filters.Any(f =>
+                    Regex.IsMatch(param.Name, f, RegexOptions.IgnoreCase));
+                if (!matches)
+                {
+                    continue;
+                }
+            }
+
+            return remap;
+        }
+
+        return null;
+    }
+
+    // ─── Inner types ──────────────────────────────────────────────────────────
+
+    private sealed class RoutedMethod
+    {
+        public required NativeFunction Function { get; init; }
+        public required string TargetStructName { get; init; }
+        public required bool IsInstance { get; init; }
+        /// <summary>The specific INSTANCE_METHOD/STATIC_METHOD apply step that produced this method.</summary>
+        public required ActionApplyConfig Apply { get; init; }
+    }
+
+    private sealed class ParameterPlan
+    {
+        public required List<PublicParam> PublicParams { get; init; }
+        public required List<NativeParamInfo> AllNativeParams { get; init; }
+    }
+
+    private sealed class PublicParam
+    {
+        public required string PublicType { get; init; }
+        public required string PublicName { get; init; }
+        public string? WrapCall { get; init; }
+        public string? PassAs { get; init; }
+    }
+
+    private sealed class NativeParamInfo
+    {
+        public required string NativeName { get; init; }
+        public required string PublicName { get; init; }
+        public bool IsSelfParam { get; init; }
+        public bool IsConsumedByDerivesFrom { get; init; }
+        public string? DerivedExpr { get; init; }
+        public string? PassAs { get; init; }
+    }
 }

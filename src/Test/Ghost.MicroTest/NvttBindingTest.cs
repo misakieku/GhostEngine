@@ -1,6 +1,8 @@
 using Ghost.Nvtt;
-using Ghost.Nvtt.Wrapper;
 using Ghost.Test.Core;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Ghost.MicroTest;
 
@@ -14,7 +16,7 @@ namespace Ghost.MicroTest;
 ///   4. sRGB conversion — converts to linear colour space.
 ///   5. Mipmap count    — verifies CountMipmaps() returns a sensible value.
 ///   6. Compression     — compresses to BC7 with in-memory output.
-///   7. Mip chain       — generates and compresses the full mip chain.
+///   7. Mip chain       — generates and compresses the full pMip chain.
 ///   8. Error callback  — installs a global message callback and verifies
 ///                        it doesn't crash.
 ///   9. Output to file  — re-runs the full pipeline writing a real .dds file
@@ -23,6 +25,7 @@ namespace Ghost.MicroTest;
 internal sealed unsafe class NvttBindingTest : ITest
 {
     private const string _IMAGE_PATH = @"C:/Users/Misaki/Downloads/Screenshot 2024-07-20 035047.png";
+    private static ReadOnlySpan<byte> ImagePathByte => @"C:/Users/Misaki/Downloads/Screenshot 2024-07-20 035047.png"u8;
 
     private string _outputDdsPath = string.Empty;
 
@@ -38,26 +41,20 @@ internal sealed unsafe class NvttBindingTest : ITest
     {
         // ---- Test 1: Version ---------------------------------------------------
         Console.Write("[Test 1] nvttVersion ... ");
-        var version = NvttGlobal.Version;
+        var version = Api.nvttVersion();
         Assert(version > 0, $"Expected version > 0, got {version}");
         Console.WriteLine($"OK  (version = {version >> 16}.{(version >> 8) & 0xFF}.{version & 0xFF})");
 
         // ---- Test 2: CUDA support query (must not crash) ----------------------
         Console.Write("[Test 2] IsCudaSupported ... ");
-        var cuda = NvttGlobal.IsCudaSupported;
+        var cuda = Api.nvttIsCudaSupported();
         Console.WriteLine($"OK  (cuda = {cuda})");
 
         // ---- Test 3: Global message callback ----------------------------------
         Console.Write("[Test 3] SetMessageCallback ... ");
         var callbackFired = 0;
-        using (var token = NvttGlobal.SetMessageCallback((severity, error, msg) =>
-        {
-            callbackFired++;
-            Console.WriteLine($"/n         [NVTT] [{severity}] {error}: {msg}");
-        }))
-        {
-            // Just install + dispose — no assertion needed; must not throw.
-        }
+        var token = Api.nvttSetMessageCallback(&CallBack, &callbackFired);
+
         Console.WriteLine($"OK  (no crash, callback fired {callbackFired} times during install)");
 
         // ---- Test 4: Surface creation + load ----------------------------------
@@ -65,81 +62,92 @@ internal sealed unsafe class NvttBindingTest : ITest
         Assert(File.Exists(_IMAGE_PATH),
             $"Image not found: '{_IMAGE_PATH}'. Edit _IMAGE_PATH before running.");
 
-        using var surface = new NvttSurfaceHandle();
-        var loaded = surface.Load(_IMAGE_PATH, out var hasAlpha);
+        var pSurface = NvttSurface.Create();
+
+        NvttBoolean hasAlpha;
+        var loaded = pSurface->Load(ImagePathByte, &hasAlpha, false, null);
+
         Assert(loaded, "nvttSurfaceLoad returned false");
-        Assert(!surface.IsNull, "Surface is null after load");
-        Assert(surface.Width > 0 && surface.Height > 0,
-            $"Bad dimensions after load: {surface.Width}x{surface.Height}");
-        Console.WriteLine($"OK  ({surface.Width}x{surface.Height}, hasAlpha={hasAlpha})");
+        Assert(pSurface != null, "Surface is null after load");
+        Assert(pSurface->Width() > 0 && pSurface->Height() > 0,
+            $"Bad dimensions after load: {pSurface->Width()}x{pSurface->Height()}");
+
+        Console.WriteLine($"OK  ({pSurface->Width()}x{pSurface->Height()}, hasAlpha={hasAlpha})");
 
         // ---- Test 5: Resize to power-of-two ≤ 512 ----------------------------
         Console.Write("[Test 5] ResizeMakeSquare ... ");
-        surface.ResizeMakeSquare(512,
+        pSurface->ResizeMakeSquare(512,
             NvttRoundMode.NVTT_RoundMode_ToPreviousPowerOfTwo,
-            NvttResizeFilter.NVTT_ResizeFilter_Box);
-        Assert(surface.Width <= 512 && surface.Height <= 512,
-            $"Expected ≤512 after resize, got {surface.Width}x{surface.Height}");
-        Assert(IsPowerOfTwo(surface.Width) && IsPowerOfTwo(surface.Height),
-            $"Expected power-of-two after resize, got {surface.Width}x{surface.Height}");
-        Console.WriteLine($"OK  ({surface.Width}x{surface.Height})");
+            NvttResizeFilter.NVTT_ResizeFilter_Box, null);
+
+        Assert(pSurface->Width() <= 512 && pSurface->Height() <= 512,
+            $"Expected ≤512 after resize, got {pSurface->Width()}x{pSurface->Height()}");
+        Assert(IsPowerOfTwo(pSurface->Width()) && IsPowerOfTwo(pSurface->Height()),
+            $"Expected power-of-two after resize, got {pSurface->Width()}x{pSurface->Height()}");
+
+        Console.WriteLine($"OK  ({pSurface->Width()}x{pSurface->Height()})");
 
         // ---- Test 6: sRGB → linear conversion ---------------------------------
         Console.Write("[Test 6] ToLinearFromSrgb ... ");
-        surface.ToLinearFromSrgb(); // must not crash
+        pSurface->ToLinearFromSrgb(null); // must not crash
         Console.WriteLine("OK");
 
         // ---- Test 7: CountMipmaps ---------------------------------------------
         Console.Write("[Test 7] CountMipmaps ... ");
-        var mipCount = surface.CountMipmaps();
-        var expectedMax = (int)Math.Log2(Math.Max(surface.Width, surface.Height)) + 1;
+
+        var mipCount = pSurface->CountMipmaps(1);
+        var expectedMax = (int)Math.Log2(Math.Max(pSurface->Width(), pSurface->Height())) + 1;
+
         Assert(mipCount > 0 && mipCount <= expectedMax,
             $"Unexpected mip count: {mipCount} (expected 1..{expectedMax})");
+
         Console.WriteLine($"OK  ({mipCount} levels)");
 
-        // ---- Test 8: In-memory BC7 compression + mip chain -------------------
+        // ---- Test 8: In-memory BC7 compression + pMip chain -------------------
         Console.Write("[Test 8] Compress BC7 in-memory ... ");
-        long totalBytesReceived = 0;
+        var totalBytesReceived = 0L;
         var imagesBegun = 0;
 
-        using var compOpts = new NvttCompressionOptionsHandle();
-        compOpts.Format = NvttFormat.NVTT_Format_BC7;
-        compOpts.Quality = NvttQuality.NVTT_Quality_Fastest;
+        var pCompOpts = NvttCompressionOptions.Create();
+        pCompOpts->SetFormat(NvttFormat.NVTT_Format_BC7);
+        pCompOpts->SetQuality(NvttQuality.NVTT_Quality_Fastest);
 
-        using var outOpts = new NvttOutputOptionsHandle();
-        outOpts.OutputHeader = true;
-        outOpts.Srgb = true;
-        outOpts.Container = NvttContainer.NVTT_Container_DDS10;
+        var pOutOpts = NvttOutputOptions.Create();
+        pOutOpts->SetOutputHeader(true);
+        pOutOpts->SetSrgbFlag(true);
+        pOutOpts->SetContainer(NvttContainer.NVTT_Container_DDS10);
 
-        outOpts.SetOutputHandler(
-            beginImage: (size, w, h, d, face, mip) =>
+        pOutOpts->SetOutputHandler(
+            (size, w, h, d, face, mip) =>
             {
                 imagesBegun++;
             },
-            outputData: (ptr, len) =>
+            (ptr, len) =>
             {
                 totalBytesReceived += len;
                 return true;
             },
-            endImage: null
+            null
         );
-        outOpts.SetErrorHandler(err =>
+        pOutOpts->SetErrorHandler(err =>
             Console.WriteLine($"/n         [NVTT Error] {err}"));
 
-        using var ctx = new NvttContextHandle();
-        ctx.SetCudaAcceleration(false); // CPU only for the test
+        var pCtx = NvttContext.Create();
+        pCtx->SetCudaAcceleration(false); // CPU only for the test
 
-        using var mip = surface.Clone();
-        var headerOk = ctx.OutputHeader(mip, mipCount, compOpts, outOpts);
+        var pMip = pSurface->Clone();
+        var headerOk = pCtx->OutputHeader(pMip, mipCount, pCompOpts, pOutOpts);
         Assert(headerOk, "OutputHeader returned false");
 
         for (var level = 0; level < mipCount; level++)
         {
-            var compressOk = ctx.Compress(mip, face: 0, mipmap: level, compOpts, outOpts);
+            var compressOk = pCtx->Compress(pMip, face: 0, mipmap: level, pCompOpts, pOutOpts);
             Assert(compressOk, $"Compress returned false at mip level {level}");
 
             if (level + 1 < mipCount)
-                mip.BuildNextMipmap(NvttMipmapFilter.NVTT_MipmapFilter_Kaiser);
+            {
+                pMip->BuildNextMipmapDefaults(NvttMipmapFilter.NVTT_MipmapFilter_Kaiser, 1, null);
+            }
         }
 
         Assert(imagesBegun == mipCount,
@@ -149,48 +157,75 @@ internal sealed unsafe class NvttBindingTest : ITest
         Console.WriteLine($"OK  ({imagesBegun} mips, {totalBytesReceived:N0} bytes total)");
 
         // ---- Test 9: EstimateSize consistency ---------------------------------
+
         Console.Write("[Test 9] EstimateSize ... ");
-        var estimated = ctx.EstimateSize(surface, mipCount, compOpts);
+        var estimated = pCtx->EstimateSize(pSurface, mipCount, pCompOpts);
+
         // Estimate can differ from actual due to header overhead; just sanity-check it's > 0.
         Assert(estimated > 0, $"EstimateSize returned {estimated}");
         Console.WriteLine($"OK  (estimated = {estimated:N0} bytes, actual = {totalBytesReceived:N0} bytes)");
 
         // ---- Test 10: Output to real DDS file ---------------------------------
         Console.Write("[Test 10] Compress to file ... ");
-        using var outOptsFile = new NvttOutputOptionsHandle();
-        outOptsFile.OutputHeader = true;
-        outOptsFile.Srgb = true;
-        outOptsFile.Container = NvttContainer.NVTT_Container_DDS10;
-        outOptsFile.FileName = _outputDdsPath;
+        var pOutOptsFile = NvttOutputOptions.Create();
+        pOutOptsFile->SetOutputHeader(true);
+        pOutOptsFile->SetSrgbFlag(true);
+        pOutOptsFile->SetContainer(NvttContainer.NVTT_Container_DDS10);
+        pOutOptsFile->SetFileName(Encoding.UTF8.GetBytes(_outputDdsPath));
 
-        using var ctxFile = new NvttContextHandle();
-        using var mipFile = surface.Clone();
+        var pCtxFile = NvttContext.Create();
+        var pMipFile = pSurface->Clone();
 
-        var fileHeaderOk = ctxFile.OutputHeader(mipFile, mipCount, compOpts, outOptsFile);
+        var fileHeaderOk = pCtxFile->OutputHeader(pMipFile, mipCount, pCompOpts, pOutOptsFile);
         Assert(fileHeaderOk, "File OutputHeader returned false");
 
         for (var level = 0; level < mipCount; level++)
         {
-            var ok = ctxFile.Compress(mipFile, face: 0, mipmap: level, compOpts, outOptsFile);
+            var ok = pCtxFile->Compress(pMipFile, face: 0, mipmap: level, pCompOpts, pOutOptsFile);
             Assert(ok, $"File Compress returned false at level {level}");
 
             if (level + 1 < mipCount)
-                mipFile.BuildNextMipmap(NvttMipmapFilter.NVTT_MipmapFilter_Kaiser);
+            {
+                pMipFile->BuildNextMipmapDefaults(NvttMipmapFilter.NVTT_MipmapFilter_Kaiser, 1, null);
+            }
         }
 
-        Assert(File.Exists(_outputDdsPath),
-            $"DDS output file was not created: {_outputDdsPath}");
+        Assert(File.Exists(_outputDdsPath), $"DDS output file was not created: {_outputDdsPath}");
+
         var fileSize = new FileInfo(_outputDdsPath).Length;
         Assert(fileSize > 128, $"DDS file suspiciously small: {fileSize} bytes");
+
         Console.WriteLine($"OK  ({fileSize:N0} bytes → {_outputDdsPath})");
 
-        Console.WriteLine("/n[NvttBindingTest] All tests PASSED.");
+        Console.WriteLine("[NvttBindingTest] All tests PASSED.");
+
+        pMipFile->Dispose();
+        pCtxFile->Dispose();
+        pOutOptsFile->Dispose();
+        pMip->Dispose();
+        pCtx->Dispose();
+        pOutOpts->Dispose();
+        pCompOpts->Dispose();
+        pSurface->Dispose();
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static void CallBack(NvttSeverity severity, NvttError error, sbyte* msg, void* userData)
+    {
+        (*(int*)userData)++;
+
+        int i = 0;
+        while (msg[i] != 0)
+        {
+            i++;
+        }
+
+        Console.WriteLine($"/n         [NVTT] [{severity}] {error}: {Encoding.UTF8.GetString((byte*)msg, i)}");
     }
 
     public void Cleanup()
     {
-        // Leave the DDS file in place so you can inspect it.
-        Console.WriteLine($"/n[NvttBindingTest] Output DDS left at: {_outputDdsPath}");
+        Console.WriteLine($"[NvttBindingTest] Output DDS left at: {_outputDdsPath}");
     }
 
     // -------------------------------------------------------------------------
@@ -198,7 +233,9 @@ internal sealed unsafe class NvttBindingTest : ITest
     private static void Assert(bool condition, string message)
     {
         if (!condition)
+        {
             throw new InvalidOperationException($"[ASSERTION FAILED] {message}");
+        }
     }
 
     private static bool IsPowerOfTwo(int n)
