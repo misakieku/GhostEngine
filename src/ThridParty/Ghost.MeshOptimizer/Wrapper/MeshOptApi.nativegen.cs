@@ -4,7 +4,7 @@
 
 namespace Ghost.MeshOptimizer;
 
-public unsafe partial struct NvttApi
+public unsafe partial struct MeshOptApi
 {
     /// <summary>
     /// From: <see cref="Api.meshopt_generateVertexRemap(uint*, uint*, nuint, void*, nuint, nuint)" />
