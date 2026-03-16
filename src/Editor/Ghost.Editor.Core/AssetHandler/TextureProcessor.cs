@@ -156,7 +156,7 @@ internal static unsafe class TextureProcessor
             mipmapCount = (int)settings.Advanced.MipmapLevelCount;
         }
 
-        pCtx.Get()->SetCudaAcceleration(Api.nvttIsCudaSupported());
+        pCtx.Get()->SetCudaAcceleration(NvttApi.IsCudaSupported());
 
         pCtx.Get()->OutputHeader(pSurface.Get(), mipmapCount, pCompOpts.Get(), pOutOpts.Get());
 

@@ -6,7 +6,10 @@ namespace Ghost.Nvtt;
 
 public unsafe partial struct NvttRefImage
 {
-    // From: nvttCreateCPUInputBuffer(NvttRefImage*, NvttValueType, int, int, int, float, float, float, float, NvttTimingContext*, uint*)
+    /// <summary>
+    /// From: <see cref="Api.nvttCreateCPUInputBuffer(NvttRefImage*, NvttValueType, int, int, int, float, float, float, float, NvttTimingContext*, uint*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttCPUInputBuffer* CreateCPUInputBuffer(NvttValueType value_type, int numImages, int tile_w, int tile_h, float WeightR, float WeightG, float WeightB, float WeightA, NvttTimingContext* tc, uint* num_tiles)
     {
         return Api.nvttCreateCPUInputBuffer(
@@ -23,7 +26,10 @@ public unsafe partial struct NvttRefImage
             num_tiles);
     }
 
-    // From: nvttCreateGPUInputBuffer(NvttRefImage*, NvttValueType, int, int, int, float, float, float, float, NvttTimingContext*, uint*)
+    /// <summary>
+    /// From: <see cref="Api.nvttCreateGPUInputBuffer(NvttRefImage*, NvttValueType, int, int, int, float, float, float, float, NvttTimingContext*, uint*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttGPUInputBuffer* CreateGPUInputBuffer(NvttValueType value_type, int numImages, int tile_w, int tile_h, float WeightR, float WeightG, float WeightB, float WeightA, NvttTimingContext* tc, uint* num_tiles)
     {
         return Api.nvttCreateGPUInputBuffer(

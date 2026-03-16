@@ -6,25 +6,37 @@ namespace Ghost.Nvtt;
 
 public unsafe partial struct NvttSurface : System.IDisposable
 {
-    // From: nvttCreateSurface()
+    /// <summary>
+    /// From: <see cref="Api.nvttCreateSurface()" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static NvttSurface* Create()
     {
         return Api.nvttCreateSurface();
     }
 
-    // From: nvttDestroySurface(NvttSurface*)
+    /// <summary>
+    /// From: <see cref="Api.nvttDestroySurface(NvttSurface*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         Api.nvttDestroySurface((NvttSurface*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttSurfaceClone(NvttSurface*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceClone(NvttSurface*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttSurface* Clone()
     {
         return Api.nvttSurfaceClone((NvttSurface*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttSetSurfaceWrapMode(NvttSurface*, NvttWrapMode)
+    /// <summary>
+    /// From: <see cref="Api.nvttSetSurfaceWrapMode(NvttSurface*, NvttWrapMode)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetWrapMode(NvttWrapMode mode)
     {
         Api.nvttSetSurfaceWrapMode(
@@ -32,7 +44,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             mode);
     }
 
-    // From: nvttSetSurfaceAlphaMode(NvttSurface*, NvttAlphaMode)
+    /// <summary>
+    /// From: <see cref="Api.nvttSetSurfaceAlphaMode(NvttSurface*, NvttAlphaMode)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetAlphaMode(NvttAlphaMode alphaMode)
     {
         Api.nvttSetSurfaceAlphaMode(
@@ -40,7 +55,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             alphaMode);
     }
 
-    // From: nvttSetSurfaceNormalMap(NvttSurface*, NvttBoolean)
+    /// <summary>
+    /// From: <see cref="Api.nvttSetSurfaceNormalMap(NvttSurface*, NvttBoolean)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetNormalMap(NvttBoolean isNormalMap)
     {
         Api.nvttSetSurfaceNormalMap(
@@ -48,55 +66,82 @@ public unsafe partial struct NvttSurface : System.IDisposable
             isNormalMap);
     }
 
-    // From: nvttSurfaceIsNull(NvttSurface*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceIsNull(NvttSurface*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean IsNull()
     {
         return Api.nvttSurfaceIsNull((NvttSurface*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttSurfaceWidth(NvttSurface*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceWidth(NvttSurface*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public int Width()
     {
         return Api.nvttSurfaceWidth((NvttSurface*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttSurfaceHeight(NvttSurface*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceHeight(NvttSurface*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public int Height()
     {
         return Api.nvttSurfaceHeight((NvttSurface*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttSurfaceDepth(NvttSurface*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceDepth(NvttSurface*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public int Depth()
     {
         return Api.nvttSurfaceDepth((NvttSurface*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttSurfaceType(NvttSurface*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceType(NvttSurface*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttTextureType Type()
     {
         return Api.nvttSurfaceType((NvttSurface*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttSurfaceWrapMode(NvttSurface*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceWrapMode(NvttSurface*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttWrapMode WrapMode()
     {
         return Api.nvttSurfaceWrapMode((NvttSurface*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttSurfaceAlphaMode(NvttSurface*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceAlphaMode(NvttSurface*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttAlphaMode AlphaMode()
     {
         return Api.nvttSurfaceAlphaMode((NvttSurface*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttSurfaceIsNormalMap(NvttSurface*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceIsNormalMap(NvttSurface*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean IsNormalMap()
     {
         return Api.nvttSurfaceIsNormalMap((NvttSurface*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttSurfaceCountMipmaps(NvttSurface*, int)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceCountMipmaps(NvttSurface*, int)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public int CountMipmaps(int min_size)
     {
         return Api.nvttSurfaceCountMipmaps(
@@ -104,7 +149,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             min_size);
     }
 
-    // From: nvttSurfaceAlphaTestCoverage(NvttSurface*, float, int)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceAlphaTestCoverage(NvttSurface*, float, int)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public float AlphaTestCoverage(float alphaRef, int alpha_channel)
     {
         return Api.nvttSurfaceAlphaTestCoverage(
@@ -113,7 +161,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             alpha_channel);
     }
 
-    // From: nvttSurfaceAverage(NvttSurface*, int, int, float)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceAverage(NvttSurface*, int, int, float)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public float Average(int channel, int alpha_channel, float gamma)
     {
         return Api.nvttSurfaceAverage(
@@ -123,13 +174,19 @@ public unsafe partial struct NvttSurface : System.IDisposable
             gamma);
     }
 
-    // From: nvttSurfaceData(NvttSurface*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceData(NvttSurface*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public float* Data()
     {
         return Api.nvttSurfaceData((NvttSurface*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttSurfaceChannel(NvttSurface*, int)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceChannel(NvttSurface*, int)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public float* Channel(int i)
     {
         return Api.nvttSurfaceChannel(
@@ -137,7 +194,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             i);
     }
 
-    // From: nvttSurfaceHistogram(NvttSurface*, int, float, float, int, int*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceHistogram(NvttSurface*, int, float, float, int, int*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Histogram(int channel, float rangeMin, float rangeMax, int binCount, int* binPtr, NvttTimingContext* tc)
     {
         Api.nvttSurfaceHistogram(
@@ -150,7 +210,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceRange(NvttSurface*, int, float*, float*, int, float, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceRange(NvttSurface*, int, float*, float*, int, float, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Range(int channel, float* rangeMin, float* rangeMax, int alpha_channel, float alpha_ref, NvttTimingContext* tc)
     {
         Api.nvttSurfaceRange(
@@ -163,7 +226,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceLoad(NvttSurface*, sbyte*, NvttBoolean*, NvttBoolean, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceLoad(NvttSurface*, sbyte*, NvttBoolean*, NvttBoolean, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean Load(ReadOnlySpan<byte> filename, NvttBoolean* hasAlpha, NvttBoolean expectSigned, NvttTimingContext* tc)
     {
         fixed (byte* pfilename = filename)
@@ -177,7 +243,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
         }
     }
 
-    // From: nvttSurfaceLoadFromMemory(NvttSurface*, void*, ulong, NvttBoolean*, NvttBoolean, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceLoadFromMemory(NvttSurface*, void*, ulong, NvttBoolean*, NvttBoolean, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean LoadFromMemory(void* data, ulong sizeInBytes, NvttBoolean* hasAlpha, NvttBoolean expectSigned, NvttTimingContext* tc)
     {
         return Api.nvttSurfaceLoadFromMemory(
@@ -189,7 +258,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceSave(NvttSurface*, sbyte*, NvttBoolean, NvttBoolean, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceSave(NvttSurface*, sbyte*, NvttBoolean, NvttBoolean, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean Save(ReadOnlySpan<byte> fileName, NvttBoolean hasAlpha, NvttBoolean hdr, NvttTimingContext* tc)
     {
         fixed (byte* pfileName = fileName)
@@ -203,7 +275,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
         }
     }
 
-    // From: nvttSurfaceSetImage(NvttSurface*, int, int, int, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceSetImage(NvttSurface*, int, int, int, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean SetImage(int w, int h, int d, NvttTimingContext* tc)
     {
         return Api.nvttSurfaceSetImage(
@@ -214,7 +289,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceSetImageData(NvttSurface*, NvttInputFormat, int, int, int, void*, NvttBoolean, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceSetImageData(NvttSurface*, NvttInputFormat, int, int, int, void*, NvttBoolean, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean SetImageData(NvttInputFormat format, int w, int h, int d, void* data, NvttBoolean unsignedToSigned, NvttTimingContext* tc)
     {
         return Api.nvttSurfaceSetImageData(
@@ -228,7 +306,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceSetImageRGBA(NvttSurface*, NvttInputFormat, int, int, int, void*, void*, void*, void*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceSetImageRGBA(NvttSurface*, NvttInputFormat, int, int, int, void*, void*, void*, void*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean SetImageRGBA(NvttInputFormat format, int w, int h, int d, void* r, void* g, void* b, void* a, NvttTimingContext* tc)
     {
         return Api.nvttSurfaceSetImageRGBA(
@@ -244,7 +325,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceSetImage2D(NvttSurface*, NvttFormat, int, int, void*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceSetImage2D(NvttSurface*, NvttFormat, int, int, void*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean SetImage2D(NvttFormat format, int w, int h, void* data, NvttTimingContext* tc)
     {
         return Api.nvttSurfaceSetImage2D(
@@ -256,7 +340,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceSetImage3D(NvttSurface*, NvttFormat, int, int, int, void*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceSetImage3D(NvttSurface*, NvttFormat, int, int, int, void*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean SetImage3D(NvttFormat format, int w, int h, int d, void* data, NvttTimingContext* tc)
     {
         return Api.nvttSurfaceSetImage3D(
@@ -269,7 +356,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceResize(NvttSurface*, int, int, int, NvttResizeFilter, float, float*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceResize(NvttSurface*, int, int, int, NvttResizeFilter, float, float*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Resize(int w, int h, int d, NvttResizeFilter filter, float filterWidth, float* @params, NvttTimingContext* tc)
     {
         Api.nvttSurfaceResize(
@@ -283,7 +373,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceResizeMax(NvttSurface*, int, NvttRoundMode, NvttResizeFilter, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceResizeMax(NvttSurface*, int, NvttRoundMode, NvttResizeFilter, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ResizeMax(int maxExtent, NvttRoundMode mode, NvttResizeFilter filter, NvttTimingContext* tc)
     {
         Api.nvttSurfaceResizeMax(
@@ -294,7 +387,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceResizeMaxParams(NvttSurface*, int, NvttRoundMode, NvttResizeFilter, float, float*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceResizeMaxParams(NvttSurface*, int, NvttRoundMode, NvttResizeFilter, float, float*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ResizeMaxParams(int maxExtent, NvttRoundMode mode, NvttResizeFilter filter, float filterWidth, float* @params, NvttTimingContext* tc)
     {
         Api.nvttSurfaceResizeMaxParams(
@@ -307,7 +403,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceResizeMakeSquare(NvttSurface*, int, NvttRoundMode, NvttResizeFilter, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceResizeMakeSquare(NvttSurface*, int, NvttRoundMode, NvttResizeFilter, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ResizeMakeSquare(int maxExtent, NvttRoundMode mode, NvttResizeFilter filter, NvttTimingContext* tc)
     {
         Api.nvttSurfaceResizeMakeSquare(
@@ -318,7 +417,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceBuildNextMipmap(NvttSurface*, NvttMipmapFilter, float, float*, int, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceBuildNextMipmap(NvttSurface*, NvttMipmapFilter, float, float*, int, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean BuildNextMipmap(NvttMipmapFilter filter, float filterWidth, float* @params, int min_size, NvttTimingContext* tc)
     {
         return Api.nvttSurfaceBuildNextMipmap(
@@ -330,7 +432,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceBuildNextMipmapDefaults(NvttSurface*, NvttMipmapFilter, int, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceBuildNextMipmapDefaults(NvttSurface*, NvttMipmapFilter, int, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean BuildNextMipmapDefaults(NvttMipmapFilter filter, int min_size, NvttTimingContext* tc)
     {
         return Api.nvttSurfaceBuildNextMipmapDefaults(
@@ -340,7 +445,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceBuildNextMipmapSolidColor(NvttSurface*, float*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceBuildNextMipmapSolidColor(NvttSurface*, float*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean BuildNextMipmapSolidColor(float* color_components, NvttTimingContext* tc)
     {
         return Api.nvttSurfaceBuildNextMipmapSolidColor(
@@ -349,7 +457,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceCanvasSize(NvttSurface*, int, int, int, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceCanvasSize(NvttSurface*, int, int, int, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void CanvasSize(int w, int h, int d, NvttTimingContext* tc)
     {
         Api.nvttSurfaceCanvasSize(
@@ -360,7 +471,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceCanMakeNextMipmap(NvttSurface*, int)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceCanMakeNextMipmap(NvttSurface*, int)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean CanMakeNextMipmap(int min_size)
     {
         return Api.nvttSurfaceCanMakeNextMipmap(
@@ -368,7 +482,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             min_size);
     }
 
-    // From: nvttSurfaceToLinear(NvttSurface*, float, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceToLinear(NvttSurface*, float, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ToLinear(float gamma, NvttTimingContext* tc)
     {
         Api.nvttSurfaceToLinear(
@@ -377,7 +494,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceToGamma(NvttSurface*, float, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceToGamma(NvttSurface*, float, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ToGamma(float gamma, NvttTimingContext* tc)
     {
         Api.nvttSurfaceToGamma(
@@ -386,7 +506,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceToLinearChannel(NvttSurface*, int, float, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceToLinearChannel(NvttSurface*, int, float, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ToLinearChannel(int channel, float gamma, NvttTimingContext* tc)
     {
         Api.nvttSurfaceToLinearChannel(
@@ -396,7 +519,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceToGammaChannel(NvttSurface*, int, float, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceToGammaChannel(NvttSurface*, int, float, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ToGammaChannel(int channel, float gamma, NvttTimingContext* tc)
     {
         Api.nvttSurfaceToGammaChannel(
@@ -406,7 +532,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceToSrgb(NvttSurface*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceToSrgb(NvttSurface*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ToSrgb(NvttTimingContext* tc)
     {
         Api.nvttSurfaceToSrgb(
@@ -414,7 +543,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceToSrgbUnclamped(NvttSurface*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceToSrgbUnclamped(NvttSurface*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ToSrgbUnclamped(NvttTimingContext* tc)
     {
         Api.nvttSurfaceToSrgbUnclamped(
@@ -422,7 +554,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceToLinearFromSrgb(NvttSurface*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceToLinearFromSrgb(NvttSurface*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ToLinearFromSrgb(NvttTimingContext* tc)
     {
         Api.nvttSurfaceToLinearFromSrgb(
@@ -430,7 +565,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceToLinearFromSrgbUnclamped(NvttSurface*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceToLinearFromSrgbUnclamped(NvttSurface*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ToLinearFromSrgbUnclamped(NvttTimingContext* tc)
     {
         Api.nvttSurfaceToLinearFromSrgbUnclamped(
@@ -438,7 +576,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceToXenonSrgb(NvttSurface*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceToXenonSrgb(NvttSurface*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ToXenonSrgb(NvttTimingContext* tc)
     {
         Api.nvttSurfaceToXenonSrgb(
@@ -446,7 +587,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceToLinearFromXenonSrgb(NvttSurface*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceToLinearFromXenonSrgb(NvttSurface*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ToLinearFromXenonSrgb(NvttTimingContext* tc)
     {
         Api.nvttSurfaceToLinearFromXenonSrgb(
@@ -454,7 +598,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceTransform(NvttSurface*, float*, float*, float*, float*, float*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceTransform(NvttSurface*, float*, float*, float*, float*, float*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Transform(float* w0, float* w1, float* w2, float* w3, float* offset, NvttTimingContext* tc)
     {
         Api.nvttSurfaceTransform(
@@ -467,7 +614,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceSwizzle(NvttSurface*, int, int, int, int, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceSwizzle(NvttSurface*, int, int, int, int, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Swizzle(int r, int g, int b, int a, NvttTimingContext* tc)
     {
         Api.nvttSurfaceSwizzle(
@@ -479,7 +629,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceScaleBias(NvttSurface*, int, float, float, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceScaleBias(NvttSurface*, int, float, float, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ScaleBias(int channel, float scale, float bias, NvttTimingContext* tc)
     {
         Api.nvttSurfaceScaleBias(
@@ -490,7 +643,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceClamp(NvttSurface*, int, float, float, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceClamp(NvttSurface*, int, float, float, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Clamp(int channel, float low, float high, NvttTimingContext* tc)
     {
         Api.nvttSurfaceClamp(
@@ -501,7 +657,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceBlend(NvttSurface*, float, float, float, float, float, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceBlend(NvttSurface*, float, float, float, float, float, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Blend(float r, float g, float b, float a, float t, NvttTimingContext* tc)
     {
         Api.nvttSurfaceBlend(
@@ -514,7 +673,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfacePremultiplyAlpha(NvttSurface*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfacePremultiplyAlpha(NvttSurface*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void PremultiplyAlpha(NvttTimingContext* tc)
     {
         Api.nvttSurfacePremultiplyAlpha(
@@ -522,7 +684,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceDemultiplyAlpha(NvttSurface*, float, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceDemultiplyAlpha(NvttSurface*, float, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void DemultiplyAlpha(float epsilon, NvttTimingContext* tc)
     {
         Api.nvttSurfaceDemultiplyAlpha(
@@ -531,7 +696,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceToGreyScale(NvttSurface*, float, float, float, float, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceToGreyScale(NvttSurface*, float, float, float, float, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ToGreyScale(float redScale, float greenScale, float blueScale, float alphaScale, NvttTimingContext* tc)
     {
         Api.nvttSurfaceToGreyScale(
@@ -543,7 +711,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceSetBorder(NvttSurface*, float, float, float, float, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceSetBorder(NvttSurface*, float, float, float, float, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetBorder(float r, float g, float b, float a, NvttTimingContext* tc)
     {
         Api.nvttSurfaceSetBorder(
@@ -555,7 +726,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceFill(NvttSurface*, float, float, float, float, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceFill(NvttSurface*, float, float, float, float, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Fill(float r, float g, float b, float a, NvttTimingContext* tc)
     {
         Api.nvttSurfaceFill(
@@ -567,7 +741,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceScaleAlphaToCoverage(NvttSurface*, float, float, int, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceScaleAlphaToCoverage(NvttSurface*, float, float, int, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ScaleAlphaToCoverage(float coverage, float alphaRef, int alpha_channel, NvttTimingContext* tc)
     {
         Api.nvttSurfaceScaleAlphaToCoverage(
@@ -578,7 +755,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceToRGBM(NvttSurface*, float, float, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceToRGBM(NvttSurface*, float, float, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ToRGBM(float range, float threshold, NvttTimingContext* tc)
     {
         Api.nvttSurfaceToRGBM(
@@ -588,7 +768,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceFromRGBM(NvttSurface*, float, float, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceFromRGBM(NvttSurface*, float, float, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void FromRGBM(float range, float threshold, NvttTimingContext* tc)
     {
         Api.nvttSurfaceFromRGBM(
@@ -598,7 +781,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceToLM(NvttSurface*, float, float, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceToLM(NvttSurface*, float, float, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ToLM(float range, float threshold, NvttTimingContext* tc)
     {
         Api.nvttSurfaceToLM(
@@ -608,7 +794,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceToRGBE(NvttSurface*, int, int, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceToRGBE(NvttSurface*, int, int, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ToRGBE(int mantissaBits, int exponentBits, NvttTimingContext* tc)
     {
         Api.nvttSurfaceToRGBE(
@@ -618,7 +807,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceFromRGBE(NvttSurface*, int, int, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceFromRGBE(NvttSurface*, int, int, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void FromRGBE(int mantissaBits, int exponentBits, NvttTimingContext* tc)
     {
         Api.nvttSurfaceFromRGBE(
@@ -628,7 +820,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceToYCoCg(NvttSurface*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceToYCoCg(NvttSurface*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ToYCoCg(NvttTimingContext* tc)
     {
         Api.nvttSurfaceToYCoCg(
@@ -636,7 +831,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceBlockScaleCoCg(NvttSurface*, int, float, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceBlockScaleCoCg(NvttSurface*, int, float, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void BlockScaleCoCg(int bits, float threshold, NvttTimingContext* tc)
     {
         Api.nvttSurfaceBlockScaleCoCg(
@@ -646,7 +844,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceFromYCoCg(NvttSurface*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceFromYCoCg(NvttSurface*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void FromYCoCg(NvttTimingContext* tc)
     {
         Api.nvttSurfaceFromYCoCg(
@@ -654,7 +855,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceToLUVW(NvttSurface*, float, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceToLUVW(NvttSurface*, float, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ToLUVW(float range, NvttTimingContext* tc)
     {
         Api.nvttSurfaceToLUVW(
@@ -663,7 +867,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceFromLUVW(NvttSurface*, float, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceFromLUVW(NvttSurface*, float, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void FromLUVW(float range, NvttTimingContext* tc)
     {
         Api.nvttSurfaceFromLUVW(
@@ -672,7 +879,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceAbs(NvttSurface*, int, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceAbs(NvttSurface*, int, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Abs(int channel, NvttTimingContext* tc)
     {
         Api.nvttSurfaceAbs(
@@ -681,7 +891,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceConvolve(NvttSurface*, int, int, float*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceConvolve(NvttSurface*, int, int, float*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Convolve(int channel, int kernelSize, float* kernelData, NvttTimingContext* tc)
     {
         Api.nvttSurfaceConvolve(
@@ -692,7 +905,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceToLogScale(NvttSurface*, int, float, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceToLogScale(NvttSurface*, int, float, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ToLogScale(int channel, float @base, NvttTimingContext* tc)
     {
         Api.nvttSurfaceToLogScale(
@@ -702,7 +918,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceFromLogScale(NvttSurface*, int, float, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceFromLogScale(NvttSurface*, int, float, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void FromLogScale(int channel, float @base, NvttTimingContext* tc)
     {
         Api.nvttSurfaceFromLogScale(
@@ -712,7 +931,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceSetAtlasBorder(NvttSurface*, int, int, float, float, float, float, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceSetAtlasBorder(NvttSurface*, int, int, float, float, float, float, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetAtlasBorder(int w, int h, float r, float g, float b, float a, NvttTimingContext* tc)
     {
         Api.nvttSurfaceSetAtlasBorder(
@@ -726,7 +948,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceToneMap(NvttSurface*, NvttToneMapper, float*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceToneMap(NvttSurface*, NvttToneMapper, float*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ToneMap(NvttToneMapper tm, float* parameters, NvttTimingContext* tc)
     {
         Api.nvttSurfaceToneMap(
@@ -736,7 +961,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceBinarize(NvttSurface*, int, float, NvttBoolean, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceBinarize(NvttSurface*, int, float, NvttBoolean, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Binarize(int channel, float threshold, NvttBoolean dither, NvttTimingContext* tc)
     {
         Api.nvttSurfaceBinarize(
@@ -747,7 +975,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceQuantize(NvttSurface*, int, int, NvttBoolean, NvttBoolean, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceQuantize(NvttSurface*, int, int, NvttBoolean, NvttBoolean, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Quantize(int channel, int bits, NvttBoolean exactEndPoints, NvttBoolean dither, NvttTimingContext* tc)
     {
         Api.nvttSurfaceQuantize(
@@ -759,7 +990,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceToNormalMap(NvttSurface*, float, float, float, float, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceToNormalMap(NvttSurface*, float, float, float, float, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ToNormalMap(float sm, float medium, float big, float large, NvttTimingContext* tc)
     {
         Api.nvttSurfaceToNormalMap(
@@ -771,7 +1005,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceNormalizeNormalMap(NvttSurface*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceNormalizeNormalMap(NvttSurface*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void NormalizeNormalMap(NvttTimingContext* tc)
     {
         Api.nvttSurfaceNormalizeNormalMap(
@@ -779,7 +1016,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceTransformNormals(NvttSurface*, NvttNormalTransform, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceTransformNormals(NvttSurface*, NvttNormalTransform, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void TransformNormals(NvttNormalTransform xform, NvttTimingContext* tc)
     {
         Api.nvttSurfaceTransformNormals(
@@ -788,7 +1028,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceReconstructNormals(NvttSurface*, NvttNormalTransform, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceReconstructNormals(NvttSurface*, NvttNormalTransform, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ReconstructNormals(NvttNormalTransform xform, NvttTimingContext* tc)
     {
         Api.nvttSurfaceReconstructNormals(
@@ -797,7 +1040,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceToCleanNormalMap(NvttSurface*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceToCleanNormalMap(NvttSurface*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ToCleanNormalMap(NvttTimingContext* tc)
     {
         Api.nvttSurfaceToCleanNormalMap(
@@ -805,7 +1051,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfacePackNormals(NvttSurface*, float, float, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfacePackNormals(NvttSurface*, float, float, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void PackNormals(float scale, float bias, NvttTimingContext* tc)
     {
         Api.nvttSurfacePackNormals(
@@ -815,7 +1064,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceExpandNormals(NvttSurface*, float, float, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceExpandNormals(NvttSurface*, float, float, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ExpandNormals(float scale, float bias, NvttTimingContext* tc)
     {
         Api.nvttSurfaceExpandNormals(
@@ -825,7 +1077,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceCreateToksvigMap(NvttSurface*, float, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceCreateToksvigMap(NvttSurface*, float, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttSurface* CreateToksvigMap(float power, NvttTimingContext* tc)
     {
         return Api.nvttSurfaceCreateToksvigMap(
@@ -834,7 +1089,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceCreateCleanMap(NvttSurface*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceCreateCleanMap(NvttSurface*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttSurface* CreateCleanMap(NvttTimingContext* tc)
     {
         return Api.nvttSurfaceCreateCleanMap(
@@ -842,7 +1100,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceFlipX(NvttSurface*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceFlipX(NvttSurface*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void FlipX(NvttTimingContext* tc)
     {
         Api.nvttSurfaceFlipX(
@@ -850,7 +1111,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceFlipY(NvttSurface*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceFlipY(NvttSurface*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void FlipY(NvttTimingContext* tc)
     {
         Api.nvttSurfaceFlipY(
@@ -858,7 +1122,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceFlipZ(NvttSurface*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceFlipZ(NvttSurface*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void FlipZ(NvttTimingContext* tc)
     {
         Api.nvttSurfaceFlipZ(
@@ -866,7 +1133,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceCreateSubImage(NvttSurface*, int, int, int, int, int, int, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceCreateSubImage(NvttSurface*, int, int, int, int, int, int, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttSurface* CreateSubImage(int x0, int x1, int y0, int y1, int z0, int z1, NvttTimingContext* tc)
     {
         return Api.nvttSurfaceCreateSubImage(
@@ -880,7 +1150,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceCopyChannel(NvttSurface*, NvttSurface*, int, int, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceCopyChannel(NvttSurface*, NvttSurface*, int, int, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean CopyChannel(NvttSurface* srcImage, int srcChannel, int dstChannel, NvttTimingContext* tc)
     {
         return Api.nvttSurfaceCopyChannel(
@@ -891,7 +1164,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceAddChannel(NvttSurface*, NvttSurface*, int, int, float, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceAddChannel(NvttSurface*, NvttSurface*, int, int, float, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean AddChannel(NvttSurface* srcImage, int srcChannel, int dstChannel, float scale, NvttTimingContext* tc)
     {
         return Api.nvttSurfaceAddChannel(
@@ -903,7 +1179,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceCopy(NvttSurface*, NvttSurface*, int, int, int, int, int, int, int, int, int, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceCopy(NvttSurface*, NvttSurface*, int, int, int, int, int, int, int, int, int, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean Copy(NvttSurface* srcImage, int xsrc, int ysrc, int zsrc, int xsize, int ysize, int zsize, int xdst, int ydst, int zdst, NvttTimingContext* tc)
     {
         return Api.nvttSurfaceCopy(
@@ -921,7 +1200,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceToGPU(NvttSurface*, NvttBoolean, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceToGPU(NvttSurface*, NvttBoolean, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ToGPU(NvttBoolean performCopy, NvttTimingContext* tc)
     {
         Api.nvttSurfaceToGPU(
@@ -930,7 +1212,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceToCPU(NvttSurface*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceToCPU(NvttSurface*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ToCPU(NvttTimingContext* tc)
     {
         Api.nvttSurfaceToCPU(
@@ -938,19 +1223,28 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttSurfaceGPUData(NvttSurface*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceGPUData(NvttSurface*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public float* GPUData()
     {
         return Api.nvttSurfaceGPUData((NvttSurface*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttSurfaceGPUDataMutable(NvttSurface*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceGPUDataMutable(NvttSurface*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public float* GPUDataMutable()
     {
         return Api.nvttSurfaceGPUDataMutable((NvttSurface*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttRmsError(NvttSurface*, NvttSurface*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttRmsError(NvttSurface*, NvttSurface*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public float RmsError(NvttSurface* img, NvttTimingContext* tc)
     {
         return Api.nvttRmsError(
@@ -959,7 +1253,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttRmsAlphaError(NvttSurface*, NvttSurface*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttRmsAlphaError(NvttSurface*, NvttSurface*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public float RmsAlphaError(NvttSurface* img, NvttTimingContext* tc)
     {
         return Api.nvttRmsAlphaError(
@@ -968,7 +1265,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttRmsCIELabError(NvttSurface*, NvttSurface*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttRmsCIELabError(NvttSurface*, NvttSurface*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public float RmsCIELabError(NvttSurface* img, NvttTimingContext* tc)
     {
         return Api.nvttRmsCIELabError(
@@ -977,7 +1277,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttAngularError(NvttSurface*, NvttSurface*, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttAngularError(NvttSurface*, NvttSurface*, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public float AngularError(NvttSurface* img, NvttTimingContext* tc)
     {
         return Api.nvttAngularError(
@@ -986,7 +1289,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttDiff(NvttSurface*, NvttSurface*, float, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttDiff(NvttSurface*, NvttSurface*, float, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttSurface* Diff(NvttSurface* img, float scale, NvttTimingContext* tc)
     {
         return Api.nvttDiff(
@@ -996,7 +1302,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttRmsToneMappedError(NvttSurface*, NvttSurface*, float, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttRmsToneMappedError(NvttSurface*, NvttSurface*, float, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public float RmsToneMappedError(NvttSurface* img, float exposure, NvttTimingContext* tc)
     {
         return Api.nvttRmsToneMappedError(
@@ -1006,7 +1315,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttHistogram(NvttSurface*, int, int, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttHistogram(NvttSurface*, int, int, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttSurface* Histogram(int width, int height, NvttTimingContext* tc)
     {
         return Api.nvttHistogram(
@@ -1016,7 +1328,10 @@ public unsafe partial struct NvttSurface : System.IDisposable
             tc);
     }
 
-    // From: nvttHistogramRange(NvttSurface*, float, float, int, int, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttHistogramRange(NvttSurface*, float, float, int, int, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttSurface* HistogramRange(float minRange, float maxRange, int width, int height, NvttTimingContext* tc)
     {
         return Api.nvttHistogramRange(

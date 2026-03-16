@@ -6,19 +6,28 @@ namespace Ghost.Nvtt;
 
 public unsafe partial struct NvttTimingContext : System.IDisposable
 {
-    // From: nvttCreateTimingContext(int)
+    /// <summary>
+    /// From: <see cref="Api.nvttCreateTimingContext(int)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static NvttTimingContext* Create(int detailLevel)
     {
         return Api.nvttCreateTimingContext(detailLevel);
     }
 
-    // From: nvttDestroyTimingContext(NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttDestroyTimingContext(NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         Api.nvttDestroyTimingContext((NvttTimingContext*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttTimingContextSetDetailLevel(NvttTimingContext*, int)
+    /// <summary>
+    /// From: <see cref="Api.nvttTimingContextSetDetailLevel(NvttTimingContext*, int)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetDetailLevel(int detailLevel)
     {
         Api.nvttTimingContextSetDetailLevel(
@@ -26,13 +35,19 @@ public unsafe partial struct NvttTimingContext : System.IDisposable
             detailLevel);
     }
 
-    // From: nvttTimingContextGetRecordCount(NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttTimingContextGetRecordCount(NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public int GetRecordCount()
     {
         return Api.nvttTimingContextGetRecordCount((NvttTimingContext*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttTimingContextGetRecord(NvttTimingContext*, int, sbyte*, double*)
+    /// <summary>
+    /// From: <see cref="Api.nvttTimingContextGetRecord(NvttTimingContext*, int, sbyte*, double*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void GetRecord(int i, sbyte* description, double* seconds)
     {
         Api.nvttTimingContextGetRecord(
@@ -42,7 +57,10 @@ public unsafe partial struct NvttTimingContext : System.IDisposable
             seconds);
     }
 
-    // From: nvttTimingContextGetRecordSafe(NvttTimingContext*, int, sbyte*, nuint, double*)
+    /// <summary>
+    /// From: <see cref="Api.nvttTimingContextGetRecordSafe(NvttTimingContext*, int, sbyte*, nuint, double*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public nuint GetRecordSafe(int i, sbyte* outDescription, nuint outDescriptionSize, double* seconds)
     {
         return Api.nvttTimingContextGetRecordSafe(
@@ -53,7 +71,10 @@ public unsafe partial struct NvttTimingContext : System.IDisposable
             seconds);
     }
 
-    // From: nvttTimingContextPrintRecords(NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttTimingContextPrintRecords(NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void PrintRecords()
     {
         Api.nvttTimingContextPrintRecords((NvttTimingContext*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));

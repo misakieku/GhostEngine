@@ -29,6 +29,31 @@
 
   "actions": [
     {
+      // Dispose pattern: void return + T* param + name matches .*free_<Struct> → IDisposable.Dispose on T
+      "comment": "Dispose pattern: void return + T* param → Dispose method on T",
+      "filter": "EXTERN_API",
+      "conditions": [ "VOID_RETURN", "SELF_PTR", "NAME_CONDITION(ufbx_free_$TBare)" ],
+      "targetType": "FIRST_PARAM_TYPE",
+      "apply": [
+        {
+          "type": "INSTANCE_METHOD",
+          "opts": {
+            "removeFirstParam": true,
+            "passAs": "($TSelf*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this)",
+            "name": {
+              "set": "Dispose"
+            }
+          }
+        },
+        {
+          "type": "INHERITANCE",
+          "opts": {
+            "baseType": [ "System.IDisposable" ]
+          }
+        }
+      ]
+    },
+    {
       // Instance method: first param is T* of a known binding struct → method on T
       "comment": "First param is T* of a known binding struct → instance method on T",
       "filter": "EXTERN_API",
@@ -44,7 +69,8 @@
             "remove": [
               "PREFIX",
               "NO_PREFIX($TSelf)" // NO_PREFIX(ufbx_scene) will output "scene" change "free_scene" to "free", the prefix is determined by the "nativeTypePrefix" field at the top level of this config
-            ]
+            ],
+            "style": "PascalCase"
           }
         }
       }
@@ -62,7 +88,23 @@
             "remove": [
               "PREFIX",
               "NO_PREFIX($TSelf)"
-            ]
+            ],
+            "style": "PascalCase"
+          }
+        }
+      }
+    },
+    {
+      "filter": "EXTERN_API",
+      "targetType": "UfbxApi",
+      "apply": {
+        "type": "STATIC_METHOD",
+        "opts": {
+          "name": {
+            "remove": [
+              "PREFIX"
+            ],
+            "style": "PascalCase"
           }
         }
       }

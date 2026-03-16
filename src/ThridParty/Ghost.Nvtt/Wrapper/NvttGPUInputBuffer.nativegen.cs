@@ -6,19 +6,28 @@ namespace Ghost.Nvtt;
 
 public unsafe partial struct NvttGPUInputBuffer : System.IDisposable
 {
-    // From: nvttDestroyGPUInputBuffer(NvttGPUInputBuffer*)
+    /// <summary>
+    /// From: <see cref="Api.nvttDestroyGPUInputBuffer(NvttGPUInputBuffer*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         Api.nvttDestroyGPUInputBuffer((NvttGPUInputBuffer*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttGPUInputBufferNumTiles(NvttGPUInputBuffer*)
+    /// <summary>
+    /// From: <see cref="Api.nvttGPUInputBufferNumTiles(NvttGPUInputBuffer*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public int NumTiles()
     {
         return Api.nvttGPUInputBufferNumTiles((NvttGPUInputBuffer*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttGPUInputBufferTileSize(NvttGPUInputBuffer*, int*, int*)
+    /// <summary>
+    /// From: <see cref="Api.nvttGPUInputBufferTileSize(NvttGPUInputBuffer*, int*, int*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void TileSize(int* tile_w, int* tile_h)
     {
         Api.nvttGPUInputBufferTileSize(
@@ -27,13 +36,19 @@ public unsafe partial struct NvttGPUInputBuffer : System.IDisposable
             tile_h);
     }
 
-    // From: nvttGPUInputBufferType(NvttGPUInputBuffer*)
+    /// <summary>
+    /// From: <see cref="Api.nvttGPUInputBufferType(NvttGPUInputBuffer*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttValueType Type()
     {
         return Api.nvttGPUInputBufferType((NvttGPUInputBuffer*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttEncodeGPU(NvttGPUInputBuffer*, void*, NvttEncodeSettings*)
+    /// <summary>
+    /// From: <see cref="Api.nvttEncodeGPU(NvttGPUInputBuffer*, void*, NvttEncodeSettings*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean EncodeGPU(void* output, NvttEncodeSettings* settings)
     {
         return Api.nvttEncodeGPU(
@@ -42,7 +57,10 @@ public unsafe partial struct NvttGPUInputBuffer : System.IDisposable
             settings);
     }
 
-    // From: nvttEncodeBC1GPU(NvttGPUInputBuffer*, NvttBoolean, void*, NvttBoolean, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttEncodeBC1GPU(NvttGPUInputBuffer*, NvttBoolean, void*, NvttBoolean, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void EncodeBC1GPU(NvttBoolean fast_mode, void* output, NvttBoolean to_device_mem, NvttTimingContext* tc)
     {
         Api.nvttEncodeBC1GPU(
@@ -53,7 +71,10 @@ public unsafe partial struct NvttGPUInputBuffer : System.IDisposable
             tc);
     }
 
-    // From: nvttEncodeBC1AGPU(NvttGPUInputBuffer*, void*, NvttBoolean, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttEncodeBC1AGPU(NvttGPUInputBuffer*, void*, NvttBoolean, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void EncodeBC1AGPU(void* output, NvttBoolean to_device_mem, NvttTimingContext* tc)
     {
         Api.nvttEncodeBC1AGPU(
@@ -63,7 +84,10 @@ public unsafe partial struct NvttGPUInputBuffer : System.IDisposable
             tc);
     }
 
-    // From: nvttEncodeBC2GPU(NvttGPUInputBuffer*, void*, NvttBoolean, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttEncodeBC2GPU(NvttGPUInputBuffer*, void*, NvttBoolean, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void EncodeBC2GPU(void* output, NvttBoolean to_device_mem, NvttTimingContext* tc)
     {
         Api.nvttEncodeBC2GPU(
@@ -73,7 +97,10 @@ public unsafe partial struct NvttGPUInputBuffer : System.IDisposable
             tc);
     }
 
-    // From: nvttEncodeBC3GPU(NvttGPUInputBuffer*, void*, NvttBoolean, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttEncodeBC3GPU(NvttGPUInputBuffer*, void*, NvttBoolean, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void EncodeBC3GPU(void* output, NvttBoolean to_device_mem, NvttTimingContext* tc)
     {
         Api.nvttEncodeBC3GPU(
@@ -83,7 +110,10 @@ public unsafe partial struct NvttGPUInputBuffer : System.IDisposable
             tc);
     }
 
-    // From: nvttEncodeBC4GPU(NvttGPUInputBuffer*, void*, NvttBoolean, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttEncodeBC4GPU(NvttGPUInputBuffer*, void*, NvttBoolean, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void EncodeBC4GPU(void* output, NvttBoolean to_device_mem, NvttTimingContext* tc)
     {
         Api.nvttEncodeBC4GPU(
@@ -93,7 +123,10 @@ public unsafe partial struct NvttGPUInputBuffer : System.IDisposable
             tc);
     }
 
-    // From: nvttEncodeBC4SGPU(NvttGPUInputBuffer*, void*, NvttBoolean, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttEncodeBC4SGPU(NvttGPUInputBuffer*, void*, NvttBoolean, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void EncodeBC4SGPU(void* output, NvttBoolean to_device_mem, NvttTimingContext* tc)
     {
         Api.nvttEncodeBC4SGPU(
@@ -103,7 +136,10 @@ public unsafe partial struct NvttGPUInputBuffer : System.IDisposable
             tc);
     }
 
-    // From: nvttEncodeATI2GPU(NvttGPUInputBuffer*, void*, NvttBoolean, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttEncodeATI2GPU(NvttGPUInputBuffer*, void*, NvttBoolean, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void EncodeATI2GPU(void* output, NvttBoolean to_device_mem, NvttTimingContext* tc)
     {
         Api.nvttEncodeATI2GPU(
@@ -113,7 +149,10 @@ public unsafe partial struct NvttGPUInputBuffer : System.IDisposable
             tc);
     }
 
-    // From: nvttEncodeBC5GPU(NvttGPUInputBuffer*, void*, NvttBoolean, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttEncodeBC5GPU(NvttGPUInputBuffer*, void*, NvttBoolean, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void EncodeBC5GPU(void* output, NvttBoolean to_device_mem, NvttTimingContext* tc)
     {
         Api.nvttEncodeBC5GPU(
@@ -123,7 +162,10 @@ public unsafe partial struct NvttGPUInputBuffer : System.IDisposable
             tc);
     }
 
-    // From: nvttEncodeBC5SGPU(NvttGPUInputBuffer*, void*, NvttBoolean, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttEncodeBC5SGPU(NvttGPUInputBuffer*, void*, NvttBoolean, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void EncodeBC5SGPU(void* output, NvttBoolean to_device_mem, NvttTimingContext* tc)
     {
         Api.nvttEncodeBC5SGPU(
@@ -133,7 +175,10 @@ public unsafe partial struct NvttGPUInputBuffer : System.IDisposable
             tc);
     }
 
-    // From: nvttEncodeBC6HGPU(NvttGPUInputBuffer*, NvttBoolean, void*, NvttBoolean, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttEncodeBC6HGPU(NvttGPUInputBuffer*, NvttBoolean, void*, NvttBoolean, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void EncodeBC6HGPU(NvttBoolean is_signed, void* output, NvttBoolean to_device_mem, NvttTimingContext* tc)
     {
         Api.nvttEncodeBC6HGPU(
@@ -144,7 +189,10 @@ public unsafe partial struct NvttGPUInputBuffer : System.IDisposable
             tc);
     }
 
-    // From: nvttEncodeBC7GPU(NvttGPUInputBuffer*, NvttBoolean, void*, NvttBoolean, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttEncodeBC7GPU(NvttGPUInputBuffer*, NvttBoolean, void*, NvttBoolean, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void EncodeBC7GPU(NvttBoolean imageHasAlpha, void* output, NvttBoolean to_device_mem, NvttTimingContext* tc)
     {
         Api.nvttEncodeBC7GPU(
@@ -155,7 +203,10 @@ public unsafe partial struct NvttGPUInputBuffer : System.IDisposable
             tc);
     }
 
-    // From: nvttEncodeASTCGPU(NvttGPUInputBuffer*, int, NvttBoolean, void*, NvttBoolean, NvttTimingContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttEncodeASTCGPU(NvttGPUInputBuffer*, int, NvttBoolean, void*, NvttBoolean, NvttTimingContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void EncodeASTCGPU(int qualityLevel, NvttBoolean imageHasAlpha, void* output, NvttBoolean to_device_mem, NvttTimingContext* tc)
     {
         Api.nvttEncodeASTCGPU(

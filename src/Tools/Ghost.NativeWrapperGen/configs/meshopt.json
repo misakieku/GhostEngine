@@ -1,58 +1,14 @@
 {
-  "libraryName": "nvtt",
-  "nativeNamespace": "Ghost.Nvtt",
-  "outputNamespace": "Ghost.Nvtt",
-  "nativeTypePrefix": "Nvtt",
+  "libraryName": "meshoptimizer",
+  "nativeNamespace": "Ghost.MeshOptimizer",
+  "outputNamespace": "Ghost.MeshOptimizer",
+  "nativeTypePrefix": "meshopt_",
   "skipTypes": [
     "NativeAnnotationAttribute",
     "NativeTypeNameAttribute"
   ],
   "skipFunctions": [],
-
-  "remaps": [
-    {
-      // sbyte* parameters whose names match name/filename/path/prop patterns
-      // get remapped to ReadOnlySpan<byte>, with a fixed() wrapper and _len sibling consumed.
-      "src": "sbyte*",
-      "dst": "ReadOnlySpan<byte>",
-      "scope": [ "parameter" ],
-      "filter": [ ".*name", ".*filename", ".*path", ".*prop$" ],
-      "adapter": {
-        "convertBack": {
-          "wrapCall": "fixed (byte* p$arg = $arg) { $CALL }",
-          "passAs": "(sbyte*)p$arg"
-        }
-      }
-    }
-  ],
-
   "actions": [
-    {
-      // Dispose pattern: void return + T* param + name matches .*Destroy<Struct> → IDisposable.Dispose on T
-      // Must come BEFORE the general INSTANCE_METHOD rule so it matches first.
-      "comment": "Dispose pattern: void return + T* param → Dispose method on T",
-      "filter": "EXTERN_API",
-      "conditions": [ "VOID_RETURN", "SELF_PTR", "NAME_CONDITION(.*Destroy$TBare)" ],
-      "targetType": "FIRST_PARAM_TYPE",
-      "apply": [
-        {
-          "type": "INSTANCE_METHOD",
-          "opts": {
-            "removeFirstParam": true,
-            "passAs": "($TSelf*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this)",
-            "name": {
-              "set": "Dispose"
-            }
-          }
-        },
-        {
-          "type": "INHERITANCE",
-          "opts": {
-            "baseType": [ "System.IDisposable" ]
-          }
-        }
-      ]
-    },
     {
       // Instance method: first param is T* of a known binding struct → method on T
       "comment": "First param is T* of a known binding struct → instance method on T",
@@ -69,7 +25,8 @@
             "remove": [
               "PREFIX",
               "NO_PREFIX($TSelf)" // NO_PREFIX(NvttSurface) will change "NvttSurface" to "Surface", the prefix is determined by the "nativeTypePrefix" field at the top level of this config
-            ]
+            ],
+            "style": "PascalCase"
           }
         }
       }
@@ -87,7 +44,8 @@
             "remove": [
               "PREFIX",
               "NO_PREFIX($TSelf)"
-            ]
+            ],
+            "style": "PascalCase"
           }
         }
       }
@@ -101,7 +59,8 @@
           "name": {
             "remove": [
               "PREFIX"
-            ]
+            ],
+            "style": "PascalCase"
           }
         }
       }

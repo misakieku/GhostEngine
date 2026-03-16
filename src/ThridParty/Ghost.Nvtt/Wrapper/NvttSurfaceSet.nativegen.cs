@@ -6,61 +6,91 @@ namespace Ghost.Nvtt;
 
 public unsafe partial struct NvttSurfaceSet : System.IDisposable
 {
-    // From: nvttCreateSurfaceSet()
+    /// <summary>
+    /// From: <see cref="Api.nvttCreateSurfaceSet()" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static NvttSurfaceSet* Create()
     {
         return Api.nvttCreateSurfaceSet();
     }
 
-    // From: nvttDestroySurfaceSet(NvttSurfaceSet*)
+    /// <summary>
+    /// From: <see cref="Api.nvttDestroySurfaceSet(NvttSurfaceSet*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         Api.nvttDestroySurfaceSet((NvttSurfaceSet*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttResetSurfaceSet(NvttSurfaceSet*)
+    /// <summary>
+    /// From: <see cref="Api.nvttResetSurfaceSet(NvttSurfaceSet*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Reset()
     {
         Api.nvttResetSurfaceSet((NvttSurfaceSet*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttSurfaceSetGetTextureType(NvttSurfaceSet*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceSetGetTextureType(NvttSurfaceSet*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttTextureType GetTextureType()
     {
         return Api.nvttSurfaceSetGetTextureType((NvttSurfaceSet*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttSurfaceSetGetFaceCount(NvttSurfaceSet*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceSetGetFaceCount(NvttSurfaceSet*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public int GetFaceCount()
     {
         return Api.nvttSurfaceSetGetFaceCount((NvttSurfaceSet*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttSurfaceSetGetMipmapCount(NvttSurfaceSet*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceSetGetMipmapCount(NvttSurfaceSet*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public int GetMipmapCount()
     {
         return Api.nvttSurfaceSetGetMipmapCount((NvttSurfaceSet*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttSurfaceSetGetWidth(NvttSurfaceSet*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceSetGetWidth(NvttSurfaceSet*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public int GetWidth()
     {
         return Api.nvttSurfaceSetGetWidth((NvttSurfaceSet*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttSurfaceSetGetHeight(NvttSurfaceSet*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceSetGetHeight(NvttSurfaceSet*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public int GetHeight()
     {
         return Api.nvttSurfaceSetGetHeight((NvttSurfaceSet*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttSurfaceSetGetDepth(NvttSurfaceSet*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceSetGetDepth(NvttSurfaceSet*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public int GetDepth()
     {
         return Api.nvttSurfaceSetGetDepth((NvttSurfaceSet*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttSurfaceSetGetSurface(NvttSurfaceSet*, int, int, NvttBoolean)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceSetGetSurface(NvttSurfaceSet*, int, int, NvttBoolean)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttSurface* GetSurface(int faceId, int mipId, NvttBoolean expectSigned)
     {
         return Api.nvttSurfaceSetGetSurface(
@@ -70,7 +100,10 @@ public unsafe partial struct NvttSurfaceSet : System.IDisposable
             expectSigned);
     }
 
-    // From: nvttSurfaceSetLoadDDS(NvttSurfaceSet*, sbyte*, NvttBoolean)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceSetLoadDDS(NvttSurfaceSet*, sbyte*, NvttBoolean)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean LoadDDS(ReadOnlySpan<byte> fileName, NvttBoolean forcenormal)
     {
         fixed (byte* pfileName = fileName)
@@ -82,7 +115,10 @@ public unsafe partial struct NvttSurfaceSet : System.IDisposable
         }
     }
 
-    // From: nvttSurfaceSetLoadDDSFromMemory(NvttSurfaceSet*, void*, ulong, NvttBoolean)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceSetLoadDDSFromMemory(NvttSurfaceSet*, void*, ulong, NvttBoolean)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean LoadDDSFromMemory(void* data, ulong sizeInBytes, NvttBoolean forcenormal)
     {
         return Api.nvttSurfaceSetLoadDDSFromMemory(
@@ -92,7 +128,10 @@ public unsafe partial struct NvttSurfaceSet : System.IDisposable
             forcenormal);
     }
 
-    // From: nvttSurfaceSetSaveImage(NvttSurfaceSet*, sbyte*, int, int)
+    /// <summary>
+    /// From: <see cref="Api.nvttSurfaceSetSaveImage(NvttSurfaceSet*, sbyte*, int, int)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean SaveImage(ReadOnlySpan<byte> fileName, int faceId, int mipId)
     {
         fixed (byte* pfileName = fileName)

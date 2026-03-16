@@ -63,6 +63,45 @@ public sealed class NamingConventions
             name = TrimUnderscores(name);
         }
 
+        var style = nameOpts.style as string;
+        if (!string.IsNullOrEmpty(style))
+        {
+            if (string.Equals(style, "PascalCase", StringComparison.OrdinalIgnoreCase))
+            {
+                int counter = 0;
+                Span<char> nameSpan = stackalloc char[name.Length];
+
+                for (int i = 0; i < name.Length; i++)
+                {
+                    if (i == 0)
+                    {
+                        nameSpan[counter] = char.ToUpperInvariant(name[i]);
+                        counter++;
+
+                        continue;
+                    }
+
+                    if (name[i] == '_')
+                    {
+                        while (name[i] == '_' && i < name.Length)
+                        {
+                            i++;
+                        }
+
+                        nameSpan[counter] = char.ToUpperInvariant(name[i]);
+                        counter++;
+
+                        continue;
+                    }
+
+                    nameSpan[counter] = name[i];
+                    counter++;
+                }
+
+                name = nameSpan[..counter].ToString();
+            }
+        }
+
         return name;
     }
 

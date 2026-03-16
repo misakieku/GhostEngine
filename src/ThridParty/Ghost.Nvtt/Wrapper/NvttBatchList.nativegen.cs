@@ -6,25 +6,37 @@ namespace Ghost.Nvtt;
 
 public unsafe partial struct NvttBatchList : System.IDisposable
 {
-    // From: nvttCreateBatchList()
+    /// <summary>
+    /// From: <see cref="Api.nvttCreateBatchList()" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static NvttBatchList* Create()
     {
         return Api.nvttCreateBatchList();
     }
 
-    // From: nvttDestroyBatchList(NvttBatchList*)
+    /// <summary>
+    /// From: <see cref="Api.nvttDestroyBatchList(NvttBatchList*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         Api.nvttDestroyBatchList((NvttBatchList*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttBatchListClear(NvttBatchList*)
+    /// <summary>
+    /// From: <see cref="Api.nvttBatchListClear(NvttBatchList*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Clear()
     {
         Api.nvttBatchListClear((NvttBatchList*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttBatchListAppend(NvttBatchList*, NvttSurface*, int, int, NvttOutputOptions*)
+    /// <summary>
+    /// From: <see cref="Api.nvttBatchListAppend(NvttBatchList*, NvttSurface*, int, int, NvttOutputOptions*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Append(NvttSurface* pImg, int face, int mipmap, NvttOutputOptions* outputOptions)
     {
         Api.nvttBatchListAppend(
@@ -35,13 +47,19 @@ public unsafe partial struct NvttBatchList : System.IDisposable
             outputOptions);
     }
 
-    // From: nvttBatchListGetSize(NvttBatchList*)
+    /// <summary>
+    /// From: <see cref="Api.nvttBatchListGetSize(NvttBatchList*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public uint GetSize()
     {
         return Api.nvttBatchListGetSize((NvttBatchList*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttBatchListGetItem(NvttBatchList*, uint, NvttSurface**, int*, int*, NvttOutputOptions**)
+    /// <summary>
+    /// From: <see cref="Api.nvttBatchListGetItem(NvttBatchList*, uint, NvttSurface**, int*, int*, NvttOutputOptions**)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void GetItem(uint i, NvttSurface** pImg, int* face, int* mipmap, NvttOutputOptions** outputOptions)
     {
         Api.nvttBatchListGetItem(

@@ -6,8 +6,8 @@ namespace Ghost.Nvtt
     //    NVTT_True,
     //}
 
-    // The native NVTT API uses an enum for boolean values, but we want to expose it as a struct that can be implicitly converted to/from C# bool for better ergonomics.
-    // Since the binary layout of a struct with a single int field is the same as an enum, this should be safe for interop.
+    // NOTE: The native NVTT API uses an enum for boolean values, but we want to expose it as a struct that can be implicitly converted to/from C# bool for better ergonomics.
+    // Since the memory layout of a struct with a single int field is the same as an enum, this should be safe for interop.
     public readonly struct NvttBoolean : IEquatable<NvttBoolean>
     {
         public static NvttBoolean NVTT_False => new(0);

@@ -6,25 +6,37 @@ namespace Ghost.Nvtt;
 
 public unsafe partial struct NvttCompressionOptions : System.IDisposable
 {
-    // From: nvttCreateCompressionOptions()
+    /// <summary>
+    /// From: <see cref="Api.nvttCreateCompressionOptions()" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static NvttCompressionOptions* Create()
     {
         return Api.nvttCreateCompressionOptions();
     }
 
-    // From: nvttDestroyCompressionOptions(NvttCompressionOptions*)
+    /// <summary>
+    /// From: <see cref="Api.nvttDestroyCompressionOptions(NvttCompressionOptions*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         Api.nvttDestroyCompressionOptions((NvttCompressionOptions*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttResetCompressionOptions(NvttCompressionOptions*)
+    /// <summary>
+    /// From: <see cref="Api.nvttResetCompressionOptions(NvttCompressionOptions*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Reset()
     {
         Api.nvttResetCompressionOptions((NvttCompressionOptions*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttSetCompressionOptionsFormat(NvttCompressionOptions*, NvttFormat)
+    /// <summary>
+    /// From: <see cref="Api.nvttSetCompressionOptionsFormat(NvttCompressionOptions*, NvttFormat)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetFormat(NvttFormat format)
     {
         Api.nvttSetCompressionOptionsFormat(
@@ -32,7 +44,10 @@ public unsafe partial struct NvttCompressionOptions : System.IDisposable
             format);
     }
 
-    // From: nvttSetCompressionOptionsQuality(NvttCompressionOptions*, NvttQuality)
+    /// <summary>
+    /// From: <see cref="Api.nvttSetCompressionOptionsQuality(NvttCompressionOptions*, NvttQuality)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetQuality(NvttQuality quality)
     {
         Api.nvttSetCompressionOptionsQuality(
@@ -40,7 +55,10 @@ public unsafe partial struct NvttCompressionOptions : System.IDisposable
             quality);
     }
 
-    // From: nvttSetCompressionOptionsColorWeights(NvttCompressionOptions*, float, float, float, float)
+    /// <summary>
+    /// From: <see cref="Api.nvttSetCompressionOptionsColorWeights(NvttCompressionOptions*, float, float, float, float)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetColorWeights(float red, float green, float blue, float alpha)
     {
         Api.nvttSetCompressionOptionsColorWeights(
@@ -51,7 +69,10 @@ public unsafe partial struct NvttCompressionOptions : System.IDisposable
             alpha);
     }
 
-    // From: nvttSetCompressionOptionsPixelFormat(NvttCompressionOptions*, uint, uint, uint, uint, uint)
+    /// <summary>
+    /// From: <see cref="Api.nvttSetCompressionOptionsPixelFormat(NvttCompressionOptions*, uint, uint, uint, uint, uint)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetPixelFormat(uint bitcount, uint rmask, uint gmask, uint bmask, uint amask)
     {
         Api.nvttSetCompressionOptionsPixelFormat(
@@ -63,7 +84,10 @@ public unsafe partial struct NvttCompressionOptions : System.IDisposable
             amask);
     }
 
-    // From: nvttSetCompressionOptionsPixelType(NvttCompressionOptions*, NvttPixelType)
+    /// <summary>
+    /// From: <see cref="Api.nvttSetCompressionOptionsPixelType(NvttCompressionOptions*, NvttPixelType)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetPixelType(NvttPixelType pixelType)
     {
         Api.nvttSetCompressionOptionsPixelType(
@@ -71,7 +95,10 @@ public unsafe partial struct NvttCompressionOptions : System.IDisposable
             pixelType);
     }
 
-    // From: nvttSetCompressionOptionsPitchAlignment(NvttCompressionOptions*, int)
+    /// <summary>
+    /// From: <see cref="Api.nvttSetCompressionOptionsPitchAlignment(NvttCompressionOptions*, int)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetPitchAlignment(int pitchAlignment)
     {
         Api.nvttSetCompressionOptionsPitchAlignment(
@@ -79,7 +106,10 @@ public unsafe partial struct NvttCompressionOptions : System.IDisposable
             pitchAlignment);
     }
 
-    // From: nvttSetCompressionOptionsQuantization(NvttCompressionOptions*, NvttBoolean, NvttBoolean, NvttBoolean, int)
+    /// <summary>
+    /// From: <see cref="Api.nvttSetCompressionOptionsQuantization(NvttCompressionOptions*, NvttBoolean, NvttBoolean, NvttBoolean, int)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetQuantization(NvttBoolean colorDithering, NvttBoolean alphaDithering, NvttBoolean binaryAlpha, int alphaThreshold)
     {
         Api.nvttSetCompressionOptionsQuantization(
@@ -90,7 +120,10 @@ public unsafe partial struct NvttCompressionOptions : System.IDisposable
             alphaThreshold);
     }
 
-    // From: nvttGetCompressionOptionsD3D9Format(NvttCompressionOptions*)
+    /// <summary>
+    /// From: <see cref="Api.nvttGetCompressionOptionsD3D9Format(NvttCompressionOptions*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public uint GetD3D9Format()
     {
         return Api.nvttGetCompressionOptionsD3D9Format((NvttCompressionOptions*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));

@@ -215,7 +215,7 @@ public sealed class WrapperGeneratorEmitter
                 resolver.TryGetBindingStructName(func.Parameters[0].TypeName),
             "RETURN_TYPE" =>
                 resolver.TryGetBindingStructName(func.ReturnType),
-            _ => null,
+            _ => targetTypeRule,
         };
     }
 
@@ -283,7 +283,11 @@ public sealed class WrapperGeneratorEmitter
         var plan = BuildParameterPlan(func, config, routed);
 
         // Comment showing the source function.
-        writer.WriteLine($"// From: {func.Name}({string.Join(", ", func.Parameters.Select(static p => p.TypeName))})");
+        writer.WriteLine("/// <summary>");
+        writer.WriteLine($"/// From: <see cref=\"Api.{func.Name}({string.Join(", ", func.Parameters.Select(static p => p.TypeName))})\" />");
+        writer.WriteLine("/// </summary>");
+
+        writer.WriteLine("[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
 
         // Signature
         var staticModifier = routed.IsInstance ? "" : "static ";

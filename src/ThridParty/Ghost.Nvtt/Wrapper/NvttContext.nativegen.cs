@@ -6,19 +6,28 @@ namespace Ghost.Nvtt;
 
 public unsafe partial struct NvttContext : System.IDisposable
 {
-    // From: nvttCreateContext()
+    /// <summary>
+    /// From: <see cref="Api.nvttCreateContext()" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static NvttContext* Create()
     {
         return Api.nvttCreateContext();
     }
 
-    // From: nvttDestroyContext(NvttContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttDestroyContext(NvttContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         Api.nvttDestroyContext((NvttContext*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttSetContextCudaAcceleration(NvttContext*, NvttBoolean)
+    /// <summary>
+    /// From: <see cref="Api.nvttSetContextCudaAcceleration(NvttContext*, NvttBoolean)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetCudaAcceleration(NvttBoolean enable)
     {
         Api.nvttSetContextCudaAcceleration(
@@ -26,13 +35,19 @@ public unsafe partial struct NvttContext : System.IDisposable
             enable);
     }
 
-    // From: nvttContextIsCudaAccelerationEnabled(NvttContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttContextIsCudaAccelerationEnabled(NvttContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean IsCudaAccelerationEnabled()
     {
         return Api.nvttContextIsCudaAccelerationEnabled((NvttContext*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttContextOutputHeader(NvttContext*, NvttSurface*, int, NvttCompressionOptions*, NvttOutputOptions*)
+    /// <summary>
+    /// From: <see cref="Api.nvttContextOutputHeader(NvttContext*, NvttSurface*, int, NvttCompressionOptions*, NvttOutputOptions*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean OutputHeader(NvttSurface* img, int mipmapCount, NvttCompressionOptions* compressionOptions, NvttOutputOptions* outputOptions)
     {
         return Api.nvttContextOutputHeader(
@@ -43,7 +58,10 @@ public unsafe partial struct NvttContext : System.IDisposable
             outputOptions);
     }
 
-    // From: nvttContextCompress(NvttContext*, NvttSurface*, int, int, NvttCompressionOptions*, NvttOutputOptions*)
+    /// <summary>
+    /// From: <see cref="Api.nvttContextCompress(NvttContext*, NvttSurface*, int, int, NvttCompressionOptions*, NvttOutputOptions*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean Compress(NvttSurface* img, int face, int mipmap, NvttCompressionOptions* compressionOptions, NvttOutputOptions* outputOptions)
     {
         return Api.nvttContextCompress(
@@ -55,7 +73,10 @@ public unsafe partial struct NvttContext : System.IDisposable
             outputOptions);
     }
 
-    // From: nvttContextEstimateSize(NvttContext*, NvttSurface*, int, NvttCompressionOptions*)
+    /// <summary>
+    /// From: <see cref="Api.nvttContextEstimateSize(NvttContext*, NvttSurface*, int, NvttCompressionOptions*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public int EstimateSize(NvttSurface* img, int mipmapCount, NvttCompressionOptions* compressionOptions)
     {
         return Api.nvttContextEstimateSize(
@@ -65,7 +86,10 @@ public unsafe partial struct NvttContext : System.IDisposable
             compressionOptions);
     }
 
-    // From: nvttContextQuantize(NvttContext*, NvttSurface*, NvttCompressionOptions*)
+    /// <summary>
+    /// From: <see cref="Api.nvttContextQuantize(NvttContext*, NvttSurface*, NvttCompressionOptions*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Quantize(NvttSurface* tex, NvttCompressionOptions* compressionOptions)
     {
         Api.nvttContextQuantize(
@@ -74,7 +98,10 @@ public unsafe partial struct NvttContext : System.IDisposable
             compressionOptions);
     }
 
-    // From: nvttContextOutputHeaderCube(NvttContext*, NvttCubeSurface*, int, NvttCompressionOptions*, NvttOutputOptions*)
+    /// <summary>
+    /// From: <see cref="Api.nvttContextOutputHeaderCube(NvttContext*, NvttCubeSurface*, int, NvttCompressionOptions*, NvttOutputOptions*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean OutputHeaderCube(NvttCubeSurface* img, int mipmapCount, NvttCompressionOptions* compressionOptions, NvttOutputOptions* outputOptions)
     {
         return Api.nvttContextOutputHeaderCube(
@@ -85,7 +112,10 @@ public unsafe partial struct NvttContext : System.IDisposable
             outputOptions);
     }
 
-    // From: nvttContextCompressCube(NvttContext*, NvttCubeSurface*, int, NvttCompressionOptions*, NvttOutputOptions*)
+    /// <summary>
+    /// From: <see cref="Api.nvttContextCompressCube(NvttContext*, NvttCubeSurface*, int, NvttCompressionOptions*, NvttOutputOptions*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean CompressCube(NvttCubeSurface* img, int mipmap, NvttCompressionOptions* compressionOptions, NvttOutputOptions* outputOptions)
     {
         return Api.nvttContextCompressCube(
@@ -96,7 +126,10 @@ public unsafe partial struct NvttContext : System.IDisposable
             outputOptions);
     }
 
-    // From: nvttContextEstimateSizeCube(NvttContext*, NvttCubeSurface*, int, NvttCompressionOptions*)
+    /// <summary>
+    /// From: <see cref="Api.nvttContextEstimateSizeCube(NvttContext*, NvttCubeSurface*, int, NvttCompressionOptions*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public int EstimateSizeCube(NvttCubeSurface* img, int mipmapCount, NvttCompressionOptions* compressionOptions)
     {
         return Api.nvttContextEstimateSizeCube(
@@ -106,7 +139,10 @@ public unsafe partial struct NvttContext : System.IDisposable
             compressionOptions);
     }
 
-    // From: nvttContextOutputHeaderData(NvttContext*, NvttTextureType, int, int, int, int, NvttBoolean, NvttCompressionOptions*, NvttOutputOptions*)
+    /// <summary>
+    /// From: <see cref="Api.nvttContextOutputHeaderData(NvttContext*, NvttTextureType, int, int, int, int, NvttBoolean, NvttCompressionOptions*, NvttOutputOptions*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean OutputHeaderData(NvttTextureType type, int w, int h, int d, int mipmapCount, NvttBoolean isNormalMap, NvttCompressionOptions* compressionOptions, NvttOutputOptions* outputOptions)
     {
         return Api.nvttContextOutputHeaderData(
@@ -121,7 +157,10 @@ public unsafe partial struct NvttContext : System.IDisposable
             outputOptions);
     }
 
-    // From: nvttContextCompressData(NvttContext*, int, int, int, int, int, float*, NvttCompressionOptions*, NvttOutputOptions*)
+    /// <summary>
+    /// From: <see cref="Api.nvttContextCompressData(NvttContext*, int, int, int, int, int, float*, NvttCompressionOptions*, NvttOutputOptions*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean CompressData(int w, int h, int d, int face, int mipmap, float* rgba, NvttCompressionOptions* compressionOptions, NvttOutputOptions* outputOptions)
     {
         return Api.nvttContextCompressData(
@@ -136,7 +175,10 @@ public unsafe partial struct NvttContext : System.IDisposable
             outputOptions);
     }
 
-    // From: nvttContextEstimateSizeData(NvttContext*, int, int, int, int, NvttCompressionOptions*)
+    /// <summary>
+    /// From: <see cref="Api.nvttContextEstimateSizeData(NvttContext*, int, int, int, int, NvttCompressionOptions*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public int EstimateSizeData(int w, int h, int d, int mipmapCount, NvttCompressionOptions* compressionOptions)
     {
         return Api.nvttContextEstimateSizeData(
@@ -148,7 +190,10 @@ public unsafe partial struct NvttContext : System.IDisposable
             compressionOptions);
     }
 
-    // From: nvttContextCompressBatch(NvttContext*, NvttBatchList*, NvttCompressionOptions*)
+    /// <summary>
+    /// From: <see cref="Api.nvttContextCompressBatch(NvttContext*, NvttBatchList*, NvttCompressionOptions*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean CompressBatch(NvttBatchList* lst, NvttCompressionOptions* compressionOptions)
     {
         return Api.nvttContextCompressBatch(
@@ -157,7 +202,10 @@ public unsafe partial struct NvttContext : System.IDisposable
             compressionOptions);
     }
 
-    // From: nvttContextEnableTiming(NvttContext*, NvttBoolean, int)
+    /// <summary>
+    /// From: <see cref="Api.nvttContextEnableTiming(NvttContext*, NvttBoolean, int)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void EnableTiming(NvttBoolean enable, int detailLevel)
     {
         Api.nvttContextEnableTiming(
@@ -166,7 +214,10 @@ public unsafe partial struct NvttContext : System.IDisposable
             detailLevel);
     }
 
-    // From: nvttContextGetTimingContext(NvttContext*)
+    /// <summary>
+    /// From: <see cref="Api.nvttContextGetTimingContext(NvttContext*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttTimingContext* GetTiming()
     {
         return Api.nvttContextGetTimingContext((NvttContext*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));

@@ -14,7 +14,7 @@ internal unsafe class UfbxBindingTest : ITest
         var load_Opts = new ufbx_load_opts();
         var error = new ufbx_error();
 
-        var pScene = ufbx_scene.load_file_len("F:/c/Third Parties/ufbx/data/blender_340_z_up_7400_binary.fbx"u8, &load_Opts, &error);
+        var pScene = ufbx_scene.LoadFileLen("F:/c/Third Parties/ufbx/data/blender_340_z_up_7400_binary.fbx"u8, &load_Opts, &error);
 
         if (pScene == null)
         {
@@ -46,7 +46,7 @@ internal unsafe class UfbxBindingTest : ITest
             }
         }
 
-        pScene->free();
+        pScene->Dispose();
         Console.WriteLine("Done.");
     }
 

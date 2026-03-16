@@ -41,19 +41,19 @@ internal sealed unsafe class NvttBindingTest : ITest
     {
         // ---- Test 1: Version ---------------------------------------------------
         Console.Write("[Test 1] nvttVersion ... ");
-        var version = Api.nvttVersion();
+        var version = NvttApi.Version();
         Assert(version > 0, $"Expected version > 0, got {version}");
-        Console.WriteLine($"OK  (version = {version >> 16}.{(version >> 8) & 0xFF}.{version & 0xFF})");
+        Console.WriteLine($"OK  (version = {version >> 16}.{(version >> 8) & 0xFFu}.{version & 0xFFu})");
 
         // ---- Test 2: CUDA support query (must not crash) ----------------------
         Console.Write("[Test 2] IsCudaSupported ... ");
-        var cuda = Api.nvttIsCudaSupported();
+        var cuda = NvttApi.IsCudaSupported();
         Console.WriteLine($"OK  (cuda = {cuda})");
 
         // ---- Test 3: Global message callback ----------------------------------
         Console.Write("[Test 3] SetMessageCallback ... ");
         var callbackFired = 0;
-        var token = Api.nvttSetMessageCallback(&CallBack, &callbackFired);
+        var token = NvttApi.SetMessageCallback(&CallBack, &callbackFired);
 
         Console.WriteLine($"OK  (no crash, callback fired {callbackFired} times during install)");
 

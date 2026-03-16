@@ -6,37 +6,55 @@ namespace Ghost.Nvtt;
 
 public unsafe partial struct NvttCubeSurface : System.IDisposable
 {
-    // From: nvttCreateCubeSurface()
+    /// <summary>
+    /// From: <see cref="Api.nvttCreateCubeSurface()" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static NvttCubeSurface* Create()
     {
         return Api.nvttCreateCubeSurface();
     }
 
-    // From: nvttDestroyCubeSurface(NvttCubeSurface*)
+    /// <summary>
+    /// From: <see cref="Api.nvttDestroyCubeSurface(NvttCubeSurface*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         Api.nvttDestroyCubeSurface((NvttCubeSurface*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttCubeSurfaceIsNull(NvttCubeSurface*)
+    /// <summary>
+    /// From: <see cref="Api.nvttCubeSurfaceIsNull(NvttCubeSurface*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean IsNull()
     {
         return Api.nvttCubeSurfaceIsNull((NvttCubeSurface*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttCubeSurfaceEdgeLength(NvttCubeSurface*)
+    /// <summary>
+    /// From: <see cref="Api.nvttCubeSurfaceEdgeLength(NvttCubeSurface*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public int EdgeLength()
     {
         return Api.nvttCubeSurfaceEdgeLength((NvttCubeSurface*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttCubeSurfaceCountMipmaps(NvttCubeSurface*)
+    /// <summary>
+    /// From: <see cref="Api.nvttCubeSurfaceCountMipmaps(NvttCubeSurface*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public int CountMipmaps()
     {
         return Api.nvttCubeSurfaceCountMipmaps((NvttCubeSurface*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttCubeSurfaceLoad(NvttCubeSurface*, sbyte*, int)
+    /// <summary>
+    /// From: <see cref="Api.nvttCubeSurfaceLoad(NvttCubeSurface*, sbyte*, int)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean Load(ReadOnlySpan<byte> fileName, int mipmap)
     {
         fixed (byte* pfileName = fileName)
@@ -48,7 +66,10 @@ public unsafe partial struct NvttCubeSurface : System.IDisposable
         }
     }
 
-    // From: nvttCubeSurfaceLoadFromMemory(NvttCubeSurface*, void*, ulong, int)
+    /// <summary>
+    /// From: <see cref="Api.nvttCubeSurfaceLoadFromMemory(NvttCubeSurface*, void*, ulong, int)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean LoadFromMemory(void* data, ulong sizeInBytes, int mipmap)
     {
         return Api.nvttCubeSurfaceLoadFromMemory(
@@ -58,7 +79,10 @@ public unsafe partial struct NvttCubeSurface : System.IDisposable
             mipmap);
     }
 
-    // From: nvttCubeSurfaceSave(NvttCubeSurface*, sbyte*)
+    /// <summary>
+    /// From: <see cref="Api.nvttCubeSurfaceSave(NvttCubeSurface*, sbyte*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttBoolean Save(ReadOnlySpan<byte> fileName)
     {
         fixed (byte* pfileName = fileName)
@@ -69,7 +93,10 @@ public unsafe partial struct NvttCubeSurface : System.IDisposable
         }
     }
 
-    // From: nvttCubeSurfaceFace(NvttCubeSurface*, int)
+    /// <summary>
+    /// From: <see cref="Api.nvttCubeSurfaceFace(NvttCubeSurface*, int)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttSurface* Face(int face)
     {
         return Api.nvttCubeSurfaceFace(
@@ -77,7 +104,10 @@ public unsafe partial struct NvttCubeSurface : System.IDisposable
             face);
     }
 
-    // From: nvttCubeSurfaceFold(NvttCubeSurface*, NvttSurface*, NvttCubeLayout)
+    /// <summary>
+    /// From: <see cref="Api.nvttCubeSurfaceFold(NvttCubeSurface*, NvttSurface*, NvttCubeLayout)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Fold(NvttSurface* img, NvttCubeLayout layout)
     {
         Api.nvttCubeSurfaceFold(
@@ -86,7 +116,10 @@ public unsafe partial struct NvttCubeSurface : System.IDisposable
             layout);
     }
 
-    // From: nvttCubeSurfaceUnfold(NvttCubeSurface*, NvttCubeLayout)
+    /// <summary>
+    /// From: <see cref="Api.nvttCubeSurfaceUnfold(NvttCubeSurface*, NvttCubeLayout)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttSurface* Unfold(NvttCubeLayout layout)
     {
         return Api.nvttCubeSurfaceUnfold(
@@ -94,7 +127,10 @@ public unsafe partial struct NvttCubeSurface : System.IDisposable
             layout);
     }
 
-    // From: nvttCubeSurfaceAverage(NvttCubeSurface*, int)
+    /// <summary>
+    /// From: <see cref="Api.nvttCubeSurfaceAverage(NvttCubeSurface*, int)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public float Average(int channel)
     {
         return Api.nvttCubeSurfaceAverage(
@@ -102,7 +138,10 @@ public unsafe partial struct NvttCubeSurface : System.IDisposable
             channel);
     }
 
-    // From: nvttCubeSurfaceRange(NvttCubeSurface*, int, float*, float*)
+    /// <summary>
+    /// From: <see cref="Api.nvttCubeSurfaceRange(NvttCubeSurface*, int, float*, float*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Range(int channel, float* minimum_ptr, float* maximum_ptr)
     {
         Api.nvttCubeSurfaceRange(
@@ -112,7 +151,10 @@ public unsafe partial struct NvttCubeSurface : System.IDisposable
             maximum_ptr);
     }
 
-    // From: nvttCubeSurfaceClamp(NvttCubeSurface*, int, float, float)
+    /// <summary>
+    /// From: <see cref="Api.nvttCubeSurfaceClamp(NvttCubeSurface*, int, float, float)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Clamp(int channel, float low, float high)
     {
         Api.nvttCubeSurfaceClamp(
@@ -122,7 +164,10 @@ public unsafe partial struct NvttCubeSurface : System.IDisposable
             high);
     }
 
-    // From: nvttCubeSurfaceIrradianceFilter(NvttCubeSurface*, int, EdgeFixup)
+    /// <summary>
+    /// From: <see cref="Api.nvttCubeSurfaceIrradianceFilter(NvttCubeSurface*, int, EdgeFixup)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttCubeSurface* IrradianceFilter(int size, EdgeFixup fixupMethod)
     {
         return Api.nvttCubeSurfaceIrradianceFilter(
@@ -131,7 +176,10 @@ public unsafe partial struct NvttCubeSurface : System.IDisposable
             fixupMethod);
     }
 
-    // From: nvttCubeSurfaceCosinePowerFilter(NvttCubeSurface*, int, float, EdgeFixup)
+    /// <summary>
+    /// From: <see cref="Api.nvttCubeSurfaceCosinePowerFilter(NvttCubeSurface*, int, float, EdgeFixup)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttCubeSurface* CosinePowerFilter(int size, float cosinePower, EdgeFixup fixupMethod)
     {
         return Api.nvttCubeSurfaceCosinePowerFilter(
@@ -141,7 +189,10 @@ public unsafe partial struct NvttCubeSurface : System.IDisposable
             fixupMethod);
     }
 
-    // From: nvttCubeSurfaceFastResample(NvttCubeSurface*, int, EdgeFixup)
+    /// <summary>
+    /// From: <see cref="Api.nvttCubeSurfaceFastResample(NvttCubeSurface*, int, EdgeFixup)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public NvttCubeSurface* FastResample(int size, EdgeFixup fixupMethod)
     {
         return Api.nvttCubeSurfaceFastResample(
@@ -150,7 +201,10 @@ public unsafe partial struct NvttCubeSurface : System.IDisposable
             fixupMethod);
     }
 
-    // From: nvttCubeSurfaceToLinear(NvttCubeSurface*, float)
+    /// <summary>
+    /// From: <see cref="Api.nvttCubeSurfaceToLinear(NvttCubeSurface*, float)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ToLinear(float gamma)
     {
         Api.nvttCubeSurfaceToLinear(
@@ -158,7 +212,10 @@ public unsafe partial struct NvttCubeSurface : System.IDisposable
             gamma);
     }
 
-    // From: nvttCubeSurfaceToGamma(NvttCubeSurface*, float)
+    /// <summary>
+    /// From: <see cref="Api.nvttCubeSurfaceToGamma(NvttCubeSurface*, float)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ToGamma(float gamma)
     {
         Api.nvttCubeSurfaceToGamma(

@@ -6,25 +6,37 @@ namespace Ghost.Nvtt;
 
 public unsafe partial struct NvttOutputOptions : System.IDisposable
 {
-    // From: nvttCreateOutputOptions()
+    /// <summary>
+    /// From: <see cref="Api.nvttCreateOutputOptions()" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static NvttOutputOptions* Create()
     {
         return Api.nvttCreateOutputOptions();
     }
 
-    // From: nvttDestroyOutputOptions(NvttOutputOptions*)
+    /// <summary>
+    /// From: <see cref="Api.nvttDestroyOutputOptions(NvttOutputOptions*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         Api.nvttDestroyOutputOptions((NvttOutputOptions*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttResetOutputOptions(NvttOutputOptions*)
+    /// <summary>
+    /// From: <see cref="Api.nvttResetOutputOptions(NvttOutputOptions*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Reset()
     {
         Api.nvttResetOutputOptions((NvttOutputOptions*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }
 
-    // From: nvttSetOutputOptionsFileName(NvttOutputOptions*, sbyte*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSetOutputOptionsFileName(NvttOutputOptions*, sbyte*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetFileName(ReadOnlySpan<byte> fileName)
     {
         fixed (byte* pfileName = fileName)
@@ -35,7 +47,10 @@ public unsafe partial struct NvttOutputOptions : System.IDisposable
         }
     }
 
-    // From: nvttSetOutputOptionsFileHandle(NvttOutputOptions*, void*)
+    /// <summary>
+    /// From: <see cref="Api.nvttSetOutputOptionsFileHandle(NvttOutputOptions*, void*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetFileHandle(void* fp)
     {
         Api.nvttSetOutputOptionsFileHandle(
@@ -43,7 +58,10 @@ public unsafe partial struct NvttOutputOptions : System.IDisposable
             fp);
     }
 
-    // From: nvttSetOutputOptionsOutputHandler(NvttOutputOptions*, delegate* unmanaged[Cdecl]<int, int, int, int, int, int, void>, delegate* unmanaged[Cdecl]<void*, int, NvttBoolean>, IntPtr)
+    /// <summary>
+    /// From: <see cref="Api.nvttSetOutputOptionsOutputHandler(NvttOutputOptions*, delegate* unmanaged[Cdecl]<int, int, int, int, int, int, void>, delegate* unmanaged[Cdecl]<void*, int, NvttBoolean>, IntPtr)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetOutputHandler(delegate* unmanaged[Cdecl]<int, int, int, int, int, int, void> beginImageHandler, delegate* unmanaged[Cdecl]<void*, int, NvttBoolean> outputHandler, IntPtr endImageHandler)
     {
         Api.nvttSetOutputOptionsOutputHandler(
@@ -53,7 +71,10 @@ public unsafe partial struct NvttOutputOptions : System.IDisposable
             endImageHandler);
     }
 
-    // From: nvttSetOutputOptionsErrorHandler(NvttOutputOptions*, delegate* unmanaged[Cdecl]<NvttError, void>)
+    /// <summary>
+    /// From: <see cref="Api.nvttSetOutputOptionsErrorHandler(NvttOutputOptions*, delegate* unmanaged[Cdecl]<NvttError, void>)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetErrorHandler(delegate* unmanaged[Cdecl]<NvttError, void> errorHandler)
     {
         Api.nvttSetOutputOptionsErrorHandler(
@@ -61,7 +82,10 @@ public unsafe partial struct NvttOutputOptions : System.IDisposable
             errorHandler);
     }
 
-    // From: nvttSetOutputOptionsOutputHeader(NvttOutputOptions*, NvttBoolean)
+    /// <summary>
+    /// From: <see cref="Api.nvttSetOutputOptionsOutputHeader(NvttOutputOptions*, NvttBoolean)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetOutputHeader(NvttBoolean b)
     {
         Api.nvttSetOutputOptionsOutputHeader(
@@ -69,7 +93,10 @@ public unsafe partial struct NvttOutputOptions : System.IDisposable
             b);
     }
 
-    // From: nvttSetOutputOptionsContainer(NvttOutputOptions*, NvttContainer)
+    /// <summary>
+    /// From: <see cref="Api.nvttSetOutputOptionsContainer(NvttOutputOptions*, NvttContainer)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetContainer(NvttContainer container)
     {
         Api.nvttSetOutputOptionsContainer(
@@ -77,7 +104,10 @@ public unsafe partial struct NvttOutputOptions : System.IDisposable
             container);
     }
 
-    // From: nvttSetOutputOptionsUserVersion(NvttOutputOptions*, int)
+    /// <summary>
+    /// From: <see cref="Api.nvttSetOutputOptionsUserVersion(NvttOutputOptions*, int)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetUserVersion(int version)
     {
         Api.nvttSetOutputOptionsUserVersion(
@@ -85,7 +115,10 @@ public unsafe partial struct NvttOutputOptions : System.IDisposable
             version);
     }
 
-    // From: nvttSetOutputOptionsSrgbFlag(NvttOutputOptions*, NvttBoolean)
+    /// <summary>
+    /// From: <see cref="Api.nvttSetOutputOptionsSrgbFlag(NvttOutputOptions*, NvttBoolean)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetSrgbFlag(NvttBoolean b)
     {
         Api.nvttSetOutputOptionsSrgbFlag(
