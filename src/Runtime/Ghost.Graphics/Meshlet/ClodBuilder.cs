@@ -1,4 +1,5 @@
 using System;
+using System.Numerics;
 using Ghost.MeshOptimizer;
 using Misaki.HighPerformance;
 
@@ -34,7 +35,7 @@ public unsafe static class ClodBuilder
         // Generate position-only remap
         var remap = new UnsafeList<uint>((int)mesh.vertexCount, allocator);
         remap.Resize(mesh.vertexCount);
-        Api.meshopt_generatePositionRemap(remap.Ptr, mesh.vertexPositions, mesh.vertexCount, mesh.vertexPositionsStride);
+        MeshOptApi.meshopt_generatePositionRemap(remap.Ptr, mesh.vertexPositions, mesh.vertexCount, mesh.vertexPositionsStride);
 
         // Set up protect bits on UV seams
         if (mesh.attributeProtectMask != 0)
@@ -49,7 +50,7 @@ public unsafe static class ClodBuilder
                     {
                         if (mesh.vertexAttributes[i * maxAttributes + j] != mesh.vertexAttributes[r * maxAttributes + j])
                         {
-                            locks[(int)i] |= (byte)Api.meshopt_SimplifyVertex_Protect;
+                            locks[(int)i] |= (byte)MeshOptApi.meshopt_SimplifyVertex_Protect;
                         }
                     }
                 }
@@ -74,16 +75,16 @@ public unsafe static class ClodBuilder
 
         while (pending.Length > 1)
         {
-            var groups = ClodInternal.Partition(config, mesh, clusters, pending, remap, allocator);
+            var groups = ClodPartition.Partition(config, mesh, clusters, pending, remap);
 
             pending.Clear();
 
             // Lock boundaries
-            ClodInternal.LockBoundary(locks, groups, clusters, remap, mesh.vertexLock);
+            ClodBoundary.LockBoundary(locks, groups, clusters, remap, mesh.vertexLock);
 
             for (int i = 0; i < (int)groups.Length; i++)
             {
-                var merged = new UnsafeList<uint>(groups[i].Length * (int)config.MaxTriangles * 3, allocator);
+                var merged = new UnsafeList<uint>(groups[i].Length * (int)config.maxTriangles * 3, allocator);
                 for (int j = 0; j < (int)groups[i].Length; j++)
                 {
                     var clusterIndices = clusters[groups[i][j]].indices;
@@ -91,14 +92,14 @@ public unsafe static class ClodBuilder
                         merged.Add(clusterIndices[k]);
                 }
 
-                nuint targetSize = ((nuint)merged.Length / 3) * (nuint)config.SimplifyRatio * 3;
+                nuint targetSize = ((nuint)merged.Length / 3) * (nuint)config.simplifyRatio * 3;
 
                 var bounds = ClodBoundsHelper.MergeBounds(clusters, groups[i]);
 
                 float error = 0.0f;
-                var simplified = ClodSimplify.Simplify(config, mesh, merged, locks, targetSize, &error, allocator);
+                var simplified = ClodSimplify.Simplify(config, mesh, merged, locks, targetSize, &error);
 
-                if (simplified.Length > (nuint)(merged.Length * config.SimplifyThreshold))
+                if (simplified.Length > (nuint)(merged.Length * config.simplifyThreshold))
                 {
                     bounds.error = float.MaxValue;
                     OutputGroup(config, mesh, clusters, groups[i], bounds, depth, outputContext, outputCallback, allocator);
@@ -107,7 +108,7 @@ public unsafe static class ClodBuilder
                     continue;
                 }
 
-                bounds.error = Math.Max(bounds.error * config.SimplifyErrorMergePrevious, error) + error * config.SimplifyErrorMergeAdditive;
+                bounds.error = Math.Max(bounds.error * config.simplifyErrorMergePrevious, error) + error * config.simplifyErrorMergeAdditive;
 
                 int refined = OutputGroup(config, mesh, clusters, groups[i], bounds, depth, outputContext, outputCallback, allocator);
 
@@ -171,7 +172,7 @@ public unsafe static class ClodBuilder
         Allocator allocator
     )
     {
-        var groupClusters = new UnsafeList<ClodCluster>((int)group.Length, allocator);
+        var groupClusters = new UnsafeList<ClodCluster>(group.Length, allocator);
         groupClusters.Resize((nuint)group.Length);
 
         for (int i = 0; i < (int)group.Length; i++)
@@ -180,7 +181,7 @@ public unsafe static class ClodBuilder
             ref var dstCluster = ref groupClusters[i];
 
             dstCluster.refined = srcCluster.refined;
-            dstCluster.bounds = (config.OptimizeBounds && srcCluster.refined != -1)
+            dstCluster.bounds = (config.optimizeBounds && srcCluster.refined != -1)
                 ? ClodBoundsHelper.ComputeBounds(mesh, srcCluster.indices, srcCluster.bounds.error)
                 : srcCluster.bounds;
             dstCluster.indices = srcCluster.indices.Ptr;

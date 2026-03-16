@@ -8,7 +8,7 @@ internal static class ClodInternal
 {
     public static UnsafeList<Cluster> Clusterize(ClodConfig config, ClodMesh mesh, uint* indices, nuint indexCount, Allocator allocator)
     {
-        nuint maxMeshlets = Api.meshopt_buildMeshletsBound(indexCount, config.MaxVertices, config.MinTriangles);
+        nuint maxMeshlets = MeshOptApi.meshopt_buildMeshletsBound(indexCount, config.maxVertices, config.minTriangles);
 
         var meshlets = new UnsafeList<meshopt_Meshlet>(maxMeshlets, allocator);
         var meshletVertices = new UnsafeList<uint>(indexCount, allocator);
@@ -17,9 +17,9 @@ internal static class ClodInternal
         meshlets.Resize(maxMeshlets);
         
         nuint meshletCount;
-        if (config.ClusterSpatial)
+        if (config.clusterSpatial)
         {
-            meshletCount = Api.meshopt_buildMeshletsSpatial(
+            meshletCount = MeshOptApi.meshopt_buildMeshletsSpatial(
                 meshlets.Ptr, 
                 meshletVertices.Ptr, 
                 meshletTriangles.Ptr, 
@@ -28,15 +28,15 @@ internal static class ClodInternal
                 mesh.vertexPositions, 
                 mesh.vertexCount, 
                 mesh.vertexPositionsStride,
-                config.MaxVertices, 
-                config.MinTriangles, 
-                config.MaxTriangles, 
-                config.ClusterFillWeight
+                config.maxVertices, 
+                config.minTriangles, 
+                config.maxTriangles, 
+                config.clusterFillWeight
             );
         }
         else
         {
-            meshletCount = Api.meshopt_buildMeshletsFlex(
+            meshletCount = MeshOptApi.meshopt_buildMeshletsFlex(
                 meshlets.Ptr, 
                 meshletVertices.Ptr, 
                 meshletTriangles.Ptr, 
@@ -45,11 +45,11 @@ internal static class ClodInternal
                 mesh.vertexPositions, 
                 mesh.vertexCount, 
                 mesh.vertexPositionsStride,
-                config.MaxVertices, 
-                config.MinTriangles, 
-                config.MaxTriangles, 
+                config.maxVertices, 
+                config.minTriangles, 
+                config.maxTriangles, 
                 0.0f, 
-                config.ClusterSplitFactor
+                config.clusterSplitFactor
             );
         }
         meshlets.Resize(meshletCount);
@@ -60,9 +60,9 @@ internal static class ClodInternal
         {
             ref var meshlet = ref meshlets[i];
 
-            if (config.OptimizeClusters)
+            if (config.optimizeClusters)
             {
-                Api.meshopt_optimizeMeshlet(
+                MeshOptApi.meshopt_optimizeMeshlet(
                     meshletVertices.Ptr + meshlet.vertexOffset, 
                     meshletTriangles.Ptr + meshlet.triangleOffset, 
                     meshlet.triangleCount, 

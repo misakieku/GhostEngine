@@ -1,8 +1,10 @@
+using System.Numerics;
+
 namespace Ghost.Graphics.Meshlet;
 
-public unsafe struct ClodBounds
+public struct ClodBounds
 {
-    public fixed float center[3];
+    public Vector3 center;
     public float radius;
     public float error;
 }
