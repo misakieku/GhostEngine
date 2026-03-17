@@ -15,8 +15,19 @@ internal struct Cluster
     public ClodBounds bounds;
 }
 
+/// <summary>
+/// Provides methods to build a hierarchical Cluster LOD mesh.
+/// </summary>
 public unsafe static class ClodBuilder
 {
+    /// <summary>
+    /// Builds a cluster LOD hierarchy from the input mesh.
+    /// </summary>
+    /// <param name="config">The configuration parameters for the LOD building process.</param>
+    /// <param name="mesh">The input mesh data.</param>
+    /// <param name="outputContext">Optional context pointer passed to the output callback.</param>
+    /// <param name="outputCallback">Delegate invoked for each generated LOD group.</param>
+    /// <returns>The total count of generated clusters.</returns>
     public static nuint Build(ClodConfig config, ClodMesh mesh, void* outputContext, ClodOutputDelegate outputCallback)
     {
         Debug.Assert(mesh.vertexAttributesStride % (nuint)sizeof(float) == 0, "vertexAttributesStride must be a multiple of sizeof(float)");
