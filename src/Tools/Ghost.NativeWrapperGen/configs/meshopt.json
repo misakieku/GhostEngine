@@ -52,7 +52,7 @@
     },
     {
       "filter": "EXTERN_API",
-      "targetType": "NvttApi",
+      "targetType": "MeshOptApi",
       "apply": {
         "type": "STATIC_METHOD",
         "opts": {
