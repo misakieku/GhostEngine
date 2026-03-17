@@ -20,8 +20,8 @@ internal static class ClodSimplify
             return indices;
         }
 
-        using var scope = AllocationManager.CreateStackScope();
-        var lod = new UnsafeList<uint>(indices.Length, scope.AllocationHandle);
+        // Use Allocator.Temp for LOD results to avoid stack overflow on mega-meshes
+        var lod = new UnsafeList<uint>((nuint)indices.Length, Allocator.Temp);
         lod.Resize((nuint)indices.Length);
 
         uint options = MeshOptApi.SimplifySparse | MeshOptApi.SimplifyErrorAbsolute;
@@ -124,7 +124,6 @@ internal static class ClodSimplify
         float* error
     )
     {
-        // Simplified version - deindex and use sloppy simplification
-        // Implementation details would involve creating a subset for sparse simplification
+        // Placeholder for sloppy simplification fallback logic
     }
 }

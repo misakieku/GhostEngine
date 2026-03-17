@@ -6,7 +6,7 @@ namespace Ghost.Graphics.Meshlet;
 
 internal static class ClodPartition
 {
-    public static UnsafeList<UnsafeList<int>> Partition(ClodConfig config, ClodMesh mesh, UnsafeList<Cluster> clusters, UnsafeList<int> pending, UnsafeList<uint> remap, AllocationHandle allocator)
+    public static UnsafeList<UnsafeList<int>> Partition(ClodConfig config, ClodMesh mesh, UnsafeList<Cluster> clusters, UnsafeList<int> pending, UnsafeList<uint> remap, Allocator allocator)
     {
         if (pending.Length <= (int)config.partitionSize)
         {
@@ -15,9 +15,9 @@ internal static class ClodPartition
             return partitions;
         }
 
-        using var stackScope = AllocationManager.CreateStackScope();
-        var clusterIndices = new UnsafeList<uint>(1024, stackScope.AllocationHandle);
-        var clusterCounts = new UnsafeList<uint>((nuint)pending.Length, stackScope.AllocationHandle);
+        // Internal counters/indices can stay on Temp to avoid stack overflow for huge meshes
+        var clusterIndices = new UnsafeList<uint>(1024, Allocator.Temp);
+        var clusterCounts = new UnsafeList<uint>((nuint)pending.Length, Allocator.Temp);
 
         nuint totalIndexCount = 0;
         for (int i = 0; i < pending.Length; i++)
@@ -41,7 +41,7 @@ internal static class ClodPartition
             offset += (nuint)cluster.indices.Length;
         }
 
-        var clusterPart = new UnsafeList<uint>((nuint)pending.Length, stackScope.AllocationHandle);
+        var clusterPart = new UnsafeList<uint>((nuint)pending.Length, Allocator.Temp);
         clusterPart.Resize((nuint)pending.Length);
 
         nuint partitionCount = MeshOptApi.PartitionClusters(
@@ -66,6 +66,10 @@ internal static class ClodPartition
         {
             partitions[(int)clusterPart[i]].Add(pending[i]);
         }
+
+        clusterIndices.Dispose();
+        clusterCounts.Dispose();
+        clusterPart.Dispose();
 
         return partitions;
     }

@@ -20,8 +20,8 @@ internal static class ClodBoundsHelper
 
     public static ClodBounds MergeBounds(UnsafeList<Cluster> clusters, UnsafeList<int> group)
     {
-        using var scope = AllocationManager.CreateStackScope();
-        var boundsList = new UnsafeList<ClodBounds>((nuint)group.Length, scope.AllocationHandle);
+        // Use Temp for the bounds list to support mega-meshes without stack overflow
+        var boundsList = new UnsafeList<ClodBounds>((nuint)group.Length, Allocator.Temp);
         
         for (int j = 0; j < (int)group.Length; j++)
         {
@@ -46,6 +46,7 @@ internal static class ClodBoundsHelper
             result.error = Math.Max(result.error, clusters[group[j]].bounds.error);
         }
 
+        boundsList.Dispose();
         return result;
     }
 }
