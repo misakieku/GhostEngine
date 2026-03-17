@@ -1,92 +1,79 @@
 using System;
 using Ghost.MeshOptimizer;
-using Misaki.HighPerformance;
+using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.LowLevel.Collections;
 
 namespace Ghost.Graphics.Meshlet;
 
 internal static class ClodInternal
 {
-    public static UnsafeList<Cluster> Clusterize(ClodConfig config, ClodMesh mesh, uint* indices, nuint indexCount, Allocator allocator)
+    public static unsafe UnsafeList<Cluster> Clusterize(ClodConfig config, ClodMesh mesh, uint* indices, nuint indexCount, Allocator allocator)
     {
         nuint maxMeshlets = MeshOptApi.BuildMeshletsBound(indexCount, config.maxVertices, config.minTriangles);
 
-        var meshlets = new UnsafeList<meshopt_Meshlet>(maxMeshlets, allocator);
-        var meshletVertices = new UnsafeList<uint>(indexCount, allocator);
-        var meshletTriangles = new UnsafeList<byte>(indexCount, allocator);
+        var meshlets = new UnsafeList<meshopt_Meshlet>((int)maxMeshlets, Allocator.Temp);
+        meshlets.Resize((int)maxMeshlets);
+        var meshletVertices = new UnsafeList<uint>((int)indexCount, Allocator.Temp);
+        meshletVertices.Resize((int)indexCount);
+        var meshletTriangles = new UnsafeList<byte>((int)indexCount, Allocator.Temp);
+        meshletTriangles.Resize((int)indexCount);
 
-        meshlets.Resize(maxMeshlets);
-        
+        meshopt_Meshlet* pMeshlets = (meshopt_Meshlet*)meshlets.GetUnsafePtr();
+        uint* pMeshletVertices = (uint*)meshletVertices.GetUnsafePtr();
+        byte* pMeshletTriangles = (byte*)meshletTriangles.GetUnsafePtr();
+
         nuint meshletCount;
         if (config.clusterSpatial)
         {
-            meshletCount = MeshOptApi.BuildMeshletsSpatial(
-                meshlets.GetUnsafePtr(), 
-                meshletVertices.GetUnsafePtr(), 
-                meshletTriangles.GetUnsafePtr(), 
-                indices, 
-                indexCount,
-                mesh.vertexPositions, 
-                mesh.vertexCount, 
-                mesh.vertexPositionsStride,
-                config.maxVertices, 
-                config.minTriangles, 
-                config.maxTriangles, 
+            meshletCount = pMeshlets[0].BuildsSpatial(
+                pMeshletVertices, pMeshletTriangles,
+                indices, indexCount,
+                mesh.vertexPositions, mesh.vertexCount, mesh.vertexPositionsStride,
+                config.maxVertices, config.minTriangles, config.maxTriangles,
                 config.clusterFillWeight
             );
         }
         else
         {
-            meshletCount = MeshOptApi.BuildMeshletsFlex(
-                meshlets.GetUnsafePtr(), 
-                meshletVertices.GetUnsafePtr(), 
-                meshletTriangles.GetUnsafePtr(), 
-                indices, 
-                indexCount,
-                mesh.vertexPositions, 
-                mesh.vertexCount, 
-                mesh.vertexPositionsStride,
-                config.maxVertices, 
-                config.minTriangles, 
-                config.maxTriangles, 
-                0.0f, 
-                config.clusterSplitFactor
+            meshletCount = pMeshlets[0].BuildsFlex(
+                pMeshletVertices, pMeshletTriangles,
+                indices, indexCount,
+                mesh.vertexPositions, mesh.vertexCount, mesh.vertexPositionsStride,
+                config.maxVertices, config.minTriangles, config.maxTriangles,
+                0.0f, config.clusterSplitFactor
             );
         }
-        meshlets.Resize(meshletCount);
 
-        var clusters = new UnsafeList<Cluster>(meshletCount, allocator);
-        
+        var clusters = new UnsafeList<Cluster>((int)meshletCount, allocator);
+
         for (nuint i = 0; i < meshletCount; i++)
         {
-            ref var meshlet = ref meshlets[i];
+            ref var meshlet = ref pMeshlets[i];
 
             if (config.optimizeClusters)
             {
                 MeshOptApi.OptimizeMeshlet(
-                    meshletVertices.GetUnsafePtr() + meshlet.vertexOffset, 
-                    meshletTriangles.GetUnsafePtr() + meshlet.triangleOffset, 
-                    meshlet.triangleCount, 
-                    meshlet.vertexCount
+                    pMeshletVertices + meshlet.vertex_offset,
+                    pMeshletTriangles + meshlet.triangle_offset,
+                    meshlet.triangle_count,
+                    meshlet.vertex_count
                 );
             }
 
             var cluster = new Cluster
             {
-                vertices = meshlet.vertexCount,
-                indices = new UnsafeList<uint>(meshlet.triangleCount * 3, allocator),
+                vertices = meshlet.vertex_count,
+                indices = new UnsafeList<uint>((int)(meshlet.triangle_count * 3), allocator),
                 group = -1,
                 refined = -1
             };
 
-            for (nuint j = 0; j < meshlet.triangleCount * 3; j++)
-            {
-                cluster.indices.Add(meshletVertices[(int)(meshlet.vertexOffset + meshletTriangles[(int)(meshlet.triangleOffset + j)])]);
-            }
+            for (nuint j = 0; j < meshlet.triangle_count * 3; j++)
+                cluster.indices.Add(pMeshletVertices[meshlet.vertex_offset + pMeshletTriangles[meshlet.triangle_offset + j]]);
 
             clusters.Add(cluster);
         }
 
-        // Cleanup
         meshlets.Dispose();
         meshletVertices.Dispose();
         meshletTriangles.Dispose();

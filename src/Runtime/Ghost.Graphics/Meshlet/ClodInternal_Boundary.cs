@@ -1,48 +1,48 @@
 using Ghost.MeshOptimizer;
-using Misaki.HighPerformance;
+using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.LowLevel.Collections;
 
 namespace Ghost.Graphics.Meshlet;
 
 internal static class ClodBoundary
 {
-    public static void LockBoundary(UnsafeList<byte> locks, UnsafeList<UnsafeList<int>> groups, UnsafeList<Cluster> clusters, UnsafeList<uint> remap, byte* vertexLock)
+    public static unsafe void LockBoundary(UnsafeList<byte> locks, UnsafeList<UnsafeList<int>> groups, UnsafeList<Cluster> clusters, UnsafeList<uint> remap, byte* vertexLock)
     {
-        for (int i = 0; i < (int)locks.Length; i++)
-        {
-            locks[i] &= ~((byte)((1 << 0) | (1 << 7)));
-        }
+        byte* pLocks = (byte*)locks.GetUnsafePtr();
+        uint* pRemap = (uint*)remap.GetUnsafePtr();
 
-        for (int i = 0; i < (int)groups.Length; i++)
+        for (int i = 0; i < locks.Count; i++)
+            pLocks[i] = unchecked((byte)(pLocks[i] & ~((1 << 0) | (1 << 7))));
+
+        for (int i = 0; i < groups.Count; i++)
         {
-            for (int j = 0; j < (int)groups[i].Length; j++)
+            for (int j = 0; j < groups[i].Count; j++)
             {
                 var cluster = clusters[groups[i][j]];
-                for (int k = 0; k < (int)cluster.indices.Length; k++)
+                for (int k = 0; k < cluster.indices.Count; k++)
                 {
-                    uint v = cluster.indices[k];
-                    uint r = remap[(int)v];
-                    locks[(int)r] |= (byte)(locks[(int)r] >> 7);
+                    uint r = pRemap[(int)cluster.indices[k]];
+                    pLocks[r] |= (byte)(pLocks[r] >> 7);
                 }
             }
 
-            for (int j = 0; j < (int)groups[i].Length; j++)
+            for (int j = 0; j < groups[i].Count; j++)
             {
                 var cluster = clusters[groups[i][j]];
-                for (int k = 0; k < (int)cluster.indices.Length; k++)
+                for (int k = 0; k < cluster.indices.Count; k++)
                 {
-                    uint v = cluster.indices[k];
-                    uint r = remap[(int)v];
-                    locks[(int)r] |= (byte)(1 << 7);
+                    uint r = pRemap[(int)cluster.indices[k]];
+                    pLocks[r] |= (byte)(1 << 7);
                 }
             }
         }
 
-        for (int i = 0; i < (int)locks.Length; i++)
+        for (int i = 0; i < locks.Count; i++)
         {
-            uint r = remap[i];
-            locks[i] = (byte)((locks[(int)r] & 1) | (locks[i] & (byte)MeshOptApi.meshopt_SimplifyVertex_Protect));
+            uint r = pRemap[i];
+            pLocks[i] = (byte)((pLocks[r] & 1) | (pLocks[i] & (byte)(Api.meshopt_SimplifyVertex_Protect & 0xFF)));
             if (vertexLock != null)
-                locks[i] |= vertexLock[i];
+                pLocks[i] |= vertexLock[i];
         }
     }
 }

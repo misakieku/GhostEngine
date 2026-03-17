@@ -1,6 +1,8 @@
 using System;
 using Ghost.MeshOptimizer;
-using Misaki.HighPerformance;
+using Misaki.HighPerformance.LowLevel.Collections;
+using Misaki.HighPerformance.LowLevel;
+using Misaki.HighPerformance.LowLevel.Buffer;
 
 namespace Ghost.Graphics.Meshlet;
 

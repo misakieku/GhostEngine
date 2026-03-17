@@ -1,12 +1,13 @@
 using System;
 using Ghost.MeshOptimizer;
-using Misaki.HighPerformance;
+using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.LowLevel.Collections;
 
 namespace Ghost.Graphics.Meshlet;
 
 internal static class ClodSimplify
 {
-    public static UnsafeList<uint> Simplify(
+    public static unsafe UnsafeList<uint> Simplify(
         ClodConfig config,
         ClodMesh mesh,
         UnsafeList<uint> indices,
@@ -15,25 +16,22 @@ internal static class ClodSimplify
         float* error
     )
     {
-        if (targetCount > (nuint)indices.Length)
-        {
+        if (targetCount >= (nuint)indices.Count)
             return indices;
-        }
 
-        // Use Allocator.Temp for LOD results to avoid stack overflow on mega-meshes
-        var lod = new UnsafeList<uint>((nuint)indices.Length, Allocator.Temp);
-        lod.Resize((nuint)indices.Length);
+        var lod = new UnsafeList<uint>(indices.Count, Allocator.Temp);
+        lod.Resize(indices.Count);
 
-        uint options = MeshOptApi.SimplifySparse | MeshOptApi.SimplifyErrorAbsolute;
+        uint options = (uint)(Api.meshopt_SimplifySparse | Api.meshopt_SimplifyErrorAbsolute);
         if (config.simplifyPermissive)
-            options |= MeshOptApi.SimplifyPermissive;
+            options |= (uint)Api.meshopt_SimplifyPermissive;
         if (config.simplifyRegularize)
-            options |= MeshOptApi.SimplifyRegularize;
+            options |= (uint)Api.meshopt_SimplifyRegularize;
 
         nuint resultSize = MeshOptApi.SimplifyWithAttributes(
-            lod.GetUnsafePtr(),
-            indices.GetUnsafePtr(),
-            (nuint)indices.Length,
+            (uint*)lod.GetUnsafePtr(),
+            (uint*)indices.GetUnsafePtr(),
+            (nuint)indices.Count,
             mesh.vertexPositions,
             mesh.vertexCount,
             mesh.vertexPositionsStride,
@@ -41,23 +39,21 @@ internal static class ClodSimplify
             mesh.vertexAttributesStride,
             mesh.attributeWeights,
             mesh.attributeCount,
-            locks.GetUnsafePtr(),
+            (byte*)locks.GetUnsafePtr(),
             targetCount,
             float.MaxValue,
             options,
             error
         );
+        lod.Resize((int)resultSize);
 
-        lod.Resize(resultSize);
-
-        // Fallback to permissive if needed
-        if (lod.Length > targetCount && config.simplifyFallbackPermissive && !config.simplifyPermissive)
+        if ((nuint)lod.Count > targetCount && config.simplifyFallbackPermissive && !config.simplifyPermissive)
         {
-            options |= MeshOptApi.SimplifyPermissive;
+            options |= (uint)Api.meshopt_SimplifyPermissive;
             resultSize = MeshOptApi.SimplifyWithAttributes(
-                lod.GetUnsafePtr(),
-                indices.GetUnsafePtr(),
-                (nuint)indices.Length,
+                (uint*)lod.GetUnsafePtr(),
+                (uint*)indices.GetUnsafePtr(),
+                (nuint)indices.Count,
                 mesh.vertexPositions,
                 mesh.vertexCount,
                 mesh.vertexPositionsStride,
@@ -65,47 +61,43 @@ internal static class ClodSimplify
                 mesh.vertexAttributesStride,
                 mesh.attributeWeights,
                 mesh.attributeCount,
-                locks.GetUnsafePtr(),
+                (byte*)locks.GetUnsafePtr(),
                 targetCount,
                 float.MaxValue,
                 options,
                 error
             );
-            lod.Resize(resultSize);
+            lod.Resize((int)resultSize);
         }
 
-        // Sloppy fallback
-        if (lod.Length > targetCount && config.simplifyFallbackSloppy)
+        if ((nuint)lod.Count > targetCount && config.simplifyFallbackSloppy)
         {
-            SimplifyFallback(lod, mesh, indices, locks, targetCount, error);
             *error *= config.simplifyErrorFactorSloppy;
         }
 
-        // Edge limit check
         if (config.simplifyErrorEdgeLimit > 0)
         {
             float maxEdgeSq = 0;
-            for (int i = 0; i < (int)indices.Length; i += 3)
-            {
-                uint a = indices[i], b = indices[i + 1], c = indices[i + 2];
-                
-                int posStride = (int)(mesh.vertexPositionsStride / sizeof(float));
-                float* va = mesh.vertexPositions + (a * posStride);
-                float* vb = mesh.vertexPositions + (b * posStride);
-                float* vc = mesh.vertexPositions + (c * posStride);
+            uint* pIdx = (uint*)indices.GetUnsafePtr();
+            int posStride = (int)(mesh.vertexPositionsStride / sizeof(float));
 
-                float dx = va[0] - vb[0], dy = va[1] - vb[1], dz = va[2] - vb[2];
+            for (int i = 0; i < indices.Count; i += 3)
+            {
+                uint a = pIdx[i], b = pIdx[i + 1], c = pIdx[i + 2];
+                float* va = mesh.vertexPositions + (a * (uint)posStride);
+                float* vb = mesh.vertexPositions + (b * (uint)posStride);
+                float* vc = mesh.vertexPositions + (c * (uint)posStride);
+
+                float dx, dy, dz;
+                dx = va[0] - vb[0]; dy = va[1] - vb[1]; dz = va[2] - vb[2];
                 float eab = dx * dx + dy * dy + dz * dz;
-                
                 dx = va[0] - vc[0]; dy = va[1] - vc[1]; dz = va[2] - vc[2];
                 float eac = dx * dx + dy * dy + dz * dz;
-                
                 dx = vb[0] - vc[0]; dy = vb[1] - vc[1]; dz = vb[2] - vc[2];
                 float ebc = dx * dx + dy * dy + dz * dz;
 
                 float emax = Math.Max(Math.Max(eab, eac), ebc);
                 float emin = Math.Min(Math.Min(eab, eac), ebc);
-
                 maxEdgeSq = Math.Max(maxEdgeSq, Math.Max(emin, emax / 4));
             }
 
@@ -113,17 +105,5 @@ internal static class ClodSimplify
         }
 
         return lod;
-    }
-
-    private static void SimplifyFallback(
-        UnsafeList<uint> lod,
-        ClodMesh mesh,
-        UnsafeList<uint> indices,
-        UnsafeList<byte> locks,
-        nuint targetCount,
-        float* error
-    )
-    {
-        // Placeholder for sloppy simplification fallback logic
     }
 }
