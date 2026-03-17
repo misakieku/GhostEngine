@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Numerics;
 using Ghost.MeshOptimizer;
 using Misaki.HighPerformance;
@@ -16,24 +17,19 @@ internal struct Cluster
 
 public unsafe static class ClodBuilder
 {
-    private const float CONST_SIMPLIFY_RATIO_DEFAULT = 0.5f;
-    private const float CONST_SIMPLIFY_THRESHOLD_DEFAULT = 0.85f;
-    private const float CONST_SIMPLIFY_ERROR_MERGE_PREVIOUS_DEFAULT = 1.0f;
-    private const float CONST_SIMPLIFY_ERROR_MERGE_ADDITIVE_DEFAULT = 0.0f;
-    private const float CONST_SIMPLIFY_ERROR_FACTOR_SLOPPY_DEFAULT = 2.0f;
-
-    public static nuint Build(ClodConfig config, ClodMesh mesh, void* outputContext, ClodOutputDelegate outputCallback, Allocator allocator = Allocator.Persistent)
+    public static nuint Build(ClodConfig config, ClodMesh mesh, void* outputContext, ClodOutputDelegate outputCallback)
     {
-        if (mesh.vertexAttributesStride % (nuint)sizeof(float) != 0)
-            throw new ArgumentException("vertexAttributesStride must be a multiple of sizeof(float)");
+        Debug.Assert(mesh.vertexAttributesStride % (nuint)sizeof(float) == 0, "vertexAttributesStride must be a multiple of sizeof(float)");
 
-        var locks = new UnsafeList<byte>((int)mesh.vertexCount, allocator);
+        using var scope = AllocationManager.CreateStackScope();
+
+        var locks = new UnsafeList<byte>(mesh.vertexCount, scope.AllocationHandle);
         locks.Resize(mesh.vertexCount);
         for (int i = 0; i < (int)mesh.vertexCount; i++)
             locks[i] = 0;
 
         // Generate position-only remap
-        var remap = new UnsafeList<uint>((int)mesh.vertexCount, allocator);
+        var remap = new UnsafeList<uint>(mesh.vertexCount, scope.AllocationHandle);
         remap.Resize(mesh.vertexCount);
         MeshOptApi.GeneratePositionRemap(remap.GetUnsafePtr(), mesh.vertexPositions, mesh.vertexCount, mesh.vertexPositionsStride);
 
@@ -58,7 +54,7 @@ public unsafe static class ClodBuilder
         }
 
         // Initial clusterization
-        var clusters = ClodInternal.Clusterize(config, mesh, mesh.indices, mesh.indexCount, allocator);
+        var clusters = ClodInternal.Clusterize(config, mesh, mesh.indices, mesh.indexCount, Allocator.Persistent);
 
         // Compute initial bounds
         for (int i = 0; i < (int)clusters.Length; i++)
@@ -66,8 +62,8 @@ public unsafe static class ClodBuilder
             clusters[i].bounds = ClodBoundsHelper.ComputeBounds(mesh, clusters[i].indices, 0.0f);
         }
 
-        var pending = new UnsafeList<int>((int)clusters.Length, allocator);
-        pending.Resize((nuint)clusters.Length);
+        var pending = new UnsafeList<int>(clusters.Length, scope.AllocationHandle);
+        pending.Resize(clusters.Length);
         for (int i = 0; i < (int)clusters.Length; i++)
             pending[i] = i;
 
@@ -75,7 +71,7 @@ public unsafe static class ClodBuilder
 
         while (pending.Length > 1)
         {
-            var groups = ClodPartition.Partition(config, mesh, clusters, pending, remap);
+            var groups = ClodPartition.Partition(config, mesh, clusters, pending, remap, scope.AllocationHandle);
 
             pending.Clear();
 
@@ -84,7 +80,7 @@ public unsafe static class ClodBuilder
 
             for (int i = 0; i < (int)groups.Length; i++)
             {
-                var merged = new UnsafeList<uint>(groups[i].Length * (int)config.maxTriangles * 3, allocator);
+                var merged = new UnsafeList<uint>((nuint)groups[i].Length * config.maxTriangles * 3, scope.AllocationHandle);
                 for (int j = 0; j < (int)groups[i].Length; j++)
                 {
                     var clusterIndices = clusters[groups[i][j]].indices;
@@ -102,15 +98,13 @@ public unsafe static class ClodBuilder
                 if (simplified.Length > (nuint)(merged.Length * config.simplifyThreshold))
                 {
                     bounds.error = float.MaxValue;
-                    OutputGroup(config, mesh, clusters, groups[i], bounds, depth, outputContext, outputCallback, allocator);
-                    merged.Dispose();
-                    simplified.Dispose();
+                    OutputGroup(config, mesh, clusters, groups[i], bounds, depth, outputContext, outputCallback);
                     continue;
                 }
 
                 bounds.error = Math.Max(bounds.error * config.simplifyErrorMergePrevious, error) + error * config.simplifyErrorMergeAdditive;
 
-                int refined = OutputGroup(config, mesh, clusters, groups[i], bounds, depth, outputContext, outputCallback, allocator);
+                int refined = OutputGroup(config, mesh, clusters, groups[i], bounds, depth, outputContext, outputCallback);
 
                 // Discard old clusters
                 for (int j = 0; j < (int)groups[i].Length; j++)
@@ -119,7 +113,7 @@ public unsafe static class ClodBuilder
                 }
 
                 // Clusterize simplified mesh
-                var split = ClodInternal.Clusterize(config, mesh, simplified.GetUnsafePtr(), simplified.Length, allocator);
+                var split = ClodInternal.Clusterize(config, mesh, simplified.GetUnsafePtr(), simplified.Length, Allocator.Persistent);
                 for (int j = 0; j < (int)split.Length; j++)
                 {
                     split[j].refined = refined;
@@ -129,8 +123,6 @@ public unsafe static class ClodBuilder
                 }
 
                 split.Dispose();
-                merged.Dispose();
-                simplified.Dispose();
             }
 
             // Cleanup groups
@@ -146,18 +138,17 @@ public unsafe static class ClodBuilder
             var cluster = clusters[pending[0]];
             var bounds = cluster.bounds;
             bounds.error = float.MaxValue;
-            OutputGroup(config, mesh, clusters, pending, bounds, depth, outputContext, outputCallback, allocator);
+            OutputGroup(config, mesh, clusters, pending, bounds, depth, outputContext, outputCallback);
         }
+
+        nuint finalClusterCount = clusters.Length;
 
         // Cleanup
         for (int i = 0; i < (int)clusters.Length; i++)
             clusters[i].indices.Dispose();
         clusters.Dispose();
-        locks.Dispose();
-        remap.Dispose();
-        pending.Dispose();
 
-        return (nuint)clusters.Length;
+        return finalClusterCount;
     }
 
     private static int OutputGroup(
@@ -168,11 +159,11 @@ public unsafe static class ClodBuilder
         ClodBounds simplified,
         int depth,
         void* outputContext,
-        ClodOutputDelegate outputCallback,
-        Allocator allocator
+        ClodOutputDelegate outputCallback
     )
     {
-        var groupClusters = new UnsafeList<ClodCluster>(group.Length, allocator);
+        using var scope = AllocationManager.CreateStackScope();
+        var groupClusters = new UnsafeList<ClodCluster>(group.Length, scope.AllocationHandle);
         groupClusters.Resize((nuint)group.Length);
 
         for (int i = 0; i < (int)group.Length; i++)
@@ -189,12 +180,11 @@ public unsafe static class ClodBuilder
             dstCluster.vertexCount = srcCluster.vertices;
         }
 
-        var clodGroup = new ClodGroup { Depth = depth, Simplified = simplified };
+        var clodGroup = new ClodGroup { depth = depth, simplified = simplified };
         int result = outputCallback != null
             ? outputCallback(outputContext, clodGroup, (ClodCluster*)groupClusters.GetUnsafePtr(), (nuint)groupClusters.Length)
             : -1;
 
-        groupClusters.Dispose();
         return result;
     }
 }

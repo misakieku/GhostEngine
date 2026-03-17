@@ -21,12 +21,11 @@ internal static class ClodBoundsHelper
     public static ClodBounds MergeBounds(UnsafeList<Cluster> clusters, UnsafeList<int> group)
     {
         using var scope = AllocationManager.CreateStackScope();
-        var boundsList = new UnsafeList<ClodBounds>(group.Length, scope.AllocationHandle);
-        boundsList.Resize((nuint)group.Length);
+        var boundsList = new UnsafeList<ClodBounds>((nuint)group.Length, scope.AllocationHandle);
         
         for (int j = 0; j < (int)group.Length; j++)
         {
-            boundsList[j] = clusters[group[j]].bounds;
+            boundsList.Add(clusters[group[j]].bounds);
         }
 
         var merged = MeshOptApi.ComputeSphereBounds(

@@ -6,19 +6,18 @@ namespace Ghost.Graphics.Meshlet;
 
 internal static class ClodPartition
 {
-    public static UnsafeList<UnsafeList<int>> Partition(ClodConfig config, ClodMesh mesh, UnsafeList<Cluster> clusters, UnsafeList<int> pending, UnsafeList<uint> remap)
+    public static UnsafeList<UnsafeList<int>> Partition(ClodConfig config, ClodMesh mesh, UnsafeList<Cluster> clusters, UnsafeList<int> pending, UnsafeList<uint> remap, AllocationHandle allocator)
     {
         if (pending.Length <= (int)config.partitionSize)
         {
-            using var scope = AllocationManager.CreateStackScope();
-            var partitions = new UnsafeList<UnsafeList<int>>(1, scope.AllocationHandle);
+            var partitions = new UnsafeList<UnsafeList<int>>(1, allocator);
             partitions.Add(pending);
             return partitions;
         }
 
         using var stackScope = AllocationManager.CreateStackScope();
         var clusterIndices = new UnsafeList<uint>(1024, stackScope.AllocationHandle);
-        var clusterCounts = new UnsafeList<uint>(pending.Length, stackScope.AllocationHandle);
+        var clusterCounts = new UnsafeList<uint>((nuint)pending.Length, stackScope.AllocationHandle);
 
         nuint totalIndexCount = 0;
         for (int i = 0; i < pending.Length; i++)
@@ -42,7 +41,7 @@ internal static class ClodPartition
             offset += (nuint)cluster.indices.Length;
         }
 
-        var clusterPart = new UnsafeList<uint>(pending.Length, stackScope.AllocationHandle);
+        var clusterPart = new UnsafeList<uint>((nuint)pending.Length, stackScope.AllocationHandle);
         clusterPart.Resize((nuint)pending.Length);
 
         nuint partitionCount = MeshOptApi.PartitionClusters(
@@ -57,10 +56,10 @@ internal static class ClodPartition
             config.partitionSize
         );
 
-        var partitions = new UnsafeList<UnsafeList<int>>(partitionCount, stackScope.AllocationHandle);
+        var partitions = new UnsafeList<UnsafeList<int>>(partitionCount, allocator);
         for (nuint i = 0; i < partitionCount; i++)
         {
-            partitions.Add(new UnsafeList<int>((nuint)(config.partitionSize + config.partitionSize / 3), stackScope.AllocationHandle));
+            partitions.Add(new UnsafeList<int>((nuint)(config.partitionSize + config.partitionSize / 3), allocator));
         }
 
         for (int i = 0; i < pending.Length; i++)
