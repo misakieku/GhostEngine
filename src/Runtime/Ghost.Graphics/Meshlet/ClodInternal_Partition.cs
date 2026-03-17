@@ -45,11 +45,11 @@ internal static class ClodPartition
         var clusterPart = new UnsafeList<uint>(pending.Length, stackScope.AllocationHandle);
         clusterPart.Resize((nuint)pending.Length);
 
-        nuint partitionCount = MeshOptApi.meshopt_partitionClusters(
-            clusterPart.Ptr,
-            clusterIndices.Ptr,
+        nuint partitionCount = MeshOptApi.PartitionClusters(
+            clusterPart.GetUnsafePtr(),
+            clusterIndices.GetUnsafePtr(),
             totalIndexCount,
-            clusterCounts.Ptr,
+            clusterCounts.GetUnsafePtr(),
             (nuint)pending.Length,
             config.partitionSpatial ? mesh.vertexPositions : null,
             remap.Length,

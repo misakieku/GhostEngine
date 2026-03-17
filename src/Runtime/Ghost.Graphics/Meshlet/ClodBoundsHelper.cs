@@ -9,7 +9,7 @@ internal static class ClodBoundsHelper
 {
     public static ClodBounds ComputeBounds(ClodMesh mesh, UnsafeList<uint> indices, float error)
     {
-        var bounds = MeshOptApi.meshopt_computeClusterBounds(indices.Ptr, (nuint)indices.Length, mesh.vertexPositions, mesh.vertexCount, mesh.vertexPositionsStride);
+        var bounds = MeshOptApi.ComputeClusterBounds(indices.GetUnsafePtr(), (nuint)indices.Length, mesh.vertexPositions, mesh.vertexCount, mesh.vertexPositionsStride);
         
         var result = new ClodBounds();
         result.center = new Vector3(bounds.center[0], bounds.center[1], bounds.center[2]);
@@ -29,11 +29,11 @@ internal static class ClodBoundsHelper
             boundsList[j] = clusters[group[j]].bounds;
         }
 
-        var merged = MeshOptApi.meshopt_computeSphereBounds(
-            (float*)boundsList.Ptr,
+        var merged = MeshOptApi.ComputeSphereBounds(
+            (float*)boundsList.GetUnsafePtr(),
             (nuint)group.Length,
             (nuint)sizeof(ClodBounds),
-            (float*)boundsList.Ptr + 3, // offset to radius field
+            (float*)boundsList.GetUnsafePtr() + 3, // offset to radius field
             (nuint)sizeof(ClodBounds)
         );
 

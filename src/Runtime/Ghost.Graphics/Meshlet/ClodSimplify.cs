@@ -24,15 +24,15 @@ internal static class ClodSimplify
         var lod = new UnsafeList<uint>(indices.Length, scope.AllocationHandle);
         lod.Resize((nuint)indices.Length);
 
-        uint options = MeshOptApi.meshopt_SimplifySparse | MeshOptApi.meshopt_SimplifyErrorAbsolute;
+        uint options = MeshOptApi.SimplifySparse | MeshOptApi.SimplifyErrorAbsolute;
         if (config.simplifyPermissive)
-            options |= MeshOptApi.meshopt_SimplifyPermissive;
+            options |= MeshOptApi.SimplifyPermissive;
         if (config.simplifyRegularize)
-            options |= MeshOptApi.meshopt_SimplifyRegularize;
+            options |= MeshOptApi.SimplifyRegularize;
 
-        nuint resultSize = MeshOptApi.meshopt_simplifyWithAttributes(
-            lod.Ptr,
-            indices.Ptr,
+        nuint resultSize = MeshOptApi.SimplifyWithAttributes(
+            lod.GetUnsafePtr(),
+            indices.GetUnsafePtr(),
             (nuint)indices.Length,
             mesh.vertexPositions,
             mesh.vertexCount,
@@ -41,7 +41,7 @@ internal static class ClodSimplify
             mesh.vertexAttributesStride,
             mesh.attributeWeights,
             mesh.attributeCount,
-            locks.Ptr,
+            locks.GetUnsafePtr(),
             targetCount,
             float.MaxValue,
             options,
@@ -53,10 +53,10 @@ internal static class ClodSimplify
         // Fallback to permissive if needed
         if (lod.Length > targetCount && config.simplifyFallbackPermissive && !config.simplifyPermissive)
         {
-            options |= MeshOptApi.meshopt_SimplifyPermissive;
-            resultSize = MeshOptApi.meshopt_simplifyWithAttributes(
-                lod.Ptr,
-                indices.Ptr,
+            options |= MeshOptApi.SimplifyPermissive;
+            resultSize = MeshOptApi.SimplifyWithAttributes(
+                lod.GetUnsafePtr(),
+                indices.GetUnsafePtr(),
                 (nuint)indices.Length,
                 mesh.vertexPositions,
                 mesh.vertexCount,
@@ -65,7 +65,7 @@ internal static class ClodSimplify
                 mesh.vertexAttributesStride,
                 mesh.attributeWeights,
                 mesh.attributeCount,
-                locks.Ptr,
+                locks.GetUnsafePtr(),
                 targetCount,
                 float.MaxValue,
                 options,

@@ -35,7 +35,7 @@ public unsafe static class ClodBuilder
         // Generate position-only remap
         var remap = new UnsafeList<uint>((int)mesh.vertexCount, allocator);
         remap.Resize(mesh.vertexCount);
-        MeshOptApi.meshopt_generatePositionRemap(remap.Ptr, mesh.vertexPositions, mesh.vertexCount, mesh.vertexPositionsStride);
+        MeshOptApi.GeneratePositionRemap(remap.GetUnsafePtr(), mesh.vertexPositions, mesh.vertexCount, mesh.vertexPositionsStride);
 
         // Set up protect bits on UV seams
         if (mesh.attributeProtectMask != 0)
@@ -50,7 +50,7 @@ public unsafe static class ClodBuilder
                     {
                         if (mesh.vertexAttributes[i * maxAttributes + j] != mesh.vertexAttributes[r * maxAttributes + j])
                         {
-                            locks[(int)i] |= (byte)MeshOptApi.meshopt_SimplifyVertex_Protect;
+                            locks[(int)i] |= (byte)MeshOptApi.SimplifyVertex_Protect;
                         }
                     }
                 }
@@ -119,7 +119,7 @@ public unsafe static class ClodBuilder
                 }
 
                 // Clusterize simplified mesh
-                var split = ClodInternal.Clusterize(config, mesh, simplified.Ptr, simplified.Length, allocator);
+                var split = ClodInternal.Clusterize(config, mesh, simplified.GetUnsafePtr(), simplified.Length, allocator);
                 for (int j = 0; j < (int)split.Length; j++)
                 {
                     split[j].refined = refined;
@@ -184,14 +184,14 @@ public unsafe static class ClodBuilder
             dstCluster.bounds = (config.optimizeBounds && srcCluster.refined != -1)
                 ? ClodBoundsHelper.ComputeBounds(mesh, srcCluster.indices, srcCluster.bounds.error)
                 : srcCluster.bounds;
-            dstCluster.indices = srcCluster.indices.Ptr;
+            dstCluster.indices = srcCluster.indices.GetUnsafePtr();
             dstCluster.indexCount = (nuint)srcCluster.indices.Length;
             dstCluster.vertexCount = srcCluster.vertices;
         }
 
         var clodGroup = new ClodGroup { Depth = depth, Simplified = simplified };
         int result = outputCallback != null
-            ? outputCallback(outputContext, clodGroup, (ClodCluster*)groupClusters.Ptr, (nuint)groupClusters.Length)
+            ? outputCallback(outputContext, clodGroup, (ClodCluster*)groupClusters.GetUnsafePtr(), (nuint)groupClusters.Length)
             : -1;
 
         groupClusters.Dispose();

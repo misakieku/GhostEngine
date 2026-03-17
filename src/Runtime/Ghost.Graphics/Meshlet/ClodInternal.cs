@@ -8,7 +8,7 @@ internal static class ClodInternal
 {
     public static UnsafeList<Cluster> Clusterize(ClodConfig config, ClodMesh mesh, uint* indices, nuint indexCount, Allocator allocator)
     {
-        nuint maxMeshlets = MeshOptApi.meshopt_buildMeshletsBound(indexCount, config.maxVertices, config.minTriangles);
+        nuint maxMeshlets = MeshOptApi.BuildMeshletsBound(indexCount, config.maxVertices, config.minTriangles);
 
         var meshlets = new UnsafeList<meshopt_Meshlet>(maxMeshlets, allocator);
         var meshletVertices = new UnsafeList<uint>(indexCount, allocator);
@@ -19,10 +19,10 @@ internal static class ClodInternal
         nuint meshletCount;
         if (config.clusterSpatial)
         {
-            meshletCount = MeshOptApi.meshopt_buildMeshletsSpatial(
-                meshlets.Ptr, 
-                meshletVertices.Ptr, 
-                meshletTriangles.Ptr, 
+            meshletCount = MeshOptApi.BuildMeshletsSpatial(
+                meshlets.GetUnsafePtr(), 
+                meshletVertices.GetUnsafePtr(), 
+                meshletTriangles.GetUnsafePtr(), 
                 indices, 
                 indexCount,
                 mesh.vertexPositions, 
@@ -36,10 +36,10 @@ internal static class ClodInternal
         }
         else
         {
-            meshletCount = MeshOptApi.meshopt_buildMeshletsFlex(
-                meshlets.Ptr, 
-                meshletVertices.Ptr, 
-                meshletTriangles.Ptr, 
+            meshletCount = MeshOptApi.BuildMeshletsFlex(
+                meshlets.GetUnsafePtr(), 
+                meshletVertices.GetUnsafePtr(), 
+                meshletTriangles.GetUnsafePtr(), 
                 indices, 
                 indexCount,
                 mesh.vertexPositions, 
@@ -62,9 +62,9 @@ internal static class ClodInternal
 
             if (config.optimizeClusters)
             {
-                MeshOptApi.meshopt_optimizeMeshlet(
-                    meshletVertices.Ptr + meshlet.vertexOffset, 
-                    meshletTriangles.Ptr + meshlet.triangleOffset, 
+                MeshOptApi.OptimizeMeshlet(
+                    meshletVertices.GetUnsafePtr() + meshlet.vertexOffset, 
+                    meshletTriangles.GetUnsafePtr() + meshlet.triangleOffset, 
                     meshlet.triangleCount, 
                     meshlet.vertexCount
                 );
@@ -80,7 +80,7 @@ internal static class ClodInternal
 
             for (nuint j = 0; j < meshlet.triangleCount * 3; j++)
             {
-                cluster.indices.Add(meshletVertices[meshlet.vertexOffset + meshletTriangles[meshlet.triangleOffset + j]]);
+                cluster.indices.Add(meshletVertices[(int)(meshlet.vertexOffset + meshletTriangles[(int)(meshlet.triangleOffset + j)])]);
             }
 
             clusters.Add(cluster);
