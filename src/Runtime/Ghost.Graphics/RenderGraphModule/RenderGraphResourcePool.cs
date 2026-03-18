@@ -129,7 +129,9 @@ internal sealed class RenderGraphResourceRegistry
             for (var i = 0; i < _resources.Count; i++)
             {
                 if (_resources[i].type == RenderGraphResourceType.Texture)
+                {
                     count++;
+                }
             }
             return count;
         }
@@ -142,7 +144,9 @@ internal sealed class RenderGraphResourceRegistry
             for (var i = 0; i < _resources.Count; i++)
             {
                 if (_resources[i].type == RenderGraphResourceType.Buffer)
+                {
                     count++;
+                }
             }
             return count;
         }
@@ -290,7 +294,9 @@ internal sealed class RenderGraphResourceRegistry
         {
             var res = _resources[i];
             if (res.type != RenderGraphResourceType.Texture || res.isImported)
+            {
                 continue;
+            }
 
             var desc = res.rgTextureDesc;
             if (desc.sizeMode == RGTextureSizeMode.Absolute)
