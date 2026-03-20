@@ -157,6 +157,68 @@ public readonly unsafe ref struct RenderingContext
         }
     }
 
+    public void UploadMeshlets(Handle<Mesh> mesh)
+    {
+        var r = _resourceManager.GetMeshReference(mesh);
+        if (r.IsFailure) return;
+        
+        ref var meshRef = ref r.Value;
+        var meshletData = meshRef.MeshletData;
+
+        if (!meshletData.meshlets.IsCreated || meshletData.meshlets.Count == 0) return;
+
+        var meshletDesc = new BufferDesc
+        {
+            Size = (uint)(meshletData.meshlets.Count * sizeof(Meshlet)),
+            Stride = (uint)sizeof(Meshlet),
+            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
+            MemoryType = ResourceMemoryType.Default,
+        };
+        var verticesDesc = new BufferDesc
+        {
+            Size = (uint)(meshletData.meshletVertices.Count * sizeof(uint)),
+            Stride = sizeof(uint),
+            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
+            MemoryType = ResourceMemoryType.Default,
+        };
+        // Ensure size is multiple of 4 for Raw buffer
+        var trianglesSize = (uint)meshletData.meshletTriangles.Count;
+        trianglesSize = (trianglesSize + 3u) & ~3u;
+        var trianglesDesc = new BufferDesc
+        {
+            Size = trianglesSize,
+            Stride = sizeof(byte),
+            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
+            MemoryType = ResourceMemoryType.Default,
+        };
+
+        meshRef.MeshLetBuffer = _engine.ResourceAllocator.CreateBuffer(in meshletDesc, "Meshlets");
+        meshRef.MeshletVerticesBuffer = _engine.ResourceAllocator.CreateBuffer(in verticesDesc, "MeshletVertices");
+        meshRef.MeshletTrianglesBuffer = _engine.ResourceAllocator.CreateBuffer(in trianglesDesc, "MeshletTriangles");
+
+        TransitionBarrier(meshRef.MeshLetBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
+        TransitionBarrier(meshRef.MeshletVerticesBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
+        TransitionBarrier(meshRef.MeshletTrianglesBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
+
+        _directCmd.UploadBuffer(meshRef.MeshLetBuffer, meshletData.meshlets.AsSpan());
+        _directCmd.UploadBuffer(meshRef.MeshletVerticesBuffer, meshletData.meshletVertices.AsSpan());
+        // Padding for triangle data if needed
+        if (trianglesSize > meshletData.meshletTriangles.Count)
+        {
+            var paddedData = new byte[trianglesSize];
+            meshletData.meshletTriangles.AsSpan().CopyTo(paddedData);
+            _directCmd.UploadBuffer(meshRef.MeshletTrianglesBuffer, paddedData.AsSpan());
+        }
+        else
+        {
+            _directCmd.UploadBuffer(meshRef.MeshletTrianglesBuffer, meshletData.meshletTriangles.AsSpan());
+        }
+
+        TransitionBarrier(meshRef.MeshLetBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
+        TransitionBarrier(meshRef.MeshletVerticesBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
+        TransitionBarrier(meshRef.MeshletTrianglesBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
+    }
+
     public void UpdateObjectData(Handle<Mesh> mesh, float4x4 localToWorld)
     {
         var r = _resourceManager.GetMeshReference(mesh);
@@ -173,6 +235,9 @@ public readonly unsafe ref struct RenderingContext
             worldBoundsMax = meshData.BoundingBox.Max,
             vertexBuffer = _engine.ResourceDatabase.GetBindlessIndex(meshData.VertexBuffer.AsResource()),
             indexBuffer = _engine.ResourceDatabase.GetBindlessIndex(meshData.IndexBuffer.AsResource()),
+            meshletBuffer = meshData.MeshLetBuffer.IsInvalid ? 0 : _engine.ResourceDatabase.GetBindlessIndex(meshData.MeshLetBuffer.AsResource()),
+            meshletVerticesBuffer = meshData.MeshletVerticesBuffer.IsInvalid ? 0 : _engine.ResourceDatabase.GetBindlessIndex(meshData.MeshletVerticesBuffer.AsResource()),
+            meshletTrianglesBuffer = meshData.MeshletTrianglesBuffer.IsInvalid ? 0 : _engine.ResourceDatabase.GetBindlessIndex(meshData.MeshletTrianglesBuffer.AsResource()),
         };
 
         var bufferHandle = meshData.ObjectDataBuffer.AsResource();

@@ -72,4 +72,7 @@ public struct PerObjectData
     public uint vertexBuffer;
     public float3 worldBoundsMax;
     public uint indexBuffer;
+    public uint meshletBuffer;
+    public uint meshletVerticesBuffer;
+    public uint meshletTrianglesBuffer;
 };

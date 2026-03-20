@@ -29,6 +29,9 @@ struct PerObjectData
     BYTE_ADDRESS_BUFFER vertexBuffer;
     float3 worldBoundsMax;
     BYTE_ADDRESS_BUFFER indexBuffer;
+    BYTE_ADDRESS_BUFFER meshletBuffer;
+    BYTE_ADDRESS_BUFFER meshletVerticesBuffer;
+    BYTE_ADDRESS_BUFFER meshletTrianglesBuffer;
 };
 
 PushConstantData g_PushConstantData : register(b0);

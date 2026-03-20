@@ -194,6 +194,16 @@ internal class MeshRenderPass : IRenderPass
         MeshBuilder.CreateCube(0.75f, default, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent, out var vertices, out var indices);
 
         _mesh = ctx.CreateMesh(vertices, indices, true);
+        
+        // Cook meshlets for the mesh
+        var meshRef = ctx.ResourceManager.GetMeshReference(_mesh);
+        if (meshRef.IsSuccess)
+        {
+            meshRef.Value.CookMeshlets();
+        }
+
+        ctx.UploadMeshlets(_mesh);
+
         ctx.UpdateObjectData(_mesh, float4x4.identity);
 
         _textures = new Handle<Texture>[_textureFiles.Length];

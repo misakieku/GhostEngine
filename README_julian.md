@@ -16,4 +16,5 @@ Misaki has set up my environment to work from my own fork of "GhostEngine." Here
 
 We'll refine separately; I'll merge when...
 ...the functionality is complete and tested.
-**PR Description Tip:** Include concise changelog markdown.
+**PR Description Tip:** write everything in the description, do not include concise changelog markdown.
+Also, I should not include AGENT.md and README_julian.md in the PR.
