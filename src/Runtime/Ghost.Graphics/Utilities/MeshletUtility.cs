@@ -259,13 +259,11 @@ public static unsafe class MeshletUtility
         return clusters;
     }
 
-    // CHANGED parameters: UnsafeList -> UnsafeArray (because UnsafeList with 0 count skips logic loops)
     internal static void LockBoundary(UnsafeArray<byte> locks, UnsafeList<UnsafeList<int>> groups, UnsafeList<Cluster> clusters, UnsafeArray<uint> remap, byte* vertexLock)
     {
         var pLocks = (byte*)locks.GetUnsafePtr();
         var pRemap = (uint*)remap.GetUnsafePtr();
 
-        // CHANGED: locks.Count -> locks.Length
         for (var i = 0; i < locks.Length; i++)
         {
             pLocks[i] = unchecked((byte)(pLocks[i] & ~((1 << 0) | (1 << 7))));
@@ -294,11 +292,10 @@ public static unsafe class MeshletUtility
             }
         }
 
-        // CHANGED: locks.Count -> locks.Length
         for (var i = 0; i < locks.Length; i++)
         {
             var r = pRemap[i];
-            pLocks[i] = (byte)((pLocks[r] & 1) | (pLocks[i] & Api.meshopt_SimplifyVertex_Protect & 0xFF));
+            pLocks[i] = (byte)((pLocks[r] & 1) | (pLocks[i] & (byte)SimplifyVertexOptions.Protect & 0xFF));
             if (vertexLock != null)
             {
                 pLocks[i] |= vertexLock[i];
@@ -365,7 +362,7 @@ public static unsafe class MeshletUtility
         return partitions;
     }
 
-    private static int OutputGroup(ClodConfig config, ClodMesh mesh, UnsafeList<Cluster> clusters, UnsafeList<int> group, ClodBounds simplified, int depth, void* outputContext, ClodOutputDelegate outputCallback)
+    private static int OutputGroup(ClodConfig config, ClodMesh mesh, UnsafeList<Cluster> clusters, UnsafeList<int> group, ClodBounds simplified, int depth, void* outputContext, ClodOutputDelegate? outputCallback)
     {
         using var groupClusters = new UnsafeList<ClodCluster>(group.Count, Allocator.FreeList);
 
@@ -402,15 +399,15 @@ public static unsafe class MeshletUtility
             return lod;
         }
 
-        var options = (uint)(Api.meshopt_SimplifySparse | Api.meshopt_SimplifyErrorAbsolute);
+        var options = SimplifyOptions.Sparse | SimplifyOptions.ErrorAbsolute;
         if (config.simplifyPermissive)
         {
-            options |= Api.meshopt_SimplifyPermissive;
+            options |= SimplifyOptions.Permissive;
         }
 
         if (config.simplifyRegularize)
         {
-            options |= Api.meshopt_SimplifyRegularize;
+            options |= SimplifyOptions.Regularize;
         }
 
         var resultSize = MeshOptApi.SimplifyWithAttributes(
@@ -435,7 +432,7 @@ public static unsafe class MeshletUtility
 
         if ((nuint)lod.Length > targetCount && config.simplifyFallbackPermissive && !config.simplifyPermissive)
         {
-            options |= Api.meshopt_SimplifyPermissive;
+            options |= SimplifyOptions.Permissive;
             resultSize = MeshOptApi.SimplifyWithAttributes(
                 (uint*)lod.GetUnsafePtr(),
                 (uint*)indices.GetUnsafePtr(),
@@ -466,14 +463,14 @@ public static unsafe class MeshletUtility
         {
             float maxEdgeSq = 0;
             var pIdx = (uint*)indices.GetUnsafePtr();
-            var posStride = (int)(mesh.vertexPositionsStride / sizeof(float));
+            var posStride = mesh.vertexPositionsStride / (nuint)sizeof(float);
 
             for (var i = 0; i < indices.Count; i += 3)
             {
                 uint a = pIdx[i], b = pIdx[i + 1], c = pIdx[i + 2];
-                var va = mesh.vertexPositions + (a * (uint)posStride);
-                var vb = mesh.vertexPositions + (b * (uint)posStride);
-                var vc = mesh.vertexPositions + (c * (uint)posStride);
+                var va = mesh.vertexPositions + (a * posStride);
+                var vb = mesh.vertexPositions + (b * posStride);
+                var vc = mesh.vertexPositions + (c * posStride);
 
                 float dx, dy, dz;
                 dx = va[0] - vb[0]; dy = va[1] - vb[1]; dz = va[2] - vb[2];
@@ -502,13 +499,13 @@ public static unsafe class MeshletUtility
     /// <param name="outputContext">Optional context pointer passed to the output callback.</param>
     /// <param name="outputCallback">Delegate invoked for each generated LOD group.</param>
     /// <returns>The total count of generated clusters.</returns>
-    public static nuint Build(ClodConfig config, ClodMesh mesh, void* outputContext, ClodOutputDelegate outputCallback)
+    public static nuint Build(ClodConfig config, ClodMesh mesh, void* outputContext, ClodOutputDelegate? outputCallback)
     {
         Debug.Assert(mesh.vertexAttributesStride % sizeof(float) == 0, "vertexAttributesStride must be a multiple of sizeof(float)");
 
         using var locks = new UnsafeArray<byte>((int)mesh.vertexCount, Allocator.FreeList, AllocationOption.Clear);
         using var remap = new UnsafeArray<uint>((int)mesh.vertexCount, Allocator.FreeList);
-        
+
         MeshOptApi.GeneratePositionRemap((uint*)remap.GetUnsafePtr(), mesh.vertexPositions, mesh.vertexCount, mesh.vertexPositionsStride);
 
         if (mesh.attributeProtectMask != 0)
@@ -523,7 +520,7 @@ public static unsafe class MeshletUtility
                     {
                         if (mesh.vertexAttributes[i * maxAttributes + j] != mesh.vertexAttributes[r * maxAttributes + j])
                         {
-                            ((byte*)locks.GetUnsafePtr())[(int)i] |= Api.meshopt_SimplifyVertex_Protect & 0xFF;
+                            ((byte*)locks.GetUnsafePtr())[i] |= (byte)SimplifyVertexOptions.Protect & 0xFF;
                         }
                     }
                 }

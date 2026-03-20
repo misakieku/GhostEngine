@@ -68,7 +68,7 @@
           "name": {
             "remove": [
               "PREFIX",
-              "NO_PREFIX($TSelf)" // NO_PREFIX(NvttSurface) will change "NvttSurface" to "Surface", the prefix is determined by the "nativeTypePrefix" field at the top level of this config
+              "$TBare" // NO_PREFIX(NvttSurface) will change "NvttSurface" to "Surface", the prefix is determined by the "nativeTypePrefix" field at the top level of this config
             ]
           }
         }
@@ -86,21 +86,7 @@
           "name": {
             "remove": [
               "PREFIX",
-              "NO_PREFIX($TSelf)"
-            ]
-          }
-        }
-      }
-    },
-    {
-      "filter": "EXTERN_API",
-      "targetType": "NvttApi",
-      "apply": {
-        "type": "STATIC_METHOD",
-        "opts": {
-          "name": {
-            "remove": [
-              "PREFIX"
+              "$TBare"
             ]
           }
         }

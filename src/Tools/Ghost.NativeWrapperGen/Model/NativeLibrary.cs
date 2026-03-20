@@ -18,7 +18,6 @@ public sealed class NativeStruct
     public required bool IsList { get; init; }
     public required bool IsPointerList { get; init; }
     public string? ListElementType { get; init; }
-    public required bool IsElementLike { get; init; }
 }
 
 public sealed class NativeEnum
@@ -52,4 +51,5 @@ public enum NativeMemberKind
 {
     Field,
     Property,
+    Constant,
 }

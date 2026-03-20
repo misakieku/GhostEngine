@@ -276,7 +276,7 @@ public sealed class WrapperGeneratorEmitter
     {
         var func = routed.Function;
         var nameOpts = routed.Apply.Opts?.name;
-        var methodName = naming.GetMethodName(func.Name, nameOpts, routed.TargetStructName);
+        var methodName = naming.GetName(func.Name, nameOpts, routed.TargetStructName);
 
         // Build the parameter plan: for each native parameter, determine the public type
         // and how to pass it to the Api call (applying remaps).

@@ -24,7 +24,7 @@
           "name": {
             "remove": [
               "PREFIX",
-              "NO_PREFIX($TSelf)" // NO_PREFIX(NvttSurface) will change "NvttSurface" to "Surface", the prefix is determined by the "nativeTypePrefix" field at the top level of this config
+              "$TBare" // NO_PREFIX(NvttSurface) will change "NvttSurface" to "Surface", the prefix is determined by the "nativeTypePrefix" field at the top level of this config
             ],
             "style": "PascalCase"
           }
@@ -43,7 +43,7 @@
           "name": {
             "remove": [
               "PREFIX",
-              "NO_PREFIX($TSelf)"
+              "$TBare"
             ],
             "style": "PascalCase"
           }
@@ -61,6 +61,21 @@
               "PREFIX"
             ],
             "style": "PascalCase"
+          }
+        }
+      }
+    },
+    {
+      "filter": "CONST",
+      "targetType": "MeshOptApi",
+      "apply": {
+        "type": "CONST",
+        "opts": {
+          "name": {
+            "remove": [
+              "PREFIX"
+            ],
+            "style": "ALL_CAPS"
           }
         }
       }

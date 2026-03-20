@@ -68,7 +68,7 @@
           "name": {
             "remove": [
               "PREFIX",
-              "NO_PREFIX($TSelf)" // NO_PREFIX(ufbx_scene) will output "scene" change "free_scene" to "free", the prefix is determined by the "nativeTypePrefix" field at the top level of this config
+              "$TBare" // NO_PREFIX(ufbx_scene) will output "scene" change "free_scene" to "free", the prefix is determined by the "nativeTypePrefix" field at the top level of this config
             ],
             "style": "PascalCase"
           }
@@ -87,7 +87,7 @@
           "name": {
             "remove": [
               "PREFIX",
-              "NO_PREFIX($TSelf)"
+              "$TBare"
             ],
             "style": "PascalCase"
           }

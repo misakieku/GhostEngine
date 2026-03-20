@@ -10,6 +10,7 @@ public sealed class BindingParser
 {
     public NativeLibrary Parse(string inputDirectory, WrapperConfig config)
     {
+        var members = new List<NativeMember>();
         var structs = new List<NativeStruct>();
         var enums = new List<NativeEnum>();
         var functions = new List<NativeFunction>();
@@ -33,18 +34,17 @@ public sealed class BindingParser
                     continue;
                 }
 
-                var members = ParseMembers(@struct);
-                var listInfo = TryMatchList(members);
+                var structMembers = ParseMembers(@struct);
+                var listInfo = TryMatchList(structMembers);
 
                 structs.Add(new NativeStruct
                 {
                     Name = @struct.Identifier.ValueText,
                     Namespace = namespaceName,
-                    Members = members,
+                    Members = structMembers,
                     IsList = listInfo.IsList,
                     IsPointerList = listInfo.IsPointerList,
                     ListElementType = listInfo.ListElementType,
-                    IsElementLike = members.Any(static m => m.Name == "element" && m.TypeName == "ufbx_element"),
                 });
             }
 

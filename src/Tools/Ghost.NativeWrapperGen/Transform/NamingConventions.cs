@@ -17,13 +17,13 @@ public sealed class NamingConventions
     ///
     /// Supported remove tokens:
     ///   "PREFIX"            — strip the config's NativeTypePrefix from the start (e.g. "nvtt", "ufbx_")
-    ///   "NO_PREFIX($TSelf)" — strip the target struct name minus its type prefix from the start,
+    ///   "$TBare" — strip the target struct name minus its type prefix from the start,
     ///                         case-insensitively (e.g. NvttSurface → "Surface" stripped from "SurfaceWidth")
     ///
     /// nameOpts is the dynamic opts.name object from JSON (may be null).
     /// If no nameOpts are provided, the name is returned with only the library prefix stripped.
     /// </summary>
-    public string GetMethodName(string nativeFunctionName, dynamic? nameOpts, string targetStructName)
+    public string GetName(string nativeFunctionName, dynamic? nameOpts, string targetStructName)
     {
         var name = nativeFunctionName;
 
@@ -47,13 +47,8 @@ public sealed class NamingConventions
             {
                 name = StripPrefixIgnoreCase(name, _config.NativeTypePrefix);
             }
-            else if (token.StartsWith("NO_PREFIX(", StringComparison.Ordinal) && token.EndsWith(')'))
+            else if (string.Equals(token, "$TBare", StringComparison.Ordinal))
             {
-                // Extract $TSelf — it's the literal token "NO_PREFIX($TSelf)", so the struct name
-                // is resolved from the targetStructName argument passed in.
-                // Strip the config prefix from the struct name to get the "bare" part.
-                // Try prefix first, then suffix (handles both nvtt "SurfaceWidth"→"Width"
-                // and ufbx "free_scene"→"free_" styles).
                 var bareStructName = StripPrefixIgnoreCase(targetStructName, _config.NativeTypePrefix);
 
                 // Remove directly, the name maybe nvttSetOutputOptionsOutputHeader, if we only remove prefix and suffix, OutputOptions in the middle will be ignored, so we remove the bare struct name directly, case-insensitively.
@@ -66,7 +61,7 @@ public sealed class NamingConventions
         var style = nameOpts.style as string;
         if (!string.IsNullOrEmpty(style))
         {
-            if (string.Equals(style, "PascalCase", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(style, "PascalCase", StringComparison.Ordinal))
             {
                 int counter = 0;
                 Span<char> nameSpan = stackalloc char[name.Length];
@@ -83,10 +78,10 @@ public sealed class NamingConventions
 
                     if (name[i] == '_')
                     {
-                        while (name[i] == '_' && i < name.Length)
+                        do
                         {
                             i++;
-                        }
+                        } while (i < name.Length && name[i] == '_');
 
                         nameSpan[counter] = char.ToUpperInvariant(name[i]);
                         counter++;
@@ -95,6 +90,54 @@ public sealed class NamingConventions
                     }
 
                     nameSpan[counter] = name[i];
+                    counter++;
+                }
+
+                name = nameSpan[..counter].ToString();
+            }
+            else if (string.Equals(style, "ALL_CAPS", StringComparison.Ordinal))
+            {
+                int counter = 0;
+                Span<char> nameSpan = stackalloc char[name.Length * 2]; // Worst case, every character is uppercase and followed by an underscore.
+
+                for (int i = 0; i < name.Length; i++)
+                {
+                    // ___ to _
+                    if (name[i] == '_')
+                    {
+                        while (i + 1 < name.Length && name[i + 1] == '_')
+                        {
+                            i++;
+                        }
+
+                        nameSpan[counter] = '_';
+                        counter++;
+
+                        continue;
+                    }
+
+                    // AbC to AB_C
+                    if (i > 0 && char.IsUpper(name[i]) && char.IsLower(name[i - 1]))
+                    {
+                        nameSpan[counter] = '_';
+                        counter++;
+                    }
+
+                    // ABC to ABC
+                    while (i < name.Length && char.IsUpper(name[i]))
+                    {
+                        nameSpan[counter] = name[i];
+
+                        counter++;
+                        i++;
+                    }
+
+                    if (i == name.Length)
+                    {
+                        break;
+                    }
+
+                    nameSpan[counter] = char.ToUpperInvariant(name[i]);
                     counter++;
                 }
 
