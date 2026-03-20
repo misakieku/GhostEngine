@@ -6,6 +6,8 @@ using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using Misaki.HighPerformance.Mathematics;
 using Misaki.HighPerformance.Mathematics.Geometry;
+using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.Core;
 
@@ -67,6 +69,8 @@ public struct Mesh : IResourceReleasable
     private UnsafeList<Vertex> _vertices;
     private UnsafeList<uint> _indices;
     private MeshletMeshData _meshletData;
+
+    public MeshletMeshData MeshletData => _meshletData;
 
     internal bool IsMeshDataDirty
     {
@@ -150,6 +154,22 @@ public struct Mesh : IResourceReleasable
     }
 
     /// <summary>
+    /// Gets the handle to the meshlet vertices buffer on the GPU.
+    /// </summary>
+    public Handle<GraphicsBuffer> MeshletVerticesBuffer
+    {
+        get; internal set;
+    }
+
+    /// <summary>
+    /// Gets the handle to the meshlet triangles buffer on the GPU.
+    /// </summary>
+    public Handle<GraphicsBuffer> MeshletTrianglesBuffer
+    {
+        get; internal set;
+    }
+
+    /// <summary>
     /// Gets the handle to the mesh data buffer on the GPU.
     /// </summary>
     public Handle<GraphicsBuffer> ObjectDataBuffer
@@ -176,6 +196,92 @@ public struct Mesh : IResourceReleasable
         _meshletData.Dispose();
     }
 
+    public unsafe void CookMeshlets()
+    {
+        // 1. Prepare Configuration
+        var config = new ClodConfig
+        {
+            maxVertices = 64,
+            minTriangles = 32,
+            maxTriangles = 124,
+            partitionSize = 128,
+            clusterSpatial = true,
+            clusterFillWeight = 1.0f,
+            clusterSplitFactor = 1.0f,
+            simplifyRatio = 0.5f,
+            simplifyThreshold = 0.5f,
+            simplifyErrorMergePrevious = 0.5f,
+            simplifyErrorMergeAdditive = 0.5f,
+            simplifyErrorFactorSloppy = 1.0f,
+            simplifyErrorEdgeLimit = 1.0f,
+            optimizeBounds = true,
+            optimizeClusters = true
+        };
+
+        // 2. Map Mesh to ClodMesh
+        ClodMesh clodMesh = new ClodMesh
+        {
+            vertexPositions = (float*)_vertices.GetUnsafePtr(),
+            vertexCount = (nuint)_vertices.Count,
+            vertexPositionsStride = (nuint)sizeof(Vertex),
+            indices = (uint*)_indices.GetUnsafePtr(),
+            indexCount = (nuint)_indices.Count,
+            attributeProtectMask = 0
+        };
+
+        // 3. Build
+        MeshletUtility.Build(config, clodMesh, Unsafe.AsPointer(ref this), MeshletOutputCallback);
+    }
+
+    private static unsafe int MeshletOutputCallback(void* context, ClodGroup group, ClodCluster* clusters, nuint clusterCount)
+    {
+        Mesh* mesh = (Mesh*)context;
+        ref var data = ref mesh->_meshletData;
+
+        // Ensure lists are initialized
+        if (!data.groups.IsCreated) data.groups = new UnsafeList<MeshletGroup>(16, Allocator.Persistent);
+        if (!data.meshlets.IsCreated) data.meshlets = new UnsafeList<Meshlet>(64, Allocator.Persistent);
+        if (!data.meshletVertices.IsCreated) data.meshletVertices = new UnsafeList<uint>(128, Allocator.Persistent);
+        if (!data.meshletTriangles.IsCreated) data.meshletTriangles = new UnsafeList<byte>(128, Allocator.Persistent);
+
+        var meshletGroup = new MeshletGroup
+        {
+            meshletStartIndex = (uint)data.meshlets.Count,
+            meshletCount = (uint)clusterCount,
+            lodLevel = (uint)group.depth
+        };
+        data.groups.Add(meshletGroup);
+
+        for (nuint i = 0; i < clusterCount; i++)
+        {
+            var cluster = clusters[i];
+            
+            var meshlet = new Meshlet
+            {
+                vertexCount = (byte)cluster.vertexCount,
+                triangleCount = (byte)(cluster.indexCount / 3),
+                vertexOffset = (uint)data.meshletVertices.Count,
+                triangleOffset = (uint)data.meshletTriangles.Count,
+                groupIndex = (uint)data.groups.Count - 1
+            };
+            data.meshlets.Add(meshlet);
+
+            // Add indices
+            for (nuint j = 0; j < cluster.indexCount; j++)
+            {
+                data.meshletVertices.Add(cluster.indices[j]);
+            }
+            // Add triangles (packed indices or byte offsets)
+            // Assuming 8-bit local indices for meshlets as per standard convention
+            for (nuint j = 0; j < cluster.indexCount; j++)
+            {
+                data.meshletTriangles.Add((byte)j);
+            }
+        }
+
+        return 0;
+    }
+
     public readonly void ReleaseResource(IResourceDatabase database)
     {
         ReleaseCpuResources();
@@ -183,6 +289,8 @@ public struct Mesh : IResourceReleasable
         database.ReleaseResource(VertexBuffer.AsResource());
         database.ReleaseResource(IndexBuffer.AsResource());
         database.ReleaseResource(MeshLetBuffer.AsResource());
+        database.ReleaseResource(MeshletVerticesBuffer.AsResource());
+        database.ReleaseResource(MeshletTrianglesBuffer.AsResource());
         database.ReleaseResource(ObjectDataBuffer.AsResource());
     }
 }
