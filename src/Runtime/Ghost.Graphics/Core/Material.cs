@@ -65,7 +65,7 @@ public struct Material : IResourceReleasable
         get; set;
     }
 
-    public Error SetShader(Identifier<Shader> shaderId, IResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator)
+    public Error SetShader(Identifier<Shader> shaderId, ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator)
     {
         if (!shaderId.IsValid)
         {
@@ -198,7 +198,7 @@ public struct Material : IResourceReleasable
         _isDirty = true;
     }
 
-    public Error SetKeyword(IResourceManager manager, int keywordId, bool enabled)
+    public Error SetKeyword(ResourceManager manager, int keywordId, bool enabled)
     {
         var r = manager.GetShaderReference(_shader);
         if (r.IsFailure)
@@ -219,7 +219,7 @@ public struct Material : IResourceReleasable
         return Error.None;
     }
 
-    public readonly bool IsKeywordEnabled(IResourceManager manager, int keywordId)
+    public readonly bool IsKeywordEnabled(ResourceManager manager, int keywordId)
     {
         var r = manager.GetShaderReference(_shader);
         if (r.IsFailure)

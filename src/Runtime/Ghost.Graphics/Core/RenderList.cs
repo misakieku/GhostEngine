@@ -17,28 +17,28 @@ public struct RenderList : IDisposable
 {
     public unsafe ref struct Enumerator
     {
-        private readonly UnsafeList<RenderRecord>* pList;
-        private readonly int length;
+        private readonly UnsafeList<RenderRecord>* _pList;
+        private readonly int _length;
 
         private int _listIndex;
         private int _itemIndex;
 
         internal Enumerator(RenderList List)
         {
-            pList = (UnsafeList<RenderRecord>*)List._threadLocalRecords.GetUnsafePtr();
-            length = List._threadLocalRecords.Length;
+            _pList = (UnsafeList<RenderRecord>*)List._threadLocalRecords.GetUnsafePtr();
+            _length = List._threadLocalRecords.Length;
 
             _listIndex = 0;
             _itemIndex = -1;
         }
 
-        public RenderRecord Current => pList[_listIndex][_itemIndex];
+        public RenderRecord Current => _pList[_listIndex][_itemIndex];
 
         public bool MoveNext()
         {
-            while (_listIndex < length)
+            while (_listIndex < _length)
             {
-                if (_itemIndex < pList[_listIndex].Count)
+                if (_itemIndex < _pList[_listIndex].Count)
                 {
                     _itemIndex++;
                     return true;

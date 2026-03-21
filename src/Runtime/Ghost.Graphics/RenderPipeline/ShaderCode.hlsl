@@ -21,7 +21,7 @@ struct Meshlet
 };
 
 [numthreads(64, 1, 1)] // 64 threads for max 64 vertices and up to 124 triangles
-[OUTPUT_TRIANGLE_TOPOLOGY]
+[outputtopology("triangle")]
 void MSMain(
     uint3 groupThreadID : SV_GroupThreadID,
     uint groupID : SV_GroupID,

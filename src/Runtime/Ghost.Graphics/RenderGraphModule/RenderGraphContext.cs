@@ -7,7 +7,7 @@ namespace Ghost.Graphics.RenderGraphModule;
 
 public interface IRenderGraphContext
 {
-    IResourceManager ResourceManager { get; }
+    ResourceManager ResourceManager { get; }
     IResourceDatabase ResourceDatabase { get; }
 
     Handle<GPUResource> GetActualResource(Identifier<RGResource> resource);
@@ -41,7 +41,7 @@ public interface IUnsafeRenderContext : IRasterRenderContext, IRenderGraphContex
 
 internal sealed class RenderGraphContext : IRasterRenderContext, IComputeRenderContext, IUnsafeRenderContext
 {
-    private readonly IResourceManager _resourceManager;
+    private readonly ResourceManager _resourceManager;
     private readonly IResourceDatabase _resourceDatabase;
     private readonly IPipelineLibrary _pipelineLibrary;
     private readonly IShaderCompiler _shaderCompiler;
@@ -58,14 +58,14 @@ internal sealed class RenderGraphContext : IRasterRenderContext, IComputeRenderC
     private Handle<GraphicsBuffer> _activePerMeshData;
     private int _activeMeshIndexCount;
 
-    public IResourceManager ResourceManager => _resourceManager;
+    public ResourceManager ResourceManager => _resourceManager;
     public IResourceDatabase ResourceDatabase => _resourceDatabase;
 
     public int ActiveMeshIndexCount => _activeMeshIndexCount;
 
     public ICommandBuffer CommandBuffer => _commandBuffer;
 
-    internal RenderGraphContext(IResourceManager resourceManager, IResourceDatabase resourceDatabase, IPipelineLibrary pipelineLibrary, IShaderCompiler shaderCompiler, RenderGraphResourceRegistry resources)
+    internal RenderGraphContext(ResourceManager resourceManager, IResourceDatabase resourceDatabase, IPipelineLibrary pipelineLibrary, IShaderCompiler shaderCompiler, RenderGraphResourceRegistry resources)
     {
         _resourceManager = resourceManager;
         _resourceDatabase = resourceDatabase;

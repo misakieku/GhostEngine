@@ -9,7 +9,7 @@ namespace Ghost.Graphics.RenderGraphModule;
 /// </summary>
 internal sealed class RenderGraphCompiler
 {
-    private readonly IResourceManager _resourceManager;
+    private readonly ResourceManager _resourceManager;
     private readonly IResourceDatabase _resourceDatabase;
     private readonly IResourceAllocator _resourceAllocator;
     private readonly RenderGraphResourceRegistry _resources;
@@ -20,7 +20,7 @@ internal sealed class RenderGraphCompiler
     private Handle<GPUResource> _resourceHeap;
 
     public RenderGraphCompiler(
-        IResourceManager resourceManager,
+        ResourceManager resourceManager,
         IResourceDatabase resourceDatabase,
         IResourceAllocator resourceAllocator,
         RenderGraphResourceRegistry resources,

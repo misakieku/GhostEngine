@@ -10,18 +10,18 @@ namespace Ghost.Graphics.Core;
 public readonly unsafe ref struct RenderingContext
 {
     private readonly IGraphicsEngine _engine;
-    private readonly IResourceManager _resourceManager;
+    private readonly ResourceManager _resourceManager;
     private readonly ICommandBuffer _directCmd;
 
     public ICommandBuffer DirectCommandBuffer => _directCmd;
 
     public IShaderCompiler ShaderCompiler => _engine.ShaderCompiler;
-    public IResourceManager ResourceManager => _resourceManager;
+    public ResourceManager ResourceManager => _resourceManager;
     public IResourceAllocator ResourceAllocator => _engine.ResourceAllocator;
     public IResourceDatabase ResourceDatabase => _engine.ResourceDatabase;
     public IPipelineLibrary PipelineLibrary => _engine.PipelineLibrary;
 
-    internal RenderingContext(IGraphicsEngine engine, IResourceManager resourceManager, ICommandBuffer directCmd)
+    internal RenderingContext(IGraphicsEngine engine, ResourceManager resourceManager, ICommandBuffer directCmd)
     {
         _engine = engine;
         _resourceManager = resourceManager;
@@ -163,7 +163,7 @@ public readonly unsafe ref struct RenderingContext
         if (r.IsFailure) return;
         
         ref var meshRef = ref r.Value;
-        var meshletData = meshRef.MeshletData;
+        ref readonly var meshletData = ref meshRef.MeshletData;
 
         if (!meshletData.meshlets.IsCreated || meshletData.meshlets.Count == 0) return;
 

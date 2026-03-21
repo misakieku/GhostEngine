@@ -338,9 +338,9 @@ public abstract class SystemGroup : ISystem
     }
 }
 
-public class DefaultSystemGroup : SystemGroup;
+public sealed class DefaultSystemGroup : SystemGroup;
 
-public class SystemManager
+public sealed class SystemManager
 {
     private readonly World _world;
 

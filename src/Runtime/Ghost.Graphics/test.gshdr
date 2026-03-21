@@ -21,7 +21,7 @@ shader "MyShader/Standard"
             color_mask = all;
         }
 
-        mesh "F:/csharp/GhostEngine/src/Runtime//Ghost.Graphics/RenderPasses/ShaderCode.hlsl" : "MSMain";
-        pixel "F:/csharp/GhostEngine/src/Runtime//Ghost.Graphics/RenderPasses/ShaderCode.hlsl" : "PSMain";
+        mesh "F:/csharp/GhostEngine/src/Runtime//Ghost.Graphics/RenderPipeline/ShaderCode.hlsl" : "MSMain";
+        pixel "F:/csharp/GhostEngine/src/Runtime//Ghost.Graphics/RenderPipeline/ShaderCode.hlsl" : "PSMain";
     }
 }

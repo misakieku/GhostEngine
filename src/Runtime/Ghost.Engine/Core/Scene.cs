@@ -107,7 +107,7 @@ public static class SceneManager
             var entities = chunk.GetEntities();
             var sceneIDs = chunk.GetComponentData<Components.SceneID>();
 
-            for (var i = 0; i < chunk.Count; i++)
+            for (var i = 0; i < chunk.EntityCount; i++)
             {
                 if (sceneIDs[i].scene.ID == scene.ID)
                 {
@@ -140,7 +140,7 @@ public static class SceneManager
             var chunkEntities = chunk.GetEntities();
             var sceneIDs = chunk.GetComponentData<Components.SceneID>();
 
-            for (var i = 0; i < chunk.Count; i++)
+            for (var i = 0; i < chunk.EntityCount; i++)
             {
                 if (sceneIDs[i].scene.ID == scene.ID)
                 {

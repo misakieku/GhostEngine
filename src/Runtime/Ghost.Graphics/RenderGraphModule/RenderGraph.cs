@@ -8,7 +8,7 @@ namespace Ghost.Graphics.RenderGraphModule;
 /// </summary>
 public sealed class RenderGraph : IDisposable
 {
-    private readonly IResourceManager _resourceManager;
+    private readonly ResourceManager _resourceManager;
     private readonly IResourceAllocator _resourceAllocator;
     private readonly IResourceDatabase _resourceDatabase;
 
@@ -37,7 +37,7 @@ public sealed class RenderGraph : IDisposable
 
     public RenderGraphBlackboard Blackboard => _blackboard;
 
-    public RenderGraph(IResourceManager resourceManager, IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase, IPipelineLibrary pipelineLibrary, IShaderCompiler shaderCompiler)
+    public RenderGraph(ResourceManager resourceManager, IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase, IPipelineLibrary pipelineLibrary, IShaderCompiler shaderCompiler)
     {
         _resourceManager = resourceManager;
         _resourceAllocator = resourceAllocator;

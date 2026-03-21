@@ -7,7 +7,7 @@ namespace Ghost.Graphics.RenderPipeline;
 
 public sealed class GhostRenderPipelineSettings : IRenderPipelineSettings
 {
-    public static IRenderPipeline CreatePipeline(IRenderSystem renderSystem)
+    public static IRenderPipeline CreatePipeline(RenderSystem renderSystem)
     {
         return new GhostRenderPipeline(renderSystem);
     }
@@ -30,7 +30,7 @@ public unsafe partial class GhostRenderPipeline : IRenderPipeline
         ObjectDisposedException.ThrowIf(_disposed, this);
     }
 
-    internal GhostRenderPipeline(IRenderSystem renderSystem)
+    internal GhostRenderPipeline(RenderSystem renderSystem)
     {
         _renderGraph = new RenderGraph(renderSystem.ResourceManager,
                 renderSystem.GraphicsEngine.ResourceAllocator,

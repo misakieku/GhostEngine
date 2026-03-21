@@ -49,10 +49,6 @@ struct Vertex
 #define SAMPLE_TEXTURE2D_ARRAY(texId, sampId, uvw) SampleTextureArray(texId, sampId, uvw)
 
 
-#define OUTPUT_TRIANGLE_TOPOLOGY outputtopology("triangle")
-#define OUTPUT_LINE_TOPOLOGY outputtopology("line")
-
-
 #define ZERO_INIT(T) (T)0
 
 

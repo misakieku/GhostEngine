@@ -41,7 +41,7 @@ public unsafe partial struct EntityQuery
             private readonly EntityQueryMask _mask;
             private readonly World _world;
 
-            private readonly Stack.Scope _scope;
+            private readonly VirtualStack.Scope _scope;
             private UnsafeList<int> _changedComponentIDs;
 
             private ref Archetype _currentArchetype;
@@ -245,7 +245,7 @@ public unsafe partial struct EntityQuery
             private readonly EntityQueryMask _mask;
             private readonly World _world;
 
-            private readonly Stack.Scope _scope;
+            private readonly VirtualStack.Scope _scope;
             private UnsafeList<int> _changedComponentIDs;
 
             private ref Archetype _currentArchetype;
@@ -459,7 +459,7 @@ public unsafe partial struct EntityQuery
             private readonly EntityQueryMask _mask;
             private readonly World _world;
 
-            private readonly Stack.Scope _scope;
+            private readonly VirtualStack.Scope _scope;
             private UnsafeList<int> _changedComponentIDs;
 
             private ref Archetype _currentArchetype;
@@ -683,7 +683,7 @@ public unsafe partial struct EntityQuery
             private readonly EntityQueryMask _mask;
             private readonly World _world;
 
-            private readonly Stack.Scope _scope;
+            private readonly VirtualStack.Scope _scope;
             private UnsafeList<int> _changedComponentIDs;
 
             private ref Archetype _currentArchetype;
@@ -917,7 +917,7 @@ public unsafe partial struct EntityQuery
             private readonly EntityQueryMask _mask;
             private readonly World _world;
 
-            private readonly Stack.Scope _scope;
+            private readonly VirtualStack.Scope _scope;
             private UnsafeList<int> _changedComponentIDs;
 
             private ref Archetype _currentArchetype;
@@ -1161,7 +1161,7 @@ public unsafe partial struct EntityQuery
             private readonly EntityQueryMask _mask;
             private readonly World _world;
 
-            private readonly Stack.Scope _scope;
+            private readonly VirtualStack.Scope _scope;
             private UnsafeList<int> _changedComponentIDs;
 
             private ref Archetype _currentArchetype;
@@ -1415,7 +1415,7 @@ public unsafe partial struct EntityQuery
             private readonly EntityQueryMask _mask;
             private readonly World _world;
 
-            private readonly Stack.Scope _scope;
+            private readonly VirtualStack.Scope _scope;
             private UnsafeList<int> _changedComponentIDs;
 
             private ref Archetype _currentArchetype;
@@ -1679,7 +1679,7 @@ public unsafe partial struct EntityQuery
             private readonly EntityQueryMask _mask;
             private readonly World _world;
 
-            private readonly Stack.Scope _scope;
+            private readonly VirtualStack.Scope _scope;
             private UnsafeList<int> _changedComponentIDs;
 
             private ref Archetype _currentArchetype;

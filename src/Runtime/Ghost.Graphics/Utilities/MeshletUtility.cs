@@ -143,7 +143,7 @@ public unsafe struct ClodCluster
 /// <summary>
 /// Delegate type for processing generated LOD groups.
 /// </summary>
-public unsafe delegate int ClodOutputDelegate(void* context, ClodGroup group, ClodCluster* clusters, nuint clusterCount);
+public unsafe delegate int ClodOutputDelegate(void* context, ClodGroup group, ReadOnlyUnsafeCollection<ClodCluster> clusters);
 
 // FIX: UnsafeList and UnsafeArray are not same as std::vector.
 
@@ -383,7 +383,7 @@ public static unsafe class MeshletUtility
 
         var clodGroup = new ClodGroup { depth = depth, simplified = simplified };
         var result = outputCallback != null
-            ? outputCallback(outputContext, clodGroup, (ClodCluster*)groupClusters.GetUnsafePtr(), (nuint)groupClusters.Count)
+            ? outputCallback(outputContext, clodGroup, groupClusters.AsReadOnly())
             : -1;
 
         return result;

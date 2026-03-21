@@ -317,7 +317,7 @@ internal class MeshRenderPass : IRenderPass
         }
     }
 
-    public void Cleanup(IResourceManager resourceManager, IResourceDatabase resourceDatabase)
+    public void Cleanup(ResourceManager resourceManager, IResourceDatabase resourceDatabase)
     {
         resourceManager.ReleaseMaterial(_blitMaterial);
 

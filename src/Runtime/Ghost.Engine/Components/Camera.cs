@@ -11,13 +11,13 @@ public unsafe struct Camera : IComponent
     public float nearClipPlane;
     public float farClipPlane;
 
-    public float2 sensorSize;
+    public float2 sensorSize; // mm
     public GateFit gateFit;
     public float iso;
     public float shutterSpeed;
     public float aperture;
-    public float focalLength;
-    public float focusDistance;
+    public float focalLength; // mm
+    public float focusDistance; // m
 
     public RenderingLayerMask renderingLayerMask;
 
@@ -29,5 +29,5 @@ public unsafe struct Camera : IComponent
     // TODO: Add more render targets like motion vector, etc.
 
     // Custim render function. If it's not null, the render system will call this function instead of the default render pipeline.
-    public delegate*<ref readonly RenderingContext, ref readonly RenderRequest, void> renderFunc;
+    public delegate*<ref readonly RenderContext, ref readonly RenderRequest, void> renderFunc;
 }

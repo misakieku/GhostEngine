@@ -8,7 +8,7 @@ public struct MeshInstance : IComponent
 {
     public Handle<Mesh> mesh;
     public Identifier<MaterialPalette> materialPalette;
-    public ShadowCastingMode shadowCastingMode;
     public RenderingLayerMask renderingLayerMask;
+    public ShadowCastingMode shadowCastingMode;
     public bool staticShadowCaster;
 }

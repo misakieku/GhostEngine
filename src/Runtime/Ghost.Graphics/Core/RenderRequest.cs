@@ -1,6 +1,7 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Mathematics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.Core;
@@ -11,35 +12,145 @@ public enum GateFit : uint
     Horizontal,
     Fill,
     Overscan,
-    None
 }
 
 [StructLayout(LayoutKind.Sequential, Pack = 4)]
 public struct Frustum
 {
-    // The data of the 6 planes of the frustum
-    public float3 normal0;
-    public float dist0;
-    public float3 normal1;
-    public float dist1;
-    public float3 normal2;
-    public float dist2;
-    public float3 normal3;
-    public float dist3;
-    public float3 normal4;
-    public float dist4;
-    public float3 normal5;
-    public float dist5;
+    [InlineArray(6)]
+    public struct plane_array
+    {
+        private float4 plane;
+    }
 
-    // The data of the 8 corners of the frustum
-    public float3 corner0;
-    public float3 corner1;
-    public float3 corner2;
-    public float3 corner3;
-    public float3 corner4;
-    public float3 corner5;
-    public float3 corner6;
-    public float3 corner7;
+    [InlineArray(8)]
+    public struct corner_array
+    {
+        private float3 corner;
+    }
+
+    public plane_array planes;
+    public corner_array corners;
+
+    public static void CalculateFrustumPlanes(float4x4 finalMatrix, ref plane_array outPlanes)
+    {
+        const int kPlaneFrustumLeft = 0;
+        const int kPlaneFrustumRight = 1;
+        const int kPlaneFrustumBottom = 2;
+        const int kPlaneFrustumTop = 3;
+        const int kPlaneFrustumNear = 4;
+        const int kPlaneFrustumFar = 5;
+
+        float4 tmpVec = default;
+        float4 otherVec = default;
+
+        tmpVec[0] = finalMatrix[0][3];
+        tmpVec[1] = finalMatrix[1][3];
+        tmpVec[2] = finalMatrix[2][3];
+        tmpVec[3] = finalMatrix[3][3];
+
+        otherVec[0] = finalMatrix[0][0];
+        otherVec[1] = finalMatrix[1][0];
+        otherVec[2] = finalMatrix[2][0];
+        otherVec[3] = finalMatrix[3][0];
+
+        // left & right
+        var leftNormalX = otherVec[0] + tmpVec[0];
+        var leftNormalY = otherVec[1] + tmpVec[1];
+        var leftNormalZ = otherVec[2] + tmpVec[2];
+        var leftDistance = otherVec[3] + tmpVec[3];
+        var leftDot = leftNormalX * leftNormalX + leftNormalY * leftNormalY + leftNormalZ * leftNormalZ;
+        var leftMagnitude = math.sqrt(leftDot);
+        var leftInvMagnitude = 1.0f / leftMagnitude;
+        leftNormalX *= leftInvMagnitude;
+        leftNormalY *= leftInvMagnitude;
+        leftNormalZ *= leftInvMagnitude;
+        leftDistance *= leftInvMagnitude;
+        outPlanes[kPlaneFrustumLeft].xyz = new float3(leftNormalX, leftNormalY, leftNormalZ);
+        outPlanes[kPlaneFrustumLeft].w = leftDistance;
+
+        var rightNormalX = -otherVec[0] + tmpVec[0];
+        var rightNormalY = -otherVec[1] + tmpVec[1];
+        var rightNormalZ = -otherVec[2] + tmpVec[2];
+        var rightDistance = -otherVec[3] + tmpVec[3];
+        var rightDot = rightNormalX * rightNormalX + rightNormalY * rightNormalY + rightNormalZ * rightNormalZ;
+        var rightMagnitude = math.sqrt(rightDot);
+        var rightInvMagnitude = 1.0f / rightMagnitude;
+        rightNormalX *= rightInvMagnitude;
+        rightNormalY *= rightInvMagnitude;
+        rightNormalZ *= rightInvMagnitude;
+        rightDistance *= rightInvMagnitude;
+        outPlanes[kPlaneFrustumRight].xyz = new float3(rightNormalX, rightNormalY, rightNormalZ);
+        outPlanes[kPlaneFrustumRight].w = rightDistance;
+
+        // bottom & top
+        otherVec[0] = finalMatrix[0][1];
+        otherVec[1] = finalMatrix[1][1];
+        otherVec[2] = finalMatrix[2][1];
+        otherVec[3] = finalMatrix[3][1];
+
+        var bottomNormalX = otherVec[0] + tmpVec[0];
+        var bottomNormalY = otherVec[1] + tmpVec[1];
+        var bottomNormalZ = otherVec[2] + tmpVec[2];
+        var bottomDistance = otherVec[3] + tmpVec[3];
+        var bottomDot = bottomNormalX * bottomNormalX + bottomNormalY * bottomNormalY + bottomNormalZ * bottomNormalZ;
+        var bottomMagnitude = math.sqrt(bottomDot);
+        var bottomInvMagnitude = 1.0f / bottomMagnitude;
+        bottomNormalX *= bottomInvMagnitude;
+        bottomNormalY *= bottomInvMagnitude;
+        bottomNormalZ *= bottomInvMagnitude;
+        bottomDistance *= bottomInvMagnitude;
+        outPlanes[kPlaneFrustumBottom].xyz = new float3(bottomNormalX, bottomNormalY, bottomNormalZ);
+        outPlanes[kPlaneFrustumBottom].w = bottomDistance;
+
+        var topNormalX = -otherVec[0] + tmpVec[0];
+        var topNormalY = -otherVec[1] + tmpVec[1];
+        var topNormalZ = -otherVec[2] + tmpVec[2];
+        var topDistance = -otherVec[3] + tmpVec[3];
+        var topDot = topNormalX * topNormalX + topNormalY * topNormalY + topNormalZ * topNormalZ;
+        var topMagnitude = math.sqrt(topDot);
+        var topInvMagnitude = 1.0f / topMagnitude;
+        topNormalX *= topInvMagnitude;
+        topNormalY *= topInvMagnitude;
+        topNormalZ *= topInvMagnitude;
+        topDistance *= topInvMagnitude;
+        outPlanes[kPlaneFrustumTop].xyz = new float3(topNormalX, topNormalY, topNormalZ);
+        outPlanes[kPlaneFrustumTop].w = topDistance;
+
+        // near & far
+        otherVec[0] = finalMatrix[0][2];
+        otherVec[1] = finalMatrix[1][2];
+        otherVec[2] = finalMatrix[2][2];
+        otherVec[3] = finalMatrix[3][2];
+
+        var nearNormalX = otherVec[0] + tmpVec[0];
+        var nearNormalY = otherVec[1] + tmpVec[1];
+        var nearNormalZ = otherVec[2] + tmpVec[2];
+        var nearDistance = otherVec[3] + tmpVec[3];
+        var nearDot = nearNormalX * nearNormalX + nearNormalY * nearNormalY + nearNormalZ * nearNormalZ;
+        var nearMagnitude = math.sqrt(nearDot);
+        var nearInvMagnitude = 1.0f / nearMagnitude;
+        nearNormalX *= nearInvMagnitude;
+        nearNormalY *= nearInvMagnitude;
+        nearNormalZ *= nearInvMagnitude;
+        nearDistance *= nearInvMagnitude;
+        outPlanes[kPlaneFrustumNear].xyz = new float3(nearNormalX, nearNormalY, nearNormalZ);
+        outPlanes[kPlaneFrustumNear].w = nearDistance;
+
+        var farNormalX = -otherVec[0] + tmpVec[0];
+        var farNormalY = -otherVec[1] + tmpVec[1];
+        var farNormalZ = -otherVec[2] + tmpVec[2];
+        var farDistance = -otherVec[3] + tmpVec[3];
+        var farDot = farNormalX * farNormalX + farNormalY * farNormalY + farNormalZ * farNormalZ;
+        var farMagnitude = math.sqrt(farDot);
+        var farInvMagnitude = 1.0f / farMagnitude;
+        farNormalX *= farInvMagnitude;
+        farNormalY *= farInvMagnitude;
+        farNormalZ *= farInvMagnitude;
+        farDistance *= farInvMagnitude;
+        outPlanes[kPlaneFrustumFar].xyz = new float3(farNormalX, farNormalY, farNormalZ);
+        outPlanes[kPlaneFrustumFar].w = farDistance;
+    }
 }
 
 // Since we are using ByteAddressBuffer in hlsl, we don't need to care about the 16 bytes alignment of the data like in CBuffer.
@@ -54,6 +165,7 @@ public struct RenderView
     public float nearClipPlane;
     public float farClipPlane;
 
+    // Maybe use fov directly?
     public float2 sensorSize;
     public GateFit gateFit;
     public float iso;

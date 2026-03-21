@@ -1,29 +1,25 @@
-using Ghost.Graphics.Test.Models;
-using Ghost.Graphics.Test.Services;
+using Ghost.Core;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 
 namespace Ghost.Graphics.Test.Controls;
 
 public sealed partial class DebugConsole : UserControl
 {
-    private readonly ObservableCollection<LogItem> _filteredLogs = [];
-    private readonly LoggingService _loggingService;
+    private readonly ObservableCollection<LogMessage> _filteredLogs = [];
 
     public DebugConsole()
     {
         InitializeComponent();
-        _loggingService = LoggingService.Instance;
 
         LogItemsRepeater.ItemsSource = _filteredLogs;
 
-        // Subscribe to logging events
-        _loggingService.LogAdded += OnLogAdded;
-        _loggingService.LogsCleared += OnLogsCleared;
+        Logger.Logs.LogChanged += OnLogChange;
 
         // Subscribe to filter changes
         ShowInfoCheckBox.Checked += OnFilterChanged;
@@ -39,27 +35,47 @@ public sealed partial class DebugConsole : UserControl
         RefreshLogs();
     }
 
-    private void OnLogAdded(LogItem logItem)
+    private void OnLogChange(object? sender, NotifyCollectionChangedEventArgs e)
     {
         DispatcherQueue.TryEnqueue(() =>
         {
-            if (ShouldShowLogItem(logItem))
+            switch (e.Action)
             {
-                _filteredLogs.Add(logItem);
+                case NotifyCollectionChangedAction.Add:
+                    if (e.NewItems != null)
+                    {
+                        foreach (var item in e.NewItems)
+                        {
+                            if (item is LogMessage logMessage && ShouldShowLogItem(logMessage))
+                            {
+                                _filteredLogs.Add(logMessage);
+                                if (AutoScrollCheckBox.IsChecked == true)
+                                {
+                                    LogScrollViewer.ScrollToVerticalOffset(LogScrollViewer.ScrollableHeight);
+                                }
+                            }
+                        }
+                    }
+                    break;
 
-                if (AutoScrollCheckBox.IsChecked == true)
-                {
-                    LogScrollViewer.ScrollToVerticalOffset(LogScrollViewer.ScrollableHeight);
-                }
+                case NotifyCollectionChangedAction.Remove:
+                    if (e.OldItems != null)
+                    {
+                        foreach (var item in e.OldItems)
+                        {
+                            if (item is LogMessage logMessage)
+                            {
+                                _filteredLogs.Remove(logMessage);
+                            }
+                        }
+                    }
+                    break;
+                case NotifyCollectionChangedAction.Reset:
+                    RefreshLogs();
+                    break;
+                default:
+                    break;
             }
-        });
-    }
-
-    private void OnLogsCleared()
-    {
-        DispatcherQueue.TryEnqueue(() =>
-        {
-            _filteredLogs.Clear();
         });
     }
 
@@ -68,9 +84,9 @@ public sealed partial class DebugConsole : UserControl
         RefreshLogs();
     }
 
-    private bool ShouldShowLogItem(LogItem logItem)
+    private bool ShouldShowLogItem(LogMessage message)
     {
-        return logItem.Level switch
+        return message.Level switch
         {
             LogLevel.Info => ShowInfoCheckBox.IsChecked == true,
             LogLevel.Warning => ShowWarningCheckBox.IsChecked == true,
@@ -84,7 +100,7 @@ public sealed partial class DebugConsole : UserControl
     {
         _filteredLogs.Clear();
 
-        foreach (var log in _loggingService.Logs)
+        foreach (var log in Logger.Logs)
         {
             if (ShouldShowLogItem(log))
             {
@@ -100,17 +116,17 @@ public sealed partial class DebugConsole : UserControl
 
     private void ClearButton_Click(object sender, RoutedEventArgs e)
     {
-        _loggingService.Clear();
+        Logger.Impl.Clear();
     }
 
     private void ShowStackTraceCheckBox_Checked(object sender, RoutedEventArgs e)
     {
-        _loggingService.CaptureStackTrace = true;
+        Logger.Impl.CaptureStackTrace = true;
     }
 
     private void ShowStackTraceCheckBox_Unchecked(object sender, RoutedEventArgs e)
     {
-        _loggingService.CaptureStackTrace = false;
+        Logger.Impl.CaptureStackTrace = false;
     }
 }
 

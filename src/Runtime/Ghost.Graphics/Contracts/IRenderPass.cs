@@ -8,5 +8,5 @@ public interface IRenderPass
 {
     void Initialize(ref readonly RenderingContext ctx);
     void Build(RenderGraph graph, Identifier<RGTexture> backbuffer);
-    void Cleanup(IResourceManager resourceManager, IResourceDatabase resourceDatabase);
+    void Cleanup(ResourceManager resourceManager, IResourceDatabase resourceDatabase);
 }

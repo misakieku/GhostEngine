@@ -20,7 +20,7 @@ internal struct TestChunkQueryJob : IJobChunk
         var random = new random((uint)ctx.ThreadIndex + 1u);
 
         var transforms = view.GetComponentDataRW<Transform>();
-        for (var i = 0; i < view.Count; i++)
+        for (var i = 0; i < view.EntityCount; i++)
         {
             transforms[i].position += random.NextFloat3();
         }
@@ -76,8 +76,8 @@ public partial class EntityQueryTest : ITest
                 // var bits = chunk.GetEnableBits<Transform>();
 
                 // var it = bits.GetIterator();
-                // while (it.Next(out var index) && index < chunk.Count)
-                for (var index = 0; index < chunk.Count; index++)
+                // while (it.Next(out var index) && index < chunk.EntityCount)
+                for (var index = 0; index < chunk.EntityCount; index++)
                 {
                     Console.WriteLine($"Entity {chunkEntities[index]} Updated Position: {transforms[index].position}");
                 }

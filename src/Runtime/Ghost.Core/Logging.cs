@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Diagnostics;
 
 namespace Ghost.Core;
@@ -7,10 +8,11 @@ public enum LogLevel
 {
     Info,
     Warning,
-    Error
+    Error,
+    Debug
 }
 
-public readonly struct LogMessage
+public class LogMessage
 {
     public LogLevel Level
     {
@@ -51,17 +53,38 @@ public readonly struct LogMessage
     }
 }
 
+public sealed class LogCollection : ReadOnlyObservableCollection<LogMessage>
+{
+    public LogCollection(ObservableCollection<LogMessage> list)
+        : base(list)
+    {
+    }
+
+    public event NotifyCollectionChangedEventHandler? LogChanged;
+
+    protected override void OnCollectionChanged(NotifyCollectionChangedEventArgs args)
+    {
+        base.OnCollectionChanged(args);
+        LogChanged?.Invoke(this, args);
+    }
+}
+
 public interface ILogger
 {
-    ReadOnlyObservableCollection<LogMessage> Logs
+    LogCollection Logs
     {
         get;
+    }
+
+    public bool CaptureStackTrace
+    {
+        get; set;
     }
 
     void Log(string message, LogLevel level);
     void Log(Exception exception);
     void Assert(bool condition, string message);
-    void Clear();
+    void Clear(bool includeFile = false);
 }
 
 public static class Logger
@@ -70,14 +93,19 @@ public static class Logger
     private class LoggerImpl : ILogger
     {
         private readonly ObservableCollection<LogMessage> _logs = new();
-        private readonly ReadOnlyObservableCollection<LogMessage> _readOnly;
+        private readonly LogCollection _readOnly;
         private readonly Lock _lock = new();
 
-        public ReadOnlyObservableCollection<LogMessage> Logs => _readOnly;
+        public LogCollection Logs => _readOnly;
+
+        public bool CaptureStackTrace
+        {
+            get; set;
+        } = true;
 
         public LoggerImpl()
         {
-            _readOnly = new ReadOnlyObservableCollection<LogMessage>(_logs);
+            _readOnly = new LogCollection(_logs);
         }
 
         [StackTraceHidden]
@@ -85,7 +113,8 @@ public static class Logger
         {
             lock (_lock)
             {
-                _logs.Add(new LogMessage(level, message));
+                var stackTrace = CaptureStackTrace ? new StackTrace(true).ToString() : null;
+                _logs.Add(new LogMessage(level, message, stackTrace));
             }
         }
 
@@ -101,16 +130,13 @@ public static class Logger
         [StackTraceHidden]
         public void Assert(bool condition, string message)
         {
-            lock (_lock)
+            if (!condition)
             {
-                if (!condition)
-                {
-                    Log(message, LogLevel.Error);
-                }
+                Log(message, LogLevel.Error);
             }
         }
 
-        public void Clear()
+        public void Clear(bool includeFile = false)
         {
             lock (_lock)
             {
@@ -119,9 +145,10 @@ public static class Logger
         }
     }
 
-    private static readonly ILogger s_logger = new LoggerImpl();
+    private static readonly LoggerImpl s_logger = new LoggerImpl();
 
-    public static ReadOnlyObservableCollection<LogMessage> Logs => s_logger.Logs;
+    public static ILogger Impl => s_logger;
+    public static LogCollection Logs => s_logger.Logs;
 
     [StackTraceHidden]
     public static void Log(LogLevel level, object? message)
@@ -207,8 +234,27 @@ public static class Logger
         s_logger.Assert(condition, message);
     }
 
-    public static void Clear()
+    [StackTraceHidden]
+    [Conditional("DEBUG")]
+    [Conditional("GHOST_EDITOR")]
+    public static void Debug(object? message)
     {
-        s_logger.Clear();
+        s_logger.Log(message?.ToString() ?? "null", LogLevel.Debug);
+    }
+
+    [StackTraceHidden]
+    [Conditional("DEBUG")]
+    [Conditional("GHOST_EDITOR")]
+    public static void Debug(string message)
+    {
+        s_logger.Log(message, LogLevel.Debug);
+    }
+
+    [StackTraceHidden]
+    [Conditional("DEBUG")]
+    [Conditional("GHOST_EDITOR")]
+    public static void Debug(string format, params object?[] args)
+    {
+        s_logger.Log(string.Format(format, args), LogLevel.Debug);
     }
 }

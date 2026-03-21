@@ -5,7 +5,7 @@ namespace Ghost.Graphics.RenderPipeline;
 
 public interface IRenderPipelineSettings
 {
-    static abstract IRenderPipeline CreatePipeline(IRenderSystem renderSystem);
+    static abstract IRenderPipeline CreatePipeline(RenderSystem renderSystem);
 }
 
 public interface IRenderPipeline : IDisposable

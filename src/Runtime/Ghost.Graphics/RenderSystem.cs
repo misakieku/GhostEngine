@@ -6,34 +6,12 @@ using System.Collections.Concurrent;
 
 namespace Ghost.Graphics;
 
-public interface IRenderSystem : IFenceSynchronizer, IDisposable
-{
-    IGraphicsEngine GraphicsEngine
-    {
-        get;
-    }
-
-    IResourceManager ResourceManager
-    {
-        get;
-    }
-
-    bool IsRunning
-    {
-        get;
-    }
-
-    void Start();
-    void Stop();
-    void RequestSwapChainResize(ISwapChain swapChain, uint2 newSize);
-}
-
-public enum GraphicsAPI
+internal enum GraphicsAPI
 {
     Direct3D12
 }
 
-public struct RenderSystemDesc
+internal struct RenderSystemDesc
 {
     public GraphicsAPI GraphicsAPI
     {
@@ -50,9 +28,8 @@ public struct RenderSystemDesc
 /// Application-level render system that orchestrates multiple renderers
 /// and handles frame synchronization
 /// </summary>
-internal class RenderSystem : IRenderSystem
+public class RenderSystem : IDisposable
 {
-    // TODO: Thread local command buffers.
     private struct FrameResource : IDisposable
     {
         public required AutoResetEvent CpuReadyEvent
@@ -85,7 +62,7 @@ internal class RenderSystem : IRenderSystem
 
     private readonly RenderSystemDesc _config;
     private readonly IGraphicsEngine _graphicsEngine;
-    private readonly IResourceManager _resourceManager;
+    private readonly ResourceManager _resourceManager;
 
     private readonly FrameResource[] _frameResources;
     private readonly Thread _renderThread;
@@ -100,7 +77,7 @@ internal class RenderSystem : IRenderSystem
     private bool _disposed;
 
     public IGraphicsEngine GraphicsEngine => _graphicsEngine;
-    public IResourceManager ResourceManager => _resourceManager;
+    public ResourceManager ResourceManager => _resourceManager;
     public bool IsRunning => _isRunning;
 
     public uint CPUFenceValue => _cpuFenceValue;
@@ -108,7 +85,7 @@ internal class RenderSystem : IRenderSystem
     public uint FrameIndex => _frameIndex;
     public uint MaxFrameLatency => _config.FrameBufferCount;
 
-    public RenderSystem(RenderSystemDesc desc)
+    internal RenderSystem(RenderSystemDesc desc)
     {
         _config = desc;
 
@@ -169,67 +146,6 @@ internal class RenderSystem : IRenderSystem
         Dispose();
     }
 
-    public void Start()
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        if (_isRunning)
-        {
-            return;
-        }
-
-        _isRunning = true;
-        _renderThread.Start();
-    }
-
-    public void Stop()
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        if (!_isRunning)
-        {
-            return;
-        }
-
-        _isRunning = false;
-        _shutdownEvent.Set();
-        _renderThread.Join();
-    }
-
-    public void RequestSwapChainResize(ISwapChain swapChain, uint2 newSize)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        _resizeRequest.AddOrUpdate(swapChain, newSize, (_, _) => newSize);
-    }
-
-    public bool WaitForGPUReady(int timeOut = -1)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        var eventIndex = (int)(_cpuFenceValue % _config.FrameBufferCount);
-        return _frameResources[eventIndex].GpuReadyEvent.WaitOne(timeOut);
-    }
-
-    public void SignalCPUReady()
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        var eventIndex = (int)(_cpuFenceValue % _config.FrameBufferCount);
-        _frameResources[eventIndex].CpuReadyEvent.Set();
-        _cpuFenceValue++;
-    }
-
-    public void WaitIdle()
-    {
-        foreach (var frameResource in _frameResources)
-        {
-            if (frameResource.FenceValue > 0)
-            {
-                _graphicsEngine.Device.GraphicsQueue.WaitForValue(frameResource.FenceValue);
-            }
-        }
-    }
-
     private void RenderLoop()
     {
         var waitHandles = new WaitHandle[] { null!, _shutdownEvent };
@@ -272,14 +188,16 @@ internal class RenderSystem : IRenderSystem
                         resource.CommandAllocator.Reset();
                     }
 
-                    foreach (var kvp in _resizeRequest)
+                    var keys = _resizeRequest.Keys.ToArray();
+                    foreach (var swapChain in keys)
                     {
-                        var swapChain = kvp.Key;
-                        var newSize = kvp.Value;
-                        swapChain.Resize(newSize.x, newSize.y);
+                        if (_resizeRequest.TryRemove(swapChain, out var newSize))
+                        {
+                            swapChain.Resize(newSize.x, newSize.y);
+                        }
                     }
 
-                    _resizeRequest.Clear();
+                    frameResource.GpuReadyEvent.Set();
 
                     continue; // Skip rendering this frame since we just resized and may have invalid render targets
                 }
@@ -300,6 +218,67 @@ internal class RenderSystem : IRenderSystem
 
                 frameResource.GpuReadyEvent.Set();
                 frameResource.FenceValue = _graphicsEngine.Device.GraphicsQueue.Signal(_gpuFenceValue);
+            }
+        }
+    }
+
+    internal void Start()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (_isRunning)
+        {
+            return;
+        }
+
+        _isRunning = true;
+        _renderThread.Start();
+    }
+
+    internal void Stop()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (!_isRunning)
+        {
+            return;
+        }
+
+        _isRunning = false;
+        _shutdownEvent.Set();
+        _renderThread.Join();
+    }
+
+    internal void SignalCPUReady()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        var eventIndex = (int)(_cpuFenceValue % _config.FrameBufferCount);
+        _frameResources[eventIndex].CpuReadyEvent.Set();
+        _cpuFenceValue++;
+    }
+
+    internal void RequestSwapChainResize(ISwapChain swapChain, uint2 newSize)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        _resizeRequest.AddOrUpdate(swapChain, newSize, (_, _) => newSize);
+    }
+
+    public bool WaitForGPUReady(int timeOut = -1)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        var eventIndex = (int)(_cpuFenceValue % _config.FrameBufferCount);
+        return _frameResources[eventIndex].GpuReadyEvent.WaitOne(timeOut);
+    }
+
+    public void WaitIdle()
+    {
+        foreach (var frameResource in _frameResources)
+        {
+            if (frameResource.FenceValue > 0)
+            {
+                _graphicsEngine.Device.GraphicsQueue.WaitForValue(frameResource.FenceValue);
             }
         }
     }

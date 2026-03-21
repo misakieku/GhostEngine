@@ -1,6 +1,7 @@
 using Ghost.Editor.Core.Utilities;
 using Ghost.Editor.Models;
 using Ghost.Engine;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Reflection;
 
 namespace Ghost.Editor;
@@ -53,10 +54,19 @@ internal static class ActivationHandler
 
     public static async Task HandleAsync(LaunchArguments args)
     {
+        var opts = new AllocationManagerInitOpts
+        {
+            ArenaCapacity = 1024 * 1024 * 1024, // 1 GB. Arena using virtual memory, so this is just a reservation and won't actually consume physical memory until used.
+            StackCapacity = 1024 * 1024 * 32, // 32 MB. Stack using virtual memory, so this is just a reservation and won't actually consume physical memory until used.
+            FreeListConcurrencyLevel = Environment.ProcessorCount
+        };
+
+        AllocationManager.Initialize(opts);
+
         await Task.Run(() =>
         {
             TypeCache.Init();
-            ((EngineCore)App.GetService<IEngineContext>()).Init();
+            App.GetService<EngineCore>();
         });
 
         // await ((Core.AssetHandle.AssetService)App.GetService<IAssetService>()).Init();

@@ -96,7 +96,7 @@ public readonly unsafe ref struct ChunkView
     private readonly int _structuralVersion;
     private readonly int _currentVersion;
 
-    public readonly int Count => _entityCount;
+    public readonly int EntityCount => _entityCount;
 
     internal ChunkView(ref readonly Archetype archetype, ref readonly Chunk chunk)
     {
@@ -478,7 +478,7 @@ public unsafe partial struct EntityQuery : IDisposable
 
 public ref partial struct QueryBuilder : IDisposable
 {
-    private readonly Stack.Scope _scope;
+    private readonly VirtualStack.Scope _scope;
 
     private UnsafeList<Identifier<IComponent>> _all;
     private UnsafeList<Identifier<IComponent>> _any;
@@ -665,6 +665,10 @@ public ref partial struct QueryBuilder : IDisposable
         if (dispose)
         {
             Dispose();
+        }
+        else
+        {
+            Clear();
         }
 
         return queryID;

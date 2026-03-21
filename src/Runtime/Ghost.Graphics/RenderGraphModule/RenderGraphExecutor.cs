@@ -5,7 +5,7 @@ namespace Ghost.Graphics.RenderGraphModule;
 
 internal sealed class RenderGraphExecutor
 {
-    private readonly IResourceManager _resourceManager;
+    private readonly ResourceManager _resourceManager;
     private readonly IResourceDatabase _resourceDatabase;
     private readonly RenderGraphResourceRegistry _resources;
     private readonly RenderGraphContext _context;
@@ -13,7 +13,7 @@ internal sealed class RenderGraphExecutor
     private uint _frameIndex;
 
     public RenderGraphExecutor(
-        IResourceManager resourceManager,
+        ResourceManager resourceManager,
         IResourceDatabase resourceDatabase,
         RenderGraphResourceRegistry resources,
         RenderGraphContext context)

@@ -9,7 +9,7 @@ namespace Ghost.Graphics.Test.Windows;
 
 public sealed partial class GraphicsTestWindow : Window
 {
-    private IRenderSystem? _renderSystem;
+    private RenderSystem? _renderSystem;
     private IRenderer? _renderer;
     private ISwapChain? _swapChain;
 

@@ -6,11 +6,13 @@ using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using Misaki.HighPerformance.Mathematics;
 using Misaki.HighPerformance.Mathematics.Geometry;
-using System.Runtime.InteropServices;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.Core;
 
+[StructLayout(LayoutKind.Sequential)]
 public struct Meshlet
 {
     public SphereBounds boundingSphere;   // 16 bytes
@@ -25,6 +27,7 @@ public struct Meshlet
     public byte lodLevel;                 // this meshlet's LOD level
 }
 
+[StructLayout(LayoutKind.Sequential)]
 public struct MeshletGroup
 {
     public SphereBounds boundingSphere;   // 16 bytes
@@ -35,6 +38,7 @@ public struct MeshletGroup
     public uint lodLevel;                 // group LOD level
 }
 
+[StructLayout(LayoutKind.Sequential)]
 public struct MeshletHierarchyNode
 {
     public SphereBounds boundingSphere;   // 16 bytes
@@ -43,6 +47,7 @@ public struct MeshletHierarchyNode
     public uint nodeData;                 // packed leaf/internal metadata
 }
 
+[StructLayout(LayoutKind.Sequential)]
 public struct MeshletMeshData : IDisposable
 {
     public UnsafeList<Meshlet> meshlets;
@@ -63,14 +68,14 @@ public struct MeshletMeshData : IDisposable
     }
 }
 
-// TODO: Support and meshlets.
 public struct Mesh : IResourceReleasable
 {
     private UnsafeList<Vertex> _vertices;
     private UnsafeList<uint> _indices;
     private MeshletMeshData _meshletData;
 
-    public MeshletMeshData MeshletData => _meshletData;
+    [UnscopedRef]
+    public readonly ref readonly MeshletMeshData MeshletData => ref _meshletData;
 
     internal bool IsMeshDataDirty
     {
@@ -219,7 +224,7 @@ public struct Mesh : IResourceReleasable
         };
 
         // 2. Map Mesh to ClodMesh
-        ClodMesh clodMesh = new ClodMesh
+        var clodMesh = new ClodMesh
         {
             vertexPositions = (float*)_vertices.GetUnsafePtr(),
             vertexCount = (nuint)_vertices.Count,
@@ -233,9 +238,9 @@ public struct Mesh : IResourceReleasable
         MeshletUtility.Build(config, clodMesh, Unsafe.AsPointer(ref this), MeshletOutputCallback);
     }
 
-    private static unsafe int MeshletOutputCallback(void* context, ClodGroup group, ClodCluster* clusters, nuint clusterCount)
+    private static unsafe int MeshletOutputCallback(void* context, ClodGroup group, ReadOnlyUnsafeCollection<ClodCluster>clusters)
     {
-        Mesh* mesh = (Mesh*)context;
+        var mesh = (Mesh*)context;
         ref var data = ref mesh->_meshletData;
 
         // Ensure lists are initialized
@@ -247,15 +252,15 @@ public struct Mesh : IResourceReleasable
         var meshletGroup = new MeshletGroup
         {
             meshletStartIndex = (uint)data.meshlets.Count,
-            meshletCount = (uint)clusterCount,
+            meshletCount = (uint)clusters.Count,
             lodLevel = (uint)group.depth
         };
         data.groups.Add(meshletGroup);
 
-        for (nuint i = 0; i < clusterCount; i++)
+        for (var i = 0; i < clusters.Count; i++)
         {
             var cluster = clusters[i];
-            
+
             var meshlet = new Meshlet
             {
                 vertexCount = (byte)cluster.vertexCount,

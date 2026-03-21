@@ -57,7 +57,7 @@ public partial class App : Application
             UseContentRoot(AppContext.BaseDirectory).
             ConfigureServices((context, services) =>
             {
-                services.AddSingleton<IEngineContext, EngineCore>();
+                services.AddSingleton<EngineCore>();
 
                 services.AddSingleton<INotificationService, NotificationService>();
                 services.AddSingleton<IProgressService, ProgressService>();
