@@ -4,6 +4,7 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
 
@@ -130,7 +131,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
 
     internal unsafe Handle<GPUResource> ImportExternalResource(ID3D12Resource* pResource, ResourceBarrierData initialBarrierData, ResourceViewGroup viewGroup, string? name = null)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
 
         if (pResource == null)
         {
@@ -156,7 +157,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
 
     public unsafe Handle<GPUResource> AddAllocation(D3D12MA_Allocation* allocation, ResourceBarrierData initialBarrierData, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string? name = null)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
         if (allocation == null)
         {
 #if DEBUG
@@ -186,13 +187,13 @@ internal class D3D12ResourceDatabase : IResourceDatabase
 
     public bool HasResource(Handle<GPUResource> handle)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
         return _resources.Contains(handle.ID, handle.Generation);
     }
 
     public RefResult<ResourceRecord, Error> GetResourceRecord(Handle<GPUResource> handle)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
 
         ref var info = ref _resources.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
         if (!exist)
@@ -267,7 +268,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
 
     public string? GetResourceName(Handle<GPUResource> handle)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
 
 #if DEBUG || GHOST_EDITOR
         if (_resourceName.TryGetValue(handle, out var name))
@@ -280,7 +281,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
 
     public void ReleaseResource(Handle<GPUResource> handle)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
 
         if (_resources.TryGetElementAt(handle.ID, handle.Generation, out var record))
         {
@@ -299,7 +300,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
 
     public void ReleaseResourceImmediately(Handle<GPUResource> handle)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
 
         ref var info = ref _resources.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
         if (!exist || !info.Allocated)
@@ -313,7 +314,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
 
     public Identifier<Sampler> AddSampler(ref readonly SamplerDesc desc, int id)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
 
         if (_samplers.ContainsKey(desc))
         {
@@ -328,13 +329,13 @@ internal class D3D12ResourceDatabase : IResourceDatabase
 
     public bool TryGetSampler(ref readonly SamplerDesc desc, out Identifier<Sampler> id)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
         return _samplers.TryGetValue(desc, out id);
     }
 
     public void ReleaseSampler(Identifier<Sampler> id)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
 
         // NOTE: We almost never release samplers individually, because they are cheap and can be reused.
         // Ideally we would release all samplers at once when disposing the ResourceDatabase.
@@ -360,13 +361,13 @@ internal class D3D12ResourceDatabase : IResourceDatabase
 
     public void BeginFrame(uint currentFrameFenceValue)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
         _currentFrameFenceValue = currentFrameFenceValue;
     }
 
     public void EndFrame(uint completedFenceValue)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
 
         while (_releaseQueue.Count > 0)
         {
@@ -384,7 +385,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
 
     internal void ReleaseAllResourcesImmediately()
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
 
         foreach (ref var record in _resources)
         {

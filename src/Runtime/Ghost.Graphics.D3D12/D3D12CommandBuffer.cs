@@ -79,6 +79,7 @@ internal unsafe class D3D12CommandBuffer : ICommandBuffer
         Dispose();
     }
 
+    [Conditional("DEBUG")]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ThrowIfDisposed()
     {

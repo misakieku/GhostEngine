@@ -78,11 +78,18 @@ public interface IGraphicsEngine : IDisposable
     ISwapChain CreateSwapChain(SwapChainDesc desc);
 
     /// <summary>
-    /// Renders the current frame.
+    /// Begin the current frame.
     /// </summary>
-    /// <param name="commandAllocator">Command allocator to use for rendering</param>
     /// <param name="cpuFenceValue">CPU fence value for synchronization</param>
     /// <param name="gpuFenceValue">GPU fence value for synchronization</param>
-    /// <returns>Result of the rendering operation</returns>
-    Result RenderFrame(ICommandAllocator commandAllocator, uint cpuFenceValue, uint gpuFenceValue);
+    /// <returns>Result of the begin frame operation</returns>
+    Result BeginFrame(uint cpuFenceValue, uint gpuFenceValue);
+
+    /// <summary>
+    /// End the current frame.
+    /// </summary>
+    /// <param name="cpuFenceValue">CPU fence value for synchronization</param>
+    /// <param name="gpuFenceValue">GPU fence value for synchronization</param>
+    /// <returns>Result of the end frame operation</returns>
+    Result EndFrame(uint cpuFenceValue, uint gpuFenceValue);
 }

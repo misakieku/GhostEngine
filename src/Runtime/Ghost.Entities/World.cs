@@ -1,7 +1,6 @@
 using Ghost.Core;
 using Misaki.HighPerformance.Jobs;
 using System.Runtime.CompilerServices;
-using TerraFX.Interop.Windows;
 
 namespace Ghost.Entities;
 
@@ -86,7 +85,7 @@ public partial class World : IDisposable, IEquatable<World>
     private readonly ComponentManager _componentManager;
     private readonly SystemManager _systemManager;
 
-    private readonly Dictionary<Type, object> _globalResource;
+    private readonly Dictionary<Type, object> _services;
 
     private int _version;
     private bool _disposed = false;
@@ -140,7 +139,7 @@ public partial class World : IDisposable, IEquatable<World>
         _componentManager = new ComponentManager(this);
         _systemManager = new SystemManager(this);
 
-        _globalResource = new Dictionary<Type, object>();
+        _services = new Dictionary<Type, object>();
 
         if (jobScheduler != null)
         {
@@ -195,20 +194,20 @@ public partial class World : IDisposable, IEquatable<World>
     /// Registers or overwrites a global resource in the world.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetResource<T>(T resource)
+    public void AddService<T>(T resource)
         where T : class
     {
-        _globalResource[typeof(T)] = resource;
+        _services[typeof(T)] = resource;
     }
 
     /// <summary>
     /// Retrieves a global resource from the world.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public T GetResource<T>()
+    public T GetService<T>()
         where T : class
     {
-        if (_globalResource.TryGetValue(typeof(T), out var resource))
+        if (_services.TryGetValue(typeof(T), out var resource))
         {
             return (T)resource;
         }
@@ -220,10 +219,10 @@ public partial class World : IDisposable, IEquatable<World>
     /// Checks if a global resource exists.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool HasResource<T>()
+    public bool HasService<T>()
         where T : class
     {
-        return _globalResource.ContainsKey(typeof(T));
+        return _services.ContainsKey(typeof(T));
     }
 
     public bool Equals(World? other)

@@ -68,7 +68,9 @@ internal unsafe class D3D12SwapChain : ISwapChain
         SetScale(desc.ScaleX, desc.ScaleY);
 
         if (desc.Target.Type == SwapChainTargetType.Composition)
+        {
             _compositionSurface = desc.Target.CompositionSurface;
+        }
     }
 
     ~D3D12SwapChain()
@@ -169,20 +171,20 @@ internal unsafe class D3D12SwapChain : ISwapChain
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Handle<Texture> GetCurrentBackBuffer()
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
         return _backBuffers[_swapChain.Get()->GetCurrentBackBufferIndex()];
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<Handle<Texture>> GetBackBuffers()
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
         return _backBuffers.AsSpan();
     }
 
     public void Present(bool vsync = true)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
 
         var presentFlags = 0u;
         var syncInterval = vsync ? 1u : 0u;
@@ -192,7 +194,7 @@ internal unsafe class D3D12SwapChain : ISwapChain
 
     public void Resize(uint width, uint height)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
 
         if (Width == width && Height == height)
         {
@@ -215,6 +217,8 @@ internal unsafe class D3D12SwapChain : ISwapChain
 
     public void SetScale(float scaleX, float scaleY)
     {
+        Debug.Assert(!_disposed);
+
         var inverseScaleX = 1.0f / scaleX;
         var inverseScaleY = 1.0f / scaleY;
 

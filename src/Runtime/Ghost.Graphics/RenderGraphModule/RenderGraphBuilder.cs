@@ -1,6 +1,7 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
@@ -175,6 +176,8 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         _disposed = false;
     }
 
+    [Conditional("DEBUG")]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ThrowIfDisposed()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);

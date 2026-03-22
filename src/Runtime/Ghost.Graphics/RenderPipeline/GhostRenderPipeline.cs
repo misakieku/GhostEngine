@@ -1,13 +1,14 @@
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.RenderPipeline;
 
 public sealed class GhostRenderPipelineSettings : IRenderPipelineSettings
 {
-    public static IRenderPipeline CreatePipeline(RenderSystem renderSystem)
+    public IRenderPipeline CreatePipeline(RenderSystem renderSystem)
     {
         return new GhostRenderPipeline(renderSystem);
     }
@@ -24,6 +25,7 @@ public unsafe partial class GhostRenderPipeline : IRenderPipeline
         Dispose();
     }
 
+    [Conditional("DEBUG")]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected void ThrowIfDisposed()
     {

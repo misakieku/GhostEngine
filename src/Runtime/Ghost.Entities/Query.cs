@@ -445,8 +445,7 @@ public unsafe partial struct EntityQuery : IDisposable
         return new ChunkIterator(_matchingArchetypes.AsReadOnly(), world);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly int GetEntityCount()
+    public readonly int CalculateEntityCount()
     {
         var total = 0;
         var world = World.GetWorld(_worldID);

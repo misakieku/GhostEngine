@@ -1,6 +1,7 @@
 using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
+using System.Diagnostics;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 
@@ -65,7 +66,7 @@ internal unsafe class D3D12CommandQueue : ICommandQueue
 
     public void Submit(ICommandBuffer commandBuffer)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
 
         if (commandBuffer.IsEmpty)
         {
@@ -86,7 +87,7 @@ internal unsafe class D3D12CommandQueue : ICommandQueue
 
     public void Submit(params ReadOnlySpan<ICommandBuffer> commandBuffers)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
 
         Span<int> executableIndices = stackalloc int[commandBuffers.Length];
         executableIndices.Fill(-1);
@@ -129,7 +130,7 @@ internal unsafe class D3D12CommandQueue : ICommandQueue
 
     public ulong Signal(ulong value)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
 
         _fenceValue = value;
         ThrowIfFailed(_commandQueue.Get()->Signal((ID3D12Fence*)_fence.Get(), _fenceValue));
@@ -138,7 +139,7 @@ internal unsafe class D3D12CommandQueue : ICommandQueue
 
     public void WaitForValue(ulong value)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
 
         if (_fence.Get()->GetCompletedValue() < value)
         {
@@ -152,13 +153,13 @@ internal unsafe class D3D12CommandQueue : ICommandQueue
 
     public ulong GetCompletedValue()
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
         return _fence.Get()->GetCompletedValue();
     }
 
     public void WaitIdle()
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
 
         var fenceValue = Signal(Interlocked.Increment(ref _fenceValue));
         WaitForValue(fenceValue);

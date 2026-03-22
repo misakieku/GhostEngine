@@ -1,8 +1,10 @@
 using Ghost.Core;
 using Ghost.Graphics.D3D12;
+using Ghost.Graphics.RenderPipeline;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Mathematics;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 
 namespace Ghost.Graphics;
 
@@ -61,6 +63,7 @@ public class RenderSystem : IDisposable
     }
 
     private readonly RenderSystemDesc _config;
+
     private readonly IGraphicsEngine _graphicsEngine;
     private readonly ResourceManager _resourceManager;
 
@@ -68,6 +71,9 @@ public class RenderSystem : IDisposable
     private readonly Thread _renderThread;
     private readonly AutoResetEvent _shutdownEvent;
     private readonly ConcurrentDictionary<ISwapChain, uint2> _resizeRequest;
+
+    private IRenderPipelineSettings _renderPipelineSettings;
+    private IRenderPipeline _renderPipeline;
 
     private uint _frameIndex;
     private uint _cpuFenceValue;
@@ -84,6 +90,24 @@ public class RenderSystem : IDisposable
     public uint GPUFenceValue => _gpuFenceValue;
     public uint FrameIndex => _frameIndex;
     public uint MaxFrameLatency => _config.FrameBufferCount;
+
+    public IRenderPipelineSettings RenderPipelineSettings
+    {
+        get => _renderPipelineSettings;
+        set
+        {
+            Debug.Assert(value != null, "RenderPipelineSettings cannot be set to null.");
+            Debug.Assert(!_disposed, "Cannot set RenderPipelineSettings on a disposed RenderSystem.");
+
+            if (value == _renderPipelineSettings)
+            {
+                return;
+            }
+
+            _renderPipelineSettings = value;
+            _renderPipeline = _renderPipelineSettings.CreatePipeline(this);
+        }
+    }
 
     internal RenderSystem(RenderSystemDesc desc)
     {
@@ -137,6 +161,9 @@ public class RenderSystem : IDisposable
         _shutdownEvent = new AutoResetEvent(false);
         _resizeRequest = new ConcurrentDictionary<ISwapChain, uint2>();
 
+        _renderPipelineSettings = new GhostRenderPipelineSettings();
+        _renderPipeline = _renderPipelineSettings.CreatePipeline(this);
+
         _isRunning = false;
         _disposed = false;
     }
@@ -148,6 +175,18 @@ public class RenderSystem : IDisposable
 
     private void RenderLoop()
     {
+        void StopRenderLoop(Result result)
+        {
+            Debug.Assert(result.IsFailure, "StopRenderLoop should only be called with a failure result.");
+
+            _isRunning = false;
+            _shutdownEvent.Set();
+#if DEBUG
+            Debugger.Break();
+#endif
+            Logger.LogError($"Render failed: {result.Message}");
+        }
+
         var waitHandles = new WaitHandle[] { null!, _shutdownEvent };
 
         while (_isRunning)
@@ -166,65 +205,74 @@ public class RenderSystem : IDisposable
             }
 
             // Only proceed if CPU ready event was signaled
-            if (waitResult == 0)
+            if (waitResult != 0)
             {
-                if (frameResource.FenceValue > 0)
-                {
-                    _graphicsEngine.Device.GraphicsQueue.WaitForValue(frameResource.FenceValue);
-                }
+                continue;
+            }
 
-                if (!_resizeRequest.IsEmpty)
-                {
-                    //WaitIdle();
-                    _gpuFenceValue++;
-                    var flushFence = _graphicsEngine.Device.GraphicsQueue.Signal(_gpuFenceValue);
-                    _graphicsEngine.Device.GraphicsQueue.WaitForValue(flushFence);
+            _graphicsEngine.Device.GraphicsQueue.WaitForValue(frameResource.FenceValue);
 
-                    // Sync the current frame resource to this new fence to keep state consistent
-                    frameResource.FenceValue = flushFence;
-
-                    foreach (var resource in _frameResources)
-                    {
-                        resource.CommandAllocator.Reset();
-                    }
-
-                    var keys = _resizeRequest.Keys.ToArray();
-                    foreach (var swapChain in keys)
-                    {
-                        if (_resizeRequest.TryRemove(swapChain, out var newSize))
-                        {
-                            swapChain.Resize(newSize.x, newSize.y);
-                        }
-                    }
-
-                    frameResource.GpuReadyEvent.Set();
-
-                    continue; // Skip rendering this frame since we just resized and may have invalid render targets
-                }
-
-                frameResource.CommandAllocator.Reset();
-
-                var r = _graphicsEngine.RenderFrame(frameResource.CommandAllocator, _cpuFenceValue, _gpuFenceValue);
-                if (r.IsFailure)
-                {
-                    _isRunning = false;
-#if DEBUG
-                    System.Diagnostics.Debugger.Break();
-#endif
-                    Logger.LogError($"RenderFrame failed: {r.Message}");
-                }
-
+            if (!_resizeRequest.IsEmpty)
+            {
+                //WaitIdle();
                 _gpuFenceValue++;
+                var flushFence = _graphicsEngine.Device.GraphicsQueue.Signal(_gpuFenceValue);
+                _graphicsEngine.Device.GraphicsQueue.WaitForValue(flushFence);
+
+                // Sync the current frame resource to this new fence to keep state consistent
+                frameResource.FenceValue = flushFence;
+
+                foreach (var resource in _frameResources)
+                {
+                    resource.CommandAllocator.Reset();
+                }
+
+                var keys = _resizeRequest.Keys.ToArray();
+                foreach (var swapChain in keys)
+                {
+                    if (_resizeRequest.TryRemove(swapChain, out var newSize))
+                    {
+                        swapChain.Resize(newSize.x, newSize.y);
+                    }
+                }
 
                 frameResource.GpuReadyEvent.Set();
-                frameResource.FenceValue = _graphicsEngine.Device.GraphicsQueue.Signal(_gpuFenceValue);
+
+                continue; // Skip rendering this frame since we just resized and may have invalid render targets
             }
+
+            frameResource.CommandAllocator.Reset();
+
+            var r = _graphicsEngine.BeginFrame(_cpuFenceValue, _gpuFenceValue);
+            if (r.IsFailure)
+            {
+                StopRenderLoop(r);
+            }
+
+            var cmd = _graphicsEngine.CreateCommandBuffer(CommandBufferType.Graphics);
+            var renderCtx = new RenderContext
+            {
+                CommandBuffer = cmd,
+            };
+
+            _renderPipeline.Render(renderCtx, default);
+
+            r = _graphicsEngine.EndFrame(_cpuFenceValue, _gpuFenceValue);
+            if (r.IsFailure)
+            {
+                StopRenderLoop(r);
+            }
+
+            _gpuFenceValue++;
+
+            frameResource.GpuReadyEvent.Set();
+            frameResource.FenceValue = _graphicsEngine.Device.GraphicsQueue.Signal(_gpuFenceValue);
         }
     }
 
     internal void Start()
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed, "Cannot start a disposed RenderSystem.");
 
         if (_isRunning)
         {
@@ -237,7 +285,7 @@ public class RenderSystem : IDisposable
 
     internal void Stop()
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed, "Cannot stop a disposed RenderSystem.");
 
         if (!_isRunning)
         {
@@ -251,7 +299,7 @@ public class RenderSystem : IDisposable
 
     internal void SignalCPUReady()
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed, "Cannot signal CPU ready on a disposed RenderSystem.");
 
         var eventIndex = (int)(_cpuFenceValue % _config.FrameBufferCount);
         _frameResources[eventIndex].CpuReadyEvent.Set();
@@ -260,13 +308,13 @@ public class RenderSystem : IDisposable
 
     internal void RequestSwapChainResize(ISwapChain swapChain, uint2 newSize)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed, "Cannot request swap chain resize on a disposed RenderSystem.");
         _resizeRequest.AddOrUpdate(swapChain, newSize, (_, _) => newSize);
     }
 
     public bool WaitForGPUReady(int timeOut = -1)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed, "Cannot wait for GPU ready on a disposed RenderSystem.");
 
         var eventIndex = (int)(_cpuFenceValue % _config.FrameBufferCount);
         return _frameResources[eventIndex].GpuReadyEvent.WaitOne(timeOut);
@@ -274,6 +322,7 @@ public class RenderSystem : IDisposable
 
     public void WaitIdle()
     {
+        Debug.Assert(!_disposed, "Cannot wait idle on a disposed RenderSystem.");
         foreach (var frameResource in _frameResources)
         {
             if (frameResource.FenceValue > 0)

@@ -46,7 +46,7 @@ public abstract class SystemBase : ISystem
         foreach (var queryID in _requiredQueries)
         {
             ref var query = ref World.ComponentManager.GetEntityQueryReference(new Identifier<EntityQuery>(queryID));
-            if (query.GetEntityCount() == 0)
+            if (query.CalculateEntityCount() == 0)
             {
                 return false;
             }

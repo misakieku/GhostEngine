@@ -1,9 +1,11 @@
 using Ghost.Core;
 using Ghost.Engine.Components;
 using Ghost.Entities;
+using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
 using Misaki.HighPerformance.Mathematics.Geometry;
 
@@ -11,14 +13,14 @@ namespace Ghost.Engine.Systems;
 
 public class RenderExtractionSystem : ISystem
 {
-    private IGraphicsEngine _graphicsEngine = null!;
+    private RenderSystem _renderSystem = null!;
 
     private Identifier<EntityQuery> _cameraQueryID;
     private Identifier<EntityQuery> _meshQueryID;
 
     public void Initialize(ref readonly SystemAPI systemAPI)
     {
-        _graphicsEngine = systemAPI.World.GetResource<IGraphicsEngine>();
+        _renderSystem = systemAPI.World.GetService<RenderSystem>();
 
         var builder = new QueryBuilder();
 
@@ -77,13 +79,15 @@ public class RenderExtractionSystem : ISystem
         ref var cameraQuery = ref systemAPI.World.ComponentManager.GetEntityQueryReference(_cameraQueryID);
         ref var meshQuery = ref systemAPI.World.ComponentManager.GetEntityQueryReference(_meshQueryID);
 
+        var renderRequests = new UnsafeList<RenderRequest>(cameraQuery.CalculateEntityCount(), Allocator.Temp);
+
         // TODO: We should extract the render record for each camera because different cameras may have different culling results.
         foreach (var (cam, camLtw) in cameraQuery.GetComponentIterator<Camera, LocalToWorld>())
         {
             ref readonly var camRef = ref cam.Get();
             ref readonly var camLtwRef = ref camLtw.Get();
 
-            var rtResult = _graphicsEngine.ResourceDatabase.GetResourceDescription(camRef.colorTarget.AsResource());
+            var rtResult = _renderSystem.GraphicsEngine.ResourceDatabase.GetResourceDescription(camRef.colorTarget.AsResource());
             if (rtResult.IsFailure)
             {
                 continue;
@@ -206,7 +210,6 @@ public class RenderExtractionSystem : ISystem
             var viewPos = camLtwRef.matrix.c3.xyz;
             var frustum = CreateFrustum(camRef, vp, viewDir, viewPos);
 
-            // TODO: Send this to render pipeline.
             var request = new RenderRequest
             {
                 colorTarget = camRef.colorTarget,
@@ -236,7 +239,11 @@ public class RenderExtractionSystem : ISystem
                     renderingLayerMask = camRef.renderingLayerMask,
                 },
             };
+
+            renderRequests.Add(request);
         }
+
+        _renderPipeline.Render(new RenderContext(), renderRequests.AsSpan());
     }
 
     public void Cleanup(ref readonly SystemAPI systemAPI)

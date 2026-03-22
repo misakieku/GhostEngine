@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
@@ -601,7 +602,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
     public Handle<Texture> CreateTexture(ref readonly TextureDesc desc, string name, CreationOptions options = default)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
 
         CheckTexture2DSize(desc.Width, desc.Height);
 
@@ -699,7 +700,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
     public Handle<Texture> CreateRenderTarget(ref readonly RenderTargetDesc desc, string name, CreationOptions options = default)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
 
         var textureDesc = desc.ToTextureDescription();
         return CreateTexture(in textureDesc, name, options);
@@ -707,7 +708,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
     public Handle<GraphicsBuffer> CreateBuffer(ref readonly BufferDesc desc, string name, CreationOptions options = default)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
         CheckBufferSize(desc.Size);
 
         var resourceDesc = desc.ToD3D12ResourceDesc();
@@ -839,7 +840,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
     public Identifier<Sampler> CreateSampler(ref readonly SamplerDesc desc)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
 
         if (_resourceDatabase.TryGetSampler(in desc, out var id))
         {

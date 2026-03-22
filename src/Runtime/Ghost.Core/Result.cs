@@ -390,6 +390,16 @@ public static class ResultExtensions
         return result;
     }
 
+    public static Result Then(this Result result, Func<Result> func)
+    {
+        if (result.IsFailure)
+        {
+            return Result.Failure(result.Message);
+        }
+
+        return func();
+    }
+
     public static Result<U> Then<T, U>(this Result<T> result, Func<T, Result<U>> func)
     {
         if (result.IsFailure)

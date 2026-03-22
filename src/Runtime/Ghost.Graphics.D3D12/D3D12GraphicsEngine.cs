@@ -1,17 +1,19 @@
 #if DEBUG
-#define ENABLE_DEBUG
+#define ENABLE_DEBUG_LAYER
 #endif
 
 using Ghost.Core;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.D3D12;
 
 public static class D3D12GraphicsEngineFactory
 {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IGraphicsEngine Create(GraphicsEngineDesc desc)
     {
         return new D3D12GraphicsEngine(desc);
@@ -22,7 +24,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
 {
     private readonly GraphicsEngineDesc _desc;
 
-#if ENABLE_DEBUG
+#if ENABLE_DEBUG_LAYER
     private readonly D3D12DebugLayer _debugLayer;
 #endif
     private readonly D3D12RenderDevice _device;
@@ -46,7 +48,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
     {
         _desc = desc;
 
-#if ENABLE_DEBUG
+#if ENABLE_DEBUG_LAYER
         _debugLayer = new D3D12DebugLayer();
 #endif
         _device = new D3D12RenderDevice();
@@ -67,6 +69,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         Dispose();
     }
 
+    [Conditional("DEBUG")]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ThrowIfDisposed()
     {
@@ -118,28 +121,20 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         return new D3D12SwapChain(_resourceDatabase, _descriptorAllocator, _device, desc, _desc.FrameBufferCount);
     }
 
-    public Result RenderFrame(ICommandAllocator commandAllocator, uint cpuFenceValue, uint gpuFenceValue)
+    public Result BeginFrame(uint cpuFenceValue, uint gpuFenceValue)
     {
         ThrowIfDisposed();
 
-        var r = Result.Success();
-
         _resourceDatabase.BeginFrame(cpuFenceValue);
+        return Result.Success();
+    }
 
-        // TODO: We should not handle renderers in graphics engine since the purpose of graphics engine is to provide low-level graphics resource management and command buffer creation.
-        // We need to migrate this to IRenderPipeline instead when it's ready.
-        foreach (var renderer in _renderers)
-        {
-            r = renderer.Render(commandAllocator);
-            if (r.IsFailure)
-            {
-                break;
-            }
-        }
+    public Result EndFrame(uint cpuFenceValue, uint gpuFenceValue)
+    {
+        ThrowIfDisposed();
 
         _resourceDatabase.EndFrame(gpuFenceValue);
-
-        return r;
+        return Result.Success();
     }
 
     public void Dispose()
@@ -163,7 +158,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         _descriptorAllocator.Dispose();
         _shaderCompiler.Dispose();
         _device.Dispose();
-#if ENABLE_DEBUG
+#if ENABLE_DEBUG_LAYER
         _debugLayer.Dispose();
 #endif
 
