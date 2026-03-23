@@ -47,7 +47,7 @@ public partial class GhostRenderPipeline
         private readonly uint _padding1;
         private readonly uint _padding2;
     }
-
+#if flase
     private void RenderTest(RenderGraph graph, Identifier<RGTexture> backbuffer)
     {
         Identifier<RGTexture> renderTarget;
@@ -107,4 +107,5 @@ public partial class GhostRenderPipeline
             });
         }
     }
+# endif
 }

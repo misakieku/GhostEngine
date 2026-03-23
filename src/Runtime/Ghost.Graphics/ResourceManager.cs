@@ -4,11 +4,24 @@ using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using System.Diagnostics;
 
 namespace Ghost.Graphics;
 
 public sealed class ResourceManager : IDisposable
 {
+    private readonly struct ResourceReturnEntry
+    {
+        public readonly Handle<GPUResource> handle;
+        public readonly ulong returnFrame;
+
+        public ResourceReturnEntry(Handle<GPUResource> handle, ulong returnFrame)
+        {
+            this.handle = handle;
+            this.returnFrame = returnFrame;
+        }
+    }
+
     private readonly IResourceAllocator _resourceAllocator;
     private readonly IResourceDatabase _resourceDatabase;
 
@@ -17,6 +30,11 @@ public sealed class ResourceManager : IDisposable
     private UnsafeList<Shader> _shaders; // TODO: Use SlotMap?
 
     private readonly MaterialPaletteStore _materialPalettes;
+
+    private ulong _currentFrame;
+
+    private UnsafeHashMap<ResourceDesc, UnsafeQueue<Handle<GPUResource>>> _resourceCache;
+    private UnsafeQueue<ResourceReturnEntry> _resourceReturnQueue;
 
     private bool _disposed;
 
@@ -28,12 +46,42 @@ public sealed class ResourceManager : IDisposable
         _meshes = new UnsafeSlotMap<Mesh>(64, Allocator.Persistent);
         _materials = new UnsafeSlotMap<Material>(64, Allocator.Persistent);
         _shaders = new UnsafeList<Shader>(16, Allocator.Persistent);
+
         _materialPalettes = new MaterialPaletteStore();
+
+        _resourceCache = new UnsafeHashMap<ResourceDesc, UnsafeQueue<Handle<GPUResource>>>(32, Allocator.Persistent);
+        _resourceReturnQueue = new UnsafeQueue<ResourceReturnEntry>(32, Allocator.Persistent);
     }
 
     ~ResourceManager()
     {
         Dispose();
+    }
+
+    internal void BeginFrame(ulong currentFrame)
+    {
+        Debug.Assert(!_disposed);
+        _currentFrame = currentFrame;
+    }
+
+    internal void EndFrame(ulong completedFrame)
+    {
+        Debug.Assert(!_disposed);
+
+        while (_resourceReturnQueue.TryPeek(out var entry) && entry.returnFrame <= completedFrame)
+        {
+            _resourceReturnQueue.Dequeue();
+            var result = _resourceDatabase.GetResourceDescription(entry.handle);
+            Debug.Assert(result.IsSuccess);
+
+            ref var queue = ref _resourceCache.GetValueRefOrAddDefault(result.Value, out var exist);
+            if (!exist)
+            {
+                queue = new UnsafeQueue<Handle<GPUResource>>(4, Allocator.Persistent);
+            }
+
+            queue.Enqueue(entry.handle);
+        }
     }
 
     /// <summary>
@@ -44,7 +92,7 @@ public sealed class ResourceManager : IDisposable
     /// <returns>An <see cref="Identifier{Mesh}"/> representing the newly created mesh.</returns>
     public unsafe Handle<Mesh> CreateMesh(UnsafeList<Vertex> vertices, UnsafeList<uint> indices)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
 
         var vertexBufferDesc = new BufferDesc
         {
@@ -94,7 +142,7 @@ public sealed class ResourceManager : IDisposable
     /// <returns>An <see cref="Identifier{Material}"/> representing the newly created material.</returns>
     public Handle<Material> CreateMaterial(Identifier<Shader> shader)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
 
         var material = new Material();
         if (material.SetShader(shader, this, _resourceDatabase, _resourceAllocator) != Error.None)
@@ -113,7 +161,7 @@ public sealed class ResourceManager : IDisposable
     /// <param name="descriptor">The viewGroup containing the shader's properties and passes.</param>
     public Identifier<Shader> CreateGraphicsShader(ShaderDescriptor descriptor)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
 
         var shader = new Shader(descriptor);
 
@@ -129,7 +177,7 @@ public sealed class ResourceManager : IDisposable
     /// <returns>true if a mesh with the specified Handle exists; otherwise, false.</returns>
     public bool HasMesh(Handle<Mesh> handle)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
         return _meshes.Contains(handle.ID, handle.Generation);
     }
 
@@ -155,7 +203,7 @@ public sealed class ResourceManager : IDisposable
     /// <param name="handle">The handle of the mesh to release. Must refer to a mesh that was previously created and not already released.</param>
     public void ReleaseMesh(Handle<Mesh> handle)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
 
         if (!_meshes.TryGetElementAt(handle.ID, handle.Generation, out var mesh))
         {
@@ -173,7 +221,7 @@ public sealed class ResourceManager : IDisposable
     /// <returns>true if a material with the specified handle exists; otherwise, false.</returns>
     public bool HasMaterial(Handle<Material> handle)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
         return _materials.Contains(handle.ID, handle.Generation);
     }
 
@@ -199,7 +247,7 @@ public sealed class ResourceManager : IDisposable
     /// <param name="handle">The handle of the material to release. Must refer to a material that has been previously acquired.</param>
     public void ReleaseMaterial(Handle<Material> handle)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
 
         var material = _materials.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
         if (!exist)
@@ -218,7 +266,7 @@ public sealed class ResourceManager : IDisposable
     /// <returns>The palette index. Index 0 represents an empty palette.</returns>
     public int GetOrCreateMaterialPalette(ReadOnlySpan<Handle<Material>> materials)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
 
         foreach (var material in materials)
         {
@@ -237,7 +285,7 @@ public sealed class ResourceManager : IDisposable
     /// <param name="paletteID">The palette index to validate.</param>
     public bool HasMaterialPalette(Identifier<MaterialPalette> paletteID)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
         return _materialPalettes.IsValid(paletteID);
     }
 
@@ -247,7 +295,7 @@ public sealed class ResourceManager : IDisposable
     /// <param name="paletteID">The palette index to query.</param>
     public MaterialPalette GetMaterialPaletteInfo(Identifier<MaterialPalette> paletteID)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
         return _materialPalettes.GetInfo(paletteID);
     }
 
@@ -258,7 +306,7 @@ public sealed class ResourceManager : IDisposable
     /// <param name="localMaterialIndex">The material slot inside the palette.</param>
     public Handle<Material> GetMaterialPaletteMaterial(Identifier<MaterialPalette> paletteID, int localMaterialIndex)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
         return _materialPalettes.GetMaterial(paletteID, localMaterialIndex);
     }
 
@@ -268,7 +316,7 @@ public sealed class ResourceManager : IDisposable
     /// <param name="paletteID">The palette index to release.</param>
     public void ReleaseMaterialPalette(Identifier<MaterialPalette> paletteID)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
         _materialPalettes.Release(paletteID);
     }
 
@@ -279,7 +327,7 @@ public sealed class ResourceManager : IDisposable
     /// <returns>true if a shader with the specified identifier exists; otherwise, false.</returns>
     public bool HasShader(Identifier<Shader> id)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
         return id.Value >= 0 && id.Value < _shaders.Count;
     }
 
@@ -304,7 +352,7 @@ public sealed class ResourceManager : IDisposable
     /// <param name="id">The identifier of the shader to release. Must refer to a valid, previously created shader.</param>
     public void ReleaseShader(Identifier<Shader> id)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Debug.Assert(!_disposed);
 
         if (!HasShader(id))
         {
@@ -313,6 +361,38 @@ public sealed class ResourceManager : IDisposable
 
         var shader = _shaders[id.Value];
         shader.ReleaseResource(_resourceDatabase);
+    }
+
+    public Handle<GPUResource> GetPooledResource(in ResourceDesc desc)
+    {
+        Debug.Assert(!_disposed);
+
+        ref var queue = ref _resourceCache.GetValueRef(desc, out var exist);
+        if (exist && queue.TryDequeue(out Handle<GPUResource> handle))
+        {
+            return handle;
+        }
+
+        handle = desc.Type switch
+        {
+            ResourceType.Buffer => _resourceAllocator.CreateBuffer(in desc.BufferDescription, "PooledBuffer").AsResource(),
+            ResourceType.Texture => _resourceAllocator.CreateTexture(in desc.TextureDescription, "PooledTexture").AsResource(),
+            _ => throw new ArgumentException("Invalid resource type.", nameof(desc)),
+        };
+
+        return handle;
+    }
+
+    public void ReturnPooledResource(Handle<GPUResource> handle)
+    {
+        Debug.Assert(!_disposed);
+
+        if (handle.IsInvalid)
+        {
+            return;
+        }
+
+        _resourceReturnQueue.Enqueue(new ResourceReturnEntry(handle, _currentFrame));
     }
 
     public void Dispose()
@@ -341,6 +421,20 @@ public sealed class ResourceManager : IDisposable
         _materials.Dispose();
         _shaders.Dispose();
         _materialPalettes.Dispose();
+
+        foreach (var kvp in _resourceCache)
+        {
+            var queue = kvp.Value;
+            while (queue.TryDequeue(out var handle))
+            {
+                _resourceDatabase.ReleaseResource(handle);
+            }
+
+            queue.Dispose();
+        }
+
+        _resourceCache.Dispose();
+        _resourceReturnQueue.Dispose();
 
         _disposed = true;
         GC.SuppressFinalize(this);

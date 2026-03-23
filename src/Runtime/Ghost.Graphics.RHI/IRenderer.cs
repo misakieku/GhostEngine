@@ -5,6 +5,9 @@ namespace Ghost.Graphics.RHI;
 public readonly struct RenderContext
 {
     public ICommandBuffer CommandBuffer { get; init; }
+    public ICommandQueue GraphicsQueue { get; init; }
+    public ICommandQueue ComputeQueue { get; init; }
+    public ICommandQueue CopyQueue { get; init; }
 }
 
 // TODO: We may don't need this anymore. We Use RenderExtractionSystem to extract render data from entities and pass them to IRenderPipeline to render.

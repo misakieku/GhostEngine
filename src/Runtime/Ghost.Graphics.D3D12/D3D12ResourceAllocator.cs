@@ -468,7 +468,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         var desc = new D3D12MA_ALLOCATOR_DESC
         {
             pAdapter = (IDXGIAdapter*)device.Adapter.Get(),
-            pDevice = (ID3D12Device*)device.NativeDevice.Get(),
+            pDevice = (ID3D12Device*)device.NativeObject.Get(),
             Flags = D3D12MA_ALLOCATOR_FLAG_DEFAULT_POOLS_NOT_ZEROED | D3D12MA_ALLOCATOR_FLAG_MSAA_TEXTURES_ALWAYS_COMMITTED,
         };
 
@@ -546,7 +546,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             d3d12Desc = desc.BufferDescription.ToD3D12ResourceDesc();
         }
 
-        var info = _device.NativeDevice.Get()->GetResourceAllocationInfo(0, 1, &d3d12Desc);
+        var info = _device.NativeObject.Get()->GetResourceAllocationInfo(0, 1, &d3d12Desc);
         return new ResourceSizeInfo
         {
             Size = info.SizeInBytes,
@@ -646,7 +646,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             var isCubeMap = desc.Dimension == TextureDimension.TextureCube || desc.Dimension == TextureDimension.TextureCubeArray;
             var srvDesc = CreateTextureSrvDesc(pResource, resourceDesc.MipLevels, resourceDesc.DepthOrArraySize, isCubeMap);
 
-            _device.NativeDevice.Get()->CreateShaderResourceView(pResource, &srvDesc, cpuHandle);
+            _device.NativeObject.Get()->CreateShaderResourceView(pResource, &srvDesc, cpuHandle);
             _descriptorAllocator.CopyToShaderVisible(resourceDescriptor.srv);
         }
 
@@ -656,7 +656,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             var cpuHandle = _descriptorAllocator.GetCpuHandle(resourceDescriptor.rtv);
             var rtvDesc = CreateRtvDesc(pResource);
 
-            _device.NativeDevice.Get()->CreateRenderTargetView(pResource, &rtvDesc, cpuHandle);
+            _device.NativeObject.Get()->CreateRenderTargetView(pResource, &rtvDesc, cpuHandle);
         }
 
         if (desc.Usage.HasFlag(TextureUsage.DepthStencil))
@@ -665,7 +665,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             var cpuHandle = _descriptorAllocator.GetCpuHandle(resourceDescriptor.dsv);
             var dsvDesc = CreateDsvDesc(pResource);
 
-            _device.NativeDevice.Get()->CreateDepthStencilView(pResource, &dsvDesc, cpuHandle);
+            _device.NativeObject.Get()->CreateDepthStencilView(pResource, &dsvDesc, cpuHandle);
         }
 
         if (desc.Usage.HasFlag(TextureUsage.UnorderedAccess))
@@ -674,7 +674,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             var cpuHandle = _descriptorAllocator.GetCpuHandle(resourceDescriptor.uav);
             var uavDesc = CreateTextureUavDesc(pResource);
 
-            _device.NativeDevice.Get()->CreateUnorderedAccessView(pResource, null, &uavDesc, cpuHandle);
+            _device.NativeObject.Get()->CreateUnorderedAccessView(pResource, null, &uavDesc, cpuHandle);
             _descriptorAllocator.CopyToShaderVisible(resourceDescriptor.uav);
         }
 
@@ -764,7 +764,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
                 SizeInBytes = (uint)resourceDesc.Width,
             };
 
-            _device.NativeDevice.Get()->CreateConstantBufferView(&cbvDesc, cpuHandle);
+            _device.NativeObject.Get()->CreateConstantBufferView(&cbvDesc, cpuHandle);
             _descriptorAllocator.CopyToShaderVisible(resourceDescriptor.cbv);
         }
 
@@ -774,7 +774,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             var cpuHandle = _descriptorAllocator.GetCpuHandle(resourceDescriptor.srv);
             var srvDesc = CreateBufferSrvDesc(pResource, desc.Stride, isRaw);
 
-            _device.NativeDevice.Get()->CreateShaderResourceView(pResource, &srvDesc, cpuHandle);
+            _device.NativeObject.Get()->CreateShaderResourceView(pResource, &srvDesc, cpuHandle);
             _descriptorAllocator.CopyToShaderVisible(resourceDescriptor.srv);
         }
 
@@ -784,7 +784,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             var cpuHandle = _descriptorAllocator.GetCpuHandle(resourceDescriptor.uav);
             var uavDesc = CreateBufferUavDesc(pResource, desc.Stride, isRaw);
 
-            _device.NativeDevice.Get()->CreateUnorderedAccessView(pResource, null, &uavDesc, cpuHandle);
+            _device.NativeObject.Get()->CreateUnorderedAccessView(pResource, null, &uavDesc, cpuHandle);
             _descriptorAllocator.CopyToShaderVisible(resourceDescriptor.uav);
         }
 
@@ -862,7 +862,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
         var samplerDescriptor = _descriptorAllocator.AllocateSampler();
         var cpuHandle = _descriptorAllocator.GetCpuHandle(samplerDescriptor);
-        _device.NativeDevice.Get()->CreateSampler(&samplerDesc, cpuHandle);
+        _device.NativeObject.Get()->CreateSampler(&samplerDesc, cpuHandle);
         _descriptorAllocator.CopyToShaderVisible(samplerDescriptor);
 
         return _resourceDatabase.AddSampler(in desc, samplerDescriptor.Value);

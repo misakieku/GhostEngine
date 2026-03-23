@@ -5,7 +5,6 @@
 using Ghost.Core;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -22,6 +21,18 @@ public static class D3D12GraphicsEngineFactory
 
 internal class D3D12GraphicsEngine : IGraphicsEngine
 {
+    private readonly struct CommandBufferReturnEntry
+    {
+        public readonly ICommandBuffer commandBuffer;
+        public readonly ulong returnFrame;
+
+        public CommandBufferReturnEntry(ICommandBuffer commandBuffer, ulong returnFrame)
+        {
+            this.commandBuffer = commandBuffer;
+            this.returnFrame = returnFrame;
+        }
+    }
+
     private readonly GraphicsEngineDesc _desc;
 
 #if ENABLE_DEBUG_LAYER
@@ -34,8 +45,10 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
     private readonly D3D12PipelineLibrary _pipelineLibrary;
     private readonly D3D12ResourceAllocator _resourceAllocator;
 
-    private ImmutableArray<IRenderer> _renderers;
+    private readonly Queue<ICommandBuffer> _commandBufferPool;
+    private readonly Queue<CommandBufferReturnEntry> _commandBufferReturnQueue;
 
+    private ulong _currentFrame;
     private bool _disposed;
 
     public IRenderDevice Device => _device;
@@ -59,9 +72,8 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         _pipelineLibrary = new D3D12PipelineLibrary(_device, _resourceDatabase);
         _resourceAllocator = new D3D12ResourceAllocator(_device, _descriptorAllocator, _resourceDatabase, _pipelineLibrary);
 
-        _renderers = ImmutableArray<IRenderer>.Empty;
-
-        _pipelineLibrary.InitializeLibrary(null);
+        _commandBufferPool = new Queue<ICommandBuffer>(4);
+        _commandBufferReturnQueue = new Queue<CommandBufferReturnEntry>(4);
     }
 
     ~D3D12GraphicsEngine()
@@ -74,27 +86,6 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
     private void ThrowIfDisposed()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-    }
-
-    public IRenderer CreateRenderer()
-    {
-        ThrowIfDisposed();
-
-        var renderer = new D3D12Renderer(this);
-        ImmutableInterlocked.Update(ref _renderers, renderers => renderers.Add(renderer));
-        return renderer;
-    }
-
-    public void RemoveRenderer(IRenderer renderer)
-    {
-        ThrowIfDisposed();
-        ImmutableInterlocked.Update(ref _renderers, renderers => renderers.Remove(renderer));
-    }
-
-    public void ClearRenderers()
-    {
-        ThrowIfDisposed();
-        ImmutableInterlocked.Update(ref _renderers, renderers => renderers.Clear());
     }
 
     public ICommandAllocator CreateCommandAllocator(CommandBufferType type = CommandBufferType.Graphics)
@@ -115,25 +106,51 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
             type);
     }
 
+    public ICommandBuffer GetPooledCommandBuffer(CommandBufferType type = CommandBufferType.Graphics)
+    {
+        if (_commandBufferPool.TryDequeue(out var commandBuffer))
+        {
+            return commandBuffer;
+        }
+        else
+        {
+            return CreateCommandBuffer(type);
+        }
+    }
+
+    public void ReturnPooledCommandBuffer(ICommandBuffer commandBuffer)
+    {
+        _commandBufferReturnQueue.Enqueue(new CommandBufferReturnEntry(commandBuffer, _currentFrame));
+    }
+
+
     public ISwapChain CreateSwapChain(SwapChainDesc desc)
     {
         ThrowIfDisposed();
-        return new D3D12SwapChain(_resourceDatabase, _descriptorAllocator, _device, desc, _desc.FrameBufferCount);
+        return new DXGISwapChain(_resourceDatabase, _descriptorAllocator, _device, desc, _desc.FrameBufferCount);
     }
 
-    public Result BeginFrame(uint cpuFenceValue, uint gpuFenceValue)
+    public Result BeginFrame(ulong currentFrame)
     {
         ThrowIfDisposed();
 
-        _resourceDatabase.BeginFrame(cpuFenceValue);
+        _currentFrame = currentFrame;
+        _resourceDatabase.BeginFrame(currentFrame);
         return Result.Success();
     }
 
-    public Result EndFrame(uint cpuFenceValue, uint gpuFenceValue)
+    public Result EndFrame(ulong completedFrame)
     {
         ThrowIfDisposed();
 
-        _resourceDatabase.EndFrame(gpuFenceValue);
+        _resourceDatabase.EndFrame(completedFrame);
+
+        while (_commandBufferReturnQueue.TryPeek(out var entry) && entry.returnFrame <= completedFrame)
+        {
+            _commandBufferPool.Enqueue(entry.commandBuffer);
+            _commandBufferReturnQueue.Dequeue();
+        }
+
         return Result.Success();
     }
 
@@ -142,11 +159,6 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         if (_disposed)
         {
             return;
-        }
-
-        foreach (var renderer in _renderers)
-        {
-            renderer.Dispose();
         }
 
         _resourceDatabase.ReleaseAllResourcesImmediately();

@@ -64,7 +64,7 @@ internal unsafe class D3D12DescriptorHeap : IDisposable
         HeapType = type;
         NumDescriptors = numDescriptors;
         ShaderVisible = type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV || type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
-        Stride = device.NativeDevice.Get()->GetDescriptorHandleIncrementSize(type);
+        Stride = device.NativeObject.Get()->GetDescriptorHandleIncrementSize(type);
 
         var success = AllocateResources(numDescriptors);
         Debug.Assert(success);
@@ -210,7 +210,7 @@ internal unsafe class D3D12DescriptorHeap : IDisposable
 
     public void CopyToShaderVisibleHeap(int index, int count = 1)
     {
-        _device.NativeDevice.Get()->CopyDescriptorsSimple((uint)count, GetCpuHandleShaderVisible(index), GetCpuHandle(index), HeapType);
+        _device.NativeObject.Get()->CopyDescriptorsSimple((uint)count, GetCpuHandleShaderVisible(index), GetCpuHandle(index), HeapType);
     }
 
     private bool AllocateResources(int numDescriptors)
@@ -228,7 +228,7 @@ internal unsafe class D3D12DescriptorHeap : IDisposable
         };
 
         ID3D12DescriptorHeap* pHeap = default;
-        var hr = _device.NativeDevice.Get()->CreateDescriptorHeap(&heapDesc, __uuidof(pHeap), (void**)&pHeap);
+        var hr = _device.NativeObject.Get()->CreateDescriptorHeap(&heapDesc, __uuidof(pHeap), (void**)&pHeap);
         if (hr.FAILED)
         {
             return false;
@@ -252,7 +252,7 @@ internal unsafe class D3D12DescriptorHeap : IDisposable
             ID3D12DescriptorHeap* pShaderVisibleHeap = default;
 
             heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-            hr = _device.NativeDevice.Get()->CreateDescriptorHeap(&heapDesc, __uuidof(pShaderVisibleHeap), (void**)&pShaderVisibleHeap);
+            hr = _device.NativeObject.Get()->CreateDescriptorHeap(&heapDesc, __uuidof(pShaderVisibleHeap), (void**)&pShaderVisibleHeap);
             if (hr.FAILED)
             {
                 return false;
@@ -281,11 +281,11 @@ internal unsafe class D3D12DescriptorHeap : IDisposable
                 return false;
             }
 
-            _device.NativeDevice.Get()->CopyDescriptorsSimple((uint)oldSize, _startCpuHandle, oldHeap->GetCPUDescriptorHandleForHeapStart(), HeapType);
+            _device.NativeObject.Get()->CopyDescriptorsSimple((uint)oldSize, _startCpuHandle, oldHeap->GetCPUDescriptorHandleForHeapStart(), HeapType);
 
             if (_shaderVisibleHeap.Get() != null)
             {
-                _device.NativeDevice.Get()->CopyDescriptorsSimple((uint)oldSize, _startCpuHandleShaderVisible, oldHeap->GetCPUDescriptorHandleForHeapStart(), HeapType);
+                _device.NativeObject.Get()->CopyDescriptorsSimple((uint)oldSize, _startCpuHandleShaderVisible, oldHeap->GetCPUDescriptorHandleForHeapStart(), HeapType);
             }
         }
         finally

@@ -627,7 +627,7 @@ public struct BarrierDesc
     }
 }
 
-public struct ResourceDesc
+public record struct ResourceDesc
 {
     [StructLayout(LayoutKind.Explicit)]
     internal struct resource_union
@@ -638,7 +638,7 @@ public struct ResourceDesc
         public BufferDesc bufferDescription;
     }
 
-    internal resource_union _desc;
+    private resource_union _desc;
 
     public ResourceType Type
     {
@@ -680,6 +680,31 @@ public struct ResourceDesc
         {
             Type = ResourceType.Texture,
             TextureDescription = desc
+        };
+    }
+
+    public bool Equals(ResourceDesc other)
+    {
+        if (Type != other.Type)
+        {
+            return false;
+        }
+
+        return Type switch
+        {
+            ResourceType.Texture => TextureDescription.Equals(other.TextureDescription),
+            ResourceType.Buffer => BufferDescription.Equals(other.BufferDescription),
+            _ => throw new InvalidOperationException($"Unknown resource type: {Type}")
+        };
+    }
+
+    public override int GetHashCode()
+    {
+        return Type switch
+        {
+            ResourceType.Texture => HashCode.Combine(Type, TextureDescription),
+            ResourceType.Buffer => HashCode.Combine(Type, BufferDescription),
+            _ => throw new InvalidOperationException($"Unknown resource type: {Type}")
         };
     }
 }
@@ -831,7 +856,7 @@ public struct RenderTargetDesc
 /// <summary>
 /// Texture description
 /// </summary>
-public struct TextureDesc
+public record struct TextureDesc
 {
     /// <summary>
     /// Width of the texture
@@ -939,7 +964,7 @@ public record struct SamplerDesc
     }
 }
 
-public struct BufferDesc
+public record struct BufferDesc
 {
     public ulong Size
     {

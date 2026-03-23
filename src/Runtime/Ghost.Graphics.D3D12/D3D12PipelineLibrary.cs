@@ -26,29 +26,48 @@ internal struct D3D12PipelineState : IDisposable
     }
 }
 
-internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
+internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>, IPipelineLibrary
 {
     private readonly D3D12RenderDevice _device;
     private readonly D3D12ResourceDatabase _resourceDatabase;
 
-    private UniquePtr<ID3D12PipelineLibrary1> _library;
     private UniquePtr<ID3D12RootSignature> _defaultRootSignature;
 
-    private readonly Dictionary<Key128<GraphicsPipeline>, D3D12PipelineState> _pipelineCache;
+    private UnsafeHashMap<Key128<GraphicsPipeline>, D3D12PipelineState> _pipelineCache;
 
     public ID3D12RootSignature* DefaultRootSignature => _defaultRootSignature.Get();
 
+    private static ID3D12PipelineLibrary1* CreateLibrary(D3D12RenderDevice device, string? filePath)
+    {
+        ID3D12PipelineLibrary1* pLibrary = default;
+
+        if (File.Exists(filePath))
+        {
+            var fileBytes = File.ReadAllBytes(filePath);
+            fixed (byte* pFileBytes = fileBytes)
+            {
+                ThrowIfFailed(device.NativeObject.Get()->CreatePipelineLibrary(pFileBytes, (nuint)fileBytes.Length, __uuidof(pLibrary), (void**)&pLibrary));
+            }
+        }
+        else
+        {
+            ThrowIfFailed(device.NativeObject.Get()->CreatePipelineLibrary(null, 0, __uuidof(pLibrary), (void**)&pLibrary));
+        }
+
+        return pLibrary;
+    }
+
     public D3D12PipelineLibrary(D3D12RenderDevice device, D3D12ResourceDatabase resourceDatabase)
+        :base(CreateLibrary(device, null)) // TODO: we need to path to load the existing library from disk.
     {
         _device = device;
         _resourceDatabase = resourceDatabase;
 
-        _pipelineCache = new Dictionary<Key128<GraphicsPipeline>, D3D12PipelineState>();
+        _pipelineCache = new UnsafeHashMap<Key128<GraphicsPipeline>, D3D12PipelineState>(32, Allocator.Persistent);
 
         CreateDefaultRootSignature().ThrowIfFailed();
     }
 
-    // TODO: Maybe we don't need 4 root signature. We can use bindless for global, per-view, and per-object buffers as well.
     private Result CreateDefaultRootSignature()
     {
         _defaultRootSignature = default;
@@ -96,32 +115,12 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
         }
 
         ID3D12RootSignature* pRootSignature = default;
-        ThrowIfFailed(_device.NativeDevice.Get()->CreateRootSignature(0, pSignature.Get()->GetBufferPointer(), pSignature.Get()->GetBufferSize(),
+        ThrowIfFailed(_device.NativeObject.Get()->CreateRootSignature(0, pSignature.Get()->GetBufferPointer(), pSignature.Get()->GetBufferSize(),
             __uuidof(pRootSignature), (void**)&pRootSignature));
 
         _defaultRootSignature.Attach(pRootSignature);
 
         return Result.Success();
-    }
-
-    public void InitializeLibrary(string? filePath)
-    {
-        ID3D12PipelineLibrary1* pLibrary = default;
-
-        if (File.Exists(filePath))
-        {
-            var fileBytes = File.ReadAllBytes(filePath);
-            fixed (byte* pFileBytes = fileBytes)
-            {
-                ThrowIfFailed(_device.NativeDevice.Get()->CreatePipelineLibrary(pFileBytes, (nuint)fileBytes.Length, __uuidof(pLibrary), (void**)&pLibrary));
-            }
-        }
-        else
-        {
-            ThrowIfFailed(_device.NativeDevice.Get()->CreatePipelineLibrary(null, 0, __uuidof(pLibrary), (void**)&pLibrary));
-        }
-
-        _library.Attach(pLibrary);
     }
 
     public void SaveLibraryToDisk(string filePath)
@@ -132,10 +131,10 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
             throw new InvalidOperationException($"Directory does not exist: {dir}");
         }
 
-        var size = _library.Get()->GetSerializedSize();
+        var size = pNativeObject->GetSerializedSize();
         using var buffer = new UnsafeArray<byte>((int)size, Allocator.Persistent); // We use persistent Heap allocation instead of stack allocation to avoid stack overflow for large pipeline libraries.
 
-        ThrowIfFailed(_library.Get()->Serialize(buffer.GetUnsafePtr(), size));
+        ThrowIfFailed(pNativeObject->Serialize(buffer.GetUnsafePtr(), size));
 
         using var fs = File.Open(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
         fs.Write(buffer.AsSpan());
@@ -225,6 +224,8 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
             return psr.Value;
         }
 
+        AssertNotDisposed();
+
         if (descriptor.RtvFormats.Length > D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT)
         {
             return Result.Failure($"RTV format count exceeds the maximum supported render target count of {D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT}.");
@@ -300,12 +301,12 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
                 return Result.Failure("Failed to convert pipeline key to string.");
             }
 
-            var hr = _library.Get()->LoadPipeline(pKeyStr, &streamDesc, __uuidof(pPipelineState), (void**)&pPipelineState);
+            var hr = pNativeObject->LoadPipeline(pKeyStr, &streamDesc, __uuidof(pPipelineState), (void**)&pPipelineState);
             if (hr == E.E_INVALIDARG)
             {
                 // Pipeline not found in the library, create a new one.
-                ThrowIfFailed(_device.NativeDevice.Get()->CreatePipelineState(&streamDesc, __uuidof(pPipelineState), (void**)&pPipelineState));
-                ThrowIfFailed(_library.Get()->StorePipeline(pKeyStr, pPipelineState));
+                ThrowIfFailed(_device.NativeObject.Get()->CreatePipelineState(&streamDesc, __uuidof(pPipelineState), (void**)&pPipelineState));
+                ThrowIfFailed(pNativeObject->StorePipeline(pKeyStr, pPipelineState));
             }
             else
             {
@@ -325,11 +326,13 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
 
     public bool HasPipeline(Key128<GraphicsPipeline> key)
     {
+        AssertNotDisposed();
         return _pipelineCache.ContainsKey(key);
     }
 
     public Result<SharedPtr<ID3D12PipelineState>, Error> GetGraphicsPSO(Key128<GraphicsPipeline> key)
     {
+        AssertNotDisposed();
         if (_pipelineCache.TryGetValue(key, out var cacheEntry))
         {
             return cacheEntry.pso.Share();
@@ -338,16 +341,14 @@ internal unsafe class D3D12PipelineLibrary : IPipelineLibrary
         return Error.NotFound;
     }
 
-    public void Dispose()
+    protected override void Dispose(bool disposing)
     {
         foreach (var kvp in _pipelineCache)
         {
             kvp.Value.Dispose();
         }
 
-        _pipelineCache.Clear();
-
+        _pipelineCache.Dispose();
         _defaultRootSignature.Dispose();
-        _library.Dispose();
     }
 }

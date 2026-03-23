@@ -10,28 +10,20 @@ namespace Ghost.Graphics.D3D12;
 /// <summary>
 /// D3D12 implementation of command queue interface
 /// </summary>
-internal unsafe class D3D12CommandQueue : ICommandQueue
+internal unsafe class D3D12CommandQueue : D3D12Object<ID3D12CommandQueue1>, ICommandQueue
 {
-    private UniquePtr<ID3D12CommandQueue> _commandQueue;
     private UniquePtr<ID3D12Fence1> _fence;
 
     private readonly AutoResetEvent _fenceEvent;
     private ulong _fenceValue;
-    private bool _disposed;
 
     public CommandQueueType Type
     {
         get;
     }
 
-    public SharedPtr<ID3D12CommandQueue> NativeQueue => _commandQueue.Get();
-
-    public D3D12CommandQueue(ID3D12Device14* pDevice, CommandQueueType type)
+    private static ID3D12CommandQueue1* CreateCommandQueue(ID3D12Device14* device, CommandQueueType type)
     {
-        Type = type;
-        _fenceEvent = new AutoResetEvent(false);
-        _fenceValue = 0;
-
         var queueDesc = new D3D12_COMMAND_QUEUE_DESC
         {
             Type = ConvertCommandQueueType(type),
@@ -39,18 +31,22 @@ internal unsafe class D3D12CommandQueue : ICommandQueue
             Flags = D3D12_COMMAND_QUEUE_FLAGS.D3D12_COMMAND_QUEUE_FLAG_NONE,
         };
 
-        ID3D12CommandQueue* pQueue = default;
-        ID3D12Fence1* pFence = default;
-        ThrowIfFailed(pDevice->CreateCommandQueue(&queueDesc, __uuidof(pQueue), (void**)&pQueue));
-        ThrowIfFailed(pDevice->CreateFence(0, D3D12_FENCE_FLAGS.D3D12_FENCE_FLAG_NONE, __uuidof(pFence), (void**)&pFence));
-
-        _commandQueue.Attach(pQueue);
-        _fence.Attach(pFence);
+        ID3D12CommandQueue1* pQueue = default;
+        ThrowIfFailed(device->CreateCommandQueue(&queueDesc, __uuidof(pQueue), (void**)&pQueue));
+        return pQueue;
     }
 
-    ~D3D12CommandQueue()
+    public D3D12CommandQueue(D3D12RenderDevice device, CommandQueueType type)
+        :base(CreateCommandQueue(device.NativeObject, type))
     {
-        Dispose();
+        Type = type;
+        _fenceEvent = new AutoResetEvent(false);
+        _fenceValue = 0;
+
+        ID3D12Fence1* pFence = default;
+        ThrowIfFailed(device.NativeObject.Get()->CreateFence(0, D3D12_FENCE_FLAGS.D3D12_FENCE_FLAG_NONE, __uuidof(pFence), (void**)&pFence));
+
+        _fence.Attach(pFence);
     }
 
     private static D3D12_COMMAND_LIST_TYPE ConvertCommandQueueType(CommandQueueType type)
@@ -66,7 +62,7 @@ internal unsafe class D3D12CommandQueue : ICommandQueue
 
     public void Submit(ICommandBuffer commandBuffer)
     {
-        Debug.Assert(!_disposed);
+        AssertNotDisposed();
 
         if (commandBuffer.IsEmpty)
         {
@@ -75,9 +71,9 @@ internal unsafe class D3D12CommandQueue : ICommandQueue
 
         if (commandBuffer is D3D12CommandBuffer d3d12CommandBuffer)
         {
-            var commandList = d3d12CommandBuffer.NativeCommandList;
+            var commandList = d3d12CommandBuffer.NativeObject;
             var commandListPtr = (ID3D12CommandList*)commandList.Get();
-            _commandQueue.Get()->ExecuteCommandLists(1, &commandListPtr);
+            pNativeObject->ExecuteCommandLists(1, &commandListPtr);
         }
         else
         {
@@ -87,7 +83,7 @@ internal unsafe class D3D12CommandQueue : ICommandQueue
 
     public void Submit(params ReadOnlySpan<ICommandBuffer> commandBuffers)
     {
-        Debug.Assert(!_disposed);
+        AssertNotDisposed();
 
         Span<int> executableIndices = stackalloc int[commandBuffers.Length];
         executableIndices.Fill(-1);
@@ -115,7 +111,7 @@ internal unsafe class D3D12CommandQueue : ICommandQueue
 
             if (commandBuffers[cmdIndex] is D3D12CommandBuffer d3d12CommandBuffer)
             {
-                ppCommandLists[currentIndex] = (ID3D12CommandList*)d3d12CommandBuffer.NativeCommandList.Get();
+                ppCommandLists[currentIndex] = (ID3D12CommandList*)d3d12CommandBuffer.NativeObject.Get();
             }
             else
             {
@@ -125,21 +121,21 @@ internal unsafe class D3D12CommandQueue : ICommandQueue
             currentIndex++;
         }
 
-        _commandQueue.Get()->ExecuteCommandLists((uint)currentIndex, ppCommandLists);
+        pNativeObject->ExecuteCommandLists((uint)currentIndex, ppCommandLists);
     }
 
     public ulong Signal(ulong value)
     {
-        Debug.Assert(!_disposed);
+        AssertNotDisposed();
 
         _fenceValue = value;
-        ThrowIfFailed(_commandQueue.Get()->Signal((ID3D12Fence*)_fence.Get(), _fenceValue));
+        ThrowIfFailed(pNativeObject->Signal((ID3D12Fence*)_fence.Get(), _fenceValue));
         return _fenceValue;
     }
 
     public void WaitForValue(ulong value)
     {
-        Debug.Assert(!_disposed);
+        AssertNotDisposed();
 
         if (_fence.Get()->GetCompletedValue() < value)
         {
@@ -153,30 +149,21 @@ internal unsafe class D3D12CommandQueue : ICommandQueue
 
     public ulong GetCompletedValue()
     {
-        Debug.Assert(!_disposed);
+        AssertNotDisposed();
         return _fence.Get()->GetCompletedValue();
     }
 
     public void WaitIdle()
     {
-        Debug.Assert(!_disposed);
+        AssertNotDisposed();
 
         var fenceValue = Signal(Interlocked.Increment(ref _fenceValue));
         WaitForValue(fenceValue);
     }
 
-    public void Dispose()
+    protected override void Dispose(bool disposing)
     {
-        if (_disposed)
-        {
-            return;
-        }
-
-        _commandQueue.Dispose();
         _fence.Dispose();
         _fenceEvent?.Dispose();
-
-        _disposed = true;
-        GC.SuppressFinalize(this);
     }
 }

@@ -88,9 +88,9 @@ internal class D3D12ResourceDatabase : IResourceDatabase
     private readonly struct ReleaseEntry
     {
         public readonly ResourceRecord record;
-        public readonly uint fenceValue;
+        public readonly ulong fenceValue;
 
-        public ReleaseEntry(ResourceRecord record, uint fenceValue)
+        public ReleaseEntry(ResourceRecord record, ulong fenceValue)
         {
             this.record = record;
             this.fenceValue = fenceValue;
@@ -108,7 +108,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
 
     private UnsafeQueue<ReleaseEntry> _releaseQueue;
 
-    private uint _currentFrameFenceValue;
+    private ulong _currentFrame;
     private bool _disposed;
 
     public D3D12ResourceDatabase(D3D12DescriptorAllocator descriptorAllocator)
@@ -136,7 +136,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         if (pResource == null)
         {
 #if DEBUG
-            System.Diagnostics.Debugger.Break();
+            Debugger.Break();
 #endif
             return Handle<GPUResource>.Invalid;
         }
@@ -155,13 +155,13 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         return handle;
     }
 
-    public unsafe Handle<GPUResource> AddAllocation(D3D12MA_Allocation* allocation, ResourceBarrierData initialBarrierData, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string? name = null)
+    internal unsafe Handle<GPUResource> AddAllocation(D3D12MA_Allocation* allocation, ResourceBarrierData initialBarrierData, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string? name = null)
     {
         Debug.Assert(!_disposed);
         if (allocation == null)
         {
 #if DEBUG
-            System.Diagnostics.Debugger.Break();
+            Debugger.Break();
 #endif
             return Handle<GPUResource>.Invalid;
         }
@@ -288,7 +288,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
             return;
         }
 
-        var entry = new ReleaseEntry(record, _currentFrameFenceValue);
+        var entry = new ReleaseEntry(record, _currentFrame);
 
         _releaseQueue.Enqueue(entry);
         _resources.Remove(handle.ID, handle.Generation);
@@ -359,20 +359,20 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         return Error.None;
     }
 
-    public void BeginFrame(uint currentFrameFenceValue)
+    public void BeginFrame(ulong currentFrame)
     {
         Debug.Assert(!_disposed);
-        _currentFrameFenceValue = currentFrameFenceValue;
+        _currentFrame = currentFrame;
     }
 
-    public void EndFrame(uint completedFenceValue)
+    public void EndFrame(ulong completedFrame)
     {
         Debug.Assert(!_disposed);
 
         while (_releaseQueue.Count > 0)
         {
             var toRelease = _releaseQueue.Peek();
-            if (toRelease.fenceValue > completedFenceValue)
+            if (toRelease.fenceValue > completedFrame)
             {
                 break;
             }

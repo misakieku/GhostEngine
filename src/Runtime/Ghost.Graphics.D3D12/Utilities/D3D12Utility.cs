@@ -68,7 +68,7 @@ internal static unsafe class D3D12Utility
         if (ptr != null)
         {
             var refCount = ptr->Release();
-            Debug.Assert((refCount != 0));
+            Debug.Assert(refCount != 0);
         }
     }
 

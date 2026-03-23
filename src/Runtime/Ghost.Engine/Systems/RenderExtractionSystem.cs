@@ -5,7 +5,6 @@ using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
-using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
 using Misaki.HighPerformance.Mathematics.Geometry;
 
@@ -78,8 +77,6 @@ public class RenderExtractionSystem : ISystem
 
         ref var cameraQuery = ref systemAPI.World.ComponentManager.GetEntityQueryReference(_cameraQueryID);
         ref var meshQuery = ref systemAPI.World.ComponentManager.GetEntityQueryReference(_meshQueryID);
-
-        var renderRequests = new UnsafeList<RenderRequest>(cameraQuery.CalculateEntityCount(), Allocator.Temp);
 
         // TODO: We should extract the render record for each camera because different cameras may have different culling results.
         foreach (var (cam, camLtw) in cameraQuery.GetComponentIterator<Camera, LocalToWorld>())
@@ -240,10 +237,8 @@ public class RenderExtractionSystem : ISystem
                 },
             };
 
-            renderRequests.Add(request);
+            _renderSystem.AddRenderRequest(request);
         }
-
-        _renderPipeline.Render(new RenderContext(), renderRequests.AsSpan());
     }
 
     public void Cleanup(ref readonly SystemAPI systemAPI)

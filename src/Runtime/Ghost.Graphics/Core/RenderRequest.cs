@@ -34,12 +34,12 @@ public struct Frustum
 
     public static void CalculateFrustumPlanes(float4x4 finalMatrix, ref plane_array outPlanes)
     {
-        const int kPlaneFrustumLeft = 0;
-        const int kPlaneFrustumRight = 1;
-        const int kPlaneFrustumBottom = 2;
-        const int kPlaneFrustumTop = 3;
-        const int kPlaneFrustumNear = 4;
-        const int kPlaneFrustumFar = 5;
+        const int planeFrustumLeft = 0;
+        const int planeFrustumRight = 1;
+        const int planeFrustumBottom = 2;
+        const int planeFrustumTop = 3;
+        const int planeFrustumNear = 4;
+        const int planeFrustumFar = 5;
 
         float4 tmpVec = default;
         float4 otherVec = default;
@@ -66,8 +66,8 @@ public struct Frustum
         leftNormalY *= leftInvMagnitude;
         leftNormalZ *= leftInvMagnitude;
         leftDistance *= leftInvMagnitude;
-        outPlanes[kPlaneFrustumLeft].xyz = new float3(leftNormalX, leftNormalY, leftNormalZ);
-        outPlanes[kPlaneFrustumLeft].w = leftDistance;
+        outPlanes[planeFrustumLeft].xyz = new float3(leftNormalX, leftNormalY, leftNormalZ);
+        outPlanes[planeFrustumLeft].w = leftDistance;
 
         var rightNormalX = -otherVec[0] + tmpVec[0];
         var rightNormalY = -otherVec[1] + tmpVec[1];
@@ -80,8 +80,8 @@ public struct Frustum
         rightNormalY *= rightInvMagnitude;
         rightNormalZ *= rightInvMagnitude;
         rightDistance *= rightInvMagnitude;
-        outPlanes[kPlaneFrustumRight].xyz = new float3(rightNormalX, rightNormalY, rightNormalZ);
-        outPlanes[kPlaneFrustumRight].w = rightDistance;
+        outPlanes[planeFrustumRight].xyz = new float3(rightNormalX, rightNormalY, rightNormalZ);
+        outPlanes[planeFrustumRight].w = rightDistance;
 
         // bottom & top
         otherVec[0] = finalMatrix[0][1];
@@ -100,8 +100,8 @@ public struct Frustum
         bottomNormalY *= bottomInvMagnitude;
         bottomNormalZ *= bottomInvMagnitude;
         bottomDistance *= bottomInvMagnitude;
-        outPlanes[kPlaneFrustumBottom].xyz = new float3(bottomNormalX, bottomNormalY, bottomNormalZ);
-        outPlanes[kPlaneFrustumBottom].w = bottomDistance;
+        outPlanes[planeFrustumBottom].xyz = new float3(bottomNormalX, bottomNormalY, bottomNormalZ);
+        outPlanes[planeFrustumBottom].w = bottomDistance;
 
         var topNormalX = -otherVec[0] + tmpVec[0];
         var topNormalY = -otherVec[1] + tmpVec[1];
@@ -114,8 +114,8 @@ public struct Frustum
         topNormalY *= topInvMagnitude;
         topNormalZ *= topInvMagnitude;
         topDistance *= topInvMagnitude;
-        outPlanes[kPlaneFrustumTop].xyz = new float3(topNormalX, topNormalY, topNormalZ);
-        outPlanes[kPlaneFrustumTop].w = topDistance;
+        outPlanes[planeFrustumTop].xyz = new float3(topNormalX, topNormalY, topNormalZ);
+        outPlanes[planeFrustumTop].w = topDistance;
 
         // near & far
         otherVec[0] = finalMatrix[0][2];
@@ -134,8 +134,8 @@ public struct Frustum
         nearNormalY *= nearInvMagnitude;
         nearNormalZ *= nearInvMagnitude;
         nearDistance *= nearInvMagnitude;
-        outPlanes[kPlaneFrustumNear].xyz = new float3(nearNormalX, nearNormalY, nearNormalZ);
-        outPlanes[kPlaneFrustumNear].w = nearDistance;
+        outPlanes[planeFrustumNear].xyz = new float3(nearNormalX, nearNormalY, nearNormalZ);
+        outPlanes[planeFrustumNear].w = nearDistance;
 
         var farNormalX = -otherVec[0] + tmpVec[0];
         var farNormalY = -otherVec[1] + tmpVec[1];
@@ -148,8 +148,8 @@ public struct Frustum
         farNormalY *= farInvMagnitude;
         farNormalZ *= farInvMagnitude;
         farDistance *= farInvMagnitude;
-        outPlanes[kPlaneFrustumFar].xyz = new float3(farNormalX, farNormalY, farNormalZ);
-        outPlanes[kPlaneFrustumFar].w = farDistance;
+        outPlanes[planeFrustumFar].xyz = new float3(farNormalX, farNormalY, farNormalZ);
+        outPlanes[planeFrustumFar].w = farDistance;
     }
 }
 
@@ -177,7 +177,7 @@ public struct RenderView
     public RenderingLayerMask renderingLayerMask;
 }
 
-public unsafe struct RenderRequest
+public unsafe struct RenderRequest: IDisposable
 {
     public RenderView view;
 
@@ -189,4 +189,11 @@ public unsafe struct RenderRequest
     public RenderList shadowCasterRenderList;
 
     public delegate*<ref readonly RenderContext, ref readonly RenderRequest, void> renderFunc;
+
+    public void Dispose()
+    {
+        opaqueRenderList.Dispose();
+        transparentRenderList.Dispose();
+        shadowCasterRenderList.Dispose();
+    }
 }

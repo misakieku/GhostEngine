@@ -12,14 +12,11 @@ using static TerraFX.Aliases.DXGI_Alias;
 
 namespace Ghost.Graphics.D3D12;
 
-/// <summary>
-/// D3D12 implementation of swap chain interface
-/// </summary>
-internal unsafe class D3D12SwapChain : ISwapChain
+internal unsafe class DXGISwapChain : ISwapChain
 {
     private readonly D3D12ResourceDatabase _resourceDatabase;
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
-    private readonly D3D12RenderDevice _renderDevice;
+    private readonly D3D12RenderDevice _device;
 
     private UniquePtr<IDXGISwapChain4> _swapChain;
     private UnsafeArray<Handle<Texture>> _backBuffers;
@@ -48,37 +45,7 @@ internal unsafe class D3D12SwapChain : ISwapChain
         get; private set;
     }
 
-    public D3D12SwapChain(D3D12ResourceDatabase resourceDatabase, D3D12DescriptorAllocator descriptorAllocator, D3D12RenderDevice device, SwapChainDesc desc, uint bufferCount)
-    {
-        Debug.Assert(bufferCount >= 2);
-
-        _resourceDatabase = resourceDatabase;
-        _descriptorAllocator = descriptorAllocator;
-        _renderDevice = device;
-
-        _backBuffers = new UnsafeArray<Handle<Texture>>((int)bufferCount, Allocator.Persistent);
-
-        Width = desc.Width;
-        Height = desc.Height;
-
-        var pSwapChian = CreateSwapChain(desc, bufferCount);
-        _swapChain.Attach(pSwapChian);
-
-        CreateBackBuffers();
-        SetScale(desc.ScaleX, desc.ScaleY);
-
-        if (desc.Target.Type == SwapChainTargetType.Composition)
-        {
-            _compositionSurface = desc.Target.CompositionSurface;
-        }
-    }
-
-    ~D3D12SwapChain()
-    {
-        Dispose();
-    }
-
-    private IDXGISwapChain4* CreateSwapChain(SwapChainDesc desc, uint bufferCount)
+    private static IDXGISwapChain4* CreateSwapChain(D3D12RenderDevice device, SwapChainDesc desc, uint bufferCount)
     {
         var swapChainDesc = new DXGI_SWAP_CHAIN_DESC1
         {
@@ -97,8 +64,8 @@ internal unsafe class D3D12SwapChain : ISwapChain
 
         IDXGISwapChain1* pTempSwapChain = default;
 
-        var pFactory = _renderDevice.DXGIFactory.Get();
-        var pCommandQueue = _renderDevice.NativeGraphicsQueue.Get();
+        var pFactory = device.DXGIFactory.Get();
+        var pCommandQueue = device.NativeGraphicsQueue.Get();
 
         switch (desc.Target.Type)
         {
@@ -139,6 +106,36 @@ internal unsafe class D3D12SwapChain : ISwapChain
         return pSwapChain;
     }
 
+    public DXGISwapChain(D3D12ResourceDatabase resourceDatabase, D3D12DescriptorAllocator descriptorAllocator, D3D12RenderDevice device, SwapChainDesc desc, uint bufferCount)
+    {
+        Debug.Assert(bufferCount >= 2);
+
+        _resourceDatabase = resourceDatabase;
+        _descriptorAllocator = descriptorAllocator;
+        _device = device;
+
+        var pSfwapChain = CreateSwapChain(device, desc, bufferCount);
+        _swapChain.Attach(pSfwapChain);
+
+        _backBuffers = new UnsafeArray<Handle<Texture>>((int)bufferCount, Allocator.Persistent);
+
+        Width = desc.Width;
+        Height = desc.Height;
+
+        CreateBackBuffers();
+        SetScale(desc.ScaleX, desc.ScaleY);
+
+        if (desc.Target.Type == SwapChainTargetType.Composition)
+        {
+            _compositionSurface = desc.Target.CompositionSurface;
+        }
+    }
+
+    ~DXGISwapChain()
+    {
+        Dispose();
+    }
+
     private void CreateBackBuffers()
     {
         for (uint i = 0; i < _backBuffers.Count; i++)
@@ -149,7 +146,7 @@ internal unsafe class D3D12SwapChain : ISwapChain
 
             var rtv = _descriptorAllocator.AllocateRTV();
             var cpuHandle = _descriptorAllocator.GetCpuHandle(rtv);
-            _renderDevice.NativeDevice.Get()->CreateRenderTargetView(pBackBuffer, null, cpuHandle);
+            _device.NativeObject.Get()->CreateRenderTargetView(pBackBuffer, null, cpuHandle);
 
             var view = ResourceViewGroup.Invalid with
             {

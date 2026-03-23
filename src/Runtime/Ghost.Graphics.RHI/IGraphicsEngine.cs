@@ -38,25 +38,6 @@ public interface IGraphicsEngine : IDisposable
     }
 
     /// <summary>
-    /// Creates a new instance of a renderer for drawing graphical content.
-    /// </summary>
-    /// <returns>An object that implements the IRenderer interface, which can be used to render graphics.</returns>
-    IRenderer CreateRenderer();
-
-    /// <summary>
-    /// Removes the specified renderer from the collection of active renderers.
-    /// </summary>
-    /// <param name="renderer">The renderer instance to remove.</param>
-    void RemoveRenderer(IRenderer renderer);
-
-    /// <summary>
-    /// Removes all registered renderers from the collection.
-    /// </summary>
-    /// <remarks>Call this method to reset the renderer collection to an empty state. After calling this
-    ///     method, no renderers will be available until new ones are added.</remarks>
-    void ClearRenderers();
-
-    /// <summary>
     /// Creates a new command allocator for the specified command buffer space.
     /// </summary>
     /// <param name="type">The space of command buffer for which to create the allocator. The default is CommandBufferType.Graphics.</param>
@@ -71,6 +52,19 @@ public interface IGraphicsEngine : IDisposable
     ICommandBuffer CreateCommandBuffer(CommandBufferType type = CommandBufferType.Graphics);
 
     /// <summary>
+    /// Gets a command buffer from the pool for recording rendering commands.
+    /// </summary>
+    /// <param name="type">Type of command buffer to get from the pool</param>
+    /// <returns>A command buffer instance from the pool</returns>
+    ICommandBuffer GetPooledCommandBuffer(CommandBufferType type = CommandBufferType.Graphics);
+
+    /// <summary>
+    /// Returns a command buffer to the pool after use.
+    /// </summary>
+    /// <param name="commandBuffer">The command buffer to return to the pool</param>
+    void ReturnPooledCommandBuffer(ICommandBuffer commandBuffer);
+
+    /// <summary>
     /// Creates a swap chain for presentation
     /// </summary>
     /// <param name="desc">Swap chain description</param>
@@ -80,16 +74,14 @@ public interface IGraphicsEngine : IDisposable
     /// <summary>
     /// Begin the current frame.
     /// </summary>
-    /// <param name="cpuFenceValue">CPU fence value for synchronization</param>
-    /// <param name="gpuFenceValue">GPU fence value for synchronization</param>
+    /// <param name="currentFrame">CPU fence value for synchronization</param>
     /// <returns>Result of the begin frame operation</returns>
-    Result BeginFrame(uint cpuFenceValue, uint gpuFenceValue);
+    Result BeginFrame(ulong currentFrame);
 
     /// <summary>
     /// End the current frame.
     /// </summary>
-    /// <param name="cpuFenceValue">CPU fence value for synchronization</param>
-    /// <param name="gpuFenceValue">GPU fence value for synchronization</param>
+    /// <param name="completedFrame">GPU fence value for synchronization</param>
     /// <returns>Result of the end frame operation</returns>
-    Result EndFrame(uint cpuFenceValue, uint gpuFenceValue);
+    Result EndFrame(ulong completedFrame);
 }
