@@ -65,6 +65,12 @@ public struct Material : IResourceReleasable
         get; set;
     }
 
+    // For now, 0 means opaque, 1 means transparent, may be we need 2 means ui, etc. but higher values are reserved for user-defined render types.
+    public uint MaterialRenderType
+    {
+        get; set;
+    }
+
     public Error SetShader(Identifier<Shader> shaderId, ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator)
     {
         if (!shaderId.IsValid)

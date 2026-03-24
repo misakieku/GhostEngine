@@ -8,6 +8,7 @@ using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Ghost.Graphics;
 
@@ -37,6 +38,8 @@ public class RenderSystem : IDisposable
 {
     private struct FrameResource : IDisposable
     {
+        private UnsafeList<RenderRequest> _renderRequests;
+
         public required AutoResetEvent CpuReadyEvent
         {
             get; init;
@@ -57,11 +60,21 @@ public class RenderSystem : IDisposable
             get; set;
         }
 
-        public readonly void Dispose()
+        [UnscopedRef]
+        public ref UnsafeList<RenderRequest> RenderRequests => ref _renderRequests;
+
+        public  void Dispose()
         {
             CpuReadyEvent.Dispose();
             GpuReadyEvent.Dispose();
             CommandAllocator.Dispose();
+
+            for (var i = 0; i < _renderRequests.Count; i++)
+            {
+                _renderRequests[i].Dispose();
+            }
+
+            _renderRequests.Dispose();
         }
     }
 
@@ -74,7 +87,6 @@ public class RenderSystem : IDisposable
     private readonly Thread _renderThread;
     private readonly AutoResetEvent _shutdownEvent;
 
-    private UnsafeArray<UnsafeList<RenderRequest>> _renderRequests;
     private readonly ConcurrentDictionary<ISwapChain, uint2> _resizeRequest;
 
     private IRenderPipelineSettings _renderPipelineSettings;
@@ -109,6 +121,7 @@ public class RenderSystem : IDisposable
                 return;
             }
 
+            _renderPipeline?.Dispose();
             _renderPipelineSettings = value;
             _renderPipeline = _renderPipelineSettings.CreatePipeline(this);
         }
@@ -152,7 +165,8 @@ public class RenderSystem : IDisposable
             {
                 CpuReadyEvent = new AutoResetEvent(false),
                 GpuReadyEvent = new AutoResetEvent(true),
-                CommandAllocator = _graphicsEngine.CreateCommandAllocator(CommandBufferType.Graphics)
+                CommandAllocator = _graphicsEngine.CreateCommandAllocator(CommandBufferType.Graphics),
+                RenderRequests = new UnsafeList<RenderRequest>(2, Allocator.Persistent)
             };
         }
 
@@ -165,11 +179,6 @@ public class RenderSystem : IDisposable
 
         _shutdownEvent = new AutoResetEvent(false);
         _resizeRequest = new ConcurrentDictionary<ISwapChain, uint2>();
-        _renderRequests = new UnsafeArray<UnsafeList<RenderRequest>>((int)desc.FrameBufferCount, Allocator.Persistent);
-        for (var i = 0; i < desc.FrameBufferCount; i++)
-        {
-            _renderRequests[i] = new UnsafeList<RenderRequest>(2, Allocator.Persistent);
-        }
 
         _renderPipelineSettings = new GhostRenderPipelineSettings();
         _renderPipeline = _renderPipelineSettings.CreatePipeline(this);
@@ -266,27 +275,40 @@ public class RenderSystem : IDisposable
 
             // TODO: How can we support async compute and async copy?
             var cmd = _graphicsEngine.GetPooledCommandBuffer(CommandBufferType.Graphics);
-            cmd.Begin(frameResource.CommandAllocator);
 
-            var renderCtx = new RenderContext
+            try
             {
-                CommandBuffer = cmd
-            };
+                cmd.Begin(frameResource.CommandAllocator);
 
-            ref var renderRequests = ref _renderRequests[_frameIndex];
-            _renderPipeline.Render(renderCtx, renderRequests.AsSpan());
+                var renderCtx = new RenderContext
+                {
+                    CommandBuffer = cmd
+                };
 
-            // End recording commands and submit
-            r = cmd.End();
-            if (r.IsFailure)
+                ref var renderRequests = ref frameResource.RenderRequests;
+                _renderPipeline.Render(renderCtx, renderRequests.AsSpan());
+
+                // End recording commands and submit
+                r = cmd.End();
+                if (r.IsFailure)
+                {
+                    StopRenderLoop(r);
+                    break;
+                }
+
+                _graphicsEngine.Device.GraphicsQueue.Submit(cmd);
+
+                for (var i = 0; i < renderRequests.Count; i++)
+                {
+                    renderRequests[i].Dispose();
+                }
+
+                renderRequests.Clear();
+            }
+            finally
             {
                 _graphicsEngine.ReturnPooledCommandBuffer(cmd);
-                StopRenderLoop(r);
-                break;
             }
-
-            _graphicsEngine.Device.GraphicsQueue.Submit(cmd);
-            _graphicsEngine.ReturnPooledCommandBuffer(cmd);
 
             // End the frame and present
             _resourceManager.EndFrame(_cpuFenceValue);
@@ -302,13 +324,6 @@ public class RenderSystem : IDisposable
 
 
             // Prepare for the next frame.
-            for (var i = 0; i < renderRequests.Count; i++)
-            {
-                renderRequests[i].Dispose();
-            }
-
-            renderRequests.Clear();
-
             _gpuFenceValue++;
 
             frameResource.GpuReadyEvent.Set();
@@ -363,7 +378,7 @@ public class RenderSystem : IDisposable
         Debug.Assert(!_disposed, "Cannot add render request to a disposed RenderSystem.");
 
         var frameIndex = (int)(_cpuFenceValue % _config.FrameBufferCount);
-        _renderRequests[frameIndex].Add(request);
+        _frameResources[frameIndex].RenderRequests.Add(request);
     }
 
     public bool WaitForGPUReady(int timeOut = -1)
@@ -395,19 +410,10 @@ public class RenderSystem : IDisposable
 
         Stop();
 
-        foreach (var frameResource in _frameResources)
+        for (int i = 0; i < _frameResources.Length; i++)
         {
+            ref var frameResource = ref _frameResources[i];
             frameResource.Dispose();
-        }
-
-        foreach (ref var renderRequestList in _renderRequests)
-        {
-            foreach (ref var request in renderRequestList)
-            {
-                request.Dispose();
-            }
-
-            renderRequestList.Dispose();
         }
 
         _graphicsEngine.Dispose();

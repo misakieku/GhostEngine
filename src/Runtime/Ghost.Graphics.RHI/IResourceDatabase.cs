@@ -47,6 +47,10 @@ public interface IResourceDatabase : IDisposable
         where T : unmanaged;
     */
 
+    void EnterParallelRead();
+
+    void ExitParallelRead();
+
     /// <summary>
     /// Checks if a resource with the specified handle exists in the database.
     /// </summary>

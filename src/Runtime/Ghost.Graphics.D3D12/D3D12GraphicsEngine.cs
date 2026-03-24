@@ -123,7 +123,6 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         _commandBufferReturnQueue.Enqueue(new CommandBufferReturnEntry(commandBuffer, _currentFrame));
     }
 
-
     public ISwapChain CreateSwapChain(SwapChainDesc desc)
     {
         ThrowIfDisposed();

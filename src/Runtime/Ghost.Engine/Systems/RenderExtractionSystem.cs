@@ -93,8 +93,9 @@ public class RenderExtractionSystem : ISystem
             var rtSize = new uint2(rtResult.Value.TextureDescription.Width, rtResult.Value.TextureDescription.Height);
             var aspectScreen = (float)rtSize.x / rtSize.y;
 
-            var renderList = new RenderList(1, 64, Allocator.Temp);
-            var shadowCasterRenderList = new RenderList(1, 64, Allocator.Temp);
+            var renderList = new RenderList(1, 64, Allocator.FreeList);
+            var transparentRenderList = new RenderList(1, 64, Allocator.FreeList);
+            var shadowCasterRenderList = new RenderList(1, 64, Allocator.FreeList);
 
             // TODO: This chould be done in parallel jobs.
             foreach (var chunk in meshQuery.GetChunkIterator())
@@ -213,7 +214,7 @@ public class RenderExtractionSystem : ISystem
                 depthTarget = camRef.depthTarget,
                 opaqueRenderList = renderList,
                 shadowCasterRenderList = shadowCasterRenderList,
-                transparentRenderList = default,
+                transparentRenderList = default, // TODO: Classify transparent objects into a separate render list and render via oit.
                 renderFunc = camRef.renderFunc,
                 view = new RenderView
                 {

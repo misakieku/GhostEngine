@@ -99,7 +99,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
 
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
 
-    // TODO: Change AOS to SOA? Does it even matter since we mostly access resources by handle which is essentially random access?
+    // TODO: Change AOS to SOA?
     private UnsafeSlotMap<ResourceRecord> _resources;
     private UnsafeHashMap<SamplerDesc, Identifier<Sampler>> _samplers;
 #if DEBUG || GHOST_EDITOR
@@ -107,6 +107,8 @@ internal class D3D12ResourceDatabase : IResourceDatabase
 #endif
 
     private UnsafeQueue<ReleaseEntry> _releaseQueue;
+
+    private int _writeLock;
 
     private ulong _currentFrame;
     private bool _disposed;
@@ -141,23 +143,37 @@ internal class D3D12ResourceDatabase : IResourceDatabase
             return Handle<GPUResource>.Invalid;
         }
 
-        var id = _resources.Add(new ResourceRecord(pResource, initialBarrierData, viewGroup), out var generation);
-        var handle = new Handle<GPUResource>(id, generation);
+        var spinner = new SpinWait();
+        while (Interlocked.CompareExchange(ref _writeLock, 1, 0) != 0)
+        {
+            spinner.SpinOnce();
+        }
+
+        try
+        {
+            var id = _resources.Add(new ResourceRecord(pResource, initialBarrierData, viewGroup), out var generation);
+            var handle = new Handle<GPUResource>(id, generation);
 
 #if DEBUG || GHOST_EDITOR
-        if (!string.IsNullOrEmpty(name))
-        {
-            pResource->SetName(name);
-            _resourceName[handle] = name;
-        }
+            if (!string.IsNullOrEmpty(name))
+            {
+                pResource->SetName(name);
+                _resourceName[handle] = name;
+            }
 #endif
 
-        return handle;
+            return handle;
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _writeLock, 0);
+        }
     }
 
     internal unsafe Handle<GPUResource> AddAllocation(D3D12MA_Allocation* allocation, ResourceBarrierData initialBarrierData, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string? name = null)
     {
         Debug.Assert(!_disposed);
+
         if (allocation == null)
         {
 #if DEBUG
@@ -166,23 +182,48 @@ internal class D3D12ResourceDatabase : IResourceDatabase
             return Handle<GPUResource>.Invalid;
         }
 
-        var id = _resources.Add(new ResourceRecord(allocation, initialBarrierData, resourceDescriptor, desc), out var generation);
-        var handle = new Handle<GPUResource>(id, generation);
+        var spinner = new SpinWait();
+        while (Interlocked.CompareExchange(ref _writeLock, 1, 0) != 0)
+        {
+            spinner.SpinOnce();
+        }
+
+        try
+        {
+            var id = _resources.Add(new ResourceRecord(allocation, initialBarrierData, resourceDescriptor, desc), out var generation);
+            var handle = new Handle<GPUResource>(id, generation);
 
 #if DEBUG || GHOST_EDITOR
-        if (!string.IsNullOrEmpty(name))
-        {
-            allocation->SetName(name);
-            var pResource = allocation->GetResource();
-            if (pResource != null)
+            if (!string.IsNullOrEmpty(name))
             {
-                pResource->SetName(name);
+                allocation->SetName(name);
+                var pResource = allocation->GetResource();
+                if (pResource != null)
+                {
+                    pResource->SetName(name);
+                }
+                _resourceName[handle] = name;
             }
-            _resourceName[handle] = name;
-        }
 #endif
 
-        return handle;
+            return handle;
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _writeLock, 0);
+        }
+    }
+
+    public void EnterParallelRead()
+    {
+        Debug.Assert(!_disposed);
+        Interlocked.Exchange(ref _writeLock, 1);
+    }
+
+    public void ExitParallelRead()
+    {
+        Debug.Assert(!_disposed);
+        Interlocked.Exchange(ref _writeLock, 0);
     }
 
     public bool HasResource(Handle<GPUResource> handle)

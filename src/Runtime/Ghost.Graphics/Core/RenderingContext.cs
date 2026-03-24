@@ -235,9 +235,9 @@ public readonly unsafe ref struct RenderingContext
             worldBoundsMax = meshData.BoundingBox.Max,
             vertexBuffer = _engine.ResourceDatabase.GetBindlessIndex(meshData.VertexBuffer.AsResource()),
             indexBuffer = _engine.ResourceDatabase.GetBindlessIndex(meshData.IndexBuffer.AsResource()),
-            meshletBuffer = meshData.MeshLetBuffer.IsInvalid ? 0 : _engine.ResourceDatabase.GetBindlessIndex(meshData.MeshLetBuffer.AsResource()),
-            meshletVerticesBuffer = meshData.MeshletVerticesBuffer.IsInvalid ? 0 : _engine.ResourceDatabase.GetBindlessIndex(meshData.MeshletVerticesBuffer.AsResource()),
-            meshletTrianglesBuffer = meshData.MeshletTrianglesBuffer.IsInvalid ? 0 : _engine.ResourceDatabase.GetBindlessIndex(meshData.MeshletTrianglesBuffer.AsResource()),
+            meshletBuffer = _engine.ResourceDatabase.GetBindlessIndex(meshData.MeshLetBuffer.AsResource()),
+            meshletVerticesBuffer = _engine.ResourceDatabase.GetBindlessIndex(meshData.MeshletVerticesBuffer.AsResource()),
+            meshletTrianglesBuffer = _engine.ResourceDatabase.GetBindlessIndex(meshData.MeshletTrianglesBuffer.AsResource()),
         };
 
         var bufferHandle = meshData.ObjectDataBuffer.AsResource();
