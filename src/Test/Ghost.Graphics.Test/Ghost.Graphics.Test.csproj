@@ -51,6 +51,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Runtime\Ghost.Engine\Ghost.Engine.csproj" />
     <ProjectReference Include="..\..\Test\Ghost.Test.Core\Ghost.Test.Core.csproj" />
+    <ProjectReference Include="..\..\Runtime\Ghost.Graphics\Ghost.Graphics.csproj" />
   </ItemGroup>
 
   <!-- 

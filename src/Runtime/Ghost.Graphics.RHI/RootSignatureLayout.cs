@@ -41,13 +41,27 @@ public static class RootSignatureLayout
     public const int ROOT_PARAMETER_COUNT = 1;
 }
 
-[StructLayout(LayoutKind.Sequential, Size = 16)]
+[StructLayout(LayoutKind.Sequential, Size = 20)]
 public struct PushConstantsData
 {
     public uint globalIndex;
     public uint viewIndex;
+    public uint instanceIndex;
     public uint objectIndex;
     public uint materialIndex;
+}
+
+[StructLayout(LayoutKind.Sequential, Size = 8)]
+public struct GlobalFrameData
+{
+    public uint viewBufferIndex;
+    public uint instanceBufferIndex;
+}
+
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+public struct InstanceData
+{
+    public float4x4 localToWorld;
 }
 
 // The size should be 176 bytes (16-byte aligned)

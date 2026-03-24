@@ -63,6 +63,19 @@ public struct RenderList : IDisposable
     private UnsafeArray<UnsafeList<RenderRecord>> _threadLocalRecords;
 
     public readonly int ThreadLocalCount => _threadLocalRecords.Length;
+    public readonly int TotalRecordCount
+    {
+        get
+        {
+            var count = 0;
+            for (var i = 0; i < _threadLocalRecords.Length; i++)
+            {
+                count += _threadLocalRecords[i].Count;
+            }
+
+            return count;
+        }
+    }
     public readonly bool IsCreated => _threadLocalRecords.IsCreated;
 
     public RenderList(int maxLevelOfConcurrency, int capacity, AllocationHandle allocationHandle)

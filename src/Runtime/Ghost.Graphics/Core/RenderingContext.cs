@@ -160,8 +160,11 @@ public readonly unsafe ref struct RenderingContext
     public void UploadMeshlets(Handle<Mesh> mesh)
     {
         var r = _resourceManager.GetMeshReference(mesh);
-        if (r.IsFailure) return;
-        
+        if (r.IsFailure)
+        {
+            return;
+        }
+
         ref var meshRef = ref r.Value;
         ref readonly var meshletData = ref meshRef.MeshletData;
 

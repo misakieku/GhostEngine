@@ -28,6 +28,9 @@ public readonly struct RenderingLayerMask : IEquatable<RenderingLayerMask>
 
     private readonly uint _value;
 
+    public static readonly RenderingLayerMask Empty = new(0);
+    public static readonly RenderingLayerMask All = new(uint.MaxValue);
+
     public RenderingLayerMask(uint value)
     {
         _value = value;
