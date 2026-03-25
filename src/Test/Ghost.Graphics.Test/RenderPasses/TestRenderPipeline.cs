@@ -1,9 +1,12 @@
 using Ghost.Core;
+using Ghost.Core.Graphics;
+using Ghost.DSL.ShaderCompiler;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RenderPipeline;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Mathematics;
+using Misaki.HighPerformance.Utilities;
 
 namespace Ghost.Graphics.Test.RenderPasses;
 
@@ -21,10 +24,15 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
     {
         public Identifier<RGTexture> backbuffer;
         public RenderList renderList;
+        public Handle<Material> material;
+        public uint globalIndex;
+        public uint viewIndex;
     }
 
     private readonly RenderGraph _renderGraph;
     private readonly RenderSystem _renderSystem;
+    private Identifier<Shader> _meshletShader;
+    private Handle<Material> _meshletMaterial;
 
     private bool _disposed;
 
@@ -41,6 +49,25 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
                 renderSystem.GraphicsEngine.ResourceDatabase,
                 renderSystem.GraphicsEngine.PipelineLibrary,
                 renderSystem.GraphicsEngine.ShaderCompiler);
+
+        var shaderDescriptor = DSLShaderCompiler.CompileShader("F:/csharp/GhostEngine/src/Runtime/Ghost.Graphics/test.gshdr", "C:/Users/Misaki/Downloads/Archive").GetValueOrThrow();
+        _meshletShader = renderSystem.ResourceManager.CreateGraphicsShader(shaderDescriptor);
+        _meshletMaterial = renderSystem.ResourceManager.CreateMaterial(_meshletShader);
+
+        var config = new ShaderCompilationConfig
+        {
+            optimizeLevel = CompilerOptimizeLevel.O3,
+            options = CompilerOption.KeepReflections,
+            tier = CompilerTier.Tier2
+        };
+
+        var pass = shaderDescriptor.passes[0];
+        var emptyKeywords = new LocalKeywordSet();
+        var variantKey = RHIUtility.CreateShaderVariantKey(
+            RHIUtility.CreateShaderPassKey(pass.identifier),
+            in emptyKeywords);
+
+        renderSystem.GraphicsEngine.ShaderCompiler.CompilePass(in pass, in config, variantKey).GetValueOrThrow();
     }
 
     public void Render(RenderContext ctx, ReadOnlySpan<RenderRequest> requests)
@@ -137,7 +164,9 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
             }
             else
             {
-                var backBuffer = _renderGraph.ImportTexture(request.colorTarget, "BackBuffer", clearAtFirstUse: false, discardAtLastUse: false);
+                var backBuffer = _renderGraph.ImportTexture(request.colorTarget, "BackBuffer", clearAtFirstUse: true, discardAtLastUse: false);
+
+                MeshletDebugPass(backBuffer, request.opaqueRenderList, resourceDatabase.GetBindlessIndex(frameBufferResource.AsResource()), resourceDatabase.GetBindlessIndex(viewBufferResource.AsResource()));
             }
 
             // We must enqueue a return for the pooled resources so they are freed next frame.
@@ -147,16 +176,35 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
         }
     }
 
-    private void MeshletDebugPass(Identifier<RGTexture> backbuffer, RenderList renderList)
+    private void MeshletDebugPass(Identifier<RGTexture> backbuffer, RenderList renderList, uint globalIndex, uint viewIndex)
     {
         using (var builder = _renderGraph.AddRasterRenderPass<MeshletDebugPassData>("Meshlet Debug Pass", out var passData))
         {
             passData.renderList = renderList;
+            passData.globalIndex = globalIndex;
+            passData.viewIndex = viewIndex;
+            passData.material = _meshletMaterial;
 
             builder.SetColorAttachment(backbuffer, 0);
             builder.SetRenderFunc<MeshletDebugPassData>(static (data, ctx)=>
             {
+                ctx.SetGlobalData(data.globalIndex, data.viewIndex);
+                ctx.SetActiveMaterial(data.material);
 
+                var instanceIndex = 0u;
+                foreach (var record in data.renderList)
+                {
+                    ctx.SetActiveMesh(record.mesh);
+                    ctx.SetInstanceIndex(instanceIndex);
+
+                    var meshRefResult = ctx.ResourceManager.GetMeshReference(record.mesh);
+                    if (meshRefResult.IsSuccess)
+                    {
+                        var meshletCount = (uint)meshRefResult.Value.MeshletData.meshlets.Count;
+                        ctx.DispatchMesh(new uint3(meshletCount, 1, 1));
+                    }
+                    instanceIndex++;
+                }
             });
         }
     }
@@ -167,6 +215,9 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
         {
             return;
         }
+
+        _renderSystem.ResourceManager.ReleaseMaterial(_meshletMaterial);
+        _renderSystem.ResourceManager.ReleaseShader(_meshletShader);
 
         _renderGraph.Dispose();
 

@@ -160,6 +160,16 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
             return;
         }
 
+        while (_commandBufferReturnQueue.TryDequeue(out var entry))
+        {
+            entry.commandBuffer.Dispose();
+        }
+
+        while (_commandBufferPool.TryDequeue(out var cmd))
+        {
+            cmd.Dispose();
+        }
+
         _resourceDatabase.ReleaseAllResourcesImmediately();
 
         _resourceAllocator.Dispose();

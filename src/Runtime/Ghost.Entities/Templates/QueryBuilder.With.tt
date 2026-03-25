@@ -4,6 +4,7 @@
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Text" #>
 <#@ include file="Helpers.ttinclude" #>
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities;
@@ -21,14 +22,15 @@ public ref partial struct QueryBuilder
     /// Targets entities that have all of the specified component types and those component(s) must be enabled.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public QueryBuilder WithAll<<#= generics #>>()
+    [UnscopedRef]
+    public ref QueryBuilder WithAll<<#= generics #>>()
 <#= restrictions #>
     {
 <# for (var j = 0; j < i; j++) { #>
         _all.Add(ComponentTypeID<T<#= j #>>.Value);
 <# } #>
 
-        return this;
+        return ref this;
     }
 
     /// <summary>
@@ -36,7 +38,8 @@ public ref partial struct QueryBuilder
     /// Targets entities that have all of the specified component types and those component(s) must be enabled.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public QueryBuilder WithAllRW<<#= generics #>>()
+    [UnscopedRef]
+    public ref QueryBuilder WithAllRW<<#= generics #>>()
 <#= restrictions #>
     {
 <# for (var j = 0; j < i; j++) { #>
@@ -44,7 +47,7 @@ public ref partial struct QueryBuilder
         _rw.Add(ComponentTypeID<T<#= j #>>.Value);
 <# } #>
 
-        return this;
+        return ref this;
     }
 
     /// <summary>
@@ -52,14 +55,15 @@ public ref partial struct QueryBuilder
     /// Targets entities that have at least one of the specified component types and those component(s) must be enabled.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public QueryBuilder WithAny<<#= generics #>>()
+    [UnscopedRef]
+    public ref QueryBuilder WithAny<<#= generics #>>()
 <#= restrictions #>
     {
 <# for (var j = 0; j < i; j++) { #>
         _any.Add(ComponentTypeID<T<#= j #>>.Value);
 <# } #>
 
-        return this;
+        return ref this;
     }
 
     /// <summary>
@@ -67,14 +71,15 @@ public ref partial struct QueryBuilder
     /// Targets entities that do not have any of the specified component types.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public QueryBuilder WithAbsent<<#= generics #>>()
+    [UnscopedRef]
+    public ref QueryBuilder WithAbsent<<#= generics #>>()
 <#= restrictions #>
     {
 <# for (var j = 0; j < i; j++) { #>
         _absent.Add(ComponentTypeID<T<#= j #>>.Value);
 <# } #>
 
-        return this;
+        return ref this;
     }
 
     /// <summary>
@@ -82,14 +87,15 @@ public ref partial struct QueryBuilder
     /// Targets entities that do not have any of the specified component types, or those component(s) are disabled.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public QueryBuilder WithNone<<#= generics #>>()
+    [UnscopedRef]
+    public ref QueryBuilder WithNone<<#= generics #>>()
 <#= restrictions #>
     {
 <# for (var j = 0; j < i; j++) { #>
         _none.Add(ComponentTypeID<T<#= j #>>.Value);
 <# } #>
 
-        return this;
+        return ref this;
     }
 
     /// <summary>
@@ -97,14 +103,15 @@ public ref partial struct QueryBuilder
     /// Targets entities that have all of the specified component types and those component(s) are disabled.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public QueryBuilder WithDisabled<<#= generics #>>()
+    [UnscopedRef]
+    public ref QueryBuilder WithDisabled<<#= generics #>>()
 <#= enableRestrictions #>
     {
 <# for (var j = 0; j < i; j++) { #>
         _disabled.Add(ComponentTypeID<T<#= j #>>.Value);
 <# } #>
 
-        return this;
+        return ref this;
     }
 
     /// <summary>
@@ -112,14 +119,15 @@ public ref partial struct QueryBuilder
     /// Targets entities that have all of the specified component types, regardless of whether those component(s) are enabled or disabled.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public QueryBuilder WithPresent<<#= generics #>>()
+    [UnscopedRef]
+    public ref QueryBuilder WithPresent<<#= generics #>>()
 <#= restrictions #>
     {
 <# for (var j = 0; j < i; j++) { #>
         _present.Add(ComponentTypeID<T<#= j #>>.Value);
 <# } #>
 
-        return this;
+        return ref this;
     }
 
     /// <summary>
@@ -127,7 +135,8 @@ public ref partial struct QueryBuilder
     /// Targets entities that have all of the specified component types, regardless of whether those component(s) are enabled or disabled.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public QueryBuilder WithPresentRW<<#= generics #>>()
+    [UnscopedRef]
+    public ref QueryBuilder WithPresentRW<<#= generics #>>()
 <#= restrictions #>
     {
 <# for (var j = 0; j < i; j++) { #>
@@ -135,7 +144,7 @@ public ref partial struct QueryBuilder
         _rw.Add(ComponentTypeID<T<#= j #>>.Value);
 <# } #>
 
-        return this;
+        return ref this;
     }
 
 <# } #>

@@ -636,6 +636,10 @@ public ref partial struct QueryBuilder : IDisposable
         {
             Dispose();
         }
+        else
+        {
+            Clear();
+        }
 
         return query;
     }

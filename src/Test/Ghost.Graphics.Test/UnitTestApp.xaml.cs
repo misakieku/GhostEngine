@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Graphics.Test.Windows;
 
 using Microsoft.UI.Xaml;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Runtime.InteropServices;
 
 // To learn more about WinUI, the WinUI project structure,
@@ -32,22 +33,22 @@ public partial class UnitTestApp : Application
                        OperatingSystem.IsMacOS() ? "osx" : "unknown";
         var arch = Environment.Is64BitProcess ? "x64" : "x86";
         var nativeDllDir = Path.Combine(currentDir, "runtimes", platform + "-" + arch, "native");
-        //if (Directory.Exists(nativeDllDir))
-        //{
-        //    foreach (var dll in Directory.EnumerateFiles(nativeDllDir, "*.dll"))
-        //    {
-        //        NativeLibrary.Load(dll);
-        //    }
-        //}
-        NativeLibrary.SetDllImportResolver(typeof(UnitTestApp).Assembly, (libraryName, assembly, searchPath) =>
+        if (Directory.Exists(nativeDllDir))
         {
-            if (libraryName == "dxcompiler")
+            foreach (var dll in Directory.EnumerateFiles(nativeDllDir, "*.dll"))
             {
-                NativeLibrary.Load(Path.Combine(nativeDllDir, "dxil.dll"));
+                NativeLibrary.Load(dll);
             }
+        }
+        //NativeLibrary.SetDllImportResolver(typeof(UnitTestApp).Assembly, (libraryName, assembly, searchPath) =>
+        //{
+        //    if (libraryName == "dxcompiler")
+        //    {
+        //        NativeLibrary.Load(Path.Combine(nativeDllDir, "dxil.dll"));
+        //    }
 
-            return IntPtr.Zero;
-        });
+        //    return IntPtr.Zero;
+        //});
     }
 
     /// <summary>
@@ -57,6 +58,15 @@ public partial class UnitTestApp : Application
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
         LoadDll();
+
+        var opts = new AllocationManagerInitOpts
+        {
+            ArenaCapacity = 1024 * 1024 * 1024, // 1GB
+            StackCapacity = 1024 * 1024 * 32, // 32MB
+            FreeListConcurrencyLevel = Environment.ProcessorCount,
+        };
+
+        AllocationManager.Initialize(opts);
 
         _window = new GraphicsTestWindow();
         _window.Activate();

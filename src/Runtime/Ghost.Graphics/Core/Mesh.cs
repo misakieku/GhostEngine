@@ -194,7 +194,7 @@ public struct Mesh : IResourceReleasable
         this.ComputeBounds();
     }
 
-    public readonly void ReleaseCpuResources()
+    public void ReleaseCpuResources()
     {
         _vertices.Dispose();
         _indices.Dispose();
@@ -238,7 +238,7 @@ public struct Mesh : IResourceReleasable
         MeshletUtility.Build(config, clodMesh, Unsafe.AsPointer(ref this), MeshletOutputCallback);
     }
 
-    private static unsafe int MeshletOutputCallback(void* context, ClodGroup group, ReadOnlyUnsafeCollection<ClodCluster>clusters)
+    private static unsafe int MeshletOutputCallback(void* context, ClodGroup group, ReadOnlyUnsafeCollection<ClodCluster> clusters)
     {
         var mesh = (Mesh*)context;
         ref var data = ref mesh->_meshletData;
@@ -277,13 +277,13 @@ public struct Mesh : IResourceReleasable
                 data.meshletVertices.Add(cluster.uniqueVertices[j]);
             }
             // Add local triangles (packed into uints)
-            nuint triangleCount = cluster.localIndexCount / 3;
+            var triangleCount = cluster.localIndexCount / 3;
             for (nuint j = 0; j < triangleCount; j++)
             {
                 uint i0 = cluster.localIndices[j * 3 + 0];
                 uint i1 = cluster.localIndices[j * 3 + 1];
                 uint i2 = cluster.localIndices[j * 3 + 2];
-                uint packedTriangle = i0 | (i1 << 8) | (i2 << 16);
+                var packedTriangle = i0 | (i1 << 8) | (i2 << 16);
                 data.meshletTriangles.Add(packedTriangle);
             }
         }
@@ -291,7 +291,7 @@ public struct Mesh : IResourceReleasable
         return 0;
     }
 
-    public readonly void ReleaseResource(IResourceDatabase database)
+    public void ReleaseResource(IResourceDatabase database)
     {
         ReleaseCpuResources();
 

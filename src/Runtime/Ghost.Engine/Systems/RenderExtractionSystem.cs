@@ -92,6 +92,7 @@ public class RenderExtractionSystem : ISystem
             var rtSize = new uint2(rtResult.Value.TextureDescription.Width, rtResult.Value.TextureDescription.Height);
             var aspectScreen = (float)rtSize.x / rtSize.y;
 
+            // TODO: Classify transparent objects into a separate render list and render via oit.
             var renderList = new RenderList(1, 64, Allocator.FreeList);
             var transparentRenderList = new RenderList(1, 64, Allocator.FreeList);
             var shadowCasterRenderList = new RenderList(1, 64, Allocator.FreeList);
@@ -215,7 +216,7 @@ public class RenderExtractionSystem : ISystem
                 depthTarget = camRef.depthTarget,
                 opaqueRenderList = renderList,
                 shadowCasterRenderList = shadowCasterRenderList,
-                transparentRenderList = default, // TODO: Classify transparent objects into a separate render list and render via oit.
+                transparentRenderList = transparentRenderList,
                 renderFunc = camRef.renderFunc,
                 view = new RenderView
                 {

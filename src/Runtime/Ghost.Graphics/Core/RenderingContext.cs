@@ -93,7 +93,7 @@ public readonly unsafe ref struct RenderingContext
             return mesh;
         }
 
-        ref readonly var meshData = ref r.Value;
+        ref var meshData = ref r.Value;
         var vertexHandle = meshData.VertexBuffer.AsResource();
         var indexHandle = meshData.IndexBuffer.AsResource();
 
@@ -105,9 +105,12 @@ public readonly unsafe ref struct RenderingContext
 
         if (staticMesh)
         {
+            meshData.CookMeshlets();
             meshData.ReleaseCpuResources();
             TransitionBarrier(vertexHandle, false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.VertexShading);
             TransitionBarrier(indexHandle, false, BarrierLayout.Undefined, BarrierAccess.IndexBuffer, BarrierSync.IndexInput);
+
+            UploadMeshlets(mesh);
         }
 
         return mesh;
@@ -205,17 +208,7 @@ public readonly unsafe ref struct RenderingContext
 
         _directCmd.UploadBuffer(meshRef.MeshLetBuffer, meshletData.meshlets.AsSpan());
         _directCmd.UploadBuffer(meshRef.MeshletVerticesBuffer, meshletData.meshletVertices.AsSpan());
-        // Padding for triangle data if needed
-        if (trianglesSize > meshletData.meshletTriangles.Count)
-        {
-            var paddedData = new uint[trianglesSize];
-            meshletData.meshletTriangles.AsSpan().CopyTo(paddedData);
-            _directCmd.UploadBuffer(meshRef.MeshletTrianglesBuffer, paddedData.AsSpan());
-        }
-        else
-        {
-            _directCmd.UploadBuffer(meshRef.MeshletTrianglesBuffer, meshletData.meshletTriangles.AsSpan());
-        }
+        _directCmd.UploadBuffer(meshRef.MeshletTrianglesBuffer, meshletData.meshletTriangles.AsSpan());
 
         TransitionBarrier(meshRef.MeshLetBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
         TransitionBarrier(meshRef.MeshletVerticesBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.NonPixelShading | BarrierSync.PixelShading);

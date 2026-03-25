@@ -48,6 +48,6 @@ internal partial class ConsoleViewModel : ObservableObject
     [RelayCommand]
     private void ClearLogs()
     {
-        Logger.Clear();
+        //Logger.Clear();
     }
 }

@@ -38,7 +38,7 @@ public struct RenderList : IDisposable
         {
             while (_listIndex < _length)
             {
-                if (_itemIndex < _pList[_listIndex].Count)
+                if (_itemIndex < _pList[_listIndex].Count - 1)
                 {
                     _itemIndex++;
                     return true;

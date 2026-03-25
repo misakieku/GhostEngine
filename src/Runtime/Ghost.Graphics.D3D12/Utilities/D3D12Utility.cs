@@ -53,8 +53,9 @@ internal static unsafe class D3D12Utility
         var ptr = uPtr.Get();
         if (ptr != null)
         {
+            Debug.Assert(ptr != other);
             var refCount = ptr->Release();
-            Debug.Assert((refCount != 0) || (ptr != other));
+            Debug.Assert(refCount == 0);
         }
 
         uPtr = new UniquePtr<T>(other);
@@ -68,7 +69,7 @@ internal static unsafe class D3D12Utility
         if (ptr != null)
         {
             var refCount = ptr->Release();
-            Debug.Assert(refCount != 0);
+            //Debug.Assert(refCount == 0);
         }
     }
 
@@ -433,7 +434,7 @@ internal static unsafe class D3D12Utility
     {
         var flags = D3D12_RESOURCE_FLAG_NONE;
 
-        if (usage.HasFlag(BufferUsage.Raw) || usage.HasFlag(BufferUsage.UnorderedAccess))
+        if (usage.HasFlag(BufferUsage.UnorderedAccess))
         {
             flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
         }

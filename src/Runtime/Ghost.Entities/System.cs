@@ -340,7 +340,7 @@ public abstract class SystemGroup : ISystem
 
 public sealed class DefaultSystemGroup : SystemGroup;
 
-public sealed class SystemManager
+public sealed class SystemManager : IDisposable
 {
     private readonly World _world;
 
@@ -414,5 +414,10 @@ public sealed class SystemManager
         {
             system.Cleanup(in systemAPI);
         }
+    }
+
+    public void Dispose()
+    {
+        CleanupAll(default);
     }
 }

@@ -422,6 +422,7 @@ public class RenderSystem : IDisposable
         }
 
         _renderPipeline.Dispose();
+        _resourceManager.Dispose();
         _graphicsEngine.Dispose();
         _shutdownEvent.Dispose();
 

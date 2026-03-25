@@ -10,6 +10,18 @@ struct Vertex
     float4 color;
 };
 
+struct Meshlet
+{
+    float4 boundingSphere;
+    float3 boundingBoxMin;
+    float3 boundingBoxMax;
+    uint vertexOffset;
+    uint triangleOffset;
+    uint groupIndex;
+    float parentError;
+    uint packedCounts; // byte vertexCount, byte triangleCount, byte localMaterialIndex, byte lodLevel
+};
+
 // Resource descriptor heap definitions
 
 #define GLOBAL_TEXTURE2D_HEAP ResourceDescriptorHeap

@@ -22,6 +22,9 @@ public interface IRasterRenderContext : IRenderGraphContext
 {
     int ActiveMeshIndexCount { get; }
 
+    void SetGlobalData(uint globalIndex, uint viewIndex);
+    void SetInstanceIndex(uint instanceIndex);
+
     void SetActiveMaterial(Handle<Material> material);
     void SetActiveMaterial(ref readonly Material material);
     void SetActiveMesh(Handle<Mesh> mesh);
@@ -57,6 +60,10 @@ internal sealed class RenderGraphContext : IRasterRenderContext, IComputeRenderC
     private Handle<GraphicsBuffer> _activePerMaterialData;
     private Handle<GraphicsBuffer> _activePerMeshData;
     private int _activeMeshIndexCount;
+
+    private uint _activeGlobalIndex;
+    private uint _activeViewIndex;
+    private uint _activeInstanceIndex;
 
     public ResourceManager ResourceManager => _resourceManager;
     public IResourceDatabase ResourceDatabase => _resourceDatabase;
@@ -221,12 +228,26 @@ internal sealed class RenderGraphContext : IRasterRenderContext, IComputeRenderC
         _activeMeshIndexCount = mesh.IndexCount;
     }
 
+    public void SetGlobalData(uint globalIndex, uint viewIndex)
+    {
+        _activeGlobalIndex = globalIndex;
+        _activeViewIndex = viewIndex;
+    }
+
+    public void SetInstanceIndex(uint instanceIndex)
+    {
+        _activeInstanceIndex = instanceIndex;
+    }
+
     public unsafe void DispatchMesh(uint3 threadGroupCount)
     {
-        // TODO: Global and view constants
+        // TODO: Global, view, and instance constants
         var data = new PushConstantsData
         {
+            globalIndex = _activeGlobalIndex,
+            viewIndex = _activeViewIndex,
             objectIndex = _resourceDatabase.GetBindlessIndex(_activePerMeshData.AsResource()),
+            instanceIndex = _activeInstanceIndex,
             materialIndex = _resourceDatabase.GetBindlessIndex(_activePerMaterialData.AsResource()),
         };
 

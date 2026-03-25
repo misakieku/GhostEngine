@@ -1,4 +1,5 @@
-using Ghost.Core;
+#if false
+// Obsolete
 using Ghost.Core.Graphics;
 using Ghost.DSL.ShaderCompiler;
 using Ghost.Graphics.Core;
@@ -335,3 +336,4 @@ internal class MeshRenderPass : IRenderPass
         }
     }
 }
+#endif

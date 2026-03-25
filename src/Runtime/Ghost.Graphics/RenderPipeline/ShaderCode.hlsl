@@ -8,18 +8,6 @@ struct PixelInput
     float4 uv : TEXCOORD0;
 };
 
-struct Meshlet
-{
-    float4 boundingSphere;
-    float3 boundingBoxMin;
-    float3 boundingBoxMax;
-    uint vertexOffset;
-    uint triangleOffset;
-    uint groupIndex;
-    float parentError;
-    uint packedCounts; // byte vertexCount, byte triangleCount, byte localMaterialIndex, byte lodLevel
-};
-
 [numthreads(128, 1, 1)] // 128 threads to cover max 64 vertices and 124 triangles
 [outputtopology("triangle")]
 void MSMain(
@@ -50,7 +38,9 @@ void MSMain(
 
         // Basic MVP transform not needed if already in world space, but usually we need localToWorld and ViewProj
         PerViewData perViewData = LoadData<PerViewData>(g_PushConstantData.perViewBuffer, 0);
-        float4 worldPos = mul(perObjectData.localToWorld, float4(v.position.xyz, 1.0f));
+        PerInstanceData perInstanceData = LoadData<PerInstanceData>(g_PushConstantData.perInstanceBuffer, 0);
+
+        float4 worldPos = mul(perInstanceData.localToWorld, float4(v.position.xyz, 1.0f));
         outVerts[groupThreadID.x].position = mul(perViewData.viewMatrix, worldPos);
         outVerts[groupThreadID.x].position = mul(perViewData.projectionMatrix, outVerts[groupThreadID.x].position);
 
@@ -62,7 +52,7 @@ void MSMain(
     if (groupThreadID.x < triangleCount)
     {
         uint triangleIndex = groupThreadID.x;
-        
+
         // Load the packed 32-bit integer containing the 3 local indices
         uint packedIndices = meshletTrianglesBuffer.Load((m.triangleOffset + triangleIndex) * 4);
 
@@ -76,13 +66,13 @@ void MSMain(
 
 float4 PSMain(PixelInput input) : SV_TARGET
 {
-    PerMaterialData perMaterialData = LoadData<PerMaterialData>(g_PushConstantData.perMaterialBuffer, 0);
-
-    float4 color1 = SAMPLE_TEXTURE2D(perMaterialData.texture1, perMaterialData.tex_sampler, input.uv.xy);
-    float4 color2 = SAMPLE_TEXTURE2D(perMaterialData.texture2, perMaterialData.tex_sampler, input.uv.xy);
-    float4 color3 = SAMPLE_TEXTURE2D(perMaterialData.texture3, perMaterialData.tex_sampler, input.uv.xy);
-    float4 color4 = SAMPLE_TEXTURE2D(perMaterialData.texture4, perMaterialData.tex_sampler, input.uv.xy);
-
-    float4 blendedColor = (color1 + color2 + color3 + color4) * 0.25f;
-    return perMaterialData.color * blendedColor + input.color;
+    // PerMaterialData perMaterialData = LoadData<PerMaterialData>(g_PushConstantData.perMaterialBuffer, 0);
+    //
+    // float4 color1 = SAMPLE_TEXTURE2D(perMaterialData.texture1, perMaterialData.tex_sampler, input.uv.xy);
+    // float4 color2 = SAMPLE_TEXTURE2D(perMaterialData.texture2, perMaterialData.tex_sampler, input.uv.xy);
+    // float4 color3 = SAMPLE_TEXTURE2D(perMaterialData.texture3, perMaterialData.tex_sampler, input.uv.xy);
+    // float4 color4 = SAMPLE_TEXTURE2D(perMaterialData.texture4, perMaterialData.tex_sampler, input.uv.xy);
+    //
+    // float4 blendedColor = (color1 + color2 + color3 + color4) * 0.25f;
+    // return perMaterialData.color * blendedColor + input.color;
 }

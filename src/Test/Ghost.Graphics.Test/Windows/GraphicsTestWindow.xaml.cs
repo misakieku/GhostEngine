@@ -20,6 +20,8 @@ public sealed partial class GraphicsTestWindow : Window
     private ISwapChain? _swapChain;
     private World? _world;
 
+    private Handle<Mesh> _meshHandle;
+
     private bool _isFirstActivationHandled;
 
     public GraphicsTestWindow()
@@ -64,7 +66,9 @@ public sealed partial class GraphicsTestWindow : Window
         _world.AddService(_renderSystem);
 
         // Add Systems
-        _world.SystemManager.GetSystem<DefaultSystemGroup>().AddSystem<RenderExtractionSystem>();
+        var group = _world.SystemManager.GetSystem<DefaultSystemGroup>();
+        group.AddSystem<RenderExtractionSystem>();
+        group.SortSystems();
 
         _world.SystemManager.InitializeAll(default);
 
@@ -101,16 +105,8 @@ public sealed partial class GraphicsTestWindow : Window
         using var cmdAllocator = _renderSystem.GraphicsEngine.CreateCommandAllocator(CommandBufferType.Graphics);
         directCmd.Begin(cmdAllocator);
 
-        var meshHandle = ctx.CreateMesh(vertices, indices, true);
-
-        var meshRefResult = _renderSystem.ResourceManager.GetMeshReference(meshHandle);
-        if (meshRefResult.IsSuccess)
-        {
-            meshRefResult.Value.CookMeshlets();
-        }
-
-        ctx.UploadMeshlets(meshHandle);
-        ctx.UpdateObjectData(meshHandle);
+        _meshHandle = ctx.CreateMesh(vertices, indices, true);
+        ctx.UpdateObjectData(_meshHandle);
 
         directCmd.End().ThrowIfFailed();
         _renderSystem.GraphicsEngine.Device.GraphicsQueue.Submit(directCmd);
@@ -121,8 +117,8 @@ public sealed partial class GraphicsTestWindow : Window
         var meshEntity = _world.EntityManager.CreateEntity(meshSet);
         _world.EntityManager.SetComponent(meshEntity, new MeshInstance
         {
-            mesh = meshHandle,
-            renderingLayerMask = new RenderingLayerMask(uint.MaxValue),
+            mesh = _meshHandle,
+            renderingLayerMask = RenderingLayerMask.All,
             shadowCastingMode = Engine.ShadowCastingMode.On
         });
 
@@ -146,6 +142,8 @@ public sealed partial class GraphicsTestWindow : Window
         {
             World.Destroy(_world.ID);
         }
+
+        _renderSystem?.ResourceManager.ReleaseMesh(_meshHandle);
 
         _swapChain?.Dispose();
         _renderSystem?.Dispose();
@@ -188,6 +186,8 @@ public sealed partial class GraphicsTestWindow : Window
             var queryID = new QueryBuilder().WithAll<Camera>().Build(_world);
             ref var query = ref _world.ComponentManager.GetEntityQueryReference(queryID);
 
+            // FIX: A critical bug that resize happens on the render thread, but OnRendering invoke on the UI thread, and there is a chance that our extraction system already send the request to the render thread with old back buffer handle, which is already become invalid after resize.
+            // A proper solution is to use swap chain manager, camera only reference the id of the swap chain, and we will extract the current back buffer handle on the render thread.
             foreach (ref var cam in query.GetComponentIterator<Camera>())
             {
                 cam.colorTarget = _swapChain.GetCurrentBackBuffer();

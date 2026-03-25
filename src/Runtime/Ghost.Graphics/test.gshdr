@@ -2,12 +2,12 @@ shader "MyShader/Standard"
 {
     properties
     {
-        float4 color = { 1, 1, 1, 1 };
-        tex2d texture1 = { black };
-        tex2d texture2 = { white };
-        tex2d texture3 = { grey };
-        tex2d texture4 = { normal };
-        sampler tex_sampler;
+        //float4 color = { 1, 1, 1, 1 };
+        //tex2d texture1 = { black };
+        //tex2d texture2 = { white };
+        //tex2d texture3 = { grey };
+        //tex2d texture4 = { normal };
+        //sampler tex_sampler;
     }
 
     pass "Forward"
@@ -21,7 +21,96 @@ shader "MyShader/Standard"
             color_mask = all;
         }
 
-        mesh "F:/csharp/GhostEngine/src/Runtime//Ghost.Graphics/RenderPipeline/ShaderCode.hlsl" : "MSMain";
-        pixel "F:/csharp/GhostEngine/src/Runtime//Ghost.Graphics/RenderPipeline/ShaderCode.hlsl" : "PSMain";
+        includes
+        {
+            "F:/csharp/GhostEngine/src/Runtime/Ghost.Graphics/Shaders/Includes/Properties.hlsl";
+        }
+
+        hlsl
+        {
+            struct PixelInput
+            {
+                float4 position : SV_POSITION;
+                float4 color : COLOR;
+                float4 uv : TEXCOORD0;
+            };
+
+            [numthreads(128, 1, 1)] // 128 threads to cover max 64 vertices and 124 triangles
+            [outputtopology("triangle")]
+            void MSMain(
+                uint3 groupThreadID : SV_GroupThreadID,
+                uint3 groupID : SV_GroupID,
+                out vertices PixelInput outVerts[64],
+                out indices uint3 outTris[124])
+            {
+                PerObjectData perObjectData = LoadData<PerObjectData>(g_PushConstantData.objectIndex, 0);
+
+                ByteAddressBuffer meshletBuffer = GET_BUFFER(perObjectData.meshletBuffer);
+                Meshlet m = meshletBuffer.Load<Meshlet>(groupID.x * sizeof(Meshlet));
+
+                uint vertexCount = m.packedCounts & 0xFF;
+                uint triangleCount = (m.packedCounts >> 8) & 0xFF;
+
+                SetMeshOutputCounts(vertexCount, triangleCount);
+
+                ByteAddressBuffer meshletVerticesBuffer = GET_BUFFER(perObjectData.meshletVerticesBuffer);
+                ByteAddressBuffer meshletTrianglesBuffer = GET_BUFFER(perObjectData.meshletTrianglesBuffer);
+
+                // Write vertex output
+                if (groupThreadID.x < vertexCount)
+                {
+                    uint vertexIndex = meshletVerticesBuffer.Load((m.vertexOffset + groupThreadID.x) * 4);
+                    ByteAddressBuffer vertices = GET_BUFFER(perObjectData.vertexBuffer);
+                    Vertex v = vertices.Load<Vertex>(vertexIndex * sizeof(Vertex));
+
+                    GlobalFrameData globalFrameData = LoadData<GlobalFrameData>(g_PushConstantData.globalIndex, 0);
+                    PerViewData perViewData = LoadData<PerViewData>(g_PushConstantData.viewIndex, 0);
+                    PerInstanceData perInstanceData = LoadData<PerInstanceData>(globalFrameData.instanceBufferIndex, g_PushConstantData.instanceIndex);
+
+                    float4 worldPos = mul(perInstanceData.localToWorld, float4(v.position.xyz, 1.0f));
+                    float4 viewPos = mul(perViewData.viewMatrix, worldPos);
+
+                    outVerts[groupThreadID.x].position = mul(perViewData.projectionMatrix, viewPos);
+
+                    outVerts[groupThreadID.x].color = v.color;
+                    outVerts[groupThreadID.x].uv = v.uv;
+                }
+
+                // Write triangle output (1 thread processes 1 triangle)
+                if (groupThreadID.x < triangleCount)
+                {
+                    uint triangleIndex = groupThreadID.x;
+
+                    // Load the packed 32-bit integer containing the 3 local indices
+                    uint packedIndices = meshletTrianglesBuffer.Load((m.triangleOffset + triangleIndex) * 4);
+
+                    uint i0 = packedIndices & 0xFF;
+                    uint i1 = (packedIndices >> 8) & 0xFF;
+                    uint i2 = (packedIndices >> 16) & 0xFF;
+
+                    outTris[triangleIndex] = uint3(i0, i1, i2);
+                }
+            }
+
+            float4 PSMain(PixelInput input) : SV_TARGET
+            {
+                // PerMaterialData perMaterialData = LoadData<PerMaterialData>(g_PushConstantData.materialIndex, 0);
+                //
+                // float4 color1 = SAMPLE_TEXTURE2D(perMaterialData.texture1, perMaterialData.tex_sampler, input.uv.xy);
+                // float4 color2 = SAMPLE_TEXTURE2D(perMaterialData.texture2, perMaterialData.tex_sampler, input.uv.xy);
+                // float4 color3 = SAMPLE_TEXTURE2D(perMaterialData.texture3, perMaterialData.tex_sampler, input.uv.xy);
+                // float4 color4 = SAMPLE_TEXTURE2D(perMaterialData.texture4, perMaterialData.tex_sampler, input.uv.xy);
+                //
+                // float4 blendedColor = (color1 + color2 + color3 + color4) * 0.25f;
+                // return perMaterialData.color * blendedColor + input.color;
+
+                // TODO: Randome color on meshlet.
+                return float4(1, 0, 0, 1);
+            }
+
+        }
+
+        mesh "hlsl_block" : "MSMain";
+        pixel "hlsl_block" : "PSMain";
     }
 }

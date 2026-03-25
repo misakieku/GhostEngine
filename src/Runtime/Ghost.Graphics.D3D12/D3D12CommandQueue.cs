@@ -10,9 +10,9 @@ namespace Ghost.Graphics.D3D12;
 /// <summary>
 /// D3D12 implementation of command queue interface
 /// </summary>
-internal unsafe class D3D12CommandQueue : D3D12Object<ID3D12CommandQueue1>, ICommandQueue
+internal unsafe class D3D12CommandQueue : D3D12Object<ID3D12CommandQueue>, ICommandQueue
 {
-    private UniquePtr<ID3D12Fence1> _fence;
+    private UniquePtr<ID3D12Fence> _fence;
 
     private readonly AutoResetEvent _fenceEvent;
     private ulong _fenceValue;
@@ -22,7 +22,7 @@ internal unsafe class D3D12CommandQueue : D3D12Object<ID3D12CommandQueue1>, ICom
         get;
     }
 
-    private static ID3D12CommandQueue1* CreateCommandQueue(ID3D12Device14* device, CommandQueueType type)
+    private static ID3D12CommandQueue* CreateCommandQueue(ID3D12Device14* device, CommandQueueType type)
     {
         var queueDesc = new D3D12_COMMAND_QUEUE_DESC
         {
@@ -31,7 +31,7 @@ internal unsafe class D3D12CommandQueue : D3D12Object<ID3D12CommandQueue1>, ICom
             Flags = D3D12_COMMAND_QUEUE_FLAGS.D3D12_COMMAND_QUEUE_FLAG_NONE,
         };
 
-        ID3D12CommandQueue1* pQueue = default;
+        ID3D12CommandQueue* pQueue = default;
         ThrowIfFailed(device->CreateCommandQueue(&queueDesc, __uuidof(pQueue), (void**)&pQueue));
         return pQueue;
     }
@@ -43,7 +43,7 @@ internal unsafe class D3D12CommandQueue : D3D12Object<ID3D12CommandQueue1>, ICom
         _fenceEvent = new AutoResetEvent(false);
         _fenceValue = 0;
 
-        ID3D12Fence1* pFence = default;
+        ID3D12Fence* pFence = default;
         ThrowIfFailed(device.NativeObject.Get()->CreateFence(0, D3D12_FENCE_FLAGS.D3D12_FENCE_FLAG_NONE, __uuidof(pFence), (void**)&pFence));
 
         _fence.Attach(pFence);

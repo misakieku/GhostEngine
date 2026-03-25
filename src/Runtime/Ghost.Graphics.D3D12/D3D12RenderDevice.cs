@@ -29,9 +29,9 @@ internal unsafe class D3D12RenderDevice : D3D12Object<ID3D12Device14>, IRenderDe
 
     public SharedPtr<IDXGIFactory7> DXGIFactory => _dxgiFactory.Share();
     public SharedPtr<IDXGIAdapter1> Adapter => _adapter.Share();
-    public SharedPtr<ID3D12CommandQueue1> NativeGraphicsQueue => _graphicsQueue.NativeObject;
-    public SharedPtr<ID3D12CommandQueue1> NativeComputeQueue => _computeQueue.NativeObject;
-    public SharedPtr<ID3D12CommandQueue1> NativeCopyQueue => _copyQueue.NativeObject;
+    public SharedPtr<ID3D12CommandQueue> NativeGraphicsQueue => _graphicsQueue.NativeObject;
+    public SharedPtr<ID3D12CommandQueue> NativeComputeQueue => _computeQueue.NativeObject;
+    public SharedPtr<ID3D12CommandQueue> NativeCopyQueue => _copyQueue.NativeObject;
 
     public D3D12RenderDevice()
         :base(CreateDevice(out var dxgiFactory, out var adapter))

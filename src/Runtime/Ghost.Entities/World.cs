@@ -268,6 +268,9 @@ public partial class World : IDisposable, IEquatable<World>
             }
         }
 
+        _componentManager.Dispose();
+        _systemManager.Dispose();
+
         s_freeWorldSlots.Enqueue(_id);
         s_worlds[_id] = null;
 

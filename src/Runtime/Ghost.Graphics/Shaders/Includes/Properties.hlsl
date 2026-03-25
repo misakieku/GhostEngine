@@ -5,11 +5,20 @@
 
 struct PushConstantData
 {
-    BYTE_ADDRESS_BUFFER globalBuffer;
-    BYTE_ADDRESS_BUFFER perViewBuffer;
-    BYTE_ADDRESS_BUFFER perObjectBuffer;
-    BYTE_ADDRESS_BUFFER perInstanceBuffer;
-    BYTE_ADDRESS_BUFFER perMaterialBuffer;
+    uint globalIndex;
+    uint viewIndex;
+    uint objectIndex;
+    uint instanceIndex;
+    uint materialIndex;
+};
+
+struct GlobalFrameData
+{
+    uint viewBufferIndex;
+    uint instanceBufferIndex;
+    uint viewBufferCount;
+    uint instanceBufferCount;
+    uint userBufferIndex;
 };
 
 struct PerViewData
@@ -21,6 +30,11 @@ struct PerViewData
     float3 cameraDirection;
     float farClip;
     float4 screenSize; // xy: size, zw: 1/size
+};
+
+struct PerInstanceData
+{
+    float4x4 localToWorld;
 };
 
 struct PerObjectData
