@@ -1,10 +1,9 @@
+using Ghost.Core;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RenderPipeline;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Mathematics;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.Test.RenderPasses;
 
@@ -18,6 +17,12 @@ public sealed class TestRenderPipelineSettings : IRenderPipelineSettings
 
 public unsafe partial class TestRenderPipeline : IRenderPipeline
 {
+    private class MeshletDebugPassData
+    {
+        public Identifier<RGTexture> backbuffer;
+        public RenderList renderList;
+    }
+
     private readonly RenderGraph _renderGraph;
     private readonly RenderSystem _renderSystem;
 
@@ -26,13 +31,6 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
     ~TestRenderPipeline()
     {
         Dispose();
-    }
-
-    [Conditional("DEBUG")]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected void ThrowIfDisposed()
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
     }
 
     internal TestRenderPipeline(RenderSystem renderSystem)
@@ -56,7 +54,6 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
 
             // 1. Allocate and populate Instance Data buffer
             var instanceCount = request.opaqueRenderList.TotalRecordCount;
-
             if (instanceCount == 0)
             {
                 continue; // Nothing to render
@@ -71,6 +68,7 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
                 MemoryType = ResourceMemoryType.Upload, // Upload directly for simplicity in testing
             });
 
+            // TODO: Optimize by suballocation.
             var instanceBufferHandle = resourceManager.GetPooledResource(instanceBufferDesc);
             var instanceBufferResource = instanceBufferHandle.AsGraphicsBuffer();
 
@@ -137,11 +135,29 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
             {
                 request.renderFunc(in ctx, in request);
             }
+            else
+            {
+                var backBuffer = _renderGraph.ImportTexture(request.colorTarget, "BackBuffer", clearAtFirstUse: false, discardAtLastUse: false);
+            }
 
             // We must enqueue a return for the pooled resources so they are freed next frame.
             resourceManager.ReturnPooledResource(instanceBufferHandle);
             resourceManager.ReturnPooledResource(viewBufferHandle);
             resourceManager.ReturnPooledResource(frameBufferHandle);
+        }
+    }
+
+    private void MeshletDebugPass(Identifier<RGTexture> backbuffer, RenderList renderList)
+    {
+        using (var builder = _renderGraph.AddRasterRenderPass<MeshletDebugPassData>("Meshlet Debug Pass", out var passData))
+        {
+            passData.renderList = renderList;
+
+            builder.SetColorAttachment(backbuffer, 0);
+            builder.SetRenderFunc<MeshletDebugPassData>(static (data, ctx)=>
+            {
+
+            });
         }
     }
 

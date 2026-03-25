@@ -78,7 +78,6 @@ public class RenderExtractionSystem : ISystem
         ref var cameraQuery = ref systemAPI.World.ComponentManager.GetEntityQueryReference(_cameraQueryID);
         ref var meshQuery = ref systemAPI.World.ComponentManager.GetEntityQueryReference(_meshQueryID);
 
-        // TODO: We should extract the render record for each camera because different cameras may have different culling results.
         foreach (var (cam, camLtw) in cameraQuery.GetComponentIterator<Camera, LocalToWorld>())
         {
             ref readonly var camRef = ref cam.Get();
@@ -108,6 +107,7 @@ public class RenderExtractionSystem : ISystem
                     ref readonly var meshInstance = ref meshInstances[i];
                     if ((meshInstance.renderingLayerMask & camRef.renderingLayerMask) == 0u)
                     {
+                        // Not in the same rendering layer, skip.
                         continue;
                     }
 
@@ -117,6 +117,7 @@ public class RenderExtractionSystem : ISystem
                     var camPosition = camLtwRef.matrix.c3.xyz;
                     var distance = math.distance(meshPosition, camPosition);
 
+                    // TODO: Use bounding sphere or AABB for better culling. Currently it just uses the pivot point which can cause popping when the pivot is far from the actual geometry.
                     if (distance < camRef.nearClipPlane || distance > camRef.farClipPlane)
                     {
                         continue;

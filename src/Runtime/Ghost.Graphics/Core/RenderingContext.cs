@@ -7,6 +7,7 @@ using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Graphics.Core;
 
+// TODO: Temporary rendering context for resource creation and data upload. We will refactor it later when we have a better understanding of the engine architecture.
 public readonly unsafe ref struct RenderingContext
 {
     private readonly IGraphicsEngine _engine;
@@ -185,12 +186,11 @@ public readonly unsafe ref struct RenderingContext
             MemoryType = ResourceMemoryType.Default,
         };
         // Ensure size is multiple of 4 for Raw buffer
-        var trianglesSize = (uint)meshletData.meshletTriangles.Count;
-        trianglesSize = (trianglesSize + 3u) & ~3u;
+        var trianglesSize = (uint)meshletData.meshletTriangles.Count * sizeof(uint);
         var trianglesDesc = new BufferDesc
         {
             Size = trianglesSize,
-            Stride = sizeof(byte),
+            Stride = sizeof(uint),
             Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
             MemoryType = ResourceMemoryType.Default,
         };
@@ -208,7 +208,7 @@ public readonly unsafe ref struct RenderingContext
         // Padding for triangle data if needed
         if (trianglesSize > meshletData.meshletTriangles.Count)
         {
-            var paddedData = new byte[trianglesSize];
+            var paddedData = new uint[trianglesSize];
             meshletData.meshletTriangles.AsSpan().CopyTo(paddedData);
             _directCmd.UploadBuffer(meshRef.MeshletTrianglesBuffer, paddedData.AsSpan());
         }
@@ -222,7 +222,7 @@ public readonly unsafe ref struct RenderingContext
         TransitionBarrier(meshRef.MeshletTrianglesBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
     }
 
-    public void UpdateObjectData(Handle<Mesh> mesh, float4x4 localToWorld)
+    public void UpdateObjectData(Handle<Mesh> mesh)
     {
         var r = _resourceManager.GetMeshReference(mesh);
         if (r.IsFailure)
@@ -233,7 +233,6 @@ public readonly unsafe ref struct RenderingContext
         ref readonly var meshData = ref r.Value;
         var data = new PerObjectData
         {
-            localToWorld = localToWorld,
             worldBoundsMin = meshData.BoundingBox.Min,
             worldBoundsMax = meshData.BoundingBox.Max,
             vertexBuffer = _engine.ResourceDatabase.GetBindlessIndex(meshData.VertexBuffer.AsResource()),

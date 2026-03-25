@@ -20,7 +20,7 @@ struct Meshlet
     uint packedCounts; // byte vertexCount, byte triangleCount, byte localMaterialIndex, byte lodLevel
 };
 
-[numthreads(64, 1, 1)] // 64 threads for max 64 vertices and up to 124 triangles
+[numthreads(128, 1, 1)] // 128 threads to cover max 64 vertices and 124 triangles
 [outputtopology("triangle")]
 void MSMain(
     uint3 groupThreadID : SV_GroupThreadID,
@@ -59,23 +59,12 @@ void MSMain(
     }
 
     // Write triangle output (1 thread processes 1 triangle)
-    // We could pack 3 indices in a uint or just use byte offset
-    // In our CPU code, we packed it as individual bytes, so 3 bytes per triangle.
-    // For 124 triangles, we have 372 bytes.
     if (groupThreadID.x < triangleCount)
     {
         uint triangleIndex = groupThreadID.x;
-        uint baseOffset = m.triangleOffset + triangleIndex * 3;
-
-        // Load 4 bytes to get the 3 index bytes
-        // Needs byte-aligned loading
-        uint wordOffset = baseOffset & ~3;
-        uint shift = (baseOffset & 3) * 8;
-        uint packedIndices1 = meshletTrianglesBuffer.Load(wordOffset);
-        uint packedIndices2 = meshletTrianglesBuffer.Load(wordOffset + 4);
-
-        uint64_t combined = ((uint64_t)packedIndices2 << 32) | packedIndices1;
-        uint packedIndices = (uint)(combined >> shift);
+        
+        // Load the packed 32-bit integer containing the 3 local indices
+        uint packedIndices = meshletTrianglesBuffer.Load((m.triangleOffset + triangleIndex) * 4);
 
         uint i0 = packedIndices & 0xFF;
         uint i1 = (packedIndices >> 8) & 0xFF;

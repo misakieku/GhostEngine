@@ -1,13 +1,14 @@
 #ifndef BUILTIN_PROPERTIES_HLSL
 #define BUILTIN_PROPERTIES_HLSL
 
-#include "F:/csharp/GhostEngine/src/Runtime//Ghost.Graphics/Shaders/Includes/Common.hlsl"
+#include "F:/csharp/GhostEngine/src/Runtime/Ghost.Graphics/Shaders/Includes/Common.hlsl"
 
 struct PushConstantData
 {
     BYTE_ADDRESS_BUFFER globalBuffer;
     BYTE_ADDRESS_BUFFER perViewBuffer;
     BYTE_ADDRESS_BUFFER perObjectBuffer;
+    BYTE_ADDRESS_BUFFER perInstanceBuffer;
     BYTE_ADDRESS_BUFFER perMaterialBuffer;
 };
 
@@ -24,7 +25,6 @@ struct PerViewData
 
 struct PerObjectData
 {
-    float4x4 localToWorld;
     float3 worldBoundsMin;
     BYTE_ADDRESS_BUFFER vertexBuffer;
     float3 worldBoundsMax;

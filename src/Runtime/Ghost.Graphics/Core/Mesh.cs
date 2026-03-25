@@ -54,7 +54,7 @@ public struct MeshletMeshData : IDisposable
     public UnsafeList<MeshletGroup> groups;
     public UnsafeList<MeshletHierarchyNode> hierarchyNodes;
     public UnsafeList<uint> meshletVertices;
-    public UnsafeList<byte> meshletTriangles;
+    public UnsafeList<uint> meshletTriangles;
     public int lodLevelCount;
     public int materialSlotCount;
 
@@ -247,7 +247,7 @@ public struct Mesh : IResourceReleasable
         if (!data.groups.IsCreated) data.groups = new UnsafeList<MeshletGroup>(16, Allocator.Persistent);
         if (!data.meshlets.IsCreated) data.meshlets = new UnsafeList<Meshlet>(64, Allocator.Persistent);
         if (!data.meshletVertices.IsCreated) data.meshletVertices = new UnsafeList<uint>(128, Allocator.Persistent);
-        if (!data.meshletTriangles.IsCreated) data.meshletTriangles = new UnsafeList<byte>(128, Allocator.Persistent);
+        if (!data.meshletTriangles.IsCreated) data.meshletTriangles = new UnsafeList<uint>(128, Allocator.Persistent);
 
         var meshletGroup = new MeshletGroup
         {
@@ -264,23 +264,27 @@ public struct Mesh : IResourceReleasable
             var meshlet = new Meshlet
             {
                 vertexCount = (byte)cluster.vertexCount,
-                triangleCount = (byte)(cluster.indexCount / 3),
+                triangleCount = (byte)(cluster.localIndexCount / 3),
                 vertexOffset = (uint)data.meshletVertices.Count,
                 triangleOffset = (uint)data.meshletTriangles.Count,
                 groupIndex = (uint)data.groups.Count - 1
             };
             data.meshlets.Add(meshlet);
 
-            // Add indices
-            for (nuint j = 0; j < cluster.indexCount; j++)
+            // Add unique vertices
+            for (nuint j = 0; j < cluster.vertexCount; j++)
             {
-                data.meshletVertices.Add(cluster.indices[j]);
+                data.meshletVertices.Add(cluster.uniqueVertices[j]);
             }
-            // Add triangles (packed indices or byte offsets)
-            // Assuming 8-bit local indices for meshlets as per standard convention
-            for (nuint j = 0; j < cluster.indexCount; j++)
+            // Add local triangles (packed into uints)
+            nuint triangleCount = cluster.localIndexCount / 3;
+            for (nuint j = 0; j < triangleCount; j++)
             {
-                data.meshletTriangles.Add((byte)j);
+                uint i0 = cluster.localIndices[j * 3 + 0];
+                uint i1 = cluster.localIndices[j * 3 + 1];
+                uint i2 = cluster.localIndices[j * 3 + 2];
+                uint packedTriangle = i0 | (i1 << 8) | (i2 << 16);
+                data.meshletTriangles.Add(packedTriangle);
             }
         }
 

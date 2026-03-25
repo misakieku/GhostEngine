@@ -10,6 +10,8 @@ namespace Ghost.Graphics.Utilities;
 internal struct Cluster : IDisposable
 {
     public UnsafeList<uint> indices;
+    public UnsafeList<uint> uniqueVertices;
+    public UnsafeList<byte> localIndices;
     public ClodBounds bounds;
     public nuint vertices;
     public int group;
@@ -17,7 +19,9 @@ internal struct Cluster : IDisposable
 
     public void Dispose()
     {
-        indices.Dispose();
+        if (indices.IsCreated) indices.Dispose();
+        if (uniqueVertices.IsCreated) uniqueVertices.Dispose();
+        if (localIndices.IsCreated) localIndices.Dispose();
     }
 }
 
@@ -136,8 +140,14 @@ public unsafe struct ClodCluster
     public uint* indices;
     /// <summary> Number of indices. </summary>
     public nuint indexCount;
-    /// <summary> Number of vertices in the cluster. </summary>
+    /// <summary> Pointer to unique vertices for this cluster. </summary>
+    public uint* uniqueVertices;
+    /// <summary> Number of unique vertices in the cluster. </summary>
     public nuint vertexCount;
+    /// <summary> Pointer to local triangle indices for this cluster. </summary>
+    public byte* localIndices;
+    /// <summary> Number of local indices. </summary>
+    public nuint localIndexCount;
 }
 
 /// <summary>
@@ -244,13 +254,22 @@ public static unsafe class MeshletUtility
             {
                 vertices = meshlet.vertex_count,
                 indices = new UnsafeList<uint>((int)(meshlet.triangle_count * 3), Allocator.Persistent),
+                uniqueVertices = new UnsafeList<uint>((int)meshlet.vertex_count, Allocator.Persistent),
+                localIndices = new UnsafeList<byte>((int)(meshlet.triangle_count * 3), Allocator.Persistent),
                 group = -1,
                 refined = -1
             };
 
+            for (nuint j = 0; j < meshlet.vertex_count; j++)
+            {
+                cluster.uniqueVertices.Add(pMeshletVertices[meshlet.vertex_offset + j]);
+            }
+
             for (nuint j = 0; j < meshlet.triangle_count * 3; j++)
             {
-                cluster.indices.Add(pMeshletVertices[meshlet.vertex_offset + pMeshletTriangles[meshlet.triangle_offset + j]]);
+                byte localIdx = pMeshletTriangles[meshlet.triangle_offset + j];
+                cluster.localIndices.Add(localIdx);
+                cluster.indices.Add(pMeshletVertices[meshlet.vertex_offset + localIdx]);
             }
 
             clusters.Add(cluster);
@@ -377,7 +396,10 @@ public static unsafe class MeshletUtility
                     : srcCluster.bounds,
                 indices = (uint*)srcCluster.indices.GetUnsafePtr(),
                 indexCount = (nuint)srcCluster.indices.Count,
-                vertexCount = srcCluster.vertices
+                uniqueVertices = (uint*)srcCluster.uniqueVertices.GetUnsafePtr(),
+                vertexCount = srcCluster.vertices,
+                localIndices = (byte*)srcCluster.localIndices.GetUnsafePtr(),
+                localIndexCount = (nuint)srcCluster.localIndices.Count
             });
         }
 

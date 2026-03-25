@@ -22,7 +22,7 @@ public sealed partial class GraphicsTestWindow : Window
 
     private bool _isFirstActivationHandled;
 
-    public unsafe GraphicsTestWindow()
+    public GraphicsTestWindow()
     {
         InitializeComponent();
 
@@ -43,7 +43,8 @@ public sealed partial class GraphicsTestWindow : Window
         _renderSystem = new RenderSystem(new RenderSystemDesc()
         {
             FrameBufferCount = 2,
-            GraphicsAPI = GraphicsAPI.Direct3D12
+            GraphicsAPI = GraphicsAPI.Direct3D12,
+            InitialRenderPipelineSettings = new RenderPasses.TestRenderPipelineSettings()
         });
 
         _swapChain = _renderSystem.GraphicsEngine.CreateSwapChain(new SwapChainDesc
@@ -56,7 +57,6 @@ public sealed partial class GraphicsTestWindow : Window
             Target = SwapChainTarget.FromCompositionSurface(Panel)
         });
 
-        _renderSystem.RenderPipelineSettings = new RenderPasses.TestRenderPipelineSettings();
         _renderSystem.Start();
 
         // ECS Setup
@@ -76,7 +76,7 @@ public sealed partial class GraphicsTestWindow : Window
 
         _world.EntityManager.SetComponent(cameraEntity, new Camera
         {
-            colorTarget = _swapChain.GetCurrentBackBuffer(), // TODO: This should be updated every frame to the current back buffer.
+            colorTarget = _swapChain.GetCurrentBackBuffer(), // NOTE: This should be updated every frame to the current back buffer.
             depthTarget = Handle<Texture>.Invalid,
             nearClipPlane = 0.1f,
             farClipPlane = 1000.0f,
@@ -91,33 +91,15 @@ public sealed partial class GraphicsTestWindow : Window
             matrix = float4x4.TRS(new float3(0.0f, 0.0f, -5.0f), quaternion.identity, new float3(1.0f, 1.0f, 1.0f))
         });
 
-        // var cameraEntity = _world.EntityManager.CreateEntity();
-        // _world.EntityManager.AddComponent(cameraEntity, new Camera
-        // {
-        //     colorTarget = _swapChain.GetCurrentBackBuffer(),
-        //     depthTarget = Handle<Texture>.Invalid,
-        //     nearClipPlane = 0.1f,
-        //     farClipPlane = 1000.0f,
-        //     focalLength = 50.0f,
-        //     sensorSize = new float2(36.0f, 24.0f),
-        //     gateFit = GateFit.Fill,
-        //     renderingLayerMask = new RenderingLayerMask(uint.MaxValue),
-        // });
-        //
-        // _world.EntityManager.AddComponent(cameraEntity, new LocalToWorld
-        // {
-        //     matrix = float4x4.TRS(new float3(0.0f, 0.0f, -5.0f), quaternion.identity, new float3(1.0f, 1.0f, 1.0f))
-        // });
-
         // Create Mesh Entity
-        var meshEntity = _world.EntityManager.CreateEntity();
-
         MeshBuilder.CreateCube(0.75f, default, Allocator.Persistent, out var vertices, out var indices);
 
-        var directCmd = _renderSystem.GraphicsEngine.CreateCommandBuffer(CommandBufferType.Graphics);
+        // TODO: Put this to the beginning of the frame without createing another command buffer?
+        using var directCmd = _renderSystem.GraphicsEngine.CreateCommandBuffer(CommandBufferType.Graphics);
         var ctx = new RenderingContext(_renderSystem.GraphicsEngine, _renderSystem.ResourceManager, directCmd);
 
-        directCmd.Begin(_renderSystem.GraphicsEngine.CreateCommandAllocator(CommandBufferType.Graphics));
+        using var cmdAllocator = _renderSystem.GraphicsEngine.CreateCommandAllocator(CommandBufferType.Graphics);
+        directCmd.Begin(cmdAllocator);
 
         var meshHandle = ctx.CreateMesh(vertices, indices, true);
 
@@ -128,20 +110,23 @@ public sealed partial class GraphicsTestWindow : Window
         }
 
         ctx.UploadMeshlets(meshHandle);
-        ctx.UpdateObjectData(meshHandle, float4x4.identity);
+        ctx.UpdateObjectData(meshHandle);
 
         directCmd.End().ThrowIfFailed();
         _renderSystem.GraphicsEngine.Device.GraphicsQueue.Submit(directCmd);
         _renderSystem.GraphicsEngine.Device.GraphicsQueue.WaitIdle();
 
-        _world.EntityManager.AddComponent(meshEntity, new MeshInstance
+
+        var meshSet = new ComponentSet(scope.AllocationHandle, ComponentTypeID<MeshInstance>.Value, ComponentTypeID<LocalToWorld>.Value);
+        var meshEntity = _world.EntityManager.CreateEntity(meshSet);
+        _world.EntityManager.SetComponent(meshEntity, new MeshInstance
         {
             mesh = meshHandle,
             renderingLayerMask = new RenderingLayerMask(uint.MaxValue),
             shadowCastingMode = Engine.ShadowCastingMode.On
         });
 
-        _world.EntityManager.AddComponent(meshEntity, new LocalToWorld
+        _world.EntityManager.SetComponent(meshEntity, new LocalToWorld
         {
             matrix = float4x4.identity
         });
@@ -200,10 +185,15 @@ public sealed partial class GraphicsTestWindow : Window
 
         if (_renderSystem.CPUFenceValue < _renderSystem.GPUFenceValue + _renderSystem.MaxFrameLatency)
         {
-            // TODO: In a real system, the camera target would be updated correctly.
-            // For now, let's just make sure it renders to the correct back buffer.
+            var queryID = new QueryBuilder().WithAll<Camera>().Build(_world);
+            ref var query = ref _world.ComponentManager.GetEntityQueryReference(queryID);
 
-            _world.SystemManager.UpdateAll(default); // This runs RenderExtractionSystem, extracting data and queueing RenderRequests
+            foreach (ref var cam in query.GetComponentIterator<Camera>())
+            {
+                cam.colorTarget = _swapChain.GetCurrentBackBuffer();
+            }
+
+            _world.SystemManager.UpdateAll(default);
             _renderSystem.SignalCPUReady();
         }
     }

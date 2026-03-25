@@ -28,6 +28,11 @@ internal struct RenderSystemDesc
     {
         get; set;
     }
+
+    public IRenderPipelineSettings? InitialRenderPipelineSettings
+    {
+        get; set;
+    }
 }
 
 /// <summary>
@@ -180,7 +185,7 @@ public class RenderSystem : IDisposable
         _shutdownEvent = new AutoResetEvent(false);
         _resizeRequest = new ConcurrentDictionary<ISwapChain, uint2>();
 
-        _renderPipelineSettings = new GhostRenderPipelineSettings();
+        _renderPipelineSettings = _config.InitialRenderPipelineSettings ?? new GhostRenderPipelineSettings();
         _renderPipeline = _renderPipelineSettings.CreatePipeline(this);
 
         _isRunning = false;
@@ -416,6 +421,7 @@ public class RenderSystem : IDisposable
             frameResource.Dispose();
         }
 
+        _renderPipeline.Dispose();
         _graphicsEngine.Dispose();
         _shutdownEvent.Dispose();
 
