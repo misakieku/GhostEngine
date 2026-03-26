@@ -1,0 +1,588 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Entities.Entity
+  commentId: T:Ghost.Entities.Entity
+  id: Entity
+  parent: Ghost.Entities
+  children:
+  - Ghost.Entities.Entity.Generation
+  - Ghost.Entities.Entity.ID
+  - Ghost.Entities.Entity.INVALID_ID
+  - Ghost.Entities.Entity.Invalid
+  - Ghost.Entities.Entity.IsValid
+  - Ghost.Entities.Entity.ToString
+  langs:
+  - csharp
+  - vb
+  name: Entity
+  nameWithType: Entity
+  fullName: Ghost.Entities.Entity
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Entity.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine
+    id: Entity
+    path: ../src/Runtime/Ghost.Entities/Entity.cs
+    startLine: 5
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: 'public readonly record struct Entity : IEquatable<Entity>'
+    content.vb: Public Structure Entity Implements IEquatable(Of Entity)
+  implements:
+  - System.IEquatable{Ghost.Entities.Entity}
+  inheritedMembers:
+  - System.ValueType.Equals(System.Object)
+  - System.ValueType.GetHashCode
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Entities.Entity.INVALID_ID
+  commentId: F:Ghost.Entities.Entity.INVALID_ID
+  id: INVALID_ID
+  parent: Ghost.Entities.Entity
+  langs:
+  - csharp
+  - vb
+  name: INVALID_ID
+  nameWithType: Entity.INVALID_ID
+  fullName: Ghost.Entities.Entity.INVALID_ID
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Entity.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine
+    id: INVALID_ID
+    path: ../src/Runtime/Ghost.Entities/Entity.cs
+    startLine: 8
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public const int INVALID_ID = -1
+    return:
+      type: System.Int32
+    content.vb: Public Const INVALID_ID As Integer = -1
+- uid: Ghost.Entities.Entity.ID
+  commentId: P:Ghost.Entities.Entity.ID
+  id: ID
+  parent: Ghost.Entities.Entity
+  langs:
+  - csharp
+  - vb
+  name: ID
+  nameWithType: Entity.ID
+  fullName: Ghost.Entities.Entity.ID
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Entity.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine
+    id: ID
+    path: ../src/Runtime/Ghost.Entities/Entity.cs
+    startLine: 13
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public int ID { get; }
+    parameters: []
+    return:
+      type: System.Int32
+    content.vb: Public ReadOnly Property ID As Integer
+  overload: Ghost.Entities.Entity.ID*
+- uid: Ghost.Entities.Entity.Generation
+  commentId: P:Ghost.Entities.Entity.Generation
+  id: Generation
+  parent: Ghost.Entities.Entity
+  langs:
+  - csharp
+  - vb
+  name: Generation
+  nameWithType: Entity.Generation
+  fullName: Ghost.Entities.Entity.Generation
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Entity.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine
+    id: Generation
+    path: ../src/Runtime/Ghost.Entities/Entity.cs
+    startLine: 19
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public int Generation { get; }
+    parameters: []
+    return:
+      type: System.Int32
+    content.vb: Public ReadOnly Property Generation As Integer
+  overload: Ghost.Entities.Entity.Generation*
+- uid: Ghost.Entities.Entity.IsValid
+  commentId: P:Ghost.Entities.Entity.IsValid
+  id: IsValid
+  parent: Ghost.Entities.Entity
+  langs:
+  - csharp
+  - vb
+  name: IsValid
+  nameWithType: Entity.IsValid
+  fullName: Ghost.Entities.Entity.IsValid
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Entity.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine
+    id: IsValid
+    path: ../src/Runtime/Ghost.Entities/Entity.cs
+    startLine: 25
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public bool IsValid { get; }
+    parameters: []
+    return:
+      type: System.Boolean
+    content.vb: Public ReadOnly Property IsValid As Boolean
+  overload: Ghost.Entities.Entity.IsValid*
+- uid: Ghost.Entities.Entity.Invalid
+  commentId: P:Ghost.Entities.Entity.Invalid
+  id: Invalid
+  parent: Ghost.Entities.Entity
+  langs:
+  - csharp
+  - vb
+  name: Invalid
+  nameWithType: Entity.Invalid
+  fullName: Ghost.Entities.Entity.Invalid
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Entity.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine
+    id: Invalid
+    path: ../src/Runtime/Ghost.Entities/Entity.cs
+    startLine: 31
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public static Entity Invalid { get; }
+    parameters: []
+    return:
+      type: Ghost.Entities.Entity
+    content.vb: Public Shared ReadOnly Property Invalid As Entity
+  overload: Ghost.Entities.Entity.Invalid*
+- uid: Ghost.Entities.Entity.ToString
+  commentId: M:Ghost.Entities.Entity.ToString
+  id: ToString
+  parent: Ghost.Entities.Entity
+  langs:
+  - csharp
+  - vb
+  name: ToString()
+  nameWithType: Entity.ToString()
+  fullName: Ghost.Entities.Entity.ToString()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Entity.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine
+    id: ToString
+    path: ../src/Runtime/Ghost.Entities/Entity.cs
+    startLine: 43
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: Returns the fully qualified type name of this instance.
+  example: []
+  syntax:
+    content: public override string ToString()
+    return:
+      type: System.String
+      description: The fully qualified type name.
+    content.vb: Public Overrides Function ToString() As String
+  overridden: System.ValueType.ToString
+  overload: Ghost.Entities.Entity.ToString*
+references:
+- uid: Ghost.Entities
+  commentId: N:Ghost.Entities
+  href: Ghost.html
+  name: Ghost.Entities
+  nameWithType: Ghost.Entities
+  fullName: Ghost.Entities
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Entities
+    name: Entities
+    href: Ghost.Entities.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Entities
+    name: Entities
+    href: Ghost.Entities.html
+- uid: System.IEquatable{Ghost.Entities.Entity}
+  commentId: T:System.IEquatable{Ghost.Entities.Entity}
+  parent: System
+  definition: System.IEquatable`1
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  name: IEquatable<Entity>
+  nameWithType: IEquatable<Entity>
+  fullName: System.IEquatable<Ghost.Entities.Entity>
+  nameWithType.vb: IEquatable(Of Entity)
+  fullName.vb: System.IEquatable(Of Ghost.Entities.Entity)
+  name.vb: IEquatable(Of Entity)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: <
+  - uid: Ghost.Entities.Entity
+    name: Entity
+    href: Ghost.Entities.Entity.html
+  - name: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Entities.Entity
+    name: Entity
+    href: Ghost.Entities.Entity.html
+  - name: )
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.IEquatable`1
+  commentId: T:System.IEquatable`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  name: IEquatable<T>
+  nameWithType: IEquatable<T>
+  fullName: System.IEquatable<T>
+  nameWithType.vb: IEquatable(Of T)
+  fullName.vb: System.IEquatable(Of T)
+  name.vb: IEquatable(Of T)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.int32
+  name: int
+  nameWithType: int
+  fullName: int
+  nameWithType.vb: Integer
+  fullName.vb: Integer
+  name.vb: Integer
+- uid: Ghost.Entities.Entity.ID*
+  commentId: Overload:Ghost.Entities.Entity.ID
+  href: Ghost.Entities.Entity.html#Ghost_Entities_Entity_ID
+  name: ID
+  nameWithType: Entity.ID
+  fullName: Ghost.Entities.Entity.ID
+- uid: Ghost.Entities.Entity.Generation*
+  commentId: Overload:Ghost.Entities.Entity.Generation
+  href: Ghost.Entities.Entity.html#Ghost_Entities_Entity_Generation
+  name: Generation
+  nameWithType: Entity.Generation
+  fullName: Ghost.Entities.Entity.Generation
+- uid: Ghost.Entities.Entity.IsValid*
+  commentId: Overload:Ghost.Entities.Entity.IsValid
+  href: Ghost.Entities.Entity.html#Ghost_Entities_Entity_IsValid
+  name: IsValid
+  nameWithType: Entity.IsValid
+  fullName: Ghost.Entities.Entity.IsValid
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.boolean
+  name: bool
+  nameWithType: bool
+  fullName: bool
+  nameWithType.vb: Boolean
+  fullName.vb: Boolean
+  name.vb: Boolean
+- uid: Ghost.Entities.Entity.Invalid*
+  commentId: Overload:Ghost.Entities.Entity.Invalid
+  href: Ghost.Entities.Entity.html#Ghost_Entities_Entity_Invalid
+  name: Invalid
+  nameWithType: Entity.Invalid
+  fullName: Ghost.Entities.Entity.Invalid
+- uid: Ghost.Entities.Entity
+  commentId: T:Ghost.Entities.Entity
+  parent: Ghost.Entities
+  href: Ghost.Entities.Entity.html
+  name: Entity
+  nameWithType: Entity
+  fullName: Ghost.Entities.Entity
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: Ghost.Entities.Entity.ToString*
+  commentId: Overload:Ghost.Entities.Entity.ToString
+  href: Ghost.Entities.Entity.html#Ghost_Entities_Entity_ToString
+  name: ToString
+  nameWithType: Entity.ToString
+  fullName: Ghost.Entities.Entity.ToString
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.string
+  name: string
+  nameWithType: string
+  fullName: string
+  nameWithType.vb: String
+  fullName.vb: String
+  name.vb: String

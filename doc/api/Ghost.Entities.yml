@@ -1,0 +1,4391 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Entities
+  commentId: N:Ghost.Entities
+  id: Ghost.Entities
+  children:
+  - Ghost.Entities.ChunkView
+  - Ghost.Entities.ComponentManager
+  - Ghost.Entities.ComponentSet
+  - Ghost.Entities.ComponentTypeID`1
+  - Ghost.Entities.DefaultSystemGroup
+  - Ghost.Entities.Entity
+  - Ghost.Entities.EntityCommandBuffer
+  - Ghost.Entities.EntityManager
+  - Ghost.Entities.EntityQuery
+  - Ghost.Entities.EntityQuery.ChunkIterator
+  - Ghost.Entities.EntityQuery.ChunkIterator.Enumerator
+  - Ghost.Entities.EntityQuery.ComponentIterator`1
+  - Ghost.Entities.EntityQuery.ComponentIterator`1.Enumerator
+  - Ghost.Entities.EntityQuery.ComponentIterator`2
+  - Ghost.Entities.EntityQuery.ComponentIterator`2.Enumerator
+  - Ghost.Entities.EntityQuery.ComponentIterator`2.QueryItem
+  - Ghost.Entities.EntityQuery.ComponentIterator`3
+  - Ghost.Entities.EntityQuery.ComponentIterator`3.Enumerator
+  - Ghost.Entities.EntityQuery.ComponentIterator`3.QueryItem
+  - Ghost.Entities.EntityQuery.ComponentIterator`4
+  - Ghost.Entities.EntityQuery.ComponentIterator`4.Enumerator
+  - Ghost.Entities.EntityQuery.ComponentIterator`4.QueryItem
+  - Ghost.Entities.EntityQuery.ComponentIterator`5
+  - Ghost.Entities.EntityQuery.ComponentIterator`5.Enumerator
+  - Ghost.Entities.EntityQuery.ComponentIterator`5.QueryItem
+  - Ghost.Entities.EntityQuery.ComponentIterator`6
+  - Ghost.Entities.EntityQuery.ComponentIterator`6.Enumerator
+  - Ghost.Entities.EntityQuery.ComponentIterator`6.QueryItem
+  - Ghost.Entities.EntityQuery.ComponentIterator`7
+  - Ghost.Entities.EntityQuery.ComponentIterator`7.Enumerator
+  - Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem
+  - Ghost.Entities.EntityQuery.ComponentIterator`8
+  - Ghost.Entities.EntityQuery.ComponentIterator`8.Enumerator
+  - Ghost.Entities.EntityQuery.ComponentIterator`8.QueryItem
+  - Ghost.Entities.EntityQuery.EntityComponentIterator`1
+  - Ghost.Entities.EntityQuery.EntityComponentIterator`1.Enumerator
+  - Ghost.Entities.EntityQuery.EntityComponentIterator`1.QueryItem
+  - Ghost.Entities.EntityQuery.EntityComponentIterator`2
+  - Ghost.Entities.EntityQuery.EntityComponentIterator`2.Enumerator
+  - Ghost.Entities.EntityQuery.EntityComponentIterator`2.QueryItem
+  - Ghost.Entities.EntityQuery.EntityComponentIterator`3
+  - Ghost.Entities.EntityQuery.EntityComponentIterator`3.Enumerator
+  - Ghost.Entities.EntityQuery.EntityComponentIterator`3.QueryItem
+  - Ghost.Entities.EntityQuery.EntityComponentIterator`4
+  - Ghost.Entities.EntityQuery.EntityComponentIterator`4.Enumerator
+  - Ghost.Entities.EntityQuery.EntityComponentIterator`4.QueryItem
+  - Ghost.Entities.EntityQuery.EntityComponentIterator`5
+  - Ghost.Entities.EntityQuery.EntityComponentIterator`5.Enumerator
+  - Ghost.Entities.EntityQuery.EntityComponentIterator`5.QueryItem
+  - Ghost.Entities.EntityQuery.EntityComponentIterator`6
+  - Ghost.Entities.EntityQuery.EntityComponentIterator`6.Enumerator
+  - Ghost.Entities.EntityQuery.EntityComponentIterator`6.QueryItem
+  - Ghost.Entities.EntityQuery.EntityComponentIterator`7
+  - Ghost.Entities.EntityQuery.EntityComponentIterator`7.Enumerator
+  - Ghost.Entities.EntityQuery.EntityComponentIterator`7.QueryItem
+  - Ghost.Entities.EntityQuery.EntityComponentIterator`8
+  - Ghost.Entities.EntityQuery.EntityComponentIterator`8.Enumerator
+  - Ghost.Entities.EntityQuery.EntityComponentIterator`8.QueryItem
+  - Ghost.Entities.ForEachWithEntity`1
+  - Ghost.Entities.ForEachWithEntity`2
+  - Ghost.Entities.ForEachWithEntity`3
+  - Ghost.Entities.ForEachWithEntity`4
+  - Ghost.Entities.ForEachWithEntity`5
+  - Ghost.Entities.ForEachWithEntity`6
+  - Ghost.Entities.ForEachWithEntity`7
+  - Ghost.Entities.ForEachWithEntity`8
+  - Ghost.Entities.ForEach`1
+  - Ghost.Entities.ForEach`2
+  - Ghost.Entities.ForEach`3
+  - Ghost.Entities.ForEach`4
+  - Ghost.Entities.ForEach`5
+  - Ghost.Entities.ForEach`6
+  - Ghost.Entities.ForEach`7
+  - Ghost.Entities.ForEach`8
+  - Ghost.Entities.IComponent
+  - Ghost.Entities.IEnableableComponent
+  - Ghost.Entities.IJobChunk
+  - Ghost.Entities.IJobEntity`1
+  - Ghost.Entities.IJobEntity`2
+  - Ghost.Entities.IJobEntity`3
+  - Ghost.Entities.IJobEntity`4
+  - Ghost.Entities.IJobEntity`5
+  - Ghost.Entities.IJobEntity`6
+  - Ghost.Entities.IJobEntity`7
+  - Ghost.Entities.IJobEntity`8
+  - Ghost.Entities.ISharedComponent
+  - Ghost.Entities.ISharedWarper
+  - Ghost.Entities.ISystem
+  - Ghost.Entities.ManagedEntity
+  - Ghost.Entities.ManagedEntityRef
+  - Ghost.Entities.QueryBuilder
+  - Ghost.Entities.RequireComponentAttribute`1
+  - Ghost.Entities.ScriptComponent
+  - Ghost.Entities.Shared`1
+  - Ghost.Entities.SystemAPI
+  - Ghost.Entities.SystemBase
+  - Ghost.Entities.SystemGroup
+  - Ghost.Entities.SystemGroupAttribute
+  - Ghost.Entities.SystemManager
+  - Ghost.Entities.TimeData
+  - Ghost.Entities.UpdateAfterAttribute
+  - Ghost.Entities.UpdateBeforeAttribute
+  - Ghost.Entities.World
+  langs:
+  - csharp
+  - vb
+  name: Ghost.Entities
+  nameWithType: Ghost.Entities
+  fullName: Ghost.Entities
+  type: Namespace
+  assemblies:
+  - Ghost.Entities
+references:
+- uid: Ghost.Entities.TimeData
+  commentId: T:Ghost.Entities.TimeData
+  parent: Ghost.Entities
+  href: Ghost.Entities.TimeData.html
+  name: TimeData
+  nameWithType: TimeData
+  fullName: Ghost.Entities.TimeData
+- uid: Ghost.Entities.IComponent
+  commentId: T:Ghost.Entities.IComponent
+  parent: Ghost.Entities
+  href: Ghost.Entities.IComponent.html
+  name: IComponent
+  nameWithType: IComponent
+  fullName: Ghost.Entities.IComponent
+- uid: Ghost.Entities.IEnableableComponent
+  commentId: T:Ghost.Entities.IEnableableComponent
+  href: Ghost.Entities.IEnableableComponent.html
+  name: IEnableableComponent
+  nameWithType: IEnableableComponent
+  fullName: Ghost.Entities.IEnableableComponent
+- uid: Ghost.Entities.RequireComponentAttribute`1
+  commentId: T:Ghost.Entities.RequireComponentAttribute`1
+  href: Ghost.Entities.RequireComponentAttribute-1.html
+  name: RequireComponentAttribute<T>
+  nameWithType: RequireComponentAttribute<T>
+  fullName: Ghost.Entities.RequireComponentAttribute<T>
+  nameWithType.vb: RequireComponentAttribute(Of T)
+  fullName.vb: Ghost.Entities.RequireComponentAttribute(Of T)
+  name.vb: RequireComponentAttribute(Of T)
+  spec.csharp:
+  - uid: Ghost.Entities.RequireComponentAttribute`1
+    name: RequireComponentAttribute
+    href: Ghost.Entities.RequireComponentAttribute-1.html
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.RequireComponentAttribute`1
+    name: RequireComponentAttribute
+    href: Ghost.Entities.RequireComponentAttribute-1.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Entities.ComponentTypeID`1
+  commentId: T:Ghost.Entities.ComponentTypeID`1
+  href: Ghost.Entities.ComponentTypeID-1.html
+  name: ComponentTypeID<T>
+  nameWithType: ComponentTypeID<T>
+  fullName: Ghost.Entities.ComponentTypeID<T>
+  nameWithType.vb: ComponentTypeID(Of T)
+  fullName.vb: Ghost.Entities.ComponentTypeID(Of T)
+  name.vb: ComponentTypeID(Of T)
+  spec.csharp:
+  - uid: Ghost.Entities.ComponentTypeID`1
+    name: ComponentTypeID
+    href: Ghost.Entities.ComponentTypeID-1.html
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.ComponentTypeID`1
+    name: ComponentTypeID
+    href: Ghost.Entities.ComponentTypeID-1.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Entities.ComponentManager
+  commentId: T:Ghost.Entities.ComponentManager
+  parent: Ghost.Entities
+  href: Ghost.Entities.ComponentManager.html
+  name: ComponentManager
+  nameWithType: ComponentManager
+  fullName: Ghost.Entities.ComponentManager
+- uid: Ghost.Entities.ComponentSet
+  commentId: T:Ghost.Entities.ComponentSet
+  parent: Ghost.Entities
+  href: Ghost.Entities.ComponentSet.html
+  name: ComponentSet
+  nameWithType: ComponentSet
+  fullName: Ghost.Entities.ComponentSet
+- uid: Ghost.Entities.Entity
+  commentId: T:Ghost.Entities.Entity
+  parent: Ghost.Entities
+  href: Ghost.Entities.Entity.html
+  name: Entity
+  nameWithType: Entity
+  fullName: Ghost.Entities.Entity
+- uid: Ghost.Entities.EntityCommandBuffer
+  commentId: T:Ghost.Entities.EntityCommandBuffer
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityCommandBuffer.html
+  name: EntityCommandBuffer
+  nameWithType: EntityCommandBuffer
+  fullName: Ghost.Entities.EntityCommandBuffer
+- uid: Ghost.Entities.EntityManager
+  commentId: T:Ghost.Entities.EntityManager
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityManager.html
+  name: EntityManager
+  nameWithType: EntityManager
+  fullName: Ghost.Entities.EntityManager
+- uid: Ghost.Entities.IJobChunk
+  commentId: T:Ghost.Entities.IJobChunk
+  href: Ghost.Entities.IJobChunk.html
+  name: IJobChunk
+  nameWithType: IJobChunk
+  fullName: Ghost.Entities.IJobChunk
+- uid: Ghost.Entities.EntityQuery
+  commentId: T:Ghost.Entities.EntityQuery
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery
+  nameWithType: EntityQuery
+  fullName: Ghost.Entities.EntityQuery
+- uid: Ghost.Entities.EntityQuery.ChunkIterator
+  commentId: T:Ghost.Entities.EntityQuery.ChunkIterator
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.ChunkIterator
+  nameWithType: EntityQuery.ChunkIterator
+  fullName: Ghost.Entities.EntityQuery.ChunkIterator
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ChunkIterator
+    name: ChunkIterator
+    href: Ghost.Entities.EntityQuery.ChunkIterator.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ChunkIterator
+    name: ChunkIterator
+    href: Ghost.Entities.EntityQuery.ChunkIterator.html
+- uid: Ghost.Entities.EntityQuery.ChunkIterator.Enumerator
+  commentId: T:Ghost.Entities.EntityQuery.ChunkIterator.Enumerator
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.ChunkIterator.Enumerator
+  nameWithType: EntityQuery.ChunkIterator.Enumerator
+  fullName: Ghost.Entities.EntityQuery.ChunkIterator.Enumerator
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ChunkIterator
+    name: ChunkIterator
+    href: Ghost.Entities.EntityQuery.ChunkIterator.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ChunkIterator.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.ChunkIterator.Enumerator.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ChunkIterator
+    name: ChunkIterator
+    href: Ghost.Entities.EntityQuery.ChunkIterator.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ChunkIterator.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.ChunkIterator.Enumerator.html
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`1
+  commentId: T:Ghost.Entities.EntityQuery.ComponentIterator`1
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.ComponentIterator<T0>
+  nameWithType: EntityQuery.ComponentIterator<T0>
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0>
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0)
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0)
+  name.vb: EntityQuery.ComponentIterator(Of T0)
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`1
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-1.html
+  - name: <
+  - name: T0
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`1
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-1.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: )
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`1.Enumerator
+  commentId: T:Ghost.Entities.EntityQuery.ComponentIterator`1.Enumerator
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.ComponentIterator<T0>.Enumerator
+  nameWithType: EntityQuery.ComponentIterator<T0>.Enumerator
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0>.Enumerator
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0).Enumerator
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0).Enumerator
+  name.vb: EntityQuery.ComponentIterator(Of T0).Enumerator
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`1
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-1.html
+  - name: <
+  - name: T0
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`1.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-1.Enumerator.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`1
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-1.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`1.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-1.Enumerator.html
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`2
+  commentId: T:Ghost.Entities.EntityQuery.ComponentIterator`2
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.ComponentIterator<T0, T1>
+  nameWithType: EntityQuery.ComponentIterator<T0, T1>
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1>
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1)
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1)
+  name.vb: EntityQuery.ComponentIterator(Of T0, T1)
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`2
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-2.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`2
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-2.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: )
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`2.QueryItem
+  commentId: T:Ghost.Entities.EntityQuery.ComponentIterator`2.QueryItem
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.ComponentIterator<T0, T1>.QueryItem
+  nameWithType: EntityQuery.ComponentIterator<T0, T1>.QueryItem
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1>.QueryItem
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1).QueryItem
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1).QueryItem
+  name.vb: EntityQuery.ComponentIterator(Of T0, T1).QueryItem
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`2
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-2.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`2.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.ComponentIterator-2.QueryItem.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`2
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-2.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`2.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.ComponentIterator-2.QueryItem.html
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`2.Enumerator
+  commentId: T:Ghost.Entities.EntityQuery.ComponentIterator`2.Enumerator
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.ComponentIterator<T0, T1>.Enumerator
+  nameWithType: EntityQuery.ComponentIterator<T0, T1>.Enumerator
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1>.Enumerator
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1).Enumerator
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1).Enumerator
+  name.vb: EntityQuery.ComponentIterator(Of T0, T1).Enumerator
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`2
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-2.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`2.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-2.Enumerator.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`2
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-2.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`2.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-2.Enumerator.html
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`3
+  commentId: T:Ghost.Entities.EntityQuery.ComponentIterator`3
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.ComponentIterator<T0, T1, T2>
+  nameWithType: EntityQuery.ComponentIterator<T0, T1, T2>
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2>
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1, T2)
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1, T2)
+  name.vb: EntityQuery.ComponentIterator(Of T0, T1, T2)
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`3
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-3.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`3
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-3.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: )
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`3.QueryItem
+  commentId: T:Ghost.Entities.EntityQuery.ComponentIterator`3.QueryItem
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.ComponentIterator<T0, T1, T2>.QueryItem
+  nameWithType: EntityQuery.ComponentIterator<T0, T1, T2>.QueryItem
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2>.QueryItem
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1, T2).QueryItem
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1, T2).QueryItem
+  name.vb: EntityQuery.ComponentIterator(Of T0, T1, T2).QueryItem
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`3
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-3.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`3.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.ComponentIterator-3.QueryItem.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`3
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-3.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`3.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.ComponentIterator-3.QueryItem.html
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`3.Enumerator
+  commentId: T:Ghost.Entities.EntityQuery.ComponentIterator`3.Enumerator
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.ComponentIterator<T0, T1, T2>.Enumerator
+  nameWithType: EntityQuery.ComponentIterator<T0, T1, T2>.Enumerator
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2>.Enumerator
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1, T2).Enumerator
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1, T2).Enumerator
+  name.vb: EntityQuery.ComponentIterator(Of T0, T1, T2).Enumerator
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`3
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-3.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`3.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-3.Enumerator.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`3
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-3.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`3.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-3.Enumerator.html
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`4
+  commentId: T:Ghost.Entities.EntityQuery.ComponentIterator`4
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.ComponentIterator<T0, T1, T2, T3>
+  nameWithType: EntityQuery.ComponentIterator<T0, T1, T2, T3>
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3>
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3)
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1, T2, T3)
+  name.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3)
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`4
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-4.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`4
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-4.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: )
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`4.QueryItem
+  commentId: T:Ghost.Entities.EntityQuery.ComponentIterator`4.QueryItem
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.ComponentIterator<T0, T1, T2, T3>.QueryItem
+  nameWithType: EntityQuery.ComponentIterator<T0, T1, T2, T3>.QueryItem
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3>.QueryItem
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3).QueryItem
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1, T2, T3).QueryItem
+  name.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3).QueryItem
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`4
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-4.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`4.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.ComponentIterator-4.QueryItem.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`4
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-4.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`4.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.ComponentIterator-4.QueryItem.html
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`4.Enumerator
+  commentId: T:Ghost.Entities.EntityQuery.ComponentIterator`4.Enumerator
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.ComponentIterator<T0, T1, T2, T3>.Enumerator
+  nameWithType: EntityQuery.ComponentIterator<T0, T1, T2, T3>.Enumerator
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3>.Enumerator
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3).Enumerator
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1, T2, T3).Enumerator
+  name.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3).Enumerator
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`4
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-4.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`4.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-4.Enumerator.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`4
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-4.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`4.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-4.Enumerator.html
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`5
+  commentId: T:Ghost.Entities.EntityQuery.ComponentIterator`5
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4>
+  nameWithType: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4>
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4>
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4)
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4)
+  name.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4)
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`5
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-5.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`5
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-5.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: )
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`5.QueryItem
+  commentId: T:Ghost.Entities.EntityQuery.ComponentIterator`5.QueryItem
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4>.QueryItem
+  nameWithType: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4>.QueryItem
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4>.QueryItem
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4).QueryItem
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4).QueryItem
+  name.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4).QueryItem
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`5
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-5.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`5.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.ComponentIterator-5.QueryItem.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`5
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-5.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`5.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.ComponentIterator-5.QueryItem.html
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`5.Enumerator
+  commentId: T:Ghost.Entities.EntityQuery.ComponentIterator`5.Enumerator
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4>.Enumerator
+  nameWithType: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4>.Enumerator
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4>.Enumerator
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4).Enumerator
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4).Enumerator
+  name.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4).Enumerator
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`5
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-5.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`5.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-5.Enumerator.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`5
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-5.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`5.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-5.Enumerator.html
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`6
+  commentId: T:Ghost.Entities.EntityQuery.ComponentIterator`6
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5>
+  nameWithType: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5>
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5>
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5)
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5)
+  name.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5)
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`6
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-6.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`6
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-6.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: )
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`6.QueryItem
+  commentId: T:Ghost.Entities.EntityQuery.ComponentIterator`6.QueryItem
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5>.QueryItem
+  nameWithType: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5>.QueryItem
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5>.QueryItem
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5).QueryItem
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5).QueryItem
+  name.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5).QueryItem
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`6
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-6.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`6.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.ComponentIterator-6.QueryItem.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`6
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-6.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`6.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.ComponentIterator-6.QueryItem.html
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`6.Enumerator
+  commentId: T:Ghost.Entities.EntityQuery.ComponentIterator`6.Enumerator
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5>.Enumerator
+  nameWithType: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5>.Enumerator
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5>.Enumerator
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5).Enumerator
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5).Enumerator
+  name.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5).Enumerator
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`6
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-6.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`6.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-6.Enumerator.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`6
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-6.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`6.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-6.Enumerator.html
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`7
+  commentId: T:Ghost.Entities.EntityQuery.ComponentIterator`7
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>
+  nameWithType: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6)
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6)
+  name.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6)
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`7
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-7.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`7
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-7.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: )
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem
+  commentId: T:Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem
+  nameWithType: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).QueryItem
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).QueryItem
+  name.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).QueryItem
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`7
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-7.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.ComponentIterator-7.QueryItem.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`7
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-7.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.ComponentIterator-7.QueryItem.html
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`7.Enumerator
+  commentId: T:Ghost.Entities.EntityQuery.ComponentIterator`7.Enumerator
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.Enumerator
+  nameWithType: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.Enumerator
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.Enumerator
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).Enumerator
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).Enumerator
+  name.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).Enumerator
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`7
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-7.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`7.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-7.Enumerator.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`7
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-7.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`7.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-7.Enumerator.html
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`8
+  commentId: T:Ghost.Entities.EntityQuery.ComponentIterator`8
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>
+  nameWithType: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6, T7)
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6, T7)
+  name.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6, T7)
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`8
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-8.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: ','
+  - name: " "
+  - name: T7
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`8
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-8.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: ','
+  - name: " "
+  - name: T7
+  - name: )
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`8.QueryItem
+  commentId: T:Ghost.Entities.EntityQuery.ComponentIterator`8.QueryItem
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>.QueryItem
+  nameWithType: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>.QueryItem
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>.QueryItem
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6, T7).QueryItem
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6, T7).QueryItem
+  name.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6, T7).QueryItem
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`8
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-8.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: ','
+  - name: " "
+  - name: T7
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`8.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.ComponentIterator-8.QueryItem.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`8
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-8.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: ','
+  - name: " "
+  - name: T7
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`8.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.ComponentIterator-8.QueryItem.html
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`8.Enumerator
+  commentId: T:Ghost.Entities.EntityQuery.ComponentIterator`8.Enumerator
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>.Enumerator
+  nameWithType: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>.Enumerator
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>.Enumerator
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6, T7).Enumerator
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6, T7).Enumerator
+  name.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6, T7).Enumerator
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`8
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-8.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: ','
+  - name: " "
+  - name: T7
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`8.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-8.Enumerator.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`8
+    name: ComponentIterator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-8.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: ','
+  - name: " "
+  - name: T7
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.ComponentIterator`8.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.ComponentIterator-8.Enumerator.html
+- uid: Ghost.Entities.EntityQuery.EntityComponentIterator`1
+  commentId: T:Ghost.Entities.EntityQuery.EntityComponentIterator`1
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.EntityComponentIterator<T0>
+  nameWithType: EntityQuery.EntityComponentIterator<T0>
+  fullName: Ghost.Entities.EntityQuery.EntityComponentIterator<T0>
+  nameWithType.vb: EntityQuery.EntityComponentIterator(Of T0)
+  fullName.vb: Ghost.Entities.EntityQuery.EntityComponentIterator(Of T0)
+  name.vb: EntityQuery.EntityComponentIterator(Of T0)
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`1
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-1.html
+  - name: <
+  - name: T0
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`1
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-1.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: )
+- uid: Ghost.Entities.EntityQuery.EntityComponentIterator`1.QueryItem
+  commentId: T:Ghost.Entities.EntityQuery.EntityComponentIterator`1.QueryItem
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.EntityComponentIterator<T0>.QueryItem
+  nameWithType: EntityQuery.EntityComponentIterator<T0>.QueryItem
+  fullName: Ghost.Entities.EntityQuery.EntityComponentIterator<T0>.QueryItem
+  nameWithType.vb: EntityQuery.EntityComponentIterator(Of T0).QueryItem
+  fullName.vb: Ghost.Entities.EntityQuery.EntityComponentIterator(Of T0).QueryItem
+  name.vb: EntityQuery.EntityComponentIterator(Of T0).QueryItem
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`1
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-1.html
+  - name: <
+  - name: T0
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`1.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-1.QueryItem.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`1
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-1.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`1.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-1.QueryItem.html
+- uid: Ghost.Entities.EntityQuery.EntityComponentIterator`1.Enumerator
+  commentId: T:Ghost.Entities.EntityQuery.EntityComponentIterator`1.Enumerator
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.EntityComponentIterator<T0>.Enumerator
+  nameWithType: EntityQuery.EntityComponentIterator<T0>.Enumerator
+  fullName: Ghost.Entities.EntityQuery.EntityComponentIterator<T0>.Enumerator
+  nameWithType.vb: EntityQuery.EntityComponentIterator(Of T0).Enumerator
+  fullName.vb: Ghost.Entities.EntityQuery.EntityComponentIterator(Of T0).Enumerator
+  name.vb: EntityQuery.EntityComponentIterator(Of T0).Enumerator
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`1
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-1.html
+  - name: <
+  - name: T0
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`1.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-1.Enumerator.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`1
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-1.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`1.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-1.Enumerator.html
+- uid: Ghost.Entities.EntityQuery.EntityComponentIterator`2
+  commentId: T:Ghost.Entities.EntityQuery.EntityComponentIterator`2
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.EntityComponentIterator<T0, T1>
+  nameWithType: EntityQuery.EntityComponentIterator<T0, T1>
+  fullName: Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1>
+  nameWithType.vb: EntityQuery.EntityComponentIterator(Of T0, T1)
+  fullName.vb: Ghost.Entities.EntityQuery.EntityComponentIterator(Of T0, T1)
+  name.vb: EntityQuery.EntityComponentIterator(Of T0, T1)
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`2
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-2.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`2
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-2.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: )
+- uid: Ghost.Entities.EntityQuery.EntityComponentIterator`2.QueryItem
+  commentId: T:Ghost.Entities.EntityQuery.EntityComponentIterator`2.QueryItem
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.EntityComponentIterator<T0, T1>.QueryItem
+  nameWithType: EntityQuery.EntityComponentIterator<T0, T1>.QueryItem
+  fullName: Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1>.QueryItem
+  nameWithType.vb: EntityQuery.EntityComponentIterator(Of T0, T1).QueryItem
+  fullName.vb: Ghost.Entities.EntityQuery.EntityComponentIterator(Of T0, T1).QueryItem
+  name.vb: EntityQuery.EntityComponentIterator(Of T0, T1).QueryItem
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`2
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-2.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`2.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-2.QueryItem.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`2
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-2.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`2.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-2.QueryItem.html
+- uid: Ghost.Entities.EntityQuery.EntityComponentIterator`2.Enumerator
+  commentId: T:Ghost.Entities.EntityQuery.EntityComponentIterator`2.Enumerator
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.EntityComponentIterator<T0, T1>.Enumerator
+  nameWithType: EntityQuery.EntityComponentIterator<T0, T1>.Enumerator
+  fullName: Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1>.Enumerator
+  nameWithType.vb: EntityQuery.EntityComponentIterator(Of T0, T1).Enumerator
+  fullName.vb: Ghost.Entities.EntityQuery.EntityComponentIterator(Of T0, T1).Enumerator
+  name.vb: EntityQuery.EntityComponentIterator(Of T0, T1).Enumerator
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`2
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-2.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`2.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-2.Enumerator.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`2
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-2.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`2.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-2.Enumerator.html
+- uid: Ghost.Entities.EntityQuery.EntityComponentIterator`3
+  commentId: T:Ghost.Entities.EntityQuery.EntityComponentIterator`3
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.EntityComponentIterator<T0, T1, T2>
+  nameWithType: EntityQuery.EntityComponentIterator<T0, T1, T2>
+  fullName: Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2>
+  nameWithType.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2)
+  fullName.vb: Ghost.Entities.EntityQuery.EntityComponentIterator(Of T0, T1, T2)
+  name.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2)
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`3
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-3.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`3
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-3.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: )
+- uid: Ghost.Entities.EntityQuery.EntityComponentIterator`3.QueryItem
+  commentId: T:Ghost.Entities.EntityQuery.EntityComponentIterator`3.QueryItem
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.EntityComponentIterator<T0, T1, T2>.QueryItem
+  nameWithType: EntityQuery.EntityComponentIterator<T0, T1, T2>.QueryItem
+  fullName: Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2>.QueryItem
+  nameWithType.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2).QueryItem
+  fullName.vb: Ghost.Entities.EntityQuery.EntityComponentIterator(Of T0, T1, T2).QueryItem
+  name.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2).QueryItem
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`3
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-3.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`3.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-3.QueryItem.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`3
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-3.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`3.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-3.QueryItem.html
+- uid: Ghost.Entities.EntityQuery.EntityComponentIterator`3.Enumerator
+  commentId: T:Ghost.Entities.EntityQuery.EntityComponentIterator`3.Enumerator
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.EntityComponentIterator<T0, T1, T2>.Enumerator
+  nameWithType: EntityQuery.EntityComponentIterator<T0, T1, T2>.Enumerator
+  fullName: Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2>.Enumerator
+  nameWithType.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2).Enumerator
+  fullName.vb: Ghost.Entities.EntityQuery.EntityComponentIterator(Of T0, T1, T2).Enumerator
+  name.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2).Enumerator
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`3
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-3.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`3.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-3.Enumerator.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`3
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-3.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`3.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-3.Enumerator.html
+- uid: Ghost.Entities.EntityQuery.EntityComponentIterator`4
+  commentId: T:Ghost.Entities.EntityQuery.EntityComponentIterator`4
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.EntityComponentIterator<T0, T1, T2, T3>
+  nameWithType: EntityQuery.EntityComponentIterator<T0, T1, T2, T3>
+  fullName: Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3>
+  nameWithType.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3)
+  fullName.vb: Ghost.Entities.EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3)
+  name.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3)
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`4
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-4.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`4
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-4.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: )
+- uid: Ghost.Entities.EntityQuery.EntityComponentIterator`4.QueryItem
+  commentId: T:Ghost.Entities.EntityQuery.EntityComponentIterator`4.QueryItem
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.EntityComponentIterator<T0, T1, T2, T3>.QueryItem
+  nameWithType: EntityQuery.EntityComponentIterator<T0, T1, T2, T3>.QueryItem
+  fullName: Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3>.QueryItem
+  nameWithType.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3).QueryItem
+  fullName.vb: Ghost.Entities.EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3).QueryItem
+  name.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3).QueryItem
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`4
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-4.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`4.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-4.QueryItem.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`4
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-4.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`4.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-4.QueryItem.html
+- uid: Ghost.Entities.EntityQuery.EntityComponentIterator`4.Enumerator
+  commentId: T:Ghost.Entities.EntityQuery.EntityComponentIterator`4.Enumerator
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.EntityComponentIterator<T0, T1, T2, T3>.Enumerator
+  nameWithType: EntityQuery.EntityComponentIterator<T0, T1, T2, T3>.Enumerator
+  fullName: Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3>.Enumerator
+  nameWithType.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3).Enumerator
+  fullName.vb: Ghost.Entities.EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3).Enumerator
+  name.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3).Enumerator
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`4
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-4.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`4.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-4.Enumerator.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`4
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-4.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`4.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-4.Enumerator.html
+- uid: Ghost.Entities.EntityQuery.EntityComponentIterator`5
+  commentId: T:Ghost.Entities.EntityQuery.EntityComponentIterator`5
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4>
+  nameWithType: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4>
+  fullName: Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4>
+  nameWithType.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4)
+  fullName.vb: Ghost.Entities.EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4)
+  name.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4)
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`5
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-5.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`5
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-5.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: )
+- uid: Ghost.Entities.EntityQuery.EntityComponentIterator`5.QueryItem
+  commentId: T:Ghost.Entities.EntityQuery.EntityComponentIterator`5.QueryItem
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4>.QueryItem
+  nameWithType: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4>.QueryItem
+  fullName: Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4>.QueryItem
+  nameWithType.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4).QueryItem
+  fullName.vb: Ghost.Entities.EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4).QueryItem
+  name.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4).QueryItem
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`5
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-5.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`5.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-5.QueryItem.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`5
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-5.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`5.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-5.QueryItem.html
+- uid: Ghost.Entities.EntityQuery.EntityComponentIterator`5.Enumerator
+  commentId: T:Ghost.Entities.EntityQuery.EntityComponentIterator`5.Enumerator
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4>.Enumerator
+  nameWithType: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4>.Enumerator
+  fullName: Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4>.Enumerator
+  nameWithType.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4).Enumerator
+  fullName.vb: Ghost.Entities.EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4).Enumerator
+  name.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4).Enumerator
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`5
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-5.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`5.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-5.Enumerator.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`5
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-5.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`5.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-5.Enumerator.html
+- uid: Ghost.Entities.EntityQuery.EntityComponentIterator`6
+  commentId: T:Ghost.Entities.EntityQuery.EntityComponentIterator`6
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5>
+  nameWithType: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5>
+  fullName: Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5>
+  nameWithType.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4, T5)
+  fullName.vb: Ghost.Entities.EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4, T5)
+  name.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4, T5)
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`6
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-6.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`6
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-6.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: )
+- uid: Ghost.Entities.EntityQuery.EntityComponentIterator`6.QueryItem
+  commentId: T:Ghost.Entities.EntityQuery.EntityComponentIterator`6.QueryItem
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5>.QueryItem
+  nameWithType: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5>.QueryItem
+  fullName: Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5>.QueryItem
+  nameWithType.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4, T5).QueryItem
+  fullName.vb: Ghost.Entities.EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4, T5).QueryItem
+  name.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4, T5).QueryItem
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`6
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-6.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`6.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-6.QueryItem.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`6
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-6.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`6.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-6.QueryItem.html
+- uid: Ghost.Entities.EntityQuery.EntityComponentIterator`6.Enumerator
+  commentId: T:Ghost.Entities.EntityQuery.EntityComponentIterator`6.Enumerator
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5>.Enumerator
+  nameWithType: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5>.Enumerator
+  fullName: Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5>.Enumerator
+  nameWithType.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4, T5).Enumerator
+  fullName.vb: Ghost.Entities.EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4, T5).Enumerator
+  name.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4, T5).Enumerator
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`6
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-6.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`6.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-6.Enumerator.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`6
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-6.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`6.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-6.Enumerator.html
+- uid: Ghost.Entities.EntityQuery.EntityComponentIterator`7
+  commentId: T:Ghost.Entities.EntityQuery.EntityComponentIterator`7
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6>
+  nameWithType: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6>
+  fullName: Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6>
+  nameWithType.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4, T5, T6)
+  fullName.vb: Ghost.Entities.EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4, T5, T6)
+  name.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4, T5, T6)
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`7
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-7.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`7
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-7.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: )
+- uid: Ghost.Entities.EntityQuery.EntityComponentIterator`7.QueryItem
+  commentId: T:Ghost.Entities.EntityQuery.EntityComponentIterator`7.QueryItem
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem
+  nameWithType: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem
+  fullName: Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem
+  nameWithType.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).QueryItem
+  fullName.vb: Ghost.Entities.EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).QueryItem
+  name.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).QueryItem
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`7
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-7.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`7.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-7.QueryItem.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`7
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-7.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`7.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-7.QueryItem.html
+- uid: Ghost.Entities.EntityQuery.EntityComponentIterator`7.Enumerator
+  commentId: T:Ghost.Entities.EntityQuery.EntityComponentIterator`7.Enumerator
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6>.Enumerator
+  nameWithType: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6>.Enumerator
+  fullName: Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6>.Enumerator
+  nameWithType.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).Enumerator
+  fullName.vb: Ghost.Entities.EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).Enumerator
+  name.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).Enumerator
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`7
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-7.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`7.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-7.Enumerator.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`7
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-7.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`7.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-7.Enumerator.html
+- uid: Ghost.Entities.EntityQuery.EntityComponentIterator`8
+  commentId: T:Ghost.Entities.EntityQuery.EntityComponentIterator`8
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>
+  nameWithType: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>
+  fullName: Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>
+  nameWithType.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4, T5, T6, T7)
+  fullName.vb: Ghost.Entities.EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4, T5, T6, T7)
+  name.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4, T5, T6, T7)
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`8
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-8.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: ','
+  - name: " "
+  - name: T7
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`8
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-8.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: ','
+  - name: " "
+  - name: T7
+  - name: )
+- uid: Ghost.Entities.EntityQuery.EntityComponentIterator`8.QueryItem
+  commentId: T:Ghost.Entities.EntityQuery.EntityComponentIterator`8.QueryItem
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>.QueryItem
+  nameWithType: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>.QueryItem
+  fullName: Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>.QueryItem
+  nameWithType.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4, T5, T6, T7).QueryItem
+  fullName.vb: Ghost.Entities.EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4, T5, T6, T7).QueryItem
+  name.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4, T5, T6, T7).QueryItem
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`8
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-8.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: ','
+  - name: " "
+  - name: T7
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`8.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-8.QueryItem.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`8
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-8.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: ','
+  - name: " "
+  - name: T7
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`8.QueryItem
+    name: QueryItem
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-8.QueryItem.html
+- uid: Ghost.Entities.EntityQuery.EntityComponentIterator`8.Enumerator
+  commentId: T:Ghost.Entities.EntityQuery.EntityComponentIterator`8.Enumerator
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>.Enumerator
+  nameWithType: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>.Enumerator
+  fullName: Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>.Enumerator
+  nameWithType.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4, T5, T6, T7).Enumerator
+  fullName.vb: Ghost.Entities.EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4, T5, T6, T7).Enumerator
+  name.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4, T5, T6, T7).Enumerator
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`8
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-8.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: ','
+  - name: " "
+  - name: T7
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`8.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-8.Enumerator.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`8
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-8.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: ','
+  - name: " "
+  - name: T7
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`8.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-8.Enumerator.html
+- uid: Ghost.Entities.ManagedEntity
+  commentId: T:Ghost.Entities.ManagedEntity
+  parent: Ghost.Entities
+  href: Ghost.Entities.ManagedEntity.html
+  name: ManagedEntity
+  nameWithType: ManagedEntity
+  fullName: Ghost.Entities.ManagedEntity
+- uid: Ghost.Entities.ManagedEntityRef
+  commentId: T:Ghost.Entities.ManagedEntityRef
+  href: Ghost.Entities.ManagedEntityRef.html
+  name: ManagedEntityRef
+  nameWithType: ManagedEntityRef
+  fullName: Ghost.Entities.ManagedEntityRef
+- uid: Ghost.Entities.ScriptComponent
+  commentId: T:Ghost.Entities.ScriptComponent
+  href: Ghost.Entities.ScriptComponent.html
+  name: ScriptComponent
+  nameWithType: ScriptComponent
+  fullName: Ghost.Entities.ScriptComponent
+- uid: Ghost.Entities.ChunkView
+  commentId: T:Ghost.Entities.ChunkView
+  parent: Ghost.Entities
+  href: Ghost.Entities.ChunkView.html
+  name: ChunkView
+  nameWithType: ChunkView
+  fullName: Ghost.Entities.ChunkView
+- uid: Ghost.Entities.QueryBuilder
+  commentId: T:Ghost.Entities.QueryBuilder
+  parent: Ghost.Entities
+  href: Ghost.Entities.QueryBuilder.html
+  name: QueryBuilder
+  nameWithType: QueryBuilder
+  fullName: Ghost.Entities.QueryBuilder
+- uid: Ghost.Entities.ISharedComponent
+  commentId: T:Ghost.Entities.ISharedComponent
+  href: Ghost.Entities.ISharedComponent.html
+  name: ISharedComponent
+  nameWithType: ISharedComponent
+  fullName: Ghost.Entities.ISharedComponent
+- uid: Ghost.Entities.ISharedWarper
+  commentId: T:Ghost.Entities.ISharedWarper
+  parent: Ghost.Entities
+  href: Ghost.Entities.ISharedWarper.html
+  name: ISharedWarper
+  nameWithType: ISharedWarper
+  fullName: Ghost.Entities.ISharedWarper
+- uid: Ghost.Entities.Shared`1
+  commentId: T:Ghost.Entities.Shared`1
+  href: Ghost.Entities.Shared-1.html
+  name: Shared<T>
+  nameWithType: Shared<T>
+  fullName: Ghost.Entities.Shared<T>
+  nameWithType.vb: Shared(Of T)
+  fullName.vb: Ghost.Entities.Shared(Of T)
+  name.vb: Shared(Of T)
+  spec.csharp:
+  - uid: Ghost.Entities.Shared`1
+    name: Shared
+    href: Ghost.Entities.Shared-1.html
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.Shared`1
+    name: Shared
+    href: Ghost.Entities.Shared-1.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Entities.SystemAPI
+  commentId: T:Ghost.Entities.SystemAPI
+  parent: Ghost.Entities
+  href: Ghost.Entities.SystemAPI.html
+  name: SystemAPI
+  nameWithType: SystemAPI
+  fullName: Ghost.Entities.SystemAPI
+- uid: Ghost.Entities.ISystem
+  commentId: T:Ghost.Entities.ISystem
+  parent: Ghost.Entities
+  href: Ghost.Entities.ISystem.html
+  name: ISystem
+  nameWithType: ISystem
+  fullName: Ghost.Entities.ISystem
+- uid: Ghost.Entities.SystemBase
+  commentId: T:Ghost.Entities.SystemBase
+  href: Ghost.Entities.SystemBase.html
+  name: SystemBase
+  nameWithType: SystemBase
+  fullName: Ghost.Entities.SystemBase
+- uid: Ghost.Entities.UpdateAfterAttribute
+  commentId: T:Ghost.Entities.UpdateAfterAttribute
+  href: Ghost.Entities.UpdateAfterAttribute.html
+  name: UpdateAfterAttribute
+  nameWithType: UpdateAfterAttribute
+  fullName: Ghost.Entities.UpdateAfterAttribute
+- uid: Ghost.Entities.UpdateBeforeAttribute
+  commentId: T:Ghost.Entities.UpdateBeforeAttribute
+  href: Ghost.Entities.UpdateBeforeAttribute.html
+  name: UpdateBeforeAttribute
+  nameWithType: UpdateBeforeAttribute
+  fullName: Ghost.Entities.UpdateBeforeAttribute
+- uid: Ghost.Entities.SystemGroupAttribute
+  commentId: T:Ghost.Entities.SystemGroupAttribute
+  href: Ghost.Entities.SystemGroupAttribute.html
+  name: SystemGroupAttribute
+  nameWithType: SystemGroupAttribute
+  fullName: Ghost.Entities.SystemGroupAttribute
+- uid: Ghost.Entities.SystemGroup
+  commentId: T:Ghost.Entities.SystemGroup
+  parent: Ghost.Entities
+  href: Ghost.Entities.SystemGroup.html
+  name: SystemGroup
+  nameWithType: SystemGroup
+  fullName: Ghost.Entities.SystemGroup
+- uid: Ghost.Entities.DefaultSystemGroup
+  commentId: T:Ghost.Entities.DefaultSystemGroup
+  href: Ghost.Entities.DefaultSystemGroup.html
+  name: DefaultSystemGroup
+  nameWithType: DefaultSystemGroup
+  fullName: Ghost.Entities.DefaultSystemGroup
+- uid: Ghost.Entities.SystemManager
+  commentId: T:Ghost.Entities.SystemManager
+  parent: Ghost.Entities
+  href: Ghost.Entities.SystemManager.html
+  name: SystemManager
+  nameWithType: SystemManager
+  fullName: Ghost.Entities.SystemManager
+- uid: Ghost.Entities.IJobEntity`1
+  commentId: T:Ghost.Entities.IJobEntity`1
+  href: Ghost.Entities.IJobEntity-1.html
+  name: IJobEntity<T0>
+  nameWithType: IJobEntity<T0>
+  fullName: Ghost.Entities.IJobEntity<T0>
+  nameWithType.vb: IJobEntity(Of T0)
+  fullName.vb: Ghost.Entities.IJobEntity(Of T0)
+  name.vb: IJobEntity(Of T0)
+  spec.csharp:
+  - uid: Ghost.Entities.IJobEntity`1
+    name: IJobEntity
+    href: Ghost.Entities.IJobEntity-1.html
+  - name: <
+  - name: T0
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.IJobEntity`1
+    name: IJobEntity
+    href: Ghost.Entities.IJobEntity-1.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: )
+- uid: Ghost.Entities.IJobEntity`2
+  commentId: T:Ghost.Entities.IJobEntity`2
+  href: Ghost.Entities.IJobEntity-2.html
+  name: IJobEntity<T0, T1>
+  nameWithType: IJobEntity<T0, T1>
+  fullName: Ghost.Entities.IJobEntity<T0, T1>
+  nameWithType.vb: IJobEntity(Of T0, T1)
+  fullName.vb: Ghost.Entities.IJobEntity(Of T0, T1)
+  name.vb: IJobEntity(Of T0, T1)
+  spec.csharp:
+  - uid: Ghost.Entities.IJobEntity`2
+    name: IJobEntity
+    href: Ghost.Entities.IJobEntity-2.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.IJobEntity`2
+    name: IJobEntity
+    href: Ghost.Entities.IJobEntity-2.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: )
+- uid: Ghost.Entities.IJobEntity`3
+  commentId: T:Ghost.Entities.IJobEntity`3
+  href: Ghost.Entities.IJobEntity-3.html
+  name: IJobEntity<T0, T1, T2>
+  nameWithType: IJobEntity<T0, T1, T2>
+  fullName: Ghost.Entities.IJobEntity<T0, T1, T2>
+  nameWithType.vb: IJobEntity(Of T0, T1, T2)
+  fullName.vb: Ghost.Entities.IJobEntity(Of T0, T1, T2)
+  name.vb: IJobEntity(Of T0, T1, T2)
+  spec.csharp:
+  - uid: Ghost.Entities.IJobEntity`3
+    name: IJobEntity
+    href: Ghost.Entities.IJobEntity-3.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.IJobEntity`3
+    name: IJobEntity
+    href: Ghost.Entities.IJobEntity-3.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: )
+- uid: Ghost.Entities.IJobEntity`4
+  commentId: T:Ghost.Entities.IJobEntity`4
+  href: Ghost.Entities.IJobEntity-4.html
+  name: IJobEntity<T0, T1, T2, T3>
+  nameWithType: IJobEntity<T0, T1, T2, T3>
+  fullName: Ghost.Entities.IJobEntity<T0, T1, T2, T3>
+  nameWithType.vb: IJobEntity(Of T0, T1, T2, T3)
+  fullName.vb: Ghost.Entities.IJobEntity(Of T0, T1, T2, T3)
+  name.vb: IJobEntity(Of T0, T1, T2, T3)
+  spec.csharp:
+  - uid: Ghost.Entities.IJobEntity`4
+    name: IJobEntity
+    href: Ghost.Entities.IJobEntity-4.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.IJobEntity`4
+    name: IJobEntity
+    href: Ghost.Entities.IJobEntity-4.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: )
+- uid: Ghost.Entities.IJobEntity`5
+  commentId: T:Ghost.Entities.IJobEntity`5
+  href: Ghost.Entities.IJobEntity-5.html
+  name: IJobEntity<T0, T1, T2, T3, T4>
+  nameWithType: IJobEntity<T0, T1, T2, T3, T4>
+  fullName: Ghost.Entities.IJobEntity<T0, T1, T2, T3, T4>
+  nameWithType.vb: IJobEntity(Of T0, T1, T2, T3, T4)
+  fullName.vb: Ghost.Entities.IJobEntity(Of T0, T1, T2, T3, T4)
+  name.vb: IJobEntity(Of T0, T1, T2, T3, T4)
+  spec.csharp:
+  - uid: Ghost.Entities.IJobEntity`5
+    name: IJobEntity
+    href: Ghost.Entities.IJobEntity-5.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.IJobEntity`5
+    name: IJobEntity
+    href: Ghost.Entities.IJobEntity-5.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: )
+- uid: Ghost.Entities.IJobEntity`6
+  commentId: T:Ghost.Entities.IJobEntity`6
+  href: Ghost.Entities.IJobEntity-6.html
+  name: IJobEntity<T0, T1, T2, T3, T4, T5>
+  nameWithType: IJobEntity<T0, T1, T2, T3, T4, T5>
+  fullName: Ghost.Entities.IJobEntity<T0, T1, T2, T3, T4, T5>
+  nameWithType.vb: IJobEntity(Of T0, T1, T2, T3, T4, T5)
+  fullName.vb: Ghost.Entities.IJobEntity(Of T0, T1, T2, T3, T4, T5)
+  name.vb: IJobEntity(Of T0, T1, T2, T3, T4, T5)
+  spec.csharp:
+  - uid: Ghost.Entities.IJobEntity`6
+    name: IJobEntity
+    href: Ghost.Entities.IJobEntity-6.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.IJobEntity`6
+    name: IJobEntity
+    href: Ghost.Entities.IJobEntity-6.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: )
+- uid: Ghost.Entities.IJobEntity`7
+  commentId: T:Ghost.Entities.IJobEntity`7
+  href: Ghost.Entities.IJobEntity-7.html
+  name: IJobEntity<T0, T1, T2, T3, T4, T5, T6>
+  nameWithType: IJobEntity<T0, T1, T2, T3, T4, T5, T6>
+  fullName: Ghost.Entities.IJobEntity<T0, T1, T2, T3, T4, T5, T6>
+  nameWithType.vb: IJobEntity(Of T0, T1, T2, T3, T4, T5, T6)
+  fullName.vb: Ghost.Entities.IJobEntity(Of T0, T1, T2, T3, T4, T5, T6)
+  name.vb: IJobEntity(Of T0, T1, T2, T3, T4, T5, T6)
+  spec.csharp:
+  - uid: Ghost.Entities.IJobEntity`7
+    name: IJobEntity
+    href: Ghost.Entities.IJobEntity-7.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.IJobEntity`7
+    name: IJobEntity
+    href: Ghost.Entities.IJobEntity-7.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: )
+- uid: Ghost.Entities.IJobEntity`8
+  commentId: T:Ghost.Entities.IJobEntity`8
+  href: Ghost.Entities.IJobEntity-8.html
+  name: IJobEntity<T0, T1, T2, T3, T4, T5, T6, T7>
+  nameWithType: IJobEntity<T0, T1, T2, T3, T4, T5, T6, T7>
+  fullName: Ghost.Entities.IJobEntity<T0, T1, T2, T3, T4, T5, T6, T7>
+  nameWithType.vb: IJobEntity(Of T0, T1, T2, T3, T4, T5, T6, T7)
+  fullName.vb: Ghost.Entities.IJobEntity(Of T0, T1, T2, T3, T4, T5, T6, T7)
+  name.vb: IJobEntity(Of T0, T1, T2, T3, T4, T5, T6, T7)
+  spec.csharp:
+  - uid: Ghost.Entities.IJobEntity`8
+    name: IJobEntity
+    href: Ghost.Entities.IJobEntity-8.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: ','
+  - name: " "
+  - name: T7
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.IJobEntity`8
+    name: IJobEntity
+    href: Ghost.Entities.IJobEntity-8.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: ','
+  - name: " "
+  - name: T7
+  - name: )
+- uid: Ghost.Entities.ForEach`1
+  commentId: T:Ghost.Entities.ForEach`1
+  href: Ghost.Entities.ForEach-1.html
+  name: ForEach<T0>
+  nameWithType: ForEach<T0>
+  fullName: Ghost.Entities.ForEach<T0>
+  nameWithType.vb: ForEach(Of T0)
+  fullName.vb: Ghost.Entities.ForEach(Of T0)
+  name.vb: ForEach(Of T0)
+  spec.csharp:
+  - uid: Ghost.Entities.ForEach`1
+    name: ForEach
+    href: Ghost.Entities.ForEach-1.html
+  - name: <
+  - name: T0
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.ForEach`1
+    name: ForEach
+    href: Ghost.Entities.ForEach-1.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: )
+- uid: Ghost.Entities.ForEach`2
+  commentId: T:Ghost.Entities.ForEach`2
+  href: Ghost.Entities.ForEach-2.html
+  name: ForEach<T0, T1>
+  nameWithType: ForEach<T0, T1>
+  fullName: Ghost.Entities.ForEach<T0, T1>
+  nameWithType.vb: ForEach(Of T0, T1)
+  fullName.vb: Ghost.Entities.ForEach(Of T0, T1)
+  name.vb: ForEach(Of T0, T1)
+  spec.csharp:
+  - uid: Ghost.Entities.ForEach`2
+    name: ForEach
+    href: Ghost.Entities.ForEach-2.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.ForEach`2
+    name: ForEach
+    href: Ghost.Entities.ForEach-2.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: )
+- uid: Ghost.Entities.ForEach`3
+  commentId: T:Ghost.Entities.ForEach`3
+  href: Ghost.Entities.ForEach-3.html
+  name: ForEach<T0, T1, T2>
+  nameWithType: ForEach<T0, T1, T2>
+  fullName: Ghost.Entities.ForEach<T0, T1, T2>
+  nameWithType.vb: ForEach(Of T0, T1, T2)
+  fullName.vb: Ghost.Entities.ForEach(Of T0, T1, T2)
+  name.vb: ForEach(Of T0, T1, T2)
+  spec.csharp:
+  - uid: Ghost.Entities.ForEach`3
+    name: ForEach
+    href: Ghost.Entities.ForEach-3.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.ForEach`3
+    name: ForEach
+    href: Ghost.Entities.ForEach-3.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: )
+- uid: Ghost.Entities.ForEach`4
+  commentId: T:Ghost.Entities.ForEach`4
+  href: Ghost.Entities.ForEach-4.html
+  name: ForEach<T0, T1, T2, T3>
+  nameWithType: ForEach<T0, T1, T2, T3>
+  fullName: Ghost.Entities.ForEach<T0, T1, T2, T3>
+  nameWithType.vb: ForEach(Of T0, T1, T2, T3)
+  fullName.vb: Ghost.Entities.ForEach(Of T0, T1, T2, T3)
+  name.vb: ForEach(Of T0, T1, T2, T3)
+  spec.csharp:
+  - uid: Ghost.Entities.ForEach`4
+    name: ForEach
+    href: Ghost.Entities.ForEach-4.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.ForEach`4
+    name: ForEach
+    href: Ghost.Entities.ForEach-4.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: )
+- uid: Ghost.Entities.ForEach`5
+  commentId: T:Ghost.Entities.ForEach`5
+  href: Ghost.Entities.ForEach-5.html
+  name: ForEach<T0, T1, T2, T3, T4>
+  nameWithType: ForEach<T0, T1, T2, T3, T4>
+  fullName: Ghost.Entities.ForEach<T0, T1, T2, T3, T4>
+  nameWithType.vb: ForEach(Of T0, T1, T2, T3, T4)
+  fullName.vb: Ghost.Entities.ForEach(Of T0, T1, T2, T3, T4)
+  name.vb: ForEach(Of T0, T1, T2, T3, T4)
+  spec.csharp:
+  - uid: Ghost.Entities.ForEach`5
+    name: ForEach
+    href: Ghost.Entities.ForEach-5.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.ForEach`5
+    name: ForEach
+    href: Ghost.Entities.ForEach-5.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: )
+- uid: Ghost.Entities.ForEach`6
+  commentId: T:Ghost.Entities.ForEach`6
+  href: Ghost.Entities.ForEach-6.html
+  name: ForEach<T0, T1, T2, T3, T4, T5>
+  nameWithType: ForEach<T0, T1, T2, T3, T4, T5>
+  fullName: Ghost.Entities.ForEach<T0, T1, T2, T3, T4, T5>
+  nameWithType.vb: ForEach(Of T0, T1, T2, T3, T4, T5)
+  fullName.vb: Ghost.Entities.ForEach(Of T0, T1, T2, T3, T4, T5)
+  name.vb: ForEach(Of T0, T1, T2, T3, T4, T5)
+  spec.csharp:
+  - uid: Ghost.Entities.ForEach`6
+    name: ForEach
+    href: Ghost.Entities.ForEach-6.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.ForEach`6
+    name: ForEach
+    href: Ghost.Entities.ForEach-6.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: )
+- uid: Ghost.Entities.ForEach`7
+  commentId: T:Ghost.Entities.ForEach`7
+  href: Ghost.Entities.ForEach-7.html
+  name: ForEach<T0, T1, T2, T3, T4, T5, T6>
+  nameWithType: ForEach<T0, T1, T2, T3, T4, T5, T6>
+  fullName: Ghost.Entities.ForEach<T0, T1, T2, T3, T4, T5, T6>
+  nameWithType.vb: ForEach(Of T0, T1, T2, T3, T4, T5, T6)
+  fullName.vb: Ghost.Entities.ForEach(Of T0, T1, T2, T3, T4, T5, T6)
+  name.vb: ForEach(Of T0, T1, T2, T3, T4, T5, T6)
+  spec.csharp:
+  - uid: Ghost.Entities.ForEach`7
+    name: ForEach
+    href: Ghost.Entities.ForEach-7.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.ForEach`7
+    name: ForEach
+    href: Ghost.Entities.ForEach-7.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: )
+- uid: Ghost.Entities.ForEach`8
+  commentId: T:Ghost.Entities.ForEach`8
+  href: Ghost.Entities.ForEach-8.html
+  name: ForEach<T0, T1, T2, T3, T4, T5, T6, T7>
+  nameWithType: ForEach<T0, T1, T2, T3, T4, T5, T6, T7>
+  fullName: Ghost.Entities.ForEach<T0, T1, T2, T3, T4, T5, T6, T7>
+  nameWithType.vb: ForEach(Of T0, T1, T2, T3, T4, T5, T6, T7)
+  fullName.vb: Ghost.Entities.ForEach(Of T0, T1, T2, T3, T4, T5, T6, T7)
+  name.vb: ForEach(Of T0, T1, T2, T3, T4, T5, T6, T7)
+  spec.csharp:
+  - uid: Ghost.Entities.ForEach`8
+    name: ForEach
+    href: Ghost.Entities.ForEach-8.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: ','
+  - name: " "
+  - name: T7
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.ForEach`8
+    name: ForEach
+    href: Ghost.Entities.ForEach-8.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: ','
+  - name: " "
+  - name: T7
+  - name: )
+- uid: Ghost.Entities.ForEachWithEntity`1
+  commentId: T:Ghost.Entities.ForEachWithEntity`1
+  href: Ghost.Entities.ForEachWithEntity-1.html
+  name: ForEachWithEntity<T0>
+  nameWithType: ForEachWithEntity<T0>
+  fullName: Ghost.Entities.ForEachWithEntity<T0>
+  nameWithType.vb: ForEachWithEntity(Of T0)
+  fullName.vb: Ghost.Entities.ForEachWithEntity(Of T0)
+  name.vb: ForEachWithEntity(Of T0)
+  spec.csharp:
+  - uid: Ghost.Entities.ForEachWithEntity`1
+    name: ForEachWithEntity
+    href: Ghost.Entities.ForEachWithEntity-1.html
+  - name: <
+  - name: T0
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.ForEachWithEntity`1
+    name: ForEachWithEntity
+    href: Ghost.Entities.ForEachWithEntity-1.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: )
+- uid: Ghost.Entities.ForEachWithEntity`2
+  commentId: T:Ghost.Entities.ForEachWithEntity`2
+  href: Ghost.Entities.ForEachWithEntity-2.html
+  name: ForEachWithEntity<T0, T1>
+  nameWithType: ForEachWithEntity<T0, T1>
+  fullName: Ghost.Entities.ForEachWithEntity<T0, T1>
+  nameWithType.vb: ForEachWithEntity(Of T0, T1)
+  fullName.vb: Ghost.Entities.ForEachWithEntity(Of T0, T1)
+  name.vb: ForEachWithEntity(Of T0, T1)
+  spec.csharp:
+  - uid: Ghost.Entities.ForEachWithEntity`2
+    name: ForEachWithEntity
+    href: Ghost.Entities.ForEachWithEntity-2.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.ForEachWithEntity`2
+    name: ForEachWithEntity
+    href: Ghost.Entities.ForEachWithEntity-2.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: )
+- uid: Ghost.Entities.ForEachWithEntity`3
+  commentId: T:Ghost.Entities.ForEachWithEntity`3
+  href: Ghost.Entities.ForEachWithEntity-3.html
+  name: ForEachWithEntity<T0, T1, T2>
+  nameWithType: ForEachWithEntity<T0, T1, T2>
+  fullName: Ghost.Entities.ForEachWithEntity<T0, T1, T2>
+  nameWithType.vb: ForEachWithEntity(Of T0, T1, T2)
+  fullName.vb: Ghost.Entities.ForEachWithEntity(Of T0, T1, T2)
+  name.vb: ForEachWithEntity(Of T0, T1, T2)
+  spec.csharp:
+  - uid: Ghost.Entities.ForEachWithEntity`3
+    name: ForEachWithEntity
+    href: Ghost.Entities.ForEachWithEntity-3.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.ForEachWithEntity`3
+    name: ForEachWithEntity
+    href: Ghost.Entities.ForEachWithEntity-3.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: )
+- uid: Ghost.Entities.ForEachWithEntity`4
+  commentId: T:Ghost.Entities.ForEachWithEntity`4
+  href: Ghost.Entities.ForEachWithEntity-4.html
+  name: ForEachWithEntity<T0, T1, T2, T3>
+  nameWithType: ForEachWithEntity<T0, T1, T2, T3>
+  fullName: Ghost.Entities.ForEachWithEntity<T0, T1, T2, T3>
+  nameWithType.vb: ForEachWithEntity(Of T0, T1, T2, T3)
+  fullName.vb: Ghost.Entities.ForEachWithEntity(Of T0, T1, T2, T3)
+  name.vb: ForEachWithEntity(Of T0, T1, T2, T3)
+  spec.csharp:
+  - uid: Ghost.Entities.ForEachWithEntity`4
+    name: ForEachWithEntity
+    href: Ghost.Entities.ForEachWithEntity-4.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.ForEachWithEntity`4
+    name: ForEachWithEntity
+    href: Ghost.Entities.ForEachWithEntity-4.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: )
+- uid: Ghost.Entities.ForEachWithEntity`5
+  commentId: T:Ghost.Entities.ForEachWithEntity`5
+  href: Ghost.Entities.ForEachWithEntity-5.html
+  name: ForEachWithEntity<T0, T1, T2, T3, T4>
+  nameWithType: ForEachWithEntity<T0, T1, T2, T3, T4>
+  fullName: Ghost.Entities.ForEachWithEntity<T0, T1, T2, T3, T4>
+  nameWithType.vb: ForEachWithEntity(Of T0, T1, T2, T3, T4)
+  fullName.vb: Ghost.Entities.ForEachWithEntity(Of T0, T1, T2, T3, T4)
+  name.vb: ForEachWithEntity(Of T0, T1, T2, T3, T4)
+  spec.csharp:
+  - uid: Ghost.Entities.ForEachWithEntity`5
+    name: ForEachWithEntity
+    href: Ghost.Entities.ForEachWithEntity-5.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.ForEachWithEntity`5
+    name: ForEachWithEntity
+    href: Ghost.Entities.ForEachWithEntity-5.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: )
+- uid: Ghost.Entities.ForEachWithEntity`6
+  commentId: T:Ghost.Entities.ForEachWithEntity`6
+  href: Ghost.Entities.ForEachWithEntity-6.html
+  name: ForEachWithEntity<T0, T1, T2, T3, T4, T5>
+  nameWithType: ForEachWithEntity<T0, T1, T2, T3, T4, T5>
+  fullName: Ghost.Entities.ForEachWithEntity<T0, T1, T2, T3, T4, T5>
+  nameWithType.vb: ForEachWithEntity(Of T0, T1, T2, T3, T4, T5)
+  fullName.vb: Ghost.Entities.ForEachWithEntity(Of T0, T1, T2, T3, T4, T5)
+  name.vb: ForEachWithEntity(Of T0, T1, T2, T3, T4, T5)
+  spec.csharp:
+  - uid: Ghost.Entities.ForEachWithEntity`6
+    name: ForEachWithEntity
+    href: Ghost.Entities.ForEachWithEntity-6.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.ForEachWithEntity`6
+    name: ForEachWithEntity
+    href: Ghost.Entities.ForEachWithEntity-6.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: )
+- uid: Ghost.Entities.ForEachWithEntity`7
+  commentId: T:Ghost.Entities.ForEachWithEntity`7
+  href: Ghost.Entities.ForEachWithEntity-7.html
+  name: ForEachWithEntity<T0, T1, T2, T3, T4, T5, T6>
+  nameWithType: ForEachWithEntity<T0, T1, T2, T3, T4, T5, T6>
+  fullName: Ghost.Entities.ForEachWithEntity<T0, T1, T2, T3, T4, T5, T6>
+  nameWithType.vb: ForEachWithEntity(Of T0, T1, T2, T3, T4, T5, T6)
+  fullName.vb: Ghost.Entities.ForEachWithEntity(Of T0, T1, T2, T3, T4, T5, T6)
+  name.vb: ForEachWithEntity(Of T0, T1, T2, T3, T4, T5, T6)
+  spec.csharp:
+  - uid: Ghost.Entities.ForEachWithEntity`7
+    name: ForEachWithEntity
+    href: Ghost.Entities.ForEachWithEntity-7.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.ForEachWithEntity`7
+    name: ForEachWithEntity
+    href: Ghost.Entities.ForEachWithEntity-7.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: )
+- uid: Ghost.Entities.ForEachWithEntity`8
+  commentId: T:Ghost.Entities.ForEachWithEntity`8
+  href: Ghost.Entities.ForEachWithEntity-8.html
+  name: ForEachWithEntity<T0, T1, T2, T3, T4, T5, T6, T7>
+  nameWithType: ForEachWithEntity<T0, T1, T2, T3, T4, T5, T6, T7>
+  fullName: Ghost.Entities.ForEachWithEntity<T0, T1, T2, T3, T4, T5, T6, T7>
+  nameWithType.vb: ForEachWithEntity(Of T0, T1, T2, T3, T4, T5, T6, T7)
+  fullName.vb: Ghost.Entities.ForEachWithEntity(Of T0, T1, T2, T3, T4, T5, T6, T7)
+  name.vb: ForEachWithEntity(Of T0, T1, T2, T3, T4, T5, T6, T7)
+  spec.csharp:
+  - uid: Ghost.Entities.ForEachWithEntity`8
+    name: ForEachWithEntity
+    href: Ghost.Entities.ForEachWithEntity-8.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: ','
+  - name: " "
+  - name: T7
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Entities.ForEachWithEntity`8
+    name: ForEachWithEntity
+    href: Ghost.Entities.ForEachWithEntity-8.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: ','
+  - name: " "
+  - name: T5
+  - name: ','
+  - name: " "
+  - name: T6
+  - name: ','
+  - name: " "
+  - name: T7
+  - name: )
+- uid: Ghost.Entities.World
+  commentId: T:Ghost.Entities.World
+  parent: Ghost.Entities
+  href: Ghost.Entities.World.html
+  name: World
+  nameWithType: World
+  fullName: Ghost.Entities.World
+- uid: Ghost.Entities
+  commentId: N:Ghost.Entities
+  href: Ghost.html
+  name: Ghost.Entities
+  nameWithType: Ghost.Entities
+  fullName: Ghost.Entities
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Entities
+    name: Entities
+    href: Ghost.Entities.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Entities
+    name: Entities
+    href: Ghost.Entities.html

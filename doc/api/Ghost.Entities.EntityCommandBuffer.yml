@@ -1,0 +1,729 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Entities.EntityCommandBuffer
+  commentId: T:Ghost.Entities.EntityCommandBuffer
+  id: EntityCommandBuffer
+  parent: Ghost.Entities
+  children:
+  - Ghost.Entities.EntityCommandBuffer.#ctor(Ghost.Entities.EntityManager)
+  - Ghost.Entities.EntityCommandBuffer.AddComponent``1(Ghost.Entities.Entity,``0)
+  - Ghost.Entities.EntityCommandBuffer.CreateEntity(System.Int32)
+  - Ghost.Entities.EntityCommandBuffer.CreateEntity(System.Int32,Ghost.Entities.ComponentSet)
+  - Ghost.Entities.EntityCommandBuffer.DestroyEntity(Ghost.Entities.Entity)
+  - Ghost.Entities.EntityCommandBuffer.Dispose
+  - Ghost.Entities.EntityCommandBuffer.Finalize
+  - Ghost.Entities.EntityCommandBuffer.RemoveComponent``1(Ghost.Entities.Entity)
+  - Ghost.Entities.EntityCommandBuffer.SetComponent``1(Ghost.Entities.Entity,``0)
+  langs:
+  - csharp
+  - vb
+  name: EntityCommandBuffer
+  nameWithType: EntityCommandBuffer
+  fullName: Ghost.Entities.EntityCommandBuffer
+  type: Class
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine
+    id: EntityCommandBuffer
+    path: ../src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
+    startLine: 8
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: 'public class EntityCommandBuffer : IDisposable'
+    content.vb: Public Class EntityCommandBuffer Implements IDisposable
+  inheritance:
+  - System.Object
+  implements:
+  - System.IDisposable
+  inheritedMembers:
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.MemberwiseClone
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.ToString
+- uid: Ghost.Entities.EntityCommandBuffer.#ctor(Ghost.Entities.EntityManager)
+  commentId: M:Ghost.Entities.EntityCommandBuffer.#ctor(Ghost.Entities.EntityManager)
+  id: '#ctor(Ghost.Entities.EntityManager)'
+  parent: Ghost.Entities.EntityCommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: EntityCommandBuffer(EntityManager)
+  nameWithType: EntityCommandBuffer.EntityCommandBuffer(EntityManager)
+  fullName: Ghost.Entities.EntityCommandBuffer.EntityCommandBuffer(Ghost.Entities.EntityManager)
+  type: Constructor
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine
+    id: .ctor
+    path: ../src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
+    startLine: 24
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public EntityCommandBuffer(EntityManager entityManager)
+    parameters:
+    - id: entityManager
+      type: Ghost.Entities.EntityManager
+    content.vb: Public Sub New(entityManager As EntityManager)
+  overload: Ghost.Entities.EntityCommandBuffer.#ctor*
+  nameWithType.vb: EntityCommandBuffer.New(EntityManager)
+  fullName.vb: Ghost.Entities.EntityCommandBuffer.New(Ghost.Entities.EntityManager)
+  name.vb: New(EntityManager)
+- uid: Ghost.Entities.EntityCommandBuffer.Finalize
+  commentId: M:Ghost.Entities.EntityCommandBuffer.Finalize
+  id: Finalize
+  parent: Ghost.Entities.EntityCommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: ~EntityCommandBuffer()
+  nameWithType: EntityCommandBuffer.~EntityCommandBuffer()
+  fullName: Ghost.Entities.EntityCommandBuffer.~EntityCommandBuffer()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine
+    id: Finalize
+    path: ../src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
+    startLine: 30
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: protected ~EntityCommandBuffer()
+    content.vb: 'Protected '
+  overload: Ghost.Entities.EntityCommandBuffer.Finalize*
+  nameWithType.vb: ''
+  fullName.vb: ''
+  name.vb: ''
+- uid: Ghost.Entities.EntityCommandBuffer.CreateEntity(System.Int32)
+  commentId: M:Ghost.Entities.EntityCommandBuffer.CreateEntity(System.Int32)
+  id: CreateEntity(System.Int32)
+  parent: Ghost.Entities.EntityCommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: CreateEntity(int)
+  nameWithType: EntityCommandBuffer.CreateEntity(int)
+  fullName: Ghost.Entities.EntityCommandBuffer.CreateEntity(int)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine
+    id: CreateEntity
+    path: ../src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
+    startLine: 104
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public void CreateEntity(int count = 1)
+    parameters:
+    - id: count
+      type: System.Int32
+    content.vb: Public Sub CreateEntity(count As Integer = 1)
+  overload: Ghost.Entities.EntityCommandBuffer.CreateEntity*
+  nameWithType.vb: EntityCommandBuffer.CreateEntity(Integer)
+  fullName.vb: Ghost.Entities.EntityCommandBuffer.CreateEntity(Integer)
+  name.vb: CreateEntity(Integer)
+- uid: Ghost.Entities.EntityCommandBuffer.CreateEntity(System.Int32,Ghost.Entities.ComponentSet)
+  commentId: M:Ghost.Entities.EntityCommandBuffer.CreateEntity(System.Int32,Ghost.Entities.ComponentSet)
+  id: CreateEntity(System.Int32,Ghost.Entities.ComponentSet)
+  parent: Ghost.Entities.EntityCommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: CreateEntity(int, ComponentSet)
+  nameWithType: EntityCommandBuffer.CreateEntity(int, ComponentSet)
+  fullName: Ghost.Entities.EntityCommandBuffer.CreateEntity(int, Ghost.Entities.ComponentSet)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine
+    id: CreateEntity
+    path: ../src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
+    startLine: 110
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public void CreateEntity(int count, ComponentSet set)
+    parameters:
+    - id: count
+      type: System.Int32
+    - id: set
+      type: Ghost.Entities.ComponentSet
+    content.vb: Public Sub CreateEntity(count As Integer, [set] As ComponentSet)
+  overload: Ghost.Entities.EntityCommandBuffer.CreateEntity*
+  nameWithType.vb: EntityCommandBuffer.CreateEntity(Integer, ComponentSet)
+  fullName.vb: Ghost.Entities.EntityCommandBuffer.CreateEntity(Integer, Ghost.Entities.ComponentSet)
+  name.vb: CreateEntity(Integer, ComponentSet)
+- uid: Ghost.Entities.EntityCommandBuffer.DestroyEntity(Ghost.Entities.Entity)
+  commentId: M:Ghost.Entities.EntityCommandBuffer.DestroyEntity(Ghost.Entities.Entity)
+  id: DestroyEntity(Ghost.Entities.Entity)
+  parent: Ghost.Entities.EntityCommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: DestroyEntity(Entity)
+  nameWithType: EntityCommandBuffer.DestroyEntity(Entity)
+  fullName: Ghost.Entities.EntityCommandBuffer.DestroyEntity(Ghost.Entities.Entity)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine
+    id: DestroyEntity
+    path: ../src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
+    startLine: 118
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public void DestroyEntity(Entity entity)
+    parameters:
+    - id: entity
+      type: Ghost.Entities.Entity
+    content.vb: Public Sub DestroyEntity(entity As Entity)
+  overload: Ghost.Entities.EntityCommandBuffer.DestroyEntity*
+- uid: Ghost.Entities.EntityCommandBuffer.AddComponent``1(Ghost.Entities.Entity,``0)
+  commentId: M:Ghost.Entities.EntityCommandBuffer.AddComponent``1(Ghost.Entities.Entity,``0)
+  id: AddComponent``1(Ghost.Entities.Entity,``0)
+  parent: Ghost.Entities.EntityCommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: AddComponent<T>(Entity, T)
+  nameWithType: EntityCommandBuffer.AddComponent<T>(Entity, T)
+  fullName: Ghost.Entities.EntityCommandBuffer.AddComponent<T>(Ghost.Entities.Entity, T)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine
+    id: AddComponent
+    path: ../src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
+    startLine: 124
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: 'public void AddComponent<T>(Entity entity, T component = default) where T : unmanaged, IComponent'
+    parameters:
+    - id: entity
+      type: Ghost.Entities.Entity
+    - id: component
+      type: '{T}'
+    typeParameters:
+    - id: T
+    content.vb: Public Sub AddComponent(Of T As {Structure, IComponent})(entity As Entity, component As T = Nothing)
+  overload: Ghost.Entities.EntityCommandBuffer.AddComponent*
+  nameWithType.vb: EntityCommandBuffer.AddComponent(Of T)(Entity, T)
+  fullName.vb: Ghost.Entities.EntityCommandBuffer.AddComponent(Of T)(Ghost.Entities.Entity, T)
+  name.vb: AddComponent(Of T)(Entity, T)
+- uid: Ghost.Entities.EntityCommandBuffer.RemoveComponent``1(Ghost.Entities.Entity)
+  commentId: M:Ghost.Entities.EntityCommandBuffer.RemoveComponent``1(Ghost.Entities.Entity)
+  id: RemoveComponent``1(Ghost.Entities.Entity)
+  parent: Ghost.Entities.EntityCommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: RemoveComponent<T>(Entity)
+  nameWithType: EntityCommandBuffer.RemoveComponent<T>(Entity)
+  fullName: Ghost.Entities.EntityCommandBuffer.RemoveComponent<T>(Ghost.Entities.Entity)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine
+    id: RemoveComponent
+    path: ../src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
+    startLine: 133
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: 'public void RemoveComponent<T>(Entity entity) where T : unmanaged, IComponent'
+    parameters:
+    - id: entity
+      type: Ghost.Entities.Entity
+    typeParameters:
+    - id: T
+    content.vb: Public Sub RemoveComponent(Of T As {Structure, IComponent})(entity As Entity)
+  overload: Ghost.Entities.EntityCommandBuffer.RemoveComponent*
+  nameWithType.vb: EntityCommandBuffer.RemoveComponent(Of T)(Entity)
+  fullName.vb: Ghost.Entities.EntityCommandBuffer.RemoveComponent(Of T)(Ghost.Entities.Entity)
+  name.vb: RemoveComponent(Of T)(Entity)
+- uid: Ghost.Entities.EntityCommandBuffer.SetComponent``1(Ghost.Entities.Entity,``0)
+  commentId: M:Ghost.Entities.EntityCommandBuffer.SetComponent``1(Ghost.Entities.Entity,``0)
+  id: SetComponent``1(Ghost.Entities.Entity,``0)
+  parent: Ghost.Entities.EntityCommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: SetComponent<T>(Entity, T)
+  nameWithType: EntityCommandBuffer.SetComponent<T>(Entity, T)
+  fullName: Ghost.Entities.EntityCommandBuffer.SetComponent<T>(Ghost.Entities.Entity, T)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine
+    id: SetComponent
+    path: ../src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
+    startLine: 141
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: 'public void SetComponent<T>(Entity entity, T component) where T : unmanaged, IComponent'
+    parameters:
+    - id: entity
+      type: Ghost.Entities.Entity
+    - id: component
+      type: '{T}'
+    typeParameters:
+    - id: T
+    content.vb: Public Sub SetComponent(Of T As {Structure, IComponent})(entity As Entity, component As T)
+  overload: Ghost.Entities.EntityCommandBuffer.SetComponent*
+  nameWithType.vb: EntityCommandBuffer.SetComponent(Of T)(Entity, T)
+  fullName.vb: Ghost.Entities.EntityCommandBuffer.SetComponent(Of T)(Ghost.Entities.Entity, T)
+  name.vb: SetComponent(Of T)(Entity, T)
+- uid: Ghost.Entities.EntityCommandBuffer.Dispose
+  commentId: M:Ghost.Entities.EntityCommandBuffer.Dispose
+  id: Dispose
+  parent: Ghost.Entities.EntityCommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: Dispose()
+  nameWithType: EntityCommandBuffer.Dispose()
+  fullName: Ghost.Entities.EntityCommandBuffer.Dispose()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine
+    id: Dispose
+    path: ../src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
+    startLine: 212
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+  example: []
+  syntax:
+    content: public void Dispose()
+    content.vb: Public Sub Dispose()
+  overload: Ghost.Entities.EntityCommandBuffer.Dispose*
+  implements:
+  - System.IDisposable.Dispose
+references:
+- uid: Ghost.Entities
+  commentId: N:Ghost.Entities
+  href: Ghost.html
+  name: Ghost.Entities
+  nameWithType: Ghost.Entities
+  fullName: Ghost.Entities
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Entities
+    name: Entities
+    href: Ghost.Entities.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Entities
+    name: Entities
+    href: Ghost.Entities.html
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System.IDisposable
+  commentId: T:System.IDisposable
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable
+  name: IDisposable
+  nameWithType: IDisposable
+  fullName: System.IDisposable
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  name: Equals(object)
+  nameWithType: object.Equals(object)
+  fullName: object.Equals(object)
+  nameWithType.vb: Object.Equals(Object)
+  fullName.vb: Object.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  name: GetHashCode()
+  nameWithType: object.GetHashCode()
+  fullName: object.GetHashCode()
+  nameWithType.vb: Object.GetHashCode()
+  fullName.vb: Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  name: MemberwiseClone()
+  nameWithType: object.MemberwiseClone()
+  fullName: object.MemberwiseClone()
+  nameWithType.vb: Object.MemberwiseClone()
+  fullName.vb: Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  name: ToString()
+  nameWithType: object.ToString()
+  fullName: object.ToString()
+  nameWithType.vb: Object.ToString()
+  fullName.vb: Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Entities.EntityCommandBuffer.#ctor*
+  commentId: Overload:Ghost.Entities.EntityCommandBuffer.#ctor
+  href: Ghost.Entities.EntityCommandBuffer.html#Ghost_Entities_EntityCommandBuffer__ctor_Ghost_Entities_EntityManager_
+  name: EntityCommandBuffer
+  nameWithType: EntityCommandBuffer.EntityCommandBuffer
+  fullName: Ghost.Entities.EntityCommandBuffer.EntityCommandBuffer
+  nameWithType.vb: EntityCommandBuffer.New
+  fullName.vb: Ghost.Entities.EntityCommandBuffer.New
+  name.vb: New
+- uid: Ghost.Entities.EntityManager
+  commentId: T:Ghost.Entities.EntityManager
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityManager.html
+  name: EntityManager
+  nameWithType: EntityManager
+  fullName: Ghost.Entities.EntityManager
+- uid: Ghost.Entities.EntityCommandBuffer.Finalize*
+  commentId: Overload:Ghost.Entities.EntityCommandBuffer.Finalize
+  href: Ghost.Entities.EntityCommandBuffer.html#Ghost_Entities_EntityCommandBuffer_Finalize
+  name: ~EntityCommandBuffer
+  nameWithType: EntityCommandBuffer.~EntityCommandBuffer
+  fullName: Ghost.Entities.EntityCommandBuffer.~EntityCommandBuffer
+  spec.csharp:
+  - name: "~"
+  - uid: Ghost.Entities.EntityCommandBuffer.Finalize*
+    name: EntityCommandBuffer
+    href: Ghost.Entities.EntityCommandBuffer.html#Ghost_Entities_EntityCommandBuffer_Finalize
+- uid: Ghost.Entities.EntityCommandBuffer.CreateEntity*
+  commentId: Overload:Ghost.Entities.EntityCommandBuffer.CreateEntity
+  href: Ghost.Entities.EntityCommandBuffer.html#Ghost_Entities_EntityCommandBuffer_CreateEntity_System_Int32_
+  name: CreateEntity
+  nameWithType: EntityCommandBuffer.CreateEntity
+  fullName: Ghost.Entities.EntityCommandBuffer.CreateEntity
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.int32
+  name: int
+  nameWithType: int
+  fullName: int
+  nameWithType.vb: Integer
+  fullName.vb: Integer
+  name.vb: Integer
+- uid: Ghost.Entities.ComponentSet
+  commentId: T:Ghost.Entities.ComponentSet
+  parent: Ghost.Entities
+  href: Ghost.Entities.ComponentSet.html
+  name: ComponentSet
+  nameWithType: ComponentSet
+  fullName: Ghost.Entities.ComponentSet
+- uid: Ghost.Entities.EntityCommandBuffer.DestroyEntity*
+  commentId: Overload:Ghost.Entities.EntityCommandBuffer.DestroyEntity
+  href: Ghost.Entities.EntityCommandBuffer.html#Ghost_Entities_EntityCommandBuffer_DestroyEntity_Ghost_Entities_Entity_
+  name: DestroyEntity
+  nameWithType: EntityCommandBuffer.DestroyEntity
+  fullName: Ghost.Entities.EntityCommandBuffer.DestroyEntity
+- uid: Ghost.Entities.Entity
+  commentId: T:Ghost.Entities.Entity
+  parent: Ghost.Entities
+  href: Ghost.Entities.Entity.html
+  name: Entity
+  nameWithType: Entity
+  fullName: Ghost.Entities.Entity
+- uid: Ghost.Entities.EntityCommandBuffer.AddComponent*
+  commentId: Overload:Ghost.Entities.EntityCommandBuffer.AddComponent
+  href: Ghost.Entities.EntityCommandBuffer.html#Ghost_Entities_EntityCommandBuffer_AddComponent__1_Ghost_Entities_Entity___0_
+  name: AddComponent
+  nameWithType: EntityCommandBuffer.AddComponent
+  fullName: Ghost.Entities.EntityCommandBuffer.AddComponent
+- uid: '{T}'
+  commentId: '!:T'
+  definition: T
+  name: T
+  nameWithType: T
+  fullName: T
+- uid: T
+  name: T
+  nameWithType: T
+  fullName: T
+- uid: Ghost.Entities.EntityCommandBuffer.RemoveComponent*
+  commentId: Overload:Ghost.Entities.EntityCommandBuffer.RemoveComponent
+  href: Ghost.Entities.EntityCommandBuffer.html#Ghost_Entities_EntityCommandBuffer_RemoveComponent__1_Ghost_Entities_Entity_
+  name: RemoveComponent
+  nameWithType: EntityCommandBuffer.RemoveComponent
+  fullName: Ghost.Entities.EntityCommandBuffer.RemoveComponent
+- uid: Ghost.Entities.EntityCommandBuffer.SetComponent*
+  commentId: Overload:Ghost.Entities.EntityCommandBuffer.SetComponent
+  href: Ghost.Entities.EntityCommandBuffer.html#Ghost_Entities_EntityCommandBuffer_SetComponent__1_Ghost_Entities_Entity___0_
+  name: SetComponent
+  nameWithType: EntityCommandBuffer.SetComponent
+  fullName: Ghost.Entities.EntityCommandBuffer.SetComponent
+- uid: Ghost.Entities.EntityCommandBuffer.Dispose*
+  commentId: Overload:Ghost.Entities.EntityCommandBuffer.Dispose
+  href: Ghost.Entities.EntityCommandBuffer.html#Ghost_Entities_EntityCommandBuffer_Dispose
+  name: Dispose
+  nameWithType: EntityCommandBuffer.Dispose
+  fullName: Ghost.Entities.EntityCommandBuffer.Dispose
+- uid: System.IDisposable.Dispose
+  commentId: M:System.IDisposable.Dispose
+  parent: System.IDisposable
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  name: Dispose()
+  nameWithType: IDisposable.Dispose()
+  fullName: System.IDisposable.Dispose()
+  spec.csharp:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )

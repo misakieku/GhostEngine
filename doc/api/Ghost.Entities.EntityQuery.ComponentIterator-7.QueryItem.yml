@@ -1,0 +1,824 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem
+  commentId: T:Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem
+  id: EntityQuery.ComponentIterator`7.QueryItem
+  parent: Ghost.Entities
+  children:
+  - Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem.Deconstruct(Misaki.HighPerformance.LowLevel.Ref{`0}@,Misaki.HighPerformance.LowLevel.Ref{`1}@,Misaki.HighPerformance.LowLevel.Ref{`2}@,Misaki.HighPerformance.LowLevel.Ref{`3}@,Misaki.HighPerformance.LowLevel.Ref{`4}@,Misaki.HighPerformance.LowLevel.Ref{`5}@,Misaki.HighPerformance.LowLevel.Ref{`6}@)
+  - Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem.component0
+  - Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem.component1
+  - Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem.component2
+  - Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem.component3
+  - Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem.component4
+  - Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem.component5
+  - Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem.component6
+  langs:
+  - csharp
+  - vb
+  name: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem
+  nameWithType: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine
+    id: QueryItem
+    path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
+    startLine: 1311
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public ref struct EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem
+    content.vb: Public Structure EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).QueryItem
+  inheritedMembers:
+  - System.ValueType.Equals(System.Object)
+  - System.ValueType.GetHashCode
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).QueryItem
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).QueryItem
+  name.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).QueryItem
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem.component0
+  commentId: F:Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem.component0
+  id: component0
+  parent: Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem
+  langs:
+  - csharp
+  - vb
+  name: component0
+  nameWithType: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem.component0
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem.component0
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine
+    id: component0
+    path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
+    startLine: 1313
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public ref T0 component0
+    return:
+      type: '{T0}'
+    content.vb: Public component0 As T0
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).QueryItem.component0
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).QueryItem.component0
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem.component1
+  commentId: F:Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem.component1
+  id: component1
+  parent: Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem
+  langs:
+  - csharp
+  - vb
+  name: component1
+  nameWithType: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem.component1
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem.component1
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine
+    id: component1
+    path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
+    startLine: 1314
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public ref T1 component1
+    return:
+      type: '{T1}'
+    content.vb: Public component1 As T1
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).QueryItem.component1
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).QueryItem.component1
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem.component2
+  commentId: F:Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem.component2
+  id: component2
+  parent: Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem
+  langs:
+  - csharp
+  - vb
+  name: component2
+  nameWithType: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem.component2
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem.component2
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine
+    id: component2
+    path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
+    startLine: 1315
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public ref T2 component2
+    return:
+      type: '{T2}'
+    content.vb: Public component2 As T2
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).QueryItem.component2
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).QueryItem.component2
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem.component3
+  commentId: F:Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem.component3
+  id: component3
+  parent: Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem
+  langs:
+  - csharp
+  - vb
+  name: component3
+  nameWithType: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem.component3
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem.component3
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine
+    id: component3
+    path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
+    startLine: 1316
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public ref T3 component3
+    return:
+      type: '{T3}'
+    content.vb: Public component3 As T3
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).QueryItem.component3
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).QueryItem.component3
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem.component4
+  commentId: F:Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem.component4
+  id: component4
+  parent: Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem
+  langs:
+  - csharp
+  - vb
+  name: component4
+  nameWithType: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem.component4
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem.component4
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine
+    id: component4
+    path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
+    startLine: 1317
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public ref T4 component4
+    return:
+      type: '{T4}'
+    content.vb: Public component4 As T4
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).QueryItem.component4
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).QueryItem.component4
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem.component5
+  commentId: F:Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem.component5
+  id: component5
+  parent: Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem
+  langs:
+  - csharp
+  - vb
+  name: component5
+  nameWithType: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem.component5
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem.component5
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine
+    id: component5
+    path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
+    startLine: 1318
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public ref T5 component5
+    return:
+      type: '{T5}'
+    content.vb: Public component5 As T5
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).QueryItem.component5
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).QueryItem.component5
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem.component6
+  commentId: F:Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem.component6
+  id: component6
+  parent: Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem
+  langs:
+  - csharp
+  - vb
+  name: component6
+  nameWithType: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem.component6
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem.component6
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine
+    id: component6
+    path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
+    startLine: 1319
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public ref T6 component6
+    return:
+      type: '{T6}'
+    content.vb: Public component6 As T6
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).QueryItem.component6
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).QueryItem.component6
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem.Deconstruct(Misaki.HighPerformance.LowLevel.Ref{`0}@,Misaki.HighPerformance.LowLevel.Ref{`1}@,Misaki.HighPerformance.LowLevel.Ref{`2}@,Misaki.HighPerformance.LowLevel.Ref{`3}@,Misaki.HighPerformance.LowLevel.Ref{`4}@,Misaki.HighPerformance.LowLevel.Ref{`5}@,Misaki.HighPerformance.LowLevel.Ref{`6}@)
+  commentId: M:Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem.Deconstruct(Misaki.HighPerformance.LowLevel.Ref{`0}@,Misaki.HighPerformance.LowLevel.Ref{`1}@,Misaki.HighPerformance.LowLevel.Ref{`2}@,Misaki.HighPerformance.LowLevel.Ref{`3}@,Misaki.HighPerformance.LowLevel.Ref{`4}@,Misaki.HighPerformance.LowLevel.Ref{`5}@,Misaki.HighPerformance.LowLevel.Ref{`6}@)
+  id: Deconstruct(Misaki.HighPerformance.LowLevel.Ref{`0}@,Misaki.HighPerformance.LowLevel.Ref{`1}@,Misaki.HighPerformance.LowLevel.Ref{`2}@,Misaki.HighPerformance.LowLevel.Ref{`3}@,Misaki.HighPerformance.LowLevel.Ref{`4}@,Misaki.HighPerformance.LowLevel.Ref{`5}@,Misaki.HighPerformance.LowLevel.Ref{`6}@)
+  parent: Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem
+  langs:
+  - csharp
+  - vb
+  name: Deconstruct(out Ref<T0>, out Ref<T1>, out Ref<T2>, out Ref<T3>, out Ref<T4>, out Ref<T5>, out Ref<T6>)
+  nameWithType: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem.Deconstruct(out Ref<T0>, out Ref<T1>, out Ref<T2>, out Ref<T3>, out Ref<T4>, out Ref<T5>, out Ref<T6>)
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem.Deconstruct(out Misaki.HighPerformance.LowLevel.Ref<T0>, out Misaki.HighPerformance.LowLevel.Ref<T1>, out Misaki.HighPerformance.LowLevel.Ref<T2>, out Misaki.HighPerformance.LowLevel.Ref<T3>, out Misaki.HighPerformance.LowLevel.Ref<T4>, out Misaki.HighPerformance.LowLevel.Ref<T5>, out Misaki.HighPerformance.LowLevel.Ref<T6>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine
+    id: Deconstruct
+    path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
+    startLine: 1331
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public void Deconstruct(out Ref<T0> component0, out Ref<T1> component1, out Ref<T2> component2, out Ref<T3> component3, out Ref<T4> component4, out Ref<T5> component5, out Ref<T6> component6)
+    parameters:
+    - id: component0
+      type: Misaki.HighPerformance.LowLevel.Ref{{T0}}
+    - id: component1
+      type: Misaki.HighPerformance.LowLevel.Ref{{T1}}
+    - id: component2
+      type: Misaki.HighPerformance.LowLevel.Ref{{T2}}
+    - id: component3
+      type: Misaki.HighPerformance.LowLevel.Ref{{T3}}
+    - id: component4
+      type: Misaki.HighPerformance.LowLevel.Ref{{T4}}
+    - id: component5
+      type: Misaki.HighPerformance.LowLevel.Ref{{T5}}
+    - id: component6
+      type: Misaki.HighPerformance.LowLevel.Ref{{T6}}
+    content.vb: Public Sub Deconstruct(component0 As Ref(Of T0), component1 As Ref(Of T1), component2 As Ref(Of T2), component3 As Ref(Of T3), component4 As Ref(Of T4), component5 As Ref(Of T5), component6 As Ref(Of T6))
+  overload: Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem.Deconstruct*
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).QueryItem.Deconstruct(Ref(Of T0), Ref(Of T1), Ref(Of T2), Ref(Of T3), Ref(Of T4), Ref(Of T5), Ref(Of T6))
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).QueryItem.Deconstruct(Misaki.HighPerformance.LowLevel.Ref(Of T0), Misaki.HighPerformance.LowLevel.Ref(Of T1), Misaki.HighPerformance.LowLevel.Ref(Of T2), Misaki.HighPerformance.LowLevel.Ref(Of T3), Misaki.HighPerformance.LowLevel.Ref(Of T4), Misaki.HighPerformance.LowLevel.Ref(Of T5), Misaki.HighPerformance.LowLevel.Ref(Of T6))
+  name.vb: Deconstruct(Ref(Of T0), Ref(Of T1), Ref(Of T2), Ref(Of T3), Ref(Of T4), Ref(Of T5), Ref(Of T6))
+references:
+- uid: Ghost.Entities
+  commentId: N:Ghost.Entities
+  href: Ghost.html
+  name: Ghost.Entities
+  nameWithType: Ghost.Entities
+  fullName: Ghost.Entities
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Entities
+    name: Entities
+    href: Ghost.Entities.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Entities
+    name: Entities
+    href: Ghost.Entities.html
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: '{T0}'
+  commentId: '!:T0'
+  definition: T0
+  name: T0
+  nameWithType: T0
+  fullName: T0
+- uid: T0
+  name: T0
+  nameWithType: T0
+  fullName: T0
+- uid: '{T1}'
+  commentId: '!:T1'
+  definition: T1
+  name: T1
+  nameWithType: T1
+  fullName: T1
+- uid: T1
+  name: T1
+  nameWithType: T1
+  fullName: T1
+- uid: '{T2}'
+  commentId: '!:T2'
+  definition: T2
+  name: T2
+  nameWithType: T2
+  fullName: T2
+- uid: T2
+  name: T2
+  nameWithType: T2
+  fullName: T2
+- uid: '{T3}'
+  commentId: '!:T3'
+  definition: T3
+  name: T3
+  nameWithType: T3
+  fullName: T3
+- uid: T3
+  name: T3
+  nameWithType: T3
+  fullName: T3
+- uid: '{T4}'
+  commentId: '!:T4'
+  definition: T4
+  name: T4
+  nameWithType: T4
+  fullName: T4
+- uid: T4
+  name: T4
+  nameWithType: T4
+  fullName: T4
+- uid: '{T5}'
+  commentId: '!:T5'
+  definition: T5
+  name: T5
+  nameWithType: T5
+  fullName: T5
+- uid: T5
+  name: T5
+  nameWithType: T5
+  fullName: T5
+- uid: '{T6}'
+  commentId: '!:T6'
+  definition: T6
+  name: T6
+  nameWithType: T6
+  fullName: T6
+- uid: T6
+  name: T6
+  nameWithType: T6
+  fullName: T6
+- uid: Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem.Deconstruct*
+  commentId: Overload:Ghost.Entities.EntityQuery.ComponentIterator`7.QueryItem.Deconstruct
+  href: Ghost.Entities.EntityQuery.ComponentIterator-7.QueryItem.html#Ghost_Entities_EntityQuery_ComponentIterator_7_QueryItem_Deconstruct_Misaki_HighPerformance_LowLevel_Ref__0___Misaki_HighPerformance_LowLevel_Ref__1___Misaki_HighPerformance_LowLevel_Ref__2___Misaki_HighPerformance_LowLevel_Ref__3___Misaki_HighPerformance_LowLevel_Ref__4___Misaki_HighPerformance_LowLevel_Ref__5___Misaki_HighPerformance_LowLevel_Ref__6___
+  name: Deconstruct
+  nameWithType: EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem.Deconstruct
+  fullName: Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem.Deconstruct
+  nameWithType.vb: EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).QueryItem.Deconstruct
+  fullName.vb: Ghost.Entities.EntityQuery.ComponentIterator(Of T0, T1, T2, T3, T4, T5, T6).QueryItem.Deconstruct
+- uid: Misaki.HighPerformance.LowLevel.Ref{{T0}}
+  commentId: T:Misaki.HighPerformance.LowLevel.Ref{`0}
+  parent: Misaki.HighPerformance.LowLevel
+  definition: Misaki.HighPerformance.LowLevel.Ref`1
+  name: Ref<T0>
+  nameWithType: Ref<T0>
+  fullName: Misaki.HighPerformance.LowLevel.Ref<T0>
+  nameWithType.vb: Ref(Of T0)
+  fullName.vb: Misaki.HighPerformance.LowLevel.Ref(Of T0)
+  name.vb: Ref(Of T0)
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Ref`1
+    name: Ref
+  - name: <
+  - name: T0
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Ref`1
+    name: Ref
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: )
+- uid: Misaki.HighPerformance.LowLevel.Ref{{T1}}
+  commentId: T:Misaki.HighPerformance.LowLevel.Ref{`1}
+  parent: Misaki.HighPerformance.LowLevel
+  definition: Misaki.HighPerformance.LowLevel.Ref`1
+  name: Ref<T1>
+  nameWithType: Ref<T1>
+  fullName: Misaki.HighPerformance.LowLevel.Ref<T1>
+  nameWithType.vb: Ref(Of T1)
+  fullName.vb: Misaki.HighPerformance.LowLevel.Ref(Of T1)
+  name.vb: Ref(Of T1)
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Ref`1
+    name: Ref
+  - name: <
+  - name: T1
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Ref`1
+    name: Ref
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T1
+  - name: )
+- uid: Misaki.HighPerformance.LowLevel.Ref{{T2}}
+  commentId: T:Misaki.HighPerformance.LowLevel.Ref{`2}
+  parent: Misaki.HighPerformance.LowLevel
+  definition: Misaki.HighPerformance.LowLevel.Ref`1
+  name: Ref<T2>
+  nameWithType: Ref<T2>
+  fullName: Misaki.HighPerformance.LowLevel.Ref<T2>
+  nameWithType.vb: Ref(Of T2)
+  fullName.vb: Misaki.HighPerformance.LowLevel.Ref(Of T2)
+  name.vb: Ref(Of T2)
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Ref`1
+    name: Ref
+  - name: <
+  - name: T2
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Ref`1
+    name: Ref
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T2
+  - name: )
+- uid: Misaki.HighPerformance.LowLevel.Ref{{T3}}
+  commentId: T:Misaki.HighPerformance.LowLevel.Ref{`3}
+  parent: Misaki.HighPerformance.LowLevel
+  definition: Misaki.HighPerformance.LowLevel.Ref`1
+  name: Ref<T3>
+  nameWithType: Ref<T3>
+  fullName: Misaki.HighPerformance.LowLevel.Ref<T3>
+  nameWithType.vb: Ref(Of T3)
+  fullName.vb: Misaki.HighPerformance.LowLevel.Ref(Of T3)
+  name.vb: Ref(Of T3)
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Ref`1
+    name: Ref
+  - name: <
+  - name: T3
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Ref`1
+    name: Ref
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T3
+  - name: )
+- uid: Misaki.HighPerformance.LowLevel.Ref{{T4}}
+  commentId: T:Misaki.HighPerformance.LowLevel.Ref{`4}
+  parent: Misaki.HighPerformance.LowLevel
+  definition: Misaki.HighPerformance.LowLevel.Ref`1
+  name: Ref<T4>
+  nameWithType: Ref<T4>
+  fullName: Misaki.HighPerformance.LowLevel.Ref<T4>
+  nameWithType.vb: Ref(Of T4)
+  fullName.vb: Misaki.HighPerformance.LowLevel.Ref(Of T4)
+  name.vb: Ref(Of T4)
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Ref`1
+    name: Ref
+  - name: <
+  - name: T4
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Ref`1
+    name: Ref
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T4
+  - name: )
+- uid: Misaki.HighPerformance.LowLevel.Ref{{T5}}
+  commentId: T:Misaki.HighPerformance.LowLevel.Ref{`5}
+  parent: Misaki.HighPerformance.LowLevel
+  definition: Misaki.HighPerformance.LowLevel.Ref`1
+  name: Ref<T5>
+  nameWithType: Ref<T5>
+  fullName: Misaki.HighPerformance.LowLevel.Ref<T5>
+  nameWithType.vb: Ref(Of T5)
+  fullName.vb: Misaki.HighPerformance.LowLevel.Ref(Of T5)
+  name.vb: Ref(Of T5)
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Ref`1
+    name: Ref
+  - name: <
+  - name: T5
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Ref`1
+    name: Ref
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T5
+  - name: )
+- uid: Misaki.HighPerformance.LowLevel.Ref{{T6}}
+  commentId: T:Misaki.HighPerformance.LowLevel.Ref{`6}
+  parent: Misaki.HighPerformance.LowLevel
+  definition: Misaki.HighPerformance.LowLevel.Ref`1
+  name: Ref<T6>
+  nameWithType: Ref<T6>
+  fullName: Misaki.HighPerformance.LowLevel.Ref<T6>
+  nameWithType.vb: Ref(Of T6)
+  fullName.vb: Misaki.HighPerformance.LowLevel.Ref(Of T6)
+  name.vb: Ref(Of T6)
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Ref`1
+    name: Ref
+  - name: <
+  - name: T6
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Ref`1
+    name: Ref
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T6
+  - name: )
+- uid: Misaki.HighPerformance.LowLevel.Ref`1
+  commentId: T:Misaki.HighPerformance.LowLevel.Ref`1
+  name: Ref<T>
+  nameWithType: Ref<T>
+  fullName: Misaki.HighPerformance.LowLevel.Ref<T>
+  nameWithType.vb: Ref(Of T)
+  fullName.vb: Misaki.HighPerformance.LowLevel.Ref(Of T)
+  name.vb: Ref(Of T)
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Ref`1
+    name: Ref
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Ref`1
+    name: Ref
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Misaki.HighPerformance.LowLevel
+  commentId: N:Misaki.HighPerformance.LowLevel
+  name: Misaki.HighPerformance.LowLevel
+  nameWithType: Misaki.HighPerformance.LowLevel
+  fullName: Misaki.HighPerformance.LowLevel
+  spec.csharp:
+  - uid: Misaki
+    name: Misaki
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel
+    name: LowLevel
+  spec.vb:
+  - uid: Misaki
+    name: Misaki
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel
+    name: LowLevel

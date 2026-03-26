@@ -1,0 +1,389 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Entities.EntityQuery.EntityComponentIterator`5
+  commentId: T:Ghost.Entities.EntityQuery.EntityComponentIterator`5
+  id: EntityQuery.EntityComponentIterator`5
+  parent: Ghost.Entities
+  children:
+  - Ghost.Entities.EntityQuery.EntityComponentIterator`5.GetEnumerator
+  langs:
+  - csharp
+  - vb
+  name: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4>
+  nameWithType: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4>
+  fullName: Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4>
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine
+    id: EntityComponentIterator
+    path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
+    startLine: 870
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: 'public readonly ref struct EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4> where T0 : unmanaged, IComponent where T1 : unmanaged, IComponent where T2 : unmanaged, IComponent where T3 : unmanaged, IComponent where T4 : unmanaged, IComponent'
+    typeParameters:
+    - id: T0
+    - id: T1
+    - id: T2
+    - id: T3
+    - id: T4
+    content.vb: Public Structure EntityQuery.EntityComponentIterator(Of T0 As {Structure, IComponent}, T1 As {Structure, IComponent}, T2 As {Structure, IComponent}, T3 As {Structure, IComponent}, T4 As {Structure, IComponent})
+  inheritedMembers:
+  - System.ValueType.Equals(System.Object)
+  - System.ValueType.GetHashCode
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  nameWithType.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4)
+  fullName.vb: Ghost.Entities.EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4)
+  name.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4)
+- uid: Ghost.Entities.EntityQuery.EntityComponentIterator`5.GetEnumerator
+  commentId: M:Ghost.Entities.EntityQuery.EntityComponentIterator`5.GetEnumerator
+  id: GetEnumerator
+  parent: Ghost.Entities.EntityQuery.EntityComponentIterator`5
+  langs:
+  - csharp
+  - vb
+  name: GetEnumerator()
+  nameWithType: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4>.GetEnumerator()
+  fullName: Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4>.GetEnumerator()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine
+    id: GetEnumerator
+    path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
+    startLine: 1088
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4>.Enumerator GetEnumerator()
+    return:
+      type: Ghost.Entities.EntityQuery.EntityComponentIterator`5.Enumerator
+    content.vb: Public Function GetEnumerator() As EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4).Enumerator
+  overload: Ghost.Entities.EntityQuery.EntityComponentIterator`5.GetEnumerator*
+  nameWithType.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4).GetEnumerator()
+  fullName.vb: Ghost.Entities.EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4).GetEnumerator()
+references:
+- uid: Ghost.Entities
+  commentId: N:Ghost.Entities
+  href: Ghost.html
+  name: Ghost.Entities
+  nameWithType: Ghost.Entities
+  fullName: Ghost.Entities
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Entities
+    name: Entities
+    href: Ghost.Entities.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Entities
+    name: Entities
+    href: Ghost.Entities.html
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Entities.EntityQuery.EntityComponentIterator`5.GetEnumerator*
+  commentId: Overload:Ghost.Entities.EntityQuery.EntityComponentIterator`5.GetEnumerator
+  href: Ghost.Entities.EntityQuery.EntityComponentIterator-5.html#Ghost_Entities_EntityQuery_EntityComponentIterator_5_GetEnumerator
+  name: GetEnumerator
+  nameWithType: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4>.GetEnumerator
+  fullName: Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4>.GetEnumerator
+  nameWithType.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4).GetEnumerator
+  fullName.vb: Ghost.Entities.EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4).GetEnumerator
+- uid: Ghost.Entities.EntityQuery.EntityComponentIterator`5.Enumerator
+  commentId: T:Ghost.Entities.EntityQuery.EntityComponentIterator`5.Enumerator
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4>.Enumerator
+  nameWithType: EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4>.Enumerator
+  fullName: Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4>.Enumerator
+  nameWithType.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4).Enumerator
+  fullName.vb: Ghost.Entities.EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4).Enumerator
+  name.vb: EntityQuery.EntityComponentIterator(Of T0, T1, T2, T3, T4).Enumerator
+  spec.csharp:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`5
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-5.html
+  - name: <
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: '>'
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`5.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-5.Enumerator.html
+  spec.vb:
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`5
+    name: EntityComponentIterator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-5.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T0
+  - name: ','
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: ','
+  - name: " "
+  - name: T4
+  - name: )
+  - name: .
+  - uid: Ghost.Entities.EntityQuery.EntityComponentIterator`5.Enumerator
+    name: Enumerator
+    href: Ghost.Entities.EntityQuery.EntityComponentIterator-5.Enumerator.html
