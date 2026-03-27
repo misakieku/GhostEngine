@@ -112,8 +112,8 @@ public sealed class ResourceManager : IDisposable
 
         var objectBufferDesc = new BufferDesc
         {
-            Size = (uint)sizeof(PerObjectData),
-            Stride = (uint)sizeof(PerObjectData),
+            Size = (uint)sizeof(MeshData),
+            Stride = (uint)sizeof(MeshData),
             Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
             MemoryType = ResourceMemoryType.Default,
         };

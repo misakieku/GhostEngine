@@ -19,7 +19,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Common.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: TimeData
     path: ../src/Runtime/Ghost.Entities/Common.cs
     startLine: 2
@@ -51,7 +51,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Common.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: FrameCount
     path: ../src/Runtime/Ghost.Entities/Common.cs
     startLine: 4
@@ -80,7 +80,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Common.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: DeltaTime
     path: ../src/Runtime/Ghost.Entities/Common.cs
     startLine: 9
@@ -109,7 +109,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Common.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ElapsedTime
     path: ../src/Runtime/Ghost.Entities/Common.cs
     startLine: 14

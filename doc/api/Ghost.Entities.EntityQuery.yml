@@ -60,7 +60,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.JobEntity.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: EntityQuery
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.JobEntity.gen.cs
     startLine: 1066
@@ -94,7 +94,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityQuery.JobChunk.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ScheduleChunkParallel
     path: ../src/Runtime/Ghost.Entities/EntityQuery.JobChunk.cs
     startLine: 45
@@ -134,7 +134,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Query.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetChunkIterator
     path: ../src/Runtime/Ghost.Entities/Query.cs
     startLine: 435
@@ -162,7 +162,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Query.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: CalculateEntityCount
     path: ../src/Runtime/Ghost.Entities/Query.cs
     startLine: 447
@@ -190,7 +190,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Query.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Dispose
     path: ../src/Runtime/Ghost.Entities/Query.cs
     startLine: 470
@@ -220,7 +220,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetComponentIterator
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
     startLine: 175
@@ -253,7 +253,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetComponentIterator
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
     startLine: 377
@@ -287,7 +287,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetComponentIterator
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
     startLine: 589
@@ -322,7 +322,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetComponentIterator
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
     startLine: 811
@@ -358,7 +358,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetComponentIterator
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
     startLine: 1043
@@ -395,7 +395,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetComponentIterator
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
     startLine: 1285
@@ -433,7 +433,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetComponentIterator
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
     startLine: 1537
@@ -472,7 +472,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetComponentIterator
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ComponentIterator.gen.cs
     startLine: 1799
@@ -512,7 +512,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetEntityComponentIterator
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
     startLine: 198
@@ -545,7 +545,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetEntityComponentIterator
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
     startLine: 407
@@ -579,7 +579,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetEntityComponentIterator
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
     startLine: 626
@@ -614,7 +614,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetEntityComponentIterator
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
     startLine: 855
@@ -650,7 +650,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetEntityComponentIterator
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
     startLine: 1094
@@ -687,7 +687,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetEntityComponentIterator
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
     startLine: 1343
@@ -725,7 +725,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetEntityComponentIterator
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
     startLine: 1602
@@ -764,7 +764,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetEntityComponentIterator
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
     startLine: 1871
@@ -804,7 +804,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ForEach
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
     startLine: 4
@@ -838,7 +838,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ForEach
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
     startLine: 88
@@ -873,7 +873,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ForEach
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
     startLine: 176
@@ -909,7 +909,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ForEach
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
     startLine: 268
@@ -946,7 +946,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ForEach
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
     startLine: 364
@@ -984,7 +984,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ForEach
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
     startLine: 464
@@ -1023,7 +1023,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ForEach
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
     startLine: 568
@@ -1063,7 +1063,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ForEach
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
     startLine: 676
@@ -1104,7 +1104,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ForEach
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
     startLine: 788
@@ -1138,7 +1138,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ForEach
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
     startLine: 873
@@ -1173,7 +1173,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ForEach
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
     startLine: 962
@@ -1209,7 +1209,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ForEach
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
     startLine: 1055
@@ -1246,7 +1246,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ForEach
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
     startLine: 1152
@@ -1284,7 +1284,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ForEach
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
     startLine: 1253
@@ -1323,7 +1323,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ForEach
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
     startLine: 1358
@@ -1363,7 +1363,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ForEach
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.ForEach.gen.cs
     startLine: 1467
@@ -1404,7 +1404,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.JobEntity.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ScheduleEntityParallel
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.JobEntity.gen.cs
     startLine: 1093
@@ -1445,7 +1445,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.JobEntity.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ScheduleEntityParallel
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.JobEntity.gen.cs
     startLine: 1233
@@ -1487,7 +1487,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.JobEntity.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ScheduleEntityParallel
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.JobEntity.gen.cs
     startLine: 1399
@@ -1530,7 +1530,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.JobEntity.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ScheduleEntityParallel
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.JobEntity.gen.cs
     startLine: 1591
@@ -1574,7 +1574,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.JobEntity.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ScheduleEntityParallel
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.JobEntity.gen.cs
     startLine: 1809
@@ -1619,7 +1619,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.JobEntity.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ScheduleEntityParallel
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.JobEntity.gen.cs
     startLine: 2053
@@ -1665,7 +1665,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.JobEntity.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ScheduleEntityParallel
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.JobEntity.gen.cs
     startLine: 2323
@@ -1712,7 +1712,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.JobEntity.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ScheduleEntityParallel
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.JobEntity.gen.cs
     startLine: 2619

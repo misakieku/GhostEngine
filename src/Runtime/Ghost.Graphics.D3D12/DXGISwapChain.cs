@@ -186,6 +186,7 @@ internal unsafe class DXGISwapChain : ISwapChain
         var presentFlags = 0u;
         var syncInterval = vsync ? 1u : 0u;
 
+        var i =_swapChain.Get()->GetCurrentBackBufferIndex();
         ThrowIfFailed(_swapChain.Get()->Present(syncInterval, presentFlags));
     }
 

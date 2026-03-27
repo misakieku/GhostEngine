@@ -20,7 +20,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Component.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ComponentManager
     path: ../src/Runtime/Ghost.Entities/Component.cs
     startLine: 149
@@ -57,7 +57,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Component.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ArchetypeCount
     path: ../src/Runtime/Ghost.Entities/Component.cs
     startLine: 161
@@ -86,7 +86,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Component.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Finalize
     path: ../src/Runtime/Ghost.Entities/Component.cs
     startLine: 177
@@ -115,7 +115,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Component.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetEntityQueryReference
     path: ../src/Runtime/Ghost.Entities/Component.cs
     startLine: 245
@@ -151,7 +151,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Component.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Dispose
     path: ../src/Runtime/Ghost.Entities/Component.cs
     startLine: 251

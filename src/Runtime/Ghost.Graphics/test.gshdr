@@ -24,6 +24,7 @@ shader "MyShader/Standard"
         includes
         {
             "F:/csharp/GhostEngine/src/Runtime/Ghost.Graphics/Shaders/Includes/Properties.hlsl";
+            "F:/csharp/GhostEngine/src/Runtime/Ghost.Graphics/Shaders/Includes/Random.hlsl";
         }
 
         hlsl
@@ -33,6 +34,7 @@ shader "MyShader/Standard"
                 float4 position : SV_POSITION;
                 float4 color : COLOR;
                 float4 uv : TEXCOORD0;
+                nointerpolation uint meshletID : MESHLET_ID;
             };
 
             [numthreads(128, 1, 1)] // 128 threads to cover max 64 vertices and 124 triangles
@@ -43,9 +45,10 @@ shader "MyShader/Standard"
                 out vertices PixelInput outVerts[64],
                 out indices uint3 outTris[124])
             {
-                PerObjectData perObjectData = LoadData<PerObjectData>(g_PushConstantData.objectIndex, 0);
+                InstanceData instanceData = LoadData<InstanceData>(g_PushConstantData.instanceBuffer, g_PushConstantData.instanceIndex);
+                MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
 
-                ByteAddressBuffer meshletBuffer = GET_BUFFER(perObjectData.meshletBuffer);
+                ByteAddressBuffer meshletBuffer = GET_BUFFER(meshData.meshletBuffer);
                 Meshlet m = meshletBuffer.Load<Meshlet>(groupID.x * sizeof(Meshlet));
 
                 uint vertexCount = m.packedCounts & 0xFF;
@@ -53,27 +56,29 @@ shader "MyShader/Standard"
 
                 SetMeshOutputCounts(vertexCount, triangleCount);
 
-                ByteAddressBuffer meshletVerticesBuffer = GET_BUFFER(perObjectData.meshletVerticesBuffer);
-                ByteAddressBuffer meshletTrianglesBuffer = GET_BUFFER(perObjectData.meshletTrianglesBuffer);
+                ByteAddressBuffer meshletVerticesBuffer = GET_BUFFER(meshData.meshletVerticesBuffer);
+                ByteAddressBuffer meshletTrianglesBuffer = GET_BUFFER(meshData.meshletTrianglesBuffer);
 
                 // Write vertex output
                 if (groupThreadID.x < vertexCount)
                 {
                     uint vertexIndex = meshletVerticesBuffer.Load((m.vertexOffset + groupThreadID.x) * 4);
-                    ByteAddressBuffer vertices = GET_BUFFER(perObjectData.vertexBuffer);
+                    ByteAddressBuffer vertices = GET_BUFFER(meshData.vertexBuffer);
                     Vertex v = vertices.Load<Vertex>(vertexIndex * sizeof(Vertex));
 
-                    GlobalFrameData globalFrameData = LoadData<GlobalFrameData>(g_PushConstantData.globalIndex, 0);
-                    PerViewData perViewData = LoadData<PerViewData>(g_PushConstantData.viewIndex, 0);
-                    PerInstanceData perInstanceData = LoadData<PerInstanceData>(globalFrameData.instanceBufferIndex, g_PushConstantData.instanceIndex);
+                    FrameData globalFrameData = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
+                    ViewData viewData = LoadData<ViewData>(g_PushConstantData.viewBuffer, 0);
 
-                    float4 worldPos = mul(perInstanceData.localToWorld, float4(v.position.xyz, 1.0f));
-                    float4 viewPos = mul(perViewData.viewMatrix, worldPos);
+                    float4 worldPos = mul(instanceData.localToWorld, float4(v.position.xyz, 1.0f));
+                    float4 viewPos = mul(viewData.viewMatrix, worldPos);
 
-                    outVerts[groupThreadID.x].position = mul(perViewData.projectionMatrix, viewPos);
+                    // outVerts[groupThreadID.x].position = mul(viewData.projectionMatrix, viewPos);
+                    // For testing.
+                    outVerts[groupThreadID.x].position = float4(v.position.xyz, 1.0f);
 
                     outVerts[groupThreadID.x].color = v.color;
                     outVerts[groupThreadID.x].uv = v.uv;
+                    outVerts[groupThreadID.x].meshletID = groupID.x;
                 }
 
                 // Write triangle output (1 thread processes 1 triangle)
@@ -105,9 +110,15 @@ shader "MyShader/Standard"
                 // return perMaterialData.color * blendedColor + input.color;
 
                 // TODO: Randome color on meshlet.
-                return float4(1, 0, 0, 1);
+                // return 1.0;
+                uint hash = PCGHash(input.meshletID);
+                
+                float r = float((hash & 0xFF0000u) >> 16) / 255.0;
+                float g = float((hash & 0x00FF00u) >> 8)  / 255.0;
+                float b = float((hash & 0x0000FFu))       / 255.0;
+                
+                return float4(r, g, b, 1.0);
             }
-
         }
 
         mesh "hlsl_block" : "MSMain";

@@ -17,7 +17,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.JobEntity.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: IJobEntity
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.JobEntity.gen.cs
     startLine: 368
@@ -51,7 +51,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.JobEntity.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Execute
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.JobEntity.gen.cs
     startLine: 375

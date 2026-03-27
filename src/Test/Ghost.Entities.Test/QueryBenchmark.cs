@@ -61,6 +61,8 @@ public class QueryBenchmark
         }
     }
 
+    // Results: 620 us,  98.5% cache hits (14731 misses), 13260812 instructions retired, 4x faster than QueryGameObjects
+
     [Benchmark(Baseline = true)]
     public void QueryEntities()
     {

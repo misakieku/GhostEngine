@@ -157,11 +157,12 @@ public struct Frustum
 [StructLayout(LayoutKind.Sequential, Pack = 4)]
 public struct RenderView
 {
-    public float4x4 viewMatrix;
-    public float4x4 projectionMatrix;
-    public float3 position;
+    public float4x4 localToWorld;
+    //public float4x4 viewMatrix;
+    //public float4x4 projectionMatrix;
+    //public float3 position;
 
-    public Frustum frustum; // 192 bytes
+    //public Frustum frustum; // 192 bytes
     public float nearClipPlane;
     public float farClipPlane;
 
@@ -181,6 +182,7 @@ public unsafe struct RenderRequest: IDisposable
 {
     public RenderView view;
 
+    public int swapChainIndex;
     public Handle<Texture> colorTarget;
     public Handle<Texture> depthTarget;
 

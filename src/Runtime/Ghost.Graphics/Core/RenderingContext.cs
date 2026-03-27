@@ -80,7 +80,7 @@ public readonly unsafe ref struct RenderingContext
             data.access, newAccess);
         }
 
-        _directCmd.ResourceBarrier(new ReadOnlySpan<BarrierDesc>(in desc));
+        _directCmd.Barrier(new ReadOnlySpan<BarrierDesc>(in desc));
         ResourceDatabase.SetResourceBarrierData(resource, new ResourceBarrierData(newLayout, newAccess, newSync));
     }
 
@@ -103,14 +103,14 @@ public readonly unsafe ref struct RenderingContext
         _directCmd.UploadBuffer(meshData.VertexBuffer, meshData.Vertices.AsSpan());
         _directCmd.UploadBuffer(meshData.IndexBuffer, meshData.Indices.AsSpan());
 
+        TransitionBarrier(vertexHandle, false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.VertexShading);
+        TransitionBarrier(indexHandle, false, BarrierLayout.Undefined, BarrierAccess.IndexBuffer, BarrierSync.IndexInput);
+
         if (staticMesh)
         {
             meshData.CookMeshlets();
-            meshData.ReleaseCpuResources();
-            TransitionBarrier(vertexHandle, false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.VertexShading);
-            TransitionBarrier(indexHandle, false, BarrierLayout.Undefined, BarrierAccess.IndexBuffer, BarrierSync.IndexInput);
-
             UploadMeshlets(mesh);
+            meshData.ReleaseCpuResources();
         }
 
         return mesh;
@@ -142,7 +142,7 @@ public readonly unsafe ref struct RenderingContext
             return;
         }
 
-        ref readonly var meshRef = ref r.Value;
+        ref var meshRef = ref r.Value;
         var vertexHandle = meshRef.VertexBuffer.AsResource();
         var indexHandle = meshRef.IndexBuffer.AsResource();
 
@@ -224,7 +224,7 @@ public readonly unsafe ref struct RenderingContext
         }
 
         ref readonly var meshData = ref r.Value;
-        var data = new PerObjectData
+        var data = new MeshData
         {
             worldBoundsMin = meshData.BoundingBox.Min,
             worldBoundsMax = meshData.BoundingBox.Max,

@@ -6,19 +6,21 @@ struct PixelInput
     float4 position : SV_POSITION;
     float4 color : COLOR;
     float4 uv : TEXCOORD0;
+    nointerpolation uint meshletID : MESHLET_ID;
 };
 
 [numthreads(128, 1, 1)] // 128 threads to cover max 64 vertices and 124 triangles
 [outputtopology("triangle")]
 void MSMain(
     uint3 groupThreadID : SV_GroupThreadID,
-    uint groupID : SV_GroupID,
+    uint3 groupID : SV_GroupID,
     out vertices PixelInput outVerts[64],
     out indices uint3 outTris[124])
 {
-    PerObjectData perObjectData = LoadData<PerObjectData>(g_PushConstantData.perObjectBuffer, 0);
+    InstanceData instanceData = LoadData<InstanceData>(g_PushConstantData.instanceBuffer, g_PushConstantData.instanceIndex);
+    MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
 
-    ByteAddressBuffer meshletBuffer = GET_BUFFER(perObjectData.meshletBuffer);
+    ByteAddressBuffer meshletBuffer = GET_BUFFER(meshData.meshletBuffer);
     Meshlet m = meshletBuffer.Load<Meshlet>(groupID.x * sizeof(Meshlet));
 
     uint vertexCount = m.packedCounts & 0xFF;
@@ -26,26 +28,27 @@ void MSMain(
 
     SetMeshOutputCounts(vertexCount, triangleCount);
 
-    ByteAddressBuffer meshletVerticesBuffer = GET_BUFFER(perObjectData.meshletVerticesBuffer);
-    ByteAddressBuffer meshletTrianglesBuffer = GET_BUFFER(perObjectData.meshletTrianglesBuffer);
+    ByteAddressBuffer meshletVerticesBuffer = GET_BUFFER(meshData.meshletVerticesBuffer);
+    ByteAddressBuffer meshletTrianglesBuffer = GET_BUFFER(meshData.meshletTrianglesBuffer);
 
     // Write vertex output
     if (groupThreadID.x < vertexCount)
     {
         uint vertexIndex = meshletVerticesBuffer.Load((m.vertexOffset + groupThreadID.x) * 4);
-        ByteAddressBuffer vertices = GET_BUFFER(perObjectData.vertexBuffer);
+        ByteAddressBuffer vertices = GET_BUFFER(meshData.vertexBuffer);
         Vertex v = vertices.Load<Vertex>(vertexIndex * sizeof(Vertex));
 
-        // Basic MVP transform not needed if already in world space, but usually we need localToWorld and ViewProj
-        PerViewData perViewData = LoadData<PerViewData>(g_PushConstantData.perViewBuffer, 0);
-        PerInstanceData perInstanceData = LoadData<PerInstanceData>(g_PushConstantData.perInstanceBuffer, 0);
+        FrameData globalFrameData = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
+        ViewData viewData = LoadData<ViewData>(g_PushConstantData.viewBuffer, 0);
 
-        float4 worldPos = mul(perInstanceData.localToWorld, float4(v.position.xyz, 1.0f));
-        outVerts[groupThreadID.x].position = mul(perViewData.viewMatrix, worldPos);
-        outVerts[groupThreadID.x].position = mul(perViewData.projectionMatrix, outVerts[groupThreadID.x].position);
+        float4 worldPos = mul(instanceData.localToWorld, float4(v.position.xyz, 1.0f));
+        float4 viewPos = mul(viewData.viewMatrix, worldPos);
+
+        outVerts[groupThreadID.x].position = mul(viewData.projectionMatrix, viewPos);
 
         outVerts[groupThreadID.x].color = v.color;
         outVerts[groupThreadID.x].uv = v.uv;
+        outVerts[groupThreadID.x].meshletID = groupID.x;
     }
 
     // Write triangle output (1 thread processes 1 triangle)
@@ -66,7 +69,7 @@ void MSMain(
 
 float4 PSMain(PixelInput input) : SV_TARGET
 {
-    // PerMaterialData perMaterialData = LoadData<PerMaterialData>(g_PushConstantData.perMaterialBuffer, 0);
+    // PerMaterialData perMaterialData = LoadData<PerMaterialData>(g_PushConstantData.materialIndex, 0);
     //
     // float4 color1 = SAMPLE_TEXTURE2D(perMaterialData.texture1, perMaterialData.tex_sampler, input.uv.xy);
     // float4 color2 = SAMPLE_TEXTURE2D(perMaterialData.texture2, perMaterialData.tex_sampler, input.uv.xy);
@@ -75,4 +78,14 @@ float4 PSMain(PixelInput input) : SV_TARGET
     //
     // float4 blendedColor = (color1 + color2 + color3 + color4) * 0.25f;
     // return perMaterialData.color * blendedColor + input.color;
+
+    // TODO: Randome color on meshlet.
+    // return float4(1, 0, 0, 1);
+    uint hash = PCGHash(input.meshletID);
+
+    float r = float((hash & 0xFF0000u) >> 16) / 255.0;
+    float g = float((hash & 0x00FF00u) >> 8)  / 255.0;
+    float b = float((hash & 0x0000FFu))       / 255.0;
+
+    return float4(r, g, b, 1.0);
 }

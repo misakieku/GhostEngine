@@ -40,7 +40,7 @@
       "_appName": "GhostEngine",
       "_appTitle": "GhostEngine",
       "_enableSearch": true,
-      "pdf": true
+      "pdf": false
     }
   }
 }

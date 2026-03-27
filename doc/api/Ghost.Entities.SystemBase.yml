@@ -24,7 +24,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/System.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: SystemBase
     path: ../src/Runtime/Ghost.Entities/System.cs
     startLine: 24
@@ -61,7 +61,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/System.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: World
     path: ../src/Runtime/Ghost.Entities/System.cs
     startLine: 28
@@ -90,7 +90,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/System.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: LastSystemVersion
     path: ../src/Runtime/Ghost.Entities/System.cs
     startLine: 33
@@ -119,7 +119,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/System.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: RequireQueryForUpdate
     path: ../src/Runtime/Ghost.Entities/System.cs
     startLine: 57
@@ -151,7 +151,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/System.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: OnInitialize
     path: ../src/Runtime/Ghost.Entities/System.cs
     startLine: 94
@@ -183,7 +183,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/System.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: OnUpdate
     path: ../src/Runtime/Ghost.Entities/System.cs
     startLine: 98
@@ -215,7 +215,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/System.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: OnCleanup
     path: ../src/Runtime/Ghost.Entities/System.cs
     startLine: 102
@@ -247,7 +247,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/System.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: OnStopRunning
     path: ../src/Runtime/Ghost.Entities/System.cs
     startLine: 106
@@ -273,7 +273,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/System.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: OnStartRunning
     path: ../src/Runtime/Ghost.Entities/System.cs
     startLine: 110

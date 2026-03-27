@@ -343,6 +343,11 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
             throw new InvalidOperationException("RenderGraphBuilder must be disposed after setting up the render function.");
         }
 
+        if (_pass.type == RenderPassType.Raster && _pass.colorAccess[0].id.IsInvalid && _pass.depthAccess.id.IsInvalid)
+        {
+            throw new InvalidOperationException("Raster render pass must have at least one color or depth attachment.");
+        }
+
         _graph = null!;
         _pass = null!;
         _resources = null!;

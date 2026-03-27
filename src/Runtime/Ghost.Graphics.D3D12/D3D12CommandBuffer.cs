@@ -138,7 +138,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         return Result.Success();
     }
 
-    public void SetScissorRect(RectDesc rect)
+    public void SetScissorRect(ScissorRectDesc rect)
     {
         AssertNotDisposed();
         ThrowIfNotRecording();
@@ -154,7 +154,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         pNativeObject->RSSetScissorRects(1, &d3d12Rect);
     }
 
-    public void ResourceBarrier(params ReadOnlySpan<BarrierDesc> barrierDescs)
+    public void Barrier(params ReadOnlySpan<BarrierDesc> barrierDescs)
     {
         AssertNotDisposed();
         ThrowIfNotRecording();
@@ -201,9 +201,9 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                 case BarrierType.Global:
                     pGlobalBarriers[globalIndex++] = new D3D12_GLOBAL_BARRIER
                     {
-                        SyncBefore = (D3D12_BARRIER_SYNC)desc.SyncBefore,
+                        SyncBefore = (D3D12_BARRIER_SYNC)(desc.SyncBefore ?? 0),
                         SyncAfter = (D3D12_BARRIER_SYNC)desc.SyncAfter,
-                        AccessBefore = (D3D12_BARRIER_ACCESS)desc.AccessBefore,
+                        AccessBefore = (D3D12_BARRIER_ACCESS)(desc.AccessBefore ?? 0),
                         AccessAfter = (D3D12_BARRIER_ACCESS)desc.AccessAfter
                     };
                     break;
@@ -212,7 +212,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                     var r = _resourceDatabase.GetResourceRecord(desc.Resource);
                     if (r.IsFailure)
                     {
-                        RecordError(nameof(ResourceBarrier), r.Error);
+                        RecordError(nameof(Barrier), r.Error);
                         continue;
                     }
 
@@ -220,9 +220,9 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                     var resource = record.ResourcePtr;
                     pBufferBarriers[bufferIndex++] = new D3D12_BUFFER_BARRIER
                     {
-                        SyncBefore = (D3D12_BARRIER_SYNC)desc.SyncBefore,
+                        SyncBefore = (D3D12_BARRIER_SYNC)(desc.SyncBefore ?? record.barrierData.sync),
                         SyncAfter = (D3D12_BARRIER_SYNC)desc.SyncAfter,
-                        AccessBefore = (D3D12_BARRIER_ACCESS)desc.AccessBefore,
+                        AccessBefore = (D3D12_BARRIER_ACCESS)(desc.AccessBefore ?? record.barrierData.access),
                         AccessAfter = (D3D12_BARRIER_ACCESS)desc.AccessAfter,
                         pResource = resource,
                         Offset = 0,
@@ -237,7 +237,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                     var r = _resourceDatabase.GetResourceRecord(desc.Resource);
                     if (r.IsFailure)
                     {
-                        RecordError(nameof(ResourceBarrier), r.Error);
+                        RecordError(nameof(Barrier), r.Error);
                         continue;
                     }
 
@@ -245,11 +245,11 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                     var resource = record.ResourcePtr;
                     pTextureBarriers[textureIndex++] = new D3D12_TEXTURE_BARRIER
                     {
-                        SyncBefore = (D3D12_BARRIER_SYNC)desc.SyncBefore,
+                        SyncBefore = (D3D12_BARRIER_SYNC)(desc.SyncBefore ?? record.barrierData.sync),
                         SyncAfter = (D3D12_BARRIER_SYNC)desc.SyncAfter,
-                        AccessBefore = (D3D12_BARRIER_ACCESS)desc.AccessBefore,
+                        AccessBefore = (D3D12_BARRIER_ACCESS)(desc.AccessBefore ?? record.barrierData.access),
                         AccessAfter = (D3D12_BARRIER_ACCESS)desc.AccessAfter,
-                        LayoutBefore = (D3D12_BARRIER_LAYOUT)desc.LayoutBefore,
+                        LayoutBefore = (D3D12_BARRIER_LAYOUT)(desc.LayoutBefore ?? record.barrierData.layout),
                         LayoutAfter = (D3D12_BARRIER_LAYOUT)desc.LayoutAfter,
                         pResource = resource,
                         Subresources = new D3D12_BARRIER_SUBRESOURCE_RANGE
@@ -844,6 +844,14 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     public void UploadBuffer<T>(Handle<GraphicsBuffer> buffer, params ReadOnlySpan<T> data)
         where T : unmanaged
     {
+        static void Map(T* pData, nuint size, ulong offset, SharedPtr<ID3D12Resource> resource)
+        {
+            void* pMappedData;
+            resource.Get()->Map(0, null, &pMappedData);
+            MemoryUtility.MemCpy((byte*)pMappedData + offset, pData, size);
+            resource.Get()->Unmap(0, null);
+        }
+
         AssertNotDisposed();
         ThrowIfNotRecording();
 #if !DEBUG
@@ -854,21 +862,33 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
 #endif
         IncrementCommandCount();
 
-        var sizeInBytes = (uint)(data.Length * sizeof(T));
-
-        var uploadHandle = _resourceAllocator.CreateTempUploadBuffer(sizeInBytes, out var offset);
-        var uploadResource = _resourceDatabase.GetResource(uploadHandle.AsResource());
-
-        void* pMappedData;
-        uploadResource.Get()->Map(0, null, &pMappedData);
-        fixed (T* pData = data)
-        {
-            MemoryUtility.MemCpy((byte*)pMappedData + offset, pData, sizeInBytes);
-        }
-        uploadResource.Get()->Unmap(0, null);
-
         var pResource = _resourceDatabase.GetResource(buffer.AsResource());
-        pNativeObject->CopyBufferRegion(pResource, 0, uploadResource, offset, sizeInBytes);
+
+        D3D12_HEAP_PROPERTIES properties;
+        D3D12_HEAP_FLAGS flags;
+        ThrowIfFailed(pResource.Get()->GetHeapProperties(&properties, &flags));
+
+        if (properties.Type == D3D12_HEAP_TYPE_UPLOAD)
+        {
+            fixed (T* pData = data)
+            {
+                Map(pData, (nuint)(data.Length * sizeof(T)), 0, pResource);
+            }
+        }
+        else
+        {
+            var sizeInBytes = (uint)(data.Length * sizeof(T));
+
+            var uploadHandle = _resourceAllocator.CreateTempUploadBuffer(sizeInBytes, out var offset);
+            var uploadResource = _resourceDatabase.GetResource(uploadHandle.AsResource());
+
+            fixed (T* pData = data)
+            {
+                Map(pData, sizeInBytes, offset, uploadResource);
+            }
+
+            pNativeObject->CopyBufferRegion(pResource, 0, uploadResource, offset, sizeInBytes);
+        }
     }
 
     public void UploadTexture(Handle<Texture> texture, params ReadOnlySpan<SubResourceData> subresources)

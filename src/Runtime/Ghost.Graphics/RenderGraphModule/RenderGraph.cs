@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
+using System.Diagnostics;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
@@ -111,6 +112,7 @@ public sealed class RenderGraph : IDisposable
         var r = _resourceDatabase.GetResourceDescription(texture.AsResource());
         if (r.IsFailure)
         {
+            Debug.Fail("Failed to get resource description for texture handle: " + texture);
             return Identifier<RGTexture>.Invalid;
         }
 
@@ -128,6 +130,7 @@ public sealed class RenderGraph : IDisposable
         var r = _resourceDatabase.GetResourceDescription(buffer.AsResource());
         if (r.IsFailure)
         {
+            Debug.Fail("Failed to get resource description for buffer handle: " + buffer);
             return Identifier<RGBuffer>.Invalid;
         }
 
@@ -177,7 +180,7 @@ public sealed class RenderGraph : IDisposable
     /// <summary>
     /// Compiles the render graph by culling unused passes and determining resource lifetimes.
     /// </summary>
-    public Error Compile(in ViewState viewState)
+    public Error Compile(ViewState viewState)
     {
         if (_compiled)
         {

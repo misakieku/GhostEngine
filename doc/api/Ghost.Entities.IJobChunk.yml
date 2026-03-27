@@ -17,7 +17,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityQuery.JobChunk.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: IJobChunk
     path: ../src/Runtime/Ghost.Entities/EntityQuery.JobChunk.cs
     startLine: 6
@@ -42,7 +42,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityQuery.JobChunk.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Execute
     path: ../src/Runtime/Ghost.Entities/EntityQuery.JobChunk.cs
     startLine: 8

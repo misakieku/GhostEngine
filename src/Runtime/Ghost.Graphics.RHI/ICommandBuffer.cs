@@ -51,7 +51,7 @@ public interface ICommandBuffer : IDisposable
     /// Sets the scissor rectangle
     /// </summary>
     /// <param name="rect">Scissor rectangle to set</param>
-    void SetScissorRect(RectDesc rect);
+    void SetScissorRect(ScissorRectDesc rect);
 
     /// <summary>
     /// Sets the optional render targets and optional depth Target for subsequent rendering operations.
@@ -99,7 +99,7 @@ public interface ICommandBuffer : IDisposable
     /// Inserts multiple resource barriers.
     /// </summary>
     /// <param name="barrierDescs">Resource barrier descriptions</param>
-    void ResourceBarrier(params ReadOnlySpan<BarrierDesc> barrierDescs);
+    void Barrier(params ReadOnlySpan<BarrierDesc> barrierDescs);
 
     /// <summary>
     /// Sets the pipeline state object

@@ -16,7 +16,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/ForEach.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ForEachWithEntity
     path: ../src/Runtime/Ghost.Entities/Templates/ForEach.gen.cs
     startLine: 32

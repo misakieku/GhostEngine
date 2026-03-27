@@ -9,7 +9,7 @@ public interface IRenderOutput
         get; set;
     }
 
-    RectDesc Scissor
+    ScissorRectDesc Scissor
     {
         get; set;
     }

@@ -265,7 +265,7 @@ public struct Material : IResourceReleasable
             barrierData.access,
             BarrierAccess.CopyDest);
 
-        cmd.ResourceBarrier(desc);
+        cmd.Barrier(desc);
         cmd.UploadBuffer(_cBufferCache.GpuResource, _cBufferCache.CpuData.AsSpan());
 
         desc = BarrierDesc.Buffer(
@@ -275,7 +275,7 @@ public struct Material : IResourceReleasable
             BarrierAccess.CopyDest,
             BarrierAccess.ShaderResource);
 
-        cmd.ResourceBarrier(desc);
+        cmd.Barrier(desc);
     }
 
     public void ReleaseResource(IResourceDatabase database)

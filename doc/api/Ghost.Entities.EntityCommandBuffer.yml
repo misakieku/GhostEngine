@@ -25,7 +25,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: EntityCommandBuffer
     path: ../src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
     startLine: 8
@@ -62,7 +62,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: .ctor
     path: ../src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
     startLine: 24
@@ -94,7 +94,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Finalize
     path: ../src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
     startLine: 30
@@ -123,7 +123,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: CreateEntity
     path: ../src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
     startLine: 104
@@ -155,7 +155,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: CreateEntity
     path: ../src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
     startLine: 110
@@ -189,7 +189,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: DestroyEntity
     path: ../src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
     startLine: 118
@@ -218,7 +218,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: AddComponent
     path: ../src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
     startLine: 124
@@ -254,7 +254,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: RemoveComponent
     path: ../src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
     startLine: 133
@@ -288,7 +288,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: SetComponent
     path: ../src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
     startLine: 141
@@ -324,7 +324,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Dispose
     path: ../src/Runtime/Ghost.Entities/EntityCommandBuffer.cs
     startLine: 212

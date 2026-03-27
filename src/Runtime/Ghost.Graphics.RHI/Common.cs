@@ -302,7 +302,7 @@ public struct RenderDesc
         get; set;
     }
 
-    public RectDesc Viewport
+    public ScissorRectDesc Viewport
     {
         get; set;
     }
@@ -345,7 +345,7 @@ public struct ViewportDesc
 
 }
 
-public struct RectDesc
+public struct ScissorRectDesc
 {
     public uint Left
     {
@@ -539,7 +539,7 @@ public struct BarrierDesc
         get; set;
     }
 
-    public BarrierSync SyncBefore
+    public BarrierSync? SyncBefore
     {
         get; set;
     }
@@ -549,7 +549,7 @@ public struct BarrierDesc
         get; set;
     }
 
-    public BarrierAccess AccessBefore
+    public BarrierAccess? AccessBefore
     {
         get; set;
     }
@@ -559,7 +559,7 @@ public struct BarrierDesc
         get; set;
     }
 
-    public BarrierLayout LayoutBefore
+    public BarrierLayout? LayoutBefore
     {
         get; set;
     }
@@ -596,7 +596,7 @@ public struct BarrierDesc
         };
     }
 
-    public static BarrierDesc Buffer(Handle<GPUResource> resource, BarrierSync syncBefore, BarrierSync syncAfter, BarrierAccess accessBefore, BarrierAccess accessAfter)
+    public static BarrierDesc Buffer(Handle<GPUResource> resource, BarrierSync? syncBefore, BarrierSync syncAfter, BarrierAccess? accessBefore, BarrierAccess accessAfter)
     {
         return new BarrierDesc
         {
@@ -609,7 +609,7 @@ public struct BarrierDesc
         };
     }
 
-    public static BarrierDesc Texture(Handle<GPUResource> resource, BarrierSync syncBefore, BarrierSync syncAfter, BarrierAccess accessBefore, BarrierAccess accessAfter, BarrierLayout layoutBefore, BarrierLayout layoutAfter, BarrierSubresourceRange subresources = default, bool discard = false)
+    public static BarrierDesc Texture(Handle<GPUResource> resource, BarrierSync? syncBefore, BarrierSync syncAfter, BarrierAccess? accessBefore, BarrierAccess accessAfter, BarrierLayout? layoutBefore, BarrierLayout layoutAfter, BarrierSubresourceRange subresources = default, bool discard = false)
     {
         return new BarrierDesc
         {

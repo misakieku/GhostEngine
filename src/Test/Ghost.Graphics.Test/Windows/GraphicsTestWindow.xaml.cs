@@ -49,7 +49,7 @@ public sealed partial class GraphicsTestWindow : Window
             InitialRenderPipelineSettings = new RenderPasses.TestRenderPipelineSettings()
         });
 
-        _swapChain = _renderSystem.GraphicsEngine.CreateSwapChain(new SwapChainDesc
+        _swapChain = _renderSystem.SwapChainManager.EnsureSwapChain(0, new SwapChainDesc
         {
             Width = (uint)AppWindow.Size.Width,
             Height = (uint)AppWindow.Size.Height,
@@ -80,7 +80,7 @@ public sealed partial class GraphicsTestWindow : Window
 
         _world.EntityManager.SetComponent(cameraEntity, new Camera
         {
-            colorTarget = _swapChain.GetCurrentBackBuffer(), // NOTE: This should be updated every frame to the current back buffer.
+            swapChainIndex = 0,
             depthTarget = Handle<Texture>.Invalid,
             nearClipPlane = 0.1f,
             farClipPlane = 1000.0f,
@@ -111,7 +111,6 @@ public sealed partial class GraphicsTestWindow : Window
         directCmd.End().ThrowIfFailed();
         _renderSystem.GraphicsEngine.Device.GraphicsQueue.Submit(directCmd);
         _renderSystem.GraphicsEngine.Device.GraphicsQueue.WaitIdle();
-
 
         var meshSet = new ComponentSet(scope.AllocationHandle, ComponentTypeID<MeshInstance>.Value, ComponentTypeID<LocalToWorld>.Value);
         var meshEntity = _world.EntityManager.CreateEntity(meshSet);
@@ -183,16 +182,6 @@ public sealed partial class GraphicsTestWindow : Window
 
         if (_renderSystem.CPUFenceValue < _renderSystem.GPUFenceValue + _renderSystem.MaxFrameLatency)
         {
-            var queryID = new QueryBuilder().WithAll<Camera>().Build(_world);
-            ref var query = ref _world.ComponentManager.GetEntityQueryReference(queryID);
-
-            // FIX: A critical bug that resize happens on the render thread, but OnRendering invoke on the UI thread, and there is a chance that our extraction system already send the request to the render thread with old back buffer handle, which is already become invalid after resize.
-            // A proper solution is to use swap chain manager, camera only reference the id of the swap chain, and we will extract the current back buffer handle on the render thread.
-            foreach (ref var cam in query.GetComponentIterator<Camera>())
-            {
-                cam.colorTarget = _swapChain.GetCurrentBackBuffer();
-            }
-
             _world.SystemManager.UpdateAll(default);
             _renderSystem.SignalCPUReady();
         }

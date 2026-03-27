@@ -77,7 +77,7 @@ internal class D3D12Renderer : IRenderer
     }
 
     //// TODO: A proper render graph integration.
-    //private Error RenderScene(Handle<Texture> target, ViewportDesc viewport, RectDesc rect)
+    //private Error RenderScene(Handle<Texture> target, ViewportDesc viewport, ScissorRectDesc rect)
     //{
     //    // NOTE: Testing only.
     //    var ctx = new RenderingContext(_graphicsEngine, _commandBuffer);

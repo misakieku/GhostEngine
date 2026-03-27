@@ -16,7 +16,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/System.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: DefaultSystemGroup
     path: ../src/Runtime/Ghost.Entities/System.cs
     startLine: 340

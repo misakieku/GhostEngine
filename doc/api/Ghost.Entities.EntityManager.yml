@@ -54,7 +54,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.Managed.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: EntityManager
     path: ../src/Runtime/Ghost.Entities/EntityManager.Managed.cs
     startLine: 5
@@ -99,7 +99,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: World
     path: ../src/Runtime/Ghost.Entities/EntityManager.cs
     startLine: 47
@@ -128,7 +128,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Finalize
     path: ../src/Runtime/Ghost.Entities/EntityManager.cs
     startLine: 57
@@ -157,7 +157,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: CreateEntity
     path: ../src/Runtime/Ghost.Entities/EntityManager.cs
     startLine: 91
@@ -188,7 +188,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: CreateEntity
     path: ../src/Runtime/Ghost.Entities/EntityManager.cs
     startLine: 104
@@ -223,7 +223,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: CreateEntities
     path: ../src/Runtime/Ghost.Entities/EntityManager.cs
     startLine: 116
@@ -258,7 +258,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: CreateEntities
     path: ../src/Runtime/Ghost.Entities/EntityManager.cs
     startLine: 141
@@ -293,7 +293,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: CreateEntities
     path: ../src/Runtime/Ghost.Entities/EntityManager.cs
     startLine: 166
@@ -331,7 +331,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: CreateEntities
     path: ../src/Runtime/Ghost.Entities/EntityManager.cs
     startLine: 201
@@ -369,7 +369,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: DestroyEntity
     path: ../src/Runtime/Ghost.Entities/EntityManager.cs
     startLine: 242
@@ -403,7 +403,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: DestroyEntities
     path: ../src/Runtime/Ghost.Entities/EntityManager.cs
     startLine: 270
@@ -438,7 +438,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Exists
     path: ../src/Runtime/Ghost.Entities/EntityManager.cs
     startLine: 374
@@ -473,7 +473,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: CreateSingleton
     path: ../src/Runtime/Ghost.Entities/EntityManager.cs
     startLine: 385
@@ -514,7 +514,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: CreateSingleton
     path: ../src/Runtime/Ghost.Entities/EntityManager.cs
     startLine: 426
@@ -555,7 +555,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetSingleton
     path: ../src/Runtime/Ghost.Entities/EntityManager.cs
     startLine: 437
@@ -593,7 +593,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetSingleton
     path: ../src/Runtime/Ghost.Entities/EntityManager.cs
     startLine: 465
@@ -630,7 +630,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: AddComponent
     path: ../src/Runtime/Ghost.Entities/EntityManager.cs
     startLine: 502
@@ -674,7 +674,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: AddComponent
     path: ../src/Runtime/Ghost.Entities/EntityManager.cs
     startLine: 595
@@ -718,7 +718,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: RemoveComponent
     path: ../src/Runtime/Ghost.Entities/EntityManager.cs
     startLine: 607
@@ -759,7 +759,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: RemoveComponent
     path: ../src/Runtime/Ghost.Entities/EntityManager.cs
     startLine: 698
@@ -800,7 +800,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: SetComponent
     path: ../src/Runtime/Ghost.Entities/EntityManager.cs
     startLine: 711
@@ -844,7 +844,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: SetComponent
     path: ../src/Runtime/Ghost.Entities/EntityManager.cs
     startLine: 730
@@ -887,7 +887,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetComponent
     path: ../src/Runtime/Ghost.Entities/EntityManager.cs
     startLine: 742
@@ -928,7 +928,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetComponent
     path: ../src/Runtime/Ghost.Entities/EntityManager.cs
     startLine: 759
@@ -969,7 +969,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: HasComponent
     path: ../src/Runtime/Ghost.Entities/EntityManager.cs
     startLine: 772
@@ -1010,7 +1010,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: HasComponent
     path: ../src/Runtime/Ghost.Entities/EntityManager.cs
     startLine: 789
@@ -1051,7 +1051,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: SetEnabled
     path: ../src/Runtime/Ghost.Entities/EntityManager.cs
     startLine: 802
@@ -1089,7 +1089,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: SetEnabled
     path: ../src/Runtime/Ghost.Entities/EntityManager.cs
     startLine: 845
@@ -1127,7 +1127,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Dispose
     path: ../src/Runtime/Ghost.Entities/EntityManager.cs
     startLine: 851
@@ -1157,7 +1157,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.Managed.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: CreateManagedEntity
     path: ../src/Runtime/Ghost.Entities/EntityManager.Managed.cs
     startLine: 16
@@ -1192,7 +1192,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.Managed.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: CreateManagedEntity
     path: ../src/Runtime/Ghost.Entities/EntityManager.Managed.cs
     startLine: 35
@@ -1227,7 +1227,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.Managed.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: DestroyManagedEntity
     path: ../src/Runtime/Ghost.Entities/EntityManager.Managed.cs
     startLine: 51
@@ -1259,7 +1259,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.Managed.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Exists
     path: ../src/Runtime/Ghost.Entities/EntityManager.Managed.cs
     startLine: 69
@@ -1294,7 +1294,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.Managed.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: AddScriptComponent
     path: ../src/Runtime/Ghost.Entities/EntityManager.Managed.cs
     startLine: 80
@@ -1330,7 +1330,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.Managed.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: AddScriptComponent
     path: ../src/Runtime/Ghost.Entities/EntityManager.Managed.cs
     startLine: 106
@@ -1368,7 +1368,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.Managed.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: DestroyScriptComponent
     path: ../src/Runtime/Ghost.Entities/EntityManager.Managed.cs
     startLine: 127
@@ -1404,7 +1404,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.Managed.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: HasScriptComponent
     path: ../src/Runtime/Ghost.Entities/EntityManager.Managed.cs
     startLine: 154
@@ -1445,7 +1445,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.Managed.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetScriptComponent
     path: ../src/Runtime/Ghost.Entities/EntityManager.Managed.cs
     startLine: 179
@@ -1481,7 +1481,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/EntityManager.Managed.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetScriptComponents
     path: ../src/Runtime/Ghost.Entities/EntityManager.Managed.cs
     startLine: 204

@@ -50,12 +50,11 @@ public readonly struct Result
 
     public void Deconstruct(out bool success, out string? message)
     {
-        success = IsSuccess;
-        message = Message;
+        success = _isSuccess;
+        message = _message;
     }
 
-    public override string ToString() => IsSuccess ? "OK" : $"Error: {Message}";
-
+    public override string ToString() => _isSuccess ? "OK" : $"Error: {_message}";
     public static implicit operator bool(Result result) => result.IsSuccess;
 }
 
@@ -105,12 +104,12 @@ public readonly struct Result<T>
 
     public void Deconstruct(out bool success, out T value, out string? message)
     {
-        success = IsSuccess;
-        value = Value;
-        message = Message;
+        success = _isSuccess;
+        value = _value;
+        message = _message;
     }
 
-    public override string ToString() => IsSuccess ? $"OK: {Value}" : $"Error: {Message}";
+    public override string ToString() => _isSuccess ? $"OK: {_value}" : $"Error: {_message}";
 
     public static implicit operator Result<T>(T? data) => data is not null ? Success(data) : Failure(null);
     public static implicit operator Result<T>(Result result) => result.IsSuccess ? Success(default!) : Failure(result.Message);
@@ -179,8 +178,8 @@ public readonly struct Result<T, E>
 
     public void Deconstruct(out T value, out E status)
     {
-        value = Value;
-        status = Error;
+        value = _value;
+        status = _error;
     }
 
     public override string ToString() => $"Value: {_value}, Status: {_error}";
@@ -233,11 +232,10 @@ public readonly ref struct RefResult<T, E>
         return new RefResult<T, E>(ref Unsafe.NullRef<T>(), error);
     }
 
-    public void Deconstruct(out bool success, out Ref<T> value, out E status)
+    public void Deconstruct(out Ref<T> value, out E status)
     {
-        success = IsSuccess;
-        value = new Ref<T>(ref Value);
-        status = Error;
+        value = new Ref<T>(ref _value);
+        status = _error;
     }
 
     public override string ToString() => $"Value: {_value}, Status: {_error}";

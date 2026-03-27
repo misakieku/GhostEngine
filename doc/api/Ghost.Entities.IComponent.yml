@@ -16,7 +16,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Component.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: IComponent
     path: ../src/Runtime/Ghost.Entities/Component.cs
     startLine: 8

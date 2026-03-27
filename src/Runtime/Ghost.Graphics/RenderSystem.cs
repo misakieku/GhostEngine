@@ -68,7 +68,7 @@ public class RenderSystem : IDisposable
         [UnscopedRef]
         public ref UnsafeList<RenderRequest> RenderRequests => ref _renderRequests;
 
-        public  void Dispose()
+        public void Dispose()
         {
             CpuReadyEvent.Dispose();
             GpuReadyEvent.Dispose();
@@ -87,6 +87,7 @@ public class RenderSystem : IDisposable
 
     private readonly IGraphicsEngine _graphicsEngine;
     private readonly ResourceManager _resourceManager;
+    private readonly SwapChainManager _swapChainManager;
 
     private readonly FrameResource[] _frameResources;
     private readonly Thread _renderThread;
@@ -103,6 +104,8 @@ public class RenderSystem : IDisposable
 
     private bool _isRunning;
     private bool _disposed;
+
+    internal SwapChainManager SwapChainManager => _swapChainManager;
 
     public IGraphicsEngine GraphicsEngine => _graphicsEngine;
     public ResourceManager ResourceManager => _resourceManager;
@@ -161,6 +164,7 @@ public class RenderSystem : IDisposable
         }
 
         _resourceManager = new ResourceManager(_graphicsEngine.ResourceAllocator, _graphicsEngine.ResourceDatabase);
+        _swapChainManager = new SwapChainManager(_graphicsEngine);
 
         // Create frame resources for synchronization
         _frameResources = new FrameResource[desc.FrameBufferCount];
@@ -280,6 +284,7 @@ public class RenderSystem : IDisposable
 
             // TODO: How can we support async compute and async copy?
             var cmd = _graphicsEngine.GetPooledCommandBuffer(CommandBufferType.Graphics);
+            ref var renderRequests = ref frameResource.RenderRequests;
 
             try
             {
@@ -290,8 +295,8 @@ public class RenderSystem : IDisposable
                     CommandBuffer = cmd
                 };
 
-                ref var renderRequests = ref frameResource.RenderRequests;
                 _renderPipeline.Render(renderCtx, renderRequests.AsSpan());
+                _swapChainManager.TransitionToPresent(cmd);
 
                 // End recording commands and submit
                 r = cmd.End();
@@ -302,6 +307,11 @@ public class RenderSystem : IDisposable
                 }
 
                 _graphicsEngine.Device.GraphicsQueue.Submit(cmd);
+                _swapChainManager.PresentAll(cmd);
+            }
+            finally
+            {
+                _graphicsEngine.ReturnPooledCommandBuffer(cmd);
 
                 for (var i = 0; i < renderRequests.Count; i++)
                 {
@@ -309,10 +319,6 @@ public class RenderSystem : IDisposable
                 }
 
                 renderRequests.Clear();
-            }
-            finally
-            {
-                _graphicsEngine.ReturnPooledCommandBuffer(cmd);
             }
 
             // End the frame and present
@@ -324,9 +330,6 @@ public class RenderSystem : IDisposable
                 StopRenderLoop(r);
                 break;
             }
-
-            // TODO: Present here.
-
 
             // Prepare for the next frame.
             _gpuFenceValue++;
@@ -415,13 +418,15 @@ public class RenderSystem : IDisposable
 
         Stop();
 
-        for (int i = 0; i < _frameResources.Length; i++)
+        for (var i = 0; i < _frameResources.Length; i++)
         {
             ref var frameResource = ref _frameResources[i];
             frameResource.Dispose();
         }
 
         _renderPipeline.Dispose();
+
+        _swapChainManager.Dispose();
         _resourceManager.Dispose();
         _graphicsEngine.Dispose();
         _shutdownEvent.Dispose();

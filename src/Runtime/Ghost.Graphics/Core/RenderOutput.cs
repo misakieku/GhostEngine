@@ -12,7 +12,7 @@ internal class SwapChainRenderOutput : IRenderOutput
         get; set;
     }
 
-    public RectDesc Scissor
+    public ScissorRectDesc Scissor
     {
         get; set;
     }
@@ -22,7 +22,7 @@ internal class SwapChainRenderOutput : IRenderOutput
         _swapChain = swapChain;
 
         Viewport = new ViewportDesc { Width = swapChain.Width, Height = swapChain.Height, MinDepth = 0, MaxDepth = 1 };
-        Scissor = new RectDesc { Right = swapChain.Width, Bottom = swapChain.Height };
+        Scissor = new ScissorRectDesc { Right = swapChain.Width, Bottom = swapChain.Height };
     }
 
     public Handle<Texture> GetRenderTarget()
@@ -37,7 +37,7 @@ internal class SwapChainRenderOutput : IRenderOutput
             BarrierAccess.NoAccess, BarrierAccess.RenderTarget,
             BarrierLayout.Present, BarrierLayout.RenderTarget);
 
-        cmd.ResourceBarrier(barrierDesc);
+        cmd.Barrier(barrierDesc);
     }
 
     public void EndRender(ICommandBuffer cmd)
@@ -47,7 +47,7 @@ internal class SwapChainRenderOutput : IRenderOutput
             BarrierAccess.RenderTarget, BarrierAccess.NoAccess,
             BarrierLayout.RenderTarget, BarrierLayout.Present);
 
-        cmd.ResourceBarrier(barrierDesc);
+        cmd.Barrier(barrierDesc);
     }
 
     public void Present()
@@ -65,7 +65,7 @@ internal class TextureRenderOutput : IRenderOutput
         get; set;
     }
 
-    public RectDesc Scissor
+    public ScissorRectDesc Scissor
     {
         get; set;
     }

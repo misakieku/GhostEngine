@@ -17,7 +17,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Component.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: RequireComponentAttribute
     path: ../src/Runtime/Ghost.Entities/Component.cs
     startLine: 11
@@ -105,7 +105,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Component.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: RequiredType
     path: ../src/Runtime/Ghost.Entities/Component.cs
     startLine: 15

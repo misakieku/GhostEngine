@@ -17,7 +17,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/SharedComponent.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Shared
     path: ../src/Runtime/Ghost.Entities/SharedComponent.cs
     startLine: 17
@@ -57,7 +57,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/SharedComponent.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Index
     path: ../src/Runtime/Ghost.Entities/SharedComponent.cs
     startLine: 20

@@ -20,7 +20,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: QueryItem
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
     startLine: 214
@@ -55,7 +55,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: entity
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
     startLine: 216
@@ -84,7 +84,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: component0
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
     startLine: 218
@@ -113,7 +113,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: component1
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
     startLine: 219
@@ -142,7 +142,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Deconstruct
     path: ../src/Runtime/Ghost.Entities/Templates/EntityQuery.EntityComponentIterator.gen.cs
     startLine: 228

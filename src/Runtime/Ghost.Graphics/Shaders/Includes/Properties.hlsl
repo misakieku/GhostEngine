@@ -1,27 +1,26 @@
-#ifndef BUILTIN_PROPERTIES_HLSL
-#define BUILTIN_PROPERTIES_HLSL
+#ifndef GHOST_PROPERTIES_HLSL
+#define GHOST_PROPERTIES_HLSL
 
 #include "F:/csharp/GhostEngine/src/Runtime/Ghost.Graphics/Shaders/Includes/Common.hlsl"
 
+// TODO: This should be auto generated to match the c# side.
+
 struct PushConstantData
 {
-    uint globalIndex;
-    uint viewIndex;
-    uint objectIndex;
+    BYTE_ADDRESS_BUFFER frameBuffer;
+    BYTE_ADDRESS_BUFFER viewBuffer;
+    BYTE_ADDRESS_BUFFER instanceBuffer;
     uint instanceIndex;
-    uint materialIndex;
 };
 
-struct GlobalFrameData
+struct FrameData
 {
-    uint viewBufferIndex;
-    uint instanceBufferIndex;
-    uint viewBufferCount;
-    uint instanceBufferCount;
-    uint userBufferIndex;
+    BYTE_ADDRESS_BUFFER viewBuffer;
+    BYTE_ADDRESS_BUFFER instanceBuffer;
+    BYTE_ADDRESS_BUFFER userBuffer;
 };
 
-struct PerViewData
+struct ViewData
 {
     float4x4 viewMatrix;
     float4x4 projectionMatrix;
@@ -32,17 +31,20 @@ struct PerViewData
     float4 screenSize; // xy: size, zw: 1/size
 };
 
-struct PerInstanceData
+struct InstanceData
 {
     float4x4 localToWorld;
+    BYTE_ADDRESS_BUFFER meshBuffer;
+    BYTE_ADDRESS_BUFFER materialBuffer;
 };
 
-struct PerObjectData
+struct MeshData
 {
     float3 worldBoundsMin;
     BYTE_ADDRESS_BUFFER vertexBuffer;
     float3 worldBoundsMax;
     BYTE_ADDRESS_BUFFER indexBuffer;
+    
     BYTE_ADDRESS_BUFFER meshletBuffer;
     BYTE_ADDRESS_BUFFER meshletVerticesBuffer;
     BYTE_ADDRESS_BUFFER meshletTrianglesBuffer;
@@ -50,4 +52,4 @@ struct PerObjectData
 
 PushConstantData g_PushConstantData : register(b0);
 
-#endif // BUILTIN_PROPERTIES_HLSL
+#endif // GHOST_PROPERTIES_HLSL

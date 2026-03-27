@@ -18,7 +18,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/System.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: SystemAPI
     path: ../src/Runtime/Ghost.Entities/System.cs
     startLine: 4
@@ -50,7 +50,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/System.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Time
     path: ../src/Runtime/Ghost.Entities/System.cs
     startLine: 6
@@ -79,7 +79,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/System.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: World
     path: ../src/Runtime/Ghost.Entities/System.cs
     startLine: 11

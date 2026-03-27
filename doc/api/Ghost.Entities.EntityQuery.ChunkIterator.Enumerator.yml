@@ -19,7 +19,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Query.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Enumerator
     path: ../src/Runtime/Ghost.Entities/Query.cs
     startLine: 272
@@ -51,7 +51,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Query.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Current
     path: ../src/Runtime/Ghost.Entities/Query.cs
     startLine: 285
@@ -80,7 +80,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Query.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: MoveNext
     path: ../src/Runtime/Ghost.Entities/Query.cs
     startLine: 295
@@ -108,7 +108,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Query.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Reset
     path: ../src/Runtime/Ghost.Entities/Query.cs
     startLine: 314

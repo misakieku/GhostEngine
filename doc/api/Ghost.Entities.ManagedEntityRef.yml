@@ -17,7 +17,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/ManagedEntity.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ManagedEntityRef
     path: ../src/Runtime/Ghost.Entities/ManagedEntity.cs
     startLine: 10
@@ -51,7 +51,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/ManagedEntity.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: entity
     path: ../src/Runtime/Ghost.Entities/ManagedEntity.cs
     startLine: 12

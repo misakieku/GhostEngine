@@ -1,5 +1,7 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
+using System.Diagnostics;
+using TerraFX.Interop.Windows;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
@@ -22,6 +24,59 @@ internal sealed class RenderGraphExecutor
         _resourceDatabase = resourceDatabase;
         _resources = resources;
         _context = context;
+    }
+
+    private void SetViewport(ReadOnlySpan<RenderTargetInfo> color, DepthStencilInfo depthStencil)
+    {
+        // This should not happened since the compiler should have rejected any render pass with an invalid render target configuration, but just in case, we use Debug.Assert to validate our assumptions.
+        Debug.Assert(color.Length > 0 || depthStencil.texture.IsValid);
+
+        ViewportDesc viewportDesc = default;
+        ScissorRectDesc scissorDesc = default;
+
+        if (depthStencil.texture.IsValid)
+        {
+            viewportDesc = new ViewportDesc
+            {
+                X = 0,
+                Y = 0,
+                Width = _resources.GetResource(depthStencil.texture).resolvedWidth,
+                Height = _resources.GetResource(depthStencil.texture).resolvedHeight,
+                MinDepth = 0,
+                MaxDepth = 1
+            };
+
+            scissorDesc = new ScissorRectDesc
+            {
+                Left = 0,
+                Top = 0,
+                Right = (uint)viewportDesc.Width,
+                Bottom = (uint)viewportDesc.Height
+            };
+        }
+        else if (color[0].texture.IsValid)
+        {
+            viewportDesc = new ViewportDesc
+            {
+                X = 0,
+                Y = 0,
+                Width = _resources.GetResource(color[0].texture).resolvedWidth,
+                Height = _resources.GetResource(color[0].texture).resolvedHeight,
+                MinDepth = 0,
+                MaxDepth = 1
+            };
+
+            scissorDesc = new ScissorRectDesc
+            {
+                Left = 0,
+                Top = 0,
+                Right = (uint)viewportDesc.Width,
+                Bottom = (uint)viewportDesc.Height
+            };
+        }
+
+        _context.SetViewport(viewportDesc);
+        _context.SetScissorRect(scissorDesc);
     }
 
     public unsafe Error Execute(
@@ -60,6 +115,9 @@ internal sealed class RenderGraphExecutor
                 }
 
                 // Begin native render pass
+
+                SetViewport(nativePass.colorAttachments, nativePass.depthAttachment);
+
                 for (var i = 0; i < nativePass.colorAttachmentCount; i++)
                 {
                     var attachment = nativePass.colorAttachments[i];
@@ -121,7 +179,10 @@ internal sealed class RenderGraphExecutor
             }
             else
             {
-                // Compute pass or standalone raster pass (not merged) or Unsafe pass
+                // All the reaster pass should be merged into native render pass, so if we encounter a raster pass here, it means something went wrong during compilation.
+                Debug.Assert(pass.type != RenderPassType.Raster);
+
+                // Compute pass or Unsafe pass
                 var e = ExecuteBarriersForPass(commandBuffer, logicalPassIndex, ref barrierIndex, compiledBarriers);
                 if (e != Error.None)
                 {
@@ -150,7 +211,7 @@ internal sealed class RenderGraphExecutor
         {
             if (barrierCount > 0)
             {
-                cmd.ResourceBarrier(new ReadOnlySpan<BarrierDesc>(barriers, barrierCount));
+                cmd.Barrier(new ReadOnlySpan<BarrierDesc>(barriers, barrierCount));
                 barrierCount = 0;
             }
         }

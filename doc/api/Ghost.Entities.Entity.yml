@@ -22,7 +22,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Entity.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Entity
     path: ../src/Runtime/Ghost.Entities/Entity.cs
     startLine: 5
@@ -55,7 +55,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Entity.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: INVALID_ID
     path: ../src/Runtime/Ghost.Entities/Entity.cs
     startLine: 8
@@ -82,7 +82,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Entity.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ID
     path: ../src/Runtime/Ghost.Entities/Entity.cs
     startLine: 13
@@ -111,7 +111,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Entity.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Generation
     path: ../src/Runtime/Ghost.Entities/Entity.cs
     startLine: 19
@@ -140,7 +140,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Entity.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: IsValid
     path: ../src/Runtime/Ghost.Entities/Entity.cs
     startLine: 25
@@ -169,7 +169,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Entity.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Invalid
     path: ../src/Runtime/Ghost.Entities/Entity.cs
     startLine: 31
@@ -198,7 +198,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Entity.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ToString
     path: ../src/Runtime/Ghost.Entities/Entity.cs
     startLine: 43

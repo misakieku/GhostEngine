@@ -17,7 +17,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Query.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ChunkIterator
     path: ../src/Runtime/Ghost.Entities/Query.cs
     startLine: 270
@@ -51,7 +51,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Query.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetEnumerator
     path: ../src/Runtime/Ghost.Entities/Query.cs
     startLine: 330

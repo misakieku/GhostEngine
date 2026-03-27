@@ -16,13 +16,17 @@ public interface IRenderGraphContext
 
     Handle<Texture> GetHistoryTexture(ReadOnlySpan<Identifier<RGTexture>> texture, int historyOffset);
     Handle<GraphicsBuffer> GetHistoryBuffer(ReadOnlySpan<Identifier<RGBuffer>> buffer, int historyOffset);
+
+    ICommandBuffer GetCommandBufferUnsafe();
 }
 
 public interface IRasterRenderContext : IRenderGraphContext
 {
-    int ActiveMeshIndexCount { get; }
+    void SetViewport(ViewportDesc desc);
+    void SetScissorRect(ScissorRectDesc desc);
 
     void SetGlobalData(uint globalIndex, uint viewIndex);
+    void SetInstanceData(uint instanceBuffer);
     void SetInstanceIndex(uint instanceIndex);
 
     void SetActiveMaterial(Handle<Material> material);
@@ -37,12 +41,11 @@ public interface IComputeRenderContext : IRenderGraphContext
     void DispatchCompute(uint3 threadGroupCount);
 }
 
-public interface IUnsafeRenderContext : IRasterRenderContext, IRenderGraphContext
+public interface IUnsafeRenderContext : IRasterRenderContext, IComputeRenderContext
 {
-    ICommandBuffer CommandBuffer { get; }
 }
 
-internal sealed class RenderGraphContext : IRasterRenderContext, IComputeRenderContext, IUnsafeRenderContext
+internal sealed class RenderGraphContext : IUnsafeRenderContext
 {
     private readonly ResourceManager _resourceManager;
     private readonly IResourceDatabase _resourceDatabase;
@@ -61,16 +64,15 @@ internal sealed class RenderGraphContext : IRasterRenderContext, IComputeRenderC
     private Handle<GraphicsBuffer> _activePerMeshData;
     private int _activeMeshIndexCount;
 
-    private uint _activeGlobalIndex;
-    private uint _activeViewIndex;
+    private uint _activeFrameBuffer;
+    private uint _activeViewBuffer;
+    private uint _activeInstanceBuffer;
     private uint _activeInstanceIndex;
 
     public ResourceManager ResourceManager => _resourceManager;
     public IResourceDatabase ResourceDatabase => _resourceDatabase;
 
     public int ActiveMeshIndexCount => _activeMeshIndexCount;
-
-    public ICommandBuffer CommandBuffer => _commandBuffer;
 
     internal RenderGraphContext(ResourceManager resourceManager, IResourceDatabase resourceDatabase, IPipelineLibrary pipelineLibrary, IShaderCompiler shaderCompiler, RenderGraphResourceRegistry resources)
     {
@@ -105,6 +107,11 @@ internal sealed class RenderGraphContext : IRasterRenderContext, IComputeRenderC
 
     public Handle<GPUResource> GetActualResource(Identifier<RGResource> resource)
     {
+        if (resource.IsInvalid)
+        {
+            return Handle<GPUResource>.Invalid;
+        }
+
         return _resources.GetResource(resource).backingResource;
     }
 
@@ -148,6 +155,16 @@ internal sealed class RenderGraphContext : IRasterRenderContext, IComputeRenderC
         }
 
         return GetActualBuffer(buffers[index]);
+    }
+
+    public void SetViewport(ViewportDesc desc)
+    {
+        _commandBuffer.SetViewport(desc);
+    }
+
+    public void SetScissorRect(ScissorRectDesc desc)
+    {
+        _commandBuffer.SetScissorRect(desc);
     }
 
     public void SetActiveMaterial(Handle<Material> material)
@@ -228,10 +245,15 @@ internal sealed class RenderGraphContext : IRasterRenderContext, IComputeRenderC
         _activeMeshIndexCount = mesh.IndexCount;
     }
 
-    public void SetGlobalData(uint globalIndex, uint viewIndex)
+    public void SetGlobalData(uint frameBuffer, uint viewBuffer)
     {
-        _activeGlobalIndex = globalIndex;
-        _activeViewIndex = viewIndex;
+        _activeFrameBuffer = frameBuffer;
+        _activeViewBuffer = viewBuffer;
+    }
+
+    public void SetInstanceData(uint instanceBuffer)
+    {
+        _activeInstanceBuffer = instanceBuffer;
     }
 
     public void SetInstanceIndex(uint instanceIndex)
@@ -241,14 +263,12 @@ internal sealed class RenderGraphContext : IRasterRenderContext, IComputeRenderC
 
     public unsafe void DispatchMesh(uint3 threadGroupCount)
     {
-        // TODO: Global, view, and instance constants
         var data = new PushConstantsData
         {
-            globalIndex = _activeGlobalIndex,
-            viewIndex = _activeViewIndex,
-            objectIndex = _resourceDatabase.GetBindlessIndex(_activePerMeshData.AsResource()),
+            frameBuffer = _activeFrameBuffer,
+            viewBuffer = _activeViewBuffer,
+            instanceBuffer = _activeInstanceBuffer,
             instanceIndex = _activeInstanceIndex,
-            materialIndex = _resourceDatabase.GetBindlessIndex(_activePerMaterialData.AsResource()),
         };
 
         var pushConstantSpan = new ReadOnlySpan<uint>(&data, sizeof(PushConstantsData) / sizeof(uint));
@@ -259,5 +279,11 @@ internal sealed class RenderGraphContext : IRasterRenderContext, IComputeRenderC
     public void DispatchCompute(uint3 threadGroupCount)
     {
         throw new NotImplementedException();
+    }
+
+
+    public ICommandBuffer GetCommandBufferUnsafe()
+    {
+        return _commandBuffer;
     }
 }

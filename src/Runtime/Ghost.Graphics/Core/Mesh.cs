@@ -55,6 +55,7 @@ public struct MeshletMeshData : IDisposable
     public UnsafeList<MeshletHierarchyNode> hierarchyNodes;
     public UnsafeList<uint> meshletVertices;
     public UnsafeList<uint> meshletTriangles;
+    public int meshletCount;
     public int lodLevelCount;
     public int materialSlotCount;
 
@@ -236,6 +237,8 @@ public struct Mesh : IResourceReleasable
 
         // 3. Build
         MeshletUtility.Build(config, clodMesh, Unsafe.AsPointer(ref this), MeshletOutputCallback);
+
+        _meshletData.meshletCount = _meshletData.meshlets.Count;
     }
 
     private static unsafe int MeshletOutputCallback(void* context, ClodGroup group, ReadOnlyUnsafeCollection<ClodCluster> clusters)

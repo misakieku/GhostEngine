@@ -53,7 +53,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: QueryBuilder
     path: ../src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
     startLine: 6
@@ -87,7 +87,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Query.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: .ctor
     path: ../src/Runtime/Ghost.Entities/Query.cs
     startLine: 490
@@ -116,7 +116,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Query.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Create
     path: ../src/Runtime/Ghost.Entities/Query.cs
     startLine: 504
@@ -144,7 +144,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Query.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithAll
     path: ../src/Runtime/Ghost.Entities/Query.cs
     startLine: 518
@@ -176,7 +176,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Query.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithAny
     path: ../src/Runtime/Ghost.Entities/Query.cs
     startLine: 523
@@ -208,7 +208,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Query.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithAbsent
     path: ../src/Runtime/Ghost.Entities/Query.cs
     startLine: 528
@@ -240,7 +240,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Query.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithNone
     path: ../src/Runtime/Ghost.Entities/Query.cs
     startLine: 533
@@ -272,7 +272,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Query.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithDisabled
     path: ../src/Runtime/Ghost.Entities/Query.cs
     startLine: 538
@@ -304,7 +304,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Query.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithPresent
     path: ../src/Runtime/Ghost.Entities/Query.cs
     startLine: 543
@@ -336,7 +336,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Query.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithPresentRW
     path: ../src/Runtime/Ghost.Entities/Query.cs
     startLine: 548
@@ -368,7 +368,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Query.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: BuildWithoutCache
     path: ../src/Runtime/Ghost.Entities/Query.cs
     startLine: 624
@@ -406,7 +406,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Query.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Build
     path: ../src/Runtime/Ghost.Entities/Query.cs
     startLine: 646
@@ -442,7 +442,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Query.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Clear
     path: ../src/Runtime/Ghost.Entities/Query.cs
     startLine: 679
@@ -468,7 +468,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Query.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Dispose
     path: ../src/Runtime/Ghost.Entities/Query.cs
     startLine: 690
@@ -498,7 +498,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithAll
     path: ../src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
     startLine: 12
@@ -546,7 +546,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithAllRW
     path: ../src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
     startLine: 26
@@ -594,7 +594,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithAny
     path: ../src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
     startLine: 41
@@ -642,7 +642,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithAbsent
     path: ../src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
     startLine: 55
@@ -690,7 +690,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithNone
     path: ../src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
     startLine: 69
@@ -738,7 +738,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithDisabled
     path: ../src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
     startLine: 83
@@ -786,7 +786,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithPresent
     path: ../src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
     startLine: 97
@@ -834,7 +834,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithPresentRW
     path: ../src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
     startLine: 111
@@ -882,7 +882,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithAll
     path: ../src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
     startLine: 126
@@ -931,7 +931,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithAllRW
     path: ../src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
     startLine: 142
@@ -980,7 +980,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithAny
     path: ../src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
     startLine: 160
@@ -1029,7 +1029,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithAbsent
     path: ../src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
     startLine: 176
@@ -1078,7 +1078,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithNone
     path: ../src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
     startLine: 192
@@ -1127,7 +1127,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithDisabled
     path: ../src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
     startLine: 208
@@ -1176,7 +1176,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithPresent
     path: ../src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
     startLine: 224
@@ -1225,7 +1225,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithPresentRW
     path: ../src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
     startLine: 240
@@ -1274,7 +1274,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithAll
     path: ../src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
     startLine: 258
@@ -1324,7 +1324,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithAllRW
     path: ../src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
     startLine: 276
@@ -1374,7 +1374,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithAny
     path: ../src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
     startLine: 297
@@ -1424,7 +1424,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithAbsent
     path: ../src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
     startLine: 315
@@ -1474,7 +1474,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithNone
     path: ../src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
     startLine: 333
@@ -1524,7 +1524,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithDisabled
     path: ../src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
     startLine: 351
@@ -1574,7 +1574,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithPresent
     path: ../src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
     startLine: 369
@@ -1624,7 +1624,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WithPresentRW
     path: ../src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
     startLine: 387

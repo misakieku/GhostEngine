@@ -39,7 +39,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/World.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: World
     path: ../src/Runtime/Ghost.Entities/World.cs
     startLine: 75
@@ -75,7 +75,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/World.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: WorldCount
     path: ../src/Runtime/Ghost.Entities/World.cs
     startLine: 13
@@ -104,7 +104,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/World.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Create
     path: ../src/Runtime/Ghost.Entities/World.cs
     startLine: 15
@@ -140,7 +140,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/World.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Destroy
     path: ../src/Runtime/Ghost.Entities/World.cs
     startLine: 33
@@ -172,7 +172,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/World.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetWorldUncheck
     path: ../src/Runtime/Ghost.Entities/World.cs
     startLine: 47
@@ -206,7 +206,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/World.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetWorld
     path: ../src/Runtime/Ghost.Entities/World.cs
     startLine: 63
@@ -240,7 +240,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/World.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ID
     path: ../src/Runtime/Ghost.Entities/World.cs
     startLine: 95
@@ -271,7 +271,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/World.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: JobScheduler
     path: ../src/Runtime/Ghost.Entities/World.cs
     startLine: 100
@@ -302,7 +302,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/World.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: EntityManager
     path: ../src/Runtime/Ghost.Entities/World.cs
     startLine: 105
@@ -333,7 +333,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/World.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: ComponentManager
     path: ../src/Runtime/Ghost.Entities/World.cs
     startLine: 110
@@ -364,7 +364,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/World.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: SystemManager
     path: ../src/Runtime/Ghost.Entities/World.cs
     startLine: 115
@@ -395,7 +395,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/World.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Version
     path: ../src/Runtime/Ghost.Entities/World.cs
     startLine: 120
@@ -426,7 +426,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/World.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: EntityCommandBuffer
     path: ../src/Runtime/Ghost.Entities/World.cs
     startLine: 128
@@ -458,7 +458,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/World.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Finalize
     path: ../src/Runtime/Ghost.Entities/World.cs
     startLine: 153
@@ -487,7 +487,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/World.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetThreadLocalEntityCommandBuffer
     path: ../src/Runtime/Ghost.Entities/World.cs
     startLine: 181
@@ -523,7 +523,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/World.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: AddService
     path: ../src/Runtime/Ghost.Entities/World.cs
     startLine: 195
@@ -559,7 +559,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/World.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetService
     path: ../src/Runtime/Ghost.Entities/World.cs
     startLine: 205
@@ -594,7 +594,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/World.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: HasService
     path: ../src/Runtime/Ghost.Entities/World.cs
     startLine: 220
@@ -629,7 +629,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/World.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Equals
     path: ../src/Runtime/Ghost.Entities/World.cs
     startLine: 227
@@ -669,7 +669,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/World.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: GetHashCode
     path: ../src/Runtime/Ghost.Entities/World.cs
     startLine: 232
@@ -701,7 +701,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/World.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Equals
     path: ../src/Runtime/Ghost.Entities/World.cs
     startLine: 237
@@ -740,7 +740,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/World.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: op_Equality
     path: ../src/Runtime/Ghost.Entities/World.cs
     startLine: 242
@@ -776,7 +776,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/World.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: op_Inequality
     path: ../src/Runtime/Ghost.Entities/World.cs
     startLine: 247
@@ -812,7 +812,7 @@ items:
     remote:
       path: src/Runtime/Ghost.Entities/World.cs
       branch: develop
-      repo: https://git.personalnas.com/Misaki/GhostEngine
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Dispose
     path: ../src/Runtime/Ghost.Entities/World.cs
     startLine: 252

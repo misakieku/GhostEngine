@@ -1,0 +1,1594 @@
+{
+  "source_base_path": "F:/csharp/GhostEngine/doc",
+  "xrefmap": "xrefmap.yml",
+  "files": [
+    {
+      "type": "Resource",
+      "output": {
+        "resource": {
+          "relative_path": "index.json"
+        }
+      }
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.ChunkView.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.ChunkView.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.ChunkView",
+      "Summary": "<p sourcefile=\"api/Ghost.Entities.ChunkView.yml\" sourcestartlinenumber=\"1\">Provides a read-only view over a chunk of entities and their component data within an archetype.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.ComponentManager.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.ComponentManager.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.ComponentManager",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.ComponentSet.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.ComponentSet.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.ComponentSet",
+      "Summary": "<p sourcefile=\"api/Ghost.Entities.ComponentSet.yml\" sourcestartlinenumber=\"1\">Represents an immutable set of component identifiers used to define a group of components within an entity or system.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.ComponentTypeID-1.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.ComponentTypeID-1.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.ComponentTypeID<T>",
+      "Summary": "<p sourcefile=\"api/Ghost.Entities.ComponentTypeID-1.yml\" sourcestartlinenumber=\"1\">Provides a unique identifier for the specified unmanaged component space.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.DefaultSystemGroup.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.DefaultSystemGroup.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.DefaultSystemGroup",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.Entity.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.Entity.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.Entity",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityCommandBuffer.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityCommandBuffer.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityCommandBuffer",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityManager.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityManager.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityManager",
+      "Summary": "<p sourcefile=\"api/Ghost.Entities.EntityManager.yml\" sourcestartlinenumber=\"1\">A manager for creating, destroying, and managing entities and their components.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.ChunkIterator.Enumerator.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.ChunkIterator.Enumerator.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.ChunkIterator.Enumerator",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.ChunkIterator.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.ChunkIterator.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.ChunkIterator",
+      "Summary": "<p sourcefile=\"api/Ghost.Entities.EntityQuery.ChunkIterator.yml\" sourcestartlinenumber=\"1\">Provides an enumerator for iterating over chunks of entities and their component data that match a set of archetypes within a world.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-1.Enumerator.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-1.Enumerator.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.ComponentIterator<T0>.Enumerator",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-1.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-1.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.ComponentIterator<T0>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-2.Enumerator.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-2.Enumerator.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.ComponentIterator<T0, T1>.Enumerator",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-2.QueryItem.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-2.QueryItem.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.ComponentIterator<T0, T1>.QueryItem",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-2.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-2.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.ComponentIterator<T0, T1>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-3.Enumerator.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-3.Enumerator.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2>.Enumerator",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-3.QueryItem.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-3.QueryItem.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2>.QueryItem",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-3.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-3.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-4.Enumerator.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-4.Enumerator.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3>.Enumerator",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-4.QueryItem.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-4.QueryItem.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3>.QueryItem",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-4.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-4.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-5.Enumerator.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-5.Enumerator.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4>.Enumerator",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-5.QueryItem.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-5.QueryItem.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4>.QueryItem",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-5.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-5.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-6.Enumerator.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-6.Enumerator.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5>.Enumerator",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-6.QueryItem.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-6.QueryItem.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5>.QueryItem",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-6.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-6.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-7.Enumerator.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-7.Enumerator.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.Enumerator",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-7.QueryItem.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-7.QueryItem.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-7.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-7.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-8.Enumerator.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-8.Enumerator.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>.Enumerator",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-8.QueryItem.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-8.QueryItem.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>.QueryItem",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-8.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.ComponentIterator-8.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.ComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-1.Enumerator.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-1.Enumerator.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.EntityComponentIterator<T0>.Enumerator",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-1.QueryItem.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-1.QueryItem.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.EntityComponentIterator<T0>.QueryItem",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-1.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-1.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.EntityComponentIterator<T0>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-2.Enumerator.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-2.Enumerator.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1>.Enumerator",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-2.QueryItem.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-2.QueryItem.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1>.QueryItem",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-2.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-2.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-3.Enumerator.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-3.Enumerator.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2>.Enumerator",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-3.QueryItem.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-3.QueryItem.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2>.QueryItem",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-3.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-3.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-4.Enumerator.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-4.Enumerator.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3>.Enumerator",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-4.QueryItem.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-4.QueryItem.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3>.QueryItem",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-4.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-4.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-5.Enumerator.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-5.Enumerator.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4>.Enumerator",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-5.QueryItem.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-5.QueryItem.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4>.QueryItem",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-5.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-5.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-6.Enumerator.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-6.Enumerator.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5>.Enumerator",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-6.QueryItem.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-6.QueryItem.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5>.QueryItem",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-6.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-6.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-7.Enumerator.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-7.Enumerator.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6>.Enumerator",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-7.QueryItem.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-7.QueryItem.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6>.QueryItem",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-7.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-7.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-8.Enumerator.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-8.Enumerator.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>.Enumerator",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-8.QueryItem.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-8.QueryItem.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>.QueryItem",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-8.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.EntityComponentIterator-8.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery.EntityComponentIterator<T0, T1, T2, T3, T4, T5, T6, T7>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.EntityQuery.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.EntityQuery.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.EntityQuery",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.ForEach-1.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.ForEach-1.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.ForEach<T0>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.ForEach-2.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.ForEach-2.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.ForEach<T0, T1>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.ForEach-3.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.ForEach-3.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.ForEach<T0, T1, T2>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.ForEach-4.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.ForEach-4.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.ForEach<T0, T1, T2, T3>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.ForEach-5.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.ForEach-5.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.ForEach<T0, T1, T2, T3, T4>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.ForEach-6.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.ForEach-6.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.ForEach<T0, T1, T2, T3, T4, T5>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.ForEach-7.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.ForEach-7.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.ForEach<T0, T1, T2, T3, T4, T5, T6>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.ForEach-8.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.ForEach-8.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.ForEach<T0, T1, T2, T3, T4, T5, T6, T7>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.ForEachWithEntity-1.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.ForEachWithEntity-1.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.ForEachWithEntity<T0>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.ForEachWithEntity-2.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.ForEachWithEntity-2.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.ForEachWithEntity<T0, T1>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.ForEachWithEntity-3.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.ForEachWithEntity-3.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.ForEachWithEntity<T0, T1, T2>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.ForEachWithEntity-4.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.ForEachWithEntity-4.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.ForEachWithEntity<T0, T1, T2, T3>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.ForEachWithEntity-5.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.ForEachWithEntity-5.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.ForEachWithEntity<T0, T1, T2, T3, T4>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.ForEachWithEntity-6.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.ForEachWithEntity-6.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.ForEachWithEntity<T0, T1, T2, T3, T4, T5>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.ForEachWithEntity-7.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.ForEachWithEntity-7.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.ForEachWithEntity<T0, T1, T2, T3, T4, T5, T6>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.ForEachWithEntity-8.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.ForEachWithEntity-8.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.ForEachWithEntity<T0, T1, T2, T3, T4, T5, T6, T7>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.IComponent.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.IComponent.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.IComponent",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.IEnableableComponent.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.IEnableableComponent.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.IEnableableComponent",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.IJobChunk.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.IJobChunk.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.IJobChunk",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.IJobEntity-1.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.IJobEntity-1.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.IJobEntity<T0>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.IJobEntity-2.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.IJobEntity-2.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.IJobEntity<T0, T1>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.IJobEntity-3.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.IJobEntity-3.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.IJobEntity<T0, T1, T2>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.IJobEntity-4.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.IJobEntity-4.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.IJobEntity<T0, T1, T2, T3>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.IJobEntity-5.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.IJobEntity-5.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.IJobEntity<T0, T1, T2, T3, T4>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.IJobEntity-6.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.IJobEntity-6.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.IJobEntity<T0, T1, T2, T3, T4, T5>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.IJobEntity-7.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.IJobEntity-7.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.IJobEntity<T0, T1, T2, T3, T4, T5, T6>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.IJobEntity-8.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.IJobEntity-8.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.IJobEntity<T0, T1, T2, T3, T4, T5, T6, T7>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.ISharedComponent.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.ISharedComponent.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.ISharedComponent",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.ISharedWarper.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.ISharedWarper.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.ISharedWarper",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.ISystem.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.ISystem.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.ISystem",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.ManagedEntity.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.ManagedEntity.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.ManagedEntity",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.ManagedEntityRef.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.ManagedEntityRef.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.ManagedEntityRef",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.QueryBuilder.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.QueryBuilder.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.QueryBuilder",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.RequireComponentAttribute-1.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.RequireComponentAttribute-1.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.RequireComponentAttribute<T>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.ScriptComponent.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.ScriptComponent.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.ScriptComponent",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.Shared-1.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.Shared-1.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.Shared<T>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.SystemAPI.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.SystemAPI.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.SystemAPI",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.SystemBase.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.SystemBase.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.SystemBase",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.SystemGroup.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.SystemGroup.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.SystemGroup",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.SystemGroupAttribute.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.SystemGroupAttribute.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.SystemGroupAttribute",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.SystemManager.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.SystemManager.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.SystemManager",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.TimeData.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.TimeData.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.TimeData",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.UpdateAfterAttribute.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.UpdateAfterAttribute.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.UpdateAfterAttribute",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.UpdateBeforeAttribute.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.UpdateBeforeAttribute.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.UpdateBeforeAttribute",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.World.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.World.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities.World",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Ghost.Entities.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Ghost.Entities.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Ghost.Entities",
+      "Summary": null
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "api/toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/toc.html"
+        },
+        ".json": {
+          "relative_path": "api/toc.json"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/components.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/components.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/ecs-concepts.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/ecs-concepts.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/ecs-workflows.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/ecs-workflows.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/getting-started.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/getting-started.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/performance.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/performance.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/systems.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/systems.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "docs/toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "docs/toc.html"
+        },
+        ".json": {
+          "relative_path": "docs/toc.json"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "index.md",
+      "output": {
+        ".html": {
+          "relative_path": "index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "meshlet-architecture.md",
+      "output": {
+        ".html": {
+          "relative_path": "meshlet-architecture.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "toc.html"
+        },
+        ".json": {
+          "relative_path": "toc.json"
+        }
+      },
+      "version": ""
+    }
+  ],
+  "groups": [
+    {
+      "xrefmap": "xrefmap.yml"
+    }
+  ]
+}

@@ -10,23 +10,22 @@ public static class RootSignatureLayout
     public const int ROOT_PARAMETER_COUNT = 1;
 }
 
-[StructLayout(LayoutKind.Sequential, Size = 20)]
+[StructLayout(LayoutKind.Sequential, Size = 16)]
 public struct PushConstantsData
 {
-    public uint globalIndex;
-    public uint viewIndex;
-    public uint objectIndex;
+    public const uint NUM_32BITS_VALUE = 16u / sizeof(uint);
+
+    public uint frameBuffer;
+    public uint viewBuffer;
+    public uint instanceBuffer;
     public uint instanceIndex;
-    public uint materialIndex;
 }
 
-[StructLayout(LayoutKind.Sequential, Size = 20)]
-public struct GlobalFrameData
+[StructLayout(LayoutKind.Sequential)]
+public struct FrameData
 {
     public uint viewBufferIndex;
     public uint instanceBufferIndex;
-    public uint viewBufferCount;
-    public uint instanceBufferCount;
     public uint userBufferIndex;
 }
 
@@ -34,10 +33,12 @@ public struct GlobalFrameData
 public struct InstanceData
 {
     public float4x4 localToWorld;
+    public uint meshBufferIndex;
+    public uint materialBufferIndex;
 }
 
 [StructLayout(LayoutKind.Sequential, Pack = 4)]
-public struct PerViewData
+public struct ViewData
 {
     public float4x4 viewMatrix;
     public float4x4 projectionMatrix;
@@ -49,7 +50,7 @@ public struct PerViewData
 };
 
 [StructLayout(LayoutKind.Sequential, Pack = 4)]
-public struct PerObjectData
+public struct MeshData
 {
     public float3 worldBoundsMin;
     public uint vertexBuffer;

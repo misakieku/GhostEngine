@@ -1,5 +1,5 @@
-#ifndef BUILTIN_COMMON_HLSL
-#define BUILTIN_COMMON_HLSL
+#ifndef GHOST_COMMON_HLSL
+#define GHOST_COMMON_HLSL
 
 struct Vertex
 {
@@ -104,4 +104,4 @@ static inline T LoadData(BYTE_ADDRESS_BUFFER buffer, uint index)
     return buf.Load<T>(index * sizeof(T));
 }
 
-#endif // BUILTIN_COMMON_HLSL
+#endif // GHOST_COMMON_HLSL

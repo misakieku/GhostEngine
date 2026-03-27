@@ -50,7 +50,7 @@ internal sealed class SwapChainRecord
     }
 }
 
-internal class SwapChainManager
+internal class SwapChainManager : IDisposable
 {
     public const int MAX_SWAP_CHAINS = 8;
     private readonly IGraphicsEngine _graphicsEngine;
@@ -113,6 +113,61 @@ internal class SwapChainManager
         {
             record.SwapChain.Dispose();
             Interlocked.CompareExchange(ref _swapChains[index], null, record);
+        }
+    }
+    
+    public void TransitionToPresent(ICommandBuffer commandBuffer)
+    {
+        for (int i = 0; i < MAX_SWAP_CHAINS; i++)
+        {
+            var record = Volatile.Read(ref _swapChains[i]);
+            if (record == null)
+            {
+                continue;
+            }
+
+            commandBuffer.Barrier(BarrierDesc.Texture(record.SwapChain.GetCurrentBackBuffer().AsResource(),
+                null, BarrierSync.None,
+                null, BarrierAccess.NoAccess,
+                null, BarrierLayout.Present));
+        }
+    }
+
+    public void Present(int index, ICommandBuffer commandBuffer)
+    {
+        var record = Volatile.Read(ref _swapChains[index]);
+        if (record == null)
+        {
+            return;
+        }
+
+        record.SwapChain.Present();
+    }
+
+    public void PresentAll(ICommandBuffer commandBuffer)
+    {
+        for (int i = 0; i < MAX_SWAP_CHAINS; i++)
+        {
+            var record = Volatile.Read(ref _swapChains[i]);
+            if (record == null)
+            {
+                continue;
+            }
+
+            record?.SwapChain.Present();
+        }
+    }
+
+    public void Dispose()
+    {
+        for (int i = 0; i < MAX_SWAP_CHAINS; i++)
+        {
+            var record = Volatile.Read(ref _swapChains[i]);
+            if (record != null)
+            {
+                record.SwapChain.Dispose();
+                Interlocked.CompareExchange(ref _swapChains[i], null, record);
+            }
         }
     }
 }
