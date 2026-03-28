@@ -389,18 +389,40 @@ public sealed partial class DockLayout : Control
             return;
         }
 
+        if (_currentDropPosition == DockPosition.None)
+        {
+            ClearDragOperationState();
+            return;
+        }
+
         if (_sourceNode == targetNode && _currentDropPosition == DockPosition.Center)
         {
             ClearDragOperationState();
             return; // Reordering within same tab is handled natively by TabView
         }
 
-        // 1. Remove from source
+        // 1. Validate target for split
+        if (_currentDropPosition != DockPosition.Center && targetNode.Parent == null)
+        {
+            // If target has no parent, it must be the root (or wrapped in root).
+            // We can't split it without a parent group unless we wrap it.
+            if (ReferenceEquals(targetNode, Root) || (Root?.Children.Count == 1 && ReferenceEquals(Root.Children[0], targetNode)))
+            {
+                // This is allowed, we'll handle it by wrapping in a new group if needed
+            }
+            else
+            {
+                ClearDragOperationState();
+                return;
+            }
+        }
+
+        // 2. Remove from source
         _sourceNode.Items.Remove(_draggedItem);
         var sourceNodeCopy = _sourceNode; // Keep reference for cleanup
         CleanupEmptyNodes(sourceNodeCopy);
 
-        // 2. Add to target
+        // 3. Add to target
         if (_currentDropPosition == DockPosition.Center)
         {
             targetNode.Items.Add(_draggedItem);
@@ -408,12 +430,45 @@ public sealed partial class DockLayout : Control
         else
         {
             // Split scenario
+            bool isHorizontalSplit = _currentDropPosition == DockPosition.Left || _currentDropPosition == DockPosition.Right;
+            bool isAfter = _currentDropPosition == DockPosition.Right || _currentDropPosition == DockPosition.Bottom;
+
             var parentGroup = targetNode.Parent;
-            if (parentGroup != null)
+            if (parentGroup == null)
+            {
+                // Target is root or only child of root. Wrap it.
+                var newRoot = new DockGroupNode
+                {
+                    Orientation = isHorizontalSplit ? Orientation.Horizontal : Orientation.Vertical
+                };
+
+                var newNode = new DockPanelNode();
+                newNode.Items.Add(_draggedItem);
+
+            if (ReferenceEquals(targetNode, Root))
+            {
+                Root = newRoot;
+            }
+            else if (Root != null && Root.Children.Count == 1 && ReferenceEquals(Root.Children[0], targetNode))
+            {
+                Root.RemoveChild(targetNode);
+                Root.AddChild(newRoot);
+            }
+
+                if (isAfter)
+                {
+                    newRoot.AddChild(targetNode);
+                    newRoot.AddChild(newNode);
+                }
+                else
+                {
+                    newRoot.AddChild(newNode);
+                    newRoot.AddChild(targetNode);
+                }
+            }
+            else
             {
                 int targetIndex = parentGroup.Children.IndexOf(targetNode);
-                bool isHorizontalSplit = _currentDropPosition == DockPosition.Left || _currentDropPosition == DockPosition.Right;
-                bool isAfter = _currentDropPosition == DockPosition.Right || _currentDropPosition == DockPosition.Bottom;
 
                 if ((isHorizontalSplit && parentGroup.Orientation == Orientation.Horizontal) ||
                     (!isHorizontalSplit && parentGroup.Orientation == Orientation.Vertical))
@@ -455,44 +510,46 @@ public sealed partial class DockLayout : Control
         ClearDragOperationState();
     }
 
-    private void CleanupEmptyNodes(DockPanelNode panelNode)
+    private void CleanupEmptyNodes(DockNode node)
     {
-        if (panelNode.Items.Count > 0) return;
+        if (node is DockPanelNode panelNode && panelNode.Items.Count > 0) return;
+        if (node is DockGroupNode groupNode && groupNode.Children.Count > 0 && groupNode.Children.Count != 1) return;
 
-        var parentGroup = panelNode.Parent;
-        if (parentGroup != null)
+        var parentGroup = node.Parent;
+        
+        // Handle collapsing group with 1 child
+        if (node is DockGroupNode collapsingGroup && collapsingGroup.Children.Count == 1)
         {
-            parentGroup.RemoveChild(panelNode);
-            
-            // If group only has 1 child left, collapse it
-            if (parentGroup.Children.Count == 1)
+            var onlyChild = collapsingGroup.Children[0];
+            if (parentGroup != null)
             {
-                var onlyChild = parentGroup.Children[0];
-                var grandParent = parentGroup.Parent;
-                
-                if (grandParent != null)
+                int groupIndex = parentGroup.Children.IndexOf(collapsingGroup);
+                parentGroup.RemoveChild(collapsingGroup);
+                parentGroup.InsertChild(groupIndex, onlyChild);
+                CleanupEmptyNodes(parentGroup); // Recursively clean parent
+            }
+            else if (collapsingGroup == Root)
+            {
+                collapsingGroup.RemoveChild(onlyChild);
+                if (onlyChild is DockGroupNode newRootGroup)
                 {
-                    int groupIndex = grandParent.Children.IndexOf(parentGroup);
-                    grandParent.RemoveChild(parentGroup);
-                    grandParent.InsertChild(groupIndex, onlyChild);
+                    Root = newRootGroup;
                 }
-                else if (parentGroup == Root)
+                else
                 {
-                    // If root is collapsing, the only child becomes the new root
-                    parentGroup.RemoveChild(onlyChild);
-                    if (onlyChild is DockGroupNode newRootGroup)
-                    {
-                        Root = newRootGroup;
-                    }
-                    else
-                    {
-                        // Wrap panel in a new group to keep Root as a GroupNode
-                        var wrapperGroup = new DockGroupNode();
-                        wrapperGroup.AddChild(onlyChild);
-                        Root = wrapperGroup;
-                    }
+                    var wrapperGroup = new DockGroupNode();
+                    wrapperGroup.AddChild(onlyChild);
+                    Root = wrapperGroup;
                 }
             }
+            return;
+        }
+
+        // Handle empty node (Panel or Group)
+        if (parentGroup != null)
+        {
+            parentGroup.RemoveChild(node);
+            CleanupEmptyNodes(parentGroup); // Recursively clean parent
         }
     }
 
