@@ -401,145 +401,19 @@ public sealed partial class DockLayout : Control
             return; // Reordering within same tab is handled natively by TabView
         }
 
-        // 1. Execute mutation
-        if (TryApplyDropMutation(targetNode, _sourceNode, _draggedItem, _currentDropPosition))
+        if (Root == null)
         {
-            CleanupEmptyNodes(_sourceNode);
-        }
-
-        ClearDragOperationState();
-    }
-
-    /// <summary>
-    /// Applies the tree mutation for a drop operation.
-    /// </summary>
-    /// <returns>True if the mutation was applied; otherwise, false.</returns>
-    internal bool TryApplyDropMutation(DockPanelNode targetNode, DockPanelNode sourceNode, object item, DockPosition position)
-    {
-        if (position == DockPosition.Center)
-        {
-            if (!sourceNode.Items.Remove(item)) return false;
-            targetNode.Items.Add(item);
-            return true;
-        }
-
-        // Split scenario
-        bool isHorizontalSplit = position == DockPosition.Left || position == DockPosition.Right;
-        bool isAfter = position == DockPosition.Right || position == DockPosition.Bottom;
-
-        var parentGroup = targetNode.Parent;
-        if (parentGroup == null)
-        {
-            // Target is root or only child of root.
-            // In a valid tree, a Panel must have a parent Group (Root is always a Group).
-            if (Root == null) return false;
-
-            if (Root.Children.Count == 1 && ReferenceEquals(Root.Children[0], targetNode))
-            {
-                if (!sourceNode.Items.Remove(item)) return false;
-
-                var newGroup = new DockGroupNode
-                {
-                    Orientation = isHorizontalSplit ? Orientation.Horizontal : Orientation.Vertical
-                };
-
-                var newNode = new DockPanelNode();
-                newNode.Items.Add(item);
-
-                Root.RemoveChild(targetNode);
-                Root.AddChild(newGroup);
-
-                if (isAfter)
-                {
-                    newGroup.AddChild(targetNode);
-                    newGroup.AddChild(newNode);
-                }
-                else
-                {
-                    newGroup.AddChild(newNode);
-                    newGroup.AddChild(targetNode);
-                }
-                return true;
-            }
-            return false;
-        }
-
-        int targetIndex = parentGroup.Children.IndexOf(targetNode);
-        if (targetIndex < 0) return false;
-
-        if (!sourceNode.Items.Remove(item)) return false;
-
-        if ((isHorizontalSplit && parentGroup.Orientation == Orientation.Horizontal) ||
-            (!isHorizontalSplit && parentGroup.Orientation == Orientation.Vertical))
-        {
-            var newNode = new DockPanelNode();
-            newNode.Items.Add(item);
-            parentGroup.InsertChild(isAfter ? targetIndex + 1 : targetIndex, newNode);
-        }
-        else
-        {
-            parentGroup.RemoveChild(targetNode);
-            
-            var newGroup = new DockGroupNode
-            {
-                Orientation = isHorizontalSplit ? Orientation.Horizontal : Orientation.Vertical
-            };
-            
-            var newNode = new DockPanelNode();
-            newNode.Items.Add(item);
-
-            if (isAfter)
-            {
-                newGroup.AddChild(targetNode);
-                newGroup.AddChild(newNode);
-            }
-            else
-            {
-                newGroup.AddChild(newNode);
-                newGroup.AddChild(targetNode);
-            }
-
-            parentGroup.InsertChild(targetIndex, newGroup);
-        }
-
-        return true;
-    }
-
-    private void CleanupEmptyNodes(DockNode node)
-    {
-        if (node is DockPanelNode panelNode && panelNode.Items.Count > 0) return;
-        
-        var parentGroup = node.Parent;
-        if (parentGroup == null) return;
-
-        // If it's an empty panel, remove it
-        if (node is DockPanelNode emptyPanel && emptyPanel.Items.Count == 0)
-        {
-            parentGroup.RemoveChild(emptyPanel);
-            CleanupEmptyNodes(parentGroup);
+            ClearDragOperationState();
             return;
         }
 
-        // If it's a group with 0 or 1 children, collapse it
-        if (node is DockGroupNode group)
+        // 1. Execute mutation
+        if (DockMutationEngine.TryApplyDropMutation(Root, targetNode, _sourceNode, _draggedItem, _currentDropPosition))
         {
-            if (group.Children.Count == 0)
-            {
-                parentGroup.RemoveChild(group);
-                CleanupEmptyNodes(parentGroup);
-            }
-            else if (group.Children.Count == 1)
-            {
-                var onlyChild = group.Children[0];
-                int index = parentGroup.Children.IndexOf(group);
-                if (index >= 0)
-                {
-                    parentGroup.RemoveChild(group);
-                    parentGroup.InsertChild(index, onlyChild);
-                    CleanupEmptyNodes(parentGroup);
-                }
-            }
+            DockMutationEngine.CleanupEmptyNodes(_sourceNode);
         }
+
+        ClearDragOperationState();
     }
 
 

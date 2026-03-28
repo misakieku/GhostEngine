@@ -18,11 +18,9 @@ public class DockingMutationTest
         root.AddChild(panel1);
         root.AddChild(panel2);
 
-        // Simulate Center Drop: panel1 -> panel2
-        bool removed = panel1.Items.Remove(item);
-        Assert.IsTrue(removed);
-        panel2.Items.Add(item);
+        bool result = DockMutationEngine.TryApplyDropMutation(root, panel2, panel1, item, DockPosition.Center);
 
+        Assert.IsTrue(result);
         Assert.IsEmpty(panel1.Items);
         Assert.HasCount(1, panel2.Items);
         Assert.AreEqual(item, panel2.Items[0]);
@@ -38,26 +36,19 @@ public class DockingMutationTest
         panel1.Items.Add(item);
         root.AddChild(panel1);
 
-        // Simulate Vertical Split Drop (Bottom) on panel1
-        // 1. Remove from source
-        bool removed = panel1.Items.Remove(item);
-        Assert.IsTrue(removed);
-        
-        // 2. Different orientation (Vertical), replace panel1 with new group
-        root.RemoveChild(panel1);
-        var newGroup = new DockGroupNode { Orientation = Microsoft.UI.Xaml.Controls.Orientation.Vertical };
-        var newNode = new DockPanelNode();
-        newNode.Items.Add(item);
-        
-        newGroup.AddChild(panel1); // Original
-        newGroup.AddChild(newNode); // New split
-        root.AddChild(newGroup);
+        // Vertical Split Drop (Bottom) on panel1
+        bool result = DockMutationEngine.TryApplyDropMutation(root, panel1, panel1, item, DockPosition.Bottom);
 
+        Assert.IsTrue(result);
         Assert.HasCount(1, root.Children);
-        Assert.AreEqual(newGroup, root.Children[0]);
+        var newGroup = root.Children[0] as DockGroupNode;
+        Assert.IsNotNull(newGroup);
+        Assert.AreEqual(Microsoft.UI.Xaml.Controls.Orientation.Vertical, newGroup.Orientation);
         Assert.HasCount(2, newGroup.Children);
         Assert.AreEqual(panel1, newGroup.Children[0]);
-        Assert.AreEqual(newNode, newGroup.Children[1]);
+        var newNode = newGroup.Children[1] as DockPanelNode;
+        Assert.IsNotNull(newNode);
+        Assert.HasCount(1, newNode.Items);
         Assert.AreEqual(item, newNode.Items[0]);
     }
 
@@ -74,15 +65,7 @@ public class DockingMutationTest
         // panel1 becomes empty
         panel1.Items.Clear();
         
-        // Simulate CleanupEmptyNodes(panel1)
-        // 1. panel1 is empty, remove from group1
-        group1.RemoveChild(panel1);
-        
-        // 2. group1 is now empty, remove from root
-        if (group1.Children.Count == 0)
-        {
-            root.RemoveChild(group1);
-        }
+        DockMutationEngine.CleanupEmptyNodes(panel1);
 
         Assert.IsEmpty(root.Children);
         Assert.IsNull(group1.Parent);
@@ -104,17 +87,7 @@ public class DockingMutationTest
         // panel2 is removed
         group1.RemoveChild(panel2);
         
-        // group1 now has only 1 child (panel1), should collapse
-        if (group1.Children.Count == 1)
-        {
-            var onlyChild = group1.Children[0];
-            var parent = group1.Parent;
-            Assert.IsNotNull(parent);
-            int index = parent.Children.IndexOf(group1);
-            
-            parent.RemoveChild(group1);
-            parent.InsertChild(index, onlyChild);
-        }
+        DockMutationEngine.CleanupEmptyNodes(group1);
 
         Assert.HasCount(1, root.Children);
         Assert.AreEqual(panel1, root.Children[0]);

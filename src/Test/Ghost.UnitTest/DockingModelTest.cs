@@ -206,6 +206,24 @@ public class DockingModelTest
     }
 
     [TestMethod]
+    public void TestInsertChild_ExistingChild_AtCount_Clamps()
+    {
+        var group = new DockGroupNode();
+        var child1 = new DockPanelNode();
+        var child2 = new DockPanelNode();
+
+        group.AddChild(child1);
+        group.AddChild(child2);
+
+        // Move child1 to index 2 (Count). Should clamp to 1.
+        group.InsertChild(2, child1);
+        
+        Assert.HasCount(2, group.Children);
+        Assert.AreEqual(child2, group.Children[0]);
+        Assert.AreEqual(child1, group.Children[1]);
+    }
+
+    [TestMethod]
     public void TestPanel_SetInvalidSelectedItem_ResetsSelection()
     {
         var panel = new DockPanelNode();

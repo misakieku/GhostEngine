@@ -3,7 +3,7 @@ namespace Ghost.Editor.Core.Controls.Internal.Docking;
 /// <summary>
 /// Defines the possible dock positions for a drop operation.
 /// </summary>
-internal enum DockPosition
+public enum DockPosition
 {
     Center,
     Top,
@@ -16,7 +16,7 @@ internal enum DockPosition
 /// <summary>
 /// Helper class for docking-related calculations.
 /// </summary>
-internal static class DockMath
+public static class DockMath
 {
     /// <summary>
     /// Calculates the dock position based on the relative position within a target element.
