@@ -15,10 +15,14 @@ namespace Ghost.Editor.View.Controls;
 public sealed partial class DockLayout : Control
 {
     private const string PART_ROOT_GRID = "PART_RootGrid";
+    private const string PART_DROP_TARGET_OVERLAY = "PART_DropTargetOverlay";
     private const double MIN_PANE_SIZE = 100;
     private const double SPLITTER_THICKNESS = 4;
 
+    private Border? _dropTargetOverlay;
     private readonly HashSet<DockNode> _subscribedNodes = new();
+
+    public enum DockPosition { Center, Top, Bottom, Left, Right, None }
 
     public DockLayout()
     {
@@ -287,6 +291,7 @@ public sealed partial class DockLayout : Control
     protected override void OnApplyTemplate()
     {
         base.OnApplyTemplate();
+        _dropTargetOverlay = GetTemplateChild(PART_DROP_TARGET_OVERLAY) as Border;
         RenderTree();
     }
 }

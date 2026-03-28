@@ -7,7 +7,15 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:DockLayout">
-                    <Grid x:Name="PART_RootGrid" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" />
+                    <Grid>
+                        <Grid x:Name="PART_RootGrid" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" />
+                        <Border x:Name="PART_DropTargetOverlay" 
+                                Background="#660078D4" 
+                                BorderBrush="#FF0078D4" 
+                                BorderThickness="2" 
+                                Visibility="Collapsed" 
+                                IsHitTestVisible="False" />
+                    </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
