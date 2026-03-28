@@ -16,7 +16,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Editor\Ghost.Editor.Core\Ghost.Editor.Core.csproj" />
-    <ProjectReference Include="..\..\Editor\Ghost.Editor\Ghost.Editor.csproj" />
   </ItemGroup>
 
   <ItemGroup>
