@@ -11,11 +11,27 @@ public sealed partial class DockLayout
     {
         if (GetTemplateChild(PART_ROOT_GRID) is Grid rootGrid)
         {
+            DisconnectUI(rootGrid);
             rootGrid.Children.Clear();
             if (Root != null)
             {
                 var ui = CreateUIForNode(Root);
                 rootGrid.Children.Add(ui);
+            }
+        }
+    }
+
+    private void DisconnectUI(UIElement element)
+    {
+        if (element is Ghost.Editor.Controls.NavigationTabView tabView)
+        {
+            tabView.TabItemsSource = null;
+        }
+        else if (element is Panel panel)
+        {
+            foreach (var child in panel.Children)
+            {
+                DisconnectUI(child);
             }
         }
     }
