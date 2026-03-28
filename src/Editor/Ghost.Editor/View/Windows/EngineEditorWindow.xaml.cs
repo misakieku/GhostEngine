@@ -5,6 +5,7 @@ using Ghost.Editor.Core.Services;
 using Ghost.Editor.Core.Controls.Internal.Docking;
 using Ghost.Editor.View.Controls;
 using Ghost.Editor.ViewModels.Windows;
+using Microsoft.UI.Xaml;
 using Windows.ApplicationModel;
 using WinUIEx;
 

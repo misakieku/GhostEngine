@@ -442,8 +442,14 @@ public sealed partial class DockLayout : Control
 
                     var result = TabTearOffService.TryTearOffTab(sourceNode.Items, args.Item, (tab) =>
                     {
+                        var handler = TabTornOff;
+                        if (handler == null)
+                        {
+                            throw new InvalidOperationException("No tear-off handler attached.");
+                        }
+
                         // Raise event to let the host handle window creation
-                        TabTornOff.Invoke(this, new TabTornOffEventArgs(tab, sourceNode));
+                        handler.Invoke(this, new TabTornOffEventArgs(tab, sourceNode));
                     }, sourceNode);
 
                     if (result.IsSuccess)

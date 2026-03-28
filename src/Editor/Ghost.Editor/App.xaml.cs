@@ -72,7 +72,6 @@ public partial class App : Application
                 app._secondaryWindows.Remove(newWindow);
             }
             newWindow.Close();
-            Logger.LogError(ex);
             throw;
         }
     }
