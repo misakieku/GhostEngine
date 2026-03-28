@@ -61,6 +61,9 @@ public class DockPanel : DockContainer
             }
             else if (Root != null && Root.RootPanel == this)
             {
+                // We only collapse the root panel if the child is also a DockPanel 
+                // because DockingLayout.RootPanel is strongly typed as DockPanel, 
+                // so we can't assign a DockGroup to it directly.
                 if (child is DockPanel childPanel)
                 {
                     RemoveChildInternal(childPanel, false);

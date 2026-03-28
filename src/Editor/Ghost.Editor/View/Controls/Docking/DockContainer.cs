@@ -102,12 +102,10 @@ public abstract class DockContainer : DockModule
         // Detach newChild from its current owner if any
         if (newChild.Owner == this)
         {
-            newChild.Owner.RemoveChildInternal(newChild, false);
+            throw new ArgumentException("newChild is already in this container", nameof(newChild));
         }
-        else
-        {
-            newChild.Owner?.RemoveChild(newChild);
-        }
+        
+        newChild.Owner?.RemoveChild(newChild);
 
         // Remove oldChild without triggering cleanup
         _isCleaningUp = true;
