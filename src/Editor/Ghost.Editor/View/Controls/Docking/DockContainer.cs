@@ -40,6 +40,7 @@ public abstract class DockContainer : DockModule
     /// </summary>
     /// <remarks>
     /// This method does not support reordering existing children within the same container.
+    /// Cross-layout moves are intentionally allowed and supported (e.g., for dragging tabs between floating windows and the main window).
     /// </remarks>
     /// <param name="index">The zero-based index at which the module should be inserted.</param>
     /// <param name="module">The module to insert.</param>
@@ -90,6 +91,9 @@ public abstract class DockContainer : DockModule
     /// <summary>
     /// Replaces an existing child module with a new one.
     /// </summary>
+    /// <remarks>
+    /// Cross-layout moves are intentionally allowed and supported (e.g., for dragging tabs between floating windows and the main window).
+    /// </remarks>
     /// <param name="oldChild">The child module to be replaced.</param>
     /// <param name="newChild">The new child module to insert.</param>
     public virtual void ReplaceChild(DockModule oldChild, DockModule newChild)
@@ -110,7 +114,8 @@ public abstract class DockContainer : DockModule
         {
             throw new ArgumentException("newChild is already in this container", nameof(newChild));
         }
-        
+
+        var oldOwner = newChild.Owner;
         newChild.Owner?.RemoveChildInternal(newChild, false);
 
         // Remove oldChild without triggering cleanup
@@ -131,6 +136,7 @@ public abstract class DockContainer : DockModule
         }
 
         CheckCleanup();
+        oldOwner?.CheckCleanup();
     }
 
     /// <summary>
