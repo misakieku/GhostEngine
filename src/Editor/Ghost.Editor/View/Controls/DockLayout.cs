@@ -177,30 +177,47 @@ public sealed partial class DockLayout : Control
         if (node is DockGroupNode groupNode)
         {
             var grid = new Grid();
-            var children = groupNode.Children;
+            bool isHorizontal = groupNode.Orientation == Orientation.Horizontal;
+            int childCount = groupNode.Children.Count;
 
-            for (int i = 0; i < children.Count; i++)
+            for (int i = 0; i < childCount; i++)
             {
-                if (groupNode.Orientation == Orientation.Horizontal)
+                var childNode = groupNode.Children[i];
+                var childUI = CreateUIForNode(childNode);
+
+                if (isHorizontal)
                 {
                     grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                    Grid.SetColumn((FrameworkElement)childUI, i * 2);
                 }
                 else
                 {
                     grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                    Grid.SetRow((FrameworkElement)childUI, i * 2);
                 }
-
-                var childUI = CreateUIForNode(children[i]);
-                if (groupNode.Orientation == Orientation.Horizontal)
-                {
-                    Grid.SetColumn((FrameworkElement)childUI, i);
-                }
-                else
-                {
-                    Grid.SetRow((FrameworkElement)childUI, i);
-                }
+                
                 grid.Children.Add(childUI);
+
+                // Add GridSplitter between children
+                if (i < childCount - 1)
+                {
+                    if (isHorizontal)
+                    {
+                        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                        var splitter = new CommunityToolkit.WinUI.Controls.GridSplitter { Width = 4, HorizontalAlignment = HorizontalAlignment.Center, ResizeDirection = CommunityToolkit.WinUI.Controls.GridSplitter.GridResizeDirection.Columns };
+                        Grid.SetColumn(splitter, (i * 2) + 1);
+                        grid.Children.Add(splitter);
+                    }
+                    else
+                    {
+                        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                        var splitter = new CommunityToolkit.WinUI.Controls.GridSplitter { Height = 4, VerticalAlignment = VerticalAlignment.Center, ResizeDirection = CommunityToolkit.WinUI.Controls.GridSplitter.GridResizeDirection.Rows };
+                        Grid.SetRow(splitter, (i * 2) + 1);
+                        grid.Children.Add(splitter);
+                    }
+                }
             }
+
             return grid;
         }
         else if (node is DockPanelNode panelNode)
@@ -209,9 +226,12 @@ public sealed partial class DockLayout : Control
             { 
                 TabItemsSource = panelNode.Items,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                VerticalAlignment = VerticalAlignment.Stretch
+                VerticalAlignment = VerticalAlignment.Stretch,
+                CanDragTabs = true,
+                AllowDrop = true,
+                Tag = panelNode // Store reference to data node
             };
-
+            
             // Bind selection state using TabView DPs
             tabView.SetBinding(TabView.SelectedIndexProperty, new Binding
             {
@@ -229,7 +249,7 @@ public sealed partial class DockLayout : Control
 
             return tabView;
         }
-
+        
         Debug.Fail($"Unsupported node type: {node.GetType().Name}");
         return new Grid(); // Fallback
     }
