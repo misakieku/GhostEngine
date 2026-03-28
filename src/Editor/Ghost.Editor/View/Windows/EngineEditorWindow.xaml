@@ -79,10 +79,12 @@
                 </Grid.ColumnDefinitions>
 
                 <ghost:NavigationTabView
+                    x:Name="PART_HierarchyTabView"
                     Grid.Column="0"
                     Width="350"
                     HorizontalAlignment="Stretch"
-                    VerticalAlignment="Stretch">
+                    VerticalAlignment="Stretch"
+                    TabDroppedOutside="OnTabDroppedOutside">
                     <ghost:NavigationTabView.TabItems>
                         <TabViewItem Header="Hierarchy">
                             <TabViewItem.IconSource>
@@ -93,7 +95,10 @@
                     </ghost:NavigationTabView.TabItems>
                 </ghost:NavigationTabView>
 
-                <ghost:NavigationTabView Grid.Column="1">
+                <ghost:NavigationTabView 
+                    x:Name="PART_SceneTabView"
+                    Grid.Column="1"
+                    TabDroppedOutside="OnTabDroppedOutside">
                     <ghost:NavigationTabView.TabItems>
                         <ee:ScenePage Header="Scene">
                             <ee:ScenePage.IconSource>
@@ -104,10 +109,12 @@
                 </ghost:NavigationTabView>
 
                 <ghost:NavigationTabView
+                    x:Name="PART_InspectorTabView"
                     Grid.Column="2"
                     Width="350"
                     HorizontalAlignment="Stretch"
-                    VerticalAlignment="Stretch">
+                    VerticalAlignment="Stretch"
+                    TabDroppedOutside="OnTabDroppedOutside">
                     <ghost:NavigationTabView.TabItems>
                         <ee:InspectorPage Header="Inspector">
                             <ee:InspectorPage.IconSource>
@@ -118,7 +125,11 @@
                 </ghost:NavigationTabView>
             </Grid>
 
-            <ghost:NavigationTabView Grid.Row="1" Height="350">
+            <ghost:NavigationTabView 
+                x:Name="PART_BottomTabView"
+                Grid.Row="1" 
+                Height="350"
+                TabDroppedOutside="OnTabDroppedOutside">
                 <ghost:NavigationTabView.TabItems>
                     <TabViewItem Header="Project">
                         <TabViewItem.IconSource>

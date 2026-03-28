@@ -35,17 +35,19 @@ internal sealed partial class EngineEditorWindow : WindowEx
 
         SetTitleBar(PART_TitleBar);
         this.CenterOnScreen();
-
-        // Note: DockLayout is not directly in the XAML but created by RenderTree.
-        // However, we can subscribe to the event if we find it or if it's exposed.
-        // Since DockLayout is a TemplatePart or child of a Grid, we might need to wait for it.
     }
 
-    private void OnTabTornOff(object? sender, TabTornOffEventArgs e)
+    private void OnTabDroppedOutside(Microsoft.UI.Xaml.Controls.TabView sender, Microsoft.UI.Xaml.Controls.TabViewTabDroppedOutsideEventArgs args)
     {
-        var newWindow = new DockWindow(e.TabContent);
-        App.AddSecondaryWindow(newWindow);
-        newWindow.Activate();
+        // For static tabs in EngineEditorWindow, we remove the item from TabItems
+        if (sender.TabItems.Contains(args.Item))
+        {
+            sender.TabItems.Remove(args.Item);
+            
+            var newWindow = new DockWindow(args.Item);
+            App.AddSecondaryWindow(newWindow);
+            newWindow.Activate();
+        }
     }
 
     private void MainGrid_Loaded(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)

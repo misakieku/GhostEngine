@@ -299,23 +299,32 @@ public sealed partial class DockLayout : Control
 
     private void TabView_TabDroppedOutside(Microsoft.UI.Xaml.Controls.TabView sender, Microsoft.UI.Xaml.Controls.TabViewTabDroppedOutsideEventArgs args)
     {
-        if (_sourceNode != null && _draggedItem != null)
+        if (_sourceNode != null && _draggedItem != null && TabTornOff != null)
         {
+            int originalIndex = _sourceNode.Items.IndexOf(_draggedItem);
+            if (originalIndex == -1)
+            {
+                ClearDragOperationState();
+                return;
+            }
+
             // Remove from current tree
             if (_sourceNode.Items.Remove(_draggedItem))
             {
-                DockMutationEngine.CleanupEmptyNodes(_sourceNode);
-
                 try
                 {
                     // Raise event to let the host handle window creation
-                    TabTornOff?.Invoke(this, new TabTornOffEventArgs(_draggedItem));
+                    TabTornOff.Invoke(this, new TabTornOffEventArgs(_draggedItem));
+                    
+                    // Only cleanup if the tear-off was successful (didn't throw)
+                    DockMutationEngine.CleanupEmptyNodes(_sourceNode);
                 }
                 catch (Exception ex)
                 {
-                    // Rollback: Re-insert the item if the tear-off handler fails
-                    _sourceNode.Items.Add(_draggedItem);
-                    Logger.LogError($"Failed to tear off tab: {ex.Message}");
+                    // Rollback: Re-insert the item at original position if the tear-off handler fails
+                    _sourceNode.Items.Insert(originalIndex, _draggedItem);
+                    _sourceNode.SelectedItem = _draggedItem;
+                    Logger.LogError(ex);
                 }
             }
 
