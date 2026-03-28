@@ -4,9 +4,12 @@ using CommunityToolkit.WinUI.Controls;
 
 namespace Ghost.Editor.View.Controls.Docking;
 
-[TemplatePart(Name = "PART_Grid", Type = typeof(Grid))]
+[TemplatePart(Name = PART_GRID, Type = typeof(Grid))]
 public class DockPanel : DockContainer
 {
+    private const string PART_GRID = "PART_Grid";
+    private const double SPLITTER_THICKNESS = 4;
+
     public static readonly DependencyProperty OrientationProperty = DependencyProperty.Register(
         nameof(Orientation), typeof(Orientation), typeof(DockPanel), new PropertyMetadata(Orientation.Horizontal, OnOrientationChanged));
 
@@ -26,7 +29,7 @@ public class DockPanel : DockContainer
     protected override void OnApplyTemplate()
     {
         base.OnApplyTemplate();
-        _grid = GetTemplateChild("PART_Grid") as Grid;
+        _grid = GetTemplateChild(PART_GRID) as Grid;
         UpdateLayoutStructure();
     }
 
@@ -62,7 +65,7 @@ public class DockPanel : DockContainer
                 if (i < Children.Count - 1)
                 {
                     _grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                    var splitter = new GridSplitter { ResizeDirection = GridSplitter.GridResizeDirection.Columns, Width = 4 };
+                    var splitter = new GridSplitter { ResizeDirection = GridSplitter.GridResizeDirection.Columns, Width = SPLITTER_THICKNESS };
                     Grid.SetColumn(splitter, i * 2 + 1);
                     _grid.Children.Add(splitter);
                 }
@@ -80,7 +83,7 @@ public class DockPanel : DockContainer
                 if (i < Children.Count - 1)
                 {
                     _grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                    var splitter = new GridSplitter { ResizeDirection = GridSplitter.GridResizeDirection.Rows, Height = 4 };
+                    var splitter = new GridSplitter { ResizeDirection = GridSplitter.GridResizeDirection.Rows, Height = SPLITTER_THICKNESS };
                     Grid.SetRow(splitter, i * 2 + 1);
                     _grid.Children.Add(splitter);
                 }
