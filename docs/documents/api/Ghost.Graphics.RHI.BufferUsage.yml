@@ -1,0 +1,373 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.BufferUsage
+  commentId: T:Ghost.Graphics.RHI.BufferUsage
+  id: BufferUsage
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.BufferUsage.Constant
+  - Ghost.Graphics.RHI.BufferUsage.Index
+  - Ghost.Graphics.RHI.BufferUsage.IndirectArgument
+  - Ghost.Graphics.RHI.BufferUsage.None
+  - Ghost.Graphics.RHI.BufferUsage.Raw
+  - Ghost.Graphics.RHI.BufferUsage.Readback
+  - Ghost.Graphics.RHI.BufferUsage.ShaderResource
+  - Ghost.Graphics.RHI.BufferUsage.Structured
+  - Ghost.Graphics.RHI.BufferUsage.UnorderedAccess
+  - Ghost.Graphics.RHI.BufferUsage.Upload
+  - Ghost.Graphics.RHI.BufferUsage.Vertex
+  langs:
+  - csharp
+  - vb
+  name: BufferUsage
+  nameWithType: BufferUsage
+  fullName: Ghost.Graphics.RHI.BufferUsage
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: BufferUsage
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1292
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: >-
+      [Flags]
+
+      public enum BufferUsage
+    content.vb: >-
+      <Flags>
+
+      Public Enum BufferUsage
+  attributes:
+  - type: System.FlagsAttribute
+    ctor: System.FlagsAttribute.#ctor
+    arguments: []
+- uid: Ghost.Graphics.RHI.BufferUsage.None
+  commentId: F:Ghost.Graphics.RHI.BufferUsage.None
+  id: None
+  parent: Ghost.Graphics.RHI.BufferUsage
+  langs:
+  - csharp
+  - vb
+  name: None
+  nameWithType: BufferUsage.None
+  fullName: Ghost.Graphics.RHI.BufferUsage.None
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: None
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1295
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: None = 0
+    return:
+      type: Ghost.Graphics.RHI.BufferUsage
+- uid: Ghost.Graphics.RHI.BufferUsage.Vertex
+  commentId: F:Ghost.Graphics.RHI.BufferUsage.Vertex
+  id: Vertex
+  parent: Ghost.Graphics.RHI.BufferUsage
+  langs:
+  - csharp
+  - vb
+  name: Vertex
+  nameWithType: BufferUsage.Vertex
+  fullName: Ghost.Graphics.RHI.BufferUsage.Vertex
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Vertex
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1296
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Vertex = 1
+    return:
+      type: Ghost.Graphics.RHI.BufferUsage
+- uid: Ghost.Graphics.RHI.BufferUsage.Index
+  commentId: F:Ghost.Graphics.RHI.BufferUsage.Index
+  id: Index
+  parent: Ghost.Graphics.RHI.BufferUsage
+  langs:
+  - csharp
+  - vb
+  name: Index
+  nameWithType: BufferUsage.Index
+  fullName: Ghost.Graphics.RHI.BufferUsage.Index
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Index
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1297
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Index = 2
+    return:
+      type: Ghost.Graphics.RHI.BufferUsage
+- uid: Ghost.Graphics.RHI.BufferUsage.IndirectArgument
+  commentId: F:Ghost.Graphics.RHI.BufferUsage.IndirectArgument
+  id: IndirectArgument
+  parent: Ghost.Graphics.RHI.BufferUsage
+  langs:
+  - csharp
+  - vb
+  name: IndirectArgument
+  nameWithType: BufferUsage.IndirectArgument
+  fullName: Ghost.Graphics.RHI.BufferUsage.IndirectArgument
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IndirectArgument
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1298
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: IndirectArgument = 128
+    return:
+      type: Ghost.Graphics.RHI.BufferUsage
+- uid: Ghost.Graphics.RHI.BufferUsage.Constant
+  commentId: F:Ghost.Graphics.RHI.BufferUsage.Constant
+  id: Constant
+  parent: Ghost.Graphics.RHI.BufferUsage
+  langs:
+  - csharp
+  - vb
+  name: Constant
+  nameWithType: BufferUsage.Constant
+  fullName: Ghost.Graphics.RHI.BufferUsage.Constant
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Constant
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1299
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Constant = 4
+    return:
+      type: Ghost.Graphics.RHI.BufferUsage
+- uid: Ghost.Graphics.RHI.BufferUsage.ShaderResource
+  commentId: F:Ghost.Graphics.RHI.BufferUsage.ShaderResource
+  id: ShaderResource
+  parent: Ghost.Graphics.RHI.BufferUsage
+  langs:
+  - csharp
+  - vb
+  name: ShaderResource
+  nameWithType: BufferUsage.ShaderResource
+  fullName: Ghost.Graphics.RHI.BufferUsage.ShaderResource
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ShaderResource
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1300
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: ShaderResource = 8
+    return:
+      type: Ghost.Graphics.RHI.BufferUsage
+- uid: Ghost.Graphics.RHI.BufferUsage.UnorderedAccess
+  commentId: F:Ghost.Graphics.RHI.BufferUsage.UnorderedAccess
+  id: UnorderedAccess
+  parent: Ghost.Graphics.RHI.BufferUsage
+  langs:
+  - csharp
+  - vb
+  name: UnorderedAccess
+  nameWithType: BufferUsage.UnorderedAccess
+  fullName: Ghost.Graphics.RHI.BufferUsage.UnorderedAccess
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: UnorderedAccess
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1301
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: UnorderedAccess = 16
+    return:
+      type: Ghost.Graphics.RHI.BufferUsage
+- uid: Ghost.Graphics.RHI.BufferUsage.Structured
+  commentId: F:Ghost.Graphics.RHI.BufferUsage.Structured
+  id: Structured
+  parent: Ghost.Graphics.RHI.BufferUsage
+  langs:
+  - csharp
+  - vb
+  name: Structured
+  nameWithType: BufferUsage.Structured
+  fullName: Ghost.Graphics.RHI.BufferUsage.Structured
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Structured
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1302
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Structured = 32
+    return:
+      type: Ghost.Graphics.RHI.BufferUsage
+- uid: Ghost.Graphics.RHI.BufferUsage.Raw
+  commentId: F:Ghost.Graphics.RHI.BufferUsage.Raw
+  id: Raw
+  parent: Ghost.Graphics.RHI.BufferUsage
+  langs:
+  - csharp
+  - vb
+  name: Raw
+  nameWithType: BufferUsage.Raw
+  fullName: Ghost.Graphics.RHI.BufferUsage.Raw
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Raw
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1303
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Raw = 64
+    return:
+      type: Ghost.Graphics.RHI.BufferUsage
+- uid: Ghost.Graphics.RHI.BufferUsage.Upload
+  commentId: F:Ghost.Graphics.RHI.BufferUsage.Upload
+  id: Upload
+  parent: Ghost.Graphics.RHI.BufferUsage
+  langs:
+  - csharp
+  - vb
+  name: Upload
+  nameWithType: BufferUsage.Upload
+  fullName: Ghost.Graphics.RHI.BufferUsage.Upload
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Upload
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1304
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Upload = 256
+    return:
+      type: Ghost.Graphics.RHI.BufferUsage
+- uid: Ghost.Graphics.RHI.BufferUsage.Readback
+  commentId: F:Ghost.Graphics.RHI.BufferUsage.Readback
+  id: Readback
+  parent: Ghost.Graphics.RHI.BufferUsage
+  langs:
+  - csharp
+  - vb
+  name: Readback
+  nameWithType: BufferUsage.Readback
+  fullName: Ghost.Graphics.RHI.BufferUsage.Readback
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Readback
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1305
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Readback = 512
+    return:
+      type: Ghost.Graphics.RHI.BufferUsage
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.BufferUsage
+  commentId: T:Ghost.Graphics.RHI.BufferUsage
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.BufferUsage.html
+  name: BufferUsage
+  nameWithType: BufferUsage
+  fullName: Ghost.Graphics.RHI.BufferUsage

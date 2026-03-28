@@ -1,0 +1,1165 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RenderGraphModule.RenderGraph
+  commentId: T:Ghost.Graphics.RenderGraphModule.RenderGraph
+  id: RenderGraph
+  parent: Ghost.Graphics.RenderGraphModule
+  children:
+  - Ghost.Graphics.RenderGraphModule.RenderGraph.#ctor(Ghost.Graphics.ResourceManager,Ghost.Graphics.RHI.IResourceAllocator,Ghost.Graphics.RHI.IResourceDatabase,Ghost.Graphics.RHI.IPipelineLibrary,Ghost.Graphics.RHI.IShaderCompiler)
+  - Ghost.Graphics.RenderGraphModule.RenderGraph.AddComputeRenderPass``1(System.String,``0@)
+  - Ghost.Graphics.RenderGraphModule.RenderGraph.AddRasterRenderPass``1(System.String,``0@)
+  - Ghost.Graphics.RenderGraphModule.RenderGraph.AddUnsafeRenderPass``1(System.String,``0@)
+  - Ghost.Graphics.RenderGraphModule.RenderGraph.Blackboard
+  - Ghost.Graphics.RenderGraphModule.RenderGraph.Compile(Ghost.Graphics.RenderGraphModule.ViewState)
+  - Ghost.Graphics.RenderGraphModule.RenderGraph.Dispose
+  - Ghost.Graphics.RenderGraphModule.RenderGraph.Execute(Ghost.Graphics.RHI.ICommandBuffer)
+  - Ghost.Graphics.RenderGraphModule.RenderGraph.ImportBuffer(Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer},System.String)
+  - Ghost.Graphics.RenderGraphModule.RenderGraph.ImportTexture(Ghost.Core.Handle{Ghost.Graphics.RHI.Texture},System.String,Ghost.Graphics.RHI.Color128,System.Single,System.Byte,System.Boolean,System.Boolean)
+  - Ghost.Graphics.RenderGraphModule.RenderGraph.Reset
+  langs:
+  - csharp
+  - vb
+  name: RenderGraph
+  nameWithType: RenderGraph
+  fullName: Ghost.Graphics.RenderGraphModule.RenderGraph
+  type: Class
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraph.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: RenderGraph
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraph.cs
+    startLine: 9
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Main render graph class that manages resource allocation and pass execution.
+  example: []
+  syntax:
+    content: 'public sealed class RenderGraph : IDisposable'
+    content.vb: Public NotInheritable Class RenderGraph Implements IDisposable
+  inheritance:
+  - System.Object
+  implements:
+  - System.IDisposable
+  inheritedMembers:
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.ToString
+- uid: Ghost.Graphics.RenderGraphModule.RenderGraph.Blackboard
+  commentId: P:Ghost.Graphics.RenderGraphModule.RenderGraph.Blackboard
+  id: Blackboard
+  parent: Ghost.Graphics.RenderGraphModule.RenderGraph
+  langs:
+  - csharp
+  - vb
+  name: Blackboard
+  nameWithType: RenderGraph.Blackboard
+  fullName: Ghost.Graphics.RenderGraphModule.RenderGraph.Blackboard
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraph.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Blackboard
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraph.cs
+    startLine: 38
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public RenderGraphBlackboard Blackboard { get; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RenderGraphModule.RenderGraphBlackboard
+    content.vb: Public ReadOnly Property Blackboard As RenderGraphBlackboard
+  overload: Ghost.Graphics.RenderGraphModule.RenderGraph.Blackboard*
+- uid: Ghost.Graphics.RenderGraphModule.RenderGraph.#ctor(Ghost.Graphics.ResourceManager,Ghost.Graphics.RHI.IResourceAllocator,Ghost.Graphics.RHI.IResourceDatabase,Ghost.Graphics.RHI.IPipelineLibrary,Ghost.Graphics.RHI.IShaderCompiler)
+  commentId: M:Ghost.Graphics.RenderGraphModule.RenderGraph.#ctor(Ghost.Graphics.ResourceManager,Ghost.Graphics.RHI.IResourceAllocator,Ghost.Graphics.RHI.IResourceDatabase,Ghost.Graphics.RHI.IPipelineLibrary,Ghost.Graphics.RHI.IShaderCompiler)
+  id: '#ctor(Ghost.Graphics.ResourceManager,Ghost.Graphics.RHI.IResourceAllocator,Ghost.Graphics.RHI.IResourceDatabase,Ghost.Graphics.RHI.IPipelineLibrary,Ghost.Graphics.RHI.IShaderCompiler)'
+  parent: Ghost.Graphics.RenderGraphModule.RenderGraph
+  langs:
+  - csharp
+  - vb
+  name: RenderGraph(ResourceManager, IResourceAllocator, IResourceDatabase, IPipelineLibrary, IShaderCompiler)
+  nameWithType: RenderGraph.RenderGraph(ResourceManager, IResourceAllocator, IResourceDatabase, IPipelineLibrary, IShaderCompiler)
+  fullName: Ghost.Graphics.RenderGraphModule.RenderGraph.RenderGraph(Ghost.Graphics.ResourceManager, Ghost.Graphics.RHI.IResourceAllocator, Ghost.Graphics.RHI.IResourceDatabase, Ghost.Graphics.RHI.IPipelineLibrary, Ghost.Graphics.RHI.IShaderCompiler)
+  type: Constructor
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraph.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: .ctor
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraph.cs
+    startLine: 40
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public RenderGraph(ResourceManager resourceManager, IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase, IPipelineLibrary pipelineLibrary, IShaderCompiler shaderCompiler)
+    parameters:
+    - id: resourceManager
+      type: Ghost.Graphics.ResourceManager
+    - id: resourceAllocator
+      type: Ghost.Graphics.RHI.IResourceAllocator
+    - id: resourceDatabase
+      type: Ghost.Graphics.RHI.IResourceDatabase
+    - id: pipelineLibrary
+      type: Ghost.Graphics.RHI.IPipelineLibrary
+    - id: shaderCompiler
+      type: Ghost.Graphics.RHI.IShaderCompiler
+    content.vb: Public Sub New(resourceManager As ResourceManager, resourceAllocator As IResourceAllocator, resourceDatabase As IResourceDatabase, pipelineLibrary As IPipelineLibrary, shaderCompiler As IShaderCompiler)
+  overload: Ghost.Graphics.RenderGraphModule.RenderGraph.#ctor*
+  nameWithType.vb: RenderGraph.New(ResourceManager, IResourceAllocator, IResourceDatabase, IPipelineLibrary, IShaderCompiler)
+  fullName.vb: Ghost.Graphics.RenderGraphModule.RenderGraph.New(Ghost.Graphics.ResourceManager, Ghost.Graphics.RHI.IResourceAllocator, Ghost.Graphics.RHI.IResourceDatabase, Ghost.Graphics.RHI.IPipelineLibrary, Ghost.Graphics.RHI.IShaderCompiler)
+  name.vb: New(ResourceManager, IResourceAllocator, IResourceDatabase, IPipelineLibrary, IShaderCompiler)
+- uid: Ghost.Graphics.RenderGraphModule.RenderGraph.Reset
+  commentId: M:Ghost.Graphics.RenderGraphModule.RenderGraph.Reset
+  id: Reset
+  parent: Ghost.Graphics.RenderGraphModule.RenderGraph
+  langs:
+  - csharp
+  - vb
+  name: Reset()
+  nameWithType: RenderGraph.Reset()
+  fullName: Ghost.Graphics.RenderGraphModule.RenderGraph.Reset()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraph.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Reset
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraph.cs
+    startLine: 76
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Resets the render graph for a new frame.
+  example: []
+  syntax:
+    content: public void Reset()
+    content.vb: Public Sub Reset()
+  overload: Ghost.Graphics.RenderGraphModule.RenderGraph.Reset*
+- uid: Ghost.Graphics.RenderGraphModule.RenderGraph.ImportTexture(Ghost.Core.Handle{Ghost.Graphics.RHI.Texture},System.String,Ghost.Graphics.RHI.Color128,System.Single,System.Byte,System.Boolean,System.Boolean)
+  commentId: M:Ghost.Graphics.RenderGraphModule.RenderGraph.ImportTexture(Ghost.Core.Handle{Ghost.Graphics.RHI.Texture},System.String,Ghost.Graphics.RHI.Color128,System.Single,System.Byte,System.Boolean,System.Boolean)
+  id: ImportTexture(Ghost.Core.Handle{Ghost.Graphics.RHI.Texture},System.String,Ghost.Graphics.RHI.Color128,System.Single,System.Byte,System.Boolean,System.Boolean)
+  parent: Ghost.Graphics.RenderGraphModule.RenderGraph
+  langs:
+  - csharp
+  - vb
+  name: ImportTexture(Handle<Texture>, string, Color128, float, byte, bool, bool)
+  nameWithType: RenderGraph.ImportTexture(Handle<Texture>, string, Color128, float, byte, bool, bool)
+  fullName: Ghost.Graphics.RenderGraphModule.RenderGraph.ImportTexture(Ghost.Core.Handle<Ghost.Graphics.RHI.Texture>, string, Ghost.Graphics.RHI.Color128, float, byte, bool, bool)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraph.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ImportTexture
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraph.cs
+    startLine: 107
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Imports an external texture into the render graph.
+  example: []
+  syntax:
+    content: public Identifier<RGTexture> ImportTexture(Handle<Texture> texture, string name, Color128 clearColor = default, float clearDepth = 1, byte clearStencil = 0, bool clearAtFirstUse = true, bool discardAtLastUse = true)
+    parameters:
+    - id: texture
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+      description: The external texture handle.
+    - id: name
+      type: System.String
+    - id: clearColor
+      type: Ghost.Graphics.RHI.Color128
+    - id: clearDepth
+      type: System.Single
+    - id: clearStencil
+      type: System.Byte
+    - id: clearAtFirstUse
+      type: System.Boolean
+    - id: discardAtLastUse
+      type: System.Boolean
+    return:
+      type: Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture}
+      description: The identifier of the imported render graph texture. Invalid if import fails.
+    content.vb: Public Function ImportTexture(texture As Handle(Of Texture), name As String, clearColor As Color128 = Nothing, clearDepth As Single = 1, clearStencil As Byte = 0, clearAtFirstUse As Boolean = True, discardAtLastUse As Boolean = True) As Identifier(Of RGTexture)
+  overload: Ghost.Graphics.RenderGraphModule.RenderGraph.ImportTexture*
+  nameWithType.vb: RenderGraph.ImportTexture(Handle(Of Texture), String, Color128, Single, Byte, Boolean, Boolean)
+  fullName.vb: Ghost.Graphics.RenderGraphModule.RenderGraph.ImportTexture(Ghost.Core.Handle(Of Ghost.Graphics.RHI.Texture), String, Ghost.Graphics.RHI.Color128, Single, Byte, Boolean, Boolean)
+  name.vb: ImportTexture(Handle(Of Texture), String, Color128, Single, Byte, Boolean, Boolean)
+- uid: Ghost.Graphics.RenderGraphModule.RenderGraph.ImportBuffer(Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer},System.String)
+  commentId: M:Ghost.Graphics.RenderGraphModule.RenderGraph.ImportBuffer(Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer},System.String)
+  id: ImportBuffer(Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer},System.String)
+  parent: Ghost.Graphics.RenderGraphModule.RenderGraph
+  langs:
+  - csharp
+  - vb
+  name: ImportBuffer(Handle<GraphicsBuffer>, string)
+  nameWithType: RenderGraph.ImportBuffer(Handle<GraphicsBuffer>, string)
+  fullName: Ghost.Graphics.RenderGraphModule.RenderGraph.ImportBuffer(Ghost.Core.Handle<Ghost.Graphics.RHI.GraphicsBuffer>, string)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraph.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ImportBuffer
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraph.cs
+    startLine: 127
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Imports an external buffer into the render graph.
+  example: []
+  syntax:
+    content: public Identifier<RGBuffer> ImportBuffer(Handle<GraphicsBuffer> buffer, string name)
+    parameters:
+    - id: buffer
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer}
+      description: The external buffer handle.
+    - id: name
+      type: System.String
+    return:
+      type: Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGBuffer}
+      description: The identifier of the imported render graph buffer. Invalid if import fails.
+    content.vb: Public Function ImportBuffer(buffer As Handle(Of GraphicsBuffer), name As String) As Identifier(Of RGBuffer)
+  overload: Ghost.Graphics.RenderGraphModule.RenderGraph.ImportBuffer*
+  nameWithType.vb: RenderGraph.ImportBuffer(Handle(Of GraphicsBuffer), String)
+  fullName.vb: Ghost.Graphics.RenderGraphModule.RenderGraph.ImportBuffer(Ghost.Core.Handle(Of Ghost.Graphics.RHI.GraphicsBuffer), String)
+  name.vb: ImportBuffer(Handle(Of GraphicsBuffer), String)
+- uid: Ghost.Graphics.RenderGraphModule.RenderGraph.AddRasterRenderPass``1(System.String,``0@)
+  commentId: M:Ghost.Graphics.RenderGraphModule.RenderGraph.AddRasterRenderPass``1(System.String,``0@)
+  id: AddRasterRenderPass``1(System.String,``0@)
+  parent: Ghost.Graphics.RenderGraphModule.RenderGraph
+  langs:
+  - csharp
+  - vb
+  name: AddRasterRenderPass<TPassData>(string, out TPassData)
+  nameWithType: RenderGraph.AddRasterRenderPass<TPassData>(string, out TPassData)
+  fullName: Ghost.Graphics.RenderGraphModule.RenderGraph.AddRasterRenderPass<TPassData>(string, out TPassData)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraph.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AddRasterRenderPass
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraph.cs
+    startLine: 140
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: 'public IRasterRenderGraphBuilder AddRasterRenderPass<TPassData>(string name, out TPassData passData) where TPassData : class, new()'
+    parameters:
+    - id: name
+      type: System.String
+    - id: passData
+      type: '{TPassData}'
+    typeParameters:
+    - id: TPassData
+    return:
+      type: Ghost.Graphics.RenderGraphModule.IRasterRenderGraphBuilder
+    content.vb: Public Function AddRasterRenderPass(Of TPassData As {Class, New})(name As String, passData As TPassData) As IRasterRenderGraphBuilder
+  overload: Ghost.Graphics.RenderGraphModule.RenderGraph.AddRasterRenderPass*
+  nameWithType.vb: RenderGraph.AddRasterRenderPass(Of TPassData)(String, TPassData)
+  fullName.vb: Ghost.Graphics.RenderGraphModule.RenderGraph.AddRasterRenderPass(Of TPassData)(String, TPassData)
+  name.vb: AddRasterRenderPass(Of TPassData)(String, TPassData)
+- uid: Ghost.Graphics.RenderGraphModule.RenderGraph.AddComputeRenderPass``1(System.String,``0@)
+  commentId: M:Ghost.Graphics.RenderGraphModule.RenderGraph.AddComputeRenderPass``1(System.String,``0@)
+  id: AddComputeRenderPass``1(System.String,``0@)
+  parent: Ghost.Graphics.RenderGraphModule.RenderGraph
+  langs:
+  - csharp
+  - vb
+  name: AddComputeRenderPass<TPassData>(string, out TPassData)
+  nameWithType: RenderGraph.AddComputeRenderPass<TPassData>(string, out TPassData)
+  fullName: Ghost.Graphics.RenderGraphModule.RenderGraph.AddComputeRenderPass<TPassData>(string, out TPassData)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraph.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AddComputeRenderPass
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraph.cs
+    startLine: 153
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: 'public IComputeRenderGraphBuilder AddComputeRenderPass<TPassData>(string name, out TPassData passData) where TPassData : class, new()'
+    parameters:
+    - id: name
+      type: System.String
+    - id: passData
+      type: '{TPassData}'
+    typeParameters:
+    - id: TPassData
+    return:
+      type: Ghost.Graphics.RenderGraphModule.IComputeRenderGraphBuilder
+    content.vb: Public Function AddComputeRenderPass(Of TPassData As {Class, New})(name As String, passData As TPassData) As IComputeRenderGraphBuilder
+  overload: Ghost.Graphics.RenderGraphModule.RenderGraph.AddComputeRenderPass*
+  nameWithType.vb: RenderGraph.AddComputeRenderPass(Of TPassData)(String, TPassData)
+  fullName.vb: Ghost.Graphics.RenderGraphModule.RenderGraph.AddComputeRenderPass(Of TPassData)(String, TPassData)
+  name.vb: AddComputeRenderPass(Of TPassData)(String, TPassData)
+- uid: Ghost.Graphics.RenderGraphModule.RenderGraph.AddUnsafeRenderPass``1(System.String,``0@)
+  commentId: M:Ghost.Graphics.RenderGraphModule.RenderGraph.AddUnsafeRenderPass``1(System.String,``0@)
+  id: AddUnsafeRenderPass``1(System.String,``0@)
+  parent: Ghost.Graphics.RenderGraphModule.RenderGraph
+  langs:
+  - csharp
+  - vb
+  name: AddUnsafeRenderPass<TPassData>(string, out TPassData)
+  nameWithType: RenderGraph.AddUnsafeRenderPass<TPassData>(string, out TPassData)
+  fullName: Ghost.Graphics.RenderGraphModule.RenderGraph.AddUnsafeRenderPass<TPassData>(string, out TPassData)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraph.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AddUnsafeRenderPass
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraph.cs
+    startLine: 166
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: 'public IUnsafeRenderGraphBuilder AddUnsafeRenderPass<TPassData>(string name, out TPassData passData) where TPassData : class, new()'
+    parameters:
+    - id: name
+      type: System.String
+    - id: passData
+      type: '{TPassData}'
+    typeParameters:
+    - id: TPassData
+    return:
+      type: Ghost.Graphics.RenderGraphModule.IUnsafeRenderGraphBuilder
+    content.vb: Public Function AddUnsafeRenderPass(Of TPassData As {Class, New})(name As String, passData As TPassData) As IUnsafeRenderGraphBuilder
+  overload: Ghost.Graphics.RenderGraphModule.RenderGraph.AddUnsafeRenderPass*
+  nameWithType.vb: RenderGraph.AddUnsafeRenderPass(Of TPassData)(String, TPassData)
+  fullName.vb: Ghost.Graphics.RenderGraphModule.RenderGraph.AddUnsafeRenderPass(Of TPassData)(String, TPassData)
+  name.vb: AddUnsafeRenderPass(Of TPassData)(String, TPassData)
+- uid: Ghost.Graphics.RenderGraphModule.RenderGraph.Compile(Ghost.Graphics.RenderGraphModule.ViewState)
+  commentId: M:Ghost.Graphics.RenderGraphModule.RenderGraph.Compile(Ghost.Graphics.RenderGraphModule.ViewState)
+  id: Compile(Ghost.Graphics.RenderGraphModule.ViewState)
+  parent: Ghost.Graphics.RenderGraphModule.RenderGraph
+  langs:
+  - csharp
+  - vb
+  name: Compile(ViewState)
+  nameWithType: RenderGraph.Compile(ViewState)
+  fullName: Ghost.Graphics.RenderGraphModule.RenderGraph.Compile(Ghost.Graphics.RenderGraphModule.ViewState)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraph.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Compile
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraph.cs
+    startLine: 182
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Compiles the render graph by culling unused passes and determining resource lifetimes.
+  example: []
+  syntax:
+    content: public Error Compile(ViewState viewState)
+    parameters:
+    - id: viewState
+      type: Ghost.Graphics.RenderGraphModule.ViewState
+    return:
+      type: Ghost.Core.Error
+    content.vb: Public Function Compile(viewState As ViewState) As [Error]
+  overload: Ghost.Graphics.RenderGraphModule.RenderGraph.Compile*
+- uid: Ghost.Graphics.RenderGraphModule.RenderGraph.Execute(Ghost.Graphics.RHI.ICommandBuffer)
+  commentId: M:Ghost.Graphics.RenderGraphModule.RenderGraph.Execute(Ghost.Graphics.RHI.ICommandBuffer)
+  id: Execute(Ghost.Graphics.RHI.ICommandBuffer)
+  parent: Ghost.Graphics.RenderGraphModule.RenderGraph
+  langs:
+  - csharp
+  - vb
+  name: Execute(ICommandBuffer)
+  nameWithType: RenderGraph.Execute(ICommandBuffer)
+  fullName: Ghost.Graphics.RenderGraphModule.RenderGraph.Execute(Ghost.Graphics.RHI.ICommandBuffer)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraph.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Execute
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraph.cs
+    startLine: 205
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Executes all compiled passes using native render passes where possible.
+  example: []
+  syntax:
+    content: public Error Execute(ICommandBuffer commandBuffer)
+    parameters:
+    - id: commandBuffer
+      type: Ghost.Graphics.RHI.ICommandBuffer
+    return:
+      type: Ghost.Core.Error
+    content.vb: Public Function Execute(commandBuffer As ICommandBuffer) As [Error]
+  overload: Ghost.Graphics.RenderGraphModule.RenderGraph.Execute*
+- uid: Ghost.Graphics.RenderGraphModule.RenderGraph.Dispose
+  commentId: M:Ghost.Graphics.RenderGraphModule.RenderGraph.Dispose
+  id: Dispose
+  parent: Ghost.Graphics.RenderGraphModule.RenderGraph
+  langs:
+  - csharp
+  - vb
+  name: Dispose()
+  nameWithType: RenderGraph.Dispose()
+  fullName: Ghost.Graphics.RenderGraphModule.RenderGraph.Dispose()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraph.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Dispose
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraph.cs
+    startLine: 215
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+  example: []
+  syntax:
+    content: public void Dispose()
+    content.vb: Public Sub Dispose()
+  overload: Ghost.Graphics.RenderGraphModule.RenderGraph.Dispose*
+  implements:
+  - System.IDisposable.Dispose
+references:
+- uid: Ghost.Graphics.RenderGraphModule
+  commentId: N:Ghost.Graphics.RenderGraphModule
+  href: Ghost.html
+  name: Ghost.Graphics.RenderGraphModule
+  nameWithType: Ghost.Graphics.RenderGraphModule
+  fullName: Ghost.Graphics.RenderGraphModule
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RenderGraphModule
+    name: RenderGraphModule
+    href: Ghost.Graphics.RenderGraphModule.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RenderGraphModule
+    name: RenderGraphModule
+    href: Ghost.Graphics.RenderGraphModule.html
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System.IDisposable
+  commentId: T:System.IDisposable
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable
+  name: IDisposable
+  nameWithType: IDisposable
+  fullName: System.IDisposable
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  name: Equals(object)
+  nameWithType: object.Equals(object)
+  fullName: object.Equals(object)
+  nameWithType.vb: Object.Equals(Object)
+  fullName.vb: Object.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  name: GetHashCode()
+  nameWithType: object.GetHashCode()
+  fullName: object.GetHashCode()
+  nameWithType.vb: Object.GetHashCode()
+  fullName.vb: Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  name: ToString()
+  nameWithType: object.ToString()
+  fullName: object.ToString()
+  nameWithType.vb: Object.ToString()
+  fullName.vb: Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RenderGraphModule.RenderGraph.Blackboard*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.RenderGraph.Blackboard
+  href: Ghost.Graphics.RenderGraphModule.RenderGraph.html#Ghost_Graphics_RenderGraphModule_RenderGraph_Blackboard
+  name: Blackboard
+  nameWithType: RenderGraph.Blackboard
+  fullName: Ghost.Graphics.RenderGraphModule.RenderGraph.Blackboard
+- uid: Ghost.Graphics.RenderGraphModule.RenderGraphBlackboard
+  commentId: T:Ghost.Graphics.RenderGraphModule.RenderGraphBlackboard
+  parent: Ghost.Graphics.RenderGraphModule
+  href: Ghost.Graphics.RenderGraphModule.RenderGraphBlackboard.html
+  name: RenderGraphBlackboard
+  nameWithType: RenderGraphBlackboard
+  fullName: Ghost.Graphics.RenderGraphModule.RenderGraphBlackboard
+- uid: Ghost.Graphics.RenderGraphModule.RenderGraph.#ctor*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.RenderGraph.#ctor
+  href: Ghost.Graphics.RenderGraphModule.RenderGraph.html#Ghost_Graphics_RenderGraphModule_RenderGraph__ctor_Ghost_Graphics_ResourceManager_Ghost_Graphics_RHI_IResourceAllocator_Ghost_Graphics_RHI_IResourceDatabase_Ghost_Graphics_RHI_IPipelineLibrary_Ghost_Graphics_RHI_IShaderCompiler_
+  name: RenderGraph
+  nameWithType: RenderGraph.RenderGraph
+  fullName: Ghost.Graphics.RenderGraphModule.RenderGraph.RenderGraph
+  nameWithType.vb: RenderGraph.New
+  fullName.vb: Ghost.Graphics.RenderGraphModule.RenderGraph.New
+  name.vb: New
+- uid: Ghost.Graphics.ResourceManager
+  commentId: T:Ghost.Graphics.ResourceManager
+  parent: Ghost.Graphics
+  href: Ghost.Graphics.ResourceManager.html
+  name: ResourceManager
+  nameWithType: ResourceManager
+  fullName: Ghost.Graphics.ResourceManager
+- uid: Ghost.Graphics.RHI.IResourceAllocator
+  commentId: T:Ghost.Graphics.RHI.IResourceAllocator
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.IResourceAllocator.html
+  name: IResourceAllocator
+  nameWithType: IResourceAllocator
+  fullName: Ghost.Graphics.RHI.IResourceAllocator
+- uid: Ghost.Graphics.RHI.IResourceDatabase
+  commentId: T:Ghost.Graphics.RHI.IResourceDatabase
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.IResourceDatabase.html
+  name: IResourceDatabase
+  nameWithType: IResourceDatabase
+  fullName: Ghost.Graphics.RHI.IResourceDatabase
+- uid: Ghost.Graphics.RHI.IPipelineLibrary
+  commentId: T:Ghost.Graphics.RHI.IPipelineLibrary
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.IPipelineLibrary.html
+  name: IPipelineLibrary
+  nameWithType: IPipelineLibrary
+  fullName: Ghost.Graphics.RHI.IPipelineLibrary
+- uid: Ghost.Graphics.RHI.IShaderCompiler
+  commentId: T:Ghost.Graphics.RHI.IShaderCompiler
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.IShaderCompiler.html
+  name: IShaderCompiler
+  nameWithType: IShaderCompiler
+  fullName: Ghost.Graphics.RHI.IShaderCompiler
+- uid: Ghost.Graphics
+  commentId: N:Ghost.Graphics
+  href: Ghost.html
+  name: Ghost.Graphics
+  nameWithType: Ghost.Graphics
+  fullName: Ghost.Graphics
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RenderGraphModule.RenderGraph.Reset*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.RenderGraph.Reset
+  href: Ghost.Graphics.RenderGraphModule.RenderGraph.html#Ghost_Graphics_RenderGraphModule_RenderGraph_Reset
+  name: Reset
+  nameWithType: RenderGraph.Reset
+  fullName: Ghost.Graphics.RenderGraphModule.RenderGraph.Reset
+- uid: Ghost.Graphics.RenderGraphModule.RenderGraph.ImportTexture*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.RenderGraph.ImportTexture
+  href: Ghost.Graphics.RenderGraphModule.RenderGraph.html#Ghost_Graphics_RenderGraphModule_RenderGraph_ImportTexture_Ghost_Core_Handle_Ghost_Graphics_RHI_Texture__System_String_Ghost_Graphics_RHI_Color128_System_Single_System_Byte_System_Boolean_System_Boolean_
+  name: ImportTexture
+  nameWithType: RenderGraph.ImportTexture
+  fullName: Ghost.Graphics.RenderGraphModule.RenderGraph.ImportTexture
+- uid: Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+  commentId: T:Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+  parent: Ghost.Core
+  definition: Ghost.Core.Handle`1
+  href: Ghost.Graphics.RHI.Texture.html
+  name: Handle<Texture>
+  nameWithType: Handle<Texture>
+  fullName: Ghost.Core.Handle<Ghost.Graphics.RHI.Texture>
+  nameWithType.vb: Handle(Of Texture)
+  fullName.vb: Ghost.Core.Handle(Of Ghost.Graphics.RHI.Texture)
+  name.vb: Handle(Of Texture)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - uid: Ghost.Graphics.RHI.Texture
+    name: Texture
+    href: Ghost.Graphics.RHI.Texture.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.Texture
+    name: Texture
+    href: Ghost.Graphics.RHI.Texture.html
+  - name: )
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.string
+  name: string
+  nameWithType: string
+  fullName: string
+  nameWithType.vb: String
+  fullName.vb: String
+  name.vb: String
+- uid: Ghost.Graphics.RHI.Color128
+  commentId: T:Ghost.Graphics.RHI.Color128
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.Color128.html
+  name: Color128
+  nameWithType: Color128
+  fullName: Ghost.Graphics.RHI.Color128
+- uid: System.Single
+  commentId: T:System.Single
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.single
+  name: float
+  nameWithType: float
+  fullName: float
+  nameWithType.vb: Single
+  fullName.vb: Single
+  name.vb: Single
+- uid: System.Byte
+  commentId: T:System.Byte
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.byte
+  name: byte
+  nameWithType: byte
+  fullName: byte
+  nameWithType.vb: Byte
+  fullName.vb: Byte
+  name.vb: Byte
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.boolean
+  name: bool
+  nameWithType: bool
+  fullName: bool
+  nameWithType.vb: Boolean
+  fullName.vb: Boolean
+  name.vb: Boolean
+- uid: Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture}
+  commentId: T:Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture}
+  parent: Ghost.Core
+  definition: Ghost.Core.Identifier`1
+  href: Ghost.Graphics.RenderGraphModule.RGTexture.html
+  name: Identifier<RGTexture>
+  nameWithType: Identifier<RGTexture>
+  fullName: Ghost.Core.Identifier<Ghost.Graphics.RenderGraphModule.RGTexture>
+  nameWithType.vb: Identifier(Of RGTexture)
+  fullName.vb: Ghost.Core.Identifier(Of Ghost.Graphics.RenderGraphModule.RGTexture)
+  name.vb: Identifier(Of RGTexture)
+  spec.csharp:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: <
+  - uid: Ghost.Graphics.RenderGraphModule.RGTexture
+    name: RGTexture
+    href: Ghost.Graphics.RenderGraphModule.RGTexture.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RenderGraphModule.RGTexture
+    name: RGTexture
+    href: Ghost.Graphics.RenderGraphModule.RGTexture.html
+  - name: )
+- uid: Ghost.Core.Handle`1
+  commentId: T:Ghost.Core.Handle`1
+  name: Handle<T>
+  nameWithType: Handle<T>
+  fullName: Ghost.Core.Handle<T>
+  nameWithType.vb: Handle(Of T)
+  fullName.vb: Ghost.Core.Handle(Of T)
+  name.vb: Handle(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Core
+  commentId: N:Ghost.Core
+  name: Ghost.Core
+  nameWithType: Ghost.Core
+  fullName: Ghost.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+- uid: Ghost.Core.Identifier`1
+  commentId: T:Ghost.Core.Identifier`1
+  name: Identifier<T>
+  nameWithType: Identifier<T>
+  fullName: Ghost.Core.Identifier<T>
+  nameWithType.vb: Identifier(Of T)
+  fullName.vb: Ghost.Core.Identifier(Of T)
+  name.vb: Identifier(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Graphics.RenderGraphModule.RenderGraph.ImportBuffer*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.RenderGraph.ImportBuffer
+  href: Ghost.Graphics.RenderGraphModule.RenderGraph.html#Ghost_Graphics_RenderGraphModule_RenderGraph_ImportBuffer_Ghost_Core_Handle_Ghost_Graphics_RHI_GraphicsBuffer__System_String_
+  name: ImportBuffer
+  nameWithType: RenderGraph.ImportBuffer
+  fullName: Ghost.Graphics.RenderGraphModule.RenderGraph.ImportBuffer
+- uid: Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer}
+  commentId: T:Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer}
+  parent: Ghost.Core
+  definition: Ghost.Core.Handle`1
+  href: Ghost.Graphics.RHI.GraphicsBuffer.html
+  name: Handle<GraphicsBuffer>
+  nameWithType: Handle<GraphicsBuffer>
+  fullName: Ghost.Core.Handle<Ghost.Graphics.RHI.GraphicsBuffer>
+  nameWithType.vb: Handle(Of GraphicsBuffer)
+  fullName.vb: Ghost.Core.Handle(Of Ghost.Graphics.RHI.GraphicsBuffer)
+  name.vb: Handle(Of GraphicsBuffer)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - uid: Ghost.Graphics.RHI.GraphicsBuffer
+    name: GraphicsBuffer
+    href: Ghost.Graphics.RHI.GraphicsBuffer.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.GraphicsBuffer
+    name: GraphicsBuffer
+    href: Ghost.Graphics.RHI.GraphicsBuffer.html
+  - name: )
+- uid: Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGBuffer}
+  commentId: T:Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGBuffer}
+  parent: Ghost.Core
+  definition: Ghost.Core.Identifier`1
+  href: Ghost.Graphics.RenderGraphModule.RGBuffer.html
+  name: Identifier<RGBuffer>
+  nameWithType: Identifier<RGBuffer>
+  fullName: Ghost.Core.Identifier<Ghost.Graphics.RenderGraphModule.RGBuffer>
+  nameWithType.vb: Identifier(Of RGBuffer)
+  fullName.vb: Ghost.Core.Identifier(Of Ghost.Graphics.RenderGraphModule.RGBuffer)
+  name.vb: Identifier(Of RGBuffer)
+  spec.csharp:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: <
+  - uid: Ghost.Graphics.RenderGraphModule.RGBuffer
+    name: RGBuffer
+    href: Ghost.Graphics.RenderGraphModule.RGBuffer.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RenderGraphModule.RGBuffer
+    name: RGBuffer
+    href: Ghost.Graphics.RenderGraphModule.RGBuffer.html
+  - name: )
+- uid: Ghost.Graphics.RenderGraphModule.RenderGraph.AddRasterRenderPass*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.RenderGraph.AddRasterRenderPass
+  href: Ghost.Graphics.RenderGraphModule.RenderGraph.html#Ghost_Graphics_RenderGraphModule_RenderGraph_AddRasterRenderPass__1_System_String___0__
+  name: AddRasterRenderPass
+  nameWithType: RenderGraph.AddRasterRenderPass
+  fullName: Ghost.Graphics.RenderGraphModule.RenderGraph.AddRasterRenderPass
+- uid: '{TPassData}'
+  commentId: '!:TPassData'
+  definition: TPassData
+  name: TPassData
+  nameWithType: TPassData
+  fullName: TPassData
+- uid: Ghost.Graphics.RenderGraphModule.IRasterRenderGraphBuilder
+  commentId: T:Ghost.Graphics.RenderGraphModule.IRasterRenderGraphBuilder
+  parent: Ghost.Graphics.RenderGraphModule
+  href: Ghost.Graphics.RenderGraphModule.IRasterRenderGraphBuilder.html
+  name: IRasterRenderGraphBuilder
+  nameWithType: IRasterRenderGraphBuilder
+  fullName: Ghost.Graphics.RenderGraphModule.IRasterRenderGraphBuilder
+- uid: TPassData
+  name: TPassData
+  nameWithType: TPassData
+  fullName: TPassData
+- uid: Ghost.Graphics.RenderGraphModule.RenderGraph.AddComputeRenderPass*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.RenderGraph.AddComputeRenderPass
+  href: Ghost.Graphics.RenderGraphModule.RenderGraph.html#Ghost_Graphics_RenderGraphModule_RenderGraph_AddComputeRenderPass__1_System_String___0__
+  name: AddComputeRenderPass
+  nameWithType: RenderGraph.AddComputeRenderPass
+  fullName: Ghost.Graphics.RenderGraphModule.RenderGraph.AddComputeRenderPass
+- uid: Ghost.Graphics.RenderGraphModule.IComputeRenderGraphBuilder
+  commentId: T:Ghost.Graphics.RenderGraphModule.IComputeRenderGraphBuilder
+  parent: Ghost.Graphics.RenderGraphModule
+  href: Ghost.Graphics.RenderGraphModule.IComputeRenderGraphBuilder.html
+  name: IComputeRenderGraphBuilder
+  nameWithType: IComputeRenderGraphBuilder
+  fullName: Ghost.Graphics.RenderGraphModule.IComputeRenderGraphBuilder
+- uid: Ghost.Graphics.RenderGraphModule.RenderGraph.AddUnsafeRenderPass*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.RenderGraph.AddUnsafeRenderPass
+  href: Ghost.Graphics.RenderGraphModule.RenderGraph.html#Ghost_Graphics_RenderGraphModule_RenderGraph_AddUnsafeRenderPass__1_System_String___0__
+  name: AddUnsafeRenderPass
+  nameWithType: RenderGraph.AddUnsafeRenderPass
+  fullName: Ghost.Graphics.RenderGraphModule.RenderGraph.AddUnsafeRenderPass
+- uid: Ghost.Graphics.RenderGraphModule.IUnsafeRenderGraphBuilder
+  commentId: T:Ghost.Graphics.RenderGraphModule.IUnsafeRenderGraphBuilder
+  parent: Ghost.Graphics.RenderGraphModule
+  href: Ghost.Graphics.RenderGraphModule.IUnsafeRenderGraphBuilder.html
+  name: IUnsafeRenderGraphBuilder
+  nameWithType: IUnsafeRenderGraphBuilder
+  fullName: Ghost.Graphics.RenderGraphModule.IUnsafeRenderGraphBuilder
+- uid: Ghost.Graphics.RenderGraphModule.RenderGraph.Compile*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.RenderGraph.Compile
+  href: Ghost.Graphics.RenderGraphModule.RenderGraph.html#Ghost_Graphics_RenderGraphModule_RenderGraph_Compile_Ghost_Graphics_RenderGraphModule_ViewState_
+  name: Compile
+  nameWithType: RenderGraph.Compile
+  fullName: Ghost.Graphics.RenderGraphModule.RenderGraph.Compile
+- uid: Ghost.Graphics.RenderGraphModule.ViewState
+  commentId: T:Ghost.Graphics.RenderGraphModule.ViewState
+  parent: Ghost.Graphics.RenderGraphModule
+  href: Ghost.Graphics.RenderGraphModule.ViewState.html
+  name: ViewState
+  nameWithType: ViewState
+  fullName: Ghost.Graphics.RenderGraphModule.ViewState
+- uid: Ghost.Core.Error
+  commentId: T:Ghost.Core.Error
+  parent: Ghost.Core
+  name: Error
+  nameWithType: Error
+  fullName: Ghost.Core.Error
+- uid: Ghost.Graphics.RenderGraphModule.RenderGraph.Execute*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.RenderGraph.Execute
+  href: Ghost.Graphics.RenderGraphModule.RenderGraph.html#Ghost_Graphics_RenderGraphModule_RenderGraph_Execute_Ghost_Graphics_RHI_ICommandBuffer_
+  name: Execute
+  nameWithType: RenderGraph.Execute
+  fullName: Ghost.Graphics.RenderGraphModule.RenderGraph.Execute
+- uid: Ghost.Graphics.RHI.ICommandBuffer
+  commentId: T:Ghost.Graphics.RHI.ICommandBuffer
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ICommandBuffer.html
+  name: ICommandBuffer
+  nameWithType: ICommandBuffer
+  fullName: Ghost.Graphics.RHI.ICommandBuffer
+- uid: Ghost.Graphics.RenderGraphModule.RenderGraph.Dispose*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.RenderGraph.Dispose
+  href: Ghost.Graphics.RenderGraphModule.RenderGraph.html#Ghost_Graphics_RenderGraphModule_RenderGraph_Dispose
+  name: Dispose
+  nameWithType: RenderGraph.Dispose
+  fullName: Ghost.Graphics.RenderGraphModule.RenderGraph.Dispose
+- uid: System.IDisposable.Dispose
+  commentId: M:System.IDisposable.Dispose
+  parent: System.IDisposable
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  name: Dispose()
+  nameWithType: IDisposable.Dispose()
+  fullName: System.IDisposable.Dispose()
+  spec.csharp:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )

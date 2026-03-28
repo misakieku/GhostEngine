@@ -1,0 +1,996 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.BarrierDesc
+  commentId: T:Ghost.Graphics.RHI.BarrierDesc
+  id: BarrierDesc
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.BarrierDesc.AccessAfter
+  - Ghost.Graphics.RHI.BarrierDesc.AccessBefore
+  - Ghost.Graphics.RHI.BarrierDesc.Buffer(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource},System.Nullable{Ghost.Graphics.RHI.BarrierSync},Ghost.Graphics.RHI.BarrierSync,System.Nullable{Ghost.Graphics.RHI.BarrierAccess},Ghost.Graphics.RHI.BarrierAccess)
+  - Ghost.Graphics.RHI.BarrierDesc.Discard
+  - Ghost.Graphics.RHI.BarrierDesc.Global(Ghost.Graphics.RHI.BarrierSync,Ghost.Graphics.RHI.BarrierSync,Ghost.Graphics.RHI.BarrierAccess,Ghost.Graphics.RHI.BarrierAccess)
+  - Ghost.Graphics.RHI.BarrierDesc.LayoutAfter
+  - Ghost.Graphics.RHI.BarrierDesc.LayoutBefore
+  - Ghost.Graphics.RHI.BarrierDesc.Resource
+  - Ghost.Graphics.RHI.BarrierDesc.Subresources
+  - Ghost.Graphics.RHI.BarrierDesc.SyncAfter
+  - Ghost.Graphics.RHI.BarrierDesc.SyncBefore
+  - Ghost.Graphics.RHI.BarrierDesc.Texture(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource},System.Nullable{Ghost.Graphics.RHI.BarrierSync},Ghost.Graphics.RHI.BarrierSync,System.Nullable{Ghost.Graphics.RHI.BarrierAccess},Ghost.Graphics.RHI.BarrierAccess,System.Nullable{Ghost.Graphics.RHI.BarrierLayout},Ghost.Graphics.RHI.BarrierLayout,Ghost.Graphics.RHI.BarrierSubresourceRange,System.Boolean)
+  - Ghost.Graphics.RHI.BarrierDesc.Type
+  langs:
+  - csharp
+  - vb
+  name: BarrierDesc
+  nameWithType: BarrierDesc
+  fullName: Ghost.Graphics.RHI.BarrierDesc
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: BarrierDesc
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 534
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public struct BarrierDesc
+    content.vb: Public Structure BarrierDesc
+  inheritedMembers:
+  - System.ValueType.Equals(System.Object)
+  - System.ValueType.GetHashCode
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Graphics.RHI.BarrierDesc.Type
+  commentId: P:Ghost.Graphics.RHI.BarrierDesc.Type
+  id: Type
+  parent: Ghost.Graphics.RHI.BarrierDesc
+  langs:
+  - csharp
+  - vb
+  name: Type
+  nameWithType: BarrierDesc.Type
+  fullName: Ghost.Graphics.RHI.BarrierDesc.Type
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Type
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 536
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public BarrierType Type { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.BarrierType
+    content.vb: Public Property Type As BarrierType
+  overload: Ghost.Graphics.RHI.BarrierDesc.Type*
+- uid: Ghost.Graphics.RHI.BarrierDesc.SyncBefore
+  commentId: P:Ghost.Graphics.RHI.BarrierDesc.SyncBefore
+  id: SyncBefore
+  parent: Ghost.Graphics.RHI.BarrierDesc
+  langs:
+  - csharp
+  - vb
+  name: SyncBefore
+  nameWithType: BarrierDesc.SyncBefore
+  fullName: Ghost.Graphics.RHI.BarrierDesc.SyncBefore
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SyncBefore
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 541
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public BarrierSync? SyncBefore { readonly get; set; }
+    parameters: []
+    return:
+      type: System.Nullable{Ghost.Graphics.RHI.BarrierSync}
+    content.vb: Public Property SyncBefore As BarrierSync?
+  overload: Ghost.Graphics.RHI.BarrierDesc.SyncBefore*
+- uid: Ghost.Graphics.RHI.BarrierDesc.SyncAfter
+  commentId: P:Ghost.Graphics.RHI.BarrierDesc.SyncAfter
+  id: SyncAfter
+  parent: Ghost.Graphics.RHI.BarrierDesc
+  langs:
+  - csharp
+  - vb
+  name: SyncAfter
+  nameWithType: BarrierDesc.SyncAfter
+  fullName: Ghost.Graphics.RHI.BarrierDesc.SyncAfter
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SyncAfter
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 546
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public BarrierSync SyncAfter { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.BarrierSync
+    content.vb: Public Property SyncAfter As BarrierSync
+  overload: Ghost.Graphics.RHI.BarrierDesc.SyncAfter*
+- uid: Ghost.Graphics.RHI.BarrierDesc.AccessBefore
+  commentId: P:Ghost.Graphics.RHI.BarrierDesc.AccessBefore
+  id: AccessBefore
+  parent: Ghost.Graphics.RHI.BarrierDesc
+  langs:
+  - csharp
+  - vb
+  name: AccessBefore
+  nameWithType: BarrierDesc.AccessBefore
+  fullName: Ghost.Graphics.RHI.BarrierDesc.AccessBefore
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AccessBefore
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 551
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public BarrierAccess? AccessBefore { readonly get; set; }
+    parameters: []
+    return:
+      type: System.Nullable{Ghost.Graphics.RHI.BarrierAccess}
+    content.vb: Public Property AccessBefore As BarrierAccess?
+  overload: Ghost.Graphics.RHI.BarrierDesc.AccessBefore*
+- uid: Ghost.Graphics.RHI.BarrierDesc.AccessAfter
+  commentId: P:Ghost.Graphics.RHI.BarrierDesc.AccessAfter
+  id: AccessAfter
+  parent: Ghost.Graphics.RHI.BarrierDesc
+  langs:
+  - csharp
+  - vb
+  name: AccessAfter
+  nameWithType: BarrierDesc.AccessAfter
+  fullName: Ghost.Graphics.RHI.BarrierDesc.AccessAfter
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AccessAfter
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 556
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public BarrierAccess AccessAfter { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.BarrierAccess
+    content.vb: Public Property AccessAfter As BarrierAccess
+  overload: Ghost.Graphics.RHI.BarrierDesc.AccessAfter*
+- uid: Ghost.Graphics.RHI.BarrierDesc.LayoutBefore
+  commentId: P:Ghost.Graphics.RHI.BarrierDesc.LayoutBefore
+  id: LayoutBefore
+  parent: Ghost.Graphics.RHI.BarrierDesc
+  langs:
+  - csharp
+  - vb
+  name: LayoutBefore
+  nameWithType: BarrierDesc.LayoutBefore
+  fullName: Ghost.Graphics.RHI.BarrierDesc.LayoutBefore
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: LayoutBefore
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 561
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public BarrierLayout? LayoutBefore { readonly get; set; }
+    parameters: []
+    return:
+      type: System.Nullable{Ghost.Graphics.RHI.BarrierLayout}
+    content.vb: Public Property LayoutBefore As BarrierLayout?
+  overload: Ghost.Graphics.RHI.BarrierDesc.LayoutBefore*
+- uid: Ghost.Graphics.RHI.BarrierDesc.LayoutAfter
+  commentId: P:Ghost.Graphics.RHI.BarrierDesc.LayoutAfter
+  id: LayoutAfter
+  parent: Ghost.Graphics.RHI.BarrierDesc
+  langs:
+  - csharp
+  - vb
+  name: LayoutAfter
+  nameWithType: BarrierDesc.LayoutAfter
+  fullName: Ghost.Graphics.RHI.BarrierDesc.LayoutAfter
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: LayoutAfter
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 566
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public BarrierLayout LayoutAfter { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.BarrierLayout
+    content.vb: Public Property LayoutAfter As BarrierLayout
+  overload: Ghost.Graphics.RHI.BarrierDesc.LayoutAfter*
+- uid: Ghost.Graphics.RHI.BarrierDesc.Resource
+  commentId: P:Ghost.Graphics.RHI.BarrierDesc.Resource
+  id: Resource
+  parent: Ghost.Graphics.RHI.BarrierDesc
+  langs:
+  - csharp
+  - vb
+  name: Resource
+  nameWithType: BarrierDesc.Resource
+  fullName: Ghost.Graphics.RHI.BarrierDesc.Resource
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Resource
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 571
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public Handle<GPUResource> Resource { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+    content.vb: Public Property Resource As Handle(Of GPUResource)
+  overload: Ghost.Graphics.RHI.BarrierDesc.Resource*
+- uid: Ghost.Graphics.RHI.BarrierDesc.Subresources
+  commentId: P:Ghost.Graphics.RHI.BarrierDesc.Subresources
+  id: Subresources
+  parent: Ghost.Graphics.RHI.BarrierDesc
+  langs:
+  - csharp
+  - vb
+  name: Subresources
+  nameWithType: BarrierDesc.Subresources
+  fullName: Ghost.Graphics.RHI.BarrierDesc.Subresources
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Subresources
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 576
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public BarrierSubresourceRange Subresources { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.BarrierSubresourceRange
+    content.vb: Public Property Subresources As BarrierSubresourceRange
+  overload: Ghost.Graphics.RHI.BarrierDesc.Subresources*
+- uid: Ghost.Graphics.RHI.BarrierDesc.Discard
+  commentId: P:Ghost.Graphics.RHI.BarrierDesc.Discard
+  id: Discard
+  parent: Ghost.Graphics.RHI.BarrierDesc
+  langs:
+  - csharp
+  - vb
+  name: Discard
+  nameWithType: BarrierDesc.Discard
+  fullName: Ghost.Graphics.RHI.BarrierDesc.Discard
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Discard
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 581
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public bool Discard { readonly get; set; }
+    parameters: []
+    return:
+      type: System.Boolean
+    content.vb: Public Property Discard As Boolean
+  overload: Ghost.Graphics.RHI.BarrierDesc.Discard*
+- uid: Ghost.Graphics.RHI.BarrierDesc.Global(Ghost.Graphics.RHI.BarrierSync,Ghost.Graphics.RHI.BarrierSync,Ghost.Graphics.RHI.BarrierAccess,Ghost.Graphics.RHI.BarrierAccess)
+  commentId: M:Ghost.Graphics.RHI.BarrierDesc.Global(Ghost.Graphics.RHI.BarrierSync,Ghost.Graphics.RHI.BarrierSync,Ghost.Graphics.RHI.BarrierAccess,Ghost.Graphics.RHI.BarrierAccess)
+  id: Global(Ghost.Graphics.RHI.BarrierSync,Ghost.Graphics.RHI.BarrierSync,Ghost.Graphics.RHI.BarrierAccess,Ghost.Graphics.RHI.BarrierAccess)
+  parent: Ghost.Graphics.RHI.BarrierDesc
+  langs:
+  - csharp
+  - vb
+  name: Global(BarrierSync, BarrierSync, BarrierAccess, BarrierAccess)
+  nameWithType: BarrierDesc.Global(BarrierSync, BarrierSync, BarrierAccess, BarrierAccess)
+  fullName: Ghost.Graphics.RHI.BarrierDesc.Global(Ghost.Graphics.RHI.BarrierSync, Ghost.Graphics.RHI.BarrierSync, Ghost.Graphics.RHI.BarrierAccess, Ghost.Graphics.RHI.BarrierAccess)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Global
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 586
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public static BarrierDesc Global(BarrierSync syncBefore, BarrierSync syncAfter, BarrierAccess accessBefore, BarrierAccess accessAfter)
+    parameters:
+    - id: syncBefore
+      type: Ghost.Graphics.RHI.BarrierSync
+    - id: syncAfter
+      type: Ghost.Graphics.RHI.BarrierSync
+    - id: accessBefore
+      type: Ghost.Graphics.RHI.BarrierAccess
+    - id: accessAfter
+      type: Ghost.Graphics.RHI.BarrierAccess
+    return:
+      type: Ghost.Graphics.RHI.BarrierDesc
+    content.vb: Public Shared Function [Global](syncBefore As BarrierSync, syncAfter As BarrierSync, accessBefore As BarrierAccess, accessAfter As BarrierAccess) As BarrierDesc
+  overload: Ghost.Graphics.RHI.BarrierDesc.Global*
+- uid: Ghost.Graphics.RHI.BarrierDesc.Buffer(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource},System.Nullable{Ghost.Graphics.RHI.BarrierSync},Ghost.Graphics.RHI.BarrierSync,System.Nullable{Ghost.Graphics.RHI.BarrierAccess},Ghost.Graphics.RHI.BarrierAccess)
+  commentId: M:Ghost.Graphics.RHI.BarrierDesc.Buffer(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource},System.Nullable{Ghost.Graphics.RHI.BarrierSync},Ghost.Graphics.RHI.BarrierSync,System.Nullable{Ghost.Graphics.RHI.BarrierAccess},Ghost.Graphics.RHI.BarrierAccess)
+  id: Buffer(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource},System.Nullable{Ghost.Graphics.RHI.BarrierSync},Ghost.Graphics.RHI.BarrierSync,System.Nullable{Ghost.Graphics.RHI.BarrierAccess},Ghost.Graphics.RHI.BarrierAccess)
+  parent: Ghost.Graphics.RHI.BarrierDesc
+  langs:
+  - csharp
+  - vb
+  name: Buffer(Handle<GPUResource>, BarrierSync?, BarrierSync, BarrierAccess?, BarrierAccess)
+  nameWithType: BarrierDesc.Buffer(Handle<GPUResource>, BarrierSync?, BarrierSync, BarrierAccess?, BarrierAccess)
+  fullName: Ghost.Graphics.RHI.BarrierDesc.Buffer(Ghost.Core.Handle<Ghost.Graphics.RHI.GPUResource>, Ghost.Graphics.RHI.BarrierSync?, Ghost.Graphics.RHI.BarrierSync, Ghost.Graphics.RHI.BarrierAccess?, Ghost.Graphics.RHI.BarrierAccess)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Buffer
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 598
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public static BarrierDesc Buffer(Handle<GPUResource> resource, BarrierSync? syncBefore, BarrierSync syncAfter, BarrierAccess? accessBefore, BarrierAccess accessAfter)
+    parameters:
+    - id: resource
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+    - id: syncBefore
+      type: System.Nullable{Ghost.Graphics.RHI.BarrierSync}
+    - id: syncAfter
+      type: Ghost.Graphics.RHI.BarrierSync
+    - id: accessBefore
+      type: System.Nullable{Ghost.Graphics.RHI.BarrierAccess}
+    - id: accessAfter
+      type: Ghost.Graphics.RHI.BarrierAccess
+    return:
+      type: Ghost.Graphics.RHI.BarrierDesc
+    content.vb: Public Shared Function Buffer(resource As Handle(Of GPUResource), syncBefore As BarrierSync?, syncAfter As BarrierSync, accessBefore As BarrierAccess?, accessAfter As BarrierAccess) As BarrierDesc
+  overload: Ghost.Graphics.RHI.BarrierDesc.Buffer*
+  nameWithType.vb: BarrierDesc.Buffer(Handle(Of GPUResource), BarrierSync?, BarrierSync, BarrierAccess?, BarrierAccess)
+  fullName.vb: Ghost.Graphics.RHI.BarrierDesc.Buffer(Ghost.Core.Handle(Of Ghost.Graphics.RHI.GPUResource), Ghost.Graphics.RHI.BarrierSync?, Ghost.Graphics.RHI.BarrierSync, Ghost.Graphics.RHI.BarrierAccess?, Ghost.Graphics.RHI.BarrierAccess)
+  name.vb: Buffer(Handle(Of GPUResource), BarrierSync?, BarrierSync, BarrierAccess?, BarrierAccess)
+- uid: Ghost.Graphics.RHI.BarrierDesc.Texture(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource},System.Nullable{Ghost.Graphics.RHI.BarrierSync},Ghost.Graphics.RHI.BarrierSync,System.Nullable{Ghost.Graphics.RHI.BarrierAccess},Ghost.Graphics.RHI.BarrierAccess,System.Nullable{Ghost.Graphics.RHI.BarrierLayout},Ghost.Graphics.RHI.BarrierLayout,Ghost.Graphics.RHI.BarrierSubresourceRange,System.Boolean)
+  commentId: M:Ghost.Graphics.RHI.BarrierDesc.Texture(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource},System.Nullable{Ghost.Graphics.RHI.BarrierSync},Ghost.Graphics.RHI.BarrierSync,System.Nullable{Ghost.Graphics.RHI.BarrierAccess},Ghost.Graphics.RHI.BarrierAccess,System.Nullable{Ghost.Graphics.RHI.BarrierLayout},Ghost.Graphics.RHI.BarrierLayout,Ghost.Graphics.RHI.BarrierSubresourceRange,System.Boolean)
+  id: Texture(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource},System.Nullable{Ghost.Graphics.RHI.BarrierSync},Ghost.Graphics.RHI.BarrierSync,System.Nullable{Ghost.Graphics.RHI.BarrierAccess},Ghost.Graphics.RHI.BarrierAccess,System.Nullable{Ghost.Graphics.RHI.BarrierLayout},Ghost.Graphics.RHI.BarrierLayout,Ghost.Graphics.RHI.BarrierSubresourceRange,System.Boolean)
+  parent: Ghost.Graphics.RHI.BarrierDesc
+  langs:
+  - csharp
+  - vb
+  name: Texture(Handle<GPUResource>, BarrierSync?, BarrierSync, BarrierAccess?, BarrierAccess, BarrierLayout?, BarrierLayout, BarrierSubresourceRange, bool)
+  nameWithType: BarrierDesc.Texture(Handle<GPUResource>, BarrierSync?, BarrierSync, BarrierAccess?, BarrierAccess, BarrierLayout?, BarrierLayout, BarrierSubresourceRange, bool)
+  fullName: Ghost.Graphics.RHI.BarrierDesc.Texture(Ghost.Core.Handle<Ghost.Graphics.RHI.GPUResource>, Ghost.Graphics.RHI.BarrierSync?, Ghost.Graphics.RHI.BarrierSync, Ghost.Graphics.RHI.BarrierAccess?, Ghost.Graphics.RHI.BarrierAccess, Ghost.Graphics.RHI.BarrierLayout?, Ghost.Graphics.RHI.BarrierLayout, Ghost.Graphics.RHI.BarrierSubresourceRange, bool)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Texture
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 611
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public static BarrierDesc Texture(Handle<GPUResource> resource, BarrierSync? syncBefore, BarrierSync syncAfter, BarrierAccess? accessBefore, BarrierAccess accessAfter, BarrierLayout? layoutBefore, BarrierLayout layoutAfter, BarrierSubresourceRange subresources = default, bool discard = false)
+    parameters:
+    - id: resource
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+    - id: syncBefore
+      type: System.Nullable{Ghost.Graphics.RHI.BarrierSync}
+    - id: syncAfter
+      type: Ghost.Graphics.RHI.BarrierSync
+    - id: accessBefore
+      type: System.Nullable{Ghost.Graphics.RHI.BarrierAccess}
+    - id: accessAfter
+      type: Ghost.Graphics.RHI.BarrierAccess
+    - id: layoutBefore
+      type: System.Nullable{Ghost.Graphics.RHI.BarrierLayout}
+    - id: layoutAfter
+      type: Ghost.Graphics.RHI.BarrierLayout
+    - id: subresources
+      type: Ghost.Graphics.RHI.BarrierSubresourceRange
+    - id: discard
+      type: System.Boolean
+    return:
+      type: Ghost.Graphics.RHI.BarrierDesc
+    content.vb: Public Shared Function Texture(resource As Handle(Of GPUResource), syncBefore As BarrierSync?, syncAfter As BarrierSync, accessBefore As BarrierAccess?, accessAfter As BarrierAccess, layoutBefore As BarrierLayout?, layoutAfter As BarrierLayout, subresources As BarrierSubresourceRange = Nothing, discard As Boolean = False) As BarrierDesc
+  overload: Ghost.Graphics.RHI.BarrierDesc.Texture*
+  nameWithType.vb: BarrierDesc.Texture(Handle(Of GPUResource), BarrierSync?, BarrierSync, BarrierAccess?, BarrierAccess, BarrierLayout?, BarrierLayout, BarrierSubresourceRange, Boolean)
+  fullName.vb: Ghost.Graphics.RHI.BarrierDesc.Texture(Ghost.Core.Handle(Of Ghost.Graphics.RHI.GPUResource), Ghost.Graphics.RHI.BarrierSync?, Ghost.Graphics.RHI.BarrierSync, Ghost.Graphics.RHI.BarrierAccess?, Ghost.Graphics.RHI.BarrierAccess, Ghost.Graphics.RHI.BarrierLayout?, Ghost.Graphics.RHI.BarrierLayout, Ghost.Graphics.RHI.BarrierSubresourceRange, Boolean)
+  name.vb: Texture(Handle(Of GPUResource), BarrierSync?, BarrierSync, BarrierAccess?, BarrierAccess, BarrierLayout?, BarrierLayout, BarrierSubresourceRange, Boolean)
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RHI.BarrierDesc.Type*
+  commentId: Overload:Ghost.Graphics.RHI.BarrierDesc.Type
+  href: Ghost.Graphics.RHI.BarrierDesc.html#Ghost_Graphics_RHI_BarrierDesc_Type
+  name: Type
+  nameWithType: BarrierDesc.Type
+  fullName: Ghost.Graphics.RHI.BarrierDesc.Type
+- uid: Ghost.Graphics.RHI.BarrierType
+  commentId: T:Ghost.Graphics.RHI.BarrierType
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.BarrierType.html
+  name: BarrierType
+  nameWithType: BarrierType
+  fullName: Ghost.Graphics.RHI.BarrierType
+- uid: Ghost.Graphics.RHI.BarrierDesc.SyncBefore*
+  commentId: Overload:Ghost.Graphics.RHI.BarrierDesc.SyncBefore
+  href: Ghost.Graphics.RHI.BarrierDesc.html#Ghost_Graphics_RHI_BarrierDesc_SyncBefore
+  name: SyncBefore
+  nameWithType: BarrierDesc.SyncBefore
+  fullName: Ghost.Graphics.RHI.BarrierDesc.SyncBefore
+- uid: System.Nullable{Ghost.Graphics.RHI.BarrierSync}
+  commentId: T:System.Nullable{Ghost.Graphics.RHI.BarrierSync}
+  parent: System
+  definition: System.Nullable`1
+  href: Ghost.Graphics.RHI.BarrierSync.html
+  name: BarrierSync?
+  nameWithType: BarrierSync?
+  fullName: Ghost.Graphics.RHI.BarrierSync?
+  spec.csharp:
+  - uid: Ghost.Graphics.RHI.BarrierSync
+    name: BarrierSync
+    href: Ghost.Graphics.RHI.BarrierSync.html
+  - name: '?'
+  spec.vb:
+  - uid: Ghost.Graphics.RHI.BarrierSync
+    name: BarrierSync
+    href: Ghost.Graphics.RHI.BarrierSync.html
+  - name: '?'
+- uid: System.Nullable`1
+  commentId: T:System.Nullable`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.nullable-1
+  name: Nullable<T>
+  nameWithType: Nullable<T>
+  fullName: System.Nullable<T>
+  nameWithType.vb: Nullable(Of T)
+  fullName.vb: System.Nullable(Of T)
+  name.vb: Nullable(Of T)
+  spec.csharp:
+  - uid: System.Nullable`1
+    name: Nullable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.nullable-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.Nullable`1
+    name: Nullable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.nullable-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Graphics.RHI.BarrierDesc.SyncAfter*
+  commentId: Overload:Ghost.Graphics.RHI.BarrierDesc.SyncAfter
+  href: Ghost.Graphics.RHI.BarrierDesc.html#Ghost_Graphics_RHI_BarrierDesc_SyncAfter
+  name: SyncAfter
+  nameWithType: BarrierDesc.SyncAfter
+  fullName: Ghost.Graphics.RHI.BarrierDesc.SyncAfter
+- uid: Ghost.Graphics.RHI.BarrierSync
+  commentId: T:Ghost.Graphics.RHI.BarrierSync
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.BarrierSync.html
+  name: BarrierSync
+  nameWithType: BarrierSync
+  fullName: Ghost.Graphics.RHI.BarrierSync
+- uid: Ghost.Graphics.RHI.BarrierDesc.AccessBefore*
+  commentId: Overload:Ghost.Graphics.RHI.BarrierDesc.AccessBefore
+  href: Ghost.Graphics.RHI.BarrierDesc.html#Ghost_Graphics_RHI_BarrierDesc_AccessBefore
+  name: AccessBefore
+  nameWithType: BarrierDesc.AccessBefore
+  fullName: Ghost.Graphics.RHI.BarrierDesc.AccessBefore
+- uid: System.Nullable{Ghost.Graphics.RHI.BarrierAccess}
+  commentId: T:System.Nullable{Ghost.Graphics.RHI.BarrierAccess}
+  parent: System
+  definition: System.Nullable`1
+  href: Ghost.Graphics.RHI.BarrierAccess.html
+  name: BarrierAccess?
+  nameWithType: BarrierAccess?
+  fullName: Ghost.Graphics.RHI.BarrierAccess?
+  spec.csharp:
+  - uid: Ghost.Graphics.RHI.BarrierAccess
+    name: BarrierAccess
+    href: Ghost.Graphics.RHI.BarrierAccess.html
+  - name: '?'
+  spec.vb:
+  - uid: Ghost.Graphics.RHI.BarrierAccess
+    name: BarrierAccess
+    href: Ghost.Graphics.RHI.BarrierAccess.html
+  - name: '?'
+- uid: Ghost.Graphics.RHI.BarrierDesc.AccessAfter*
+  commentId: Overload:Ghost.Graphics.RHI.BarrierDesc.AccessAfter
+  href: Ghost.Graphics.RHI.BarrierDesc.html#Ghost_Graphics_RHI_BarrierDesc_AccessAfter
+  name: AccessAfter
+  nameWithType: BarrierDesc.AccessAfter
+  fullName: Ghost.Graphics.RHI.BarrierDesc.AccessAfter
+- uid: Ghost.Graphics.RHI.BarrierAccess
+  commentId: T:Ghost.Graphics.RHI.BarrierAccess
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.BarrierAccess.html
+  name: BarrierAccess
+  nameWithType: BarrierAccess
+  fullName: Ghost.Graphics.RHI.BarrierAccess
+- uid: Ghost.Graphics.RHI.BarrierDesc.LayoutBefore*
+  commentId: Overload:Ghost.Graphics.RHI.BarrierDesc.LayoutBefore
+  href: Ghost.Graphics.RHI.BarrierDesc.html#Ghost_Graphics_RHI_BarrierDesc_LayoutBefore
+  name: LayoutBefore
+  nameWithType: BarrierDesc.LayoutBefore
+  fullName: Ghost.Graphics.RHI.BarrierDesc.LayoutBefore
+- uid: System.Nullable{Ghost.Graphics.RHI.BarrierLayout}
+  commentId: T:System.Nullable{Ghost.Graphics.RHI.BarrierLayout}
+  parent: System
+  definition: System.Nullable`1
+  href: Ghost.Graphics.RHI.BarrierLayout.html
+  name: BarrierLayout?
+  nameWithType: BarrierLayout?
+  fullName: Ghost.Graphics.RHI.BarrierLayout?
+  spec.csharp:
+  - uid: Ghost.Graphics.RHI.BarrierLayout
+    name: BarrierLayout
+    href: Ghost.Graphics.RHI.BarrierLayout.html
+  - name: '?'
+  spec.vb:
+  - uid: Ghost.Graphics.RHI.BarrierLayout
+    name: BarrierLayout
+    href: Ghost.Graphics.RHI.BarrierLayout.html
+  - name: '?'
+- uid: Ghost.Graphics.RHI.BarrierDesc.LayoutAfter*
+  commentId: Overload:Ghost.Graphics.RHI.BarrierDesc.LayoutAfter
+  href: Ghost.Graphics.RHI.BarrierDesc.html#Ghost_Graphics_RHI_BarrierDesc_LayoutAfter
+  name: LayoutAfter
+  nameWithType: BarrierDesc.LayoutAfter
+  fullName: Ghost.Graphics.RHI.BarrierDesc.LayoutAfter
+- uid: Ghost.Graphics.RHI.BarrierLayout
+  commentId: T:Ghost.Graphics.RHI.BarrierLayout
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.BarrierLayout.html
+  name: BarrierLayout
+  nameWithType: BarrierLayout
+  fullName: Ghost.Graphics.RHI.BarrierLayout
+- uid: Ghost.Graphics.RHI.BarrierDesc.Resource*
+  commentId: Overload:Ghost.Graphics.RHI.BarrierDesc.Resource
+  href: Ghost.Graphics.RHI.BarrierDesc.html#Ghost_Graphics_RHI_BarrierDesc_Resource
+  name: Resource
+  nameWithType: BarrierDesc.Resource
+  fullName: Ghost.Graphics.RHI.BarrierDesc.Resource
+- uid: Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+  commentId: T:Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+  parent: Ghost.Core
+  definition: Ghost.Core.Handle`1
+  href: Ghost.Graphics.RHI.GPUResource.html
+  name: Handle<GPUResource>
+  nameWithType: Handle<GPUResource>
+  fullName: Ghost.Core.Handle<Ghost.Graphics.RHI.GPUResource>
+  nameWithType.vb: Handle(Of GPUResource)
+  fullName.vb: Ghost.Core.Handle(Of Ghost.Graphics.RHI.GPUResource)
+  name.vb: Handle(Of GPUResource)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - uid: Ghost.Graphics.RHI.GPUResource
+    name: GPUResource
+    href: Ghost.Graphics.RHI.GPUResource.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.GPUResource
+    name: GPUResource
+    href: Ghost.Graphics.RHI.GPUResource.html
+  - name: )
+- uid: Ghost.Core.Handle`1
+  commentId: T:Ghost.Core.Handle`1
+  name: Handle<T>
+  nameWithType: Handle<T>
+  fullName: Ghost.Core.Handle<T>
+  nameWithType.vb: Handle(Of T)
+  fullName.vb: Ghost.Core.Handle(Of T)
+  name.vb: Handle(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Core
+  commentId: N:Ghost.Core
+  name: Ghost.Core
+  nameWithType: Ghost.Core
+  fullName: Ghost.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+- uid: Ghost.Graphics.RHI.BarrierDesc.Subresources*
+  commentId: Overload:Ghost.Graphics.RHI.BarrierDesc.Subresources
+  href: Ghost.Graphics.RHI.BarrierDesc.html#Ghost_Graphics_RHI_BarrierDesc_Subresources
+  name: Subresources
+  nameWithType: BarrierDesc.Subresources
+  fullName: Ghost.Graphics.RHI.BarrierDesc.Subresources
+- uid: Ghost.Graphics.RHI.BarrierSubresourceRange
+  commentId: T:Ghost.Graphics.RHI.BarrierSubresourceRange
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.BarrierSubresourceRange.html
+  name: BarrierSubresourceRange
+  nameWithType: BarrierSubresourceRange
+  fullName: Ghost.Graphics.RHI.BarrierSubresourceRange
+- uid: Ghost.Graphics.RHI.BarrierDesc.Discard*
+  commentId: Overload:Ghost.Graphics.RHI.BarrierDesc.Discard
+  href: Ghost.Graphics.RHI.BarrierDesc.html#Ghost_Graphics_RHI_BarrierDesc_Discard
+  name: Discard
+  nameWithType: BarrierDesc.Discard
+  fullName: Ghost.Graphics.RHI.BarrierDesc.Discard
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.boolean
+  name: bool
+  nameWithType: bool
+  fullName: bool
+  nameWithType.vb: Boolean
+  fullName.vb: Boolean
+  name.vb: Boolean
+- uid: Ghost.Graphics.RHI.BarrierDesc.Global*
+  commentId: Overload:Ghost.Graphics.RHI.BarrierDesc.Global
+  href: Ghost.Graphics.RHI.BarrierDesc.html#Ghost_Graphics_RHI_BarrierDesc_Global_Ghost_Graphics_RHI_BarrierSync_Ghost_Graphics_RHI_BarrierSync_Ghost_Graphics_RHI_BarrierAccess_Ghost_Graphics_RHI_BarrierAccess_
+  name: Global
+  nameWithType: BarrierDesc.Global
+  fullName: Ghost.Graphics.RHI.BarrierDesc.Global
+- uid: Ghost.Graphics.RHI.BarrierDesc
+  commentId: T:Ghost.Graphics.RHI.BarrierDesc
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.BarrierDesc.html
+  name: BarrierDesc
+  nameWithType: BarrierDesc
+  fullName: Ghost.Graphics.RHI.BarrierDesc
+- uid: Ghost.Graphics.RHI.BarrierDesc.Buffer*
+  commentId: Overload:Ghost.Graphics.RHI.BarrierDesc.Buffer
+  href: Ghost.Graphics.RHI.BarrierDesc.html#Ghost_Graphics_RHI_BarrierDesc_Buffer_Ghost_Core_Handle_Ghost_Graphics_RHI_GPUResource__System_Nullable_Ghost_Graphics_RHI_BarrierSync__Ghost_Graphics_RHI_BarrierSync_System_Nullable_Ghost_Graphics_RHI_BarrierAccess__Ghost_Graphics_RHI_BarrierAccess_
+  name: Buffer
+  nameWithType: BarrierDesc.Buffer
+  fullName: Ghost.Graphics.RHI.BarrierDesc.Buffer
+- uid: Ghost.Graphics.RHI.BarrierDesc.Texture*
+  commentId: Overload:Ghost.Graphics.RHI.BarrierDesc.Texture
+  href: Ghost.Graphics.RHI.BarrierDesc.html#Ghost_Graphics_RHI_BarrierDesc_Texture_Ghost_Core_Handle_Ghost_Graphics_RHI_GPUResource__System_Nullable_Ghost_Graphics_RHI_BarrierSync__Ghost_Graphics_RHI_BarrierSync_System_Nullable_Ghost_Graphics_RHI_BarrierAccess__Ghost_Graphics_RHI_BarrierAccess_System_Nullable_Ghost_Graphics_RHI_BarrierLayout__Ghost_Graphics_RHI_BarrierLayout_Ghost_Graphics_RHI_BarrierSubresourceRange_System_Boolean_
+  name: Texture
+  nameWithType: BarrierDesc.Texture
+  fullName: Ghost.Graphics.RHI.BarrierDesc.Texture

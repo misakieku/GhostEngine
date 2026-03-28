@@ -1,0 +1,751 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.Utilities.MeshBuilder
+  commentId: T:Ghost.Graphics.Utilities.MeshBuilder
+  id: MeshBuilder
+  parent: Ghost.Graphics.Utilities
+  children:
+  - Ghost.Graphics.Utilities.MeshBuilder.ComputeNormal(Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex},Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32})
+  - Ghost.Graphics.Utilities.MeshBuilder.ComputeTangents(Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex},Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32})
+  - Ghost.Graphics.Utilities.MeshBuilder.CreateCube(System.Single,Ghost.Graphics.RHI.Color128,Misaki.HighPerformance.LowLevel.Buffer.Allocator,Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex}@,Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}@)
+  - Ghost.Graphics.Utilities.MeshBuilder.CreatePlane(System.Single,System.Single,Ghost.Graphics.RHI.Color128,Misaki.HighPerformance.LowLevel.Buffer.Allocator,Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex}@,Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}@)
+  - Ghost.Graphics.Utilities.MeshBuilder.CreateSphere(System.Int32,System.Int32,System.Single,Ghost.Graphics.RHI.Color128,Misaki.HighPerformance.LowLevel.Buffer.Allocator,Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex}@,Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}@)
+  langs:
+  - csharp
+  - vb
+  name: MeshBuilder
+  nameWithType: MeshBuilder
+  fullName: Ghost.Graphics.Utilities.MeshBuilder
+  type: Class
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshBuilder.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: MeshBuilder
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshBuilder.cs
+    startLine: 7
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  syntax:
+    content: public static class MeshBuilder
+    content.vb: Public Module MeshBuilder
+  inheritance:
+  - System.Object
+  inheritedMembers:
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.MemberwiseClone
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.ToString
+- uid: Ghost.Graphics.Utilities.MeshBuilder.CreateCube(System.Single,Ghost.Graphics.RHI.Color128,Misaki.HighPerformance.LowLevel.Buffer.Allocator,Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex}@,Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}@)
+  commentId: M:Ghost.Graphics.Utilities.MeshBuilder.CreateCube(System.Single,Ghost.Graphics.RHI.Color128,Misaki.HighPerformance.LowLevel.Buffer.Allocator,Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex}@,Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}@)
+  id: CreateCube(System.Single,Ghost.Graphics.RHI.Color128,Misaki.HighPerformance.LowLevel.Buffer.Allocator,Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex}@,Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}@)
+  parent: Ghost.Graphics.Utilities.MeshBuilder
+  langs:
+  - csharp
+  - vb
+  name: CreateCube(float, Color128, Allocator, out UnsafeList<Vertex>, out UnsafeList<uint>)
+  nameWithType: MeshBuilder.CreateCube(float, Color128, Allocator, out UnsafeList<Vertex>, out UnsafeList<uint>)
+  fullName: Ghost.Graphics.Utilities.MeshBuilder.CreateCube(float, Ghost.Graphics.RHI.Color128, Misaki.HighPerformance.LowLevel.Buffer.Allocator, out Misaki.HighPerformance.LowLevel.Collections.UnsafeList<Ghost.Graphics.RHI.Vertex>, out Misaki.HighPerformance.LowLevel.Collections.UnsafeList<uint>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshBuilder.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CreateCube
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshBuilder.cs
+    startLine: 12
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Creates a unit cube centered at the origin with size 1.
+  example: []
+  syntax:
+    content: public static void CreateCube(float size, Color128 color, Allocator allocator, out UnsafeList<Vertex> vertices, out UnsafeList<uint> indices)
+    parameters:
+    - id: size
+      type: System.Single
+    - id: color
+      type: Ghost.Graphics.RHI.Color128
+    - id: allocator
+      type: Misaki.HighPerformance.LowLevel.Buffer.Allocator
+    - id: vertices
+      type: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex}
+    - id: indices
+      type: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}
+    content.vb: Public Shared Sub CreateCube(size As Single, color As Color128, allocator As Allocator, vertices As UnsafeList(Of Vertex), indices As UnsafeList(Of UInteger))
+  overload: Ghost.Graphics.Utilities.MeshBuilder.CreateCube*
+  nameWithType.vb: MeshBuilder.CreateCube(Single, Color128, Allocator, UnsafeList(Of Vertex), UnsafeList(Of UInteger))
+  fullName.vb: Ghost.Graphics.Utilities.MeshBuilder.CreateCube(Single, Ghost.Graphics.RHI.Color128, Misaki.HighPerformance.LowLevel.Buffer.Allocator, Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of Ghost.Graphics.RHI.Vertex), Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of UInteger))
+  name.vb: CreateCube(Single, Color128, Allocator, UnsafeList(Of Vertex), UnsafeList(Of UInteger))
+- uid: Ghost.Graphics.Utilities.MeshBuilder.CreatePlane(System.Single,System.Single,Ghost.Graphics.RHI.Color128,Misaki.HighPerformance.LowLevel.Buffer.Allocator,Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex}@,Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}@)
+  commentId: M:Ghost.Graphics.Utilities.MeshBuilder.CreatePlane(System.Single,System.Single,Ghost.Graphics.RHI.Color128,Misaki.HighPerformance.LowLevel.Buffer.Allocator,Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex}@,Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}@)
+  id: CreatePlane(System.Single,System.Single,Ghost.Graphics.RHI.Color128,Misaki.HighPerformance.LowLevel.Buffer.Allocator,Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex}@,Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}@)
+  parent: Ghost.Graphics.Utilities.MeshBuilder
+  langs:
+  - csharp
+  - vb
+  name: CreatePlane(float, float, Color128, Allocator, out UnsafeList<Vertex>, out UnsafeList<uint>)
+  nameWithType: MeshBuilder.CreatePlane(float, float, Color128, Allocator, out UnsafeList<Vertex>, out UnsafeList<uint>)
+  fullName: Ghost.Graphics.Utilities.MeshBuilder.CreatePlane(float, float, Ghost.Graphics.RHI.Color128, Misaki.HighPerformance.LowLevel.Buffer.Allocator, out Misaki.HighPerformance.LowLevel.Collections.UnsafeList<Ghost.Graphics.RHI.Vertex>, out Misaki.HighPerformance.LowLevel.Collections.UnsafeList<uint>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshBuilder.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CreatePlane
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshBuilder.cs
+    startLine: 73
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Creates a plane on the XZ axis centered at the origin.
+  example: []
+  syntax:
+    content: public static void CreatePlane(float width, float depth, Color128 color, Allocator allocator, out UnsafeList<Vertex> vertices, out UnsafeList<uint> indices)
+    parameters:
+    - id: width
+      type: System.Single
+    - id: depth
+      type: System.Single
+    - id: color
+      type: Ghost.Graphics.RHI.Color128
+    - id: allocator
+      type: Misaki.HighPerformance.LowLevel.Buffer.Allocator
+    - id: vertices
+      type: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex}
+    - id: indices
+      type: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}
+    content.vb: Public Shared Sub CreatePlane(width As Single, depth As Single, color As Color128, allocator As Allocator, vertices As UnsafeList(Of Vertex), indices As UnsafeList(Of UInteger))
+  overload: Ghost.Graphics.Utilities.MeshBuilder.CreatePlane*
+  nameWithType.vb: MeshBuilder.CreatePlane(Single, Single, Color128, Allocator, UnsafeList(Of Vertex), UnsafeList(Of UInteger))
+  fullName.vb: Ghost.Graphics.Utilities.MeshBuilder.CreatePlane(Single, Single, Ghost.Graphics.RHI.Color128, Misaki.HighPerformance.LowLevel.Buffer.Allocator, Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of Ghost.Graphics.RHI.Vertex), Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of UInteger))
+  name.vb: CreatePlane(Single, Single, Color128, Allocator, UnsafeList(Of Vertex), UnsafeList(Of UInteger))
+- uid: Ghost.Graphics.Utilities.MeshBuilder.CreateSphere(System.Int32,System.Int32,System.Single,Ghost.Graphics.RHI.Color128,Misaki.HighPerformance.LowLevel.Buffer.Allocator,Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex}@,Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}@)
+  commentId: M:Ghost.Graphics.Utilities.MeshBuilder.CreateSphere(System.Int32,System.Int32,System.Single,Ghost.Graphics.RHI.Color128,Misaki.HighPerformance.LowLevel.Buffer.Allocator,Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex}@,Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}@)
+  id: CreateSphere(System.Int32,System.Int32,System.Single,Ghost.Graphics.RHI.Color128,Misaki.HighPerformance.LowLevel.Buffer.Allocator,Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex}@,Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}@)
+  parent: Ghost.Graphics.Utilities.MeshBuilder
+  langs:
+  - csharp
+  - vb
+  name: CreateSphere(int, int, float, Color128, Allocator, out UnsafeList<Vertex>, out UnsafeList<uint>)
+  nameWithType: MeshBuilder.CreateSphere(int, int, float, Color128, Allocator, out UnsafeList<Vertex>, out UnsafeList<uint>)
+  fullName: Ghost.Graphics.Utilities.MeshBuilder.CreateSphere(int, int, float, Ghost.Graphics.RHI.Color128, Misaki.HighPerformance.LowLevel.Buffer.Allocator, out Misaki.HighPerformance.LowLevel.Collections.UnsafeList<Ghost.Graphics.RHI.Vertex>, out Misaki.HighPerformance.LowLevel.Collections.UnsafeList<uint>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshBuilder.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CreateSphere
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshBuilder.cs
+    startLine: 131
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Creates a UV sphere centered at the origin.
+  example: []
+  syntax:
+    content: public static void CreateSphere(int latitudeSegments, int longitudeSegments, float radius, Color128 color, Allocator allocator, out UnsafeList<Vertex> vertices, out UnsafeList<uint> indices)
+    parameters:
+    - id: latitudeSegments
+      type: System.Int32
+    - id: longitudeSegments
+      type: System.Int32
+    - id: radius
+      type: System.Single
+    - id: color
+      type: Ghost.Graphics.RHI.Color128
+    - id: allocator
+      type: Misaki.HighPerformance.LowLevel.Buffer.Allocator
+    - id: vertices
+      type: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex}
+    - id: indices
+      type: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}
+    content.vb: Public Shared Sub CreateSphere(latitudeSegments As Integer, longitudeSegments As Integer, radius As Single, color As Color128, allocator As Allocator, vertices As UnsafeList(Of Vertex), indices As UnsafeList(Of UInteger))
+  overload: Ghost.Graphics.Utilities.MeshBuilder.CreateSphere*
+  nameWithType.vb: MeshBuilder.CreateSphere(Integer, Integer, Single, Color128, Allocator, UnsafeList(Of Vertex), UnsafeList(Of UInteger))
+  fullName.vb: Ghost.Graphics.Utilities.MeshBuilder.CreateSphere(Integer, Integer, Single, Ghost.Graphics.RHI.Color128, Misaki.HighPerformance.LowLevel.Buffer.Allocator, Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of Ghost.Graphics.RHI.Vertex), Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of UInteger))
+  name.vb: CreateSphere(Integer, Integer, Single, Color128, Allocator, UnsafeList(Of Vertex), UnsafeList(Of UInteger))
+- uid: Ghost.Graphics.Utilities.MeshBuilder.ComputeNormal(Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex},Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32})
+  commentId: M:Ghost.Graphics.Utilities.MeshBuilder.ComputeNormal(Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex},Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32})
+  id: ComputeNormal(Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex},Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32})
+  parent: Ghost.Graphics.Utilities.MeshBuilder
+  langs:
+  - csharp
+  - vb
+  name: ComputeNormal(UnsafeList<Vertex>, UnsafeList<uint>)
+  nameWithType: MeshBuilder.ComputeNormal(UnsafeList<Vertex>, UnsafeList<uint>)
+  fullName: Ghost.Graphics.Utilities.MeshBuilder.ComputeNormal(Misaki.HighPerformance.LowLevel.Collections.UnsafeList<Ghost.Graphics.RHI.Vertex>, Misaki.HighPerformance.LowLevel.Collections.UnsafeList<uint>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshBuilder.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ComputeNormal
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshBuilder.cs
+    startLine: 192
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Auto-compute smooth per-vertex normals.
+  example: []
+  syntax:
+    content: public static void ComputeNormal(UnsafeList<Vertex> vertices, UnsafeList<uint> indices)
+    parameters:
+    - id: vertices
+      type: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex}
+      description: The vertex list.
+    - id: indices
+      type: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}
+      description: The index list.
+    content.vb: Public Shared Sub ComputeNormal(vertices As UnsafeList(Of Vertex), indices As UnsafeList(Of UInteger))
+  overload: Ghost.Graphics.Utilities.MeshBuilder.ComputeNormal*
+  nameWithType.vb: MeshBuilder.ComputeNormal(UnsafeList(Of Vertex), UnsafeList(Of UInteger))
+  fullName.vb: Ghost.Graphics.Utilities.MeshBuilder.ComputeNormal(Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of Ghost.Graphics.RHI.Vertex), Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of UInteger))
+  name.vb: ComputeNormal(UnsafeList(Of Vertex), UnsafeList(Of UInteger))
+- uid: Ghost.Graphics.Utilities.MeshBuilder.ComputeTangents(Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex},Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32})
+  commentId: M:Ghost.Graphics.Utilities.MeshBuilder.ComputeTangents(Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex},Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32})
+  id: ComputeTangents(Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex},Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32})
+  parent: Ghost.Graphics.Utilities.MeshBuilder
+  langs:
+  - csharp
+  - vb
+  name: ComputeTangents(UnsafeList<Vertex>, UnsafeList<uint>)
+  nameWithType: MeshBuilder.ComputeTangents(UnsafeList<Vertex>, UnsafeList<uint>)
+  fullName: Ghost.Graphics.Utilities.MeshBuilder.ComputeTangents(Misaki.HighPerformance.LowLevel.Collections.UnsafeList<Ghost.Graphics.RHI.Vertex>, Misaki.HighPerformance.LowLevel.Collections.UnsafeList<uint>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshBuilder.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ComputeTangents
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshBuilder.cs
+    startLine: 230
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Auto-compute per-vertex tangents.
+  example: []
+  syntax:
+    content: public static void ComputeTangents(UnsafeList<Vertex> vertices, UnsafeList<uint> indices)
+    parameters:
+    - id: vertices
+      type: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex}
+      description: The vertex list.
+    - id: indices
+      type: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}
+      description: The index list.
+    content.vb: Public Shared Sub ComputeTangents(vertices As UnsafeList(Of Vertex), indices As UnsafeList(Of UInteger))
+  overload: Ghost.Graphics.Utilities.MeshBuilder.ComputeTangents*
+  nameWithType.vb: MeshBuilder.ComputeTangents(UnsafeList(Of Vertex), UnsafeList(Of UInteger))
+  fullName.vb: Ghost.Graphics.Utilities.MeshBuilder.ComputeTangents(Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of Ghost.Graphics.RHI.Vertex), Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of UInteger))
+  name.vb: ComputeTangents(UnsafeList(Of Vertex), UnsafeList(Of UInteger))
+references:
+- uid: Ghost.Graphics.Utilities
+  commentId: N:Ghost.Graphics.Utilities
+  href: Ghost.html
+  name: Ghost.Graphics.Utilities
+  nameWithType: Ghost.Graphics.Utilities
+  fullName: Ghost.Graphics.Utilities
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Utilities
+    name: Utilities
+    href: Ghost.Graphics.Utilities.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Utilities
+    name: Utilities
+    href: Ghost.Graphics.Utilities.html
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  name: Equals(object)
+  nameWithType: object.Equals(object)
+  fullName: object.Equals(object)
+  nameWithType.vb: Object.Equals(Object)
+  fullName.vb: Object.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  name: GetHashCode()
+  nameWithType: object.GetHashCode()
+  fullName: object.GetHashCode()
+  nameWithType.vb: Object.GetHashCode()
+  fullName.vb: Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  name: MemberwiseClone()
+  nameWithType: object.MemberwiseClone()
+  fullName: object.MemberwiseClone()
+  nameWithType.vb: Object.MemberwiseClone()
+  fullName.vb: Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  name: ToString()
+  nameWithType: object.ToString()
+  fullName: object.ToString()
+  nameWithType.vb: Object.ToString()
+  fullName.vb: Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.Utilities.MeshBuilder.CreateCube*
+  commentId: Overload:Ghost.Graphics.Utilities.MeshBuilder.CreateCube
+  href: Ghost.Graphics.Utilities.MeshBuilder.html#Ghost_Graphics_Utilities_MeshBuilder_CreateCube_System_Single_Ghost_Graphics_RHI_Color128_Misaki_HighPerformance_LowLevel_Buffer_Allocator_Misaki_HighPerformance_LowLevel_Collections_UnsafeList_Ghost_Graphics_RHI_Vertex___Misaki_HighPerformance_LowLevel_Collections_UnsafeList_System_UInt32___
+  name: CreateCube
+  nameWithType: MeshBuilder.CreateCube
+  fullName: Ghost.Graphics.Utilities.MeshBuilder.CreateCube
+- uid: System.Single
+  commentId: T:System.Single
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.single
+  name: float
+  nameWithType: float
+  fullName: float
+  nameWithType.vb: Single
+  fullName.vb: Single
+  name.vb: Single
+- uid: Ghost.Graphics.RHI.Color128
+  commentId: T:Ghost.Graphics.RHI.Color128
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.Color128.html
+  name: Color128
+  nameWithType: Color128
+  fullName: Ghost.Graphics.RHI.Color128
+- uid: Misaki.HighPerformance.LowLevel.Buffer.Allocator
+  commentId: T:Misaki.HighPerformance.LowLevel.Buffer.Allocator
+  parent: Misaki.HighPerformance.LowLevel.Buffer
+  name: Allocator
+  nameWithType: Allocator
+  fullName: Misaki.HighPerformance.LowLevel.Buffer.Allocator
+- uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex}
+  commentId: T:Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex}
+  parent: Misaki.HighPerformance.LowLevel.Collections
+  definition: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+  name: UnsafeList<Vertex>
+  nameWithType: UnsafeList<Vertex>
+  fullName: Misaki.HighPerformance.LowLevel.Collections.UnsafeList<Ghost.Graphics.RHI.Vertex>
+  nameWithType.vb: UnsafeList(Of Vertex)
+  fullName.vb: Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of Ghost.Graphics.RHI.Vertex)
+  name.vb: UnsafeList(Of Vertex)
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: <
+  - uid: Ghost.Graphics.RHI.Vertex
+    name: Vertex
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.Vertex
+    name: Vertex
+  - name: )
+- uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}
+  commentId: T:Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}
+  parent: Misaki.HighPerformance.LowLevel.Collections
+  definition: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+  href: https://learn.microsoft.com/dotnet/api/system.uint32
+  name: UnsafeList<uint>
+  nameWithType: UnsafeList<uint>
+  fullName: Misaki.HighPerformance.LowLevel.Collections.UnsafeList<uint>
+  nameWithType.vb: UnsafeList(Of UInteger)
+  fullName.vb: Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of UInteger)
+  name.vb: UnsafeList(Of UInteger)
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: <
+  - uid: System.UInt32
+    name: uint
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.uint32
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: System.UInt32
+    name: UInteger
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.uint32
+  - name: )
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Misaki.HighPerformance.LowLevel.Buffer
+  commentId: N:Misaki.HighPerformance.LowLevel.Buffer
+  name: Misaki.HighPerformance.LowLevel.Buffer
+  nameWithType: Misaki.HighPerformance.LowLevel.Buffer
+  fullName: Misaki.HighPerformance.LowLevel.Buffer
+  spec.csharp:
+  - uid: Misaki
+    name: Misaki
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel
+    name: LowLevel
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel.Buffer
+    name: Buffer
+  spec.vb:
+  - uid: Misaki
+    name: Misaki
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel
+    name: LowLevel
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel.Buffer
+    name: Buffer
+- uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+  commentId: T:Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+  name: UnsafeList<T>
+  nameWithType: UnsafeList<T>
+  fullName: Misaki.HighPerformance.LowLevel.Collections.UnsafeList<T>
+  nameWithType.vb: UnsafeList(Of T)
+  fullName.vb: Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of T)
+  name.vb: UnsafeList(Of T)
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Misaki.HighPerformance.LowLevel.Collections
+  commentId: N:Misaki.HighPerformance.LowLevel.Collections
+  name: Misaki.HighPerformance.LowLevel.Collections
+  nameWithType: Misaki.HighPerformance.LowLevel.Collections
+  fullName: Misaki.HighPerformance.LowLevel.Collections
+  spec.csharp:
+  - uid: Misaki
+    name: Misaki
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel
+    name: LowLevel
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel.Collections
+    name: Collections
+  spec.vb:
+  - uid: Misaki
+    name: Misaki
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel
+    name: LowLevel
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel.Collections
+    name: Collections
+- uid: Ghost.Graphics.Utilities.MeshBuilder.CreatePlane*
+  commentId: Overload:Ghost.Graphics.Utilities.MeshBuilder.CreatePlane
+  href: Ghost.Graphics.Utilities.MeshBuilder.html#Ghost_Graphics_Utilities_MeshBuilder_CreatePlane_System_Single_System_Single_Ghost_Graphics_RHI_Color128_Misaki_HighPerformance_LowLevel_Buffer_Allocator_Misaki_HighPerformance_LowLevel_Collections_UnsafeList_Ghost_Graphics_RHI_Vertex___Misaki_HighPerformance_LowLevel_Collections_UnsafeList_System_UInt32___
+  name: CreatePlane
+  nameWithType: MeshBuilder.CreatePlane
+  fullName: Ghost.Graphics.Utilities.MeshBuilder.CreatePlane
+- uid: Ghost.Graphics.Utilities.MeshBuilder.CreateSphere*
+  commentId: Overload:Ghost.Graphics.Utilities.MeshBuilder.CreateSphere
+  href: Ghost.Graphics.Utilities.MeshBuilder.html#Ghost_Graphics_Utilities_MeshBuilder_CreateSphere_System_Int32_System_Int32_System_Single_Ghost_Graphics_RHI_Color128_Misaki_HighPerformance_LowLevel_Buffer_Allocator_Misaki_HighPerformance_LowLevel_Collections_UnsafeList_Ghost_Graphics_RHI_Vertex___Misaki_HighPerformance_LowLevel_Collections_UnsafeList_System_UInt32___
+  name: CreateSphere
+  nameWithType: MeshBuilder.CreateSphere
+  fullName: Ghost.Graphics.Utilities.MeshBuilder.CreateSphere
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.int32
+  name: int
+  nameWithType: int
+  fullName: int
+  nameWithType.vb: Integer
+  fullName.vb: Integer
+  name.vb: Integer
+- uid: Ghost.Graphics.Utilities.MeshBuilder.ComputeNormal*
+  commentId: Overload:Ghost.Graphics.Utilities.MeshBuilder.ComputeNormal
+  href: Ghost.Graphics.Utilities.MeshBuilder.html#Ghost_Graphics_Utilities_MeshBuilder_ComputeNormal_Misaki_HighPerformance_LowLevel_Collections_UnsafeList_Ghost_Graphics_RHI_Vertex__Misaki_HighPerformance_LowLevel_Collections_UnsafeList_System_UInt32__
+  name: ComputeNormal
+  nameWithType: MeshBuilder.ComputeNormal
+  fullName: Ghost.Graphics.Utilities.MeshBuilder.ComputeNormal
+- uid: Ghost.Graphics.Utilities.MeshBuilder.ComputeTangents*
+  commentId: Overload:Ghost.Graphics.Utilities.MeshBuilder.ComputeTangents
+  href: Ghost.Graphics.Utilities.MeshBuilder.html#Ghost_Graphics_Utilities_MeshBuilder_ComputeTangents_Misaki_HighPerformance_LowLevel_Collections_UnsafeList_Ghost_Graphics_RHI_Vertex__Misaki_HighPerformance_LowLevel_Collections_UnsafeList_System_UInt32__
+  name: ComputeTangents
+  nameWithType: MeshBuilder.ComputeTangents
+  fullName: Ghost.Graphics.Utilities.MeshBuilder.ComputeTangents

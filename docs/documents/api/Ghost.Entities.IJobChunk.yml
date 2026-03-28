@@ -1,0 +1,128 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Entities.IJobChunk
+  commentId: T:Ghost.Entities.IJobChunk
+  id: IJobChunk
+  parent: Ghost.Entities
+  children:
+  - Ghost.Entities.IJobChunk.Execute(Ghost.Entities.ChunkView,Misaki.HighPerformance.Jobs.JobExecutionContext@)
+  langs:
+  - csharp
+  - vb
+  name: IJobChunk
+  nameWithType: IJobChunk
+  fullName: Ghost.Entities.IJobChunk
+  type: Interface
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/EntityQuery.JobChunk.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IJobChunk
+    path: src/Runtime/Ghost.Entities/EntityQuery.JobChunk.cs
+    startLine: 6
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public interface IJobChunk
+    content.vb: Public Interface IJobChunk
+- uid: Ghost.Entities.IJobChunk.Execute(Ghost.Entities.ChunkView,Misaki.HighPerformance.Jobs.JobExecutionContext@)
+  commentId: M:Ghost.Entities.IJobChunk.Execute(Ghost.Entities.ChunkView,Misaki.HighPerformance.Jobs.JobExecutionContext@)
+  id: Execute(Ghost.Entities.ChunkView,Misaki.HighPerformance.Jobs.JobExecutionContext@)
+  parent: Ghost.Entities.IJobChunk
+  langs:
+  - csharp
+  - vb
+  name: Execute(ChunkView, ref readonly JobExecutionContext)
+  nameWithType: IJobChunk.Execute(ChunkView, ref readonly JobExecutionContext)
+  fullName: Ghost.Entities.IJobChunk.Execute(Ghost.Entities.ChunkView, ref readonly Misaki.HighPerformance.Jobs.JobExecutionContext)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/EntityQuery.JobChunk.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Execute
+    path: src/Runtime/Ghost.Entities/EntityQuery.JobChunk.cs
+    startLine: 8
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: void Execute(ChunkView view, ref readonly JobExecutionContext ctx)
+    parameters:
+    - id: view
+      type: Ghost.Entities.ChunkView
+    - id: ctx
+      type: Misaki.HighPerformance.Jobs.JobExecutionContext
+    content.vb: Sub Execute(view As ChunkView, ctx As JobExecutionContext)
+  overload: Ghost.Entities.IJobChunk.Execute*
+  nameWithType.vb: IJobChunk.Execute(ChunkView, JobExecutionContext)
+  fullName.vb: Ghost.Entities.IJobChunk.Execute(Ghost.Entities.ChunkView, Misaki.HighPerformance.Jobs.JobExecutionContext)
+  name.vb: Execute(ChunkView, JobExecutionContext)
+references:
+- uid: Ghost.Entities
+  commentId: N:Ghost.Entities
+  href: Ghost.html
+  name: Ghost.Entities
+  nameWithType: Ghost.Entities
+  fullName: Ghost.Entities
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Entities
+    name: Entities
+    href: Ghost.Entities.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Entities
+    name: Entities
+    href: Ghost.Entities.html
+- uid: Ghost.Entities.IJobChunk.Execute*
+  commentId: Overload:Ghost.Entities.IJobChunk.Execute
+  href: Ghost.Entities.IJobChunk.html#Ghost_Entities_IJobChunk_Execute_Ghost_Entities_ChunkView_Misaki_HighPerformance_Jobs_JobExecutionContext__
+  name: Execute
+  nameWithType: IJobChunk.Execute
+  fullName: Ghost.Entities.IJobChunk.Execute
+- uid: Ghost.Entities.ChunkView
+  commentId: T:Ghost.Entities.ChunkView
+  parent: Ghost.Entities
+  href: Ghost.Entities.ChunkView.html
+  name: ChunkView
+  nameWithType: ChunkView
+  fullName: Ghost.Entities.ChunkView
+- uid: Misaki.HighPerformance.Jobs.JobExecutionContext
+  commentId: T:Misaki.HighPerformance.Jobs.JobExecutionContext
+  parent: Misaki.HighPerformance.Jobs
+  name: JobExecutionContext
+  nameWithType: JobExecutionContext
+  fullName: Misaki.HighPerformance.Jobs.JobExecutionContext
+- uid: Misaki.HighPerformance.Jobs
+  commentId: N:Misaki.HighPerformance.Jobs
+  name: Misaki.HighPerformance.Jobs
+  nameWithType: Misaki.HighPerformance.Jobs
+  fullName: Misaki.HighPerformance.Jobs
+  spec.csharp:
+  - uid: Misaki
+    name: Misaki
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+  - name: .
+  - uid: Misaki.HighPerformance.Jobs
+    name: Jobs
+  spec.vb:
+  - uid: Misaki
+    name: Misaki
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+  - name: .
+  - uid: Misaki.HighPerformance.Jobs
+    name: Jobs

@@ -8,13 +8,13 @@ namespace Ghost.Graphics.RenderPipeline;
 
 public sealed class GhostRenderPipelineSettings : IRenderPipelineSettings
 {
-    public IRenderPipeline CreatePipeline(RenderSystem renderSystem)
+    IRenderPipeline IRenderPipelineSettings.CreatePipeline(RenderSystem renderSystem)
     {
         return new GhostRenderPipeline(renderSystem);
     }
 }
 
-public unsafe partial class GhostRenderPipeline : IRenderPipeline
+internal unsafe partial class GhostRenderPipeline : IRenderPipeline
 {
     private readonly RenderGraph _renderGraph;
 

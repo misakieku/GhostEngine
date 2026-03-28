@@ -1,0 +1,173 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Entities.IJobEntity`3
+  commentId: T:Ghost.Entities.IJobEntity`3
+  id: IJobEntity`3
+  parent: Ghost.Entities
+  children:
+  - Ghost.Entities.IJobEntity`3.Execute(Ghost.Entities.Entity,`0@,`1@,`2@,Misaki.HighPerformance.Jobs.JobExecutionContext@)
+  langs:
+  - csharp
+  - vb
+  name: IJobEntity<T0, T1, T2>
+  nameWithType: IJobEntity<T0, T1, T2>
+  fullName: Ghost.Entities.IJobEntity<T0, T1, T2>
+  type: Interface
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/EntityQuery.JobEntity.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IJobEntity
+    path: src/Runtime/Ghost.Entities/Templates/EntityQuery.JobEntity.gen.cs
+    startLine: 145
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: 'public interface IJobEntity<T0, T1, T2> where T0 : unmanaged, IComponent where T1 : unmanaged, IComponent where T2 : unmanaged, IComponent'
+    typeParameters:
+    - id: T0
+    - id: T1
+    - id: T2
+    content.vb: Public Interface IJobEntity(Of T0 As {Structure, IComponent}, T1 As {Structure, IComponent}, T2 As {Structure, IComponent})
+  nameWithType.vb: IJobEntity(Of T0, T1, T2)
+  fullName.vb: Ghost.Entities.IJobEntity(Of T0, T1, T2)
+  name.vb: IJobEntity(Of T0, T1, T2)
+- uid: Ghost.Entities.IJobEntity`3.Execute(Ghost.Entities.Entity,`0@,`1@,`2@,Misaki.HighPerformance.Jobs.JobExecutionContext@)
+  commentId: M:Ghost.Entities.IJobEntity`3.Execute(Ghost.Entities.Entity,`0@,`1@,`2@,Misaki.HighPerformance.Jobs.JobExecutionContext@)
+  id: Execute(Ghost.Entities.Entity,`0@,`1@,`2@,Misaki.HighPerformance.Jobs.JobExecutionContext@)
+  parent: Ghost.Entities.IJobEntity`3
+  langs:
+  - csharp
+  - vb
+  name: Execute(Entity, ref T0, ref T1, ref T2, ref readonly JobExecutionContext)
+  nameWithType: IJobEntity<T0, T1, T2>.Execute(Entity, ref T0, ref T1, ref T2, ref readonly JobExecutionContext)
+  fullName: Ghost.Entities.IJobEntity<T0, T1, T2>.Execute(Ghost.Entities.Entity, ref T0, ref T1, ref T2, ref readonly Misaki.HighPerformance.Jobs.JobExecutionContext)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/EntityQuery.JobEntity.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Execute
+    path: src/Runtime/Ghost.Entities/Templates/EntityQuery.JobEntity.gen.cs
+    startLine: 150
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, ref readonly JobExecutionContext ctx)
+    parameters:
+    - id: entity
+      type: Ghost.Entities.Entity
+    - id: component0
+      type: '{T0}'
+    - id: component1
+      type: '{T1}'
+    - id: component2
+      type: '{T2}'
+    - id: ctx
+      type: Misaki.HighPerformance.Jobs.JobExecutionContext
+    content.vb: Sub Execute(entity As Entity, component0 As T0, component1 As T1, component2 As T2, ctx As JobExecutionContext)
+  overload: Ghost.Entities.IJobEntity`3.Execute*
+  nameWithType.vb: IJobEntity(Of T0, T1, T2).Execute(Entity, T0, T1, T2, JobExecutionContext)
+  fullName.vb: Ghost.Entities.IJobEntity(Of T0, T1, T2).Execute(Ghost.Entities.Entity, T0, T1, T2, Misaki.HighPerformance.Jobs.JobExecutionContext)
+  name.vb: Execute(Entity, T0, T1, T2, JobExecutionContext)
+references:
+- uid: Ghost.Entities
+  commentId: N:Ghost.Entities
+  href: Ghost.html
+  name: Ghost.Entities
+  nameWithType: Ghost.Entities
+  fullName: Ghost.Entities
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Entities
+    name: Entities
+    href: Ghost.Entities.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Entities
+    name: Entities
+    href: Ghost.Entities.html
+- uid: Ghost.Entities.IJobEntity`3.Execute*
+  commentId: Overload:Ghost.Entities.IJobEntity`3.Execute
+  href: Ghost.Entities.IJobEntity-3.html#Ghost_Entities_IJobEntity_3_Execute_Ghost_Entities_Entity__0___1___2__Misaki_HighPerformance_Jobs_JobExecutionContext__
+  name: Execute
+  nameWithType: IJobEntity<T0, T1, T2>.Execute
+  fullName: Ghost.Entities.IJobEntity<T0, T1, T2>.Execute
+  nameWithType.vb: IJobEntity(Of T0, T1, T2).Execute
+  fullName.vb: Ghost.Entities.IJobEntity(Of T0, T1, T2).Execute
+- uid: Ghost.Entities.Entity
+  commentId: T:Ghost.Entities.Entity
+  parent: Ghost.Entities
+  href: Ghost.Entities.Entity.html
+  name: Entity
+  nameWithType: Entity
+  fullName: Ghost.Entities.Entity
+- uid: '{T0}'
+  commentId: '!:T0'
+  definition: T0
+  name: T0
+  nameWithType: T0
+  fullName: T0
+- uid: '{T1}'
+  commentId: '!:T1'
+  definition: T1
+  name: T1
+  nameWithType: T1
+  fullName: T1
+- uid: '{T2}'
+  commentId: '!:T2'
+  definition: T2
+  name: T2
+  nameWithType: T2
+  fullName: T2
+- uid: Misaki.HighPerformance.Jobs.JobExecutionContext
+  commentId: T:Misaki.HighPerformance.Jobs.JobExecutionContext
+  parent: Misaki.HighPerformance.Jobs
+  name: JobExecutionContext
+  nameWithType: JobExecutionContext
+  fullName: Misaki.HighPerformance.Jobs.JobExecutionContext
+- uid: T0
+  name: T0
+  nameWithType: T0
+  fullName: T0
+- uid: T1
+  name: T1
+  nameWithType: T1
+  fullName: T1
+- uid: T2
+  name: T2
+  nameWithType: T2
+  fullName: T2
+- uid: Misaki.HighPerformance.Jobs
+  commentId: N:Misaki.HighPerformance.Jobs
+  name: Misaki.HighPerformance.Jobs
+  nameWithType: Misaki.HighPerformance.Jobs
+  fullName: Misaki.HighPerformance.Jobs
+  spec.csharp:
+  - uid: Misaki
+    name: Misaki
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+  - name: .
+  - uid: Misaki.HighPerformance.Jobs
+    name: Jobs
+  spec.vb:
+  - uid: Misaki
+    name: Misaki
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+  - name: .
+  - uid: Misaki.HighPerformance.Jobs
+    name: Jobs

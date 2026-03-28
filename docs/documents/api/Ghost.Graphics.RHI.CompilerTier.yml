@@ -1,0 +1,147 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.CompilerTier
+  commentId: T:Ghost.Graphics.RHI.CompilerTier
+  id: CompilerTier
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.CompilerTier.Tier0
+  - Ghost.Graphics.RHI.CompilerTier.Tier1
+  - Ghost.Graphics.RHI.CompilerTier.Tier2
+  langs:
+  - csharp
+  - vb
+  name: CompilerTier
+  nameWithType: CompilerTier
+  fullName: Ghost.Graphics.RHI.CompilerTier
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CompilerTier
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 47
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public enum CompilerTier
+    content.vb: Public Enum CompilerTier
+- uid: Ghost.Graphics.RHI.CompilerTier.Tier0
+  commentId: F:Ghost.Graphics.RHI.CompilerTier.Tier0
+  id: Tier0
+  parent: Ghost.Graphics.RHI.CompilerTier
+  langs:
+  - csharp
+  - vb
+  name: Tier0
+  nameWithType: CompilerTier.Tier0
+  fullName: Ghost.Graphics.RHI.CompilerTier.Tier0
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Tier0
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 49
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Tier0 = 0
+    return:
+      type: Ghost.Graphics.RHI.CompilerTier
+- uid: Ghost.Graphics.RHI.CompilerTier.Tier1
+  commentId: F:Ghost.Graphics.RHI.CompilerTier.Tier1
+  id: Tier1
+  parent: Ghost.Graphics.RHI.CompilerTier
+  langs:
+  - csharp
+  - vb
+  name: Tier1
+  nameWithType: CompilerTier.Tier1
+  fullName: Ghost.Graphics.RHI.CompilerTier.Tier1
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Tier1
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 50
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Tier1 = 1
+    return:
+      type: Ghost.Graphics.RHI.CompilerTier
+- uid: Ghost.Graphics.RHI.CompilerTier.Tier2
+  commentId: F:Ghost.Graphics.RHI.CompilerTier.Tier2
+  id: Tier2
+  parent: Ghost.Graphics.RHI.CompilerTier
+  langs:
+  - csharp
+  - vb
+  name: Tier2
+  nameWithType: CompilerTier.Tier2
+  fullName: Ghost.Graphics.RHI.CompilerTier.Tier2
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Tier2
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 51
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Tier2 = 2
+    return:
+      type: Ghost.Graphics.RHI.CompilerTier
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.CompilerTier
+  commentId: T:Ghost.Graphics.RHI.CompilerTier
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.CompilerTier.html
+  name: CompilerTier
+  nameWithType: CompilerTier
+  fullName: Ghost.Graphics.RHI.CompilerTier

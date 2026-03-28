@@ -1,0 +1,405 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.Core.RenderList.Enumerator
+  commentId: T:Ghost.Graphics.Core.RenderList.Enumerator
+  id: RenderList.Enumerator
+  parent: Ghost.Graphics.Core
+  children:
+  - Ghost.Graphics.Core.RenderList.Enumerator.Current
+  - Ghost.Graphics.Core.RenderList.Enumerator.MoveNext
+  - Ghost.Graphics.Core.RenderList.Enumerator.Reset
+  langs:
+  - csharp
+  - vb
+  name: RenderList.Enumerator
+  nameWithType: RenderList.Enumerator
+  fullName: Ghost.Graphics.Core.RenderList.Enumerator
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderList.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Enumerator
+    path: src/Runtime/Ghost.Graphics/Core/RenderList.cs
+    startLine: 17
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public ref struct RenderList.Enumerator
+    content.vb: Public Structure RenderList.Enumerator
+  inheritedMembers:
+  - System.ValueType.Equals(System.Object)
+  - System.ValueType.GetHashCode
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Graphics.Core.RenderList.Enumerator.Current
+  commentId: P:Ghost.Graphics.Core.RenderList.Enumerator.Current
+  id: Current
+  parent: Ghost.Graphics.Core.RenderList.Enumerator
+  langs:
+  - csharp
+  - vb
+  name: Current
+  nameWithType: RenderList.Enumerator.Current
+  fullName: Ghost.Graphics.Core.RenderList.Enumerator.Current
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderList.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Current
+    path: src/Runtime/Ghost.Graphics/Core/RenderList.cs
+    startLine: 34
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public RenderRecord Current { get; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.Core.RenderRecord
+    content.vb: Public ReadOnly Property Current As RenderRecord
+  overload: Ghost.Graphics.Core.RenderList.Enumerator.Current*
+- uid: Ghost.Graphics.Core.RenderList.Enumerator.MoveNext
+  commentId: M:Ghost.Graphics.Core.RenderList.Enumerator.MoveNext
+  id: MoveNext
+  parent: Ghost.Graphics.Core.RenderList.Enumerator
+  langs:
+  - csharp
+  - vb
+  name: MoveNext()
+  nameWithType: RenderList.Enumerator.MoveNext()
+  fullName: Ghost.Graphics.Core.RenderList.Enumerator.MoveNext()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderList.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: MoveNext
+    path: src/Runtime/Ghost.Graphics/Core/RenderList.cs
+    startLine: 36
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public bool MoveNext()
+    return:
+      type: System.Boolean
+    content.vb: Public Function MoveNext() As Boolean
+  overload: Ghost.Graphics.Core.RenderList.Enumerator.MoveNext*
+- uid: Ghost.Graphics.Core.RenderList.Enumerator.Reset
+  commentId: M:Ghost.Graphics.Core.RenderList.Enumerator.Reset
+  id: Reset
+  parent: Ghost.Graphics.Core.RenderList.Enumerator
+  langs:
+  - csharp
+  - vb
+  name: Reset()
+  nameWithType: RenderList.Enumerator.Reset()
+  fullName: Ghost.Graphics.Core.RenderList.Enumerator.Reset()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderList.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Reset
+    path: src/Runtime/Ghost.Graphics/Core/RenderList.cs
+    startLine: 55
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public void Reset()
+    content.vb: Public Sub Reset()
+  overload: Ghost.Graphics.Core.RenderList.Enumerator.Reset*
+references:
+- uid: Ghost.Graphics.Core
+  commentId: N:Ghost.Graphics.Core
+  href: Ghost.html
+  name: Ghost.Graphics.Core
+  nameWithType: Ghost.Graphics.Core
+  fullName: Ghost.Graphics.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Core
+    name: Core
+    href: Ghost.Graphics.Core.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Core
+    name: Core
+    href: Ghost.Graphics.Core.html
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.Core.RenderList.Enumerator.Current*
+  commentId: Overload:Ghost.Graphics.Core.RenderList.Enumerator.Current
+  href: Ghost.Graphics.Core.RenderList.Enumerator.html#Ghost_Graphics_Core_RenderList_Enumerator_Current
+  name: Current
+  nameWithType: RenderList.Enumerator.Current
+  fullName: Ghost.Graphics.Core.RenderList.Enumerator.Current
+- uid: Ghost.Graphics.Core.RenderRecord
+  commentId: T:Ghost.Graphics.Core.RenderRecord
+  parent: Ghost.Graphics.Core
+  href: Ghost.Graphics.Core.RenderRecord.html
+  name: RenderRecord
+  nameWithType: RenderRecord
+  fullName: Ghost.Graphics.Core.RenderRecord
+- uid: Ghost.Graphics.Core.RenderList.Enumerator.MoveNext*
+  commentId: Overload:Ghost.Graphics.Core.RenderList.Enumerator.MoveNext
+  href: Ghost.Graphics.Core.RenderList.Enumerator.html#Ghost_Graphics_Core_RenderList_Enumerator_MoveNext
+  name: MoveNext
+  nameWithType: RenderList.Enumerator.MoveNext
+  fullName: Ghost.Graphics.Core.RenderList.Enumerator.MoveNext
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.boolean
+  name: bool
+  nameWithType: bool
+  fullName: bool
+  nameWithType.vb: Boolean
+  fullName.vb: Boolean
+  name.vb: Boolean
+- uid: Ghost.Graphics.Core.RenderList.Enumerator.Reset*
+  commentId: Overload:Ghost.Graphics.Core.RenderList.Enumerator.Reset
+  href: Ghost.Graphics.Core.RenderList.Enumerator.html#Ghost_Graphics_Core_RenderList_Enumerator_Reset
+  name: Reset
+  nameWithType: RenderList.Enumerator.Reset
+  fullName: Ghost.Graphics.Core.RenderList.Enumerator.Reset

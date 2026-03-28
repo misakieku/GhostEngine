@@ -3,10 +3,8 @@ using Ghost.Engine.Components;
 using Ghost.Entities;
 using Ghost.Graphics;
 using Ghost.Graphics.Core;
-using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
-using Misaki.HighPerformance.Mathematics.Geometry;
 
 namespace Ghost.Engine.Systems;
 
@@ -26,6 +24,8 @@ public class RenderExtractionSystem : ISystem
         _cameraQueryID = builder
             .WithAll<Camera, LocalToWorld>()
             .Build(systemAPI.World, false);
+
+        builder.Clear();
 
         _meshQueryID = builder
             .WithAll<MeshInstance, LocalToWorld>()

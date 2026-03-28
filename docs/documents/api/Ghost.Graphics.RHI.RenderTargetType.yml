@@ -1,0 +1,120 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.RenderTargetType
+  commentId: T:Ghost.Graphics.RHI.RenderTargetType
+  id: RenderTargetType
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.RenderTargetType.Color
+  - Ghost.Graphics.RHI.RenderTargetType.Depth
+  langs:
+  - csharp
+  - vb
+  name: RenderTargetType
+  nameWithType: RenderTargetType
+  fullName: Ghost.Graphics.RHI.RenderTargetType
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: RenderTargetType
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1274
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public enum RenderTargetType
+    content.vb: Public Enum RenderTargetType
+- uid: Ghost.Graphics.RHI.RenderTargetType.Color
+  commentId: F:Ghost.Graphics.RHI.RenderTargetType.Color
+  id: Color
+  parent: Ghost.Graphics.RHI.RenderTargetType
+  langs:
+  - csharp
+  - vb
+  name: Color
+  nameWithType: RenderTargetType.Color
+  fullName: Ghost.Graphics.RHI.RenderTargetType.Color
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Color
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1276
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Color = 0
+    return:
+      type: Ghost.Graphics.RHI.RenderTargetType
+- uid: Ghost.Graphics.RHI.RenderTargetType.Depth
+  commentId: F:Ghost.Graphics.RHI.RenderTargetType.Depth
+  id: Depth
+  parent: Ghost.Graphics.RHI.RenderTargetType
+  langs:
+  - csharp
+  - vb
+  name: Depth
+  nameWithType: RenderTargetType.Depth
+  fullName: Ghost.Graphics.RHI.RenderTargetType.Depth
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Depth
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1277
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Depth = 1
+    return:
+      type: Ghost.Graphics.RHI.RenderTargetType
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.RenderTargetType
+  commentId: T:Ghost.Graphics.RHI.RenderTargetType
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.RenderTargetType.html
+  name: RenderTargetType
+  nameWithType: RenderTargetType
+  fullName: Ghost.Graphics.RHI.RenderTargetType

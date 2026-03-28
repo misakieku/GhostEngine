@@ -1,0 +1,126 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureSizeMode
+  commentId: T:Ghost.Graphics.RenderGraphModule.RGTextureSizeMode
+  id: RGTextureSizeMode
+  parent: Ghost.Graphics.RenderGraphModule
+  children:
+  - Ghost.Graphics.RenderGraphModule.RGTextureSizeMode.Absolute
+  - Ghost.Graphics.RenderGraphModule.RGTextureSizeMode.Relative
+  langs:
+  - csharp
+  - vb
+  name: RGTextureSizeMode
+  nameWithType: RGTextureSizeMode
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureSizeMode
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: RGTextureSizeMode
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 17
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Specifies how texture dimensions are determined.
+  example: []
+  syntax:
+    content: 'public enum RGTextureSizeMode : byte'
+    content.vb: Public Enum RGTextureSizeMode As Byte
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureSizeMode.Absolute
+  commentId: F:Ghost.Graphics.RenderGraphModule.RGTextureSizeMode.Absolute
+  id: Absolute
+  parent: Ghost.Graphics.RenderGraphModule.RGTextureSizeMode
+  langs:
+  - csharp
+  - vb
+  name: Absolute
+  nameWithType: RGTextureSizeMode.Absolute
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureSizeMode.Absolute
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Absolute
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 22
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Fixed pixel dimensions (width, height).
+  example: []
+  syntax:
+    content: Absolute = 0
+    return:
+      type: Ghost.Graphics.RenderGraphModule.RGTextureSizeMode
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureSizeMode.Relative
+  commentId: F:Ghost.Graphics.RenderGraphModule.RGTextureSizeMode.Relative
+  id: Relative
+  parent: Ghost.Graphics.RenderGraphModule.RGTextureSizeMode
+  langs:
+  - csharp
+  - vb
+  name: Relative
+  nameWithType: RGTextureSizeMode.Relative
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureSizeMode.Relative
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Relative
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 27
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Scale relative to view state (scaleX * viewportWidth, scaleY * viewportHeight).
+  example: []
+  syntax:
+    content: Relative = 1
+    return:
+      type: Ghost.Graphics.RenderGraphModule.RGTextureSizeMode
+references:
+- uid: Ghost.Graphics.RenderGraphModule
+  commentId: N:Ghost.Graphics.RenderGraphModule
+  href: Ghost.html
+  name: Ghost.Graphics.RenderGraphModule
+  nameWithType: Ghost.Graphics.RenderGraphModule
+  fullName: Ghost.Graphics.RenderGraphModule
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RenderGraphModule
+    name: RenderGraphModule
+    href: Ghost.Graphics.RenderGraphModule.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RenderGraphModule
+    name: RenderGraphModule
+    href: Ghost.Graphics.RenderGraphModule.html
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureSizeMode
+  commentId: T:Ghost.Graphics.RenderGraphModule.RGTextureSizeMode
+  parent: Ghost.Graphics.RenderGraphModule
+  href: Ghost.Graphics.RenderGraphModule.RGTextureSizeMode.html
+  name: RGTextureSizeMode
+  nameWithType: RGTextureSizeMode
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureSizeMode

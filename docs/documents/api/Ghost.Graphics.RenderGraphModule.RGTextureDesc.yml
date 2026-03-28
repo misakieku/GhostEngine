@@ -1,0 +1,1455 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  commentId: T:Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  id: RGTextureDesc
+  parent: Ghost.Graphics.RenderGraphModule
+  children:
+  - Ghost.Graphics.RenderGraphModule.RGTextureDesc.Absolute(System.UInt32,System.UInt32,Ghost.Graphics.RHI.TextureFormat,Ghost.Graphics.RHI.Color128,System.Boolean,System.Boolean,Ghost.Graphics.RHI.TextureDimension,System.UInt32,System.UInt32,Ghost.Graphics.RHI.TextureUsage)
+  - Ghost.Graphics.RenderGraphModule.RGTextureDesc.Equals(Ghost.Graphics.RenderGraphModule.RGTextureDesc)
+  - Ghost.Graphics.RenderGraphModule.RGTextureDesc.Equals(System.Object)
+  - Ghost.Graphics.RenderGraphModule.RGTextureDesc.GetHashCode
+  - Ghost.Graphics.RenderGraphModule.RGTextureDesc.Relative(System.Single,Ghost.Graphics.RHI.TextureFormat,Ghost.Graphics.RHI.Color128,System.Boolean,System.Boolean,Ghost.Graphics.RHI.TextureDimension,System.UInt32,System.UInt32,Ghost.Graphics.RHI.TextureUsage)
+  - Ghost.Graphics.RenderGraphModule.RGTextureDesc.Relative(System.Single,System.Single,Ghost.Graphics.RHI.TextureFormat,Ghost.Graphics.RHI.Color128,System.Boolean,System.Boolean,Ghost.Graphics.RHI.TextureDimension,System.UInt32,System.UInt32,Ghost.Graphics.RHI.TextureUsage)
+  - Ghost.Graphics.RenderGraphModule.RGTextureDesc.RelativeDepth(System.Single,System.Single,System.Byte,System.Boolean,System.Boolean,Ghost.Graphics.RHI.TextureFormat)
+  - Ghost.Graphics.RenderGraphModule.RGTextureDesc.ToTextureDesc(System.UInt32,System.UInt32)
+  - Ghost.Graphics.RenderGraphModule.RGTextureDesc.clearAtFirstUse
+  - Ghost.Graphics.RenderGraphModule.RGTextureDesc.clearColor
+  - Ghost.Graphics.RenderGraphModule.RGTextureDesc.clearDepth
+  - Ghost.Graphics.RenderGraphModule.RGTextureDesc.clearStencil
+  - Ghost.Graphics.RenderGraphModule.RGTextureDesc.dimension
+  - Ghost.Graphics.RenderGraphModule.RGTextureDesc.discardAtLastUse
+  - Ghost.Graphics.RenderGraphModule.RGTextureDesc.format
+  - Ghost.Graphics.RenderGraphModule.RGTextureDesc.height
+  - Ghost.Graphics.RenderGraphModule.RGTextureDesc.mipLevels
+  - Ghost.Graphics.RenderGraphModule.RGTextureDesc.op_Equality(Ghost.Graphics.RenderGraphModule.RGTextureDesc,Ghost.Graphics.RenderGraphModule.RGTextureDesc)
+  - Ghost.Graphics.RenderGraphModule.RGTextureDesc.op_Inequality(Ghost.Graphics.RenderGraphModule.RGTextureDesc,Ghost.Graphics.RenderGraphModule.RGTextureDesc)
+  - Ghost.Graphics.RenderGraphModule.RGTextureDesc.scaleX
+  - Ghost.Graphics.RenderGraphModule.RGTextureDesc.scaleY
+  - Ghost.Graphics.RenderGraphModule.RGTextureDesc.sizeMode
+  - Ghost.Graphics.RenderGraphModule.RGTextureDesc.slice
+  - Ghost.Graphics.RenderGraphModule.RGTextureDesc.usage
+  - Ghost.Graphics.RenderGraphModule.RGTextureDesc.width
+  langs:
+  - csharp
+  - vb
+  name: RGTextureDesc
+  nameWithType: RGTextureDesc
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: RGTextureDesc
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 80
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Render graph texture descriptor with support for relative sizing and clear operations.
+  example: []
+  syntax:
+    content: 'public struct RGTextureDesc : IEquatable<RGTextureDesc>'
+    content.vb: Public Structure RGTextureDesc Implements IEquatable(Of RGTextureDesc)
+  implements:
+  - System.IEquatable{Ghost.Graphics.RenderGraphModule.RGTextureDesc}
+  inheritedMembers:
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.sizeMode
+  commentId: F:Ghost.Graphics.RenderGraphModule.RGTextureDesc.sizeMode
+  id: sizeMode
+  parent: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  langs:
+  - csharp
+  - vb
+  name: sizeMode
+  nameWithType: RGTextureDesc.sizeMode
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.sizeMode
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: sizeMode
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 82
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public RGTextureSizeMode sizeMode
+    return:
+      type: Ghost.Graphics.RenderGraphModule.RGTextureSizeMode
+    content.vb: Public sizeMode As RGTextureSizeMode
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.width
+  commentId: F:Ghost.Graphics.RenderGraphModule.RGTextureDesc.width
+  id: width
+  parent: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  langs:
+  - csharp
+  - vb
+  name: width
+  nameWithType: RGTextureDesc.width
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.width
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: width
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 85
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public uint width
+    return:
+      type: System.UInt32
+    content.vb: Public width As UInteger
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.height
+  commentId: F:Ghost.Graphics.RenderGraphModule.RGTextureDesc.height
+  id: height
+  parent: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  langs:
+  - csharp
+  - vb
+  name: height
+  nameWithType: RGTextureDesc.height
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.height
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: height
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 86
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public uint height
+    return:
+      type: System.UInt32
+    content.vb: Public height As UInteger
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.scaleX
+  commentId: F:Ghost.Graphics.RenderGraphModule.RGTextureDesc.scaleX
+  id: scaleX
+  parent: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  langs:
+  - csharp
+  - vb
+  name: scaleX
+  nameWithType: RGTextureDesc.scaleX
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.scaleX
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: scaleX
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 87
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public float scaleX
+    return:
+      type: System.Single
+    content.vb: Public scaleX As Single
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.scaleY
+  commentId: F:Ghost.Graphics.RenderGraphModule.RGTextureDesc.scaleY
+  id: scaleY
+  parent: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  langs:
+  - csharp
+  - vb
+  name: scaleY
+  nameWithType: RGTextureDesc.scaleY
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.scaleY
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: scaleY
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 88
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public float scaleY
+    return:
+      type: System.Single
+    content.vb: Public scaleY As Single
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.format
+  commentId: F:Ghost.Graphics.RenderGraphModule.RGTextureDesc.format
+  id: format
+  parent: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  langs:
+  - csharp
+  - vb
+  name: format
+  nameWithType: RGTextureDesc.format
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.format
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: format
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 91
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public TextureFormat format
+    return:
+      type: Ghost.Graphics.RHI.TextureFormat
+    content.vb: Public format As TextureFormat
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.dimension
+  commentId: F:Ghost.Graphics.RenderGraphModule.RGTextureDesc.dimension
+  id: dimension
+  parent: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  langs:
+  - csharp
+  - vb
+  name: dimension
+  nameWithType: RGTextureDesc.dimension
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.dimension
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: dimension
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 92
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public TextureDimension dimension
+    return:
+      type: Ghost.Graphics.RHI.TextureDimension
+    content.vb: Public dimension As TextureDimension
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.mipLevels
+  commentId: F:Ghost.Graphics.RenderGraphModule.RGTextureDesc.mipLevels
+  id: mipLevels
+  parent: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  langs:
+  - csharp
+  - vb
+  name: mipLevels
+  nameWithType: RGTextureDesc.mipLevels
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.mipLevels
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: mipLevels
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 93
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public uint mipLevels
+    return:
+      type: System.UInt32
+    content.vb: Public mipLevels As UInteger
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.slice
+  commentId: F:Ghost.Graphics.RenderGraphModule.RGTextureDesc.slice
+  id: slice
+  parent: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  langs:
+  - csharp
+  - vb
+  name: slice
+  nameWithType: RGTextureDesc.slice
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.slice
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: slice
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 94
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public uint slice
+    return:
+      type: System.UInt32
+    content.vb: Public slice As UInteger
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.usage
+  commentId: F:Ghost.Graphics.RenderGraphModule.RGTextureDesc.usage
+  id: usage
+  parent: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  langs:
+  - csharp
+  - vb
+  name: usage
+  nameWithType: RGTextureDesc.usage
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.usage
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: usage
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 95
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public TextureUsage usage
+    return:
+      type: Ghost.Graphics.RHI.TextureUsage
+    content.vb: Public usage As TextureUsage
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.clearAtFirstUse
+  commentId: F:Ghost.Graphics.RenderGraphModule.RGTextureDesc.clearAtFirstUse
+  id: clearAtFirstUse
+  parent: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  langs:
+  - csharp
+  - vb
+  name: clearAtFirstUse
+  nameWithType: RGTextureDesc.clearAtFirstUse
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.clearAtFirstUse
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: clearAtFirstUse
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 97
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public bool clearAtFirstUse
+    return:
+      type: System.Boolean
+    content.vb: Public clearAtFirstUse As Boolean
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.discardAtLastUse
+  commentId: F:Ghost.Graphics.RenderGraphModule.RGTextureDesc.discardAtLastUse
+  id: discardAtLastUse
+  parent: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  langs:
+  - csharp
+  - vb
+  name: discardAtLastUse
+  nameWithType: RGTextureDesc.discardAtLastUse
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.discardAtLastUse
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: discardAtLastUse
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 98
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public bool discardAtLastUse
+    return:
+      type: System.Boolean
+    content.vb: Public discardAtLastUse As Boolean
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.clearColor
+  commentId: F:Ghost.Graphics.RenderGraphModule.RGTextureDesc.clearColor
+  id: clearColor
+  parent: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  langs:
+  - csharp
+  - vb
+  name: clearColor
+  nameWithType: RGTextureDesc.clearColor
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.clearColor
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: clearColor
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 101
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public Color128 clearColor
+    return:
+      type: Ghost.Graphics.RHI.Color128
+    content.vb: Public clearColor As Color128
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.clearDepth
+  commentId: F:Ghost.Graphics.RenderGraphModule.RGTextureDesc.clearDepth
+  id: clearDepth
+  parent: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  langs:
+  - csharp
+  - vb
+  name: clearDepth
+  nameWithType: RGTextureDesc.clearDepth
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.clearDepth
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: clearDepth
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 103
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public float clearDepth
+    return:
+      type: System.Single
+    content.vb: Public clearDepth As Single
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.clearStencil
+  commentId: F:Ghost.Graphics.RenderGraphModule.RGTextureDesc.clearStencil
+  id: clearStencil
+  parent: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  langs:
+  - csharp
+  - vb
+  name: clearStencil
+  nameWithType: RGTextureDesc.clearStencil
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.clearStencil
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: clearStencil
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 104
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public byte clearStencil
+    return:
+      type: System.Byte
+    content.vb: Public clearStencil As Byte
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.Absolute(System.UInt32,System.UInt32,Ghost.Graphics.RHI.TextureFormat,Ghost.Graphics.RHI.Color128,System.Boolean,System.Boolean,Ghost.Graphics.RHI.TextureDimension,System.UInt32,System.UInt32,Ghost.Graphics.RHI.TextureUsage)
+  commentId: M:Ghost.Graphics.RenderGraphModule.RGTextureDesc.Absolute(System.UInt32,System.UInt32,Ghost.Graphics.RHI.TextureFormat,Ghost.Graphics.RHI.Color128,System.Boolean,System.Boolean,Ghost.Graphics.RHI.TextureDimension,System.UInt32,System.UInt32,Ghost.Graphics.RHI.TextureUsage)
+  id: Absolute(System.UInt32,System.UInt32,Ghost.Graphics.RHI.TextureFormat,Ghost.Graphics.RHI.Color128,System.Boolean,System.Boolean,Ghost.Graphics.RHI.TextureDimension,System.UInt32,System.UInt32,Ghost.Graphics.RHI.TextureUsage)
+  parent: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  langs:
+  - csharp
+  - vb
+  name: Absolute(uint, uint, TextureFormat, Color128, bool, bool, TextureDimension, uint, uint, TextureUsage)
+  nameWithType: RGTextureDesc.Absolute(uint, uint, TextureFormat, Color128, bool, bool, TextureDimension, uint, uint, TextureUsage)
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.Absolute(uint, uint, Ghost.Graphics.RHI.TextureFormat, Ghost.Graphics.RHI.Color128, bool, bool, Ghost.Graphics.RHI.TextureDimension, uint, uint, Ghost.Graphics.RHI.TextureUsage)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Absolute
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 109
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Creates a texture descriptor with absolute dimensions.
+  example: []
+  syntax:
+    content: public static RGTextureDesc Absolute(uint width, uint height, TextureFormat format, Color128 clearColor = default, bool clearAtFirstUse = true, bool discardAtLastUse = true, TextureDimension dimension = TextureDimension.Texture2D, uint mipLevels = 1, uint slice = 1, TextureUsage usage = TextureUsage.ShaderResource | TextureUsage.RenderTarget)
+    parameters:
+    - id: width
+      type: System.UInt32
+    - id: height
+      type: System.UInt32
+    - id: format
+      type: Ghost.Graphics.RHI.TextureFormat
+    - id: clearColor
+      type: Ghost.Graphics.RHI.Color128
+    - id: clearAtFirstUse
+      type: System.Boolean
+    - id: discardAtLastUse
+      type: System.Boolean
+    - id: dimension
+      type: Ghost.Graphics.RHI.TextureDimension
+    - id: mipLevels
+      type: System.UInt32
+    - id: slice
+      type: System.UInt32
+    - id: usage
+      type: Ghost.Graphics.RHI.TextureUsage
+    return:
+      type: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+    content.vb: Public Shared Function Absolute(width As UInteger, height As UInteger, format As TextureFormat, clearColor As Color128 = Nothing, clearAtFirstUse As Boolean = True, discardAtLastUse As Boolean = True, dimension As TextureDimension = TextureDimension.Texture2D, mipLevels As UInteger = 1, slice As UInteger = 1, usage As TextureUsage = TextureUsage.ShaderResource Or TextureUsage.RenderTarget) As RGTextureDesc
+  overload: Ghost.Graphics.RenderGraphModule.RGTextureDesc.Absolute*
+  nameWithType.vb: RGTextureDesc.Absolute(UInteger, UInteger, TextureFormat, Color128, Boolean, Boolean, TextureDimension, UInteger, UInteger, TextureUsage)
+  fullName.vb: Ghost.Graphics.RenderGraphModule.RGTextureDesc.Absolute(UInteger, UInteger, Ghost.Graphics.RHI.TextureFormat, Ghost.Graphics.RHI.Color128, Boolean, Boolean, Ghost.Graphics.RHI.TextureDimension, UInteger, UInteger, Ghost.Graphics.RHI.TextureUsage)
+  name.vb: Absolute(UInteger, UInteger, TextureFormat, Color128, Boolean, Boolean, TextureDimension, UInteger, UInteger, TextureUsage)
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.Relative(System.Single,Ghost.Graphics.RHI.TextureFormat,Ghost.Graphics.RHI.Color128,System.Boolean,System.Boolean,Ghost.Graphics.RHI.TextureDimension,System.UInt32,System.UInt32,Ghost.Graphics.RHI.TextureUsage)
+  commentId: M:Ghost.Graphics.RenderGraphModule.RGTextureDesc.Relative(System.Single,Ghost.Graphics.RHI.TextureFormat,Ghost.Graphics.RHI.Color128,System.Boolean,System.Boolean,Ghost.Graphics.RHI.TextureDimension,System.UInt32,System.UInt32,Ghost.Graphics.RHI.TextureUsage)
+  id: Relative(System.Single,Ghost.Graphics.RHI.TextureFormat,Ghost.Graphics.RHI.Color128,System.Boolean,System.Boolean,Ghost.Graphics.RHI.TextureDimension,System.UInt32,System.UInt32,Ghost.Graphics.RHI.TextureUsage)
+  parent: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  langs:
+  - csharp
+  - vb
+  name: Relative(float, TextureFormat, Color128, bool, bool, TextureDimension, uint, uint, TextureUsage)
+  nameWithType: RGTextureDesc.Relative(float, TextureFormat, Color128, bool, bool, TextureDimension, uint, uint, TextureUsage)
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.Relative(float, Ghost.Graphics.RHI.TextureFormat, Ghost.Graphics.RHI.Color128, bool, bool, Ghost.Graphics.RHI.TextureDimension, uint, uint, Ghost.Graphics.RHI.TextureUsage)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Relative
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 142
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Creates a texture descriptor with relative dimensions (uniform scale).
+  example: []
+  syntax:
+    content: public static RGTextureDesc Relative(float scale, TextureFormat format, Color128 clearColor = default, bool clearAtFirstUse = true, bool discardAtLastUse = true, TextureDimension dimension = TextureDimension.Texture2D, uint mipLevels = 1, uint slice = 1, TextureUsage usage = TextureUsage.ShaderResource | TextureUsage.RenderTarget)
+    parameters:
+    - id: scale
+      type: System.Single
+    - id: format
+      type: Ghost.Graphics.RHI.TextureFormat
+    - id: clearColor
+      type: Ghost.Graphics.RHI.Color128
+    - id: clearAtFirstUse
+      type: System.Boolean
+    - id: discardAtLastUse
+      type: System.Boolean
+    - id: dimension
+      type: Ghost.Graphics.RHI.TextureDimension
+    - id: mipLevels
+      type: System.UInt32
+    - id: slice
+      type: System.UInt32
+    - id: usage
+      type: Ghost.Graphics.RHI.TextureUsage
+    return:
+      type: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+    content.vb: Public Shared Function Relative(scale As Single, format As TextureFormat, clearColor As Color128 = Nothing, clearAtFirstUse As Boolean = True, discardAtLastUse As Boolean = True, dimension As TextureDimension = TextureDimension.Texture2D, mipLevels As UInteger = 1, slice As UInteger = 1, usage As TextureUsage = TextureUsage.ShaderResource Or TextureUsage.RenderTarget) As RGTextureDesc
+  overload: Ghost.Graphics.RenderGraphModule.RGTextureDesc.Relative*
+  nameWithType.vb: RGTextureDesc.Relative(Single, TextureFormat, Color128, Boolean, Boolean, TextureDimension, UInteger, UInteger, TextureUsage)
+  fullName.vb: Ghost.Graphics.RenderGraphModule.RGTextureDesc.Relative(Single, Ghost.Graphics.RHI.TextureFormat, Ghost.Graphics.RHI.Color128, Boolean, Boolean, Ghost.Graphics.RHI.TextureDimension, UInteger, UInteger, Ghost.Graphics.RHI.TextureUsage)
+  name.vb: Relative(Single, TextureFormat, Color128, Boolean, Boolean, TextureDimension, UInteger, UInteger, TextureUsage)
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.Relative(System.Single,System.Single,Ghost.Graphics.RHI.TextureFormat,Ghost.Graphics.RHI.Color128,System.Boolean,System.Boolean,Ghost.Graphics.RHI.TextureDimension,System.UInt32,System.UInt32,Ghost.Graphics.RHI.TextureUsage)
+  commentId: M:Ghost.Graphics.RenderGraphModule.RGTextureDesc.Relative(System.Single,System.Single,Ghost.Graphics.RHI.TextureFormat,Ghost.Graphics.RHI.Color128,System.Boolean,System.Boolean,Ghost.Graphics.RHI.TextureDimension,System.UInt32,System.UInt32,Ghost.Graphics.RHI.TextureUsage)
+  id: Relative(System.Single,System.Single,Ghost.Graphics.RHI.TextureFormat,Ghost.Graphics.RHI.Color128,System.Boolean,System.Boolean,Ghost.Graphics.RHI.TextureDimension,System.UInt32,System.UInt32,Ghost.Graphics.RHI.TextureUsage)
+  parent: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  langs:
+  - csharp
+  - vb
+  name: Relative(float, float, TextureFormat, Color128, bool, bool, TextureDimension, uint, uint, TextureUsage)
+  nameWithType: RGTextureDesc.Relative(float, float, TextureFormat, Color128, bool, bool, TextureDimension, uint, uint, TextureUsage)
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.Relative(float, float, Ghost.Graphics.RHI.TextureFormat, Ghost.Graphics.RHI.Color128, bool, bool, Ghost.Graphics.RHI.TextureDimension, uint, uint, Ghost.Graphics.RHI.TextureUsage)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Relative
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 174
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Creates a texture descriptor with relative dimensions (non-uniform scale).
+  example: []
+  syntax:
+    content: public static RGTextureDesc Relative(float scaleX, float scaleY, TextureFormat format, Color128 clearColor = default, bool clearAtFirstUse = true, bool discardAtLastUse = true, TextureDimension dimension = TextureDimension.Texture2D, uint mipLevels = 1, uint slice = 1, TextureUsage usage = TextureUsage.ShaderResource | TextureUsage.RenderTarget)
+    parameters:
+    - id: scaleX
+      type: System.Single
+    - id: scaleY
+      type: System.Single
+    - id: format
+      type: Ghost.Graphics.RHI.TextureFormat
+    - id: clearColor
+      type: Ghost.Graphics.RHI.Color128
+    - id: clearAtFirstUse
+      type: System.Boolean
+    - id: discardAtLastUse
+      type: System.Boolean
+    - id: dimension
+      type: Ghost.Graphics.RHI.TextureDimension
+    - id: mipLevels
+      type: System.UInt32
+    - id: slice
+      type: System.UInt32
+    - id: usage
+      type: Ghost.Graphics.RHI.TextureUsage
+    return:
+      type: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+    content.vb: Public Shared Function Relative(scaleX As Single, scaleY As Single, format As TextureFormat, clearColor As Color128 = Nothing, clearAtFirstUse As Boolean = True, discardAtLastUse As Boolean = True, dimension As TextureDimension = TextureDimension.Texture2D, mipLevels As UInteger = 1, slice As UInteger = 1, usage As TextureUsage = TextureUsage.ShaderResource Or TextureUsage.RenderTarget) As RGTextureDesc
+  overload: Ghost.Graphics.RenderGraphModule.RGTextureDesc.Relative*
+  nameWithType.vb: RGTextureDesc.Relative(Single, Single, TextureFormat, Color128, Boolean, Boolean, TextureDimension, UInteger, UInteger, TextureUsage)
+  fullName.vb: Ghost.Graphics.RenderGraphModule.RGTextureDesc.Relative(Single, Single, Ghost.Graphics.RHI.TextureFormat, Ghost.Graphics.RHI.Color128, Boolean, Boolean, Ghost.Graphics.RHI.TextureDimension, UInteger, UInteger, Ghost.Graphics.RHI.TextureUsage)
+  name.vb: Relative(Single, Single, TextureFormat, Color128, Boolean, Boolean, TextureDimension, UInteger, UInteger, TextureUsage)
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.RelativeDepth(System.Single,System.Single,System.Byte,System.Boolean,System.Boolean,Ghost.Graphics.RHI.TextureFormat)
+  commentId: M:Ghost.Graphics.RenderGraphModule.RGTextureDesc.RelativeDepth(System.Single,System.Single,System.Byte,System.Boolean,System.Boolean,Ghost.Graphics.RHI.TextureFormat)
+  id: RelativeDepth(System.Single,System.Single,System.Byte,System.Boolean,System.Boolean,Ghost.Graphics.RHI.TextureFormat)
+  parent: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  langs:
+  - csharp
+  - vb
+  name: RelativeDepth(float, float, byte, bool, bool, TextureFormat)
+  nameWithType: RGTextureDesc.RelativeDepth(float, float, byte, bool, bool, TextureFormat)
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.RelativeDepth(float, float, byte, bool, bool, Ghost.Graphics.RHI.TextureFormat)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: RelativeDepth
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 208
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Creates a depth texture descriptor with relative dimensions.
+  example: []
+  syntax:
+    content: public static RGTextureDesc RelativeDepth(float scale, float clearDepth = 1, byte clearStencil = 0, bool clearAtFirstUse = true, bool discardAtLastUse = true, TextureFormat format = TextureFormat.D32_Float)
+    parameters:
+    - id: scale
+      type: System.Single
+    - id: clearDepth
+      type: System.Single
+    - id: clearStencil
+      type: System.Byte
+    - id: clearAtFirstUse
+      type: System.Boolean
+    - id: discardAtLastUse
+      type: System.Boolean
+    - id: format
+      type: Ghost.Graphics.RHI.TextureFormat
+    return:
+      type: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+    content.vb: Public Shared Function RelativeDepth(scale As Single, clearDepth As Single = 1, clearStencil As Byte = 0, clearAtFirstUse As Boolean = True, discardAtLastUse As Boolean = True, format As TextureFormat = TextureFormat.D32_Float) As RGTextureDesc
+  overload: Ghost.Graphics.RenderGraphModule.RGTextureDesc.RelativeDepth*
+  nameWithType.vb: RGTextureDesc.RelativeDepth(Single, Single, Byte, Boolean, Boolean, TextureFormat)
+  fullName.vb: Ghost.Graphics.RenderGraphModule.RGTextureDesc.RelativeDepth(Single, Single, Byte, Boolean, Boolean, Ghost.Graphics.RHI.TextureFormat)
+  name.vb: RelativeDepth(Single, Single, Byte, Boolean, Boolean, TextureFormat)
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.ToTextureDesc(System.UInt32,System.UInt32)
+  commentId: M:Ghost.Graphics.RenderGraphModule.RGTextureDesc.ToTextureDesc(System.UInt32,System.UInt32)
+  id: ToTextureDesc(System.UInt32,System.UInt32)
+  parent: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  langs:
+  - csharp
+  - vb
+  name: ToTextureDesc(uint, uint)
+  nameWithType: RGTextureDesc.ToTextureDesc(uint, uint)
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.ToTextureDesc(uint, uint)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ToTextureDesc
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 238
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Converts to RHI TextureDesc using resolved dimensions.
+  example: []
+  syntax:
+    content: public readonly TextureDesc ToTextureDesc(uint resolvedWidth, uint resolvedHeight)
+    parameters:
+    - id: resolvedWidth
+      type: System.UInt32
+    - id: resolvedHeight
+      type: System.UInt32
+    return:
+      type: Ghost.Graphics.RHI.TextureDesc
+    content.vb: Public Function ToTextureDesc(resolvedWidth As UInteger, resolvedHeight As UInteger) As TextureDesc
+  overload: Ghost.Graphics.RenderGraphModule.RGTextureDesc.ToTextureDesc*
+  nameWithType.vb: RGTextureDesc.ToTextureDesc(UInteger, UInteger)
+  fullName.vb: Ghost.Graphics.RenderGraphModule.RGTextureDesc.ToTextureDesc(UInteger, UInteger)
+  name.vb: ToTextureDesc(UInteger, UInteger)
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.Equals(Ghost.Graphics.RenderGraphModule.RGTextureDesc)
+  commentId: M:Ghost.Graphics.RenderGraphModule.RGTextureDesc.Equals(Ghost.Graphics.RenderGraphModule.RGTextureDesc)
+  id: Equals(Ghost.Graphics.RenderGraphModule.RGTextureDesc)
+  parent: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  langs:
+  - csharp
+  - vb
+  name: Equals(RGTextureDesc)
+  nameWithType: RGTextureDesc.Equals(RGTextureDesc)
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.Equals(Ghost.Graphics.RenderGraphModule.RGTextureDesc)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Equals
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 252
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Indicates whether the current object is equal to another object of the same type.
+  example: []
+  syntax:
+    content: public readonly bool Equals(RGTextureDesc other)
+    parameters:
+    - id: other
+      type: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+      description: An object to compare with this object.
+    return:
+      type: System.Boolean
+      description: <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">true</a> if the current object is equal to the <code class="paramref">other</code> parameter; otherwise, <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">false</a>.
+    content.vb: Public Function Equals(other As RGTextureDesc) As Boolean
+  overload: Ghost.Graphics.RenderGraphModule.RGTextureDesc.Equals*
+  implements:
+  - System.IEquatable{Ghost.Graphics.RenderGraphModule.RGTextureDesc}.Equals(Ghost.Graphics.RenderGraphModule.RGTextureDesc)
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.Equals(System.Object)
+  commentId: M:Ghost.Graphics.RenderGraphModule.RGTextureDesc.Equals(System.Object)
+  id: Equals(System.Object)
+  parent: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  langs:
+  - csharp
+  - vb
+  name: Equals(object?)
+  nameWithType: RGTextureDesc.Equals(object?)
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.Equals(object?)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Equals
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 268
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Indicates whether this instance and a specified object are equal.
+  example: []
+  syntax:
+    content: public override readonly bool Equals(object? obj)
+    parameters:
+    - id: obj
+      type: System.Object
+      description: The object to compare with the current instance.
+    return:
+      type: System.Boolean
+      description: <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">true</a> if <code class="paramref">obj</code> and this instance are the same type and represent the same value; otherwise, <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">false</a>.
+    content.vb: Public Overrides Function Equals(obj As Object) As Boolean
+  overridden: System.ValueType.Equals(System.Object)
+  overload: Ghost.Graphics.RenderGraphModule.RGTextureDesc.Equals*
+  nameWithType.vb: RGTextureDesc.Equals(Object)
+  fullName.vb: Ghost.Graphics.RenderGraphModule.RGTextureDesc.Equals(Object)
+  name.vb: Equals(Object)
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.GetHashCode
+  commentId: M:Ghost.Graphics.RenderGraphModule.RGTextureDesc.GetHashCode
+  id: GetHashCode
+  parent: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  langs:
+  - csharp
+  - vb
+  name: GetHashCode()
+  nameWithType: RGTextureDesc.GetHashCode()
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.GetHashCode()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetHashCode
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 273
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Returns the hash code for this instance.
+  example: []
+  syntax:
+    content: public override readonly int GetHashCode()
+    return:
+      type: System.Int32
+      description: A 32-bit signed integer that is the hash code for this instance.
+    content.vb: Public Overrides Function GetHashCode() As Integer
+  overridden: System.ValueType.GetHashCode
+  overload: Ghost.Graphics.RenderGraphModule.RGTextureDesc.GetHashCode*
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.op_Equality(Ghost.Graphics.RenderGraphModule.RGTextureDesc,Ghost.Graphics.RenderGraphModule.RGTextureDesc)
+  commentId: M:Ghost.Graphics.RenderGraphModule.RGTextureDesc.op_Equality(Ghost.Graphics.RenderGraphModule.RGTextureDesc,Ghost.Graphics.RenderGraphModule.RGTextureDesc)
+  id: op_Equality(Ghost.Graphics.RenderGraphModule.RGTextureDesc,Ghost.Graphics.RenderGraphModule.RGTextureDesc)
+  parent: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  langs:
+  - csharp
+  - vb
+  name: operator ==(RGTextureDesc, RGTextureDesc)
+  nameWithType: RGTextureDesc.operator ==(RGTextureDesc, RGTextureDesc)
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.operator ==(Ghost.Graphics.RenderGraphModule.RGTextureDesc, Ghost.Graphics.RenderGraphModule.RGTextureDesc)
+  type: Operator
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: op_Equality
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 285
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public static bool operator ==(RGTextureDesc left, RGTextureDesc right)
+    parameters:
+    - id: left
+      type: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+    - id: right
+      type: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+    return:
+      type: System.Boolean
+    content.vb: Public Shared Operator =(left As RGTextureDesc, right As RGTextureDesc) As Boolean
+  overload: Ghost.Graphics.RenderGraphModule.RGTextureDesc.op_Equality*
+  nameWithType.vb: RGTextureDesc.=(RGTextureDesc, RGTextureDesc)
+  fullName.vb: Ghost.Graphics.RenderGraphModule.RGTextureDesc.=(Ghost.Graphics.RenderGraphModule.RGTextureDesc, Ghost.Graphics.RenderGraphModule.RGTextureDesc)
+  name.vb: =(RGTextureDesc, RGTextureDesc)
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.op_Inequality(Ghost.Graphics.RenderGraphModule.RGTextureDesc,Ghost.Graphics.RenderGraphModule.RGTextureDesc)
+  commentId: M:Ghost.Graphics.RenderGraphModule.RGTextureDesc.op_Inequality(Ghost.Graphics.RenderGraphModule.RGTextureDesc,Ghost.Graphics.RenderGraphModule.RGTextureDesc)
+  id: op_Inequality(Ghost.Graphics.RenderGraphModule.RGTextureDesc,Ghost.Graphics.RenderGraphModule.RGTextureDesc)
+  parent: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  langs:
+  - csharp
+  - vb
+  name: operator !=(RGTextureDesc, RGTextureDesc)
+  nameWithType: RGTextureDesc.operator !=(RGTextureDesc, RGTextureDesc)
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.operator !=(Ghost.Graphics.RenderGraphModule.RGTextureDesc, Ghost.Graphics.RenderGraphModule.RGTextureDesc)
+  type: Operator
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: op_Inequality
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 290
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public static bool operator !=(RGTextureDesc left, RGTextureDesc right)
+    parameters:
+    - id: left
+      type: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+    - id: right
+      type: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+    return:
+      type: System.Boolean
+    content.vb: Public Shared Operator <>(left As RGTextureDesc, right As RGTextureDesc) As Boolean
+  overload: Ghost.Graphics.RenderGraphModule.RGTextureDesc.op_Inequality*
+  nameWithType.vb: RGTextureDesc.<>(RGTextureDesc, RGTextureDesc)
+  fullName.vb: Ghost.Graphics.RenderGraphModule.RGTextureDesc.<>(Ghost.Graphics.RenderGraphModule.RGTextureDesc, Ghost.Graphics.RenderGraphModule.RGTextureDesc)
+  name.vb: <>(RGTextureDesc, RGTextureDesc)
+references:
+- uid: Ghost.Graphics.RenderGraphModule
+  commentId: N:Ghost.Graphics.RenderGraphModule
+  href: Ghost.html
+  name: Ghost.Graphics.RenderGraphModule
+  nameWithType: Ghost.Graphics.RenderGraphModule
+  fullName: Ghost.Graphics.RenderGraphModule
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RenderGraphModule
+    name: RenderGraphModule
+    href: Ghost.Graphics.RenderGraphModule.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RenderGraphModule
+    name: RenderGraphModule
+    href: Ghost.Graphics.RenderGraphModule.html
+- uid: System.IEquatable{Ghost.Graphics.RenderGraphModule.RGTextureDesc}
+  commentId: T:System.IEquatable{Ghost.Graphics.RenderGraphModule.RGTextureDesc}
+  parent: System
+  definition: System.IEquatable`1
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  name: IEquatable<RGTextureDesc>
+  nameWithType: IEquatable<RGTextureDesc>
+  fullName: System.IEquatable<Ghost.Graphics.RenderGraphModule.RGTextureDesc>
+  nameWithType.vb: IEquatable(Of RGTextureDesc)
+  fullName.vb: System.IEquatable(Of Ghost.Graphics.RenderGraphModule.RGTextureDesc)
+  name.vb: IEquatable(Of RGTextureDesc)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: <
+  - uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+    name: RGTextureDesc
+    href: Ghost.Graphics.RenderGraphModule.RGTextureDesc.html
+  - name: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+    name: RGTextureDesc
+    href: Ghost.Graphics.RenderGraphModule.RGTextureDesc.html
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.IEquatable`1
+  commentId: T:System.IEquatable`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  name: IEquatable<T>
+  nameWithType: IEquatable<T>
+  fullName: System.IEquatable<T>
+  nameWithType.vb: IEquatable(Of T)
+  fullName.vb: System.IEquatable(Of T)
+  name.vb: IEquatable(Of T)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureSizeMode
+  commentId: T:Ghost.Graphics.RenderGraphModule.RGTextureSizeMode
+  parent: Ghost.Graphics.RenderGraphModule
+  href: Ghost.Graphics.RenderGraphModule.RGTextureSizeMode.html
+  name: RGTextureSizeMode
+  nameWithType: RGTextureSizeMode
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureSizeMode
+- uid: System.UInt32
+  commentId: T:System.UInt32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.uint32
+  name: uint
+  nameWithType: uint
+  fullName: uint
+  nameWithType.vb: UInteger
+  fullName.vb: UInteger
+  name.vb: UInteger
+- uid: System.Single
+  commentId: T:System.Single
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.single
+  name: float
+  nameWithType: float
+  fullName: float
+  nameWithType.vb: Single
+  fullName.vb: Single
+  name.vb: Single
+- uid: Ghost.Graphics.RHI.TextureFormat
+  commentId: T:Ghost.Graphics.RHI.TextureFormat
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.TextureFormat.html
+  name: TextureFormat
+  nameWithType: TextureFormat
+  fullName: Ghost.Graphics.RHI.TextureFormat
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.TextureDimension
+  commentId: T:Ghost.Graphics.RHI.TextureDimension
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.TextureDimension.html
+  name: TextureDimension
+  nameWithType: TextureDimension
+  fullName: Ghost.Graphics.RHI.TextureDimension
+- uid: Ghost.Graphics.RHI.TextureUsage
+  commentId: T:Ghost.Graphics.RHI.TextureUsage
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.TextureUsage.html
+  name: TextureUsage
+  nameWithType: TextureUsage
+  fullName: Ghost.Graphics.RHI.TextureUsage
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.boolean
+  name: bool
+  nameWithType: bool
+  fullName: bool
+  nameWithType.vb: Boolean
+  fullName.vb: Boolean
+  name.vb: Boolean
+- uid: Ghost.Graphics.RHI.Color128
+  commentId: T:Ghost.Graphics.RHI.Color128
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.Color128.html
+  name: Color128
+  nameWithType: Color128
+  fullName: Ghost.Graphics.RHI.Color128
+- uid: System.Byte
+  commentId: T:System.Byte
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.byte
+  name: byte
+  nameWithType: byte
+  fullName: byte
+  nameWithType.vb: Byte
+  fullName.vb: Byte
+  name.vb: Byte
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.Absolute*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.RGTextureDesc.Absolute
+  href: Ghost.Graphics.RenderGraphModule.RGTextureDesc.html#Ghost_Graphics_RenderGraphModule_RGTextureDesc_Absolute_System_UInt32_System_UInt32_Ghost_Graphics_RHI_TextureFormat_Ghost_Graphics_RHI_Color128_System_Boolean_System_Boolean_Ghost_Graphics_RHI_TextureDimension_System_UInt32_System_UInt32_Ghost_Graphics_RHI_TextureUsage_
+  name: Absolute
+  nameWithType: RGTextureDesc.Absolute
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.Absolute
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  commentId: T:Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  parent: Ghost.Graphics.RenderGraphModule
+  href: Ghost.Graphics.RenderGraphModule.RGTextureDesc.html
+  name: RGTextureDesc
+  nameWithType: RGTextureDesc
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.Relative*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.RGTextureDesc.Relative
+  href: Ghost.Graphics.RenderGraphModule.RGTextureDesc.html#Ghost_Graphics_RenderGraphModule_RGTextureDesc_Relative_System_Single_Ghost_Graphics_RHI_TextureFormat_Ghost_Graphics_RHI_Color128_System_Boolean_System_Boolean_Ghost_Graphics_RHI_TextureDimension_System_UInt32_System_UInt32_Ghost_Graphics_RHI_TextureUsage_
+  name: Relative
+  nameWithType: RGTextureDesc.Relative
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.Relative
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.RelativeDepth*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.RGTextureDesc.RelativeDepth
+  href: Ghost.Graphics.RenderGraphModule.RGTextureDesc.html#Ghost_Graphics_RenderGraphModule_RGTextureDesc_RelativeDepth_System_Single_System_Single_System_Byte_System_Boolean_System_Boolean_Ghost_Graphics_RHI_TextureFormat_
+  name: RelativeDepth
+  nameWithType: RGTextureDesc.RelativeDepth
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.RelativeDepth
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.ToTextureDesc*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.RGTextureDesc.ToTextureDesc
+  href: Ghost.Graphics.RenderGraphModule.RGTextureDesc.html#Ghost_Graphics_RenderGraphModule_RGTextureDesc_ToTextureDesc_System_UInt32_System_UInt32_
+  name: ToTextureDesc
+  nameWithType: RGTextureDesc.ToTextureDesc
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.ToTextureDesc
+- uid: Ghost.Graphics.RHI.TextureDesc
+  commentId: T:Ghost.Graphics.RHI.TextureDesc
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.TextureDesc.html
+  name: TextureDesc
+  nameWithType: TextureDesc
+  fullName: Ghost.Graphics.RHI.TextureDesc
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.Equals*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.RGTextureDesc.Equals
+  href: Ghost.Graphics.RenderGraphModule.RGTextureDesc.html#Ghost_Graphics_RenderGraphModule_RGTextureDesc_Equals_Ghost_Graphics_RenderGraphModule_RGTextureDesc_
+  name: Equals
+  nameWithType: RGTextureDesc.Equals
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.Equals
+- uid: System.IEquatable{Ghost.Graphics.RenderGraphModule.RGTextureDesc}.Equals(Ghost.Graphics.RenderGraphModule.RGTextureDesc)
+  commentId: M:System.IEquatable{Ghost.Graphics.RenderGraphModule.RGTextureDesc}.Equals(Ghost.Graphics.RenderGraphModule.RGTextureDesc)
+  parent: System.IEquatable{Ghost.Graphics.RenderGraphModule.RGTextureDesc}
+  definition: System.IEquatable`1.Equals(`0)
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  name: Equals(RGTextureDesc)
+  nameWithType: IEquatable<RGTextureDesc>.Equals(RGTextureDesc)
+  fullName: System.IEquatable<Ghost.Graphics.RenderGraphModule.RGTextureDesc>.Equals(Ghost.Graphics.RenderGraphModule.RGTextureDesc)
+  nameWithType.vb: IEquatable(Of RGTextureDesc).Equals(RGTextureDesc)
+  fullName.vb: System.IEquatable(Of Ghost.Graphics.RenderGraphModule.RGTextureDesc).Equals(Ghost.Graphics.RenderGraphModule.RGTextureDesc)
+  spec.csharp:
+  - uid: System.IEquatable{Ghost.Graphics.RenderGraphModule.RGTextureDesc}.Equals(Ghost.Graphics.RenderGraphModule.RGTextureDesc)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  - name: (
+  - uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+    name: RGTextureDesc
+    href: Ghost.Graphics.RenderGraphModule.RGTextureDesc.html
+  - name: )
+  spec.vb:
+  - uid: System.IEquatable{Ghost.Graphics.RenderGraphModule.RGTextureDesc}.Equals(Ghost.Graphics.RenderGraphModule.RGTextureDesc)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  - name: (
+  - uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+    name: RGTextureDesc
+    href: Ghost.Graphics.RenderGraphModule.RGTextureDesc.html
+  - name: )
+- uid: System.IEquatable`1.Equals(`0)
+  commentId: M:System.IEquatable`1.Equals(`0)
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  name: Equals(T)
+  nameWithType: IEquatable<T>.Equals(T)
+  fullName: System.IEquatable<T>.Equals(T)
+  nameWithType.vb: IEquatable(Of T).Equals(T)
+  fullName.vb: System.IEquatable(Of T).Equals(T)
+  spec.csharp:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  - name: (
+  - name: T
+  - name: )
+  spec.vb:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  - name: (
+  - name: T
+  - name: )
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.GetHashCode*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.RGTextureDesc.GetHashCode
+  href: Ghost.Graphics.RenderGraphModule.RGTextureDesc.html#Ghost_Graphics_RenderGraphModule_RGTextureDesc_GetHashCode
+  name: GetHashCode
+  nameWithType: RGTextureDesc.GetHashCode
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.GetHashCode
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.int32
+  name: int
+  nameWithType: int
+  fullName: int
+  nameWithType.vb: Integer
+  fullName.vb: Integer
+  name.vb: Integer
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.op_Equality*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.RGTextureDesc.op_Equality
+  href: Ghost.Graphics.RenderGraphModule.RGTextureDesc.html#Ghost_Graphics_RenderGraphModule_RGTextureDesc_op_Equality_Ghost_Graphics_RenderGraphModule_RGTextureDesc_Ghost_Graphics_RenderGraphModule_RGTextureDesc_
+  name: operator ==
+  nameWithType: RGTextureDesc.operator ==
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.operator ==
+  nameWithType.vb: RGTextureDesc.=
+  fullName.vb: Ghost.Graphics.RenderGraphModule.RGTextureDesc.=
+  name.vb: =
+  spec.csharp:
+  - name: operator
+  - name: " "
+  - uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.op_Equality*
+    name: ==
+    href: Ghost.Graphics.RenderGraphModule.RGTextureDesc.html#Ghost_Graphics_RenderGraphModule_RGTextureDesc_op_Equality_Ghost_Graphics_RenderGraphModule_RGTextureDesc_Ghost_Graphics_RenderGraphModule_RGTextureDesc_
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.op_Inequality*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.RGTextureDesc.op_Inequality
+  href: Ghost.Graphics.RenderGraphModule.RGTextureDesc.html#Ghost_Graphics_RenderGraphModule_RGTextureDesc_op_Inequality_Ghost_Graphics_RenderGraphModule_RGTextureDesc_Ghost_Graphics_RenderGraphModule_RGTextureDesc_
+  name: operator !=
+  nameWithType: RGTextureDesc.operator !=
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc.operator !=
+  nameWithType.vb: RGTextureDesc.<>
+  fullName.vb: Ghost.Graphics.RenderGraphModule.RGTextureDesc.<>
+  name.vb: <>
+  spec.csharp:
+  - name: operator
+  - name: " "
+  - uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc.op_Inequality*
+    name: '!='
+    href: Ghost.Graphics.RenderGraphModule.RGTextureDesc.html#Ghost_Graphics_RenderGraphModule_RGTextureDesc_op_Inequality_Ghost_Graphics_RenderGraphModule_RGTextureDesc_Ghost_Graphics_RenderGraphModule_RGTextureDesc_

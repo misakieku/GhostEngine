@@ -1,0 +1,615 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.LocalKeywordSet
+  commentId: T:Ghost.Graphics.RHI.LocalKeywordSet
+  id: LocalKeywordSet
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.LocalKeywordSet.Clear
+  - Ghost.Graphics.RHI.LocalKeywordSet.GetHash64
+  - Ghost.Graphics.RHI.LocalKeywordSet.GetHashCode
+  - Ghost.Graphics.RHI.LocalKeywordSet.IsKeywordEnabled(System.Int32)
+  - Ghost.Graphics.RHI.LocalKeywordSet.SetKeyword(System.Int32,System.Boolean)
+  - Ghost.Graphics.RHI.LocalKeywordSet.op_BitwiseAnd(Ghost.Graphics.RHI.LocalKeywordSet@,Ghost.Graphics.RHI.LocalKeywordSet@)
+  - Ghost.Graphics.RHI.LocalKeywordSet.op_BitwiseOr(Ghost.Graphics.RHI.LocalKeywordSet@,Ghost.Graphics.RHI.LocalKeywordSet@)
+  langs:
+  - csharp
+  - vb
+  name: LocalKeywordSet
+  nameWithType: LocalKeywordSet
+  fullName: Ghost.Graphics.RHI.LocalKeywordSet
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Keyword.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: LocalKeywordSet
+    path: src/Runtime/Ghost.Graphics.RHI/Keyword.cs
+    startLine: 5
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public struct LocalKeywordSet
+    content.vb: Public Structure LocalKeywordSet
+  inheritedMembers:
+  - System.ValueType.Equals(System.Object)
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Graphics.RHI.LocalKeywordSet.SetKeyword(System.Int32,System.Boolean)
+  commentId: M:Ghost.Graphics.RHI.LocalKeywordSet.SetKeyword(System.Int32,System.Boolean)
+  id: SetKeyword(System.Int32,System.Boolean)
+  parent: Ghost.Graphics.RHI.LocalKeywordSet
+  langs:
+  - csharp
+  - vb
+  name: SetKeyword(int, bool)
+  nameWithType: LocalKeywordSet.SetKeyword(int, bool)
+  fullName: Ghost.Graphics.RHI.LocalKeywordSet.SetKeyword(int, bool)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Keyword.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SetKeyword
+    path: src/Runtime/Ghost.Graphics.RHI/Keyword.cs
+    startLine: 12
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public void SetKeyword(int localIndex, bool enabled)
+    parameters:
+    - id: localIndex
+      type: System.Int32
+    - id: enabled
+      type: System.Boolean
+    content.vb: Public Sub SetKeyword(localIndex As Integer, enabled As Boolean)
+  overload: Ghost.Graphics.RHI.LocalKeywordSet.SetKeyword*
+  nameWithType.vb: LocalKeywordSet.SetKeyword(Integer, Boolean)
+  fullName.vb: Ghost.Graphics.RHI.LocalKeywordSet.SetKeyword(Integer, Boolean)
+  name.vb: SetKeyword(Integer, Boolean)
+- uid: Ghost.Graphics.RHI.LocalKeywordSet.IsKeywordEnabled(System.Int32)
+  commentId: M:Ghost.Graphics.RHI.LocalKeywordSet.IsKeywordEnabled(System.Int32)
+  id: IsKeywordEnabled(System.Int32)
+  parent: Ghost.Graphics.RHI.LocalKeywordSet
+  langs:
+  - csharp
+  - vb
+  name: IsKeywordEnabled(int)
+  nameWithType: LocalKeywordSet.IsKeywordEnabled(int)
+  fullName: Ghost.Graphics.RHI.LocalKeywordSet.IsKeywordEnabled(int)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Keyword.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IsKeywordEnabled
+    path: src/Runtime/Ghost.Graphics.RHI/Keyword.cs
+    startLine: 26
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public bool IsKeywordEnabled(int localIndex)
+    parameters:
+    - id: localIndex
+      type: System.Int32
+    return:
+      type: System.Boolean
+    content.vb: Public Function IsKeywordEnabled(localIndex As Integer) As Boolean
+  overload: Ghost.Graphics.RHI.LocalKeywordSet.IsKeywordEnabled*
+  nameWithType.vb: LocalKeywordSet.IsKeywordEnabled(Integer)
+  fullName.vb: Ghost.Graphics.RHI.LocalKeywordSet.IsKeywordEnabled(Integer)
+  name.vb: IsKeywordEnabled(Integer)
+- uid: Ghost.Graphics.RHI.LocalKeywordSet.Clear
+  commentId: M:Ghost.Graphics.RHI.LocalKeywordSet.Clear
+  id: Clear
+  parent: Ghost.Graphics.RHI.LocalKeywordSet
+  langs:
+  - csharp
+  - vb
+  name: Clear()
+  nameWithType: LocalKeywordSet.Clear()
+  fullName: Ghost.Graphics.RHI.LocalKeywordSet.Clear()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Keyword.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Clear
+    path: src/Runtime/Ghost.Graphics.RHI/Keyword.cs
+    startLine: 33
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public void Clear()
+    content.vb: Public Sub Clear()
+  overload: Ghost.Graphics.RHI.LocalKeywordSet.Clear*
+- uid: Ghost.Graphics.RHI.LocalKeywordSet.GetHash64
+  commentId: M:Ghost.Graphics.RHI.LocalKeywordSet.GetHash64
+  id: GetHash64
+  parent: Ghost.Graphics.RHI.LocalKeywordSet
+  langs:
+  - csharp
+  - vb
+  name: GetHash64()
+  nameWithType: LocalKeywordSet.GetHash64()
+  fullName: Ghost.Graphics.RHI.LocalKeywordSet.GetHash64()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Keyword.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetHash64
+    path: src/Runtime/Ghost.Graphics.RHI/Keyword.cs
+    startLine: 41
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public ulong GetHash64()
+    return:
+      type: System.UInt64
+    content.vb: Public Function GetHash64() As ULong
+  overload: Ghost.Graphics.RHI.LocalKeywordSet.GetHash64*
+- uid: Ghost.Graphics.RHI.LocalKeywordSet.GetHashCode
+  commentId: M:Ghost.Graphics.RHI.LocalKeywordSet.GetHashCode
+  id: GetHashCode
+  parent: Ghost.Graphics.RHI.LocalKeywordSet
+  langs:
+  - csharp
+  - vb
+  name: GetHashCode()
+  nameWithType: LocalKeywordSet.GetHashCode()
+  fullName: Ghost.Graphics.RHI.LocalKeywordSet.GetHashCode()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Keyword.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetHashCode
+    path: src/Runtime/Ghost.Graphics.RHI/Keyword.cs
+    startLine: 54
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Returns the hash code for this instance.
+  example: []
+  syntax:
+    content: public override int GetHashCode()
+    return:
+      type: System.Int32
+      description: A 32-bit signed integer that is the hash code for this instance.
+    content.vb: Public Overrides Function GetHashCode() As Integer
+  overridden: System.ValueType.GetHashCode
+  overload: Ghost.Graphics.RHI.LocalKeywordSet.GetHashCode*
+- uid: Ghost.Graphics.RHI.LocalKeywordSet.op_BitwiseOr(Ghost.Graphics.RHI.LocalKeywordSet@,Ghost.Graphics.RHI.LocalKeywordSet@)
+  commentId: M:Ghost.Graphics.RHI.LocalKeywordSet.op_BitwiseOr(Ghost.Graphics.RHI.LocalKeywordSet@,Ghost.Graphics.RHI.LocalKeywordSet@)
+  id: op_BitwiseOr(Ghost.Graphics.RHI.LocalKeywordSet@,Ghost.Graphics.RHI.LocalKeywordSet@)
+  parent: Ghost.Graphics.RHI.LocalKeywordSet
+  langs:
+  - csharp
+  - vb
+  name: operator |(in LocalKeywordSet, in LocalKeywordSet)
+  nameWithType: LocalKeywordSet.operator |(in LocalKeywordSet, in LocalKeywordSet)
+  fullName: Ghost.Graphics.RHI.LocalKeywordSet.operator |(in Ghost.Graphics.RHI.LocalKeywordSet, in Ghost.Graphics.RHI.LocalKeywordSet)
+  type: Operator
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Keyword.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: op_BitwiseOr
+    path: src/Runtime/Ghost.Graphics.RHI/Keyword.cs
+    startLine: 66
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public static LocalKeywordSet operator |(in LocalKeywordSet a, in LocalKeywordSet b)
+    parameters:
+    - id: a
+      type: Ghost.Graphics.RHI.LocalKeywordSet
+    - id: b
+      type: Ghost.Graphics.RHI.LocalKeywordSet
+    return:
+      type: Ghost.Graphics.RHI.LocalKeywordSet
+    content.vb: Public Shared Operator Or(a As LocalKeywordSet, b As LocalKeywordSet) As LocalKeywordSet
+  overload: Ghost.Graphics.RHI.LocalKeywordSet.op_BitwiseOr*
+  nameWithType.vb: LocalKeywordSet.Or(LocalKeywordSet, LocalKeywordSet)
+  fullName.vb: Ghost.Graphics.RHI.LocalKeywordSet.Or(Ghost.Graphics.RHI.LocalKeywordSet, Ghost.Graphics.RHI.LocalKeywordSet)
+  name.vb: Or(LocalKeywordSet, LocalKeywordSet)
+- uid: Ghost.Graphics.RHI.LocalKeywordSet.op_BitwiseAnd(Ghost.Graphics.RHI.LocalKeywordSet@,Ghost.Graphics.RHI.LocalKeywordSet@)
+  commentId: M:Ghost.Graphics.RHI.LocalKeywordSet.op_BitwiseAnd(Ghost.Graphics.RHI.LocalKeywordSet@,Ghost.Graphics.RHI.LocalKeywordSet@)
+  id: op_BitwiseAnd(Ghost.Graphics.RHI.LocalKeywordSet@,Ghost.Graphics.RHI.LocalKeywordSet@)
+  parent: Ghost.Graphics.RHI.LocalKeywordSet
+  langs:
+  - csharp
+  - vb
+  name: operator &(in LocalKeywordSet, in LocalKeywordSet)
+  nameWithType: LocalKeywordSet.operator &(in LocalKeywordSet, in LocalKeywordSet)
+  fullName: Ghost.Graphics.RHI.LocalKeywordSet.operator &(in Ghost.Graphics.RHI.LocalKeywordSet, in Ghost.Graphics.RHI.LocalKeywordSet)
+  type: Operator
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Keyword.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: op_BitwiseAnd
+    path: src/Runtime/Ghost.Graphics.RHI/Keyword.cs
+    startLine: 96
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public static LocalKeywordSet operator &(in LocalKeywordSet a, in LocalKeywordSet b)
+    parameters:
+    - id: a
+      type: Ghost.Graphics.RHI.LocalKeywordSet
+    - id: b
+      type: Ghost.Graphics.RHI.LocalKeywordSet
+    return:
+      type: Ghost.Graphics.RHI.LocalKeywordSet
+    content.vb: Public Shared Operator And(a As LocalKeywordSet, b As LocalKeywordSet) As LocalKeywordSet
+  overload: Ghost.Graphics.RHI.LocalKeywordSet.op_BitwiseAnd*
+  nameWithType.vb: LocalKeywordSet.And(LocalKeywordSet, LocalKeywordSet)
+  fullName.vb: Ghost.Graphics.RHI.LocalKeywordSet.And(Ghost.Graphics.RHI.LocalKeywordSet, Ghost.Graphics.RHI.LocalKeywordSet)
+  name.vb: And(LocalKeywordSet, LocalKeywordSet)
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RHI.LocalKeywordSet.SetKeyword*
+  commentId: Overload:Ghost.Graphics.RHI.LocalKeywordSet.SetKeyword
+  href: Ghost.Graphics.RHI.LocalKeywordSet.html#Ghost_Graphics_RHI_LocalKeywordSet_SetKeyword_System_Int32_System_Boolean_
+  name: SetKeyword
+  nameWithType: LocalKeywordSet.SetKeyword
+  fullName: Ghost.Graphics.RHI.LocalKeywordSet.SetKeyword
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.int32
+  name: int
+  nameWithType: int
+  fullName: int
+  nameWithType.vb: Integer
+  fullName.vb: Integer
+  name.vb: Integer
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.boolean
+  name: bool
+  nameWithType: bool
+  fullName: bool
+  nameWithType.vb: Boolean
+  fullName.vb: Boolean
+  name.vb: Boolean
+- uid: Ghost.Graphics.RHI.LocalKeywordSet.IsKeywordEnabled*
+  commentId: Overload:Ghost.Graphics.RHI.LocalKeywordSet.IsKeywordEnabled
+  href: Ghost.Graphics.RHI.LocalKeywordSet.html#Ghost_Graphics_RHI_LocalKeywordSet_IsKeywordEnabled_System_Int32_
+  name: IsKeywordEnabled
+  nameWithType: LocalKeywordSet.IsKeywordEnabled
+  fullName: Ghost.Graphics.RHI.LocalKeywordSet.IsKeywordEnabled
+- uid: Ghost.Graphics.RHI.LocalKeywordSet.Clear*
+  commentId: Overload:Ghost.Graphics.RHI.LocalKeywordSet.Clear
+  href: Ghost.Graphics.RHI.LocalKeywordSet.html#Ghost_Graphics_RHI_LocalKeywordSet_Clear
+  name: Clear
+  nameWithType: LocalKeywordSet.Clear
+  fullName: Ghost.Graphics.RHI.LocalKeywordSet.Clear
+- uid: Ghost.Graphics.RHI.LocalKeywordSet.GetHash64*
+  commentId: Overload:Ghost.Graphics.RHI.LocalKeywordSet.GetHash64
+  href: Ghost.Graphics.RHI.LocalKeywordSet.html#Ghost_Graphics_RHI_LocalKeywordSet_GetHash64
+  name: GetHash64
+  nameWithType: LocalKeywordSet.GetHash64
+  fullName: Ghost.Graphics.RHI.LocalKeywordSet.GetHash64
+- uid: System.UInt64
+  commentId: T:System.UInt64
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.uint64
+  name: ulong
+  nameWithType: ulong
+  fullName: ulong
+  nameWithType.vb: ULong
+  fullName.vb: ULong
+  name.vb: ULong
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: Ghost.Graphics.RHI.LocalKeywordSet.GetHashCode*
+  commentId: Overload:Ghost.Graphics.RHI.LocalKeywordSet.GetHashCode
+  href: Ghost.Graphics.RHI.LocalKeywordSet.html#Ghost_Graphics_RHI_LocalKeywordSet_GetHashCode
+  name: GetHashCode
+  nameWithType: LocalKeywordSet.GetHashCode
+  fullName: Ghost.Graphics.RHI.LocalKeywordSet.GetHashCode
+- uid: Ghost.Graphics.RHI.LocalKeywordSet.op_BitwiseOr*
+  commentId: Overload:Ghost.Graphics.RHI.LocalKeywordSet.op_BitwiseOr
+  href: Ghost.Graphics.RHI.LocalKeywordSet.html#Ghost_Graphics_RHI_LocalKeywordSet_op_BitwiseOr_Ghost_Graphics_RHI_LocalKeywordSet__Ghost_Graphics_RHI_LocalKeywordSet__
+  name: operator |
+  nameWithType: LocalKeywordSet.operator |
+  fullName: Ghost.Graphics.RHI.LocalKeywordSet.operator |
+  nameWithType.vb: LocalKeywordSet.Or
+  fullName.vb: Ghost.Graphics.RHI.LocalKeywordSet.Or
+  name.vb: Or
+  spec.csharp:
+  - name: operator
+  - name: " "
+  - uid: Ghost.Graphics.RHI.LocalKeywordSet.op_BitwiseOr*
+    name: '|'
+    href: Ghost.Graphics.RHI.LocalKeywordSet.html#Ghost_Graphics_RHI_LocalKeywordSet_op_BitwiseOr_Ghost_Graphics_RHI_LocalKeywordSet__Ghost_Graphics_RHI_LocalKeywordSet__
+- uid: Ghost.Graphics.RHI.LocalKeywordSet
+  commentId: T:Ghost.Graphics.RHI.LocalKeywordSet
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.LocalKeywordSet.html
+  name: LocalKeywordSet
+  nameWithType: LocalKeywordSet
+  fullName: Ghost.Graphics.RHI.LocalKeywordSet
+- uid: Ghost.Graphics.RHI.LocalKeywordSet.op_BitwiseAnd*
+  commentId: Overload:Ghost.Graphics.RHI.LocalKeywordSet.op_BitwiseAnd
+  href: Ghost.Graphics.RHI.LocalKeywordSet.html#Ghost_Graphics_RHI_LocalKeywordSet_op_BitwiseAnd_Ghost_Graphics_RHI_LocalKeywordSet__Ghost_Graphics_RHI_LocalKeywordSet__
+  name: operator &
+  nameWithType: LocalKeywordSet.operator &
+  fullName: Ghost.Graphics.RHI.LocalKeywordSet.operator &
+  nameWithType.vb: LocalKeywordSet.And
+  fullName.vb: Ghost.Graphics.RHI.LocalKeywordSet.And
+  name.vb: And
+  spec.csharp:
+  - name: operator
+  - name: " "
+  - uid: Ghost.Graphics.RHI.LocalKeywordSet.op_BitwiseAnd*
+    name: '&'
+    href: Ghost.Graphics.RHI.LocalKeywordSet.html#Ghost_Graphics_RHI_LocalKeywordSet_op_BitwiseAnd_Ghost_Graphics_RHI_LocalKeywordSet__Ghost_Graphics_RHI_LocalKeywordSet__

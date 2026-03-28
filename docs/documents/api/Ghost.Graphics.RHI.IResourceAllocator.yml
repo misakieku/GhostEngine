@@ -1,0 +1,686 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.IResourceAllocator
+  commentId: T:Ghost.Graphics.RHI.IResourceAllocator
+  id: IResourceAllocator
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.IResourceAllocator.Allocate(Ghost.Graphics.RHI.AllocationDesc@,System.String)
+  - Ghost.Graphics.RHI.IResourceAllocator.CreateBuffer(Ghost.Graphics.RHI.BufferDesc@,System.String,Ghost.Graphics.RHI.CreationOptions)
+  - Ghost.Graphics.RHI.IResourceAllocator.CreateRenderTarget(Ghost.Graphics.RHI.RenderTargetDesc@,System.String,Ghost.Graphics.RHI.CreationOptions)
+  - Ghost.Graphics.RHI.IResourceAllocator.CreateSampler(Ghost.Graphics.RHI.SamplerDesc@)
+  - Ghost.Graphics.RHI.IResourceAllocator.CreateTempUploadBuffer(System.UInt64,System.UInt64@)
+  - Ghost.Graphics.RHI.IResourceAllocator.CreateTexture(Ghost.Graphics.RHI.TextureDesc@,System.String,Ghost.Graphics.RHI.CreationOptions)
+  - Ghost.Graphics.RHI.IResourceAllocator.GetSizeInfo(Ghost.Graphics.RHI.ResourceDesc)
+  langs:
+  - csharp
+  - vb
+  name: IResourceAllocator
+  nameWithType: IResourceAllocator
+  fullName: Ghost.Graphics.RHI.IResourceAllocator
+  type: Interface
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IResourceAllocator
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+    startLine: 81
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: 'public interface IResourceAllocator : IDisposable'
+    content.vb: Public Interface IResourceAllocator Inherits IDisposable
+  inheritedMembers:
+  - System.IDisposable.Dispose
+- uid: Ghost.Graphics.RHI.IResourceAllocator.GetSizeInfo(Ghost.Graphics.RHI.ResourceDesc)
+  commentId: M:Ghost.Graphics.RHI.IResourceAllocator.GetSizeInfo(Ghost.Graphics.RHI.ResourceDesc)
+  id: GetSizeInfo(Ghost.Graphics.RHI.ResourceDesc)
+  parent: Ghost.Graphics.RHI.IResourceAllocator
+  langs:
+  - csharp
+  - vb
+  name: GetSizeInfo(ResourceDesc)
+  nameWithType: IResourceAllocator.GetSizeInfo(ResourceDesc)
+  fullName: Ghost.Graphics.RHI.IResourceAllocator.GetSizeInfo(Ghost.Graphics.RHI.ResourceDesc)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetSizeInfo
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+    startLine: 83
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: ResourceSizeInfo GetSizeInfo(ResourceDesc desc)
+    parameters:
+    - id: desc
+      type: Ghost.Graphics.RHI.ResourceDesc
+    return:
+      type: Ghost.Graphics.RHI.ResourceSizeInfo
+    content.vb: Function GetSizeInfo(desc As ResourceDesc) As ResourceSizeInfo
+  overload: Ghost.Graphics.RHI.IResourceAllocator.GetSizeInfo*
+- uid: Ghost.Graphics.RHI.IResourceAllocator.Allocate(Ghost.Graphics.RHI.AllocationDesc@,System.String)
+  commentId: M:Ghost.Graphics.RHI.IResourceAllocator.Allocate(Ghost.Graphics.RHI.AllocationDesc@,System.String)
+  id: Allocate(Ghost.Graphics.RHI.AllocationDesc@,System.String)
+  parent: Ghost.Graphics.RHI.IResourceAllocator
+  langs:
+  - csharp
+  - vb
+  name: Allocate(ref readonly AllocationDesc, string)
+  nameWithType: IResourceAllocator.Allocate(ref readonly AllocationDesc, string)
+  fullName: Ghost.Graphics.RHI.IResourceAllocator.Allocate(ref readonly Ghost.Graphics.RHI.AllocationDesc, string)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Allocate
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+    startLine: 91
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Allocates a block of memory on the GPU
+  example: []
+  syntax:
+    content: Handle<GPUResource> Allocate(ref readonly AllocationDesc desc, string name)
+    parameters:
+    - id: desc
+      type: Ghost.Graphics.RHI.AllocationDesc
+      description: Allocation description
+    - id: name
+      type: System.String
+      description: Debug name of the allocation
+    return:
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+      description: An <xref href="Ghost.Core.Handle%601" data-throw-if-not-resolved="false"></xref> point to the allocated memory
+    content.vb: Function Allocate(desc As AllocationDesc, name As String) As Handle(Of GPUResource)
+  overload: Ghost.Graphics.RHI.IResourceAllocator.Allocate*
+  nameWithType.vb: IResourceAllocator.Allocate(AllocationDesc, String)
+  fullName.vb: Ghost.Graphics.RHI.IResourceAllocator.Allocate(Ghost.Graphics.RHI.AllocationDesc, String)
+  name.vb: Allocate(AllocationDesc, String)
+- uid: Ghost.Graphics.RHI.IResourceAllocator.CreateTexture(Ghost.Graphics.RHI.TextureDesc@,System.String,Ghost.Graphics.RHI.CreationOptions)
+  commentId: M:Ghost.Graphics.RHI.IResourceAllocator.CreateTexture(Ghost.Graphics.RHI.TextureDesc@,System.String,Ghost.Graphics.RHI.CreationOptions)
+  id: CreateTexture(Ghost.Graphics.RHI.TextureDesc@,System.String,Ghost.Graphics.RHI.CreationOptions)
+  parent: Ghost.Graphics.RHI.IResourceAllocator
+  langs:
+  - csharp
+  - vb
+  name: CreateTexture(ref readonly TextureDesc, string, CreationOptions)
+  nameWithType: IResourceAllocator.CreateTexture(ref readonly TextureDesc, string, CreationOptions)
+  fullName: Ghost.Graphics.RHI.IResourceAllocator.CreateTexture(ref readonly Ghost.Graphics.RHI.TextureDesc, string, Ghost.Graphics.RHI.CreationOptions)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CreateTexture
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+    startLine: 100
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Creates a texture resource
+  example: []
+  syntax:
+    content: Handle<Texture> CreateTexture(ref readonly TextureDesc desc, string name, CreationOptions options = default)
+    parameters:
+    - id: desc
+      type: Ghost.Graphics.RHI.TextureDesc
+      description: Texture description
+    - id: name
+      type: System.String
+      description: Debug name of the resource
+    - id: options
+      type: Ghost.Graphics.RHI.CreationOptions
+      description: Additional options of the resource allocation
+    return:
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+      description: An <xref href="Ghost.Core.Handle%601" data-throw-if-not-resolved="false"></xref> point to the resource
+    content.vb: Function CreateTexture(desc As TextureDesc, name As String, options As CreationOptions = Nothing) As Handle(Of Texture)
+  overload: Ghost.Graphics.RHI.IResourceAllocator.CreateTexture*
+  nameWithType.vb: IResourceAllocator.CreateTexture(TextureDesc, String, CreationOptions)
+  fullName.vb: Ghost.Graphics.RHI.IResourceAllocator.CreateTexture(Ghost.Graphics.RHI.TextureDesc, String, Ghost.Graphics.RHI.CreationOptions)
+  name.vb: CreateTexture(TextureDesc, String, CreationOptions)
+- uid: Ghost.Graphics.RHI.IResourceAllocator.CreateRenderTarget(Ghost.Graphics.RHI.RenderTargetDesc@,System.String,Ghost.Graphics.RHI.CreationOptions)
+  commentId: M:Ghost.Graphics.RHI.IResourceAllocator.CreateRenderTarget(Ghost.Graphics.RHI.RenderTargetDesc@,System.String,Ghost.Graphics.RHI.CreationOptions)
+  id: CreateRenderTarget(Ghost.Graphics.RHI.RenderTargetDesc@,System.String,Ghost.Graphics.RHI.CreationOptions)
+  parent: Ghost.Graphics.RHI.IResourceAllocator
+  langs:
+  - csharp
+  - vb
+  name: CreateRenderTarget(ref readonly RenderTargetDesc, string, CreationOptions)
+  nameWithType: IResourceAllocator.CreateRenderTarget(ref readonly RenderTargetDesc, string, CreationOptions)
+  fullName: Ghost.Graphics.RHI.IResourceAllocator.CreateRenderTarget(ref readonly Ghost.Graphics.RHI.RenderTargetDesc, string, Ghost.Graphics.RHI.CreationOptions)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CreateRenderTarget
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+    startLine: 109
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Creates a render Target for off-screen rendering
+  example: []
+  syntax:
+    content: Handle<Texture> CreateRenderTarget(ref readonly RenderTargetDesc desc, string name, CreationOptions options = default)
+    parameters:
+    - id: desc
+      type: Ghost.Graphics.RHI.RenderTargetDesc
+      description: Render Target description
+    - id: name
+      type: System.String
+      description: Debug name of the resource
+    - id: options
+      type: Ghost.Graphics.RHI.CreationOptions
+      description: Additional options of the resource allocation
+    return:
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+      description: An <xref href="Ghost.Core.Handle%601" data-throw-if-not-resolved="false"></xref> point to the resource
+    content.vb: Function CreateRenderTarget(desc As RenderTargetDesc, name As String, options As CreationOptions = Nothing) As Handle(Of Texture)
+  overload: Ghost.Graphics.RHI.IResourceAllocator.CreateRenderTarget*
+  nameWithType.vb: IResourceAllocator.CreateRenderTarget(RenderTargetDesc, String, CreationOptions)
+  fullName.vb: Ghost.Graphics.RHI.IResourceAllocator.CreateRenderTarget(Ghost.Graphics.RHI.RenderTargetDesc, String, Ghost.Graphics.RHI.CreationOptions)
+  name.vb: CreateRenderTarget(RenderTargetDesc, String, CreationOptions)
+- uid: Ghost.Graphics.RHI.IResourceAllocator.CreateBuffer(Ghost.Graphics.RHI.BufferDesc@,System.String,Ghost.Graphics.RHI.CreationOptions)
+  commentId: M:Ghost.Graphics.RHI.IResourceAllocator.CreateBuffer(Ghost.Graphics.RHI.BufferDesc@,System.String,Ghost.Graphics.RHI.CreationOptions)
+  id: CreateBuffer(Ghost.Graphics.RHI.BufferDesc@,System.String,Ghost.Graphics.RHI.CreationOptions)
+  parent: Ghost.Graphics.RHI.IResourceAllocator
+  langs:
+  - csharp
+  - vb
+  name: CreateBuffer(ref readonly BufferDesc, string, CreationOptions)
+  nameWithType: IResourceAllocator.CreateBuffer(ref readonly BufferDesc, string, CreationOptions)
+  fullName: Ghost.Graphics.RHI.IResourceAllocator.CreateBuffer(ref readonly Ghost.Graphics.RHI.BufferDesc, string, Ghost.Graphics.RHI.CreationOptions)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CreateBuffer
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+    startLine: 118
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Creates a buffer resource
+  example: []
+  syntax:
+    content: Handle<GraphicsBuffer> CreateBuffer(ref readonly BufferDesc desc, string name, CreationOptions options = default)
+    parameters:
+    - id: desc
+      type: Ghost.Graphics.RHI.BufferDesc
+      description: Buffer description
+    - id: name
+      type: System.String
+      description: Debug name of the resource
+    - id: options
+      type: Ghost.Graphics.RHI.CreationOptions
+      description: Additional options of the resource allocation
+    return:
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer}
+      description: An <xref href="Ghost.Core.Handle%601" data-throw-if-not-resolved="false"></xref> point to the resource
+    content.vb: Function CreateBuffer(desc As BufferDesc, name As String, options As CreationOptions = Nothing) As Handle(Of GraphicsBuffer)
+  overload: Ghost.Graphics.RHI.IResourceAllocator.CreateBuffer*
+  nameWithType.vb: IResourceAllocator.CreateBuffer(BufferDesc, String, CreationOptions)
+  fullName.vb: Ghost.Graphics.RHI.IResourceAllocator.CreateBuffer(Ghost.Graphics.RHI.BufferDesc, String, Ghost.Graphics.RHI.CreationOptions)
+  name.vb: CreateBuffer(BufferDesc, String, CreationOptions)
+- uid: Ghost.Graphics.RHI.IResourceAllocator.CreateTempUploadBuffer(System.UInt64,System.UInt64@)
+  commentId: M:Ghost.Graphics.RHI.IResourceAllocator.CreateTempUploadBuffer(System.UInt64,System.UInt64@)
+  id: CreateTempUploadBuffer(System.UInt64,System.UInt64@)
+  parent: Ghost.Graphics.RHI.IResourceAllocator
+  langs:
+  - csharp
+  - vb
+  name: CreateTempUploadBuffer(ulong, out ulong)
+  nameWithType: IResourceAllocator.CreateTempUploadBuffer(ulong, out ulong)
+  fullName: Ghost.Graphics.RHI.IResourceAllocator.CreateTempUploadBuffer(ulong, out ulong)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CreateTempUploadBuffer
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+    startLine: 129
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Creates a temporary upload buffer of the specified size in bytes.
+  remarks: This method has been optimized for frequent calls during frame updates. It efficiently manages memory to minimize fragmentation and overhead.
+  example: []
+  syntax:
+    content: Handle<GraphicsBuffer> CreateTempUploadBuffer(ulong sizeInBytes, out ulong offset)
+    parameters:
+    - id: sizeInBytes
+      type: System.UInt64
+      description: The size of the upload buffer to create, in bytes.
+    - id: offset
+      type: System.UInt64
+      description: The offset within the upload buffer where the allocation begins.
+    return:
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer}
+      description: An <xref href="Ghost.Core.Handle%601" data-throw-if-not-resolved="false"></xref> pointing to the created upload buffer.
+    content.vb: Function CreateTempUploadBuffer(sizeInBytes As ULong, offset As ULong) As Handle(Of GraphicsBuffer)
+  overload: Ghost.Graphics.RHI.IResourceAllocator.CreateTempUploadBuffer*
+  nameWithType.vb: IResourceAllocator.CreateTempUploadBuffer(ULong, ULong)
+  fullName.vb: Ghost.Graphics.RHI.IResourceAllocator.CreateTempUploadBuffer(ULong, ULong)
+  name.vb: CreateTempUploadBuffer(ULong, ULong)
+- uid: Ghost.Graphics.RHI.IResourceAllocator.CreateSampler(Ghost.Graphics.RHI.SamplerDesc@)
+  commentId: M:Ghost.Graphics.RHI.IResourceAllocator.CreateSampler(Ghost.Graphics.RHI.SamplerDesc@)
+  id: CreateSampler(Ghost.Graphics.RHI.SamplerDesc@)
+  parent: Ghost.Graphics.RHI.IResourceAllocator
+  langs:
+  - csharp
+  - vb
+  name: CreateSampler(ref readonly SamplerDesc)
+  nameWithType: IResourceAllocator.CreateSampler(ref readonly SamplerDesc)
+  fullName: Ghost.Graphics.RHI.IResourceAllocator.CreateSampler(ref readonly Ghost.Graphics.RHI.SamplerDesc)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CreateSampler
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+    startLine: 136
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Creates a new sampler object using the specified sampler description.
+  example: []
+  syntax:
+    content: Identifier<Sampler> CreateSampler(ref readonly SamplerDesc desc)
+    parameters:
+    - id: desc
+      type: Ghost.Graphics.RHI.SamplerDesc
+      description: A read-only reference to a <xref href="Ghost.Graphics.RHI.SamplerDesc" data-throw-if-not-resolved="false"></xref> structure that defines the properties of the sampler to be created.
+    return:
+      type: Ghost.Core.Identifier{Ghost.Graphics.RHI.Sampler}
+      description: An <xref href="Ghost.Core.Identifier%601" data-throw-if-not-resolved="false"></xref> that uniquely identifies the created sampler object.
+    content.vb: Function CreateSampler(desc As SamplerDesc) As Identifier(Of Sampler)
+  overload: Ghost.Graphics.RHI.IResourceAllocator.CreateSampler*
+  nameWithType.vb: IResourceAllocator.CreateSampler(SamplerDesc)
+  fullName.vb: Ghost.Graphics.RHI.IResourceAllocator.CreateSampler(Ghost.Graphics.RHI.SamplerDesc)
+  name.vb: CreateSampler(SamplerDesc)
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.IDisposable.Dispose
+  commentId: M:System.IDisposable.Dispose
+  parent: System.IDisposable
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  name: Dispose()
+  nameWithType: IDisposable.Dispose()
+  fullName: System.IDisposable.Dispose()
+  spec.csharp:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+- uid: System.IDisposable
+  commentId: T:System.IDisposable
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable
+  name: IDisposable
+  nameWithType: IDisposable
+  fullName: System.IDisposable
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RHI.IResourceAllocator.GetSizeInfo*
+  commentId: Overload:Ghost.Graphics.RHI.IResourceAllocator.GetSizeInfo
+  href: Ghost.Graphics.RHI.IResourceAllocator.html#Ghost_Graphics_RHI_IResourceAllocator_GetSizeInfo_Ghost_Graphics_RHI_ResourceDesc_
+  name: GetSizeInfo
+  nameWithType: IResourceAllocator.GetSizeInfo
+  fullName: Ghost.Graphics.RHI.IResourceAllocator.GetSizeInfo
+- uid: Ghost.Graphics.RHI.ResourceDesc
+  commentId: T:Ghost.Graphics.RHI.ResourceDesc
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ResourceDesc.html
+  name: ResourceDesc
+  nameWithType: ResourceDesc
+  fullName: Ghost.Graphics.RHI.ResourceDesc
+- uid: Ghost.Graphics.RHI.ResourceSizeInfo
+  commentId: T:Ghost.Graphics.RHI.ResourceSizeInfo
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ResourceSizeInfo.html
+  name: ResourceSizeInfo
+  nameWithType: ResourceSizeInfo
+  fullName: Ghost.Graphics.RHI.ResourceSizeInfo
+- uid: Ghost.Core.Handle`1
+  commentId: T:Ghost.Core.Handle`1
+  name: Handle<T>
+  nameWithType: Handle<T>
+  fullName: Ghost.Core.Handle<T>
+  nameWithType.vb: Handle(Of T)
+  fullName.vb: Ghost.Core.Handle(Of T)
+  name.vb: Handle(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Graphics.RHI.IResourceAllocator.Allocate*
+  commentId: Overload:Ghost.Graphics.RHI.IResourceAllocator.Allocate
+  href: Ghost.Graphics.RHI.IResourceAllocator.html#Ghost_Graphics_RHI_IResourceAllocator_Allocate_Ghost_Graphics_RHI_AllocationDesc__System_String_
+  name: Allocate
+  nameWithType: IResourceAllocator.Allocate
+  fullName: Ghost.Graphics.RHI.IResourceAllocator.Allocate
+- uid: Ghost.Graphics.RHI.AllocationDesc
+  commentId: T:Ghost.Graphics.RHI.AllocationDesc
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.AllocationDesc.html
+  name: AllocationDesc
+  nameWithType: AllocationDesc
+  fullName: Ghost.Graphics.RHI.AllocationDesc
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.string
+  name: string
+  nameWithType: string
+  fullName: string
+  nameWithType.vb: String
+  fullName.vb: String
+  name.vb: String
+- uid: Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+  commentId: T:Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+  parent: Ghost.Core
+  definition: Ghost.Core.Handle`1
+  href: Ghost.Graphics.RHI.GPUResource.html
+  name: Handle<GPUResource>
+  nameWithType: Handle<GPUResource>
+  fullName: Ghost.Core.Handle<Ghost.Graphics.RHI.GPUResource>
+  nameWithType.vb: Handle(Of GPUResource)
+  fullName.vb: Ghost.Core.Handle(Of Ghost.Graphics.RHI.GPUResource)
+  name.vb: Handle(Of GPUResource)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - uid: Ghost.Graphics.RHI.GPUResource
+    name: GPUResource
+    href: Ghost.Graphics.RHI.GPUResource.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.GPUResource
+    name: GPUResource
+    href: Ghost.Graphics.RHI.GPUResource.html
+  - name: )
+- uid: Ghost.Core
+  commentId: N:Ghost.Core
+  name: Ghost.Core
+  nameWithType: Ghost.Core
+  fullName: Ghost.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+- uid: Ghost.Graphics.RHI.IResourceAllocator.CreateTexture*
+  commentId: Overload:Ghost.Graphics.RHI.IResourceAllocator.CreateTexture
+  href: Ghost.Graphics.RHI.IResourceAllocator.html#Ghost_Graphics_RHI_IResourceAllocator_CreateTexture_Ghost_Graphics_RHI_TextureDesc__System_String_Ghost_Graphics_RHI_CreationOptions_
+  name: CreateTexture
+  nameWithType: IResourceAllocator.CreateTexture
+  fullName: Ghost.Graphics.RHI.IResourceAllocator.CreateTexture
+- uid: Ghost.Graphics.RHI.TextureDesc
+  commentId: T:Ghost.Graphics.RHI.TextureDesc
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.TextureDesc.html
+  name: TextureDesc
+  nameWithType: TextureDesc
+  fullName: Ghost.Graphics.RHI.TextureDesc
+- uid: Ghost.Graphics.RHI.CreationOptions
+  commentId: T:Ghost.Graphics.RHI.CreationOptions
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.CreationOptions.html
+  name: CreationOptions
+  nameWithType: CreationOptions
+  fullName: Ghost.Graphics.RHI.CreationOptions
+- uid: Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+  commentId: T:Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+  parent: Ghost.Core
+  definition: Ghost.Core.Handle`1
+  href: Ghost.Graphics.RHI.Texture.html
+  name: Handle<Texture>
+  nameWithType: Handle<Texture>
+  fullName: Ghost.Core.Handle<Ghost.Graphics.RHI.Texture>
+  nameWithType.vb: Handle(Of Texture)
+  fullName.vb: Ghost.Core.Handle(Of Ghost.Graphics.RHI.Texture)
+  name.vb: Handle(Of Texture)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - uid: Ghost.Graphics.RHI.Texture
+    name: Texture
+    href: Ghost.Graphics.RHI.Texture.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.Texture
+    name: Texture
+    href: Ghost.Graphics.RHI.Texture.html
+  - name: )
+- uid: Ghost.Graphics.RHI.IResourceAllocator.CreateRenderTarget*
+  commentId: Overload:Ghost.Graphics.RHI.IResourceAllocator.CreateRenderTarget
+  href: Ghost.Graphics.RHI.IResourceAllocator.html#Ghost_Graphics_RHI_IResourceAllocator_CreateRenderTarget_Ghost_Graphics_RHI_RenderTargetDesc__System_String_Ghost_Graphics_RHI_CreationOptions_
+  name: CreateRenderTarget
+  nameWithType: IResourceAllocator.CreateRenderTarget
+  fullName: Ghost.Graphics.RHI.IResourceAllocator.CreateRenderTarget
+- uid: Ghost.Graphics.RHI.RenderTargetDesc
+  commentId: T:Ghost.Graphics.RHI.RenderTargetDesc
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.RenderTargetDesc.html
+  name: RenderTargetDesc
+  nameWithType: RenderTargetDesc
+  fullName: Ghost.Graphics.RHI.RenderTargetDesc
+- uid: Ghost.Graphics.RHI.IResourceAllocator.CreateBuffer*
+  commentId: Overload:Ghost.Graphics.RHI.IResourceAllocator.CreateBuffer
+  href: Ghost.Graphics.RHI.IResourceAllocator.html#Ghost_Graphics_RHI_IResourceAllocator_CreateBuffer_Ghost_Graphics_RHI_BufferDesc__System_String_Ghost_Graphics_RHI_CreationOptions_
+  name: CreateBuffer
+  nameWithType: IResourceAllocator.CreateBuffer
+  fullName: Ghost.Graphics.RHI.IResourceAllocator.CreateBuffer
+- uid: Ghost.Graphics.RHI.BufferDesc
+  commentId: T:Ghost.Graphics.RHI.BufferDesc
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.BufferDesc.html
+  name: BufferDesc
+  nameWithType: BufferDesc
+  fullName: Ghost.Graphics.RHI.BufferDesc
+- uid: Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer}
+  commentId: T:Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer}
+  parent: Ghost.Core
+  definition: Ghost.Core.Handle`1
+  href: Ghost.Graphics.RHI.GraphicsBuffer.html
+  name: Handle<GraphicsBuffer>
+  nameWithType: Handle<GraphicsBuffer>
+  fullName: Ghost.Core.Handle<Ghost.Graphics.RHI.GraphicsBuffer>
+  nameWithType.vb: Handle(Of GraphicsBuffer)
+  fullName.vb: Ghost.Core.Handle(Of Ghost.Graphics.RHI.GraphicsBuffer)
+  name.vb: Handle(Of GraphicsBuffer)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - uid: Ghost.Graphics.RHI.GraphicsBuffer
+    name: GraphicsBuffer
+    href: Ghost.Graphics.RHI.GraphicsBuffer.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.GraphicsBuffer
+    name: GraphicsBuffer
+    href: Ghost.Graphics.RHI.GraphicsBuffer.html
+  - name: )
+- uid: Ghost.Graphics.RHI.IResourceAllocator.CreateTempUploadBuffer*
+  commentId: Overload:Ghost.Graphics.RHI.IResourceAllocator.CreateTempUploadBuffer
+  href: Ghost.Graphics.RHI.IResourceAllocator.html#Ghost_Graphics_RHI_IResourceAllocator_CreateTempUploadBuffer_System_UInt64_System_UInt64__
+  name: CreateTempUploadBuffer
+  nameWithType: IResourceAllocator.CreateTempUploadBuffer
+  fullName: Ghost.Graphics.RHI.IResourceAllocator.CreateTempUploadBuffer
+- uid: System.UInt64
+  commentId: T:System.UInt64
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.uint64
+  name: ulong
+  nameWithType: ulong
+  fullName: ulong
+  nameWithType.vb: ULong
+  fullName.vb: ULong
+  name.vb: ULong
+- uid: Ghost.Graphics.RHI.SamplerDesc
+  commentId: T:Ghost.Graphics.RHI.SamplerDesc
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.SamplerDesc.html
+  name: SamplerDesc
+  nameWithType: SamplerDesc
+  fullName: Ghost.Graphics.RHI.SamplerDesc
+- uid: Ghost.Core.Identifier`1
+  commentId: T:Ghost.Core.Identifier`1
+  name: Identifier<T>
+  nameWithType: Identifier<T>
+  fullName: Ghost.Core.Identifier<T>
+  nameWithType.vb: Identifier(Of T)
+  fullName.vb: Ghost.Core.Identifier(Of T)
+  name.vb: Identifier(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Graphics.RHI.IResourceAllocator.CreateSampler*
+  commentId: Overload:Ghost.Graphics.RHI.IResourceAllocator.CreateSampler
+  href: Ghost.Graphics.RHI.IResourceAllocator.html#Ghost_Graphics_RHI_IResourceAllocator_CreateSampler_Ghost_Graphics_RHI_SamplerDesc__
+  name: CreateSampler
+  nameWithType: IResourceAllocator.CreateSampler
+  fullName: Ghost.Graphics.RHI.IResourceAllocator.CreateSampler
+- uid: Ghost.Core.Identifier{Ghost.Graphics.RHI.Sampler}
+  commentId: T:Ghost.Core.Identifier{Ghost.Graphics.RHI.Sampler}
+  parent: Ghost.Core
+  definition: Ghost.Core.Identifier`1
+  href: Ghost.Graphics.RHI.Sampler.html
+  name: Identifier<Sampler>
+  nameWithType: Identifier<Sampler>
+  fullName: Ghost.Core.Identifier<Ghost.Graphics.RHI.Sampler>
+  nameWithType.vb: Identifier(Of Sampler)
+  fullName.vb: Ghost.Core.Identifier(Of Ghost.Graphics.RHI.Sampler)
+  name.vb: Identifier(Of Sampler)
+  spec.csharp:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: <
+  - uid: Ghost.Graphics.RHI.Sampler
+    name: Sampler
+    href: Ghost.Graphics.RHI.Sampler.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.Sampler
+    name: Sampler
+    href: Ghost.Graphics.RHI.Sampler.html
+  - name: )

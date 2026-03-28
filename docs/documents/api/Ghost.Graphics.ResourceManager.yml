@@ -1,0 +1,1975 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.ResourceManager
+  commentId: T:Ghost.Graphics.ResourceManager
+  id: ResourceManager
+  parent: Ghost.Graphics
+  children:
+  - Ghost.Graphics.ResourceManager.#ctor(Ghost.Graphics.RHI.IResourceAllocator,Ghost.Graphics.RHI.IResourceDatabase)
+  - Ghost.Graphics.ResourceManager.CreateGraphicsShader(Ghost.Core.Graphics.ShaderDescriptor)
+  - Ghost.Graphics.ResourceManager.CreateMaterial(Ghost.Core.Identifier{Ghost.Graphics.Core.Shader})
+  - Ghost.Graphics.ResourceManager.CreateMesh(Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex},Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32})
+  - Ghost.Graphics.ResourceManager.Dispose
+  - Ghost.Graphics.ResourceManager.Finalize
+  - Ghost.Graphics.ResourceManager.GetMaterialPaletteInfo(Ghost.Core.Identifier{Ghost.Graphics.Core.MaterialPalette})
+  - Ghost.Graphics.ResourceManager.GetMaterialPaletteMaterial(Ghost.Core.Identifier{Ghost.Graphics.Core.MaterialPalette},System.Int32)
+  - Ghost.Graphics.ResourceManager.GetMaterialReference(Ghost.Core.Handle{Ghost.Graphics.Core.Material})
+  - Ghost.Graphics.ResourceManager.GetMeshReference(Ghost.Core.Handle{Ghost.Graphics.Core.Mesh})
+  - Ghost.Graphics.ResourceManager.GetOrCreateMaterialPalette(System.ReadOnlySpan{Ghost.Core.Handle{Ghost.Graphics.Core.Material}})
+  - Ghost.Graphics.ResourceManager.GetPooledResource(Ghost.Graphics.RHI.ResourceDesc@)
+  - Ghost.Graphics.ResourceManager.GetShaderReference(Ghost.Core.Identifier{Ghost.Graphics.Core.Shader})
+  - Ghost.Graphics.ResourceManager.HasMaterial(Ghost.Core.Handle{Ghost.Graphics.Core.Material})
+  - Ghost.Graphics.ResourceManager.HasMaterialPalette(Ghost.Core.Identifier{Ghost.Graphics.Core.MaterialPalette})
+  - Ghost.Graphics.ResourceManager.HasMesh(Ghost.Core.Handle{Ghost.Graphics.Core.Mesh})
+  - Ghost.Graphics.ResourceManager.HasShader(Ghost.Core.Identifier{Ghost.Graphics.Core.Shader})
+  - Ghost.Graphics.ResourceManager.ReleaseMaterial(Ghost.Core.Handle{Ghost.Graphics.Core.Material})
+  - Ghost.Graphics.ResourceManager.ReleaseMaterialPalette(Ghost.Core.Identifier{Ghost.Graphics.Core.MaterialPalette})
+  - Ghost.Graphics.ResourceManager.ReleaseMesh(Ghost.Core.Handle{Ghost.Graphics.Core.Mesh})
+  - Ghost.Graphics.ResourceManager.ReleaseShader(Ghost.Core.Identifier{Ghost.Graphics.Core.Shader})
+  - Ghost.Graphics.ResourceManager.ReturnPooledResource(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  langs:
+  - csharp
+  - vb
+  name: ResourceManager
+  nameWithType: ResourceManager
+  fullName: Ghost.Graphics.ResourceManager
+  type: Class
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ResourceManager
+    path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+    startLine: 10
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics
+  syntax:
+    content: 'public sealed class ResourceManager : IDisposable'
+    content.vb: Public NotInheritable Class ResourceManager Implements IDisposable
+  inheritance:
+  - System.Object
+  implements:
+  - System.IDisposable
+  inheritedMembers:
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.ToString
+- uid: Ghost.Graphics.ResourceManager.#ctor(Ghost.Graphics.RHI.IResourceAllocator,Ghost.Graphics.RHI.IResourceDatabase)
+  commentId: M:Ghost.Graphics.ResourceManager.#ctor(Ghost.Graphics.RHI.IResourceAllocator,Ghost.Graphics.RHI.IResourceDatabase)
+  id: '#ctor(Ghost.Graphics.RHI.IResourceAllocator,Ghost.Graphics.RHI.IResourceDatabase)'
+  parent: Ghost.Graphics.ResourceManager
+  langs:
+  - csharp
+  - vb
+  name: ResourceManager(IResourceAllocator, IResourceDatabase)
+  nameWithType: ResourceManager.ResourceManager(IResourceAllocator, IResourceDatabase)
+  fullName: Ghost.Graphics.ResourceManager.ResourceManager(Ghost.Graphics.RHI.IResourceAllocator, Ghost.Graphics.RHI.IResourceDatabase)
+  type: Constructor
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: .ctor
+    path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+    startLine: 40
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics
+  syntax:
+    content: public ResourceManager(IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase)
+    parameters:
+    - id: resourceAllocator
+      type: Ghost.Graphics.RHI.IResourceAllocator
+    - id: resourceDatabase
+      type: Ghost.Graphics.RHI.IResourceDatabase
+    content.vb: Public Sub New(resourceAllocator As IResourceAllocator, resourceDatabase As IResourceDatabase)
+  overload: Ghost.Graphics.ResourceManager.#ctor*
+  nameWithType.vb: ResourceManager.New(IResourceAllocator, IResourceDatabase)
+  fullName.vb: Ghost.Graphics.ResourceManager.New(Ghost.Graphics.RHI.IResourceAllocator, Ghost.Graphics.RHI.IResourceDatabase)
+  name.vb: New(IResourceAllocator, IResourceDatabase)
+- uid: Ghost.Graphics.ResourceManager.Finalize
+  commentId: M:Ghost.Graphics.ResourceManager.Finalize
+  id: Finalize
+  parent: Ghost.Graphics.ResourceManager
+  langs:
+  - csharp
+  - vb
+  name: ~ResourceManager()
+  nameWithType: ResourceManager.~ResourceManager()
+  fullName: Ghost.Graphics.ResourceManager.~ResourceManager()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Finalize
+    path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+    startLine: 55
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics
+  syntax:
+    content: protected ~ResourceManager()
+    content.vb: 'Protected '
+  overload: Ghost.Graphics.ResourceManager.Finalize*
+  nameWithType.vb: ''
+  fullName.vb: ''
+  name.vb: ''
+- uid: Ghost.Graphics.ResourceManager.CreateMesh(Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex},Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32})
+  commentId: M:Ghost.Graphics.ResourceManager.CreateMesh(Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex},Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32})
+  id: CreateMesh(Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex},Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32})
+  parent: Ghost.Graphics.ResourceManager
+  langs:
+  - csharp
+  - vb
+  name: CreateMesh(UnsafeList<Vertex>, UnsafeList<uint>)
+  nameWithType: ResourceManager.CreateMesh(UnsafeList<Vertex>, UnsafeList<uint>)
+  fullName: Ghost.Graphics.ResourceManager.CreateMesh(Misaki.HighPerformance.LowLevel.Collections.UnsafeList<Ghost.Graphics.RHI.Vertex>, Misaki.HighPerformance.LowLevel.Collections.UnsafeList<uint>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CreateMesh
+    path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+    startLine: 92
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics
+  summary: Creates a new mesh from the specified vertex and index data.
+  example: []
+  syntax:
+    content: public Handle<Mesh> CreateMesh(UnsafeList<Vertex> vertices, UnsafeList<uint> indices)
+    parameters:
+    - id: vertices
+      type: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex}
+      description: A UnsafeList containing the vertices that define the geometry of the mesh. Must contain at least one vertex.
+    - id: indices
+      type: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}
+      description: A UnsafeList containing the indices that specify how vertices are connected to form primitives. Must contain at least one index.
+    return:
+      type: Ghost.Core.Handle{Ghost.Graphics.Core.Mesh}
+      description: An <xref href="Ghost.Core.Identifier%601" data-throw-if-not-resolved="false"></xref> representing the newly created mesh.
+    content.vb: Public Function CreateMesh(vertices As UnsafeList(Of Vertex), indices As UnsafeList(Of UInteger)) As Handle(Of Mesh)
+  overload: Ghost.Graphics.ResourceManager.CreateMesh*
+  nameWithType.vb: ResourceManager.CreateMesh(UnsafeList(Of Vertex), UnsafeList(Of UInteger))
+  fullName.vb: Ghost.Graphics.ResourceManager.CreateMesh(Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of Ghost.Graphics.RHI.Vertex), Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of UInteger))
+  name.vb: CreateMesh(UnsafeList(Of Vertex), UnsafeList(Of UInteger))
+- uid: Ghost.Graphics.ResourceManager.CreateMaterial(Ghost.Core.Identifier{Ghost.Graphics.Core.Shader})
+  commentId: M:Ghost.Graphics.ResourceManager.CreateMaterial(Ghost.Core.Identifier{Ghost.Graphics.Core.Shader})
+  id: CreateMaterial(Ghost.Core.Identifier{Ghost.Graphics.Core.Shader})
+  parent: Ghost.Graphics.ResourceManager
+  langs:
+  - csharp
+  - vb
+  name: CreateMaterial(Identifier<Shader>)
+  nameWithType: ResourceManager.CreateMaterial(Identifier<Shader>)
+  fullName: Ghost.Graphics.ResourceManager.CreateMaterial(Ghost.Core.Identifier<Ghost.Graphics.Core.Shader>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CreateMaterial
+    path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+    startLine: 142
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics
+  summary: Creates a new material instance using the specified shader.
+  example: []
+  syntax:
+    content: public Handle<Material> CreateMaterial(Identifier<Shader> shader)
+    parameters:
+    - id: shader
+      type: Ghost.Core.Identifier{Ghost.Graphics.Core.Shader}
+      description: The identifier of the shader to associate with the new material.
+    return:
+      type: Ghost.Core.Handle{Ghost.Graphics.Core.Material}
+      description: An <xref href="Ghost.Core.Identifier%601" data-throw-if-not-resolved="false"></xref> representing the newly created material.
+    content.vb: Public Function CreateMaterial(shader As Identifier(Of Shader)) As Handle(Of Material)
+  overload: Ghost.Graphics.ResourceManager.CreateMaterial*
+  nameWithType.vb: ResourceManager.CreateMaterial(Identifier(Of Shader))
+  fullName.vb: Ghost.Graphics.ResourceManager.CreateMaterial(Ghost.Core.Identifier(Of Ghost.Graphics.Core.Shader))
+  name.vb: CreateMaterial(Identifier(Of Shader))
+- uid: Ghost.Graphics.ResourceManager.CreateGraphicsShader(Ghost.Core.Graphics.ShaderDescriptor)
+  commentId: M:Ghost.Graphics.ResourceManager.CreateGraphicsShader(Ghost.Core.Graphics.ShaderDescriptor)
+  id: CreateGraphicsShader(Ghost.Core.Graphics.ShaderDescriptor)
+  parent: Ghost.Graphics.ResourceManager
+  langs:
+  - csharp
+  - vb
+  name: CreateGraphicsShader(ShaderDescriptor)
+  nameWithType: ResourceManager.CreateGraphicsShader(ShaderDescriptor)
+  fullName: Ghost.Graphics.ResourceManager.CreateGraphicsShader(Ghost.Core.Graphics.ShaderDescriptor)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CreateGraphicsShader
+    path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+    startLine: 161
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics
+  summary: Creates a new shader and returns its unique identifier.
+  example: []
+  syntax:
+    content: public Identifier<Shader> CreateGraphicsShader(ShaderDescriptor descriptor)
+    parameters:
+    - id: descriptor
+      type: Ghost.Core.Graphics.ShaderDescriptor
+      description: The viewGroup containing the shader's properties and passes.
+    return:
+      type: Ghost.Core.Identifier{Ghost.Graphics.Core.Shader}
+      description: An <xref href="Ghost.Core.Identifier%601" data-throw-if-not-resolved="false"></xref> representing the newly created shader.
+    content.vb: Public Function CreateGraphicsShader(descriptor As ShaderDescriptor) As Identifier(Of Shader)
+  overload: Ghost.Graphics.ResourceManager.CreateGraphicsShader*
+- uid: Ghost.Graphics.ResourceManager.HasMesh(Ghost.Core.Handle{Ghost.Graphics.Core.Mesh})
+  commentId: M:Ghost.Graphics.ResourceManager.HasMesh(Ghost.Core.Handle{Ghost.Graphics.Core.Mesh})
+  id: HasMesh(Ghost.Core.Handle{Ghost.Graphics.Core.Mesh})
+  parent: Ghost.Graphics.ResourceManager
+  langs:
+  - csharp
+  - vb
+  name: HasMesh(Handle<Mesh>)
+  nameWithType: ResourceManager.HasMesh(Handle<Mesh>)
+  fullName: Ghost.Graphics.ResourceManager.HasMesh(Ghost.Core.Handle<Ghost.Graphics.Core.Mesh>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: HasMesh
+    path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+    startLine: 177
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics
+  summary: Determines whether a mesh with the specified Handle exists.
+  example: []
+  syntax:
+    content: public bool HasMesh(Handle<Mesh> handle)
+    parameters:
+    - id: handle
+      type: Ghost.Core.Handle{Ghost.Graphics.Core.Mesh}
+      description: The handle of the mesh to check for existence. Cannot be null.
+    return:
+      type: System.Boolean
+      description: true if a mesh with the specified Handle exists; otherwise, false.
+    content.vb: Public Function HasMesh(handle As Handle(Of Mesh)) As Boolean
+  overload: Ghost.Graphics.ResourceManager.HasMesh*
+  nameWithType.vb: ResourceManager.HasMesh(Handle(Of Mesh))
+  fullName.vb: Ghost.Graphics.ResourceManager.HasMesh(Ghost.Core.Handle(Of Ghost.Graphics.Core.Mesh))
+  name.vb: HasMesh(Handle(Of Mesh))
+- uid: Ghost.Graphics.ResourceManager.GetMeshReference(Ghost.Core.Handle{Ghost.Graphics.Core.Mesh})
+  commentId: M:Ghost.Graphics.ResourceManager.GetMeshReference(Ghost.Core.Handle{Ghost.Graphics.Core.Mesh})
+  id: GetMeshReference(Ghost.Core.Handle{Ghost.Graphics.Core.Mesh})
+  parent: Ghost.Graphics.ResourceManager
+  langs:
+  - csharp
+  - vb
+  name: GetMeshReference(Handle<Mesh>)
+  nameWithType: ResourceManager.GetMeshReference(Handle<Mesh>)
+  fullName: Ghost.Graphics.ResourceManager.GetMeshReference(Ghost.Core.Handle<Ghost.Graphics.Core.Mesh>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetMeshReference
+    path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+    startLine: 188
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics
+  summary: Returns a reference to the mesh associated with the specified handle.
+  example: []
+  syntax:
+    content: public RefResult<Mesh, Error> GetMeshReference(Handle<Mesh> handle)
+    parameters:
+    - id: handle
+      type: Ghost.Core.Handle{Ghost.Graphics.Core.Mesh}
+      description: The handle of the mesh to retrieve. Must refer to a valid mesh; otherwise, the behavior is undefined.
+    return:
+      type: Ghost.Core.RefResult{Ghost.Graphics.Core.Mesh,Ghost.Core.Error}
+      description: A result containing a reference to the mesh corresponding to the specified handle, or an error status if the handle is invalid.
+    content.vb: Public Function GetMeshReference(handle As Handle(Of Mesh)) As RefResult(Of Mesh, [Error])
+  overload: Ghost.Graphics.ResourceManager.GetMeshReference*
+  nameWithType.vb: ResourceManager.GetMeshReference(Handle(Of Mesh))
+  fullName.vb: Ghost.Graphics.ResourceManager.GetMeshReference(Ghost.Core.Handle(Of Ghost.Graphics.Core.Mesh))
+  name.vb: GetMeshReference(Handle(Of Mesh))
+- uid: Ghost.Graphics.ResourceManager.ReleaseMesh(Ghost.Core.Handle{Ghost.Graphics.Core.Mesh})
+  commentId: M:Ghost.Graphics.ResourceManager.ReleaseMesh(Ghost.Core.Handle{Ghost.Graphics.Core.Mesh})
+  id: ReleaseMesh(Ghost.Core.Handle{Ghost.Graphics.Core.Mesh})
+  parent: Ghost.Graphics.ResourceManager
+  langs:
+  - csharp
+  - vb
+  name: ReleaseMesh(Handle<Mesh>)
+  nameWithType: ResourceManager.ReleaseMesh(Handle<Mesh>)
+  fullName: Ghost.Graphics.ResourceManager.ReleaseMesh(Ghost.Core.Handle<Ghost.Graphics.Core.Mesh>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ReleaseMesh
+    path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+    startLine: 203
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics
+  summary: Releases the mesh resource associated with the specified handle, freeing any resources held by it. Includes both CPU and GPU resources.
+  example: []
+  syntax:
+    content: public void ReleaseMesh(Handle<Mesh> handle)
+    parameters:
+    - id: handle
+      type: Ghost.Core.Handle{Ghost.Graphics.Core.Mesh}
+      description: The handle of the mesh to release. Must refer to a mesh that was previously created and not already released.
+    content.vb: Public Sub ReleaseMesh(handle As Handle(Of Mesh))
+  overload: Ghost.Graphics.ResourceManager.ReleaseMesh*
+  nameWithType.vb: ResourceManager.ReleaseMesh(Handle(Of Mesh))
+  fullName.vb: Ghost.Graphics.ResourceManager.ReleaseMesh(Ghost.Core.Handle(Of Ghost.Graphics.Core.Mesh))
+  name.vb: ReleaseMesh(Handle(Of Mesh))
+- uid: Ghost.Graphics.ResourceManager.HasMaterial(Ghost.Core.Handle{Ghost.Graphics.Core.Material})
+  commentId: M:Ghost.Graphics.ResourceManager.HasMaterial(Ghost.Core.Handle{Ghost.Graphics.Core.Material})
+  id: HasMaterial(Ghost.Core.Handle{Ghost.Graphics.Core.Material})
+  parent: Ghost.Graphics.ResourceManager
+  langs:
+  - csharp
+  - vb
+  name: HasMaterial(Handle<Material>)
+  nameWithType: ResourceManager.HasMaterial(Handle<Material>)
+  fullName: Ghost.Graphics.ResourceManager.HasMaterial(Ghost.Core.Handle<Ghost.Graphics.Core.Material>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: HasMaterial
+    path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+    startLine: 221
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics
+  summary: Determines whether a material with the specified handle exists in the collection.
+  example: []
+  syntax:
+    content: public bool HasMaterial(Handle<Material> handle)
+    parameters:
+    - id: handle
+      type: Ghost.Core.Handle{Ghost.Graphics.Core.Material}
+      description: The handle of the material to check for existence.
+    return:
+      type: System.Boolean
+      description: true if a material with the specified handle exists; otherwise, false.
+    content.vb: Public Function HasMaterial(handle As Handle(Of Material)) As Boolean
+  overload: Ghost.Graphics.ResourceManager.HasMaterial*
+  nameWithType.vb: ResourceManager.HasMaterial(Handle(Of Material))
+  fullName.vb: Ghost.Graphics.ResourceManager.HasMaterial(Ghost.Core.Handle(Of Ghost.Graphics.Core.Material))
+  name.vb: HasMaterial(Handle(Of Material))
+- uid: Ghost.Graphics.ResourceManager.GetMaterialReference(Ghost.Core.Handle{Ghost.Graphics.Core.Material})
+  commentId: M:Ghost.Graphics.ResourceManager.GetMaterialReference(Ghost.Core.Handle{Ghost.Graphics.Core.Material})
+  id: GetMaterialReference(Ghost.Core.Handle{Ghost.Graphics.Core.Material})
+  parent: Ghost.Graphics.ResourceManager
+  langs:
+  - csharp
+  - vb
+  name: GetMaterialReference(Handle<Material>)
+  nameWithType: ResourceManager.GetMaterialReference(Handle<Material>)
+  fullName: Ghost.Graphics.ResourceManager.GetMaterialReference(Ghost.Core.Handle<Ghost.Graphics.Core.Material>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetMaterialReference
+    path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+    startLine: 232
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics
+  summary: Gets a reference to the material associated with the specified handle.
+  example: []
+  syntax:
+    content: public RefResult<Material, Error> GetMaterialReference(Handle<Material> handle)
+    parameters:
+    - id: handle
+      type: Ghost.Core.Handle{Ghost.Graphics.Core.Material}
+      description: The handle of the material to retrieve. Must refer to a valid material.
+    return:
+      type: Ghost.Core.RefResult{Ghost.Graphics.Core.Material,Ghost.Core.Error}
+      description: A result containing a reference to the material corresponding to the specified handle, or an error status if the handle is invalid.
+    content.vb: Public Function GetMaterialReference(handle As Handle(Of Material)) As RefResult(Of Material, [Error])
+  overload: Ghost.Graphics.ResourceManager.GetMaterialReference*
+  nameWithType.vb: ResourceManager.GetMaterialReference(Handle(Of Material))
+  fullName.vb: Ghost.Graphics.ResourceManager.GetMaterialReference(Ghost.Core.Handle(Of Ghost.Graphics.Core.Material))
+  name.vb: GetMaterialReference(Handle(Of Material))
+- uid: Ghost.Graphics.ResourceManager.ReleaseMaterial(Ghost.Core.Handle{Ghost.Graphics.Core.Material})
+  commentId: M:Ghost.Graphics.ResourceManager.ReleaseMaterial(Ghost.Core.Handle{Ghost.Graphics.Core.Material})
+  id: ReleaseMaterial(Ghost.Core.Handle{Ghost.Graphics.Core.Material})
+  parent: Ghost.Graphics.ResourceManager
+  langs:
+  - csharp
+  - vb
+  name: ReleaseMaterial(Handle<Material>)
+  nameWithType: ResourceManager.ReleaseMaterial(Handle<Material>)
+  fullName: Ghost.Graphics.ResourceManager.ReleaseMaterial(Ghost.Core.Handle<Ghost.Graphics.Core.Material>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ReleaseMaterial
+    path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+    startLine: 247
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics
+  summary: Releases the material associated with the specified handle, making it available for reuse or disposal.
+  example: []
+  syntax:
+    content: public void ReleaseMaterial(Handle<Material> handle)
+    parameters:
+    - id: handle
+      type: Ghost.Core.Handle{Ghost.Graphics.Core.Material}
+      description: The handle of the material to release. Must refer to a material that has been previously acquired.
+    content.vb: Public Sub ReleaseMaterial(handle As Handle(Of Material))
+  overload: Ghost.Graphics.ResourceManager.ReleaseMaterial*
+  nameWithType.vb: ResourceManager.ReleaseMaterial(Handle(Of Material))
+  fullName.vb: Ghost.Graphics.ResourceManager.ReleaseMaterial(Ghost.Core.Handle(Of Ghost.Graphics.Core.Material))
+  name.vb: ReleaseMaterial(Handle(Of Material))
+- uid: Ghost.Graphics.ResourceManager.GetOrCreateMaterialPalette(System.ReadOnlySpan{Ghost.Core.Handle{Ghost.Graphics.Core.Material}})
+  commentId: M:Ghost.Graphics.ResourceManager.GetOrCreateMaterialPalette(System.ReadOnlySpan{Ghost.Core.Handle{Ghost.Graphics.Core.Material}})
+  id: GetOrCreateMaterialPalette(System.ReadOnlySpan{Ghost.Core.Handle{Ghost.Graphics.Core.Material}})
+  parent: Ghost.Graphics.ResourceManager
+  langs:
+  - csharp
+  - vb
+  name: GetOrCreateMaterialPalette(ReadOnlySpan<Handle<Material>>)
+  nameWithType: ResourceManager.GetOrCreateMaterialPalette(ReadOnlySpan<Handle<Material>>)
+  fullName: Ghost.Graphics.ResourceManager.GetOrCreateMaterialPalette(System.ReadOnlySpan<Ghost.Core.Handle<Ghost.Graphics.Core.Material>>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetOrCreateMaterialPalette
+    path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+    startLine: 266
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics
+  summary: Returns an existing material palette index for the specified material sequence or creates a new one.
+  example: []
+  syntax:
+    content: public int GetOrCreateMaterialPalette(ReadOnlySpan<Handle<Material>> materials)
+    parameters:
+    - id: materials
+      type: System.ReadOnlySpan{Ghost.Core.Handle{Ghost.Graphics.Core.Material}}
+      description: The ordered material list for the palette.
+    return:
+      type: System.Int32
+      description: The palette index. Index 0 represents an empty palette.
+    content.vb: Public Function GetOrCreateMaterialPalette(materials As ReadOnlySpan(Of Handle(Of Material))) As Integer
+  overload: Ghost.Graphics.ResourceManager.GetOrCreateMaterialPalette*
+  nameWithType.vb: ResourceManager.GetOrCreateMaterialPalette(ReadOnlySpan(Of Handle(Of Material)))
+  fullName.vb: Ghost.Graphics.ResourceManager.GetOrCreateMaterialPalette(System.ReadOnlySpan(Of Ghost.Core.Handle(Of Ghost.Graphics.Core.Material)))
+  name.vb: GetOrCreateMaterialPalette(ReadOnlySpan(Of Handle(Of Material)))
+- uid: Ghost.Graphics.ResourceManager.HasMaterialPalette(Ghost.Core.Identifier{Ghost.Graphics.Core.MaterialPalette})
+  commentId: M:Ghost.Graphics.ResourceManager.HasMaterialPalette(Ghost.Core.Identifier{Ghost.Graphics.Core.MaterialPalette})
+  id: HasMaterialPalette(Ghost.Core.Identifier{Ghost.Graphics.Core.MaterialPalette})
+  parent: Ghost.Graphics.ResourceManager
+  langs:
+  - csharp
+  - vb
+  name: HasMaterialPalette(Identifier<MaterialPalette>)
+  nameWithType: ResourceManager.HasMaterialPalette(Identifier<MaterialPalette>)
+  fullName: Ghost.Graphics.ResourceManager.HasMaterialPalette(Ghost.Core.Identifier<Ghost.Graphics.Core.MaterialPalette>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: HasMaterialPalette
+    path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+    startLine: 285
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics
+  summary: Determines whether the specified material palette index is valid.
+  example: []
+  syntax:
+    content: public bool HasMaterialPalette(Identifier<MaterialPalette> paletteID)
+    parameters:
+    - id: paletteID
+      type: Ghost.Core.Identifier{Ghost.Graphics.Core.MaterialPalette}
+      description: The palette index to validate.
+    return:
+      type: System.Boolean
+    content.vb: Public Function HasMaterialPalette(paletteID As Identifier(Of MaterialPalette)) As Boolean
+  overload: Ghost.Graphics.ResourceManager.HasMaterialPalette*
+  nameWithType.vb: ResourceManager.HasMaterialPalette(Identifier(Of MaterialPalette))
+  fullName.vb: Ghost.Graphics.ResourceManager.HasMaterialPalette(Ghost.Core.Identifier(Of Ghost.Graphics.Core.MaterialPalette))
+  name.vb: HasMaterialPalette(Identifier(Of MaterialPalette))
+- uid: Ghost.Graphics.ResourceManager.GetMaterialPaletteInfo(Ghost.Core.Identifier{Ghost.Graphics.Core.MaterialPalette})
+  commentId: M:Ghost.Graphics.ResourceManager.GetMaterialPaletteInfo(Ghost.Core.Identifier{Ghost.Graphics.Core.MaterialPalette})
+  id: GetMaterialPaletteInfo(Ghost.Core.Identifier{Ghost.Graphics.Core.MaterialPalette})
+  parent: Ghost.Graphics.ResourceManager
+  langs:
+  - csharp
+  - vb
+  name: GetMaterialPaletteInfo(Identifier<MaterialPalette>)
+  nameWithType: ResourceManager.GetMaterialPaletteInfo(Identifier<MaterialPalette>)
+  fullName: Ghost.Graphics.ResourceManager.GetMaterialPaletteInfo(Ghost.Core.Identifier<Ghost.Graphics.Core.MaterialPalette>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetMaterialPaletteInfo
+    path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+    startLine: 295
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics
+  summary: Gets metadata for a material palette entry.
+  example: []
+  syntax:
+    content: public MaterialPalette GetMaterialPaletteInfo(Identifier<MaterialPalette> paletteID)
+    parameters:
+    - id: paletteID
+      type: Ghost.Core.Identifier{Ghost.Graphics.Core.MaterialPalette}
+      description: The palette index to query.
+    return:
+      type: Ghost.Graphics.Core.MaterialPalette
+    content.vb: Public Function GetMaterialPaletteInfo(paletteID As Identifier(Of MaterialPalette)) As MaterialPalette
+  overload: Ghost.Graphics.ResourceManager.GetMaterialPaletteInfo*
+  nameWithType.vb: ResourceManager.GetMaterialPaletteInfo(Identifier(Of MaterialPalette))
+  fullName.vb: Ghost.Graphics.ResourceManager.GetMaterialPaletteInfo(Ghost.Core.Identifier(Of Ghost.Graphics.Core.MaterialPalette))
+  name.vb: GetMaterialPaletteInfo(Identifier(Of MaterialPalette))
+- uid: Ghost.Graphics.ResourceManager.GetMaterialPaletteMaterial(Ghost.Core.Identifier{Ghost.Graphics.Core.MaterialPalette},System.Int32)
+  commentId: M:Ghost.Graphics.ResourceManager.GetMaterialPaletteMaterial(Ghost.Core.Identifier{Ghost.Graphics.Core.MaterialPalette},System.Int32)
+  id: GetMaterialPaletteMaterial(Ghost.Core.Identifier{Ghost.Graphics.Core.MaterialPalette},System.Int32)
+  parent: Ghost.Graphics.ResourceManager
+  langs:
+  - csharp
+  - vb
+  name: GetMaterialPaletteMaterial(Identifier<MaterialPalette>, int)
+  nameWithType: ResourceManager.GetMaterialPaletteMaterial(Identifier<MaterialPalette>, int)
+  fullName: Ghost.Graphics.ResourceManager.GetMaterialPaletteMaterial(Ghost.Core.Identifier<Ghost.Graphics.Core.MaterialPalette>, int)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetMaterialPaletteMaterial
+    path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+    startLine: 306
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics
+  summary: Gets a material handle from a palette entry by local material index.
+  example: []
+  syntax:
+    content: public Handle<Material> GetMaterialPaletteMaterial(Identifier<MaterialPalette> paletteID, int localMaterialIndex)
+    parameters:
+    - id: paletteID
+      type: Ghost.Core.Identifier{Ghost.Graphics.Core.MaterialPalette}
+      description: The palette index to query.
+    - id: localMaterialIndex
+      type: System.Int32
+      description: The material slot inside the palette.
+    return:
+      type: Ghost.Core.Handle{Ghost.Graphics.Core.Material}
+    content.vb: Public Function GetMaterialPaletteMaterial(paletteID As Identifier(Of MaterialPalette), localMaterialIndex As Integer) As Handle(Of Material)
+  overload: Ghost.Graphics.ResourceManager.GetMaterialPaletteMaterial*
+  nameWithType.vb: ResourceManager.GetMaterialPaletteMaterial(Identifier(Of MaterialPalette), Integer)
+  fullName.vb: Ghost.Graphics.ResourceManager.GetMaterialPaletteMaterial(Ghost.Core.Identifier(Of Ghost.Graphics.Core.MaterialPalette), Integer)
+  name.vb: GetMaterialPaletteMaterial(Identifier(Of MaterialPalette), Integer)
+- uid: Ghost.Graphics.ResourceManager.ReleaseMaterialPalette(Ghost.Core.Identifier{Ghost.Graphics.Core.MaterialPalette})
+  commentId: M:Ghost.Graphics.ResourceManager.ReleaseMaterialPalette(Ghost.Core.Identifier{Ghost.Graphics.Core.MaterialPalette})
+  id: ReleaseMaterialPalette(Ghost.Core.Identifier{Ghost.Graphics.Core.MaterialPalette})
+  parent: Ghost.Graphics.ResourceManager
+  langs:
+  - csharp
+  - vb
+  name: ReleaseMaterialPalette(Identifier<MaterialPalette>)
+  nameWithType: ResourceManager.ReleaseMaterialPalette(Identifier<MaterialPalette>)
+  fullName: Ghost.Graphics.ResourceManager.ReleaseMaterialPalette(Ghost.Core.Identifier<Ghost.Graphics.Core.MaterialPalette>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ReleaseMaterialPalette
+    path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+    startLine: 316
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics
+  summary: Releases a material palette reference previously returned by <xref href="Ghost.Graphics.ResourceManager.GetOrCreateMaterialPalette(System.ReadOnlySpan%7bGhost.Core.Handle%7bGhost.Graphics.Core.Material%7d%7d)" data-throw-if-not-resolved="false"></xref>.
+  example: []
+  syntax:
+    content: public void ReleaseMaterialPalette(Identifier<MaterialPalette> paletteID)
+    parameters:
+    - id: paletteID
+      type: Ghost.Core.Identifier{Ghost.Graphics.Core.MaterialPalette}
+      description: The palette index to release.
+    content.vb: Public Sub ReleaseMaterialPalette(paletteID As Identifier(Of MaterialPalette))
+  overload: Ghost.Graphics.ResourceManager.ReleaseMaterialPalette*
+  nameWithType.vb: ResourceManager.ReleaseMaterialPalette(Identifier(Of MaterialPalette))
+  fullName.vb: Ghost.Graphics.ResourceManager.ReleaseMaterialPalette(Ghost.Core.Identifier(Of Ghost.Graphics.Core.MaterialPalette))
+  name.vb: ReleaseMaterialPalette(Identifier(Of MaterialPalette))
+- uid: Ghost.Graphics.ResourceManager.HasShader(Ghost.Core.Identifier{Ghost.Graphics.Core.Shader})
+  commentId: M:Ghost.Graphics.ResourceManager.HasShader(Ghost.Core.Identifier{Ghost.Graphics.Core.Shader})
+  id: HasShader(Ghost.Core.Identifier{Ghost.Graphics.Core.Shader})
+  parent: Ghost.Graphics.ResourceManager
+  langs:
+  - csharp
+  - vb
+  name: HasShader(Identifier<Shader>)
+  nameWithType: ResourceManager.HasShader(Identifier<Shader>)
+  fullName: Ghost.Graphics.ResourceManager.HasShader(Ghost.Core.Identifier<Ghost.Graphics.Core.Shader>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: HasShader
+    path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+    startLine: 327
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics
+  summary: Determines whether a shader with the specified identifier exists in the collection.
+  example: []
+  syntax:
+    content: public bool HasShader(Identifier<Shader> id)
+    parameters:
+    - id: id
+      type: Ghost.Core.Identifier{Ghost.Graphics.Core.Shader}
+      description: The identifier of the shader to check for existence.
+    return:
+      type: System.Boolean
+      description: true if a shader with the specified identifier exists; otherwise, false.
+    content.vb: Public Function HasShader(id As Identifier(Of Shader)) As Boolean
+  overload: Ghost.Graphics.ResourceManager.HasShader*
+  nameWithType.vb: ResourceManager.HasShader(Identifier(Of Shader))
+  fullName.vb: Ghost.Graphics.ResourceManager.HasShader(Ghost.Core.Identifier(Of Ghost.Graphics.Core.Shader))
+  name.vb: HasShader(Identifier(Of Shader))
+- uid: Ghost.Graphics.ResourceManager.GetShaderReference(Ghost.Core.Identifier{Ghost.Graphics.Core.Shader})
+  commentId: M:Ghost.Graphics.ResourceManager.GetShaderReference(Ghost.Core.Identifier{Ghost.Graphics.Core.Shader})
+  id: GetShaderReference(Ghost.Core.Identifier{Ghost.Graphics.Core.Shader})
+  parent: Ghost.Graphics.ResourceManager
+  langs:
+  - csharp
+  - vb
+  name: GetShaderReference(Identifier<Shader>)
+  nameWithType: ResourceManager.GetShaderReference(Identifier<Shader>)
+  fullName: Ghost.Graphics.ResourceManager.GetShaderReference(Ghost.Core.Identifier<Ghost.Graphics.Core.Shader>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetShaderReference
+    path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+    startLine: 338
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics
+  summary: Returns a reference to the shader associated with the specified identifier.
+  example: []
+  syntax:
+    content: public RefResult<Shader, Error> GetShaderReference(Identifier<Shader> id)
+    parameters:
+    - id: id
+      type: Ghost.Core.Identifier{Ghost.Graphics.Core.Shader}
+      description: The identifier of the shader to retrieve. Must refer to a valid shader.
+    return:
+      type: Ghost.Core.RefResult{Ghost.Graphics.Core.Shader,Ghost.Core.Error}
+      description: A result containing a reference to the shader corresponding to the specified identifier, or an error status if the identifier is invalid.
+    content.vb: Public Function GetShaderReference(id As Identifier(Of Shader)) As RefResult(Of Shader, [Error])
+  overload: Ghost.Graphics.ResourceManager.GetShaderReference*
+  nameWithType.vb: ResourceManager.GetShaderReference(Identifier(Of Shader))
+  fullName.vb: Ghost.Graphics.ResourceManager.GetShaderReference(Ghost.Core.Identifier(Of Ghost.Graphics.Core.Shader))
+  name.vb: GetShaderReference(Identifier(Of Shader))
+- uid: Ghost.Graphics.ResourceManager.ReleaseShader(Ghost.Core.Identifier{Ghost.Graphics.Core.Shader})
+  commentId: M:Ghost.Graphics.ResourceManager.ReleaseShader(Ghost.Core.Identifier{Ghost.Graphics.Core.Shader})
+  id: ReleaseShader(Ghost.Core.Identifier{Ghost.Graphics.Core.Shader})
+  parent: Ghost.Graphics.ResourceManager
+  langs:
+  - csharp
+  - vb
+  name: ReleaseShader(Identifier<Shader>)
+  nameWithType: ResourceManager.ReleaseShader(Identifier<Shader>)
+  fullName: Ghost.Graphics.ResourceManager.ReleaseShader(Ghost.Core.Identifier<Ghost.Graphics.Core.Shader>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ReleaseShader
+    path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+    startLine: 352
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics
+  summary: Releases the shader associated with the specified identifier, freeing any resources allocated to it.
+  example: []
+  syntax:
+    content: public void ReleaseShader(Identifier<Shader> id)
+    parameters:
+    - id: id
+      type: Ghost.Core.Identifier{Ghost.Graphics.Core.Shader}
+      description: The identifier of the shader to release. Must refer to a valid, previously created shader.
+    content.vb: Public Sub ReleaseShader(id As Identifier(Of Shader))
+  overload: Ghost.Graphics.ResourceManager.ReleaseShader*
+  nameWithType.vb: ResourceManager.ReleaseShader(Identifier(Of Shader))
+  fullName.vb: Ghost.Graphics.ResourceManager.ReleaseShader(Ghost.Core.Identifier(Of Ghost.Graphics.Core.Shader))
+  name.vb: ReleaseShader(Identifier(Of Shader))
+- uid: Ghost.Graphics.ResourceManager.GetPooledResource(Ghost.Graphics.RHI.ResourceDesc@)
+  commentId: M:Ghost.Graphics.ResourceManager.GetPooledResource(Ghost.Graphics.RHI.ResourceDesc@)
+  id: GetPooledResource(Ghost.Graphics.RHI.ResourceDesc@)
+  parent: Ghost.Graphics.ResourceManager
+  langs:
+  - csharp
+  - vb
+  name: GetPooledResource(in ResourceDesc)
+  nameWithType: ResourceManager.GetPooledResource(in ResourceDesc)
+  fullName: Ghost.Graphics.ResourceManager.GetPooledResource(in Ghost.Graphics.RHI.ResourceDesc)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetPooledResource
+    path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+    startLine: 365
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics
+  syntax:
+    content: public Handle<GPUResource> GetPooledResource(in ResourceDesc desc)
+    parameters:
+    - id: desc
+      type: Ghost.Graphics.RHI.ResourceDesc
+    return:
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+    content.vb: Public Function GetPooledResource(desc As ResourceDesc) As Handle(Of GPUResource)
+  overload: Ghost.Graphics.ResourceManager.GetPooledResource*
+  nameWithType.vb: ResourceManager.GetPooledResource(ResourceDesc)
+  fullName.vb: Ghost.Graphics.ResourceManager.GetPooledResource(Ghost.Graphics.RHI.ResourceDesc)
+  name.vb: GetPooledResource(ResourceDesc)
+- uid: Ghost.Graphics.ResourceManager.ReturnPooledResource(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  commentId: M:Ghost.Graphics.ResourceManager.ReturnPooledResource(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  id: ReturnPooledResource(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  parent: Ghost.Graphics.ResourceManager
+  langs:
+  - csharp
+  - vb
+  name: ReturnPooledResource(Handle<GPUResource>)
+  nameWithType: ResourceManager.ReturnPooledResource(Handle<GPUResource>)
+  fullName: Ghost.Graphics.ResourceManager.ReturnPooledResource(Ghost.Core.Handle<Ghost.Graphics.RHI.GPUResource>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ReturnPooledResource
+    path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+    startLine: 385
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics
+  syntax:
+    content: public void ReturnPooledResource(Handle<GPUResource> handle)
+    parameters:
+    - id: handle
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+    content.vb: Public Sub ReturnPooledResource(handle As Handle(Of GPUResource))
+  overload: Ghost.Graphics.ResourceManager.ReturnPooledResource*
+  nameWithType.vb: ResourceManager.ReturnPooledResource(Handle(Of GPUResource))
+  fullName.vb: Ghost.Graphics.ResourceManager.ReturnPooledResource(Ghost.Core.Handle(Of Ghost.Graphics.RHI.GPUResource))
+  name.vb: ReturnPooledResource(Handle(Of GPUResource))
+- uid: Ghost.Graphics.ResourceManager.Dispose
+  commentId: M:Ghost.Graphics.ResourceManager.Dispose
+  id: Dispose
+  parent: Ghost.Graphics.ResourceManager
+  langs:
+  - csharp
+  - vb
+  name: Dispose()
+  nameWithType: ResourceManager.Dispose()
+  fullName: Ghost.Graphics.ResourceManager.Dispose()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Dispose
+    path: src/Runtime/Ghost.Graphics/ResourceManager.cs
+    startLine: 397
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics
+  summary: Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+  example: []
+  syntax:
+    content: public void Dispose()
+    content.vb: Public Sub Dispose()
+  overload: Ghost.Graphics.ResourceManager.Dispose*
+  implements:
+  - System.IDisposable.Dispose
+references:
+- uid: Ghost.Graphics
+  commentId: N:Ghost.Graphics
+  href: Ghost.html
+  name: Ghost.Graphics
+  nameWithType: Ghost.Graphics
+  fullName: Ghost.Graphics
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System.IDisposable
+  commentId: T:System.IDisposable
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable
+  name: IDisposable
+  nameWithType: IDisposable
+  fullName: System.IDisposable
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  name: Equals(object)
+  nameWithType: object.Equals(object)
+  fullName: object.Equals(object)
+  nameWithType.vb: Object.Equals(Object)
+  fullName.vb: Object.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  name: GetHashCode()
+  nameWithType: object.GetHashCode()
+  fullName: object.GetHashCode()
+  nameWithType.vb: Object.GetHashCode()
+  fullName.vb: Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  name: ToString()
+  nameWithType: object.ToString()
+  fullName: object.ToString()
+  nameWithType.vb: Object.ToString()
+  fullName.vb: Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.ResourceManager.#ctor*
+  commentId: Overload:Ghost.Graphics.ResourceManager.#ctor
+  href: Ghost.Graphics.ResourceManager.html#Ghost_Graphics_ResourceManager__ctor_Ghost_Graphics_RHI_IResourceAllocator_Ghost_Graphics_RHI_IResourceDatabase_
+  name: ResourceManager
+  nameWithType: ResourceManager.ResourceManager
+  fullName: Ghost.Graphics.ResourceManager.ResourceManager
+  nameWithType.vb: ResourceManager.New
+  fullName.vb: Ghost.Graphics.ResourceManager.New
+  name.vb: New
+- uid: Ghost.Graphics.RHI.IResourceAllocator
+  commentId: T:Ghost.Graphics.RHI.IResourceAllocator
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.IResourceAllocator.html
+  name: IResourceAllocator
+  nameWithType: IResourceAllocator
+  fullName: Ghost.Graphics.RHI.IResourceAllocator
+- uid: Ghost.Graphics.RHI.IResourceDatabase
+  commentId: T:Ghost.Graphics.RHI.IResourceDatabase
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.IResourceDatabase.html
+  name: IResourceDatabase
+  nameWithType: IResourceDatabase
+  fullName: Ghost.Graphics.RHI.IResourceDatabase
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.ResourceManager.Finalize*
+  commentId: Overload:Ghost.Graphics.ResourceManager.Finalize
+  href: Ghost.Graphics.ResourceManager.html#Ghost_Graphics_ResourceManager_Finalize
+  name: ~ResourceManager
+  nameWithType: ResourceManager.~ResourceManager
+  fullName: Ghost.Graphics.ResourceManager.~ResourceManager
+  spec.csharp:
+  - name: "~"
+  - uid: Ghost.Graphics.ResourceManager.Finalize*
+    name: ResourceManager
+    href: Ghost.Graphics.ResourceManager.html#Ghost_Graphics_ResourceManager_Finalize
+- uid: Ghost.Core.Identifier`1
+  commentId: T:Ghost.Core.Identifier`1
+  name: Identifier<T>
+  nameWithType: Identifier<T>
+  fullName: Ghost.Core.Identifier<T>
+  nameWithType.vb: Identifier(Of T)
+  fullName.vb: Ghost.Core.Identifier(Of T)
+  name.vb: Identifier(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Graphics.ResourceManager.CreateMesh*
+  commentId: Overload:Ghost.Graphics.ResourceManager.CreateMesh
+  href: Ghost.Graphics.ResourceManager.html#Ghost_Graphics_ResourceManager_CreateMesh_Misaki_HighPerformance_LowLevel_Collections_UnsafeList_Ghost_Graphics_RHI_Vertex__Misaki_HighPerformance_LowLevel_Collections_UnsafeList_System_UInt32__
+  name: CreateMesh
+  nameWithType: ResourceManager.CreateMesh
+  fullName: Ghost.Graphics.ResourceManager.CreateMesh
+- uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex}
+  commentId: T:Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex}
+  parent: Misaki.HighPerformance.LowLevel.Collections
+  definition: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+  name: UnsafeList<Vertex>
+  nameWithType: UnsafeList<Vertex>
+  fullName: Misaki.HighPerformance.LowLevel.Collections.UnsafeList<Ghost.Graphics.RHI.Vertex>
+  nameWithType.vb: UnsafeList(Of Vertex)
+  fullName.vb: Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of Ghost.Graphics.RHI.Vertex)
+  name.vb: UnsafeList(Of Vertex)
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: <
+  - uid: Ghost.Graphics.RHI.Vertex
+    name: Vertex
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.Vertex
+    name: Vertex
+  - name: )
+- uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}
+  commentId: T:Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}
+  parent: Misaki.HighPerformance.LowLevel.Collections
+  definition: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+  href: https://learn.microsoft.com/dotnet/api/system.uint32
+  name: UnsafeList<uint>
+  nameWithType: UnsafeList<uint>
+  fullName: Misaki.HighPerformance.LowLevel.Collections.UnsafeList<uint>
+  nameWithType.vb: UnsafeList(Of UInteger)
+  fullName.vb: Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of UInteger)
+  name.vb: UnsafeList(Of UInteger)
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: <
+  - uid: System.UInt32
+    name: uint
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.uint32
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: System.UInt32
+    name: UInteger
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.uint32
+  - name: )
+- uid: Ghost.Core.Handle{Ghost.Graphics.Core.Mesh}
+  commentId: T:Ghost.Core.Handle{Ghost.Graphics.Core.Mesh}
+  parent: Ghost.Core
+  definition: Ghost.Core.Handle`1
+  href: Ghost.Graphics.Core.Mesh.html
+  name: Handle<Mesh>
+  nameWithType: Handle<Mesh>
+  fullName: Ghost.Core.Handle<Ghost.Graphics.Core.Mesh>
+  nameWithType.vb: Handle(Of Mesh)
+  fullName.vb: Ghost.Core.Handle(Of Ghost.Graphics.Core.Mesh)
+  name.vb: Handle(Of Mesh)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - uid: Ghost.Graphics.Core.Mesh
+    name: Mesh
+    href: Ghost.Graphics.Core.Mesh.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.Core.Mesh
+    name: Mesh
+    href: Ghost.Graphics.Core.Mesh.html
+  - name: )
+- uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+  commentId: T:Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+  name: UnsafeList<T>
+  nameWithType: UnsafeList<T>
+  fullName: Misaki.HighPerformance.LowLevel.Collections.UnsafeList<T>
+  nameWithType.vb: UnsafeList(Of T)
+  fullName.vb: Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of T)
+  name.vb: UnsafeList(Of T)
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Misaki.HighPerformance.LowLevel.Collections
+  commentId: N:Misaki.HighPerformance.LowLevel.Collections
+  name: Misaki.HighPerformance.LowLevel.Collections
+  nameWithType: Misaki.HighPerformance.LowLevel.Collections
+  fullName: Misaki.HighPerformance.LowLevel.Collections
+  spec.csharp:
+  - uid: Misaki
+    name: Misaki
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel
+    name: LowLevel
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel.Collections
+    name: Collections
+  spec.vb:
+  - uid: Misaki
+    name: Misaki
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel
+    name: LowLevel
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel.Collections
+    name: Collections
+- uid: Ghost.Core.Handle`1
+  commentId: T:Ghost.Core.Handle`1
+  name: Handle<T>
+  nameWithType: Handle<T>
+  fullName: Ghost.Core.Handle<T>
+  nameWithType.vb: Handle(Of T)
+  fullName.vb: Ghost.Core.Handle(Of T)
+  name.vb: Handle(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Core
+  commentId: N:Ghost.Core
+  name: Ghost.Core
+  nameWithType: Ghost.Core
+  fullName: Ghost.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+- uid: Ghost.Graphics.ResourceManager.CreateMaterial*
+  commentId: Overload:Ghost.Graphics.ResourceManager.CreateMaterial
+  href: Ghost.Graphics.ResourceManager.html#Ghost_Graphics_ResourceManager_CreateMaterial_Ghost_Core_Identifier_Ghost_Graphics_Core_Shader__
+  name: CreateMaterial
+  nameWithType: ResourceManager.CreateMaterial
+  fullName: Ghost.Graphics.ResourceManager.CreateMaterial
+- uid: Ghost.Core.Identifier{Ghost.Graphics.Core.Shader}
+  commentId: T:Ghost.Core.Identifier{Ghost.Graphics.Core.Shader}
+  parent: Ghost.Core
+  definition: Ghost.Core.Identifier`1
+  href: Ghost.Graphics.Core.Shader.html
+  name: Identifier<Shader>
+  nameWithType: Identifier<Shader>
+  fullName: Ghost.Core.Identifier<Ghost.Graphics.Core.Shader>
+  nameWithType.vb: Identifier(Of Shader)
+  fullName.vb: Ghost.Core.Identifier(Of Ghost.Graphics.Core.Shader)
+  name.vb: Identifier(Of Shader)
+  spec.csharp:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: <
+  - uid: Ghost.Graphics.Core.Shader
+    name: Shader
+    href: Ghost.Graphics.Core.Shader.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.Core.Shader
+    name: Shader
+    href: Ghost.Graphics.Core.Shader.html
+  - name: )
+- uid: Ghost.Core.Handle{Ghost.Graphics.Core.Material}
+  commentId: T:Ghost.Core.Handle{Ghost.Graphics.Core.Material}
+  parent: Ghost.Core
+  definition: Ghost.Core.Handle`1
+  href: Ghost.Graphics.Core.Material.html
+  name: Handle<Material>
+  nameWithType: Handle<Material>
+  fullName: Ghost.Core.Handle<Ghost.Graphics.Core.Material>
+  nameWithType.vb: Handle(Of Material)
+  fullName.vb: Ghost.Core.Handle(Of Ghost.Graphics.Core.Material)
+  name.vb: Handle(Of Material)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - uid: Ghost.Graphics.Core.Material
+    name: Material
+    href: Ghost.Graphics.Core.Material.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.Core.Material
+    name: Material
+    href: Ghost.Graphics.Core.Material.html
+  - name: )
+- uid: Ghost.Graphics.ResourceManager.CreateGraphicsShader*
+  commentId: Overload:Ghost.Graphics.ResourceManager.CreateGraphicsShader
+  href: Ghost.Graphics.ResourceManager.html#Ghost_Graphics_ResourceManager_CreateGraphicsShader_Ghost_Core_Graphics_ShaderDescriptor_
+  name: CreateGraphicsShader
+  nameWithType: ResourceManager.CreateGraphicsShader
+  fullName: Ghost.Graphics.ResourceManager.CreateGraphicsShader
+- uid: Ghost.Core.Graphics.ShaderDescriptor
+  commentId: T:Ghost.Core.Graphics.ShaderDescriptor
+  parent: Ghost.Core.Graphics
+  name: ShaderDescriptor
+  nameWithType: ShaderDescriptor
+  fullName: Ghost.Core.Graphics.ShaderDescriptor
+- uid: Ghost.Core.Graphics
+  commentId: N:Ghost.Core.Graphics
+  name: Ghost.Core.Graphics
+  nameWithType: Ghost.Core.Graphics
+  fullName: Ghost.Core.Graphics
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  - name: .
+  - uid: Ghost.Core.Graphics
+    name: Graphics
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  - name: .
+  - uid: Ghost.Core.Graphics
+    name: Graphics
+- uid: Ghost.Graphics.ResourceManager.HasMesh*
+  commentId: Overload:Ghost.Graphics.ResourceManager.HasMesh
+  href: Ghost.Graphics.ResourceManager.html#Ghost_Graphics_ResourceManager_HasMesh_Ghost_Core_Handle_Ghost_Graphics_Core_Mesh__
+  name: HasMesh
+  nameWithType: ResourceManager.HasMesh
+  fullName: Ghost.Graphics.ResourceManager.HasMesh
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.boolean
+  name: bool
+  nameWithType: bool
+  fullName: bool
+  nameWithType.vb: Boolean
+  fullName.vb: Boolean
+  name.vb: Boolean
+- uid: Ghost.Graphics.ResourceManager.GetMeshReference*
+  commentId: Overload:Ghost.Graphics.ResourceManager.GetMeshReference
+  href: Ghost.Graphics.ResourceManager.html#Ghost_Graphics_ResourceManager_GetMeshReference_Ghost_Core_Handle_Ghost_Graphics_Core_Mesh__
+  name: GetMeshReference
+  nameWithType: ResourceManager.GetMeshReference
+  fullName: Ghost.Graphics.ResourceManager.GetMeshReference
+- uid: Ghost.Core.RefResult{Ghost.Graphics.Core.Mesh,Ghost.Core.Error}
+  commentId: T:Ghost.Core.RefResult{Ghost.Graphics.Core.Mesh,Ghost.Core.Error}
+  parent: Ghost.Core
+  definition: Ghost.Core.RefResult`2
+  href: Ghost.Graphics.Core.Mesh.html
+  name: RefResult<Mesh, Error>
+  nameWithType: RefResult<Mesh, Error>
+  fullName: Ghost.Core.RefResult<Ghost.Graphics.Core.Mesh, Ghost.Core.Error>
+  nameWithType.vb: RefResult(Of Mesh, Error)
+  fullName.vb: Ghost.Core.RefResult(Of Ghost.Graphics.Core.Mesh, Ghost.Core.Error)
+  name.vb: RefResult(Of Mesh, Error)
+  spec.csharp:
+  - uid: Ghost.Core.RefResult`2
+    name: RefResult
+  - name: <
+  - uid: Ghost.Graphics.Core.Mesh
+    name: Mesh
+    href: Ghost.Graphics.Core.Mesh.html
+  - name: ','
+  - name: " "
+  - uid: Ghost.Core.Error
+    name: Error
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.RefResult`2
+    name: RefResult
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.Core.Mesh
+    name: Mesh
+    href: Ghost.Graphics.Core.Mesh.html
+  - name: ','
+  - name: " "
+  - uid: Ghost.Core.Error
+    name: Error
+  - name: )
+- uid: Ghost.Core.RefResult`2
+  commentId: T:Ghost.Core.RefResult`2
+  name: RefResult<T, E>
+  nameWithType: RefResult<T, E>
+  fullName: Ghost.Core.RefResult<T, E>
+  nameWithType.vb: RefResult(Of T, E)
+  fullName.vb: Ghost.Core.RefResult(Of T, E)
+  name.vb: RefResult(Of T, E)
+  spec.csharp:
+  - uid: Ghost.Core.RefResult`2
+    name: RefResult
+  - name: <
+  - name: T
+  - name: ','
+  - name: " "
+  - name: E
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.RefResult`2
+    name: RefResult
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: ','
+  - name: " "
+  - name: E
+  - name: )
+- uid: Ghost.Graphics.ResourceManager.ReleaseMesh*
+  commentId: Overload:Ghost.Graphics.ResourceManager.ReleaseMesh
+  href: Ghost.Graphics.ResourceManager.html#Ghost_Graphics_ResourceManager_ReleaseMesh_Ghost_Core_Handle_Ghost_Graphics_Core_Mesh__
+  name: ReleaseMesh
+  nameWithType: ResourceManager.ReleaseMesh
+  fullName: Ghost.Graphics.ResourceManager.ReleaseMesh
+- uid: Ghost.Graphics.ResourceManager.HasMaterial*
+  commentId: Overload:Ghost.Graphics.ResourceManager.HasMaterial
+  href: Ghost.Graphics.ResourceManager.html#Ghost_Graphics_ResourceManager_HasMaterial_Ghost_Core_Handle_Ghost_Graphics_Core_Material__
+  name: HasMaterial
+  nameWithType: ResourceManager.HasMaterial
+  fullName: Ghost.Graphics.ResourceManager.HasMaterial
+- uid: Ghost.Graphics.ResourceManager.GetMaterialReference*
+  commentId: Overload:Ghost.Graphics.ResourceManager.GetMaterialReference
+  href: Ghost.Graphics.ResourceManager.html#Ghost_Graphics_ResourceManager_GetMaterialReference_Ghost_Core_Handle_Ghost_Graphics_Core_Material__
+  name: GetMaterialReference
+  nameWithType: ResourceManager.GetMaterialReference
+  fullName: Ghost.Graphics.ResourceManager.GetMaterialReference
+- uid: Ghost.Core.RefResult{Ghost.Graphics.Core.Material,Ghost.Core.Error}
+  commentId: T:Ghost.Core.RefResult{Ghost.Graphics.Core.Material,Ghost.Core.Error}
+  parent: Ghost.Core
+  definition: Ghost.Core.RefResult`2
+  href: Ghost.Graphics.Core.Material.html
+  name: RefResult<Material, Error>
+  nameWithType: RefResult<Material, Error>
+  fullName: Ghost.Core.RefResult<Ghost.Graphics.Core.Material, Ghost.Core.Error>
+  nameWithType.vb: RefResult(Of Material, Error)
+  fullName.vb: Ghost.Core.RefResult(Of Ghost.Graphics.Core.Material, Ghost.Core.Error)
+  name.vb: RefResult(Of Material, Error)
+  spec.csharp:
+  - uid: Ghost.Core.RefResult`2
+    name: RefResult
+  - name: <
+  - uid: Ghost.Graphics.Core.Material
+    name: Material
+    href: Ghost.Graphics.Core.Material.html
+  - name: ','
+  - name: " "
+  - uid: Ghost.Core.Error
+    name: Error
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.RefResult`2
+    name: RefResult
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.Core.Material
+    name: Material
+    href: Ghost.Graphics.Core.Material.html
+  - name: ','
+  - name: " "
+  - uid: Ghost.Core.Error
+    name: Error
+  - name: )
+- uid: Ghost.Graphics.ResourceManager.ReleaseMaterial*
+  commentId: Overload:Ghost.Graphics.ResourceManager.ReleaseMaterial
+  href: Ghost.Graphics.ResourceManager.html#Ghost_Graphics_ResourceManager_ReleaseMaterial_Ghost_Core_Handle_Ghost_Graphics_Core_Material__
+  name: ReleaseMaterial
+  nameWithType: ResourceManager.ReleaseMaterial
+  fullName: Ghost.Graphics.ResourceManager.ReleaseMaterial
+- uid: Ghost.Graphics.ResourceManager.GetOrCreateMaterialPalette*
+  commentId: Overload:Ghost.Graphics.ResourceManager.GetOrCreateMaterialPalette
+  href: Ghost.Graphics.ResourceManager.html#Ghost_Graphics_ResourceManager_GetOrCreateMaterialPalette_System_ReadOnlySpan_Ghost_Core_Handle_Ghost_Graphics_Core_Material___
+  name: GetOrCreateMaterialPalette
+  nameWithType: ResourceManager.GetOrCreateMaterialPalette
+  fullName: Ghost.Graphics.ResourceManager.GetOrCreateMaterialPalette
+- uid: System.ReadOnlySpan{Ghost.Core.Handle{Ghost.Graphics.Core.Material}}
+  commentId: T:System.ReadOnlySpan{Ghost.Core.Handle{Ghost.Graphics.Core.Material}}
+  parent: System
+  definition: System.ReadOnlySpan`1
+  href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  name: ReadOnlySpan<Handle<Material>>
+  nameWithType: ReadOnlySpan<Handle<Material>>
+  fullName: System.ReadOnlySpan<Ghost.Core.Handle<Ghost.Graphics.Core.Material>>
+  nameWithType.vb: ReadOnlySpan(Of Handle(Of Material))
+  fullName.vb: System.ReadOnlySpan(Of Ghost.Core.Handle(Of Ghost.Graphics.Core.Material))
+  name.vb: ReadOnlySpan(Of Handle(Of Material))
+  spec.csharp:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: <
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - uid: Ghost.Graphics.Core.Material
+    name: Material
+    href: Ghost.Graphics.Core.Material.html
+  - name: '>'
+  - name: '>'
+  spec.vb:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.Core.Material
+    name: Material
+    href: Ghost.Graphics.Core.Material.html
+  - name: )
+  - name: )
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.int32
+  name: int
+  nameWithType: int
+  fullName: int
+  nameWithType.vb: Integer
+  fullName.vb: Integer
+  name.vb: Integer
+- uid: System.ReadOnlySpan`1
+  commentId: T:System.ReadOnlySpan`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  name: ReadOnlySpan<T>
+  nameWithType: ReadOnlySpan<T>
+  fullName: System.ReadOnlySpan<T>
+  nameWithType.vb: ReadOnlySpan(Of T)
+  fullName.vb: System.ReadOnlySpan(Of T)
+  name.vb: ReadOnlySpan(Of T)
+  spec.csharp:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Graphics.ResourceManager.HasMaterialPalette*
+  commentId: Overload:Ghost.Graphics.ResourceManager.HasMaterialPalette
+  href: Ghost.Graphics.ResourceManager.html#Ghost_Graphics_ResourceManager_HasMaterialPalette_Ghost_Core_Identifier_Ghost_Graphics_Core_MaterialPalette__
+  name: HasMaterialPalette
+  nameWithType: ResourceManager.HasMaterialPalette
+  fullName: Ghost.Graphics.ResourceManager.HasMaterialPalette
+- uid: Ghost.Core.Identifier{Ghost.Graphics.Core.MaterialPalette}
+  commentId: T:Ghost.Core.Identifier{Ghost.Graphics.Core.MaterialPalette}
+  parent: Ghost.Core
+  definition: Ghost.Core.Identifier`1
+  href: Ghost.Graphics.Core.MaterialPalette.html
+  name: Identifier<MaterialPalette>
+  nameWithType: Identifier<MaterialPalette>
+  fullName: Ghost.Core.Identifier<Ghost.Graphics.Core.MaterialPalette>
+  nameWithType.vb: Identifier(Of MaterialPalette)
+  fullName.vb: Ghost.Core.Identifier(Of Ghost.Graphics.Core.MaterialPalette)
+  name.vb: Identifier(Of MaterialPalette)
+  spec.csharp:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: <
+  - uid: Ghost.Graphics.Core.MaterialPalette
+    name: MaterialPalette
+    href: Ghost.Graphics.Core.MaterialPalette.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.Core.MaterialPalette
+    name: MaterialPalette
+    href: Ghost.Graphics.Core.MaterialPalette.html
+  - name: )
+- uid: Ghost.Graphics.ResourceManager.GetMaterialPaletteInfo*
+  commentId: Overload:Ghost.Graphics.ResourceManager.GetMaterialPaletteInfo
+  href: Ghost.Graphics.ResourceManager.html#Ghost_Graphics_ResourceManager_GetMaterialPaletteInfo_Ghost_Core_Identifier_Ghost_Graphics_Core_MaterialPalette__
+  name: GetMaterialPaletteInfo
+  nameWithType: ResourceManager.GetMaterialPaletteInfo
+  fullName: Ghost.Graphics.ResourceManager.GetMaterialPaletteInfo
+- uid: Ghost.Graphics.Core.MaterialPalette
+  commentId: T:Ghost.Graphics.Core.MaterialPalette
+  parent: Ghost.Graphics.Core
+  href: Ghost.Graphics.Core.MaterialPalette.html
+  name: MaterialPalette
+  nameWithType: MaterialPalette
+  fullName: Ghost.Graphics.Core.MaterialPalette
+- uid: Ghost.Graphics.Core
+  commentId: N:Ghost.Graphics.Core
+  href: Ghost.html
+  name: Ghost.Graphics.Core
+  nameWithType: Ghost.Graphics.Core
+  fullName: Ghost.Graphics.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Core
+    name: Core
+    href: Ghost.Graphics.Core.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Core
+    name: Core
+    href: Ghost.Graphics.Core.html
+- uid: Ghost.Graphics.ResourceManager.GetMaterialPaletteMaterial*
+  commentId: Overload:Ghost.Graphics.ResourceManager.GetMaterialPaletteMaterial
+  href: Ghost.Graphics.ResourceManager.html#Ghost_Graphics_ResourceManager_GetMaterialPaletteMaterial_Ghost_Core_Identifier_Ghost_Graphics_Core_MaterialPalette__System_Int32_
+  name: GetMaterialPaletteMaterial
+  nameWithType: ResourceManager.GetMaterialPaletteMaterial
+  fullName: Ghost.Graphics.ResourceManager.GetMaterialPaletteMaterial
+- uid: Ghost.Graphics.ResourceManager.GetOrCreateMaterialPalette(System.ReadOnlySpan{Ghost.Core.Handle{Ghost.Graphics.Core.Material}})
+  commentId: M:Ghost.Graphics.ResourceManager.GetOrCreateMaterialPalette(System.ReadOnlySpan{Ghost.Core.Handle{Ghost.Graphics.Core.Material}})
+  isExternal: true
+  href: Ghost.Graphics.ResourceManager.html#Ghost_Graphics_ResourceManager_GetOrCreateMaterialPalette_System_ReadOnlySpan_Ghost_Core_Handle_Ghost_Graphics_Core_Material___
+  name: GetOrCreateMaterialPalette(ReadOnlySpan<Handle<Material>>)
+  nameWithType: ResourceManager.GetOrCreateMaterialPalette(ReadOnlySpan<Handle<Material>>)
+  fullName: Ghost.Graphics.ResourceManager.GetOrCreateMaterialPalette(System.ReadOnlySpan<Ghost.Core.Handle<Ghost.Graphics.Core.Material>>)
+  nameWithType.vb: ResourceManager.GetOrCreateMaterialPalette(ReadOnlySpan(Of Handle(Of Material)))
+  fullName.vb: Ghost.Graphics.ResourceManager.GetOrCreateMaterialPalette(System.ReadOnlySpan(Of Ghost.Core.Handle(Of Ghost.Graphics.Core.Material)))
+  name.vb: GetOrCreateMaterialPalette(ReadOnlySpan(Of Handle(Of Material)))
+  spec.csharp:
+  - uid: Ghost.Graphics.ResourceManager.GetOrCreateMaterialPalette(System.ReadOnlySpan{Ghost.Core.Handle{Ghost.Graphics.Core.Material}})
+    name: GetOrCreateMaterialPalette
+    href: Ghost.Graphics.ResourceManager.html#Ghost_Graphics_ResourceManager_GetOrCreateMaterialPalette_System_ReadOnlySpan_Ghost_Core_Handle_Ghost_Graphics_Core_Material___
+  - name: (
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: <
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - uid: Ghost.Graphics.Core.Material
+    name: Material
+    href: Ghost.Graphics.Core.Material.html
+  - name: '>'
+  - name: '>'
+  - name: )
+  spec.vb:
+  - uid: Ghost.Graphics.ResourceManager.GetOrCreateMaterialPalette(System.ReadOnlySpan{Ghost.Core.Handle{Ghost.Graphics.Core.Material}})
+    name: GetOrCreateMaterialPalette
+    href: Ghost.Graphics.ResourceManager.html#Ghost_Graphics_ResourceManager_GetOrCreateMaterialPalette_System_ReadOnlySpan_Ghost_Core_Handle_Ghost_Graphics_Core_Material___
+  - name: (
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.Core.Material
+    name: Material
+    href: Ghost.Graphics.Core.Material.html
+  - name: )
+  - name: )
+  - name: )
+- uid: Ghost.Graphics.ResourceManager.ReleaseMaterialPalette*
+  commentId: Overload:Ghost.Graphics.ResourceManager.ReleaseMaterialPalette
+  href: Ghost.Graphics.ResourceManager.html#Ghost_Graphics_ResourceManager_ReleaseMaterialPalette_Ghost_Core_Identifier_Ghost_Graphics_Core_MaterialPalette__
+  name: ReleaseMaterialPalette
+  nameWithType: ResourceManager.ReleaseMaterialPalette
+  fullName: Ghost.Graphics.ResourceManager.ReleaseMaterialPalette
+- uid: Ghost.Graphics.ResourceManager.HasShader*
+  commentId: Overload:Ghost.Graphics.ResourceManager.HasShader
+  href: Ghost.Graphics.ResourceManager.html#Ghost_Graphics_ResourceManager_HasShader_Ghost_Core_Identifier_Ghost_Graphics_Core_Shader__
+  name: HasShader
+  nameWithType: ResourceManager.HasShader
+  fullName: Ghost.Graphics.ResourceManager.HasShader
+- uid: Ghost.Graphics.ResourceManager.GetShaderReference*
+  commentId: Overload:Ghost.Graphics.ResourceManager.GetShaderReference
+  href: Ghost.Graphics.ResourceManager.html#Ghost_Graphics_ResourceManager_GetShaderReference_Ghost_Core_Identifier_Ghost_Graphics_Core_Shader__
+  name: GetShaderReference
+  nameWithType: ResourceManager.GetShaderReference
+  fullName: Ghost.Graphics.ResourceManager.GetShaderReference
+- uid: Ghost.Core.RefResult{Ghost.Graphics.Core.Shader,Ghost.Core.Error}
+  commentId: T:Ghost.Core.RefResult{Ghost.Graphics.Core.Shader,Ghost.Core.Error}
+  parent: Ghost.Core
+  definition: Ghost.Core.RefResult`2
+  href: Ghost.Graphics.Core.Shader.html
+  name: RefResult<Shader, Error>
+  nameWithType: RefResult<Shader, Error>
+  fullName: Ghost.Core.RefResult<Ghost.Graphics.Core.Shader, Ghost.Core.Error>
+  nameWithType.vb: RefResult(Of Shader, Error)
+  fullName.vb: Ghost.Core.RefResult(Of Ghost.Graphics.Core.Shader, Ghost.Core.Error)
+  name.vb: RefResult(Of Shader, Error)
+  spec.csharp:
+  - uid: Ghost.Core.RefResult`2
+    name: RefResult
+  - name: <
+  - uid: Ghost.Graphics.Core.Shader
+    name: Shader
+    href: Ghost.Graphics.Core.Shader.html
+  - name: ','
+  - name: " "
+  - uid: Ghost.Core.Error
+    name: Error
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.RefResult`2
+    name: RefResult
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.Core.Shader
+    name: Shader
+    href: Ghost.Graphics.Core.Shader.html
+  - name: ','
+  - name: " "
+  - uid: Ghost.Core.Error
+    name: Error
+  - name: )
+- uid: Ghost.Graphics.ResourceManager.ReleaseShader*
+  commentId: Overload:Ghost.Graphics.ResourceManager.ReleaseShader
+  href: Ghost.Graphics.ResourceManager.html#Ghost_Graphics_ResourceManager_ReleaseShader_Ghost_Core_Identifier_Ghost_Graphics_Core_Shader__
+  name: ReleaseShader
+  nameWithType: ResourceManager.ReleaseShader
+  fullName: Ghost.Graphics.ResourceManager.ReleaseShader
+- uid: Ghost.Graphics.ResourceManager.GetPooledResource*
+  commentId: Overload:Ghost.Graphics.ResourceManager.GetPooledResource
+  href: Ghost.Graphics.ResourceManager.html#Ghost_Graphics_ResourceManager_GetPooledResource_Ghost_Graphics_RHI_ResourceDesc__
+  name: GetPooledResource
+  nameWithType: ResourceManager.GetPooledResource
+  fullName: Ghost.Graphics.ResourceManager.GetPooledResource
+- uid: Ghost.Graphics.RHI.ResourceDesc
+  commentId: T:Ghost.Graphics.RHI.ResourceDesc
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ResourceDesc.html
+  name: ResourceDesc
+  nameWithType: ResourceDesc
+  fullName: Ghost.Graphics.RHI.ResourceDesc
+- uid: Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+  commentId: T:Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+  parent: Ghost.Core
+  definition: Ghost.Core.Handle`1
+  href: Ghost.Graphics.RHI.GPUResource.html
+  name: Handle<GPUResource>
+  nameWithType: Handle<GPUResource>
+  fullName: Ghost.Core.Handle<Ghost.Graphics.RHI.GPUResource>
+  nameWithType.vb: Handle(Of GPUResource)
+  fullName.vb: Ghost.Core.Handle(Of Ghost.Graphics.RHI.GPUResource)
+  name.vb: Handle(Of GPUResource)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - uid: Ghost.Graphics.RHI.GPUResource
+    name: GPUResource
+    href: Ghost.Graphics.RHI.GPUResource.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.GPUResource
+    name: GPUResource
+    href: Ghost.Graphics.RHI.GPUResource.html
+  - name: )
+- uid: Ghost.Graphics.ResourceManager.ReturnPooledResource*
+  commentId: Overload:Ghost.Graphics.ResourceManager.ReturnPooledResource
+  href: Ghost.Graphics.ResourceManager.html#Ghost_Graphics_ResourceManager_ReturnPooledResource_Ghost_Core_Handle_Ghost_Graphics_RHI_GPUResource__
+  name: ReturnPooledResource
+  nameWithType: ResourceManager.ReturnPooledResource
+  fullName: Ghost.Graphics.ResourceManager.ReturnPooledResource
+- uid: Ghost.Graphics.ResourceManager.Dispose*
+  commentId: Overload:Ghost.Graphics.ResourceManager.Dispose
+  href: Ghost.Graphics.ResourceManager.html#Ghost_Graphics_ResourceManager_Dispose
+  name: Dispose
+  nameWithType: ResourceManager.Dispose
+  fullName: Ghost.Graphics.ResourceManager.Dispose
+- uid: System.IDisposable.Dispose
+  commentId: M:System.IDisposable.Dispose
+  parent: System.IDisposable
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  name: Dispose()
+  nameWithType: IDisposable.Dispose()
+  fullName: System.IDisposable.Dispose()
+  spec.csharp:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )

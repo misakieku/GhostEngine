@@ -1,0 +1,518 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.Core.MaterialPalette
+  commentId: T:Ghost.Graphics.Core.MaterialPalette
+  id: MaterialPalette
+  parent: Ghost.Graphics.Core
+  children:
+  - Ghost.Graphics.Core.MaterialPalette.#ctor(Ghost.Core.Handle{Ghost.Graphics.Core.Material}*,System.Int32)
+  - Ghost.Graphics.Core.MaterialPalette.#ctor(Misaki.HighPerformance.LowLevel.Collections.ReadOnlyUnsafeCollection{Ghost.Core.Handle{Ghost.Graphics.Core.Material}})
+  - Ghost.Graphics.Core.MaterialPalette.materials
+  langs:
+  - csharp
+  - vb
+  name: MaterialPalette
+  nameWithType: MaterialPalette
+  fullName: Ghost.Graphics.Core.MaterialPalette
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/MaterialPaletteStore.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: MaterialPalette
+    path: src/Runtime/Ghost.Graphics/Core/MaterialPaletteStore.cs
+    startLine: 7
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public readonly struct MaterialPalette
+    content.vb: Public Structure MaterialPalette
+  inheritedMembers:
+  - System.ValueType.Equals(System.Object)
+  - System.ValueType.GetHashCode
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Graphics.Core.MaterialPalette.materials
+  commentId: F:Ghost.Graphics.Core.MaterialPalette.materials
+  id: materials
+  parent: Ghost.Graphics.Core.MaterialPalette
+  langs:
+  - csharp
+  - vb
+  name: materials
+  nameWithType: MaterialPalette.materials
+  fullName: Ghost.Graphics.Core.MaterialPalette.materials
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/MaterialPaletteStore.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: materials
+    path: src/Runtime/Ghost.Graphics/Core/MaterialPaletteStore.cs
+    startLine: 9
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public readonly ReadOnlyUnsafeCollection<Handle<Material>> materials
+    return:
+      type: Misaki.HighPerformance.LowLevel.Collections.ReadOnlyUnsafeCollection{Ghost.Core.Handle{Ghost.Graphics.Core.Material}}
+    content.vb: Public ReadOnly materials As ReadOnlyUnsafeCollection(Of Handle(Of Material))
+- uid: Ghost.Graphics.Core.MaterialPalette.#ctor(Ghost.Core.Handle{Ghost.Graphics.Core.Material}*,System.Int32)
+  commentId: M:Ghost.Graphics.Core.MaterialPalette.#ctor(Ghost.Core.Handle{Ghost.Graphics.Core.Material}*,System.Int32)
+  id: '#ctor(Ghost.Core.Handle{Ghost.Graphics.Core.Material}*,System.Int32)'
+  parent: Ghost.Graphics.Core.MaterialPalette
+  langs:
+  - csharp
+  - vb
+  name: MaterialPalette(Handle<Material>*, int)
+  nameWithType: MaterialPalette.MaterialPalette(Handle<Material>*, int)
+  fullName: Ghost.Graphics.Core.MaterialPalette.MaterialPalette(Ghost.Core.Handle<Ghost.Graphics.Core.Material>*, int)
+  type: Constructor
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/MaterialPaletteStore.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: .ctor
+    path: src/Runtime/Ghost.Graphics/Core/MaterialPaletteStore.cs
+    startLine: 11
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public MaterialPalette(Handle<Material>* pMaterials, int count)
+    parameters:
+    - id: pMaterials
+      type: Ghost.Core.Handle{Ghost.Graphics.Core.Material}*
+    - id: count
+      type: System.Int32
+    content.vb: Public Sub New(pMaterials As Handle(Of Material)*, count As Integer)
+  overload: Ghost.Graphics.Core.MaterialPalette.#ctor*
+  nameWithType.vb: MaterialPalette.New(Handle(Of Material)*, Integer)
+  fullName.vb: Ghost.Graphics.Core.MaterialPalette.New(Ghost.Core.Handle(Of Ghost.Graphics.Core.Material)*, Integer)
+  name.vb: New(Handle(Of Material)*, Integer)
+- uid: Ghost.Graphics.Core.MaterialPalette.#ctor(Misaki.HighPerformance.LowLevel.Collections.ReadOnlyUnsafeCollection{Ghost.Core.Handle{Ghost.Graphics.Core.Material}})
+  commentId: M:Ghost.Graphics.Core.MaterialPalette.#ctor(Misaki.HighPerformance.LowLevel.Collections.ReadOnlyUnsafeCollection{Ghost.Core.Handle{Ghost.Graphics.Core.Material}})
+  id: '#ctor(Misaki.HighPerformance.LowLevel.Collections.ReadOnlyUnsafeCollection{Ghost.Core.Handle{Ghost.Graphics.Core.Material}})'
+  parent: Ghost.Graphics.Core.MaterialPalette
+  langs:
+  - csharp
+  - vb
+  name: MaterialPalette(ReadOnlyUnsafeCollection<Handle<Material>>)
+  nameWithType: MaterialPalette.MaterialPalette(ReadOnlyUnsafeCollection<Handle<Material>>)
+  fullName: Ghost.Graphics.Core.MaterialPalette.MaterialPalette(Misaki.HighPerformance.LowLevel.Collections.ReadOnlyUnsafeCollection<Ghost.Core.Handle<Ghost.Graphics.Core.Material>>)
+  type: Constructor
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/MaterialPaletteStore.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: .ctor
+    path: src/Runtime/Ghost.Graphics/Core/MaterialPaletteStore.cs
+    startLine: 16
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public MaterialPalette(ReadOnlyUnsafeCollection<Handle<Material>> materials)
+    parameters:
+    - id: materials
+      type: Misaki.HighPerformance.LowLevel.Collections.ReadOnlyUnsafeCollection{Ghost.Core.Handle{Ghost.Graphics.Core.Material}}
+    content.vb: Public Sub New(materials As ReadOnlyUnsafeCollection(Of Handle(Of Material)))
+  overload: Ghost.Graphics.Core.MaterialPalette.#ctor*
+  nameWithType.vb: MaterialPalette.New(ReadOnlyUnsafeCollection(Of Handle(Of Material)))
+  fullName.vb: Ghost.Graphics.Core.MaterialPalette.New(Misaki.HighPerformance.LowLevel.Collections.ReadOnlyUnsafeCollection(Of Ghost.Core.Handle(Of Ghost.Graphics.Core.Material)))
+  name.vb: New(ReadOnlyUnsafeCollection(Of Handle(Of Material)))
+references:
+- uid: Ghost.Graphics.Core
+  commentId: N:Ghost.Graphics.Core
+  href: Ghost.html
+  name: Ghost.Graphics.Core
+  nameWithType: Ghost.Graphics.Core
+  fullName: Ghost.Graphics.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Core
+    name: Core
+    href: Ghost.Graphics.Core.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Core
+    name: Core
+    href: Ghost.Graphics.Core.html
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Misaki.HighPerformance.LowLevel.Collections.ReadOnlyUnsafeCollection{Ghost.Core.Handle{Ghost.Graphics.Core.Material}}
+  commentId: T:Misaki.HighPerformance.LowLevel.Collections.ReadOnlyUnsafeCollection{Ghost.Core.Handle{Ghost.Graphics.Core.Material}}
+  parent: Misaki.HighPerformance.LowLevel.Collections
+  definition: Misaki.HighPerformance.LowLevel.Collections.ReadOnlyUnsafeCollection`1
+  href: Ghost.Graphics.Core.Material.html
+  name: ReadOnlyUnsafeCollection<Handle<Material>>
+  nameWithType: ReadOnlyUnsafeCollection<Handle<Material>>
+  fullName: Misaki.HighPerformance.LowLevel.Collections.ReadOnlyUnsafeCollection<Ghost.Core.Handle<Ghost.Graphics.Core.Material>>
+  nameWithType.vb: ReadOnlyUnsafeCollection(Of Handle(Of Material))
+  fullName.vb: Misaki.HighPerformance.LowLevel.Collections.ReadOnlyUnsafeCollection(Of Ghost.Core.Handle(Of Ghost.Graphics.Core.Material))
+  name.vb: ReadOnlyUnsafeCollection(Of Handle(Of Material))
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.ReadOnlyUnsafeCollection`1
+    name: ReadOnlyUnsafeCollection
+  - name: <
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - uid: Ghost.Graphics.Core.Material
+    name: Material
+    href: Ghost.Graphics.Core.Material.html
+  - name: '>'
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.ReadOnlyUnsafeCollection`1
+    name: ReadOnlyUnsafeCollection
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.Core.Material
+    name: Material
+    href: Ghost.Graphics.Core.Material.html
+  - name: )
+  - name: )
+- uid: Misaki.HighPerformance.LowLevel.Collections.ReadOnlyUnsafeCollection`1
+  commentId: T:Misaki.HighPerformance.LowLevel.Collections.ReadOnlyUnsafeCollection`1
+  name: ReadOnlyUnsafeCollection<T>
+  nameWithType: ReadOnlyUnsafeCollection<T>
+  fullName: Misaki.HighPerformance.LowLevel.Collections.ReadOnlyUnsafeCollection<T>
+  nameWithType.vb: ReadOnlyUnsafeCollection(Of T)
+  fullName.vb: Misaki.HighPerformance.LowLevel.Collections.ReadOnlyUnsafeCollection(Of T)
+  name.vb: ReadOnlyUnsafeCollection(Of T)
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.ReadOnlyUnsafeCollection`1
+    name: ReadOnlyUnsafeCollection
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.ReadOnlyUnsafeCollection`1
+    name: ReadOnlyUnsafeCollection
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Misaki.HighPerformance.LowLevel.Collections
+  commentId: N:Misaki.HighPerformance.LowLevel.Collections
+  name: Misaki.HighPerformance.LowLevel.Collections
+  nameWithType: Misaki.HighPerformance.LowLevel.Collections
+  fullName: Misaki.HighPerformance.LowLevel.Collections
+  spec.csharp:
+  - uid: Misaki
+    name: Misaki
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel
+    name: LowLevel
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel.Collections
+    name: Collections
+  spec.vb:
+  - uid: Misaki
+    name: Misaki
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel
+    name: LowLevel
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel.Collections
+    name: Collections
+- uid: Ghost.Graphics.Core.MaterialPalette.#ctor*
+  commentId: Overload:Ghost.Graphics.Core.MaterialPalette.#ctor
+  href: Ghost.Graphics.Core.MaterialPalette.html#Ghost_Graphics_Core_MaterialPalette__ctor_Ghost_Core_Handle_Ghost_Graphics_Core_Material___System_Int32_
+  name: MaterialPalette
+  nameWithType: MaterialPalette.MaterialPalette
+  fullName: Ghost.Graphics.Core.MaterialPalette.MaterialPalette
+  nameWithType.vb: MaterialPalette.New
+  fullName.vb: Ghost.Graphics.Core.MaterialPalette.New
+  name.vb: New
+- uid: Ghost.Core.Handle{Ghost.Graphics.Core.Material}*
+  isExternal: true
+  href: Ghost.Graphics.Core.Material.html
+  name: Handle<Material>*
+  nameWithType: Handle<Material>*
+  fullName: Ghost.Core.Handle<Ghost.Graphics.Core.Material>*
+  nameWithType.vb: Handle(Of Material)*
+  fullName.vb: Ghost.Core.Handle(Of Ghost.Graphics.Core.Material)*
+  name.vb: Handle(Of Material)*
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - uid: Ghost.Graphics.Core.Material
+    name: Material
+    href: Ghost.Graphics.Core.Material.html
+  - name: '>'
+  - name: '*'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.Core.Material
+    name: Material
+    href: Ghost.Graphics.Core.Material.html
+  - name: )
+  - name: '*'
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.int32
+  name: int
+  nameWithType: int
+  fullName: int
+  nameWithType.vb: Integer
+  fullName.vb: Integer
+  name.vb: Integer

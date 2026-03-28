@@ -1,0 +1,2224 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Entities.QueryBuilder
+  commentId: T:Ghost.Entities.QueryBuilder
+  id: QueryBuilder
+  parent: Ghost.Entities
+  children:
+  - Ghost.Entities.QueryBuilder.#ctor
+  - Ghost.Entities.QueryBuilder.Build(Ghost.Entities.World,System.Boolean)
+  - Ghost.Entities.QueryBuilder.BuildWithoutCache(Ghost.Entities.World,Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle,System.Boolean)
+  - Ghost.Entities.QueryBuilder.Clear
+  - Ghost.Entities.QueryBuilder.Create
+  - Ghost.Entities.QueryBuilder.Dispose
+  - Ghost.Entities.QueryBuilder.WithAbsent(System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}})
+  - Ghost.Entities.QueryBuilder.WithAbsent``1
+  - Ghost.Entities.QueryBuilder.WithAbsent``2
+  - Ghost.Entities.QueryBuilder.WithAbsent``3
+  - Ghost.Entities.QueryBuilder.WithAll(System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}})
+  - Ghost.Entities.QueryBuilder.WithAllRW``1
+  - Ghost.Entities.QueryBuilder.WithAllRW``2
+  - Ghost.Entities.QueryBuilder.WithAllRW``3
+  - Ghost.Entities.QueryBuilder.WithAll``1
+  - Ghost.Entities.QueryBuilder.WithAll``2
+  - Ghost.Entities.QueryBuilder.WithAll``3
+  - Ghost.Entities.QueryBuilder.WithAny(System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}})
+  - Ghost.Entities.QueryBuilder.WithAny``1
+  - Ghost.Entities.QueryBuilder.WithAny``2
+  - Ghost.Entities.QueryBuilder.WithAny``3
+  - Ghost.Entities.QueryBuilder.WithDisabled(System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}})
+  - Ghost.Entities.QueryBuilder.WithDisabled``1
+  - Ghost.Entities.QueryBuilder.WithDisabled``2
+  - Ghost.Entities.QueryBuilder.WithDisabled``3
+  - Ghost.Entities.QueryBuilder.WithNone(System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}})
+  - Ghost.Entities.QueryBuilder.WithNone``1
+  - Ghost.Entities.QueryBuilder.WithNone``2
+  - Ghost.Entities.QueryBuilder.WithNone``3
+  - Ghost.Entities.QueryBuilder.WithPresent(System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}})
+  - Ghost.Entities.QueryBuilder.WithPresentRW(System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}})
+  - Ghost.Entities.QueryBuilder.WithPresentRW``1
+  - Ghost.Entities.QueryBuilder.WithPresentRW``2
+  - Ghost.Entities.QueryBuilder.WithPresentRW``3
+  - Ghost.Entities.QueryBuilder.WithPresent``1
+  - Ghost.Entities.QueryBuilder.WithPresent``2
+  - Ghost.Entities.QueryBuilder.WithPresent``3
+  langs:
+  - csharp
+  - vb
+  name: QueryBuilder
+  nameWithType: QueryBuilder
+  fullName: Ghost.Entities.QueryBuilder
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: QueryBuilder
+    path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+    startLine: 6
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: 'public ref struct QueryBuilder : IDisposable'
+    content.vb: Public Structure QueryBuilder Implements IDisposable
+  implements:
+  - System.IDisposable
+  inheritedMembers:
+  - System.ValueType.Equals(System.Object)
+  - System.ValueType.GetHashCode
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Entities.QueryBuilder.#ctor
+  commentId: M:Ghost.Entities.QueryBuilder.#ctor
+  id: '#ctor'
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: QueryBuilder()
+  nameWithType: QueryBuilder.QueryBuilder()
+  fullName: Ghost.Entities.QueryBuilder.QueryBuilder()
+  type: Constructor
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Query.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: .ctor
+    path: src/Runtime/Ghost.Entities/Query.cs
+    startLine: 490
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public QueryBuilder()
+    content.vb: Public Sub New()
+  overload: Ghost.Entities.QueryBuilder.#ctor*
+  nameWithType.vb: QueryBuilder.New()
+  fullName.vb: Ghost.Entities.QueryBuilder.New()
+  name.vb: New()
+- uid: Ghost.Entities.QueryBuilder.Create
+  commentId: M:Ghost.Entities.QueryBuilder.Create
+  id: Create
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: Create()
+  nameWithType: QueryBuilder.Create()
+  fullName: Ghost.Entities.QueryBuilder.Create()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Query.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Create
+    path: src/Runtime/Ghost.Entities/Query.cs
+    startLine: 504
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public static QueryBuilder Create()
+    return:
+      type: Ghost.Entities.QueryBuilder
+    content.vb: Public Shared Function Create() As QueryBuilder
+  overload: Ghost.Entities.QueryBuilder.Create*
+- uid: Ghost.Entities.QueryBuilder.WithAll(System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}})
+  commentId: M:Ghost.Entities.QueryBuilder.WithAll(System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}})
+  id: WithAll(System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}})
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithAll(params Span<Identifier<IComponent>>)
+  nameWithType: QueryBuilder.WithAll(params Span<Identifier<IComponent>>)
+  fullName: Ghost.Entities.QueryBuilder.WithAll(params System.Span<Ghost.Core.Identifier<Ghost.Entities.IComponent>>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Query.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithAll
+    path: src/Runtime/Ghost.Entities/Query.cs
+    startLine: 518
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public void WithAll(params Span<Identifier<IComponent>> componentIDs)
+    parameters:
+    - id: componentIDs
+      type: System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}}
+    content.vb: Public Sub WithAll(componentIDs As Span(Of Identifier(Of IComponent)))
+  overload: Ghost.Entities.QueryBuilder.WithAll*
+  nameWithType.vb: QueryBuilder.WithAll(Span(Of Identifier(Of IComponent)))
+  fullName.vb: Ghost.Entities.QueryBuilder.WithAll(System.Span(Of Ghost.Core.Identifier(Of Ghost.Entities.IComponent)))
+  name.vb: WithAll(Span(Of Identifier(Of IComponent)))
+- uid: Ghost.Entities.QueryBuilder.WithAny(System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}})
+  commentId: M:Ghost.Entities.QueryBuilder.WithAny(System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}})
+  id: WithAny(System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}})
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithAny(params Span<Identifier<IComponent>>)
+  nameWithType: QueryBuilder.WithAny(params Span<Identifier<IComponent>>)
+  fullName: Ghost.Entities.QueryBuilder.WithAny(params System.Span<Ghost.Core.Identifier<Ghost.Entities.IComponent>>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Query.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithAny
+    path: src/Runtime/Ghost.Entities/Query.cs
+    startLine: 523
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public void WithAny(params Span<Identifier<IComponent>> componentIDs)
+    parameters:
+    - id: componentIDs
+      type: System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}}
+    content.vb: Public Sub WithAny(componentIDs As Span(Of Identifier(Of IComponent)))
+  overload: Ghost.Entities.QueryBuilder.WithAny*
+  nameWithType.vb: QueryBuilder.WithAny(Span(Of Identifier(Of IComponent)))
+  fullName.vb: Ghost.Entities.QueryBuilder.WithAny(System.Span(Of Ghost.Core.Identifier(Of Ghost.Entities.IComponent)))
+  name.vb: WithAny(Span(Of Identifier(Of IComponent)))
+- uid: Ghost.Entities.QueryBuilder.WithAbsent(System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}})
+  commentId: M:Ghost.Entities.QueryBuilder.WithAbsent(System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}})
+  id: WithAbsent(System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}})
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithAbsent(params Span<Identifier<IComponent>>)
+  nameWithType: QueryBuilder.WithAbsent(params Span<Identifier<IComponent>>)
+  fullName: Ghost.Entities.QueryBuilder.WithAbsent(params System.Span<Ghost.Core.Identifier<Ghost.Entities.IComponent>>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Query.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithAbsent
+    path: src/Runtime/Ghost.Entities/Query.cs
+    startLine: 528
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public void WithAbsent(params Span<Identifier<IComponent>> componentIDs)
+    parameters:
+    - id: componentIDs
+      type: System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}}
+    content.vb: Public Sub WithAbsent(componentIDs As Span(Of Identifier(Of IComponent)))
+  overload: Ghost.Entities.QueryBuilder.WithAbsent*
+  nameWithType.vb: QueryBuilder.WithAbsent(Span(Of Identifier(Of IComponent)))
+  fullName.vb: Ghost.Entities.QueryBuilder.WithAbsent(System.Span(Of Ghost.Core.Identifier(Of Ghost.Entities.IComponent)))
+  name.vb: WithAbsent(Span(Of Identifier(Of IComponent)))
+- uid: Ghost.Entities.QueryBuilder.WithNone(System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}})
+  commentId: M:Ghost.Entities.QueryBuilder.WithNone(System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}})
+  id: WithNone(System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}})
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithNone(params Span<Identifier<IComponent>>)
+  nameWithType: QueryBuilder.WithNone(params Span<Identifier<IComponent>>)
+  fullName: Ghost.Entities.QueryBuilder.WithNone(params System.Span<Ghost.Core.Identifier<Ghost.Entities.IComponent>>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Query.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithNone
+    path: src/Runtime/Ghost.Entities/Query.cs
+    startLine: 533
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public void WithNone(params Span<Identifier<IComponent>> componentIDs)
+    parameters:
+    - id: componentIDs
+      type: System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}}
+    content.vb: Public Sub WithNone(componentIDs As Span(Of Identifier(Of IComponent)))
+  overload: Ghost.Entities.QueryBuilder.WithNone*
+  nameWithType.vb: QueryBuilder.WithNone(Span(Of Identifier(Of IComponent)))
+  fullName.vb: Ghost.Entities.QueryBuilder.WithNone(System.Span(Of Ghost.Core.Identifier(Of Ghost.Entities.IComponent)))
+  name.vb: WithNone(Span(Of Identifier(Of IComponent)))
+- uid: Ghost.Entities.QueryBuilder.WithDisabled(System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}})
+  commentId: M:Ghost.Entities.QueryBuilder.WithDisabled(System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}})
+  id: WithDisabled(System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}})
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithDisabled(params Span<Identifier<IComponent>>)
+  nameWithType: QueryBuilder.WithDisabled(params Span<Identifier<IComponent>>)
+  fullName: Ghost.Entities.QueryBuilder.WithDisabled(params System.Span<Ghost.Core.Identifier<Ghost.Entities.IComponent>>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Query.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithDisabled
+    path: src/Runtime/Ghost.Entities/Query.cs
+    startLine: 538
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public void WithDisabled(params Span<Identifier<IComponent>> componentIDs)
+    parameters:
+    - id: componentIDs
+      type: System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}}
+    content.vb: Public Sub WithDisabled(componentIDs As Span(Of Identifier(Of IComponent)))
+  overload: Ghost.Entities.QueryBuilder.WithDisabled*
+  nameWithType.vb: QueryBuilder.WithDisabled(Span(Of Identifier(Of IComponent)))
+  fullName.vb: Ghost.Entities.QueryBuilder.WithDisabled(System.Span(Of Ghost.Core.Identifier(Of Ghost.Entities.IComponent)))
+  name.vb: WithDisabled(Span(Of Identifier(Of IComponent)))
+- uid: Ghost.Entities.QueryBuilder.WithPresent(System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}})
+  commentId: M:Ghost.Entities.QueryBuilder.WithPresent(System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}})
+  id: WithPresent(System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}})
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithPresent(params Span<Identifier<IComponent>>)
+  nameWithType: QueryBuilder.WithPresent(params Span<Identifier<IComponent>>)
+  fullName: Ghost.Entities.QueryBuilder.WithPresent(params System.Span<Ghost.Core.Identifier<Ghost.Entities.IComponent>>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Query.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithPresent
+    path: src/Runtime/Ghost.Entities/Query.cs
+    startLine: 543
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public void WithPresent(params Span<Identifier<IComponent>> componentIDs)
+    parameters:
+    - id: componentIDs
+      type: System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}}
+    content.vb: Public Sub WithPresent(componentIDs As Span(Of Identifier(Of IComponent)))
+  overload: Ghost.Entities.QueryBuilder.WithPresent*
+  nameWithType.vb: QueryBuilder.WithPresent(Span(Of Identifier(Of IComponent)))
+  fullName.vb: Ghost.Entities.QueryBuilder.WithPresent(System.Span(Of Ghost.Core.Identifier(Of Ghost.Entities.IComponent)))
+  name.vb: WithPresent(Span(Of Identifier(Of IComponent)))
+- uid: Ghost.Entities.QueryBuilder.WithPresentRW(System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}})
+  commentId: M:Ghost.Entities.QueryBuilder.WithPresentRW(System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}})
+  id: WithPresentRW(System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}})
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithPresentRW(params Span<Identifier<IComponent>>)
+  nameWithType: QueryBuilder.WithPresentRW(params Span<Identifier<IComponent>>)
+  fullName: Ghost.Entities.QueryBuilder.WithPresentRW(params System.Span<Ghost.Core.Identifier<Ghost.Entities.IComponent>>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Query.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithPresentRW
+    path: src/Runtime/Ghost.Entities/Query.cs
+    startLine: 548
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public void WithPresentRW(params Span<Identifier<IComponent>> componentIDs)
+    parameters:
+    - id: componentIDs
+      type: System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}}
+    content.vb: Public Sub WithPresentRW(componentIDs As Span(Of Identifier(Of IComponent)))
+  overload: Ghost.Entities.QueryBuilder.WithPresentRW*
+  nameWithType.vb: QueryBuilder.WithPresentRW(Span(Of Identifier(Of IComponent)))
+  fullName.vb: Ghost.Entities.QueryBuilder.WithPresentRW(System.Span(Of Ghost.Core.Identifier(Of Ghost.Entities.IComponent)))
+  name.vb: WithPresentRW(Span(Of Identifier(Of IComponent)))
+- uid: Ghost.Entities.QueryBuilder.BuildWithoutCache(Ghost.Entities.World,Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle,System.Boolean)
+  commentId: M:Ghost.Entities.QueryBuilder.BuildWithoutCache(Ghost.Entities.World,Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle,System.Boolean)
+  id: BuildWithoutCache(Ghost.Entities.World,Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle,System.Boolean)
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: BuildWithoutCache(World, AllocationHandle, bool)
+  nameWithType: QueryBuilder.BuildWithoutCache(World, AllocationHandle, bool)
+  fullName: Ghost.Entities.QueryBuilder.BuildWithoutCache(Ghost.Entities.World, Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle, bool)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Query.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: BuildWithoutCache
+    path: src/Runtime/Ghost.Entities/Query.cs
+    startLine: 624
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public EntityQuery BuildWithoutCache(World world, AllocationHandle allocationHandle, bool dispose = true)
+    parameters:
+    - id: world
+      type: Ghost.Entities.World
+    - id: allocationHandle
+      type: Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle
+    - id: dispose
+      type: System.Boolean
+    return:
+      type: Ghost.Entities.EntityQuery
+    content.vb: Public Function BuildWithoutCache(world As World, allocationHandle As AllocationHandle, dispose As Boolean = True) As EntityQuery
+  overload: Ghost.Entities.QueryBuilder.BuildWithoutCache*
+  nameWithType.vb: QueryBuilder.BuildWithoutCache(World, AllocationHandle, Boolean)
+  fullName.vb: Ghost.Entities.QueryBuilder.BuildWithoutCache(Ghost.Entities.World, Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle, Boolean)
+  name.vb: BuildWithoutCache(World, AllocationHandle, Boolean)
+- uid: Ghost.Entities.QueryBuilder.Build(Ghost.Entities.World,System.Boolean)
+  commentId: M:Ghost.Entities.QueryBuilder.Build(Ghost.Entities.World,System.Boolean)
+  id: Build(Ghost.Entities.World,System.Boolean)
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: Build(World, bool)
+  nameWithType: QueryBuilder.Build(World, bool)
+  fullName: Ghost.Entities.QueryBuilder.Build(Ghost.Entities.World, bool)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Query.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Build
+    path: src/Runtime/Ghost.Entities/Query.cs
+    startLine: 642
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public Identifier<EntityQuery> Build(World world, bool dispose = true)
+    parameters:
+    - id: world
+      type: Ghost.Entities.World
+    - id: dispose
+      type: System.Boolean
+    return:
+      type: Ghost.Core.Identifier{Ghost.Entities.EntityQuery}
+    content.vb: Public Function Build(world As World, dispose As Boolean = True) As Identifier(Of EntityQuery)
+  overload: Ghost.Entities.QueryBuilder.Build*
+  nameWithType.vb: QueryBuilder.Build(World, Boolean)
+  fullName.vb: Ghost.Entities.QueryBuilder.Build(Ghost.Entities.World, Boolean)
+  name.vb: Build(World, Boolean)
+- uid: Ghost.Entities.QueryBuilder.Clear
+  commentId: M:Ghost.Entities.QueryBuilder.Clear
+  id: Clear
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: Clear()
+  nameWithType: QueryBuilder.Clear()
+  fullName: Ghost.Entities.QueryBuilder.Clear()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Query.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Clear
+    path: src/Runtime/Ghost.Entities/Query.cs
+    startLine: 671
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public void Clear()
+    content.vb: Public Sub Clear()
+  overload: Ghost.Entities.QueryBuilder.Clear*
+- uid: Ghost.Entities.QueryBuilder.Dispose
+  commentId: M:Ghost.Entities.QueryBuilder.Dispose
+  id: Dispose
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: Dispose()
+  nameWithType: QueryBuilder.Dispose()
+  fullName: Ghost.Entities.QueryBuilder.Dispose()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Query.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Dispose
+    path: src/Runtime/Ghost.Entities/Query.cs
+    startLine: 682
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+  example: []
+  syntax:
+    content: public readonly void Dispose()
+    content.vb: Public Sub Dispose()
+  overload: Ghost.Entities.QueryBuilder.Dispose*
+  implements:
+  - System.IDisposable.Dispose
+- uid: Ghost.Entities.QueryBuilder.WithAll``1
+  commentId: M:Ghost.Entities.QueryBuilder.WithAll``1
+  id: WithAll``1
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithAll<T0>()
+  nameWithType: QueryBuilder.WithAll<T0>()
+  fullName: Ghost.Entities.QueryBuilder.WithAll<T0>()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithAll
+    path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+    startLine: 12
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: >-
+    Adds the specified component type(s) to the 'All' filter of the query.
+
+    Targets entities that have all of the specified component types and those component(s) must be enabled.
+  example: []
+  syntax:
+    content: >-
+      [UnscopedRef]
+
+      public ref QueryBuilder WithAll<T0>() where T0 : unmanaged, IComponent
+    typeParameters:
+    - id: T0
+    return:
+      type: Ghost.Entities.QueryBuilder
+    content.vb: >-
+      <UnscopedRef>
+
+      Public ByRef Function WithAll(Of T0 As {Structure, IComponent})() As QueryBuilder
+  overload: Ghost.Entities.QueryBuilder.WithAll*
+  attributes:
+  - type: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute
+    ctor: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute.#ctor
+    arguments: []
+  nameWithType.vb: QueryBuilder.WithAll(Of T0)()
+  fullName.vb: Ghost.Entities.QueryBuilder.WithAll(Of T0)()
+  name.vb: WithAll(Of T0)()
+- uid: Ghost.Entities.QueryBuilder.WithAllRW``1
+  commentId: M:Ghost.Entities.QueryBuilder.WithAllRW``1
+  id: WithAllRW``1
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithAllRW<T0>()
+  nameWithType: QueryBuilder.WithAllRW<T0>()
+  fullName: Ghost.Entities.QueryBuilder.WithAllRW<T0>()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithAllRW
+    path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+    startLine: 26
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: >-
+    Adds the specified component type(s) to the 'All' filter of the query and requires read-write access.
+
+    Targets entities that have all of the specified component types and those component(s) must be enabled.
+  example: []
+  syntax:
+    content: >-
+      [UnscopedRef]
+
+      public ref QueryBuilder WithAllRW<T0>() where T0 : unmanaged, IComponent
+    typeParameters:
+    - id: T0
+    return:
+      type: Ghost.Entities.QueryBuilder
+    content.vb: >-
+      <UnscopedRef>
+
+      Public ByRef Function WithAllRW(Of T0 As {Structure, IComponent})() As QueryBuilder
+  overload: Ghost.Entities.QueryBuilder.WithAllRW*
+  attributes:
+  - type: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute
+    ctor: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute.#ctor
+    arguments: []
+  nameWithType.vb: QueryBuilder.WithAllRW(Of T0)()
+  fullName.vb: Ghost.Entities.QueryBuilder.WithAllRW(Of T0)()
+  name.vb: WithAllRW(Of T0)()
+- uid: Ghost.Entities.QueryBuilder.WithAny``1
+  commentId: M:Ghost.Entities.QueryBuilder.WithAny``1
+  id: WithAny``1
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithAny<T0>()
+  nameWithType: QueryBuilder.WithAny<T0>()
+  fullName: Ghost.Entities.QueryBuilder.WithAny<T0>()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithAny
+    path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+    startLine: 41
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: >-
+    Adds the specified component type(s) to the 'Any' filter of the query.
+
+    Targets entities that have at least one of the specified component types and those component(s) must be enabled.
+  example: []
+  syntax:
+    content: >-
+      [UnscopedRef]
+
+      public ref QueryBuilder WithAny<T0>() where T0 : unmanaged, IComponent
+    typeParameters:
+    - id: T0
+    return:
+      type: Ghost.Entities.QueryBuilder
+    content.vb: >-
+      <UnscopedRef>
+
+      Public ByRef Function WithAny(Of T0 As {Structure, IComponent})() As QueryBuilder
+  overload: Ghost.Entities.QueryBuilder.WithAny*
+  attributes:
+  - type: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute
+    ctor: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute.#ctor
+    arguments: []
+  nameWithType.vb: QueryBuilder.WithAny(Of T0)()
+  fullName.vb: Ghost.Entities.QueryBuilder.WithAny(Of T0)()
+  name.vb: WithAny(Of T0)()
+- uid: Ghost.Entities.QueryBuilder.WithAbsent``1
+  commentId: M:Ghost.Entities.QueryBuilder.WithAbsent``1
+  id: WithAbsent``1
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithAbsent<T0>()
+  nameWithType: QueryBuilder.WithAbsent<T0>()
+  fullName: Ghost.Entities.QueryBuilder.WithAbsent<T0>()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithAbsent
+    path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+    startLine: 55
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: >-
+    Adds the specified component type(s) to the 'Absent' filter of the query.
+
+    Targets entities that do not have any of the specified component types.
+  example: []
+  syntax:
+    content: >-
+      [UnscopedRef]
+
+      public ref QueryBuilder WithAbsent<T0>() where T0 : unmanaged, IComponent
+    typeParameters:
+    - id: T0
+    return:
+      type: Ghost.Entities.QueryBuilder
+    content.vb: >-
+      <UnscopedRef>
+
+      Public ByRef Function WithAbsent(Of T0 As {Structure, IComponent})() As QueryBuilder
+  overload: Ghost.Entities.QueryBuilder.WithAbsent*
+  attributes:
+  - type: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute
+    ctor: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute.#ctor
+    arguments: []
+  nameWithType.vb: QueryBuilder.WithAbsent(Of T0)()
+  fullName.vb: Ghost.Entities.QueryBuilder.WithAbsent(Of T0)()
+  name.vb: WithAbsent(Of T0)()
+- uid: Ghost.Entities.QueryBuilder.WithNone``1
+  commentId: M:Ghost.Entities.QueryBuilder.WithNone``1
+  id: WithNone``1
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithNone<T0>()
+  nameWithType: QueryBuilder.WithNone<T0>()
+  fullName: Ghost.Entities.QueryBuilder.WithNone<T0>()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithNone
+    path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+    startLine: 69
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: >-
+    Adds the specified component type(s) to the 'None' filter of the query.
+
+    Targets entities that do not have any of the specified component types, or those component(s) are disabled.
+  example: []
+  syntax:
+    content: >-
+      [UnscopedRef]
+
+      public ref QueryBuilder WithNone<T0>() where T0 : unmanaged, IComponent
+    typeParameters:
+    - id: T0
+    return:
+      type: Ghost.Entities.QueryBuilder
+    content.vb: >-
+      <UnscopedRef>
+
+      Public ByRef Function WithNone(Of T0 As {Structure, IComponent})() As QueryBuilder
+  overload: Ghost.Entities.QueryBuilder.WithNone*
+  attributes:
+  - type: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute
+    ctor: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute.#ctor
+    arguments: []
+  nameWithType.vb: QueryBuilder.WithNone(Of T0)()
+  fullName.vb: Ghost.Entities.QueryBuilder.WithNone(Of T0)()
+  name.vb: WithNone(Of T0)()
+- uid: Ghost.Entities.QueryBuilder.WithDisabled``1
+  commentId: M:Ghost.Entities.QueryBuilder.WithDisabled``1
+  id: WithDisabled``1
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithDisabled<T0>()
+  nameWithType: QueryBuilder.WithDisabled<T0>()
+  fullName: Ghost.Entities.QueryBuilder.WithDisabled<T0>()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithDisabled
+    path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+    startLine: 83
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: >-
+    Adds the specified component type(s) to the 'Disabled' filter of the query.
+
+    Targets entities that have all of the specified component types and those component(s) are disabled.
+  example: []
+  syntax:
+    content: >-
+      [UnscopedRef]
+
+      public ref QueryBuilder WithDisabled<T0>() where T0 : unmanaged, IEnableableComponent
+    typeParameters:
+    - id: T0
+    return:
+      type: Ghost.Entities.QueryBuilder
+    content.vb: >-
+      <UnscopedRef>
+
+      Public ByRef Function WithDisabled(Of T0 As {Structure, IEnableableComponent})() As QueryBuilder
+  overload: Ghost.Entities.QueryBuilder.WithDisabled*
+  attributes:
+  - type: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute
+    ctor: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute.#ctor
+    arguments: []
+  nameWithType.vb: QueryBuilder.WithDisabled(Of T0)()
+  fullName.vb: Ghost.Entities.QueryBuilder.WithDisabled(Of T0)()
+  name.vb: WithDisabled(Of T0)()
+- uid: Ghost.Entities.QueryBuilder.WithPresent``1
+  commentId: M:Ghost.Entities.QueryBuilder.WithPresent``1
+  id: WithPresent``1
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithPresent<T0>()
+  nameWithType: QueryBuilder.WithPresent<T0>()
+  fullName: Ghost.Entities.QueryBuilder.WithPresent<T0>()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithPresent
+    path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+    startLine: 97
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: >-
+    Adds the specified component type(s) to the 'Present' filter of the query.
+
+    Targets entities that have all of the specified component types, regardless of whether those component(s) are enabled or disabled.
+  example: []
+  syntax:
+    content: >-
+      [UnscopedRef]
+
+      public ref QueryBuilder WithPresent<T0>() where T0 : unmanaged, IComponent
+    typeParameters:
+    - id: T0
+    return:
+      type: Ghost.Entities.QueryBuilder
+    content.vb: >-
+      <UnscopedRef>
+
+      Public ByRef Function WithPresent(Of T0 As {Structure, IComponent})() As QueryBuilder
+  overload: Ghost.Entities.QueryBuilder.WithPresent*
+  attributes:
+  - type: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute
+    ctor: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute.#ctor
+    arguments: []
+  nameWithType.vb: QueryBuilder.WithPresent(Of T0)()
+  fullName.vb: Ghost.Entities.QueryBuilder.WithPresent(Of T0)()
+  name.vb: WithPresent(Of T0)()
+- uid: Ghost.Entities.QueryBuilder.WithPresentRW``1
+  commentId: M:Ghost.Entities.QueryBuilder.WithPresentRW``1
+  id: WithPresentRW``1
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithPresentRW<T0>()
+  nameWithType: QueryBuilder.WithPresentRW<T0>()
+  fullName: Ghost.Entities.QueryBuilder.WithPresentRW<T0>()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithPresentRW
+    path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+    startLine: 111
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: >-
+    Adds the specified component type(s) to the 'Present' filter of the query and requires read-write access.
+
+    Targets entities that have all of the specified component types, regardless of whether those component(s) are enabled or disabled.
+  example: []
+  syntax:
+    content: >-
+      [UnscopedRef]
+
+      public ref QueryBuilder WithPresentRW<T0>() where T0 : unmanaged, IComponent
+    typeParameters:
+    - id: T0
+    return:
+      type: Ghost.Entities.QueryBuilder
+    content.vb: >-
+      <UnscopedRef>
+
+      Public ByRef Function WithPresentRW(Of T0 As {Structure, IComponent})() As QueryBuilder
+  overload: Ghost.Entities.QueryBuilder.WithPresentRW*
+  attributes:
+  - type: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute
+    ctor: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute.#ctor
+    arguments: []
+  nameWithType.vb: QueryBuilder.WithPresentRW(Of T0)()
+  fullName.vb: Ghost.Entities.QueryBuilder.WithPresentRW(Of T0)()
+  name.vb: WithPresentRW(Of T0)()
+- uid: Ghost.Entities.QueryBuilder.WithAll``2
+  commentId: M:Ghost.Entities.QueryBuilder.WithAll``2
+  id: WithAll``2
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithAll<T0, T1>()
+  nameWithType: QueryBuilder.WithAll<T0, T1>()
+  fullName: Ghost.Entities.QueryBuilder.WithAll<T0, T1>()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithAll
+    path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+    startLine: 126
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: >-
+    Adds the specified component type(s) to the 'All' filter of the query.
+
+    Targets entities that have all of the specified component types and those component(s) must be enabled.
+  example: []
+  syntax:
+    content: >-
+      [UnscopedRef]
+
+      public ref QueryBuilder WithAll<T0, T1>() where T0 : unmanaged, IComponent where T1 : unmanaged, IComponent
+    typeParameters:
+    - id: T0
+    - id: T1
+    return:
+      type: Ghost.Entities.QueryBuilder
+    content.vb: >-
+      <UnscopedRef>
+
+      Public ByRef Function WithAll(Of T0 As {Structure, IComponent}, T1 As {Structure, IComponent})() As QueryBuilder
+  overload: Ghost.Entities.QueryBuilder.WithAll*
+  attributes:
+  - type: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute
+    ctor: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute.#ctor
+    arguments: []
+  nameWithType.vb: QueryBuilder.WithAll(Of T0, T1)()
+  fullName.vb: Ghost.Entities.QueryBuilder.WithAll(Of T0, T1)()
+  name.vb: WithAll(Of T0, T1)()
+- uid: Ghost.Entities.QueryBuilder.WithAllRW``2
+  commentId: M:Ghost.Entities.QueryBuilder.WithAllRW``2
+  id: WithAllRW``2
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithAllRW<T0, T1>()
+  nameWithType: QueryBuilder.WithAllRW<T0, T1>()
+  fullName: Ghost.Entities.QueryBuilder.WithAllRW<T0, T1>()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithAllRW
+    path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+    startLine: 142
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: >-
+    Adds the specified component type(s) to the 'All' filter of the query and requires read-write access.
+
+    Targets entities that have all of the specified component types and those component(s) must be enabled.
+  example: []
+  syntax:
+    content: >-
+      [UnscopedRef]
+
+      public ref QueryBuilder WithAllRW<T0, T1>() where T0 : unmanaged, IComponent where T1 : unmanaged, IComponent
+    typeParameters:
+    - id: T0
+    - id: T1
+    return:
+      type: Ghost.Entities.QueryBuilder
+    content.vb: >-
+      <UnscopedRef>
+
+      Public ByRef Function WithAllRW(Of T0 As {Structure, IComponent}, T1 As {Structure, IComponent})() As QueryBuilder
+  overload: Ghost.Entities.QueryBuilder.WithAllRW*
+  attributes:
+  - type: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute
+    ctor: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute.#ctor
+    arguments: []
+  nameWithType.vb: QueryBuilder.WithAllRW(Of T0, T1)()
+  fullName.vb: Ghost.Entities.QueryBuilder.WithAllRW(Of T0, T1)()
+  name.vb: WithAllRW(Of T0, T1)()
+- uid: Ghost.Entities.QueryBuilder.WithAny``2
+  commentId: M:Ghost.Entities.QueryBuilder.WithAny``2
+  id: WithAny``2
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithAny<T0, T1>()
+  nameWithType: QueryBuilder.WithAny<T0, T1>()
+  fullName: Ghost.Entities.QueryBuilder.WithAny<T0, T1>()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithAny
+    path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+    startLine: 160
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: >-
+    Adds the specified component type(s) to the 'Any' filter of the query.
+
+    Targets entities that have at least one of the specified component types and those component(s) must be enabled.
+  example: []
+  syntax:
+    content: >-
+      [UnscopedRef]
+
+      public ref QueryBuilder WithAny<T0, T1>() where T0 : unmanaged, IComponent where T1 : unmanaged, IComponent
+    typeParameters:
+    - id: T0
+    - id: T1
+    return:
+      type: Ghost.Entities.QueryBuilder
+    content.vb: >-
+      <UnscopedRef>
+
+      Public ByRef Function WithAny(Of T0 As {Structure, IComponent}, T1 As {Structure, IComponent})() As QueryBuilder
+  overload: Ghost.Entities.QueryBuilder.WithAny*
+  attributes:
+  - type: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute
+    ctor: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute.#ctor
+    arguments: []
+  nameWithType.vb: QueryBuilder.WithAny(Of T0, T1)()
+  fullName.vb: Ghost.Entities.QueryBuilder.WithAny(Of T0, T1)()
+  name.vb: WithAny(Of T0, T1)()
+- uid: Ghost.Entities.QueryBuilder.WithAbsent``2
+  commentId: M:Ghost.Entities.QueryBuilder.WithAbsent``2
+  id: WithAbsent``2
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithAbsent<T0, T1>()
+  nameWithType: QueryBuilder.WithAbsent<T0, T1>()
+  fullName: Ghost.Entities.QueryBuilder.WithAbsent<T0, T1>()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithAbsent
+    path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+    startLine: 176
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: >-
+    Adds the specified component type(s) to the 'Absent' filter of the query.
+
+    Targets entities that do not have any of the specified component types.
+  example: []
+  syntax:
+    content: >-
+      [UnscopedRef]
+
+      public ref QueryBuilder WithAbsent<T0, T1>() where T0 : unmanaged, IComponent where T1 : unmanaged, IComponent
+    typeParameters:
+    - id: T0
+    - id: T1
+    return:
+      type: Ghost.Entities.QueryBuilder
+    content.vb: >-
+      <UnscopedRef>
+
+      Public ByRef Function WithAbsent(Of T0 As {Structure, IComponent}, T1 As {Structure, IComponent})() As QueryBuilder
+  overload: Ghost.Entities.QueryBuilder.WithAbsent*
+  attributes:
+  - type: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute
+    ctor: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute.#ctor
+    arguments: []
+  nameWithType.vb: QueryBuilder.WithAbsent(Of T0, T1)()
+  fullName.vb: Ghost.Entities.QueryBuilder.WithAbsent(Of T0, T1)()
+  name.vb: WithAbsent(Of T0, T1)()
+- uid: Ghost.Entities.QueryBuilder.WithNone``2
+  commentId: M:Ghost.Entities.QueryBuilder.WithNone``2
+  id: WithNone``2
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithNone<T0, T1>()
+  nameWithType: QueryBuilder.WithNone<T0, T1>()
+  fullName: Ghost.Entities.QueryBuilder.WithNone<T0, T1>()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithNone
+    path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+    startLine: 192
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: >-
+    Adds the specified component type(s) to the 'None' filter of the query.
+
+    Targets entities that do not have any of the specified component types, or those component(s) are disabled.
+  example: []
+  syntax:
+    content: >-
+      [UnscopedRef]
+
+      public ref QueryBuilder WithNone<T0, T1>() where T0 : unmanaged, IComponent where T1 : unmanaged, IComponent
+    typeParameters:
+    - id: T0
+    - id: T1
+    return:
+      type: Ghost.Entities.QueryBuilder
+    content.vb: >-
+      <UnscopedRef>
+
+      Public ByRef Function WithNone(Of T0 As {Structure, IComponent}, T1 As {Structure, IComponent})() As QueryBuilder
+  overload: Ghost.Entities.QueryBuilder.WithNone*
+  attributes:
+  - type: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute
+    ctor: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute.#ctor
+    arguments: []
+  nameWithType.vb: QueryBuilder.WithNone(Of T0, T1)()
+  fullName.vb: Ghost.Entities.QueryBuilder.WithNone(Of T0, T1)()
+  name.vb: WithNone(Of T0, T1)()
+- uid: Ghost.Entities.QueryBuilder.WithDisabled``2
+  commentId: M:Ghost.Entities.QueryBuilder.WithDisabled``2
+  id: WithDisabled``2
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithDisabled<T0, T1>()
+  nameWithType: QueryBuilder.WithDisabled<T0, T1>()
+  fullName: Ghost.Entities.QueryBuilder.WithDisabled<T0, T1>()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithDisabled
+    path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+    startLine: 208
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: >-
+    Adds the specified component type(s) to the 'Disabled' filter of the query.
+
+    Targets entities that have all of the specified component types and those component(s) are disabled.
+  example: []
+  syntax:
+    content: >-
+      [UnscopedRef]
+
+      public ref QueryBuilder WithDisabled<T0, T1>() where T0 : unmanaged, IEnableableComponent where T1 : unmanaged, IEnableableComponent
+    typeParameters:
+    - id: T0
+    - id: T1
+    return:
+      type: Ghost.Entities.QueryBuilder
+    content.vb: >-
+      <UnscopedRef>
+
+      Public ByRef Function WithDisabled(Of T0 As {Structure, IEnableableComponent}, T1 As {Structure, IEnableableComponent})() As QueryBuilder
+  overload: Ghost.Entities.QueryBuilder.WithDisabled*
+  attributes:
+  - type: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute
+    ctor: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute.#ctor
+    arguments: []
+  nameWithType.vb: QueryBuilder.WithDisabled(Of T0, T1)()
+  fullName.vb: Ghost.Entities.QueryBuilder.WithDisabled(Of T0, T1)()
+  name.vb: WithDisabled(Of T0, T1)()
+- uid: Ghost.Entities.QueryBuilder.WithPresent``2
+  commentId: M:Ghost.Entities.QueryBuilder.WithPresent``2
+  id: WithPresent``2
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithPresent<T0, T1>()
+  nameWithType: QueryBuilder.WithPresent<T0, T1>()
+  fullName: Ghost.Entities.QueryBuilder.WithPresent<T0, T1>()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithPresent
+    path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+    startLine: 224
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: >-
+    Adds the specified component type(s) to the 'Present' filter of the query.
+
+    Targets entities that have all of the specified component types, regardless of whether those component(s) are enabled or disabled.
+  example: []
+  syntax:
+    content: >-
+      [UnscopedRef]
+
+      public ref QueryBuilder WithPresent<T0, T1>() where T0 : unmanaged, IComponent where T1 : unmanaged, IComponent
+    typeParameters:
+    - id: T0
+    - id: T1
+    return:
+      type: Ghost.Entities.QueryBuilder
+    content.vb: >-
+      <UnscopedRef>
+
+      Public ByRef Function WithPresent(Of T0 As {Structure, IComponent}, T1 As {Structure, IComponent})() As QueryBuilder
+  overload: Ghost.Entities.QueryBuilder.WithPresent*
+  attributes:
+  - type: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute
+    ctor: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute.#ctor
+    arguments: []
+  nameWithType.vb: QueryBuilder.WithPresent(Of T0, T1)()
+  fullName.vb: Ghost.Entities.QueryBuilder.WithPresent(Of T0, T1)()
+  name.vb: WithPresent(Of T0, T1)()
+- uid: Ghost.Entities.QueryBuilder.WithPresentRW``2
+  commentId: M:Ghost.Entities.QueryBuilder.WithPresentRW``2
+  id: WithPresentRW``2
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithPresentRW<T0, T1>()
+  nameWithType: QueryBuilder.WithPresentRW<T0, T1>()
+  fullName: Ghost.Entities.QueryBuilder.WithPresentRW<T0, T1>()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithPresentRW
+    path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+    startLine: 240
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: >-
+    Adds the specified component type(s) to the 'Present' filter of the query and requires read-write access.
+
+    Targets entities that have all of the specified component types, regardless of whether those component(s) are enabled or disabled.
+  example: []
+  syntax:
+    content: >-
+      [UnscopedRef]
+
+      public ref QueryBuilder WithPresentRW<T0, T1>() where T0 : unmanaged, IComponent where T1 : unmanaged, IComponent
+    typeParameters:
+    - id: T0
+    - id: T1
+    return:
+      type: Ghost.Entities.QueryBuilder
+    content.vb: >-
+      <UnscopedRef>
+
+      Public ByRef Function WithPresentRW(Of T0 As {Structure, IComponent}, T1 As {Structure, IComponent})() As QueryBuilder
+  overload: Ghost.Entities.QueryBuilder.WithPresentRW*
+  attributes:
+  - type: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute
+    ctor: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute.#ctor
+    arguments: []
+  nameWithType.vb: QueryBuilder.WithPresentRW(Of T0, T1)()
+  fullName.vb: Ghost.Entities.QueryBuilder.WithPresentRW(Of T0, T1)()
+  name.vb: WithPresentRW(Of T0, T1)()
+- uid: Ghost.Entities.QueryBuilder.WithAll``3
+  commentId: M:Ghost.Entities.QueryBuilder.WithAll``3
+  id: WithAll``3
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithAll<T0, T1, T2>()
+  nameWithType: QueryBuilder.WithAll<T0, T1, T2>()
+  fullName: Ghost.Entities.QueryBuilder.WithAll<T0, T1, T2>()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithAll
+    path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+    startLine: 258
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: >-
+    Adds the specified component type(s) to the 'All' filter of the query.
+
+    Targets entities that have all of the specified component types and those component(s) must be enabled.
+  example: []
+  syntax:
+    content: >-
+      [UnscopedRef]
+
+      public ref QueryBuilder WithAll<T0, T1, T2>() where T0 : unmanaged, IComponent where T1 : unmanaged, IComponent where T2 : unmanaged, IComponent
+    typeParameters:
+    - id: T0
+    - id: T1
+    - id: T2
+    return:
+      type: Ghost.Entities.QueryBuilder
+    content.vb: >-
+      <UnscopedRef>
+
+      Public ByRef Function WithAll(Of T0 As {Structure, IComponent}, T1 As {Structure, IComponent}, T2 As {Structure, IComponent})() As QueryBuilder
+  overload: Ghost.Entities.QueryBuilder.WithAll*
+  attributes:
+  - type: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute
+    ctor: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute.#ctor
+    arguments: []
+  nameWithType.vb: QueryBuilder.WithAll(Of T0, T1, T2)()
+  fullName.vb: Ghost.Entities.QueryBuilder.WithAll(Of T0, T1, T2)()
+  name.vb: WithAll(Of T0, T1, T2)()
+- uid: Ghost.Entities.QueryBuilder.WithAllRW``3
+  commentId: M:Ghost.Entities.QueryBuilder.WithAllRW``3
+  id: WithAllRW``3
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithAllRW<T0, T1, T2>()
+  nameWithType: QueryBuilder.WithAllRW<T0, T1, T2>()
+  fullName: Ghost.Entities.QueryBuilder.WithAllRW<T0, T1, T2>()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithAllRW
+    path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+    startLine: 276
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: >-
+    Adds the specified component type(s) to the 'All' filter of the query and requires read-write access.
+
+    Targets entities that have all of the specified component types and those component(s) must be enabled.
+  example: []
+  syntax:
+    content: >-
+      [UnscopedRef]
+
+      public ref QueryBuilder WithAllRW<T0, T1, T2>() where T0 : unmanaged, IComponent where T1 : unmanaged, IComponent where T2 : unmanaged, IComponent
+    typeParameters:
+    - id: T0
+    - id: T1
+    - id: T2
+    return:
+      type: Ghost.Entities.QueryBuilder
+    content.vb: >-
+      <UnscopedRef>
+
+      Public ByRef Function WithAllRW(Of T0 As {Structure, IComponent}, T1 As {Structure, IComponent}, T2 As {Structure, IComponent})() As QueryBuilder
+  overload: Ghost.Entities.QueryBuilder.WithAllRW*
+  attributes:
+  - type: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute
+    ctor: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute.#ctor
+    arguments: []
+  nameWithType.vb: QueryBuilder.WithAllRW(Of T0, T1, T2)()
+  fullName.vb: Ghost.Entities.QueryBuilder.WithAllRW(Of T0, T1, T2)()
+  name.vb: WithAllRW(Of T0, T1, T2)()
+- uid: Ghost.Entities.QueryBuilder.WithAny``3
+  commentId: M:Ghost.Entities.QueryBuilder.WithAny``3
+  id: WithAny``3
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithAny<T0, T1, T2>()
+  nameWithType: QueryBuilder.WithAny<T0, T1, T2>()
+  fullName: Ghost.Entities.QueryBuilder.WithAny<T0, T1, T2>()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithAny
+    path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+    startLine: 297
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: >-
+    Adds the specified component type(s) to the 'Any' filter of the query.
+
+    Targets entities that have at least one of the specified component types and those component(s) must be enabled.
+  example: []
+  syntax:
+    content: >-
+      [UnscopedRef]
+
+      public ref QueryBuilder WithAny<T0, T1, T2>() where T0 : unmanaged, IComponent where T1 : unmanaged, IComponent where T2 : unmanaged, IComponent
+    typeParameters:
+    - id: T0
+    - id: T1
+    - id: T2
+    return:
+      type: Ghost.Entities.QueryBuilder
+    content.vb: >-
+      <UnscopedRef>
+
+      Public ByRef Function WithAny(Of T0 As {Structure, IComponent}, T1 As {Structure, IComponent}, T2 As {Structure, IComponent})() As QueryBuilder
+  overload: Ghost.Entities.QueryBuilder.WithAny*
+  attributes:
+  - type: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute
+    ctor: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute.#ctor
+    arguments: []
+  nameWithType.vb: QueryBuilder.WithAny(Of T0, T1, T2)()
+  fullName.vb: Ghost.Entities.QueryBuilder.WithAny(Of T0, T1, T2)()
+  name.vb: WithAny(Of T0, T1, T2)()
+- uid: Ghost.Entities.QueryBuilder.WithAbsent``3
+  commentId: M:Ghost.Entities.QueryBuilder.WithAbsent``3
+  id: WithAbsent``3
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithAbsent<T0, T1, T2>()
+  nameWithType: QueryBuilder.WithAbsent<T0, T1, T2>()
+  fullName: Ghost.Entities.QueryBuilder.WithAbsent<T0, T1, T2>()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithAbsent
+    path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+    startLine: 315
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: >-
+    Adds the specified component type(s) to the 'Absent' filter of the query.
+
+    Targets entities that do not have any of the specified component types.
+  example: []
+  syntax:
+    content: >-
+      [UnscopedRef]
+
+      public ref QueryBuilder WithAbsent<T0, T1, T2>() where T0 : unmanaged, IComponent where T1 : unmanaged, IComponent where T2 : unmanaged, IComponent
+    typeParameters:
+    - id: T0
+    - id: T1
+    - id: T2
+    return:
+      type: Ghost.Entities.QueryBuilder
+    content.vb: >-
+      <UnscopedRef>
+
+      Public ByRef Function WithAbsent(Of T0 As {Structure, IComponent}, T1 As {Structure, IComponent}, T2 As {Structure, IComponent})() As QueryBuilder
+  overload: Ghost.Entities.QueryBuilder.WithAbsent*
+  attributes:
+  - type: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute
+    ctor: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute.#ctor
+    arguments: []
+  nameWithType.vb: QueryBuilder.WithAbsent(Of T0, T1, T2)()
+  fullName.vb: Ghost.Entities.QueryBuilder.WithAbsent(Of T0, T1, T2)()
+  name.vb: WithAbsent(Of T0, T1, T2)()
+- uid: Ghost.Entities.QueryBuilder.WithNone``3
+  commentId: M:Ghost.Entities.QueryBuilder.WithNone``3
+  id: WithNone``3
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithNone<T0, T1, T2>()
+  nameWithType: QueryBuilder.WithNone<T0, T1, T2>()
+  fullName: Ghost.Entities.QueryBuilder.WithNone<T0, T1, T2>()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithNone
+    path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+    startLine: 333
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: >-
+    Adds the specified component type(s) to the 'None' filter of the query.
+
+    Targets entities that do not have any of the specified component types, or those component(s) are disabled.
+  example: []
+  syntax:
+    content: >-
+      [UnscopedRef]
+
+      public ref QueryBuilder WithNone<T0, T1, T2>() where T0 : unmanaged, IComponent where T1 : unmanaged, IComponent where T2 : unmanaged, IComponent
+    typeParameters:
+    - id: T0
+    - id: T1
+    - id: T2
+    return:
+      type: Ghost.Entities.QueryBuilder
+    content.vb: >-
+      <UnscopedRef>
+
+      Public ByRef Function WithNone(Of T0 As {Structure, IComponent}, T1 As {Structure, IComponent}, T2 As {Structure, IComponent})() As QueryBuilder
+  overload: Ghost.Entities.QueryBuilder.WithNone*
+  attributes:
+  - type: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute
+    ctor: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute.#ctor
+    arguments: []
+  nameWithType.vb: QueryBuilder.WithNone(Of T0, T1, T2)()
+  fullName.vb: Ghost.Entities.QueryBuilder.WithNone(Of T0, T1, T2)()
+  name.vb: WithNone(Of T0, T1, T2)()
+- uid: Ghost.Entities.QueryBuilder.WithDisabled``3
+  commentId: M:Ghost.Entities.QueryBuilder.WithDisabled``3
+  id: WithDisabled``3
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithDisabled<T0, T1, T2>()
+  nameWithType: QueryBuilder.WithDisabled<T0, T1, T2>()
+  fullName: Ghost.Entities.QueryBuilder.WithDisabled<T0, T1, T2>()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithDisabled
+    path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+    startLine: 351
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: >-
+    Adds the specified component type(s) to the 'Disabled' filter of the query.
+
+    Targets entities that have all of the specified component types and those component(s) are disabled.
+  example: []
+  syntax:
+    content: >-
+      [UnscopedRef]
+
+      public ref QueryBuilder WithDisabled<T0, T1, T2>() where T0 : unmanaged, IEnableableComponent where T1 : unmanaged, IEnableableComponent where T2 : unmanaged, IEnableableComponent
+    typeParameters:
+    - id: T0
+    - id: T1
+    - id: T2
+    return:
+      type: Ghost.Entities.QueryBuilder
+    content.vb: >-
+      <UnscopedRef>
+
+      Public ByRef Function WithDisabled(Of T0 As {Structure, IEnableableComponent}, T1 As {Structure, IEnableableComponent}, T2 As {Structure, IEnableableComponent})() As QueryBuilder
+  overload: Ghost.Entities.QueryBuilder.WithDisabled*
+  attributes:
+  - type: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute
+    ctor: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute.#ctor
+    arguments: []
+  nameWithType.vb: QueryBuilder.WithDisabled(Of T0, T1, T2)()
+  fullName.vb: Ghost.Entities.QueryBuilder.WithDisabled(Of T0, T1, T2)()
+  name.vb: WithDisabled(Of T0, T1, T2)()
+- uid: Ghost.Entities.QueryBuilder.WithPresent``3
+  commentId: M:Ghost.Entities.QueryBuilder.WithPresent``3
+  id: WithPresent``3
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithPresent<T0, T1, T2>()
+  nameWithType: QueryBuilder.WithPresent<T0, T1, T2>()
+  fullName: Ghost.Entities.QueryBuilder.WithPresent<T0, T1, T2>()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithPresent
+    path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+    startLine: 369
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: >-
+    Adds the specified component type(s) to the 'Present' filter of the query.
+
+    Targets entities that have all of the specified component types, regardless of whether those component(s) are enabled or disabled.
+  example: []
+  syntax:
+    content: >-
+      [UnscopedRef]
+
+      public ref QueryBuilder WithPresent<T0, T1, T2>() where T0 : unmanaged, IComponent where T1 : unmanaged, IComponent where T2 : unmanaged, IComponent
+    typeParameters:
+    - id: T0
+    - id: T1
+    - id: T2
+    return:
+      type: Ghost.Entities.QueryBuilder
+    content.vb: >-
+      <UnscopedRef>
+
+      Public ByRef Function WithPresent(Of T0 As {Structure, IComponent}, T1 As {Structure, IComponent}, T2 As {Structure, IComponent})() As QueryBuilder
+  overload: Ghost.Entities.QueryBuilder.WithPresent*
+  attributes:
+  - type: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute
+    ctor: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute.#ctor
+    arguments: []
+  nameWithType.vb: QueryBuilder.WithPresent(Of T0, T1, T2)()
+  fullName.vb: Ghost.Entities.QueryBuilder.WithPresent(Of T0, T1, T2)()
+  name.vb: WithPresent(Of T0, T1, T2)()
+- uid: Ghost.Entities.QueryBuilder.WithPresentRW``3
+  commentId: M:Ghost.Entities.QueryBuilder.WithPresentRW``3
+  id: WithPresentRW``3
+  parent: Ghost.Entities.QueryBuilder
+  langs:
+  - csharp
+  - vb
+  name: WithPresentRW<T0, T1, T2>()
+  nameWithType: QueryBuilder.WithPresentRW<T0, T1, T2>()
+  fullName: Ghost.Entities.QueryBuilder.WithPresentRW<T0, T1, T2>()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WithPresentRW
+    path: src/Runtime/Ghost.Entities/Templates/QueryBuilder.With.gen.cs
+    startLine: 387
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: >-
+    Adds the specified component type(s) to the 'Present' filter of the query and requires read-write access.
+
+    Targets entities that have all of the specified component types, regardless of whether those component(s) are enabled or disabled.
+  example: []
+  syntax:
+    content: >-
+      [UnscopedRef]
+
+      public ref QueryBuilder WithPresentRW<T0, T1, T2>() where T0 : unmanaged, IComponent where T1 : unmanaged, IComponent where T2 : unmanaged, IComponent
+    typeParameters:
+    - id: T0
+    - id: T1
+    - id: T2
+    return:
+      type: Ghost.Entities.QueryBuilder
+    content.vb: >-
+      <UnscopedRef>
+
+      Public ByRef Function WithPresentRW(Of T0 As {Structure, IComponent}, T1 As {Structure, IComponent}, T2 As {Structure, IComponent})() As QueryBuilder
+  overload: Ghost.Entities.QueryBuilder.WithPresentRW*
+  attributes:
+  - type: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute
+    ctor: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute.#ctor
+    arguments: []
+  nameWithType.vb: QueryBuilder.WithPresentRW(Of T0, T1, T2)()
+  fullName.vb: Ghost.Entities.QueryBuilder.WithPresentRW(Of T0, T1, T2)()
+  name.vb: WithPresentRW(Of T0, T1, T2)()
+references:
+- uid: Ghost.Entities
+  commentId: N:Ghost.Entities
+  href: Ghost.html
+  name: Ghost.Entities
+  nameWithType: Ghost.Entities
+  fullName: Ghost.Entities
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Entities
+    name: Entities
+    href: Ghost.Entities.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Entities
+    name: Entities
+    href: Ghost.Entities.html
+- uid: System.IDisposable
+  commentId: T:System.IDisposable
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable
+  name: IDisposable
+  nameWithType: IDisposable
+  fullName: System.IDisposable
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: Ghost.Entities.QueryBuilder.#ctor*
+  commentId: Overload:Ghost.Entities.QueryBuilder.#ctor
+  href: Ghost.Entities.QueryBuilder.html#Ghost_Entities_QueryBuilder__ctor
+  name: QueryBuilder
+  nameWithType: QueryBuilder.QueryBuilder
+  fullName: Ghost.Entities.QueryBuilder.QueryBuilder
+  nameWithType.vb: QueryBuilder.New
+  fullName.vb: Ghost.Entities.QueryBuilder.New
+  name.vb: New
+- uid: Ghost.Entities.QueryBuilder.Create*
+  commentId: Overload:Ghost.Entities.QueryBuilder.Create
+  href: Ghost.Entities.QueryBuilder.html#Ghost_Entities_QueryBuilder_Create
+  name: Create
+  nameWithType: QueryBuilder.Create
+  fullName: Ghost.Entities.QueryBuilder.Create
+- uid: Ghost.Entities.QueryBuilder
+  commentId: T:Ghost.Entities.QueryBuilder
+  parent: Ghost.Entities
+  href: Ghost.Entities.QueryBuilder.html
+  name: QueryBuilder
+  nameWithType: QueryBuilder
+  fullName: Ghost.Entities.QueryBuilder
+- uid: Ghost.Entities.QueryBuilder.WithAll*
+  commentId: Overload:Ghost.Entities.QueryBuilder.WithAll
+  href: Ghost.Entities.QueryBuilder.html#Ghost_Entities_QueryBuilder_WithAll_System_Span_Ghost_Core_Identifier_Ghost_Entities_IComponent___
+  name: WithAll
+  nameWithType: QueryBuilder.WithAll
+  fullName: Ghost.Entities.QueryBuilder.WithAll
+- uid: System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}}
+  commentId: T:System.Span{Ghost.Core.Identifier{Ghost.Entities.IComponent}}
+  parent: System
+  definition: System.Span`1
+  href: https://learn.microsoft.com/dotnet/api/system.span-1
+  name: Span<Identifier<IComponent>>
+  nameWithType: Span<Identifier<IComponent>>
+  fullName: System.Span<Ghost.Core.Identifier<Ghost.Entities.IComponent>>
+  nameWithType.vb: Span(Of Identifier(Of IComponent))
+  fullName.vb: System.Span(Of Ghost.Core.Identifier(Of Ghost.Entities.IComponent))
+  name.vb: Span(Of Identifier(Of IComponent))
+  spec.csharp:
+  - uid: System.Span`1
+    name: Span
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.span-1
+  - name: <
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: <
+  - uid: Ghost.Entities.IComponent
+    name: IComponent
+    href: Ghost.Entities.IComponent.html
+  - name: '>'
+  - name: '>'
+  spec.vb:
+  - uid: System.Span`1
+    name: Span
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.span-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Entities.IComponent
+    name: IComponent
+    href: Ghost.Entities.IComponent.html
+  - name: )
+  - name: )
+- uid: System.Span`1
+  commentId: T:System.Span`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.span-1
+  name: Span<T>
+  nameWithType: Span<T>
+  fullName: System.Span<T>
+  nameWithType.vb: Span(Of T)
+  fullName.vb: System.Span(Of T)
+  name.vb: Span(Of T)
+  spec.csharp:
+  - uid: System.Span`1
+    name: Span
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.span-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.Span`1
+    name: Span
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.span-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Entities.QueryBuilder.WithAny*
+  commentId: Overload:Ghost.Entities.QueryBuilder.WithAny
+  href: Ghost.Entities.QueryBuilder.html#Ghost_Entities_QueryBuilder_WithAny_System_Span_Ghost_Core_Identifier_Ghost_Entities_IComponent___
+  name: WithAny
+  nameWithType: QueryBuilder.WithAny
+  fullName: Ghost.Entities.QueryBuilder.WithAny
+- uid: Ghost.Entities.QueryBuilder.WithAbsent*
+  commentId: Overload:Ghost.Entities.QueryBuilder.WithAbsent
+  href: Ghost.Entities.QueryBuilder.html#Ghost_Entities_QueryBuilder_WithAbsent_System_Span_Ghost_Core_Identifier_Ghost_Entities_IComponent___
+  name: WithAbsent
+  nameWithType: QueryBuilder.WithAbsent
+  fullName: Ghost.Entities.QueryBuilder.WithAbsent
+- uid: Ghost.Entities.QueryBuilder.WithNone*
+  commentId: Overload:Ghost.Entities.QueryBuilder.WithNone
+  href: Ghost.Entities.QueryBuilder.html#Ghost_Entities_QueryBuilder_WithNone_System_Span_Ghost_Core_Identifier_Ghost_Entities_IComponent___
+  name: WithNone
+  nameWithType: QueryBuilder.WithNone
+  fullName: Ghost.Entities.QueryBuilder.WithNone
+- uid: Ghost.Entities.QueryBuilder.WithDisabled*
+  commentId: Overload:Ghost.Entities.QueryBuilder.WithDisabled
+  href: Ghost.Entities.QueryBuilder.html#Ghost_Entities_QueryBuilder_WithDisabled_System_Span_Ghost_Core_Identifier_Ghost_Entities_IComponent___
+  name: WithDisabled
+  nameWithType: QueryBuilder.WithDisabled
+  fullName: Ghost.Entities.QueryBuilder.WithDisabled
+- uid: Ghost.Entities.QueryBuilder.WithPresent*
+  commentId: Overload:Ghost.Entities.QueryBuilder.WithPresent
+  href: Ghost.Entities.QueryBuilder.html#Ghost_Entities_QueryBuilder_WithPresent_System_Span_Ghost_Core_Identifier_Ghost_Entities_IComponent___
+  name: WithPresent
+  nameWithType: QueryBuilder.WithPresent
+  fullName: Ghost.Entities.QueryBuilder.WithPresent
+- uid: Ghost.Entities.QueryBuilder.WithPresentRW*
+  commentId: Overload:Ghost.Entities.QueryBuilder.WithPresentRW
+  href: Ghost.Entities.QueryBuilder.html#Ghost_Entities_QueryBuilder_WithPresentRW_System_Span_Ghost_Core_Identifier_Ghost_Entities_IComponent___
+  name: WithPresentRW
+  nameWithType: QueryBuilder.WithPresentRW
+  fullName: Ghost.Entities.QueryBuilder.WithPresentRW
+- uid: Ghost.Entities.QueryBuilder.BuildWithoutCache*
+  commentId: Overload:Ghost.Entities.QueryBuilder.BuildWithoutCache
+  href: Ghost.Entities.QueryBuilder.html#Ghost_Entities_QueryBuilder_BuildWithoutCache_Ghost_Entities_World_Misaki_HighPerformance_LowLevel_Buffer_AllocationHandle_System_Boolean_
+  name: BuildWithoutCache
+  nameWithType: QueryBuilder.BuildWithoutCache
+  fullName: Ghost.Entities.QueryBuilder.BuildWithoutCache
+- uid: Ghost.Entities.World
+  commentId: T:Ghost.Entities.World
+  parent: Ghost.Entities
+  href: Ghost.Entities.World.html
+  name: World
+  nameWithType: World
+  fullName: Ghost.Entities.World
+- uid: Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle
+  commentId: T:Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle
+  parent: Misaki.HighPerformance.LowLevel.Buffer
+  name: AllocationHandle
+  nameWithType: AllocationHandle
+  fullName: Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.boolean
+  name: bool
+  nameWithType: bool
+  fullName: bool
+  nameWithType.vb: Boolean
+  fullName.vb: Boolean
+  name.vb: Boolean
+- uid: Ghost.Entities.EntityQuery
+  commentId: T:Ghost.Entities.EntityQuery
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityQuery.html
+  name: EntityQuery
+  nameWithType: EntityQuery
+  fullName: Ghost.Entities.EntityQuery
+- uid: Misaki.HighPerformance.LowLevel.Buffer
+  commentId: N:Misaki.HighPerformance.LowLevel.Buffer
+  name: Misaki.HighPerformance.LowLevel.Buffer
+  nameWithType: Misaki.HighPerformance.LowLevel.Buffer
+  fullName: Misaki.HighPerformance.LowLevel.Buffer
+  spec.csharp:
+  - uid: Misaki
+    name: Misaki
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel
+    name: LowLevel
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel.Buffer
+    name: Buffer
+  spec.vb:
+  - uid: Misaki
+    name: Misaki
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel
+    name: LowLevel
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel.Buffer
+    name: Buffer
+- uid: Ghost.Entities.QueryBuilder.Build*
+  commentId: Overload:Ghost.Entities.QueryBuilder.Build
+  href: Ghost.Entities.QueryBuilder.html#Ghost_Entities_QueryBuilder_Build_Ghost_Entities_World_System_Boolean_
+  name: Build
+  nameWithType: QueryBuilder.Build
+  fullName: Ghost.Entities.QueryBuilder.Build
+- uid: Ghost.Core.Identifier{Ghost.Entities.EntityQuery}
+  commentId: T:Ghost.Core.Identifier{Ghost.Entities.EntityQuery}
+  parent: Ghost.Core
+  definition: Ghost.Core.Identifier`1
+  href: Ghost.Entities.EntityQuery.html
+  name: Identifier<EntityQuery>
+  nameWithType: Identifier<EntityQuery>
+  fullName: Ghost.Core.Identifier<Ghost.Entities.EntityQuery>
+  nameWithType.vb: Identifier(Of EntityQuery)
+  fullName.vb: Ghost.Core.Identifier(Of Ghost.Entities.EntityQuery)
+  name.vb: Identifier(Of EntityQuery)
+  spec.csharp:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: <
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Entities.EntityQuery
+    name: EntityQuery
+    href: Ghost.Entities.EntityQuery.html
+  - name: )
+- uid: Ghost.Core.Identifier`1
+  commentId: T:Ghost.Core.Identifier`1
+  name: Identifier<T>
+  nameWithType: Identifier<T>
+  fullName: Ghost.Core.Identifier<T>
+  nameWithType.vb: Identifier(Of T)
+  fullName.vb: Ghost.Core.Identifier(Of T)
+  name.vb: Identifier(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Core
+  commentId: N:Ghost.Core
+  name: Ghost.Core
+  nameWithType: Ghost.Core
+  fullName: Ghost.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+- uid: Ghost.Entities.QueryBuilder.Clear*
+  commentId: Overload:Ghost.Entities.QueryBuilder.Clear
+  href: Ghost.Entities.QueryBuilder.html#Ghost_Entities_QueryBuilder_Clear
+  name: Clear
+  nameWithType: QueryBuilder.Clear
+  fullName: Ghost.Entities.QueryBuilder.Clear
+- uid: Ghost.Entities.QueryBuilder.Dispose*
+  commentId: Overload:Ghost.Entities.QueryBuilder.Dispose
+  href: Ghost.Entities.QueryBuilder.html#Ghost_Entities_QueryBuilder_Dispose
+  name: Dispose
+  nameWithType: QueryBuilder.Dispose
+  fullName: Ghost.Entities.QueryBuilder.Dispose
+- uid: System.IDisposable.Dispose
+  commentId: M:System.IDisposable.Dispose
+  parent: System.IDisposable
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  name: Dispose()
+  nameWithType: IDisposable.Dispose()
+  fullName: System.IDisposable.Dispose()
+  spec.csharp:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+- uid: Ghost.Entities.QueryBuilder.WithAllRW*
+  commentId: Overload:Ghost.Entities.QueryBuilder.WithAllRW
+  href: Ghost.Entities.QueryBuilder.html#Ghost_Entities_QueryBuilder_WithAllRW__1
+  name: WithAllRW
+  nameWithType: QueryBuilder.WithAllRW
+  fullName: Ghost.Entities.QueryBuilder.WithAllRW

@@ -1,0 +1,131 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.ICommandAllocator
+  commentId: T:Ghost.Graphics.RHI.ICommandAllocator
+  id: ICommandAllocator
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.ICommandAllocator.Reset
+  langs:
+  - csharp
+  - vb
+  name: ICommandAllocator
+  nameWithType: ICommandAllocator
+  fullName: Ghost.Graphics.RHI.ICommandAllocator
+  type: Interface
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ICommandAllocator
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandAllocator.cs
+    startLine: 2
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: 'public interface ICommandAllocator : IDisposable'
+    content.vb: Public Interface ICommandAllocator Inherits IDisposable
+  inheritedMembers:
+  - System.IDisposable.Dispose
+- uid: Ghost.Graphics.RHI.ICommandAllocator.Reset
+  commentId: M:Ghost.Graphics.RHI.ICommandAllocator.Reset
+  id: Reset
+  parent: Ghost.Graphics.RHI.ICommandAllocator
+  langs:
+  - csharp
+  - vb
+  name: Reset()
+  nameWithType: ICommandAllocator.Reset()
+  fullName: Ghost.Graphics.RHI.ICommandAllocator.Reset()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Reset
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandAllocator.cs
+    startLine: 4
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: void Reset()
+    content.vb: Sub Reset()
+  overload: Ghost.Graphics.RHI.ICommandAllocator.Reset*
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.IDisposable.Dispose
+  commentId: M:System.IDisposable.Dispose
+  parent: System.IDisposable
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  name: Dispose()
+  nameWithType: IDisposable.Dispose()
+  fullName: System.IDisposable.Dispose()
+  spec.csharp:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+- uid: System.IDisposable
+  commentId: T:System.IDisposable
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable
+  name: IDisposable
+  nameWithType: IDisposable
+  fullName: System.IDisposable
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RHI.ICommandAllocator.Reset*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandAllocator.Reset
+  href: Ghost.Graphics.RHI.ICommandAllocator.html#Ghost_Graphics_RHI_ICommandAllocator_Reset
+  name: Reset
+  nameWithType: ICommandAllocator.Reset
+  fullName: Ghost.Graphics.RHI.ICommandAllocator.Reset

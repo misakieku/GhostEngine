@@ -1,0 +1,441 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.Core.MeshExtension
+  commentId: T:Ghost.Graphics.Core.MeshExtension
+  id: MeshExtension
+  parent: Ghost.Graphics.Core
+  children:
+  - Ghost.Graphics.Core.MeshExtension.ComputeBounds(Ghost.Graphics.Core.Mesh@)
+  - Ghost.Graphics.Core.MeshExtension.ComputeNormal(Ghost.Graphics.Core.Mesh@)
+  - Ghost.Graphics.Core.MeshExtension.ComputeTangents(Ghost.Graphics.Core.Mesh@)
+  langs:
+  - csharp
+  - vb
+  name: MeshExtension
+  nameWithType: MeshExtension
+  fullName: Ghost.Graphics.Core.MeshExtension
+  type: Class
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: MeshExtension
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 309
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public static class MeshExtension
+    content.vb: Public Module MeshExtension
+  inheritance:
+  - System.Object
+  inheritedMembers:
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.MemberwiseClone
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.ToString
+- uid: Ghost.Graphics.Core.MeshExtension.ComputeBounds(Ghost.Graphics.Core.Mesh@)
+  commentId: M:Ghost.Graphics.Core.MeshExtension.ComputeBounds(Ghost.Graphics.Core.Mesh@)
+  id: ComputeBounds(Ghost.Graphics.Core.Mesh@)
+  isExtensionMethod: true
+  parent: Ghost.Graphics.Core.MeshExtension
+  langs:
+  - csharp
+  - vb
+  name: ComputeBounds(ref Mesh)
+  nameWithType: MeshExtension.ComputeBounds(ref Mesh)
+  fullName: Ghost.Graphics.Core.MeshExtension.ComputeBounds(ref Ghost.Graphics.Core.Mesh)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ComputeBounds
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 314
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  summary: Computes the bounding box of the mesh based on its vertices.
+  example: []
+  syntax:
+    content: public static void ComputeBounds(this ref Mesh mesh)
+    parameters:
+    - id: mesh
+      type: Ghost.Graphics.Core.Mesh
+    content.vb: Public Shared Sub ComputeBounds(mesh As Mesh)
+  overload: Ghost.Graphics.Core.MeshExtension.ComputeBounds*
+  nameWithType.vb: MeshExtension.ComputeBounds(Mesh)
+  fullName.vb: Ghost.Graphics.Core.MeshExtension.ComputeBounds(Ghost.Graphics.Core.Mesh)
+  name.vb: ComputeBounds(Mesh)
+- uid: Ghost.Graphics.Core.MeshExtension.ComputeNormal(Ghost.Graphics.Core.Mesh@)
+  commentId: M:Ghost.Graphics.Core.MeshExtension.ComputeNormal(Ghost.Graphics.Core.Mesh@)
+  id: ComputeNormal(Ghost.Graphics.Core.Mesh@)
+  isExtensionMethod: true
+  parent: Ghost.Graphics.Core.MeshExtension
+  langs:
+  - csharp
+  - vb
+  name: ComputeNormal(ref Mesh)
+  nameWithType: MeshExtension.ComputeNormal(ref Mesh)
+  fullName: Ghost.Graphics.Core.MeshExtension.ComputeNormal(ref Ghost.Graphics.Core.Mesh)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ComputeNormal
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 339
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  summary: Auto-compute smooth per-vertex normals.
+  remarks: Call this method before vertices and indices are valid.
+  example: []
+  syntax:
+    content: public static void ComputeNormal(this ref Mesh mesh)
+    parameters:
+    - id: mesh
+      type: Ghost.Graphics.Core.Mesh
+    content.vb: Public Shared Sub ComputeNormal(mesh As Mesh)
+  overload: Ghost.Graphics.Core.MeshExtension.ComputeNormal*
+  nameWithType.vb: MeshExtension.ComputeNormal(Mesh)
+  fullName.vb: Ghost.Graphics.Core.MeshExtension.ComputeNormal(Ghost.Graphics.Core.Mesh)
+  name.vb: ComputeNormal(Mesh)
+- uid: Ghost.Graphics.Core.MeshExtension.ComputeTangents(Ghost.Graphics.Core.Mesh@)
+  commentId: M:Ghost.Graphics.Core.MeshExtension.ComputeTangents(Ghost.Graphics.Core.Mesh@)
+  id: ComputeTangents(Ghost.Graphics.Core.Mesh@)
+  isExtensionMethod: true
+  parent: Ghost.Graphics.Core.MeshExtension
+  langs:
+  - csharp
+  - vb
+  name: ComputeTangents(ref Mesh)
+  nameWithType: MeshExtension.ComputeTangents(ref Mesh)
+  fullName: Ghost.Graphics.Core.MeshExtension.ComputeTangents(ref Ghost.Graphics.Core.Mesh)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ComputeTangents
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 350
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  summary: Auto-compute per-vertex tangents.
+  remarks: Call this method before vertices, normals, and UVs are valid.
+  example: []
+  syntax:
+    content: public static void ComputeTangents(this ref Mesh mesh)
+    parameters:
+    - id: mesh
+      type: Ghost.Graphics.Core.Mesh
+    content.vb: Public Shared Sub ComputeTangents(mesh As Mesh)
+  overload: Ghost.Graphics.Core.MeshExtension.ComputeTangents*
+  nameWithType.vb: MeshExtension.ComputeTangents(Mesh)
+  fullName.vb: Ghost.Graphics.Core.MeshExtension.ComputeTangents(Ghost.Graphics.Core.Mesh)
+  name.vb: ComputeTangents(Mesh)
+references:
+- uid: Ghost.Graphics.Core
+  commentId: N:Ghost.Graphics.Core
+  href: Ghost.html
+  name: Ghost.Graphics.Core
+  nameWithType: Ghost.Graphics.Core
+  fullName: Ghost.Graphics.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Core
+    name: Core
+    href: Ghost.Graphics.Core.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Core
+    name: Core
+    href: Ghost.Graphics.Core.html
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  name: Equals(object)
+  nameWithType: object.Equals(object)
+  fullName: object.Equals(object)
+  nameWithType.vb: Object.Equals(Object)
+  fullName.vb: Object.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  name: GetHashCode()
+  nameWithType: object.GetHashCode()
+  fullName: object.GetHashCode()
+  nameWithType.vb: Object.GetHashCode()
+  fullName.vb: Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  name: MemberwiseClone()
+  nameWithType: object.MemberwiseClone()
+  fullName: object.MemberwiseClone()
+  nameWithType.vb: Object.MemberwiseClone()
+  fullName.vb: Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  name: ToString()
+  nameWithType: object.ToString()
+  fullName: object.ToString()
+  nameWithType.vb: Object.ToString()
+  fullName.vb: Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.Core.MeshExtension.ComputeBounds*
+  commentId: Overload:Ghost.Graphics.Core.MeshExtension.ComputeBounds
+  href: Ghost.Graphics.Core.MeshExtension.html#Ghost_Graphics_Core_MeshExtension_ComputeBounds_Ghost_Graphics_Core_Mesh__
+  name: ComputeBounds
+  nameWithType: MeshExtension.ComputeBounds
+  fullName: Ghost.Graphics.Core.MeshExtension.ComputeBounds
+- uid: Ghost.Graphics.Core.Mesh
+  commentId: T:Ghost.Graphics.Core.Mesh
+  parent: Ghost.Graphics.Core
+  href: Ghost.Graphics.Core.Mesh.html
+  name: Mesh
+  nameWithType: Mesh
+  fullName: Ghost.Graphics.Core.Mesh
+- uid: Ghost.Graphics.Core.MeshExtension.ComputeNormal*
+  commentId: Overload:Ghost.Graphics.Core.MeshExtension.ComputeNormal
+  href: Ghost.Graphics.Core.MeshExtension.html#Ghost_Graphics_Core_MeshExtension_ComputeNormal_Ghost_Graphics_Core_Mesh__
+  name: ComputeNormal
+  nameWithType: MeshExtension.ComputeNormal
+  fullName: Ghost.Graphics.Core.MeshExtension.ComputeNormal
+- uid: Ghost.Graphics.Core.MeshExtension.ComputeTangents*
+  commentId: Overload:Ghost.Graphics.Core.MeshExtension.ComputeTangents
+  href: Ghost.Graphics.Core.MeshExtension.html#Ghost_Graphics_Core_MeshExtension_ComputeTangents_Ghost_Graphics_Core_Mesh__
+  name: ComputeTangents
+  nameWithType: MeshExtension.ComputeTangents
+  fullName: Ghost.Graphics.Core.MeshExtension.ComputeTangents

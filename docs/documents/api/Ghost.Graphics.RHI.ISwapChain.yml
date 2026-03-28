@@ -1,0 +1,632 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.ISwapChain
+  commentId: T:Ghost.Graphics.RHI.ISwapChain
+  id: ISwapChain
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.ISwapChain.GetBackBuffers
+  - Ghost.Graphics.RHI.ISwapChain.GetCurrentBackBuffer
+  - Ghost.Graphics.RHI.ISwapChain.Height
+  - Ghost.Graphics.RHI.ISwapChain.Present(System.Boolean)
+  - Ghost.Graphics.RHI.ISwapChain.Resize(System.UInt32,System.UInt32)
+  - Ghost.Graphics.RHI.ISwapChain.ScaleX
+  - Ghost.Graphics.RHI.ISwapChain.ScaleY
+  - Ghost.Graphics.RHI.ISwapChain.SetScale(System.Single,System.Single)
+  - Ghost.Graphics.RHI.ISwapChain.Width
+  langs:
+  - csharp
+  - vb
+  name: ISwapChain
+  nameWithType: ISwapChain
+  fullName: Ghost.Graphics.RHI.ISwapChain
+  type: Interface
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ISwapChain.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ISwapChain
+    path: src/Runtime/Ghost.Graphics.RHI/ISwapChain.cs
+    startLine: 7
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Swap chain interface for presentation
+  example: []
+  syntax:
+    content: 'public interface ISwapChain : IDisposable'
+    content.vb: Public Interface ISwapChain Inherits IDisposable
+  inheritedMembers:
+  - System.IDisposable.Dispose
+- uid: Ghost.Graphics.RHI.ISwapChain.Width
+  commentId: P:Ghost.Graphics.RHI.ISwapChain.Width
+  id: Width
+  parent: Ghost.Graphics.RHI.ISwapChain
+  langs:
+  - csharp
+  - vb
+  name: Width
+  nameWithType: ISwapChain.Width
+  fullName: Ghost.Graphics.RHI.ISwapChain.Width
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ISwapChain.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Width
+    path: src/Runtime/Ghost.Graphics.RHI/ISwapChain.cs
+    startLine: 12
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Width of the swap chain back buffers
+  example: []
+  syntax:
+    content: uint Width { get; }
+    parameters: []
+    return:
+      type: System.UInt32
+    content.vb: ReadOnly Property Width As UInteger
+  overload: Ghost.Graphics.RHI.ISwapChain.Width*
+- uid: Ghost.Graphics.RHI.ISwapChain.Height
+  commentId: P:Ghost.Graphics.RHI.ISwapChain.Height
+  id: Height
+  parent: Ghost.Graphics.RHI.ISwapChain
+  langs:
+  - csharp
+  - vb
+  name: Height
+  nameWithType: ISwapChain.Height
+  fullName: Ghost.Graphics.RHI.ISwapChain.Height
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ISwapChain.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Height
+    path: src/Runtime/Ghost.Graphics.RHI/ISwapChain.cs
+    startLine: 20
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Height of the swap chain back buffers
+  example: []
+  syntax:
+    content: uint Height { get; }
+    parameters: []
+    return:
+      type: System.UInt32
+    content.vb: ReadOnly Property Height As UInteger
+  overload: Ghost.Graphics.RHI.ISwapChain.Height*
+- uid: Ghost.Graphics.RHI.ISwapChain.ScaleX
+  commentId: P:Ghost.Graphics.RHI.ISwapChain.ScaleX
+  id: ScaleX
+  parent: Ghost.Graphics.RHI.ISwapChain
+  langs:
+  - csharp
+  - vb
+  name: ScaleX
+  nameWithType: ISwapChain.ScaleX
+  fullName: Ghost.Graphics.RHI.ISwapChain.ScaleX
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ISwapChain.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ScaleX
+    path: src/Runtime/Ghost.Graphics.RHI/ISwapChain.cs
+    startLine: 28
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Gets the horizontal scaling factor applied to the object. This is used for DPI scaling.
+  example: []
+  syntax:
+    content: float ScaleX { get; }
+    parameters: []
+    return:
+      type: System.Single
+    content.vb: ReadOnly Property ScaleX As Single
+  overload: Ghost.Graphics.RHI.ISwapChain.ScaleX*
+- uid: Ghost.Graphics.RHI.ISwapChain.ScaleY
+  commentId: P:Ghost.Graphics.RHI.ISwapChain.ScaleY
+  id: ScaleY
+  parent: Ghost.Graphics.RHI.ISwapChain
+  langs:
+  - csharp
+  - vb
+  name: ScaleY
+  nameWithType: ISwapChain.ScaleY
+  fullName: Ghost.Graphics.RHI.ISwapChain.ScaleY
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ISwapChain.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ScaleY
+    path: src/Runtime/Ghost.Graphics.RHI/ISwapChain.cs
+    startLine: 36
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Gets the vertical scale factor applied to the object. This is used for DPI scaling.
+  example: []
+  syntax:
+    content: float ScaleY { get; }
+    parameters: []
+    return:
+      type: System.Single
+    content.vb: ReadOnly Property ScaleY As Single
+  overload: Ghost.Graphics.RHI.ISwapChain.ScaleY*
+- uid: Ghost.Graphics.RHI.ISwapChain.GetCurrentBackBuffer
+  commentId: M:Ghost.Graphics.RHI.ISwapChain.GetCurrentBackBuffer
+  id: GetCurrentBackBuffer
+  parent: Ghost.Graphics.RHI.ISwapChain
+  langs:
+  - csharp
+  - vb
+  name: GetCurrentBackBuffer()
+  nameWithType: ISwapChain.GetCurrentBackBuffer()
+  fullName: Ghost.Graphics.RHI.ISwapChain.GetCurrentBackBuffer()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ISwapChain.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetCurrentBackBuffer
+    path: src/Runtime/Ghost.Graphics.RHI/ISwapChain.cs
+    startLine: 45
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Gets the current back buffer texture
+  example: []
+  syntax:
+    content: Handle<Texture> GetCurrentBackBuffer()
+    return:
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+      description: Current back buffer texture
+    content.vb: Function GetCurrentBackBuffer() As Handle(Of Texture)
+  overload: Ghost.Graphics.RHI.ISwapChain.GetCurrentBackBuffer*
+- uid: Ghost.Graphics.RHI.ISwapChain.GetBackBuffers
+  commentId: M:Ghost.Graphics.RHI.ISwapChain.GetBackBuffers
+  id: GetBackBuffers
+  parent: Ghost.Graphics.RHI.ISwapChain
+  langs:
+  - csharp
+  - vb
+  name: GetBackBuffers()
+  nameWithType: ISwapChain.GetBackBuffers()
+  fullName: Ghost.Graphics.RHI.ISwapChain.GetBackBuffers()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ISwapChain.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetBackBuffers
+    path: src/Runtime/Ghost.Graphics.RHI/ISwapChain.cs
+    startLine: 51
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Gets all back buffer textures
+  example: []
+  syntax:
+    content: ReadOnlySpan<Handle<Texture>> GetBackBuffers()
+    return:
+      type: System.ReadOnlySpan{Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}}
+      description: AlowBufferAndTexture back buffer textures
+    content.vb: Function GetBackBuffers() As ReadOnlySpan(Of Handle(Of Texture))
+  overload: Ghost.Graphics.RHI.ISwapChain.GetBackBuffers*
+- uid: Ghost.Graphics.RHI.ISwapChain.Present(System.Boolean)
+  commentId: M:Ghost.Graphics.RHI.ISwapChain.Present(System.Boolean)
+  id: Present(System.Boolean)
+  parent: Ghost.Graphics.RHI.ISwapChain
+  langs:
+  - csharp
+  - vb
+  name: Present(bool)
+  nameWithType: ISwapChain.Present(bool)
+  fullName: Ghost.Graphics.RHI.ISwapChain.Present(bool)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ISwapChain.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Present
+    path: src/Runtime/Ghost.Graphics.RHI/ISwapChain.cs
+    startLine: 57
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Presents the rendered frame
+  example: []
+  syntax:
+    content: void Present(bool vsync = true)
+    parameters:
+    - id: vsync
+      type: System.Boolean
+      description: Enable vertical synchronization
+    content.vb: Sub Present(vsync As Boolean = True)
+  overload: Ghost.Graphics.RHI.ISwapChain.Present*
+  nameWithType.vb: ISwapChain.Present(Boolean)
+  fullName.vb: Ghost.Graphics.RHI.ISwapChain.Present(Boolean)
+  name.vb: Present(Boolean)
+- uid: Ghost.Graphics.RHI.ISwapChain.Resize(System.UInt32,System.UInt32)
+  commentId: M:Ghost.Graphics.RHI.ISwapChain.Resize(System.UInt32,System.UInt32)
+  id: Resize(System.UInt32,System.UInt32)
+  parent: Ghost.Graphics.RHI.ISwapChain
+  langs:
+  - csharp
+  - vb
+  name: Resize(uint, uint)
+  nameWithType: ISwapChain.Resize(uint, uint)
+  fullName: Ghost.Graphics.RHI.ISwapChain.Resize(uint, uint)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ISwapChain.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Resize
+    path: src/Runtime/Ghost.Graphics.RHI/ISwapChain.cs
+    startLine: 64
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Resizes the swap chain back buffers
+  example: []
+  syntax:
+    content: void Resize(uint width, uint height)
+    parameters:
+    - id: width
+      type: System.UInt32
+      description: New Width
+    - id: height
+      type: System.UInt32
+      description: New Height
+    content.vb: Sub Resize(width As UInteger, height As UInteger)
+  overload: Ghost.Graphics.RHI.ISwapChain.Resize*
+  nameWithType.vb: ISwapChain.Resize(UInteger, UInteger)
+  fullName.vb: Ghost.Graphics.RHI.ISwapChain.Resize(UInteger, UInteger)
+  name.vb: Resize(UInteger, UInteger)
+- uid: Ghost.Graphics.RHI.ISwapChain.SetScale(System.Single,System.Single)
+  commentId: M:Ghost.Graphics.RHI.ISwapChain.SetScale(System.Single,System.Single)
+  id: SetScale(System.Single,System.Single)
+  parent: Ghost.Graphics.RHI.ISwapChain
+  langs:
+  - csharp
+  - vb
+  name: SetScale(float, float)
+  nameWithType: ISwapChain.SetScale(float, float)
+  fullName: Ghost.Graphics.RHI.ISwapChain.SetScale(float, float)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ISwapChain.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SetScale
+    path: src/Runtime/Ghost.Graphics.RHI/ISwapChain.cs
+    startLine: 71
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Sets the horizontal and vertical scaling factors for the object.
+  example: []
+  syntax:
+    content: void SetScale(float scaleX, float scaleY)
+    parameters:
+    - id: scaleX
+      type: System.Single
+      description: The factor by which to scale the object along the X-axis.
+    - id: scaleY
+      type: System.Single
+      description: The factor by which to scale the object along the Y-axis.
+    content.vb: Sub SetScale(scaleX As Single, scaleY As Single)
+  overload: Ghost.Graphics.RHI.ISwapChain.SetScale*
+  nameWithType.vb: ISwapChain.SetScale(Single, Single)
+  fullName.vb: Ghost.Graphics.RHI.ISwapChain.SetScale(Single, Single)
+  name.vb: SetScale(Single, Single)
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.IDisposable.Dispose
+  commentId: M:System.IDisposable.Dispose
+  parent: System.IDisposable
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  name: Dispose()
+  nameWithType: IDisposable.Dispose()
+  fullName: System.IDisposable.Dispose()
+  spec.csharp:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+- uid: System.IDisposable
+  commentId: T:System.IDisposable
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable
+  name: IDisposable
+  nameWithType: IDisposable
+  fullName: System.IDisposable
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RHI.ISwapChain.Width*
+  commentId: Overload:Ghost.Graphics.RHI.ISwapChain.Width
+  href: Ghost.Graphics.RHI.ISwapChain.html#Ghost_Graphics_RHI_ISwapChain_Width
+  name: Width
+  nameWithType: ISwapChain.Width
+  fullName: Ghost.Graphics.RHI.ISwapChain.Width
+- uid: System.UInt32
+  commentId: T:System.UInt32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.uint32
+  name: uint
+  nameWithType: uint
+  fullName: uint
+  nameWithType.vb: UInteger
+  fullName.vb: UInteger
+  name.vb: UInteger
+- uid: Ghost.Graphics.RHI.ISwapChain.Height*
+  commentId: Overload:Ghost.Graphics.RHI.ISwapChain.Height
+  href: Ghost.Graphics.RHI.ISwapChain.html#Ghost_Graphics_RHI_ISwapChain_Height
+  name: Height
+  nameWithType: ISwapChain.Height
+  fullName: Ghost.Graphics.RHI.ISwapChain.Height
+- uid: Ghost.Graphics.RHI.ISwapChain.ScaleX*
+  commentId: Overload:Ghost.Graphics.RHI.ISwapChain.ScaleX
+  href: Ghost.Graphics.RHI.ISwapChain.html#Ghost_Graphics_RHI_ISwapChain_ScaleX
+  name: ScaleX
+  nameWithType: ISwapChain.ScaleX
+  fullName: Ghost.Graphics.RHI.ISwapChain.ScaleX
+- uid: System.Single
+  commentId: T:System.Single
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.single
+  name: float
+  nameWithType: float
+  fullName: float
+  nameWithType.vb: Single
+  fullName.vb: Single
+  name.vb: Single
+- uid: Ghost.Graphics.RHI.ISwapChain.ScaleY*
+  commentId: Overload:Ghost.Graphics.RHI.ISwapChain.ScaleY
+  href: Ghost.Graphics.RHI.ISwapChain.html#Ghost_Graphics_RHI_ISwapChain_ScaleY
+  name: ScaleY
+  nameWithType: ISwapChain.ScaleY
+  fullName: Ghost.Graphics.RHI.ISwapChain.ScaleY
+- uid: Ghost.Graphics.RHI.ISwapChain.GetCurrentBackBuffer*
+  commentId: Overload:Ghost.Graphics.RHI.ISwapChain.GetCurrentBackBuffer
+  href: Ghost.Graphics.RHI.ISwapChain.html#Ghost_Graphics_RHI_ISwapChain_GetCurrentBackBuffer
+  name: GetCurrentBackBuffer
+  nameWithType: ISwapChain.GetCurrentBackBuffer
+  fullName: Ghost.Graphics.RHI.ISwapChain.GetCurrentBackBuffer
+- uid: Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+  commentId: T:Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+  parent: Ghost.Core
+  definition: Ghost.Core.Handle`1
+  href: Ghost.Graphics.RHI.Texture.html
+  name: Handle<Texture>
+  nameWithType: Handle<Texture>
+  fullName: Ghost.Core.Handle<Ghost.Graphics.RHI.Texture>
+  nameWithType.vb: Handle(Of Texture)
+  fullName.vb: Ghost.Core.Handle(Of Ghost.Graphics.RHI.Texture)
+  name.vb: Handle(Of Texture)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - uid: Ghost.Graphics.RHI.Texture
+    name: Texture
+    href: Ghost.Graphics.RHI.Texture.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.Texture
+    name: Texture
+    href: Ghost.Graphics.RHI.Texture.html
+  - name: )
+- uid: Ghost.Core.Handle`1
+  commentId: T:Ghost.Core.Handle`1
+  name: Handle<T>
+  nameWithType: Handle<T>
+  fullName: Ghost.Core.Handle<T>
+  nameWithType.vb: Handle(Of T)
+  fullName.vb: Ghost.Core.Handle(Of T)
+  name.vb: Handle(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Core
+  commentId: N:Ghost.Core
+  name: Ghost.Core
+  nameWithType: Ghost.Core
+  fullName: Ghost.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+- uid: Ghost.Graphics.RHI.ISwapChain.GetBackBuffers*
+  commentId: Overload:Ghost.Graphics.RHI.ISwapChain.GetBackBuffers
+  href: Ghost.Graphics.RHI.ISwapChain.html#Ghost_Graphics_RHI_ISwapChain_GetBackBuffers
+  name: GetBackBuffers
+  nameWithType: ISwapChain.GetBackBuffers
+  fullName: Ghost.Graphics.RHI.ISwapChain.GetBackBuffers
+- uid: System.ReadOnlySpan{Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}}
+  commentId: T:System.ReadOnlySpan{Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}}
+  parent: System
+  definition: System.ReadOnlySpan`1
+  href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  name: ReadOnlySpan<Handle<Texture>>
+  nameWithType: ReadOnlySpan<Handle<Texture>>
+  fullName: System.ReadOnlySpan<Ghost.Core.Handle<Ghost.Graphics.RHI.Texture>>
+  nameWithType.vb: ReadOnlySpan(Of Handle(Of Texture))
+  fullName.vb: System.ReadOnlySpan(Of Ghost.Core.Handle(Of Ghost.Graphics.RHI.Texture))
+  name.vb: ReadOnlySpan(Of Handle(Of Texture))
+  spec.csharp:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: <
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - uid: Ghost.Graphics.RHI.Texture
+    name: Texture
+    href: Ghost.Graphics.RHI.Texture.html
+  - name: '>'
+  - name: '>'
+  spec.vb:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.Texture
+    name: Texture
+    href: Ghost.Graphics.RHI.Texture.html
+  - name: )
+  - name: )
+- uid: System.ReadOnlySpan`1
+  commentId: T:System.ReadOnlySpan`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  name: ReadOnlySpan<T>
+  nameWithType: ReadOnlySpan<T>
+  fullName: System.ReadOnlySpan<T>
+  nameWithType.vb: ReadOnlySpan(Of T)
+  fullName.vb: System.ReadOnlySpan(Of T)
+  name.vb: ReadOnlySpan(Of T)
+  spec.csharp:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Graphics.RHI.ISwapChain.Present*
+  commentId: Overload:Ghost.Graphics.RHI.ISwapChain.Present
+  href: Ghost.Graphics.RHI.ISwapChain.html#Ghost_Graphics_RHI_ISwapChain_Present_System_Boolean_
+  name: Present
+  nameWithType: ISwapChain.Present
+  fullName: Ghost.Graphics.RHI.ISwapChain.Present
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.boolean
+  name: bool
+  nameWithType: bool
+  fullName: bool
+  nameWithType.vb: Boolean
+  fullName.vb: Boolean
+  name.vb: Boolean
+- uid: Ghost.Graphics.RHI.ISwapChain.Resize*
+  commentId: Overload:Ghost.Graphics.RHI.ISwapChain.Resize
+  href: Ghost.Graphics.RHI.ISwapChain.html#Ghost_Graphics_RHI_ISwapChain_Resize_System_UInt32_System_UInt32_
+  name: Resize
+  nameWithType: ISwapChain.Resize
+  fullName: Ghost.Graphics.RHI.ISwapChain.Resize
+- uid: Ghost.Graphics.RHI.ISwapChain.SetScale*
+  commentId: Overload:Ghost.Graphics.RHI.ISwapChain.SetScale
+  href: Ghost.Graphics.RHI.ISwapChain.html#Ghost_Graphics_RHI_ISwapChain_SetScale_System_Single_System_Single_
+  name: SetScale
+  nameWithType: ISwapChain.SetScale
+  fullName: Ghost.Graphics.RHI.ISwapChain.SetScale

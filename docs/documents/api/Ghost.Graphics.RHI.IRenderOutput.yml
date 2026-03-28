@@ -1,0 +1,374 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.IRenderOutput
+  commentId: T:Ghost.Graphics.RHI.IRenderOutput
+  id: IRenderOutput
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.IRenderOutput.BeginRender(Ghost.Graphics.RHI.ICommandBuffer)
+  - Ghost.Graphics.RHI.IRenderOutput.EndRender(Ghost.Graphics.RHI.ICommandBuffer)
+  - Ghost.Graphics.RHI.IRenderOutput.GetRenderTarget
+  - Ghost.Graphics.RHI.IRenderOutput.Present
+  - Ghost.Graphics.RHI.IRenderOutput.Scissor
+  - Ghost.Graphics.RHI.IRenderOutput.Viewport
+  langs:
+  - csharp
+  - vb
+  name: IRenderOutput
+  nameWithType: IRenderOutput
+  fullName: Ghost.Graphics.RHI.IRenderOutput
+  type: Interface
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderOutput.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IRenderOutput
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderOutput.cs
+    startLine: 4
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public interface IRenderOutput
+    content.vb: Public Interface IRenderOutput
+- uid: Ghost.Graphics.RHI.IRenderOutput.Viewport
+  commentId: P:Ghost.Graphics.RHI.IRenderOutput.Viewport
+  id: Viewport
+  parent: Ghost.Graphics.RHI.IRenderOutput
+  langs:
+  - csharp
+  - vb
+  name: Viewport
+  nameWithType: IRenderOutput.Viewport
+  fullName: Ghost.Graphics.RHI.IRenderOutput.Viewport
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderOutput.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Viewport
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderOutput.cs
+    startLine: 6
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: ViewportDesc Viewport { get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.ViewportDesc
+    content.vb: Property Viewport As ViewportDesc
+  overload: Ghost.Graphics.RHI.IRenderOutput.Viewport*
+- uid: Ghost.Graphics.RHI.IRenderOutput.Scissor
+  commentId: P:Ghost.Graphics.RHI.IRenderOutput.Scissor
+  id: Scissor
+  parent: Ghost.Graphics.RHI.IRenderOutput
+  langs:
+  - csharp
+  - vb
+  name: Scissor
+  nameWithType: IRenderOutput.Scissor
+  fullName: Ghost.Graphics.RHI.IRenderOutput.Scissor
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderOutput.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Scissor
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderOutput.cs
+    startLine: 11
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: ScissorRectDesc Scissor { get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.ScissorRectDesc
+    content.vb: Property Scissor As ScissorRectDesc
+  overload: Ghost.Graphics.RHI.IRenderOutput.Scissor*
+- uid: Ghost.Graphics.RHI.IRenderOutput.GetRenderTarget
+  commentId: M:Ghost.Graphics.RHI.IRenderOutput.GetRenderTarget
+  id: GetRenderTarget
+  parent: Ghost.Graphics.RHI.IRenderOutput
+  langs:
+  - csharp
+  - vb
+  name: GetRenderTarget()
+  nameWithType: IRenderOutput.GetRenderTarget()
+  fullName: Ghost.Graphics.RHI.IRenderOutput.GetRenderTarget()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderOutput.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetRenderTarget
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderOutput.cs
+    startLine: 20
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Gets a handle to the current render target texture.
+  example: []
+  syntax:
+    content: Handle<Texture> GetRenderTarget()
+    return:
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+      description: A handle to the texture that is currently set as the render target.
+    content.vb: Function GetRenderTarget() As Handle(Of Texture)
+  overload: Ghost.Graphics.RHI.IRenderOutput.GetRenderTarget*
+- uid: Ghost.Graphics.RHI.IRenderOutput.BeginRender(Ghost.Graphics.RHI.ICommandBuffer)
+  commentId: M:Ghost.Graphics.RHI.IRenderOutput.BeginRender(Ghost.Graphics.RHI.ICommandBuffer)
+  id: BeginRender(Ghost.Graphics.RHI.ICommandBuffer)
+  parent: Ghost.Graphics.RHI.IRenderOutput
+  langs:
+  - csharp
+  - vb
+  name: BeginRender(ICommandBuffer)
+  nameWithType: IRenderOutput.BeginRender(ICommandBuffer)
+  fullName: Ghost.Graphics.RHI.IRenderOutput.BeginRender(Ghost.Graphics.RHI.ICommandBuffer)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderOutput.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: BeginRender
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderOutput.cs
+    startLine: 27
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Begins a rendering operation using the specified command buffer. Typically this will include resource barriers,
+  example: []
+  syntax:
+    content: void BeginRender(ICommandBuffer cmd)
+    parameters:
+    - id: cmd
+      type: Ghost.Graphics.RHI.ICommandBuffer
+      description: The command buffer that records rendering commands.
+    content.vb: Sub BeginRender(cmd As ICommandBuffer)
+  overload: Ghost.Graphics.RHI.IRenderOutput.BeginRender*
+- uid: Ghost.Graphics.RHI.IRenderOutput.EndRender(Ghost.Graphics.RHI.ICommandBuffer)
+  commentId: M:Ghost.Graphics.RHI.IRenderOutput.EndRender(Ghost.Graphics.RHI.ICommandBuffer)
+  id: EndRender(Ghost.Graphics.RHI.ICommandBuffer)
+  parent: Ghost.Graphics.RHI.IRenderOutput
+  langs:
+  - csharp
+  - vb
+  name: EndRender(ICommandBuffer)
+  nameWithType: IRenderOutput.EndRender(ICommandBuffer)
+  fullName: Ghost.Graphics.RHI.IRenderOutput.EndRender(Ghost.Graphics.RHI.ICommandBuffer)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderOutput.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: EndRender
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderOutput.cs
+    startLine: 32
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Finalizes the rendering process using the specified command buffer.
+  example: []
+  syntax:
+    content: void EndRender(ICommandBuffer cmd)
+    parameters:
+    - id: cmd
+      type: Ghost.Graphics.RHI.ICommandBuffer
+      description: The command buffer that contains the rendering commands to be finalized.
+    content.vb: Sub EndRender(cmd As ICommandBuffer)
+  overload: Ghost.Graphics.RHI.IRenderOutput.EndRender*
+- uid: Ghost.Graphics.RHI.IRenderOutput.Present
+  commentId: M:Ghost.Graphics.RHI.IRenderOutput.Present
+  id: Present
+  parent: Ghost.Graphics.RHI.IRenderOutput
+  langs:
+  - csharp
+  - vb
+  name: Present()
+  nameWithType: IRenderOutput.Present()
+  fullName: Ghost.Graphics.RHI.IRenderOutput.Present()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderOutput.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Present
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderOutput.cs
+    startLine: 39
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Displays the current frame to the output device or screen.
+  remarks: >-
+    Call this method after rendering operations to present the rendered content. The exact
+        behavior may depend on the underlying graphics implementation or device.
+  example: []
+  syntax:
+    content: void Present()
+    content.vb: Sub Present()
+  overload: Ghost.Graphics.RHI.IRenderOutput.Present*
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.IRenderOutput.Viewport*
+  commentId: Overload:Ghost.Graphics.RHI.IRenderOutput.Viewport
+  href: Ghost.Graphics.RHI.IRenderOutput.html#Ghost_Graphics_RHI_IRenderOutput_Viewport
+  name: Viewport
+  nameWithType: IRenderOutput.Viewport
+  fullName: Ghost.Graphics.RHI.IRenderOutput.Viewport
+- uid: Ghost.Graphics.RHI.ViewportDesc
+  commentId: T:Ghost.Graphics.RHI.ViewportDesc
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ViewportDesc.html
+  name: ViewportDesc
+  nameWithType: ViewportDesc
+  fullName: Ghost.Graphics.RHI.ViewportDesc
+- uid: Ghost.Graphics.RHI.IRenderOutput.Scissor*
+  commentId: Overload:Ghost.Graphics.RHI.IRenderOutput.Scissor
+  href: Ghost.Graphics.RHI.IRenderOutput.html#Ghost_Graphics_RHI_IRenderOutput_Scissor
+  name: Scissor
+  nameWithType: IRenderOutput.Scissor
+  fullName: Ghost.Graphics.RHI.IRenderOutput.Scissor
+- uid: Ghost.Graphics.RHI.ScissorRectDesc
+  commentId: T:Ghost.Graphics.RHI.ScissorRectDesc
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ScissorRectDesc.html
+  name: ScissorRectDesc
+  nameWithType: ScissorRectDesc
+  fullName: Ghost.Graphics.RHI.ScissorRectDesc
+- uid: Ghost.Graphics.RHI.IRenderOutput.GetRenderTarget*
+  commentId: Overload:Ghost.Graphics.RHI.IRenderOutput.GetRenderTarget
+  href: Ghost.Graphics.RHI.IRenderOutput.html#Ghost_Graphics_RHI_IRenderOutput_GetRenderTarget
+  name: GetRenderTarget
+  nameWithType: IRenderOutput.GetRenderTarget
+  fullName: Ghost.Graphics.RHI.IRenderOutput.GetRenderTarget
+- uid: Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+  commentId: T:Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+  parent: Ghost.Core
+  definition: Ghost.Core.Handle`1
+  href: Ghost.Graphics.RHI.Texture.html
+  name: Handle<Texture>
+  nameWithType: Handle<Texture>
+  fullName: Ghost.Core.Handle<Ghost.Graphics.RHI.Texture>
+  nameWithType.vb: Handle(Of Texture)
+  fullName.vb: Ghost.Core.Handle(Of Ghost.Graphics.RHI.Texture)
+  name.vb: Handle(Of Texture)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - uid: Ghost.Graphics.RHI.Texture
+    name: Texture
+    href: Ghost.Graphics.RHI.Texture.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.Texture
+    name: Texture
+    href: Ghost.Graphics.RHI.Texture.html
+  - name: )
+- uid: Ghost.Core.Handle`1
+  commentId: T:Ghost.Core.Handle`1
+  name: Handle<T>
+  nameWithType: Handle<T>
+  fullName: Ghost.Core.Handle<T>
+  nameWithType.vb: Handle(Of T)
+  fullName.vb: Ghost.Core.Handle(Of T)
+  name.vb: Handle(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Core
+  commentId: N:Ghost.Core
+  name: Ghost.Core
+  nameWithType: Ghost.Core
+  fullName: Ghost.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+- uid: Ghost.Graphics.RHI.IRenderOutput.BeginRender*
+  commentId: Overload:Ghost.Graphics.RHI.IRenderOutput.BeginRender
+  href: Ghost.Graphics.RHI.IRenderOutput.html#Ghost_Graphics_RHI_IRenderOutput_BeginRender_Ghost_Graphics_RHI_ICommandBuffer_
+  name: BeginRender
+  nameWithType: IRenderOutput.BeginRender
+  fullName: Ghost.Graphics.RHI.IRenderOutput.BeginRender
+- uid: Ghost.Graphics.RHI.ICommandBuffer
+  commentId: T:Ghost.Graphics.RHI.ICommandBuffer
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ICommandBuffer.html
+  name: ICommandBuffer
+  nameWithType: ICommandBuffer
+  fullName: Ghost.Graphics.RHI.ICommandBuffer
+- uid: Ghost.Graphics.RHI.IRenderOutput.EndRender*
+  commentId: Overload:Ghost.Graphics.RHI.IRenderOutput.EndRender
+  href: Ghost.Graphics.RHI.IRenderOutput.html#Ghost_Graphics_RHI_IRenderOutput_EndRender_Ghost_Graphics_RHI_ICommandBuffer_
+  name: EndRender
+  nameWithType: IRenderOutput.EndRender
+  fullName: Ghost.Graphics.RHI.IRenderOutput.EndRender
+- uid: Ghost.Graphics.RHI.IRenderOutput.Present*
+  commentId: Overload:Ghost.Graphics.RHI.IRenderOutput.Present
+  href: Ghost.Graphics.RHI.IRenderOutput.html#Ghost_Graphics_RHI_IRenderOutput_Present
+  name: Present
+  nameWithType: IRenderOutput.Present
+  fullName: Ghost.Graphics.RHI.IRenderOutput.Present

@@ -1,0 +1,495 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.ShaderPass
+  commentId: T:Ghost.Graphics.RHI.ShaderPass
+  id: ShaderPass
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.ShaderPass.DefaultState
+  - Ghost.Graphics.RHI.ShaderPass.Key
+  - Ghost.Graphics.RHI.ShaderPass.KeywordIDs
+  langs:
+  - csharp
+  - vb
+  name: ShaderPass
+  nameWithType: ShaderPass
+  fullName: Ghost.Graphics.RHI.ShaderPass
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ShaderPass
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 157
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public readonly struct ShaderPass
+    content.vb: Public Structure ShaderPass
+  inheritedMembers:
+  - System.ValueType.Equals(System.Object)
+  - System.ValueType.GetHashCode
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Graphics.RHI.ShaderPass.Key
+  commentId: P:Ghost.Graphics.RHI.ShaderPass.Key
+  id: Key
+  parent: Ghost.Graphics.RHI.ShaderPass
+  langs:
+  - csharp
+  - vb
+  name: Key
+  nameWithType: ShaderPass.Key
+  fullName: Ghost.Graphics.RHI.ShaderPass.Key
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Key
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 159
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public Key64<ShaderPass> Key { get; init; }
+    parameters: []
+    return:
+      type: Ghost.Core.Key64{Ghost.Graphics.RHI.ShaderPass}
+    content.vb: Public Property Key As Key64(Of ShaderPass)
+  overload: Ghost.Graphics.RHI.ShaderPass.Key*
+- uid: Ghost.Graphics.RHI.ShaderPass.DefaultState
+  commentId: P:Ghost.Graphics.RHI.ShaderPass.DefaultState
+  id: DefaultState
+  parent: Ghost.Graphics.RHI.ShaderPass
+  langs:
+  - csharp
+  - vb
+  name: DefaultState
+  nameWithType: ShaderPass.DefaultState
+  fullName: Ghost.Graphics.RHI.ShaderPass.DefaultState
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: DefaultState
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 164
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public PipelineState DefaultState { get; init; }
+    parameters: []
+    return:
+      type: Ghost.Core.Graphics.PipelineState
+    content.vb: Public Property DefaultState As PipelineState
+  overload: Ghost.Graphics.RHI.ShaderPass.DefaultState*
+- uid: Ghost.Graphics.RHI.ShaderPass.KeywordIDs
+  commentId: P:Ghost.Graphics.RHI.ShaderPass.KeywordIDs
+  id: KeywordIDs
+  parent: Ghost.Graphics.RHI.ShaderPass
+  langs:
+  - csharp
+  - vb
+  name: KeywordIDs
+  nameWithType: ShaderPass.KeywordIDs
+  fullName: Ghost.Graphics.RHI.ShaderPass.KeywordIDs
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: KeywordIDs
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 169
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public LocalKeywordSet KeywordIDs { get; init; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.LocalKeywordSet
+    content.vb: Public Property KeywordIDs As LocalKeywordSet
+  overload: Ghost.Graphics.RHI.ShaderPass.KeywordIDs*
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RHI.ShaderPass.Key*
+  commentId: Overload:Ghost.Graphics.RHI.ShaderPass.Key
+  href: Ghost.Graphics.RHI.ShaderPass.html#Ghost_Graphics_RHI_ShaderPass_Key
+  name: Key
+  nameWithType: ShaderPass.Key
+  fullName: Ghost.Graphics.RHI.ShaderPass.Key
+- uid: Ghost.Core.Key64{Ghost.Graphics.RHI.ShaderPass}
+  commentId: T:Ghost.Core.Key64{Ghost.Graphics.RHI.ShaderPass}
+  parent: Ghost.Core
+  definition: Ghost.Core.Key64`1
+  href: Ghost.Graphics.RHI.ShaderPass.html
+  name: Key64<ShaderPass>
+  nameWithType: Key64<ShaderPass>
+  fullName: Ghost.Core.Key64<Ghost.Graphics.RHI.ShaderPass>
+  nameWithType.vb: Key64(Of ShaderPass)
+  fullName.vb: Ghost.Core.Key64(Of Ghost.Graphics.RHI.ShaderPass)
+  name.vb: Key64(Of ShaderPass)
+  spec.csharp:
+  - uid: Ghost.Core.Key64`1
+    name: Key64
+  - name: <
+  - uid: Ghost.Graphics.RHI.ShaderPass
+    name: ShaderPass
+    href: Ghost.Graphics.RHI.ShaderPass.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Key64`1
+    name: Key64
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.ShaderPass
+    name: ShaderPass
+    href: Ghost.Graphics.RHI.ShaderPass.html
+  - name: )
+- uid: Ghost.Core.Key64`1
+  commentId: T:Ghost.Core.Key64`1
+  name: Key64<T>
+  nameWithType: Key64<T>
+  fullName: Ghost.Core.Key64<T>
+  nameWithType.vb: Key64(Of T)
+  fullName.vb: Ghost.Core.Key64(Of T)
+  name.vb: Key64(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Key64`1
+    name: Key64
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Key64`1
+    name: Key64
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Core
+  commentId: N:Ghost.Core
+  name: Ghost.Core
+  nameWithType: Ghost.Core
+  fullName: Ghost.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+- uid: Ghost.Graphics.RHI.ShaderPass.DefaultState*
+  commentId: Overload:Ghost.Graphics.RHI.ShaderPass.DefaultState
+  href: Ghost.Graphics.RHI.ShaderPass.html#Ghost_Graphics_RHI_ShaderPass_DefaultState
+  name: DefaultState
+  nameWithType: ShaderPass.DefaultState
+  fullName: Ghost.Graphics.RHI.ShaderPass.DefaultState
+- uid: Ghost.Core.Graphics.PipelineState
+  commentId: T:Ghost.Core.Graphics.PipelineState
+  parent: Ghost.Core.Graphics
+  name: PipelineState
+  nameWithType: PipelineState
+  fullName: Ghost.Core.Graphics.PipelineState
+- uid: Ghost.Core.Graphics
+  commentId: N:Ghost.Core.Graphics
+  name: Ghost.Core.Graphics
+  nameWithType: Ghost.Core.Graphics
+  fullName: Ghost.Core.Graphics
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  - name: .
+  - uid: Ghost.Core.Graphics
+    name: Graphics
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  - name: .
+  - uid: Ghost.Core.Graphics
+    name: Graphics
+- uid: Ghost.Graphics.RHI.ShaderPass.KeywordIDs*
+  commentId: Overload:Ghost.Graphics.RHI.ShaderPass.KeywordIDs
+  href: Ghost.Graphics.RHI.ShaderPass.html#Ghost_Graphics_RHI_ShaderPass_KeywordIDs
+  name: KeywordIDs
+  nameWithType: ShaderPass.KeywordIDs
+  fullName: Ghost.Graphics.RHI.ShaderPass.KeywordIDs
+- uid: Ghost.Graphics.RHI.LocalKeywordSet
+  commentId: T:Ghost.Graphics.RHI.LocalKeywordSet
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.LocalKeywordSet.html
+  name: LocalKeywordSet
+  nameWithType: LocalKeywordSet
+  fullName: Ghost.Graphics.RHI.LocalKeywordSet

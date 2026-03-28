@@ -1,0 +1,108 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.IResourceReleasable
+  commentId: T:Ghost.Graphics.RHI.IResourceReleasable
+  id: IResourceReleasable
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.IResourceReleasable.ReleaseResource(Ghost.Graphics.RHI.IResourceDatabase)
+  langs:
+  - csharp
+  - vb
+  name: IResourceReleasable
+  nameWithType: IResourceReleasable
+  fullName: Ghost.Graphics.RHI.IResourceReleasable
+  type: Interface
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IResourceReleasable
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+    startLine: 4
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public interface IResourceReleasable
+    content.vb: Public Interface IResourceReleasable
+  derivedClasses:
+  - Ghost.Graphics.Core.Material
+  - Ghost.Graphics.Core.Mesh
+  - Ghost.Graphics.Core.Shader
+- uid: Ghost.Graphics.RHI.IResourceReleasable.ReleaseResource(Ghost.Graphics.RHI.IResourceDatabase)
+  commentId: M:Ghost.Graphics.RHI.IResourceReleasable.ReleaseResource(Ghost.Graphics.RHI.IResourceDatabase)
+  id: ReleaseResource(Ghost.Graphics.RHI.IResourceDatabase)
+  parent: Ghost.Graphics.RHI.IResourceReleasable
+  langs:
+  - csharp
+  - vb
+  name: ReleaseResource(IResourceDatabase)
+  nameWithType: IResourceReleasable.ReleaseResource(IResourceDatabase)
+  fullName: Ghost.Graphics.RHI.IResourceReleasable.ReleaseResource(Ghost.Graphics.RHI.IResourceDatabase)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ReleaseResource
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+    startLine: 9
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: A method to release GPU resources.
+  example: []
+  syntax:
+    content: void ReleaseResource(IResourceDatabase database)
+    parameters:
+    - id: database
+      type: Ghost.Graphics.RHI.IResourceDatabase
+    content.vb: Sub ReleaseResource(database As IResourceDatabase)
+  overload: Ghost.Graphics.RHI.IResourceReleasable.ReleaseResource*
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.IResourceReleasable.ReleaseResource*
+  commentId: Overload:Ghost.Graphics.RHI.IResourceReleasable.ReleaseResource
+  href: Ghost.Graphics.RHI.IResourceReleasable.html#Ghost_Graphics_RHI_IResourceReleasable_ReleaseResource_Ghost_Graphics_RHI_IResourceDatabase_
+  name: ReleaseResource
+  nameWithType: IResourceReleasable.ReleaseResource
+  fullName: Ghost.Graphics.RHI.IResourceReleasable.ReleaseResource
+- uid: Ghost.Graphics.RHI.IResourceDatabase
+  commentId: T:Ghost.Graphics.RHI.IResourceDatabase
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.IResourceDatabase.html
+  name: IResourceDatabase
+  nameWithType: IResourceDatabase
+  fullName: Ghost.Graphics.RHI.IResourceDatabase

@@ -357,34 +357,6 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
             builder.SetColorAttachment(backbuffer, 0);
             builder.SetRenderFunc<MeshletDebugPassData>(static (data, ctx)=>
             {
-                //var cmd = ctx.GetCommandBufferUnsafe();
-                //var (backBufferDesc, err) = ctx.ResourceDatabase.GetResourceDescription(ctx.GetActualResource(data.backbuffer.AsResource()));
-                //if (err != Error.None)
-                //{
-                //    return;
-                //}
-
-                //var viewportDesc = new ViewportDesc
-                //{
-                //    X = 0,
-                //    Y = 0,
-                //    Width = backBufferDesc.TextureDescription.Width,
-                //    Height = backBufferDesc.TextureDescription.Height,
-                //    MinDepth = 0,
-                //    MaxDepth = 1
-                //};
-
-                //var rectDesc = new ScissorRectDesc
-                //{
-                //    Left = 0,
-                //    Top = 0,
-                //    Right = backBufferDesc.TextureDescription.Width,
-                //    Bottom = backBufferDesc.TextureDescription.Height
-                //};
-
-                //cmd.SetViewport(viewportDesc);
-                //cmd.SetScissorRect(rectDesc);
-
                 ctx.SetGlobalData(data.globalIndex, data.viewIndex);
                 ctx.SetInstanceData(data.instanceIndex);
                 ctx.SetActiveMaterial(data.material);

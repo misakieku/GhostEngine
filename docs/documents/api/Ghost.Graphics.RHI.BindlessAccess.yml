@@ -1,0 +1,147 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.BindlessAccess
+  commentId: T:Ghost.Graphics.RHI.BindlessAccess
+  id: BindlessAccess
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.BindlessAccess.ConstantBuffer
+  - Ghost.Graphics.RHI.BindlessAccess.ShaderResource
+  - Ghost.Graphics.RHI.BindlessAccess.UnorderedAccess
+  langs:
+  - csharp
+  - vb
+  name: BindlessAccess
+  nameWithType: BindlessAccess
+  fullName: Ghost.Graphics.RHI.BindlessAccess
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: BindlessAccess
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+    startLine: 26
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public enum BindlessAccess
+    content.vb: Public Enum BindlessAccess
+- uid: Ghost.Graphics.RHI.BindlessAccess.ShaderResource
+  commentId: F:Ghost.Graphics.RHI.BindlessAccess.ShaderResource
+  id: ShaderResource
+  parent: Ghost.Graphics.RHI.BindlessAccess
+  langs:
+  - csharp
+  - vb
+  name: ShaderResource
+  nameWithType: BindlessAccess.ShaderResource
+  fullName: Ghost.Graphics.RHI.BindlessAccess.ShaderResource
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ShaderResource
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+    startLine: 28
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: ShaderResource = 0
+    return:
+      type: Ghost.Graphics.RHI.BindlessAccess
+- uid: Ghost.Graphics.RHI.BindlessAccess.ConstantBuffer
+  commentId: F:Ghost.Graphics.RHI.BindlessAccess.ConstantBuffer
+  id: ConstantBuffer
+  parent: Ghost.Graphics.RHI.BindlessAccess
+  langs:
+  - csharp
+  - vb
+  name: ConstantBuffer
+  nameWithType: BindlessAccess.ConstantBuffer
+  fullName: Ghost.Graphics.RHI.BindlessAccess.ConstantBuffer
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ConstantBuffer
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+    startLine: 29
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: ConstantBuffer = 1
+    return:
+      type: Ghost.Graphics.RHI.BindlessAccess
+- uid: Ghost.Graphics.RHI.BindlessAccess.UnorderedAccess
+  commentId: F:Ghost.Graphics.RHI.BindlessAccess.UnorderedAccess
+  id: UnorderedAccess
+  parent: Ghost.Graphics.RHI.BindlessAccess
+  langs:
+  - csharp
+  - vb
+  name: UnorderedAccess
+  nameWithType: BindlessAccess.UnorderedAccess
+  fullName: Ghost.Graphics.RHI.BindlessAccess.UnorderedAccess
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: UnorderedAccess
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+    startLine: 30
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: UnorderedAccess = 2
+    return:
+      type: Ghost.Graphics.RHI.BindlessAccess
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.BindlessAccess
+  commentId: T:Ghost.Graphics.RHI.BindlessAccess
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.BindlessAccess.html
+  name: BindlessAccess
+  nameWithType: BindlessAccess
+  fullName: Ghost.Graphics.RHI.BindlessAccess

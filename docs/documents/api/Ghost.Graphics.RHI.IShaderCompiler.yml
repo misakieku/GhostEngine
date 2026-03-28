@@ -1,0 +1,511 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.IShaderCompiler
+  commentId: T:Ghost.Graphics.RHI.IShaderCompiler
+  id: IShaderCompiler
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.IShaderCompiler.Compile(Ghost.Graphics.RHI.ShaderCompilationConfig@,Misaki.HighPerformance.LowLevel.Buffer.Allocator)
+  - Ghost.Graphics.RHI.IShaderCompiler.CompilePass(Ghost.Core.Graphics.PassDescriptor@,Ghost.Graphics.RHI.ShaderCompilationConfig@,Ghost.Core.Key64{Ghost.Graphics.RHI.ShaderVariant})
+  - Ghost.Graphics.RHI.IShaderCompiler.LoadCompiledCache(Ghost.Core.Key64{Ghost.Graphics.RHI.ShaderVariant})
+  langs:
+  - csharp
+  - vb
+  name: IShaderCompiler
+  nameWithType: IShaderCompiler
+  fullName: Ghost.Graphics.RHI.IShaderCompiler
+  type: Interface
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IShaderCompiler
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 143
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: 'public interface IShaderCompiler : IDisposable'
+    content.vb: Public Interface IShaderCompiler Inherits IDisposable
+  inheritedMembers:
+  - System.IDisposable.Dispose
+- uid: Ghost.Graphics.RHI.IShaderCompiler.Compile(Ghost.Graphics.RHI.ShaderCompilationConfig@,Misaki.HighPerformance.LowLevel.Buffer.Allocator)
+  commentId: M:Ghost.Graphics.RHI.IShaderCompiler.Compile(Ghost.Graphics.RHI.ShaderCompilationConfig@,Misaki.HighPerformance.LowLevel.Buffer.Allocator)
+  id: Compile(Ghost.Graphics.RHI.ShaderCompilationConfig@,Misaki.HighPerformance.LowLevel.Buffer.Allocator)
+  parent: Ghost.Graphics.RHI.IShaderCompiler
+  langs:
+  - csharp
+  - vb
+  name: Compile(ref readonly ShaderCompilationConfig, Allocator)
+  nameWithType: IShaderCompiler.Compile(ref readonly ShaderCompilationConfig, Allocator)
+  fullName: Ghost.Graphics.RHI.IShaderCompiler.Compile(ref readonly Ghost.Graphics.RHI.ShaderCompilationConfig, Misaki.HighPerformance.LowLevel.Buffer.Allocator)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Compile
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 145
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Result<ShaderCompileResult> Compile(ref readonly ShaderCompilationConfig config, Allocator allocator)
+    parameters:
+    - id: config
+      type: Ghost.Graphics.RHI.ShaderCompilationConfig
+    - id: allocator
+      type: Misaki.HighPerformance.LowLevel.Buffer.Allocator
+    return:
+      type: Ghost.Core.Result{Ghost.Graphics.RHI.ShaderCompileResult}
+    content.vb: Function Compile(config As ShaderCompilationConfig, allocator As Allocator) As Result(Of ShaderCompileResult)
+  overload: Ghost.Graphics.RHI.IShaderCompiler.Compile*
+  nameWithType.vb: IShaderCompiler.Compile(ShaderCompilationConfig, Allocator)
+  fullName.vb: Ghost.Graphics.RHI.IShaderCompiler.Compile(Ghost.Graphics.RHI.ShaderCompilationConfig, Misaki.HighPerformance.LowLevel.Buffer.Allocator)
+  name.vb: Compile(ShaderCompilationConfig, Allocator)
+- uid: Ghost.Graphics.RHI.IShaderCompiler.CompilePass(Ghost.Core.Graphics.PassDescriptor@,Ghost.Graphics.RHI.ShaderCompilationConfig@,Ghost.Core.Key64{Ghost.Graphics.RHI.ShaderVariant})
+  commentId: M:Ghost.Graphics.RHI.IShaderCompiler.CompilePass(Ghost.Core.Graphics.PassDescriptor@,Ghost.Graphics.RHI.ShaderCompilationConfig@,Ghost.Core.Key64{Ghost.Graphics.RHI.ShaderVariant})
+  id: CompilePass(Ghost.Core.Graphics.PassDescriptor@,Ghost.Graphics.RHI.ShaderCompilationConfig@,Ghost.Core.Key64{Ghost.Graphics.RHI.ShaderVariant})
+  parent: Ghost.Graphics.RHI.IShaderCompiler
+  langs:
+  - csharp
+  - vb
+  name: CompilePass(ref readonly PassDescriptor, ref readonly ShaderCompilationConfig, Key64<ShaderVariant>)
+  nameWithType: IShaderCompiler.CompilePass(ref readonly PassDescriptor, ref readonly ShaderCompilationConfig, Key64<ShaderVariant>)
+  fullName: Ghost.Graphics.RHI.IShaderCompiler.CompilePass(ref readonly Ghost.Core.Graphics.PassDescriptor, ref readonly Ghost.Graphics.RHI.ShaderCompilationConfig, Ghost.Core.Key64<Ghost.Graphics.RHI.ShaderVariant>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CompilePass
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 146
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Result<GraphicsCompiledResult> CompilePass(ref readonly PassDescriptor descriptor, ref readonly ShaderCompilationConfig additionalConfig, Key64<ShaderVariant> key)
+    parameters:
+    - id: descriptor
+      type: Ghost.Core.Graphics.PassDescriptor
+    - id: additionalConfig
+      type: Ghost.Graphics.RHI.ShaderCompilationConfig
+    - id: key
+      type: Ghost.Core.Key64{Ghost.Graphics.RHI.ShaderVariant}
+    return:
+      type: Ghost.Core.Result{Ghost.Graphics.RHI.GraphicsCompiledResult}
+    content.vb: Function CompilePass(descriptor As PassDescriptor, additionalConfig As ShaderCompilationConfig, key As Key64(Of ShaderVariant)) As Result(Of GraphicsCompiledResult)
+  overload: Ghost.Graphics.RHI.IShaderCompiler.CompilePass*
+  nameWithType.vb: IShaderCompiler.CompilePass(PassDescriptor, ShaderCompilationConfig, Key64(Of ShaderVariant))
+  fullName.vb: Ghost.Graphics.RHI.IShaderCompiler.CompilePass(Ghost.Core.Graphics.PassDescriptor, Ghost.Graphics.RHI.ShaderCompilationConfig, Ghost.Core.Key64(Of Ghost.Graphics.RHI.ShaderVariant))
+  name.vb: CompilePass(PassDescriptor, ShaderCompilationConfig, Key64(Of ShaderVariant))
+- uid: Ghost.Graphics.RHI.IShaderCompiler.LoadCompiledCache(Ghost.Core.Key64{Ghost.Graphics.RHI.ShaderVariant})
+  commentId: M:Ghost.Graphics.RHI.IShaderCompiler.LoadCompiledCache(Ghost.Core.Key64{Ghost.Graphics.RHI.ShaderVariant})
+  id: LoadCompiledCache(Ghost.Core.Key64{Ghost.Graphics.RHI.ShaderVariant})
+  parent: Ghost.Graphics.RHI.IShaderCompiler
+  langs:
+  - csharp
+  - vb
+  name: LoadCompiledCache(Key64<ShaderVariant>)
+  nameWithType: IShaderCompiler.LoadCompiledCache(Key64<ShaderVariant>)
+  fullName: Ghost.Graphics.RHI.IShaderCompiler.LoadCompiledCache(Ghost.Core.Key64<Ghost.Graphics.RHI.ShaderVariant>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: LoadCompiledCache
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 147
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Result<GraphicsCompiledResult, Error> LoadCompiledCache(Key64<ShaderVariant> key)
+    parameters:
+    - id: key
+      type: Ghost.Core.Key64{Ghost.Graphics.RHI.ShaderVariant}
+    return:
+      type: Ghost.Core.Result{Ghost.Graphics.RHI.GraphicsCompiledResult,Ghost.Core.Error}
+    content.vb: Function LoadCompiledCache(key As Key64(Of ShaderVariant)) As Result(Of GraphicsCompiledResult, [Error])
+  overload: Ghost.Graphics.RHI.IShaderCompiler.LoadCompiledCache*
+  nameWithType.vb: IShaderCompiler.LoadCompiledCache(Key64(Of ShaderVariant))
+  fullName.vb: Ghost.Graphics.RHI.IShaderCompiler.LoadCompiledCache(Ghost.Core.Key64(Of Ghost.Graphics.RHI.ShaderVariant))
+  name.vb: LoadCompiledCache(Key64(Of ShaderVariant))
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.IDisposable.Dispose
+  commentId: M:System.IDisposable.Dispose
+  parent: System.IDisposable
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  name: Dispose()
+  nameWithType: IDisposable.Dispose()
+  fullName: System.IDisposable.Dispose()
+  spec.csharp:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+- uid: System.IDisposable
+  commentId: T:System.IDisposable
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable
+  name: IDisposable
+  nameWithType: IDisposable
+  fullName: System.IDisposable
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RHI.IShaderCompiler.Compile*
+  commentId: Overload:Ghost.Graphics.RHI.IShaderCompiler.Compile
+  href: Ghost.Graphics.RHI.IShaderCompiler.html#Ghost_Graphics_RHI_IShaderCompiler_Compile_Ghost_Graphics_RHI_ShaderCompilationConfig__Misaki_HighPerformance_LowLevel_Buffer_Allocator_
+  name: Compile
+  nameWithType: IShaderCompiler.Compile
+  fullName: Ghost.Graphics.RHI.IShaderCompiler.Compile
+- uid: Ghost.Graphics.RHI.ShaderCompilationConfig
+  commentId: T:Ghost.Graphics.RHI.ShaderCompilationConfig
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ShaderCompilationConfig.html
+  name: ShaderCompilationConfig
+  nameWithType: ShaderCompilationConfig
+  fullName: Ghost.Graphics.RHI.ShaderCompilationConfig
+- uid: Misaki.HighPerformance.LowLevel.Buffer.Allocator
+  commentId: T:Misaki.HighPerformance.LowLevel.Buffer.Allocator
+  parent: Misaki.HighPerformance.LowLevel.Buffer
+  name: Allocator
+  nameWithType: Allocator
+  fullName: Misaki.HighPerformance.LowLevel.Buffer.Allocator
+- uid: Ghost.Core.Result{Ghost.Graphics.RHI.ShaderCompileResult}
+  commentId: T:Ghost.Core.Result{Ghost.Graphics.RHI.ShaderCompileResult}
+  parent: Ghost.Core
+  definition: Ghost.Core.Result`1
+  href: Ghost.Graphics.RHI.ShaderCompileResult.html
+  name: Result<ShaderCompileResult>
+  nameWithType: Result<ShaderCompileResult>
+  fullName: Ghost.Core.Result<Ghost.Graphics.RHI.ShaderCompileResult>
+  nameWithType.vb: Result(Of ShaderCompileResult)
+  fullName.vb: Ghost.Core.Result(Of Ghost.Graphics.RHI.ShaderCompileResult)
+  name.vb: Result(Of ShaderCompileResult)
+  spec.csharp:
+  - uid: Ghost.Core.Result`1
+    name: Result
+  - name: <
+  - uid: Ghost.Graphics.RHI.ShaderCompileResult
+    name: ShaderCompileResult
+    href: Ghost.Graphics.RHI.ShaderCompileResult.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Result`1
+    name: Result
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.ShaderCompileResult
+    name: ShaderCompileResult
+    href: Ghost.Graphics.RHI.ShaderCompileResult.html
+  - name: )
+- uid: Misaki.HighPerformance.LowLevel.Buffer
+  commentId: N:Misaki.HighPerformance.LowLevel.Buffer
+  name: Misaki.HighPerformance.LowLevel.Buffer
+  nameWithType: Misaki.HighPerformance.LowLevel.Buffer
+  fullName: Misaki.HighPerformance.LowLevel.Buffer
+  spec.csharp:
+  - uid: Misaki
+    name: Misaki
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel
+    name: LowLevel
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel.Buffer
+    name: Buffer
+  spec.vb:
+  - uid: Misaki
+    name: Misaki
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel
+    name: LowLevel
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel.Buffer
+    name: Buffer
+- uid: Ghost.Core.Result`1
+  commentId: T:Ghost.Core.Result`1
+  name: Result<T>
+  nameWithType: Result<T>
+  fullName: Ghost.Core.Result<T>
+  nameWithType.vb: Result(Of T)
+  fullName.vb: Ghost.Core.Result(Of T)
+  name.vb: Result(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Result`1
+    name: Result
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Result`1
+    name: Result
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Core
+  commentId: N:Ghost.Core
+  name: Ghost.Core
+  nameWithType: Ghost.Core
+  fullName: Ghost.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+- uid: Ghost.Graphics.RHI.IShaderCompiler.CompilePass*
+  commentId: Overload:Ghost.Graphics.RHI.IShaderCompiler.CompilePass
+  href: Ghost.Graphics.RHI.IShaderCompiler.html#Ghost_Graphics_RHI_IShaderCompiler_CompilePass_Ghost_Core_Graphics_PassDescriptor__Ghost_Graphics_RHI_ShaderCompilationConfig__Ghost_Core_Key64_Ghost_Graphics_RHI_ShaderVariant__
+  name: CompilePass
+  nameWithType: IShaderCompiler.CompilePass
+  fullName: Ghost.Graphics.RHI.IShaderCompiler.CompilePass
+- uid: Ghost.Core.Graphics.PassDescriptor
+  commentId: T:Ghost.Core.Graphics.PassDescriptor
+  parent: Ghost.Core.Graphics
+  name: PassDescriptor
+  nameWithType: PassDescriptor
+  fullName: Ghost.Core.Graphics.PassDescriptor
+- uid: Ghost.Core.Key64{Ghost.Graphics.RHI.ShaderVariant}
+  commentId: T:Ghost.Core.Key64{Ghost.Graphics.RHI.ShaderVariant}
+  parent: Ghost.Core
+  definition: Ghost.Core.Key64`1
+  href: Ghost.Graphics.RHI.ShaderVariant.html
+  name: Key64<ShaderVariant>
+  nameWithType: Key64<ShaderVariant>
+  fullName: Ghost.Core.Key64<Ghost.Graphics.RHI.ShaderVariant>
+  nameWithType.vb: Key64(Of ShaderVariant)
+  fullName.vb: Ghost.Core.Key64(Of Ghost.Graphics.RHI.ShaderVariant)
+  name.vb: Key64(Of ShaderVariant)
+  spec.csharp:
+  - uid: Ghost.Core.Key64`1
+    name: Key64
+  - name: <
+  - uid: Ghost.Graphics.RHI.ShaderVariant
+    name: ShaderVariant
+    href: Ghost.Graphics.RHI.ShaderVariant.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Key64`1
+    name: Key64
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.ShaderVariant
+    name: ShaderVariant
+    href: Ghost.Graphics.RHI.ShaderVariant.html
+  - name: )
+- uid: Ghost.Core.Result{Ghost.Graphics.RHI.GraphicsCompiledResult}
+  commentId: T:Ghost.Core.Result{Ghost.Graphics.RHI.GraphicsCompiledResult}
+  parent: Ghost.Core
+  definition: Ghost.Core.Result`1
+  href: Ghost.Graphics.RHI.GraphicsCompiledResult.html
+  name: Result<GraphicsCompiledResult>
+  nameWithType: Result<GraphicsCompiledResult>
+  fullName: Ghost.Core.Result<Ghost.Graphics.RHI.GraphicsCompiledResult>
+  nameWithType.vb: Result(Of GraphicsCompiledResult)
+  fullName.vb: Ghost.Core.Result(Of Ghost.Graphics.RHI.GraphicsCompiledResult)
+  name.vb: Result(Of GraphicsCompiledResult)
+  spec.csharp:
+  - uid: Ghost.Core.Result`1
+    name: Result
+  - name: <
+  - uid: Ghost.Graphics.RHI.GraphicsCompiledResult
+    name: GraphicsCompiledResult
+    href: Ghost.Graphics.RHI.GraphicsCompiledResult.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Result`1
+    name: Result
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.GraphicsCompiledResult
+    name: GraphicsCompiledResult
+    href: Ghost.Graphics.RHI.GraphicsCompiledResult.html
+  - name: )
+- uid: Ghost.Core.Graphics
+  commentId: N:Ghost.Core.Graphics
+  name: Ghost.Core.Graphics
+  nameWithType: Ghost.Core.Graphics
+  fullName: Ghost.Core.Graphics
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  - name: .
+  - uid: Ghost.Core.Graphics
+    name: Graphics
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  - name: .
+  - uid: Ghost.Core.Graphics
+    name: Graphics
+- uid: Ghost.Core.Key64`1
+  commentId: T:Ghost.Core.Key64`1
+  name: Key64<T>
+  nameWithType: Key64<T>
+  fullName: Ghost.Core.Key64<T>
+  nameWithType.vb: Key64(Of T)
+  fullName.vb: Ghost.Core.Key64(Of T)
+  name.vb: Key64(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Key64`1
+    name: Key64
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Key64`1
+    name: Key64
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Graphics.RHI.IShaderCompiler.LoadCompiledCache*
+  commentId: Overload:Ghost.Graphics.RHI.IShaderCompiler.LoadCompiledCache
+  href: Ghost.Graphics.RHI.IShaderCompiler.html#Ghost_Graphics_RHI_IShaderCompiler_LoadCompiledCache_Ghost_Core_Key64_Ghost_Graphics_RHI_ShaderVariant__
+  name: LoadCompiledCache
+  nameWithType: IShaderCompiler.LoadCompiledCache
+  fullName: Ghost.Graphics.RHI.IShaderCompiler.LoadCompiledCache
+- uid: Ghost.Core.Result{Ghost.Graphics.RHI.GraphicsCompiledResult,Ghost.Core.Error}
+  commentId: T:Ghost.Core.Result{Ghost.Graphics.RHI.GraphicsCompiledResult,Ghost.Core.Error}
+  parent: Ghost.Core
+  definition: Ghost.Core.Result`2
+  href: Ghost.Graphics.RHI.GraphicsCompiledResult.html
+  name: Result<GraphicsCompiledResult, Error>
+  nameWithType: Result<GraphicsCompiledResult, Error>
+  fullName: Ghost.Core.Result<Ghost.Graphics.RHI.GraphicsCompiledResult, Ghost.Core.Error>
+  nameWithType.vb: Result(Of GraphicsCompiledResult, Error)
+  fullName.vb: Ghost.Core.Result(Of Ghost.Graphics.RHI.GraphicsCompiledResult, Ghost.Core.Error)
+  name.vb: Result(Of GraphicsCompiledResult, Error)
+  spec.csharp:
+  - uid: Ghost.Core.Result`2
+    name: Result
+  - name: <
+  - uid: Ghost.Graphics.RHI.GraphicsCompiledResult
+    name: GraphicsCompiledResult
+    href: Ghost.Graphics.RHI.GraphicsCompiledResult.html
+  - name: ','
+  - name: " "
+  - uid: Ghost.Core.Error
+    name: Error
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Result`2
+    name: Result
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.GraphicsCompiledResult
+    name: GraphicsCompiledResult
+    href: Ghost.Graphics.RHI.GraphicsCompiledResult.html
+  - name: ','
+  - name: " "
+  - uid: Ghost.Core.Error
+    name: Error
+  - name: )
+- uid: Ghost.Core.Result`2
+  commentId: T:Ghost.Core.Result`2
+  name: Result<T, E>
+  nameWithType: Result<T, E>
+  fullName: Ghost.Core.Result<T, E>
+  nameWithType.vb: Result(Of T, E)
+  fullName.vb: Ghost.Core.Result(Of T, E)
+  name.vb: Result(Of T, E)
+  spec.csharp:
+  - uid: Ghost.Core.Result`2
+    name: Result
+  - name: <
+  - name: T
+  - name: ','
+  - name: " "
+  - name: E
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Result`2
+    name: Result
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: ','
+  - name: " "
+  - name: E
+  - name: )

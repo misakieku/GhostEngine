@@ -1,0 +1,147 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.PrimitiveTopology
+  commentId: T:Ghost.Graphics.RHI.PrimitiveTopology
+  id: PrimitiveTopology
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.PrimitiveTopology.Line
+  - Ghost.Graphics.RHI.PrimitiveTopology.Point
+  - Ghost.Graphics.RHI.PrimitiveTopology.Triangle
+  langs:
+  - csharp
+  - vb
+  name: PrimitiveTopology
+  nameWithType: PrimitiveTopology
+  fullName: Ghost.Graphics.RHI.PrimitiveTopology
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: PrimitiveTopology
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1314
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public enum PrimitiveTopology
+    content.vb: Public Enum PrimitiveTopology
+- uid: Ghost.Graphics.RHI.PrimitiveTopology.Point
+  commentId: F:Ghost.Graphics.RHI.PrimitiveTopology.Point
+  id: Point
+  parent: Ghost.Graphics.RHI.PrimitiveTopology
+  langs:
+  - csharp
+  - vb
+  name: Point
+  nameWithType: PrimitiveTopology.Point
+  fullName: Ghost.Graphics.RHI.PrimitiveTopology.Point
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Point
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1316
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Point = 0
+    return:
+      type: Ghost.Graphics.RHI.PrimitiveTopology
+- uid: Ghost.Graphics.RHI.PrimitiveTopology.Line
+  commentId: F:Ghost.Graphics.RHI.PrimitiveTopology.Line
+  id: Line
+  parent: Ghost.Graphics.RHI.PrimitiveTopology
+  langs:
+  - csharp
+  - vb
+  name: Line
+  nameWithType: PrimitiveTopology.Line
+  fullName: Ghost.Graphics.RHI.PrimitiveTopology.Line
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Line
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1317
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Line = 1
+    return:
+      type: Ghost.Graphics.RHI.PrimitiveTopology
+- uid: Ghost.Graphics.RHI.PrimitiveTopology.Triangle
+  commentId: F:Ghost.Graphics.RHI.PrimitiveTopology.Triangle
+  id: Triangle
+  parent: Ghost.Graphics.RHI.PrimitiveTopology
+  langs:
+  - csharp
+  - vb
+  name: Triangle
+  nameWithType: PrimitiveTopology.Triangle
+  fullName: Ghost.Graphics.RHI.PrimitiveTopology.Triangle
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Triangle
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1318
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Triangle = 2
+    return:
+      type: Ghost.Graphics.RHI.PrimitiveTopology
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.PrimitiveTopology
+  commentId: T:Ghost.Graphics.RHI.PrimitiveTopology
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.PrimitiveTopology.html
+  name: PrimitiveTopology
+  nameWithType: PrimitiveTopology
+  fullName: Ghost.Graphics.RHI.PrimitiveTopology

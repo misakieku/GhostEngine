@@ -1,0 +1,679 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.IGraphicsEngine
+  commentId: T:Ghost.Graphics.RHI.IGraphicsEngine
+  id: IGraphicsEngine
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.IGraphicsEngine.BeginFrame(System.UInt64)
+  - Ghost.Graphics.RHI.IGraphicsEngine.CreateCommandAllocator(Ghost.Graphics.RHI.CommandBufferType)
+  - Ghost.Graphics.RHI.IGraphicsEngine.CreateCommandBuffer(Ghost.Graphics.RHI.CommandBufferType)
+  - Ghost.Graphics.RHI.IGraphicsEngine.CreateSwapChain(Ghost.Graphics.RHI.SwapChainDesc)
+  - Ghost.Graphics.RHI.IGraphicsEngine.Device
+  - Ghost.Graphics.RHI.IGraphicsEngine.EndFrame(System.UInt64)
+  - Ghost.Graphics.RHI.IGraphicsEngine.GetPooledCommandBuffer(Ghost.Graphics.RHI.CommandBufferType)
+  - Ghost.Graphics.RHI.IGraphicsEngine.PipelineLibrary
+  - Ghost.Graphics.RHI.IGraphicsEngine.ResourceAllocator
+  - Ghost.Graphics.RHI.IGraphicsEngine.ResourceDatabase
+  - Ghost.Graphics.RHI.IGraphicsEngine.ReturnPooledCommandBuffer(Ghost.Graphics.RHI.ICommandBuffer)
+  - Ghost.Graphics.RHI.IGraphicsEngine.ShaderCompiler
+  langs:
+  - csharp
+  - vb
+  name: IGraphicsEngine
+  nameWithType: IGraphicsEngine
+  fullName: Ghost.Graphics.RHI.IGraphicsEngine
+  type: Interface
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IGraphicsEngine.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IGraphicsEngine
+    path: src/Runtime/Ghost.Graphics.RHI/IGraphicsEngine.cs
+    startLine: 12
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: 'public interface IGraphicsEngine : IDisposable'
+    content.vb: Public Interface IGraphicsEngine Inherits IDisposable
+  inheritedMembers:
+  - System.IDisposable.Dispose
+- uid: Ghost.Graphics.RHI.IGraphicsEngine.Device
+  commentId: P:Ghost.Graphics.RHI.IGraphicsEngine.Device
+  id: Device
+  parent: Ghost.Graphics.RHI.IGraphicsEngine
+  langs:
+  - csharp
+  - vb
+  name: Device
+  nameWithType: IGraphicsEngine.Device
+  fullName: Ghost.Graphics.RHI.IGraphicsEngine.Device
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IGraphicsEngine.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Device
+    path: src/Runtime/Ghost.Graphics.RHI/IGraphicsEngine.cs
+    startLine: 14
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: IRenderDevice Device { get; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.IRenderDevice
+    content.vb: ReadOnly Property Device As IRenderDevice
+  overload: Ghost.Graphics.RHI.IGraphicsEngine.Device*
+- uid: Ghost.Graphics.RHI.IGraphicsEngine.ShaderCompiler
+  commentId: P:Ghost.Graphics.RHI.IGraphicsEngine.ShaderCompiler
+  id: ShaderCompiler
+  parent: Ghost.Graphics.RHI.IGraphicsEngine
+  langs:
+  - csharp
+  - vb
+  name: ShaderCompiler
+  nameWithType: IGraphicsEngine.ShaderCompiler
+  fullName: Ghost.Graphics.RHI.IGraphicsEngine.ShaderCompiler
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IGraphicsEngine.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ShaderCompiler
+    path: src/Runtime/Ghost.Graphics.RHI/IGraphicsEngine.cs
+    startLine: 19
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: IShaderCompiler ShaderCompiler { get; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.IShaderCompiler
+    content.vb: ReadOnly Property ShaderCompiler As IShaderCompiler
+  overload: Ghost.Graphics.RHI.IGraphicsEngine.ShaderCompiler*
+- uid: Ghost.Graphics.RHI.IGraphicsEngine.PipelineLibrary
+  commentId: P:Ghost.Graphics.RHI.IGraphicsEngine.PipelineLibrary
+  id: PipelineLibrary
+  parent: Ghost.Graphics.RHI.IGraphicsEngine
+  langs:
+  - csharp
+  - vb
+  name: PipelineLibrary
+  nameWithType: IGraphicsEngine.PipelineLibrary
+  fullName: Ghost.Graphics.RHI.IGraphicsEngine.PipelineLibrary
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IGraphicsEngine.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: PipelineLibrary
+    path: src/Runtime/Ghost.Graphics.RHI/IGraphicsEngine.cs
+    startLine: 24
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: IPipelineLibrary PipelineLibrary { get; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.IPipelineLibrary
+    content.vb: ReadOnly Property PipelineLibrary As IPipelineLibrary
+  overload: Ghost.Graphics.RHI.IGraphicsEngine.PipelineLibrary*
+- uid: Ghost.Graphics.RHI.IGraphicsEngine.ResourceDatabase
+  commentId: P:Ghost.Graphics.RHI.IGraphicsEngine.ResourceDatabase
+  id: ResourceDatabase
+  parent: Ghost.Graphics.RHI.IGraphicsEngine
+  langs:
+  - csharp
+  - vb
+  name: ResourceDatabase
+  nameWithType: IGraphicsEngine.ResourceDatabase
+  fullName: Ghost.Graphics.RHI.IGraphicsEngine.ResourceDatabase
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IGraphicsEngine.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ResourceDatabase
+    path: src/Runtime/Ghost.Graphics.RHI/IGraphicsEngine.cs
+    startLine: 29
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: IResourceDatabase ResourceDatabase { get; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.IResourceDatabase
+    content.vb: ReadOnly Property ResourceDatabase As IResourceDatabase
+  overload: Ghost.Graphics.RHI.IGraphicsEngine.ResourceDatabase*
+- uid: Ghost.Graphics.RHI.IGraphicsEngine.ResourceAllocator
+  commentId: P:Ghost.Graphics.RHI.IGraphicsEngine.ResourceAllocator
+  id: ResourceAllocator
+  parent: Ghost.Graphics.RHI.IGraphicsEngine
+  langs:
+  - csharp
+  - vb
+  name: ResourceAllocator
+  nameWithType: IGraphicsEngine.ResourceAllocator
+  fullName: Ghost.Graphics.RHI.IGraphicsEngine.ResourceAllocator
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IGraphicsEngine.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ResourceAllocator
+    path: src/Runtime/Ghost.Graphics.RHI/IGraphicsEngine.cs
+    startLine: 34
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: IResourceAllocator ResourceAllocator { get; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.IResourceAllocator
+    content.vb: ReadOnly Property ResourceAllocator As IResourceAllocator
+  overload: Ghost.Graphics.RHI.IGraphicsEngine.ResourceAllocator*
+- uid: Ghost.Graphics.RHI.IGraphicsEngine.CreateCommandAllocator(Ghost.Graphics.RHI.CommandBufferType)
+  commentId: M:Ghost.Graphics.RHI.IGraphicsEngine.CreateCommandAllocator(Ghost.Graphics.RHI.CommandBufferType)
+  id: CreateCommandAllocator(Ghost.Graphics.RHI.CommandBufferType)
+  parent: Ghost.Graphics.RHI.IGraphicsEngine
+  langs:
+  - csharp
+  - vb
+  name: CreateCommandAllocator(CommandBufferType)
+  nameWithType: IGraphicsEngine.CreateCommandAllocator(CommandBufferType)
+  fullName: Ghost.Graphics.RHI.IGraphicsEngine.CreateCommandAllocator(Ghost.Graphics.RHI.CommandBufferType)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IGraphicsEngine.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CreateCommandAllocator
+    path: src/Runtime/Ghost.Graphics.RHI/IGraphicsEngine.cs
+    startLine: 44
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Creates a new command allocator for the specified command buffer space.
+  example: []
+  syntax:
+    content: ICommandAllocator CreateCommandAllocator(CommandBufferType type = CommandBufferType.Graphics)
+    parameters:
+    - id: type
+      type: Ghost.Graphics.RHI.CommandBufferType
+      description: The space of command buffer for which to create the allocator. The default is CommandBufferType.Graphics.
+    return:
+      type: Ghost.Graphics.RHI.ICommandAllocator
+      description: An <xref href="Ghost.Graphics.RHI.ICommandAllocator" data-throw-if-not-resolved="false"></xref> instance configured for the specified command buffer space.
+    content.vb: Function CreateCommandAllocator(type As CommandBufferType = CommandBufferType.Graphics) As ICommandAllocator
+  overload: Ghost.Graphics.RHI.IGraphicsEngine.CreateCommandAllocator*
+- uid: Ghost.Graphics.RHI.IGraphicsEngine.CreateCommandBuffer(Ghost.Graphics.RHI.CommandBufferType)
+  commentId: M:Ghost.Graphics.RHI.IGraphicsEngine.CreateCommandBuffer(Ghost.Graphics.RHI.CommandBufferType)
+  id: CreateCommandBuffer(Ghost.Graphics.RHI.CommandBufferType)
+  parent: Ghost.Graphics.RHI.IGraphicsEngine
+  langs:
+  - csharp
+  - vb
+  name: CreateCommandBuffer(CommandBufferType)
+  nameWithType: IGraphicsEngine.CreateCommandBuffer(CommandBufferType)
+  fullName: Ghost.Graphics.RHI.IGraphicsEngine.CreateCommandBuffer(Ghost.Graphics.RHI.CommandBufferType)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IGraphicsEngine.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CreateCommandBuffer
+    path: src/Runtime/Ghost.Graphics.RHI/IGraphicsEngine.cs
+    startLine: 51
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Creates a command buffer for recording rendering commands
+  example: []
+  syntax:
+    content: ICommandBuffer CreateCommandBuffer(CommandBufferType type = CommandBufferType.Graphics)
+    parameters:
+    - id: type
+      type: Ghost.Graphics.RHI.CommandBufferType
+      description: Type of command buffer to create
+    return:
+      type: Ghost.Graphics.RHI.ICommandBuffer
+      description: A new command buffer instance
+    content.vb: Function CreateCommandBuffer(type As CommandBufferType = CommandBufferType.Graphics) As ICommandBuffer
+  overload: Ghost.Graphics.RHI.IGraphicsEngine.CreateCommandBuffer*
+- uid: Ghost.Graphics.RHI.IGraphicsEngine.GetPooledCommandBuffer(Ghost.Graphics.RHI.CommandBufferType)
+  commentId: M:Ghost.Graphics.RHI.IGraphicsEngine.GetPooledCommandBuffer(Ghost.Graphics.RHI.CommandBufferType)
+  id: GetPooledCommandBuffer(Ghost.Graphics.RHI.CommandBufferType)
+  parent: Ghost.Graphics.RHI.IGraphicsEngine
+  langs:
+  - csharp
+  - vb
+  name: GetPooledCommandBuffer(CommandBufferType)
+  nameWithType: IGraphicsEngine.GetPooledCommandBuffer(CommandBufferType)
+  fullName: Ghost.Graphics.RHI.IGraphicsEngine.GetPooledCommandBuffer(Ghost.Graphics.RHI.CommandBufferType)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IGraphicsEngine.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetPooledCommandBuffer
+    path: src/Runtime/Ghost.Graphics.RHI/IGraphicsEngine.cs
+    startLine: 58
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Gets a command buffer from the pool for recording rendering commands.
+  example: []
+  syntax:
+    content: ICommandBuffer GetPooledCommandBuffer(CommandBufferType type = CommandBufferType.Graphics)
+    parameters:
+    - id: type
+      type: Ghost.Graphics.RHI.CommandBufferType
+      description: Type of command buffer to get from the pool
+    return:
+      type: Ghost.Graphics.RHI.ICommandBuffer
+      description: A command buffer instance from the pool
+    content.vb: Function GetPooledCommandBuffer(type As CommandBufferType = CommandBufferType.Graphics) As ICommandBuffer
+  overload: Ghost.Graphics.RHI.IGraphicsEngine.GetPooledCommandBuffer*
+- uid: Ghost.Graphics.RHI.IGraphicsEngine.ReturnPooledCommandBuffer(Ghost.Graphics.RHI.ICommandBuffer)
+  commentId: M:Ghost.Graphics.RHI.IGraphicsEngine.ReturnPooledCommandBuffer(Ghost.Graphics.RHI.ICommandBuffer)
+  id: ReturnPooledCommandBuffer(Ghost.Graphics.RHI.ICommandBuffer)
+  parent: Ghost.Graphics.RHI.IGraphicsEngine
+  langs:
+  - csharp
+  - vb
+  name: ReturnPooledCommandBuffer(ICommandBuffer)
+  nameWithType: IGraphicsEngine.ReturnPooledCommandBuffer(ICommandBuffer)
+  fullName: Ghost.Graphics.RHI.IGraphicsEngine.ReturnPooledCommandBuffer(Ghost.Graphics.RHI.ICommandBuffer)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IGraphicsEngine.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ReturnPooledCommandBuffer
+    path: src/Runtime/Ghost.Graphics.RHI/IGraphicsEngine.cs
+    startLine: 64
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Returns a command buffer to the pool after use.
+  example: []
+  syntax:
+    content: void ReturnPooledCommandBuffer(ICommandBuffer commandBuffer)
+    parameters:
+    - id: commandBuffer
+      type: Ghost.Graphics.RHI.ICommandBuffer
+      description: The command buffer to return to the pool
+    content.vb: Sub ReturnPooledCommandBuffer(commandBuffer As ICommandBuffer)
+  overload: Ghost.Graphics.RHI.IGraphicsEngine.ReturnPooledCommandBuffer*
+- uid: Ghost.Graphics.RHI.IGraphicsEngine.CreateSwapChain(Ghost.Graphics.RHI.SwapChainDesc)
+  commentId: M:Ghost.Graphics.RHI.IGraphicsEngine.CreateSwapChain(Ghost.Graphics.RHI.SwapChainDesc)
+  id: CreateSwapChain(Ghost.Graphics.RHI.SwapChainDesc)
+  parent: Ghost.Graphics.RHI.IGraphicsEngine
+  langs:
+  - csharp
+  - vb
+  name: CreateSwapChain(SwapChainDesc)
+  nameWithType: IGraphicsEngine.CreateSwapChain(SwapChainDesc)
+  fullName: Ghost.Graphics.RHI.IGraphicsEngine.CreateSwapChain(Ghost.Graphics.RHI.SwapChainDesc)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IGraphicsEngine.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CreateSwapChain
+    path: src/Runtime/Ghost.Graphics.RHI/IGraphicsEngine.cs
+    startLine: 71
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Creates a swap chain for presentation
+  example: []
+  syntax:
+    content: ISwapChain CreateSwapChain(SwapChainDesc desc)
+    parameters:
+    - id: desc
+      type: Ghost.Graphics.RHI.SwapChainDesc
+      description: Swap chain description
+    return:
+      type: Ghost.Graphics.RHI.ISwapChain
+      description: A new swap chain instance
+    content.vb: Function CreateSwapChain(desc As SwapChainDesc) As ISwapChain
+  overload: Ghost.Graphics.RHI.IGraphicsEngine.CreateSwapChain*
+- uid: Ghost.Graphics.RHI.IGraphicsEngine.BeginFrame(System.UInt64)
+  commentId: M:Ghost.Graphics.RHI.IGraphicsEngine.BeginFrame(System.UInt64)
+  id: BeginFrame(System.UInt64)
+  parent: Ghost.Graphics.RHI.IGraphicsEngine
+  langs:
+  - csharp
+  - vb
+  name: BeginFrame(ulong)
+  nameWithType: IGraphicsEngine.BeginFrame(ulong)
+  fullName: Ghost.Graphics.RHI.IGraphicsEngine.BeginFrame(ulong)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IGraphicsEngine.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: BeginFrame
+    path: src/Runtime/Ghost.Graphics.RHI/IGraphicsEngine.cs
+    startLine: 78
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Begin the current frame.
+  example: []
+  syntax:
+    content: Result BeginFrame(ulong currentFrame)
+    parameters:
+    - id: currentFrame
+      type: System.UInt64
+      description: CPU fence value for synchronization
+    return:
+      type: Ghost.Core.Result
+      description: Result of the begin frame operation
+    content.vb: Function BeginFrame(currentFrame As ULong) As Result
+  overload: Ghost.Graphics.RHI.IGraphicsEngine.BeginFrame*
+  nameWithType.vb: IGraphicsEngine.BeginFrame(ULong)
+  fullName.vb: Ghost.Graphics.RHI.IGraphicsEngine.BeginFrame(ULong)
+  name.vb: BeginFrame(ULong)
+- uid: Ghost.Graphics.RHI.IGraphicsEngine.EndFrame(System.UInt64)
+  commentId: M:Ghost.Graphics.RHI.IGraphicsEngine.EndFrame(System.UInt64)
+  id: EndFrame(System.UInt64)
+  parent: Ghost.Graphics.RHI.IGraphicsEngine
+  langs:
+  - csharp
+  - vb
+  name: EndFrame(ulong)
+  nameWithType: IGraphicsEngine.EndFrame(ulong)
+  fullName: Ghost.Graphics.RHI.IGraphicsEngine.EndFrame(ulong)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IGraphicsEngine.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: EndFrame
+    path: src/Runtime/Ghost.Graphics.RHI/IGraphicsEngine.cs
+    startLine: 85
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: End the current frame.
+  example: []
+  syntax:
+    content: Result EndFrame(ulong completedFrame)
+    parameters:
+    - id: completedFrame
+      type: System.UInt64
+      description: GPU fence value for synchronization
+    return:
+      type: Ghost.Core.Result
+      description: Result of the end frame operation
+    content.vb: Function EndFrame(completedFrame As ULong) As Result
+  overload: Ghost.Graphics.RHI.IGraphicsEngine.EndFrame*
+  nameWithType.vb: IGraphicsEngine.EndFrame(ULong)
+  fullName.vb: Ghost.Graphics.RHI.IGraphicsEngine.EndFrame(ULong)
+  name.vb: EndFrame(ULong)
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.IDisposable.Dispose
+  commentId: M:System.IDisposable.Dispose
+  parent: System.IDisposable
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  name: Dispose()
+  nameWithType: IDisposable.Dispose()
+  fullName: System.IDisposable.Dispose()
+  spec.csharp:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+- uid: System.IDisposable
+  commentId: T:System.IDisposable
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable
+  name: IDisposable
+  nameWithType: IDisposable
+  fullName: System.IDisposable
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RHI.IGraphicsEngine.Device*
+  commentId: Overload:Ghost.Graphics.RHI.IGraphicsEngine.Device
+  href: Ghost.Graphics.RHI.IGraphicsEngine.html#Ghost_Graphics_RHI_IGraphicsEngine_Device
+  name: Device
+  nameWithType: IGraphicsEngine.Device
+  fullName: Ghost.Graphics.RHI.IGraphicsEngine.Device
+- uid: Ghost.Graphics.RHI.IRenderDevice
+  commentId: T:Ghost.Graphics.RHI.IRenderDevice
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.IRenderDevice.html
+  name: IRenderDevice
+  nameWithType: IRenderDevice
+  fullName: Ghost.Graphics.RHI.IRenderDevice
+- uid: Ghost.Graphics.RHI.IGraphicsEngine.ShaderCompiler*
+  commentId: Overload:Ghost.Graphics.RHI.IGraphicsEngine.ShaderCompiler
+  href: Ghost.Graphics.RHI.IGraphicsEngine.html#Ghost_Graphics_RHI_IGraphicsEngine_ShaderCompiler
+  name: ShaderCompiler
+  nameWithType: IGraphicsEngine.ShaderCompiler
+  fullName: Ghost.Graphics.RHI.IGraphicsEngine.ShaderCompiler
+- uid: Ghost.Graphics.RHI.IShaderCompiler
+  commentId: T:Ghost.Graphics.RHI.IShaderCompiler
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.IShaderCompiler.html
+  name: IShaderCompiler
+  nameWithType: IShaderCompiler
+  fullName: Ghost.Graphics.RHI.IShaderCompiler
+- uid: Ghost.Graphics.RHI.IGraphicsEngine.PipelineLibrary*
+  commentId: Overload:Ghost.Graphics.RHI.IGraphicsEngine.PipelineLibrary
+  href: Ghost.Graphics.RHI.IGraphicsEngine.html#Ghost_Graphics_RHI_IGraphicsEngine_PipelineLibrary
+  name: PipelineLibrary
+  nameWithType: IGraphicsEngine.PipelineLibrary
+  fullName: Ghost.Graphics.RHI.IGraphicsEngine.PipelineLibrary
+- uid: Ghost.Graphics.RHI.IPipelineLibrary
+  commentId: T:Ghost.Graphics.RHI.IPipelineLibrary
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.IPipelineLibrary.html
+  name: IPipelineLibrary
+  nameWithType: IPipelineLibrary
+  fullName: Ghost.Graphics.RHI.IPipelineLibrary
+- uid: Ghost.Graphics.RHI.IGraphicsEngine.ResourceDatabase*
+  commentId: Overload:Ghost.Graphics.RHI.IGraphicsEngine.ResourceDatabase
+  href: Ghost.Graphics.RHI.IGraphicsEngine.html#Ghost_Graphics_RHI_IGraphicsEngine_ResourceDatabase
+  name: ResourceDatabase
+  nameWithType: IGraphicsEngine.ResourceDatabase
+  fullName: Ghost.Graphics.RHI.IGraphicsEngine.ResourceDatabase
+- uid: Ghost.Graphics.RHI.IResourceDatabase
+  commentId: T:Ghost.Graphics.RHI.IResourceDatabase
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.IResourceDatabase.html
+  name: IResourceDatabase
+  nameWithType: IResourceDatabase
+  fullName: Ghost.Graphics.RHI.IResourceDatabase
+- uid: Ghost.Graphics.RHI.IGraphicsEngine.ResourceAllocator*
+  commentId: Overload:Ghost.Graphics.RHI.IGraphicsEngine.ResourceAllocator
+  href: Ghost.Graphics.RHI.IGraphicsEngine.html#Ghost_Graphics_RHI_IGraphicsEngine_ResourceAllocator
+  name: ResourceAllocator
+  nameWithType: IGraphicsEngine.ResourceAllocator
+  fullName: Ghost.Graphics.RHI.IGraphicsEngine.ResourceAllocator
+- uid: Ghost.Graphics.RHI.IResourceAllocator
+  commentId: T:Ghost.Graphics.RHI.IResourceAllocator
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.IResourceAllocator.html
+  name: IResourceAllocator
+  nameWithType: IResourceAllocator
+  fullName: Ghost.Graphics.RHI.IResourceAllocator
+- uid: Ghost.Graphics.RHI.ICommandAllocator
+  commentId: T:Ghost.Graphics.RHI.ICommandAllocator
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ICommandAllocator.html
+  name: ICommandAllocator
+  nameWithType: ICommandAllocator
+  fullName: Ghost.Graphics.RHI.ICommandAllocator
+- uid: Ghost.Graphics.RHI.IGraphicsEngine.CreateCommandAllocator*
+  commentId: Overload:Ghost.Graphics.RHI.IGraphicsEngine.CreateCommandAllocator
+  href: Ghost.Graphics.RHI.IGraphicsEngine.html#Ghost_Graphics_RHI_IGraphicsEngine_CreateCommandAllocator_Ghost_Graphics_RHI_CommandBufferType_
+  name: CreateCommandAllocator
+  nameWithType: IGraphicsEngine.CreateCommandAllocator
+  fullName: Ghost.Graphics.RHI.IGraphicsEngine.CreateCommandAllocator
+- uid: Ghost.Graphics.RHI.CommandBufferType
+  commentId: T:Ghost.Graphics.RHI.CommandBufferType
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.CommandBufferType.html
+  name: CommandBufferType
+  nameWithType: CommandBufferType
+  fullName: Ghost.Graphics.RHI.CommandBufferType
+- uid: Ghost.Graphics.RHI.IGraphicsEngine.CreateCommandBuffer*
+  commentId: Overload:Ghost.Graphics.RHI.IGraphicsEngine.CreateCommandBuffer
+  href: Ghost.Graphics.RHI.IGraphicsEngine.html#Ghost_Graphics_RHI_IGraphicsEngine_CreateCommandBuffer_Ghost_Graphics_RHI_CommandBufferType_
+  name: CreateCommandBuffer
+  nameWithType: IGraphicsEngine.CreateCommandBuffer
+  fullName: Ghost.Graphics.RHI.IGraphicsEngine.CreateCommandBuffer
+- uid: Ghost.Graphics.RHI.ICommandBuffer
+  commentId: T:Ghost.Graphics.RHI.ICommandBuffer
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ICommandBuffer.html
+  name: ICommandBuffer
+  nameWithType: ICommandBuffer
+  fullName: Ghost.Graphics.RHI.ICommandBuffer
+- uid: Ghost.Graphics.RHI.IGraphicsEngine.GetPooledCommandBuffer*
+  commentId: Overload:Ghost.Graphics.RHI.IGraphicsEngine.GetPooledCommandBuffer
+  href: Ghost.Graphics.RHI.IGraphicsEngine.html#Ghost_Graphics_RHI_IGraphicsEngine_GetPooledCommandBuffer_Ghost_Graphics_RHI_CommandBufferType_
+  name: GetPooledCommandBuffer
+  nameWithType: IGraphicsEngine.GetPooledCommandBuffer
+  fullName: Ghost.Graphics.RHI.IGraphicsEngine.GetPooledCommandBuffer
+- uid: Ghost.Graphics.RHI.IGraphicsEngine.ReturnPooledCommandBuffer*
+  commentId: Overload:Ghost.Graphics.RHI.IGraphicsEngine.ReturnPooledCommandBuffer
+  href: Ghost.Graphics.RHI.IGraphicsEngine.html#Ghost_Graphics_RHI_IGraphicsEngine_ReturnPooledCommandBuffer_Ghost_Graphics_RHI_ICommandBuffer_
+  name: ReturnPooledCommandBuffer
+  nameWithType: IGraphicsEngine.ReturnPooledCommandBuffer
+  fullName: Ghost.Graphics.RHI.IGraphicsEngine.ReturnPooledCommandBuffer
+- uid: Ghost.Graphics.RHI.IGraphicsEngine.CreateSwapChain*
+  commentId: Overload:Ghost.Graphics.RHI.IGraphicsEngine.CreateSwapChain
+  href: Ghost.Graphics.RHI.IGraphicsEngine.html#Ghost_Graphics_RHI_IGraphicsEngine_CreateSwapChain_Ghost_Graphics_RHI_SwapChainDesc_
+  name: CreateSwapChain
+  nameWithType: IGraphicsEngine.CreateSwapChain
+  fullName: Ghost.Graphics.RHI.IGraphicsEngine.CreateSwapChain
+- uid: Ghost.Graphics.RHI.SwapChainDesc
+  commentId: T:Ghost.Graphics.RHI.SwapChainDesc
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.SwapChainDesc.html
+  name: SwapChainDesc
+  nameWithType: SwapChainDesc
+  fullName: Ghost.Graphics.RHI.SwapChainDesc
+- uid: Ghost.Graphics.RHI.ISwapChain
+  commentId: T:Ghost.Graphics.RHI.ISwapChain
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ISwapChain.html
+  name: ISwapChain
+  nameWithType: ISwapChain
+  fullName: Ghost.Graphics.RHI.ISwapChain
+- uid: Ghost.Graphics.RHI.IGraphicsEngine.BeginFrame*
+  commentId: Overload:Ghost.Graphics.RHI.IGraphicsEngine.BeginFrame
+  href: Ghost.Graphics.RHI.IGraphicsEngine.html#Ghost_Graphics_RHI_IGraphicsEngine_BeginFrame_System_UInt64_
+  name: BeginFrame
+  nameWithType: IGraphicsEngine.BeginFrame
+  fullName: Ghost.Graphics.RHI.IGraphicsEngine.BeginFrame
+- uid: System.UInt64
+  commentId: T:System.UInt64
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.uint64
+  name: ulong
+  nameWithType: ulong
+  fullName: ulong
+  nameWithType.vb: ULong
+  fullName.vb: ULong
+  name.vb: ULong
+- uid: Ghost.Core.Result
+  commentId: T:Ghost.Core.Result
+  parent: Ghost.Core
+  name: Result
+  nameWithType: Result
+  fullName: Ghost.Core.Result
+- uid: Ghost.Core
+  commentId: N:Ghost.Core
+  name: Ghost.Core
+  nameWithType: Ghost.Core
+  fullName: Ghost.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+- uid: Ghost.Graphics.RHI.IGraphicsEngine.EndFrame*
+  commentId: Overload:Ghost.Graphics.RHI.IGraphicsEngine.EndFrame
+  href: Ghost.Graphics.RHI.IGraphicsEngine.html#Ghost_Graphics_RHI_IGraphicsEngine_EndFrame_System_UInt64_
+  name: EndFrame
+  nameWithType: IGraphicsEngine.EndFrame
+  fullName: Ghost.Graphics.RHI.IGraphicsEngine.EndFrame

@@ -1,0 +1,1006 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.IResourceDatabase
+  commentId: T:Ghost.Graphics.RHI.IResourceDatabase
+  id: IResourceDatabase
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.IResourceDatabase.AddSampler(Ghost.Graphics.RHI.SamplerDesc@,System.Int32)
+  - Ghost.Graphics.RHI.IResourceDatabase.EnterParallelRead
+  - Ghost.Graphics.RHI.IResourceDatabase.ExitParallelRead
+  - Ghost.Graphics.RHI.IResourceDatabase.GetBindlessIndex(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource},Ghost.Graphics.RHI.BindlessAccess)
+  - Ghost.Graphics.RHI.IResourceDatabase.GetResourceBarrierData(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  - Ghost.Graphics.RHI.IResourceDatabase.GetResourceDescription(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  - Ghost.Graphics.RHI.IResourceDatabase.GetResourceName(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  - Ghost.Graphics.RHI.IResourceDatabase.HasResource(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  - Ghost.Graphics.RHI.IResourceDatabase.ReleaseResource(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  - Ghost.Graphics.RHI.IResourceDatabase.ReleaseResourceImmediately(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  - Ghost.Graphics.RHI.IResourceDatabase.ReleaseSampler(Ghost.Core.Identifier{Ghost.Graphics.RHI.Sampler})
+  - Ghost.Graphics.RHI.IResourceDatabase.SetResourceBarrierData(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource},Ghost.Graphics.RHI.ResourceBarrierData)
+  - Ghost.Graphics.RHI.IResourceDatabase.Swap(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource},Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  - Ghost.Graphics.RHI.IResourceDatabase.TryGetSampler(Ghost.Graphics.RHI.SamplerDesc@,Ghost.Core.Identifier{Ghost.Graphics.RHI.Sampler}@)
+  langs:
+  - csharp
+  - vb
+  name: IResourceDatabase
+  nameWithType: IResourceDatabase
+  fullName: Ghost.Graphics.RHI.IResourceDatabase
+  type: Interface
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IResourceDatabase
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+    startLine: 35
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: 'public interface IResourceDatabase : IDisposable'
+    content.vb: Public Interface IResourceDatabase Inherits IDisposable
+  inheritedMembers:
+  - System.IDisposable.Dispose
+- uid: Ghost.Graphics.RHI.IResourceDatabase.EnterParallelRead
+  commentId: M:Ghost.Graphics.RHI.IResourceDatabase.EnterParallelRead
+  id: EnterParallelRead
+  parent: Ghost.Graphics.RHI.IResourceDatabase
+  langs:
+  - csharp
+  - vb
+  name: EnterParallelRead()
+  nameWithType: IResourceDatabase.EnterParallelRead()
+  fullName: Ghost.Graphics.RHI.IResourceDatabase.EnterParallelRead()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: EnterParallelRead
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+    startLine: 49
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: void EnterParallelRead()
+    content.vb: Sub EnterParallelRead()
+  overload: Ghost.Graphics.RHI.IResourceDatabase.EnterParallelRead*
+- uid: Ghost.Graphics.RHI.IResourceDatabase.ExitParallelRead
+  commentId: M:Ghost.Graphics.RHI.IResourceDatabase.ExitParallelRead
+  id: ExitParallelRead
+  parent: Ghost.Graphics.RHI.IResourceDatabase
+  langs:
+  - csharp
+  - vb
+  name: ExitParallelRead()
+  nameWithType: IResourceDatabase.ExitParallelRead()
+  fullName: Ghost.Graphics.RHI.IResourceDatabase.ExitParallelRead()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ExitParallelRead
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+    startLine: 51
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: void ExitParallelRead()
+    content.vb: Sub ExitParallelRead()
+  overload: Ghost.Graphics.RHI.IResourceDatabase.ExitParallelRead*
+- uid: Ghost.Graphics.RHI.IResourceDatabase.HasResource(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  commentId: M:Ghost.Graphics.RHI.IResourceDatabase.HasResource(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  id: HasResource(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  parent: Ghost.Graphics.RHI.IResourceDatabase
+  langs:
+  - csharp
+  - vb
+  name: HasResource(Handle<GPUResource>)
+  nameWithType: IResourceDatabase.HasResource(Handle<GPUResource>)
+  fullName: Ghost.Graphics.RHI.IResourceDatabase.HasResource(Ghost.Core.Handle<Ghost.Graphics.RHI.GPUResource>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: HasResource
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+    startLine: 57
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Checks if a resource with the specified handle exists in the database.
+  example: []
+  syntax:
+    content: bool HasResource(Handle<GPUResource> handle)
+    parameters:
+    - id: handle
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+      description: The handle of the resource to check for existence.
+    return:
+      type: System.Boolean
+    content.vb: Function HasResource(handle As Handle(Of GPUResource)) As Boolean
+  overload: Ghost.Graphics.RHI.IResourceDatabase.HasResource*
+  nameWithType.vb: IResourceDatabase.HasResource(Handle(Of GPUResource))
+  fullName.vb: Ghost.Graphics.RHI.IResourceDatabase.HasResource(Ghost.Core.Handle(Of Ghost.Graphics.RHI.GPUResource))
+  name.vb: HasResource(Handle(Of GPUResource))
+- uid: Ghost.Graphics.RHI.IResourceDatabase.GetResourceBarrierData(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  commentId: M:Ghost.Graphics.RHI.IResourceDatabase.GetResourceBarrierData(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  id: GetResourceBarrierData(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  parent: Ghost.Graphics.RHI.IResourceDatabase
+  langs:
+  - csharp
+  - vb
+  name: GetResourceBarrierData(Handle<GPUResource>)
+  nameWithType: IResourceDatabase.GetResourceBarrierData(Handle<GPUResource>)
+  fullName: Ghost.Graphics.RHI.IResourceDatabase.GetResourceBarrierData(Ghost.Core.Handle<Ghost.Graphics.RHI.GPUResource>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetResourceBarrierData
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+    startLine: 64
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Retrieves the current barrier data of the specified resource.
+  example: []
+  syntax:
+    content: Result<ResourceBarrierData, Error> GetResourceBarrierData(Handle<GPUResource> handle)
+    parameters:
+    - id: handle
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+      description: The handle that uniquely identifies the resource.
+    return:
+      type: Ghost.Core.Result{Ghost.Graphics.RHI.ResourceBarrierData,Ghost.Core.Error}
+      description: A ResourceBarrierData value representing the current barrier state.
+    content.vb: Function GetResourceBarrierData(handle As Handle(Of GPUResource)) As Result(Of ResourceBarrierData, [Error])
+  overload: Ghost.Graphics.RHI.IResourceDatabase.GetResourceBarrierData*
+  nameWithType.vb: IResourceDatabase.GetResourceBarrierData(Handle(Of GPUResource))
+  fullName.vb: Ghost.Graphics.RHI.IResourceDatabase.GetResourceBarrierData(Ghost.Core.Handle(Of Ghost.Graphics.RHI.GPUResource))
+  name.vb: GetResourceBarrierData(Handle(Of GPUResource))
+- uid: Ghost.Graphics.RHI.IResourceDatabase.SetResourceBarrierData(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource},Ghost.Graphics.RHI.ResourceBarrierData)
+  commentId: M:Ghost.Graphics.RHI.IResourceDatabase.SetResourceBarrierData(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource},Ghost.Graphics.RHI.ResourceBarrierData)
+  id: SetResourceBarrierData(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource},Ghost.Graphics.RHI.ResourceBarrierData)
+  parent: Ghost.Graphics.RHI.IResourceDatabase
+  langs:
+  - csharp
+  - vb
+  name: SetResourceBarrierData(Handle<GPUResource>, ResourceBarrierData)
+  nameWithType: IResourceDatabase.SetResourceBarrierData(Handle<GPUResource>, ResourceBarrierData)
+  fullName: Ghost.Graphics.RHI.IResourceDatabase.SetResourceBarrierData(Ghost.Core.Handle<Ghost.Graphics.RHI.GPUResource>, Ghost.Graphics.RHI.ResourceBarrierData)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SetResourceBarrierData
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+    startLine: 72
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Sets the barrier data of the specified resource handle.
+  example: []
+  syntax:
+    content: Error SetResourceBarrierData(Handle<GPUResource> handle, ResourceBarrierData data)
+    parameters:
+    - id: handle
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+      description: The handle that identifies the resource.
+    - id: data
+      type: Ghost.Graphics.RHI.ResourceBarrierData
+      description: The new barrier data.
+    return:
+      type: Ghost.Core.Error
+      description: An Error indicating the success or failure of the operation.
+    content.vb: Function SetResourceBarrierData(handle As Handle(Of GPUResource), data As ResourceBarrierData) As [Error]
+  overload: Ghost.Graphics.RHI.IResourceDatabase.SetResourceBarrierData*
+  nameWithType.vb: IResourceDatabase.SetResourceBarrierData(Handle(Of GPUResource), ResourceBarrierData)
+  fullName.vb: Ghost.Graphics.RHI.IResourceDatabase.SetResourceBarrierData(Ghost.Core.Handle(Of Ghost.Graphics.RHI.GPUResource), Ghost.Graphics.RHI.ResourceBarrierData)
+  name.vb: SetResourceBarrierData(Handle(Of GPUResource), ResourceBarrierData)
+- uid: Ghost.Graphics.RHI.IResourceDatabase.GetResourceDescription(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  commentId: M:Ghost.Graphics.RHI.IResourceDatabase.GetResourceDescription(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  id: GetResourceDescription(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  parent: Ghost.Graphics.RHI.IResourceDatabase
+  langs:
+  - csharp
+  - vb
+  name: GetResourceDescription(Handle<GPUResource>)
+  nameWithType: IResourceDatabase.GetResourceDescription(Handle<GPUResource>)
+  fullName: Ghost.Graphics.RHI.IResourceDatabase.GetResourceDescription(Ghost.Core.Handle<Ghost.Graphics.RHI.GPUResource>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetResourceDescription
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+    startLine: 79
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Retrieves the description of a GPU resource associated with the specified handle.
+  example: []
+  syntax:
+    content: Result<ResourceDesc, Error> GetResourceDescription(Handle<GPUResource> handle)
+    parameters:
+    - id: handle
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+      description: A handle that identifies the GPU resource for which to obtain the description. Must reference a valid resource.
+    return:
+      type: Ghost.Core.Result{Ghost.Graphics.RHI.ResourceDesc,Ghost.Core.Error}
+      description: A ResourceDesc structure containing details about the specified GPU resource.
+    content.vb: Function GetResourceDescription(handle As Handle(Of GPUResource)) As Result(Of ResourceDesc, [Error])
+  overload: Ghost.Graphics.RHI.IResourceDatabase.GetResourceDescription*
+  nameWithType.vb: IResourceDatabase.GetResourceDescription(Handle(Of GPUResource))
+  fullName.vb: Ghost.Graphics.RHI.IResourceDatabase.GetResourceDescription(Ghost.Core.Handle(Of Ghost.Graphics.RHI.GPUResource))
+  name.vb: GetResourceDescription(Handle(Of GPUResource))
+- uid: Ghost.Graphics.RHI.IResourceDatabase.GetBindlessIndex(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource},Ghost.Graphics.RHI.BindlessAccess)
+  commentId: M:Ghost.Graphics.RHI.IResourceDatabase.GetBindlessIndex(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource},Ghost.Graphics.RHI.BindlessAccess)
+  id: GetBindlessIndex(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource},Ghost.Graphics.RHI.BindlessAccess)
+  parent: Ghost.Graphics.RHI.IResourceDatabase
+  langs:
+  - csharp
+  - vb
+  name: GetBindlessIndex(Handle<GPUResource>, BindlessAccess)
+  nameWithType: IResourceDatabase.GetBindlessIndex(Handle<GPUResource>, BindlessAccess)
+  fullName: Ghost.Graphics.RHI.IResourceDatabase.GetBindlessIndex(Ghost.Core.Handle<Ghost.Graphics.RHI.GPUResource>, Ghost.Graphics.RHI.BindlessAccess)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetBindlessIndex
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+    startLine: 87
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Retrieves the bindless index associated with the specified GPU resource handle.
+  example: []
+  syntax:
+    content: uint GetBindlessIndex(Handle<GPUResource> handle, BindlessAccess access = BindlessAccess.ShaderResource)
+    parameters:
+    - id: handle
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+      description: A handle to the GPU resource for which to obtain the bindless index. Must reference a valid, currently registered resource.
+    - id: access
+      type: Ghost.Graphics.RHI.BindlessAccess
+      description: The type of bindless access for which to obtain the index.
+    return:
+      type: System.UInt32
+      description: The bindless index corresponding to the specified GPU resource handle. ~0 if the resource does not support bindless access or is not found.
+    content.vb: Function GetBindlessIndex(handle As Handle(Of GPUResource), access As BindlessAccess = BindlessAccess.ShaderResource) As UInteger
+  overload: Ghost.Graphics.RHI.IResourceDatabase.GetBindlessIndex*
+  nameWithType.vb: IResourceDatabase.GetBindlessIndex(Handle(Of GPUResource), BindlessAccess)
+  fullName.vb: Ghost.Graphics.RHI.IResourceDatabase.GetBindlessIndex(Ghost.Core.Handle(Of Ghost.Graphics.RHI.GPUResource), Ghost.Graphics.RHI.BindlessAccess)
+  name.vb: GetBindlessIndex(Handle(Of GPUResource), BindlessAccess)
+- uid: Ghost.Graphics.RHI.IResourceDatabase.GetResourceName(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  commentId: M:Ghost.Graphics.RHI.IResourceDatabase.GetResourceName(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  id: GetResourceName(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  parent: Ghost.Graphics.RHI.IResourceDatabase
+  langs:
+  - csharp
+  - vb
+  name: GetResourceName(Handle<GPUResource>)
+  nameWithType: IResourceDatabase.GetResourceName(Handle<GPUResource>)
+  fullName: Ghost.Graphics.RHI.IResourceDatabase.GetResourceName(Ghost.Core.Handle<Ghost.Graphics.RHI.GPUResource>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetResourceName
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+    startLine: 97
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Retrieves the name of the GPU resource associated with the specified handle.
+  remarks: You should only use this method in debug builds or inside engine editor.
+  example: []
+  syntax:
+    content: string? GetResourceName(Handle<GPUResource> handle)
+    parameters:
+    - id: handle
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+      description: A handle to the GPU resource for which to obtain the name. Must reference a valid resource.
+    return:
+      type: System.String
+      description: The name of the GPU resource associated with the specified handle, or null if the resource does not have a name.
+    content.vb: Function GetResourceName(handle As Handle(Of GPUResource)) As String
+  overload: Ghost.Graphics.RHI.IResourceDatabase.GetResourceName*
+  nameWithType.vb: IResourceDatabase.GetResourceName(Handle(Of GPUResource))
+  fullName.vb: Ghost.Graphics.RHI.IResourceDatabase.GetResourceName(Ghost.Core.Handle(Of Ghost.Graphics.RHI.GPUResource))
+  name.vb: GetResourceName(Handle(Of GPUResource))
+- uid: Ghost.Graphics.RHI.IResourceDatabase.ReleaseResource(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  commentId: M:Ghost.Graphics.RHI.IResourceDatabase.ReleaseResource(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  id: ReleaseResource(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  parent: Ghost.Graphics.RHI.IResourceDatabase
+  langs:
+  - csharp
+  - vb
+  name: ReleaseResource(Handle<GPUResource>)
+  nameWithType: IResourceDatabase.ReleaseResource(Handle<GPUResource>)
+  fullName: Ghost.Graphics.RHI.IResourceDatabase.ReleaseResource(Ghost.Core.Handle<Ghost.Graphics.RHI.GPUResource>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ReleaseResource
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+    startLine: 103
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Releases the GPU resource associated with the specified handle, freeing any resources allocated to it.
+  example: []
+  syntax:
+    content: void ReleaseResource(Handle<GPUResource> handle)
+    parameters:
+    - id: handle
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+      description: The handle of the resource to be removed.
+    content.vb: Sub ReleaseResource(handle As Handle(Of GPUResource))
+  overload: Ghost.Graphics.RHI.IResourceDatabase.ReleaseResource*
+  nameWithType.vb: IResourceDatabase.ReleaseResource(Handle(Of GPUResource))
+  fullName.vb: Ghost.Graphics.RHI.IResourceDatabase.ReleaseResource(Ghost.Core.Handle(Of Ghost.Graphics.RHI.GPUResource))
+  name.vb: ReleaseResource(Handle(Of GPUResource))
+- uid: Ghost.Graphics.RHI.IResourceDatabase.ReleaseResourceImmediately(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  commentId: M:Ghost.Graphics.RHI.IResourceDatabase.ReleaseResourceImmediately(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  id: ReleaseResourceImmediately(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  parent: Ghost.Graphics.RHI.IResourceDatabase
+  langs:
+  - csharp
+  - vb
+  name: ReleaseResourceImmediately(Handle<GPUResource>)
+  nameWithType: IResourceDatabase.ReleaseResourceImmediately(Handle<GPUResource>)
+  fullName: Ghost.Graphics.RHI.IResourceDatabase.ReleaseResourceImmediately(Ghost.Core.Handle<Ghost.Graphics.RHI.GPUResource>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ReleaseResourceImmediately
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+    startLine: 109
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Releases the GPU resource associated with the specified handle immediately, freeing any resources allocated to it.
+  example: []
+  syntax:
+    content: void ReleaseResourceImmediately(Handle<GPUResource> handle)
+    parameters:
+    - id: handle
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+      description: The handle of the resource to be removed.
+    content.vb: Sub ReleaseResourceImmediately(handle As Handle(Of GPUResource))
+  overload: Ghost.Graphics.RHI.IResourceDatabase.ReleaseResourceImmediately*
+  nameWithType.vb: IResourceDatabase.ReleaseResourceImmediately(Handle(Of GPUResource))
+  fullName.vb: Ghost.Graphics.RHI.IResourceDatabase.ReleaseResourceImmediately(Ghost.Core.Handle(Of Ghost.Graphics.RHI.GPUResource))
+  name.vb: ReleaseResourceImmediately(Handle(Of GPUResource))
+- uid: Ghost.Graphics.RHI.IResourceDatabase.AddSampler(Ghost.Graphics.RHI.SamplerDesc@,System.Int32)
+  commentId: M:Ghost.Graphics.RHI.IResourceDatabase.AddSampler(Ghost.Graphics.RHI.SamplerDesc@,System.Int32)
+  id: AddSampler(Ghost.Graphics.RHI.SamplerDesc@,System.Int32)
+  parent: Ghost.Graphics.RHI.IResourceDatabase
+  langs:
+  - csharp
+  - vb
+  name: AddSampler(ref readonly SamplerDesc, int)
+  nameWithType: IResourceDatabase.AddSampler(ref readonly SamplerDesc, int)
+  fullName: Ghost.Graphics.RHI.IResourceDatabase.AddSampler(ref readonly Ghost.Graphics.RHI.SamplerDesc, int)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AddSampler
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+    startLine: 119
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: >-
+    Retrieves an existing sampler identifier that matches the specified description, or creates a new one if none
+
+    exists.
+  example: []
+  syntax:
+    content: Identifier<Sampler> AddSampler(ref readonly SamplerDesc desc, int id)
+    parameters:
+    - id: desc
+      type: Ghost.Graphics.RHI.SamplerDesc
+      description: A read-only reference to a <xref href="Ghost.Graphics.RHI.SamplerDesc" data-throw-if-not-resolved="false"></xref> structure that defines the properties of the sampler to retrieve or create.
+    - id: id
+      type: System.Int32
+      description: An integer identifier to associate with the sampler.
+    return:
+      type: Ghost.Core.Identifier{Ghost.Graphics.RHI.Sampler}
+      description: >-
+        An <xref href="Ghost.Core.Identifier%601" data-throw-if-not-resolved="false"></xref> representing the sampler that matches the specified description.
+                If a matching sampler does not exist, a new sampler is created and its identifier is returned.
+    content.vb: Function AddSampler(desc As SamplerDesc, id As Integer) As Identifier(Of Sampler)
+  overload: Ghost.Graphics.RHI.IResourceDatabase.AddSampler*
+  nameWithType.vb: IResourceDatabase.AddSampler(SamplerDesc, Integer)
+  fullName.vb: Ghost.Graphics.RHI.IResourceDatabase.AddSampler(Ghost.Graphics.RHI.SamplerDesc, Integer)
+  name.vb: AddSampler(SamplerDesc, Integer)
+- uid: Ghost.Graphics.RHI.IResourceDatabase.TryGetSampler(Ghost.Graphics.RHI.SamplerDesc@,Ghost.Core.Identifier{Ghost.Graphics.RHI.Sampler}@)
+  commentId: M:Ghost.Graphics.RHI.IResourceDatabase.TryGetSampler(Ghost.Graphics.RHI.SamplerDesc@,Ghost.Core.Identifier{Ghost.Graphics.RHI.Sampler}@)
+  id: TryGetSampler(Ghost.Graphics.RHI.SamplerDesc@,Ghost.Core.Identifier{Ghost.Graphics.RHI.Sampler}@)
+  parent: Ghost.Graphics.RHI.IResourceDatabase
+  langs:
+  - csharp
+  - vb
+  name: TryGetSampler(ref readonly SamplerDesc, out Identifier<Sampler>)
+  nameWithType: IResourceDatabase.TryGetSampler(ref readonly SamplerDesc, out Identifier<Sampler>)
+  fullName: Ghost.Graphics.RHI.IResourceDatabase.TryGetSampler(ref readonly Ghost.Graphics.RHI.SamplerDesc, out Ghost.Core.Identifier<Ghost.Graphics.RHI.Sampler>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: TryGetSampler
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+    startLine: 126
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Determines whether a sampler with the specified identifier exists.
+  example: []
+  syntax:
+    content: bool TryGetSampler(ref readonly SamplerDesc desc, out Identifier<Sampler> id)
+    parameters:
+    - id: desc
+      type: Ghost.Graphics.RHI.SamplerDesc
+    - id: id
+      type: Ghost.Core.Identifier{Ghost.Graphics.RHI.Sampler}
+      description: The identifier of the sampler to check for existence.
+    return:
+      type: System.Boolean
+      description: true if a sampler with the given identifier exists; otherwise, false.
+    content.vb: Function TryGetSampler(desc As SamplerDesc, id As Identifier(Of Sampler)) As Boolean
+  overload: Ghost.Graphics.RHI.IResourceDatabase.TryGetSampler*
+  nameWithType.vb: IResourceDatabase.TryGetSampler(SamplerDesc, Identifier(Of Sampler))
+  fullName.vb: Ghost.Graphics.RHI.IResourceDatabase.TryGetSampler(Ghost.Graphics.RHI.SamplerDesc, Ghost.Core.Identifier(Of Ghost.Graphics.RHI.Sampler))
+  name.vb: TryGetSampler(SamplerDesc, Identifier(Of Sampler))
+- uid: Ghost.Graphics.RHI.IResourceDatabase.ReleaseSampler(Ghost.Core.Identifier{Ghost.Graphics.RHI.Sampler})
+  commentId: M:Ghost.Graphics.RHI.IResourceDatabase.ReleaseSampler(Ghost.Core.Identifier{Ghost.Graphics.RHI.Sampler})
+  id: ReleaseSampler(Ghost.Core.Identifier{Ghost.Graphics.RHI.Sampler})
+  parent: Ghost.Graphics.RHI.IResourceDatabase
+  langs:
+  - csharp
+  - vb
+  name: ReleaseSampler(Identifier<Sampler>)
+  nameWithType: IResourceDatabase.ReleaseSampler(Identifier<Sampler>)
+  fullName: Ghost.Graphics.RHI.IResourceDatabase.ReleaseSampler(Ghost.Core.Identifier<Ghost.Graphics.RHI.Sampler>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ReleaseSampler
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+    startLine: 132
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Releases the sampler associated with the specified identifier and frees any resources allocated to it.
+  example: []
+  syntax:
+    content: void ReleaseSampler(Identifier<Sampler> id)
+    parameters:
+    - id: id
+      type: Ghost.Core.Identifier{Ghost.Graphics.RHI.Sampler}
+      description: The identifier of the sampler to release. Must reference a valid, existing sampler.
+    content.vb: Sub ReleaseSampler(id As Identifier(Of Sampler))
+  overload: Ghost.Graphics.RHI.IResourceDatabase.ReleaseSampler*
+  nameWithType.vb: IResourceDatabase.ReleaseSampler(Identifier(Of Sampler))
+  fullName.vb: Ghost.Graphics.RHI.IResourceDatabase.ReleaseSampler(Ghost.Core.Identifier(Of Ghost.Graphics.RHI.Sampler))
+  name.vb: ReleaseSampler(Identifier(Of Sampler))
+- uid: Ghost.Graphics.RHI.IResourceDatabase.Swap(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource},Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  commentId: M:Ghost.Graphics.RHI.IResourceDatabase.Swap(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource},Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  id: Swap(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource},Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  parent: Ghost.Graphics.RHI.IResourceDatabase
+  langs:
+  - csharp
+  - vb
+  name: Swap(Handle<GPUResource>, Handle<GPUResource>)
+  nameWithType: IResourceDatabase.Swap(Handle<GPUResource>, Handle<GPUResource>)
+  fullName: Ghost.Graphics.RHI.IResourceDatabase.Swap(Ghost.Core.Handle<Ghost.Graphics.RHI.GPUResource>, Ghost.Core.Handle<Ghost.Graphics.RHI.GPUResource>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Swap
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+    startLine: 140
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Swaps the resources associated with the two specified handles, effectively exchanging their identities and all associated data.
+  example: []
+  syntax:
+    content: Error Swap(Handle<GPUResource> handleA, Handle<GPUResource> handleB)
+    parameters:
+    - id: handleA
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+      description: The first handle whose associated resource is to be swapped.
+    - id: handleB
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+      description: The second handle whose associated resource is to be swapped.
+    return:
+      type: Ghost.Core.Error
+      description: An Error indicating the success or failure of the swap operation.
+    content.vb: Function Swap(handleA As Handle(Of GPUResource), handleB As Handle(Of GPUResource)) As [Error]
+  overload: Ghost.Graphics.RHI.IResourceDatabase.Swap*
+  nameWithType.vb: IResourceDatabase.Swap(Handle(Of GPUResource), Handle(Of GPUResource))
+  fullName.vb: Ghost.Graphics.RHI.IResourceDatabase.Swap(Ghost.Core.Handle(Of Ghost.Graphics.RHI.GPUResource), Ghost.Core.Handle(Of Ghost.Graphics.RHI.GPUResource))
+  name.vb: Swap(Handle(Of GPUResource), Handle(Of GPUResource))
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.IDisposable.Dispose
+  commentId: M:System.IDisposable.Dispose
+  parent: System.IDisposable
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  name: Dispose()
+  nameWithType: IDisposable.Dispose()
+  fullName: System.IDisposable.Dispose()
+  spec.csharp:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+- uid: System.IDisposable
+  commentId: T:System.IDisposable
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable
+  name: IDisposable
+  nameWithType: IDisposable
+  fullName: System.IDisposable
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RHI.IResourceDatabase.EnterParallelRead*
+  commentId: Overload:Ghost.Graphics.RHI.IResourceDatabase.EnterParallelRead
+  href: Ghost.Graphics.RHI.IResourceDatabase.html#Ghost_Graphics_RHI_IResourceDatabase_EnterParallelRead
+  name: EnterParallelRead
+  nameWithType: IResourceDatabase.EnterParallelRead
+  fullName: Ghost.Graphics.RHI.IResourceDatabase.EnterParallelRead
+- uid: Ghost.Graphics.RHI.IResourceDatabase.ExitParallelRead*
+  commentId: Overload:Ghost.Graphics.RHI.IResourceDatabase.ExitParallelRead
+  href: Ghost.Graphics.RHI.IResourceDatabase.html#Ghost_Graphics_RHI_IResourceDatabase_ExitParallelRead
+  name: ExitParallelRead
+  nameWithType: IResourceDatabase.ExitParallelRead
+  fullName: Ghost.Graphics.RHI.IResourceDatabase.ExitParallelRead
+- uid: Ghost.Graphics.RHI.IResourceDatabase.HasResource*
+  commentId: Overload:Ghost.Graphics.RHI.IResourceDatabase.HasResource
+  href: Ghost.Graphics.RHI.IResourceDatabase.html#Ghost_Graphics_RHI_IResourceDatabase_HasResource_Ghost_Core_Handle_Ghost_Graphics_RHI_GPUResource__
+  name: HasResource
+  nameWithType: IResourceDatabase.HasResource
+  fullName: Ghost.Graphics.RHI.IResourceDatabase.HasResource
+- uid: Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+  commentId: T:Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+  parent: Ghost.Core
+  definition: Ghost.Core.Handle`1
+  href: Ghost.Graphics.RHI.GPUResource.html
+  name: Handle<GPUResource>
+  nameWithType: Handle<GPUResource>
+  fullName: Ghost.Core.Handle<Ghost.Graphics.RHI.GPUResource>
+  nameWithType.vb: Handle(Of GPUResource)
+  fullName.vb: Ghost.Core.Handle(Of Ghost.Graphics.RHI.GPUResource)
+  name.vb: Handle(Of GPUResource)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - uid: Ghost.Graphics.RHI.GPUResource
+    name: GPUResource
+    href: Ghost.Graphics.RHI.GPUResource.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.GPUResource
+    name: GPUResource
+    href: Ghost.Graphics.RHI.GPUResource.html
+  - name: )
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.boolean
+  name: bool
+  nameWithType: bool
+  fullName: bool
+  nameWithType.vb: Boolean
+  fullName.vb: Boolean
+  name.vb: Boolean
+- uid: Ghost.Core.Handle`1
+  commentId: T:Ghost.Core.Handle`1
+  name: Handle<T>
+  nameWithType: Handle<T>
+  fullName: Ghost.Core.Handle<T>
+  nameWithType.vb: Handle(Of T)
+  fullName.vb: Ghost.Core.Handle(Of T)
+  name.vb: Handle(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Core
+  commentId: N:Ghost.Core
+  name: Ghost.Core
+  nameWithType: Ghost.Core
+  fullName: Ghost.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+- uid: Ghost.Graphics.RHI.IResourceDatabase.GetResourceBarrierData*
+  commentId: Overload:Ghost.Graphics.RHI.IResourceDatabase.GetResourceBarrierData
+  href: Ghost.Graphics.RHI.IResourceDatabase.html#Ghost_Graphics_RHI_IResourceDatabase_GetResourceBarrierData_Ghost_Core_Handle_Ghost_Graphics_RHI_GPUResource__
+  name: GetResourceBarrierData
+  nameWithType: IResourceDatabase.GetResourceBarrierData
+  fullName: Ghost.Graphics.RHI.IResourceDatabase.GetResourceBarrierData
+- uid: Ghost.Core.Result{Ghost.Graphics.RHI.ResourceBarrierData,Ghost.Core.Error}
+  commentId: T:Ghost.Core.Result{Ghost.Graphics.RHI.ResourceBarrierData,Ghost.Core.Error}
+  parent: Ghost.Core
+  definition: Ghost.Core.Result`2
+  href: Ghost.Graphics.RHI.ResourceBarrierData.html
+  name: Result<ResourceBarrierData, Error>
+  nameWithType: Result<ResourceBarrierData, Error>
+  fullName: Ghost.Core.Result<Ghost.Graphics.RHI.ResourceBarrierData, Ghost.Core.Error>
+  nameWithType.vb: Result(Of ResourceBarrierData, Error)
+  fullName.vb: Ghost.Core.Result(Of Ghost.Graphics.RHI.ResourceBarrierData, Ghost.Core.Error)
+  name.vb: Result(Of ResourceBarrierData, Error)
+  spec.csharp:
+  - uid: Ghost.Core.Result`2
+    name: Result
+  - name: <
+  - uid: Ghost.Graphics.RHI.ResourceBarrierData
+    name: ResourceBarrierData
+    href: Ghost.Graphics.RHI.ResourceBarrierData.html
+  - name: ','
+  - name: " "
+  - uid: Ghost.Core.Error
+    name: Error
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Result`2
+    name: Result
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.ResourceBarrierData
+    name: ResourceBarrierData
+    href: Ghost.Graphics.RHI.ResourceBarrierData.html
+  - name: ','
+  - name: " "
+  - uid: Ghost.Core.Error
+    name: Error
+  - name: )
+- uid: Ghost.Core.Result`2
+  commentId: T:Ghost.Core.Result`2
+  name: Result<T, E>
+  nameWithType: Result<T, E>
+  fullName: Ghost.Core.Result<T, E>
+  nameWithType.vb: Result(Of T, E)
+  fullName.vb: Ghost.Core.Result(Of T, E)
+  name.vb: Result(Of T, E)
+  spec.csharp:
+  - uid: Ghost.Core.Result`2
+    name: Result
+  - name: <
+  - name: T
+  - name: ','
+  - name: " "
+  - name: E
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Result`2
+    name: Result
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: ','
+  - name: " "
+  - name: E
+  - name: )
+- uid: Ghost.Graphics.RHI.IResourceDatabase.SetResourceBarrierData*
+  commentId: Overload:Ghost.Graphics.RHI.IResourceDatabase.SetResourceBarrierData
+  href: Ghost.Graphics.RHI.IResourceDatabase.html#Ghost_Graphics_RHI_IResourceDatabase_SetResourceBarrierData_Ghost_Core_Handle_Ghost_Graphics_RHI_GPUResource__Ghost_Graphics_RHI_ResourceBarrierData_
+  name: SetResourceBarrierData
+  nameWithType: IResourceDatabase.SetResourceBarrierData
+  fullName: Ghost.Graphics.RHI.IResourceDatabase.SetResourceBarrierData
+- uid: Ghost.Graphics.RHI.ResourceBarrierData
+  commentId: T:Ghost.Graphics.RHI.ResourceBarrierData
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ResourceBarrierData.html
+  name: ResourceBarrierData
+  nameWithType: ResourceBarrierData
+  fullName: Ghost.Graphics.RHI.ResourceBarrierData
+- uid: Ghost.Core.Error
+  commentId: T:Ghost.Core.Error
+  parent: Ghost.Core
+  name: Error
+  nameWithType: Error
+  fullName: Ghost.Core.Error
+- uid: Ghost.Graphics.RHI.IResourceDatabase.GetResourceDescription*
+  commentId: Overload:Ghost.Graphics.RHI.IResourceDatabase.GetResourceDescription
+  href: Ghost.Graphics.RHI.IResourceDatabase.html#Ghost_Graphics_RHI_IResourceDatabase_GetResourceDescription_Ghost_Core_Handle_Ghost_Graphics_RHI_GPUResource__
+  name: GetResourceDescription
+  nameWithType: IResourceDatabase.GetResourceDescription
+  fullName: Ghost.Graphics.RHI.IResourceDatabase.GetResourceDescription
+- uid: Ghost.Core.Result{Ghost.Graphics.RHI.ResourceDesc,Ghost.Core.Error}
+  commentId: T:Ghost.Core.Result{Ghost.Graphics.RHI.ResourceDesc,Ghost.Core.Error}
+  parent: Ghost.Core
+  definition: Ghost.Core.Result`2
+  href: Ghost.Graphics.RHI.ResourceDesc.html
+  name: Result<ResourceDesc, Error>
+  nameWithType: Result<ResourceDesc, Error>
+  fullName: Ghost.Core.Result<Ghost.Graphics.RHI.ResourceDesc, Ghost.Core.Error>
+  nameWithType.vb: Result(Of ResourceDesc, Error)
+  fullName.vb: Ghost.Core.Result(Of Ghost.Graphics.RHI.ResourceDesc, Ghost.Core.Error)
+  name.vb: Result(Of ResourceDesc, Error)
+  spec.csharp:
+  - uid: Ghost.Core.Result`2
+    name: Result
+  - name: <
+  - uid: Ghost.Graphics.RHI.ResourceDesc
+    name: ResourceDesc
+    href: Ghost.Graphics.RHI.ResourceDesc.html
+  - name: ','
+  - name: " "
+  - uid: Ghost.Core.Error
+    name: Error
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Result`2
+    name: Result
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.ResourceDesc
+    name: ResourceDesc
+    href: Ghost.Graphics.RHI.ResourceDesc.html
+  - name: ','
+  - name: " "
+  - uid: Ghost.Core.Error
+    name: Error
+  - name: )
+- uid: Ghost.Graphics.RHI.IResourceDatabase.GetBindlessIndex*
+  commentId: Overload:Ghost.Graphics.RHI.IResourceDatabase.GetBindlessIndex
+  href: Ghost.Graphics.RHI.IResourceDatabase.html#Ghost_Graphics_RHI_IResourceDatabase_GetBindlessIndex_Ghost_Core_Handle_Ghost_Graphics_RHI_GPUResource__Ghost_Graphics_RHI_BindlessAccess_
+  name: GetBindlessIndex
+  nameWithType: IResourceDatabase.GetBindlessIndex
+  fullName: Ghost.Graphics.RHI.IResourceDatabase.GetBindlessIndex
+- uid: Ghost.Graphics.RHI.BindlessAccess
+  commentId: T:Ghost.Graphics.RHI.BindlessAccess
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.BindlessAccess.html
+  name: BindlessAccess
+  nameWithType: BindlessAccess
+  fullName: Ghost.Graphics.RHI.BindlessAccess
+- uid: System.UInt32
+  commentId: T:System.UInt32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.uint32
+  name: uint
+  nameWithType: uint
+  fullName: uint
+  nameWithType.vb: UInteger
+  fullName.vb: UInteger
+  name.vb: UInteger
+- uid: Ghost.Graphics.RHI.IResourceDatabase.GetResourceName*
+  commentId: Overload:Ghost.Graphics.RHI.IResourceDatabase.GetResourceName
+  href: Ghost.Graphics.RHI.IResourceDatabase.html#Ghost_Graphics_RHI_IResourceDatabase_GetResourceName_Ghost_Core_Handle_Ghost_Graphics_RHI_GPUResource__
+  name: GetResourceName
+  nameWithType: IResourceDatabase.GetResourceName
+  fullName: Ghost.Graphics.RHI.IResourceDatabase.GetResourceName
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.string
+  name: string
+  nameWithType: string
+  fullName: string
+  nameWithType.vb: String
+  fullName.vb: String
+  name.vb: String
+- uid: Ghost.Graphics.RHI.IResourceDatabase.ReleaseResource*
+  commentId: Overload:Ghost.Graphics.RHI.IResourceDatabase.ReleaseResource
+  href: Ghost.Graphics.RHI.IResourceDatabase.html#Ghost_Graphics_RHI_IResourceDatabase_ReleaseResource_Ghost_Core_Handle_Ghost_Graphics_RHI_GPUResource__
+  name: ReleaseResource
+  nameWithType: IResourceDatabase.ReleaseResource
+  fullName: Ghost.Graphics.RHI.IResourceDatabase.ReleaseResource
+- uid: Ghost.Graphics.RHI.IResourceDatabase.ReleaseResourceImmediately*
+  commentId: Overload:Ghost.Graphics.RHI.IResourceDatabase.ReleaseResourceImmediately
+  href: Ghost.Graphics.RHI.IResourceDatabase.html#Ghost_Graphics_RHI_IResourceDatabase_ReleaseResourceImmediately_Ghost_Core_Handle_Ghost_Graphics_RHI_GPUResource__
+  name: ReleaseResourceImmediately
+  nameWithType: IResourceDatabase.ReleaseResourceImmediately
+  fullName: Ghost.Graphics.RHI.IResourceDatabase.ReleaseResourceImmediately
+- uid: Ghost.Graphics.RHI.SamplerDesc
+  commentId: T:Ghost.Graphics.RHI.SamplerDesc
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.SamplerDesc.html
+  name: SamplerDesc
+  nameWithType: SamplerDesc
+  fullName: Ghost.Graphics.RHI.SamplerDesc
+- uid: Ghost.Core.Identifier`1
+  commentId: T:Ghost.Core.Identifier`1
+  name: Identifier<T>
+  nameWithType: Identifier<T>
+  fullName: Ghost.Core.Identifier<T>
+  nameWithType.vb: Identifier(Of T)
+  fullName.vb: Ghost.Core.Identifier(Of T)
+  name.vb: Identifier(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Graphics.RHI.IResourceDatabase.AddSampler*
+  commentId: Overload:Ghost.Graphics.RHI.IResourceDatabase.AddSampler
+  href: Ghost.Graphics.RHI.IResourceDatabase.html#Ghost_Graphics_RHI_IResourceDatabase_AddSampler_Ghost_Graphics_RHI_SamplerDesc__System_Int32_
+  name: AddSampler
+  nameWithType: IResourceDatabase.AddSampler
+  fullName: Ghost.Graphics.RHI.IResourceDatabase.AddSampler
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.int32
+  name: int
+  nameWithType: int
+  fullName: int
+  nameWithType.vb: Integer
+  fullName.vb: Integer
+  name.vb: Integer
+- uid: Ghost.Core.Identifier{Ghost.Graphics.RHI.Sampler}
+  commentId: T:Ghost.Core.Identifier{Ghost.Graphics.RHI.Sampler}
+  parent: Ghost.Core
+  definition: Ghost.Core.Identifier`1
+  href: Ghost.Graphics.RHI.Sampler.html
+  name: Identifier<Sampler>
+  nameWithType: Identifier<Sampler>
+  fullName: Ghost.Core.Identifier<Ghost.Graphics.RHI.Sampler>
+  nameWithType.vb: Identifier(Of Sampler)
+  fullName.vb: Ghost.Core.Identifier(Of Ghost.Graphics.RHI.Sampler)
+  name.vb: Identifier(Of Sampler)
+  spec.csharp:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: <
+  - uid: Ghost.Graphics.RHI.Sampler
+    name: Sampler
+    href: Ghost.Graphics.RHI.Sampler.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.Sampler
+    name: Sampler
+    href: Ghost.Graphics.RHI.Sampler.html
+  - name: )
+- uid: Ghost.Graphics.RHI.IResourceDatabase.TryGetSampler*
+  commentId: Overload:Ghost.Graphics.RHI.IResourceDatabase.TryGetSampler
+  href: Ghost.Graphics.RHI.IResourceDatabase.html#Ghost_Graphics_RHI_IResourceDatabase_TryGetSampler_Ghost_Graphics_RHI_SamplerDesc__Ghost_Core_Identifier_Ghost_Graphics_RHI_Sampler___
+  name: TryGetSampler
+  nameWithType: IResourceDatabase.TryGetSampler
+  fullName: Ghost.Graphics.RHI.IResourceDatabase.TryGetSampler
+- uid: Ghost.Graphics.RHI.IResourceDatabase.ReleaseSampler*
+  commentId: Overload:Ghost.Graphics.RHI.IResourceDatabase.ReleaseSampler
+  href: Ghost.Graphics.RHI.IResourceDatabase.html#Ghost_Graphics_RHI_IResourceDatabase_ReleaseSampler_Ghost_Core_Identifier_Ghost_Graphics_RHI_Sampler__
+  name: ReleaseSampler
+  nameWithType: IResourceDatabase.ReleaseSampler
+  fullName: Ghost.Graphics.RHI.IResourceDatabase.ReleaseSampler
+- uid: Ghost.Graphics.RHI.IResourceDatabase.Swap*
+  commentId: Overload:Ghost.Graphics.RHI.IResourceDatabase.Swap
+  href: Ghost.Graphics.RHI.IResourceDatabase.html#Ghost_Graphics_RHI_IResourceDatabase_Swap_Ghost_Core_Handle_Ghost_Graphics_RHI_GPUResource__Ghost_Core_Handle_Ghost_Graphics_RHI_GPUResource__
+  name: Swap
+  nameWithType: IResourceDatabase.Swap
+  fullName: Ghost.Graphics.RHI.IResourceDatabase.Swap

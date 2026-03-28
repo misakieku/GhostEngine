@@ -1,0 +1,147 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.CommandQueueType
+  commentId: T:Ghost.Graphics.RHI.CommandQueueType
+  id: CommandQueueType
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.CommandQueueType.Compute
+  - Ghost.Graphics.RHI.CommandQueueType.Copy
+  - Ghost.Graphics.RHI.CommandQueueType.Graphics
+  langs:
+  - csharp
+  - vb
+  name: CommandQueueType
+  nameWithType: CommandQueueType
+  fullName: Ghost.Graphics.RHI.CommandQueueType
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CommandQueueType
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1210
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public enum CommandQueueType
+    content.vb: Public Enum CommandQueueType
+- uid: Ghost.Graphics.RHI.CommandQueueType.Graphics
+  commentId: F:Ghost.Graphics.RHI.CommandQueueType.Graphics
+  id: Graphics
+  parent: Ghost.Graphics.RHI.CommandQueueType
+  langs:
+  - csharp
+  - vb
+  name: Graphics
+  nameWithType: CommandQueueType.Graphics
+  fullName: Ghost.Graphics.RHI.CommandQueueType.Graphics
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Graphics
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1212
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Graphics = 0
+    return:
+      type: Ghost.Graphics.RHI.CommandQueueType
+- uid: Ghost.Graphics.RHI.CommandQueueType.Compute
+  commentId: F:Ghost.Graphics.RHI.CommandQueueType.Compute
+  id: Compute
+  parent: Ghost.Graphics.RHI.CommandQueueType
+  langs:
+  - csharp
+  - vb
+  name: Compute
+  nameWithType: CommandQueueType.Compute
+  fullName: Ghost.Graphics.RHI.CommandQueueType.Compute
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Compute
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1213
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Compute = 1
+    return:
+      type: Ghost.Graphics.RHI.CommandQueueType
+- uid: Ghost.Graphics.RHI.CommandQueueType.Copy
+  commentId: F:Ghost.Graphics.RHI.CommandQueueType.Copy
+  id: Copy
+  parent: Ghost.Graphics.RHI.CommandQueueType
+  langs:
+  - csharp
+  - vb
+  name: Copy
+  nameWithType: CommandQueueType.Copy
+  fullName: Ghost.Graphics.RHI.CommandQueueType.Copy
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Copy
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1214
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Copy = 2
+    return:
+      type: Ghost.Graphics.RHI.CommandQueueType
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.CommandQueueType
+  commentId: T:Ghost.Graphics.RHI.CommandQueueType
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.CommandQueueType.html
+  name: CommandQueueType
+  nameWithType: CommandQueueType
+  fullName: Ghost.Graphics.RHI.CommandQueueType

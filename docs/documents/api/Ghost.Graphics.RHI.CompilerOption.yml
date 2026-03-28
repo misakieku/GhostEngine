@@ -1,0 +1,211 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.CompilerOption
+  commentId: T:Ghost.Graphics.RHI.CompilerOption
+  id: CompilerOption
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.CompilerOption.KeepDebugInfo
+  - Ghost.Graphics.RHI.CompilerOption.KeepReflections
+  - Ghost.Graphics.RHI.CompilerOption.None
+  - Ghost.Graphics.RHI.CompilerOption.SpirvCrossCompile
+  - Ghost.Graphics.RHI.CompilerOption.WarnAsError
+  langs:
+  - csharp
+  - vb
+  name: CompilerOption
+  nameWithType: CompilerOption
+  fullName: Ghost.Graphics.RHI.CompilerOption
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CompilerOption
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 62
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: >-
+      [Flags]
+
+      public enum CompilerOption
+    content.vb: >-
+      <Flags>
+
+      Public Enum CompilerOption
+  attributes:
+  - type: System.FlagsAttribute
+    ctor: System.FlagsAttribute.#ctor
+    arguments: []
+- uid: Ghost.Graphics.RHI.CompilerOption.None
+  commentId: F:Ghost.Graphics.RHI.CompilerOption.None
+  id: None
+  parent: Ghost.Graphics.RHI.CompilerOption
+  langs:
+  - csharp
+  - vb
+  name: None
+  nameWithType: CompilerOption.None
+  fullName: Ghost.Graphics.RHI.CompilerOption.None
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: None
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 65
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: None = 0
+    return:
+      type: Ghost.Graphics.RHI.CompilerOption
+- uid: Ghost.Graphics.RHI.CompilerOption.KeepDebugInfo
+  commentId: F:Ghost.Graphics.RHI.CompilerOption.KeepDebugInfo
+  id: KeepDebugInfo
+  parent: Ghost.Graphics.RHI.CompilerOption
+  langs:
+  - csharp
+  - vb
+  name: KeepDebugInfo
+  nameWithType: CompilerOption.KeepDebugInfo
+  fullName: Ghost.Graphics.RHI.CompilerOption.KeepDebugInfo
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: KeepDebugInfo
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 66
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: KeepDebugInfo = 1
+    return:
+      type: Ghost.Graphics.RHI.CompilerOption
+- uid: Ghost.Graphics.RHI.CompilerOption.KeepReflections
+  commentId: F:Ghost.Graphics.RHI.CompilerOption.KeepReflections
+  id: KeepReflections
+  parent: Ghost.Graphics.RHI.CompilerOption
+  langs:
+  - csharp
+  - vb
+  name: KeepReflections
+  nameWithType: CompilerOption.KeepReflections
+  fullName: Ghost.Graphics.RHI.CompilerOption.KeepReflections
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: KeepReflections
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 67
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: KeepReflections = 2
+    return:
+      type: Ghost.Graphics.RHI.CompilerOption
+- uid: Ghost.Graphics.RHI.CompilerOption.WarnAsError
+  commentId: F:Ghost.Graphics.RHI.CompilerOption.WarnAsError
+  id: WarnAsError
+  parent: Ghost.Graphics.RHI.CompilerOption
+  langs:
+  - csharp
+  - vb
+  name: WarnAsError
+  nameWithType: CompilerOption.WarnAsError
+  fullName: Ghost.Graphics.RHI.CompilerOption.WarnAsError
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WarnAsError
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 68
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: WarnAsError = 4
+    return:
+      type: Ghost.Graphics.RHI.CompilerOption
+- uid: Ghost.Graphics.RHI.CompilerOption.SpirvCrossCompile
+  commentId: F:Ghost.Graphics.RHI.CompilerOption.SpirvCrossCompile
+  id: SpirvCrossCompile
+  parent: Ghost.Graphics.RHI.CompilerOption
+  langs:
+  - csharp
+  - vb
+  name: SpirvCrossCompile
+  nameWithType: CompilerOption.SpirvCrossCompile
+  fullName: Ghost.Graphics.RHI.CompilerOption.SpirvCrossCompile
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SpirvCrossCompile
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 69
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: SpirvCrossCompile = 8
+    return:
+      type: Ghost.Graphics.RHI.CompilerOption
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.CompilerOption
+  commentId: T:Ghost.Graphics.RHI.CompilerOption
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.CompilerOption.html
+  name: CompilerOption
+  nameWithType: CompilerOption
+  fullName: Ghost.Graphics.RHI.CompilerOption

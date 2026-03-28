@@ -1,0 +1,803 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.PassPipelineHash
+  commentId: T:Ghost.Graphics.RHI.PassPipelineHash
+  id: PassPipelineHash
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.PassPipelineHash.#ctor(System.ReadOnlySpan{Ghost.Graphics.RHI.TextureFormat},Ghost.Graphics.RHI.TextureFormat)
+  - Ghost.Graphics.RHI.PassPipelineHash.Equals(Ghost.Graphics.RHI.PassPipelineHash)
+  - Ghost.Graphics.RHI.PassPipelineHash.Equals(System.Object)
+  - Ghost.Graphics.RHI.PassPipelineHash.GetHashCode
+  - Ghost.Graphics.RHI.PassPipelineHash.op_Equality(Ghost.Graphics.RHI.PassPipelineHash,Ghost.Graphics.RHI.PassPipelineHash)
+  - Ghost.Graphics.RHI.PassPipelineHash.op_Inequality(Ghost.Graphics.RHI.PassPipelineHash,Ghost.Graphics.RHI.PassPipelineHash)
+  - Ghost.Graphics.RHI.PassPipelineHash.value
+  langs:
+  - csharp
+  - vb
+  name: PassPipelineHash
+  nameWithType: PassPipelineHash
+  fullName: Ghost.Graphics.RHI.PassPipelineHash
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: PassPipelineHash
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 175
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: 'public readonly struct PassPipelineHash : IEquatable<PassPipelineHash>'
+    content.vb: Public Structure PassPipelineHash Implements IEquatable(Of PassPipelineHash)
+  implements:
+  - System.IEquatable{Ghost.Graphics.RHI.PassPipelineHash}
+  inheritedMembers:
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Graphics.RHI.PassPipelineHash.value
+  commentId: F:Ghost.Graphics.RHI.PassPipelineHash.value
+  id: value
+  parent: Ghost.Graphics.RHI.PassPipelineHash
+  langs:
+  - csharp
+  - vb
+  name: value
+  nameWithType: PassPipelineHash.value
+  fullName: Ghost.Graphics.RHI.PassPipelineHash.value
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: value
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 177
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public readonly UInt128 value
+    return:
+      type: System.UInt128
+    content.vb: Public ReadOnly value As UInt128
+- uid: Ghost.Graphics.RHI.PassPipelineHash.#ctor(System.ReadOnlySpan{Ghost.Graphics.RHI.TextureFormat},Ghost.Graphics.RHI.TextureFormat)
+  commentId: M:Ghost.Graphics.RHI.PassPipelineHash.#ctor(System.ReadOnlySpan{Ghost.Graphics.RHI.TextureFormat},Ghost.Graphics.RHI.TextureFormat)
+  id: '#ctor(System.ReadOnlySpan{Ghost.Graphics.RHI.TextureFormat},Ghost.Graphics.RHI.TextureFormat)'
+  parent: Ghost.Graphics.RHI.PassPipelineHash
+  langs:
+  - csharp
+  - vb
+  name: PassPipelineHash(ReadOnlySpan<TextureFormat>, TextureFormat)
+  nameWithType: PassPipelineHash.PassPipelineHash(ReadOnlySpan<TextureFormat>, TextureFormat)
+  fullName: Ghost.Graphics.RHI.PassPipelineHash.PassPipelineHash(System.ReadOnlySpan<Ghost.Graphics.RHI.TextureFormat>, Ghost.Graphics.RHI.TextureFormat)
+  type: Constructor
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: .ctor
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 179
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public PassPipelineHash(ReadOnlySpan<TextureFormat> rtvFormats, TextureFormat dsvFormat)
+    parameters:
+    - id: rtvFormats
+      type: System.ReadOnlySpan{Ghost.Graphics.RHI.TextureFormat}
+    - id: dsvFormat
+      type: Ghost.Graphics.RHI.TextureFormat
+    content.vb: Public Sub New(rtvFormats As ReadOnlySpan(Of TextureFormat), dsvFormat As TextureFormat)
+  overload: Ghost.Graphics.RHI.PassPipelineHash.#ctor*
+  nameWithType.vb: PassPipelineHash.New(ReadOnlySpan(Of TextureFormat), TextureFormat)
+  fullName.vb: Ghost.Graphics.RHI.PassPipelineHash.New(System.ReadOnlySpan(Of Ghost.Graphics.RHI.TextureFormat), Ghost.Graphics.RHI.TextureFormat)
+  name.vb: New(ReadOnlySpan(Of TextureFormat), TextureFormat)
+- uid: Ghost.Graphics.RHI.PassPipelineHash.Equals(Ghost.Graphics.RHI.PassPipelineHash)
+  commentId: M:Ghost.Graphics.RHI.PassPipelineHash.Equals(Ghost.Graphics.RHI.PassPipelineHash)
+  id: Equals(Ghost.Graphics.RHI.PassPipelineHash)
+  parent: Ghost.Graphics.RHI.PassPipelineHash
+  langs:
+  - csharp
+  - vb
+  name: Equals(PassPipelineHash)
+  nameWithType: PassPipelineHash.Equals(PassPipelineHash)
+  fullName: Ghost.Graphics.RHI.PassPipelineHash.Equals(Ghost.Graphics.RHI.PassPipelineHash)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Equals
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 199
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Indicates whether the current object is equal to another object of the same type.
+  example: []
+  syntax:
+    content: public bool Equals(PassPipelineHash other)
+    parameters:
+    - id: other
+      type: Ghost.Graphics.RHI.PassPipelineHash
+      description: An object to compare with this object.
+    return:
+      type: System.Boolean
+      description: <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">true</a> if the current object is equal to the <code class="paramref">other</code> parameter; otherwise, <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">false</a>.
+    content.vb: Public Function Equals(other As PassPipelineHash) As Boolean
+  overload: Ghost.Graphics.RHI.PassPipelineHash.Equals*
+  implements:
+  - System.IEquatable{Ghost.Graphics.RHI.PassPipelineHash}.Equals(Ghost.Graphics.RHI.PassPipelineHash)
+- uid: Ghost.Graphics.RHI.PassPipelineHash.Equals(System.Object)
+  commentId: M:Ghost.Graphics.RHI.PassPipelineHash.Equals(System.Object)
+  id: Equals(System.Object)
+  parent: Ghost.Graphics.RHI.PassPipelineHash
+  langs:
+  - csharp
+  - vb
+  name: Equals(object?)
+  nameWithType: PassPipelineHash.Equals(object?)
+  fullName: Ghost.Graphics.RHI.PassPipelineHash.Equals(object?)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Equals
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 200
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Indicates whether this instance and a specified object are equal.
+  example: []
+  syntax:
+    content: public override bool Equals(object? obj)
+    parameters:
+    - id: obj
+      type: System.Object
+      description: The object to compare with the current instance.
+    return:
+      type: System.Boolean
+      description: <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">true</a> if <code class="paramref">obj</code> and this instance are the same type and represent the same value; otherwise, <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">false</a>.
+    content.vb: Public Overrides Function Equals(obj As Object) As Boolean
+  overridden: System.ValueType.Equals(System.Object)
+  overload: Ghost.Graphics.RHI.PassPipelineHash.Equals*
+  nameWithType.vb: PassPipelineHash.Equals(Object)
+  fullName.vb: Ghost.Graphics.RHI.PassPipelineHash.Equals(Object)
+  name.vb: Equals(Object)
+- uid: Ghost.Graphics.RHI.PassPipelineHash.GetHashCode
+  commentId: M:Ghost.Graphics.RHI.PassPipelineHash.GetHashCode
+  id: GetHashCode
+  parent: Ghost.Graphics.RHI.PassPipelineHash
+  langs:
+  - csharp
+  - vb
+  name: GetHashCode()
+  nameWithType: PassPipelineHash.GetHashCode()
+  fullName: Ghost.Graphics.RHI.PassPipelineHash.GetHashCode()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetHashCode
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 201
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Returns the hash code for this instance.
+  example: []
+  syntax:
+    content: public override int GetHashCode()
+    return:
+      type: System.Int32
+      description: A 32-bit signed integer that is the hash code for this instance.
+    content.vb: Public Overrides Function GetHashCode() As Integer
+  overridden: System.ValueType.GetHashCode
+  overload: Ghost.Graphics.RHI.PassPipelineHash.GetHashCode*
+- uid: Ghost.Graphics.RHI.PassPipelineHash.op_Equality(Ghost.Graphics.RHI.PassPipelineHash,Ghost.Graphics.RHI.PassPipelineHash)
+  commentId: M:Ghost.Graphics.RHI.PassPipelineHash.op_Equality(Ghost.Graphics.RHI.PassPipelineHash,Ghost.Graphics.RHI.PassPipelineHash)
+  id: op_Equality(Ghost.Graphics.RHI.PassPipelineHash,Ghost.Graphics.RHI.PassPipelineHash)
+  parent: Ghost.Graphics.RHI.PassPipelineHash
+  langs:
+  - csharp
+  - vb
+  name: operator ==(PassPipelineHash, PassPipelineHash)
+  nameWithType: PassPipelineHash.operator ==(PassPipelineHash, PassPipelineHash)
+  fullName: Ghost.Graphics.RHI.PassPipelineHash.operator ==(Ghost.Graphics.RHI.PassPipelineHash, Ghost.Graphics.RHI.PassPipelineHash)
+  type: Operator
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: op_Equality
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 203
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public static bool operator ==(PassPipelineHash left, PassPipelineHash right)
+    parameters:
+    - id: left
+      type: Ghost.Graphics.RHI.PassPipelineHash
+    - id: right
+      type: Ghost.Graphics.RHI.PassPipelineHash
+    return:
+      type: System.Boolean
+    content.vb: Public Shared Operator =(left As PassPipelineHash, right As PassPipelineHash) As Boolean
+  overload: Ghost.Graphics.RHI.PassPipelineHash.op_Equality*
+  nameWithType.vb: PassPipelineHash.=(PassPipelineHash, PassPipelineHash)
+  fullName.vb: Ghost.Graphics.RHI.PassPipelineHash.=(Ghost.Graphics.RHI.PassPipelineHash, Ghost.Graphics.RHI.PassPipelineHash)
+  name.vb: =(PassPipelineHash, PassPipelineHash)
+- uid: Ghost.Graphics.RHI.PassPipelineHash.op_Inequality(Ghost.Graphics.RHI.PassPipelineHash,Ghost.Graphics.RHI.PassPipelineHash)
+  commentId: M:Ghost.Graphics.RHI.PassPipelineHash.op_Inequality(Ghost.Graphics.RHI.PassPipelineHash,Ghost.Graphics.RHI.PassPipelineHash)
+  id: op_Inequality(Ghost.Graphics.RHI.PassPipelineHash,Ghost.Graphics.RHI.PassPipelineHash)
+  parent: Ghost.Graphics.RHI.PassPipelineHash
+  langs:
+  - csharp
+  - vb
+  name: operator !=(PassPipelineHash, PassPipelineHash)
+  nameWithType: PassPipelineHash.operator !=(PassPipelineHash, PassPipelineHash)
+  fullName: Ghost.Graphics.RHI.PassPipelineHash.operator !=(Ghost.Graphics.RHI.PassPipelineHash, Ghost.Graphics.RHI.PassPipelineHash)
+  type: Operator
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: op_Inequality
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 204
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public static bool operator !=(PassPipelineHash left, PassPipelineHash right)
+    parameters:
+    - id: left
+      type: Ghost.Graphics.RHI.PassPipelineHash
+    - id: right
+      type: Ghost.Graphics.RHI.PassPipelineHash
+    return:
+      type: System.Boolean
+    content.vb: Public Shared Operator <>(left As PassPipelineHash, right As PassPipelineHash) As Boolean
+  overload: Ghost.Graphics.RHI.PassPipelineHash.op_Inequality*
+  nameWithType.vb: PassPipelineHash.<>(PassPipelineHash, PassPipelineHash)
+  fullName.vb: Ghost.Graphics.RHI.PassPipelineHash.<>(Ghost.Graphics.RHI.PassPipelineHash, Ghost.Graphics.RHI.PassPipelineHash)
+  name.vb: <>(PassPipelineHash, PassPipelineHash)
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.IEquatable{Ghost.Graphics.RHI.PassPipelineHash}
+  commentId: T:System.IEquatable{Ghost.Graphics.RHI.PassPipelineHash}
+  parent: System
+  definition: System.IEquatable`1
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  name: IEquatable<PassPipelineHash>
+  nameWithType: IEquatable<PassPipelineHash>
+  fullName: System.IEquatable<Ghost.Graphics.RHI.PassPipelineHash>
+  nameWithType.vb: IEquatable(Of PassPipelineHash)
+  fullName.vb: System.IEquatable(Of Ghost.Graphics.RHI.PassPipelineHash)
+  name.vb: IEquatable(Of PassPipelineHash)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: <
+  - uid: Ghost.Graphics.RHI.PassPipelineHash
+    name: PassPipelineHash
+    href: Ghost.Graphics.RHI.PassPipelineHash.html
+  - name: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.PassPipelineHash
+    name: PassPipelineHash
+    href: Ghost.Graphics.RHI.PassPipelineHash.html
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.IEquatable`1
+  commentId: T:System.IEquatable`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  name: IEquatable<T>
+  nameWithType: IEquatable<T>
+  fullName: System.IEquatable<T>
+  nameWithType.vb: IEquatable(Of T)
+  fullName.vb: System.IEquatable(Of T)
+  name.vb: IEquatable(Of T)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System.UInt128
+  commentId: T:System.UInt128
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.uint128
+  name: UInt128
+  nameWithType: UInt128
+  fullName: System.UInt128
+- uid: Ghost.Graphics.RHI.PassPipelineHash.#ctor*
+  commentId: Overload:Ghost.Graphics.RHI.PassPipelineHash.#ctor
+  href: Ghost.Graphics.RHI.PassPipelineHash.html#Ghost_Graphics_RHI_PassPipelineHash__ctor_System_ReadOnlySpan_Ghost_Graphics_RHI_TextureFormat__Ghost_Graphics_RHI_TextureFormat_
+  name: PassPipelineHash
+  nameWithType: PassPipelineHash.PassPipelineHash
+  fullName: Ghost.Graphics.RHI.PassPipelineHash.PassPipelineHash
+  nameWithType.vb: PassPipelineHash.New
+  fullName.vb: Ghost.Graphics.RHI.PassPipelineHash.New
+  name.vb: New
+- uid: System.ReadOnlySpan{Ghost.Graphics.RHI.TextureFormat}
+  commentId: T:System.ReadOnlySpan{Ghost.Graphics.RHI.TextureFormat}
+  parent: System
+  definition: System.ReadOnlySpan`1
+  href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  name: ReadOnlySpan<TextureFormat>
+  nameWithType: ReadOnlySpan<TextureFormat>
+  fullName: System.ReadOnlySpan<Ghost.Graphics.RHI.TextureFormat>
+  nameWithType.vb: ReadOnlySpan(Of TextureFormat)
+  fullName.vb: System.ReadOnlySpan(Of Ghost.Graphics.RHI.TextureFormat)
+  name.vb: ReadOnlySpan(Of TextureFormat)
+  spec.csharp:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: <
+  - uid: Ghost.Graphics.RHI.TextureFormat
+    name: TextureFormat
+    href: Ghost.Graphics.RHI.TextureFormat.html
+  - name: '>'
+  spec.vb:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.TextureFormat
+    name: TextureFormat
+    href: Ghost.Graphics.RHI.TextureFormat.html
+  - name: )
+- uid: Ghost.Graphics.RHI.TextureFormat
+  commentId: T:Ghost.Graphics.RHI.TextureFormat
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.TextureFormat.html
+  name: TextureFormat
+  nameWithType: TextureFormat
+  fullName: Ghost.Graphics.RHI.TextureFormat
+- uid: System.ReadOnlySpan`1
+  commentId: T:System.ReadOnlySpan`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  name: ReadOnlySpan<T>
+  nameWithType: ReadOnlySpan<T>
+  fullName: System.ReadOnlySpan<T>
+  nameWithType.vb: ReadOnlySpan(Of T)
+  fullName.vb: System.ReadOnlySpan(Of T)
+  name.vb: ReadOnlySpan(Of T)
+  spec.csharp:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Graphics.RHI.PassPipelineHash.Equals*
+  commentId: Overload:Ghost.Graphics.RHI.PassPipelineHash.Equals
+  href: Ghost.Graphics.RHI.PassPipelineHash.html#Ghost_Graphics_RHI_PassPipelineHash_Equals_Ghost_Graphics_RHI_PassPipelineHash_
+  name: Equals
+  nameWithType: PassPipelineHash.Equals
+  fullName: Ghost.Graphics.RHI.PassPipelineHash.Equals
+- uid: System.IEquatable{Ghost.Graphics.RHI.PassPipelineHash}.Equals(Ghost.Graphics.RHI.PassPipelineHash)
+  commentId: M:System.IEquatable{Ghost.Graphics.RHI.PassPipelineHash}.Equals(Ghost.Graphics.RHI.PassPipelineHash)
+  parent: System.IEquatable{Ghost.Graphics.RHI.PassPipelineHash}
+  definition: System.IEquatable`1.Equals(`0)
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  name: Equals(PassPipelineHash)
+  nameWithType: IEquatable<PassPipelineHash>.Equals(PassPipelineHash)
+  fullName: System.IEquatable<Ghost.Graphics.RHI.PassPipelineHash>.Equals(Ghost.Graphics.RHI.PassPipelineHash)
+  nameWithType.vb: IEquatable(Of PassPipelineHash).Equals(PassPipelineHash)
+  fullName.vb: System.IEquatable(Of Ghost.Graphics.RHI.PassPipelineHash).Equals(Ghost.Graphics.RHI.PassPipelineHash)
+  spec.csharp:
+  - uid: System.IEquatable{Ghost.Graphics.RHI.PassPipelineHash}.Equals(Ghost.Graphics.RHI.PassPipelineHash)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  - name: (
+  - uid: Ghost.Graphics.RHI.PassPipelineHash
+    name: PassPipelineHash
+    href: Ghost.Graphics.RHI.PassPipelineHash.html
+  - name: )
+  spec.vb:
+  - uid: System.IEquatable{Ghost.Graphics.RHI.PassPipelineHash}.Equals(Ghost.Graphics.RHI.PassPipelineHash)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  - name: (
+  - uid: Ghost.Graphics.RHI.PassPipelineHash
+    name: PassPipelineHash
+    href: Ghost.Graphics.RHI.PassPipelineHash.html
+  - name: )
+- uid: Ghost.Graphics.RHI.PassPipelineHash
+  commentId: T:Ghost.Graphics.RHI.PassPipelineHash
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.PassPipelineHash.html
+  name: PassPipelineHash
+  nameWithType: PassPipelineHash
+  fullName: Ghost.Graphics.RHI.PassPipelineHash
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.boolean
+  name: bool
+  nameWithType: bool
+  fullName: bool
+  nameWithType.vb: Boolean
+  fullName.vb: Boolean
+  name.vb: Boolean
+- uid: System.IEquatable`1.Equals(`0)
+  commentId: M:System.IEquatable`1.Equals(`0)
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  name: Equals(T)
+  nameWithType: IEquatable<T>.Equals(T)
+  fullName: System.IEquatable<T>.Equals(T)
+  nameWithType.vb: IEquatable(Of T).Equals(T)
+  fullName.vb: System.IEquatable(Of T).Equals(T)
+  spec.csharp:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  - name: (
+  - name: T
+  - name: )
+  spec.vb:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  - name: (
+  - name: T
+  - name: )
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: Ghost.Graphics.RHI.PassPipelineHash.GetHashCode*
+  commentId: Overload:Ghost.Graphics.RHI.PassPipelineHash.GetHashCode
+  href: Ghost.Graphics.RHI.PassPipelineHash.html#Ghost_Graphics_RHI_PassPipelineHash_GetHashCode
+  name: GetHashCode
+  nameWithType: PassPipelineHash.GetHashCode
+  fullName: Ghost.Graphics.RHI.PassPipelineHash.GetHashCode
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.int32
+  name: int
+  nameWithType: int
+  fullName: int
+  nameWithType.vb: Integer
+  fullName.vb: Integer
+  name.vb: Integer
+- uid: Ghost.Graphics.RHI.PassPipelineHash.op_Equality*
+  commentId: Overload:Ghost.Graphics.RHI.PassPipelineHash.op_Equality
+  href: Ghost.Graphics.RHI.PassPipelineHash.html#Ghost_Graphics_RHI_PassPipelineHash_op_Equality_Ghost_Graphics_RHI_PassPipelineHash_Ghost_Graphics_RHI_PassPipelineHash_
+  name: operator ==
+  nameWithType: PassPipelineHash.operator ==
+  fullName: Ghost.Graphics.RHI.PassPipelineHash.operator ==
+  nameWithType.vb: PassPipelineHash.=
+  fullName.vb: Ghost.Graphics.RHI.PassPipelineHash.=
+  name.vb: =
+  spec.csharp:
+  - name: operator
+  - name: " "
+  - uid: Ghost.Graphics.RHI.PassPipelineHash.op_Equality*
+    name: ==
+    href: Ghost.Graphics.RHI.PassPipelineHash.html#Ghost_Graphics_RHI_PassPipelineHash_op_Equality_Ghost_Graphics_RHI_PassPipelineHash_Ghost_Graphics_RHI_PassPipelineHash_
+- uid: Ghost.Graphics.RHI.PassPipelineHash.op_Inequality*
+  commentId: Overload:Ghost.Graphics.RHI.PassPipelineHash.op_Inequality
+  href: Ghost.Graphics.RHI.PassPipelineHash.html#Ghost_Graphics_RHI_PassPipelineHash_op_Inequality_Ghost_Graphics_RHI_PassPipelineHash_Ghost_Graphics_RHI_PassPipelineHash_
+  name: operator !=
+  nameWithType: PassPipelineHash.operator !=
+  fullName: Ghost.Graphics.RHI.PassPipelineHash.operator !=
+  nameWithType.vb: PassPipelineHash.<>
+  fullName.vb: Ghost.Graphics.RHI.PassPipelineHash.<>
+  name.vb: <>
+  spec.csharp:
+  - name: operator
+  - name: " "
+  - uid: Ghost.Graphics.RHI.PassPipelineHash.op_Inequality*
+    name: '!='
+    href: Ghost.Graphics.RHI.PassPipelineHash.html#Ghost_Graphics_RHI_PassPipelineHash_op_Inequality_Ghost_Graphics_RHI_PassPipelineHash_Ghost_Graphics_RHI_PassPipelineHash_

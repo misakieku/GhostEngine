@@ -1,0 +1,1349 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.Core.Mesh
+  commentId: T:Ghost.Graphics.Core.Mesh
+  id: Mesh
+  parent: Ghost.Graphics.Core
+  children:
+  - Ghost.Graphics.Core.Mesh.BoundingBox
+  - Ghost.Graphics.Core.Mesh.CookMeshlets
+  - Ghost.Graphics.Core.Mesh.IndexBuffer
+  - Ghost.Graphics.Core.Mesh.IndexCount
+  - Ghost.Graphics.Core.Mesh.Indices
+  - Ghost.Graphics.Core.Mesh.MeshLetBuffer
+  - Ghost.Graphics.Core.Mesh.MeshletData
+  - Ghost.Graphics.Core.Mesh.MeshletTrianglesBuffer
+  - Ghost.Graphics.Core.Mesh.MeshletVerticesBuffer
+  - Ghost.Graphics.Core.Mesh.ObjectDataBuffer
+  - Ghost.Graphics.Core.Mesh.ReleaseCpuResources
+  - Ghost.Graphics.Core.Mesh.ReleaseResource(Ghost.Graphics.RHI.IResourceDatabase)
+  - Ghost.Graphics.Core.Mesh.VertexBuffer
+  - Ghost.Graphics.Core.Mesh.VertexCount
+  - Ghost.Graphics.Core.Mesh.Vertices
+  langs:
+  - csharp
+  - vb
+  name: Mesh
+  nameWithType: Mesh
+  fullName: Ghost.Graphics.Core.Mesh
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Mesh
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 71
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: 'public struct Mesh : IResourceReleasable'
+    content.vb: Public Structure Mesh Implements IResourceReleasable
+  implements:
+  - Ghost.Graphics.RHI.IResourceReleasable
+  inheritedMembers:
+  - System.ValueType.Equals(System.Object)
+  - System.ValueType.GetHashCode
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  extensionMethods:
+  - Ghost.Graphics.Core.Mesh.Ghost.Graphics.Core.MeshExtension.ComputeBounds
+  - Ghost.Graphics.Core.Mesh.Ghost.Graphics.Core.MeshExtension.ComputeNormal
+  - Ghost.Graphics.Core.Mesh.Ghost.Graphics.Core.MeshExtension.ComputeTangents
+- uid: Ghost.Graphics.Core.Mesh.MeshletData
+  commentId: P:Ghost.Graphics.Core.Mesh.MeshletData
+  id: MeshletData
+  parent: Ghost.Graphics.Core.Mesh
+  langs:
+  - csharp
+  - vb
+  name: MeshletData
+  nameWithType: Mesh.MeshletData
+  fullName: Ghost.Graphics.Core.Mesh.MeshletData
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: MeshletData
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 77
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: >-
+      [UnscopedRef]
+
+      public readonly ref readonly MeshletMeshData MeshletData { get; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.Core.MeshletMeshData
+    content.vb: >-
+      <UnscopedRef>
+
+      Public ReadOnly Property MeshletData As MeshletMeshData
+  overload: Ghost.Graphics.Core.Mesh.MeshletData*
+  attributes:
+  - type: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute
+    ctor: System.Diagnostics.CodeAnalysis.UnscopedRefAttribute.#ctor
+    arguments: []
+- uid: Ghost.Graphics.Core.Mesh.Vertices
+  commentId: P:Ghost.Graphics.Core.Mesh.Vertices
+  id: Vertices
+  parent: Ghost.Graphics.Core.Mesh
+  langs:
+  - csharp
+  - vb
+  name: Vertices
+  nameWithType: Mesh.Vertices
+  fullName: Ghost.Graphics.Core.Mesh.Vertices
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Vertices
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 88
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  summary: Gets or sets the collection of vertices that define the geometry.
+  example: []
+  syntax:
+    content: public UnsafeList<Vertex> Vertices { readonly get; set; }
+    parameters: []
+    return:
+      type: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex}
+    content.vb: Public Property Vertices As UnsafeList(Of Vertex)
+  overload: Ghost.Graphics.Core.Mesh.Vertices*
+- uid: Ghost.Graphics.Core.Mesh.Indices
+  commentId: P:Ghost.Graphics.Core.Mesh.Indices
+  id: Indices
+  parent: Ghost.Graphics.Core.Mesh
+  langs:
+  - csharp
+  - vb
+  name: Indices
+  nameWithType: Mesh.Indices
+  fullName: Ghost.Graphics.Core.Mesh.Indices
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Indices
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 102
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  summary: Gets or sets the collection of indices that define the order of vertices.
+  example: []
+  syntax:
+    content: public UnsafeList<uint> Indices { readonly get; set; }
+    parameters: []
+    return:
+      type: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}
+    content.vb: Public Property Indices As UnsafeList(Of UInteger)
+  overload: Ghost.Graphics.Core.Mesh.Indices*
+- uid: Ghost.Graphics.Core.Mesh.VertexCount
+  commentId: P:Ghost.Graphics.Core.Mesh.VertexCount
+  id: VertexCount
+  parent: Ghost.Graphics.Core.Mesh
+  langs:
+  - csharp
+  - vb
+  name: VertexCount
+  nameWithType: Mesh.VertexCount
+  fullName: Ghost.Graphics.Core.Mesh.VertexCount
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: VertexCount
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 116
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  summary: Get the number of vertices in the mesh.
+  example: []
+  syntax:
+    content: public readonly int VertexCount { get; }
+    parameters: []
+    return:
+      type: System.Int32
+    content.vb: Public Property VertexCount As Integer
+  overload: Ghost.Graphics.Core.Mesh.VertexCount*
+- uid: Ghost.Graphics.Core.Mesh.IndexCount
+  commentId: P:Ghost.Graphics.Core.Mesh.IndexCount
+  id: IndexCount
+  parent: Ghost.Graphics.Core.Mesh
+  langs:
+  - csharp
+  - vb
+  name: IndexCount
+  nameWithType: Mesh.IndexCount
+  fullName: Ghost.Graphics.Core.Mesh.IndexCount
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IndexCount
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 124
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  summary: Get the number of indices in the mesh.
+  example: []
+  syntax:
+    content: public readonly int IndexCount { get; }
+    parameters: []
+    return:
+      type: System.Int32
+    content.vb: Public Property IndexCount As Integer
+  overload: Ghost.Graphics.Core.Mesh.IndexCount*
+- uid: Ghost.Graphics.Core.Mesh.BoundingBox
+  commentId: P:Ghost.Graphics.Core.Mesh.BoundingBox
+  id: BoundingBox
+  parent: Ghost.Graphics.Core.Mesh
+  langs:
+  - csharp
+  - vb
+  name: BoundingBox
+  nameWithType: Mesh.BoundingBox
+  fullName: Ghost.Graphics.Core.Mesh.BoundingBox
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: BoundingBox
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 132
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  summary: Gets or sets the axis-aligned bounding box (AABB) of the mesh.
+  example: []
+  syntax:
+    content: public AABB BoundingBox { readonly get; set; }
+    parameters: []
+    return:
+      type: Misaki.HighPerformance.Mathematics.Geometry.AABB
+    content.vb: Public Property BoundingBox As AABB
+  overload: Ghost.Graphics.Core.Mesh.BoundingBox*
+- uid: Ghost.Graphics.Core.Mesh.VertexBuffer
+  commentId: P:Ghost.Graphics.Core.Mesh.VertexBuffer
+  id: VertexBuffer
+  parent: Ghost.Graphics.Core.Mesh
+  langs:
+  - csharp
+  - vb
+  name: VertexBuffer
+  nameWithType: Mesh.VertexBuffer
+  fullName: Ghost.Graphics.Core.Mesh.VertexBuffer
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: VertexBuffer
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 140
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  summary: Gets the handle to the vertex buffer on the GPU.
+  example: []
+  syntax:
+    content: public readonly Handle<GraphicsBuffer> VertexBuffer { get; }
+    parameters: []
+    return:
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer}
+    content.vb: Public Property VertexBuffer As Handle(Of GraphicsBuffer)
+  overload: Ghost.Graphics.Core.Mesh.VertexBuffer*
+- uid: Ghost.Graphics.Core.Mesh.IndexBuffer
+  commentId: P:Ghost.Graphics.Core.Mesh.IndexBuffer
+  id: IndexBuffer
+  parent: Ghost.Graphics.Core.Mesh
+  langs:
+  - csharp
+  - vb
+  name: IndexBuffer
+  nameWithType: Mesh.IndexBuffer
+  fullName: Ghost.Graphics.Core.Mesh.IndexBuffer
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IndexBuffer
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 148
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  summary: Gets the handle to the index buffer on the GPU.
+  example: []
+  syntax:
+    content: public readonly Handle<GraphicsBuffer> IndexBuffer { get; }
+    parameters: []
+    return:
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer}
+    content.vb: Public Property IndexBuffer As Handle(Of GraphicsBuffer)
+  overload: Ghost.Graphics.Core.Mesh.IndexBuffer*
+- uid: Ghost.Graphics.Core.Mesh.MeshLetBuffer
+  commentId: P:Ghost.Graphics.Core.Mesh.MeshLetBuffer
+  id: MeshLetBuffer
+  parent: Ghost.Graphics.Core.Mesh
+  langs:
+  - csharp
+  - vb
+  name: MeshLetBuffer
+  nameWithType: Mesh.MeshLetBuffer
+  fullName: Ghost.Graphics.Core.Mesh.MeshLetBuffer
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: MeshLetBuffer
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 156
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  summary: Gets the handle to the meshlet buffer on the GPU.
+  example: []
+  syntax:
+    content: public readonly Handle<GraphicsBuffer> MeshLetBuffer { get; }
+    parameters: []
+    return:
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer}
+    content.vb: Public Property MeshLetBuffer As Handle(Of GraphicsBuffer)
+  overload: Ghost.Graphics.Core.Mesh.MeshLetBuffer*
+- uid: Ghost.Graphics.Core.Mesh.MeshletVerticesBuffer
+  commentId: P:Ghost.Graphics.Core.Mesh.MeshletVerticesBuffer
+  id: MeshletVerticesBuffer
+  parent: Ghost.Graphics.Core.Mesh
+  langs:
+  - csharp
+  - vb
+  name: MeshletVerticesBuffer
+  nameWithType: Mesh.MeshletVerticesBuffer
+  fullName: Ghost.Graphics.Core.Mesh.MeshletVerticesBuffer
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: MeshletVerticesBuffer
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 164
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  summary: Gets the handle to the meshlet vertices buffer on the GPU.
+  example: []
+  syntax:
+    content: public readonly Handle<GraphicsBuffer> MeshletVerticesBuffer { get; }
+    parameters: []
+    return:
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer}
+    content.vb: Public Property MeshletVerticesBuffer As Handle(Of GraphicsBuffer)
+  overload: Ghost.Graphics.Core.Mesh.MeshletVerticesBuffer*
+- uid: Ghost.Graphics.Core.Mesh.MeshletTrianglesBuffer
+  commentId: P:Ghost.Graphics.Core.Mesh.MeshletTrianglesBuffer
+  id: MeshletTrianglesBuffer
+  parent: Ghost.Graphics.Core.Mesh
+  langs:
+  - csharp
+  - vb
+  name: MeshletTrianglesBuffer
+  nameWithType: Mesh.MeshletTrianglesBuffer
+  fullName: Ghost.Graphics.Core.Mesh.MeshletTrianglesBuffer
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: MeshletTrianglesBuffer
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 172
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  summary: Gets the handle to the meshlet triangles buffer on the GPU.
+  example: []
+  syntax:
+    content: public readonly Handle<GraphicsBuffer> MeshletTrianglesBuffer { get; }
+    parameters: []
+    return:
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer}
+    content.vb: Public Property MeshletTrianglesBuffer As Handle(Of GraphicsBuffer)
+  overload: Ghost.Graphics.Core.Mesh.MeshletTrianglesBuffer*
+- uid: Ghost.Graphics.Core.Mesh.ObjectDataBuffer
+  commentId: P:Ghost.Graphics.Core.Mesh.ObjectDataBuffer
+  id: ObjectDataBuffer
+  parent: Ghost.Graphics.Core.Mesh
+  langs:
+  - csharp
+  - vb
+  name: ObjectDataBuffer
+  nameWithType: Mesh.ObjectDataBuffer
+  fullName: Ghost.Graphics.Core.Mesh.ObjectDataBuffer
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ObjectDataBuffer
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 180
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  summary: Gets the handle to the mesh data buffer on the GPU.
+  example: []
+  syntax:
+    content: public readonly Handle<GraphicsBuffer> ObjectDataBuffer { get; }
+    parameters: []
+    return:
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer}
+    content.vb: Public Property ObjectDataBuffer As Handle(Of GraphicsBuffer)
+  overload: Ghost.Graphics.Core.Mesh.ObjectDataBuffer*
+- uid: Ghost.Graphics.Core.Mesh.ReleaseCpuResources
+  commentId: M:Ghost.Graphics.Core.Mesh.ReleaseCpuResources
+  id: ReleaseCpuResources
+  parent: Ghost.Graphics.Core.Mesh
+  langs:
+  - csharp
+  - vb
+  name: ReleaseCpuResources()
+  nameWithType: Mesh.ReleaseCpuResources()
+  fullName: Ghost.Graphics.Core.Mesh.ReleaseCpuResources()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ReleaseCpuResources
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 197
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public void ReleaseCpuResources()
+    content.vb: Public Sub ReleaseCpuResources()
+  overload: Ghost.Graphics.Core.Mesh.ReleaseCpuResources*
+- uid: Ghost.Graphics.Core.Mesh.CookMeshlets
+  commentId: M:Ghost.Graphics.Core.Mesh.CookMeshlets
+  id: CookMeshlets
+  parent: Ghost.Graphics.Core.Mesh
+  langs:
+  - csharp
+  - vb
+  name: CookMeshlets()
+  nameWithType: Mesh.CookMeshlets()
+  fullName: Ghost.Graphics.Core.Mesh.CookMeshlets()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CookMeshlets
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 204
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public void CookMeshlets()
+    content.vb: Public Sub CookMeshlets()
+  overload: Ghost.Graphics.Core.Mesh.CookMeshlets*
+- uid: Ghost.Graphics.Core.Mesh.ReleaseResource(Ghost.Graphics.RHI.IResourceDatabase)
+  commentId: M:Ghost.Graphics.Core.Mesh.ReleaseResource(Ghost.Graphics.RHI.IResourceDatabase)
+  id: ReleaseResource(Ghost.Graphics.RHI.IResourceDatabase)
+  parent: Ghost.Graphics.Core.Mesh
+  langs:
+  - csharp
+  - vb
+  name: ReleaseResource(IResourceDatabase)
+  nameWithType: Mesh.ReleaseResource(IResourceDatabase)
+  fullName: Ghost.Graphics.Core.Mesh.ReleaseResource(Ghost.Graphics.RHI.IResourceDatabase)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ReleaseResource
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 296
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  summary: A method to release GPU resources.
+  example: []
+  syntax:
+    content: public void ReleaseResource(IResourceDatabase database)
+    parameters:
+    - id: database
+      type: Ghost.Graphics.RHI.IResourceDatabase
+    content.vb: Public Sub ReleaseResource(database As IResourceDatabase)
+  overload: Ghost.Graphics.Core.Mesh.ReleaseResource*
+  implements:
+  - Ghost.Graphics.RHI.IResourceReleasable.ReleaseResource(Ghost.Graphics.RHI.IResourceDatabase)
+references:
+- uid: Ghost.Graphics.Core
+  commentId: N:Ghost.Graphics.Core
+  href: Ghost.html
+  name: Ghost.Graphics.Core
+  nameWithType: Ghost.Graphics.Core
+  fullName: Ghost.Graphics.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Core
+    name: Core
+    href: Ghost.Graphics.Core.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Core
+    name: Core
+    href: Ghost.Graphics.Core.html
+- uid: Ghost.Graphics.RHI.IResourceReleasable
+  commentId: T:Ghost.Graphics.RHI.IResourceReleasable
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.IResourceReleasable.html
+  name: IResourceReleasable
+  nameWithType: IResourceReleasable
+  fullName: Ghost.Graphics.RHI.IResourceReleasable
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: Ghost.Graphics.Core.Mesh.Ghost.Graphics.Core.MeshExtension.ComputeBounds
+  commentId: M:Ghost.Graphics.Core.MeshExtension.ComputeBounds(Ghost.Graphics.Core.Mesh@)
+  parent: Ghost.Graphics.Core.MeshExtension
+  definition: Ghost.Graphics.Core.MeshExtension.ComputeBounds(Ghost.Graphics.Core.Mesh@)
+  href: Ghost.Graphics.Core.MeshExtension.html#Ghost_Graphics_Core_MeshExtension_ComputeBounds_Ghost_Graphics_Core_Mesh__
+  name: ComputeBounds(ref Mesh)
+  nameWithType: MeshExtension.ComputeBounds(ref Mesh)
+  fullName: Ghost.Graphics.Core.MeshExtension.ComputeBounds(ref Ghost.Graphics.Core.Mesh)
+  nameWithType.vb: MeshExtension.ComputeBounds(Mesh)
+  fullName.vb: Ghost.Graphics.Core.MeshExtension.ComputeBounds(Ghost.Graphics.Core.Mesh)
+  name.vb: ComputeBounds(Mesh)
+  spec.csharp:
+  - uid: Ghost.Graphics.Core.MeshExtension.ComputeBounds(Ghost.Graphics.Core.Mesh@)
+    name: ComputeBounds
+    href: Ghost.Graphics.Core.MeshExtension.html#Ghost_Graphics_Core_MeshExtension_ComputeBounds_Ghost_Graphics_Core_Mesh__
+  - name: (
+  - name: ref
+  - name: " "
+  - uid: Ghost.Graphics.Core.Mesh
+    name: Mesh
+    href: Ghost.Graphics.Core.Mesh.html
+  - name: )
+  spec.vb:
+  - uid: Ghost.Graphics.Core.MeshExtension.ComputeBounds(Ghost.Graphics.Core.Mesh@)
+    name: ComputeBounds
+    href: Ghost.Graphics.Core.MeshExtension.html#Ghost_Graphics_Core_MeshExtension_ComputeBounds_Ghost_Graphics_Core_Mesh__
+  - name: (
+  - uid: Ghost.Graphics.Core.Mesh
+    name: Mesh
+    href: Ghost.Graphics.Core.Mesh.html
+  - name: )
+- uid: Ghost.Graphics.Core.Mesh.Ghost.Graphics.Core.MeshExtension.ComputeNormal
+  commentId: M:Ghost.Graphics.Core.MeshExtension.ComputeNormal(Ghost.Graphics.Core.Mesh@)
+  parent: Ghost.Graphics.Core.MeshExtension
+  definition: Ghost.Graphics.Core.MeshExtension.ComputeNormal(Ghost.Graphics.Core.Mesh@)
+  href: Ghost.Graphics.Core.MeshExtension.html#Ghost_Graphics_Core_MeshExtension_ComputeNormal_Ghost_Graphics_Core_Mesh__
+  name: ComputeNormal(ref Mesh)
+  nameWithType: MeshExtension.ComputeNormal(ref Mesh)
+  fullName: Ghost.Graphics.Core.MeshExtension.ComputeNormal(ref Ghost.Graphics.Core.Mesh)
+  nameWithType.vb: MeshExtension.ComputeNormal(Mesh)
+  fullName.vb: Ghost.Graphics.Core.MeshExtension.ComputeNormal(Ghost.Graphics.Core.Mesh)
+  name.vb: ComputeNormal(Mesh)
+  spec.csharp:
+  - uid: Ghost.Graphics.Core.MeshExtension.ComputeNormal(Ghost.Graphics.Core.Mesh@)
+    name: ComputeNormal
+    href: Ghost.Graphics.Core.MeshExtension.html#Ghost_Graphics_Core_MeshExtension_ComputeNormal_Ghost_Graphics_Core_Mesh__
+  - name: (
+  - name: ref
+  - name: " "
+  - uid: Ghost.Graphics.Core.Mesh
+    name: Mesh
+    href: Ghost.Graphics.Core.Mesh.html
+  - name: )
+  spec.vb:
+  - uid: Ghost.Graphics.Core.MeshExtension.ComputeNormal(Ghost.Graphics.Core.Mesh@)
+    name: ComputeNormal
+    href: Ghost.Graphics.Core.MeshExtension.html#Ghost_Graphics_Core_MeshExtension_ComputeNormal_Ghost_Graphics_Core_Mesh__
+  - name: (
+  - uid: Ghost.Graphics.Core.Mesh
+    name: Mesh
+    href: Ghost.Graphics.Core.Mesh.html
+  - name: )
+- uid: Ghost.Graphics.Core.Mesh.Ghost.Graphics.Core.MeshExtension.ComputeTangents
+  commentId: M:Ghost.Graphics.Core.MeshExtension.ComputeTangents(Ghost.Graphics.Core.Mesh@)
+  parent: Ghost.Graphics.Core.MeshExtension
+  definition: Ghost.Graphics.Core.MeshExtension.ComputeTangents(Ghost.Graphics.Core.Mesh@)
+  href: Ghost.Graphics.Core.MeshExtension.html#Ghost_Graphics_Core_MeshExtension_ComputeTangents_Ghost_Graphics_Core_Mesh__
+  name: ComputeTangents(ref Mesh)
+  nameWithType: MeshExtension.ComputeTangents(ref Mesh)
+  fullName: Ghost.Graphics.Core.MeshExtension.ComputeTangents(ref Ghost.Graphics.Core.Mesh)
+  nameWithType.vb: MeshExtension.ComputeTangents(Mesh)
+  fullName.vb: Ghost.Graphics.Core.MeshExtension.ComputeTangents(Ghost.Graphics.Core.Mesh)
+  name.vb: ComputeTangents(Mesh)
+  spec.csharp:
+  - uid: Ghost.Graphics.Core.MeshExtension.ComputeTangents(Ghost.Graphics.Core.Mesh@)
+    name: ComputeTangents
+    href: Ghost.Graphics.Core.MeshExtension.html#Ghost_Graphics_Core_MeshExtension_ComputeTangents_Ghost_Graphics_Core_Mesh__
+  - name: (
+  - name: ref
+  - name: " "
+  - uid: Ghost.Graphics.Core.Mesh
+    name: Mesh
+    href: Ghost.Graphics.Core.Mesh.html
+  - name: )
+  spec.vb:
+  - uid: Ghost.Graphics.Core.MeshExtension.ComputeTangents(Ghost.Graphics.Core.Mesh@)
+    name: ComputeTangents
+    href: Ghost.Graphics.Core.MeshExtension.html#Ghost_Graphics_Core_MeshExtension_ComputeTangents_Ghost_Graphics_Core_Mesh__
+  - name: (
+  - uid: Ghost.Graphics.Core.Mesh
+    name: Mesh
+    href: Ghost.Graphics.Core.Mesh.html
+  - name: )
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: Ghost.Graphics.Core.MeshExtension.ComputeBounds(Ghost.Graphics.Core.Mesh@)
+  commentId: M:Ghost.Graphics.Core.MeshExtension.ComputeBounds(Ghost.Graphics.Core.Mesh@)
+  href: Ghost.Graphics.Core.MeshExtension.html#Ghost_Graphics_Core_MeshExtension_ComputeBounds_Ghost_Graphics_Core_Mesh__
+  name: ComputeBounds(ref Mesh)
+  nameWithType: MeshExtension.ComputeBounds(ref Mesh)
+  fullName: Ghost.Graphics.Core.MeshExtension.ComputeBounds(ref Ghost.Graphics.Core.Mesh)
+  nameWithType.vb: MeshExtension.ComputeBounds(Mesh)
+  fullName.vb: Ghost.Graphics.Core.MeshExtension.ComputeBounds(Ghost.Graphics.Core.Mesh)
+  name.vb: ComputeBounds(Mesh)
+  spec.csharp:
+  - uid: Ghost.Graphics.Core.MeshExtension.ComputeBounds(Ghost.Graphics.Core.Mesh@)
+    name: ComputeBounds
+    href: Ghost.Graphics.Core.MeshExtension.html#Ghost_Graphics_Core_MeshExtension_ComputeBounds_Ghost_Graphics_Core_Mesh__
+  - name: (
+  - name: ref
+  - name: " "
+  - uid: Ghost.Graphics.Core.Mesh
+    name: Mesh
+    href: Ghost.Graphics.Core.Mesh.html
+  - name: )
+  spec.vb:
+  - uid: Ghost.Graphics.Core.MeshExtension.ComputeBounds(Ghost.Graphics.Core.Mesh@)
+    name: ComputeBounds
+    href: Ghost.Graphics.Core.MeshExtension.html#Ghost_Graphics_Core_MeshExtension_ComputeBounds_Ghost_Graphics_Core_Mesh__
+  - name: (
+  - uid: Ghost.Graphics.Core.Mesh
+    name: Mesh
+    href: Ghost.Graphics.Core.Mesh.html
+  - name: )
+- uid: Ghost.Graphics.Core.MeshExtension
+  commentId: T:Ghost.Graphics.Core.MeshExtension
+  parent: Ghost.Graphics.Core
+  href: Ghost.Graphics.Core.MeshExtension.html
+  name: MeshExtension
+  nameWithType: MeshExtension
+  fullName: Ghost.Graphics.Core.MeshExtension
+- uid: Ghost.Graphics.Core.MeshExtension.ComputeNormal(Ghost.Graphics.Core.Mesh@)
+  commentId: M:Ghost.Graphics.Core.MeshExtension.ComputeNormal(Ghost.Graphics.Core.Mesh@)
+  href: Ghost.Graphics.Core.MeshExtension.html#Ghost_Graphics_Core_MeshExtension_ComputeNormal_Ghost_Graphics_Core_Mesh__
+  name: ComputeNormal(ref Mesh)
+  nameWithType: MeshExtension.ComputeNormal(ref Mesh)
+  fullName: Ghost.Graphics.Core.MeshExtension.ComputeNormal(ref Ghost.Graphics.Core.Mesh)
+  nameWithType.vb: MeshExtension.ComputeNormal(Mesh)
+  fullName.vb: Ghost.Graphics.Core.MeshExtension.ComputeNormal(Ghost.Graphics.Core.Mesh)
+  name.vb: ComputeNormal(Mesh)
+  spec.csharp:
+  - uid: Ghost.Graphics.Core.MeshExtension.ComputeNormal(Ghost.Graphics.Core.Mesh@)
+    name: ComputeNormal
+    href: Ghost.Graphics.Core.MeshExtension.html#Ghost_Graphics_Core_MeshExtension_ComputeNormal_Ghost_Graphics_Core_Mesh__
+  - name: (
+  - name: ref
+  - name: " "
+  - uid: Ghost.Graphics.Core.Mesh
+    name: Mesh
+    href: Ghost.Graphics.Core.Mesh.html
+  - name: )
+  spec.vb:
+  - uid: Ghost.Graphics.Core.MeshExtension.ComputeNormal(Ghost.Graphics.Core.Mesh@)
+    name: ComputeNormal
+    href: Ghost.Graphics.Core.MeshExtension.html#Ghost_Graphics_Core_MeshExtension_ComputeNormal_Ghost_Graphics_Core_Mesh__
+  - name: (
+  - uid: Ghost.Graphics.Core.Mesh
+    name: Mesh
+    href: Ghost.Graphics.Core.Mesh.html
+  - name: )
+- uid: Ghost.Graphics.Core.MeshExtension.ComputeTangents(Ghost.Graphics.Core.Mesh@)
+  commentId: M:Ghost.Graphics.Core.MeshExtension.ComputeTangents(Ghost.Graphics.Core.Mesh@)
+  href: Ghost.Graphics.Core.MeshExtension.html#Ghost_Graphics_Core_MeshExtension_ComputeTangents_Ghost_Graphics_Core_Mesh__
+  name: ComputeTangents(ref Mesh)
+  nameWithType: MeshExtension.ComputeTangents(ref Mesh)
+  fullName: Ghost.Graphics.Core.MeshExtension.ComputeTangents(ref Ghost.Graphics.Core.Mesh)
+  nameWithType.vb: MeshExtension.ComputeTangents(Mesh)
+  fullName.vb: Ghost.Graphics.Core.MeshExtension.ComputeTangents(Ghost.Graphics.Core.Mesh)
+  name.vb: ComputeTangents(Mesh)
+  spec.csharp:
+  - uid: Ghost.Graphics.Core.MeshExtension.ComputeTangents(Ghost.Graphics.Core.Mesh@)
+    name: ComputeTangents
+    href: Ghost.Graphics.Core.MeshExtension.html#Ghost_Graphics_Core_MeshExtension_ComputeTangents_Ghost_Graphics_Core_Mesh__
+  - name: (
+  - name: ref
+  - name: " "
+  - uid: Ghost.Graphics.Core.Mesh
+    name: Mesh
+    href: Ghost.Graphics.Core.Mesh.html
+  - name: )
+  spec.vb:
+  - uid: Ghost.Graphics.Core.MeshExtension.ComputeTangents(Ghost.Graphics.Core.Mesh@)
+    name: ComputeTangents
+    href: Ghost.Graphics.Core.MeshExtension.html#Ghost_Graphics_Core_MeshExtension_ComputeTangents_Ghost_Graphics_Core_Mesh__
+  - name: (
+  - uid: Ghost.Graphics.Core.Mesh
+    name: Mesh
+    href: Ghost.Graphics.Core.Mesh.html
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.Core.Mesh.MeshletData*
+  commentId: Overload:Ghost.Graphics.Core.Mesh.MeshletData
+  href: Ghost.Graphics.Core.Mesh.html#Ghost_Graphics_Core_Mesh_MeshletData
+  name: MeshletData
+  nameWithType: Mesh.MeshletData
+  fullName: Ghost.Graphics.Core.Mesh.MeshletData
+- uid: Ghost.Graphics.Core.MeshletMeshData
+  commentId: T:Ghost.Graphics.Core.MeshletMeshData
+  parent: Ghost.Graphics.Core
+  href: Ghost.Graphics.Core.MeshletMeshData.html
+  name: MeshletMeshData
+  nameWithType: MeshletMeshData
+  fullName: Ghost.Graphics.Core.MeshletMeshData
+- uid: Ghost.Graphics.Core.Mesh.Vertices*
+  commentId: Overload:Ghost.Graphics.Core.Mesh.Vertices
+  href: Ghost.Graphics.Core.Mesh.html#Ghost_Graphics_Core_Mesh_Vertices
+  name: Vertices
+  nameWithType: Mesh.Vertices
+  fullName: Ghost.Graphics.Core.Mesh.Vertices
+- uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex}
+  commentId: T:Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex}
+  parent: Misaki.HighPerformance.LowLevel.Collections
+  definition: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+  name: UnsafeList<Vertex>
+  nameWithType: UnsafeList<Vertex>
+  fullName: Misaki.HighPerformance.LowLevel.Collections.UnsafeList<Ghost.Graphics.RHI.Vertex>
+  nameWithType.vb: UnsafeList(Of Vertex)
+  fullName.vb: Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of Ghost.Graphics.RHI.Vertex)
+  name.vb: UnsafeList(Of Vertex)
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: <
+  - uid: Ghost.Graphics.RHI.Vertex
+    name: Vertex
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.Vertex
+    name: Vertex
+  - name: )
+- uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+  commentId: T:Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+  name: UnsafeList<T>
+  nameWithType: UnsafeList<T>
+  fullName: Misaki.HighPerformance.LowLevel.Collections.UnsafeList<T>
+  nameWithType.vb: UnsafeList(Of T)
+  fullName.vb: Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of T)
+  name.vb: UnsafeList(Of T)
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Misaki.HighPerformance.LowLevel.Collections
+  commentId: N:Misaki.HighPerformance.LowLevel.Collections
+  name: Misaki.HighPerformance.LowLevel.Collections
+  nameWithType: Misaki.HighPerformance.LowLevel.Collections
+  fullName: Misaki.HighPerformance.LowLevel.Collections
+  spec.csharp:
+  - uid: Misaki
+    name: Misaki
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel
+    name: LowLevel
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel.Collections
+    name: Collections
+  spec.vb:
+  - uid: Misaki
+    name: Misaki
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel
+    name: LowLevel
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel.Collections
+    name: Collections
+- uid: Ghost.Graphics.Core.Mesh.Indices*
+  commentId: Overload:Ghost.Graphics.Core.Mesh.Indices
+  href: Ghost.Graphics.Core.Mesh.html#Ghost_Graphics_Core_Mesh_Indices
+  name: Indices
+  nameWithType: Mesh.Indices
+  fullName: Ghost.Graphics.Core.Mesh.Indices
+- uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}
+  commentId: T:Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}
+  parent: Misaki.HighPerformance.LowLevel.Collections
+  definition: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+  href: https://learn.microsoft.com/dotnet/api/system.uint32
+  name: UnsafeList<uint>
+  nameWithType: UnsafeList<uint>
+  fullName: Misaki.HighPerformance.LowLevel.Collections.UnsafeList<uint>
+  nameWithType.vb: UnsafeList(Of UInteger)
+  fullName.vb: Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of UInteger)
+  name.vb: UnsafeList(Of UInteger)
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: <
+  - uid: System.UInt32
+    name: uint
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.uint32
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: System.UInt32
+    name: UInteger
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.uint32
+  - name: )
+- uid: Ghost.Graphics.Core.Mesh.VertexCount*
+  commentId: Overload:Ghost.Graphics.Core.Mesh.VertexCount
+  href: Ghost.Graphics.Core.Mesh.html#Ghost_Graphics_Core_Mesh_VertexCount
+  name: VertexCount
+  nameWithType: Mesh.VertexCount
+  fullName: Ghost.Graphics.Core.Mesh.VertexCount
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.int32
+  name: int
+  nameWithType: int
+  fullName: int
+  nameWithType.vb: Integer
+  fullName.vb: Integer
+  name.vb: Integer
+- uid: Ghost.Graphics.Core.Mesh.IndexCount*
+  commentId: Overload:Ghost.Graphics.Core.Mesh.IndexCount
+  href: Ghost.Graphics.Core.Mesh.html#Ghost_Graphics_Core_Mesh_IndexCount
+  name: IndexCount
+  nameWithType: Mesh.IndexCount
+  fullName: Ghost.Graphics.Core.Mesh.IndexCount
+- uid: Ghost.Graphics.Core.Mesh.BoundingBox*
+  commentId: Overload:Ghost.Graphics.Core.Mesh.BoundingBox
+  href: Ghost.Graphics.Core.Mesh.html#Ghost_Graphics_Core_Mesh_BoundingBox
+  name: BoundingBox
+  nameWithType: Mesh.BoundingBox
+  fullName: Ghost.Graphics.Core.Mesh.BoundingBox
+- uid: Misaki.HighPerformance.Mathematics.Geometry.AABB
+  commentId: T:Misaki.HighPerformance.Mathematics.Geometry.AABB
+  parent: Misaki.HighPerformance.Mathematics.Geometry
+  isExternal: true
+  name: AABB
+  nameWithType: AABB
+  fullName: Misaki.HighPerformance.Mathematics.Geometry.AABB
+- uid: Misaki.HighPerformance.Mathematics.Geometry
+  commentId: N:Misaki.HighPerformance.Mathematics.Geometry
+  isExternal: true
+  name: Misaki.HighPerformance.Mathematics.Geometry
+  nameWithType: Misaki.HighPerformance.Mathematics.Geometry
+  fullName: Misaki.HighPerformance.Mathematics.Geometry
+  spec.csharp:
+  - uid: Misaki
+    name: Misaki
+    isExternal: true
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+    isExternal: true
+  - name: .
+  - uid: Misaki.HighPerformance.Mathematics
+    name: Mathematics
+    isExternal: true
+  - name: .
+  - uid: Misaki.HighPerformance.Mathematics.Geometry
+    name: Geometry
+    isExternal: true
+  spec.vb:
+  - uid: Misaki
+    name: Misaki
+    isExternal: true
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+    isExternal: true
+  - name: .
+  - uid: Misaki.HighPerformance.Mathematics
+    name: Mathematics
+    isExternal: true
+  - name: .
+  - uid: Misaki.HighPerformance.Mathematics.Geometry
+    name: Geometry
+    isExternal: true
+- uid: Ghost.Graphics.Core.Mesh.VertexBuffer*
+  commentId: Overload:Ghost.Graphics.Core.Mesh.VertexBuffer
+  href: Ghost.Graphics.Core.Mesh.html#Ghost_Graphics_Core_Mesh_VertexBuffer
+  name: VertexBuffer
+  nameWithType: Mesh.VertexBuffer
+  fullName: Ghost.Graphics.Core.Mesh.VertexBuffer
+- uid: Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer}
+  commentId: T:Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer}
+  parent: Ghost.Core
+  definition: Ghost.Core.Handle`1
+  href: Ghost.Graphics.RHI.GraphicsBuffer.html
+  name: Handle<GraphicsBuffer>
+  nameWithType: Handle<GraphicsBuffer>
+  fullName: Ghost.Core.Handle<Ghost.Graphics.RHI.GraphicsBuffer>
+  nameWithType.vb: Handle(Of GraphicsBuffer)
+  fullName.vb: Ghost.Core.Handle(Of Ghost.Graphics.RHI.GraphicsBuffer)
+  name.vb: Handle(Of GraphicsBuffer)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - uid: Ghost.Graphics.RHI.GraphicsBuffer
+    name: GraphicsBuffer
+    href: Ghost.Graphics.RHI.GraphicsBuffer.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.GraphicsBuffer
+    name: GraphicsBuffer
+    href: Ghost.Graphics.RHI.GraphicsBuffer.html
+  - name: )
+- uid: Ghost.Core.Handle`1
+  commentId: T:Ghost.Core.Handle`1
+  name: Handle<T>
+  nameWithType: Handle<T>
+  fullName: Ghost.Core.Handle<T>
+  nameWithType.vb: Handle(Of T)
+  fullName.vb: Ghost.Core.Handle(Of T)
+  name.vb: Handle(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Core
+  commentId: N:Ghost.Core
+  name: Ghost.Core
+  nameWithType: Ghost.Core
+  fullName: Ghost.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+- uid: Ghost.Graphics.Core.Mesh.IndexBuffer*
+  commentId: Overload:Ghost.Graphics.Core.Mesh.IndexBuffer
+  href: Ghost.Graphics.Core.Mesh.html#Ghost_Graphics_Core_Mesh_IndexBuffer
+  name: IndexBuffer
+  nameWithType: Mesh.IndexBuffer
+  fullName: Ghost.Graphics.Core.Mesh.IndexBuffer
+- uid: Ghost.Graphics.Core.Mesh.MeshLetBuffer*
+  commentId: Overload:Ghost.Graphics.Core.Mesh.MeshLetBuffer
+  href: Ghost.Graphics.Core.Mesh.html#Ghost_Graphics_Core_Mesh_MeshLetBuffer
+  name: MeshLetBuffer
+  nameWithType: Mesh.MeshLetBuffer
+  fullName: Ghost.Graphics.Core.Mesh.MeshLetBuffer
+- uid: Ghost.Graphics.Core.Mesh.MeshletVerticesBuffer*
+  commentId: Overload:Ghost.Graphics.Core.Mesh.MeshletVerticesBuffer
+  href: Ghost.Graphics.Core.Mesh.html#Ghost_Graphics_Core_Mesh_MeshletVerticesBuffer
+  name: MeshletVerticesBuffer
+  nameWithType: Mesh.MeshletVerticesBuffer
+  fullName: Ghost.Graphics.Core.Mesh.MeshletVerticesBuffer
+- uid: Ghost.Graphics.Core.Mesh.MeshletTrianglesBuffer*
+  commentId: Overload:Ghost.Graphics.Core.Mesh.MeshletTrianglesBuffer
+  href: Ghost.Graphics.Core.Mesh.html#Ghost_Graphics_Core_Mesh_MeshletTrianglesBuffer
+  name: MeshletTrianglesBuffer
+  nameWithType: Mesh.MeshletTrianglesBuffer
+  fullName: Ghost.Graphics.Core.Mesh.MeshletTrianglesBuffer
+- uid: Ghost.Graphics.Core.Mesh.ObjectDataBuffer*
+  commentId: Overload:Ghost.Graphics.Core.Mesh.ObjectDataBuffer
+  href: Ghost.Graphics.Core.Mesh.html#Ghost_Graphics_Core_Mesh_ObjectDataBuffer
+  name: ObjectDataBuffer
+  nameWithType: Mesh.ObjectDataBuffer
+  fullName: Ghost.Graphics.Core.Mesh.ObjectDataBuffer
+- uid: Ghost.Graphics.Core.Mesh.ReleaseCpuResources*
+  commentId: Overload:Ghost.Graphics.Core.Mesh.ReleaseCpuResources
+  href: Ghost.Graphics.Core.Mesh.html#Ghost_Graphics_Core_Mesh_ReleaseCpuResources
+  name: ReleaseCpuResources
+  nameWithType: Mesh.ReleaseCpuResources
+  fullName: Ghost.Graphics.Core.Mesh.ReleaseCpuResources
+- uid: Ghost.Graphics.Core.Mesh.CookMeshlets*
+  commentId: Overload:Ghost.Graphics.Core.Mesh.CookMeshlets
+  href: Ghost.Graphics.Core.Mesh.html#Ghost_Graphics_Core_Mesh_CookMeshlets
+  name: CookMeshlets
+  nameWithType: Mesh.CookMeshlets
+  fullName: Ghost.Graphics.Core.Mesh.CookMeshlets
+- uid: Ghost.Graphics.Core.Mesh.ReleaseResource*
+  commentId: Overload:Ghost.Graphics.Core.Mesh.ReleaseResource
+  href: Ghost.Graphics.Core.Mesh.html#Ghost_Graphics_Core_Mesh_ReleaseResource_Ghost_Graphics_RHI_IResourceDatabase_
+  name: ReleaseResource
+  nameWithType: Mesh.ReleaseResource
+  fullName: Ghost.Graphics.Core.Mesh.ReleaseResource
+- uid: Ghost.Graphics.RHI.IResourceReleasable.ReleaseResource(Ghost.Graphics.RHI.IResourceDatabase)
+  commentId: M:Ghost.Graphics.RHI.IResourceReleasable.ReleaseResource(Ghost.Graphics.RHI.IResourceDatabase)
+  parent: Ghost.Graphics.RHI.IResourceReleasable
+  name: ReleaseResource(IResourceDatabase)
+  nameWithType: IResourceReleasable.ReleaseResource(IResourceDatabase)
+  fullName: Ghost.Graphics.RHI.IResourceReleasable.ReleaseResource(Ghost.Graphics.RHI.IResourceDatabase)
+  spec.csharp:
+  - uid: Ghost.Graphics.RHI.IResourceReleasable.ReleaseResource(Ghost.Graphics.RHI.IResourceDatabase)
+    name: ReleaseResource
+  - name: (
+  - uid: Ghost.Graphics.RHI.IResourceDatabase
+    name: IResourceDatabase
+  - name: )
+  spec.vb:
+  - uid: Ghost.Graphics.RHI.IResourceReleasable.ReleaseResource(Ghost.Graphics.RHI.IResourceDatabase)
+    name: ReleaseResource
+  - name: (
+  - uid: Ghost.Graphics.RHI.IResourceDatabase
+    name: IResourceDatabase
+  - name: )
+- uid: Ghost.Graphics.RHI.IResourceDatabase
+  commentId: T:Ghost.Graphics.RHI.IResourceDatabase
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.IResourceDatabase.html
+  name: IResourceDatabase
+  nameWithType: IResourceDatabase
+  fullName: Ghost.Graphics.RHI.IResourceDatabase

@@ -1,0 +1,174 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.CompilerOptimizeLevel
+  commentId: T:Ghost.Graphics.RHI.CompilerOptimizeLevel
+  id: CompilerOptimizeLevel
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.CompilerOptimizeLevel.O0
+  - Ghost.Graphics.RHI.CompilerOptimizeLevel.O1
+  - Ghost.Graphics.RHI.CompilerOptimizeLevel.O2
+  - Ghost.Graphics.RHI.CompilerOptimizeLevel.O3
+  langs:
+  - csharp
+  - vb
+  name: CompilerOptimizeLevel
+  nameWithType: CompilerOptimizeLevel
+  fullName: Ghost.Graphics.RHI.CompilerOptimizeLevel
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CompilerOptimizeLevel
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 54
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public enum CompilerOptimizeLevel
+    content.vb: Public Enum CompilerOptimizeLevel
+- uid: Ghost.Graphics.RHI.CompilerOptimizeLevel.O0
+  commentId: F:Ghost.Graphics.RHI.CompilerOptimizeLevel.O0
+  id: O0
+  parent: Ghost.Graphics.RHI.CompilerOptimizeLevel
+  langs:
+  - csharp
+  - vb
+  name: O0
+  nameWithType: CompilerOptimizeLevel.O0
+  fullName: Ghost.Graphics.RHI.CompilerOptimizeLevel.O0
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: O0
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 56
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: O0 = 0
+    return:
+      type: Ghost.Graphics.RHI.CompilerOptimizeLevel
+- uid: Ghost.Graphics.RHI.CompilerOptimizeLevel.O1
+  commentId: F:Ghost.Graphics.RHI.CompilerOptimizeLevel.O1
+  id: O1
+  parent: Ghost.Graphics.RHI.CompilerOptimizeLevel
+  langs:
+  - csharp
+  - vb
+  name: O1
+  nameWithType: CompilerOptimizeLevel.O1
+  fullName: Ghost.Graphics.RHI.CompilerOptimizeLevel.O1
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: O1
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 57
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: O1 = 1
+    return:
+      type: Ghost.Graphics.RHI.CompilerOptimizeLevel
+- uid: Ghost.Graphics.RHI.CompilerOptimizeLevel.O2
+  commentId: F:Ghost.Graphics.RHI.CompilerOptimizeLevel.O2
+  id: O2
+  parent: Ghost.Graphics.RHI.CompilerOptimizeLevel
+  langs:
+  - csharp
+  - vb
+  name: O2
+  nameWithType: CompilerOptimizeLevel.O2
+  fullName: Ghost.Graphics.RHI.CompilerOptimizeLevel.O2
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: O2
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 58
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: O2 = 2
+    return:
+      type: Ghost.Graphics.RHI.CompilerOptimizeLevel
+- uid: Ghost.Graphics.RHI.CompilerOptimizeLevel.O3
+  commentId: F:Ghost.Graphics.RHI.CompilerOptimizeLevel.O3
+  id: O3
+  parent: Ghost.Graphics.RHI.CompilerOptimizeLevel
+  langs:
+  - csharp
+  - vb
+  name: O3
+  nameWithType: CompilerOptimizeLevel.O3
+  fullName: Ghost.Graphics.RHI.CompilerOptimizeLevel.O3
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: O3
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 59
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: O3 = 3
+    return:
+      type: Ghost.Graphics.RHI.CompilerOptimizeLevel
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.CompilerOptimizeLevel
+  commentId: T:Ghost.Graphics.RHI.CompilerOptimizeLevel
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.CompilerOptimizeLevel.html
+  name: CompilerOptimizeLevel
+  nameWithType: CompilerOptimizeLevel
+  fullName: Ghost.Graphics.RHI.CompilerOptimizeLevel

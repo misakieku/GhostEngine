@@ -1,0 +1,535 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.SwapChainDesc
+  commentId: T:Ghost.Graphics.RHI.SwapChainDesc
+  id: SwapChainDesc
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.SwapChainDesc.Format
+  - Ghost.Graphics.RHI.SwapChainDesc.Height
+  - Ghost.Graphics.RHI.SwapChainDesc.ScaleX
+  - Ghost.Graphics.RHI.SwapChainDesc.ScaleY
+  - Ghost.Graphics.RHI.SwapChainDesc.Target
+  - Ghost.Graphics.RHI.SwapChainDesc.Width
+  langs:
+  - csharp
+  - vb
+  name: SwapChainDesc
+  nameWithType: SwapChainDesc
+  fullName: Ghost.Graphics.RHI.SwapChainDesc
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SwapChainDesc
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1007
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public struct SwapChainDesc
+    content.vb: Public Structure SwapChainDesc
+  inheritedMembers:
+  - System.ValueType.Equals(System.Object)
+  - System.ValueType.GetHashCode
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Graphics.RHI.SwapChainDesc.Width
+  commentId: P:Ghost.Graphics.RHI.SwapChainDesc.Width
+  id: Width
+  parent: Ghost.Graphics.RHI.SwapChainDesc
+  langs:
+  - csharp
+  - vb
+  name: Width
+  nameWithType: SwapChainDesc.Width
+  fullName: Ghost.Graphics.RHI.SwapChainDesc.Width
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Width
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1009
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public uint Width { readonly get; set; }
+    parameters: []
+    return:
+      type: System.UInt32
+    content.vb: Public Property Width As UInteger
+  overload: Ghost.Graphics.RHI.SwapChainDesc.Width*
+- uid: Ghost.Graphics.RHI.SwapChainDesc.Height
+  commentId: P:Ghost.Graphics.RHI.SwapChainDesc.Height
+  id: Height
+  parent: Ghost.Graphics.RHI.SwapChainDesc
+  langs:
+  - csharp
+  - vb
+  name: Height
+  nameWithType: SwapChainDesc.Height
+  fullName: Ghost.Graphics.RHI.SwapChainDesc.Height
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Height
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1014
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public uint Height { readonly get; set; }
+    parameters: []
+    return:
+      type: System.UInt32
+    content.vb: Public Property Height As UInteger
+  overload: Ghost.Graphics.RHI.SwapChainDesc.Height*
+- uid: Ghost.Graphics.RHI.SwapChainDesc.ScaleX
+  commentId: P:Ghost.Graphics.RHI.SwapChainDesc.ScaleX
+  id: ScaleX
+  parent: Ghost.Graphics.RHI.SwapChainDesc
+  langs:
+  - csharp
+  - vb
+  name: ScaleX
+  nameWithType: SwapChainDesc.ScaleX
+  fullName: Ghost.Graphics.RHI.SwapChainDesc.ScaleX
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ScaleX
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1019
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public float ScaleX { readonly get; set; }
+    parameters: []
+    return:
+      type: System.Single
+    content.vb: Public Property ScaleX As Single
+  overload: Ghost.Graphics.RHI.SwapChainDesc.ScaleX*
+- uid: Ghost.Graphics.RHI.SwapChainDesc.ScaleY
+  commentId: P:Ghost.Graphics.RHI.SwapChainDesc.ScaleY
+  id: ScaleY
+  parent: Ghost.Graphics.RHI.SwapChainDesc
+  langs:
+  - csharp
+  - vb
+  name: ScaleY
+  nameWithType: SwapChainDesc.ScaleY
+  fullName: Ghost.Graphics.RHI.SwapChainDesc.ScaleY
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ScaleY
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1024
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public float ScaleY { readonly get; set; }
+    parameters: []
+    return:
+      type: System.Single
+    content.vb: Public Property ScaleY As Single
+  overload: Ghost.Graphics.RHI.SwapChainDesc.ScaleY*
+- uid: Ghost.Graphics.RHI.SwapChainDesc.Format
+  commentId: P:Ghost.Graphics.RHI.SwapChainDesc.Format
+  id: Format
+  parent: Ghost.Graphics.RHI.SwapChainDesc
+  langs:
+  - csharp
+  - vb
+  name: Format
+  nameWithType: SwapChainDesc.Format
+  fullName: Ghost.Graphics.RHI.SwapChainDesc.Format
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Format
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1029
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public TextureFormat Format { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.TextureFormat
+    content.vb: Public Property Format As TextureFormat
+  overload: Ghost.Graphics.RHI.SwapChainDesc.Format*
+- uid: Ghost.Graphics.RHI.SwapChainDesc.Target
+  commentId: P:Ghost.Graphics.RHI.SwapChainDesc.Target
+  id: Target
+  parent: Ghost.Graphics.RHI.SwapChainDesc
+  langs:
+  - csharp
+  - vb
+  name: Target
+  nameWithType: SwapChainDesc.Target
+  fullName: Ghost.Graphics.RHI.SwapChainDesc.Target
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Target
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1034
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public SwapChainTarget Target { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.SwapChainTarget
+    content.vb: Public Property Target As SwapChainTarget
+  overload: Ghost.Graphics.RHI.SwapChainDesc.Target*
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RHI.SwapChainDesc.Width*
+  commentId: Overload:Ghost.Graphics.RHI.SwapChainDesc.Width
+  href: Ghost.Graphics.RHI.SwapChainDesc.html#Ghost_Graphics_RHI_SwapChainDesc_Width
+  name: Width
+  nameWithType: SwapChainDesc.Width
+  fullName: Ghost.Graphics.RHI.SwapChainDesc.Width
+- uid: System.UInt32
+  commentId: T:System.UInt32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.uint32
+  name: uint
+  nameWithType: uint
+  fullName: uint
+  nameWithType.vb: UInteger
+  fullName.vb: UInteger
+  name.vb: UInteger
+- uid: Ghost.Graphics.RHI.SwapChainDesc.Height*
+  commentId: Overload:Ghost.Graphics.RHI.SwapChainDesc.Height
+  href: Ghost.Graphics.RHI.SwapChainDesc.html#Ghost_Graphics_RHI_SwapChainDesc_Height
+  name: Height
+  nameWithType: SwapChainDesc.Height
+  fullName: Ghost.Graphics.RHI.SwapChainDesc.Height
+- uid: Ghost.Graphics.RHI.SwapChainDesc.ScaleX*
+  commentId: Overload:Ghost.Graphics.RHI.SwapChainDesc.ScaleX
+  href: Ghost.Graphics.RHI.SwapChainDesc.html#Ghost_Graphics_RHI_SwapChainDesc_ScaleX
+  name: ScaleX
+  nameWithType: SwapChainDesc.ScaleX
+  fullName: Ghost.Graphics.RHI.SwapChainDesc.ScaleX
+- uid: System.Single
+  commentId: T:System.Single
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.single
+  name: float
+  nameWithType: float
+  fullName: float
+  nameWithType.vb: Single
+  fullName.vb: Single
+  name.vb: Single
+- uid: Ghost.Graphics.RHI.SwapChainDesc.ScaleY*
+  commentId: Overload:Ghost.Graphics.RHI.SwapChainDesc.ScaleY
+  href: Ghost.Graphics.RHI.SwapChainDesc.html#Ghost_Graphics_RHI_SwapChainDesc_ScaleY
+  name: ScaleY
+  nameWithType: SwapChainDesc.ScaleY
+  fullName: Ghost.Graphics.RHI.SwapChainDesc.ScaleY
+- uid: Ghost.Graphics.RHI.SwapChainDesc.Format*
+  commentId: Overload:Ghost.Graphics.RHI.SwapChainDesc.Format
+  href: Ghost.Graphics.RHI.SwapChainDesc.html#Ghost_Graphics_RHI_SwapChainDesc_Format
+  name: Format
+  nameWithType: SwapChainDesc.Format
+  fullName: Ghost.Graphics.RHI.SwapChainDesc.Format
+- uid: Ghost.Graphics.RHI.TextureFormat
+  commentId: T:Ghost.Graphics.RHI.TextureFormat
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.TextureFormat.html
+  name: TextureFormat
+  nameWithType: TextureFormat
+  fullName: Ghost.Graphics.RHI.TextureFormat
+- uid: Ghost.Graphics.RHI.SwapChainDesc.Target*
+  commentId: Overload:Ghost.Graphics.RHI.SwapChainDesc.Target
+  href: Ghost.Graphics.RHI.SwapChainDesc.html#Ghost_Graphics_RHI_SwapChainDesc_Target
+  name: Target
+  nameWithType: SwapChainDesc.Target
+  fullName: Ghost.Graphics.RHI.SwapChainDesc.Target
+- uid: Ghost.Graphics.RHI.SwapChainTarget
+  commentId: T:Ghost.Graphics.RHI.SwapChainTarget
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.SwapChainTarget.html
+  name: SwapChainTarget
+  nameWithType: SwapChainTarget
+  fullName: Ghost.Graphics.RHI.SwapChainTarget

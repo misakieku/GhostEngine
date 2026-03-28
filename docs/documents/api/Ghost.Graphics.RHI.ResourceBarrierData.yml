@@ -1,0 +1,434 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.ResourceBarrierData
+  commentId: T:Ghost.Graphics.RHI.ResourceBarrierData
+  id: ResourceBarrierData
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.ResourceBarrierData.#ctor(Ghost.Graphics.RHI.BarrierLayout,Ghost.Graphics.RHI.BarrierAccess,Ghost.Graphics.RHI.BarrierSync)
+  - Ghost.Graphics.RHI.ResourceBarrierData.access
+  - Ghost.Graphics.RHI.ResourceBarrierData.layout
+  - Ghost.Graphics.RHI.ResourceBarrierData.sync
+  langs:
+  - csharp
+  - vb
+  name: ResourceBarrierData
+  nameWithType: ResourceBarrierData
+  fullName: Ghost.Graphics.RHI.ResourceBarrierData
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ResourceBarrierData
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+    startLine: 12
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public struct ResourceBarrierData
+    content.vb: Public Structure ResourceBarrierData
+  inheritedMembers:
+  - System.ValueType.Equals(System.Object)
+  - System.ValueType.GetHashCode
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Graphics.RHI.ResourceBarrierData.layout
+  commentId: F:Ghost.Graphics.RHI.ResourceBarrierData.layout
+  id: layout
+  parent: Ghost.Graphics.RHI.ResourceBarrierData
+  langs:
+  - csharp
+  - vb
+  name: layout
+  nameWithType: ResourceBarrierData.layout
+  fullName: Ghost.Graphics.RHI.ResourceBarrierData.layout
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: layout
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+    startLine: 14
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public BarrierLayout layout
+    return:
+      type: Ghost.Graphics.RHI.BarrierLayout
+    content.vb: Public layout As BarrierLayout
+- uid: Ghost.Graphics.RHI.ResourceBarrierData.access
+  commentId: F:Ghost.Graphics.RHI.ResourceBarrierData.access
+  id: access
+  parent: Ghost.Graphics.RHI.ResourceBarrierData
+  langs:
+  - csharp
+  - vb
+  name: access
+  nameWithType: ResourceBarrierData.access
+  fullName: Ghost.Graphics.RHI.ResourceBarrierData.access
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: access
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+    startLine: 15
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public BarrierAccess access
+    return:
+      type: Ghost.Graphics.RHI.BarrierAccess
+    content.vb: Public access As BarrierAccess
+- uid: Ghost.Graphics.RHI.ResourceBarrierData.sync
+  commentId: F:Ghost.Graphics.RHI.ResourceBarrierData.sync
+  id: sync
+  parent: Ghost.Graphics.RHI.ResourceBarrierData
+  langs:
+  - csharp
+  - vb
+  name: sync
+  nameWithType: ResourceBarrierData.sync
+  fullName: Ghost.Graphics.RHI.ResourceBarrierData.sync
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: sync
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+    startLine: 16
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public BarrierSync sync
+    return:
+      type: Ghost.Graphics.RHI.BarrierSync
+    content.vb: Public sync As BarrierSync
+- uid: Ghost.Graphics.RHI.ResourceBarrierData.#ctor(Ghost.Graphics.RHI.BarrierLayout,Ghost.Graphics.RHI.BarrierAccess,Ghost.Graphics.RHI.BarrierSync)
+  commentId: M:Ghost.Graphics.RHI.ResourceBarrierData.#ctor(Ghost.Graphics.RHI.BarrierLayout,Ghost.Graphics.RHI.BarrierAccess,Ghost.Graphics.RHI.BarrierSync)
+  id: '#ctor(Ghost.Graphics.RHI.BarrierLayout,Ghost.Graphics.RHI.BarrierAccess,Ghost.Graphics.RHI.BarrierSync)'
+  parent: Ghost.Graphics.RHI.ResourceBarrierData
+  langs:
+  - csharp
+  - vb
+  name: ResourceBarrierData(BarrierLayout, BarrierAccess, BarrierSync)
+  nameWithType: ResourceBarrierData.ResourceBarrierData(BarrierLayout, BarrierAccess, BarrierSync)
+  fullName: Ghost.Graphics.RHI.ResourceBarrierData.ResourceBarrierData(Ghost.Graphics.RHI.BarrierLayout, Ghost.Graphics.RHI.BarrierAccess, Ghost.Graphics.RHI.BarrierSync)
+  type: Constructor
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: .ctor
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceDatabase.cs
+    startLine: 18
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public ResourceBarrierData(BarrierLayout layout, BarrierAccess access, BarrierSync sync)
+    parameters:
+    - id: layout
+      type: Ghost.Graphics.RHI.BarrierLayout
+    - id: access
+      type: Ghost.Graphics.RHI.BarrierAccess
+    - id: sync
+      type: Ghost.Graphics.RHI.BarrierSync
+    content.vb: Public Sub New(layout As BarrierLayout, access As BarrierAccess, sync As BarrierSync)
+  overload: Ghost.Graphics.RHI.ResourceBarrierData.#ctor*
+  nameWithType.vb: ResourceBarrierData.New(BarrierLayout, BarrierAccess, BarrierSync)
+  fullName.vb: Ghost.Graphics.RHI.ResourceBarrierData.New(Ghost.Graphics.RHI.BarrierLayout, Ghost.Graphics.RHI.BarrierAccess, Ghost.Graphics.RHI.BarrierSync)
+  name.vb: New(BarrierLayout, BarrierAccess, BarrierSync)
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RHI.BarrierLayout
+  commentId: T:Ghost.Graphics.RHI.BarrierLayout
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.BarrierLayout.html
+  name: BarrierLayout
+  nameWithType: BarrierLayout
+  fullName: Ghost.Graphics.RHI.BarrierLayout
+- uid: Ghost.Graphics.RHI.BarrierAccess
+  commentId: T:Ghost.Graphics.RHI.BarrierAccess
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.BarrierAccess.html
+  name: BarrierAccess
+  nameWithType: BarrierAccess
+  fullName: Ghost.Graphics.RHI.BarrierAccess
+- uid: Ghost.Graphics.RHI.BarrierSync
+  commentId: T:Ghost.Graphics.RHI.BarrierSync
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.BarrierSync.html
+  name: BarrierSync
+  nameWithType: BarrierSync
+  fullName: Ghost.Graphics.RHI.BarrierSync
+- uid: Ghost.Graphics.RHI.ResourceBarrierData.#ctor*
+  commentId: Overload:Ghost.Graphics.RHI.ResourceBarrierData.#ctor
+  href: Ghost.Graphics.RHI.ResourceBarrierData.html#Ghost_Graphics_RHI_ResourceBarrierData__ctor_Ghost_Graphics_RHI_BarrierLayout_Ghost_Graphics_RHI_BarrierAccess_Ghost_Graphics_RHI_BarrierSync_
+  name: ResourceBarrierData
+  nameWithType: ResourceBarrierData.ResourceBarrierData
+  fullName: Ghost.Graphics.RHI.ResourceBarrierData.ResourceBarrierData
+  nameWithType.vb: ResourceBarrierData.New
+  fullName.vb: Ghost.Graphics.RHI.ResourceBarrierData.New
+  name.vb: New

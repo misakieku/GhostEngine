@@ -1,0 +1,1208 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.Core.RenderingLayerMask
+  commentId: T:Ghost.Graphics.Core.RenderingLayerMask
+  id: RenderingLayerMask
+  parent: Ghost.Graphics.Core
+  children:
+  - Ghost.Graphics.Core.RenderingLayerMask.#ctor(System.UInt32)
+  - Ghost.Graphics.Core.RenderingLayerMask.All
+  - Ghost.Graphics.Core.RenderingLayerMask.Empty
+  - Ghost.Graphics.Core.RenderingLayerMask.Equals(Ghost.Graphics.Core.RenderingLayerMask)
+  - Ghost.Graphics.Core.RenderingLayerMask.Equals(System.Object)
+  - Ghost.Graphics.Core.RenderingLayerMask.GetHashCode
+  - Ghost.Graphics.Core.RenderingLayerMask.GetLayerBit(System.String)
+  - Ghost.Graphics.Core.RenderingLayerMask.op_BitwiseAnd(Ghost.Graphics.Core.RenderingLayerMask,Ghost.Graphics.Core.RenderingLayerMask)
+  - Ghost.Graphics.Core.RenderingLayerMask.op_BitwiseOr(Ghost.Graphics.Core.RenderingLayerMask,Ghost.Graphics.Core.RenderingLayerMask)
+  - Ghost.Graphics.Core.RenderingLayerMask.op_Equality(Ghost.Graphics.Core.RenderingLayerMask,Ghost.Graphics.Core.RenderingLayerMask)
+  - Ghost.Graphics.Core.RenderingLayerMask.op_ExclusiveOr(Ghost.Graphics.Core.RenderingLayerMask,Ghost.Graphics.Core.RenderingLayerMask)
+  - Ghost.Graphics.Core.RenderingLayerMask.op_Implicit(Ghost.Graphics.Core.RenderingLayerMask)~System.UInt32
+  - Ghost.Graphics.Core.RenderingLayerMask.op_Implicit(System.UInt32)~Ghost.Graphics.Core.RenderingLayerMask
+  - Ghost.Graphics.Core.RenderingLayerMask.op_Inequality(Ghost.Graphics.Core.RenderingLayerMask,Ghost.Graphics.Core.RenderingLayerMask)
+  - Ghost.Graphics.Core.RenderingLayerMask.op_LeftShift(Ghost.Graphics.Core.RenderingLayerMask,System.Int32)
+  - Ghost.Graphics.Core.RenderingLayerMask.op_OnesComplement(Ghost.Graphics.Core.RenderingLayerMask)
+  - Ghost.Graphics.Core.RenderingLayerMask.op_RightShift(Ghost.Graphics.Core.RenderingLayerMask,System.Int32)
+  langs:
+  - csharp
+  - vb
+  name: RenderingLayerMask
+  nameWithType: RenderingLayerMask
+  fullName: Ghost.Graphics.Core.RenderingLayerMask
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: RenderingLayerMask
+    path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+    startLine: 4
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: 'public readonly struct RenderingLayerMask : IEquatable<RenderingLayerMask>'
+    content.vb: Public Structure RenderingLayerMask Implements IEquatable(Of RenderingLayerMask)
+  implements:
+  - System.IEquatable{Ghost.Graphics.Core.RenderingLayerMask}
+  inheritedMembers:
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Graphics.Core.RenderingLayerMask.GetLayerBit(System.String)
+  commentId: M:Ghost.Graphics.Core.RenderingLayerMask.GetLayerBit(System.String)
+  id: GetLayerBit(System.String)
+  parent: Ghost.Graphics.Core.RenderingLayerMask
+  langs:
+  - csharp
+  - vb
+  name: GetLayerBit(string)
+  nameWithType: RenderingLayerMask.GetLayerBit(string)
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.GetLayerBit(string)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetLayerBit
+    path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+    startLine: 18
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public static uint GetLayerBit(string name)
+    parameters:
+    - id: name
+      type: System.String
+    return:
+      type: System.UInt32
+    content.vb: Public Shared Function GetLayerBit(name As String) As UInteger
+  overload: Ghost.Graphics.Core.RenderingLayerMask.GetLayerBit*
+  nameWithType.vb: RenderingLayerMask.GetLayerBit(String)
+  fullName.vb: Ghost.Graphics.Core.RenderingLayerMask.GetLayerBit(String)
+  name.vb: GetLayerBit(String)
+- uid: Ghost.Graphics.Core.RenderingLayerMask.Empty
+  commentId: F:Ghost.Graphics.Core.RenderingLayerMask.Empty
+  id: Empty
+  parent: Ghost.Graphics.Core.RenderingLayerMask
+  langs:
+  - csharp
+  - vb
+  name: Empty
+  nameWithType: RenderingLayerMask.Empty
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.Empty
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Empty
+    path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+    startLine: 30
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public static readonly RenderingLayerMask Empty
+    return:
+      type: Ghost.Graphics.Core.RenderingLayerMask
+    content.vb: Public Shared ReadOnly Empty As RenderingLayerMask
+- uid: Ghost.Graphics.Core.RenderingLayerMask.All
+  commentId: F:Ghost.Graphics.Core.RenderingLayerMask.All
+  id: All
+  parent: Ghost.Graphics.Core.RenderingLayerMask
+  langs:
+  - csharp
+  - vb
+  name: All
+  nameWithType: RenderingLayerMask.All
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.All
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: All
+    path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+    startLine: 31
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public static readonly RenderingLayerMask All
+    return:
+      type: Ghost.Graphics.Core.RenderingLayerMask
+    content.vb: Public Shared ReadOnly All As RenderingLayerMask
+- uid: Ghost.Graphics.Core.RenderingLayerMask.#ctor(System.UInt32)
+  commentId: M:Ghost.Graphics.Core.RenderingLayerMask.#ctor(System.UInt32)
+  id: '#ctor(System.UInt32)'
+  parent: Ghost.Graphics.Core.RenderingLayerMask
+  langs:
+  - csharp
+  - vb
+  name: RenderingLayerMask(uint)
+  nameWithType: RenderingLayerMask.RenderingLayerMask(uint)
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.RenderingLayerMask(uint)
+  type: Constructor
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: .ctor
+    path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+    startLine: 33
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public RenderingLayerMask(uint value)
+    parameters:
+    - id: value
+      type: System.UInt32
+    content.vb: Public Sub New(value As UInteger)
+  overload: Ghost.Graphics.Core.RenderingLayerMask.#ctor*
+  nameWithType.vb: RenderingLayerMask.New(UInteger)
+  fullName.vb: Ghost.Graphics.Core.RenderingLayerMask.New(UInteger)
+  name.vb: New(UInteger)
+- uid: Ghost.Graphics.Core.RenderingLayerMask.Equals(Ghost.Graphics.Core.RenderingLayerMask)
+  commentId: M:Ghost.Graphics.Core.RenderingLayerMask.Equals(Ghost.Graphics.Core.RenderingLayerMask)
+  id: Equals(Ghost.Graphics.Core.RenderingLayerMask)
+  parent: Ghost.Graphics.Core.RenderingLayerMask
+  langs:
+  - csharp
+  - vb
+  name: Equals(RenderingLayerMask)
+  nameWithType: RenderingLayerMask.Equals(RenderingLayerMask)
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.Equals(Ghost.Graphics.Core.RenderingLayerMask)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Equals
+    path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+    startLine: 38
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  summary: Indicates whether the current object is equal to another object of the same type.
+  example: []
+  syntax:
+    content: public bool Equals(RenderingLayerMask other)
+    parameters:
+    - id: other
+      type: Ghost.Graphics.Core.RenderingLayerMask
+      description: An object to compare with this object.
+    return:
+      type: System.Boolean
+      description: <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">true</a> if the current object is equal to the <code class="paramref">other</code> parameter; otherwise, <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">false</a>.
+    content.vb: Public Function Equals(other As RenderingLayerMask) As Boolean
+  overload: Ghost.Graphics.Core.RenderingLayerMask.Equals*
+  implements:
+  - System.IEquatable{Ghost.Graphics.Core.RenderingLayerMask}.Equals(Ghost.Graphics.Core.RenderingLayerMask)
+- uid: Ghost.Graphics.Core.RenderingLayerMask.Equals(System.Object)
+  commentId: M:Ghost.Graphics.Core.RenderingLayerMask.Equals(System.Object)
+  id: Equals(System.Object)
+  parent: Ghost.Graphics.Core.RenderingLayerMask
+  langs:
+  - csharp
+  - vb
+  name: Equals(object?)
+  nameWithType: RenderingLayerMask.Equals(object?)
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.Equals(object?)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Equals
+    path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+    startLine: 43
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  summary: Indicates whether this instance and a specified object are equal.
+  example: []
+  syntax:
+    content: public override bool Equals(object? obj)
+    parameters:
+    - id: obj
+      type: System.Object
+      description: The object to compare with the current instance.
+    return:
+      type: System.Boolean
+      description: <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">true</a> if <code class="paramref">obj</code> and this instance are the same type and represent the same value; otherwise, <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">false</a>.
+    content.vb: Public Overrides Function Equals(obj As Object) As Boolean
+  overridden: System.ValueType.Equals(System.Object)
+  overload: Ghost.Graphics.Core.RenderingLayerMask.Equals*
+  nameWithType.vb: RenderingLayerMask.Equals(Object)
+  fullName.vb: Ghost.Graphics.Core.RenderingLayerMask.Equals(Object)
+  name.vb: Equals(Object)
+- uid: Ghost.Graphics.Core.RenderingLayerMask.GetHashCode
+  commentId: M:Ghost.Graphics.Core.RenderingLayerMask.GetHashCode
+  id: GetHashCode
+  parent: Ghost.Graphics.Core.RenderingLayerMask
+  langs:
+  - csharp
+  - vb
+  name: GetHashCode()
+  nameWithType: RenderingLayerMask.GetHashCode()
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.GetHashCode()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetHashCode
+    path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+    startLine: 48
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  summary: Returns the hash code for this instance.
+  example: []
+  syntax:
+    content: public override int GetHashCode()
+    return:
+      type: System.Int32
+      description: A 32-bit signed integer that is the hash code for this instance.
+    content.vb: Public Overrides Function GetHashCode() As Integer
+  overridden: System.ValueType.GetHashCode
+  overload: Ghost.Graphics.Core.RenderingLayerMask.GetHashCode*
+- uid: Ghost.Graphics.Core.RenderingLayerMask.op_Equality(Ghost.Graphics.Core.RenderingLayerMask,Ghost.Graphics.Core.RenderingLayerMask)
+  commentId: M:Ghost.Graphics.Core.RenderingLayerMask.op_Equality(Ghost.Graphics.Core.RenderingLayerMask,Ghost.Graphics.Core.RenderingLayerMask)
+  id: op_Equality(Ghost.Graphics.Core.RenderingLayerMask,Ghost.Graphics.Core.RenderingLayerMask)
+  parent: Ghost.Graphics.Core.RenderingLayerMask
+  langs:
+  - csharp
+  - vb
+  name: operator ==(RenderingLayerMask, RenderingLayerMask)
+  nameWithType: RenderingLayerMask.operator ==(RenderingLayerMask, RenderingLayerMask)
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.operator ==(Ghost.Graphics.Core.RenderingLayerMask, Ghost.Graphics.Core.RenderingLayerMask)
+  type: Operator
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: op_Equality
+    path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+    startLine: 53
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public static bool operator ==(RenderingLayerMask left, RenderingLayerMask right)
+    parameters:
+    - id: left
+      type: Ghost.Graphics.Core.RenderingLayerMask
+    - id: right
+      type: Ghost.Graphics.Core.RenderingLayerMask
+    return:
+      type: System.Boolean
+    content.vb: Public Shared Operator =(left As RenderingLayerMask, right As RenderingLayerMask) As Boolean
+  overload: Ghost.Graphics.Core.RenderingLayerMask.op_Equality*
+  nameWithType.vb: RenderingLayerMask.=(RenderingLayerMask, RenderingLayerMask)
+  fullName.vb: Ghost.Graphics.Core.RenderingLayerMask.=(Ghost.Graphics.Core.RenderingLayerMask, Ghost.Graphics.Core.RenderingLayerMask)
+  name.vb: =(RenderingLayerMask, RenderingLayerMask)
+- uid: Ghost.Graphics.Core.RenderingLayerMask.op_Inequality(Ghost.Graphics.Core.RenderingLayerMask,Ghost.Graphics.Core.RenderingLayerMask)
+  commentId: M:Ghost.Graphics.Core.RenderingLayerMask.op_Inequality(Ghost.Graphics.Core.RenderingLayerMask,Ghost.Graphics.Core.RenderingLayerMask)
+  id: op_Inequality(Ghost.Graphics.Core.RenderingLayerMask,Ghost.Graphics.Core.RenderingLayerMask)
+  parent: Ghost.Graphics.Core.RenderingLayerMask
+  langs:
+  - csharp
+  - vb
+  name: operator !=(RenderingLayerMask, RenderingLayerMask)
+  nameWithType: RenderingLayerMask.operator !=(RenderingLayerMask, RenderingLayerMask)
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.operator !=(Ghost.Graphics.Core.RenderingLayerMask, Ghost.Graphics.Core.RenderingLayerMask)
+  type: Operator
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: op_Inequality
+    path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+    startLine: 58
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public static bool operator !=(RenderingLayerMask left, RenderingLayerMask right)
+    parameters:
+    - id: left
+      type: Ghost.Graphics.Core.RenderingLayerMask
+    - id: right
+      type: Ghost.Graphics.Core.RenderingLayerMask
+    return:
+      type: System.Boolean
+    content.vb: Public Shared Operator <>(left As RenderingLayerMask, right As RenderingLayerMask) As Boolean
+  overload: Ghost.Graphics.Core.RenderingLayerMask.op_Inequality*
+  nameWithType.vb: RenderingLayerMask.<>(RenderingLayerMask, RenderingLayerMask)
+  fullName.vb: Ghost.Graphics.Core.RenderingLayerMask.<>(Ghost.Graphics.Core.RenderingLayerMask, Ghost.Graphics.Core.RenderingLayerMask)
+  name.vb: <>(RenderingLayerMask, RenderingLayerMask)
+- uid: Ghost.Graphics.Core.RenderingLayerMask.op_BitwiseOr(Ghost.Graphics.Core.RenderingLayerMask,Ghost.Graphics.Core.RenderingLayerMask)
+  commentId: M:Ghost.Graphics.Core.RenderingLayerMask.op_BitwiseOr(Ghost.Graphics.Core.RenderingLayerMask,Ghost.Graphics.Core.RenderingLayerMask)
+  id: op_BitwiseOr(Ghost.Graphics.Core.RenderingLayerMask,Ghost.Graphics.Core.RenderingLayerMask)
+  parent: Ghost.Graphics.Core.RenderingLayerMask
+  langs:
+  - csharp
+  - vb
+  name: operator |(RenderingLayerMask, RenderingLayerMask)
+  nameWithType: RenderingLayerMask.operator |(RenderingLayerMask, RenderingLayerMask)
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.operator |(Ghost.Graphics.Core.RenderingLayerMask, Ghost.Graphics.Core.RenderingLayerMask)
+  type: Operator
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: op_BitwiseOr
+    path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+    startLine: 63
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public static RenderingLayerMask operator |(RenderingLayerMask left, RenderingLayerMask right)
+    parameters:
+    - id: left
+      type: Ghost.Graphics.Core.RenderingLayerMask
+    - id: right
+      type: Ghost.Graphics.Core.RenderingLayerMask
+    return:
+      type: Ghost.Graphics.Core.RenderingLayerMask
+    content.vb: Public Shared Operator Or(left As RenderingLayerMask, right As RenderingLayerMask) As RenderingLayerMask
+  overload: Ghost.Graphics.Core.RenderingLayerMask.op_BitwiseOr*
+  nameWithType.vb: RenderingLayerMask.Or(RenderingLayerMask, RenderingLayerMask)
+  fullName.vb: Ghost.Graphics.Core.RenderingLayerMask.Or(Ghost.Graphics.Core.RenderingLayerMask, Ghost.Graphics.Core.RenderingLayerMask)
+  name.vb: Or(RenderingLayerMask, RenderingLayerMask)
+- uid: Ghost.Graphics.Core.RenderingLayerMask.op_BitwiseAnd(Ghost.Graphics.Core.RenderingLayerMask,Ghost.Graphics.Core.RenderingLayerMask)
+  commentId: M:Ghost.Graphics.Core.RenderingLayerMask.op_BitwiseAnd(Ghost.Graphics.Core.RenderingLayerMask,Ghost.Graphics.Core.RenderingLayerMask)
+  id: op_BitwiseAnd(Ghost.Graphics.Core.RenderingLayerMask,Ghost.Graphics.Core.RenderingLayerMask)
+  parent: Ghost.Graphics.Core.RenderingLayerMask
+  langs:
+  - csharp
+  - vb
+  name: operator &(RenderingLayerMask, RenderingLayerMask)
+  nameWithType: RenderingLayerMask.operator &(RenderingLayerMask, RenderingLayerMask)
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.operator &(Ghost.Graphics.Core.RenderingLayerMask, Ghost.Graphics.Core.RenderingLayerMask)
+  type: Operator
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: op_BitwiseAnd
+    path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+    startLine: 68
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public static RenderingLayerMask operator &(RenderingLayerMask left, RenderingLayerMask right)
+    parameters:
+    - id: left
+      type: Ghost.Graphics.Core.RenderingLayerMask
+    - id: right
+      type: Ghost.Graphics.Core.RenderingLayerMask
+    return:
+      type: Ghost.Graphics.Core.RenderingLayerMask
+    content.vb: Public Shared Operator And(left As RenderingLayerMask, right As RenderingLayerMask) As RenderingLayerMask
+  overload: Ghost.Graphics.Core.RenderingLayerMask.op_BitwiseAnd*
+  nameWithType.vb: RenderingLayerMask.And(RenderingLayerMask, RenderingLayerMask)
+  fullName.vb: Ghost.Graphics.Core.RenderingLayerMask.And(Ghost.Graphics.Core.RenderingLayerMask, Ghost.Graphics.Core.RenderingLayerMask)
+  name.vb: And(RenderingLayerMask, RenderingLayerMask)
+- uid: Ghost.Graphics.Core.RenderingLayerMask.op_OnesComplement(Ghost.Graphics.Core.RenderingLayerMask)
+  commentId: M:Ghost.Graphics.Core.RenderingLayerMask.op_OnesComplement(Ghost.Graphics.Core.RenderingLayerMask)
+  id: op_OnesComplement(Ghost.Graphics.Core.RenderingLayerMask)
+  parent: Ghost.Graphics.Core.RenderingLayerMask
+  langs:
+  - csharp
+  - vb
+  name: operator ~(RenderingLayerMask)
+  nameWithType: RenderingLayerMask.operator ~(RenderingLayerMask)
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.operator ~(Ghost.Graphics.Core.RenderingLayerMask)
+  type: Operator
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: op_OnesComplement
+    path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+    startLine: 73
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public static RenderingLayerMask operator ~(RenderingLayerMask mask)
+    parameters:
+    - id: mask
+      type: Ghost.Graphics.Core.RenderingLayerMask
+    return:
+      type: Ghost.Graphics.Core.RenderingLayerMask
+    content.vb: Public Shared Operator Not(mask As RenderingLayerMask) As RenderingLayerMask
+  overload: Ghost.Graphics.Core.RenderingLayerMask.op_OnesComplement*
+  nameWithType.vb: RenderingLayerMask.Not(RenderingLayerMask)
+  fullName.vb: Ghost.Graphics.Core.RenderingLayerMask.Not(Ghost.Graphics.Core.RenderingLayerMask)
+  name.vb: Not(RenderingLayerMask)
+- uid: Ghost.Graphics.Core.RenderingLayerMask.op_ExclusiveOr(Ghost.Graphics.Core.RenderingLayerMask,Ghost.Graphics.Core.RenderingLayerMask)
+  commentId: M:Ghost.Graphics.Core.RenderingLayerMask.op_ExclusiveOr(Ghost.Graphics.Core.RenderingLayerMask,Ghost.Graphics.Core.RenderingLayerMask)
+  id: op_ExclusiveOr(Ghost.Graphics.Core.RenderingLayerMask,Ghost.Graphics.Core.RenderingLayerMask)
+  parent: Ghost.Graphics.Core.RenderingLayerMask
+  langs:
+  - csharp
+  - vb
+  name: operator ^(RenderingLayerMask, RenderingLayerMask)
+  nameWithType: RenderingLayerMask.operator ^(RenderingLayerMask, RenderingLayerMask)
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.operator ^(Ghost.Graphics.Core.RenderingLayerMask, Ghost.Graphics.Core.RenderingLayerMask)
+  type: Operator
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: op_ExclusiveOr
+    path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+    startLine: 78
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public static RenderingLayerMask operator ^(RenderingLayerMask left, RenderingLayerMask right)
+    parameters:
+    - id: left
+      type: Ghost.Graphics.Core.RenderingLayerMask
+    - id: right
+      type: Ghost.Graphics.Core.RenderingLayerMask
+    return:
+      type: Ghost.Graphics.Core.RenderingLayerMask
+    content.vb: Public Shared Operator Xor(left As RenderingLayerMask, right As RenderingLayerMask) As RenderingLayerMask
+  overload: Ghost.Graphics.Core.RenderingLayerMask.op_ExclusiveOr*
+  nameWithType.vb: RenderingLayerMask.Xor(RenderingLayerMask, RenderingLayerMask)
+  fullName.vb: Ghost.Graphics.Core.RenderingLayerMask.Xor(Ghost.Graphics.Core.RenderingLayerMask, Ghost.Graphics.Core.RenderingLayerMask)
+  name.vb: Xor(RenderingLayerMask, RenderingLayerMask)
+- uid: Ghost.Graphics.Core.RenderingLayerMask.op_LeftShift(Ghost.Graphics.Core.RenderingLayerMask,System.Int32)
+  commentId: M:Ghost.Graphics.Core.RenderingLayerMask.op_LeftShift(Ghost.Graphics.Core.RenderingLayerMask,System.Int32)
+  id: op_LeftShift(Ghost.Graphics.Core.RenderingLayerMask,System.Int32)
+  parent: Ghost.Graphics.Core.RenderingLayerMask
+  langs:
+  - csharp
+  - vb
+  name: operator <<(RenderingLayerMask, int)
+  nameWithType: RenderingLayerMask.operator <<(RenderingLayerMask, int)
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.operator <<(Ghost.Graphics.Core.RenderingLayerMask, int)
+  type: Operator
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: op_LeftShift
+    path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+    startLine: 83
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public static RenderingLayerMask operator <<(RenderingLayerMask mask, int shift)
+    parameters:
+    - id: mask
+      type: Ghost.Graphics.Core.RenderingLayerMask
+    - id: shift
+      type: System.Int32
+    return:
+      type: Ghost.Graphics.Core.RenderingLayerMask
+    content.vb: Public Shared Operator <<(mask As RenderingLayerMask, shift As Integer) As RenderingLayerMask
+  overload: Ghost.Graphics.Core.RenderingLayerMask.op_LeftShift*
+  nameWithType.vb: RenderingLayerMask.<<(RenderingLayerMask, Integer)
+  fullName.vb: Ghost.Graphics.Core.RenderingLayerMask.<<(Ghost.Graphics.Core.RenderingLayerMask, Integer)
+  name.vb: <<(RenderingLayerMask, Integer)
+- uid: Ghost.Graphics.Core.RenderingLayerMask.op_RightShift(Ghost.Graphics.Core.RenderingLayerMask,System.Int32)
+  commentId: M:Ghost.Graphics.Core.RenderingLayerMask.op_RightShift(Ghost.Graphics.Core.RenderingLayerMask,System.Int32)
+  id: op_RightShift(Ghost.Graphics.Core.RenderingLayerMask,System.Int32)
+  parent: Ghost.Graphics.Core.RenderingLayerMask
+  langs:
+  - csharp
+  - vb
+  name: operator >>(RenderingLayerMask, int)
+  nameWithType: RenderingLayerMask.operator >>(RenderingLayerMask, int)
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.operator >>(Ghost.Graphics.Core.RenderingLayerMask, int)
+  type: Operator
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: op_RightShift
+    path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+    startLine: 88
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public static RenderingLayerMask operator >>(RenderingLayerMask mask, int shift)
+    parameters:
+    - id: mask
+      type: Ghost.Graphics.Core.RenderingLayerMask
+    - id: shift
+      type: System.Int32
+    return:
+      type: Ghost.Graphics.Core.RenderingLayerMask
+    content.vb: Public Shared Operator >>(mask As RenderingLayerMask, shift As Integer) As RenderingLayerMask
+  overload: Ghost.Graphics.Core.RenderingLayerMask.op_RightShift*
+  nameWithType.vb: RenderingLayerMask.>>(RenderingLayerMask, Integer)
+  fullName.vb: Ghost.Graphics.Core.RenderingLayerMask.>>(Ghost.Graphics.Core.RenderingLayerMask, Integer)
+  name.vb: '>>(RenderingLayerMask, Integer)'
+- uid: Ghost.Graphics.Core.RenderingLayerMask.op_Implicit(Ghost.Graphics.Core.RenderingLayerMask)~System.UInt32
+  commentId: M:Ghost.Graphics.Core.RenderingLayerMask.op_Implicit(Ghost.Graphics.Core.RenderingLayerMask)~System.UInt32
+  id: op_Implicit(Ghost.Graphics.Core.RenderingLayerMask)~System.UInt32
+  parent: Ghost.Graphics.Core.RenderingLayerMask
+  langs:
+  - csharp
+  - vb
+  name: implicit operator uint(RenderingLayerMask)
+  nameWithType: RenderingLayerMask.implicit operator uint(RenderingLayerMask)
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.implicit operator uint(Ghost.Graphics.Core.RenderingLayerMask)
+  type: Operator
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: op_Implicit
+    path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+    startLine: 93
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public static implicit operator uint(RenderingLayerMask mask)
+    parameters:
+    - id: mask
+      type: Ghost.Graphics.Core.RenderingLayerMask
+    return:
+      type: System.UInt32
+    content.vb: Public Shared Widening Operator CType(mask As RenderingLayerMask) As UInteger
+  overload: Ghost.Graphics.Core.RenderingLayerMask.op_Implicit*
+  nameWithType.vb: RenderingLayerMask.CType(RenderingLayerMask)
+  fullName.vb: Ghost.Graphics.Core.RenderingLayerMask.CType(Ghost.Graphics.Core.RenderingLayerMask)
+  name.vb: CType(RenderingLayerMask)
+- uid: Ghost.Graphics.Core.RenderingLayerMask.op_Implicit(System.UInt32)~Ghost.Graphics.Core.RenderingLayerMask
+  commentId: M:Ghost.Graphics.Core.RenderingLayerMask.op_Implicit(System.UInt32)~Ghost.Graphics.Core.RenderingLayerMask
+  id: op_Implicit(System.UInt32)~Ghost.Graphics.Core.RenderingLayerMask
+  parent: Ghost.Graphics.Core.RenderingLayerMask
+  langs:
+  - csharp
+  - vb
+  name: implicit operator RenderingLayerMask(uint)
+  nameWithType: RenderingLayerMask.implicit operator RenderingLayerMask(uint)
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.implicit operator Ghost.Graphics.Core.RenderingLayerMask(uint)
+  type: Operator
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: op_Implicit
+    path: src/Runtime/Ghost.Graphics/Core/RenderingLayerMask.cs
+    startLine: 98
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public static implicit operator RenderingLayerMask(uint value)
+    parameters:
+    - id: value
+      type: System.UInt32
+    return:
+      type: Ghost.Graphics.Core.RenderingLayerMask
+    content.vb: Public Shared Widening Operator CType(value As UInteger) As RenderingLayerMask
+  overload: Ghost.Graphics.Core.RenderingLayerMask.op_Implicit*
+  nameWithType.vb: RenderingLayerMask.CType(UInteger)
+  fullName.vb: Ghost.Graphics.Core.RenderingLayerMask.CType(UInteger)
+  name.vb: CType(UInteger)
+references:
+- uid: Ghost.Graphics.Core
+  commentId: N:Ghost.Graphics.Core
+  href: Ghost.html
+  name: Ghost.Graphics.Core
+  nameWithType: Ghost.Graphics.Core
+  fullName: Ghost.Graphics.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Core
+    name: Core
+    href: Ghost.Graphics.Core.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Core
+    name: Core
+    href: Ghost.Graphics.Core.html
+- uid: System.IEquatable{Ghost.Graphics.Core.RenderingLayerMask}
+  commentId: T:System.IEquatable{Ghost.Graphics.Core.RenderingLayerMask}
+  parent: System
+  definition: System.IEquatable`1
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  name: IEquatable<RenderingLayerMask>
+  nameWithType: IEquatable<RenderingLayerMask>
+  fullName: System.IEquatable<Ghost.Graphics.Core.RenderingLayerMask>
+  nameWithType.vb: IEquatable(Of RenderingLayerMask)
+  fullName.vb: System.IEquatable(Of Ghost.Graphics.Core.RenderingLayerMask)
+  name.vb: IEquatable(Of RenderingLayerMask)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: <
+  - uid: Ghost.Graphics.Core.RenderingLayerMask
+    name: RenderingLayerMask
+    href: Ghost.Graphics.Core.RenderingLayerMask.html
+  - name: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.Core.RenderingLayerMask
+    name: RenderingLayerMask
+    href: Ghost.Graphics.Core.RenderingLayerMask.html
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.IEquatable`1
+  commentId: T:System.IEquatable`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  name: IEquatable<T>
+  nameWithType: IEquatable<T>
+  fullName: System.IEquatable<T>
+  nameWithType.vb: IEquatable(Of T)
+  fullName.vb: System.IEquatable(Of T)
+  name.vb: IEquatable(Of T)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: Ghost.Graphics.Core.RenderingLayerMask.GetLayerBit*
+  commentId: Overload:Ghost.Graphics.Core.RenderingLayerMask.GetLayerBit
+  href: Ghost.Graphics.Core.RenderingLayerMask.html#Ghost_Graphics_Core_RenderingLayerMask_GetLayerBit_System_String_
+  name: GetLayerBit
+  nameWithType: RenderingLayerMask.GetLayerBit
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.GetLayerBit
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.string
+  name: string
+  nameWithType: string
+  fullName: string
+  nameWithType.vb: String
+  fullName.vb: String
+  name.vb: String
+- uid: System.UInt32
+  commentId: T:System.UInt32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.uint32
+  name: uint
+  nameWithType: uint
+  fullName: uint
+  nameWithType.vb: UInteger
+  fullName.vb: UInteger
+  name.vb: UInteger
+- uid: Ghost.Graphics.Core.RenderingLayerMask
+  commentId: T:Ghost.Graphics.Core.RenderingLayerMask
+  parent: Ghost.Graphics.Core
+  href: Ghost.Graphics.Core.RenderingLayerMask.html
+  name: RenderingLayerMask
+  nameWithType: RenderingLayerMask
+  fullName: Ghost.Graphics.Core.RenderingLayerMask
+- uid: Ghost.Graphics.Core.RenderingLayerMask.#ctor*
+  commentId: Overload:Ghost.Graphics.Core.RenderingLayerMask.#ctor
+  href: Ghost.Graphics.Core.RenderingLayerMask.html#Ghost_Graphics_Core_RenderingLayerMask__ctor_System_UInt32_
+  name: RenderingLayerMask
+  nameWithType: RenderingLayerMask.RenderingLayerMask
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.RenderingLayerMask
+  nameWithType.vb: RenderingLayerMask.New
+  fullName.vb: Ghost.Graphics.Core.RenderingLayerMask.New
+  name.vb: New
+- uid: Ghost.Graphics.Core.RenderingLayerMask.Equals*
+  commentId: Overload:Ghost.Graphics.Core.RenderingLayerMask.Equals
+  href: Ghost.Graphics.Core.RenderingLayerMask.html#Ghost_Graphics_Core_RenderingLayerMask_Equals_Ghost_Graphics_Core_RenderingLayerMask_
+  name: Equals
+  nameWithType: RenderingLayerMask.Equals
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.Equals
+- uid: System.IEquatable{Ghost.Graphics.Core.RenderingLayerMask}.Equals(Ghost.Graphics.Core.RenderingLayerMask)
+  commentId: M:System.IEquatable{Ghost.Graphics.Core.RenderingLayerMask}.Equals(Ghost.Graphics.Core.RenderingLayerMask)
+  parent: System.IEquatable{Ghost.Graphics.Core.RenderingLayerMask}
+  definition: System.IEquatable`1.Equals(`0)
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  name: Equals(RenderingLayerMask)
+  nameWithType: IEquatable<RenderingLayerMask>.Equals(RenderingLayerMask)
+  fullName: System.IEquatable<Ghost.Graphics.Core.RenderingLayerMask>.Equals(Ghost.Graphics.Core.RenderingLayerMask)
+  nameWithType.vb: IEquatable(Of RenderingLayerMask).Equals(RenderingLayerMask)
+  fullName.vb: System.IEquatable(Of Ghost.Graphics.Core.RenderingLayerMask).Equals(Ghost.Graphics.Core.RenderingLayerMask)
+  spec.csharp:
+  - uid: System.IEquatable{Ghost.Graphics.Core.RenderingLayerMask}.Equals(Ghost.Graphics.Core.RenderingLayerMask)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  - name: (
+  - uid: Ghost.Graphics.Core.RenderingLayerMask
+    name: RenderingLayerMask
+    href: Ghost.Graphics.Core.RenderingLayerMask.html
+  - name: )
+  spec.vb:
+  - uid: System.IEquatable{Ghost.Graphics.Core.RenderingLayerMask}.Equals(Ghost.Graphics.Core.RenderingLayerMask)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  - name: (
+  - uid: Ghost.Graphics.Core.RenderingLayerMask
+    name: RenderingLayerMask
+    href: Ghost.Graphics.Core.RenderingLayerMask.html
+  - name: )
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.boolean
+  name: bool
+  nameWithType: bool
+  fullName: bool
+  nameWithType.vb: Boolean
+  fullName.vb: Boolean
+  name.vb: Boolean
+- uid: System.IEquatable`1.Equals(`0)
+  commentId: M:System.IEquatable`1.Equals(`0)
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  name: Equals(T)
+  nameWithType: IEquatable<T>.Equals(T)
+  fullName: System.IEquatable<T>.Equals(T)
+  nameWithType.vb: IEquatable(Of T).Equals(T)
+  fullName.vb: System.IEquatable(Of T).Equals(T)
+  spec.csharp:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  - name: (
+  - name: T
+  - name: )
+  spec.vb:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  - name: (
+  - name: T
+  - name: )
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: Ghost.Graphics.Core.RenderingLayerMask.GetHashCode*
+  commentId: Overload:Ghost.Graphics.Core.RenderingLayerMask.GetHashCode
+  href: Ghost.Graphics.Core.RenderingLayerMask.html#Ghost_Graphics_Core_RenderingLayerMask_GetHashCode
+  name: GetHashCode
+  nameWithType: RenderingLayerMask.GetHashCode
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.GetHashCode
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.int32
+  name: int
+  nameWithType: int
+  fullName: int
+  nameWithType.vb: Integer
+  fullName.vb: Integer
+  name.vb: Integer
+- uid: Ghost.Graphics.Core.RenderingLayerMask.op_Equality*
+  commentId: Overload:Ghost.Graphics.Core.RenderingLayerMask.op_Equality
+  href: Ghost.Graphics.Core.RenderingLayerMask.html#Ghost_Graphics_Core_RenderingLayerMask_op_Equality_Ghost_Graphics_Core_RenderingLayerMask_Ghost_Graphics_Core_RenderingLayerMask_
+  name: operator ==
+  nameWithType: RenderingLayerMask.operator ==
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.operator ==
+  nameWithType.vb: RenderingLayerMask.=
+  fullName.vb: Ghost.Graphics.Core.RenderingLayerMask.=
+  name.vb: =
+  spec.csharp:
+  - name: operator
+  - name: " "
+  - uid: Ghost.Graphics.Core.RenderingLayerMask.op_Equality*
+    name: ==
+    href: Ghost.Graphics.Core.RenderingLayerMask.html#Ghost_Graphics_Core_RenderingLayerMask_op_Equality_Ghost_Graphics_Core_RenderingLayerMask_Ghost_Graphics_Core_RenderingLayerMask_
+- uid: Ghost.Graphics.Core.RenderingLayerMask.op_Inequality*
+  commentId: Overload:Ghost.Graphics.Core.RenderingLayerMask.op_Inequality
+  href: Ghost.Graphics.Core.RenderingLayerMask.html#Ghost_Graphics_Core_RenderingLayerMask_op_Inequality_Ghost_Graphics_Core_RenderingLayerMask_Ghost_Graphics_Core_RenderingLayerMask_
+  name: operator !=
+  nameWithType: RenderingLayerMask.operator !=
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.operator !=
+  nameWithType.vb: RenderingLayerMask.<>
+  fullName.vb: Ghost.Graphics.Core.RenderingLayerMask.<>
+  name.vb: <>
+  spec.csharp:
+  - name: operator
+  - name: " "
+  - uid: Ghost.Graphics.Core.RenderingLayerMask.op_Inequality*
+    name: '!='
+    href: Ghost.Graphics.Core.RenderingLayerMask.html#Ghost_Graphics_Core_RenderingLayerMask_op_Inequality_Ghost_Graphics_Core_RenderingLayerMask_Ghost_Graphics_Core_RenderingLayerMask_
+- uid: Ghost.Graphics.Core.RenderingLayerMask.op_BitwiseOr*
+  commentId: Overload:Ghost.Graphics.Core.RenderingLayerMask.op_BitwiseOr
+  href: Ghost.Graphics.Core.RenderingLayerMask.html#Ghost_Graphics_Core_RenderingLayerMask_op_BitwiseOr_Ghost_Graphics_Core_RenderingLayerMask_Ghost_Graphics_Core_RenderingLayerMask_
+  name: operator |
+  nameWithType: RenderingLayerMask.operator |
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.operator |
+  nameWithType.vb: RenderingLayerMask.Or
+  fullName.vb: Ghost.Graphics.Core.RenderingLayerMask.Or
+  name.vb: Or
+  spec.csharp:
+  - name: operator
+  - name: " "
+  - uid: Ghost.Graphics.Core.RenderingLayerMask.op_BitwiseOr*
+    name: '|'
+    href: Ghost.Graphics.Core.RenderingLayerMask.html#Ghost_Graphics_Core_RenderingLayerMask_op_BitwiseOr_Ghost_Graphics_Core_RenderingLayerMask_Ghost_Graphics_Core_RenderingLayerMask_
+- uid: Ghost.Graphics.Core.RenderingLayerMask.op_BitwiseAnd*
+  commentId: Overload:Ghost.Graphics.Core.RenderingLayerMask.op_BitwiseAnd
+  href: Ghost.Graphics.Core.RenderingLayerMask.html#Ghost_Graphics_Core_RenderingLayerMask_op_BitwiseAnd_Ghost_Graphics_Core_RenderingLayerMask_Ghost_Graphics_Core_RenderingLayerMask_
+  name: operator &
+  nameWithType: RenderingLayerMask.operator &
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.operator &
+  nameWithType.vb: RenderingLayerMask.And
+  fullName.vb: Ghost.Graphics.Core.RenderingLayerMask.And
+  name.vb: And
+  spec.csharp:
+  - name: operator
+  - name: " "
+  - uid: Ghost.Graphics.Core.RenderingLayerMask.op_BitwiseAnd*
+    name: '&'
+    href: Ghost.Graphics.Core.RenderingLayerMask.html#Ghost_Graphics_Core_RenderingLayerMask_op_BitwiseAnd_Ghost_Graphics_Core_RenderingLayerMask_Ghost_Graphics_Core_RenderingLayerMask_
+- uid: Ghost.Graphics.Core.RenderingLayerMask.op_OnesComplement*
+  commentId: Overload:Ghost.Graphics.Core.RenderingLayerMask.op_OnesComplement
+  href: Ghost.Graphics.Core.RenderingLayerMask.html#Ghost_Graphics_Core_RenderingLayerMask_op_OnesComplement_Ghost_Graphics_Core_RenderingLayerMask_
+  name: operator ~
+  nameWithType: RenderingLayerMask.operator ~
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.operator ~
+  nameWithType.vb: RenderingLayerMask.Not
+  fullName.vb: Ghost.Graphics.Core.RenderingLayerMask.Not
+  name.vb: Not
+  spec.csharp:
+  - name: operator
+  - name: " "
+  - uid: Ghost.Graphics.Core.RenderingLayerMask.op_OnesComplement*
+    name: "~"
+    href: Ghost.Graphics.Core.RenderingLayerMask.html#Ghost_Graphics_Core_RenderingLayerMask_op_OnesComplement_Ghost_Graphics_Core_RenderingLayerMask_
+- uid: Ghost.Graphics.Core.RenderingLayerMask.op_ExclusiveOr*
+  commentId: Overload:Ghost.Graphics.Core.RenderingLayerMask.op_ExclusiveOr
+  href: Ghost.Graphics.Core.RenderingLayerMask.html#Ghost_Graphics_Core_RenderingLayerMask_op_ExclusiveOr_Ghost_Graphics_Core_RenderingLayerMask_Ghost_Graphics_Core_RenderingLayerMask_
+  name: operator ^
+  nameWithType: RenderingLayerMask.operator ^
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.operator ^
+  nameWithType.vb: RenderingLayerMask.Xor
+  fullName.vb: Ghost.Graphics.Core.RenderingLayerMask.Xor
+  name.vb: Xor
+  spec.csharp:
+  - name: operator
+  - name: " "
+  - uid: Ghost.Graphics.Core.RenderingLayerMask.op_ExclusiveOr*
+    name: ^
+    href: Ghost.Graphics.Core.RenderingLayerMask.html#Ghost_Graphics_Core_RenderingLayerMask_op_ExclusiveOr_Ghost_Graphics_Core_RenderingLayerMask_Ghost_Graphics_Core_RenderingLayerMask_
+- uid: Ghost.Graphics.Core.RenderingLayerMask.op_LeftShift*
+  commentId: Overload:Ghost.Graphics.Core.RenderingLayerMask.op_LeftShift
+  href: Ghost.Graphics.Core.RenderingLayerMask.html#Ghost_Graphics_Core_RenderingLayerMask_op_LeftShift_Ghost_Graphics_Core_RenderingLayerMask_System_Int32_
+  name: operator <<
+  nameWithType: RenderingLayerMask.operator <<
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.operator <<
+  nameWithType.vb: RenderingLayerMask.<<
+  fullName.vb: Ghost.Graphics.Core.RenderingLayerMask.<<
+  name.vb: <<
+  spec.csharp:
+  - name: operator
+  - name: " "
+  - uid: Ghost.Graphics.Core.RenderingLayerMask.op_LeftShift*
+    name: <<
+    href: Ghost.Graphics.Core.RenderingLayerMask.html#Ghost_Graphics_Core_RenderingLayerMask_op_LeftShift_Ghost_Graphics_Core_RenderingLayerMask_System_Int32_
+- uid: Ghost.Graphics.Core.RenderingLayerMask.op_RightShift*
+  commentId: Overload:Ghost.Graphics.Core.RenderingLayerMask.op_RightShift
+  href: Ghost.Graphics.Core.RenderingLayerMask.html#Ghost_Graphics_Core_RenderingLayerMask_op_RightShift_Ghost_Graphics_Core_RenderingLayerMask_System_Int32_
+  name: operator >>
+  nameWithType: RenderingLayerMask.operator >>
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.operator >>
+  nameWithType.vb: RenderingLayerMask.>>
+  fullName.vb: Ghost.Graphics.Core.RenderingLayerMask.>>
+  name.vb: '>>'
+  spec.csharp:
+  - name: operator
+  - name: " "
+  - uid: Ghost.Graphics.Core.RenderingLayerMask.op_RightShift*
+    name: '>>'
+    href: Ghost.Graphics.Core.RenderingLayerMask.html#Ghost_Graphics_Core_RenderingLayerMask_op_RightShift_Ghost_Graphics_Core_RenderingLayerMask_System_Int32_
+- uid: Ghost.Graphics.Core.RenderingLayerMask.op_Implicit*
+  commentId: Overload:Ghost.Graphics.Core.RenderingLayerMask.op_Implicit
+  name: implicit operator
+  nameWithType: RenderingLayerMask.implicit operator
+  fullName: Ghost.Graphics.Core.RenderingLayerMask.implicit operator
+  nameWithType.vb: RenderingLayerMask.CType
+  fullName.vb: Ghost.Graphics.Core.RenderingLayerMask.CType
+  name.vb: CType
+  spec.csharp:
+  - name: implicit
+  - name: " "
+  - name: operator

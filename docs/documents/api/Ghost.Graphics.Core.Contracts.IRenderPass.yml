@@ -1,0 +1,393 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.Core.Contracts.IRenderPass
+  commentId: T:Ghost.Graphics.Core.Contracts.IRenderPass
+  id: IRenderPass
+  parent: Ghost.Graphics.Core.Contracts
+  children:
+  - Ghost.Graphics.Core.Contracts.IRenderPass.Build(Ghost.Graphics.RenderGraphModule.RenderGraph,Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture})
+  - Ghost.Graphics.Core.Contracts.IRenderPass.Cleanup(Ghost.Graphics.ResourceManager,Ghost.Graphics.RHI.IResourceDatabase)
+  - Ghost.Graphics.Core.Contracts.IRenderPass.Initialize(Ghost.Graphics.Core.RenderingContext@)
+  langs:
+  - csharp
+  - vb
+  name: IRenderPass
+  nameWithType: IRenderPass
+  fullName: Ghost.Graphics.Core.Contracts.IRenderPass
+  type: Interface
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Contracts/IRenderPass.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IRenderPass
+    path: src/Runtime/Ghost.Graphics/Contracts/IRenderPass.cs
+    startLine: 6
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core.Contracts
+  syntax:
+    content: public interface IRenderPass
+    content.vb: Public Interface IRenderPass
+- uid: Ghost.Graphics.Core.Contracts.IRenderPass.Initialize(Ghost.Graphics.Core.RenderingContext@)
+  commentId: M:Ghost.Graphics.Core.Contracts.IRenderPass.Initialize(Ghost.Graphics.Core.RenderingContext@)
+  id: Initialize(Ghost.Graphics.Core.RenderingContext@)
+  parent: Ghost.Graphics.Core.Contracts.IRenderPass
+  langs:
+  - csharp
+  - vb
+  name: Initialize(ref readonly RenderingContext)
+  nameWithType: IRenderPass.Initialize(ref readonly RenderingContext)
+  fullName: Ghost.Graphics.Core.Contracts.IRenderPass.Initialize(ref readonly Ghost.Graphics.Core.RenderingContext)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Contracts/IRenderPass.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Initialize
+    path: src/Runtime/Ghost.Graphics/Contracts/IRenderPass.cs
+    startLine: 8
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core.Contracts
+  syntax:
+    content: void Initialize(ref readonly RenderingContext ctx)
+    parameters:
+    - id: ctx
+      type: Ghost.Graphics.Core.RenderingContext
+    content.vb: Sub Initialize(ctx As RenderingContext)
+  overload: Ghost.Graphics.Core.Contracts.IRenderPass.Initialize*
+  nameWithType.vb: IRenderPass.Initialize(RenderingContext)
+  fullName.vb: Ghost.Graphics.Core.Contracts.IRenderPass.Initialize(Ghost.Graphics.Core.RenderingContext)
+  name.vb: Initialize(RenderingContext)
+- uid: Ghost.Graphics.Core.Contracts.IRenderPass.Build(Ghost.Graphics.RenderGraphModule.RenderGraph,Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture})
+  commentId: M:Ghost.Graphics.Core.Contracts.IRenderPass.Build(Ghost.Graphics.RenderGraphModule.RenderGraph,Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture})
+  id: Build(Ghost.Graphics.RenderGraphModule.RenderGraph,Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture})
+  parent: Ghost.Graphics.Core.Contracts.IRenderPass
+  langs:
+  - csharp
+  - vb
+  name: Build(RenderGraph, Identifier<RGTexture>)
+  nameWithType: IRenderPass.Build(RenderGraph, Identifier<RGTexture>)
+  fullName: Ghost.Graphics.Core.Contracts.IRenderPass.Build(Ghost.Graphics.RenderGraphModule.RenderGraph, Ghost.Core.Identifier<Ghost.Graphics.RenderGraphModule.RGTexture>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Contracts/IRenderPass.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Build
+    path: src/Runtime/Ghost.Graphics/Contracts/IRenderPass.cs
+    startLine: 9
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core.Contracts
+  syntax:
+    content: void Build(RenderGraph graph, Identifier<RGTexture> backbuffer)
+    parameters:
+    - id: graph
+      type: Ghost.Graphics.RenderGraphModule.RenderGraph
+    - id: backbuffer
+      type: Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture}
+    content.vb: Sub Build(graph As RenderGraph, backbuffer As Identifier(Of RGTexture))
+  overload: Ghost.Graphics.Core.Contracts.IRenderPass.Build*
+  nameWithType.vb: IRenderPass.Build(RenderGraph, Identifier(Of RGTexture))
+  fullName.vb: Ghost.Graphics.Core.Contracts.IRenderPass.Build(Ghost.Graphics.RenderGraphModule.RenderGraph, Ghost.Core.Identifier(Of Ghost.Graphics.RenderGraphModule.RGTexture))
+  name.vb: Build(RenderGraph, Identifier(Of RGTexture))
+- uid: Ghost.Graphics.Core.Contracts.IRenderPass.Cleanup(Ghost.Graphics.ResourceManager,Ghost.Graphics.RHI.IResourceDatabase)
+  commentId: M:Ghost.Graphics.Core.Contracts.IRenderPass.Cleanup(Ghost.Graphics.ResourceManager,Ghost.Graphics.RHI.IResourceDatabase)
+  id: Cleanup(Ghost.Graphics.ResourceManager,Ghost.Graphics.RHI.IResourceDatabase)
+  parent: Ghost.Graphics.Core.Contracts.IRenderPass
+  langs:
+  - csharp
+  - vb
+  name: Cleanup(ResourceManager, IResourceDatabase)
+  nameWithType: IRenderPass.Cleanup(ResourceManager, IResourceDatabase)
+  fullName: Ghost.Graphics.Core.Contracts.IRenderPass.Cleanup(Ghost.Graphics.ResourceManager, Ghost.Graphics.RHI.IResourceDatabase)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Contracts/IRenderPass.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Cleanup
+    path: src/Runtime/Ghost.Graphics/Contracts/IRenderPass.cs
+    startLine: 10
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core.Contracts
+  syntax:
+    content: void Cleanup(ResourceManager resourceManager, IResourceDatabase resourceDatabase)
+    parameters:
+    - id: resourceManager
+      type: Ghost.Graphics.ResourceManager
+    - id: resourceDatabase
+      type: Ghost.Graphics.RHI.IResourceDatabase
+    content.vb: Sub Cleanup(resourceManager As ResourceManager, resourceDatabase As IResourceDatabase)
+  overload: Ghost.Graphics.Core.Contracts.IRenderPass.Cleanup*
+references:
+- uid: Ghost.Graphics.Core.Contracts
+  commentId: N:Ghost.Graphics.Core.Contracts
+  href: Ghost.html
+  name: Ghost.Graphics.Core.Contracts
+  nameWithType: Ghost.Graphics.Core.Contracts
+  fullName: Ghost.Graphics.Core.Contracts
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Core
+    name: Core
+    href: Ghost.Graphics.Core.html
+  - name: .
+  - uid: Ghost.Graphics.Core.Contracts
+    name: Contracts
+    href: Ghost.Graphics.Core.Contracts.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Core
+    name: Core
+    href: Ghost.Graphics.Core.html
+  - name: .
+  - uid: Ghost.Graphics.Core.Contracts
+    name: Contracts
+    href: Ghost.Graphics.Core.Contracts.html
+- uid: Ghost.Graphics.Core.Contracts.IRenderPass.Initialize*
+  commentId: Overload:Ghost.Graphics.Core.Contracts.IRenderPass.Initialize
+  href: Ghost.Graphics.Core.Contracts.IRenderPass.html#Ghost_Graphics_Core_Contracts_IRenderPass_Initialize_Ghost_Graphics_Core_RenderingContext__
+  name: Initialize
+  nameWithType: IRenderPass.Initialize
+  fullName: Ghost.Graphics.Core.Contracts.IRenderPass.Initialize
+- uid: Ghost.Graphics.Core.RenderingContext
+  commentId: T:Ghost.Graphics.Core.RenderingContext
+  parent: Ghost.Graphics.Core
+  href: Ghost.Graphics.Core.RenderingContext.html
+  name: RenderingContext
+  nameWithType: RenderingContext
+  fullName: Ghost.Graphics.Core.RenderingContext
+- uid: Ghost.Graphics.Core
+  commentId: N:Ghost.Graphics.Core
+  href: Ghost.html
+  name: Ghost.Graphics.Core
+  nameWithType: Ghost.Graphics.Core
+  fullName: Ghost.Graphics.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Core
+    name: Core
+    href: Ghost.Graphics.Core.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Core
+    name: Core
+    href: Ghost.Graphics.Core.html
+- uid: Ghost.Graphics.Core.Contracts.IRenderPass.Build*
+  commentId: Overload:Ghost.Graphics.Core.Contracts.IRenderPass.Build
+  href: Ghost.Graphics.Core.Contracts.IRenderPass.html#Ghost_Graphics_Core_Contracts_IRenderPass_Build_Ghost_Graphics_RenderGraphModule_RenderGraph_Ghost_Core_Identifier_Ghost_Graphics_RenderGraphModule_RGTexture__
+  name: Build
+  nameWithType: IRenderPass.Build
+  fullName: Ghost.Graphics.Core.Contracts.IRenderPass.Build
+- uid: Ghost.Graphics.RenderGraphModule.RenderGraph
+  commentId: T:Ghost.Graphics.RenderGraphModule.RenderGraph
+  parent: Ghost.Graphics.RenderGraphModule
+  href: Ghost.Graphics.RenderGraphModule.RenderGraph.html
+  name: RenderGraph
+  nameWithType: RenderGraph
+  fullName: Ghost.Graphics.RenderGraphModule.RenderGraph
+- uid: Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture}
+  commentId: T:Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture}
+  parent: Ghost.Core
+  definition: Ghost.Core.Identifier`1
+  href: Ghost.Graphics.RenderGraphModule.RGTexture.html
+  name: Identifier<RGTexture>
+  nameWithType: Identifier<RGTexture>
+  fullName: Ghost.Core.Identifier<Ghost.Graphics.RenderGraphModule.RGTexture>
+  nameWithType.vb: Identifier(Of RGTexture)
+  fullName.vb: Ghost.Core.Identifier(Of Ghost.Graphics.RenderGraphModule.RGTexture)
+  name.vb: Identifier(Of RGTexture)
+  spec.csharp:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: <
+  - uid: Ghost.Graphics.RenderGraphModule.RGTexture
+    name: RGTexture
+    href: Ghost.Graphics.RenderGraphModule.RGTexture.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RenderGraphModule.RGTexture
+    name: RGTexture
+    href: Ghost.Graphics.RenderGraphModule.RGTexture.html
+  - name: )
+- uid: Ghost.Graphics.RenderGraphModule
+  commentId: N:Ghost.Graphics.RenderGraphModule
+  href: Ghost.html
+  name: Ghost.Graphics.RenderGraphModule
+  nameWithType: Ghost.Graphics.RenderGraphModule
+  fullName: Ghost.Graphics.RenderGraphModule
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RenderGraphModule
+    name: RenderGraphModule
+    href: Ghost.Graphics.RenderGraphModule.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RenderGraphModule
+    name: RenderGraphModule
+    href: Ghost.Graphics.RenderGraphModule.html
+- uid: Ghost.Core.Identifier`1
+  commentId: T:Ghost.Core.Identifier`1
+  name: Identifier<T>
+  nameWithType: Identifier<T>
+  fullName: Ghost.Core.Identifier<T>
+  nameWithType.vb: Identifier(Of T)
+  fullName.vb: Ghost.Core.Identifier(Of T)
+  name.vb: Identifier(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Core
+  commentId: N:Ghost.Core
+  name: Ghost.Core
+  nameWithType: Ghost.Core
+  fullName: Ghost.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+- uid: Ghost.Graphics.Core.Contracts.IRenderPass.Cleanup*
+  commentId: Overload:Ghost.Graphics.Core.Contracts.IRenderPass.Cleanup
+  href: Ghost.Graphics.Core.Contracts.IRenderPass.html#Ghost_Graphics_Core_Contracts_IRenderPass_Cleanup_Ghost_Graphics_ResourceManager_Ghost_Graphics_RHI_IResourceDatabase_
+  name: Cleanup
+  nameWithType: IRenderPass.Cleanup
+  fullName: Ghost.Graphics.Core.Contracts.IRenderPass.Cleanup
+- uid: Ghost.Graphics.ResourceManager
+  commentId: T:Ghost.Graphics.ResourceManager
+  parent: Ghost.Graphics
+  href: Ghost.Graphics.ResourceManager.html
+  name: ResourceManager
+  nameWithType: ResourceManager
+  fullName: Ghost.Graphics.ResourceManager
+- uid: Ghost.Graphics.RHI.IResourceDatabase
+  commentId: T:Ghost.Graphics.RHI.IResourceDatabase
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.IResourceDatabase.html
+  name: IResourceDatabase
+  nameWithType: IResourceDatabase
+  fullName: Ghost.Graphics.RHI.IResourceDatabase
+- uid: Ghost.Graphics
+  commentId: N:Ghost.Graphics
+  href: Ghost.html
+  name: Ghost.Graphics
+  nameWithType: Ghost.Graphics
+  fullName: Ghost.Graphics
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html

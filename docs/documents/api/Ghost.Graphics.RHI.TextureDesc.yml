@@ -1,0 +1,705 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.TextureDesc
+  commentId: T:Ghost.Graphics.RHI.TextureDesc
+  id: TextureDesc
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.TextureDesc.Dimension
+  - Ghost.Graphics.RHI.TextureDesc.Format
+  - Ghost.Graphics.RHI.TextureDesc.Height
+  - Ghost.Graphics.RHI.TextureDesc.MipLevels
+  - Ghost.Graphics.RHI.TextureDesc.Slice
+  - Ghost.Graphics.RHI.TextureDesc.Usage
+  - Ghost.Graphics.RHI.TextureDesc.Width
+  langs:
+  - csharp
+  - vb
+  name: TextureDesc
+  nameWithType: TextureDesc
+  fullName: Ghost.Graphics.RHI.TextureDesc
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: TextureDesc
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 858
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Texture description
+  example: []
+  syntax:
+    content: 'public record struct TextureDesc : IEquatable<TextureDesc>'
+    content.vb: Public Structure TextureDesc Implements IEquatable(Of TextureDesc)
+  implements:
+  - System.IEquatable{Ghost.Graphics.RHI.TextureDesc}
+  inheritedMembers:
+  - System.ValueType.Equals(System.Object)
+  - System.ValueType.GetHashCode
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  extensionMethods:
+  - Ghost.Graphics.RHI.TextureDesc.Ghost.Graphics.RHI.RHIUtility.GetTotalBytes
+- uid: Ghost.Graphics.RHI.TextureDesc.Width
+  commentId: P:Ghost.Graphics.RHI.TextureDesc.Width
+  id: Width
+  parent: Ghost.Graphics.RHI.TextureDesc
+  langs:
+  - csharp
+  - vb
+  name: Width
+  nameWithType: TextureDesc.Width
+  fullName: Ghost.Graphics.RHI.TextureDesc.Width
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Width
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 863
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Width of the texture
+  example: []
+  syntax:
+    content: public uint Width { readonly get; set; }
+    parameters: []
+    return:
+      type: System.UInt32
+    content.vb: Public Property Width As UInteger
+  overload: Ghost.Graphics.RHI.TextureDesc.Width*
+- uid: Ghost.Graphics.RHI.TextureDesc.Height
+  commentId: P:Ghost.Graphics.RHI.TextureDesc.Height
+  id: Height
+  parent: Ghost.Graphics.RHI.TextureDesc
+  langs:
+  - csharp
+  - vb
+  name: Height
+  nameWithType: TextureDesc.Height
+  fullName: Ghost.Graphics.RHI.TextureDesc.Height
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Height
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 871
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Height of the texture
+  example: []
+  syntax:
+    content: public uint Height { readonly get; set; }
+    parameters: []
+    return:
+      type: System.UInt32
+    content.vb: Public Property Height As UInteger
+  overload: Ghost.Graphics.RHI.TextureDesc.Height*
+- uid: Ghost.Graphics.RHI.TextureDesc.Slice
+  commentId: P:Ghost.Graphics.RHI.TextureDesc.Slice
+  id: Slice
+  parent: Ghost.Graphics.RHI.TextureDesc
+  langs:
+  - csharp
+  - vb
+  name: Slice
+  nameWithType: TextureDesc.Slice
+  fullName: Ghost.Graphics.RHI.TextureDesc.Slice
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Slice
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 879
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Slice of the texture
+  example: []
+  syntax:
+    content: public uint Slice { readonly get; set; }
+    parameters: []
+    return:
+      type: System.UInt32
+    content.vb: Public Property Slice As UInteger
+  overload: Ghost.Graphics.RHI.TextureDesc.Slice*
+- uid: Ghost.Graphics.RHI.TextureDesc.Format
+  commentId: P:Ghost.Graphics.RHI.TextureDesc.Format
+  id: Format
+  parent: Ghost.Graphics.RHI.TextureDesc
+  langs:
+  - csharp
+  - vb
+  name: Format
+  nameWithType: TextureDesc.Format
+  fullName: Ghost.Graphics.RHI.TextureDesc.Format
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Format
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 887
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Texture Format
+  example: []
+  syntax:
+    content: public TextureFormat Format { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.TextureFormat
+    content.vb: Public Property Format As TextureFormat
+  overload: Ghost.Graphics.RHI.TextureDesc.Format*
+- uid: Ghost.Graphics.RHI.TextureDesc.Dimension
+  commentId: P:Ghost.Graphics.RHI.TextureDesc.Dimension
+  id: Dimension
+  parent: Ghost.Graphics.RHI.TextureDesc
+  langs:
+  - csharp
+  - vb
+  name: Dimension
+  nameWithType: TextureDesc.Dimension
+  fullName: Ghost.Graphics.RHI.TextureDesc.Dimension
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Dimension
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 895
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Texture dimension
+  example: []
+  syntax:
+    content: public TextureDimension Dimension { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.TextureDimension
+    content.vb: Public Property Dimension As TextureDimension
+  overload: Ghost.Graphics.RHI.TextureDesc.Dimension*
+- uid: Ghost.Graphics.RHI.TextureDesc.MipLevels
+  commentId: P:Ghost.Graphics.RHI.TextureDesc.MipLevels
+  id: MipLevels
+  parent: Ghost.Graphics.RHI.TextureDesc
+  langs:
+  - csharp
+  - vb
+  name: MipLevels
+  nameWithType: TextureDesc.MipLevels
+  fullName: Ghost.Graphics.RHI.TextureDesc.MipLevels
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: MipLevels
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 904
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Number of mip levels. 0 to generate full mip chain
+  example: []
+  syntax:
+    content: public uint MipLevels { readonly get; set; }
+    parameters: []
+    return:
+      type: System.UInt32
+    content.vb: Public Property MipLevels As UInteger
+  overload: Ghost.Graphics.RHI.TextureDesc.MipLevels*
+- uid: Ghost.Graphics.RHI.TextureDesc.Usage
+  commentId: P:Ghost.Graphics.RHI.TextureDesc.Usage
+  id: Usage
+  parent: Ghost.Graphics.RHI.TextureDesc
+  langs:
+  - csharp
+  - vb
+  name: Usage
+  nameWithType: TextureDesc.Usage
+  fullName: Ghost.Graphics.RHI.TextureDesc.Usage
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Usage
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 912
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Texture usage flags
+  example: []
+  syntax:
+    content: public TextureUsage Usage { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.TextureUsage
+    content.vb: Public Property Usage As TextureUsage
+  overload: Ghost.Graphics.RHI.TextureDesc.Usage*
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.IEquatable{Ghost.Graphics.RHI.TextureDesc}
+  commentId: T:System.IEquatable{Ghost.Graphics.RHI.TextureDesc}
+  parent: System
+  definition: System.IEquatable`1
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  name: IEquatable<TextureDesc>
+  nameWithType: IEquatable<TextureDesc>
+  fullName: System.IEquatable<Ghost.Graphics.RHI.TextureDesc>
+  nameWithType.vb: IEquatable(Of TextureDesc)
+  fullName.vb: System.IEquatable(Of Ghost.Graphics.RHI.TextureDesc)
+  name.vb: IEquatable(Of TextureDesc)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: <
+  - uid: Ghost.Graphics.RHI.TextureDesc
+    name: TextureDesc
+    href: Ghost.Graphics.RHI.TextureDesc.html
+  - name: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.TextureDesc
+    name: TextureDesc
+    href: Ghost.Graphics.RHI.TextureDesc.html
+  - name: )
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: Ghost.Graphics.RHI.TextureDesc.Ghost.Graphics.RHI.RHIUtility.GetTotalBytes
+  commentId: M:Ghost.Graphics.RHI.RHIUtility.GetTotalBytes(Ghost.Graphics.RHI.TextureDesc)
+  parent: Ghost.Graphics.RHI.RHIUtility
+  definition: Ghost.Graphics.RHI.RHIUtility.GetTotalBytes(Ghost.Graphics.RHI.TextureDesc)
+  href: Ghost.Graphics.RHI.RHIUtility.html#Ghost_Graphics_RHI_RHIUtility_GetTotalBytes_Ghost_Graphics_RHI_TextureDesc_
+  name: GetTotalBytes(TextureDesc)
+  nameWithType: RHIUtility.GetTotalBytes(TextureDesc)
+  fullName: Ghost.Graphics.RHI.RHIUtility.GetTotalBytes(Ghost.Graphics.RHI.TextureDesc)
+  spec.csharp:
+  - uid: Ghost.Graphics.RHI.RHIUtility.GetTotalBytes(Ghost.Graphics.RHI.TextureDesc)
+    name: GetTotalBytes
+    href: Ghost.Graphics.RHI.RHIUtility.html#Ghost_Graphics_RHI_RHIUtility_GetTotalBytes_Ghost_Graphics_RHI_TextureDesc_
+  - name: (
+  - uid: Ghost.Graphics.RHI.TextureDesc
+    name: TextureDesc
+    href: Ghost.Graphics.RHI.TextureDesc.html
+  - name: )
+  spec.vb:
+  - uid: Ghost.Graphics.RHI.RHIUtility.GetTotalBytes(Ghost.Graphics.RHI.TextureDesc)
+    name: GetTotalBytes
+    href: Ghost.Graphics.RHI.RHIUtility.html#Ghost_Graphics_RHI_RHIUtility_GetTotalBytes_Ghost_Graphics_RHI_TextureDesc_
+  - name: (
+  - uid: Ghost.Graphics.RHI.TextureDesc
+    name: TextureDesc
+    href: Ghost.Graphics.RHI.TextureDesc.html
+  - name: )
+- uid: System.IEquatable`1
+  commentId: T:System.IEquatable`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  name: IEquatable<T>
+  nameWithType: IEquatable<T>
+  fullName: System.IEquatable<T>
+  nameWithType.vb: IEquatable(Of T)
+  fullName.vb: System.IEquatable(Of T)
+  name.vb: IEquatable(Of T)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: Ghost.Graphics.RHI.RHIUtility.GetTotalBytes(Ghost.Graphics.RHI.TextureDesc)
+  commentId: M:Ghost.Graphics.RHI.RHIUtility.GetTotalBytes(Ghost.Graphics.RHI.TextureDesc)
+  href: Ghost.Graphics.RHI.RHIUtility.html#Ghost_Graphics_RHI_RHIUtility_GetTotalBytes_Ghost_Graphics_RHI_TextureDesc_
+  name: GetTotalBytes(TextureDesc)
+  nameWithType: RHIUtility.GetTotalBytes(TextureDesc)
+  fullName: Ghost.Graphics.RHI.RHIUtility.GetTotalBytes(Ghost.Graphics.RHI.TextureDesc)
+  spec.csharp:
+  - uid: Ghost.Graphics.RHI.RHIUtility.GetTotalBytes(Ghost.Graphics.RHI.TextureDesc)
+    name: GetTotalBytes
+    href: Ghost.Graphics.RHI.RHIUtility.html#Ghost_Graphics_RHI_RHIUtility_GetTotalBytes_Ghost_Graphics_RHI_TextureDesc_
+  - name: (
+  - uid: Ghost.Graphics.RHI.TextureDesc
+    name: TextureDesc
+    href: Ghost.Graphics.RHI.TextureDesc.html
+  - name: )
+  spec.vb:
+  - uid: Ghost.Graphics.RHI.RHIUtility.GetTotalBytes(Ghost.Graphics.RHI.TextureDesc)
+    name: GetTotalBytes
+    href: Ghost.Graphics.RHI.RHIUtility.html#Ghost_Graphics_RHI_RHIUtility_GetTotalBytes_Ghost_Graphics_RHI_TextureDesc_
+  - name: (
+  - uid: Ghost.Graphics.RHI.TextureDesc
+    name: TextureDesc
+    href: Ghost.Graphics.RHI.TextureDesc.html
+  - name: )
+- uid: Ghost.Graphics.RHI.RHIUtility
+  commentId: T:Ghost.Graphics.RHI.RHIUtility
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.RHIUtility.html
+  name: RHIUtility
+  nameWithType: RHIUtility
+  fullName: Ghost.Graphics.RHI.RHIUtility
+- uid: Ghost.Graphics.RHI.TextureDesc.Width*
+  commentId: Overload:Ghost.Graphics.RHI.TextureDesc.Width
+  href: Ghost.Graphics.RHI.TextureDesc.html#Ghost_Graphics_RHI_TextureDesc_Width
+  name: Width
+  nameWithType: TextureDesc.Width
+  fullName: Ghost.Graphics.RHI.TextureDesc.Width
+- uid: System.UInt32
+  commentId: T:System.UInt32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.uint32
+  name: uint
+  nameWithType: uint
+  fullName: uint
+  nameWithType.vb: UInteger
+  fullName.vb: UInteger
+  name.vb: UInteger
+- uid: Ghost.Graphics.RHI.TextureDesc.Height*
+  commentId: Overload:Ghost.Graphics.RHI.TextureDesc.Height
+  href: Ghost.Graphics.RHI.TextureDesc.html#Ghost_Graphics_RHI_TextureDesc_Height
+  name: Height
+  nameWithType: TextureDesc.Height
+  fullName: Ghost.Graphics.RHI.TextureDesc.Height
+- uid: Ghost.Graphics.RHI.TextureDesc.Slice*
+  commentId: Overload:Ghost.Graphics.RHI.TextureDesc.Slice
+  href: Ghost.Graphics.RHI.TextureDesc.html#Ghost_Graphics_RHI_TextureDesc_Slice
+  name: Slice
+  nameWithType: TextureDesc.Slice
+  fullName: Ghost.Graphics.RHI.TextureDesc.Slice
+- uid: Ghost.Graphics.RHI.TextureDesc.Format*
+  commentId: Overload:Ghost.Graphics.RHI.TextureDesc.Format
+  href: Ghost.Graphics.RHI.TextureDesc.html#Ghost_Graphics_RHI_TextureDesc_Format
+  name: Format
+  nameWithType: TextureDesc.Format
+  fullName: Ghost.Graphics.RHI.TextureDesc.Format
+- uid: Ghost.Graphics.RHI.TextureFormat
+  commentId: T:Ghost.Graphics.RHI.TextureFormat
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.TextureFormat.html
+  name: TextureFormat
+  nameWithType: TextureFormat
+  fullName: Ghost.Graphics.RHI.TextureFormat
+- uid: Ghost.Graphics.RHI.TextureDesc.Dimension*
+  commentId: Overload:Ghost.Graphics.RHI.TextureDesc.Dimension
+  href: Ghost.Graphics.RHI.TextureDesc.html#Ghost_Graphics_RHI_TextureDesc_Dimension
+  name: Dimension
+  nameWithType: TextureDesc.Dimension
+  fullName: Ghost.Graphics.RHI.TextureDesc.Dimension
+- uid: Ghost.Graphics.RHI.TextureDimension
+  commentId: T:Ghost.Graphics.RHI.TextureDimension
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.TextureDimension.html
+  name: TextureDimension
+  nameWithType: TextureDimension
+  fullName: Ghost.Graphics.RHI.TextureDimension
+- uid: Ghost.Graphics.RHI.TextureDesc.MipLevels*
+  commentId: Overload:Ghost.Graphics.RHI.TextureDesc.MipLevels
+  href: Ghost.Graphics.RHI.TextureDesc.html#Ghost_Graphics_RHI_TextureDesc_MipLevels
+  name: MipLevels
+  nameWithType: TextureDesc.MipLevels
+  fullName: Ghost.Graphics.RHI.TextureDesc.MipLevels
+- uid: Ghost.Graphics.RHI.TextureDesc.Usage*
+  commentId: Overload:Ghost.Graphics.RHI.TextureDesc.Usage
+  href: Ghost.Graphics.RHI.TextureDesc.html#Ghost_Graphics_RHI_TextureDesc_Usage
+  name: Usage
+  nameWithType: TextureDesc.Usage
+  fullName: Ghost.Graphics.RHI.TextureDesc.Usage
+- uid: Ghost.Graphics.RHI.TextureUsage
+  commentId: T:Ghost.Graphics.RHI.TextureUsage
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.TextureUsage.html
+  name: TextureUsage
+  nameWithType: TextureUsage
+  fullName: Ghost.Graphics.RHI.TextureUsage

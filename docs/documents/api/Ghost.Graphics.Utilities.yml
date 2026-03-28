@@ -1,0 +1,114 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.Utilities
+  commentId: N:Ghost.Graphics.Utilities
+  id: Ghost.Graphics.Utilities
+  children:
+  - Ghost.Graphics.Utilities.ClodBounds
+  - Ghost.Graphics.Utilities.ClodCluster
+  - Ghost.Graphics.Utilities.ClodConfig
+  - Ghost.Graphics.Utilities.ClodGroup
+  - Ghost.Graphics.Utilities.ClodMesh
+  - Ghost.Graphics.Utilities.ClodOutputDelegate
+  - Ghost.Graphics.Utilities.MeshBuilder
+  - Ghost.Graphics.Utilities.MeshletUtility
+  - Ghost.Graphics.Utilities.TextureUtility
+  langs:
+  - csharp
+  - vb
+  name: Ghost.Graphics.Utilities
+  nameWithType: Ghost.Graphics.Utilities
+  fullName: Ghost.Graphics.Utilities
+  type: Namespace
+  assemblies:
+  - Ghost.Graphics
+references:
+- uid: Ghost.Graphics.Utilities.MeshBuilder
+  commentId: T:Ghost.Graphics.Utilities.MeshBuilder
+  href: Ghost.Graphics.Utilities.MeshBuilder.html
+  name: MeshBuilder
+  nameWithType: MeshBuilder
+  fullName: Ghost.Graphics.Utilities.MeshBuilder
+- uid: Ghost.Graphics.Utilities.ClodBounds
+  commentId: T:Ghost.Graphics.Utilities.ClodBounds
+  parent: Ghost.Graphics.Utilities
+  href: Ghost.Graphics.Utilities.ClodBounds.html
+  name: ClodBounds
+  nameWithType: ClodBounds
+  fullName: Ghost.Graphics.Utilities.ClodBounds
+- uid: Ghost.Graphics.Utilities.ClodConfig
+  commentId: T:Ghost.Graphics.Utilities.ClodConfig
+  parent: Ghost.Graphics.Utilities
+  href: Ghost.Graphics.Utilities.ClodConfig.html
+  name: ClodConfig
+  nameWithType: ClodConfig
+  fullName: Ghost.Graphics.Utilities.ClodConfig
+- uid: Ghost.Graphics.Utilities.ClodMesh
+  commentId: T:Ghost.Graphics.Utilities.ClodMesh
+  parent: Ghost.Graphics.Utilities
+  href: Ghost.Graphics.Utilities.ClodMesh.html
+  name: ClodMesh
+  nameWithType: ClodMesh
+  fullName: Ghost.Graphics.Utilities.ClodMesh
+- uid: Ghost.Graphics.Utilities.ClodGroup
+  commentId: T:Ghost.Graphics.Utilities.ClodGroup
+  parent: Ghost.Graphics.Utilities
+  href: Ghost.Graphics.Utilities.ClodGroup.html
+  name: ClodGroup
+  nameWithType: ClodGroup
+  fullName: Ghost.Graphics.Utilities.ClodGroup
+- uid: Ghost.Graphics.Utilities.ClodCluster
+  commentId: T:Ghost.Graphics.Utilities.ClodCluster
+  href: Ghost.Graphics.Utilities.ClodCluster.html
+  name: ClodCluster
+  nameWithType: ClodCluster
+  fullName: Ghost.Graphics.Utilities.ClodCluster
+- uid: Ghost.Graphics.Utilities.ClodOutputDelegate
+  commentId: T:Ghost.Graphics.Utilities.ClodOutputDelegate
+  parent: Ghost.Graphics.Utilities
+  href: Ghost.Graphics.Utilities.ClodOutputDelegate.html
+  name: ClodOutputDelegate
+  nameWithType: ClodOutputDelegate
+  fullName: Ghost.Graphics.Utilities.ClodOutputDelegate
+- uid: Ghost.Graphics.Utilities.MeshletUtility
+  commentId: T:Ghost.Graphics.Utilities.MeshletUtility
+  href: Ghost.Graphics.Utilities.MeshletUtility.html
+  name: MeshletUtility
+  nameWithType: MeshletUtility
+  fullName: Ghost.Graphics.Utilities.MeshletUtility
+- uid: Ghost.Graphics.Utilities.TextureUtility
+  commentId: T:Ghost.Graphics.Utilities.TextureUtility
+  href: Ghost.Graphics.Utilities.TextureUtility.html
+  name: TextureUtility
+  nameWithType: TextureUtility
+  fullName: Ghost.Graphics.Utilities.TextureUtility
+- uid: Ghost.Graphics.Utilities
+  commentId: N:Ghost.Graphics.Utilities
+  href: Ghost.html
+  name: Ghost.Graphics.Utilities
+  nameWithType: Ghost.Graphics.Utilities
+  fullName: Ghost.Graphics.Utilities
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Utilities
+    name: Utilities
+    href: Ghost.Graphics.Utilities.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Utilities
+    name: Utilities
+    href: Ghost.Graphics.Utilities.html

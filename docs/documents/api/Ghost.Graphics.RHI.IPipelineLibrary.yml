@@ -1,0 +1,386 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.IPipelineLibrary
+  commentId: T:Ghost.Graphics.RHI.IPipelineLibrary
+  id: IPipelineLibrary
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.IPipelineLibrary.CompilePSO(Ghost.Graphics.RHI.GraphicsPSODescriptor@,Ghost.Graphics.RHI.GraphicsCompiledResult@)
+  - Ghost.Graphics.RHI.IPipelineLibrary.HasPipeline(Ghost.Core.Key128{Ghost.Graphics.RHI.GraphicsPipeline})
+  - Ghost.Graphics.RHI.IPipelineLibrary.SaveLibraryToDisk(System.String)
+  langs:
+  - csharp
+  - vb
+  name: IPipelineLibrary
+  nameWithType: IPipelineLibrary
+  fullName: Ghost.Graphics.RHI.IPipelineLibrary
+  type: Interface
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IPipelineLibrary.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IPipelineLibrary
+    path: src/Runtime/Ghost.Graphics.RHI/IPipelineLibrary.cs
+    startLine: 4
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: 'public interface IPipelineLibrary : IDisposable'
+    content.vb: Public Interface IPipelineLibrary Inherits IDisposable
+  inheritedMembers:
+  - System.IDisposable.Dispose
+- uid: Ghost.Graphics.RHI.IPipelineLibrary.SaveLibraryToDisk(System.String)
+  commentId: M:Ghost.Graphics.RHI.IPipelineLibrary.SaveLibraryToDisk(System.String)
+  id: SaveLibraryToDisk(System.String)
+  parent: Ghost.Graphics.RHI.IPipelineLibrary
+  langs:
+  - csharp
+  - vb
+  name: SaveLibraryToDisk(string)
+  nameWithType: IPipelineLibrary.SaveLibraryToDisk(string)
+  fullName: Ghost.Graphics.RHI.IPipelineLibrary.SaveLibraryToDisk(string)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IPipelineLibrary.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SaveLibraryToDisk
+    path: src/Runtime/Ghost.Graphics.RHI/IPipelineLibrary.cs
+    startLine: 6
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: void SaveLibraryToDisk(string filePath)
+    parameters:
+    - id: filePath
+      type: System.String
+    content.vb: Sub SaveLibraryToDisk(filePath As String)
+  overload: Ghost.Graphics.RHI.IPipelineLibrary.SaveLibraryToDisk*
+  nameWithType.vb: IPipelineLibrary.SaveLibraryToDisk(String)
+  fullName.vb: Ghost.Graphics.RHI.IPipelineLibrary.SaveLibraryToDisk(String)
+  name.vb: SaveLibraryToDisk(String)
+- uid: Ghost.Graphics.RHI.IPipelineLibrary.HasPipeline(Ghost.Core.Key128{Ghost.Graphics.RHI.GraphicsPipeline})
+  commentId: M:Ghost.Graphics.RHI.IPipelineLibrary.HasPipeline(Ghost.Core.Key128{Ghost.Graphics.RHI.GraphicsPipeline})
+  id: HasPipeline(Ghost.Core.Key128{Ghost.Graphics.RHI.GraphicsPipeline})
+  parent: Ghost.Graphics.RHI.IPipelineLibrary
+  langs:
+  - csharp
+  - vb
+  name: HasPipeline(Key128<GraphicsPipeline>)
+  nameWithType: IPipelineLibrary.HasPipeline(Key128<GraphicsPipeline>)
+  fullName: Ghost.Graphics.RHI.IPipelineLibrary.HasPipeline(Ghost.Core.Key128<Ghost.Graphics.RHI.GraphicsPipeline>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IPipelineLibrary.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: HasPipeline
+    path: src/Runtime/Ghost.Graphics.RHI/IPipelineLibrary.cs
+    startLine: 7
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: bool HasPipeline(Key128<GraphicsPipeline> key)
+    parameters:
+    - id: key
+      type: Ghost.Core.Key128{Ghost.Graphics.RHI.GraphicsPipeline}
+    return:
+      type: System.Boolean
+    content.vb: Function HasPipeline(key As Key128(Of GraphicsPipeline)) As Boolean
+  overload: Ghost.Graphics.RHI.IPipelineLibrary.HasPipeline*
+  nameWithType.vb: IPipelineLibrary.HasPipeline(Key128(Of GraphicsPipeline))
+  fullName.vb: Ghost.Graphics.RHI.IPipelineLibrary.HasPipeline(Ghost.Core.Key128(Of Ghost.Graphics.RHI.GraphicsPipeline))
+  name.vb: HasPipeline(Key128(Of GraphicsPipeline))
+- uid: Ghost.Graphics.RHI.IPipelineLibrary.CompilePSO(Ghost.Graphics.RHI.GraphicsPSODescriptor@,Ghost.Graphics.RHI.GraphicsCompiledResult@)
+  commentId: M:Ghost.Graphics.RHI.IPipelineLibrary.CompilePSO(Ghost.Graphics.RHI.GraphicsPSODescriptor@,Ghost.Graphics.RHI.GraphicsCompiledResult@)
+  id: CompilePSO(Ghost.Graphics.RHI.GraphicsPSODescriptor@,Ghost.Graphics.RHI.GraphicsCompiledResult@)
+  parent: Ghost.Graphics.RHI.IPipelineLibrary
+  langs:
+  - csharp
+  - vb
+  name: CompilePSO(ref readonly GraphicsPSODescriptor, ref readonly GraphicsCompiledResult)
+  nameWithType: IPipelineLibrary.CompilePSO(ref readonly GraphicsPSODescriptor, ref readonly GraphicsCompiledResult)
+  fullName: Ghost.Graphics.RHI.IPipelineLibrary.CompilePSO(ref readonly Ghost.Graphics.RHI.GraphicsPSODescriptor, ref readonly Ghost.Graphics.RHI.GraphicsCompiledResult)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IPipelineLibrary.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CompilePSO
+    path: src/Runtime/Ghost.Graphics.RHI/IPipelineLibrary.cs
+    startLine: 8
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Result<Key128<GraphicsPipeline>> CompilePSO(ref readonly GraphicsPSODescriptor descriptor, ref readonly GraphicsCompiledResult compiled)
+    parameters:
+    - id: descriptor
+      type: Ghost.Graphics.RHI.GraphicsPSODescriptor
+    - id: compiled
+      type: Ghost.Graphics.RHI.GraphicsCompiledResult
+    return:
+      type: Ghost.Core.Result{Ghost.Core.Key128{Ghost.Graphics.RHI.GraphicsPipeline}}
+    content.vb: Function CompilePSO(descriptor As GraphicsPSODescriptor, compiled As GraphicsCompiledResult) As Result(Of Key128(Of GraphicsPipeline))
+  overload: Ghost.Graphics.RHI.IPipelineLibrary.CompilePSO*
+  nameWithType.vb: IPipelineLibrary.CompilePSO(GraphicsPSODescriptor, GraphicsCompiledResult)
+  fullName.vb: Ghost.Graphics.RHI.IPipelineLibrary.CompilePSO(Ghost.Graphics.RHI.GraphicsPSODescriptor, Ghost.Graphics.RHI.GraphicsCompiledResult)
+  name.vb: CompilePSO(GraphicsPSODescriptor, GraphicsCompiledResult)
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.IDisposable.Dispose
+  commentId: M:System.IDisposable.Dispose
+  parent: System.IDisposable
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  name: Dispose()
+  nameWithType: IDisposable.Dispose()
+  fullName: System.IDisposable.Dispose()
+  spec.csharp:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+- uid: System.IDisposable
+  commentId: T:System.IDisposable
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable
+  name: IDisposable
+  nameWithType: IDisposable
+  fullName: System.IDisposable
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RHI.IPipelineLibrary.SaveLibraryToDisk*
+  commentId: Overload:Ghost.Graphics.RHI.IPipelineLibrary.SaveLibraryToDisk
+  href: Ghost.Graphics.RHI.IPipelineLibrary.html#Ghost_Graphics_RHI_IPipelineLibrary_SaveLibraryToDisk_System_String_
+  name: SaveLibraryToDisk
+  nameWithType: IPipelineLibrary.SaveLibraryToDisk
+  fullName: Ghost.Graphics.RHI.IPipelineLibrary.SaveLibraryToDisk
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.string
+  name: string
+  nameWithType: string
+  fullName: string
+  nameWithType.vb: String
+  fullName.vb: String
+  name.vb: String
+- uid: Ghost.Graphics.RHI.IPipelineLibrary.HasPipeline*
+  commentId: Overload:Ghost.Graphics.RHI.IPipelineLibrary.HasPipeline
+  href: Ghost.Graphics.RHI.IPipelineLibrary.html#Ghost_Graphics_RHI_IPipelineLibrary_HasPipeline_Ghost_Core_Key128_Ghost_Graphics_RHI_GraphicsPipeline__
+  name: HasPipeline
+  nameWithType: IPipelineLibrary.HasPipeline
+  fullName: Ghost.Graphics.RHI.IPipelineLibrary.HasPipeline
+- uid: Ghost.Core.Key128{Ghost.Graphics.RHI.GraphicsPipeline}
+  commentId: T:Ghost.Core.Key128{Ghost.Graphics.RHI.GraphicsPipeline}
+  parent: Ghost.Core
+  definition: Ghost.Core.Key128`1
+  href: Ghost.Graphics.RHI.GraphicsPipeline.html
+  name: Key128<GraphicsPipeline>
+  nameWithType: Key128<GraphicsPipeline>
+  fullName: Ghost.Core.Key128<Ghost.Graphics.RHI.GraphicsPipeline>
+  nameWithType.vb: Key128(Of GraphicsPipeline)
+  fullName.vb: Ghost.Core.Key128(Of Ghost.Graphics.RHI.GraphicsPipeline)
+  name.vb: Key128(Of GraphicsPipeline)
+  spec.csharp:
+  - uid: Ghost.Core.Key128`1
+    name: Key128
+  - name: <
+  - uid: Ghost.Graphics.RHI.GraphicsPipeline
+    name: GraphicsPipeline
+    href: Ghost.Graphics.RHI.GraphicsPipeline.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Key128`1
+    name: Key128
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.GraphicsPipeline
+    name: GraphicsPipeline
+    href: Ghost.Graphics.RHI.GraphicsPipeline.html
+  - name: )
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.boolean
+  name: bool
+  nameWithType: bool
+  fullName: bool
+  nameWithType.vb: Boolean
+  fullName.vb: Boolean
+  name.vb: Boolean
+- uid: Ghost.Core.Key128`1
+  commentId: T:Ghost.Core.Key128`1
+  name: Key128<T>
+  nameWithType: Key128<T>
+  fullName: Ghost.Core.Key128<T>
+  nameWithType.vb: Key128(Of T)
+  fullName.vb: Ghost.Core.Key128(Of T)
+  name.vb: Key128(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Key128`1
+    name: Key128
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Key128`1
+    name: Key128
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Core
+  commentId: N:Ghost.Core
+  name: Ghost.Core
+  nameWithType: Ghost.Core
+  fullName: Ghost.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+- uid: Ghost.Graphics.RHI.IPipelineLibrary.CompilePSO*
+  commentId: Overload:Ghost.Graphics.RHI.IPipelineLibrary.CompilePSO
+  href: Ghost.Graphics.RHI.IPipelineLibrary.html#Ghost_Graphics_RHI_IPipelineLibrary_CompilePSO_Ghost_Graphics_RHI_GraphicsPSODescriptor__Ghost_Graphics_RHI_GraphicsCompiledResult__
+  name: CompilePSO
+  nameWithType: IPipelineLibrary.CompilePSO
+  fullName: Ghost.Graphics.RHI.IPipelineLibrary.CompilePSO
+- uid: Ghost.Graphics.RHI.GraphicsPSODescriptor
+  commentId: T:Ghost.Graphics.RHI.GraphicsPSODescriptor
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.GraphicsPSODescriptor.html
+  name: GraphicsPSODescriptor
+  nameWithType: GraphicsPSODescriptor
+  fullName: Ghost.Graphics.RHI.GraphicsPSODescriptor
+- uid: Ghost.Graphics.RHI.GraphicsCompiledResult
+  commentId: T:Ghost.Graphics.RHI.GraphicsCompiledResult
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.GraphicsCompiledResult.html
+  name: GraphicsCompiledResult
+  nameWithType: GraphicsCompiledResult
+  fullName: Ghost.Graphics.RHI.GraphicsCompiledResult
+- uid: Ghost.Core.Result{Ghost.Core.Key128{Ghost.Graphics.RHI.GraphicsPipeline}}
+  commentId: T:Ghost.Core.Result{Ghost.Core.Key128{Ghost.Graphics.RHI.GraphicsPipeline}}
+  parent: Ghost.Core
+  definition: Ghost.Core.Result`1
+  href: Ghost.Graphics.RHI.GraphicsPipeline.html
+  name: Result<Key128<GraphicsPipeline>>
+  nameWithType: Result<Key128<GraphicsPipeline>>
+  fullName: Ghost.Core.Result<Ghost.Core.Key128<Ghost.Graphics.RHI.GraphicsPipeline>>
+  nameWithType.vb: Result(Of Key128(Of GraphicsPipeline))
+  fullName.vb: Ghost.Core.Result(Of Ghost.Core.Key128(Of Ghost.Graphics.RHI.GraphicsPipeline))
+  name.vb: Result(Of Key128(Of GraphicsPipeline))
+  spec.csharp:
+  - uid: Ghost.Core.Result`1
+    name: Result
+  - name: <
+  - uid: Ghost.Core.Key128`1
+    name: Key128
+  - name: <
+  - uid: Ghost.Graphics.RHI.GraphicsPipeline
+    name: GraphicsPipeline
+    href: Ghost.Graphics.RHI.GraphicsPipeline.html
+  - name: '>'
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Result`1
+    name: Result
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Core.Key128`1
+    name: Key128
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.GraphicsPipeline
+    name: GraphicsPipeline
+    href: Ghost.Graphics.RHI.GraphicsPipeline.html
+  - name: )
+  - name: )
+- uid: Ghost.Core.Result`1
+  commentId: T:Ghost.Core.Result`1
+  name: Result<T>
+  nameWithType: Result<T>
+  fullName: Ghost.Core.Result<T>
+  nameWithType.vb: Result(Of T)
+  fullName.vb: Ghost.Core.Result(Of T)
+  name.vb: Result(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Result`1
+    name: Result
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Result`1
+    name: Result
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )

@@ -1,0 +1,54 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics
+  commentId: N:Ghost.Graphics
+  id: Ghost.Graphics
+  children:
+  - Ghost.Graphics.RenderSystem
+  - Ghost.Graphics.ResourceManager
+  langs:
+  - csharp
+  - vb
+  name: Ghost.Graphics
+  nameWithType: Ghost.Graphics
+  fullName: Ghost.Graphics
+  type: Namespace
+  assemblies:
+  - Ghost.Graphics
+references:
+- uid: Ghost.Graphics.RenderSystem
+  commentId: T:Ghost.Graphics.RenderSystem
+  parent: Ghost.Graphics
+  href: Ghost.Graphics.RenderSystem.html
+  name: RenderSystem
+  nameWithType: RenderSystem
+  fullName: Ghost.Graphics.RenderSystem
+- uid: Ghost.Graphics.ResourceManager
+  commentId: T:Ghost.Graphics.ResourceManager
+  parent: Ghost.Graphics
+  href: Ghost.Graphics.ResourceManager.html
+  name: ResourceManager
+  nameWithType: ResourceManager
+  fullName: Ghost.Graphics.ResourceManager
+- uid: Ghost.Graphics
+  commentId: N:Ghost.Graphics
+  href: Ghost.html
+  name: Ghost.Graphics
+  nameWithType: Ghost.Graphics
+  fullName: Ghost.Graphics
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html

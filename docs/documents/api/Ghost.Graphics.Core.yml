@@ -1,0 +1,256 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.Core
+  commentId: N:Ghost.Graphics.Core
+  id: Ghost.Graphics.Core
+  children:
+  - Ghost.Graphics.Core.Frustum
+  - Ghost.Graphics.Core.Frustum.corner_array
+  - Ghost.Graphics.Core.Frustum.plane_array
+  - Ghost.Graphics.Core.GateFit
+  - Ghost.Graphics.Core.Material
+  - Ghost.Graphics.Core.MaterialPalette
+  - Ghost.Graphics.Core.Mesh
+  - Ghost.Graphics.Core.MeshExtension
+  - Ghost.Graphics.Core.Meshlet
+  - Ghost.Graphics.Core.MeshletGroup
+  - Ghost.Graphics.Core.MeshletHierarchyNode
+  - Ghost.Graphics.Core.MeshletMeshData
+  - Ghost.Graphics.Core.RenderList
+  - Ghost.Graphics.Core.RenderList.Enumerator
+  - Ghost.Graphics.Core.RenderRecord
+  - Ghost.Graphics.Core.RenderRequest
+  - Ghost.Graphics.Core.RenderView
+  - Ghost.Graphics.Core.RenderingContext
+  - Ghost.Graphics.Core.RenderingLayerMask
+  - Ghost.Graphics.Core.Shader
+  - Ghost.Graphics.Core.ShaderProperty
+  langs:
+  - csharp
+  - vb
+  name: Ghost.Graphics.Core
+  nameWithType: Ghost.Graphics.Core
+  fullName: Ghost.Graphics.Core
+  type: Namespace
+  assemblies:
+  - Ghost.Graphics
+references:
+- uid: Ghost.Graphics.Core.Material
+  commentId: T:Ghost.Graphics.Core.Material
+  parent: Ghost.Graphics.Core
+  href: Ghost.Graphics.Core.Material.html
+  name: Material
+  nameWithType: Material
+  fullName: Ghost.Graphics.Core.Material
+- uid: Ghost.Graphics.Core.MaterialPalette
+  commentId: T:Ghost.Graphics.Core.MaterialPalette
+  parent: Ghost.Graphics.Core
+  href: Ghost.Graphics.Core.MaterialPalette.html
+  name: MaterialPalette
+  nameWithType: MaterialPalette
+  fullName: Ghost.Graphics.Core.MaterialPalette
+- uid: Ghost.Graphics.Core.Meshlet
+  commentId: T:Ghost.Graphics.Core.Meshlet
+  href: Ghost.Graphics.Core.Meshlet.html
+  name: Meshlet
+  nameWithType: Meshlet
+  fullName: Ghost.Graphics.Core.Meshlet
+- uid: Ghost.Graphics.Core.MeshletGroup
+  commentId: T:Ghost.Graphics.Core.MeshletGroup
+  href: Ghost.Graphics.Core.MeshletGroup.html
+  name: MeshletGroup
+  nameWithType: MeshletGroup
+  fullName: Ghost.Graphics.Core.MeshletGroup
+- uid: Ghost.Graphics.Core.MeshletHierarchyNode
+  commentId: T:Ghost.Graphics.Core.MeshletHierarchyNode
+  href: Ghost.Graphics.Core.MeshletHierarchyNode.html
+  name: MeshletHierarchyNode
+  nameWithType: MeshletHierarchyNode
+  fullName: Ghost.Graphics.Core.MeshletHierarchyNode
+- uid: Ghost.Graphics.Core.MeshletMeshData
+  commentId: T:Ghost.Graphics.Core.MeshletMeshData
+  parent: Ghost.Graphics.Core
+  href: Ghost.Graphics.Core.MeshletMeshData.html
+  name: MeshletMeshData
+  nameWithType: MeshletMeshData
+  fullName: Ghost.Graphics.Core.MeshletMeshData
+- uid: Ghost.Graphics.Core.Mesh
+  commentId: T:Ghost.Graphics.Core.Mesh
+  parent: Ghost.Graphics.Core
+  href: Ghost.Graphics.Core.Mesh.html
+  name: Mesh
+  nameWithType: Mesh
+  fullName: Ghost.Graphics.Core.Mesh
+- uid: Ghost.Graphics.Core.MeshExtension
+  commentId: T:Ghost.Graphics.Core.MeshExtension
+  parent: Ghost.Graphics.Core
+  href: Ghost.Graphics.Core.MeshExtension.html
+  name: MeshExtension
+  nameWithType: MeshExtension
+  fullName: Ghost.Graphics.Core.MeshExtension
+- uid: Ghost.Graphics.Core.RenderingContext
+  commentId: T:Ghost.Graphics.Core.RenderingContext
+  parent: Ghost.Graphics.Core
+  href: Ghost.Graphics.Core.RenderingContext.html
+  name: RenderingContext
+  nameWithType: RenderingContext
+  fullName: Ghost.Graphics.Core.RenderingContext
+- uid: Ghost.Graphics.Core.RenderingLayerMask
+  commentId: T:Ghost.Graphics.Core.RenderingLayerMask
+  parent: Ghost.Graphics.Core
+  href: Ghost.Graphics.Core.RenderingLayerMask.html
+  name: RenderingLayerMask
+  nameWithType: RenderingLayerMask
+  fullName: Ghost.Graphics.Core.RenderingLayerMask
+- uid: Ghost.Graphics.Core.RenderRecord
+  commentId: T:Ghost.Graphics.Core.RenderRecord
+  parent: Ghost.Graphics.Core
+  href: Ghost.Graphics.Core.RenderRecord.html
+  name: RenderRecord
+  nameWithType: RenderRecord
+  fullName: Ghost.Graphics.Core.RenderRecord
+- uid: Ghost.Graphics.Core.RenderList
+  commentId: T:Ghost.Graphics.Core.RenderList
+  parent: Ghost.Graphics.Core
+  href: Ghost.Graphics.Core.RenderList.html
+  name: RenderList
+  nameWithType: RenderList
+  fullName: Ghost.Graphics.Core.RenderList
+- uid: Ghost.Graphics.Core.RenderList.Enumerator
+  commentId: T:Ghost.Graphics.Core.RenderList.Enumerator
+  parent: Ghost.Graphics.Core
+  href: Ghost.Graphics.Core.RenderList.html
+  name: RenderList.Enumerator
+  nameWithType: RenderList.Enumerator
+  fullName: Ghost.Graphics.Core.RenderList.Enumerator
+  spec.csharp:
+  - uid: Ghost.Graphics.Core.RenderList
+    name: RenderList
+    href: Ghost.Graphics.Core.RenderList.html
+  - name: .
+  - uid: Ghost.Graphics.Core.RenderList.Enumerator
+    name: Enumerator
+    href: Ghost.Graphics.Core.RenderList.Enumerator.html
+  spec.vb:
+  - uid: Ghost.Graphics.Core.RenderList
+    name: RenderList
+    href: Ghost.Graphics.Core.RenderList.html
+  - name: .
+  - uid: Ghost.Graphics.Core.RenderList.Enumerator
+    name: Enumerator
+    href: Ghost.Graphics.Core.RenderList.Enumerator.html
+- uid: Ghost.Graphics.Core.GateFit
+  commentId: T:Ghost.Graphics.Core.GateFit
+  parent: Ghost.Graphics.Core
+  href: Ghost.Graphics.Core.GateFit.html
+  name: GateFit
+  nameWithType: GateFit
+  fullName: Ghost.Graphics.Core.GateFit
+- uid: Ghost.Graphics.Core.Frustum
+  commentId: T:Ghost.Graphics.Core.Frustum
+  href: Ghost.Graphics.Core.Frustum.html
+  name: Frustum
+  nameWithType: Frustum
+  fullName: Ghost.Graphics.Core.Frustum
+- uid: Ghost.Graphics.Core.Frustum.plane_array
+  commentId: T:Ghost.Graphics.Core.Frustum.plane_array
+  parent: Ghost.Graphics.Core
+  href: Ghost.Graphics.Core.Frustum.html
+  name: Frustum.plane_array
+  nameWithType: Frustum.plane_array
+  fullName: Ghost.Graphics.Core.Frustum.plane_array
+  spec.csharp:
+  - uid: Ghost.Graphics.Core.Frustum
+    name: Frustum
+    href: Ghost.Graphics.Core.Frustum.html
+  - name: .
+  - uid: Ghost.Graphics.Core.Frustum.plane_array
+    name: plane_array
+    href: Ghost.Graphics.Core.Frustum.plane_array.html
+  spec.vb:
+  - uid: Ghost.Graphics.Core.Frustum
+    name: Frustum
+    href: Ghost.Graphics.Core.Frustum.html
+  - name: .
+  - uid: Ghost.Graphics.Core.Frustum.plane_array
+    name: plane_array
+    href: Ghost.Graphics.Core.Frustum.plane_array.html
+- uid: Ghost.Graphics.Core.Frustum.corner_array
+  commentId: T:Ghost.Graphics.Core.Frustum.corner_array
+  parent: Ghost.Graphics.Core
+  href: Ghost.Graphics.Core.Frustum.html
+  name: Frustum.corner_array
+  nameWithType: Frustum.corner_array
+  fullName: Ghost.Graphics.Core.Frustum.corner_array
+  spec.csharp:
+  - uid: Ghost.Graphics.Core.Frustum
+    name: Frustum
+    href: Ghost.Graphics.Core.Frustum.html
+  - name: .
+  - uid: Ghost.Graphics.Core.Frustum.corner_array
+    name: corner_array
+    href: Ghost.Graphics.Core.Frustum.corner_array.html
+  spec.vb:
+  - uid: Ghost.Graphics.Core.Frustum
+    name: Frustum
+    href: Ghost.Graphics.Core.Frustum.html
+  - name: .
+  - uid: Ghost.Graphics.Core.Frustum.corner_array
+    name: corner_array
+    href: Ghost.Graphics.Core.Frustum.corner_array.html
+- uid: Ghost.Graphics.Core.RenderView
+  commentId: T:Ghost.Graphics.Core.RenderView
+  parent: Ghost.Graphics.Core
+  href: Ghost.Graphics.Core.RenderView.html
+  name: RenderView
+  nameWithType: RenderView
+  fullName: Ghost.Graphics.Core.RenderView
+- uid: Ghost.Graphics.Core.RenderRequest
+  commentId: T:Ghost.Graphics.Core.RenderRequest
+  parent: Ghost.Graphics.Core
+  href: Ghost.Graphics.Core.RenderRequest.html
+  name: RenderRequest
+  nameWithType: RenderRequest
+  fullName: Ghost.Graphics.Core.RenderRequest
+- uid: Ghost.Graphics.Core.ShaderProperty
+  commentId: T:Ghost.Graphics.Core.ShaderProperty
+  href: Ghost.Graphics.Core.ShaderProperty.html
+  name: ShaderProperty
+  nameWithType: ShaderProperty
+  fullName: Ghost.Graphics.Core.ShaderProperty
+- uid: Ghost.Graphics.Core.Shader
+  commentId: T:Ghost.Graphics.Core.Shader
+  href: Ghost.Graphics.Core.Shader.html
+  name: Shader
+  nameWithType: Shader
+  fullName: Ghost.Graphics.Core.Shader
+- uid: Ghost.Graphics.Core
+  commentId: N:Ghost.Graphics.Core
+  href: Ghost.html
+  name: Ghost.Graphics.Core
+  nameWithType: Ghost.Graphics.Core
+  fullName: Ghost.Graphics.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Core
+    name: Core
+    href: Ghost.Graphics.Core.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Core
+    name: Core
+    href: Ghost.Graphics.Core.html

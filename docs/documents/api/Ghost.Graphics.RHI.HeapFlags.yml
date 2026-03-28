@@ -1,0 +1,201 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.HeapFlags
+  commentId: T:Ghost.Graphics.RHI.HeapFlags
+  id: HeapFlags
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.HeapFlags.AllowBuffers
+  - Ghost.Graphics.RHI.HeapFlags.AllowRTAndDS
+  - Ghost.Graphics.RHI.HeapFlags.AllowTextures
+  - Ghost.Graphics.RHI.HeapFlags.AlowBufferAndTexture
+  - Ghost.Graphics.RHI.HeapFlags.None
+  langs:
+  - csharp
+  - vb
+  name: HeapFlags
+  nameWithType: HeapFlags
+  fullName: Ghost.Graphics.RHI.HeapFlags
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: HeapFlags
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+    startLine: 36
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public enum HeapFlags
+    content.vb: Public Enum HeapFlags
+- uid: Ghost.Graphics.RHI.HeapFlags.None
+  commentId: F:Ghost.Graphics.RHI.HeapFlags.None
+  id: None
+  parent: Ghost.Graphics.RHI.HeapFlags
+  langs:
+  - csharp
+  - vb
+  name: None
+  nameWithType: HeapFlags.None
+  fullName: Ghost.Graphics.RHI.HeapFlags.None
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: None
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+    startLine: 38
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: None = 0
+    return:
+      type: Ghost.Graphics.RHI.HeapFlags
+- uid: Ghost.Graphics.RHI.HeapFlags.AllowBuffers
+  commentId: F:Ghost.Graphics.RHI.HeapFlags.AllowBuffers
+  id: AllowBuffers
+  parent: Ghost.Graphics.RHI.HeapFlags
+  langs:
+  - csharp
+  - vb
+  name: AllowBuffers
+  nameWithType: HeapFlags.AllowBuffers
+  fullName: Ghost.Graphics.RHI.HeapFlags.AllowBuffers
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AllowBuffers
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+    startLine: 39
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: AllowBuffers = 1
+    return:
+      type: Ghost.Graphics.RHI.HeapFlags
+- uid: Ghost.Graphics.RHI.HeapFlags.AllowTextures
+  commentId: F:Ghost.Graphics.RHI.HeapFlags.AllowTextures
+  id: AllowTextures
+  parent: Ghost.Graphics.RHI.HeapFlags
+  langs:
+  - csharp
+  - vb
+  name: AllowTextures
+  nameWithType: HeapFlags.AllowTextures
+  fullName: Ghost.Graphics.RHI.HeapFlags.AllowTextures
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AllowTextures
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+    startLine: 40
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: AllowTextures = 2
+    return:
+      type: Ghost.Graphics.RHI.HeapFlags
+- uid: Ghost.Graphics.RHI.HeapFlags.AllowRTAndDS
+  commentId: F:Ghost.Graphics.RHI.HeapFlags.AllowRTAndDS
+  id: AllowRTAndDS
+  parent: Ghost.Graphics.RHI.HeapFlags
+  langs:
+  - csharp
+  - vb
+  name: AllowRTAndDS
+  nameWithType: HeapFlags.AllowRTAndDS
+  fullName: Ghost.Graphics.RHI.HeapFlags.AllowRTAndDS
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AllowRTAndDS
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+    startLine: 41
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: AllowRTAndDS = 3
+    return:
+      type: Ghost.Graphics.RHI.HeapFlags
+- uid: Ghost.Graphics.RHI.HeapFlags.AlowBufferAndTexture
+  commentId: F:Ghost.Graphics.RHI.HeapFlags.AlowBufferAndTexture
+  id: AlowBufferAndTexture
+  parent: Ghost.Graphics.RHI.HeapFlags
+  langs:
+  - csharp
+  - vb
+  name: AlowBufferAndTexture
+  nameWithType: HeapFlags.AlowBufferAndTexture
+  fullName: Ghost.Graphics.RHI.HeapFlags.AlowBufferAndTexture
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AlowBufferAndTexture
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+    startLine: 42
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: AlowBufferAndTexture = 4
+    return:
+      type: Ghost.Graphics.RHI.HeapFlags
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.HeapFlags
+  commentId: T:Ghost.Graphics.RHI.HeapFlags
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.HeapFlags.html
+  name: HeapFlags
+  nameWithType: HeapFlags
+  fullName: Ghost.Graphics.RHI.HeapFlags

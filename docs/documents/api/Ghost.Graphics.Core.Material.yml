@@ -1,0 +1,1259 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.Core.Material
+  commentId: T:Ghost.Graphics.Core.Material
+  id: Material
+  parent: Ghost.Graphics.Core
+  children:
+  - Ghost.Graphics.Core.Material.ActivePassIndex
+  - Ghost.Graphics.Core.Material.GetPassPipelineOverride(System.Int32)
+  - Ghost.Graphics.Core.Material.GetPropertyCache``1
+  - Ghost.Graphics.Core.Material.GetRawPropertyCache
+  - Ghost.Graphics.Core.Material.IsDirty
+  - Ghost.Graphics.Core.Material.IsKeywordEnabled(Ghost.Graphics.ResourceManager,System.Int32)
+  - Ghost.Graphics.Core.Material.MaterialRenderType
+  - Ghost.Graphics.Core.Material.ReleaseResource(Ghost.Graphics.RHI.IResourceDatabase)
+  - Ghost.Graphics.Core.Material.SetKeyword(Ghost.Graphics.ResourceManager,System.Int32,System.Boolean)
+  - Ghost.Graphics.Core.Material.SetPassPipelineOverride(System.Int32,Ghost.Core.Graphics.PipelineState@)
+  - Ghost.Graphics.Core.Material.SetPropertyCache``1(``0@)
+  - Ghost.Graphics.Core.Material.SetRawPropertyCache(System.ReadOnlySpan{System.Byte})
+  - Ghost.Graphics.Core.Material.SetShader(Ghost.Core.Identifier{Ghost.Graphics.Core.Shader},Ghost.Graphics.ResourceManager,Ghost.Graphics.RHI.IResourceDatabase,Ghost.Graphics.RHI.IResourceAllocator)
+  - Ghost.Graphics.Core.Material.Shader
+  - Ghost.Graphics.Core.Material.UploadData(Ghost.Graphics.RHI.ICommandBuffer,Ghost.Graphics.RHI.IResourceDatabase)
+  langs:
+  - csharp
+  - vb
+  name: Material
+  nameWithType: Material
+  fullName: Ghost.Graphics.Core.Material
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Material.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Material
+    path: src/Runtime/Ghost.Graphics/Core/Material.cs
+    startLine: 44
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: 'public struct Material : IResourceReleasable'
+    content.vb: Public Structure Material Implements IResourceReleasable
+  implements:
+  - Ghost.Graphics.RHI.IResourceReleasable
+  inheritedMembers:
+  - System.ValueType.Equals(System.Object)
+  - System.ValueType.GetHashCode
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Graphics.Core.Material.Shader
+  commentId: P:Ghost.Graphics.Core.Material.Shader
+  id: Shader
+  parent: Ghost.Graphics.Core.Material
+  langs:
+  - csharp
+  - vb
+  name: Shader
+  nameWithType: Material.Shader
+  fullName: Ghost.Graphics.Core.Material.Shader
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Material.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Shader
+    path: src/Runtime/Ghost.Graphics/Core/Material.cs
+    startLine: 59
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public readonly Identifier<Shader> Shader { get; }
+    parameters: []
+    return:
+      type: Ghost.Core.Identifier{Ghost.Graphics.Core.Shader}
+    content.vb: Public ReadOnly Property Shader As Identifier(Of Shader)
+  overload: Ghost.Graphics.Core.Material.Shader*
+- uid: Ghost.Graphics.Core.Material.IsDirty
+  commentId: P:Ghost.Graphics.Core.Material.IsDirty
+  id: IsDirty
+  parent: Ghost.Graphics.Core.Material
+  langs:
+  - csharp
+  - vb
+  name: IsDirty
+  nameWithType: Material.IsDirty
+  fullName: Ghost.Graphics.Core.Material.IsDirty
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Material.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IsDirty
+    path: src/Runtime/Ghost.Graphics/Core/Material.cs
+    startLine: 60
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public readonly bool IsDirty { get; }
+    parameters: []
+    return:
+      type: System.Boolean
+    content.vb: Public ReadOnly Property IsDirty As Boolean
+  overload: Ghost.Graphics.Core.Material.IsDirty*
+- uid: Ghost.Graphics.Core.Material.ActivePassIndex
+  commentId: P:Ghost.Graphics.Core.Material.ActivePassIndex
+  id: ActivePassIndex
+  parent: Ghost.Graphics.Core.Material
+  langs:
+  - csharp
+  - vb
+  name: ActivePassIndex
+  nameWithType: Material.ActivePassIndex
+  fullName: Ghost.Graphics.Core.Material.ActivePassIndex
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Material.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ActivePassIndex
+    path: src/Runtime/Ghost.Graphics/Core/Material.cs
+    startLine: 62
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public int ActivePassIndex { readonly get; set; }
+    parameters: []
+    return:
+      type: System.Int32
+    content.vb: Public Property ActivePassIndex As Integer
+  overload: Ghost.Graphics.Core.Material.ActivePassIndex*
+- uid: Ghost.Graphics.Core.Material.MaterialRenderType
+  commentId: P:Ghost.Graphics.Core.Material.MaterialRenderType
+  id: MaterialRenderType
+  parent: Ghost.Graphics.Core.Material
+  langs:
+  - csharp
+  - vb
+  name: MaterialRenderType
+  nameWithType: Material.MaterialRenderType
+  fullName: Ghost.Graphics.Core.Material.MaterialRenderType
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Material.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: MaterialRenderType
+    path: src/Runtime/Ghost.Graphics/Core/Material.cs
+    startLine: 68
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public uint MaterialRenderType { readonly get; set; }
+    parameters: []
+    return:
+      type: System.UInt32
+    content.vb: Public Property MaterialRenderType As UInteger
+  overload: Ghost.Graphics.Core.Material.MaterialRenderType*
+- uid: Ghost.Graphics.Core.Material.SetShader(Ghost.Core.Identifier{Ghost.Graphics.Core.Shader},Ghost.Graphics.ResourceManager,Ghost.Graphics.RHI.IResourceDatabase,Ghost.Graphics.RHI.IResourceAllocator)
+  commentId: M:Ghost.Graphics.Core.Material.SetShader(Ghost.Core.Identifier{Ghost.Graphics.Core.Shader},Ghost.Graphics.ResourceManager,Ghost.Graphics.RHI.IResourceDatabase,Ghost.Graphics.RHI.IResourceAllocator)
+  id: SetShader(Ghost.Core.Identifier{Ghost.Graphics.Core.Shader},Ghost.Graphics.ResourceManager,Ghost.Graphics.RHI.IResourceDatabase,Ghost.Graphics.RHI.IResourceAllocator)
+  parent: Ghost.Graphics.Core.Material
+  langs:
+  - csharp
+  - vb
+  name: SetShader(Identifier<Shader>, ResourceManager, IResourceDatabase, IResourceAllocator)
+  nameWithType: Material.SetShader(Identifier<Shader>, ResourceManager, IResourceDatabase, IResourceAllocator)
+  fullName: Ghost.Graphics.Core.Material.SetShader(Ghost.Core.Identifier<Ghost.Graphics.Core.Shader>, Ghost.Graphics.ResourceManager, Ghost.Graphics.RHI.IResourceDatabase, Ghost.Graphics.RHI.IResourceAllocator)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Material.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SetShader
+    path: src/Runtime/Ghost.Graphics/Core/Material.cs
+    startLine: 73
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public Error SetShader(Identifier<Shader> shaderId, ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator)
+    parameters:
+    - id: shaderId
+      type: Ghost.Core.Identifier{Ghost.Graphics.Core.Shader}
+    - id: resourceManager
+      type: Ghost.Graphics.ResourceManager
+    - id: resourceDatabase
+      type: Ghost.Graphics.RHI.IResourceDatabase
+    - id: resourceAllocator
+      type: Ghost.Graphics.RHI.IResourceAllocator
+    return:
+      type: Ghost.Core.Error
+    content.vb: Public Function SetShader(shaderId As Identifier(Of Shader), resourceManager As ResourceManager, resourceDatabase As IResourceDatabase, resourceAllocator As IResourceAllocator) As [Error]
+  overload: Ghost.Graphics.Core.Material.SetShader*
+  nameWithType.vb: Material.SetShader(Identifier(Of Shader), ResourceManager, IResourceDatabase, IResourceAllocator)
+  fullName.vb: Ghost.Graphics.Core.Material.SetShader(Ghost.Core.Identifier(Of Ghost.Graphics.Core.Shader), Ghost.Graphics.ResourceManager, Ghost.Graphics.RHI.IResourceDatabase, Ghost.Graphics.RHI.IResourceAllocator)
+  name.vb: SetShader(Identifier(Of Shader), ResourceManager, IResourceDatabase, IResourceAllocator)
+- uid: Ghost.Graphics.Core.Material.GetPropertyCache``1
+  commentId: M:Ghost.Graphics.Core.Material.GetPropertyCache``1
+  id: GetPropertyCache``1
+  parent: Ghost.Graphics.Core.Material
+  langs:
+  - csharp
+  - vb
+  name: GetPropertyCache<T>()
+  nameWithType: Material.GetPropertyCache<T>()
+  fullName: Ghost.Graphics.Core.Material.GetPropertyCache<T>()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Material.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetPropertyCache
+    path: src/Runtime/Ghost.Graphics/Core/Material.cs
+    startLine: 129
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: 'public readonly Result<T, Error> GetPropertyCache<T>() where T : unmanaged'
+    typeParameters:
+    - id: T
+    return:
+      type: Ghost.Core.Result{{T},Ghost.Core.Error}
+    content.vb: Public Function GetPropertyCache(Of T As Structure)() As Result(Of T, [Error])
+  overload: Ghost.Graphics.Core.Material.GetPropertyCache*
+  nameWithType.vb: Material.GetPropertyCache(Of T)()
+  fullName.vb: Ghost.Graphics.Core.Material.GetPropertyCache(Of T)()
+  name.vb: GetPropertyCache(Of T)()
+- uid: Ghost.Graphics.Core.Material.GetRawPropertyCache
+  commentId: M:Ghost.Graphics.Core.Material.GetRawPropertyCache
+  id: GetRawPropertyCache
+  parent: Ghost.Graphics.Core.Material
+  langs:
+  - csharp
+  - vb
+  name: GetRawPropertyCache()
+  nameWithType: Material.GetRawPropertyCache()
+  fullName: Ghost.Graphics.Core.Material.GetRawPropertyCache()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Material.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetRawPropertyCache
+    path: src/Runtime/Ghost.Graphics/Core/Material.cs
+    startLine: 141
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public readonly ReadOnlySpan<byte> GetRawPropertyCache()
+    return:
+      type: System.ReadOnlySpan{System.Byte}
+    content.vb: Public Function GetRawPropertyCache() As ReadOnlySpan(Of Byte)
+  overload: Ghost.Graphics.Core.Material.GetRawPropertyCache*
+- uid: Ghost.Graphics.Core.Material.SetPropertyCache``1(``0@)
+  commentId: M:Ghost.Graphics.Core.Material.SetPropertyCache``1(``0@)
+  id: SetPropertyCache``1(``0@)
+  parent: Ghost.Graphics.Core.Material
+  langs:
+  - csharp
+  - vb
+  name: SetPropertyCache<T>(scoped ref readonly T)
+  nameWithType: Material.SetPropertyCache<T>(scoped ref readonly T)
+  fullName: Ghost.Graphics.Core.Material.SetPropertyCache<T>(scoped ref readonly T)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Material.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SetPropertyCache
+    path: src/Runtime/Ghost.Graphics/Core/Material.cs
+    startLine: 152
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: 'public Error SetPropertyCache<T>(scoped ref readonly T data) where T : unmanaged'
+    parameters:
+    - id: data
+      type: '{T}'
+    typeParameters:
+    - id: T
+    return:
+      type: Ghost.Core.Error
+    content.vb: Public Function SetPropertyCache(Of T As Structure)(data As T) As [Error]
+  overload: Ghost.Graphics.Core.Material.SetPropertyCache*
+  nameWithType.vb: Material.SetPropertyCache(Of T)(T)
+  fullName.vb: Ghost.Graphics.Core.Material.SetPropertyCache(Of T)(T)
+  name.vb: SetPropertyCache(Of T)(T)
+- uid: Ghost.Graphics.Core.Material.SetRawPropertyCache(System.ReadOnlySpan{System.Byte})
+  commentId: M:Ghost.Graphics.Core.Material.SetRawPropertyCache(System.ReadOnlySpan{System.Byte})
+  id: SetRawPropertyCache(System.ReadOnlySpan{System.Byte})
+  parent: Ghost.Graphics.Core.Material
+  langs:
+  - csharp
+  - vb
+  name: SetRawPropertyCache(ReadOnlySpan<byte>)
+  nameWithType: Material.SetRawPropertyCache(ReadOnlySpan<byte>)
+  fullName: Ghost.Graphics.Core.Material.SetRawPropertyCache(System.ReadOnlySpan<byte>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Material.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SetRawPropertyCache
+    path: src/Runtime/Ghost.Graphics/Core/Material.cs
+    startLine: 173
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public Error SetRawPropertyCache(ReadOnlySpan<byte> data)
+    parameters:
+    - id: data
+      type: System.ReadOnlySpan{System.Byte}
+    return:
+      type: Ghost.Core.Error
+    content.vb: Public Function SetRawPropertyCache(data As ReadOnlySpan(Of Byte)) As [Error]
+  overload: Ghost.Graphics.Core.Material.SetRawPropertyCache*
+  nameWithType.vb: Material.SetRawPropertyCache(ReadOnlySpan(Of Byte))
+  fullName.vb: Ghost.Graphics.Core.Material.SetRawPropertyCache(System.ReadOnlySpan(Of Byte))
+  name.vb: SetRawPropertyCache(ReadOnlySpan(Of Byte))
+- uid: Ghost.Graphics.Core.Material.GetPassPipelineOverride(System.Int32)
+  commentId: M:Ghost.Graphics.Core.Material.GetPassPipelineOverride(System.Int32)
+  id: GetPassPipelineOverride(System.Int32)
+  parent: Ghost.Graphics.Core.Material
+  langs:
+  - csharp
+  - vb
+  name: GetPassPipelineOverride(int)
+  nameWithType: Material.GetPassPipelineOverride(int)
+  fullName: Ghost.Graphics.Core.Material.GetPassPipelineOverride(int)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Material.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetPassPipelineOverride
+    path: src/Runtime/Ghost.Graphics/Core/Material.cs
+    startLine: 192
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public readonly PipelineState GetPassPipelineOverride(int passIndex)
+    parameters:
+    - id: passIndex
+      type: System.Int32
+    return:
+      type: Ghost.Core.Graphics.PipelineState
+    content.vb: Public Function GetPassPipelineOverride(passIndex As Integer) As PipelineState
+  overload: Ghost.Graphics.Core.Material.GetPassPipelineOverride*
+  nameWithType.vb: Material.GetPassPipelineOverride(Integer)
+  fullName.vb: Ghost.Graphics.Core.Material.GetPassPipelineOverride(Integer)
+  name.vb: GetPassPipelineOverride(Integer)
+- uid: Ghost.Graphics.Core.Material.SetPassPipelineOverride(System.Int32,Ghost.Core.Graphics.PipelineState@)
+  commentId: M:Ghost.Graphics.Core.Material.SetPassPipelineOverride(System.Int32,Ghost.Core.Graphics.PipelineState@)
+  id: SetPassPipelineOverride(System.Int32,Ghost.Core.Graphics.PipelineState@)
+  parent: Ghost.Graphics.Core.Material
+  langs:
+  - csharp
+  - vb
+  name: SetPassPipelineOverride(int, scoped ref readonly PipelineState)
+  nameWithType: Material.SetPassPipelineOverride(int, scoped ref readonly PipelineState)
+  fullName: Ghost.Graphics.Core.Material.SetPassPipelineOverride(int, scoped ref readonly Ghost.Core.Graphics.PipelineState)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Material.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SetPassPipelineOverride
+    path: src/Runtime/Ghost.Graphics/Core/Material.cs
+    startLine: 198
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public void SetPassPipelineOverride(int passIndex, scoped ref readonly PipelineState options)
+    parameters:
+    - id: passIndex
+      type: System.Int32
+    - id: options
+      type: Ghost.Core.Graphics.PipelineState
+    content.vb: Public Sub SetPassPipelineOverride(passIndex As Integer, options As PipelineState)
+  overload: Ghost.Graphics.Core.Material.SetPassPipelineOverride*
+  nameWithType.vb: Material.SetPassPipelineOverride(Integer, PipelineState)
+  fullName.vb: Ghost.Graphics.Core.Material.SetPassPipelineOverride(Integer, Ghost.Core.Graphics.PipelineState)
+  name.vb: SetPassPipelineOverride(Integer, PipelineState)
+- uid: Ghost.Graphics.Core.Material.SetKeyword(Ghost.Graphics.ResourceManager,System.Int32,System.Boolean)
+  commentId: M:Ghost.Graphics.Core.Material.SetKeyword(Ghost.Graphics.ResourceManager,System.Int32,System.Boolean)
+  id: SetKeyword(Ghost.Graphics.ResourceManager,System.Int32,System.Boolean)
+  parent: Ghost.Graphics.Core.Material
+  langs:
+  - csharp
+  - vb
+  name: SetKeyword(ResourceManager, int, bool)
+  nameWithType: Material.SetKeyword(ResourceManager, int, bool)
+  fullName: Ghost.Graphics.Core.Material.SetKeyword(Ghost.Graphics.ResourceManager, int, bool)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Material.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SetKeyword
+    path: src/Runtime/Ghost.Graphics/Core/Material.cs
+    startLine: 206
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public Error SetKeyword(ResourceManager manager, int keywordId, bool enabled)
+    parameters:
+    - id: manager
+      type: Ghost.Graphics.ResourceManager
+    - id: keywordId
+      type: System.Int32
+    - id: enabled
+      type: System.Boolean
+    return:
+      type: Ghost.Core.Error
+    content.vb: Public Function SetKeyword(manager As ResourceManager, keywordId As Integer, enabled As Boolean) As [Error]
+  overload: Ghost.Graphics.Core.Material.SetKeyword*
+  nameWithType.vb: Material.SetKeyword(ResourceManager, Integer, Boolean)
+  fullName.vb: Ghost.Graphics.Core.Material.SetKeyword(Ghost.Graphics.ResourceManager, Integer, Boolean)
+  name.vb: SetKeyword(ResourceManager, Integer, Boolean)
+- uid: Ghost.Graphics.Core.Material.IsKeywordEnabled(Ghost.Graphics.ResourceManager,System.Int32)
+  commentId: M:Ghost.Graphics.Core.Material.IsKeywordEnabled(Ghost.Graphics.ResourceManager,System.Int32)
+  id: IsKeywordEnabled(Ghost.Graphics.ResourceManager,System.Int32)
+  parent: Ghost.Graphics.Core.Material
+  langs:
+  - csharp
+  - vb
+  name: IsKeywordEnabled(ResourceManager, int)
+  nameWithType: Material.IsKeywordEnabled(ResourceManager, int)
+  fullName: Ghost.Graphics.Core.Material.IsKeywordEnabled(Ghost.Graphics.ResourceManager, int)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Material.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IsKeywordEnabled
+    path: src/Runtime/Ghost.Graphics/Core/Material.cs
+    startLine: 227
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public readonly bool IsKeywordEnabled(ResourceManager manager, int keywordId)
+    parameters:
+    - id: manager
+      type: Ghost.Graphics.ResourceManager
+    - id: keywordId
+      type: System.Int32
+    return:
+      type: System.Boolean
+    content.vb: Public Function IsKeywordEnabled(manager As ResourceManager, keywordId As Integer) As Boolean
+  overload: Ghost.Graphics.Core.Material.IsKeywordEnabled*
+  nameWithType.vb: Material.IsKeywordEnabled(ResourceManager, Integer)
+  fullName.vb: Ghost.Graphics.Core.Material.IsKeywordEnabled(Ghost.Graphics.ResourceManager, Integer)
+  name.vb: IsKeywordEnabled(ResourceManager, Integer)
+- uid: Ghost.Graphics.Core.Material.UploadData(Ghost.Graphics.RHI.ICommandBuffer,Ghost.Graphics.RHI.IResourceDatabase)
+  commentId: M:Ghost.Graphics.Core.Material.UploadData(Ghost.Graphics.RHI.ICommandBuffer,Ghost.Graphics.RHI.IResourceDatabase)
+  id: UploadData(Ghost.Graphics.RHI.ICommandBuffer,Ghost.Graphics.RHI.IResourceDatabase)
+  parent: Ghost.Graphics.Core.Material
+  langs:
+  - csharp
+  - vb
+  name: UploadData(ICommandBuffer, IResourceDatabase)
+  nameWithType: Material.UploadData(ICommandBuffer, IResourceDatabase)
+  fullName: Ghost.Graphics.Core.Material.UploadData(Ghost.Graphics.RHI.ICommandBuffer, Ghost.Graphics.RHI.IResourceDatabase)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Material.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: UploadData
+    path: src/Runtime/Ghost.Graphics/Core/Material.cs
+    startLine: 245
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public readonly void UploadData(ICommandBuffer cmd, IResourceDatabase resourceDatabase)
+    parameters:
+    - id: cmd
+      type: Ghost.Graphics.RHI.ICommandBuffer
+    - id: resourceDatabase
+      type: Ghost.Graphics.RHI.IResourceDatabase
+    content.vb: Public Sub UploadData(cmd As ICommandBuffer, resourceDatabase As IResourceDatabase)
+  overload: Ghost.Graphics.Core.Material.UploadData*
+- uid: Ghost.Graphics.Core.Material.ReleaseResource(Ghost.Graphics.RHI.IResourceDatabase)
+  commentId: M:Ghost.Graphics.Core.Material.ReleaseResource(Ghost.Graphics.RHI.IResourceDatabase)
+  id: ReleaseResource(Ghost.Graphics.RHI.IResourceDatabase)
+  parent: Ghost.Graphics.Core.Material
+  langs:
+  - csharp
+  - vb
+  name: ReleaseResource(IResourceDatabase)
+  nameWithType: Material.ReleaseResource(IResourceDatabase)
+  fullName: Ghost.Graphics.Core.Material.ReleaseResource(Ghost.Graphics.RHI.IResourceDatabase)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Material.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ReleaseResource
+    path: src/Runtime/Ghost.Graphics/Core/Material.cs
+    startLine: 280
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  summary: A method to release GPU resources.
+  example: []
+  syntax:
+    content: public void ReleaseResource(IResourceDatabase database)
+    parameters:
+    - id: database
+      type: Ghost.Graphics.RHI.IResourceDatabase
+    content.vb: Public Sub ReleaseResource(database As IResourceDatabase)
+  overload: Ghost.Graphics.Core.Material.ReleaseResource*
+  implements:
+  - Ghost.Graphics.RHI.IResourceReleasable.ReleaseResource(Ghost.Graphics.RHI.IResourceDatabase)
+references:
+- uid: Ghost.Graphics.Core
+  commentId: N:Ghost.Graphics.Core
+  href: Ghost.html
+  name: Ghost.Graphics.Core
+  nameWithType: Ghost.Graphics.Core
+  fullName: Ghost.Graphics.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Core
+    name: Core
+    href: Ghost.Graphics.Core.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Core
+    name: Core
+    href: Ghost.Graphics.Core.html
+- uid: Ghost.Graphics.RHI.IResourceReleasable
+  commentId: T:Ghost.Graphics.RHI.IResourceReleasable
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.IResourceReleasable.html
+  name: IResourceReleasable
+  nameWithType: IResourceReleasable
+  fullName: Ghost.Graphics.RHI.IResourceReleasable
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.Core.Material.Shader*
+  commentId: Overload:Ghost.Graphics.Core.Material.Shader
+  href: Ghost.Graphics.Core.Material.html#Ghost_Graphics_Core_Material_Shader
+  name: Shader
+  nameWithType: Material.Shader
+  fullName: Ghost.Graphics.Core.Material.Shader
+- uid: Ghost.Core.Identifier{Ghost.Graphics.Core.Shader}
+  commentId: T:Ghost.Core.Identifier{Ghost.Graphics.Core.Shader}
+  parent: Ghost.Core
+  definition: Ghost.Core.Identifier`1
+  href: Ghost.Graphics.Core.Shader.html
+  name: Identifier<Shader>
+  nameWithType: Identifier<Shader>
+  fullName: Ghost.Core.Identifier<Ghost.Graphics.Core.Shader>
+  nameWithType.vb: Identifier(Of Shader)
+  fullName.vb: Ghost.Core.Identifier(Of Ghost.Graphics.Core.Shader)
+  name.vb: Identifier(Of Shader)
+  spec.csharp:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: <
+  - uid: Ghost.Graphics.Core.Shader
+    name: Shader
+    href: Ghost.Graphics.Core.Shader.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.Core.Shader
+    name: Shader
+    href: Ghost.Graphics.Core.Shader.html
+  - name: )
+- uid: Ghost.Core.Identifier`1
+  commentId: T:Ghost.Core.Identifier`1
+  name: Identifier<T>
+  nameWithType: Identifier<T>
+  fullName: Ghost.Core.Identifier<T>
+  nameWithType.vb: Identifier(Of T)
+  fullName.vb: Ghost.Core.Identifier(Of T)
+  name.vb: Identifier(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Core
+  commentId: N:Ghost.Core
+  name: Ghost.Core
+  nameWithType: Ghost.Core
+  fullName: Ghost.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+- uid: Ghost.Graphics.Core.Material.IsDirty*
+  commentId: Overload:Ghost.Graphics.Core.Material.IsDirty
+  href: Ghost.Graphics.Core.Material.html#Ghost_Graphics_Core_Material_IsDirty
+  name: IsDirty
+  nameWithType: Material.IsDirty
+  fullName: Ghost.Graphics.Core.Material.IsDirty
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.boolean
+  name: bool
+  nameWithType: bool
+  fullName: bool
+  nameWithType.vb: Boolean
+  fullName.vb: Boolean
+  name.vb: Boolean
+- uid: Ghost.Graphics.Core.Material.ActivePassIndex*
+  commentId: Overload:Ghost.Graphics.Core.Material.ActivePassIndex
+  href: Ghost.Graphics.Core.Material.html#Ghost_Graphics_Core_Material_ActivePassIndex
+  name: ActivePassIndex
+  nameWithType: Material.ActivePassIndex
+  fullName: Ghost.Graphics.Core.Material.ActivePassIndex
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.int32
+  name: int
+  nameWithType: int
+  fullName: int
+  nameWithType.vb: Integer
+  fullName.vb: Integer
+  name.vb: Integer
+- uid: Ghost.Graphics.Core.Material.MaterialRenderType*
+  commentId: Overload:Ghost.Graphics.Core.Material.MaterialRenderType
+  href: Ghost.Graphics.Core.Material.html#Ghost_Graphics_Core_Material_MaterialRenderType
+  name: MaterialRenderType
+  nameWithType: Material.MaterialRenderType
+  fullName: Ghost.Graphics.Core.Material.MaterialRenderType
+- uid: System.UInt32
+  commentId: T:System.UInt32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.uint32
+  name: uint
+  nameWithType: uint
+  fullName: uint
+  nameWithType.vb: UInteger
+  fullName.vb: UInteger
+  name.vb: UInteger
+- uid: Ghost.Graphics.Core.Material.SetShader*
+  commentId: Overload:Ghost.Graphics.Core.Material.SetShader
+  href: Ghost.Graphics.Core.Material.html#Ghost_Graphics_Core_Material_SetShader_Ghost_Core_Identifier_Ghost_Graphics_Core_Shader__Ghost_Graphics_ResourceManager_Ghost_Graphics_RHI_IResourceDatabase_Ghost_Graphics_RHI_IResourceAllocator_
+  name: SetShader
+  nameWithType: Material.SetShader
+  fullName: Ghost.Graphics.Core.Material.SetShader
+- uid: Ghost.Graphics.ResourceManager
+  commentId: T:Ghost.Graphics.ResourceManager
+  parent: Ghost.Graphics
+  href: Ghost.Graphics.ResourceManager.html
+  name: ResourceManager
+  nameWithType: ResourceManager
+  fullName: Ghost.Graphics.ResourceManager
+- uid: Ghost.Graphics.RHI.IResourceDatabase
+  commentId: T:Ghost.Graphics.RHI.IResourceDatabase
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.IResourceDatabase.html
+  name: IResourceDatabase
+  nameWithType: IResourceDatabase
+  fullName: Ghost.Graphics.RHI.IResourceDatabase
+- uid: Ghost.Graphics.RHI.IResourceAllocator
+  commentId: T:Ghost.Graphics.RHI.IResourceAllocator
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.IResourceAllocator.html
+  name: IResourceAllocator
+  nameWithType: IResourceAllocator
+  fullName: Ghost.Graphics.RHI.IResourceAllocator
+- uid: Ghost.Core.Error
+  commentId: T:Ghost.Core.Error
+  parent: Ghost.Core
+  name: Error
+  nameWithType: Error
+  fullName: Ghost.Core.Error
+- uid: Ghost.Graphics
+  commentId: N:Ghost.Graphics
+  href: Ghost.html
+  name: Ghost.Graphics
+  nameWithType: Ghost.Graphics
+  fullName: Ghost.Graphics
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+- uid: Ghost.Graphics.Core.Material.GetPropertyCache*
+  commentId: Overload:Ghost.Graphics.Core.Material.GetPropertyCache
+  href: Ghost.Graphics.Core.Material.html#Ghost_Graphics_Core_Material_GetPropertyCache__1
+  name: GetPropertyCache
+  nameWithType: Material.GetPropertyCache
+  fullName: Ghost.Graphics.Core.Material.GetPropertyCache
+- uid: Ghost.Core.Result{{T},Ghost.Core.Error}
+  commentId: T:Ghost.Core.Result{``0,Ghost.Core.Error}
+  parent: Ghost.Core
+  definition: Ghost.Core.Result`2
+  name: Result<T, Error>
+  nameWithType: Result<T, Error>
+  fullName: Ghost.Core.Result<T, Ghost.Core.Error>
+  nameWithType.vb: Result(Of T, Error)
+  fullName.vb: Ghost.Core.Result(Of T, Ghost.Core.Error)
+  name.vb: Result(Of T, Error)
+  spec.csharp:
+  - uid: Ghost.Core.Result`2
+    name: Result
+  - name: <
+  - name: T
+  - name: ','
+  - name: " "
+  - uid: Ghost.Core.Error
+    name: Error
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Result`2
+    name: Result
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: ','
+  - name: " "
+  - uid: Ghost.Core.Error
+    name: Error
+  - name: )
+- uid: Ghost.Core.Result`2
+  commentId: T:Ghost.Core.Result`2
+  name: Result<T, E>
+  nameWithType: Result<T, E>
+  fullName: Ghost.Core.Result<T, E>
+  nameWithType.vb: Result(Of T, E)
+  fullName.vb: Ghost.Core.Result(Of T, E)
+  name.vb: Result(Of T, E)
+  spec.csharp:
+  - uid: Ghost.Core.Result`2
+    name: Result
+  - name: <
+  - name: T
+  - name: ','
+  - name: " "
+  - name: E
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Result`2
+    name: Result
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: ','
+  - name: " "
+  - name: E
+  - name: )
+- uid: Ghost.Graphics.Core.Material.GetRawPropertyCache*
+  commentId: Overload:Ghost.Graphics.Core.Material.GetRawPropertyCache
+  href: Ghost.Graphics.Core.Material.html#Ghost_Graphics_Core_Material_GetRawPropertyCache
+  name: GetRawPropertyCache
+  nameWithType: Material.GetRawPropertyCache
+  fullName: Ghost.Graphics.Core.Material.GetRawPropertyCache
+- uid: System.ReadOnlySpan{System.Byte}
+  commentId: T:System.ReadOnlySpan{System.Byte}
+  parent: System
+  definition: System.ReadOnlySpan`1
+  href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  name: ReadOnlySpan<byte>
+  nameWithType: ReadOnlySpan<byte>
+  fullName: System.ReadOnlySpan<byte>
+  nameWithType.vb: ReadOnlySpan(Of Byte)
+  fullName.vb: System.ReadOnlySpan(Of Byte)
+  name.vb: ReadOnlySpan(Of Byte)
+  spec.csharp:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: <
+  - uid: System.Byte
+    name: byte
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.byte
+  - name: '>'
+  spec.vb:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: System.Byte
+    name: Byte
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.byte
+  - name: )
+- uid: System.ReadOnlySpan`1
+  commentId: T:System.ReadOnlySpan`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  name: ReadOnlySpan<T>
+  nameWithType: ReadOnlySpan<T>
+  fullName: System.ReadOnlySpan<T>
+  nameWithType.vb: ReadOnlySpan(Of T)
+  fullName.vb: System.ReadOnlySpan(Of T)
+  name.vb: ReadOnlySpan(Of T)
+  spec.csharp:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Graphics.Core.Material.SetPropertyCache*
+  commentId: Overload:Ghost.Graphics.Core.Material.SetPropertyCache
+  href: Ghost.Graphics.Core.Material.html#Ghost_Graphics_Core_Material_SetPropertyCache__1___0__
+  name: SetPropertyCache
+  nameWithType: Material.SetPropertyCache
+  fullName: Ghost.Graphics.Core.Material.SetPropertyCache
+- uid: '{T}'
+  commentId: '!:T'
+  definition: T
+  name: T
+  nameWithType: T
+  fullName: T
+- uid: T
+  name: T
+  nameWithType: T
+  fullName: T
+- uid: Ghost.Graphics.Core.Material.SetRawPropertyCache*
+  commentId: Overload:Ghost.Graphics.Core.Material.SetRawPropertyCache
+  href: Ghost.Graphics.Core.Material.html#Ghost_Graphics_Core_Material_SetRawPropertyCache_System_ReadOnlySpan_System_Byte__
+  name: SetRawPropertyCache
+  nameWithType: Material.SetRawPropertyCache
+  fullName: Ghost.Graphics.Core.Material.SetRawPropertyCache
+- uid: Ghost.Graphics.Core.Material.GetPassPipelineOverride*
+  commentId: Overload:Ghost.Graphics.Core.Material.GetPassPipelineOverride
+  href: Ghost.Graphics.Core.Material.html#Ghost_Graphics_Core_Material_GetPassPipelineOverride_System_Int32_
+  name: GetPassPipelineOverride
+  nameWithType: Material.GetPassPipelineOverride
+  fullName: Ghost.Graphics.Core.Material.GetPassPipelineOverride
+- uid: Ghost.Core.Graphics.PipelineState
+  commentId: T:Ghost.Core.Graphics.PipelineState
+  parent: Ghost.Core.Graphics
+  name: PipelineState
+  nameWithType: PipelineState
+  fullName: Ghost.Core.Graphics.PipelineState
+- uid: Ghost.Core.Graphics
+  commentId: N:Ghost.Core.Graphics
+  name: Ghost.Core.Graphics
+  nameWithType: Ghost.Core.Graphics
+  fullName: Ghost.Core.Graphics
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  - name: .
+  - uid: Ghost.Core.Graphics
+    name: Graphics
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  - name: .
+  - uid: Ghost.Core.Graphics
+    name: Graphics
+- uid: Ghost.Graphics.Core.Material.SetPassPipelineOverride*
+  commentId: Overload:Ghost.Graphics.Core.Material.SetPassPipelineOverride
+  href: Ghost.Graphics.Core.Material.html#Ghost_Graphics_Core_Material_SetPassPipelineOverride_System_Int32_Ghost_Core_Graphics_PipelineState__
+  name: SetPassPipelineOverride
+  nameWithType: Material.SetPassPipelineOverride
+  fullName: Ghost.Graphics.Core.Material.SetPassPipelineOverride
+- uid: Ghost.Graphics.Core.Material.SetKeyword*
+  commentId: Overload:Ghost.Graphics.Core.Material.SetKeyword
+  href: Ghost.Graphics.Core.Material.html#Ghost_Graphics_Core_Material_SetKeyword_Ghost_Graphics_ResourceManager_System_Int32_System_Boolean_
+  name: SetKeyword
+  nameWithType: Material.SetKeyword
+  fullName: Ghost.Graphics.Core.Material.SetKeyword
+- uid: Ghost.Graphics.Core.Material.IsKeywordEnabled*
+  commentId: Overload:Ghost.Graphics.Core.Material.IsKeywordEnabled
+  href: Ghost.Graphics.Core.Material.html#Ghost_Graphics_Core_Material_IsKeywordEnabled_Ghost_Graphics_ResourceManager_System_Int32_
+  name: IsKeywordEnabled
+  nameWithType: Material.IsKeywordEnabled
+  fullName: Ghost.Graphics.Core.Material.IsKeywordEnabled
+- uid: Ghost.Graphics.Core.Material.UploadData*
+  commentId: Overload:Ghost.Graphics.Core.Material.UploadData
+  href: Ghost.Graphics.Core.Material.html#Ghost_Graphics_Core_Material_UploadData_Ghost_Graphics_RHI_ICommandBuffer_Ghost_Graphics_RHI_IResourceDatabase_
+  name: UploadData
+  nameWithType: Material.UploadData
+  fullName: Ghost.Graphics.Core.Material.UploadData
+- uid: Ghost.Graphics.RHI.ICommandBuffer
+  commentId: T:Ghost.Graphics.RHI.ICommandBuffer
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ICommandBuffer.html
+  name: ICommandBuffer
+  nameWithType: ICommandBuffer
+  fullName: Ghost.Graphics.RHI.ICommandBuffer
+- uid: Ghost.Graphics.Core.Material.ReleaseResource*
+  commentId: Overload:Ghost.Graphics.Core.Material.ReleaseResource
+  href: Ghost.Graphics.Core.Material.html#Ghost_Graphics_Core_Material_ReleaseResource_Ghost_Graphics_RHI_IResourceDatabase_
+  name: ReleaseResource
+  nameWithType: Material.ReleaseResource
+  fullName: Ghost.Graphics.Core.Material.ReleaseResource
+- uid: Ghost.Graphics.RHI.IResourceReleasable.ReleaseResource(Ghost.Graphics.RHI.IResourceDatabase)
+  commentId: M:Ghost.Graphics.RHI.IResourceReleasable.ReleaseResource(Ghost.Graphics.RHI.IResourceDatabase)
+  parent: Ghost.Graphics.RHI.IResourceReleasable
+  name: ReleaseResource(IResourceDatabase)
+  nameWithType: IResourceReleasable.ReleaseResource(IResourceDatabase)
+  fullName: Ghost.Graphics.RHI.IResourceReleasable.ReleaseResource(Ghost.Graphics.RHI.IResourceDatabase)
+  spec.csharp:
+  - uid: Ghost.Graphics.RHI.IResourceReleasable.ReleaseResource(Ghost.Graphics.RHI.IResourceDatabase)
+    name: ReleaseResource
+  - name: (
+  - uid: Ghost.Graphics.RHI.IResourceDatabase
+    name: IResourceDatabase
+  - name: )
+  spec.vb:
+  - uid: Ghost.Graphics.RHI.IResourceReleasable.ReleaseResource(Ghost.Graphics.RHI.IResourceDatabase)
+    name: ReleaseResource
+  - name: (
+  - uid: Ghost.Graphics.RHI.IResourceDatabase
+    name: IResourceDatabase
+  - name: )

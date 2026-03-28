@@ -1,0 +1,264 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.IRenderDevice
+  commentId: T:Ghost.Graphics.RHI.IRenderDevice
+  id: IRenderDevice
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.IRenderDevice.ComputeQueue
+  - Ghost.Graphics.RHI.IRenderDevice.CopyQueue
+  - Ghost.Graphics.RHI.IRenderDevice.FeatureSupport
+  - Ghost.Graphics.RHI.IRenderDevice.GraphicsQueue
+  langs:
+  - csharp
+  - vb
+  name: IRenderDevice
+  nameWithType: IRenderDevice
+  fullName: Ghost.Graphics.RHI.IRenderDevice
+  type: Interface
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderDevice.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IRenderDevice
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderDevice.cs
+    startLine: 18
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: D3D12-native render device interface for creating graphics resources
+  example: []
+  syntax:
+    content: 'public interface IRenderDevice : IDisposable'
+    content.vb: Public Interface IRenderDevice Inherits IDisposable
+  inheritedMembers:
+  - System.IDisposable.Dispose
+- uid: Ghost.Graphics.RHI.IRenderDevice.GraphicsQueue
+  commentId: P:Ghost.Graphics.RHI.IRenderDevice.GraphicsQueue
+  id: GraphicsQueue
+  parent: Ghost.Graphics.RHI.IRenderDevice
+  langs:
+  - csharp
+  - vb
+  name: GraphicsQueue
+  nameWithType: IRenderDevice.GraphicsQueue
+  fullName: Ghost.Graphics.RHI.IRenderDevice.GraphicsQueue
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderDevice.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GraphicsQueue
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderDevice.cs
+    startLine: 23
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Graphics command queue for rendering operations
+  example: []
+  syntax:
+    content: ICommandQueue GraphicsQueue { get; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.ICommandQueue
+    content.vb: ReadOnly Property GraphicsQueue As ICommandQueue
+  overload: Ghost.Graphics.RHI.IRenderDevice.GraphicsQueue*
+- uid: Ghost.Graphics.RHI.IRenderDevice.ComputeQueue
+  commentId: P:Ghost.Graphics.RHI.IRenderDevice.ComputeQueue
+  id: ComputeQueue
+  parent: Ghost.Graphics.RHI.IRenderDevice
+  langs:
+  - csharp
+  - vb
+  name: ComputeQueue
+  nameWithType: IRenderDevice.ComputeQueue
+  fullName: Ghost.Graphics.RHI.IRenderDevice.ComputeQueue
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderDevice.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ComputeQueue
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderDevice.cs
+    startLine: 31
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Compute command queue for compute shader operations
+  example: []
+  syntax:
+    content: ICommandQueue ComputeQueue { get; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.ICommandQueue
+    content.vb: ReadOnly Property ComputeQueue As ICommandQueue
+  overload: Ghost.Graphics.RHI.IRenderDevice.ComputeQueue*
+- uid: Ghost.Graphics.RHI.IRenderDevice.CopyQueue
+  commentId: P:Ghost.Graphics.RHI.IRenderDevice.CopyQueue
+  id: CopyQueue
+  parent: Ghost.Graphics.RHI.IRenderDevice
+  langs:
+  - csharp
+  - vb
+  name: CopyQueue
+  nameWithType: IRenderDevice.CopyQueue
+  fullName: Ghost.Graphics.RHI.IRenderDevice.CopyQueue
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderDevice.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CopyQueue
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderDevice.cs
+    startLine: 39
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Copy command queue for data transfer operations
+  example: []
+  syntax:
+    content: ICommandQueue CopyQueue { get; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.ICommandQueue
+    content.vb: ReadOnly Property CopyQueue As ICommandQueue
+  overload: Ghost.Graphics.RHI.IRenderDevice.CopyQueue*
+- uid: Ghost.Graphics.RHI.IRenderDevice.FeatureSupport
+  commentId: P:Ghost.Graphics.RHI.IRenderDevice.FeatureSupport
+  id: FeatureSupport
+  parent: Ghost.Graphics.RHI.IRenderDevice
+  langs:
+  - csharp
+  - vb
+  name: FeatureSupport
+  nameWithType: IRenderDevice.FeatureSupport
+  fullName: Ghost.Graphics.RHI.IRenderDevice.FeatureSupport
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderDevice.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: FeatureSupport
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderDevice.cs
+    startLine: 44
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: FeatureSupport FeatureSupport { get; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.FeatureSupport
+    content.vb: ReadOnly Property FeatureSupport As FeatureSupport
+  overload: Ghost.Graphics.RHI.IRenderDevice.FeatureSupport*
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.IDisposable.Dispose
+  commentId: M:System.IDisposable.Dispose
+  parent: System.IDisposable
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  name: Dispose()
+  nameWithType: IDisposable.Dispose()
+  fullName: System.IDisposable.Dispose()
+  spec.csharp:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+- uid: System.IDisposable
+  commentId: T:System.IDisposable
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable
+  name: IDisposable
+  nameWithType: IDisposable
+  fullName: System.IDisposable
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RHI.IRenderDevice.GraphicsQueue*
+  commentId: Overload:Ghost.Graphics.RHI.IRenderDevice.GraphicsQueue
+  href: Ghost.Graphics.RHI.IRenderDevice.html#Ghost_Graphics_RHI_IRenderDevice_GraphicsQueue
+  name: GraphicsQueue
+  nameWithType: IRenderDevice.GraphicsQueue
+  fullName: Ghost.Graphics.RHI.IRenderDevice.GraphicsQueue
+- uid: Ghost.Graphics.RHI.ICommandQueue
+  commentId: T:Ghost.Graphics.RHI.ICommandQueue
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ICommandQueue.html
+  name: ICommandQueue
+  nameWithType: ICommandQueue
+  fullName: Ghost.Graphics.RHI.ICommandQueue
+- uid: Ghost.Graphics.RHI.IRenderDevice.ComputeQueue*
+  commentId: Overload:Ghost.Graphics.RHI.IRenderDevice.ComputeQueue
+  href: Ghost.Graphics.RHI.IRenderDevice.html#Ghost_Graphics_RHI_IRenderDevice_ComputeQueue
+  name: ComputeQueue
+  nameWithType: IRenderDevice.ComputeQueue
+  fullName: Ghost.Graphics.RHI.IRenderDevice.ComputeQueue
+- uid: Ghost.Graphics.RHI.IRenderDevice.CopyQueue*
+  commentId: Overload:Ghost.Graphics.RHI.IRenderDevice.CopyQueue
+  href: Ghost.Graphics.RHI.IRenderDevice.html#Ghost_Graphics_RHI_IRenderDevice_CopyQueue
+  name: CopyQueue
+  nameWithType: IRenderDevice.CopyQueue
+  fullName: Ghost.Graphics.RHI.IRenderDevice.CopyQueue
+- uid: Ghost.Graphics.RHI.IRenderDevice.FeatureSupport*
+  commentId: Overload:Ghost.Graphics.RHI.IRenderDevice.FeatureSupport
+  href: Ghost.Graphics.RHI.IRenderDevice.html#Ghost_Graphics_RHI_IRenderDevice_FeatureSupport
+  name: FeatureSupport
+  nameWithType: IRenderDevice.FeatureSupport
+  fullName: Ghost.Graphics.RHI.IRenderDevice.FeatureSupport
+- uid: Ghost.Graphics.RHI.FeatureSupport
+  commentId: T:Ghost.Graphics.RHI.FeatureSupport
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.FeatureSupport.html
+  name: FeatureSupport
+  nameWithType: FeatureSupport
+  fullName: Ghost.Graphics.RHI.FeatureSupport

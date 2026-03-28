@@ -1,0 +1,179 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Entities.ISystem
+  commentId: T:Ghost.Entities.ISystem
+  id: ISystem
+  parent: Ghost.Entities
+  children:
+  - Ghost.Entities.ISystem.Cleanup(Ghost.Entities.SystemAPI@)
+  - Ghost.Entities.ISystem.Initialize(Ghost.Entities.SystemAPI@)
+  - Ghost.Entities.ISystem.Update(Ghost.Entities.SystemAPI@)
+  langs:
+  - csharp
+  - vb
+  name: ISystem
+  nameWithType: ISystem
+  fullName: Ghost.Entities.ISystem
+  type: Interface
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/System.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ISystem
+    path: src/Runtime/Ghost.Entities/System.cs
+    startLine: 17
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public interface ISystem
+    content.vb: Public Interface ISystem
+  derivedClasses:
+  - Ghost.Entities.DefaultSystemGroup
+  - Ghost.Entities.SystemBase
+  - Ghost.Entities.SystemGroup
+- uid: Ghost.Entities.ISystem.Initialize(Ghost.Entities.SystemAPI@)
+  commentId: M:Ghost.Entities.ISystem.Initialize(Ghost.Entities.SystemAPI@)
+  id: Initialize(Ghost.Entities.SystemAPI@)
+  parent: Ghost.Entities.ISystem
+  langs:
+  - csharp
+  - vb
+  name: Initialize(ref readonly SystemAPI)
+  nameWithType: ISystem.Initialize(ref readonly SystemAPI)
+  fullName: Ghost.Entities.ISystem.Initialize(ref readonly Ghost.Entities.SystemAPI)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/System.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Initialize
+    path: src/Runtime/Ghost.Entities/System.cs
+    startLine: 19
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: void Initialize(ref readonly SystemAPI systemAPI)
+    parameters:
+    - id: systemAPI
+      type: Ghost.Entities.SystemAPI
+    content.vb: Sub Initialize(systemAPI As SystemAPI)
+  overload: Ghost.Entities.ISystem.Initialize*
+  nameWithType.vb: ISystem.Initialize(SystemAPI)
+  fullName.vb: Ghost.Entities.ISystem.Initialize(Ghost.Entities.SystemAPI)
+  name.vb: Initialize(SystemAPI)
+- uid: Ghost.Entities.ISystem.Update(Ghost.Entities.SystemAPI@)
+  commentId: M:Ghost.Entities.ISystem.Update(Ghost.Entities.SystemAPI@)
+  id: Update(Ghost.Entities.SystemAPI@)
+  parent: Ghost.Entities.ISystem
+  langs:
+  - csharp
+  - vb
+  name: Update(ref readonly SystemAPI)
+  nameWithType: ISystem.Update(ref readonly SystemAPI)
+  fullName: Ghost.Entities.ISystem.Update(ref readonly Ghost.Entities.SystemAPI)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/System.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Update
+    path: src/Runtime/Ghost.Entities/System.cs
+    startLine: 20
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: void Update(ref readonly SystemAPI systemAPI)
+    parameters:
+    - id: systemAPI
+      type: Ghost.Entities.SystemAPI
+    content.vb: Sub Update(systemAPI As SystemAPI)
+  overload: Ghost.Entities.ISystem.Update*
+  nameWithType.vb: ISystem.Update(SystemAPI)
+  fullName.vb: Ghost.Entities.ISystem.Update(Ghost.Entities.SystemAPI)
+  name.vb: Update(SystemAPI)
+- uid: Ghost.Entities.ISystem.Cleanup(Ghost.Entities.SystemAPI@)
+  commentId: M:Ghost.Entities.ISystem.Cleanup(Ghost.Entities.SystemAPI@)
+  id: Cleanup(Ghost.Entities.SystemAPI@)
+  parent: Ghost.Entities.ISystem
+  langs:
+  - csharp
+  - vb
+  name: Cleanup(ref readonly SystemAPI)
+  nameWithType: ISystem.Cleanup(ref readonly SystemAPI)
+  fullName: Ghost.Entities.ISystem.Cleanup(ref readonly Ghost.Entities.SystemAPI)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/System.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Cleanup
+    path: src/Runtime/Ghost.Entities/System.cs
+    startLine: 21
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: void Cleanup(ref readonly SystemAPI systemAPI)
+    parameters:
+    - id: systemAPI
+      type: Ghost.Entities.SystemAPI
+    content.vb: Sub Cleanup(systemAPI As SystemAPI)
+  overload: Ghost.Entities.ISystem.Cleanup*
+  nameWithType.vb: ISystem.Cleanup(SystemAPI)
+  fullName.vb: Ghost.Entities.ISystem.Cleanup(Ghost.Entities.SystemAPI)
+  name.vb: Cleanup(SystemAPI)
+references:
+- uid: Ghost.Entities
+  commentId: N:Ghost.Entities
+  href: Ghost.html
+  name: Ghost.Entities
+  nameWithType: Ghost.Entities
+  fullName: Ghost.Entities
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Entities
+    name: Entities
+    href: Ghost.Entities.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Entities
+    name: Entities
+    href: Ghost.Entities.html
+- uid: Ghost.Entities.ISystem.Initialize*
+  commentId: Overload:Ghost.Entities.ISystem.Initialize
+  href: Ghost.Entities.ISystem.html#Ghost_Entities_ISystem_Initialize_Ghost_Entities_SystemAPI__
+  name: Initialize
+  nameWithType: ISystem.Initialize
+  fullName: Ghost.Entities.ISystem.Initialize
+- uid: Ghost.Entities.SystemAPI
+  commentId: T:Ghost.Entities.SystemAPI
+  parent: Ghost.Entities
+  href: Ghost.Entities.SystemAPI.html
+  name: SystemAPI
+  nameWithType: SystemAPI
+  fullName: Ghost.Entities.SystemAPI
+- uid: Ghost.Entities.ISystem.Update*
+  commentId: Overload:Ghost.Entities.ISystem.Update
+  href: Ghost.Entities.ISystem.html#Ghost_Entities_ISystem_Update_Ghost_Entities_SystemAPI__
+  name: Update
+  nameWithType: ISystem.Update
+  fullName: Ghost.Entities.ISystem.Update
+- uid: Ghost.Entities.ISystem.Cleanup*
+  commentId: Overload:Ghost.Entities.ISystem.Cleanup
+  href: Ghost.Entities.ISystem.html#Ghost_Entities_ISystem_Cleanup_Ghost_Entities_SystemAPI__
+  name: Cleanup
+  nameWithType: ISystem.Cleanup
+  fullName: Ghost.Entities.ISystem.Cleanup

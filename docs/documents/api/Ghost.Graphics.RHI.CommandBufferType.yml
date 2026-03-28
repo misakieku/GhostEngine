@@ -1,0 +1,147 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.CommandBufferType
+  commentId: T:Ghost.Graphics.RHI.CommandBufferType
+  id: CommandBufferType
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.CommandBufferType.Compute
+  - Ghost.Graphics.RHI.CommandBufferType.Copy
+  - Ghost.Graphics.RHI.CommandBufferType.Graphics
+  langs:
+  - csharp
+  - vb
+  name: CommandBufferType
+  nameWithType: CommandBufferType
+  fullName: Ghost.Graphics.RHI.CommandBufferType
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CommandBufferType
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1217
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public enum CommandBufferType
+    content.vb: Public Enum CommandBufferType
+- uid: Ghost.Graphics.RHI.CommandBufferType.Graphics
+  commentId: F:Ghost.Graphics.RHI.CommandBufferType.Graphics
+  id: Graphics
+  parent: Ghost.Graphics.RHI.CommandBufferType
+  langs:
+  - csharp
+  - vb
+  name: Graphics
+  nameWithType: CommandBufferType.Graphics
+  fullName: Ghost.Graphics.RHI.CommandBufferType.Graphics
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Graphics
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1219
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Graphics = 0
+    return:
+      type: Ghost.Graphics.RHI.CommandBufferType
+- uid: Ghost.Graphics.RHI.CommandBufferType.Compute
+  commentId: F:Ghost.Graphics.RHI.CommandBufferType.Compute
+  id: Compute
+  parent: Ghost.Graphics.RHI.CommandBufferType
+  langs:
+  - csharp
+  - vb
+  name: Compute
+  nameWithType: CommandBufferType.Compute
+  fullName: Ghost.Graphics.RHI.CommandBufferType.Compute
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Compute
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1220
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Compute = 1
+    return:
+      type: Ghost.Graphics.RHI.CommandBufferType
+- uid: Ghost.Graphics.RHI.CommandBufferType.Copy
+  commentId: F:Ghost.Graphics.RHI.CommandBufferType.Copy
+  id: Copy
+  parent: Ghost.Graphics.RHI.CommandBufferType
+  langs:
+  - csharp
+  - vb
+  name: Copy
+  nameWithType: CommandBufferType.Copy
+  fullName: Ghost.Graphics.RHI.CommandBufferType.Copy
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Copy
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1221
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Copy = 2
+    return:
+      type: Ghost.Graphics.RHI.CommandBufferType
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.CommandBufferType
+  commentId: T:Ghost.Graphics.RHI.CommandBufferType
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.CommandBufferType.html
+  name: CommandBufferType
+  nameWithType: CommandBufferType
+  fullName: Ghost.Graphics.RHI.CommandBufferType

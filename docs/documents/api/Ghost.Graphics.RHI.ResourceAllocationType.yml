@@ -1,0 +1,147 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.ResourceAllocationType
+  commentId: T:Ghost.Graphics.RHI.ResourceAllocationType
+  id: ResourceAllocationType
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.ResourceAllocationType.Default
+  - Ghost.Graphics.RHI.ResourceAllocationType.Suballocation
+  - Ghost.Graphics.RHI.ResourceAllocationType.Temporary
+  langs:
+  - csharp
+  - vb
+  name: ResourceAllocationType
+  nameWithType: ResourceAllocationType
+  fullName: Ghost.Graphics.RHI.ResourceAllocationType
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ResourceAllocationType
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+    startLine: 4
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public enum ResourceAllocationType
+    content.vb: Public Enum ResourceAllocationType
+- uid: Ghost.Graphics.RHI.ResourceAllocationType.Default
+  commentId: F:Ghost.Graphics.RHI.ResourceAllocationType.Default
+  id: Default
+  parent: Ghost.Graphics.RHI.ResourceAllocationType
+  langs:
+  - csharp
+  - vb
+  name: Default
+  nameWithType: ResourceAllocationType.Default
+  fullName: Ghost.Graphics.RHI.ResourceAllocationType.Default
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Default
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+    startLine: 6
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Default = 0
+    return:
+      type: Ghost.Graphics.RHI.ResourceAllocationType
+- uid: Ghost.Graphics.RHI.ResourceAllocationType.Temporary
+  commentId: F:Ghost.Graphics.RHI.ResourceAllocationType.Temporary
+  id: Temporary
+  parent: Ghost.Graphics.RHI.ResourceAllocationType
+  langs:
+  - csharp
+  - vb
+  name: Temporary
+  nameWithType: ResourceAllocationType.Temporary
+  fullName: Ghost.Graphics.RHI.ResourceAllocationType.Temporary
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Temporary
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+    startLine: 7
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Temporary = 1
+    return:
+      type: Ghost.Graphics.RHI.ResourceAllocationType
+- uid: Ghost.Graphics.RHI.ResourceAllocationType.Suballocation
+  commentId: F:Ghost.Graphics.RHI.ResourceAllocationType.Suballocation
+  id: Suballocation
+  parent: Ghost.Graphics.RHI.ResourceAllocationType
+  langs:
+  - csharp
+  - vb
+  name: Suballocation
+  nameWithType: ResourceAllocationType.Suballocation
+  fullName: Ghost.Graphics.RHI.ResourceAllocationType.Suballocation
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Suballocation
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+    startLine: 8
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Suballocation = 2
+    return:
+      type: Ghost.Graphics.RHI.ResourceAllocationType
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.ResourceAllocationType
+  commentId: T:Ghost.Graphics.RHI.ResourceAllocationType
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ResourceAllocationType.html
+  name: ResourceAllocationType
+  nameWithType: ResourceAllocationType
+  fullName: Ghost.Graphics.RHI.ResourceAllocationType

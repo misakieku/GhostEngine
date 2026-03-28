@@ -1,0 +1,149 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RenderGraphModule.RenderPassType
+  commentId: T:Ghost.Graphics.RenderGraphModule.RenderPassType
+  id: RenderPassType
+  parent: Ghost.Graphics.RenderGraphModule
+  children:
+  - Ghost.Graphics.RenderGraphModule.RenderPassType.Compute
+  - Ghost.Graphics.RenderGraphModule.RenderPassType.Raster
+  - Ghost.Graphics.RenderGraphModule.RenderPassType.Unsafe
+  langs:
+  - csharp
+  - vb
+  name: RenderPassType
+  nameWithType: RenderPassType
+  fullName: Ghost.Graphics.RenderGraphModule.RenderPassType
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphPass.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: RenderPassType
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphPass.cs
+    startLine: 9
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Represents different types of render passes.
+  example: []
+  syntax:
+    content: 'public enum RenderPassType : byte'
+    content.vb: Public Enum RenderPassType As Byte
+- uid: Ghost.Graphics.RenderGraphModule.RenderPassType.Raster
+  commentId: F:Ghost.Graphics.RenderGraphModule.RenderPassType.Raster
+  id: Raster
+  parent: Ghost.Graphics.RenderGraphModule.RenderPassType
+  langs:
+  - csharp
+  - vb
+  name: Raster
+  nameWithType: RenderPassType.Raster
+  fullName: Ghost.Graphics.RenderGraphModule.RenderPassType.Raster
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphPass.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Raster
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphPass.cs
+    startLine: 11
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: Raster = 0
+    return:
+      type: Ghost.Graphics.RenderGraphModule.RenderPassType
+- uid: Ghost.Graphics.RenderGraphModule.RenderPassType.Compute
+  commentId: F:Ghost.Graphics.RenderGraphModule.RenderPassType.Compute
+  id: Compute
+  parent: Ghost.Graphics.RenderGraphModule.RenderPassType
+  langs:
+  - csharp
+  - vb
+  name: Compute
+  nameWithType: RenderPassType.Compute
+  fullName: Ghost.Graphics.RenderGraphModule.RenderPassType.Compute
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphPass.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Compute
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphPass.cs
+    startLine: 12
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: Compute = 1
+    return:
+      type: Ghost.Graphics.RenderGraphModule.RenderPassType
+- uid: Ghost.Graphics.RenderGraphModule.RenderPassType.Unsafe
+  commentId: F:Ghost.Graphics.RenderGraphModule.RenderPassType.Unsafe
+  id: Unsafe
+  parent: Ghost.Graphics.RenderGraphModule.RenderPassType
+  langs:
+  - csharp
+  - vb
+  name: Unsafe
+  nameWithType: RenderPassType.Unsafe
+  fullName: Ghost.Graphics.RenderGraphModule.RenderPassType.Unsafe
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphPass.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Unsafe
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphPass.cs
+    startLine: 13
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: Unsafe = 2
+    return:
+      type: Ghost.Graphics.RenderGraphModule.RenderPassType
+references:
+- uid: Ghost.Graphics.RenderGraphModule
+  commentId: N:Ghost.Graphics.RenderGraphModule
+  href: Ghost.html
+  name: Ghost.Graphics.RenderGraphModule
+  nameWithType: Ghost.Graphics.RenderGraphModule
+  fullName: Ghost.Graphics.RenderGraphModule
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RenderGraphModule
+    name: RenderGraphModule
+    href: Ghost.Graphics.RenderGraphModule.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RenderGraphModule
+    name: RenderGraphModule
+    href: Ghost.Graphics.RenderGraphModule.html
+- uid: Ghost.Graphics.RenderGraphModule.RenderPassType
+  commentId: T:Ghost.Graphics.RenderGraphModule.RenderPassType
+  parent: Ghost.Graphics.RenderGraphModule
+  href: Ghost.Graphics.RenderGraphModule.RenderPassType.html
+  name: RenderPassType
+  nameWithType: RenderPassType
+  fullName: Ghost.Graphics.RenderGraphModule.RenderPassType

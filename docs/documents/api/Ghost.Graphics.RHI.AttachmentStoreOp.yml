@@ -1,0 +1,120 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.AttachmentStoreOp
+  commentId: T:Ghost.Graphics.RHI.AttachmentStoreOp
+  id: AttachmentStoreOp
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.AttachmentStoreOp.DontCare
+  - Ghost.Graphics.RHI.AttachmentStoreOp.Store
+  langs:
+  - csharp
+  - vb
+  name: AttachmentStoreOp
+  nameWithType: AttachmentStoreOp
+  fullName: Ghost.Graphics.RHI.AttachmentStoreOp
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AttachmentStoreOp
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1357
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public enum AttachmentStoreOp
+    content.vb: Public Enum AttachmentStoreOp
+- uid: Ghost.Graphics.RHI.AttachmentStoreOp.Store
+  commentId: F:Ghost.Graphics.RHI.AttachmentStoreOp.Store
+  id: Store
+  parent: Ghost.Graphics.RHI.AttachmentStoreOp
+  langs:
+  - csharp
+  - vb
+  name: Store
+  nameWithType: AttachmentStoreOp.Store
+  fullName: Ghost.Graphics.RHI.AttachmentStoreOp.Store
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Store
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1359
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Store = 0
+    return:
+      type: Ghost.Graphics.RHI.AttachmentStoreOp
+- uid: Ghost.Graphics.RHI.AttachmentStoreOp.DontCare
+  commentId: F:Ghost.Graphics.RHI.AttachmentStoreOp.DontCare
+  id: DontCare
+  parent: Ghost.Graphics.RHI.AttachmentStoreOp
+  langs:
+  - csharp
+  - vb
+  name: DontCare
+  nameWithType: AttachmentStoreOp.DontCare
+  fullName: Ghost.Graphics.RHI.AttachmentStoreOp.DontCare
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: DontCare
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1360
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: DontCare = 1
+    return:
+      type: Ghost.Graphics.RHI.AttachmentStoreOp
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.AttachmentStoreOp
+  commentId: T:Ghost.Graphics.RHI.AttachmentStoreOp
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.AttachmentStoreOp.html
+  name: AttachmentStoreOp
+  nameWithType: AttachmentStoreOp
+  fullName: Ghost.Graphics.RHI.AttachmentStoreOp
