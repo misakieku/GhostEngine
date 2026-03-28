@@ -302,32 +302,16 @@ public sealed partial class DockLayout : Control
     {
         if (_sourceNode != null && _draggedItem != null)
         {
-            if (TabTornOff == null)
+            var result = TabTearOffService.TryTearOffTab(_sourceNode.Items, _draggedItem, _sourceNode);
+            
+            if (result.IsSuccess)
             {
-                Logger.LogWarning("Tab dropped outside but no TabTornOff subscribers found.");
-                ClearDragOperationState();
-                return;
+                DockMutationEngine.CleanupEmptyNodes(_sourceNode);
             }
-
-            object? originalSelection = _sourceNode.SelectedItem;
-
-            App.TryTearOffTab(_sourceNode.Items, _draggedItem, () =>
+            else
             {
-                try
-                {
-                    // Raise event to let the host handle window creation
-                    TabTornOff.Invoke(this, new TabTornOffEventArgs(_draggedItem));
-                    
-                    // Only cleanup if the tear-off was successful
-                    DockMutationEngine.CleanupEmptyNodes(_sourceNode);
-                }
-                catch (Exception ex)
-                {
-                    // If the event handler fails, we still need to cleanup or restore selection
-                    _sourceNode.SelectedItem = originalSelection;
-                    throw; // Re-throw to trigger rollback in TryTearOffTab
-                }
-            });
+                Logger.LogWarning($"Tab tear-off failed: {result.Error}");
+            }
 
             ClearDragOperationState();
         }

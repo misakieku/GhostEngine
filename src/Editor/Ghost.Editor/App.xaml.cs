@@ -54,50 +54,6 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// Attempts to tear off a tab into a new window.
-    /// </summary>
-    /// <param name="sourceItems">The collection to remove the item from.</param>
-    /// <param name="tabItem">The item to tear off.</param>
-    /// <param name="onSuccess">Optional callback after successful tear-off.</param>
-    /// <returns>A result indicating success or failure.</returns>
-    internal static Result TryTearOffTab(System.Collections.IList sourceItems, object tabItem, Action? onSuccess = null)
-    {
-        int originalIndex = sourceItems.IndexOf(tabItem);
-        if (originalIndex == -1)
-        {
-            return Result.Failure("Item not found in source collection.");
-        }
-
-        object? originalSelection = null;
-        // Try to capture selection if the source is a DockPanelNode or similar
-        // For now, we'll just handle the collection mutation.
-
-        try
-        {
-            sourceItems.Remove(tabItem);
-
-            try
-            {
-                CreateAndShowDockWindow(tabItem);
-                onSuccess?.Invoke();
-                return Result.Success();
-            }
-            catch (Exception ex)
-            {
-                // Rollback
-                sourceItems.Insert(originalIndex, tabItem);
-                Logger.LogError(ex);
-                return Result.Failure($"Failed to create tear-off window: {ex.Message}");
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex);
-            return Result.Failure($"Failed to remove item from source: {ex.Message}");
-        }
-    }
-
-    /// <summary>
     /// Creates, registers, and shows a new DockWindow for a torn-off tab.
     /// </summary>
     internal static void CreateAndShowDockWindow(object tabContent)
