@@ -3,13 +3,25 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Ghost.Editor.View.Controls.Docking;
 
-[TemplatePart(Name = "PART_OverlayCanvas", Type = typeof(Canvas))]
-[TemplatePart(Name = "PART_Highlight", Type = typeof(DockRegionHighlight))]
+/// <summary>
+/// The root control for the docking system layout.
+/// </summary>
+[TemplatePart(Name = PART_OVERLAY_CANVAS, Type = typeof(Canvas))]
+[TemplatePart(Name = PART_HIGHLIGHT, Type = typeof(DockRegionHighlight))]
 public class DockingLayout : Control
 {
+    private const string PART_OVERLAY_CANVAS = "PART_OverlayCanvas";
+    private const string PART_HIGHLIGHT = "PART_Highlight";
+
+    /// <summary>
+    /// Gets or sets the root panel of the docking layout.
+    /// </summary>
     public static readonly DependencyProperty RootPanelProperty = DependencyProperty.Register(
         nameof(RootPanel), typeof(DockPanel), typeof(DockingLayout), new PropertyMetadata(null, OnRootPanelChanged));
 
+    /// <summary>
+    /// Gets or sets the root panel of the docking layout.
+    /// </summary>
     public DockPanel? RootPanel
     {
         get => (DockPanel?)GetValue(RootPanelProperty);
@@ -29,8 +41,8 @@ public class DockingLayout : Control
     protected override void OnApplyTemplate()
     {
         base.OnApplyTemplate();
-        _overlayCanvas = GetTemplateChild("PART_OverlayCanvas") as Canvas;
-        _highlight = GetTemplateChild("PART_Highlight") as DockRegionHighlight;
+        _overlayCanvas = GetTemplateChild(PART_OVERLAY_CANVAS) as Canvas;
+        _highlight = GetTemplateChild(PART_HIGHLIGHT) as DockRegionHighlight;
     }
 
     private static void OnRootPanelChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -49,6 +61,12 @@ public class DockingLayout : Control
         }
     }
 
+    /// <summary>
+    /// Adds a document to the docking layout.
+    /// </summary>
+    /// <param name="document">The document to add.</param>
+    /// <param name="target">The docking target position.</param>
+    /// <param name="targetGroup">The target group to add the document to. If null, a suitable group will be found or created.</param>
     public void AddDocument(DockDocument document, DockTarget target, DockGroup? targetGroup = null)
     {
         if (target != DockTarget.Center)
@@ -63,30 +81,37 @@ public class DockingLayout : Control
 
         if (targetGroup == null)
         {
-            if (RootPanel.Children.Count == 0)
-            {
-                var group = new DockGroup();
-                group.AddChild(document);
-                RootPanel.AddChild(group);
-                return;
-            }
+            targetGroup = FindFirstLeafDockGroup(RootPanel);
 
-            if (RootPanel.Children[0] is DockGroup existingGroup)
+            if (targetGroup == null)
             {
-                targetGroup = existingGroup;
-            }
-            else
-            {
-                var group = new DockGroup();
-                group.AddChild(document);
-                RootPanel.AddChild(group);
-                return;
+                targetGroup = new DockGroup();
+                RootPanel.AddChild(targetGroup);
             }
         }
 
-        if (targetGroup != null)
+        targetGroup.AddChild(document);
+    }
+
+    private static DockGroup? FindFirstLeafDockGroup(DockContainer container)
+    {
+        if (container is DockGroup group)
         {
-            targetGroup.AddChild(document);
+            return group;
         }
+
+        foreach (var child in container.Children)
+        {
+            if (child is DockContainer childContainer)
+            {
+                var result = FindFirstLeafDockGroup(childContainer);
+                if (result != null)
+                {
+                    return result;
+                }
+            }
+        }
+
+        return null;
     }
 }

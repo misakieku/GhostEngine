@@ -4,6 +4,9 @@ using CommunityToolkit.WinUI.Controls;
 
 namespace Ghost.Editor.View.Controls.Docking;
 
+/// <summary>
+/// A container that can host multiple dock modules with splitters.
+/// </summary>
 [TemplatePart(Name = PART_GRID, Type = typeof(Grid))]
 public class DockPanel : DockContainer
 {
