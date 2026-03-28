@@ -1,0 +1,510 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RenderGraphModule.RGResourceExtensions
+  commentId: T:Ghost.Graphics.RenderGraphModule.RGResourceExtensions
+  id: RGResourceExtensions
+  parent: Ghost.Graphics.RenderGraphModule
+  children:
+  - Ghost.Graphics.RenderGraphModule.RGResourceExtensions.AsResource(Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGBuffer})
+  - Ghost.Graphics.RenderGraphModule.RGResourceExtensions.AsResource(Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture})
+  langs:
+  - csharp
+  - vb
+  name: RGResourceExtensions
+  nameWithType: RGResourceExtensions
+  fullName: Ghost.Graphics.RenderGraphModule.RGResourceExtensions
+  type: Class
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: RGResourceExtensions
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 300
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public static class RGResourceExtensions
+    content.vb: Public Module RGResourceExtensions
+  inheritance:
+  - System.Object
+  inheritedMembers:
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.MemberwiseClone
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.ToString
+- uid: Ghost.Graphics.RenderGraphModule.RGResourceExtensions.AsResource(Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture})
+  commentId: M:Ghost.Graphics.RenderGraphModule.RGResourceExtensions.AsResource(Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture})
+  id: AsResource(Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture})
+  isExtensionMethod: true
+  parent: Ghost.Graphics.RenderGraphModule.RGResourceExtensions
+  langs:
+  - csharp
+  - vb
+  name: AsResource(Identifier<RGTexture>)
+  nameWithType: RGResourceExtensions.AsResource(Identifier<RGTexture>)
+  fullName: Ghost.Graphics.RenderGraphModule.RGResourceExtensions.AsResource(Ghost.Core.Identifier<Ghost.Graphics.RenderGraphModule.RGTexture>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AsResource
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 302
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public static Identifier<RGResource> AsResource(this Identifier<RGTexture> texture)
+    parameters:
+    - id: texture
+      type: Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture}
+    return:
+      type: Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGResource}
+    content.vb: Public Shared Function AsResource(texture As Identifier(Of RGTexture)) As Identifier(Of RGResource)
+  overload: Ghost.Graphics.RenderGraphModule.RGResourceExtensions.AsResource*
+  nameWithType.vb: RGResourceExtensions.AsResource(Identifier(Of RGTexture))
+  fullName.vb: Ghost.Graphics.RenderGraphModule.RGResourceExtensions.AsResource(Ghost.Core.Identifier(Of Ghost.Graphics.RenderGraphModule.RGTexture))
+  name.vb: AsResource(Identifier(Of RGTexture))
+- uid: Ghost.Graphics.RenderGraphModule.RGResourceExtensions.AsResource(Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGBuffer})
+  commentId: M:Ghost.Graphics.RenderGraphModule.RGResourceExtensions.AsResource(Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGBuffer})
+  id: AsResource(Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGBuffer})
+  isExtensionMethod: true
+  parent: Ghost.Graphics.RenderGraphModule.RGResourceExtensions
+  langs:
+  - csharp
+  - vb
+  name: AsResource(Identifier<RGBuffer>)
+  nameWithType: RGResourceExtensions.AsResource(Identifier<RGBuffer>)
+  fullName: Ghost.Graphics.RenderGraphModule.RGResourceExtensions.AsResource(Ghost.Core.Identifier<Ghost.Graphics.RenderGraphModule.RGBuffer>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AsResource
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 308
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public static Identifier<RGResource> AsResource(this Identifier<RGBuffer> buffer)
+    parameters:
+    - id: buffer
+      type: Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGBuffer}
+    return:
+      type: Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGResource}
+    content.vb: Public Shared Function AsResource(buffer As Identifier(Of RGBuffer)) As Identifier(Of RGResource)
+  overload: Ghost.Graphics.RenderGraphModule.RGResourceExtensions.AsResource*
+  nameWithType.vb: RGResourceExtensions.AsResource(Identifier(Of RGBuffer))
+  fullName.vb: Ghost.Graphics.RenderGraphModule.RGResourceExtensions.AsResource(Ghost.Core.Identifier(Of Ghost.Graphics.RenderGraphModule.RGBuffer))
+  name.vb: AsResource(Identifier(Of RGBuffer))
+references:
+- uid: Ghost.Graphics.RenderGraphModule
+  commentId: N:Ghost.Graphics.RenderGraphModule
+  href: Ghost.html
+  name: Ghost.Graphics.RenderGraphModule
+  nameWithType: Ghost.Graphics.RenderGraphModule
+  fullName: Ghost.Graphics.RenderGraphModule
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RenderGraphModule
+    name: RenderGraphModule
+    href: Ghost.Graphics.RenderGraphModule.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RenderGraphModule
+    name: RenderGraphModule
+    href: Ghost.Graphics.RenderGraphModule.html
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  name: Equals(object)
+  nameWithType: object.Equals(object)
+  fullName: object.Equals(object)
+  nameWithType.vb: Object.Equals(Object)
+  fullName.vb: Object.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  name: GetHashCode()
+  nameWithType: object.GetHashCode()
+  fullName: object.GetHashCode()
+  nameWithType.vb: Object.GetHashCode()
+  fullName.vb: Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  name: MemberwiseClone()
+  nameWithType: object.MemberwiseClone()
+  fullName: object.MemberwiseClone()
+  nameWithType.vb: Object.MemberwiseClone()
+  fullName.vb: Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  name: ToString()
+  nameWithType: object.ToString()
+  fullName: object.ToString()
+  nameWithType.vb: Object.ToString()
+  fullName.vb: Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RenderGraphModule.RGResourceExtensions.AsResource*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.RGResourceExtensions.AsResource
+  href: Ghost.Graphics.RenderGraphModule.RGResourceExtensions.html#Ghost_Graphics_RenderGraphModule_RGResourceExtensions_AsResource_Ghost_Core_Identifier_Ghost_Graphics_RenderGraphModule_RGTexture__
+  name: AsResource
+  nameWithType: RGResourceExtensions.AsResource
+  fullName: Ghost.Graphics.RenderGraphModule.RGResourceExtensions.AsResource
+- uid: Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture}
+  commentId: T:Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture}
+  parent: Ghost.Core
+  definition: Ghost.Core.Identifier`1
+  href: Ghost.Graphics.RenderGraphModule.RGTexture.html
+  name: Identifier<RGTexture>
+  nameWithType: Identifier<RGTexture>
+  fullName: Ghost.Core.Identifier<Ghost.Graphics.RenderGraphModule.RGTexture>
+  nameWithType.vb: Identifier(Of RGTexture)
+  fullName.vb: Ghost.Core.Identifier(Of Ghost.Graphics.RenderGraphModule.RGTexture)
+  name.vb: Identifier(Of RGTexture)
+  spec.csharp:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: <
+  - uid: Ghost.Graphics.RenderGraphModule.RGTexture
+    name: RGTexture
+    href: Ghost.Graphics.RenderGraphModule.RGTexture.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RenderGraphModule.RGTexture
+    name: RGTexture
+    href: Ghost.Graphics.RenderGraphModule.RGTexture.html
+  - name: )
+- uid: Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGResource}
+  commentId: T:Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGResource}
+  parent: Ghost.Core
+  definition: Ghost.Core.Identifier`1
+  href: Ghost.Graphics.RenderGraphModule.RGResource.html
+  name: Identifier<RGResource>
+  nameWithType: Identifier<RGResource>
+  fullName: Ghost.Core.Identifier<Ghost.Graphics.RenderGraphModule.RGResource>
+  nameWithType.vb: Identifier(Of RGResource)
+  fullName.vb: Ghost.Core.Identifier(Of Ghost.Graphics.RenderGraphModule.RGResource)
+  name.vb: Identifier(Of RGResource)
+  spec.csharp:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: <
+  - uid: Ghost.Graphics.RenderGraphModule.RGResource
+    name: RGResource
+    href: Ghost.Graphics.RenderGraphModule.RGResource.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RenderGraphModule.RGResource
+    name: RGResource
+    href: Ghost.Graphics.RenderGraphModule.RGResource.html
+  - name: )
+- uid: Ghost.Core.Identifier`1
+  commentId: T:Ghost.Core.Identifier`1
+  name: Identifier<T>
+  nameWithType: Identifier<T>
+  fullName: Ghost.Core.Identifier<T>
+  nameWithType.vb: Identifier(Of T)
+  fullName.vb: Ghost.Core.Identifier(Of T)
+  name.vb: Identifier(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Core
+  commentId: N:Ghost.Core
+  name: Ghost.Core
+  nameWithType: Ghost.Core
+  fullName: Ghost.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+- uid: Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGBuffer}
+  commentId: T:Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGBuffer}
+  parent: Ghost.Core
+  definition: Ghost.Core.Identifier`1
+  href: Ghost.Graphics.RenderGraphModule.RGBuffer.html
+  name: Identifier<RGBuffer>
+  nameWithType: Identifier<RGBuffer>
+  fullName: Ghost.Core.Identifier<Ghost.Graphics.RenderGraphModule.RGBuffer>
+  nameWithType.vb: Identifier(Of RGBuffer)
+  fullName.vb: Ghost.Core.Identifier(Of Ghost.Graphics.RenderGraphModule.RGBuffer)
+  name.vb: Identifier(Of RGBuffer)
+  spec.csharp:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: <
+  - uid: Ghost.Graphics.RenderGraphModule.RGBuffer
+    name: RGBuffer
+    href: Ghost.Graphics.RenderGraphModule.RGBuffer.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RenderGraphModule.RGBuffer
+    name: RGBuffer
+    href: Ghost.Graphics.RenderGraphModule.RGBuffer.html
+  - name: )

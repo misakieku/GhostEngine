@@ -1,0 +1,662 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.ResourceBindingInfo
+  commentId: T:Ghost.Graphics.RHI.ResourceBindingInfo
+  id: ResourceBindingInfo
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.ResourceBindingInfo.BindCount
+  - Ghost.Graphics.RHI.ResourceBindingInfo.BindPoint
+  - Ghost.Graphics.RHI.ResourceBindingInfo.Name
+  - Ghost.Graphics.RHI.ResourceBindingInfo.Properties
+  - Ghost.Graphics.RHI.ResourceBindingInfo.Size
+  - Ghost.Graphics.RHI.ResourceBindingInfo.Space
+  - Ghost.Graphics.RHI.ResourceBindingInfo.Type
+  langs:
+  - csharp
+  - vb
+  name: ResourceBindingInfo
+  nameWithType: ResourceBindingInfo
+  fullName: Ghost.Graphics.RHI.ResourceBindingInfo
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ResourceBindingInfo
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 92
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public struct ResourceBindingInfo
+    content.vb: Public Structure ResourceBindingInfo
+  inheritedMembers:
+  - System.ValueType.Equals(System.Object)
+  - System.ValueType.GetHashCode
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Graphics.RHI.ResourceBindingInfo.Name
+  commentId: P:Ghost.Graphics.RHI.ResourceBindingInfo.Name
+  id: Name
+  parent: Ghost.Graphics.RHI.ResourceBindingInfo
+  langs:
+  - csharp
+  - vb
+  name: Name
+  nameWithType: ResourceBindingInfo.Name
+  fullName: Ghost.Graphics.RHI.ResourceBindingInfo.Name
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Name
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 94
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public string Name { readonly get; set; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: Public Property Name As String
+  overload: Ghost.Graphics.RHI.ResourceBindingInfo.Name*
+- uid: Ghost.Graphics.RHI.ResourceBindingInfo.Type
+  commentId: P:Ghost.Graphics.RHI.ResourceBindingInfo.Type
+  id: Type
+  parent: Ghost.Graphics.RHI.ResourceBindingInfo
+  langs:
+  - csharp
+  - vb
+  name: Type
+  nameWithType: ResourceBindingInfo.Type
+  fullName: Ghost.Graphics.RHI.ResourceBindingInfo.Type
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Type
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 99
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public ShaderInputType Type { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.ShaderInputType
+    content.vb: Public Property Type As ShaderInputType
+  overload: Ghost.Graphics.RHI.ResourceBindingInfo.Type*
+- uid: Ghost.Graphics.RHI.ResourceBindingInfo.BindPoint
+  commentId: P:Ghost.Graphics.RHI.ResourceBindingInfo.BindPoint
+  id: BindPoint
+  parent: Ghost.Graphics.RHI.ResourceBindingInfo
+  langs:
+  - csharp
+  - vb
+  name: BindPoint
+  nameWithType: ResourceBindingInfo.BindPoint
+  fullName: Ghost.Graphics.RHI.ResourceBindingInfo.BindPoint
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: BindPoint
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 104
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public uint BindPoint { readonly get; set; }
+    parameters: []
+    return:
+      type: System.UInt32
+    content.vb: Public Property BindPoint As UInteger
+  overload: Ghost.Graphics.RHI.ResourceBindingInfo.BindPoint*
+- uid: Ghost.Graphics.RHI.ResourceBindingInfo.BindCount
+  commentId: P:Ghost.Graphics.RHI.ResourceBindingInfo.BindCount
+  id: BindCount
+  parent: Ghost.Graphics.RHI.ResourceBindingInfo
+  langs:
+  - csharp
+  - vb
+  name: BindCount
+  nameWithType: ResourceBindingInfo.BindCount
+  fullName: Ghost.Graphics.RHI.ResourceBindingInfo.BindCount
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: BindCount
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 109
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public uint BindCount { readonly get; set; }
+    parameters: []
+    return:
+      type: System.UInt32
+    content.vb: Public Property BindCount As UInteger
+  overload: Ghost.Graphics.RHI.ResourceBindingInfo.BindCount*
+- uid: Ghost.Graphics.RHI.ResourceBindingInfo.Space
+  commentId: P:Ghost.Graphics.RHI.ResourceBindingInfo.Space
+  id: Space
+  parent: Ghost.Graphics.RHI.ResourceBindingInfo
+  langs:
+  - csharp
+  - vb
+  name: Space
+  nameWithType: ResourceBindingInfo.Space
+  fullName: Ghost.Graphics.RHI.ResourceBindingInfo.Space
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Space
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 114
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public uint Space { readonly get; set; }
+    parameters: []
+    return:
+      type: System.UInt32
+    content.vb: Public Property Space As UInteger
+  overload: Ghost.Graphics.RHI.ResourceBindingInfo.Space*
+- uid: Ghost.Graphics.RHI.ResourceBindingInfo.Size
+  commentId: P:Ghost.Graphics.RHI.ResourceBindingInfo.Size
+  id: Size
+  parent: Ghost.Graphics.RHI.ResourceBindingInfo
+  langs:
+  - csharp
+  - vb
+  name: Size
+  nameWithType: ResourceBindingInfo.Size
+  fullName: Ghost.Graphics.RHI.ResourceBindingInfo.Size
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Size
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 119
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public uint Size { readonly get; set; }
+    parameters: []
+    return:
+      type: System.UInt32
+    content.vb: Public Property Size As UInteger
+  overload: Ghost.Graphics.RHI.ResourceBindingInfo.Size*
+- uid: Ghost.Graphics.RHI.ResourceBindingInfo.Properties
+  commentId: P:Ghost.Graphics.RHI.ResourceBindingInfo.Properties
+  id: Properties
+  parent: Ghost.Graphics.RHI.ResourceBindingInfo
+  langs:
+  - csharp
+  - vb
+  name: Properties
+  nameWithType: ResourceBindingInfo.Properties
+  fullName: Ghost.Graphics.RHI.ResourceBindingInfo.Properties
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Properties
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 124
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public IReadOnlyList<CBufferPropertyInfo>? Properties { readonly get; set; }
+    parameters: []
+    return:
+      type: System.Collections.Generic.IReadOnlyList{Ghost.Graphics.RHI.CBufferPropertyInfo}
+    content.vb: Public Property Properties As IReadOnlyList(Of CBufferPropertyInfo)
+  overload: Ghost.Graphics.RHI.ResourceBindingInfo.Properties*
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RHI.ResourceBindingInfo.Name*
+  commentId: Overload:Ghost.Graphics.RHI.ResourceBindingInfo.Name
+  href: Ghost.Graphics.RHI.ResourceBindingInfo.html#Ghost_Graphics_RHI_ResourceBindingInfo_Name
+  name: Name
+  nameWithType: ResourceBindingInfo.Name
+  fullName: Ghost.Graphics.RHI.ResourceBindingInfo.Name
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.string
+  name: string
+  nameWithType: string
+  fullName: string
+  nameWithType.vb: String
+  fullName.vb: String
+  name.vb: String
+- uid: Ghost.Graphics.RHI.ResourceBindingInfo.Type*
+  commentId: Overload:Ghost.Graphics.RHI.ResourceBindingInfo.Type
+  href: Ghost.Graphics.RHI.ResourceBindingInfo.html#Ghost_Graphics_RHI_ResourceBindingInfo_Type
+  name: Type
+  nameWithType: ResourceBindingInfo.Type
+  fullName: Ghost.Graphics.RHI.ResourceBindingInfo.Type
+- uid: Ghost.Graphics.RHI.ShaderInputType
+  commentId: T:Ghost.Graphics.RHI.ShaderInputType
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ShaderInputType.html
+  name: ShaderInputType
+  nameWithType: ShaderInputType
+  fullName: Ghost.Graphics.RHI.ShaderInputType
+- uid: Ghost.Graphics.RHI.ResourceBindingInfo.BindPoint*
+  commentId: Overload:Ghost.Graphics.RHI.ResourceBindingInfo.BindPoint
+  href: Ghost.Graphics.RHI.ResourceBindingInfo.html#Ghost_Graphics_RHI_ResourceBindingInfo_BindPoint
+  name: BindPoint
+  nameWithType: ResourceBindingInfo.BindPoint
+  fullName: Ghost.Graphics.RHI.ResourceBindingInfo.BindPoint
+- uid: System.UInt32
+  commentId: T:System.UInt32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.uint32
+  name: uint
+  nameWithType: uint
+  fullName: uint
+  nameWithType.vb: UInteger
+  fullName.vb: UInteger
+  name.vb: UInteger
+- uid: Ghost.Graphics.RHI.ResourceBindingInfo.BindCount*
+  commentId: Overload:Ghost.Graphics.RHI.ResourceBindingInfo.BindCount
+  href: Ghost.Graphics.RHI.ResourceBindingInfo.html#Ghost_Graphics_RHI_ResourceBindingInfo_BindCount
+  name: BindCount
+  nameWithType: ResourceBindingInfo.BindCount
+  fullName: Ghost.Graphics.RHI.ResourceBindingInfo.BindCount
+- uid: Ghost.Graphics.RHI.ResourceBindingInfo.Space*
+  commentId: Overload:Ghost.Graphics.RHI.ResourceBindingInfo.Space
+  href: Ghost.Graphics.RHI.ResourceBindingInfo.html#Ghost_Graphics_RHI_ResourceBindingInfo_Space
+  name: Space
+  nameWithType: ResourceBindingInfo.Space
+  fullName: Ghost.Graphics.RHI.ResourceBindingInfo.Space
+- uid: Ghost.Graphics.RHI.ResourceBindingInfo.Size*
+  commentId: Overload:Ghost.Graphics.RHI.ResourceBindingInfo.Size
+  href: Ghost.Graphics.RHI.ResourceBindingInfo.html#Ghost_Graphics_RHI_ResourceBindingInfo_Size
+  name: Size
+  nameWithType: ResourceBindingInfo.Size
+  fullName: Ghost.Graphics.RHI.ResourceBindingInfo.Size
+- uid: Ghost.Graphics.RHI.ResourceBindingInfo.Properties*
+  commentId: Overload:Ghost.Graphics.RHI.ResourceBindingInfo.Properties
+  href: Ghost.Graphics.RHI.ResourceBindingInfo.html#Ghost_Graphics_RHI_ResourceBindingInfo_Properties
+  name: Properties
+  nameWithType: ResourceBindingInfo.Properties
+  fullName: Ghost.Graphics.RHI.ResourceBindingInfo.Properties
+- uid: System.Collections.Generic.IReadOnlyList{Ghost.Graphics.RHI.CBufferPropertyInfo}
+  commentId: T:System.Collections.Generic.IReadOnlyList{Ghost.Graphics.RHI.CBufferPropertyInfo}
+  parent: System.Collections.Generic
+  definition: System.Collections.Generic.IReadOnlyList`1
+  href: https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlylist-1
+  name: IReadOnlyList<CBufferPropertyInfo>
+  nameWithType: IReadOnlyList<CBufferPropertyInfo>
+  fullName: System.Collections.Generic.IReadOnlyList<Ghost.Graphics.RHI.CBufferPropertyInfo>
+  nameWithType.vb: IReadOnlyList(Of CBufferPropertyInfo)
+  fullName.vb: System.Collections.Generic.IReadOnlyList(Of Ghost.Graphics.RHI.CBufferPropertyInfo)
+  name.vb: IReadOnlyList(Of CBufferPropertyInfo)
+  spec.csharp:
+  - uid: System.Collections.Generic.IReadOnlyList`1
+    name: IReadOnlyList
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlylist-1
+  - name: <
+  - uid: Ghost.Graphics.RHI.CBufferPropertyInfo
+    name: CBufferPropertyInfo
+    href: Ghost.Graphics.RHI.CBufferPropertyInfo.html
+  - name: '>'
+  spec.vb:
+  - uid: System.Collections.Generic.IReadOnlyList`1
+    name: IReadOnlyList
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlylist-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.CBufferPropertyInfo
+    name: CBufferPropertyInfo
+    href: Ghost.Graphics.RHI.CBufferPropertyInfo.html
+  - name: )
+- uid: System.Collections.Generic.IReadOnlyList`1
+  commentId: T:System.Collections.Generic.IReadOnlyList`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlylist-1
+  name: IReadOnlyList<T>
+  nameWithType: IReadOnlyList<T>
+  fullName: System.Collections.Generic.IReadOnlyList<T>
+  nameWithType.vb: IReadOnlyList(Of T)
+  fullName.vb: System.Collections.Generic.IReadOnlyList(Of T)
+  name.vb: IReadOnlyList(Of T)
+  spec.csharp:
+  - uid: System.Collections.Generic.IReadOnlyList`1
+    name: IReadOnlyList
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlylist-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.Collections.Generic.IReadOnlyList`1
+    name: IReadOnlyList
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlylist-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: System.Collections.Generic
+  commentId: N:System.Collections.Generic
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Collections.Generic
+  nameWithType: System.Collections.Generic
+  fullName: System.Collections.Generic
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Collections
+    name: Collections
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections
+  - name: .
+  - uid: System.Collections.Generic
+    name: Generic
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Collections
+    name: Collections
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections
+  - name: .
+  - uid: System.Collections.Generic
+    name: Generic
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic

@@ -1,0 +1,255 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.TextureDimension
+  commentId: T:Ghost.Graphics.RHI.TextureDimension
+  id: TextureDimension
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.TextureDimension.None
+  - Ghost.Graphics.RHI.TextureDimension.Texture2D
+  - Ghost.Graphics.RHI.TextureDimension.Texture2DArray
+  - Ghost.Graphics.RHI.TextureDimension.Texture3D
+  - Ghost.Graphics.RHI.TextureDimension.TextureCube
+  - Ghost.Graphics.RHI.TextureDimension.TextureCubeArray
+  - Ghost.Graphics.RHI.TextureDimension.Unknown
+  langs:
+  - csharp
+  - vb
+  name: TextureDimension
+  nameWithType: TextureDimension
+  fullName: Ghost.Graphics.RHI.TextureDimension
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: TextureDimension
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1263
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public enum TextureDimension
+    content.vb: Public Enum TextureDimension
+- uid: Ghost.Graphics.RHI.TextureDimension.Unknown
+  commentId: F:Ghost.Graphics.RHI.TextureDimension.Unknown
+  id: Unknown
+  parent: Ghost.Graphics.RHI.TextureDimension
+  langs:
+  - csharp
+  - vb
+  name: Unknown
+  nameWithType: TextureDimension.Unknown
+  fullName: Ghost.Graphics.RHI.TextureDimension.Unknown
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Unknown
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1265
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Unknown = -1
+    return:
+      type: Ghost.Graphics.RHI.TextureDimension
+- uid: Ghost.Graphics.RHI.TextureDimension.None
+  commentId: F:Ghost.Graphics.RHI.TextureDimension.None
+  id: None
+  parent: Ghost.Graphics.RHI.TextureDimension
+  langs:
+  - csharp
+  - vb
+  name: None
+  nameWithType: TextureDimension.None
+  fullName: Ghost.Graphics.RHI.TextureDimension.None
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: None
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1266
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: None = 0
+    return:
+      type: Ghost.Graphics.RHI.TextureDimension
+- uid: Ghost.Graphics.RHI.TextureDimension.Texture2D
+  commentId: F:Ghost.Graphics.RHI.TextureDimension.Texture2D
+  id: Texture2D
+  parent: Ghost.Graphics.RHI.TextureDimension
+  langs:
+  - csharp
+  - vb
+  name: Texture2D
+  nameWithType: TextureDimension.Texture2D
+  fullName: Ghost.Graphics.RHI.TextureDimension.Texture2D
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Texture2D
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1267
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Texture2D = 1
+    return:
+      type: Ghost.Graphics.RHI.TextureDimension
+- uid: Ghost.Graphics.RHI.TextureDimension.Texture3D
+  commentId: F:Ghost.Graphics.RHI.TextureDimension.Texture3D
+  id: Texture3D
+  parent: Ghost.Graphics.RHI.TextureDimension
+  langs:
+  - csharp
+  - vb
+  name: Texture3D
+  nameWithType: TextureDimension.Texture3D
+  fullName: Ghost.Graphics.RHI.TextureDimension.Texture3D
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Texture3D
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1268
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Texture3D = 2
+    return:
+      type: Ghost.Graphics.RHI.TextureDimension
+- uid: Ghost.Graphics.RHI.TextureDimension.TextureCube
+  commentId: F:Ghost.Graphics.RHI.TextureDimension.TextureCube
+  id: TextureCube
+  parent: Ghost.Graphics.RHI.TextureDimension
+  langs:
+  - csharp
+  - vb
+  name: TextureCube
+  nameWithType: TextureDimension.TextureCube
+  fullName: Ghost.Graphics.RHI.TextureDimension.TextureCube
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: TextureCube
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1269
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: TextureCube = 3
+    return:
+      type: Ghost.Graphics.RHI.TextureDimension
+- uid: Ghost.Graphics.RHI.TextureDimension.Texture2DArray
+  commentId: F:Ghost.Graphics.RHI.TextureDimension.Texture2DArray
+  id: Texture2DArray
+  parent: Ghost.Graphics.RHI.TextureDimension
+  langs:
+  - csharp
+  - vb
+  name: Texture2DArray
+  nameWithType: TextureDimension.Texture2DArray
+  fullName: Ghost.Graphics.RHI.TextureDimension.Texture2DArray
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Texture2DArray
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1270
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Texture2DArray = 4
+    return:
+      type: Ghost.Graphics.RHI.TextureDimension
+- uid: Ghost.Graphics.RHI.TextureDimension.TextureCubeArray
+  commentId: F:Ghost.Graphics.RHI.TextureDimension.TextureCubeArray
+  id: TextureCubeArray
+  parent: Ghost.Graphics.RHI.TextureDimension
+  langs:
+  - csharp
+  - vb
+  name: TextureCubeArray
+  nameWithType: TextureDimension.TextureCubeArray
+  fullName: Ghost.Graphics.RHI.TextureDimension.TextureCubeArray
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: TextureCubeArray
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1271
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: TextureCubeArray = 5
+    return:
+      type: Ghost.Graphics.RHI.TextureDimension
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.TextureDimension
+  commentId: T:Ghost.Graphics.RHI.TextureDimension
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.TextureDimension.html
+  name: TextureDimension
+  nameWithType: TextureDimension
+  fullName: Ghost.Graphics.RHI.TextureDimension

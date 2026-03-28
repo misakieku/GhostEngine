@@ -1,0 +1,1328 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.Core.RenderingContext
+  commentId: T:Ghost.Graphics.Core.RenderingContext
+  id: RenderingContext
+  parent: Ghost.Graphics.Core
+  children:
+  - Ghost.Graphics.Core.RenderingContext.CrearteCommandBuffer(Ghost.Graphics.RHI.CommandBufferType)
+  - Ghost.Graphics.Core.RenderingContext.CreateMesh(Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex},Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32},System.Boolean)
+  - Ghost.Graphics.Core.RenderingContext.CreateMesh(System.ReadOnlySpan{Ghost.Graphics.RHI.Vertex},System.ReadOnlySpan{System.UInt32},System.Boolean)
+  - Ghost.Graphics.Core.RenderingContext.CreateTexture``1(Ghost.Graphics.RHI.TextureDesc@,System.ReadOnlySpan{``0},System.String)
+  - Ghost.Graphics.Core.RenderingContext.DirectCommandBuffer
+  - Ghost.Graphics.Core.RenderingContext.ExecuteCommandBuffer(Ghost.Graphics.RHI.ICommandBuffer)
+  - Ghost.Graphics.Core.RenderingContext.PipelineLibrary
+  - Ghost.Graphics.Core.RenderingContext.ResourceAllocator
+  - Ghost.Graphics.Core.RenderingContext.ResourceDatabase
+  - Ghost.Graphics.Core.RenderingContext.ResourceManager
+  - Ghost.Graphics.Core.RenderingContext.ShaderCompiler
+  - Ghost.Graphics.Core.RenderingContext.UpdateObjectData(Ghost.Core.Handle{Ghost.Graphics.Core.Mesh})
+  - Ghost.Graphics.Core.RenderingContext.UploadMesh(Ghost.Core.Handle{Ghost.Graphics.Core.Mesh},System.Boolean)
+  - Ghost.Graphics.Core.RenderingContext.UploadMeshlets(Ghost.Core.Handle{Ghost.Graphics.Core.Mesh})
+  - Ghost.Graphics.Core.RenderingContext.UploadTexture``1(Ghost.Core.Handle{Ghost.Graphics.RHI.Texture},System.ReadOnlySpan{``0})
+  langs:
+  - csharp
+  - vb
+  name: RenderingContext
+  nameWithType: RenderingContext
+  fullName: Ghost.Graphics.Core.RenderingContext
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: RenderingContext
+    path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+    startLine: 10
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public readonly ref struct RenderingContext
+    content.vb: Public Structure RenderingContext
+  inheritedMembers:
+  - System.ValueType.Equals(System.Object)
+  - System.ValueType.GetHashCode
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Graphics.Core.RenderingContext.DirectCommandBuffer
+  commentId: P:Ghost.Graphics.Core.RenderingContext.DirectCommandBuffer
+  id: DirectCommandBuffer
+  parent: Ghost.Graphics.Core.RenderingContext
+  langs:
+  - csharp
+  - vb
+  name: DirectCommandBuffer
+  nameWithType: RenderingContext.DirectCommandBuffer
+  fullName: Ghost.Graphics.Core.RenderingContext.DirectCommandBuffer
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: DirectCommandBuffer
+    path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+    startLine: 16
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public ICommandBuffer DirectCommandBuffer { get; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.ICommandBuffer
+    content.vb: Public ReadOnly Property DirectCommandBuffer As ICommandBuffer
+  overload: Ghost.Graphics.Core.RenderingContext.DirectCommandBuffer*
+- uid: Ghost.Graphics.Core.RenderingContext.ShaderCompiler
+  commentId: P:Ghost.Graphics.Core.RenderingContext.ShaderCompiler
+  id: ShaderCompiler
+  parent: Ghost.Graphics.Core.RenderingContext
+  langs:
+  - csharp
+  - vb
+  name: ShaderCompiler
+  nameWithType: RenderingContext.ShaderCompiler
+  fullName: Ghost.Graphics.Core.RenderingContext.ShaderCompiler
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ShaderCompiler
+    path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+    startLine: 18
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public IShaderCompiler ShaderCompiler { get; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.IShaderCompiler
+    content.vb: Public ReadOnly Property ShaderCompiler As IShaderCompiler
+  overload: Ghost.Graphics.Core.RenderingContext.ShaderCompiler*
+- uid: Ghost.Graphics.Core.RenderingContext.ResourceManager
+  commentId: P:Ghost.Graphics.Core.RenderingContext.ResourceManager
+  id: ResourceManager
+  parent: Ghost.Graphics.Core.RenderingContext
+  langs:
+  - csharp
+  - vb
+  name: ResourceManager
+  nameWithType: RenderingContext.ResourceManager
+  fullName: Ghost.Graphics.Core.RenderingContext.ResourceManager
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ResourceManager
+    path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+    startLine: 19
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public ResourceManager ResourceManager { get; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.ResourceManager
+    content.vb: Public ReadOnly Property ResourceManager As ResourceManager
+  overload: Ghost.Graphics.Core.RenderingContext.ResourceManager*
+- uid: Ghost.Graphics.Core.RenderingContext.ResourceAllocator
+  commentId: P:Ghost.Graphics.Core.RenderingContext.ResourceAllocator
+  id: ResourceAllocator
+  parent: Ghost.Graphics.Core.RenderingContext
+  langs:
+  - csharp
+  - vb
+  name: ResourceAllocator
+  nameWithType: RenderingContext.ResourceAllocator
+  fullName: Ghost.Graphics.Core.RenderingContext.ResourceAllocator
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ResourceAllocator
+    path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+    startLine: 20
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public IResourceAllocator ResourceAllocator { get; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.IResourceAllocator
+    content.vb: Public ReadOnly Property ResourceAllocator As IResourceAllocator
+  overload: Ghost.Graphics.Core.RenderingContext.ResourceAllocator*
+- uid: Ghost.Graphics.Core.RenderingContext.ResourceDatabase
+  commentId: P:Ghost.Graphics.Core.RenderingContext.ResourceDatabase
+  id: ResourceDatabase
+  parent: Ghost.Graphics.Core.RenderingContext
+  langs:
+  - csharp
+  - vb
+  name: ResourceDatabase
+  nameWithType: RenderingContext.ResourceDatabase
+  fullName: Ghost.Graphics.Core.RenderingContext.ResourceDatabase
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ResourceDatabase
+    path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+    startLine: 21
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public IResourceDatabase ResourceDatabase { get; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.IResourceDatabase
+    content.vb: Public ReadOnly Property ResourceDatabase As IResourceDatabase
+  overload: Ghost.Graphics.Core.RenderingContext.ResourceDatabase*
+- uid: Ghost.Graphics.Core.RenderingContext.PipelineLibrary
+  commentId: P:Ghost.Graphics.Core.RenderingContext.PipelineLibrary
+  id: PipelineLibrary
+  parent: Ghost.Graphics.Core.RenderingContext
+  langs:
+  - csharp
+  - vb
+  name: PipelineLibrary
+  nameWithType: RenderingContext.PipelineLibrary
+  fullName: Ghost.Graphics.Core.RenderingContext.PipelineLibrary
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: PipelineLibrary
+    path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+    startLine: 22
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public IPipelineLibrary PipelineLibrary { get; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.IPipelineLibrary
+    content.vb: Public ReadOnly Property PipelineLibrary As IPipelineLibrary
+  overload: Ghost.Graphics.Core.RenderingContext.PipelineLibrary*
+- uid: Ghost.Graphics.Core.RenderingContext.CrearteCommandBuffer(Ghost.Graphics.RHI.CommandBufferType)
+  commentId: M:Ghost.Graphics.Core.RenderingContext.CrearteCommandBuffer(Ghost.Graphics.RHI.CommandBufferType)
+  id: CrearteCommandBuffer(Ghost.Graphics.RHI.CommandBufferType)
+  parent: Ghost.Graphics.Core.RenderingContext
+  langs:
+  - csharp
+  - vb
+  name: CrearteCommandBuffer(CommandBufferType)
+  nameWithType: RenderingContext.CrearteCommandBuffer(CommandBufferType)
+  fullName: Ghost.Graphics.Core.RenderingContext.CrearteCommandBuffer(Ghost.Graphics.RHI.CommandBufferType)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CrearteCommandBuffer
+    path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+    startLine: 31
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public ICommandBuffer CrearteCommandBuffer(CommandBufferType type)
+    parameters:
+    - id: type
+      type: Ghost.Graphics.RHI.CommandBufferType
+    return:
+      type: Ghost.Graphics.RHI.ICommandBuffer
+    content.vb: Public Function CrearteCommandBuffer(type As CommandBufferType) As ICommandBuffer
+  overload: Ghost.Graphics.Core.RenderingContext.CrearteCommandBuffer*
+- uid: Ghost.Graphics.Core.RenderingContext.ExecuteCommandBuffer(Ghost.Graphics.RHI.ICommandBuffer)
+  commentId: M:Ghost.Graphics.Core.RenderingContext.ExecuteCommandBuffer(Ghost.Graphics.RHI.ICommandBuffer)
+  id: ExecuteCommandBuffer(Ghost.Graphics.RHI.ICommandBuffer)
+  parent: Ghost.Graphics.Core.RenderingContext
+  langs:
+  - csharp
+  - vb
+  name: ExecuteCommandBuffer(ICommandBuffer)
+  nameWithType: RenderingContext.ExecuteCommandBuffer(ICommandBuffer)
+  fullName: Ghost.Graphics.Core.RenderingContext.ExecuteCommandBuffer(Ghost.Graphics.RHI.ICommandBuffer)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ExecuteCommandBuffer
+    path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+    startLine: 37
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public void ExecuteCommandBuffer(ICommandBuffer commandBuffer)
+    parameters:
+    - id: commandBuffer
+      type: Ghost.Graphics.RHI.ICommandBuffer
+    content.vb: Public Sub ExecuteCommandBuffer(commandBuffer As ICommandBuffer)
+  overload: Ghost.Graphics.Core.RenderingContext.ExecuteCommandBuffer*
+- uid: Ghost.Graphics.Core.RenderingContext.CreateMesh(Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex},Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32},System.Boolean)
+  commentId: M:Ghost.Graphics.Core.RenderingContext.CreateMesh(Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex},Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32},System.Boolean)
+  id: CreateMesh(Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex},Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32},System.Boolean)
+  parent: Ghost.Graphics.Core.RenderingContext
+  langs:
+  - csharp
+  - vb
+  name: CreateMesh(UnsafeList<Vertex>, UnsafeList<uint>, bool)
+  nameWithType: RenderingContext.CreateMesh(UnsafeList<Vertex>, UnsafeList<uint>, bool)
+  fullName: Ghost.Graphics.Core.RenderingContext.CreateMesh(Misaki.HighPerformance.LowLevel.Collections.UnsafeList<Ghost.Graphics.RHI.Vertex>, Misaki.HighPerformance.LowLevel.Collections.UnsafeList<uint>, bool)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CreateMesh
+    path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+    startLine: 86
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public Handle<Mesh> CreateMesh(UnsafeList<Vertex> vertices, UnsafeList<uint> indices, bool staticMesh)
+    parameters:
+    - id: vertices
+      type: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex}
+    - id: indices
+      type: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}
+    - id: staticMesh
+      type: System.Boolean
+    return:
+      type: Ghost.Core.Handle{Ghost.Graphics.Core.Mesh}
+    content.vb: Public Function CreateMesh(vertices As UnsafeList(Of Vertex), indices As UnsafeList(Of UInteger), staticMesh As Boolean) As Handle(Of Mesh)
+  overload: Ghost.Graphics.Core.RenderingContext.CreateMesh*
+  nameWithType.vb: RenderingContext.CreateMesh(UnsafeList(Of Vertex), UnsafeList(Of UInteger), Boolean)
+  fullName.vb: Ghost.Graphics.Core.RenderingContext.CreateMesh(Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of Ghost.Graphics.RHI.Vertex), Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of UInteger), Boolean)
+  name.vb: CreateMesh(UnsafeList(Of Vertex), UnsafeList(Of UInteger), Boolean)
+- uid: Ghost.Graphics.Core.RenderingContext.CreateMesh(System.ReadOnlySpan{Ghost.Graphics.RHI.Vertex},System.ReadOnlySpan{System.UInt32},System.Boolean)
+  commentId: M:Ghost.Graphics.Core.RenderingContext.CreateMesh(System.ReadOnlySpan{Ghost.Graphics.RHI.Vertex},System.ReadOnlySpan{System.UInt32},System.Boolean)
+  id: CreateMesh(System.ReadOnlySpan{Ghost.Graphics.RHI.Vertex},System.ReadOnlySpan{System.UInt32},System.Boolean)
+  parent: Ghost.Graphics.Core.RenderingContext
+  langs:
+  - csharp
+  - vb
+  name: CreateMesh(ReadOnlySpan<Vertex>, ReadOnlySpan<uint>, bool)
+  nameWithType: RenderingContext.CreateMesh(ReadOnlySpan<Vertex>, ReadOnlySpan<uint>, bool)
+  fullName: Ghost.Graphics.Core.RenderingContext.CreateMesh(System.ReadOnlySpan<Ghost.Graphics.RHI.Vertex>, System.ReadOnlySpan<uint>, bool)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CreateMesh
+    path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+    startLine: 118
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public Handle<Mesh> CreateMesh(ReadOnlySpan<Vertex> vertices, ReadOnlySpan<uint> indices, bool staticMesh)
+    parameters:
+    - id: vertices
+      type: System.ReadOnlySpan{Ghost.Graphics.RHI.Vertex}
+    - id: indices
+      type: System.ReadOnlySpan{System.UInt32}
+    - id: staticMesh
+      type: System.Boolean
+    return:
+      type: Ghost.Core.Handle{Ghost.Graphics.Core.Mesh}
+    content.vb: Public Function CreateMesh(vertices As ReadOnlySpan(Of Vertex), indices As ReadOnlySpan(Of UInteger), staticMesh As Boolean) As Handle(Of Mesh)
+  overload: Ghost.Graphics.Core.RenderingContext.CreateMesh*
+  nameWithType.vb: RenderingContext.CreateMesh(ReadOnlySpan(Of Vertex), ReadOnlySpan(Of UInteger), Boolean)
+  fullName.vb: Ghost.Graphics.Core.RenderingContext.CreateMesh(System.ReadOnlySpan(Of Ghost.Graphics.RHI.Vertex), System.ReadOnlySpan(Of UInteger), Boolean)
+  name.vb: CreateMesh(ReadOnlySpan(Of Vertex), ReadOnlySpan(Of UInteger), Boolean)
+- uid: Ghost.Graphics.Core.RenderingContext.UploadMesh(Ghost.Core.Handle{Ghost.Graphics.Core.Mesh},System.Boolean)
+  commentId: M:Ghost.Graphics.Core.RenderingContext.UploadMesh(Ghost.Core.Handle{Ghost.Graphics.Core.Mesh},System.Boolean)
+  id: UploadMesh(Ghost.Core.Handle{Ghost.Graphics.Core.Mesh},System.Boolean)
+  parent: Ghost.Graphics.Core.RenderingContext
+  langs:
+  - csharp
+  - vb
+  name: UploadMesh(Handle<Mesh>, bool)
+  nameWithType: RenderingContext.UploadMesh(Handle<Mesh>, bool)
+  fullName: Ghost.Graphics.Core.RenderingContext.UploadMesh(Ghost.Core.Handle<Ghost.Graphics.Core.Mesh>, bool)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: UploadMesh
+    path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+    startLine: 136
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  summary: Uploads the mesh data to the GPU.
+  example: []
+  syntax:
+    content: public void UploadMesh(Handle<Mesh> mesh, bool markMeshStatic)
+    parameters:
+    - id: mesh
+      type: Ghost.Core.Handle{Ghost.Graphics.Core.Mesh}
+      description: The handle point to the mesh buffer
+    - id: markMeshStatic
+      type: System.Boolean
+      description: Whether to mark the mesh as static. If it's true, the cpu buffer of the mesh will not be avaliable any more
+    content.vb: Public Sub UploadMesh(mesh As Handle(Of Mesh), markMeshStatic As Boolean)
+  overload: Ghost.Graphics.Core.RenderingContext.UploadMesh*
+  nameWithType.vb: RenderingContext.UploadMesh(Handle(Of Mesh), Boolean)
+  fullName.vb: Ghost.Graphics.Core.RenderingContext.UploadMesh(Ghost.Core.Handle(Of Ghost.Graphics.Core.Mesh), Boolean)
+  name.vb: UploadMesh(Handle(Of Mesh), Boolean)
+- uid: Ghost.Graphics.Core.RenderingContext.UploadMeshlets(Ghost.Core.Handle{Ghost.Graphics.Core.Mesh})
+  commentId: M:Ghost.Graphics.Core.RenderingContext.UploadMeshlets(Ghost.Core.Handle{Ghost.Graphics.Core.Mesh})
+  id: UploadMeshlets(Ghost.Core.Handle{Ghost.Graphics.Core.Mesh})
+  parent: Ghost.Graphics.Core.RenderingContext
+  langs:
+  - csharp
+  - vb
+  name: UploadMeshlets(Handle<Mesh>)
+  nameWithType: RenderingContext.UploadMeshlets(Handle<Mesh>)
+  fullName: Ghost.Graphics.Core.RenderingContext.UploadMeshlets(Ghost.Core.Handle<Ghost.Graphics.Core.Mesh>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: UploadMeshlets
+    path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+    startLine: 163
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public void UploadMeshlets(Handle<Mesh> mesh)
+    parameters:
+    - id: mesh
+      type: Ghost.Core.Handle{Ghost.Graphics.Core.Mesh}
+    content.vb: Public Sub UploadMeshlets(mesh As Handle(Of Mesh))
+  overload: Ghost.Graphics.Core.RenderingContext.UploadMeshlets*
+  nameWithType.vb: RenderingContext.UploadMeshlets(Handle(Of Mesh))
+  fullName.vb: Ghost.Graphics.Core.RenderingContext.UploadMeshlets(Ghost.Core.Handle(Of Ghost.Graphics.Core.Mesh))
+  name.vb: UploadMeshlets(Handle(Of Mesh))
+- uid: Ghost.Graphics.Core.RenderingContext.UpdateObjectData(Ghost.Core.Handle{Ghost.Graphics.Core.Mesh})
+  commentId: M:Ghost.Graphics.Core.RenderingContext.UpdateObjectData(Ghost.Core.Handle{Ghost.Graphics.Core.Mesh})
+  id: UpdateObjectData(Ghost.Core.Handle{Ghost.Graphics.Core.Mesh})
+  parent: Ghost.Graphics.Core.RenderingContext
+  langs:
+  - csharp
+  - vb
+  name: UpdateObjectData(Handle<Mesh>)
+  nameWithType: RenderingContext.UpdateObjectData(Handle<Mesh>)
+  fullName: Ghost.Graphics.Core.RenderingContext.UpdateObjectData(Ghost.Core.Handle<Ghost.Graphics.Core.Mesh>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: UpdateObjectData
+    path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+    startLine: 217
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public void UpdateObjectData(Handle<Mesh> mesh)
+    parameters:
+    - id: mesh
+      type: Ghost.Core.Handle{Ghost.Graphics.Core.Mesh}
+    content.vb: Public Sub UpdateObjectData(mesh As Handle(Of Mesh))
+  overload: Ghost.Graphics.Core.RenderingContext.UpdateObjectData*
+  nameWithType.vb: RenderingContext.UpdateObjectData(Handle(Of Mesh))
+  fullName.vb: Ghost.Graphics.Core.RenderingContext.UpdateObjectData(Ghost.Core.Handle(Of Ghost.Graphics.Core.Mesh))
+  name.vb: UpdateObjectData(Handle(Of Mesh))
+- uid: Ghost.Graphics.Core.RenderingContext.CreateTexture``1(Ghost.Graphics.RHI.TextureDesc@,System.ReadOnlySpan{``0},System.String)
+  commentId: M:Ghost.Graphics.Core.RenderingContext.CreateTexture``1(Ghost.Graphics.RHI.TextureDesc@,System.ReadOnlySpan{``0},System.String)
+  id: CreateTexture``1(Ghost.Graphics.RHI.TextureDesc@,System.ReadOnlySpan{``0},System.String)
+  parent: Ghost.Graphics.Core.RenderingContext
+  langs:
+  - csharp
+  - vb
+  name: CreateTexture<T>(ref readonly TextureDesc, ReadOnlySpan<T>, string)
+  nameWithType: RenderingContext.CreateTexture<T>(ref readonly TextureDesc, ReadOnlySpan<T>, string)
+  fullName: Ghost.Graphics.Core.RenderingContext.CreateTexture<T>(ref readonly Ghost.Graphics.RHI.TextureDesc, System.ReadOnlySpan<T>, string)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CreateTexture
+    path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+    startLine: 244
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: 'public Handle<Texture> CreateTexture<T>(ref readonly TextureDesc desc, ReadOnlySpan<T> data, string name) where T : unmanaged'
+    parameters:
+    - id: desc
+      type: Ghost.Graphics.RHI.TextureDesc
+    - id: data
+      type: System.ReadOnlySpan{{T}}
+    - id: name
+      type: System.String
+    typeParameters:
+    - id: T
+    return:
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+    content.vb: Public Function CreateTexture(Of T As Structure)(desc As TextureDesc, data As ReadOnlySpan(Of T), name As String) As Handle(Of Texture)
+  overload: Ghost.Graphics.Core.RenderingContext.CreateTexture*
+  nameWithType.vb: RenderingContext.CreateTexture(Of T)(TextureDesc, ReadOnlySpan(Of T), String)
+  fullName.vb: Ghost.Graphics.Core.RenderingContext.CreateTexture(Of T)(Ghost.Graphics.RHI.TextureDesc, System.ReadOnlySpan(Of T), String)
+  name.vb: CreateTexture(Of T)(TextureDesc, ReadOnlySpan(Of T), String)
+- uid: Ghost.Graphics.Core.RenderingContext.UploadTexture``1(Ghost.Core.Handle{Ghost.Graphics.RHI.Texture},System.ReadOnlySpan{``0})
+  commentId: M:Ghost.Graphics.Core.RenderingContext.UploadTexture``1(Ghost.Core.Handle{Ghost.Graphics.RHI.Texture},System.ReadOnlySpan{``0})
+  id: UploadTexture``1(Ghost.Core.Handle{Ghost.Graphics.RHI.Texture},System.ReadOnlySpan{``0})
+  parent: Ghost.Graphics.Core.RenderingContext
+  langs:
+  - csharp
+  - vb
+  name: UploadTexture<T>(Handle<Texture>, ReadOnlySpan<T>)
+  nameWithType: RenderingContext.UploadTexture<T>(Handle<Texture>, ReadOnlySpan<T>)
+  fullName: Ghost.Graphics.Core.RenderingContext.UploadTexture<T>(Ghost.Core.Handle<Ghost.Graphics.RHI.Texture>, System.ReadOnlySpan<T>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: UploadTexture
+    path: src/Runtime/Ghost.Graphics/Core/RenderingContext.cs
+    startLine: 253
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: 'public void UploadTexture<T>(Handle<Texture> texture, ReadOnlySpan<T> data) where T : unmanaged'
+    parameters:
+    - id: texture
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+    - id: data
+      type: System.ReadOnlySpan{{T}}
+    typeParameters:
+    - id: T
+    content.vb: Public Sub UploadTexture(Of T As Structure)(texture As Handle(Of Texture), data As ReadOnlySpan(Of T))
+  overload: Ghost.Graphics.Core.RenderingContext.UploadTexture*
+  nameWithType.vb: RenderingContext.UploadTexture(Of T)(Handle(Of Texture), ReadOnlySpan(Of T))
+  fullName.vb: Ghost.Graphics.Core.RenderingContext.UploadTexture(Of T)(Ghost.Core.Handle(Of Ghost.Graphics.RHI.Texture), System.ReadOnlySpan(Of T))
+  name.vb: UploadTexture(Of T)(Handle(Of Texture), ReadOnlySpan(Of T))
+references:
+- uid: Ghost.Graphics.Core
+  commentId: N:Ghost.Graphics.Core
+  href: Ghost.html
+  name: Ghost.Graphics.Core
+  nameWithType: Ghost.Graphics.Core
+  fullName: Ghost.Graphics.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Core
+    name: Core
+    href: Ghost.Graphics.Core.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Core
+    name: Core
+    href: Ghost.Graphics.Core.html
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.Core.RenderingContext.DirectCommandBuffer*
+  commentId: Overload:Ghost.Graphics.Core.RenderingContext.DirectCommandBuffer
+  href: Ghost.Graphics.Core.RenderingContext.html#Ghost_Graphics_Core_RenderingContext_DirectCommandBuffer
+  name: DirectCommandBuffer
+  nameWithType: RenderingContext.DirectCommandBuffer
+  fullName: Ghost.Graphics.Core.RenderingContext.DirectCommandBuffer
+- uid: Ghost.Graphics.RHI.ICommandBuffer
+  commentId: T:Ghost.Graphics.RHI.ICommandBuffer
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ICommandBuffer.html
+  name: ICommandBuffer
+  nameWithType: ICommandBuffer
+  fullName: Ghost.Graphics.RHI.ICommandBuffer
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.Core.RenderingContext.ShaderCompiler*
+  commentId: Overload:Ghost.Graphics.Core.RenderingContext.ShaderCompiler
+  href: Ghost.Graphics.Core.RenderingContext.html#Ghost_Graphics_Core_RenderingContext_ShaderCompiler
+  name: ShaderCompiler
+  nameWithType: RenderingContext.ShaderCompiler
+  fullName: Ghost.Graphics.Core.RenderingContext.ShaderCompiler
+- uid: Ghost.Graphics.RHI.IShaderCompiler
+  commentId: T:Ghost.Graphics.RHI.IShaderCompiler
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.IShaderCompiler.html
+  name: IShaderCompiler
+  nameWithType: IShaderCompiler
+  fullName: Ghost.Graphics.RHI.IShaderCompiler
+- uid: Ghost.Graphics.Core.RenderingContext.ResourceManager*
+  commentId: Overload:Ghost.Graphics.Core.RenderingContext.ResourceManager
+  href: Ghost.Graphics.Core.RenderingContext.html#Ghost_Graphics_Core_RenderingContext_ResourceManager
+  name: ResourceManager
+  nameWithType: RenderingContext.ResourceManager
+  fullName: Ghost.Graphics.Core.RenderingContext.ResourceManager
+- uid: Ghost.Graphics.ResourceManager
+  commentId: T:Ghost.Graphics.ResourceManager
+  parent: Ghost.Graphics
+  href: Ghost.Graphics.ResourceManager.html
+  name: ResourceManager
+  nameWithType: ResourceManager
+  fullName: Ghost.Graphics.ResourceManager
+- uid: Ghost.Graphics
+  commentId: N:Ghost.Graphics
+  href: Ghost.html
+  name: Ghost.Graphics
+  nameWithType: Ghost.Graphics
+  fullName: Ghost.Graphics
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+- uid: Ghost.Graphics.Core.RenderingContext.ResourceAllocator*
+  commentId: Overload:Ghost.Graphics.Core.RenderingContext.ResourceAllocator
+  href: Ghost.Graphics.Core.RenderingContext.html#Ghost_Graphics_Core_RenderingContext_ResourceAllocator
+  name: ResourceAllocator
+  nameWithType: RenderingContext.ResourceAllocator
+  fullName: Ghost.Graphics.Core.RenderingContext.ResourceAllocator
+- uid: Ghost.Graphics.RHI.IResourceAllocator
+  commentId: T:Ghost.Graphics.RHI.IResourceAllocator
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.IResourceAllocator.html
+  name: IResourceAllocator
+  nameWithType: IResourceAllocator
+  fullName: Ghost.Graphics.RHI.IResourceAllocator
+- uid: Ghost.Graphics.Core.RenderingContext.ResourceDatabase*
+  commentId: Overload:Ghost.Graphics.Core.RenderingContext.ResourceDatabase
+  href: Ghost.Graphics.Core.RenderingContext.html#Ghost_Graphics_Core_RenderingContext_ResourceDatabase
+  name: ResourceDatabase
+  nameWithType: RenderingContext.ResourceDatabase
+  fullName: Ghost.Graphics.Core.RenderingContext.ResourceDatabase
+- uid: Ghost.Graphics.RHI.IResourceDatabase
+  commentId: T:Ghost.Graphics.RHI.IResourceDatabase
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.IResourceDatabase.html
+  name: IResourceDatabase
+  nameWithType: IResourceDatabase
+  fullName: Ghost.Graphics.RHI.IResourceDatabase
+- uid: Ghost.Graphics.Core.RenderingContext.PipelineLibrary*
+  commentId: Overload:Ghost.Graphics.Core.RenderingContext.PipelineLibrary
+  href: Ghost.Graphics.Core.RenderingContext.html#Ghost_Graphics_Core_RenderingContext_PipelineLibrary
+  name: PipelineLibrary
+  nameWithType: RenderingContext.PipelineLibrary
+  fullName: Ghost.Graphics.Core.RenderingContext.PipelineLibrary
+- uid: Ghost.Graphics.RHI.IPipelineLibrary
+  commentId: T:Ghost.Graphics.RHI.IPipelineLibrary
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.IPipelineLibrary.html
+  name: IPipelineLibrary
+  nameWithType: IPipelineLibrary
+  fullName: Ghost.Graphics.RHI.IPipelineLibrary
+- uid: Ghost.Graphics.Core.RenderingContext.CrearteCommandBuffer*
+  commentId: Overload:Ghost.Graphics.Core.RenderingContext.CrearteCommandBuffer
+  href: Ghost.Graphics.Core.RenderingContext.html#Ghost_Graphics_Core_RenderingContext_CrearteCommandBuffer_Ghost_Graphics_RHI_CommandBufferType_
+  name: CrearteCommandBuffer
+  nameWithType: RenderingContext.CrearteCommandBuffer
+  fullName: Ghost.Graphics.Core.RenderingContext.CrearteCommandBuffer
+- uid: Ghost.Graphics.RHI.CommandBufferType
+  commentId: T:Ghost.Graphics.RHI.CommandBufferType
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.CommandBufferType.html
+  name: CommandBufferType
+  nameWithType: CommandBufferType
+  fullName: Ghost.Graphics.RHI.CommandBufferType
+- uid: Ghost.Graphics.Core.RenderingContext.ExecuteCommandBuffer*
+  commentId: Overload:Ghost.Graphics.Core.RenderingContext.ExecuteCommandBuffer
+  href: Ghost.Graphics.Core.RenderingContext.html#Ghost_Graphics_Core_RenderingContext_ExecuteCommandBuffer_Ghost_Graphics_RHI_ICommandBuffer_
+  name: ExecuteCommandBuffer
+  nameWithType: RenderingContext.ExecuteCommandBuffer
+  fullName: Ghost.Graphics.Core.RenderingContext.ExecuteCommandBuffer
+- uid: Ghost.Graphics.Core.RenderingContext.CreateMesh*
+  commentId: Overload:Ghost.Graphics.Core.RenderingContext.CreateMesh
+  href: Ghost.Graphics.Core.RenderingContext.html#Ghost_Graphics_Core_RenderingContext_CreateMesh_Misaki_HighPerformance_LowLevel_Collections_UnsafeList_Ghost_Graphics_RHI_Vertex__Misaki_HighPerformance_LowLevel_Collections_UnsafeList_System_UInt32__System_Boolean_
+  name: CreateMesh
+  nameWithType: RenderingContext.CreateMesh
+  fullName: Ghost.Graphics.Core.RenderingContext.CreateMesh
+- uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex}
+  commentId: T:Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.RHI.Vertex}
+  parent: Misaki.HighPerformance.LowLevel.Collections
+  definition: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+  name: UnsafeList<Vertex>
+  nameWithType: UnsafeList<Vertex>
+  fullName: Misaki.HighPerformance.LowLevel.Collections.UnsafeList<Ghost.Graphics.RHI.Vertex>
+  nameWithType.vb: UnsafeList(Of Vertex)
+  fullName.vb: Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of Ghost.Graphics.RHI.Vertex)
+  name.vb: UnsafeList(Of Vertex)
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: <
+  - uid: Ghost.Graphics.RHI.Vertex
+    name: Vertex
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.Vertex
+    name: Vertex
+  - name: )
+- uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}
+  commentId: T:Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}
+  parent: Misaki.HighPerformance.LowLevel.Collections
+  definition: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+  href: https://learn.microsoft.com/dotnet/api/system.uint32
+  name: UnsafeList<uint>
+  nameWithType: UnsafeList<uint>
+  fullName: Misaki.HighPerformance.LowLevel.Collections.UnsafeList<uint>
+  nameWithType.vb: UnsafeList(Of UInteger)
+  fullName.vb: Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of UInteger)
+  name.vb: UnsafeList(Of UInteger)
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: <
+  - uid: System.UInt32
+    name: uint
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.uint32
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: System.UInt32
+    name: UInteger
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.uint32
+  - name: )
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.boolean
+  name: bool
+  nameWithType: bool
+  fullName: bool
+  nameWithType.vb: Boolean
+  fullName.vb: Boolean
+  name.vb: Boolean
+- uid: Ghost.Core.Handle{Ghost.Graphics.Core.Mesh}
+  commentId: T:Ghost.Core.Handle{Ghost.Graphics.Core.Mesh}
+  parent: Ghost.Core
+  definition: Ghost.Core.Handle`1
+  href: Ghost.Graphics.Core.Mesh.html
+  name: Handle<Mesh>
+  nameWithType: Handle<Mesh>
+  fullName: Ghost.Core.Handle<Ghost.Graphics.Core.Mesh>
+  nameWithType.vb: Handle(Of Mesh)
+  fullName.vb: Ghost.Core.Handle(Of Ghost.Graphics.Core.Mesh)
+  name.vb: Handle(Of Mesh)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - uid: Ghost.Graphics.Core.Mesh
+    name: Mesh
+    href: Ghost.Graphics.Core.Mesh.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.Core.Mesh
+    name: Mesh
+    href: Ghost.Graphics.Core.Mesh.html
+  - name: )
+- uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+  commentId: T:Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+  name: UnsafeList<T>
+  nameWithType: UnsafeList<T>
+  fullName: Misaki.HighPerformance.LowLevel.Collections.UnsafeList<T>
+  nameWithType.vb: UnsafeList(Of T)
+  fullName.vb: Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of T)
+  name.vb: UnsafeList(Of T)
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Misaki.HighPerformance.LowLevel.Collections
+  commentId: N:Misaki.HighPerformance.LowLevel.Collections
+  name: Misaki.HighPerformance.LowLevel.Collections
+  nameWithType: Misaki.HighPerformance.LowLevel.Collections
+  fullName: Misaki.HighPerformance.LowLevel.Collections
+  spec.csharp:
+  - uid: Misaki
+    name: Misaki
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel
+    name: LowLevel
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel.Collections
+    name: Collections
+  spec.vb:
+  - uid: Misaki
+    name: Misaki
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel
+    name: LowLevel
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel.Collections
+    name: Collections
+- uid: Ghost.Core.Handle`1
+  commentId: T:Ghost.Core.Handle`1
+  name: Handle<T>
+  nameWithType: Handle<T>
+  fullName: Ghost.Core.Handle<T>
+  nameWithType.vb: Handle(Of T)
+  fullName.vb: Ghost.Core.Handle(Of T)
+  name.vb: Handle(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Core
+  commentId: N:Ghost.Core
+  name: Ghost.Core
+  nameWithType: Ghost.Core
+  fullName: Ghost.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+- uid: System.ReadOnlySpan{Ghost.Graphics.RHI.Vertex}
+  commentId: T:System.ReadOnlySpan{Ghost.Graphics.RHI.Vertex}
+  parent: System
+  definition: System.ReadOnlySpan`1
+  href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  name: ReadOnlySpan<Vertex>
+  nameWithType: ReadOnlySpan<Vertex>
+  fullName: System.ReadOnlySpan<Ghost.Graphics.RHI.Vertex>
+  nameWithType.vb: ReadOnlySpan(Of Vertex)
+  fullName.vb: System.ReadOnlySpan(Of Ghost.Graphics.RHI.Vertex)
+  name.vb: ReadOnlySpan(Of Vertex)
+  spec.csharp:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: <
+  - uid: Ghost.Graphics.RHI.Vertex
+    name: Vertex
+  - name: '>'
+  spec.vb:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.Vertex
+    name: Vertex
+  - name: )
+- uid: System.ReadOnlySpan{System.UInt32}
+  commentId: T:System.ReadOnlySpan{System.UInt32}
+  parent: System
+  definition: System.ReadOnlySpan`1
+  href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  name: ReadOnlySpan<uint>
+  nameWithType: ReadOnlySpan<uint>
+  fullName: System.ReadOnlySpan<uint>
+  nameWithType.vb: ReadOnlySpan(Of UInteger)
+  fullName.vb: System.ReadOnlySpan(Of UInteger)
+  name.vb: ReadOnlySpan(Of UInteger)
+  spec.csharp:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: <
+  - uid: System.UInt32
+    name: uint
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.uint32
+  - name: '>'
+  spec.vb:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: System.UInt32
+    name: UInteger
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.uint32
+  - name: )
+- uid: System.ReadOnlySpan`1
+  commentId: T:System.ReadOnlySpan`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  name: ReadOnlySpan<T>
+  nameWithType: ReadOnlySpan<T>
+  fullName: System.ReadOnlySpan<T>
+  nameWithType.vb: ReadOnlySpan(Of T)
+  fullName.vb: System.ReadOnlySpan(Of T)
+  name.vb: ReadOnlySpan(Of T)
+  spec.csharp:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Graphics.Core.RenderingContext.UploadMesh*
+  commentId: Overload:Ghost.Graphics.Core.RenderingContext.UploadMesh
+  href: Ghost.Graphics.Core.RenderingContext.html#Ghost_Graphics_Core_RenderingContext_UploadMesh_Ghost_Core_Handle_Ghost_Graphics_Core_Mesh__System_Boolean_
+  name: UploadMesh
+  nameWithType: RenderingContext.UploadMesh
+  fullName: Ghost.Graphics.Core.RenderingContext.UploadMesh
+- uid: Ghost.Graphics.Core.RenderingContext.UploadMeshlets*
+  commentId: Overload:Ghost.Graphics.Core.RenderingContext.UploadMeshlets
+  href: Ghost.Graphics.Core.RenderingContext.html#Ghost_Graphics_Core_RenderingContext_UploadMeshlets_Ghost_Core_Handle_Ghost_Graphics_Core_Mesh__
+  name: UploadMeshlets
+  nameWithType: RenderingContext.UploadMeshlets
+  fullName: Ghost.Graphics.Core.RenderingContext.UploadMeshlets
+- uid: Ghost.Graphics.Core.RenderingContext.UpdateObjectData*
+  commentId: Overload:Ghost.Graphics.Core.RenderingContext.UpdateObjectData
+  href: Ghost.Graphics.Core.RenderingContext.html#Ghost_Graphics_Core_RenderingContext_UpdateObjectData_Ghost_Core_Handle_Ghost_Graphics_Core_Mesh__
+  name: UpdateObjectData
+  nameWithType: RenderingContext.UpdateObjectData
+  fullName: Ghost.Graphics.Core.RenderingContext.UpdateObjectData
+- uid: Ghost.Graphics.Core.RenderingContext.CreateTexture*
+  commentId: Overload:Ghost.Graphics.Core.RenderingContext.CreateTexture
+  href: Ghost.Graphics.Core.RenderingContext.html#Ghost_Graphics_Core_RenderingContext_CreateTexture__1_Ghost_Graphics_RHI_TextureDesc__System_ReadOnlySpan___0__System_String_
+  name: CreateTexture
+  nameWithType: RenderingContext.CreateTexture
+  fullName: Ghost.Graphics.Core.RenderingContext.CreateTexture
+- uid: Ghost.Graphics.RHI.TextureDesc
+  commentId: T:Ghost.Graphics.RHI.TextureDesc
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.TextureDesc.html
+  name: TextureDesc
+  nameWithType: TextureDesc
+  fullName: Ghost.Graphics.RHI.TextureDesc
+- uid: System.ReadOnlySpan{{T}}
+  commentId: T:System.ReadOnlySpan{``0}
+  parent: System
+  definition: System.ReadOnlySpan`1
+  href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  name: ReadOnlySpan<T>
+  nameWithType: ReadOnlySpan<T>
+  fullName: System.ReadOnlySpan<T>
+  nameWithType.vb: ReadOnlySpan(Of T)
+  fullName.vb: System.ReadOnlySpan(Of T)
+  name.vb: ReadOnlySpan(Of T)
+  spec.csharp:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.string
+  name: string
+  nameWithType: string
+  fullName: string
+  nameWithType.vb: String
+  fullName.vb: String
+  name.vb: String
+- uid: Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+  commentId: T:Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+  parent: Ghost.Core
+  definition: Ghost.Core.Handle`1
+  href: Ghost.Graphics.RHI.Texture.html
+  name: Handle<Texture>
+  nameWithType: Handle<Texture>
+  fullName: Ghost.Core.Handle<Ghost.Graphics.RHI.Texture>
+  nameWithType.vb: Handle(Of Texture)
+  fullName.vb: Ghost.Core.Handle(Of Ghost.Graphics.RHI.Texture)
+  name.vb: Handle(Of Texture)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - uid: Ghost.Graphics.RHI.Texture
+    name: Texture
+    href: Ghost.Graphics.RHI.Texture.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.Texture
+    name: Texture
+    href: Ghost.Graphics.RHI.Texture.html
+  - name: )
+- uid: Ghost.Graphics.Core.RenderingContext.UploadTexture*
+  commentId: Overload:Ghost.Graphics.Core.RenderingContext.UploadTexture
+  href: Ghost.Graphics.Core.RenderingContext.html#Ghost_Graphics_Core_RenderingContext_UploadTexture__1_Ghost_Core_Handle_Ghost_Graphics_RHI_Texture__System_ReadOnlySpan___0__
+  name: UploadTexture
+  nameWithType: RenderingContext.UploadTexture
+  fullName: Ghost.Graphics.Core.RenderingContext.UploadTexture

@@ -1,0 +1,282 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.ComparisonFunction
+  commentId: T:Ghost.Graphics.RHI.ComparisonFunction
+  id: ComparisonFunction
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.ComparisonFunction.Always
+  - Ghost.Graphics.RHI.ComparisonFunction.Equal
+  - Ghost.Graphics.RHI.ComparisonFunction.Greater
+  - Ghost.Graphics.RHI.ComparisonFunction.GreaterEqual
+  - Ghost.Graphics.RHI.ComparisonFunction.Less
+  - Ghost.Graphics.RHI.ComparisonFunction.LessEqual
+  - Ghost.Graphics.RHI.ComparisonFunction.Never
+  - Ghost.Graphics.RHI.ComparisonFunction.NotEqual
+  langs:
+  - csharp
+  - vb
+  name: ComparisonFunction
+  nameWithType: ComparisonFunction
+  fullName: Ghost.Graphics.RHI.ComparisonFunction
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ComparisonFunction
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1338
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public enum ComparisonFunction
+    content.vb: Public Enum ComparisonFunction
+- uid: Ghost.Graphics.RHI.ComparisonFunction.Never
+  commentId: F:Ghost.Graphics.RHI.ComparisonFunction.Never
+  id: Never
+  parent: Ghost.Graphics.RHI.ComparisonFunction
+  langs:
+  - csharp
+  - vb
+  name: Never
+  nameWithType: ComparisonFunction.Never
+  fullName: Ghost.Graphics.RHI.ComparisonFunction.Never
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Never
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1340
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Never = 0
+    return:
+      type: Ghost.Graphics.RHI.ComparisonFunction
+- uid: Ghost.Graphics.RHI.ComparisonFunction.Less
+  commentId: F:Ghost.Graphics.RHI.ComparisonFunction.Less
+  id: Less
+  parent: Ghost.Graphics.RHI.ComparisonFunction
+  langs:
+  - csharp
+  - vb
+  name: Less
+  nameWithType: ComparisonFunction.Less
+  fullName: Ghost.Graphics.RHI.ComparisonFunction.Less
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Less
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1341
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Less = 1
+    return:
+      type: Ghost.Graphics.RHI.ComparisonFunction
+- uid: Ghost.Graphics.RHI.ComparisonFunction.Equal
+  commentId: F:Ghost.Graphics.RHI.ComparisonFunction.Equal
+  id: Equal
+  parent: Ghost.Graphics.RHI.ComparisonFunction
+  langs:
+  - csharp
+  - vb
+  name: Equal
+  nameWithType: ComparisonFunction.Equal
+  fullName: Ghost.Graphics.RHI.ComparisonFunction.Equal
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Equal
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1342
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Equal = 2
+    return:
+      type: Ghost.Graphics.RHI.ComparisonFunction
+- uid: Ghost.Graphics.RHI.ComparisonFunction.LessEqual
+  commentId: F:Ghost.Graphics.RHI.ComparisonFunction.LessEqual
+  id: LessEqual
+  parent: Ghost.Graphics.RHI.ComparisonFunction
+  langs:
+  - csharp
+  - vb
+  name: LessEqual
+  nameWithType: ComparisonFunction.LessEqual
+  fullName: Ghost.Graphics.RHI.ComparisonFunction.LessEqual
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: LessEqual
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1343
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: LessEqual = 3
+    return:
+      type: Ghost.Graphics.RHI.ComparisonFunction
+- uid: Ghost.Graphics.RHI.ComparisonFunction.Greater
+  commentId: F:Ghost.Graphics.RHI.ComparisonFunction.Greater
+  id: Greater
+  parent: Ghost.Graphics.RHI.ComparisonFunction
+  langs:
+  - csharp
+  - vb
+  name: Greater
+  nameWithType: ComparisonFunction.Greater
+  fullName: Ghost.Graphics.RHI.ComparisonFunction.Greater
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Greater
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1344
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Greater = 4
+    return:
+      type: Ghost.Graphics.RHI.ComparisonFunction
+- uid: Ghost.Graphics.RHI.ComparisonFunction.NotEqual
+  commentId: F:Ghost.Graphics.RHI.ComparisonFunction.NotEqual
+  id: NotEqual
+  parent: Ghost.Graphics.RHI.ComparisonFunction
+  langs:
+  - csharp
+  - vb
+  name: NotEqual
+  nameWithType: ComparisonFunction.NotEqual
+  fullName: Ghost.Graphics.RHI.ComparisonFunction.NotEqual
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: NotEqual
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1345
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: NotEqual = 5
+    return:
+      type: Ghost.Graphics.RHI.ComparisonFunction
+- uid: Ghost.Graphics.RHI.ComparisonFunction.GreaterEqual
+  commentId: F:Ghost.Graphics.RHI.ComparisonFunction.GreaterEqual
+  id: GreaterEqual
+  parent: Ghost.Graphics.RHI.ComparisonFunction
+  langs:
+  - csharp
+  - vb
+  name: GreaterEqual
+  nameWithType: ComparisonFunction.GreaterEqual
+  fullName: Ghost.Graphics.RHI.ComparisonFunction.GreaterEqual
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GreaterEqual
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1346
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: GreaterEqual = 6
+    return:
+      type: Ghost.Graphics.RHI.ComparisonFunction
+- uid: Ghost.Graphics.RHI.ComparisonFunction.Always
+  commentId: F:Ghost.Graphics.RHI.ComparisonFunction.Always
+  id: Always
+  parent: Ghost.Graphics.RHI.ComparisonFunction
+  langs:
+  - csharp
+  - vb
+  name: Always
+  nameWithType: ComparisonFunction.Always
+  fullName: Ghost.Graphics.RHI.ComparisonFunction.Always
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Always
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1347
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Always = 7
+    return:
+      type: Ghost.Graphics.RHI.ComparisonFunction
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.ComparisonFunction
+  commentId: T:Ghost.Graphics.RHI.ComparisonFunction
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ComparisonFunction.html
+  name: ComparisonFunction
+  nameWithType: ComparisonFunction
+  fullName: Ghost.Graphics.RHI.ComparisonFunction

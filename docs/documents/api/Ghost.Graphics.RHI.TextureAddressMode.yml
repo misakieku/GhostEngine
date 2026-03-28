@@ -1,0 +1,201 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.TextureAddressMode
+  commentId: T:Ghost.Graphics.RHI.TextureAddressMode
+  id: TextureAddressMode
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.TextureAddressMode.Border
+  - Ghost.Graphics.RHI.TextureAddressMode.Clamp
+  - Ghost.Graphics.RHI.TextureAddressMode.Mirror
+  - Ghost.Graphics.RHI.TextureAddressMode.MirrorOnce
+  - Ghost.Graphics.RHI.TextureAddressMode.Repeat
+  langs:
+  - csharp
+  - vb
+  name: TextureAddressMode
+  nameWithType: TextureAddressMode
+  fullName: Ghost.Graphics.RHI.TextureAddressMode
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: TextureAddressMode
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1329
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public enum TextureAddressMode
+    content.vb: Public Enum TextureAddressMode
+- uid: Ghost.Graphics.RHI.TextureAddressMode.Repeat
+  commentId: F:Ghost.Graphics.RHI.TextureAddressMode.Repeat
+  id: Repeat
+  parent: Ghost.Graphics.RHI.TextureAddressMode
+  langs:
+  - csharp
+  - vb
+  name: Repeat
+  nameWithType: TextureAddressMode.Repeat
+  fullName: Ghost.Graphics.RHI.TextureAddressMode.Repeat
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Repeat
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1331
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Repeat = 0
+    return:
+      type: Ghost.Graphics.RHI.TextureAddressMode
+- uid: Ghost.Graphics.RHI.TextureAddressMode.Mirror
+  commentId: F:Ghost.Graphics.RHI.TextureAddressMode.Mirror
+  id: Mirror
+  parent: Ghost.Graphics.RHI.TextureAddressMode
+  langs:
+  - csharp
+  - vb
+  name: Mirror
+  nameWithType: TextureAddressMode.Mirror
+  fullName: Ghost.Graphics.RHI.TextureAddressMode.Mirror
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Mirror
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1332
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Mirror = 1
+    return:
+      type: Ghost.Graphics.RHI.TextureAddressMode
+- uid: Ghost.Graphics.RHI.TextureAddressMode.Clamp
+  commentId: F:Ghost.Graphics.RHI.TextureAddressMode.Clamp
+  id: Clamp
+  parent: Ghost.Graphics.RHI.TextureAddressMode
+  langs:
+  - csharp
+  - vb
+  name: Clamp
+  nameWithType: TextureAddressMode.Clamp
+  fullName: Ghost.Graphics.RHI.TextureAddressMode.Clamp
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Clamp
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1333
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Clamp = 2
+    return:
+      type: Ghost.Graphics.RHI.TextureAddressMode
+- uid: Ghost.Graphics.RHI.TextureAddressMode.Border
+  commentId: F:Ghost.Graphics.RHI.TextureAddressMode.Border
+  id: Border
+  parent: Ghost.Graphics.RHI.TextureAddressMode
+  langs:
+  - csharp
+  - vb
+  name: Border
+  nameWithType: TextureAddressMode.Border
+  fullName: Ghost.Graphics.RHI.TextureAddressMode.Border
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Border
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1334
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Border = 3
+    return:
+      type: Ghost.Graphics.RHI.TextureAddressMode
+- uid: Ghost.Graphics.RHI.TextureAddressMode.MirrorOnce
+  commentId: F:Ghost.Graphics.RHI.TextureAddressMode.MirrorOnce
+  id: MirrorOnce
+  parent: Ghost.Graphics.RHI.TextureAddressMode
+  langs:
+  - csharp
+  - vb
+  name: MirrorOnce
+  nameWithType: TextureAddressMode.MirrorOnce
+  fullName: Ghost.Graphics.RHI.TextureAddressMode.MirrorOnce
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: MirrorOnce
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1335
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: MirrorOnce = 4
+    return:
+      type: Ghost.Graphics.RHI.TextureAddressMode
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.TextureAddressMode
+  commentId: T:Ghost.Graphics.RHI.TextureAddressMode
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.TextureAddressMode.html
+  name: TextureAddressMode
+  nameWithType: TextureAddressMode
+  fullName: Ghost.Graphics.RHI.TextureAddressMode

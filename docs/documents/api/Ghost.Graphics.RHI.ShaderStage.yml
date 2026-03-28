@@ -1,0 +1,174 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.ShaderStage
+  commentId: T:Ghost.Graphics.RHI.ShaderStage
+  id: ShaderStage
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.ShaderStage.ComputeShader
+  - Ghost.Graphics.RHI.ShaderStage.MeshShader
+  - Ghost.Graphics.RHI.ShaderStage.PixelShader
+  - Ghost.Graphics.RHI.ShaderStage.TaskShader
+  langs:
+  - csharp
+  - vb
+  name: ShaderStage
+  nameWithType: ShaderStage
+  fullName: Ghost.Graphics.RHI.ShaderStage
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ShaderStage
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 72
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public enum ShaderStage
+    content.vb: Public Enum ShaderStage
+- uid: Ghost.Graphics.RHI.ShaderStage.TaskShader
+  commentId: F:Ghost.Graphics.RHI.ShaderStage.TaskShader
+  id: TaskShader
+  parent: Ghost.Graphics.RHI.ShaderStage
+  langs:
+  - csharp
+  - vb
+  name: TaskShader
+  nameWithType: ShaderStage.TaskShader
+  fullName: Ghost.Graphics.RHI.ShaderStage.TaskShader
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: TaskShader
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 74
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: TaskShader = 0
+    return:
+      type: Ghost.Graphics.RHI.ShaderStage
+- uid: Ghost.Graphics.RHI.ShaderStage.MeshShader
+  commentId: F:Ghost.Graphics.RHI.ShaderStage.MeshShader
+  id: MeshShader
+  parent: Ghost.Graphics.RHI.ShaderStage
+  langs:
+  - csharp
+  - vb
+  name: MeshShader
+  nameWithType: ShaderStage.MeshShader
+  fullName: Ghost.Graphics.RHI.ShaderStage.MeshShader
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: MeshShader
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 75
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: MeshShader = 1
+    return:
+      type: Ghost.Graphics.RHI.ShaderStage
+- uid: Ghost.Graphics.RHI.ShaderStage.PixelShader
+  commentId: F:Ghost.Graphics.RHI.ShaderStage.PixelShader
+  id: PixelShader
+  parent: Ghost.Graphics.RHI.ShaderStage
+  langs:
+  - csharp
+  - vb
+  name: PixelShader
+  nameWithType: ShaderStage.PixelShader
+  fullName: Ghost.Graphics.RHI.ShaderStage.PixelShader
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: PixelShader
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 76
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: PixelShader = 2
+    return:
+      type: Ghost.Graphics.RHI.ShaderStage
+- uid: Ghost.Graphics.RHI.ShaderStage.ComputeShader
+  commentId: F:Ghost.Graphics.RHI.ShaderStage.ComputeShader
+  id: ComputeShader
+  parent: Ghost.Graphics.RHI.ShaderStage
+  langs:
+  - csharp
+  - vb
+  name: ComputeShader
+  nameWithType: ShaderStage.ComputeShader
+  fullName: Ghost.Graphics.RHI.ShaderStage.ComputeShader
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ComputeShader
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 77
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: ComputeShader = 3
+    return:
+      type: Ghost.Graphics.RHI.ShaderStage
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.ShaderStage
+  commentId: T:Ghost.Graphics.RHI.ShaderStage
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ShaderStage.html
+  name: ShaderStage
+  nameWithType: ShaderStage
+  fullName: Ghost.Graphics.RHI.ShaderStage

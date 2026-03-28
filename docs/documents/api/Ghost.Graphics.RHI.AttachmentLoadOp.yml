@@ -1,0 +1,147 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.AttachmentLoadOp
+  commentId: T:Ghost.Graphics.RHI.AttachmentLoadOp
+  id: AttachmentLoadOp
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.AttachmentLoadOp.Clear
+  - Ghost.Graphics.RHI.AttachmentLoadOp.DontCare
+  - Ghost.Graphics.RHI.AttachmentLoadOp.Load
+  langs:
+  - csharp
+  - vb
+  name: AttachmentLoadOp
+  nameWithType: AttachmentLoadOp
+  fullName: Ghost.Graphics.RHI.AttachmentLoadOp
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AttachmentLoadOp
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1350
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public enum AttachmentLoadOp
+    content.vb: Public Enum AttachmentLoadOp
+- uid: Ghost.Graphics.RHI.AttachmentLoadOp.Load
+  commentId: F:Ghost.Graphics.RHI.AttachmentLoadOp.Load
+  id: Load
+  parent: Ghost.Graphics.RHI.AttachmentLoadOp
+  langs:
+  - csharp
+  - vb
+  name: Load
+  nameWithType: AttachmentLoadOp.Load
+  fullName: Ghost.Graphics.RHI.AttachmentLoadOp.Load
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Load
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1352
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Load = 0
+    return:
+      type: Ghost.Graphics.RHI.AttachmentLoadOp
+- uid: Ghost.Graphics.RHI.AttachmentLoadOp.Clear
+  commentId: F:Ghost.Graphics.RHI.AttachmentLoadOp.Clear
+  id: Clear
+  parent: Ghost.Graphics.RHI.AttachmentLoadOp
+  langs:
+  - csharp
+  - vb
+  name: Clear
+  nameWithType: AttachmentLoadOp.Clear
+  fullName: Ghost.Graphics.RHI.AttachmentLoadOp.Clear
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Clear
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1353
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Clear = 1
+    return:
+      type: Ghost.Graphics.RHI.AttachmentLoadOp
+- uid: Ghost.Graphics.RHI.AttachmentLoadOp.DontCare
+  commentId: F:Ghost.Graphics.RHI.AttachmentLoadOp.DontCare
+  id: DontCare
+  parent: Ghost.Graphics.RHI.AttachmentLoadOp
+  langs:
+  - csharp
+  - vb
+  name: DontCare
+  nameWithType: AttachmentLoadOp.DontCare
+  fullName: Ghost.Graphics.RHI.AttachmentLoadOp.DontCare
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: DontCare
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1354
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: DontCare = 2
+    return:
+      type: Ghost.Graphics.RHI.AttachmentLoadOp
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.AttachmentLoadOp
+  commentId: T:Ghost.Graphics.RHI.AttachmentLoadOp
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.AttachmentLoadOp.html
+  name: AttachmentLoadOp
+  nameWithType: AttachmentLoadOp
+  fullName: Ghost.Graphics.RHI.AttachmentLoadOp

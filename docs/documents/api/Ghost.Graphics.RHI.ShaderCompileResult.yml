@@ -1,0 +1,544 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.ShaderCompileResult
+  commentId: T:Ghost.Graphics.RHI.ShaderCompileResult
+  id: ShaderCompileResult
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.ShaderCompileResult.Dispose
+  - Ghost.Graphics.RHI.ShaderCompileResult.IsCreated
+  - Ghost.Graphics.RHI.ShaderCompileResult.bytecode
+  - Ghost.Graphics.RHI.ShaderCompileResult.reflectionData
+  langs:
+  - csharp
+  - vb
+  name: ShaderCompileResult
+  nameWithType: ShaderCompileResult
+  fullName: Ghost.Graphics.RHI.ShaderCompileResult
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ShaderCompileResult
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 7
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: 'public struct ShaderCompileResult : IDisposable'
+    content.vb: Public Structure ShaderCompileResult Implements IDisposable
+  implements:
+  - System.IDisposable
+  inheritedMembers:
+  - System.ValueType.Equals(System.Object)
+  - System.ValueType.GetHashCode
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Graphics.RHI.ShaderCompileResult.bytecode
+  commentId: F:Ghost.Graphics.RHI.ShaderCompileResult.bytecode
+  id: bytecode
+  parent: Ghost.Graphics.RHI.ShaderCompileResult
+  langs:
+  - csharp
+  - vb
+  name: bytecode
+  nameWithType: ShaderCompileResult.bytecode
+  fullName: Ghost.Graphics.RHI.ShaderCompileResult.bytecode
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: bytecode
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 9
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public UnsafeArray<byte> bytecode
+    return:
+      type: Misaki.HighPerformance.LowLevel.Collections.UnsafeArray{System.Byte}
+    content.vb: Public bytecode As UnsafeArray(Of Byte)
+- uid: Ghost.Graphics.RHI.ShaderCompileResult.reflectionData
+  commentId: F:Ghost.Graphics.RHI.ShaderCompileResult.reflectionData
+  id: reflectionData
+  parent: Ghost.Graphics.RHI.ShaderCompileResult
+  langs:
+  - csharp
+  - vb
+  name: reflectionData
+  nameWithType: ShaderCompileResult.reflectionData
+  fullName: Ghost.Graphics.RHI.ShaderCompileResult.reflectionData
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: reflectionData
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 10
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public ShaderReflectionData reflectionData
+    return:
+      type: Ghost.Graphics.RHI.ShaderReflectionData
+    content.vb: Public reflectionData As ShaderReflectionData
+- uid: Ghost.Graphics.RHI.ShaderCompileResult.IsCreated
+  commentId: P:Ghost.Graphics.RHI.ShaderCompileResult.IsCreated
+  id: IsCreated
+  parent: Ghost.Graphics.RHI.ShaderCompileResult
+  langs:
+  - csharp
+  - vb
+  name: IsCreated
+  nameWithType: ShaderCompileResult.IsCreated
+  fullName: Ghost.Graphics.RHI.ShaderCompileResult.IsCreated
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IsCreated
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 12
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public readonly bool IsCreated { get; }
+    parameters: []
+    return:
+      type: System.Boolean
+    content.vb: Public ReadOnly Property IsCreated As Boolean
+  overload: Ghost.Graphics.RHI.ShaderCompileResult.IsCreated*
+- uid: Ghost.Graphics.RHI.ShaderCompileResult.Dispose
+  commentId: M:Ghost.Graphics.RHI.ShaderCompileResult.Dispose
+  id: Dispose
+  parent: Ghost.Graphics.RHI.ShaderCompileResult
+  langs:
+  - csharp
+  - vb
+  name: Dispose()
+  nameWithType: ShaderCompileResult.Dispose()
+  fullName: Ghost.Graphics.RHI.ShaderCompileResult.Dispose()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Dispose
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 14
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+  example: []
+  syntax:
+    content: public void Dispose()
+    content.vb: Public Sub Dispose()
+  overload: Ghost.Graphics.RHI.ShaderCompileResult.Dispose*
+  implements:
+  - System.IDisposable.Dispose
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.IDisposable
+  commentId: T:System.IDisposable
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable
+  name: IDisposable
+  nameWithType: IDisposable
+  fullName: System.IDisposable
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeArray{System.Byte}
+  commentId: T:Misaki.HighPerformance.LowLevel.Collections.UnsafeArray{System.Byte}
+  parent: Misaki.HighPerformance.LowLevel.Collections
+  definition: Misaki.HighPerformance.LowLevel.Collections.UnsafeArray`1
+  href: https://learn.microsoft.com/dotnet/api/system.byte
+  name: UnsafeArray<byte>
+  nameWithType: UnsafeArray<byte>
+  fullName: Misaki.HighPerformance.LowLevel.Collections.UnsafeArray<byte>
+  nameWithType.vb: UnsafeArray(Of Byte)
+  fullName.vb: Misaki.HighPerformance.LowLevel.Collections.UnsafeArray(Of Byte)
+  name.vb: UnsafeArray(Of Byte)
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeArray`1
+    name: UnsafeArray
+  - name: <
+  - uid: System.Byte
+    name: byte
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.byte
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeArray`1
+    name: UnsafeArray
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: System.Byte
+    name: Byte
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.byte
+  - name: )
+- uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeArray`1
+  commentId: T:Misaki.HighPerformance.LowLevel.Collections.UnsafeArray`1
+  name: UnsafeArray<T>
+  nameWithType: UnsafeArray<T>
+  fullName: Misaki.HighPerformance.LowLevel.Collections.UnsafeArray<T>
+  nameWithType.vb: UnsafeArray(Of T)
+  fullName.vb: Misaki.HighPerformance.LowLevel.Collections.UnsafeArray(Of T)
+  name.vb: UnsafeArray(Of T)
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeArray`1
+    name: UnsafeArray
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeArray`1
+    name: UnsafeArray
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Misaki.HighPerformance.LowLevel.Collections
+  commentId: N:Misaki.HighPerformance.LowLevel.Collections
+  name: Misaki.HighPerformance.LowLevel.Collections
+  nameWithType: Misaki.HighPerformance.LowLevel.Collections
+  fullName: Misaki.HighPerformance.LowLevel.Collections
+  spec.csharp:
+  - uid: Misaki
+    name: Misaki
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel
+    name: LowLevel
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel.Collections
+    name: Collections
+  spec.vb:
+  - uid: Misaki
+    name: Misaki
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel
+    name: LowLevel
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel.Collections
+    name: Collections
+- uid: Ghost.Graphics.RHI.ShaderReflectionData
+  commentId: T:Ghost.Graphics.RHI.ShaderReflectionData
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ShaderReflectionData.html
+  name: ShaderReflectionData
+  nameWithType: ShaderReflectionData
+  fullName: Ghost.Graphics.RHI.ShaderReflectionData
+- uid: Ghost.Graphics.RHI.ShaderCompileResult.IsCreated*
+  commentId: Overload:Ghost.Graphics.RHI.ShaderCompileResult.IsCreated
+  href: Ghost.Graphics.RHI.ShaderCompileResult.html#Ghost_Graphics_RHI_ShaderCompileResult_IsCreated
+  name: IsCreated
+  nameWithType: ShaderCompileResult.IsCreated
+  fullName: Ghost.Graphics.RHI.ShaderCompileResult.IsCreated
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.boolean
+  name: bool
+  nameWithType: bool
+  fullName: bool
+  nameWithType.vb: Boolean
+  fullName.vb: Boolean
+  name.vb: Boolean
+- uid: Ghost.Graphics.RHI.ShaderCompileResult.Dispose*
+  commentId: Overload:Ghost.Graphics.RHI.ShaderCompileResult.Dispose
+  href: Ghost.Graphics.RHI.ShaderCompileResult.html#Ghost_Graphics_RHI_ShaderCompileResult_Dispose
+  name: Dispose
+  nameWithType: ShaderCompileResult.Dispose
+  fullName: Ghost.Graphics.RHI.ShaderCompileResult.Dispose
+- uid: System.IDisposable.Dispose
+  commentId: M:System.IDisposable.Dispose
+  parent: System.IDisposable
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  name: Dispose()
+  nameWithType: IDisposable.Dispose()
+  fullName: System.IDisposable.Dispose()
+  spec.csharp:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )

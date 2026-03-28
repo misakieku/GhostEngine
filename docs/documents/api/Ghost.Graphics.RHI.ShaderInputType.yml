@@ -1,0 +1,282 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.ShaderInputType
+  commentId: T:Ghost.Graphics.RHI.ShaderInputType
+  id: ShaderInputType
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.ShaderInputType.ByteAddressBuffer
+  - Ghost.Graphics.RHI.ShaderInputType.ConstantBuffer
+  - Ghost.Graphics.RHI.ShaderInputType.RWByteAddressBuffer
+  - Ghost.Graphics.RHI.ShaderInputType.RWStructuredBuffer
+  - Ghost.Graphics.RHI.ShaderInputType.Sampler
+  - Ghost.Graphics.RHI.ShaderInputType.StructuredBuffer
+  - Ghost.Graphics.RHI.ShaderInputType.Texture
+  - Ghost.Graphics.RHI.ShaderInputType.UAV
+  langs:
+  - csharp
+  - vb
+  name: ShaderInputType
+  nameWithType: ShaderInputType
+  fullName: Ghost.Graphics.RHI.ShaderInputType
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ShaderInputType
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 80
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public enum ShaderInputType
+    content.vb: Public Enum ShaderInputType
+- uid: Ghost.Graphics.RHI.ShaderInputType.ConstantBuffer
+  commentId: F:Ghost.Graphics.RHI.ShaderInputType.ConstantBuffer
+  id: ConstantBuffer
+  parent: Ghost.Graphics.RHI.ShaderInputType
+  langs:
+  - csharp
+  - vb
+  name: ConstantBuffer
+  nameWithType: ShaderInputType.ConstantBuffer
+  fullName: Ghost.Graphics.RHI.ShaderInputType.ConstantBuffer
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ConstantBuffer
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 82
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: ConstantBuffer = 0
+    return:
+      type: Ghost.Graphics.RHI.ShaderInputType
+- uid: Ghost.Graphics.RHI.ShaderInputType.Texture
+  commentId: F:Ghost.Graphics.RHI.ShaderInputType.Texture
+  id: Texture
+  parent: Ghost.Graphics.RHI.ShaderInputType
+  langs:
+  - csharp
+  - vb
+  name: Texture
+  nameWithType: ShaderInputType.Texture
+  fullName: Ghost.Graphics.RHI.ShaderInputType.Texture
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Texture
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 83
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Texture = 1
+    return:
+      type: Ghost.Graphics.RHI.ShaderInputType
+- uid: Ghost.Graphics.RHI.ShaderInputType.Sampler
+  commentId: F:Ghost.Graphics.RHI.ShaderInputType.Sampler
+  id: Sampler
+  parent: Ghost.Graphics.RHI.ShaderInputType
+  langs:
+  - csharp
+  - vb
+  name: Sampler
+  nameWithType: ShaderInputType.Sampler
+  fullName: Ghost.Graphics.RHI.ShaderInputType.Sampler
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Sampler
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 84
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Sampler = 2
+    return:
+      type: Ghost.Graphics.RHI.ShaderInputType
+- uid: Ghost.Graphics.RHI.ShaderInputType.UAV
+  commentId: F:Ghost.Graphics.RHI.ShaderInputType.UAV
+  id: UAV
+  parent: Ghost.Graphics.RHI.ShaderInputType
+  langs:
+  - csharp
+  - vb
+  name: UAV
+  nameWithType: ShaderInputType.UAV
+  fullName: Ghost.Graphics.RHI.ShaderInputType.UAV
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: UAV
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 85
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: UAV = 3
+    return:
+      type: Ghost.Graphics.RHI.ShaderInputType
+- uid: Ghost.Graphics.RHI.ShaderInputType.StructuredBuffer
+  commentId: F:Ghost.Graphics.RHI.ShaderInputType.StructuredBuffer
+  id: StructuredBuffer
+  parent: Ghost.Graphics.RHI.ShaderInputType
+  langs:
+  - csharp
+  - vb
+  name: StructuredBuffer
+  nameWithType: ShaderInputType.StructuredBuffer
+  fullName: Ghost.Graphics.RHI.ShaderInputType.StructuredBuffer
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: StructuredBuffer
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 86
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: StructuredBuffer = 4
+    return:
+      type: Ghost.Graphics.RHI.ShaderInputType
+- uid: Ghost.Graphics.RHI.ShaderInputType.ByteAddressBuffer
+  commentId: F:Ghost.Graphics.RHI.ShaderInputType.ByteAddressBuffer
+  id: ByteAddressBuffer
+  parent: Ghost.Graphics.RHI.ShaderInputType
+  langs:
+  - csharp
+  - vb
+  name: ByteAddressBuffer
+  nameWithType: ShaderInputType.ByteAddressBuffer
+  fullName: Ghost.Graphics.RHI.ShaderInputType.ByteAddressBuffer
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ByteAddressBuffer
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 87
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: ByteAddressBuffer = 5
+    return:
+      type: Ghost.Graphics.RHI.ShaderInputType
+- uid: Ghost.Graphics.RHI.ShaderInputType.RWStructuredBuffer
+  commentId: F:Ghost.Graphics.RHI.ShaderInputType.RWStructuredBuffer
+  id: RWStructuredBuffer
+  parent: Ghost.Graphics.RHI.ShaderInputType
+  langs:
+  - csharp
+  - vb
+  name: RWStructuredBuffer
+  nameWithType: ShaderInputType.RWStructuredBuffer
+  fullName: Ghost.Graphics.RHI.ShaderInputType.RWStructuredBuffer
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: RWStructuredBuffer
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 88
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: RWStructuredBuffer = 6
+    return:
+      type: Ghost.Graphics.RHI.ShaderInputType
+- uid: Ghost.Graphics.RHI.ShaderInputType.RWByteAddressBuffer
+  commentId: F:Ghost.Graphics.RHI.ShaderInputType.RWByteAddressBuffer
+  id: RWByteAddressBuffer
+  parent: Ghost.Graphics.RHI.ShaderInputType
+  langs:
+  - csharp
+  - vb
+  name: RWByteAddressBuffer
+  nameWithType: ShaderInputType.RWByteAddressBuffer
+  fullName: Ghost.Graphics.RHI.ShaderInputType.RWByteAddressBuffer
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: RWByteAddressBuffer
+    path: src/Runtime/Ghost.Graphics.RHI/IShaderCompiler.cs
+    startLine: 89
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: RWByteAddressBuffer = 7
+    return:
+      type: Ghost.Graphics.RHI.ShaderInputType
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.ShaderInputType
+  commentId: T:Ghost.Graphics.RHI.ShaderInputType
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ShaderInputType.html
+  name: ShaderInputType
+  nameWithType: ShaderInputType
+  fullName: Ghost.Graphics.RHI.ShaderInputType

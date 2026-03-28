@@ -1,0 +1,147 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.BarrierType
+  commentId: T:Ghost.Graphics.RHI.BarrierType
+  id: BarrierType
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.BarrierType.Buffer
+  - Ghost.Graphics.RHI.BarrierType.Global
+  - Ghost.Graphics.RHI.BarrierType.Texture
+  langs:
+  - csharp
+  - vb
+  name: BarrierType
+  nameWithType: BarrierType
+  fullName: Ghost.Graphics.RHI.BarrierType
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: BarrierType
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1086
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public enum BarrierType
+    content.vb: Public Enum BarrierType
+- uid: Ghost.Graphics.RHI.BarrierType.Global
+  commentId: F:Ghost.Graphics.RHI.BarrierType.Global
+  id: Global
+  parent: Ghost.Graphics.RHI.BarrierType
+  langs:
+  - csharp
+  - vb
+  name: Global
+  nameWithType: BarrierType.Global
+  fullName: Ghost.Graphics.RHI.BarrierType.Global
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Global
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1088
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Global = 0
+    return:
+      type: Ghost.Graphics.RHI.BarrierType
+- uid: Ghost.Graphics.RHI.BarrierType.Texture
+  commentId: F:Ghost.Graphics.RHI.BarrierType.Texture
+  id: Texture
+  parent: Ghost.Graphics.RHI.BarrierType
+  langs:
+  - csharp
+  - vb
+  name: Texture
+  nameWithType: BarrierType.Texture
+  fullName: Ghost.Graphics.RHI.BarrierType.Texture
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Texture
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1089
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Texture = 1
+    return:
+      type: Ghost.Graphics.RHI.BarrierType
+- uid: Ghost.Graphics.RHI.BarrierType.Buffer
+  commentId: F:Ghost.Graphics.RHI.BarrierType.Buffer
+  id: Buffer
+  parent: Ghost.Graphics.RHI.BarrierType
+  langs:
+  - csharp
+  - vb
+  name: Buffer
+  nameWithType: BarrierType.Buffer
+  fullName: Ghost.Graphics.RHI.BarrierType.Buffer
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Buffer
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1090
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Buffer = 2
+    return:
+      type: Ghost.Graphics.RHI.BarrierType
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.BarrierType
+  commentId: T:Ghost.Graphics.RHI.BarrierType
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.BarrierType.html
+  name: BarrierType
+  nameWithType: BarrierType
+  fullName: Ghost.Graphics.RHI.BarrierType

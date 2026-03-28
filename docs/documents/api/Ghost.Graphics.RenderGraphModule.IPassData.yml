@@ -1,0 +1,61 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RenderGraphModule.IPassData
+  commentId: T:Ghost.Graphics.RenderGraphModule.IPassData
+  id: IPassData
+  parent: Ghost.Graphics.RenderGraphModule
+  children: []
+  langs:
+  - csharp
+  - vb
+  name: IPassData
+  nameWithType: IPassData
+  fullName: Ghost.Graphics.RenderGraphModule.IPassData
+  type: Interface
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IPassData
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 361
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Base interface for pass data that can be stored in the blackboard.
+  example: []
+  syntax:
+    content: public interface IPassData
+    content.vb: Public Interface IPassData
+references:
+- uid: Ghost.Graphics.RenderGraphModule
+  commentId: N:Ghost.Graphics.RenderGraphModule
+  href: Ghost.html
+  name: Ghost.Graphics.RenderGraphModule
+  nameWithType: Ghost.Graphics.RenderGraphModule
+  fullName: Ghost.Graphics.RenderGraphModule
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RenderGraphModule
+    name: RenderGraphModule
+    href: Ghost.Graphics.RenderGraphModule.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RenderGraphModule
+    name: RenderGraphModule
+    href: Ghost.Graphics.RenderGraphModule.html

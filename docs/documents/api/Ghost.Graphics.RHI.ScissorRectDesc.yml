@@ -1,0 +1,438 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.ScissorRectDesc
+  commentId: T:Ghost.Graphics.RHI.ScissorRectDesc
+  id: ScissorRectDesc
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.ScissorRectDesc.Bottom
+  - Ghost.Graphics.RHI.ScissorRectDesc.Left
+  - Ghost.Graphics.RHI.ScissorRectDesc.Right
+  - Ghost.Graphics.RHI.ScissorRectDesc.Top
+  langs:
+  - csharp
+  - vb
+  name: ScissorRectDesc
+  nameWithType: ScissorRectDesc
+  fullName: Ghost.Graphics.RHI.ScissorRectDesc
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ScissorRectDesc
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 347
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public struct ScissorRectDesc
+    content.vb: Public Structure ScissorRectDesc
+  inheritedMembers:
+  - System.ValueType.Equals(System.Object)
+  - System.ValueType.GetHashCode
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Graphics.RHI.ScissorRectDesc.Left
+  commentId: P:Ghost.Graphics.RHI.ScissorRectDesc.Left
+  id: Left
+  parent: Ghost.Graphics.RHI.ScissorRectDesc
+  langs:
+  - csharp
+  - vb
+  name: Left
+  nameWithType: ScissorRectDesc.Left
+  fullName: Ghost.Graphics.RHI.ScissorRectDesc.Left
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Left
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 349
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public uint Left { readonly get; set; }
+    parameters: []
+    return:
+      type: System.UInt32
+    content.vb: Public Property Left As UInteger
+  overload: Ghost.Graphics.RHI.ScissorRectDesc.Left*
+- uid: Ghost.Graphics.RHI.ScissorRectDesc.Top
+  commentId: P:Ghost.Graphics.RHI.ScissorRectDesc.Top
+  id: Top
+  parent: Ghost.Graphics.RHI.ScissorRectDesc
+  langs:
+  - csharp
+  - vb
+  name: Top
+  nameWithType: ScissorRectDesc.Top
+  fullName: Ghost.Graphics.RHI.ScissorRectDesc.Top
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Top
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 354
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public uint Top { readonly get; set; }
+    parameters: []
+    return:
+      type: System.UInt32
+    content.vb: Public Property Top As UInteger
+  overload: Ghost.Graphics.RHI.ScissorRectDesc.Top*
+- uid: Ghost.Graphics.RHI.ScissorRectDesc.Right
+  commentId: P:Ghost.Graphics.RHI.ScissorRectDesc.Right
+  id: Right
+  parent: Ghost.Graphics.RHI.ScissorRectDesc
+  langs:
+  - csharp
+  - vb
+  name: Right
+  nameWithType: ScissorRectDesc.Right
+  fullName: Ghost.Graphics.RHI.ScissorRectDesc.Right
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Right
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 359
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public uint Right { readonly get; set; }
+    parameters: []
+    return:
+      type: System.UInt32
+    content.vb: Public Property Right As UInteger
+  overload: Ghost.Graphics.RHI.ScissorRectDesc.Right*
+- uid: Ghost.Graphics.RHI.ScissorRectDesc.Bottom
+  commentId: P:Ghost.Graphics.RHI.ScissorRectDesc.Bottom
+  id: Bottom
+  parent: Ghost.Graphics.RHI.ScissorRectDesc
+  langs:
+  - csharp
+  - vb
+  name: Bottom
+  nameWithType: ScissorRectDesc.Bottom
+  fullName: Ghost.Graphics.RHI.ScissorRectDesc.Bottom
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Bottom
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 364
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public uint Bottom { readonly get; set; }
+    parameters: []
+    return:
+      type: System.UInt32
+    content.vb: Public Property Bottom As UInteger
+  overload: Ghost.Graphics.RHI.ScissorRectDesc.Bottom*
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RHI.ScissorRectDesc.Left*
+  commentId: Overload:Ghost.Graphics.RHI.ScissorRectDesc.Left
+  href: Ghost.Graphics.RHI.ScissorRectDesc.html#Ghost_Graphics_RHI_ScissorRectDesc_Left
+  name: Left
+  nameWithType: ScissorRectDesc.Left
+  fullName: Ghost.Graphics.RHI.ScissorRectDesc.Left
+- uid: System.UInt32
+  commentId: T:System.UInt32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.uint32
+  name: uint
+  nameWithType: uint
+  fullName: uint
+  nameWithType.vb: UInteger
+  fullName.vb: UInteger
+  name.vb: UInteger
+- uid: Ghost.Graphics.RHI.ScissorRectDesc.Top*
+  commentId: Overload:Ghost.Graphics.RHI.ScissorRectDesc.Top
+  href: Ghost.Graphics.RHI.ScissorRectDesc.html#Ghost_Graphics_RHI_ScissorRectDesc_Top
+  name: Top
+  nameWithType: ScissorRectDesc.Top
+  fullName: Ghost.Graphics.RHI.ScissorRectDesc.Top
+- uid: Ghost.Graphics.RHI.ScissorRectDesc.Right*
+  commentId: Overload:Ghost.Graphics.RHI.ScissorRectDesc.Right
+  href: Ghost.Graphics.RHI.ScissorRectDesc.html#Ghost_Graphics_RHI_ScissorRectDesc_Right
+  name: Right
+  nameWithType: ScissorRectDesc.Right
+  fullName: Ghost.Graphics.RHI.ScissorRectDesc.Right
+- uid: Ghost.Graphics.RHI.ScissorRectDesc.Bottom*
+  commentId: Overload:Ghost.Graphics.RHI.ScissorRectDesc.Bottom
+  href: Ghost.Graphics.RHI.ScissorRectDesc.html#Ghost_Graphics_RHI_ScissorRectDesc_Bottom
+  name: Bottom
+  nameWithType: ScissorRectDesc.Bottom
+  fullName: Ghost.Graphics.RHI.ScissorRectDesc.Bottom

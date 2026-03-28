@@ -1,0 +1,135 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RenderPipeline.IRenderPipelineSettings
+  commentId: T:Ghost.Graphics.RenderPipeline.IRenderPipelineSettings
+  id: IRenderPipelineSettings
+  parent: Ghost.Graphics.RenderPipeline
+  children:
+  - Ghost.Graphics.RenderPipeline.IRenderPipelineSettings.CreatePipeline(Ghost.Graphics.RenderSystem)
+  langs:
+  - csharp
+  - vb
+  name: IRenderPipelineSettings
+  nameWithType: IRenderPipelineSettings
+  fullName: Ghost.Graphics.RenderPipeline.IRenderPipelineSettings
+  type: Interface
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderPipeline/IRenderPipeline.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IRenderPipelineSettings
+    path: src/Runtime/Ghost.Graphics/RenderPipeline/IRenderPipeline.cs
+    startLine: 5
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderPipeline
+  syntax:
+    content: public interface IRenderPipelineSettings
+    content.vb: Public Interface IRenderPipelineSettings
+  derivedClasses:
+  - Ghost.Graphics.RenderPipeline.GhostRenderPipelineSettings
+- uid: Ghost.Graphics.RenderPipeline.IRenderPipelineSettings.CreatePipeline(Ghost.Graphics.RenderSystem)
+  commentId: M:Ghost.Graphics.RenderPipeline.IRenderPipelineSettings.CreatePipeline(Ghost.Graphics.RenderSystem)
+  id: CreatePipeline(Ghost.Graphics.RenderSystem)
+  parent: Ghost.Graphics.RenderPipeline.IRenderPipelineSettings
+  langs:
+  - csharp
+  - vb
+  name: CreatePipeline(RenderSystem)
+  nameWithType: IRenderPipelineSettings.CreatePipeline(RenderSystem)
+  fullName: Ghost.Graphics.RenderPipeline.IRenderPipelineSettings.CreatePipeline(Ghost.Graphics.RenderSystem)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderPipeline/IRenderPipeline.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CreatePipeline
+    path: src/Runtime/Ghost.Graphics/RenderPipeline/IRenderPipeline.cs
+    startLine: 7
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderPipeline
+  syntax:
+    content: IRenderPipeline CreatePipeline(RenderSystem renderSystem)
+    parameters:
+    - id: renderSystem
+      type: Ghost.Graphics.RenderSystem
+    return:
+      type: Ghost.Graphics.RenderPipeline.IRenderPipeline
+    content.vb: Function CreatePipeline(renderSystem As RenderSystem) As IRenderPipeline
+  overload: Ghost.Graphics.RenderPipeline.IRenderPipelineSettings.CreatePipeline*
+references:
+- uid: Ghost.Graphics.RenderPipeline
+  commentId: N:Ghost.Graphics.RenderPipeline
+  href: Ghost.html
+  name: Ghost.Graphics.RenderPipeline
+  nameWithType: Ghost.Graphics.RenderPipeline
+  fullName: Ghost.Graphics.RenderPipeline
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RenderPipeline
+    name: RenderPipeline
+    href: Ghost.Graphics.RenderPipeline.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RenderPipeline
+    name: RenderPipeline
+    href: Ghost.Graphics.RenderPipeline.html
+- uid: Ghost.Graphics.RenderPipeline.IRenderPipelineSettings.CreatePipeline*
+  commentId: Overload:Ghost.Graphics.RenderPipeline.IRenderPipelineSettings.CreatePipeline
+  href: Ghost.Graphics.RenderPipeline.IRenderPipelineSettings.html#Ghost_Graphics_RenderPipeline_IRenderPipelineSettings_CreatePipeline_Ghost_Graphics_RenderSystem_
+  name: CreatePipeline
+  nameWithType: IRenderPipelineSettings.CreatePipeline
+  fullName: Ghost.Graphics.RenderPipeline.IRenderPipelineSettings.CreatePipeline
+- uid: Ghost.Graphics.RenderSystem
+  commentId: T:Ghost.Graphics.RenderSystem
+  parent: Ghost.Graphics
+  href: Ghost.Graphics.RenderSystem.html
+  name: RenderSystem
+  nameWithType: RenderSystem
+  fullName: Ghost.Graphics.RenderSystem
+- uid: Ghost.Graphics.RenderPipeline.IRenderPipeline
+  commentId: T:Ghost.Graphics.RenderPipeline.IRenderPipeline
+  parent: Ghost.Graphics.RenderPipeline
+  href: Ghost.Graphics.RenderPipeline.IRenderPipeline.html
+  name: IRenderPipeline
+  nameWithType: IRenderPipeline
+  fullName: Ghost.Graphics.RenderPipeline.IRenderPipeline
+- uid: Ghost.Graphics
+  commentId: N:Ghost.Graphics
+  href: Ghost.html
+  name: Ghost.Graphics
+  nameWithType: Ghost.Graphics
+  fullName: Ghost.Graphics
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html

@@ -1,0 +1,174 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.TextureFilterMode
+  commentId: T:Ghost.Graphics.RHI.TextureFilterMode
+  id: TextureFilterMode
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.TextureFilterMode.Anisotropic
+  - Ghost.Graphics.RHI.TextureFilterMode.Bilinear
+  - Ghost.Graphics.RHI.TextureFilterMode.Point
+  - Ghost.Graphics.RHI.TextureFilterMode.Trilinear
+  langs:
+  - csharp
+  - vb
+  name: TextureFilterMode
+  nameWithType: TextureFilterMode
+  fullName: Ghost.Graphics.RHI.TextureFilterMode
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: TextureFilterMode
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1321
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public enum TextureFilterMode
+    content.vb: Public Enum TextureFilterMode
+- uid: Ghost.Graphics.RHI.TextureFilterMode.Point
+  commentId: F:Ghost.Graphics.RHI.TextureFilterMode.Point
+  id: Point
+  parent: Ghost.Graphics.RHI.TextureFilterMode
+  langs:
+  - csharp
+  - vb
+  name: Point
+  nameWithType: TextureFilterMode.Point
+  fullName: Ghost.Graphics.RHI.TextureFilterMode.Point
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Point
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1323
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Point = 0
+    return:
+      type: Ghost.Graphics.RHI.TextureFilterMode
+- uid: Ghost.Graphics.RHI.TextureFilterMode.Bilinear
+  commentId: F:Ghost.Graphics.RHI.TextureFilterMode.Bilinear
+  id: Bilinear
+  parent: Ghost.Graphics.RHI.TextureFilterMode
+  langs:
+  - csharp
+  - vb
+  name: Bilinear
+  nameWithType: TextureFilterMode.Bilinear
+  fullName: Ghost.Graphics.RHI.TextureFilterMode.Bilinear
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Bilinear
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1324
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Bilinear = 1
+    return:
+      type: Ghost.Graphics.RHI.TextureFilterMode
+- uid: Ghost.Graphics.RHI.TextureFilterMode.Trilinear
+  commentId: F:Ghost.Graphics.RHI.TextureFilterMode.Trilinear
+  id: Trilinear
+  parent: Ghost.Graphics.RHI.TextureFilterMode
+  langs:
+  - csharp
+  - vb
+  name: Trilinear
+  nameWithType: TextureFilterMode.Trilinear
+  fullName: Ghost.Graphics.RHI.TextureFilterMode.Trilinear
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Trilinear
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1325
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Trilinear = 2
+    return:
+      type: Ghost.Graphics.RHI.TextureFilterMode
+- uid: Ghost.Graphics.RHI.TextureFilterMode.Anisotropic
+  commentId: F:Ghost.Graphics.RHI.TextureFilterMode.Anisotropic
+  id: Anisotropic
+  parent: Ghost.Graphics.RHI.TextureFilterMode
+  langs:
+  - csharp
+  - vb
+  name: Anisotropic
+  nameWithType: TextureFilterMode.Anisotropic
+  fullName: Ghost.Graphics.RHI.TextureFilterMode.Anisotropic
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Anisotropic
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1326
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Anisotropic = 3
+    return:
+      type: Ghost.Graphics.RHI.TextureFilterMode
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.TextureFilterMode
+  commentId: T:Ghost.Graphics.RHI.TextureFilterMode
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.TextureFilterMode.html
+  name: TextureFilterMode
+  nameWithType: TextureFilterMode
+  fullName: Ghost.Graphics.RHI.TextureFilterMode

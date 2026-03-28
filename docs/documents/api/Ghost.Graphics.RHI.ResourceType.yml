@@ -1,0 +1,120 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.ResourceType
+  commentId: T:Ghost.Graphics.RHI.ResourceType
+  id: ResourceType
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.ResourceType.Buffer
+  - Ghost.Graphics.RHI.ResourceType.Texture
+  langs:
+  - csharp
+  - vb
+  name: ResourceType
+  nameWithType: ResourceType
+  fullName: Ghost.Graphics.RHI.ResourceType
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ResourceType
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1247
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public enum ResourceType
+    content.vb: Public Enum ResourceType
+- uid: Ghost.Graphics.RHI.ResourceType.Texture
+  commentId: F:Ghost.Graphics.RHI.ResourceType.Texture
+  id: Texture
+  parent: Ghost.Graphics.RHI.ResourceType
+  langs:
+  - csharp
+  - vb
+  name: Texture
+  nameWithType: ResourceType.Texture
+  fullName: Ghost.Graphics.RHI.ResourceType.Texture
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Texture
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1249
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Texture = 0
+    return:
+      type: Ghost.Graphics.RHI.ResourceType
+- uid: Ghost.Graphics.RHI.ResourceType.Buffer
+  commentId: F:Ghost.Graphics.RHI.ResourceType.Buffer
+  id: Buffer
+  parent: Ghost.Graphics.RHI.ResourceType
+  langs:
+  - csharp
+  - vb
+  name: Buffer
+  nameWithType: ResourceType.Buffer
+  fullName: Ghost.Graphics.RHI.ResourceType.Buffer
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Buffer
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1250
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Buffer = 1
+    return:
+      type: Ghost.Graphics.RHI.ResourceType
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.ResourceType
+  commentId: T:Ghost.Graphics.RHI.ResourceType
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ResourceType.html
+  name: ResourceType
+  nameWithType: ResourceType
+  fullName: Ghost.Graphics.RHI.ResourceType

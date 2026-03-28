@@ -1,0 +1,948 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.Utilities.ClodConfig
+  commentId: T:Ghost.Graphics.Utilities.ClodConfig
+  id: ClodConfig
+  parent: Ghost.Graphics.Utilities
+  children:
+  - Ghost.Graphics.Utilities.ClodConfig.clusterFillWeight
+  - Ghost.Graphics.Utilities.ClodConfig.clusterSpatial
+  - Ghost.Graphics.Utilities.ClodConfig.clusterSplitFactor
+  - Ghost.Graphics.Utilities.ClodConfig.maxTriangles
+  - Ghost.Graphics.Utilities.ClodConfig.maxVertices
+  - Ghost.Graphics.Utilities.ClodConfig.minTriangles
+  - Ghost.Graphics.Utilities.ClodConfig.optimizeBounds
+  - Ghost.Graphics.Utilities.ClodConfig.optimizeClusters
+  - Ghost.Graphics.Utilities.ClodConfig.partitionSize
+  - Ghost.Graphics.Utilities.ClodConfig.partitionSort
+  - Ghost.Graphics.Utilities.ClodConfig.partitionSpatial
+  - Ghost.Graphics.Utilities.ClodConfig.simplifyErrorEdgeLimit
+  - Ghost.Graphics.Utilities.ClodConfig.simplifyErrorFactorSloppy
+  - Ghost.Graphics.Utilities.ClodConfig.simplifyErrorMergeAdditive
+  - Ghost.Graphics.Utilities.ClodConfig.simplifyErrorMergePrevious
+  - Ghost.Graphics.Utilities.ClodConfig.simplifyFallbackPermissive
+  - Ghost.Graphics.Utilities.ClodConfig.simplifyFallbackSloppy
+  - Ghost.Graphics.Utilities.ClodConfig.simplifyPermissive
+  - Ghost.Graphics.Utilities.ClodConfig.simplifyRatio
+  - Ghost.Graphics.Utilities.ClodConfig.simplifyRegularize
+  - Ghost.Graphics.Utilities.ClodConfig.simplifyThreshold
+  langs:
+  - csharp
+  - vb
+  name: ClodConfig
+  nameWithType: ClodConfig
+  fullName: Ghost.Graphics.Utilities.ClodConfig
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ClodConfig
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 43
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Configuration parameters for the cluster LOD generation pipeline.
+  example: []
+  syntax:
+    content: public struct ClodConfig
+    content.vb: Public Structure ClodConfig
+  inheritedMembers:
+  - System.ValueType.Equals(System.Object)
+  - System.ValueType.GetHashCode
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Graphics.Utilities.ClodConfig.maxVertices
+  commentId: F:Ghost.Graphics.Utilities.ClodConfig.maxVertices
+  id: maxVertices
+  parent: Ghost.Graphics.Utilities.ClodConfig
+  langs:
+  - csharp
+  - vb
+  name: maxVertices
+  nameWithType: ClodConfig.maxVertices
+  fullName: Ghost.Graphics.Utilities.ClodConfig.maxVertices
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: maxVertices
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 46
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: The maximum number of vertices per meshlet.
+  example: []
+  syntax:
+    content: public nuint maxVertices
+    return:
+      type: System.UIntPtr
+    content.vb: Public maxVertices As UIntPtr
+- uid: Ghost.Graphics.Utilities.ClodConfig.minTriangles
+  commentId: F:Ghost.Graphics.Utilities.ClodConfig.minTriangles
+  id: minTriangles
+  parent: Ghost.Graphics.Utilities.ClodConfig
+  langs:
+  - csharp
+  - vb
+  name: minTriangles
+  nameWithType: ClodConfig.minTriangles
+  fullName: Ghost.Graphics.Utilities.ClodConfig.minTriangles
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: minTriangles
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 48
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: The minimum number of triangles per meshlet.
+  example: []
+  syntax:
+    content: public nuint minTriangles
+    return:
+      type: System.UIntPtr
+    content.vb: Public minTriangles As UIntPtr
+- uid: Ghost.Graphics.Utilities.ClodConfig.maxTriangles
+  commentId: F:Ghost.Graphics.Utilities.ClodConfig.maxTriangles
+  id: maxTriangles
+  parent: Ghost.Graphics.Utilities.ClodConfig
+  langs:
+  - csharp
+  - vb
+  name: maxTriangles
+  nameWithType: ClodConfig.maxTriangles
+  fullName: Ghost.Graphics.Utilities.ClodConfig.maxTriangles
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: maxTriangles
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 50
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: The maximum number of triangles per meshlet.
+  example: []
+  syntax:
+    content: public nuint maxTriangles
+    return:
+      type: System.UIntPtr
+    content.vb: Public maxTriangles As UIntPtr
+- uid: Ghost.Graphics.Utilities.ClodConfig.partitionSpatial
+  commentId: F:Ghost.Graphics.Utilities.ClodConfig.partitionSpatial
+  id: partitionSpatial
+  parent: Ghost.Graphics.Utilities.ClodConfig
+  langs:
+  - csharp
+  - vb
+  name: partitionSpatial
+  nameWithType: ClodConfig.partitionSpatial
+  fullName: Ghost.Graphics.Utilities.ClodConfig.partitionSpatial
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: partitionSpatial
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 52
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Whether to use spatial partitioning during meshlet building.
+  example: []
+  syntax:
+    content: public bool partitionSpatial
+    return:
+      type: System.Boolean
+    content.vb: Public partitionSpatial As Boolean
+- uid: Ghost.Graphics.Utilities.ClodConfig.partitionSort
+  commentId: F:Ghost.Graphics.Utilities.ClodConfig.partitionSort
+  id: partitionSort
+  parent: Ghost.Graphics.Utilities.ClodConfig
+  langs:
+  - csharp
+  - vb
+  name: partitionSort
+  nameWithType: ClodConfig.partitionSort
+  fullName: Ghost.Graphics.Utilities.ClodConfig.partitionSort
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: partitionSort
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 54
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Whether to sort clusters after partitioning.
+  example: []
+  syntax:
+    content: public bool partitionSort
+    return:
+      type: System.Boolean
+    content.vb: Public partitionSort As Boolean
+- uid: Ghost.Graphics.Utilities.ClodConfig.partitionSize
+  commentId: F:Ghost.Graphics.Utilities.ClodConfig.partitionSize
+  id: partitionSize
+  parent: Ghost.Graphics.Utilities.ClodConfig
+  langs:
+  - csharp
+  - vb
+  name: partitionSize
+  nameWithType: ClodConfig.partitionSize
+  fullName: Ghost.Graphics.Utilities.ClodConfig.partitionSize
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: partitionSize
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 56
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: The target size for partitions.
+  example: []
+  syntax:
+    content: public nuint partitionSize
+    return:
+      type: System.UIntPtr
+    content.vb: Public partitionSize As UIntPtr
+- uid: Ghost.Graphics.Utilities.ClodConfig.clusterSpatial
+  commentId: F:Ghost.Graphics.Utilities.ClodConfig.clusterSpatial
+  id: clusterSpatial
+  parent: Ghost.Graphics.Utilities.ClodConfig
+  langs:
+  - csharp
+  - vb
+  name: clusterSpatial
+  nameWithType: ClodConfig.clusterSpatial
+  fullName: Ghost.Graphics.Utilities.ClodConfig.clusterSpatial
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: clusterSpatial
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 58
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Whether to cluster meshlets using spatial clustering.
+  example: []
+  syntax:
+    content: public bool clusterSpatial
+    return:
+      type: System.Boolean
+    content.vb: Public clusterSpatial As Boolean
+- uid: Ghost.Graphics.Utilities.ClodConfig.clusterFillWeight
+  commentId: F:Ghost.Graphics.Utilities.ClodConfig.clusterFillWeight
+  id: clusterFillWeight
+  parent: Ghost.Graphics.Utilities.ClodConfig
+  langs:
+  - csharp
+  - vb
+  name: clusterFillWeight
+  nameWithType: ClodConfig.clusterFillWeight
+  fullName: Ghost.Graphics.Utilities.ClodConfig.clusterFillWeight
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: clusterFillWeight
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 60
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Weight factor for cluster fill calculation.
+  example: []
+  syntax:
+    content: public float clusterFillWeight
+    return:
+      type: System.Single
+    content.vb: Public clusterFillWeight As Single
+- uid: Ghost.Graphics.Utilities.ClodConfig.clusterSplitFactor
+  commentId: F:Ghost.Graphics.Utilities.ClodConfig.clusterSplitFactor
+  id: clusterSplitFactor
+  parent: Ghost.Graphics.Utilities.ClodConfig
+  langs:
+  - csharp
+  - vb
+  name: clusterSplitFactor
+  nameWithType: ClodConfig.clusterSplitFactor
+  fullName: Ghost.Graphics.Utilities.ClodConfig.clusterSplitFactor
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: clusterSplitFactor
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 62
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Split factor for flexible clustering.
+  example: []
+  syntax:
+    content: public float clusterSplitFactor
+    return:
+      type: System.Single
+    content.vb: Public clusterSplitFactor As Single
+- uid: Ghost.Graphics.Utilities.ClodConfig.simplifyRatio
+  commentId: F:Ghost.Graphics.Utilities.ClodConfig.simplifyRatio
+  id: simplifyRatio
+  parent: Ghost.Graphics.Utilities.ClodConfig
+  langs:
+  - csharp
+  - vb
+  name: simplifyRatio
+  nameWithType: ClodConfig.simplifyRatio
+  fullName: Ghost.Graphics.Utilities.ClodConfig.simplifyRatio
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: simplifyRatio
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 64
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: The simplification ratio to achieve per LOD level.
+  example: []
+  syntax:
+    content: public float simplifyRatio
+    return:
+      type: System.Single
+    content.vb: Public simplifyRatio As Single
+- uid: Ghost.Graphics.Utilities.ClodConfig.simplifyThreshold
+  commentId: F:Ghost.Graphics.Utilities.ClodConfig.simplifyThreshold
+  id: simplifyThreshold
+  parent: Ghost.Graphics.Utilities.ClodConfig
+  langs:
+  - csharp
+  - vb
+  name: simplifyThreshold
+  nameWithType: ClodConfig.simplifyThreshold
+  fullName: Ghost.Graphics.Utilities.ClodConfig.simplifyThreshold
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: simplifyThreshold
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 66
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Threshold for stopping simplification.
+  example: []
+  syntax:
+    content: public float simplifyThreshold
+    return:
+      type: System.Single
+    content.vb: Public simplifyThreshold As Single
+- uid: Ghost.Graphics.Utilities.ClodConfig.simplifyErrorMergePrevious
+  commentId: F:Ghost.Graphics.Utilities.ClodConfig.simplifyErrorMergePrevious
+  id: simplifyErrorMergePrevious
+  parent: Ghost.Graphics.Utilities.ClodConfig
+  langs:
+  - csharp
+  - vb
+  name: simplifyErrorMergePrevious
+  nameWithType: ClodConfig.simplifyErrorMergePrevious
+  fullName: Ghost.Graphics.Utilities.ClodConfig.simplifyErrorMergePrevious
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: simplifyErrorMergePrevious
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 68
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Error factor used when merging previous LOD level errors.
+  example: []
+  syntax:
+    content: public float simplifyErrorMergePrevious
+    return:
+      type: System.Single
+    content.vb: Public simplifyErrorMergePrevious As Single
+- uid: Ghost.Graphics.Utilities.ClodConfig.simplifyErrorMergeAdditive
+  commentId: F:Ghost.Graphics.Utilities.ClodConfig.simplifyErrorMergeAdditive
+  id: simplifyErrorMergeAdditive
+  parent: Ghost.Graphics.Utilities.ClodConfig
+  langs:
+  - csharp
+  - vb
+  name: simplifyErrorMergeAdditive
+  nameWithType: ClodConfig.simplifyErrorMergeAdditive
+  fullName: Ghost.Graphics.Utilities.ClodConfig.simplifyErrorMergeAdditive
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: simplifyErrorMergeAdditive
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 70
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Additive error factor when merging LOD levels.
+  example: []
+  syntax:
+    content: public float simplifyErrorMergeAdditive
+    return:
+      type: System.Single
+    content.vb: Public simplifyErrorMergeAdditive As Single
+- uid: Ghost.Graphics.Utilities.ClodConfig.simplifyErrorFactorSloppy
+  commentId: F:Ghost.Graphics.Utilities.ClodConfig.simplifyErrorFactorSloppy
+  id: simplifyErrorFactorSloppy
+  parent: Ghost.Graphics.Utilities.ClodConfig
+  langs:
+  - csharp
+  - vb
+  name: simplifyErrorFactorSloppy
+  nameWithType: ClodConfig.simplifyErrorFactorSloppy
+  fullName: Ghost.Graphics.Utilities.ClodConfig.simplifyErrorFactorSloppy
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: simplifyErrorFactorSloppy
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 72
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Error factor for sloppy simplification.
+  example: []
+  syntax:
+    content: public float simplifyErrorFactorSloppy
+    return:
+      type: System.Single
+    content.vb: Public simplifyErrorFactorSloppy As Single
+- uid: Ghost.Graphics.Utilities.ClodConfig.simplifyErrorEdgeLimit
+  commentId: F:Ghost.Graphics.Utilities.ClodConfig.simplifyErrorEdgeLimit
+  id: simplifyErrorEdgeLimit
+  parent: Ghost.Graphics.Utilities.ClodConfig
+  langs:
+  - csharp
+  - vb
+  name: simplifyErrorEdgeLimit
+  nameWithType: ClodConfig.simplifyErrorEdgeLimit
+  fullName: Ghost.Graphics.Utilities.ClodConfig.simplifyErrorEdgeLimit
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: simplifyErrorEdgeLimit
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 74
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Edge length limit error factor.
+  example: []
+  syntax:
+    content: public float simplifyErrorEdgeLimit
+    return:
+      type: System.Single
+    content.vb: Public simplifyErrorEdgeLimit As Single
+- uid: Ghost.Graphics.Utilities.ClodConfig.simplifyPermissive
+  commentId: F:Ghost.Graphics.Utilities.ClodConfig.simplifyPermissive
+  id: simplifyPermissive
+  parent: Ghost.Graphics.Utilities.ClodConfig
+  langs:
+  - csharp
+  - vb
+  name: simplifyPermissive
+  nameWithType: ClodConfig.simplifyPermissive
+  fullName: Ghost.Graphics.Utilities.ClodConfig.simplifyPermissive
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: simplifyPermissive
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 76
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Whether to allow permissive simplification.
+  example: []
+  syntax:
+    content: public bool simplifyPermissive
+    return:
+      type: System.Boolean
+    content.vb: Public simplifyPermissive As Boolean
+- uid: Ghost.Graphics.Utilities.ClodConfig.simplifyFallbackPermissive
+  commentId: F:Ghost.Graphics.Utilities.ClodConfig.simplifyFallbackPermissive
+  id: simplifyFallbackPermissive
+  parent: Ghost.Graphics.Utilities.ClodConfig
+  langs:
+  - csharp
+  - vb
+  name: simplifyFallbackPermissive
+  nameWithType: ClodConfig.simplifyFallbackPermissive
+  fullName: Ghost.Graphics.Utilities.ClodConfig.simplifyFallbackPermissive
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: simplifyFallbackPermissive
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 78
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Whether to fallback to permissive simplification.
+  example: []
+  syntax:
+    content: public bool simplifyFallbackPermissive
+    return:
+      type: System.Boolean
+    content.vb: Public simplifyFallbackPermissive As Boolean
+- uid: Ghost.Graphics.Utilities.ClodConfig.simplifyFallbackSloppy
+  commentId: F:Ghost.Graphics.Utilities.ClodConfig.simplifyFallbackSloppy
+  id: simplifyFallbackSloppy
+  parent: Ghost.Graphics.Utilities.ClodConfig
+  langs:
+  - csharp
+  - vb
+  name: simplifyFallbackSloppy
+  nameWithType: ClodConfig.simplifyFallbackSloppy
+  fullName: Ghost.Graphics.Utilities.ClodConfig.simplifyFallbackSloppy
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: simplifyFallbackSloppy
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 80
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Whether to fallback to sloppy simplification.
+  example: []
+  syntax:
+    content: public bool simplifyFallbackSloppy
+    return:
+      type: System.Boolean
+    content.vb: Public simplifyFallbackSloppy As Boolean
+- uid: Ghost.Graphics.Utilities.ClodConfig.simplifyRegularize
+  commentId: F:Ghost.Graphics.Utilities.ClodConfig.simplifyRegularize
+  id: simplifyRegularize
+  parent: Ghost.Graphics.Utilities.ClodConfig
+  langs:
+  - csharp
+  - vb
+  name: simplifyRegularize
+  nameWithType: ClodConfig.simplifyRegularize
+  fullName: Ghost.Graphics.Utilities.ClodConfig.simplifyRegularize
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: simplifyRegularize
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 82
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Whether to regularize the mesh during simplification.
+  example: []
+  syntax:
+    content: public bool simplifyRegularize
+    return:
+      type: System.Boolean
+    content.vb: Public simplifyRegularize As Boolean
+- uid: Ghost.Graphics.Utilities.ClodConfig.optimizeBounds
+  commentId: F:Ghost.Graphics.Utilities.ClodConfig.optimizeBounds
+  id: optimizeBounds
+  parent: Ghost.Graphics.Utilities.ClodConfig
+  langs:
+  - csharp
+  - vb
+  name: optimizeBounds
+  nameWithType: ClodConfig.optimizeBounds
+  fullName: Ghost.Graphics.Utilities.ClodConfig.optimizeBounds
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: optimizeBounds
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 84
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Whether to optimize cluster bounds.
+  example: []
+  syntax:
+    content: public bool optimizeBounds
+    return:
+      type: System.Boolean
+    content.vb: Public optimizeBounds As Boolean
+- uid: Ghost.Graphics.Utilities.ClodConfig.optimizeClusters
+  commentId: F:Ghost.Graphics.Utilities.ClodConfig.optimizeClusters
+  id: optimizeClusters
+  parent: Ghost.Graphics.Utilities.ClodConfig
+  langs:
+  - csharp
+  - vb
+  name: optimizeClusters
+  nameWithType: ClodConfig.optimizeClusters
+  fullName: Ghost.Graphics.Utilities.ClodConfig.optimizeClusters
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: optimizeClusters
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 86
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Whether to optimize clusters post-build.
+  example: []
+  syntax:
+    content: public bool optimizeClusters
+    return:
+      type: System.Boolean
+    content.vb: Public optimizeClusters As Boolean
+references:
+- uid: Ghost.Graphics.Utilities
+  commentId: N:Ghost.Graphics.Utilities
+  href: Ghost.html
+  name: Ghost.Graphics.Utilities
+  nameWithType: Ghost.Graphics.Utilities
+  fullName: Ghost.Graphics.Utilities
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Utilities
+    name: Utilities
+    href: Ghost.Graphics.Utilities.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Utilities
+    name: Utilities
+    href: Ghost.Graphics.Utilities.html
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.UIntPtr
+  commentId: T:System.UIntPtr
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.uintptr
+  name: nuint
+  nameWithType: nuint
+  fullName: nuint
+  nameWithType.vb: UIntPtr
+  fullName.vb: System.UIntPtr
+  name.vb: UIntPtr
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.boolean
+  name: bool
+  nameWithType: bool
+  fullName: bool
+  nameWithType.vb: Boolean
+  fullName.vb: Boolean
+  name.vb: Boolean
+- uid: System.Single
+  commentId: T:System.Single
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.single
+  name: float
+  nameWithType: float
+  fullName: float
+  nameWithType.vb: Single
+  fullName.vb: Single
+  name.vb: Single

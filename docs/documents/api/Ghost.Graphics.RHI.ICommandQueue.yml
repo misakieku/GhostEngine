@@ -1,0 +1,459 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.ICommandQueue
+  commentId: T:Ghost.Graphics.RHI.ICommandQueue
+  id: ICommandQueue
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.ICommandQueue.GetCompletedValue
+  - Ghost.Graphics.RHI.ICommandQueue.Signal(System.UInt64)
+  - Ghost.Graphics.RHI.ICommandQueue.Submit(Ghost.Graphics.RHI.ICommandBuffer)
+  - Ghost.Graphics.RHI.ICommandQueue.Submit(System.ReadOnlySpan{Ghost.Graphics.RHI.ICommandBuffer})
+  - Ghost.Graphics.RHI.ICommandQueue.Type
+  - Ghost.Graphics.RHI.ICommandQueue.WaitForValue(System.UInt64)
+  - Ghost.Graphics.RHI.ICommandQueue.WaitIdle
+  langs:
+  - csharp
+  - vb
+  name: ICommandQueue
+  nameWithType: ICommandQueue
+  fullName: Ghost.Graphics.RHI.ICommandQueue
+  type: Interface
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandQueue.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ICommandQueue
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandQueue.cs
+    startLine: 5
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Command queue interface
+  example: []
+  syntax:
+    content: 'public interface ICommandQueue : IDisposable'
+    content.vb: Public Interface ICommandQueue Inherits IDisposable
+  inheritedMembers:
+  - System.IDisposable.Dispose
+- uid: Ghost.Graphics.RHI.ICommandQueue.Type
+  commentId: P:Ghost.Graphics.RHI.ICommandQueue.Type
+  id: Type
+  parent: Ghost.Graphics.RHI.ICommandQueue
+  langs:
+  - csharp
+  - vb
+  name: Type
+  nameWithType: ICommandQueue.Type
+  fullName: Ghost.Graphics.RHI.ICommandQueue.Type
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandQueue.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Type
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandQueue.cs
+    startLine: 10
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Type of commands this queue can execute
+  example: []
+  syntax:
+    content: CommandQueueType Type { get; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.CommandQueueType
+    content.vb: ReadOnly Property Type As CommandQueueType
+  overload: Ghost.Graphics.RHI.ICommandQueue.Type*
+- uid: Ghost.Graphics.RHI.ICommandQueue.Submit(Ghost.Graphics.RHI.ICommandBuffer)
+  commentId: M:Ghost.Graphics.RHI.ICommandQueue.Submit(Ghost.Graphics.RHI.ICommandBuffer)
+  id: Submit(Ghost.Graphics.RHI.ICommandBuffer)
+  parent: Ghost.Graphics.RHI.ICommandQueue
+  langs:
+  - csharp
+  - vb
+  name: Submit(ICommandBuffer)
+  nameWithType: ICommandQueue.Submit(ICommandBuffer)
+  fullName: Ghost.Graphics.RHI.ICommandQueue.Submit(Ghost.Graphics.RHI.ICommandBuffer)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandQueue.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Submit
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandQueue.cs
+    startLine: 19
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Submits a single command buffer for execution
+  example: []
+  syntax:
+    content: void Submit(ICommandBuffer commandBuffer)
+    parameters:
+    - id: commandBuffer
+      type: Ghost.Graphics.RHI.ICommandBuffer
+      description: Command buffer to submit
+    content.vb: Sub Submit(commandBuffer As ICommandBuffer)
+  overload: Ghost.Graphics.RHI.ICommandQueue.Submit*
+- uid: Ghost.Graphics.RHI.ICommandQueue.Submit(System.ReadOnlySpan{Ghost.Graphics.RHI.ICommandBuffer})
+  commentId: M:Ghost.Graphics.RHI.ICommandQueue.Submit(System.ReadOnlySpan{Ghost.Graphics.RHI.ICommandBuffer})
+  id: Submit(System.ReadOnlySpan{Ghost.Graphics.RHI.ICommandBuffer})
+  parent: Ghost.Graphics.RHI.ICommandQueue
+  langs:
+  - csharp
+  - vb
+  name: Submit(params ReadOnlySpan<ICommandBuffer>)
+  nameWithType: ICommandQueue.Submit(params ReadOnlySpan<ICommandBuffer>)
+  fullName: Ghost.Graphics.RHI.ICommandQueue.Submit(params System.ReadOnlySpan<Ghost.Graphics.RHI.ICommandBuffer>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandQueue.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Submit
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandQueue.cs
+    startLine: 25
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Submits multiple command buffers for execution
+  example: []
+  syntax:
+    content: void Submit(params ReadOnlySpan<ICommandBuffer> commandBuffers)
+    parameters:
+    - id: commandBuffers
+      type: System.ReadOnlySpan{Ghost.Graphics.RHI.ICommandBuffer}
+      description: Command buffers to submit
+    content.vb: Sub Submit(commandBuffers As ReadOnlySpan(Of ICommandBuffer))
+  overload: Ghost.Graphics.RHI.ICommandQueue.Submit*
+  nameWithType.vb: ICommandQueue.Submit(ReadOnlySpan(Of ICommandBuffer))
+  fullName.vb: Ghost.Graphics.RHI.ICommandQueue.Submit(System.ReadOnlySpan(Of Ghost.Graphics.RHI.ICommandBuffer))
+  name.vb: Submit(ReadOnlySpan(Of ICommandBuffer))
+- uid: Ghost.Graphics.RHI.ICommandQueue.Signal(System.UInt64)
+  commentId: M:Ghost.Graphics.RHI.ICommandQueue.Signal(System.UInt64)
+  id: Signal(System.UInt64)
+  parent: Ghost.Graphics.RHI.ICommandQueue
+  langs:
+  - csharp
+  - vb
+  name: Signal(ulong)
+  nameWithType: ICommandQueue.Signal(ulong)
+  fullName: Ghost.Graphics.RHI.ICommandQueue.Signal(ulong)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandQueue.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Signal
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandQueue.cs
+    startLine: 32
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Signals a fence with the specified Value
+  example: []
+  syntax:
+    content: ulong Signal(ulong value)
+    parameters:
+    - id: value
+      type: System.UInt64
+      description: Value to signal
+    return:
+      type: System.UInt64
+      description: The fence Value that was signaled
+    content.vb: Function Signal(value As ULong) As ULong
+  overload: Ghost.Graphics.RHI.ICommandQueue.Signal*
+  nameWithType.vb: ICommandQueue.Signal(ULong)
+  fullName.vb: Ghost.Graphics.RHI.ICommandQueue.Signal(ULong)
+  name.vb: Signal(ULong)
+- uid: Ghost.Graphics.RHI.ICommandQueue.WaitForValue(System.UInt64)
+  commentId: M:Ghost.Graphics.RHI.ICommandQueue.WaitForValue(System.UInt64)
+  id: WaitForValue(System.UInt64)
+  parent: Ghost.Graphics.RHI.ICommandQueue
+  langs:
+  - csharp
+  - vb
+  name: WaitForValue(ulong)
+  nameWithType: ICommandQueue.WaitForValue(ulong)
+  fullName: Ghost.Graphics.RHI.ICommandQueue.WaitForValue(ulong)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandQueue.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WaitForValue
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandQueue.cs
+    startLine: 38
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Waits for the fence to reach the specified Value
+  example: []
+  syntax:
+    content: void WaitForValue(ulong value)
+    parameters:
+    - id: value
+      type: System.UInt64
+      description: Value to wait for
+    content.vb: Sub WaitForValue(value As ULong)
+  overload: Ghost.Graphics.RHI.ICommandQueue.WaitForValue*
+  nameWithType.vb: ICommandQueue.WaitForValue(ULong)
+  fullName.vb: Ghost.Graphics.RHI.ICommandQueue.WaitForValue(ULong)
+  name.vb: WaitForValue(ULong)
+- uid: Ghost.Graphics.RHI.ICommandQueue.GetCompletedValue
+  commentId: M:Ghost.Graphics.RHI.ICommandQueue.GetCompletedValue
+  id: GetCompletedValue
+  parent: Ghost.Graphics.RHI.ICommandQueue
+  langs:
+  - csharp
+  - vb
+  name: GetCompletedValue()
+  nameWithType: ICommandQueue.GetCompletedValue()
+  fullName: Ghost.Graphics.RHI.ICommandQueue.GetCompletedValue()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandQueue.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetCompletedValue
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandQueue.cs
+    startLine: 44
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Gets the last completed fence Value
+  example: []
+  syntax:
+    content: ulong GetCompletedValue()
+    return:
+      type: System.UInt64
+      description: Last completed fence Value
+    content.vb: Function GetCompletedValue() As ULong
+  overload: Ghost.Graphics.RHI.ICommandQueue.GetCompletedValue*
+- uid: Ghost.Graphics.RHI.ICommandQueue.WaitIdle
+  commentId: M:Ghost.Graphics.RHI.ICommandQueue.WaitIdle
+  id: WaitIdle
+  parent: Ghost.Graphics.RHI.ICommandQueue
+  langs:
+  - csharp
+  - vb
+  name: WaitIdle()
+  nameWithType: ICommandQueue.WaitIdle()
+  fullName: Ghost.Graphics.RHI.ICommandQueue.WaitIdle()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandQueue.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WaitIdle
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandQueue.cs
+    startLine: 49
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Waits until all submitted commands have finished executing
+  example: []
+  syntax:
+    content: void WaitIdle()
+    content.vb: Sub WaitIdle()
+  overload: Ghost.Graphics.RHI.ICommandQueue.WaitIdle*
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.IDisposable.Dispose
+  commentId: M:System.IDisposable.Dispose
+  parent: System.IDisposable
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  name: Dispose()
+  nameWithType: IDisposable.Dispose()
+  fullName: System.IDisposable.Dispose()
+  spec.csharp:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+- uid: System.IDisposable
+  commentId: T:System.IDisposable
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable
+  name: IDisposable
+  nameWithType: IDisposable
+  fullName: System.IDisposable
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RHI.ICommandQueue.Type*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandQueue.Type
+  href: Ghost.Graphics.RHI.ICommandQueue.html#Ghost_Graphics_RHI_ICommandQueue_Type
+  name: Type
+  nameWithType: ICommandQueue.Type
+  fullName: Ghost.Graphics.RHI.ICommandQueue.Type
+- uid: Ghost.Graphics.RHI.CommandQueueType
+  commentId: T:Ghost.Graphics.RHI.CommandQueueType
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.CommandQueueType.html
+  name: CommandQueueType
+  nameWithType: CommandQueueType
+  fullName: Ghost.Graphics.RHI.CommandQueueType
+- uid: Ghost.Graphics.RHI.ICommandQueue.Submit*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandQueue.Submit
+  href: Ghost.Graphics.RHI.ICommandQueue.html#Ghost_Graphics_RHI_ICommandQueue_Submit_Ghost_Graphics_RHI_ICommandBuffer_
+  name: Submit
+  nameWithType: ICommandQueue.Submit
+  fullName: Ghost.Graphics.RHI.ICommandQueue.Submit
+- uid: Ghost.Graphics.RHI.ICommandBuffer
+  commentId: T:Ghost.Graphics.RHI.ICommandBuffer
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ICommandBuffer.html
+  name: ICommandBuffer
+  nameWithType: ICommandBuffer
+  fullName: Ghost.Graphics.RHI.ICommandBuffer
+- uid: System.ReadOnlySpan{Ghost.Graphics.RHI.ICommandBuffer}
+  commentId: T:System.ReadOnlySpan{Ghost.Graphics.RHI.ICommandBuffer}
+  parent: System
+  definition: System.ReadOnlySpan`1
+  href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  name: ReadOnlySpan<ICommandBuffer>
+  nameWithType: ReadOnlySpan<ICommandBuffer>
+  fullName: System.ReadOnlySpan<Ghost.Graphics.RHI.ICommandBuffer>
+  nameWithType.vb: ReadOnlySpan(Of ICommandBuffer)
+  fullName.vb: System.ReadOnlySpan(Of Ghost.Graphics.RHI.ICommandBuffer)
+  name.vb: ReadOnlySpan(Of ICommandBuffer)
+  spec.csharp:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: <
+  - uid: Ghost.Graphics.RHI.ICommandBuffer
+    name: ICommandBuffer
+    href: Ghost.Graphics.RHI.ICommandBuffer.html
+  - name: '>'
+  spec.vb:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.ICommandBuffer
+    name: ICommandBuffer
+    href: Ghost.Graphics.RHI.ICommandBuffer.html
+  - name: )
+- uid: System.ReadOnlySpan`1
+  commentId: T:System.ReadOnlySpan`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  name: ReadOnlySpan<T>
+  nameWithType: ReadOnlySpan<T>
+  fullName: System.ReadOnlySpan<T>
+  nameWithType.vb: ReadOnlySpan(Of T)
+  fullName.vb: System.ReadOnlySpan(Of T)
+  name.vb: ReadOnlySpan(Of T)
+  spec.csharp:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Graphics.RHI.ICommandQueue.Signal*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandQueue.Signal
+  href: Ghost.Graphics.RHI.ICommandQueue.html#Ghost_Graphics_RHI_ICommandQueue_Signal_System_UInt64_
+  name: Signal
+  nameWithType: ICommandQueue.Signal
+  fullName: Ghost.Graphics.RHI.ICommandQueue.Signal
+- uid: System.UInt64
+  commentId: T:System.UInt64
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.uint64
+  name: ulong
+  nameWithType: ulong
+  fullName: ulong
+  nameWithType.vb: ULong
+  fullName.vb: ULong
+  name.vb: ULong
+- uid: Ghost.Graphics.RHI.ICommandQueue.WaitForValue*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandQueue.WaitForValue
+  href: Ghost.Graphics.RHI.ICommandQueue.html#Ghost_Graphics_RHI_ICommandQueue_WaitForValue_System_UInt64_
+  name: WaitForValue
+  nameWithType: ICommandQueue.WaitForValue
+  fullName: Ghost.Graphics.RHI.ICommandQueue.WaitForValue
+- uid: Ghost.Graphics.RHI.ICommandQueue.GetCompletedValue*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandQueue.GetCompletedValue
+  href: Ghost.Graphics.RHI.ICommandQueue.html#Ghost_Graphics_RHI_ICommandQueue_GetCompletedValue
+  name: GetCompletedValue
+  nameWithType: ICommandQueue.GetCompletedValue
+  fullName: Ghost.Graphics.RHI.ICommandQueue.GetCompletedValue
+- uid: Ghost.Graphics.RHI.ICommandQueue.WaitIdle*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandQueue.WaitIdle
+  href: Ghost.Graphics.RHI.ICommandQueue.html#Ghost_Graphics_RHI_ICommandQueue_WaitIdle
+  name: WaitIdle
+  nameWithType: ICommandQueue.WaitIdle
+  fullName: Ghost.Graphics.RHI.ICommandQueue.WaitIdle

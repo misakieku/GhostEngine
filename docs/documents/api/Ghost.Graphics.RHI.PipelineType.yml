@@ -1,0 +1,120 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.PipelineType
+  commentId: T:Ghost.Graphics.RHI.PipelineType
+  id: PipelineType
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.PipelineType.Compute
+  - Ghost.Graphics.RHI.PipelineType.Graphics
+  langs:
+  - csharp
+  - vb
+  name: PipelineType
+  nameWithType: PipelineType
+  fullName: Ghost.Graphics.RHI.PipelineType
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: PipelineType
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1224
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public enum PipelineType
+    content.vb: Public Enum PipelineType
+- uid: Ghost.Graphics.RHI.PipelineType.Graphics
+  commentId: F:Ghost.Graphics.RHI.PipelineType.Graphics
+  id: Graphics
+  parent: Ghost.Graphics.RHI.PipelineType
+  langs:
+  - csharp
+  - vb
+  name: Graphics
+  nameWithType: PipelineType.Graphics
+  fullName: Ghost.Graphics.RHI.PipelineType.Graphics
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Graphics
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1226
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Graphics = 0
+    return:
+      type: Ghost.Graphics.RHI.PipelineType
+- uid: Ghost.Graphics.RHI.PipelineType.Compute
+  commentId: F:Ghost.Graphics.RHI.PipelineType.Compute
+  id: Compute
+  parent: Ghost.Graphics.RHI.PipelineType
+  langs:
+  - csharp
+  - vb
+  name: Compute
+  nameWithType: PipelineType.Compute
+  fullName: Ghost.Graphics.RHI.PipelineType.Compute
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Compute
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1227
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Compute = 1
+    return:
+      type: Ghost.Graphics.RHI.PipelineType
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.PipelineType
+  commentId: T:Ghost.Graphics.RHI.PipelineType
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.PipelineType.html
+  name: PipelineType
+  nameWithType: PipelineType
+  fullName: Ghost.Graphics.RHI.PipelineType

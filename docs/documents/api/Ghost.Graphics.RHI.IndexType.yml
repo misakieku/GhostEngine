@@ -1,0 +1,120 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.IndexType
+  commentId: T:Ghost.Graphics.RHI.IndexType
+  id: IndexType
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.IndexType.UInt16
+  - Ghost.Graphics.RHI.IndexType.UInt32
+  langs:
+  - csharp
+  - vb
+  name: IndexType
+  nameWithType: IndexType
+  fullName: Ghost.Graphics.RHI.IndexType
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IndexType
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1308
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public enum IndexType
+    content.vb: Public Enum IndexType
+- uid: Ghost.Graphics.RHI.IndexType.UInt16
+  commentId: F:Ghost.Graphics.RHI.IndexType.UInt16
+  id: UInt16
+  parent: Ghost.Graphics.RHI.IndexType
+  langs:
+  - csharp
+  - vb
+  name: UInt16
+  nameWithType: IndexType.UInt16
+  fullName: Ghost.Graphics.RHI.IndexType.UInt16
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: UInt16
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1310
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: UInt16 = 0
+    return:
+      type: Ghost.Graphics.RHI.IndexType
+- uid: Ghost.Graphics.RHI.IndexType.UInt32
+  commentId: F:Ghost.Graphics.RHI.IndexType.UInt32
+  id: UInt32
+  parent: Ghost.Graphics.RHI.IndexType
+  langs:
+  - csharp
+  - vb
+  name: UInt32
+  nameWithType: IndexType.UInt32
+  fullName: Ghost.Graphics.RHI.IndexType.UInt32
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: UInt32
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1311
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: UInt32 = 1
+    return:
+      type: Ghost.Graphics.RHI.IndexType
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.IndexType
+  commentId: T:Ghost.Graphics.RHI.IndexType
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.IndexType.html
+  name: IndexType
+  nameWithType: IndexType
+  fullName: Ghost.Graphics.RHI.IndexType

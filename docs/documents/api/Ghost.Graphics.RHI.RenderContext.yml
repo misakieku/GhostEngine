@@ -1,0 +1,441 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.RenderContext
+  commentId: T:Ghost.Graphics.RHI.RenderContext
+  id: RenderContext
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.RenderContext.CommandBuffer
+  - Ghost.Graphics.RHI.RenderContext.ComputeQueue
+  - Ghost.Graphics.RHI.RenderContext.CopyQueue
+  - Ghost.Graphics.RHI.RenderContext.GraphicsQueue
+  langs:
+  - csharp
+  - vb
+  name: RenderContext
+  nameWithType: RenderContext
+  fullName: Ghost.Graphics.RHI.RenderContext
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: RenderContext
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderer.cs
+    startLine: 4
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public readonly struct RenderContext
+    content.vb: Public Structure RenderContext
+  inheritedMembers:
+  - System.ValueType.Equals(System.Object)
+  - System.ValueType.GetHashCode
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Graphics.RHI.RenderContext.CommandBuffer
+  commentId: P:Ghost.Graphics.RHI.RenderContext.CommandBuffer
+  id: CommandBuffer
+  parent: Ghost.Graphics.RHI.RenderContext
+  langs:
+  - csharp
+  - vb
+  name: CommandBuffer
+  nameWithType: RenderContext.CommandBuffer
+  fullName: Ghost.Graphics.RHI.RenderContext.CommandBuffer
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CommandBuffer
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderer.cs
+    startLine: 6
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public ICommandBuffer CommandBuffer { get; init; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.ICommandBuffer
+    content.vb: Public Property CommandBuffer As ICommandBuffer
+  overload: Ghost.Graphics.RHI.RenderContext.CommandBuffer*
+- uid: Ghost.Graphics.RHI.RenderContext.GraphicsQueue
+  commentId: P:Ghost.Graphics.RHI.RenderContext.GraphicsQueue
+  id: GraphicsQueue
+  parent: Ghost.Graphics.RHI.RenderContext
+  langs:
+  - csharp
+  - vb
+  name: GraphicsQueue
+  nameWithType: RenderContext.GraphicsQueue
+  fullName: Ghost.Graphics.RHI.RenderContext.GraphicsQueue
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GraphicsQueue
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderer.cs
+    startLine: 7
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public ICommandQueue GraphicsQueue { get; init; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.ICommandQueue
+    content.vb: Public Property GraphicsQueue As ICommandQueue
+  overload: Ghost.Graphics.RHI.RenderContext.GraphicsQueue*
+- uid: Ghost.Graphics.RHI.RenderContext.ComputeQueue
+  commentId: P:Ghost.Graphics.RHI.RenderContext.ComputeQueue
+  id: ComputeQueue
+  parent: Ghost.Graphics.RHI.RenderContext
+  langs:
+  - csharp
+  - vb
+  name: ComputeQueue
+  nameWithType: RenderContext.ComputeQueue
+  fullName: Ghost.Graphics.RHI.RenderContext.ComputeQueue
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ComputeQueue
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderer.cs
+    startLine: 8
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public ICommandQueue ComputeQueue { get; init; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.ICommandQueue
+    content.vb: Public Property ComputeQueue As ICommandQueue
+  overload: Ghost.Graphics.RHI.RenderContext.ComputeQueue*
+- uid: Ghost.Graphics.RHI.RenderContext.CopyQueue
+  commentId: P:Ghost.Graphics.RHI.RenderContext.CopyQueue
+  id: CopyQueue
+  parent: Ghost.Graphics.RHI.RenderContext
+  langs:
+  - csharp
+  - vb
+  name: CopyQueue
+  nameWithType: RenderContext.CopyQueue
+  fullName: Ghost.Graphics.RHI.RenderContext.CopyQueue
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CopyQueue
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderer.cs
+    startLine: 9
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public ICommandQueue CopyQueue { get; init; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.ICommandQueue
+    content.vb: Public Property CopyQueue As ICommandQueue
+  overload: Ghost.Graphics.RHI.RenderContext.CopyQueue*
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RHI.RenderContext.CommandBuffer*
+  commentId: Overload:Ghost.Graphics.RHI.RenderContext.CommandBuffer
+  href: Ghost.Graphics.RHI.RenderContext.html#Ghost_Graphics_RHI_RenderContext_CommandBuffer
+  name: CommandBuffer
+  nameWithType: RenderContext.CommandBuffer
+  fullName: Ghost.Graphics.RHI.RenderContext.CommandBuffer
+- uid: Ghost.Graphics.RHI.ICommandBuffer
+  commentId: T:Ghost.Graphics.RHI.ICommandBuffer
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ICommandBuffer.html
+  name: ICommandBuffer
+  nameWithType: ICommandBuffer
+  fullName: Ghost.Graphics.RHI.ICommandBuffer
+- uid: Ghost.Graphics.RHI.RenderContext.GraphicsQueue*
+  commentId: Overload:Ghost.Graphics.RHI.RenderContext.GraphicsQueue
+  href: Ghost.Graphics.RHI.RenderContext.html#Ghost_Graphics_RHI_RenderContext_GraphicsQueue
+  name: GraphicsQueue
+  nameWithType: RenderContext.GraphicsQueue
+  fullName: Ghost.Graphics.RHI.RenderContext.GraphicsQueue
+- uid: Ghost.Graphics.RHI.ICommandQueue
+  commentId: T:Ghost.Graphics.RHI.ICommandQueue
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ICommandQueue.html
+  name: ICommandQueue
+  nameWithType: ICommandQueue
+  fullName: Ghost.Graphics.RHI.ICommandQueue
+- uid: Ghost.Graphics.RHI.RenderContext.ComputeQueue*
+  commentId: Overload:Ghost.Graphics.RHI.RenderContext.ComputeQueue
+  href: Ghost.Graphics.RHI.RenderContext.html#Ghost_Graphics_RHI_RenderContext_ComputeQueue
+  name: ComputeQueue
+  nameWithType: RenderContext.ComputeQueue
+  fullName: Ghost.Graphics.RHI.RenderContext.ComputeQueue
+- uid: Ghost.Graphics.RHI.RenderContext.CopyQueue*
+  commentId: Overload:Ghost.Graphics.RHI.RenderContext.CopyQueue
+  href: Ghost.Graphics.RHI.RenderContext.html#Ghost_Graphics_RHI_RenderContext_CopyQueue
+  name: CopyQueue
+  nameWithType: RenderContext.CopyQueue
+  fullName: Ghost.Graphics.RHI.RenderContext.CopyQueue

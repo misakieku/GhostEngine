@@ -1,0 +1,832 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.RenderTargetDesc
+  commentId: T:Ghost.Graphics.RHI.RenderTargetDesc
+  id: RenderTargetDesc
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.RenderTargetDesc.Color(System.UInt32,System.UInt32,System.UInt32,Ghost.Graphics.RHI.TextureFormat,Ghost.Graphics.RHI.TextureDimension,Ghost.Graphics.RHI.RenderTargetCreationFlags,System.UInt32,System.UInt32)
+  - Ghost.Graphics.RHI.RenderTargetDesc.CreationFlags
+  - Ghost.Graphics.RHI.RenderTargetDesc.Depth(System.UInt32,System.UInt32,System.UInt32,Ghost.Graphics.RHI.TextureFormat,Ghost.Graphics.RHI.TextureDimension,Ghost.Graphics.RHI.RenderTargetCreationFlags,System.UInt32,System.UInt32)
+  - Ghost.Graphics.RHI.RenderTargetDesc.Dimension
+  - Ghost.Graphics.RHI.RenderTargetDesc.Format
+  - Ghost.Graphics.RHI.RenderTargetDesc.Height
+  - Ghost.Graphics.RHI.RenderTargetDesc.MipLevels
+  - Ghost.Graphics.RHI.RenderTargetDesc.SampleCount
+  - Ghost.Graphics.RHI.RenderTargetDesc.Slice
+  - Ghost.Graphics.RHI.RenderTargetDesc.ToTextureDescription
+  - Ghost.Graphics.RHI.RenderTargetDesc.Type
+  - Ghost.Graphics.RHI.RenderTargetDesc.Width
+  langs:
+  - csharp
+  - vb
+  name: RenderTargetDesc
+  nameWithType: RenderTargetDesc
+  fullName: Ghost.Graphics.RHI.RenderTargetDesc
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: RenderTargetDesc
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 715
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: >-
+    Render Target description
+
+    Supports either color OR depth rendering, not both
+  example: []
+  syntax:
+    content: public struct RenderTargetDesc
+    content.vb: Public Structure RenderTargetDesc
+  inheritedMembers:
+  - System.ValueType.Equals(System.Object)
+  - System.ValueType.GetHashCode
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Graphics.RHI.RenderTargetDesc.Width
+  commentId: P:Ghost.Graphics.RHI.RenderTargetDesc.Width
+  id: Width
+  parent: Ghost.Graphics.RHI.RenderTargetDesc
+  langs:
+  - csharp
+  - vb
+  name: Width
+  nameWithType: RenderTargetDesc.Width
+  fullName: Ghost.Graphics.RHI.RenderTargetDesc.Width
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Width
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 720
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Width of the render Target
+  example: []
+  syntax:
+    content: public uint Width { readonly get; set; }
+    parameters: []
+    return:
+      type: System.UInt32
+    content.vb: Public Property Width As UInteger
+  overload: Ghost.Graphics.RHI.RenderTargetDesc.Width*
+- uid: Ghost.Graphics.RHI.RenderTargetDesc.Height
+  commentId: P:Ghost.Graphics.RHI.RenderTargetDesc.Height
+  id: Height
+  parent: Ghost.Graphics.RHI.RenderTargetDesc
+  langs:
+  - csharp
+  - vb
+  name: Height
+  nameWithType: RenderTargetDesc.Height
+  fullName: Ghost.Graphics.RHI.RenderTargetDesc.Height
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Height
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 728
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Height of the render Target
+  example: []
+  syntax:
+    content: public uint Height { readonly get; set; }
+    parameters: []
+    return:
+      type: System.UInt32
+    content.vb: Public Property Height As UInteger
+  overload: Ghost.Graphics.RHI.RenderTargetDesc.Height*
+- uid: Ghost.Graphics.RHI.RenderTargetDesc.Slice
+  commentId: P:Ghost.Graphics.RHI.RenderTargetDesc.Slice
+  id: Slice
+  parent: Ghost.Graphics.RHI.RenderTargetDesc
+  langs:
+  - csharp
+  - vb
+  name: Slice
+  nameWithType: RenderTargetDesc.Slice
+  fullName: Ghost.Graphics.RHI.RenderTargetDesc.Slice
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Slice
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 736
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Slice of the render Target
+  example: []
+  syntax:
+    content: public uint Slice { readonly get; set; }
+    parameters: []
+    return:
+      type: System.UInt32
+    content.vb: Public Property Slice As UInteger
+  overload: Ghost.Graphics.RHI.RenderTargetDesc.Slice*
+- uid: Ghost.Graphics.RHI.RenderTargetDesc.Type
+  commentId: P:Ghost.Graphics.RHI.RenderTargetDesc.Type
+  id: Type
+  parent: Ghost.Graphics.RHI.RenderTargetDesc
+  langs:
+  - csharp
+  - vb
+  name: Type
+  nameWithType: RenderTargetDesc.Type
+  fullName: Ghost.Graphics.RHI.RenderTargetDesc.Type
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Type
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 744
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Type of render Target
+  example: []
+  syntax:
+    content: public RenderTargetType Type { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.RenderTargetType
+    content.vb: Public Property Type As RenderTargetType
+  overload: Ghost.Graphics.RHI.RenderTargetDesc.Type*
+- uid: Ghost.Graphics.RHI.RenderTargetDesc.Format
+  commentId: P:Ghost.Graphics.RHI.RenderTargetDesc.Format
+  id: Format
+  parent: Ghost.Graphics.RHI.RenderTargetDesc
+  langs:
+  - csharp
+  - vb
+  name: Format
+  nameWithType: RenderTargetDesc.Format
+  fullName: Ghost.Graphics.RHI.RenderTargetDesc.Format
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Format
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 752
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Target texture Format
+  example: []
+  syntax:
+    content: public TextureFormat Format { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.TextureFormat
+    content.vb: Public Property Format As TextureFormat
+  overload: Ghost.Graphics.RHI.RenderTargetDesc.Format*
+- uid: Ghost.Graphics.RHI.RenderTargetDesc.Dimension
+  commentId: P:Ghost.Graphics.RHI.RenderTargetDesc.Dimension
+  id: Dimension
+  parent: Ghost.Graphics.RHI.RenderTargetDesc
+  langs:
+  - csharp
+  - vb
+  name: Dimension
+  nameWithType: RenderTargetDesc.Dimension
+  fullName: Ghost.Graphics.RHI.RenderTargetDesc.Dimension
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Dimension
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 760
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Texture dimension
+  example: []
+  syntax:
+    content: public TextureDimension Dimension { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.TextureDimension
+    content.vb: Public Property Dimension As TextureDimension
+  overload: Ghost.Graphics.RHI.RenderTargetDesc.Dimension*
+- uid: Ghost.Graphics.RHI.RenderTargetDesc.CreationFlags
+  commentId: P:Ghost.Graphics.RHI.RenderTargetDesc.CreationFlags
+  id: CreationFlags
+  parent: Ghost.Graphics.RHI.RenderTargetDesc
+  langs:
+  - csharp
+  - vb
+  name: CreationFlags
+  nameWithType: RenderTargetDesc.CreationFlags
+  fullName: Ghost.Graphics.RHI.RenderTargetDesc.CreationFlags
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CreationFlags
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 768
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Creation flags for the render Target
+  example: []
+  syntax:
+    content: public RenderTargetCreationFlags CreationFlags { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.RenderTargetCreationFlags
+    content.vb: Public Property CreationFlags As RenderTargetCreationFlags
+  overload: Ghost.Graphics.RHI.RenderTargetDesc.CreationFlags*
+- uid: Ghost.Graphics.RHI.RenderTargetDesc.MipLevels
+  commentId: P:Ghost.Graphics.RHI.RenderTargetDesc.MipLevels
+  id: MipLevels
+  parent: Ghost.Graphics.RHI.RenderTargetDesc
+  langs:
+  - csharp
+  - vb
+  name: MipLevels
+  nameWithType: RenderTargetDesc.MipLevels
+  fullName: Ghost.Graphics.RHI.RenderTargetDesc.MipLevels
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: MipLevels
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 776
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Number of mip levels. 0 to generate full mip chain
+  example: []
+  syntax:
+    content: public uint MipLevels { readonly get; set; }
+    parameters: []
+    return:
+      type: System.UInt32
+    content.vb: Public Property MipLevels As UInteger
+  overload: Ghost.Graphics.RHI.RenderTargetDesc.MipLevels*
+- uid: Ghost.Graphics.RHI.RenderTargetDesc.SampleCount
+  commentId: P:Ghost.Graphics.RHI.RenderTargetDesc.SampleCount
+  id: SampleCount
+  parent: Ghost.Graphics.RHI.RenderTargetDesc
+  langs:
+  - csharp
+  - vb
+  name: SampleCount
+  nameWithType: RenderTargetDesc.SampleCount
+  fullName: Ghost.Graphics.RHI.RenderTargetDesc.SampleCount
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SampleCount
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 784
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Number of samples for MSAA
+  example: []
+  syntax:
+    content: public uint SampleCount { readonly get; set; }
+    parameters: []
+    return:
+      type: System.UInt32
+    content.vb: Public Property SampleCount As UInteger
+  overload: Ghost.Graphics.RHI.RenderTargetDesc.SampleCount*
+- uid: Ghost.Graphics.RHI.RenderTargetDesc.Color(System.UInt32,System.UInt32,System.UInt32,Ghost.Graphics.RHI.TextureFormat,Ghost.Graphics.RHI.TextureDimension,Ghost.Graphics.RHI.RenderTargetCreationFlags,System.UInt32,System.UInt32)
+  commentId: M:Ghost.Graphics.RHI.RenderTargetDesc.Color(System.UInt32,System.UInt32,System.UInt32,Ghost.Graphics.RHI.TextureFormat,Ghost.Graphics.RHI.TextureDimension,Ghost.Graphics.RHI.RenderTargetCreationFlags,System.UInt32,System.UInt32)
+  id: Color(System.UInt32,System.UInt32,System.UInt32,Ghost.Graphics.RHI.TextureFormat,Ghost.Graphics.RHI.TextureDimension,Ghost.Graphics.RHI.RenderTargetCreationFlags,System.UInt32,System.UInt32)
+  parent: Ghost.Graphics.RHI.RenderTargetDesc
+  langs:
+  - csharp
+  - vb
+  name: Color(uint, uint, uint, TextureFormat, TextureDimension, RenderTargetCreationFlags, uint, uint)
+  nameWithType: RenderTargetDesc.Color(uint, uint, uint, TextureFormat, TextureDimension, RenderTargetCreationFlags, uint, uint)
+  fullName: Ghost.Graphics.RHI.RenderTargetDesc.Color(uint, uint, uint, Ghost.Graphics.RHI.TextureFormat, Ghost.Graphics.RHI.TextureDimension, Ghost.Graphics.RHI.RenderTargetCreationFlags, uint, uint)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Color
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 792
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Creates a color render Target
+  example: []
+  syntax:
+    content: public static RenderTargetDesc Color(uint width, uint height, uint slice = 1, TextureFormat format = TextureFormat.R8G8B8A8_UNorm, TextureDimension dimension = TextureDimension.Texture2D, RenderTargetCreationFlags creationFlags = RenderTargetCreationFlags.AllowUAV | RenderTargetCreationFlags.DynamicallyResolution | RenderTargetCreationFlags.GenerateMips, uint mipLevels = 0, uint sampleCount = 1)
+    parameters:
+    - id: width
+      type: System.UInt32
+    - id: height
+      type: System.UInt32
+    - id: slice
+      type: System.UInt32
+    - id: format
+      type: Ghost.Graphics.RHI.TextureFormat
+    - id: dimension
+      type: Ghost.Graphics.RHI.TextureDimension
+    - id: creationFlags
+      type: Ghost.Graphics.RHI.RenderTargetCreationFlags
+    - id: mipLevels
+      type: System.UInt32
+    - id: sampleCount
+      type: System.UInt32
+    return:
+      type: Ghost.Graphics.RHI.RenderTargetDesc
+    content.vb: Public Shared Function Color(width As UInteger, height As UInteger, slice As UInteger = 1, format As TextureFormat = TextureFormat.R8G8B8A8_UNorm, dimension As TextureDimension = TextureDimension.Texture2D, creationFlags As RenderTargetCreationFlags = RenderTargetCreationFlags.AllowUAV Or RenderTargetCreationFlags.DynamicallyResolution Or RenderTargetCreationFlags.GenerateMips, mipLevels As UInteger = 0, sampleCount As UInteger = 1) As RenderTargetDesc
+  overload: Ghost.Graphics.RHI.RenderTargetDesc.Color*
+  nameWithType.vb: RenderTargetDesc.Color(UInteger, UInteger, UInteger, TextureFormat, TextureDimension, RenderTargetCreationFlags, UInteger, UInteger)
+  fullName.vb: Ghost.Graphics.RHI.RenderTargetDesc.Color(UInteger, UInteger, UInteger, Ghost.Graphics.RHI.TextureFormat, Ghost.Graphics.RHI.TextureDimension, Ghost.Graphics.RHI.RenderTargetCreationFlags, UInteger, UInteger)
+  name.vb: Color(UInteger, UInteger, UInteger, TextureFormat, TextureDimension, RenderTargetCreationFlags, UInteger, UInteger)
+- uid: Ghost.Graphics.RHI.RenderTargetDesc.Depth(System.UInt32,System.UInt32,System.UInt32,Ghost.Graphics.RHI.TextureFormat,Ghost.Graphics.RHI.TextureDimension,Ghost.Graphics.RHI.RenderTargetCreationFlags,System.UInt32,System.UInt32)
+  commentId: M:Ghost.Graphics.RHI.RenderTargetDesc.Depth(System.UInt32,System.UInt32,System.UInt32,Ghost.Graphics.RHI.TextureFormat,Ghost.Graphics.RHI.TextureDimension,Ghost.Graphics.RHI.RenderTargetCreationFlags,System.UInt32,System.UInt32)
+  id: Depth(System.UInt32,System.UInt32,System.UInt32,Ghost.Graphics.RHI.TextureFormat,Ghost.Graphics.RHI.TextureDimension,Ghost.Graphics.RHI.RenderTargetCreationFlags,System.UInt32,System.UInt32)
+  parent: Ghost.Graphics.RHI.RenderTargetDesc
+  langs:
+  - csharp
+  - vb
+  name: Depth(uint, uint, uint, TextureFormat, TextureDimension, RenderTargetCreationFlags, uint, uint)
+  nameWithType: RenderTargetDesc.Depth(uint, uint, uint, TextureFormat, TextureDimension, RenderTargetCreationFlags, uint, uint)
+  fullName: Ghost.Graphics.RHI.RenderTargetDesc.Depth(uint, uint, uint, Ghost.Graphics.RHI.TextureFormat, Ghost.Graphics.RHI.TextureDimension, Ghost.Graphics.RHI.RenderTargetCreationFlags, uint, uint)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Depth
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 814
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Creates a depth render Target
+  example: []
+  syntax:
+    content: public static RenderTargetDesc Depth(uint width, uint height, uint slice = 1, TextureFormat format = TextureFormat.D24_UNorm_S8_UInt, TextureDimension dimension = TextureDimension.Texture2D, RenderTargetCreationFlags creationFlags = RenderTargetCreationFlags.AllowUAV | RenderTargetCreationFlags.DynamicallyResolution, uint mipLevels = 0, uint sampleCount = 1)
+    parameters:
+    - id: width
+      type: System.UInt32
+    - id: height
+      type: System.UInt32
+    - id: slice
+      type: System.UInt32
+    - id: format
+      type: Ghost.Graphics.RHI.TextureFormat
+    - id: dimension
+      type: Ghost.Graphics.RHI.TextureDimension
+    - id: creationFlags
+      type: Ghost.Graphics.RHI.RenderTargetCreationFlags
+    - id: mipLevels
+      type: System.UInt32
+    - id: sampleCount
+      type: System.UInt32
+    return:
+      type: Ghost.Graphics.RHI.RenderTargetDesc
+    content.vb: Public Shared Function Depth(width As UInteger, height As UInteger, slice As UInteger = 1, format As TextureFormat = TextureFormat.D24_UNorm_S8_UInt, dimension As TextureDimension = TextureDimension.Texture2D, creationFlags As RenderTargetCreationFlags = RenderTargetCreationFlags.AllowUAV Or RenderTargetCreationFlags.DynamicallyResolution, mipLevels As UInteger = 0, sampleCount As UInteger = 1) As RenderTargetDesc
+  overload: Ghost.Graphics.RHI.RenderTargetDesc.Depth*
+  nameWithType.vb: RenderTargetDesc.Depth(UInteger, UInteger, UInteger, TextureFormat, TextureDimension, RenderTargetCreationFlags, UInteger, UInteger)
+  fullName.vb: Ghost.Graphics.RHI.RenderTargetDesc.Depth(UInteger, UInteger, UInteger, Ghost.Graphics.RHI.TextureFormat, Ghost.Graphics.RHI.TextureDimension, Ghost.Graphics.RHI.RenderTargetCreationFlags, UInteger, UInteger)
+  name.vb: Depth(UInteger, UInteger, UInteger, TextureFormat, TextureDimension, RenderTargetCreationFlags, UInteger, UInteger)
+- uid: Ghost.Graphics.RHI.RenderTargetDesc.ToTextureDescription
+  commentId: M:Ghost.Graphics.RHI.RenderTargetDesc.ToTextureDescription
+  id: ToTextureDescription
+  parent: Ghost.Graphics.RHI.RenderTargetDesc
+  langs:
+  - csharp
+  - vb
+  name: ToTextureDescription()
+  nameWithType: RenderTargetDesc.ToTextureDescription()
+  fullName: Ghost.Graphics.RHI.RenderTargetDesc.ToTextureDescription()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ToTextureDescription
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 833
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public TextureDesc ToTextureDescription()
+    return:
+      type: Ghost.Graphics.RHI.TextureDesc
+    content.vb: Public Function ToTextureDescription() As TextureDesc
+  overload: Ghost.Graphics.RHI.RenderTargetDesc.ToTextureDescription*
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RHI.RenderTargetDesc.Width*
+  commentId: Overload:Ghost.Graphics.RHI.RenderTargetDesc.Width
+  href: Ghost.Graphics.RHI.RenderTargetDesc.html#Ghost_Graphics_RHI_RenderTargetDesc_Width
+  name: Width
+  nameWithType: RenderTargetDesc.Width
+  fullName: Ghost.Graphics.RHI.RenderTargetDesc.Width
+- uid: System.UInt32
+  commentId: T:System.UInt32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.uint32
+  name: uint
+  nameWithType: uint
+  fullName: uint
+  nameWithType.vb: UInteger
+  fullName.vb: UInteger
+  name.vb: UInteger
+- uid: Ghost.Graphics.RHI.RenderTargetDesc.Height*
+  commentId: Overload:Ghost.Graphics.RHI.RenderTargetDesc.Height
+  href: Ghost.Graphics.RHI.RenderTargetDesc.html#Ghost_Graphics_RHI_RenderTargetDesc_Height
+  name: Height
+  nameWithType: RenderTargetDesc.Height
+  fullName: Ghost.Graphics.RHI.RenderTargetDesc.Height
+- uid: Ghost.Graphics.RHI.RenderTargetDesc.Slice*
+  commentId: Overload:Ghost.Graphics.RHI.RenderTargetDesc.Slice
+  href: Ghost.Graphics.RHI.RenderTargetDesc.html#Ghost_Graphics_RHI_RenderTargetDesc_Slice
+  name: Slice
+  nameWithType: RenderTargetDesc.Slice
+  fullName: Ghost.Graphics.RHI.RenderTargetDesc.Slice
+- uid: Ghost.Graphics.RHI.RenderTargetDesc.Type*
+  commentId: Overload:Ghost.Graphics.RHI.RenderTargetDesc.Type
+  href: Ghost.Graphics.RHI.RenderTargetDesc.html#Ghost_Graphics_RHI_RenderTargetDesc_Type
+  name: Type
+  nameWithType: RenderTargetDesc.Type
+  fullName: Ghost.Graphics.RHI.RenderTargetDesc.Type
+- uid: Ghost.Graphics.RHI.RenderTargetType
+  commentId: T:Ghost.Graphics.RHI.RenderTargetType
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.RenderTargetType.html
+  name: RenderTargetType
+  nameWithType: RenderTargetType
+  fullName: Ghost.Graphics.RHI.RenderTargetType
+- uid: Ghost.Graphics.RHI.RenderTargetDesc.Format*
+  commentId: Overload:Ghost.Graphics.RHI.RenderTargetDesc.Format
+  href: Ghost.Graphics.RHI.RenderTargetDesc.html#Ghost_Graphics_RHI_RenderTargetDesc_Format
+  name: Format
+  nameWithType: RenderTargetDesc.Format
+  fullName: Ghost.Graphics.RHI.RenderTargetDesc.Format
+- uid: Ghost.Graphics.RHI.TextureFormat
+  commentId: T:Ghost.Graphics.RHI.TextureFormat
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.TextureFormat.html
+  name: TextureFormat
+  nameWithType: TextureFormat
+  fullName: Ghost.Graphics.RHI.TextureFormat
+- uid: Ghost.Graphics.RHI.RenderTargetDesc.Dimension*
+  commentId: Overload:Ghost.Graphics.RHI.RenderTargetDesc.Dimension
+  href: Ghost.Graphics.RHI.RenderTargetDesc.html#Ghost_Graphics_RHI_RenderTargetDesc_Dimension
+  name: Dimension
+  nameWithType: RenderTargetDesc.Dimension
+  fullName: Ghost.Graphics.RHI.RenderTargetDesc.Dimension
+- uid: Ghost.Graphics.RHI.TextureDimension
+  commentId: T:Ghost.Graphics.RHI.TextureDimension
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.TextureDimension.html
+  name: TextureDimension
+  nameWithType: TextureDimension
+  fullName: Ghost.Graphics.RHI.TextureDimension
+- uid: Ghost.Graphics.RHI.RenderTargetDesc.CreationFlags*
+  commentId: Overload:Ghost.Graphics.RHI.RenderTargetDesc.CreationFlags
+  href: Ghost.Graphics.RHI.RenderTargetDesc.html#Ghost_Graphics_RHI_RenderTargetDesc_CreationFlags
+  name: CreationFlags
+  nameWithType: RenderTargetDesc.CreationFlags
+  fullName: Ghost.Graphics.RHI.RenderTargetDesc.CreationFlags
+- uid: Ghost.Graphics.RHI.RenderTargetCreationFlags
+  commentId: T:Ghost.Graphics.RHI.RenderTargetCreationFlags
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.RenderTargetCreationFlags.html
+  name: RenderTargetCreationFlags
+  nameWithType: RenderTargetCreationFlags
+  fullName: Ghost.Graphics.RHI.RenderTargetCreationFlags
+- uid: Ghost.Graphics.RHI.RenderTargetDesc.MipLevels*
+  commentId: Overload:Ghost.Graphics.RHI.RenderTargetDesc.MipLevels
+  href: Ghost.Graphics.RHI.RenderTargetDesc.html#Ghost_Graphics_RHI_RenderTargetDesc_MipLevels
+  name: MipLevels
+  nameWithType: RenderTargetDesc.MipLevels
+  fullName: Ghost.Graphics.RHI.RenderTargetDesc.MipLevels
+- uid: Ghost.Graphics.RHI.RenderTargetDesc.SampleCount*
+  commentId: Overload:Ghost.Graphics.RHI.RenderTargetDesc.SampleCount
+  href: Ghost.Graphics.RHI.RenderTargetDesc.html#Ghost_Graphics_RHI_RenderTargetDesc_SampleCount
+  name: SampleCount
+  nameWithType: RenderTargetDesc.SampleCount
+  fullName: Ghost.Graphics.RHI.RenderTargetDesc.SampleCount
+- uid: Ghost.Graphics.RHI.RenderTargetDesc.Color*
+  commentId: Overload:Ghost.Graphics.RHI.RenderTargetDesc.Color
+  href: Ghost.Graphics.RHI.RenderTargetDesc.html#Ghost_Graphics_RHI_RenderTargetDesc_Color_System_UInt32_System_UInt32_System_UInt32_Ghost_Graphics_RHI_TextureFormat_Ghost_Graphics_RHI_TextureDimension_Ghost_Graphics_RHI_RenderTargetCreationFlags_System_UInt32_System_UInt32_
+  name: Color
+  nameWithType: RenderTargetDesc.Color
+  fullName: Ghost.Graphics.RHI.RenderTargetDesc.Color
+- uid: Ghost.Graphics.RHI.RenderTargetDesc
+  commentId: T:Ghost.Graphics.RHI.RenderTargetDesc
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.RenderTargetDesc.html
+  name: RenderTargetDesc
+  nameWithType: RenderTargetDesc
+  fullName: Ghost.Graphics.RHI.RenderTargetDesc
+- uid: Ghost.Graphics.RHI.RenderTargetDesc.Depth*
+  commentId: Overload:Ghost.Graphics.RHI.RenderTargetDesc.Depth
+  href: Ghost.Graphics.RHI.RenderTargetDesc.html#Ghost_Graphics_RHI_RenderTargetDesc_Depth_System_UInt32_System_UInt32_System_UInt32_Ghost_Graphics_RHI_TextureFormat_Ghost_Graphics_RHI_TextureDimension_Ghost_Graphics_RHI_RenderTargetCreationFlags_System_UInt32_System_UInt32_
+  name: Depth
+  nameWithType: RenderTargetDesc.Depth
+  fullName: Ghost.Graphics.RHI.RenderTargetDesc.Depth
+- uid: Ghost.Graphics.RHI.RenderTargetDesc.ToTextureDescription*
+  commentId: Overload:Ghost.Graphics.RHI.RenderTargetDesc.ToTextureDescription
+  href: Ghost.Graphics.RHI.RenderTargetDesc.html#Ghost_Graphics_RHI_RenderTargetDesc_ToTextureDescription
+  name: ToTextureDescription
+  nameWithType: RenderTargetDesc.ToTextureDescription
+  fullName: Ghost.Graphics.RHI.RenderTargetDesc.ToTextureDescription
+- uid: Ghost.Graphics.RHI.TextureDesc
+  commentId: T:Ghost.Graphics.RHI.TextureDesc
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.TextureDesc.html
+  name: TextureDesc
+  nameWithType: TextureDesc
+  fullName: Ghost.Graphics.RHI.TextureDesc

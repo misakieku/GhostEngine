@@ -1,0 +1,700 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.Utilities.ClodMesh
+  commentId: T:Ghost.Graphics.Utilities.ClodMesh
+  id: ClodMesh
+  parent: Ghost.Graphics.Utilities
+  children:
+  - Ghost.Graphics.Utilities.ClodMesh.attributeCount
+  - Ghost.Graphics.Utilities.ClodMesh.attributeProtectMask
+  - Ghost.Graphics.Utilities.ClodMesh.attributeWeights
+  - Ghost.Graphics.Utilities.ClodMesh.indexCount
+  - Ghost.Graphics.Utilities.ClodMesh.indices
+  - Ghost.Graphics.Utilities.ClodMesh.vertexAttributes
+  - Ghost.Graphics.Utilities.ClodMesh.vertexAttributesStride
+  - Ghost.Graphics.Utilities.ClodMesh.vertexCount
+  - Ghost.Graphics.Utilities.ClodMesh.vertexLock
+  - Ghost.Graphics.Utilities.ClodMesh.vertexPositions
+  - Ghost.Graphics.Utilities.ClodMesh.vertexPositionsStride
+  langs:
+  - csharp
+  - vb
+  name: ClodMesh
+  nameWithType: ClodMesh
+  fullName: Ghost.Graphics.Utilities.ClodMesh
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ClodMesh
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 92
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Contains input data for the Cluster LOD generation pipeline.
+  example: []
+  syntax:
+    content: public struct ClodMesh
+    content.vb: Public Structure ClodMesh
+  inheritedMembers:
+  - System.ValueType.Equals(System.Object)
+  - System.ValueType.GetHashCode
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Graphics.Utilities.ClodMesh.vertexPositions
+  commentId: F:Ghost.Graphics.Utilities.ClodMesh.vertexPositions
+  id: vertexPositions
+  parent: Ghost.Graphics.Utilities.ClodMesh
+  langs:
+  - csharp
+  - vb
+  name: vertexPositions
+  nameWithType: ClodMesh.vertexPositions
+  fullName: Ghost.Graphics.Utilities.ClodMesh.vertexPositions
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: vertexPositions
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 95
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Pointer to vertex position data (float array).
+  example: []
+  syntax:
+    content: public float* vertexPositions
+    return:
+      type: System.Single*
+    content.vb: Public vertexPositions As Single*
+- uid: Ghost.Graphics.Utilities.ClodMesh.vertexCount
+  commentId: F:Ghost.Graphics.Utilities.ClodMesh.vertexCount
+  id: vertexCount
+  parent: Ghost.Graphics.Utilities.ClodMesh
+  langs:
+  - csharp
+  - vb
+  name: vertexCount
+  nameWithType: ClodMesh.vertexCount
+  fullName: Ghost.Graphics.Utilities.ClodMesh.vertexCount
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: vertexCount
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 97
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Number of vertices in the mesh.
+  example: []
+  syntax:
+    content: public nuint vertexCount
+    return:
+      type: System.UIntPtr
+    content.vb: Public vertexCount As UIntPtr
+- uid: Ghost.Graphics.Utilities.ClodMesh.vertexPositionsStride
+  commentId: F:Ghost.Graphics.Utilities.ClodMesh.vertexPositionsStride
+  id: vertexPositionsStride
+  parent: Ghost.Graphics.Utilities.ClodMesh
+  langs:
+  - csharp
+  - vb
+  name: vertexPositionsStride
+  nameWithType: ClodMesh.vertexPositionsStride
+  fullName: Ghost.Graphics.Utilities.ClodMesh.vertexPositionsStride
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: vertexPositionsStride
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 99
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Stride in bytes for vertex position data.
+  example: []
+  syntax:
+    content: public nuint vertexPositionsStride
+    return:
+      type: System.UIntPtr
+    content.vb: Public vertexPositionsStride As UIntPtr
+- uid: Ghost.Graphics.Utilities.ClodMesh.vertexAttributes
+  commentId: F:Ghost.Graphics.Utilities.ClodMesh.vertexAttributes
+  id: vertexAttributes
+  parent: Ghost.Graphics.Utilities.ClodMesh
+  langs:
+  - csharp
+  - vb
+  name: vertexAttributes
+  nameWithType: ClodMesh.vertexAttributes
+  fullName: Ghost.Graphics.Utilities.ClodMesh.vertexAttributes
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: vertexAttributes
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 101
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Pointer to vertex attribute data (float array).
+  example: []
+  syntax:
+    content: public float* vertexAttributes
+    return:
+      type: System.Single*
+    content.vb: Public vertexAttributes As Single*
+- uid: Ghost.Graphics.Utilities.ClodMesh.vertexAttributesStride
+  commentId: F:Ghost.Graphics.Utilities.ClodMesh.vertexAttributesStride
+  id: vertexAttributesStride
+  parent: Ghost.Graphics.Utilities.ClodMesh
+  langs:
+  - csharp
+  - vb
+  name: vertexAttributesStride
+  nameWithType: ClodMesh.vertexAttributesStride
+  fullName: Ghost.Graphics.Utilities.ClodMesh.vertexAttributesStride
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: vertexAttributesStride
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 103
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Stride in bytes for vertex attribute data.
+  example: []
+  syntax:
+    content: public nuint vertexAttributesStride
+    return:
+      type: System.UIntPtr
+    content.vb: Public vertexAttributesStride As UIntPtr
+- uid: Ghost.Graphics.Utilities.ClodMesh.attributeWeights
+  commentId: F:Ghost.Graphics.Utilities.ClodMesh.attributeWeights
+  id: attributeWeights
+  parent: Ghost.Graphics.Utilities.ClodMesh
+  langs:
+  - csharp
+  - vb
+  name: attributeWeights
+  nameWithType: ClodMesh.attributeWeights
+  fullName: Ghost.Graphics.Utilities.ClodMesh.attributeWeights
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: attributeWeights
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 105
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Pointer to attribute weights for simplification.
+  example: []
+  syntax:
+    content: public float* attributeWeights
+    return:
+      type: System.Single*
+    content.vb: Public attributeWeights As Single*
+- uid: Ghost.Graphics.Utilities.ClodMesh.attributeCount
+  commentId: F:Ghost.Graphics.Utilities.ClodMesh.attributeCount
+  id: attributeCount
+  parent: Ghost.Graphics.Utilities.ClodMesh
+  langs:
+  - csharp
+  - vb
+  name: attributeCount
+  nameWithType: ClodMesh.attributeCount
+  fullName: Ghost.Graphics.Utilities.ClodMesh.attributeCount
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: attributeCount
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 107
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Number of vertex attributes.
+  example: []
+  syntax:
+    content: public nuint attributeCount
+    return:
+      type: System.UIntPtr
+    content.vb: Public attributeCount As UIntPtr
+- uid: Ghost.Graphics.Utilities.ClodMesh.indices
+  commentId: F:Ghost.Graphics.Utilities.ClodMesh.indices
+  id: indices
+  parent: Ghost.Graphics.Utilities.ClodMesh
+  langs:
+  - csharp
+  - vb
+  name: indices
+  nameWithType: ClodMesh.indices
+  fullName: Ghost.Graphics.Utilities.ClodMesh.indices
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: indices
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 109
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Pointer to index data.
+  example: []
+  syntax:
+    content: public uint* indices
+    return:
+      type: System.UInt32*
+    content.vb: Public indices As UInteger*
+- uid: Ghost.Graphics.Utilities.ClodMesh.indexCount
+  commentId: F:Ghost.Graphics.Utilities.ClodMesh.indexCount
+  id: indexCount
+  parent: Ghost.Graphics.Utilities.ClodMesh
+  langs:
+  - csharp
+  - vb
+  name: indexCount
+  nameWithType: ClodMesh.indexCount
+  fullName: Ghost.Graphics.Utilities.ClodMesh.indexCount
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: indexCount
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 111
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Number of indices in the mesh.
+  example: []
+  syntax:
+    content: public nuint indexCount
+    return:
+      type: System.UIntPtr
+    content.vb: Public indexCount As UIntPtr
+- uid: Ghost.Graphics.Utilities.ClodMesh.vertexLock
+  commentId: F:Ghost.Graphics.Utilities.ClodMesh.vertexLock
+  id: vertexLock
+  parent: Ghost.Graphics.Utilities.ClodMesh
+  langs:
+  - csharp
+  - vb
+  name: vertexLock
+  nameWithType: ClodMesh.vertexLock
+  fullName: Ghost.Graphics.Utilities.ClodMesh.vertexLock
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: vertexLock
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 113
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Pointer to per-vertex lock flags (1 byte per vertex).
+  example: []
+  syntax:
+    content: public byte* vertexLock
+    return:
+      type: System.Byte*
+    content.vb: Public vertexLock As Byte*
+- uid: Ghost.Graphics.Utilities.ClodMesh.attributeProtectMask
+  commentId: F:Ghost.Graphics.Utilities.ClodMesh.attributeProtectMask
+  id: attributeProtectMask
+  parent: Ghost.Graphics.Utilities.ClodMesh
+  langs:
+  - csharp
+  - vb
+  name: attributeProtectMask
+  nameWithType: ClodMesh.attributeProtectMask
+  fullName: Ghost.Graphics.Utilities.ClodMesh.attributeProtectMask
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: attributeProtectMask
+    path: src/Runtime/Ghost.Graphics/Utilities/MeshletUtility.cs
+    startLine: 115
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Utilities
+  summary: Mask indicating which attributes are protected during simplification.
+  example: []
+  syntax:
+    content: public uint attributeProtectMask
+    return:
+      type: System.UInt32
+    content.vb: Public attributeProtectMask As UInteger
+references:
+- uid: Ghost.Graphics.Utilities
+  commentId: N:Ghost.Graphics.Utilities
+  href: Ghost.html
+  name: Ghost.Graphics.Utilities
+  nameWithType: Ghost.Graphics.Utilities
+  fullName: Ghost.Graphics.Utilities
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Utilities
+    name: Utilities
+    href: Ghost.Graphics.Utilities.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Utilities
+    name: Utilities
+    href: Ghost.Graphics.Utilities.html
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.Single*
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.single
+  name: float*
+  nameWithType: float*
+  fullName: float*
+  nameWithType.vb: Single*
+  fullName.vb: Single*
+  name.vb: Single*
+  spec.csharp:
+  - uid: System.Single
+    name: float
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.single
+  - name: '*'
+  spec.vb:
+  - uid: System.Single
+    name: Single
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.single
+  - name: '*'
+- uid: System.UIntPtr
+  commentId: T:System.UIntPtr
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.uintptr
+  name: nuint
+  nameWithType: nuint
+  fullName: nuint
+  nameWithType.vb: UIntPtr
+  fullName.vb: System.UIntPtr
+  name.vb: UIntPtr
+- uid: System.UInt32*
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.uint32
+  name: uint*
+  nameWithType: uint*
+  fullName: uint*
+  nameWithType.vb: UInteger*
+  fullName.vb: UInteger*
+  name.vb: UInteger*
+  spec.csharp:
+  - uid: System.UInt32
+    name: uint
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.uint32
+  - name: '*'
+  spec.vb:
+  - uid: System.UInt32
+    name: UInteger
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.uint32
+  - name: '*'
+- uid: System.Byte*
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.byte
+  name: byte*
+  nameWithType: byte*
+  fullName: byte*
+  nameWithType.vb: Byte*
+  fullName.vb: Byte*
+  name.vb: Byte*
+  spec.csharp:
+  - uid: System.Byte
+    name: byte
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.byte
+  - name: '*'
+  spec.vb:
+  - uid: System.Byte
+    name: Byte
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.byte
+  - name: '*'
+- uid: System.UInt32
+  commentId: T:System.UInt32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.uint32
+  name: uint
+  nameWithType: uint
+  fullName: uint
+  nameWithType.vb: UInteger
+  fullName.vb: UInteger
+  name.vb: UInteger

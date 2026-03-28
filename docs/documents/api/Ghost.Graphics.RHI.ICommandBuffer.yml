@@ -1,0 +1,1916 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.ICommandBuffer
+  commentId: T:Ghost.Graphics.RHI.ICommandBuffer
+  id: ICommandBuffer
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.ICommandBuffer.Barrier(System.ReadOnlySpan{Ghost.Graphics.RHI.BarrierDesc})
+  - Ghost.Graphics.RHI.ICommandBuffer.Begin(Ghost.Graphics.RHI.ICommandAllocator)
+  - Ghost.Graphics.RHI.ICommandBuffer.BeginRenderPass(System.ReadOnlySpan{Ghost.Graphics.RHI.PassRenderTargetDesc},Ghost.Graphics.RHI.PassDepthStencilDesc,System.Boolean)
+  - Ghost.Graphics.RHI.ICommandBuffer.ClearDepthStencilView(Ghost.Core.Handle{Ghost.Graphics.RHI.Texture},System.Boolean,System.Boolean,System.Single,System.Byte)
+  - Ghost.Graphics.RHI.ICommandBuffer.ClearRenderTargetView(Ghost.Core.Handle{Ghost.Graphics.RHI.Texture},Ghost.Graphics.RHI.Color128)
+  - Ghost.Graphics.RHI.ICommandBuffer.CopyBuffer(Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer},Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer},System.UInt64,System.UInt64,System.UInt64)
+  - Ghost.Graphics.RHI.ICommandBuffer.CopyTexture(Ghost.Core.Handle{Ghost.Graphics.RHI.Texture},System.Nullable{Ghost.Graphics.RHI.TextureRegion},Ghost.Core.Handle{Ghost.Graphics.RHI.Texture},System.Nullable{Ghost.Graphics.RHI.TextureRegion})
+  - Ghost.Graphics.RHI.ICommandBuffer.DispatchCompute(System.UInt32,System.UInt32,System.UInt32)
+  - Ghost.Graphics.RHI.ICommandBuffer.DispatchMesh(System.UInt32,System.UInt32,System.UInt32)
+  - Ghost.Graphics.RHI.ICommandBuffer.DispatchRay
+  - Ghost.Graphics.RHI.ICommandBuffer.Draw(System.UInt32,System.UInt32,System.UInt32,System.UInt32)
+  - Ghost.Graphics.RHI.ICommandBuffer.DrawIndexed(System.UInt32,System.UInt32,System.UInt32,System.Int32,System.UInt32)
+  - Ghost.Graphics.RHI.ICommandBuffer.End
+  - Ghost.Graphics.RHI.ICommandBuffer.EndRenderPass
+  - Ghost.Graphics.RHI.ICommandBuffer.IsEmpty
+  - Ghost.Graphics.RHI.ICommandBuffer.Name
+  - Ghost.Graphics.RHI.ICommandBuffer.SetConstantBufferView(System.UInt32,Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer})
+  - Ghost.Graphics.RHI.ICommandBuffer.SetGraphicsRoot32Constants(System.UInt32,System.ReadOnlySpan{System.UInt32},System.UInt32)
+  - Ghost.Graphics.RHI.ICommandBuffer.SetIndexBuffer(Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer},Ghost.Graphics.RHI.IndexType,System.UInt64)
+  - Ghost.Graphics.RHI.ICommandBuffer.SetPipelineState(Ghost.Core.Key128{Ghost.Graphics.RHI.GraphicsPipeline})
+  - Ghost.Graphics.RHI.ICommandBuffer.SetPrimitiveTopology(Ghost.Graphics.RHI.PrimitiveTopology)
+  - Ghost.Graphics.RHI.ICommandBuffer.SetRenderTargets(System.ReadOnlySpan{Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}},Ghost.Core.Handle{Ghost.Graphics.RHI.Texture})
+  - Ghost.Graphics.RHI.ICommandBuffer.SetScissorRect(Ghost.Graphics.RHI.ScissorRectDesc)
+  - Ghost.Graphics.RHI.ICommandBuffer.SetVertexBuffer(System.UInt32,Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer},System.UInt64)
+  - Ghost.Graphics.RHI.ICommandBuffer.SetViewport(Ghost.Graphics.RHI.ViewportDesc)
+  - Ghost.Graphics.RHI.ICommandBuffer.Type
+  - Ghost.Graphics.RHI.ICommandBuffer.UploadBuffer``1(Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer},System.ReadOnlySpan{``0})
+  - Ghost.Graphics.RHI.ICommandBuffer.UploadTexture(Ghost.Core.Handle{Ghost.Graphics.RHI.Texture},System.ReadOnlySpan{Ghost.Graphics.RHI.SubResourceData})
+  langs:
+  - csharp
+  - vb
+  name: ICommandBuffer
+  nameWithType: ICommandBuffer
+  fullName: Ghost.Graphics.RHI.ICommandBuffer
+  type: Interface
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ICommandBuffer
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 9
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: D3D12-style command buffer interface for recording rendering commands
+  example: []
+  syntax:
+    content: 'public interface ICommandBuffer : IDisposable'
+    content.vb: Public Interface ICommandBuffer Inherits IDisposable
+  inheritedMembers:
+  - System.IDisposable.Dispose
+- uid: Ghost.Graphics.RHI.ICommandBuffer.Type
+  commentId: P:Ghost.Graphics.RHI.ICommandBuffer.Type
+  id: Type
+  parent: Ghost.Graphics.RHI.ICommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: Type
+  nameWithType: ICommandBuffer.Type
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.Type
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Type
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 14
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Gets the space of the command buffer.
+  example: []
+  syntax:
+    content: CommandBufferType Type { get; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.CommandBufferType
+    content.vb: ReadOnly Property Type As CommandBufferType
+  overload: Ghost.Graphics.RHI.ICommandBuffer.Type*
+- uid: Ghost.Graphics.RHI.ICommandBuffer.IsEmpty
+  commentId: P:Ghost.Graphics.RHI.ICommandBuffer.IsEmpty
+  id: IsEmpty
+  parent: Ghost.Graphics.RHI.ICommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: IsEmpty
+  nameWithType: ICommandBuffer.IsEmpty
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.IsEmpty
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IsEmpty
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 22
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Indicates whether the command buffer contains any recorded commands.
+  example: []
+  syntax:
+    content: bool IsEmpty { get; }
+    parameters: []
+    return:
+      type: System.Boolean
+    content.vb: ReadOnly Property IsEmpty As Boolean
+  overload: Ghost.Graphics.RHI.ICommandBuffer.IsEmpty*
+- uid: Ghost.Graphics.RHI.ICommandBuffer.Name
+  commentId: P:Ghost.Graphics.RHI.ICommandBuffer.Name
+  id: Name
+  parent: Ghost.Graphics.RHI.ICommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: Name
+  nameWithType: ICommandBuffer.Name
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.Name
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Name
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 27
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: string Name { get; set; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: Property Name As String
+  overload: Ghost.Graphics.RHI.ICommandBuffer.Name*
+- uid: Ghost.Graphics.RHI.ICommandBuffer.Begin(Ghost.Graphics.RHI.ICommandAllocator)
+  commentId: M:Ghost.Graphics.RHI.ICommandBuffer.Begin(Ghost.Graphics.RHI.ICommandAllocator)
+  id: Begin(Ghost.Graphics.RHI.ICommandAllocator)
+  parent: Ghost.Graphics.RHI.ICommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: Begin(ICommandAllocator)
+  nameWithType: ICommandBuffer.Begin(ICommandAllocator)
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.Begin(Ghost.Graphics.RHI.ICommandAllocator)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Begin
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 36
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Begins recording commands into this command buffer
+  example: []
+  syntax:
+    content: void Begin(ICommandAllocator allocator)
+    parameters:
+    - id: allocator
+      type: Ghost.Graphics.RHI.ICommandAllocator
+    content.vb: Sub Begin(allocator As ICommandAllocator)
+  overload: Ghost.Graphics.RHI.ICommandBuffer.Begin*
+- uid: Ghost.Graphics.RHI.ICommandBuffer.End
+  commentId: M:Ghost.Graphics.RHI.ICommandBuffer.End
+  id: End
+  parent: Ghost.Graphics.RHI.ICommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: End()
+  nameWithType: ICommandBuffer.End()
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.End()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: End
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 41
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Ends recording commands and prepares for submission
+  example: []
+  syntax:
+    content: Result End()
+    return:
+      type: Ghost.Core.Result
+    content.vb: Function [End]() As Result
+  overload: Ghost.Graphics.RHI.ICommandBuffer.End*
+- uid: Ghost.Graphics.RHI.ICommandBuffer.SetViewport(Ghost.Graphics.RHI.ViewportDesc)
+  commentId: M:Ghost.Graphics.RHI.ICommandBuffer.SetViewport(Ghost.Graphics.RHI.ViewportDesc)
+  id: SetViewport(Ghost.Graphics.RHI.ViewportDesc)
+  parent: Ghost.Graphics.RHI.ICommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: SetViewport(ViewportDesc)
+  nameWithType: ICommandBuffer.SetViewport(ViewportDesc)
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.SetViewport(Ghost.Graphics.RHI.ViewportDesc)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SetViewport
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 47
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Sets the viewport for rendering
+  example: []
+  syntax:
+    content: void SetViewport(ViewportDesc viewport)
+    parameters:
+    - id: viewport
+      type: Ghost.Graphics.RHI.ViewportDesc
+      description: Viewport to set
+    content.vb: Sub SetViewport(viewport As ViewportDesc)
+  overload: Ghost.Graphics.RHI.ICommandBuffer.SetViewport*
+- uid: Ghost.Graphics.RHI.ICommandBuffer.SetScissorRect(Ghost.Graphics.RHI.ScissorRectDesc)
+  commentId: M:Ghost.Graphics.RHI.ICommandBuffer.SetScissorRect(Ghost.Graphics.RHI.ScissorRectDesc)
+  id: SetScissorRect(Ghost.Graphics.RHI.ScissorRectDesc)
+  parent: Ghost.Graphics.RHI.ICommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: SetScissorRect(ScissorRectDesc)
+  nameWithType: ICommandBuffer.SetScissorRect(ScissorRectDesc)
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.SetScissorRect(Ghost.Graphics.RHI.ScissorRectDesc)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SetScissorRect
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 53
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Sets the scissor rectangle
+  example: []
+  syntax:
+    content: void SetScissorRect(ScissorRectDesc rect)
+    parameters:
+    - id: rect
+      type: Ghost.Graphics.RHI.ScissorRectDesc
+      description: Scissor rectangle to set
+    content.vb: Sub SetScissorRect(rect As ScissorRectDesc)
+  overload: Ghost.Graphics.RHI.ICommandBuffer.SetScissorRect*
+- uid: Ghost.Graphics.RHI.ICommandBuffer.SetRenderTargets(System.ReadOnlySpan{Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}},Ghost.Core.Handle{Ghost.Graphics.RHI.Texture})
+  commentId: M:Ghost.Graphics.RHI.ICommandBuffer.SetRenderTargets(System.ReadOnlySpan{Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}},Ghost.Core.Handle{Ghost.Graphics.RHI.Texture})
+  id: SetRenderTargets(System.ReadOnlySpan{Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}},Ghost.Core.Handle{Ghost.Graphics.RHI.Texture})
+  parent: Ghost.Graphics.RHI.ICommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: SetRenderTargets(ReadOnlySpan<Handle<Texture>>, Handle<Texture>)
+  nameWithType: ICommandBuffer.SetRenderTargets(ReadOnlySpan<Handle<Texture>>, Handle<Texture>)
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.SetRenderTargets(System.ReadOnlySpan<Ghost.Core.Handle<Ghost.Graphics.RHI.Texture>>, Ghost.Core.Handle<Ghost.Graphics.RHI.Texture>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SetRenderTargets
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 65
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Sets the optional render targets and optional depth Target for subsequent rendering operations.
+  remarks: >-
+    To specify no render targets, provide an empty span for <code class="paramref">renderTargets</code>.
+
+    Use <xref href="Ghost.Core.Handle%601.Invalid" data-throw-if-not-resolved="false"></xref> for <code class="paramref">depthTarget</code> if no depth Target is required.
+  example: []
+  syntax:
+    content: void SetRenderTargets(ReadOnlySpan<Handle<Texture>> renderTargets, Handle<Texture> depthTarget)
+    parameters:
+    - id: renderTargets
+      type: System.ReadOnlySpan{Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}}
+      description: >-
+        A read-only span of handles to textures that will be used as render targets.
+            The order of handles determines the order in which render targets are bound.
+    - id: depthTarget
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+      description: A handle to the texture to be used as the depth Target. Specify a invalid handle if no depth Target is required.
+    content.vb: Sub SetRenderTargets(renderTargets As ReadOnlySpan(Of Handle(Of Texture)), depthTarget As Handle(Of Texture))
+  overload: Ghost.Graphics.RHI.ICommandBuffer.SetRenderTargets*
+  nameWithType.vb: ICommandBuffer.SetRenderTargets(ReadOnlySpan(Of Handle(Of Texture)), Handle(Of Texture))
+  fullName.vb: Ghost.Graphics.RHI.ICommandBuffer.SetRenderTargets(System.ReadOnlySpan(Of Ghost.Core.Handle(Of Ghost.Graphics.RHI.Texture)), Ghost.Core.Handle(Of Ghost.Graphics.RHI.Texture))
+  name.vb: SetRenderTargets(ReadOnlySpan(Of Handle(Of Texture)), Handle(Of Texture))
+- uid: Ghost.Graphics.RHI.ICommandBuffer.ClearRenderTargetView(Ghost.Core.Handle{Ghost.Graphics.RHI.Texture},Ghost.Graphics.RHI.Color128)
+  commentId: M:Ghost.Graphics.RHI.ICommandBuffer.ClearRenderTargetView(Ghost.Core.Handle{Ghost.Graphics.RHI.Texture},Ghost.Graphics.RHI.Color128)
+  id: ClearRenderTargetView(Ghost.Core.Handle{Ghost.Graphics.RHI.Texture},Ghost.Graphics.RHI.Color128)
+  parent: Ghost.Graphics.RHI.ICommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: ClearRenderTargetView(Handle<Texture>, Color128)
+  nameWithType: ICommandBuffer.ClearRenderTargetView(Handle<Texture>, Color128)
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.ClearRenderTargetView(Ghost.Core.Handle<Ghost.Graphics.RHI.Texture>, Ghost.Graphics.RHI.Color128)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ClearRenderTargetView
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 72
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Clears the specified render target to a given color.
+  example: []
+  syntax:
+    content: void ClearRenderTargetView(Handle<Texture> renderTarget, Color128 clearColor)
+    parameters:
+    - id: renderTarget
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+      description: A handle to the render target texture to be cleared. Must reference a valid render target.
+    - id: clearColor
+      type: Ghost.Graphics.RHI.Color128
+      description: The color value used to clear the render target. Specifies the RGBA components to fill the target.
+    content.vb: Sub ClearRenderTargetView(renderTarget As Handle(Of Texture), clearColor As Color128)
+  overload: Ghost.Graphics.RHI.ICommandBuffer.ClearRenderTargetView*
+  nameWithType.vb: ICommandBuffer.ClearRenderTargetView(Handle(Of Texture), Color128)
+  fullName.vb: Ghost.Graphics.RHI.ICommandBuffer.ClearRenderTargetView(Ghost.Core.Handle(Of Ghost.Graphics.RHI.Texture), Ghost.Graphics.RHI.Color128)
+  name.vb: ClearRenderTargetView(Handle(Of Texture), Color128)
+- uid: Ghost.Graphics.RHI.ICommandBuffer.ClearDepthStencilView(Ghost.Core.Handle{Ghost.Graphics.RHI.Texture},System.Boolean,System.Boolean,System.Single,System.Byte)
+  commentId: M:Ghost.Graphics.RHI.ICommandBuffer.ClearDepthStencilView(Ghost.Core.Handle{Ghost.Graphics.RHI.Texture},System.Boolean,System.Boolean,System.Single,System.Byte)
+  id: ClearDepthStencilView(Ghost.Core.Handle{Ghost.Graphics.RHI.Texture},System.Boolean,System.Boolean,System.Single,System.Byte)
+  parent: Ghost.Graphics.RHI.ICommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: ClearDepthStencilView(Handle<Texture>, bool, bool, float, byte)
+  nameWithType: ICommandBuffer.ClearDepthStencilView(Handle<Texture>, bool, bool, float, byte)
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.ClearDepthStencilView(Ghost.Core.Handle<Ghost.Graphics.RHI.Texture>, bool, bool, float, byte)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ClearDepthStencilView
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 82
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Clears the specified depth-stencil view by resetting its depth and/or stencil values.
+  example: []
+  syntax:
+    content: void ClearDepthStencilView(Handle<Texture> depthStencil, bool inlcludeDepth, bool includeStencil, float clearDepth = 1, byte clearStencil = 0)
+    parameters:
+    - id: depthStencil
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+      description: A handle to the depth-stencil texture to be cleared. Must reference a valid depth-stencil resource.
+    - id: inlcludeDepth
+      type: System.Boolean
+      description: A value indicating whether the depth component should be cleared.
+    - id: includeStencil
+      type: System.Boolean
+      description: A value indicating whether the stencil component should be cleared.
+    - id: clearDepth
+      type: System.Single
+      description: The value to which the depth buffer will be set. Typically ranges from 0.0f (nearest) to 1.0f (farthest).
+    - id: clearStencil
+      type: System.Byte
+      description: The value to which the stencil buffer will be set. Must be a valid stencil value supported by the format.
+    content.vb: Sub ClearDepthStencilView(depthStencil As Handle(Of Texture), inlcludeDepth As Boolean, includeStencil As Boolean, clearDepth As Single = 1, clearStencil As Byte = 0)
+  overload: Ghost.Graphics.RHI.ICommandBuffer.ClearDepthStencilView*
+  nameWithType.vb: ICommandBuffer.ClearDepthStencilView(Handle(Of Texture), Boolean, Boolean, Single, Byte)
+  fullName.vb: Ghost.Graphics.RHI.ICommandBuffer.ClearDepthStencilView(Ghost.Core.Handle(Of Ghost.Graphics.RHI.Texture), Boolean, Boolean, Single, Byte)
+  name.vb: ClearDepthStencilView(Handle(Of Texture), Boolean, Boolean, Single, Byte)
+- uid: Ghost.Graphics.RHI.ICommandBuffer.BeginRenderPass(System.ReadOnlySpan{Ghost.Graphics.RHI.PassRenderTargetDesc},Ghost.Graphics.RHI.PassDepthStencilDesc,System.Boolean)
+  commentId: M:Ghost.Graphics.RHI.ICommandBuffer.BeginRenderPass(System.ReadOnlySpan{Ghost.Graphics.RHI.PassRenderTargetDesc},Ghost.Graphics.RHI.PassDepthStencilDesc,System.Boolean)
+  id: BeginRenderPass(System.ReadOnlySpan{Ghost.Graphics.RHI.PassRenderTargetDesc},Ghost.Graphics.RHI.PassDepthStencilDesc,System.Boolean)
+  parent: Ghost.Graphics.RHI.ICommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: BeginRenderPass(ReadOnlySpan<PassRenderTargetDesc>, PassDepthStencilDesc, bool)
+  nameWithType: ICommandBuffer.BeginRenderPass(ReadOnlySpan<PassRenderTargetDesc>, PassDepthStencilDesc, bool)
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.BeginRenderPass(System.ReadOnlySpan<Ghost.Graphics.RHI.PassRenderTargetDesc>, Ghost.Graphics.RHI.PassDepthStencilDesc, bool)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: BeginRenderPass
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 90
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Begins a render pass with the specified render Target
+  example: []
+  syntax:
+    content: void BeginRenderPass(ReadOnlySpan<PassRenderTargetDesc> rtDescs, PassDepthStencilDesc depthDesc, bool allowUAVWrites = false)
+    parameters:
+    - id: rtDescs
+      type: System.ReadOnlySpan{Ghost.Graphics.RHI.PassRenderTargetDesc}
+      description: Render Target descriptions
+    - id: depthDesc
+      type: Ghost.Graphics.RHI.PassDepthStencilDesc
+      description: Depth stencil description
+    - id: allowUAVWrites
+      type: System.Boolean
+      description: Whether UAV writes are allowed during the render pass
+    content.vb: Sub BeginRenderPass(rtDescs As ReadOnlySpan(Of PassRenderTargetDesc), depthDesc As PassDepthStencilDesc, allowUAVWrites As Boolean = False)
+  overload: Ghost.Graphics.RHI.ICommandBuffer.BeginRenderPass*
+  nameWithType.vb: ICommandBuffer.BeginRenderPass(ReadOnlySpan(Of PassRenderTargetDesc), PassDepthStencilDesc, Boolean)
+  fullName.vb: Ghost.Graphics.RHI.ICommandBuffer.BeginRenderPass(System.ReadOnlySpan(Of Ghost.Graphics.RHI.PassRenderTargetDesc), Ghost.Graphics.RHI.PassDepthStencilDesc, Boolean)
+  name.vb: BeginRenderPass(ReadOnlySpan(Of PassRenderTargetDesc), PassDepthStencilDesc, Boolean)
+- uid: Ghost.Graphics.RHI.ICommandBuffer.EndRenderPass
+  commentId: M:Ghost.Graphics.RHI.ICommandBuffer.EndRenderPass
+  id: EndRenderPass
+  parent: Ghost.Graphics.RHI.ICommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: EndRenderPass()
+  nameWithType: ICommandBuffer.EndRenderPass()
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.EndRenderPass()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: EndRenderPass
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 95
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Ends the current render pass
+  example: []
+  syntax:
+    content: void EndRenderPass()
+    content.vb: Sub EndRenderPass()
+  overload: Ghost.Graphics.RHI.ICommandBuffer.EndRenderPass*
+- uid: Ghost.Graphics.RHI.ICommandBuffer.Barrier(System.ReadOnlySpan{Ghost.Graphics.RHI.BarrierDesc})
+  commentId: M:Ghost.Graphics.RHI.ICommandBuffer.Barrier(System.ReadOnlySpan{Ghost.Graphics.RHI.BarrierDesc})
+  id: Barrier(System.ReadOnlySpan{Ghost.Graphics.RHI.BarrierDesc})
+  parent: Ghost.Graphics.RHI.ICommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: Barrier(params ReadOnlySpan<BarrierDesc>)
+  nameWithType: ICommandBuffer.Barrier(params ReadOnlySpan<BarrierDesc>)
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.Barrier(params System.ReadOnlySpan<Ghost.Graphics.RHI.BarrierDesc>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Barrier
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 101
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Inserts multiple resource barriers.
+  example: []
+  syntax:
+    content: void Barrier(params ReadOnlySpan<BarrierDesc> barrierDescs)
+    parameters:
+    - id: barrierDescs
+      type: System.ReadOnlySpan{Ghost.Graphics.RHI.BarrierDesc}
+      description: Resource barrier descriptions
+    content.vb: Sub Barrier(barrierDescs As ReadOnlySpan(Of BarrierDesc))
+  overload: Ghost.Graphics.RHI.ICommandBuffer.Barrier*
+  nameWithType.vb: ICommandBuffer.Barrier(ReadOnlySpan(Of BarrierDesc))
+  fullName.vb: Ghost.Graphics.RHI.ICommandBuffer.Barrier(System.ReadOnlySpan(Of Ghost.Graphics.RHI.BarrierDesc))
+  name.vb: Barrier(ReadOnlySpan(Of BarrierDesc))
+- uid: Ghost.Graphics.RHI.ICommandBuffer.SetPipelineState(Ghost.Core.Key128{Ghost.Graphics.RHI.GraphicsPipeline})
+  commentId: M:Ghost.Graphics.RHI.ICommandBuffer.SetPipelineState(Ghost.Core.Key128{Ghost.Graphics.RHI.GraphicsPipeline})
+  id: SetPipelineState(Ghost.Core.Key128{Ghost.Graphics.RHI.GraphicsPipeline})
+  parent: Ghost.Graphics.RHI.ICommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: SetPipelineState(Key128<GraphicsPipeline>)
+  nameWithType: ICommandBuffer.SetPipelineState(Key128<GraphicsPipeline>)
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.SetPipelineState(Ghost.Core.Key128<Ghost.Graphics.RHI.GraphicsPipeline>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SetPipelineState
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 107
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Sets the pipeline state object
+  example: []
+  syntax:
+    content: void SetPipelineState(Key128<GraphicsPipeline> pipelineKey)
+    parameters:
+    - id: pipelineKey
+      type: Ghost.Core.Key128{Ghost.Graphics.RHI.GraphicsPipeline}
+      description: Pipeline state to set
+    content.vb: Sub SetPipelineState(pipelineKey As Key128(Of GraphicsPipeline))
+  overload: Ghost.Graphics.RHI.ICommandBuffer.SetPipelineState*
+  nameWithType.vb: ICommandBuffer.SetPipelineState(Key128(Of GraphicsPipeline))
+  fullName.vb: Ghost.Graphics.RHI.ICommandBuffer.SetPipelineState(Ghost.Core.Key128(Of Ghost.Graphics.RHI.GraphicsPipeline))
+  name.vb: SetPipelineState(Key128(Of GraphicsPipeline))
+- uid: Ghost.Graphics.RHI.ICommandBuffer.SetConstantBufferView(System.UInt32,Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer})
+  commentId: M:Ghost.Graphics.RHI.ICommandBuffer.SetConstantBufferView(System.UInt32,Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer})
+  id: SetConstantBufferView(System.UInt32,Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer})
+  parent: Ghost.Graphics.RHI.ICommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: SetConstantBufferView(uint, Handle<GraphicsBuffer>)
+  nameWithType: ICommandBuffer.SetConstantBufferView(uint, Handle<GraphicsBuffer>)
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.SetConstantBufferView(uint, Ghost.Core.Handle<Ghost.Graphics.RHI.GraphicsBuffer>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SetConstantBufferView
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 114
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Sets the constant buffer view for the specified slot in the graphics pipeline.
+  example: []
+  syntax:
+    content: void SetConstantBufferView(uint slot, Handle<GraphicsBuffer> buffer)
+    parameters:
+    - id: slot
+      type: System.UInt32
+      description: The zero-based index of the slot to bind the constant buffer view to.
+    - id: buffer
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer}
+      description: A graphics buffer to use as the constant buffer view.
+    content.vb: Sub SetConstantBufferView(slot As UInteger, buffer As Handle(Of GraphicsBuffer))
+  overload: Ghost.Graphics.RHI.ICommandBuffer.SetConstantBufferView*
+  nameWithType.vb: ICommandBuffer.SetConstantBufferView(UInteger, Handle(Of GraphicsBuffer))
+  fullName.vb: Ghost.Graphics.RHI.ICommandBuffer.SetConstantBufferView(UInteger, Ghost.Core.Handle(Of Ghost.Graphics.RHI.GraphicsBuffer))
+  name.vb: SetConstantBufferView(UInteger, Handle(Of GraphicsBuffer))
+- uid: Ghost.Graphics.RHI.ICommandBuffer.SetVertexBuffer(System.UInt32,Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer},System.UInt64)
+  commentId: M:Ghost.Graphics.RHI.ICommandBuffer.SetVertexBuffer(System.UInt32,Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer},System.UInt64)
+  id: SetVertexBuffer(System.UInt32,Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer},System.UInt64)
+  parent: Ghost.Graphics.RHI.ICommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: SetVertexBuffer(uint, Handle<GraphicsBuffer>, ulong)
+  nameWithType: ICommandBuffer.SetVertexBuffer(uint, Handle<GraphicsBuffer>, ulong)
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.SetVertexBuffer(uint, Ghost.Core.Handle<Ghost.Graphics.RHI.GraphicsBuffer>, ulong)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SetVertexBuffer
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 122
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Binds a vertex buffer to the specified slot for subsequent draw calls.
+  example: []
+  syntax:
+    content: void SetVertexBuffer(uint slot, Handle<GraphicsBuffer> buffer, ulong offset = 0)
+    parameters:
+    - id: slot
+      type: System.UInt32
+      description: The vertex buffer slot to bind to.
+    - id: buffer
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer}
+      description: The handle to the graphics buffer containing vertex data.
+    - id: offset
+      type: System.UInt64
+      description: The Offset in bytes from the start of the buffer.
+    content.vb: Sub SetVertexBuffer(slot As UInteger, buffer As Handle(Of GraphicsBuffer), offset As ULong = 0)
+  overload: Ghost.Graphics.RHI.ICommandBuffer.SetVertexBuffer*
+  nameWithType.vb: ICommandBuffer.SetVertexBuffer(UInteger, Handle(Of GraphicsBuffer), ULong)
+  fullName.vb: Ghost.Graphics.RHI.ICommandBuffer.SetVertexBuffer(UInteger, Ghost.Core.Handle(Of Ghost.Graphics.RHI.GraphicsBuffer), ULong)
+  name.vb: SetVertexBuffer(UInteger, Handle(Of GraphicsBuffer), ULong)
+- uid: Ghost.Graphics.RHI.ICommandBuffer.SetIndexBuffer(Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer},Ghost.Graphics.RHI.IndexType,System.UInt64)
+  commentId: M:Ghost.Graphics.RHI.ICommandBuffer.SetIndexBuffer(Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer},Ghost.Graphics.RHI.IndexType,System.UInt64)
+  id: SetIndexBuffer(Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer},Ghost.Graphics.RHI.IndexType,System.UInt64)
+  parent: Ghost.Graphics.RHI.ICommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: SetIndexBuffer(Handle<GraphicsBuffer>, IndexType, ulong)
+  nameWithType: ICommandBuffer.SetIndexBuffer(Handle<GraphicsBuffer>, IndexType, ulong)
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.SetIndexBuffer(Ghost.Core.Handle<Ghost.Graphics.RHI.GraphicsBuffer>, Ghost.Graphics.RHI.IndexType, ulong)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SetIndexBuffer
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 130
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Binds an index buffer for indexed drawing.
+  example: []
+  syntax:
+    content: void SetIndexBuffer(Handle<GraphicsBuffer> buffer, IndexType type, ulong offset = 0)
+    parameters:
+    - id: buffer
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer}
+      description: The handle to the graphics buffer containing index data.
+    - id: type
+      type: Ghost.Graphics.RHI.IndexType
+      description: The space of indices (e.g., 16-bit or 32-bit).
+    - id: offset
+      type: System.UInt64
+      description: The Offset in bytes from the start of the buffer.
+    content.vb: Sub SetIndexBuffer(buffer As Handle(Of GraphicsBuffer), type As IndexType, offset As ULong = 0)
+  overload: Ghost.Graphics.RHI.ICommandBuffer.SetIndexBuffer*
+  nameWithType.vb: ICommandBuffer.SetIndexBuffer(Handle(Of GraphicsBuffer), IndexType, ULong)
+  fullName.vb: Ghost.Graphics.RHI.ICommandBuffer.SetIndexBuffer(Ghost.Core.Handle(Of Ghost.Graphics.RHI.GraphicsBuffer), Ghost.Graphics.RHI.IndexType, ULong)
+  name.vb: SetIndexBuffer(Handle(Of GraphicsBuffer), IndexType, ULong)
+- uid: Ghost.Graphics.RHI.ICommandBuffer.SetPrimitiveTopology(Ghost.Graphics.RHI.PrimitiveTopology)
+  commentId: M:Ghost.Graphics.RHI.ICommandBuffer.SetPrimitiveTopology(Ghost.Graphics.RHI.PrimitiveTopology)
+  id: SetPrimitiveTopology(Ghost.Graphics.RHI.PrimitiveTopology)
+  parent: Ghost.Graphics.RHI.ICommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: SetPrimitiveTopology(PrimitiveTopology)
+  nameWithType: ICommandBuffer.SetPrimitiveTopology(PrimitiveTopology)
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.SetPrimitiveTopology(Ghost.Graphics.RHI.PrimitiveTopology)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SetPrimitiveTopology
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 136
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Sets the primitive topology to be used for subsequent drawing operations.
+  example: []
+  syntax:
+    content: void SetPrimitiveTopology(PrimitiveTopology topology)
+    parameters:
+    - id: topology
+      type: Ghost.Graphics.RHI.PrimitiveTopology
+      description: The primitive topology that determines how the input vertices are interpreted during rendering.
+    content.vb: Sub SetPrimitiveTopology(topology As PrimitiveTopology)
+  overload: Ghost.Graphics.RHI.ICommandBuffer.SetPrimitiveTopology*
+- uid: Ghost.Graphics.RHI.ICommandBuffer.SetGraphicsRoot32Constants(System.UInt32,System.ReadOnlySpan{System.UInt32},System.UInt32)
+  commentId: M:Ghost.Graphics.RHI.ICommandBuffer.SetGraphicsRoot32Constants(System.UInt32,System.ReadOnlySpan{System.UInt32},System.UInt32)
+  id: SetGraphicsRoot32Constants(System.UInt32,System.ReadOnlySpan{System.UInt32},System.UInt32)
+  parent: Ghost.Graphics.RHI.ICommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: SetGraphicsRoot32Constants(uint, ReadOnlySpan<uint>, uint)
+  nameWithType: ICommandBuffer.SetGraphicsRoot32Constants(uint, ReadOnlySpan<uint>, uint)
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.SetGraphicsRoot32Constants(uint, System.ReadOnlySpan<uint>, uint)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SetGraphicsRoot32Constants
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 144
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Sets a 32-bit constant value in the graphics root signature at the specified index.
+  example: []
+  syntax:
+    content: void SetGraphicsRoot32Constants(uint rootIndex, ReadOnlySpan<uint> constantBuffer, uint offsetIn32Bits = 0)
+    parameters:
+    - id: rootIndex
+      type: System.UInt32
+      description: The zero-based index of the root parameter in the graphics root signature to set the constant for.
+    - id: constantBuffer
+      type: System.ReadOnlySpan{System.UInt32}
+      description: A read-only span containing the 32-bit constant values to set.
+    - id: offsetIn32Bits
+      type: System.UInt32
+      description: The Offset, in 32-bit values, from the start of the root parameter where the constants will be set.
+    content.vb: Sub SetGraphicsRoot32Constants(rootIndex As UInteger, constantBuffer As ReadOnlySpan(Of UInteger), offsetIn32Bits As UInteger = 0)
+  overload: Ghost.Graphics.RHI.ICommandBuffer.SetGraphicsRoot32Constants*
+  nameWithType.vb: ICommandBuffer.SetGraphicsRoot32Constants(UInteger, ReadOnlySpan(Of UInteger), UInteger)
+  fullName.vb: Ghost.Graphics.RHI.ICommandBuffer.SetGraphicsRoot32Constants(UInteger, System.ReadOnlySpan(Of UInteger), UInteger)
+  name.vb: SetGraphicsRoot32Constants(UInteger, ReadOnlySpan(Of UInteger), UInteger)
+- uid: Ghost.Graphics.RHI.ICommandBuffer.Draw(System.UInt32,System.UInt32,System.UInt32,System.UInt32)
+  commentId: M:Ghost.Graphics.RHI.ICommandBuffer.Draw(System.UInt32,System.UInt32,System.UInt32,System.UInt32)
+  id: Draw(System.UInt32,System.UInt32,System.UInt32,System.UInt32)
+  parent: Ghost.Graphics.RHI.ICommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: Draw(uint, uint, uint, uint)
+  nameWithType: ICommandBuffer.Draw(uint, uint, uint, uint)
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.Draw(uint, uint, uint, uint)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Draw
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 153
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Issues a non-indexed draw call.
+  example: []
+  syntax:
+    content: void Draw(uint vertexCount, uint instanceCount = 1, uint startVertex = 0, uint startInstance = 0)
+    parameters:
+    - id: vertexCount
+      type: System.UInt32
+      description: Number of vertices to draw.
+    - id: instanceCount
+      type: System.UInt32
+      description: Number of instances to draw.
+    - id: startVertex
+      type: System.UInt32
+      description: Index of the first vertex to draw.
+    - id: startInstance
+      type: System.UInt32
+      description: Index of the first instance to draw.
+    content.vb: Sub Draw(vertexCount As UInteger, instanceCount As UInteger = 1, startVertex As UInteger = 0, startInstance As UInteger = 0)
+  overload: Ghost.Graphics.RHI.ICommandBuffer.Draw*
+  nameWithType.vb: ICommandBuffer.Draw(UInteger, UInteger, UInteger, UInteger)
+  fullName.vb: Ghost.Graphics.RHI.ICommandBuffer.Draw(UInteger, UInteger, UInteger, UInteger)
+  name.vb: Draw(UInteger, UInteger, UInteger, UInteger)
+- uid: Ghost.Graphics.RHI.ICommandBuffer.DrawIndexed(System.UInt32,System.UInt32,System.UInt32,System.Int32,System.UInt32)
+  commentId: M:Ghost.Graphics.RHI.ICommandBuffer.DrawIndexed(System.UInt32,System.UInt32,System.UInt32,System.Int32,System.UInt32)
+  id: DrawIndexed(System.UInt32,System.UInt32,System.UInt32,System.Int32,System.UInt32)
+  parent: Ghost.Graphics.RHI.ICommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: DrawIndexed(uint, uint, uint, int, uint)
+  nameWithType: ICommandBuffer.DrawIndexed(uint, uint, uint, int, uint)
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.DrawIndexed(uint, uint, uint, int, uint)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: DrawIndexed
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 163
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Issues an indexed draw call.
+  example: []
+  syntax:
+    content: void DrawIndexed(uint indexCount, uint instanceCount = 1, uint startIndex = 0, int baseVertex = 0, uint startInstance = 0)
+    parameters:
+    - id: indexCount
+      type: System.UInt32
+      description: Number of indices to draw.
+    - id: instanceCount
+      type: System.UInt32
+      description: Number of instances to draw.
+    - id: startIndex
+      type: System.UInt32
+      description: Index of the first index to draw.
+    - id: baseVertex
+      type: System.Int32
+      description: Value added to each index before indexing the vertex buffer.
+    - id: startInstance
+      type: System.UInt32
+      description: Index of the first instance to draw.
+    content.vb: Sub DrawIndexed(indexCount As UInteger, instanceCount As UInteger = 1, startIndex As UInteger = 0, baseVertex As Integer = 0, startInstance As UInteger = 0)
+  overload: Ghost.Graphics.RHI.ICommandBuffer.DrawIndexed*
+  nameWithType.vb: ICommandBuffer.DrawIndexed(UInteger, UInteger, UInteger, Integer, UInteger)
+  fullName.vb: Ghost.Graphics.RHI.ICommandBuffer.DrawIndexed(UInteger, UInteger, UInteger, Integer, UInteger)
+  name.vb: DrawIndexed(UInteger, UInteger, UInteger, Integer, UInteger)
+- uid: Ghost.Graphics.RHI.ICommandBuffer.DispatchCompute(System.UInt32,System.UInt32,System.UInt32)
+  commentId: M:Ghost.Graphics.RHI.ICommandBuffer.DispatchCompute(System.UInt32,System.UInt32,System.UInt32)
+  id: DispatchCompute(System.UInt32,System.UInt32,System.UInt32)
+  parent: Ghost.Graphics.RHI.ICommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: DispatchCompute(uint, uint, uint)
+  nameWithType: ICommandBuffer.DispatchCompute(uint, uint, uint)
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.DispatchCompute(uint, uint, uint)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: DispatchCompute
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 171
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Dispatches compute threads
+  example: []
+  syntax:
+    content: void DispatchCompute(uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ)
+    parameters:
+    - id: threadGroupCountX
+      type: System.UInt32
+      description: Thread groups in X dimension
+    - id: threadGroupCountY
+      type: System.UInt32
+      description: Thread groups in Y dimension
+    - id: threadGroupCountZ
+      type: System.UInt32
+      description: Thread groups in Z dimension
+    content.vb: Sub DispatchCompute(threadGroupCountX As UInteger, threadGroupCountY As UInteger, threadGroupCountZ As UInteger)
+  overload: Ghost.Graphics.RHI.ICommandBuffer.DispatchCompute*
+  nameWithType.vb: ICommandBuffer.DispatchCompute(UInteger, UInteger, UInteger)
+  fullName.vb: Ghost.Graphics.RHI.ICommandBuffer.DispatchCompute(UInteger, UInteger, UInteger)
+  name.vb: DispatchCompute(UInteger, UInteger, UInteger)
+- uid: Ghost.Graphics.RHI.ICommandBuffer.DispatchMesh(System.UInt32,System.UInt32,System.UInt32)
+  commentId: M:Ghost.Graphics.RHI.ICommandBuffer.DispatchMesh(System.UInt32,System.UInt32,System.UInt32)
+  id: DispatchMesh(System.UInt32,System.UInt32,System.UInt32)
+  parent: Ghost.Graphics.RHI.ICommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: DispatchMesh(uint, uint, uint)
+  nameWithType: ICommandBuffer.DispatchMesh(uint, uint, uint)
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.DispatchMesh(uint, uint, uint)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: DispatchMesh
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 179
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Dispatches mesh shader threads
+  example: []
+  syntax:
+    content: void DispatchMesh(uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ)
+    parameters:
+    - id: threadGroupCountX
+      type: System.UInt32
+      description: Thread groups in X dimension
+    - id: threadGroupCountY
+      type: System.UInt32
+      description: Thread groups in Y dimension
+    - id: threadGroupCountZ
+      type: System.UInt32
+      description: Thread groups in Z dimension
+    content.vb: Sub DispatchMesh(threadGroupCountX As UInteger, threadGroupCountY As UInteger, threadGroupCountZ As UInteger)
+  overload: Ghost.Graphics.RHI.ICommandBuffer.DispatchMesh*
+  nameWithType.vb: ICommandBuffer.DispatchMesh(UInteger, UInteger, UInteger)
+  fullName.vb: Ghost.Graphics.RHI.ICommandBuffer.DispatchMesh(UInteger, UInteger, UInteger)
+  name.vb: DispatchMesh(UInteger, UInteger, UInteger)
+- uid: Ghost.Graphics.RHI.ICommandBuffer.DispatchRay
+  commentId: M:Ghost.Graphics.RHI.ICommandBuffer.DispatchRay
+  id: DispatchRay
+  parent: Ghost.Graphics.RHI.ICommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: DispatchRay()
+  nameWithType: ICommandBuffer.DispatchRay()
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.DispatchRay()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: DispatchRay
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 185
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Dispatches ray tracing threads
+  example: []
+  syntax:
+    content: void DispatchRay()
+    content.vb: Sub DispatchRay()
+  overload: Ghost.Graphics.RHI.ICommandBuffer.DispatchRay*
+- uid: Ghost.Graphics.RHI.ICommandBuffer.UploadBuffer``1(Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer},System.ReadOnlySpan{``0})
+  commentId: M:Ghost.Graphics.RHI.ICommandBuffer.UploadBuffer``1(Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer},System.ReadOnlySpan{``0})
+  id: UploadBuffer``1(Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer},System.ReadOnlySpan{``0})
+  parent: Ghost.Graphics.RHI.ICommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: UploadBuffer<T>(Handle<GraphicsBuffer>, params ReadOnlySpan<T>)
+  nameWithType: ICommandBuffer.UploadBuffer<T>(Handle<GraphicsBuffer>, params ReadOnlySpan<T>)
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.UploadBuffer<T>(Ghost.Core.Handle<Ghost.Graphics.RHI.GraphicsBuffer>, params System.ReadOnlySpan<T>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: UploadBuffer
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 194
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Uploads the specified data to the buffer represented by the given handle.
+  example: []
+  syntax:
+    content: 'void UploadBuffer<T>(Handle<GraphicsBuffer> buffer, params ReadOnlySpan<T> data) where T : unmanaged'
+    parameters:
+    - id: buffer
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer}
+      description: A handle to the buffer that will receive the uploaded data.
+    - id: data
+      type: System.ReadOnlySpan{{T}}
+      description: >-
+        A read-only span containing the data to upload to the buffer. The span must contain elements of space
+            <code class="typeparamref">T</code>.
+    typeParameters:
+    - id: T
+      description: The unmanaged Value space of the elements to upload to the buffer.
+    content.vb: Sub UploadBuffer(Of T As Structure)(buffer As Handle(Of GraphicsBuffer), data As ReadOnlySpan(Of T))
+  overload: Ghost.Graphics.RHI.ICommandBuffer.UploadBuffer*
+  nameWithType.vb: ICommandBuffer.UploadBuffer(Of T)(Handle(Of GraphicsBuffer), ReadOnlySpan(Of T))
+  fullName.vb: Ghost.Graphics.RHI.ICommandBuffer.UploadBuffer(Of T)(Ghost.Core.Handle(Of Ghost.Graphics.RHI.GraphicsBuffer), System.ReadOnlySpan(Of T))
+  name.vb: UploadBuffer(Of T)(Handle(Of GraphicsBuffer), ReadOnlySpan(Of T))
+- uid: Ghost.Graphics.RHI.ICommandBuffer.UploadTexture(Ghost.Core.Handle{Ghost.Graphics.RHI.Texture},System.ReadOnlySpan{Ghost.Graphics.RHI.SubResourceData})
+  commentId: M:Ghost.Graphics.RHI.ICommandBuffer.UploadTexture(Ghost.Core.Handle{Ghost.Graphics.RHI.Texture},System.ReadOnlySpan{Ghost.Graphics.RHI.SubResourceData})
+  id: UploadTexture(Ghost.Core.Handle{Ghost.Graphics.RHI.Texture},System.ReadOnlySpan{Ghost.Graphics.RHI.SubResourceData})
+  parent: Ghost.Graphics.RHI.ICommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: UploadTexture(Handle<Texture>, params ReadOnlySpan<SubResourceData>)
+  nameWithType: ICommandBuffer.UploadTexture(Handle<Texture>, params ReadOnlySpan<SubResourceData>)
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.UploadTexture(Ghost.Core.Handle<Ghost.Graphics.RHI.Texture>, params System.ReadOnlySpan<Ghost.Graphics.RHI.SubResourceData>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: UploadTexture
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 203
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: void UploadTexture(Handle<Texture> texture, params ReadOnlySpan<SubResourceData> subresources)
+    parameters:
+    - id: texture
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+    - id: subresources
+      type: System.ReadOnlySpan{Ghost.Graphics.RHI.SubResourceData}
+    content.vb: Sub UploadTexture(texture As Handle(Of Texture), subresources As ReadOnlySpan(Of SubResourceData))
+  overload: Ghost.Graphics.RHI.ICommandBuffer.UploadTexture*
+  nameWithType.vb: ICommandBuffer.UploadTexture(Handle(Of Texture), ReadOnlySpan(Of SubResourceData))
+  fullName.vb: Ghost.Graphics.RHI.ICommandBuffer.UploadTexture(Ghost.Core.Handle(Of Ghost.Graphics.RHI.Texture), System.ReadOnlySpan(Of Ghost.Graphics.RHI.SubResourceData))
+  name.vb: UploadTexture(Handle(Of Texture), ReadOnlySpan(Of SubResourceData))
+- uid: Ghost.Graphics.RHI.ICommandBuffer.CopyBuffer(Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer},Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer},System.UInt64,System.UInt64,System.UInt64)
+  commentId: M:Ghost.Graphics.RHI.ICommandBuffer.CopyBuffer(Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer},Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer},System.UInt64,System.UInt64,System.UInt64)
+  id: CopyBuffer(Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer},Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer},System.UInt64,System.UInt64,System.UInt64)
+  parent: Ghost.Graphics.RHI.ICommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: CopyBuffer(Handle<GraphicsBuffer>, Handle<GraphicsBuffer>, ulong, ulong, ulong)
+  nameWithType: ICommandBuffer.CopyBuffer(Handle<GraphicsBuffer>, Handle<GraphicsBuffer>, ulong, ulong, ulong)
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.CopyBuffer(Ghost.Core.Handle<Ghost.Graphics.RHI.GraphicsBuffer>, Ghost.Core.Handle<Ghost.Graphics.RHI.GraphicsBuffer>, ulong, ulong, ulong)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CopyBuffer
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 213
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Copies a specified number of bytes from the source graphics buffer to the destination graphics buffer.
+  example: []
+  syntax:
+    content: void CopyBuffer(Handle<GraphicsBuffer> dest, Handle<GraphicsBuffer> src, ulong destOffset = 0, ulong srcOffset = 0, ulong numBytes = 0)
+    parameters:
+    - id: dest
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer}
+      description: The handle to the destination graphics buffer where data will be written.
+    - id: src
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer}
+      description: The handle to the source graphics buffer from which data will be read.
+    - id: destOffset
+      type: System.UInt64
+      description: The byte Offset in the destination buffer at which to begin writing. Must be zero or greater.
+    - id: srcOffset
+      type: System.UInt64
+      description: The byte Offset in the source buffer at which to begin reading. Must be zero or greater.
+    - id: numBytes
+      type: System.UInt64
+      description: The number of bytes to copy. If zero, copies the remaining bytes from the source buffer starting at <code class="paramref">srcOffset</code>.
+    content.vb: Sub CopyBuffer(dest As Handle(Of GraphicsBuffer), src As Handle(Of GraphicsBuffer), destOffset As ULong = 0, srcOffset As ULong = 0, numBytes As ULong = 0)
+  overload: Ghost.Graphics.RHI.ICommandBuffer.CopyBuffer*
+  nameWithType.vb: ICommandBuffer.CopyBuffer(Handle(Of GraphicsBuffer), Handle(Of GraphicsBuffer), ULong, ULong, ULong)
+  fullName.vb: Ghost.Graphics.RHI.ICommandBuffer.CopyBuffer(Ghost.Core.Handle(Of Ghost.Graphics.RHI.GraphicsBuffer), Ghost.Core.Handle(Of Ghost.Graphics.RHI.GraphicsBuffer), ULong, ULong, ULong)
+  name.vb: CopyBuffer(Handle(Of GraphicsBuffer), Handle(Of GraphicsBuffer), ULong, ULong, ULong)
+- uid: Ghost.Graphics.RHI.ICommandBuffer.CopyTexture(Ghost.Core.Handle{Ghost.Graphics.RHI.Texture},System.Nullable{Ghost.Graphics.RHI.TextureRegion},Ghost.Core.Handle{Ghost.Graphics.RHI.Texture},System.Nullable{Ghost.Graphics.RHI.TextureRegion})
+  commentId: M:Ghost.Graphics.RHI.ICommandBuffer.CopyTexture(Ghost.Core.Handle{Ghost.Graphics.RHI.Texture},System.Nullable{Ghost.Graphics.RHI.TextureRegion},Ghost.Core.Handle{Ghost.Graphics.RHI.Texture},System.Nullable{Ghost.Graphics.RHI.TextureRegion})
+  id: CopyTexture(Ghost.Core.Handle{Ghost.Graphics.RHI.Texture},System.Nullable{Ghost.Graphics.RHI.TextureRegion},Ghost.Core.Handle{Ghost.Graphics.RHI.Texture},System.Nullable{Ghost.Graphics.RHI.TextureRegion})
+  parent: Ghost.Graphics.RHI.ICommandBuffer
+  langs:
+  - csharp
+  - vb
+  name: CopyTexture(Handle<Texture>, TextureRegion?, Handle<Texture>, TextureRegion?)
+  nameWithType: ICommandBuffer.CopyTexture(Handle<Texture>, TextureRegion?, Handle<Texture>, TextureRegion?)
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.CopyTexture(Ghost.Core.Handle<Ghost.Graphics.RHI.Texture>, Ghost.Graphics.RHI.TextureRegion?, Ghost.Core.Handle<Ghost.Graphics.RHI.Texture>, Ghost.Graphics.RHI.TextureRegion?)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CopyTexture
+    path: src/Runtime/Ghost.Graphics.RHI/ICommandBuffer.cs
+    startLine: 222
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Copies a region of a source texture to a destination texture. The source and destination regions can be specified to copy a subset of the textures, or the entire textures if the regions are null.
+  example: []
+  syntax:
+    content: void CopyTexture(Handle<Texture> dst, TextureRegion? dstRegion, Handle<Texture> src, TextureRegion? srcRegion)
+    parameters:
+    - id: dst
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+      description: The handle to the destination texture where data will be written.
+    - id: dstRegion
+      type: System.Nullable{Ghost.Graphics.RHI.TextureRegion}
+      description: The region of the destination texture to copy to. If null, the entire texture will be used.
+    - id: src
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+      description: The handle to the source texture from which data will be read.
+    - id: srcRegion
+      type: System.Nullable{Ghost.Graphics.RHI.TextureRegion}
+      description: The region of the source texture to copy from. If null, the entire texture will be used.
+    content.vb: Sub CopyTexture(dst As Handle(Of Texture), dstRegion As TextureRegion?, src As Handle(Of Texture), srcRegion As TextureRegion?)
+  overload: Ghost.Graphics.RHI.ICommandBuffer.CopyTexture*
+  nameWithType.vb: ICommandBuffer.CopyTexture(Handle(Of Texture), TextureRegion?, Handle(Of Texture), TextureRegion?)
+  fullName.vb: Ghost.Graphics.RHI.ICommandBuffer.CopyTexture(Ghost.Core.Handle(Of Ghost.Graphics.RHI.Texture), Ghost.Graphics.RHI.TextureRegion?, Ghost.Core.Handle(Of Ghost.Graphics.RHI.Texture), Ghost.Graphics.RHI.TextureRegion?)
+  name.vb: CopyTexture(Handle(Of Texture), TextureRegion?, Handle(Of Texture), TextureRegion?)
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.IDisposable.Dispose
+  commentId: M:System.IDisposable.Dispose
+  parent: System.IDisposable
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  name: Dispose()
+  nameWithType: IDisposable.Dispose()
+  fullName: System.IDisposable.Dispose()
+  spec.csharp:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+- uid: System.IDisposable
+  commentId: T:System.IDisposable
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable
+  name: IDisposable
+  nameWithType: IDisposable
+  fullName: System.IDisposable
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RHI.ICommandBuffer.Type*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandBuffer.Type
+  href: Ghost.Graphics.RHI.ICommandBuffer.html#Ghost_Graphics_RHI_ICommandBuffer_Type
+  name: Type
+  nameWithType: ICommandBuffer.Type
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.Type
+- uid: Ghost.Graphics.RHI.CommandBufferType
+  commentId: T:Ghost.Graphics.RHI.CommandBufferType
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.CommandBufferType.html
+  name: CommandBufferType
+  nameWithType: CommandBufferType
+  fullName: Ghost.Graphics.RHI.CommandBufferType
+- uid: Ghost.Graphics.RHI.ICommandBuffer.IsEmpty*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandBuffer.IsEmpty
+  href: Ghost.Graphics.RHI.ICommandBuffer.html#Ghost_Graphics_RHI_ICommandBuffer_IsEmpty
+  name: IsEmpty
+  nameWithType: ICommandBuffer.IsEmpty
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.IsEmpty
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.boolean
+  name: bool
+  nameWithType: bool
+  fullName: bool
+  nameWithType.vb: Boolean
+  fullName.vb: Boolean
+  name.vb: Boolean
+- uid: Ghost.Graphics.RHI.ICommandBuffer.Name*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandBuffer.Name
+  href: Ghost.Graphics.RHI.ICommandBuffer.html#Ghost_Graphics_RHI_ICommandBuffer_Name
+  name: Name
+  nameWithType: ICommandBuffer.Name
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.Name
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.string
+  name: string
+  nameWithType: string
+  fullName: string
+  nameWithType.vb: String
+  fullName.vb: String
+  name.vb: String
+- uid: Ghost.Graphics.RHI.ICommandBuffer.Begin*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandBuffer.Begin
+  href: Ghost.Graphics.RHI.ICommandBuffer.html#Ghost_Graphics_RHI_ICommandBuffer_Begin_Ghost_Graphics_RHI_ICommandAllocator_
+  name: Begin
+  nameWithType: ICommandBuffer.Begin
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.Begin
+- uid: Ghost.Graphics.RHI.ICommandAllocator
+  commentId: T:Ghost.Graphics.RHI.ICommandAllocator
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ICommandAllocator.html
+  name: ICommandAllocator
+  nameWithType: ICommandAllocator
+  fullName: Ghost.Graphics.RHI.ICommandAllocator
+- uid: Ghost.Graphics.RHI.ICommandBuffer.End*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandBuffer.End
+  href: Ghost.Graphics.RHI.ICommandBuffer.html#Ghost_Graphics_RHI_ICommandBuffer_End
+  name: End
+  nameWithType: ICommandBuffer.End
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.End
+- uid: Ghost.Core.Result
+  commentId: T:Ghost.Core.Result
+  parent: Ghost.Core
+  name: Result
+  nameWithType: Result
+  fullName: Ghost.Core.Result
+- uid: Ghost.Core
+  commentId: N:Ghost.Core
+  name: Ghost.Core
+  nameWithType: Ghost.Core
+  fullName: Ghost.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+- uid: Ghost.Graphics.RHI.ICommandBuffer.SetViewport*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandBuffer.SetViewport
+  href: Ghost.Graphics.RHI.ICommandBuffer.html#Ghost_Graphics_RHI_ICommandBuffer_SetViewport_Ghost_Graphics_RHI_ViewportDesc_
+  name: SetViewport
+  nameWithType: ICommandBuffer.SetViewport
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.SetViewport
+- uid: Ghost.Graphics.RHI.ViewportDesc
+  commentId: T:Ghost.Graphics.RHI.ViewportDesc
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ViewportDesc.html
+  name: ViewportDesc
+  nameWithType: ViewportDesc
+  fullName: Ghost.Graphics.RHI.ViewportDesc
+- uid: Ghost.Graphics.RHI.ICommandBuffer.SetScissorRect*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandBuffer.SetScissorRect
+  href: Ghost.Graphics.RHI.ICommandBuffer.html#Ghost_Graphics_RHI_ICommandBuffer_SetScissorRect_Ghost_Graphics_RHI_ScissorRectDesc_
+  name: SetScissorRect
+  nameWithType: ICommandBuffer.SetScissorRect
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.SetScissorRect
+- uid: Ghost.Graphics.RHI.ScissorRectDesc
+  commentId: T:Ghost.Graphics.RHI.ScissorRectDesc
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ScissorRectDesc.html
+  name: ScissorRectDesc
+  nameWithType: ScissorRectDesc
+  fullName: Ghost.Graphics.RHI.ScissorRectDesc
+- uid: Ghost.Core.Handle`1.Invalid
+  commentId: P:Ghost.Core.Handle`1.Invalid
+  name: Invalid
+  nameWithType: Handle<T>.Invalid
+  fullName: Ghost.Core.Handle<T>.Invalid
+  nameWithType.vb: Handle(Of T).Invalid
+  fullName.vb: Ghost.Core.Handle(Of T).Invalid
+- uid: Ghost.Graphics.RHI.ICommandBuffer.SetRenderTargets*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandBuffer.SetRenderTargets
+  href: Ghost.Graphics.RHI.ICommandBuffer.html#Ghost_Graphics_RHI_ICommandBuffer_SetRenderTargets_System_ReadOnlySpan_Ghost_Core_Handle_Ghost_Graphics_RHI_Texture___Ghost_Core_Handle_Ghost_Graphics_RHI_Texture__
+  name: SetRenderTargets
+  nameWithType: ICommandBuffer.SetRenderTargets
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.SetRenderTargets
+- uid: System.ReadOnlySpan{Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}}
+  commentId: T:System.ReadOnlySpan{Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}}
+  parent: System
+  definition: System.ReadOnlySpan`1
+  href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  name: ReadOnlySpan<Handle<Texture>>
+  nameWithType: ReadOnlySpan<Handle<Texture>>
+  fullName: System.ReadOnlySpan<Ghost.Core.Handle<Ghost.Graphics.RHI.Texture>>
+  nameWithType.vb: ReadOnlySpan(Of Handle(Of Texture))
+  fullName.vb: System.ReadOnlySpan(Of Ghost.Core.Handle(Of Ghost.Graphics.RHI.Texture))
+  name.vb: ReadOnlySpan(Of Handle(Of Texture))
+  spec.csharp:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: <
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - uid: Ghost.Graphics.RHI.Texture
+    name: Texture
+    href: Ghost.Graphics.RHI.Texture.html
+  - name: '>'
+  - name: '>'
+  spec.vb:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.Texture
+    name: Texture
+    href: Ghost.Graphics.RHI.Texture.html
+  - name: )
+  - name: )
+- uid: Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+  commentId: T:Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+  parent: Ghost.Core
+  definition: Ghost.Core.Handle`1
+  href: Ghost.Graphics.RHI.Texture.html
+  name: Handle<Texture>
+  nameWithType: Handle<Texture>
+  fullName: Ghost.Core.Handle<Ghost.Graphics.RHI.Texture>
+  nameWithType.vb: Handle(Of Texture)
+  fullName.vb: Ghost.Core.Handle(Of Ghost.Graphics.RHI.Texture)
+  name.vb: Handle(Of Texture)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - uid: Ghost.Graphics.RHI.Texture
+    name: Texture
+    href: Ghost.Graphics.RHI.Texture.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.Texture
+    name: Texture
+    href: Ghost.Graphics.RHI.Texture.html
+  - name: )
+- uid: System.ReadOnlySpan`1
+  commentId: T:System.ReadOnlySpan`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  name: ReadOnlySpan<T>
+  nameWithType: ReadOnlySpan<T>
+  fullName: System.ReadOnlySpan<T>
+  nameWithType.vb: ReadOnlySpan(Of T)
+  fullName.vb: System.ReadOnlySpan(Of T)
+  name.vb: ReadOnlySpan(Of T)
+  spec.csharp:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Core.Handle`1
+  commentId: T:Ghost.Core.Handle`1
+  name: Handle<T>
+  nameWithType: Handle<T>
+  fullName: Ghost.Core.Handle<T>
+  nameWithType.vb: Handle(Of T)
+  fullName.vb: Ghost.Core.Handle(Of T)
+  name.vb: Handle(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Graphics.RHI.ICommandBuffer.ClearRenderTargetView*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandBuffer.ClearRenderTargetView
+  href: Ghost.Graphics.RHI.ICommandBuffer.html#Ghost_Graphics_RHI_ICommandBuffer_ClearRenderTargetView_Ghost_Core_Handle_Ghost_Graphics_RHI_Texture__Ghost_Graphics_RHI_Color128_
+  name: ClearRenderTargetView
+  nameWithType: ICommandBuffer.ClearRenderTargetView
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.ClearRenderTargetView
+- uid: Ghost.Graphics.RHI.Color128
+  commentId: T:Ghost.Graphics.RHI.Color128
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.Color128.html
+  name: Color128
+  nameWithType: Color128
+  fullName: Ghost.Graphics.RHI.Color128
+- uid: Ghost.Graphics.RHI.ICommandBuffer.ClearDepthStencilView*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandBuffer.ClearDepthStencilView
+  href: Ghost.Graphics.RHI.ICommandBuffer.html#Ghost_Graphics_RHI_ICommandBuffer_ClearDepthStencilView_Ghost_Core_Handle_Ghost_Graphics_RHI_Texture__System_Boolean_System_Boolean_System_Single_System_Byte_
+  name: ClearDepthStencilView
+  nameWithType: ICommandBuffer.ClearDepthStencilView
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.ClearDepthStencilView
+- uid: System.Single
+  commentId: T:System.Single
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.single
+  name: float
+  nameWithType: float
+  fullName: float
+  nameWithType.vb: Single
+  fullName.vb: Single
+  name.vb: Single
+- uid: System.Byte
+  commentId: T:System.Byte
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.byte
+  name: byte
+  nameWithType: byte
+  fullName: byte
+  nameWithType.vb: Byte
+  fullName.vb: Byte
+  name.vb: Byte
+- uid: Ghost.Graphics.RHI.ICommandBuffer.BeginRenderPass*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandBuffer.BeginRenderPass
+  href: Ghost.Graphics.RHI.ICommandBuffer.html#Ghost_Graphics_RHI_ICommandBuffer_BeginRenderPass_System_ReadOnlySpan_Ghost_Graphics_RHI_PassRenderTargetDesc__Ghost_Graphics_RHI_PassDepthStencilDesc_System_Boolean_
+  name: BeginRenderPass
+  nameWithType: ICommandBuffer.BeginRenderPass
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.BeginRenderPass
+- uid: System.ReadOnlySpan{Ghost.Graphics.RHI.PassRenderTargetDesc}
+  commentId: T:System.ReadOnlySpan{Ghost.Graphics.RHI.PassRenderTargetDesc}
+  parent: System
+  definition: System.ReadOnlySpan`1
+  href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  name: ReadOnlySpan<PassRenderTargetDesc>
+  nameWithType: ReadOnlySpan<PassRenderTargetDesc>
+  fullName: System.ReadOnlySpan<Ghost.Graphics.RHI.PassRenderTargetDesc>
+  nameWithType.vb: ReadOnlySpan(Of PassRenderTargetDesc)
+  fullName.vb: System.ReadOnlySpan(Of Ghost.Graphics.RHI.PassRenderTargetDesc)
+  name.vb: ReadOnlySpan(Of PassRenderTargetDesc)
+  spec.csharp:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: <
+  - uid: Ghost.Graphics.RHI.PassRenderTargetDesc
+    name: PassRenderTargetDesc
+    href: Ghost.Graphics.RHI.PassRenderTargetDesc.html
+  - name: '>'
+  spec.vb:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.PassRenderTargetDesc
+    name: PassRenderTargetDesc
+    href: Ghost.Graphics.RHI.PassRenderTargetDesc.html
+  - name: )
+- uid: Ghost.Graphics.RHI.PassDepthStencilDesc
+  commentId: T:Ghost.Graphics.RHI.PassDepthStencilDesc
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.PassDepthStencilDesc.html
+  name: PassDepthStencilDesc
+  nameWithType: PassDepthStencilDesc
+  fullName: Ghost.Graphics.RHI.PassDepthStencilDesc
+- uid: Ghost.Graphics.RHI.ICommandBuffer.EndRenderPass*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandBuffer.EndRenderPass
+  href: Ghost.Graphics.RHI.ICommandBuffer.html#Ghost_Graphics_RHI_ICommandBuffer_EndRenderPass
+  name: EndRenderPass
+  nameWithType: ICommandBuffer.EndRenderPass
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.EndRenderPass
+- uid: Ghost.Graphics.RHI.ICommandBuffer.Barrier*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandBuffer.Barrier
+  href: Ghost.Graphics.RHI.ICommandBuffer.html#Ghost_Graphics_RHI_ICommandBuffer_Barrier_System_ReadOnlySpan_Ghost_Graphics_RHI_BarrierDesc__
+  name: Barrier
+  nameWithType: ICommandBuffer.Barrier
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.Barrier
+- uid: System.ReadOnlySpan{Ghost.Graphics.RHI.BarrierDesc}
+  commentId: T:System.ReadOnlySpan{Ghost.Graphics.RHI.BarrierDesc}
+  parent: System
+  definition: System.ReadOnlySpan`1
+  href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  name: ReadOnlySpan<BarrierDesc>
+  nameWithType: ReadOnlySpan<BarrierDesc>
+  fullName: System.ReadOnlySpan<Ghost.Graphics.RHI.BarrierDesc>
+  nameWithType.vb: ReadOnlySpan(Of BarrierDesc)
+  fullName.vb: System.ReadOnlySpan(Of Ghost.Graphics.RHI.BarrierDesc)
+  name.vb: ReadOnlySpan(Of BarrierDesc)
+  spec.csharp:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: <
+  - uid: Ghost.Graphics.RHI.BarrierDesc
+    name: BarrierDesc
+    href: Ghost.Graphics.RHI.BarrierDesc.html
+  - name: '>'
+  spec.vb:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.BarrierDesc
+    name: BarrierDesc
+    href: Ghost.Graphics.RHI.BarrierDesc.html
+  - name: )
+- uid: Ghost.Graphics.RHI.ICommandBuffer.SetPipelineState*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandBuffer.SetPipelineState
+  href: Ghost.Graphics.RHI.ICommandBuffer.html#Ghost_Graphics_RHI_ICommandBuffer_SetPipelineState_Ghost_Core_Key128_Ghost_Graphics_RHI_GraphicsPipeline__
+  name: SetPipelineState
+  nameWithType: ICommandBuffer.SetPipelineState
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.SetPipelineState
+- uid: Ghost.Core.Key128{Ghost.Graphics.RHI.GraphicsPipeline}
+  commentId: T:Ghost.Core.Key128{Ghost.Graphics.RHI.GraphicsPipeline}
+  parent: Ghost.Core
+  definition: Ghost.Core.Key128`1
+  href: Ghost.Graphics.RHI.GraphicsPipeline.html
+  name: Key128<GraphicsPipeline>
+  nameWithType: Key128<GraphicsPipeline>
+  fullName: Ghost.Core.Key128<Ghost.Graphics.RHI.GraphicsPipeline>
+  nameWithType.vb: Key128(Of GraphicsPipeline)
+  fullName.vb: Ghost.Core.Key128(Of Ghost.Graphics.RHI.GraphicsPipeline)
+  name.vb: Key128(Of GraphicsPipeline)
+  spec.csharp:
+  - uid: Ghost.Core.Key128`1
+    name: Key128
+  - name: <
+  - uid: Ghost.Graphics.RHI.GraphicsPipeline
+    name: GraphicsPipeline
+    href: Ghost.Graphics.RHI.GraphicsPipeline.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Key128`1
+    name: Key128
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.GraphicsPipeline
+    name: GraphicsPipeline
+    href: Ghost.Graphics.RHI.GraphicsPipeline.html
+  - name: )
+- uid: Ghost.Core.Key128`1
+  commentId: T:Ghost.Core.Key128`1
+  name: Key128<T>
+  nameWithType: Key128<T>
+  fullName: Ghost.Core.Key128<T>
+  nameWithType.vb: Key128(Of T)
+  fullName.vb: Ghost.Core.Key128(Of T)
+  name.vb: Key128(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Key128`1
+    name: Key128
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Key128`1
+    name: Key128
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Graphics.RHI.ICommandBuffer.SetConstantBufferView*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandBuffer.SetConstantBufferView
+  href: Ghost.Graphics.RHI.ICommandBuffer.html#Ghost_Graphics_RHI_ICommandBuffer_SetConstantBufferView_System_UInt32_Ghost_Core_Handle_Ghost_Graphics_RHI_GraphicsBuffer__
+  name: SetConstantBufferView
+  nameWithType: ICommandBuffer.SetConstantBufferView
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.SetConstantBufferView
+- uid: System.UInt32
+  commentId: T:System.UInt32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.uint32
+  name: uint
+  nameWithType: uint
+  fullName: uint
+  nameWithType.vb: UInteger
+  fullName.vb: UInteger
+  name.vb: UInteger
+- uid: Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer}
+  commentId: T:Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer}
+  parent: Ghost.Core
+  definition: Ghost.Core.Handle`1
+  href: Ghost.Graphics.RHI.GraphicsBuffer.html
+  name: Handle<GraphicsBuffer>
+  nameWithType: Handle<GraphicsBuffer>
+  fullName: Ghost.Core.Handle<Ghost.Graphics.RHI.GraphicsBuffer>
+  nameWithType.vb: Handle(Of GraphicsBuffer)
+  fullName.vb: Ghost.Core.Handle(Of Ghost.Graphics.RHI.GraphicsBuffer)
+  name.vb: Handle(Of GraphicsBuffer)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - uid: Ghost.Graphics.RHI.GraphicsBuffer
+    name: GraphicsBuffer
+    href: Ghost.Graphics.RHI.GraphicsBuffer.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.GraphicsBuffer
+    name: GraphicsBuffer
+    href: Ghost.Graphics.RHI.GraphicsBuffer.html
+  - name: )
+- uid: Ghost.Graphics.RHI.ICommandBuffer.SetVertexBuffer*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandBuffer.SetVertexBuffer
+  href: Ghost.Graphics.RHI.ICommandBuffer.html#Ghost_Graphics_RHI_ICommandBuffer_SetVertexBuffer_System_UInt32_Ghost_Core_Handle_Ghost_Graphics_RHI_GraphicsBuffer__System_UInt64_
+  name: SetVertexBuffer
+  nameWithType: ICommandBuffer.SetVertexBuffer
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.SetVertexBuffer
+- uid: System.UInt64
+  commentId: T:System.UInt64
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.uint64
+  name: ulong
+  nameWithType: ulong
+  fullName: ulong
+  nameWithType.vb: ULong
+  fullName.vb: ULong
+  name.vb: ULong
+- uid: Ghost.Graphics.RHI.ICommandBuffer.SetIndexBuffer*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandBuffer.SetIndexBuffer
+  href: Ghost.Graphics.RHI.ICommandBuffer.html#Ghost_Graphics_RHI_ICommandBuffer_SetIndexBuffer_Ghost_Core_Handle_Ghost_Graphics_RHI_GraphicsBuffer__Ghost_Graphics_RHI_IndexType_System_UInt64_
+  name: SetIndexBuffer
+  nameWithType: ICommandBuffer.SetIndexBuffer
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.SetIndexBuffer
+- uid: Ghost.Graphics.RHI.IndexType
+  commentId: T:Ghost.Graphics.RHI.IndexType
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.IndexType.html
+  name: IndexType
+  nameWithType: IndexType
+  fullName: Ghost.Graphics.RHI.IndexType
+- uid: Ghost.Graphics.RHI.ICommandBuffer.SetPrimitiveTopology*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandBuffer.SetPrimitiveTopology
+  href: Ghost.Graphics.RHI.ICommandBuffer.html#Ghost_Graphics_RHI_ICommandBuffer_SetPrimitiveTopology_Ghost_Graphics_RHI_PrimitiveTopology_
+  name: SetPrimitiveTopology
+  nameWithType: ICommandBuffer.SetPrimitiveTopology
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.SetPrimitiveTopology
+- uid: Ghost.Graphics.RHI.PrimitiveTopology
+  commentId: T:Ghost.Graphics.RHI.PrimitiveTopology
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.PrimitiveTopology.html
+  name: PrimitiveTopology
+  nameWithType: PrimitiveTopology
+  fullName: Ghost.Graphics.RHI.PrimitiveTopology
+- uid: Ghost.Graphics.RHI.ICommandBuffer.SetGraphicsRoot32Constants*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandBuffer.SetGraphicsRoot32Constants
+  href: Ghost.Graphics.RHI.ICommandBuffer.html#Ghost_Graphics_RHI_ICommandBuffer_SetGraphicsRoot32Constants_System_UInt32_System_ReadOnlySpan_System_UInt32__System_UInt32_
+  name: SetGraphicsRoot32Constants
+  nameWithType: ICommandBuffer.SetGraphicsRoot32Constants
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.SetGraphicsRoot32Constants
+- uid: System.ReadOnlySpan{System.UInt32}
+  commentId: T:System.ReadOnlySpan{System.UInt32}
+  parent: System
+  definition: System.ReadOnlySpan`1
+  href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  name: ReadOnlySpan<uint>
+  nameWithType: ReadOnlySpan<uint>
+  fullName: System.ReadOnlySpan<uint>
+  nameWithType.vb: ReadOnlySpan(Of UInteger)
+  fullName.vb: System.ReadOnlySpan(Of UInteger)
+  name.vb: ReadOnlySpan(Of UInteger)
+  spec.csharp:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: <
+  - uid: System.UInt32
+    name: uint
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.uint32
+  - name: '>'
+  spec.vb:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: System.UInt32
+    name: UInteger
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.uint32
+  - name: )
+- uid: Ghost.Graphics.RHI.ICommandBuffer.Draw*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandBuffer.Draw
+  href: Ghost.Graphics.RHI.ICommandBuffer.html#Ghost_Graphics_RHI_ICommandBuffer_Draw_System_UInt32_System_UInt32_System_UInt32_System_UInt32_
+  name: Draw
+  nameWithType: ICommandBuffer.Draw
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.Draw
+- uid: Ghost.Graphics.RHI.ICommandBuffer.DrawIndexed*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandBuffer.DrawIndexed
+  href: Ghost.Graphics.RHI.ICommandBuffer.html#Ghost_Graphics_RHI_ICommandBuffer_DrawIndexed_System_UInt32_System_UInt32_System_UInt32_System_Int32_System_UInt32_
+  name: DrawIndexed
+  nameWithType: ICommandBuffer.DrawIndexed
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.DrawIndexed
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.int32
+  name: int
+  nameWithType: int
+  fullName: int
+  nameWithType.vb: Integer
+  fullName.vb: Integer
+  name.vb: Integer
+- uid: Ghost.Graphics.RHI.ICommandBuffer.DispatchCompute*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandBuffer.DispatchCompute
+  href: Ghost.Graphics.RHI.ICommandBuffer.html#Ghost_Graphics_RHI_ICommandBuffer_DispatchCompute_System_UInt32_System_UInt32_System_UInt32_
+  name: DispatchCompute
+  nameWithType: ICommandBuffer.DispatchCompute
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.DispatchCompute
+- uid: Ghost.Graphics.RHI.ICommandBuffer.DispatchMesh*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandBuffer.DispatchMesh
+  href: Ghost.Graphics.RHI.ICommandBuffer.html#Ghost_Graphics_RHI_ICommandBuffer_DispatchMesh_System_UInt32_System_UInt32_System_UInt32_
+  name: DispatchMesh
+  nameWithType: ICommandBuffer.DispatchMesh
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.DispatchMesh
+- uid: Ghost.Graphics.RHI.ICommandBuffer.DispatchRay*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandBuffer.DispatchRay
+  href: Ghost.Graphics.RHI.ICommandBuffer.html#Ghost_Graphics_RHI_ICommandBuffer_DispatchRay
+  name: DispatchRay
+  nameWithType: ICommandBuffer.DispatchRay
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.DispatchRay
+- uid: Ghost.Graphics.RHI.ICommandBuffer.UploadBuffer*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandBuffer.UploadBuffer
+  href: Ghost.Graphics.RHI.ICommandBuffer.html#Ghost_Graphics_RHI_ICommandBuffer_UploadBuffer__1_Ghost_Core_Handle_Ghost_Graphics_RHI_GraphicsBuffer__System_ReadOnlySpan___0__
+  name: UploadBuffer
+  nameWithType: ICommandBuffer.UploadBuffer
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.UploadBuffer
+- uid: System.ReadOnlySpan{{T}}
+  commentId: T:System.ReadOnlySpan{``0}
+  parent: System
+  definition: System.ReadOnlySpan`1
+  href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  name: ReadOnlySpan<T>
+  nameWithType: ReadOnlySpan<T>
+  fullName: System.ReadOnlySpan<T>
+  nameWithType.vb: ReadOnlySpan(Of T)
+  fullName.vb: System.ReadOnlySpan(Of T)
+  name.vb: ReadOnlySpan(Of T)
+  spec.csharp:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Graphics.RHI.ICommandBuffer.UploadTexture*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandBuffer.UploadTexture
+  href: Ghost.Graphics.RHI.ICommandBuffer.html#Ghost_Graphics_RHI_ICommandBuffer_UploadTexture_Ghost_Core_Handle_Ghost_Graphics_RHI_Texture__System_ReadOnlySpan_Ghost_Graphics_RHI_SubResourceData__
+  name: UploadTexture
+  nameWithType: ICommandBuffer.UploadTexture
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.UploadTexture
+- uid: System.ReadOnlySpan{Ghost.Graphics.RHI.SubResourceData}
+  commentId: T:System.ReadOnlySpan{Ghost.Graphics.RHI.SubResourceData}
+  parent: System
+  definition: System.ReadOnlySpan`1
+  href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  name: ReadOnlySpan<SubResourceData>
+  nameWithType: ReadOnlySpan<SubResourceData>
+  fullName: System.ReadOnlySpan<Ghost.Graphics.RHI.SubResourceData>
+  nameWithType.vb: ReadOnlySpan(Of SubResourceData)
+  fullName.vb: System.ReadOnlySpan(Of Ghost.Graphics.RHI.SubResourceData)
+  name.vb: ReadOnlySpan(Of SubResourceData)
+  spec.csharp:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: <
+  - uid: Ghost.Graphics.RHI.SubResourceData
+    name: SubResourceData
+    href: Ghost.Graphics.RHI.SubResourceData.html
+  - name: '>'
+  spec.vb:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.SubResourceData
+    name: SubResourceData
+    href: Ghost.Graphics.RHI.SubResourceData.html
+  - name: )
+- uid: Ghost.Graphics.RHI.ICommandBuffer.CopyBuffer*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandBuffer.CopyBuffer
+  href: Ghost.Graphics.RHI.ICommandBuffer.html#Ghost_Graphics_RHI_ICommandBuffer_CopyBuffer_Ghost_Core_Handle_Ghost_Graphics_RHI_GraphicsBuffer__Ghost_Core_Handle_Ghost_Graphics_RHI_GraphicsBuffer__System_UInt64_System_UInt64_System_UInt64_
+  name: CopyBuffer
+  nameWithType: ICommandBuffer.CopyBuffer
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.CopyBuffer
+- uid: Ghost.Graphics.RHI.ICommandBuffer.CopyTexture*
+  commentId: Overload:Ghost.Graphics.RHI.ICommandBuffer.CopyTexture
+  href: Ghost.Graphics.RHI.ICommandBuffer.html#Ghost_Graphics_RHI_ICommandBuffer_CopyTexture_Ghost_Core_Handle_Ghost_Graphics_RHI_Texture__System_Nullable_Ghost_Graphics_RHI_TextureRegion__Ghost_Core_Handle_Ghost_Graphics_RHI_Texture__System_Nullable_Ghost_Graphics_RHI_TextureRegion__
+  name: CopyTexture
+  nameWithType: ICommandBuffer.CopyTexture
+  fullName: Ghost.Graphics.RHI.ICommandBuffer.CopyTexture
+- uid: System.Nullable{Ghost.Graphics.RHI.TextureRegion}
+  commentId: T:System.Nullable{Ghost.Graphics.RHI.TextureRegion}
+  parent: System
+  definition: System.Nullable`1
+  href: Ghost.Graphics.RHI.TextureRegion.html
+  name: TextureRegion?
+  nameWithType: TextureRegion?
+  fullName: Ghost.Graphics.RHI.TextureRegion?
+  spec.csharp:
+  - uid: Ghost.Graphics.RHI.TextureRegion
+    name: TextureRegion
+    href: Ghost.Graphics.RHI.TextureRegion.html
+  - name: '?'
+  spec.vb:
+  - uid: Ghost.Graphics.RHI.TextureRegion
+    name: TextureRegion
+    href: Ghost.Graphics.RHI.TextureRegion.html
+  - name: '?'
+- uid: System.Nullable`1
+  commentId: T:System.Nullable`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.nullable-1
+  name: Nullable<T>
+  nameWithType: Nullable<T>
+  fullName: System.Nullable<T>
+  nameWithType.vb: Nullable(Of T)
+  fullName.vb: System.Nullable(Of T)
+  name.vb: Nullable(Of T)
+  spec.csharp:
+  - uid: System.Nullable`1
+    name: Nullable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.nullable-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.Nullable`1
+    name: Nullable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.nullable-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )

@@ -1,0 +1,174 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.Core.GateFit
+  commentId: T:Ghost.Graphics.Core.GateFit
+  id: GateFit
+  parent: Ghost.Graphics.Core
+  children:
+  - Ghost.Graphics.Core.GateFit.Fill
+  - Ghost.Graphics.Core.GateFit.Horizontal
+  - Ghost.Graphics.Core.GateFit.Overscan
+  - Ghost.Graphics.Core.GateFit.Vertical
+  langs:
+  - csharp
+  - vb
+  name: GateFit
+  nameWithType: GateFit
+  fullName: Ghost.Graphics.Core.GateFit
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderRequest.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GateFit
+    path: src/Runtime/Ghost.Graphics/Core/RenderRequest.cs
+    startLine: 8
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: 'public enum GateFit : uint'
+    content.vb: Public Enum GateFit As UInteger
+- uid: Ghost.Graphics.Core.GateFit.Vertical
+  commentId: F:Ghost.Graphics.Core.GateFit.Vertical
+  id: Vertical
+  parent: Ghost.Graphics.Core.GateFit
+  langs:
+  - csharp
+  - vb
+  name: Vertical
+  nameWithType: GateFit.Vertical
+  fullName: Ghost.Graphics.Core.GateFit.Vertical
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderRequest.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Vertical
+    path: src/Runtime/Ghost.Graphics/Core/RenderRequest.cs
+    startLine: 10
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: Vertical = 0
+    return:
+      type: Ghost.Graphics.Core.GateFit
+- uid: Ghost.Graphics.Core.GateFit.Horizontal
+  commentId: F:Ghost.Graphics.Core.GateFit.Horizontal
+  id: Horizontal
+  parent: Ghost.Graphics.Core.GateFit
+  langs:
+  - csharp
+  - vb
+  name: Horizontal
+  nameWithType: GateFit.Horizontal
+  fullName: Ghost.Graphics.Core.GateFit.Horizontal
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderRequest.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Horizontal
+    path: src/Runtime/Ghost.Graphics/Core/RenderRequest.cs
+    startLine: 11
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: Horizontal = 1
+    return:
+      type: Ghost.Graphics.Core.GateFit
+- uid: Ghost.Graphics.Core.GateFit.Fill
+  commentId: F:Ghost.Graphics.Core.GateFit.Fill
+  id: Fill
+  parent: Ghost.Graphics.Core.GateFit
+  langs:
+  - csharp
+  - vb
+  name: Fill
+  nameWithType: GateFit.Fill
+  fullName: Ghost.Graphics.Core.GateFit.Fill
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderRequest.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Fill
+    path: src/Runtime/Ghost.Graphics/Core/RenderRequest.cs
+    startLine: 12
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: Fill = 2
+    return:
+      type: Ghost.Graphics.Core.GateFit
+- uid: Ghost.Graphics.Core.GateFit.Overscan
+  commentId: F:Ghost.Graphics.Core.GateFit.Overscan
+  id: Overscan
+  parent: Ghost.Graphics.Core.GateFit
+  langs:
+  - csharp
+  - vb
+  name: Overscan
+  nameWithType: GateFit.Overscan
+  fullName: Ghost.Graphics.Core.GateFit.Overscan
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/RenderRequest.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Overscan
+    path: src/Runtime/Ghost.Graphics/Core/RenderRequest.cs
+    startLine: 13
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: Overscan = 3
+    return:
+      type: Ghost.Graphics.Core.GateFit
+references:
+- uid: Ghost.Graphics.Core
+  commentId: N:Ghost.Graphics.Core
+  href: Ghost.html
+  name: Ghost.Graphics.Core
+  nameWithType: Ghost.Graphics.Core
+  fullName: Ghost.Graphics.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Core
+    name: Core
+    href: Ghost.Graphics.Core.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Core
+    name: Core
+    href: Ghost.Graphics.Core.html
+- uid: Ghost.Graphics.Core.GateFit
+  commentId: T:Ghost.Graphics.Core.GateFit
+  parent: Ghost.Graphics.Core
+  href: Ghost.Graphics.Core.GateFit.html
+  name: GateFit
+  nameWithType: GateFit
+  fullName: Ghost.Graphics.Core.GateFit

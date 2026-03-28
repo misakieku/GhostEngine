@@ -1,0 +1,145 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.IRHIObject
+  commentId: T:Ghost.Graphics.RHI.IRHIObject
+  id: IRHIObject
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.IRHIObject.Name
+  langs:
+  - csharp
+  - vb
+  name: IRHIObject
+  nameWithType: IRHIObject
+  fullName: Ghost.Graphics.RHI.IRHIObject
+  type: Interface
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRHIObject.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IRHIObject
+    path: src/Runtime/Ghost.Graphics.RHI/IRHIObject.cs
+    startLine: 2
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: 'public interface IRHIObject : IDisposable'
+    content.vb: Public Interface IRHIObject Inherits IDisposable
+  inheritedMembers:
+  - System.IDisposable.Dispose
+- uid: Ghost.Graphics.RHI.IRHIObject.Name
+  commentId: P:Ghost.Graphics.RHI.IRHIObject.Name
+  id: Name
+  parent: Ghost.Graphics.RHI.IRHIObject
+  langs:
+  - csharp
+  - vb
+  name: Name
+  nameWithType: IRHIObject.Name
+  fullName: Ghost.Graphics.RHI.IRHIObject.Name
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRHIObject.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Name
+    path: src/Runtime/Ghost.Graphics.RHI/IRHIObject.cs
+    startLine: 4
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: string Name { get; set; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: Property Name As String
+  overload: Ghost.Graphics.RHI.IRHIObject.Name*
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.IDisposable.Dispose
+  commentId: M:System.IDisposable.Dispose
+  parent: System.IDisposable
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  name: Dispose()
+  nameWithType: IDisposable.Dispose()
+  fullName: System.IDisposable.Dispose()
+  spec.csharp:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+- uid: System.IDisposable
+  commentId: T:System.IDisposable
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable
+  name: IDisposable
+  nameWithType: IDisposable
+  fullName: System.IDisposable
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RHI.IRHIObject.Name*
+  commentId: Overload:Ghost.Graphics.RHI.IRHIObject.Name
+  href: Ghost.Graphics.RHI.IRHIObject.html#Ghost_Graphics_RHI_IRHIObject_Name
+  name: Name
+  nameWithType: IRHIObject.Name
+  fullName: Ghost.Graphics.RHI.IRHIObject.Name
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.string
+  name: string
+  nameWithType: string
+  fullName: string
+  nameWithType.vb: String
+  fullName.vb: String
+  name.vb: String

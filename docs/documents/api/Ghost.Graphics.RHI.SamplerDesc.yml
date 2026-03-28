@@ -1,0 +1,713 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.SamplerDesc
+  commentId: T:Ghost.Graphics.RHI.SamplerDesc
+  id: SamplerDesc
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.SamplerDesc.AddressU
+  - Ghost.Graphics.RHI.SamplerDesc.AddressV
+  - Ghost.Graphics.RHI.SamplerDesc.AddressW
+  - Ghost.Graphics.RHI.SamplerDesc.ComparisonFunc
+  - Ghost.Graphics.RHI.SamplerDesc.FilterMode
+  - Ghost.Graphics.RHI.SamplerDesc.MaxAnisotropy
+  - Ghost.Graphics.RHI.SamplerDesc.MaxLOD
+  - Ghost.Graphics.RHI.SamplerDesc.MinLOD
+  - Ghost.Graphics.RHI.SamplerDesc.MipLODBias
+  langs:
+  - csharp
+  - vb
+  name: SamplerDesc
+  nameWithType: SamplerDesc
+  fullName: Ghost.Graphics.RHI.SamplerDesc
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SamplerDesc
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 918
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: 'public record struct SamplerDesc : IEquatable<SamplerDesc>'
+    content.vb: Public Structure SamplerDesc Implements IEquatable(Of SamplerDesc)
+  implements:
+  - System.IEquatable{Ghost.Graphics.RHI.SamplerDesc}
+  inheritedMembers:
+  - System.ValueType.Equals(System.Object)
+  - System.ValueType.GetHashCode
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Graphics.RHI.SamplerDesc.FilterMode
+  commentId: P:Ghost.Graphics.RHI.SamplerDesc.FilterMode
+  id: FilterMode
+  parent: Ghost.Graphics.RHI.SamplerDesc
+  langs:
+  - csharp
+  - vb
+  name: FilterMode
+  nameWithType: SamplerDesc.FilterMode
+  fullName: Ghost.Graphics.RHI.SamplerDesc.FilterMode
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: FilterMode
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 920
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public TextureFilterMode FilterMode { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.TextureFilterMode
+    content.vb: Public Property FilterMode As TextureFilterMode
+  overload: Ghost.Graphics.RHI.SamplerDesc.FilterMode*
+- uid: Ghost.Graphics.RHI.SamplerDesc.AddressU
+  commentId: P:Ghost.Graphics.RHI.SamplerDesc.AddressU
+  id: AddressU
+  parent: Ghost.Graphics.RHI.SamplerDesc
+  langs:
+  - csharp
+  - vb
+  name: AddressU
+  nameWithType: SamplerDesc.AddressU
+  fullName: Ghost.Graphics.RHI.SamplerDesc.AddressU
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AddressU
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 925
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public TextureAddressMode AddressU { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.TextureAddressMode
+    content.vb: Public Property AddressU As TextureAddressMode
+  overload: Ghost.Graphics.RHI.SamplerDesc.AddressU*
+- uid: Ghost.Graphics.RHI.SamplerDesc.AddressV
+  commentId: P:Ghost.Graphics.RHI.SamplerDesc.AddressV
+  id: AddressV
+  parent: Ghost.Graphics.RHI.SamplerDesc
+  langs:
+  - csharp
+  - vb
+  name: AddressV
+  nameWithType: SamplerDesc.AddressV
+  fullName: Ghost.Graphics.RHI.SamplerDesc.AddressV
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AddressV
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 930
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public TextureAddressMode AddressV { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.TextureAddressMode
+    content.vb: Public Property AddressV As TextureAddressMode
+  overload: Ghost.Graphics.RHI.SamplerDesc.AddressV*
+- uid: Ghost.Graphics.RHI.SamplerDesc.AddressW
+  commentId: P:Ghost.Graphics.RHI.SamplerDesc.AddressW
+  id: AddressW
+  parent: Ghost.Graphics.RHI.SamplerDesc
+  langs:
+  - csharp
+  - vb
+  name: AddressW
+  nameWithType: SamplerDesc.AddressW
+  fullName: Ghost.Graphics.RHI.SamplerDesc.AddressW
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AddressW
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 935
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public TextureAddressMode AddressW { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.TextureAddressMode
+    content.vb: Public Property AddressW As TextureAddressMode
+  overload: Ghost.Graphics.RHI.SamplerDesc.AddressW*
+- uid: Ghost.Graphics.RHI.SamplerDesc.ComparisonFunc
+  commentId: P:Ghost.Graphics.RHI.SamplerDesc.ComparisonFunc
+  id: ComparisonFunc
+  parent: Ghost.Graphics.RHI.SamplerDesc
+  langs:
+  - csharp
+  - vb
+  name: ComparisonFunc
+  nameWithType: SamplerDesc.ComparisonFunc
+  fullName: Ghost.Graphics.RHI.SamplerDesc.ComparisonFunc
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ComparisonFunc
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 940
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public ComparisonFunction ComparisonFunc { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.ComparisonFunction
+    content.vb: Public Property ComparisonFunc As ComparisonFunction
+  overload: Ghost.Graphics.RHI.SamplerDesc.ComparisonFunc*
+- uid: Ghost.Graphics.RHI.SamplerDesc.MipLODBias
+  commentId: P:Ghost.Graphics.RHI.SamplerDesc.MipLODBias
+  id: MipLODBias
+  parent: Ghost.Graphics.RHI.SamplerDesc
+  langs:
+  - csharp
+  - vb
+  name: MipLODBias
+  nameWithType: SamplerDesc.MipLODBias
+  fullName: Ghost.Graphics.RHI.SamplerDesc.MipLODBias
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: MipLODBias
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 945
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public float MipLODBias { readonly get; set; }
+    parameters: []
+    return:
+      type: System.Single
+    content.vb: Public Property MipLODBias As Single
+  overload: Ghost.Graphics.RHI.SamplerDesc.MipLODBias*
+- uid: Ghost.Graphics.RHI.SamplerDesc.MaxAnisotropy
+  commentId: P:Ghost.Graphics.RHI.SamplerDesc.MaxAnisotropy
+  id: MaxAnisotropy
+  parent: Ghost.Graphics.RHI.SamplerDesc
+  langs:
+  - csharp
+  - vb
+  name: MaxAnisotropy
+  nameWithType: SamplerDesc.MaxAnisotropy
+  fullName: Ghost.Graphics.RHI.SamplerDesc.MaxAnisotropy
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: MaxAnisotropy
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 950
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public uint MaxAnisotropy { readonly get; set; }
+    parameters: []
+    return:
+      type: System.UInt32
+    content.vb: Public Property MaxAnisotropy As UInteger
+  overload: Ghost.Graphics.RHI.SamplerDesc.MaxAnisotropy*
+- uid: Ghost.Graphics.RHI.SamplerDesc.MinLOD
+  commentId: P:Ghost.Graphics.RHI.SamplerDesc.MinLOD
+  id: MinLOD
+  parent: Ghost.Graphics.RHI.SamplerDesc
+  langs:
+  - csharp
+  - vb
+  name: MinLOD
+  nameWithType: SamplerDesc.MinLOD
+  fullName: Ghost.Graphics.RHI.SamplerDesc.MinLOD
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: MinLOD
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 955
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public float MinLOD { readonly get; set; }
+    parameters: []
+    return:
+      type: System.Single
+    content.vb: Public Property MinLOD As Single
+  overload: Ghost.Graphics.RHI.SamplerDesc.MinLOD*
+- uid: Ghost.Graphics.RHI.SamplerDesc.MaxLOD
+  commentId: P:Ghost.Graphics.RHI.SamplerDesc.MaxLOD
+  id: MaxLOD
+  parent: Ghost.Graphics.RHI.SamplerDesc
+  langs:
+  - csharp
+  - vb
+  name: MaxLOD
+  nameWithType: SamplerDesc.MaxLOD
+  fullName: Ghost.Graphics.RHI.SamplerDesc.MaxLOD
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: MaxLOD
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 960
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public float MaxLOD { readonly get; set; }
+    parameters: []
+    return:
+      type: System.Single
+    content.vb: Public Property MaxLOD As Single
+  overload: Ghost.Graphics.RHI.SamplerDesc.MaxLOD*
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.IEquatable{Ghost.Graphics.RHI.SamplerDesc}
+  commentId: T:System.IEquatable{Ghost.Graphics.RHI.SamplerDesc}
+  parent: System
+  definition: System.IEquatable`1
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  name: IEquatable<SamplerDesc>
+  nameWithType: IEquatable<SamplerDesc>
+  fullName: System.IEquatable<Ghost.Graphics.RHI.SamplerDesc>
+  nameWithType.vb: IEquatable(Of SamplerDesc)
+  fullName.vb: System.IEquatable(Of Ghost.Graphics.RHI.SamplerDesc)
+  name.vb: IEquatable(Of SamplerDesc)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: <
+  - uid: Ghost.Graphics.RHI.SamplerDesc
+    name: SamplerDesc
+    href: Ghost.Graphics.RHI.SamplerDesc.html
+  - name: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.SamplerDesc
+    name: SamplerDesc
+    href: Ghost.Graphics.RHI.SamplerDesc.html
+  - name: )
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.IEquatable`1
+  commentId: T:System.IEquatable`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  name: IEquatable<T>
+  nameWithType: IEquatable<T>
+  fullName: System.IEquatable<T>
+  nameWithType.vb: IEquatable(Of T)
+  fullName.vb: System.IEquatable(Of T)
+  name.vb: IEquatable(Of T)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: Ghost.Graphics.RHI.SamplerDesc.FilterMode*
+  commentId: Overload:Ghost.Graphics.RHI.SamplerDesc.FilterMode
+  href: Ghost.Graphics.RHI.SamplerDesc.html#Ghost_Graphics_RHI_SamplerDesc_FilterMode
+  name: FilterMode
+  nameWithType: SamplerDesc.FilterMode
+  fullName: Ghost.Graphics.RHI.SamplerDesc.FilterMode
+- uid: Ghost.Graphics.RHI.TextureFilterMode
+  commentId: T:Ghost.Graphics.RHI.TextureFilterMode
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.TextureFilterMode.html
+  name: TextureFilterMode
+  nameWithType: TextureFilterMode
+  fullName: Ghost.Graphics.RHI.TextureFilterMode
+- uid: Ghost.Graphics.RHI.SamplerDesc.AddressU*
+  commentId: Overload:Ghost.Graphics.RHI.SamplerDesc.AddressU
+  href: Ghost.Graphics.RHI.SamplerDesc.html#Ghost_Graphics_RHI_SamplerDesc_AddressU
+  name: AddressU
+  nameWithType: SamplerDesc.AddressU
+  fullName: Ghost.Graphics.RHI.SamplerDesc.AddressU
+- uid: Ghost.Graphics.RHI.TextureAddressMode
+  commentId: T:Ghost.Graphics.RHI.TextureAddressMode
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.TextureAddressMode.html
+  name: TextureAddressMode
+  nameWithType: TextureAddressMode
+  fullName: Ghost.Graphics.RHI.TextureAddressMode
+- uid: Ghost.Graphics.RHI.SamplerDesc.AddressV*
+  commentId: Overload:Ghost.Graphics.RHI.SamplerDesc.AddressV
+  href: Ghost.Graphics.RHI.SamplerDesc.html#Ghost_Graphics_RHI_SamplerDesc_AddressV
+  name: AddressV
+  nameWithType: SamplerDesc.AddressV
+  fullName: Ghost.Graphics.RHI.SamplerDesc.AddressV
+- uid: Ghost.Graphics.RHI.SamplerDesc.AddressW*
+  commentId: Overload:Ghost.Graphics.RHI.SamplerDesc.AddressW
+  href: Ghost.Graphics.RHI.SamplerDesc.html#Ghost_Graphics_RHI_SamplerDesc_AddressW
+  name: AddressW
+  nameWithType: SamplerDesc.AddressW
+  fullName: Ghost.Graphics.RHI.SamplerDesc.AddressW
+- uid: Ghost.Graphics.RHI.SamplerDesc.ComparisonFunc*
+  commentId: Overload:Ghost.Graphics.RHI.SamplerDesc.ComparisonFunc
+  href: Ghost.Graphics.RHI.SamplerDesc.html#Ghost_Graphics_RHI_SamplerDesc_ComparisonFunc
+  name: ComparisonFunc
+  nameWithType: SamplerDesc.ComparisonFunc
+  fullName: Ghost.Graphics.RHI.SamplerDesc.ComparisonFunc
+- uid: Ghost.Graphics.RHI.ComparisonFunction
+  commentId: T:Ghost.Graphics.RHI.ComparisonFunction
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ComparisonFunction.html
+  name: ComparisonFunction
+  nameWithType: ComparisonFunction
+  fullName: Ghost.Graphics.RHI.ComparisonFunction
+- uid: Ghost.Graphics.RHI.SamplerDesc.MipLODBias*
+  commentId: Overload:Ghost.Graphics.RHI.SamplerDesc.MipLODBias
+  href: Ghost.Graphics.RHI.SamplerDesc.html#Ghost_Graphics_RHI_SamplerDesc_MipLODBias
+  name: MipLODBias
+  nameWithType: SamplerDesc.MipLODBias
+  fullName: Ghost.Graphics.RHI.SamplerDesc.MipLODBias
+- uid: System.Single
+  commentId: T:System.Single
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.single
+  name: float
+  nameWithType: float
+  fullName: float
+  nameWithType.vb: Single
+  fullName.vb: Single
+  name.vb: Single
+- uid: Ghost.Graphics.RHI.SamplerDesc.MaxAnisotropy*
+  commentId: Overload:Ghost.Graphics.RHI.SamplerDesc.MaxAnisotropy
+  href: Ghost.Graphics.RHI.SamplerDesc.html#Ghost_Graphics_RHI_SamplerDesc_MaxAnisotropy
+  name: MaxAnisotropy
+  nameWithType: SamplerDesc.MaxAnisotropy
+  fullName: Ghost.Graphics.RHI.SamplerDesc.MaxAnisotropy
+- uid: System.UInt32
+  commentId: T:System.UInt32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.uint32
+  name: uint
+  nameWithType: uint
+  fullName: uint
+  nameWithType.vb: UInteger
+  fullName.vb: UInteger
+  name.vb: UInteger
+- uid: Ghost.Graphics.RHI.SamplerDesc.MinLOD*
+  commentId: Overload:Ghost.Graphics.RHI.SamplerDesc.MinLOD
+  href: Ghost.Graphics.RHI.SamplerDesc.html#Ghost_Graphics_RHI_SamplerDesc_MinLOD
+  name: MinLOD
+  nameWithType: SamplerDesc.MinLOD
+  fullName: Ghost.Graphics.RHI.SamplerDesc.MinLOD
+- uid: Ghost.Graphics.RHI.SamplerDesc.MaxLOD*
+  commentId: Overload:Ghost.Graphics.RHI.SamplerDesc.MaxLOD
+  href: Ghost.Graphics.RHI.SamplerDesc.html#Ghost_Graphics_RHI_SamplerDesc_MaxLOD
+  name: MaxLOD
+  nameWithType: SamplerDesc.MaxLOD
+  fullName: Ghost.Graphics.RHI.SamplerDesc.MaxLOD

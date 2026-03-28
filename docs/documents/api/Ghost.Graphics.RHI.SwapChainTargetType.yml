@@ -1,0 +1,120 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.SwapChainTargetType
+  commentId: T:Ghost.Graphics.RHI.SwapChainTargetType
+  id: SwapChainTargetType
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.SwapChainTargetType.Composition
+  - Ghost.Graphics.RHI.SwapChainTargetType.WindowHandle
+  langs:
+  - csharp
+  - vb
+  name: SwapChainTargetType
+  nameWithType: SwapChainTargetType
+  fullName: Ghost.Graphics.RHI.SwapChainTargetType
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SwapChainTargetType
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1079
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public enum SwapChainTargetType
+    content.vb: Public Enum SwapChainTargetType
+- uid: Ghost.Graphics.RHI.SwapChainTargetType.WindowHandle
+  commentId: F:Ghost.Graphics.RHI.SwapChainTargetType.WindowHandle
+  id: WindowHandle
+  parent: Ghost.Graphics.RHI.SwapChainTargetType
+  langs:
+  - csharp
+  - vb
+  name: WindowHandle
+  nameWithType: SwapChainTargetType.WindowHandle
+  fullName: Ghost.Graphics.RHI.SwapChainTargetType.WindowHandle
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WindowHandle
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1081
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: WindowHandle = 0
+    return:
+      type: Ghost.Graphics.RHI.SwapChainTargetType
+- uid: Ghost.Graphics.RHI.SwapChainTargetType.Composition
+  commentId: F:Ghost.Graphics.RHI.SwapChainTargetType.Composition
+  id: Composition
+  parent: Ghost.Graphics.RHI.SwapChainTargetType
+  langs:
+  - csharp
+  - vb
+  name: Composition
+  nameWithType: SwapChainTargetType.Composition
+  fullName: Ghost.Graphics.RHI.SwapChainTargetType.Composition
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Composition
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1082
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Composition = 1
+    return:
+      type: Ghost.Graphics.RHI.SwapChainTargetType
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.SwapChainTargetType
+  commentId: T:Ghost.Graphics.RHI.SwapChainTargetType
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.SwapChainTargetType.html
+  name: SwapChainTargetType
+  nameWithType: SwapChainTargetType
+  fullName: Ghost.Graphics.RHI.SwapChainTargetType

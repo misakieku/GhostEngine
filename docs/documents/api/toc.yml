@@ -313,4 +313,506 @@ items:
   - uid: Ghost.Entities.World
     name: World
     type: Class
+- uid: Ghost.Graphics
+  name: Ghost.Graphics
+  type: Namespace
+  items:
+  - uid: Ghost.Graphics.RenderSystem
+    name: RenderSystem
+    type: Class
+  - uid: Ghost.Graphics.ResourceManager
+    name: ResourceManager
+    type: Class
+- uid: Ghost.Graphics.Core
+  name: Ghost.Graphics.Core
+  type: Namespace
+  items:
+  - uid: Ghost.Graphics.Core.Frustum
+    name: Frustum
+    type: Struct
+  - uid: Ghost.Graphics.Core.Frustum.corner_array
+    name: Frustum.corner_array
+    type: Struct
+  - uid: Ghost.Graphics.Core.Frustum.plane_array
+    name: Frustum.plane_array
+    type: Struct
+  - uid: Ghost.Graphics.Core.GateFit
+    name: GateFit
+    type: Enum
+  - uid: Ghost.Graphics.Core.Material
+    name: Material
+    type: Struct
+  - uid: Ghost.Graphics.Core.MaterialPalette
+    name: MaterialPalette
+    type: Struct
+  - uid: Ghost.Graphics.Core.Mesh
+    name: Mesh
+    type: Struct
+  - uid: Ghost.Graphics.Core.MeshExtension
+    name: MeshExtension
+    type: Class
+  - uid: Ghost.Graphics.Core.Meshlet
+    name: Meshlet
+    type: Struct
+  - uid: Ghost.Graphics.Core.MeshletGroup
+    name: MeshletGroup
+    type: Struct
+  - uid: Ghost.Graphics.Core.MeshletHierarchyNode
+    name: MeshletHierarchyNode
+    type: Struct
+  - uid: Ghost.Graphics.Core.MeshletMeshData
+    name: MeshletMeshData
+    type: Struct
+  - uid: Ghost.Graphics.Core.RenderList
+    name: RenderList
+    type: Struct
+  - uid: Ghost.Graphics.Core.RenderList.Enumerator
+    name: RenderList.Enumerator
+    type: Struct
+  - uid: Ghost.Graphics.Core.RenderRecord
+    name: RenderRecord
+    type: Struct
+  - uid: Ghost.Graphics.Core.RenderRequest
+    name: RenderRequest
+    type: Struct
+  - uid: Ghost.Graphics.Core.RenderView
+    name: RenderView
+    type: Struct
+  - uid: Ghost.Graphics.Core.RenderingContext
+    name: RenderingContext
+    type: Struct
+  - uid: Ghost.Graphics.Core.RenderingLayerMask
+    name: RenderingLayerMask
+    type: Struct
+  - uid: Ghost.Graphics.Core.Shader
+    name: Shader
+    type: Struct
+  - uid: Ghost.Graphics.Core.ShaderProperty
+    name: ShaderProperty
+    type: Struct
+- uid: Ghost.Graphics.Core.Contracts
+  name: Ghost.Graphics.Core.Contracts
+  type: Namespace
+  items:
+  - uid: Ghost.Graphics.Core.Contracts.IRenderPass
+    name: IRenderPass
+    type: Interface
+- uid: Ghost.Graphics.RHI
+  name: Ghost.Graphics.RHI
+  type: Namespace
+  items:
+  - uid: Ghost.Graphics.RHI.AllocationDesc
+    name: AllocationDesc
+    type: Struct
+  - uid: Ghost.Graphics.RHI.AttachmentLoadOp
+    name: AttachmentLoadOp
+    type: Enum
+  - uid: Ghost.Graphics.RHI.AttachmentStoreOp
+    name: AttachmentStoreOp
+    type: Enum
+  - uid: Ghost.Graphics.RHI.BarrierAccess
+    name: BarrierAccess
+    type: Enum
+  - uid: Ghost.Graphics.RHI.BarrierDesc
+    name: BarrierDesc
+    type: Struct
+  - uid: Ghost.Graphics.RHI.BarrierLayout
+    name: BarrierLayout
+    type: Enum
+  - uid: Ghost.Graphics.RHI.BarrierSubresourceRange
+    name: BarrierSubresourceRange
+    type: Struct
+  - uid: Ghost.Graphics.RHI.BarrierSync
+    name: BarrierSync
+    type: Enum
+  - uid: Ghost.Graphics.RHI.BarrierType
+    name: BarrierType
+    type: Enum
+  - uid: Ghost.Graphics.RHI.BindlessAccess
+    name: BindlessAccess
+    type: Enum
+  - uid: Ghost.Graphics.RHI.BufferDesc
+    name: BufferDesc
+    type: Struct
+  - uid: Ghost.Graphics.RHI.BufferUsage
+    name: BufferUsage
+    type: Enum
+  - uid: Ghost.Graphics.RHI.CBufferInfo
+    name: CBufferInfo
+    type: Struct
+  - uid: Ghost.Graphics.RHI.CBufferPropertyInfo
+    name: CBufferPropertyInfo
+    type: Struct
+  - uid: Ghost.Graphics.RHI.Color128
+    name: Color128
+    type: Struct
+  - uid: Ghost.Graphics.RHI.Color32
+    name: Color32
+    type: Struct
+  - uid: Ghost.Graphics.RHI.CommandBufferType
+    name: CommandBufferType
+    type: Enum
+  - uid: Ghost.Graphics.RHI.CommandError
+    name: CommandError
+    type: Struct
+  - uid: Ghost.Graphics.RHI.CommandQueueType
+    name: CommandQueueType
+    type: Enum
+  - uid: Ghost.Graphics.RHI.ComparisonFunction
+    name: ComparisonFunction
+    type: Enum
+  - uid: Ghost.Graphics.RHI.CompilerOptimizeLevel
+    name: CompilerOptimizeLevel
+    type: Enum
+  - uid: Ghost.Graphics.RHI.CompilerOption
+    name: CompilerOption
+    type: Enum
+  - uid: Ghost.Graphics.RHI.CompilerTier
+    name: CompilerTier
+    type: Enum
+  - uid: Ghost.Graphics.RHI.CreationOptions
+    name: CreationOptions
+    type: Struct
+  - uid: Ghost.Graphics.RHI.FeatureSupport
+    name: FeatureSupport
+    type: Enum
+  - uid: Ghost.Graphics.RHI.FrameData
+    name: FrameData
+    type: Struct
+  - uid: Ghost.Graphics.RHI.GPUResource
+    name: GPUResource
+    type: Struct
+  - uid: Ghost.Graphics.RHI.GraphicsBuffer
+    name: GraphicsBuffer
+    type: Struct
+  - uid: Ghost.Graphics.RHI.GraphicsCompiledResult
+    name: GraphicsCompiledResult
+    type: Struct
+  - uid: Ghost.Graphics.RHI.GraphicsEngineDesc
+    name: GraphicsEngineDesc
+    type: Struct
+  - uid: Ghost.Graphics.RHI.GraphicsPSODescriptor
+    name: GraphicsPSODescriptor
+    type: Struct
+  - uid: Ghost.Graphics.RHI.GraphicsPipeline
+    name: GraphicsPipeline
+    type: Struct
+  - uid: Ghost.Graphics.RHI.HeapFlags
+    name: HeapFlags
+    type: Enum
+  - uid: Ghost.Graphics.RHI.HeapType
+    name: HeapType
+    type: Enum
+  - uid: Ghost.Graphics.RHI.ICommandAllocator
+    name: ICommandAllocator
+    type: Interface
+  - uid: Ghost.Graphics.RHI.ICommandBuffer
+    name: ICommandBuffer
+    type: Interface
+  - uid: Ghost.Graphics.RHI.ICommandQueue
+    name: ICommandQueue
+    type: Interface
+  - uid: Ghost.Graphics.RHI.IGraphicsEngine
+    name: IGraphicsEngine
+    type: Interface
+  - uid: Ghost.Graphics.RHI.IPipelineLibrary
+    name: IPipelineLibrary
+    type: Interface
+  - uid: Ghost.Graphics.RHI.IRHIObject
+    name: IRHIObject
+    type: Interface
+  - uid: Ghost.Graphics.RHI.IRenderDevice
+    name: IRenderDevice
+    type: Interface
+  - uid: Ghost.Graphics.RHI.IRenderOutput
+    name: IRenderOutput
+    type: Interface
+  - uid: Ghost.Graphics.RHI.IRenderer
+    name: IRenderer
+    type: Interface
+  - uid: Ghost.Graphics.RHI.IResourceAllocator
+    name: IResourceAllocator
+    type: Interface
+  - uid: Ghost.Graphics.RHI.IResourceDatabase
+    name: IResourceDatabase
+    type: Interface
+  - uid: Ghost.Graphics.RHI.IResourceReleasable
+    name: IResourceReleasable
+    type: Interface
+  - uid: Ghost.Graphics.RHI.IShaderCompiler
+    name: IShaderCompiler
+    type: Interface
+  - uid: Ghost.Graphics.RHI.ISwapChain
+    name: ISwapChain
+    type: Interface
+  - uid: Ghost.Graphics.RHI.IndexType
+    name: IndexType
+    type: Enum
+  - uid: Ghost.Graphics.RHI.InstanceData
+    name: InstanceData
+    type: Struct
+  - uid: Ghost.Graphics.RHI.LocalKeywordSet
+    name: LocalKeywordSet
+    type: Struct
+  - uid: Ghost.Graphics.RHI.MeshData
+    name: MeshData
+    type: Struct
+  - uid: Ghost.Graphics.RHI.PassDepthStencilDesc
+    name: PassDepthStencilDesc
+    type: Struct
+  - uid: Ghost.Graphics.RHI.PassPipelineHash
+    name: PassPipelineHash
+    type: Struct
+  - uid: Ghost.Graphics.RHI.PassRenderTargetDesc
+    name: PassRenderTargetDesc
+    type: Struct
+  - uid: Ghost.Graphics.RHI.PipelineType
+    name: PipelineType
+    type: Enum
+  - uid: Ghost.Graphics.RHI.PrimitiveTopology
+    name: PrimitiveTopology
+    type: Enum
+  - uid: Ghost.Graphics.RHI.PushConstantsData
+    name: PushConstantsData
+    type: Struct
+  - uid: Ghost.Graphics.RHI.RHIUtility
+    name: RHIUtility
+    type: Class
+  - uid: Ghost.Graphics.RHI.RenderContext
+    name: RenderContext
+    type: Struct
+  - uid: Ghost.Graphics.RHI.RenderDesc
+    name: RenderDesc
+    type: Struct
+  - uid: Ghost.Graphics.RHI.RenderTargetCreationFlags
+    name: RenderTargetCreationFlags
+    type: Enum
+  - uid: Ghost.Graphics.RHI.RenderTargetDesc
+    name: RenderTargetDesc
+    type: Struct
+  - uid: Ghost.Graphics.RHI.RenderTargetType
+    name: RenderTargetType
+    type: Enum
+  - uid: Ghost.Graphics.RHI.ResourceAllocationType
+    name: ResourceAllocationType
+    type: Enum
+  - uid: Ghost.Graphics.RHI.ResourceBarrierData
+    name: ResourceBarrierData
+    type: Struct
+  - uid: Ghost.Graphics.RHI.ResourceBindingInfo
+    name: ResourceBindingInfo
+    type: Struct
+  - uid: Ghost.Graphics.RHI.ResourceDesc
+    name: ResourceDesc
+    type: Struct
+  - uid: Ghost.Graphics.RHI.ResourceHandleExtensions
+    name: ResourceHandleExtensions
+    type: Class
+  - uid: Ghost.Graphics.RHI.ResourceMemoryType
+    name: ResourceMemoryType
+    type: Enum
+  - uid: Ghost.Graphics.RHI.ResourceSizeInfo
+    name: ResourceSizeInfo
+    type: Struct
+  - uid: Ghost.Graphics.RHI.ResourceState
+    name: ResourceState
+    type: Enum
+  - uid: Ghost.Graphics.RHI.ResourceType
+    name: ResourceType
+    type: Enum
+  - uid: Ghost.Graphics.RHI.RootSignatureLayout
+    name: RootSignatureLayout
+    type: Class
+  - uid: Ghost.Graphics.RHI.Sampler
+    name: Sampler
+    type: Struct
+  - uid: Ghost.Graphics.RHI.SamplerDesc
+    name: SamplerDesc
+    type: Struct
+  - uid: Ghost.Graphics.RHI.ScissorRectDesc
+    name: ScissorRectDesc
+    type: Struct
+  - uid: Ghost.Graphics.RHI.ShaderCompilationConfig
+    name: ShaderCompilationConfig
+    type: Struct
+  - uid: Ghost.Graphics.RHI.ShaderCompileResult
+    name: ShaderCompileResult
+    type: Struct
+  - uid: Ghost.Graphics.RHI.ShaderInputType
+    name: ShaderInputType
+    type: Enum
+  - uid: Ghost.Graphics.RHI.ShaderPass
+    name: ShaderPass
+    type: Struct
+  - uid: Ghost.Graphics.RHI.ShaderReflectionData
+    name: ShaderReflectionData
+    type: Struct
+  - uid: Ghost.Graphics.RHI.ShaderStage
+    name: ShaderStage
+    type: Enum
+  - uid: Ghost.Graphics.RHI.ShaderVariant
+    name: ShaderVariant
+    type: Struct
+  - uid: Ghost.Graphics.RHI.SubResourceData
+    name: SubResourceData
+    type: Struct
+  - uid: Ghost.Graphics.RHI.SwapChainDesc
+    name: SwapChainDesc
+    type: Struct
+  - uid: Ghost.Graphics.RHI.SwapChainTarget
+    name: SwapChainTarget
+    type: Struct
+  - uid: Ghost.Graphics.RHI.SwapChainTargetType
+    name: SwapChainTargetType
+    type: Enum
+  - uid: Ghost.Graphics.RHI.Texture
+    name: Texture
+    type: Struct
+  - uid: Ghost.Graphics.RHI.TextureAddressMode
+    name: TextureAddressMode
+    type: Enum
+  - uid: Ghost.Graphics.RHI.TextureDesc
+    name: TextureDesc
+    type: Struct
+  - uid: Ghost.Graphics.RHI.TextureDimension
+    name: TextureDimension
+    type: Enum
+  - uid: Ghost.Graphics.RHI.TextureFilterMode
+    name: TextureFilterMode
+    type: Enum
+  - uid: Ghost.Graphics.RHI.TextureFormat
+    name: TextureFormat
+    type: Enum
+  - uid: Ghost.Graphics.RHI.TextureRegion
+    name: TextureRegion
+    type: Struct
+  - uid: Ghost.Graphics.RHI.TextureSubresource
+    name: TextureSubresource
+    type: Struct
+  - uid: Ghost.Graphics.RHI.TextureUsage
+    name: TextureUsage
+    type: Enum
+  - uid: Ghost.Graphics.RHI.Vertex
+    name: Vertex
+    type: Struct
+  - uid: Ghost.Graphics.RHI.Vertex.Semantic
+    name: Vertex.Semantic
+    type: Class
+  - uid: Ghost.Graphics.RHI.ViewData
+    name: ViewData
+    type: Struct
+  - uid: Ghost.Graphics.RHI.ViewportDesc
+    name: ViewportDesc
+    type: Struct
+- uid: Ghost.Graphics.RenderGraphModule
+  name: Ghost.Graphics.RenderGraphModule
+  type: Namespace
+  items:
+  - uid: Ghost.Graphics.RenderGraphModule.AccessFlags
+    name: AccessFlags
+    type: Enum
+  - uid: Ghost.Graphics.RenderGraphModule.IComputeRenderContext
+    name: IComputeRenderContext
+    type: Interface
+  - uid: Ghost.Graphics.RenderGraphModule.IComputeRenderGraphBuilder
+    name: IComputeRenderGraphBuilder
+    type: Interface
+  - uid: Ghost.Graphics.RenderGraphModule.IPassData
+    name: IPassData
+    type: Interface
+  - uid: Ghost.Graphics.RenderGraphModule.IRasterRenderContext
+    name: IRasterRenderContext
+    type: Interface
+  - uid: Ghost.Graphics.RenderGraphModule.IRasterRenderGraphBuilder
+    name: IRasterRenderGraphBuilder
+    type: Interface
+  - uid: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder
+    name: IRenderGraphBuilder
+    type: Interface
+  - uid: Ghost.Graphics.RenderGraphModule.IRenderGraphContext
+    name: IRenderGraphContext
+    type: Interface
+  - uid: Ghost.Graphics.RenderGraphModule.IUnsafeRenderContext
+    name: IUnsafeRenderContext
+    type: Interface
+  - uid: Ghost.Graphics.RenderGraphModule.IUnsafeRenderGraphBuilder
+    name: IUnsafeRenderGraphBuilder
+    type: Interface
+  - uid: Ghost.Graphics.RenderGraphModule.RGBuffer
+    name: RGBuffer
+    type: Struct
+  - uid: Ghost.Graphics.RenderGraphModule.RGResource
+    name: RGResource
+    type: Struct
+  - uid: Ghost.Graphics.RenderGraphModule.RGResourceExtensions
+    name: RGResourceExtensions
+    type: Class
+  - uid: Ghost.Graphics.RenderGraphModule.RGTexture
+    name: RGTexture
+    type: Struct
+  - uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+    name: RGTextureDesc
+    type: Struct
+  - uid: Ghost.Graphics.RenderGraphModule.RGTextureSizeMode
+    name: RGTextureSizeMode
+    type: Enum
+  - uid: Ghost.Graphics.RenderGraphModule.RenderGraph
+    name: RenderGraph
+    type: Class
+  - uid: Ghost.Graphics.RenderGraphModule.RenderGraphBlackboard
+    name: RenderGraphBlackboard
+    type: Class
+  - uid: Ghost.Graphics.RenderGraphModule.RenderPassType
+    name: RenderPassType
+    type: Enum
+  - uid: Ghost.Graphics.RenderGraphModule.ViewState
+    name: ViewState
+    type: Struct
+- uid: Ghost.Graphics.RenderPipeline
+  name: Ghost.Graphics.RenderPipeline
+  type: Namespace
+  items:
+  - uid: Ghost.Graphics.RenderPipeline.GhostRenderPipeline
+    name: GhostRenderPipeline
+    type: Class
+  - uid: Ghost.Graphics.RenderPipeline.GhostRenderPipelineSettings
+    name: GhostRenderPipelineSettings
+    type: Class
+  - uid: Ghost.Graphics.RenderPipeline.IRenderPipeline
+    name: IRenderPipeline
+    type: Interface
+  - uid: Ghost.Graphics.RenderPipeline.IRenderPipelineSettings
+    name: IRenderPipelineSettings
+    type: Interface
+- uid: Ghost.Graphics.Utilities
+  name: Ghost.Graphics.Utilities
+  type: Namespace
+  items:
+  - uid: Ghost.Graphics.Utilities.ClodBounds
+    name: ClodBounds
+    type: Struct
+  - uid: Ghost.Graphics.Utilities.ClodCluster
+    name: ClodCluster
+    type: Struct
+  - uid: Ghost.Graphics.Utilities.ClodConfig
+    name: ClodConfig
+    type: Struct
+  - uid: Ghost.Graphics.Utilities.ClodGroup
+    name: ClodGroup
+    type: Struct
+  - uid: Ghost.Graphics.Utilities.ClodMesh
+    name: ClodMesh
+    type: Struct
+  - uid: Ghost.Graphics.Utilities.ClodOutputDelegate
+    name: ClodOutputDelegate
+    type: Delegate
+  - uid: Ghost.Graphics.Utilities.MeshBuilder
+    name: MeshBuilder
+    type: Class
+  - uid: Ghost.Graphics.Utilities.MeshletUtility
+    name: MeshletUtility
+    type: Class
+  - uid: Ghost.Graphics.Utilities.TextureUtility
+    name: TextureUtility
+    type: Class
 memberLayout: SamePage

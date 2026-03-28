@@ -1,0 +1,211 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.RenderTargetCreationFlags
+  commentId: T:Ghost.Graphics.RHI.RenderTargetCreationFlags
+  id: RenderTargetCreationFlags
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.RenderTargetCreationFlags.AllowMSAA
+  - Ghost.Graphics.RHI.RenderTargetCreationFlags.AllowUAV
+  - Ghost.Graphics.RHI.RenderTargetCreationFlags.DynamicallyResolution
+  - Ghost.Graphics.RHI.RenderTargetCreationFlags.GenerateMips
+  - Ghost.Graphics.RHI.RenderTargetCreationFlags.None
+  langs:
+  - csharp
+  - vb
+  name: RenderTargetCreationFlags
+  nameWithType: RenderTargetCreationFlags
+  fullName: Ghost.Graphics.RHI.RenderTargetCreationFlags
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: RenderTargetCreationFlags
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1230
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: >-
+      [Flags]
+
+      public enum RenderTargetCreationFlags
+    content.vb: >-
+      <Flags>
+
+      Public Enum RenderTargetCreationFlags
+  attributes:
+  - type: System.FlagsAttribute
+    ctor: System.FlagsAttribute.#ctor
+    arguments: []
+- uid: Ghost.Graphics.RHI.RenderTargetCreationFlags.None
+  commentId: F:Ghost.Graphics.RHI.RenderTargetCreationFlags.None
+  id: None
+  parent: Ghost.Graphics.RHI.RenderTargetCreationFlags
+  langs:
+  - csharp
+  - vb
+  name: None
+  nameWithType: RenderTargetCreationFlags.None
+  fullName: Ghost.Graphics.RHI.RenderTargetCreationFlags.None
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: None
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1233
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: None = 0
+    return:
+      type: Ghost.Graphics.RHI.RenderTargetCreationFlags
+- uid: Ghost.Graphics.RHI.RenderTargetCreationFlags.AllowUAV
+  commentId: F:Ghost.Graphics.RHI.RenderTargetCreationFlags.AllowUAV
+  id: AllowUAV
+  parent: Ghost.Graphics.RHI.RenderTargetCreationFlags
+  langs:
+  - csharp
+  - vb
+  name: AllowUAV
+  nameWithType: RenderTargetCreationFlags.AllowUAV
+  fullName: Ghost.Graphics.RHI.RenderTargetCreationFlags.AllowUAV
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AllowUAV
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1234
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: AllowUAV = 1
+    return:
+      type: Ghost.Graphics.RHI.RenderTargetCreationFlags
+- uid: Ghost.Graphics.RHI.RenderTargetCreationFlags.AllowMSAA
+  commentId: F:Ghost.Graphics.RHI.RenderTargetCreationFlags.AllowMSAA
+  id: AllowMSAA
+  parent: Ghost.Graphics.RHI.RenderTargetCreationFlags
+  langs:
+  - csharp
+  - vb
+  name: AllowMSAA
+  nameWithType: RenderTargetCreationFlags.AllowMSAA
+  fullName: Ghost.Graphics.RHI.RenderTargetCreationFlags.AllowMSAA
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AllowMSAA
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1235
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: AllowMSAA = 2
+    return:
+      type: Ghost.Graphics.RHI.RenderTargetCreationFlags
+- uid: Ghost.Graphics.RHI.RenderTargetCreationFlags.DynamicallyResolution
+  commentId: F:Ghost.Graphics.RHI.RenderTargetCreationFlags.DynamicallyResolution
+  id: DynamicallyResolution
+  parent: Ghost.Graphics.RHI.RenderTargetCreationFlags
+  langs:
+  - csharp
+  - vb
+  name: DynamicallyResolution
+  nameWithType: RenderTargetCreationFlags.DynamicallyResolution
+  fullName: Ghost.Graphics.RHI.RenderTargetCreationFlags.DynamicallyResolution
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: DynamicallyResolution
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1236
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: DynamicallyResolution = 4
+    return:
+      type: Ghost.Graphics.RHI.RenderTargetCreationFlags
+- uid: Ghost.Graphics.RHI.RenderTargetCreationFlags.GenerateMips
+  commentId: F:Ghost.Graphics.RHI.RenderTargetCreationFlags.GenerateMips
+  id: GenerateMips
+  parent: Ghost.Graphics.RHI.RenderTargetCreationFlags
+  langs:
+  - csharp
+  - vb
+  name: GenerateMips
+  nameWithType: RenderTargetCreationFlags.GenerateMips
+  fullName: Ghost.Graphics.RHI.RenderTargetCreationFlags.GenerateMips
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GenerateMips
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1237
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: GenerateMips = 8
+    return:
+      type: Ghost.Graphics.RHI.RenderTargetCreationFlags
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.RenderTargetCreationFlags
+  commentId: T:Ghost.Graphics.RHI.RenderTargetCreationFlags
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.RenderTargetCreationFlags.html
+  name: RenderTargetCreationFlags
+  nameWithType: RenderTargetCreationFlags
+  fullName: Ghost.Graphics.RHI.RenderTargetCreationFlags

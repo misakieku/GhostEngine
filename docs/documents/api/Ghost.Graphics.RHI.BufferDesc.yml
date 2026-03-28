@@ -1,0 +1,526 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.BufferDesc
+  commentId: T:Ghost.Graphics.RHI.BufferDesc
+  id: BufferDesc
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.BufferDesc.MemoryType
+  - Ghost.Graphics.RHI.BufferDesc.Size
+  - Ghost.Graphics.RHI.BufferDesc.Stride
+  - Ghost.Graphics.RHI.BufferDesc.Usage
+  langs:
+  - csharp
+  - vb
+  name: BufferDesc
+  nameWithType: BufferDesc
+  fullName: Ghost.Graphics.RHI.BufferDesc
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: BufferDesc
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 966
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: 'public record struct BufferDesc : IEquatable<BufferDesc>'
+    content.vb: Public Structure BufferDesc Implements IEquatable(Of BufferDesc)
+  implements:
+  - System.IEquatable{Ghost.Graphics.RHI.BufferDesc}
+  inheritedMembers:
+  - System.ValueType.Equals(System.Object)
+  - System.ValueType.GetHashCode
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Graphics.RHI.BufferDesc.Size
+  commentId: P:Ghost.Graphics.RHI.BufferDesc.Size
+  id: Size
+  parent: Ghost.Graphics.RHI.BufferDesc
+  langs:
+  - csharp
+  - vb
+  name: Size
+  nameWithType: BufferDesc.Size
+  fullName: Ghost.Graphics.RHI.BufferDesc.Size
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Size
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 968
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public ulong Size { readonly get; set; }
+    parameters: []
+    return:
+      type: System.UInt64
+    content.vb: Public Property Size As ULong
+  overload: Ghost.Graphics.RHI.BufferDesc.Size*
+- uid: Ghost.Graphics.RHI.BufferDesc.Stride
+  commentId: P:Ghost.Graphics.RHI.BufferDesc.Stride
+  id: Stride
+  parent: Ghost.Graphics.RHI.BufferDesc
+  langs:
+  - csharp
+  - vb
+  name: Stride
+  nameWithType: BufferDesc.Stride
+  fullName: Ghost.Graphics.RHI.BufferDesc.Stride
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Stride
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 973
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public uint Stride { readonly get; set; }
+    parameters: []
+    return:
+      type: System.UInt32
+    content.vb: Public Property Stride As UInteger
+  overload: Ghost.Graphics.RHI.BufferDesc.Stride*
+- uid: Ghost.Graphics.RHI.BufferDesc.Usage
+  commentId: P:Ghost.Graphics.RHI.BufferDesc.Usage
+  id: Usage
+  parent: Ghost.Graphics.RHI.BufferDesc
+  langs:
+  - csharp
+  - vb
+  name: Usage
+  nameWithType: BufferDesc.Usage
+  fullName: Ghost.Graphics.RHI.BufferDesc.Usage
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Usage
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 978
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public BufferUsage Usage { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.BufferUsage
+    content.vb: Public Property Usage As BufferUsage
+  overload: Ghost.Graphics.RHI.BufferDesc.Usage*
+- uid: Ghost.Graphics.RHI.BufferDesc.MemoryType
+  commentId: P:Ghost.Graphics.RHI.BufferDesc.MemoryType
+  id: MemoryType
+  parent: Ghost.Graphics.RHI.BufferDesc
+  langs:
+  - csharp
+  - vb
+  name: MemoryType
+  nameWithType: BufferDesc.MemoryType
+  fullName: Ghost.Graphics.RHI.BufferDesc.MemoryType
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: MemoryType
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 983
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public ResourceMemoryType MemoryType { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.ResourceMemoryType
+    content.vb: Public Property MemoryType As ResourceMemoryType
+  overload: Ghost.Graphics.RHI.BufferDesc.MemoryType*
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.IEquatable{Ghost.Graphics.RHI.BufferDesc}
+  commentId: T:System.IEquatable{Ghost.Graphics.RHI.BufferDesc}
+  parent: System
+  definition: System.IEquatable`1
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  name: IEquatable<BufferDesc>
+  nameWithType: IEquatable<BufferDesc>
+  fullName: System.IEquatable<Ghost.Graphics.RHI.BufferDesc>
+  nameWithType.vb: IEquatable(Of BufferDesc)
+  fullName.vb: System.IEquatable(Of Ghost.Graphics.RHI.BufferDesc)
+  name.vb: IEquatable(Of BufferDesc)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: <
+  - uid: Ghost.Graphics.RHI.BufferDesc
+    name: BufferDesc
+    href: Ghost.Graphics.RHI.BufferDesc.html
+  - name: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.BufferDesc
+    name: BufferDesc
+    href: Ghost.Graphics.RHI.BufferDesc.html
+  - name: )
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.IEquatable`1
+  commentId: T:System.IEquatable`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  name: IEquatable<T>
+  nameWithType: IEquatable<T>
+  fullName: System.IEquatable<T>
+  nameWithType.vb: IEquatable(Of T)
+  fullName.vb: System.IEquatable(Of T)
+  name.vb: IEquatable(Of T)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: Ghost.Graphics.RHI.BufferDesc.Size*
+  commentId: Overload:Ghost.Graphics.RHI.BufferDesc.Size
+  href: Ghost.Graphics.RHI.BufferDesc.html#Ghost_Graphics_RHI_BufferDesc_Size
+  name: Size
+  nameWithType: BufferDesc.Size
+  fullName: Ghost.Graphics.RHI.BufferDesc.Size
+- uid: System.UInt64
+  commentId: T:System.UInt64
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.uint64
+  name: ulong
+  nameWithType: ulong
+  fullName: ulong
+  nameWithType.vb: ULong
+  fullName.vb: ULong
+  name.vb: ULong
+- uid: Ghost.Graphics.RHI.BufferDesc.Stride*
+  commentId: Overload:Ghost.Graphics.RHI.BufferDesc.Stride
+  href: Ghost.Graphics.RHI.BufferDesc.html#Ghost_Graphics_RHI_BufferDesc_Stride
+  name: Stride
+  nameWithType: BufferDesc.Stride
+  fullName: Ghost.Graphics.RHI.BufferDesc.Stride
+- uid: System.UInt32
+  commentId: T:System.UInt32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.uint32
+  name: uint
+  nameWithType: uint
+  fullName: uint
+  nameWithType.vb: UInteger
+  fullName.vb: UInteger
+  name.vb: UInteger
+- uid: Ghost.Graphics.RHI.BufferDesc.Usage*
+  commentId: Overload:Ghost.Graphics.RHI.BufferDesc.Usage
+  href: Ghost.Graphics.RHI.BufferDesc.html#Ghost_Graphics_RHI_BufferDesc_Usage
+  name: Usage
+  nameWithType: BufferDesc.Usage
+  fullName: Ghost.Graphics.RHI.BufferDesc.Usage
+- uid: Ghost.Graphics.RHI.BufferUsage
+  commentId: T:Ghost.Graphics.RHI.BufferUsage
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.BufferUsage.html
+  name: BufferUsage
+  nameWithType: BufferUsage
+  fullName: Ghost.Graphics.RHI.BufferUsage
+- uid: Ghost.Graphics.RHI.BufferDesc.MemoryType*
+  commentId: Overload:Ghost.Graphics.RHI.BufferDesc.MemoryType
+  href: Ghost.Graphics.RHI.BufferDesc.html#Ghost_Graphics_RHI_BufferDesc_MemoryType
+  name: MemoryType
+  nameWithType: BufferDesc.MemoryType
+  fullName: Ghost.Graphics.RHI.BufferDesc.MemoryType
+- uid: Ghost.Graphics.RHI.ResourceMemoryType
+  commentId: T:Ghost.Graphics.RHI.ResourceMemoryType
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ResourceMemoryType.html
+  name: ResourceMemoryType
+  nameWithType: ResourceMemoryType
+  fullName: Ghost.Graphics.RHI.ResourceMemoryType

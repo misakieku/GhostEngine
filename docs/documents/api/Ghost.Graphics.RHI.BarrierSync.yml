@@ -1,0 +1,724 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.BarrierSync
+  commentId: T:Ghost.Graphics.RHI.BarrierSync
+  id: BarrierSync
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.BarrierSync.All
+  - Ghost.Graphics.RHI.BarrierSync.AllShading
+  - Ghost.Graphics.RHI.BarrierSync.BuildRaytracingAccelerationStructure
+  - Ghost.Graphics.RHI.BarrierSync.ClearUnorderedAccessView
+  - Ghost.Graphics.RHI.BarrierSync.ComputeShading
+  - Ghost.Graphics.RHI.BarrierSync.Copy
+  - Ghost.Graphics.RHI.BarrierSync.CopyRaytracingAccelerationStructure
+  - Ghost.Graphics.RHI.BarrierSync.DepthStencil
+  - Ghost.Graphics.RHI.BarrierSync.Draw
+  - Ghost.Graphics.RHI.BarrierSync.EmitRaytracingAccelerationStructurePostbuildInfo
+  - Ghost.Graphics.RHI.BarrierSync.ExecuteIndirect
+  - Ghost.Graphics.RHI.BarrierSync.IndexInput
+  - Ghost.Graphics.RHI.BarrierSync.NonPixelShading
+  - Ghost.Graphics.RHI.BarrierSync.None
+  - Ghost.Graphics.RHI.BarrierSync.PixelShading
+  - Ghost.Graphics.RHI.BarrierSync.Predication
+  - Ghost.Graphics.RHI.BarrierSync.Raytracing
+  - Ghost.Graphics.RHI.BarrierSync.RenderTarget
+  - Ghost.Graphics.RHI.BarrierSync.Resolve
+  - Ghost.Graphics.RHI.BarrierSync.Split
+  - Ghost.Graphics.RHI.BarrierSync.VertexShading
+  - Ghost.Graphics.RHI.BarrierSync.VideoDecode
+  - Ghost.Graphics.RHI.BarrierSync.VideoEncode
+  - Ghost.Graphics.RHI.BarrierSync.VideoProcess
+  langs:
+  - csharp
+  - vb
+  name: BarrierSync
+  nameWithType: BarrierSync
+  fullName: Ghost.Graphics.RHI.BarrierSync
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: BarrierSync
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1093
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: >-
+      [Flags]
+
+      public enum BarrierSync
+    content.vb: >-
+      <Flags>
+
+      Public Enum BarrierSync
+  attributes:
+  - type: System.FlagsAttribute
+    ctor: System.FlagsAttribute.#ctor
+    arguments: []
+- uid: Ghost.Graphics.RHI.BarrierSync.None
+  commentId: F:Ghost.Graphics.RHI.BarrierSync.None
+  id: None
+  parent: Ghost.Graphics.RHI.BarrierSync
+  langs:
+  - csharp
+  - vb
+  name: None
+  nameWithType: BarrierSync.None
+  fullName: Ghost.Graphics.RHI.BarrierSync.None
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: None
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1096
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: None = 0
+    return:
+      type: Ghost.Graphics.RHI.BarrierSync
+- uid: Ghost.Graphics.RHI.BarrierSync.All
+  commentId: F:Ghost.Graphics.RHI.BarrierSync.All
+  id: All
+  parent: Ghost.Graphics.RHI.BarrierSync
+  langs:
+  - csharp
+  - vb
+  name: All
+  nameWithType: BarrierSync.All
+  fullName: Ghost.Graphics.RHI.BarrierSync.All
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: All
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1097
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: All = 1
+    return:
+      type: Ghost.Graphics.RHI.BarrierSync
+- uid: Ghost.Graphics.RHI.BarrierSync.Draw
+  commentId: F:Ghost.Graphics.RHI.BarrierSync.Draw
+  id: Draw
+  parent: Ghost.Graphics.RHI.BarrierSync
+  langs:
+  - csharp
+  - vb
+  name: Draw
+  nameWithType: BarrierSync.Draw
+  fullName: Ghost.Graphics.RHI.BarrierSync.Draw
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Draw
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1098
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Draw = 2
+    return:
+      type: Ghost.Graphics.RHI.BarrierSync
+- uid: Ghost.Graphics.RHI.BarrierSync.IndexInput
+  commentId: F:Ghost.Graphics.RHI.BarrierSync.IndexInput
+  id: IndexInput
+  parent: Ghost.Graphics.RHI.BarrierSync
+  langs:
+  - csharp
+  - vb
+  name: IndexInput
+  nameWithType: BarrierSync.IndexInput
+  fullName: Ghost.Graphics.RHI.BarrierSync.IndexInput
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IndexInput
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1099
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: IndexInput = 4
+    return:
+      type: Ghost.Graphics.RHI.BarrierSync
+- uid: Ghost.Graphics.RHI.BarrierSync.VertexShading
+  commentId: F:Ghost.Graphics.RHI.BarrierSync.VertexShading
+  id: VertexShading
+  parent: Ghost.Graphics.RHI.BarrierSync
+  langs:
+  - csharp
+  - vb
+  name: VertexShading
+  nameWithType: BarrierSync.VertexShading
+  fullName: Ghost.Graphics.RHI.BarrierSync.VertexShading
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: VertexShading
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1100
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: VertexShading = 8
+    return:
+      type: Ghost.Graphics.RHI.BarrierSync
+- uid: Ghost.Graphics.RHI.BarrierSync.PixelShading
+  commentId: F:Ghost.Graphics.RHI.BarrierSync.PixelShading
+  id: PixelShading
+  parent: Ghost.Graphics.RHI.BarrierSync
+  langs:
+  - csharp
+  - vb
+  name: PixelShading
+  nameWithType: BarrierSync.PixelShading
+  fullName: Ghost.Graphics.RHI.BarrierSync.PixelShading
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: PixelShading
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1101
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: PixelShading = 16
+    return:
+      type: Ghost.Graphics.RHI.BarrierSync
+- uid: Ghost.Graphics.RHI.BarrierSync.DepthStencil
+  commentId: F:Ghost.Graphics.RHI.BarrierSync.DepthStencil
+  id: DepthStencil
+  parent: Ghost.Graphics.RHI.BarrierSync
+  langs:
+  - csharp
+  - vb
+  name: DepthStencil
+  nameWithType: BarrierSync.DepthStencil
+  fullName: Ghost.Graphics.RHI.BarrierSync.DepthStencil
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: DepthStencil
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1102
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: DepthStencil = 32
+    return:
+      type: Ghost.Graphics.RHI.BarrierSync
+- uid: Ghost.Graphics.RHI.BarrierSync.RenderTarget
+  commentId: F:Ghost.Graphics.RHI.BarrierSync.RenderTarget
+  id: RenderTarget
+  parent: Ghost.Graphics.RHI.BarrierSync
+  langs:
+  - csharp
+  - vb
+  name: RenderTarget
+  nameWithType: BarrierSync.RenderTarget
+  fullName: Ghost.Graphics.RHI.BarrierSync.RenderTarget
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: RenderTarget
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1103
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: RenderTarget = 64
+    return:
+      type: Ghost.Graphics.RHI.BarrierSync
+- uid: Ghost.Graphics.RHI.BarrierSync.ComputeShading
+  commentId: F:Ghost.Graphics.RHI.BarrierSync.ComputeShading
+  id: ComputeShading
+  parent: Ghost.Graphics.RHI.BarrierSync
+  langs:
+  - csharp
+  - vb
+  name: ComputeShading
+  nameWithType: BarrierSync.ComputeShading
+  fullName: Ghost.Graphics.RHI.BarrierSync.ComputeShading
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ComputeShading
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1104
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: ComputeShading = 128
+    return:
+      type: Ghost.Graphics.RHI.BarrierSync
+- uid: Ghost.Graphics.RHI.BarrierSync.Raytracing
+  commentId: F:Ghost.Graphics.RHI.BarrierSync.Raytracing
+  id: Raytracing
+  parent: Ghost.Graphics.RHI.BarrierSync
+  langs:
+  - csharp
+  - vb
+  name: Raytracing
+  nameWithType: BarrierSync.Raytracing
+  fullName: Ghost.Graphics.RHI.BarrierSync.Raytracing
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Raytracing
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1105
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Raytracing = 256
+    return:
+      type: Ghost.Graphics.RHI.BarrierSync
+- uid: Ghost.Graphics.RHI.BarrierSync.Copy
+  commentId: F:Ghost.Graphics.RHI.BarrierSync.Copy
+  id: Copy
+  parent: Ghost.Graphics.RHI.BarrierSync
+  langs:
+  - csharp
+  - vb
+  name: Copy
+  nameWithType: BarrierSync.Copy
+  fullName: Ghost.Graphics.RHI.BarrierSync.Copy
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Copy
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1106
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Copy = 512
+    return:
+      type: Ghost.Graphics.RHI.BarrierSync
+- uid: Ghost.Graphics.RHI.BarrierSync.Resolve
+  commentId: F:Ghost.Graphics.RHI.BarrierSync.Resolve
+  id: Resolve
+  parent: Ghost.Graphics.RHI.BarrierSync
+  langs:
+  - csharp
+  - vb
+  name: Resolve
+  nameWithType: BarrierSync.Resolve
+  fullName: Ghost.Graphics.RHI.BarrierSync.Resolve
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Resolve
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1107
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Resolve = 1024
+    return:
+      type: Ghost.Graphics.RHI.BarrierSync
+- uid: Ghost.Graphics.RHI.BarrierSync.ExecuteIndirect
+  commentId: F:Ghost.Graphics.RHI.BarrierSync.ExecuteIndirect
+  id: ExecuteIndirect
+  parent: Ghost.Graphics.RHI.BarrierSync
+  langs:
+  - csharp
+  - vb
+  name: ExecuteIndirect
+  nameWithType: BarrierSync.ExecuteIndirect
+  fullName: Ghost.Graphics.RHI.BarrierSync.ExecuteIndirect
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ExecuteIndirect
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1108
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: ExecuteIndirect = 2048
+    return:
+      type: Ghost.Graphics.RHI.BarrierSync
+- uid: Ghost.Graphics.RHI.BarrierSync.Predication
+  commentId: F:Ghost.Graphics.RHI.BarrierSync.Predication
+  id: Predication
+  parent: Ghost.Graphics.RHI.BarrierSync
+  langs:
+  - csharp
+  - vb
+  name: Predication
+  nameWithType: BarrierSync.Predication
+  fullName: Ghost.Graphics.RHI.BarrierSync.Predication
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Predication
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1109
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Predication = 2048
+    return:
+      type: Ghost.Graphics.RHI.BarrierSync
+- uid: Ghost.Graphics.RHI.BarrierSync.AllShading
+  commentId: F:Ghost.Graphics.RHI.BarrierSync.AllShading
+  id: AllShading
+  parent: Ghost.Graphics.RHI.BarrierSync
+  langs:
+  - csharp
+  - vb
+  name: AllShading
+  nameWithType: BarrierSync.AllShading
+  fullName: Ghost.Graphics.RHI.BarrierSync.AllShading
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AllShading
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1110
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: AllShading = 4096
+    return:
+      type: Ghost.Graphics.RHI.BarrierSync
+- uid: Ghost.Graphics.RHI.BarrierSync.NonPixelShading
+  commentId: F:Ghost.Graphics.RHI.BarrierSync.NonPixelShading
+  id: NonPixelShading
+  parent: Ghost.Graphics.RHI.BarrierSync
+  langs:
+  - csharp
+  - vb
+  name: NonPixelShading
+  nameWithType: BarrierSync.NonPixelShading
+  fullName: Ghost.Graphics.RHI.BarrierSync.NonPixelShading
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: NonPixelShading
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1111
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: NonPixelShading = 8192
+    return:
+      type: Ghost.Graphics.RHI.BarrierSync
+- uid: Ghost.Graphics.RHI.BarrierSync.EmitRaytracingAccelerationStructurePostbuildInfo
+  commentId: F:Ghost.Graphics.RHI.BarrierSync.EmitRaytracingAccelerationStructurePostbuildInfo
+  id: EmitRaytracingAccelerationStructurePostbuildInfo
+  parent: Ghost.Graphics.RHI.BarrierSync
+  langs:
+  - csharp
+  - vb
+  name: EmitRaytracingAccelerationStructurePostbuildInfo
+  nameWithType: BarrierSync.EmitRaytracingAccelerationStructurePostbuildInfo
+  fullName: Ghost.Graphics.RHI.BarrierSync.EmitRaytracingAccelerationStructurePostbuildInfo
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: EmitRaytracingAccelerationStructurePostbuildInfo
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1112
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: EmitRaytracingAccelerationStructurePostbuildInfo = 16384
+    return:
+      type: Ghost.Graphics.RHI.BarrierSync
+- uid: Ghost.Graphics.RHI.BarrierSync.ClearUnorderedAccessView
+  commentId: F:Ghost.Graphics.RHI.BarrierSync.ClearUnorderedAccessView
+  id: ClearUnorderedAccessView
+  parent: Ghost.Graphics.RHI.BarrierSync
+  langs:
+  - csharp
+  - vb
+  name: ClearUnorderedAccessView
+  nameWithType: BarrierSync.ClearUnorderedAccessView
+  fullName: Ghost.Graphics.RHI.BarrierSync.ClearUnorderedAccessView
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ClearUnorderedAccessView
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1113
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: ClearUnorderedAccessView = 32768
+    return:
+      type: Ghost.Graphics.RHI.BarrierSync
+- uid: Ghost.Graphics.RHI.BarrierSync.VideoDecode
+  commentId: F:Ghost.Graphics.RHI.BarrierSync.VideoDecode
+  id: VideoDecode
+  parent: Ghost.Graphics.RHI.BarrierSync
+  langs:
+  - csharp
+  - vb
+  name: VideoDecode
+  nameWithType: BarrierSync.VideoDecode
+  fullName: Ghost.Graphics.RHI.BarrierSync.VideoDecode
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: VideoDecode
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1114
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: VideoDecode = 1048576
+    return:
+      type: Ghost.Graphics.RHI.BarrierSync
+- uid: Ghost.Graphics.RHI.BarrierSync.VideoProcess
+  commentId: F:Ghost.Graphics.RHI.BarrierSync.VideoProcess
+  id: VideoProcess
+  parent: Ghost.Graphics.RHI.BarrierSync
+  langs:
+  - csharp
+  - vb
+  name: VideoProcess
+  nameWithType: BarrierSync.VideoProcess
+  fullName: Ghost.Graphics.RHI.BarrierSync.VideoProcess
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: VideoProcess
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1115
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: VideoProcess = 2097152
+    return:
+      type: Ghost.Graphics.RHI.BarrierSync
+- uid: Ghost.Graphics.RHI.BarrierSync.VideoEncode
+  commentId: F:Ghost.Graphics.RHI.BarrierSync.VideoEncode
+  id: VideoEncode
+  parent: Ghost.Graphics.RHI.BarrierSync
+  langs:
+  - csharp
+  - vb
+  name: VideoEncode
+  nameWithType: BarrierSync.VideoEncode
+  fullName: Ghost.Graphics.RHI.BarrierSync.VideoEncode
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: VideoEncode
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1116
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: VideoEncode = 4194304
+    return:
+      type: Ghost.Graphics.RHI.BarrierSync
+- uid: Ghost.Graphics.RHI.BarrierSync.BuildRaytracingAccelerationStructure
+  commentId: F:Ghost.Graphics.RHI.BarrierSync.BuildRaytracingAccelerationStructure
+  id: BuildRaytracingAccelerationStructure
+  parent: Ghost.Graphics.RHI.BarrierSync
+  langs:
+  - csharp
+  - vb
+  name: BuildRaytracingAccelerationStructure
+  nameWithType: BarrierSync.BuildRaytracingAccelerationStructure
+  fullName: Ghost.Graphics.RHI.BarrierSync.BuildRaytracingAccelerationStructure
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: BuildRaytracingAccelerationStructure
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1117
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: BuildRaytracingAccelerationStructure = 8388608
+    return:
+      type: Ghost.Graphics.RHI.BarrierSync
+- uid: Ghost.Graphics.RHI.BarrierSync.CopyRaytracingAccelerationStructure
+  commentId: F:Ghost.Graphics.RHI.BarrierSync.CopyRaytracingAccelerationStructure
+  id: CopyRaytracingAccelerationStructure
+  parent: Ghost.Graphics.RHI.BarrierSync
+  langs:
+  - csharp
+  - vb
+  name: CopyRaytracingAccelerationStructure
+  nameWithType: BarrierSync.CopyRaytracingAccelerationStructure
+  fullName: Ghost.Graphics.RHI.BarrierSync.CopyRaytracingAccelerationStructure
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CopyRaytracingAccelerationStructure
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1118
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: CopyRaytracingAccelerationStructure = 16777216
+    return:
+      type: Ghost.Graphics.RHI.BarrierSync
+- uid: Ghost.Graphics.RHI.BarrierSync.Split
+  commentId: F:Ghost.Graphics.RHI.BarrierSync.Split
+  id: Split
+  parent: Ghost.Graphics.RHI.BarrierSync
+  langs:
+  - csharp
+  - vb
+  name: Split
+  nameWithType: BarrierSync.Split
+  fullName: Ghost.Graphics.RHI.BarrierSync.Split
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Split
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1119
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Split = -2147483648
+    return:
+      type: Ghost.Graphics.RHI.BarrierSync
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.BarrierSync
+  commentId: T:Ghost.Graphics.RHI.BarrierSync
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.BarrierSync.html
+  name: BarrierSync
+  nameWithType: BarrierSync
+  fullName: Ghost.Graphics.RHI.BarrierSync

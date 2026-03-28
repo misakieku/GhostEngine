@@ -1,0 +1,240 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RenderGraphModule.AccessFlags
+  commentId: T:Ghost.Graphics.RenderGraphModule.AccessFlags
+  id: AccessFlags
+  parent: Ghost.Graphics.RenderGraphModule
+  children:
+  - Ghost.Graphics.RenderGraphModule.AccessFlags.Discard
+  - Ghost.Graphics.RenderGraphModule.AccessFlags.None
+  - Ghost.Graphics.RenderGraphModule.AccessFlags.Read
+  - Ghost.Graphics.RenderGraphModule.AccessFlags.ReadWrite
+  - Ghost.Graphics.RenderGraphModule.AccessFlags.Write
+  - Ghost.Graphics.RenderGraphModule.AccessFlags.WriteAll
+  langs:
+  - csharp
+  - vb
+  name: AccessFlags
+  nameWithType: AccessFlags
+  fullName: Ghost.Graphics.RenderGraphModule.AccessFlags
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AccessFlags
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+    startLine: 7
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: >-
+      [Flags]
+
+      public enum AccessFlags : byte
+    content.vb: >-
+      <Flags>
+
+      Public Enum AccessFlags As Byte
+  attributes:
+  - type: System.FlagsAttribute
+    ctor: System.FlagsAttribute.#ctor
+    arguments: []
+- uid: Ghost.Graphics.RenderGraphModule.AccessFlags.None
+  commentId: F:Ghost.Graphics.RenderGraphModule.AccessFlags.None
+  id: None
+  parent: Ghost.Graphics.RenderGraphModule.AccessFlags
+  langs:
+  - csharp
+  - vb
+  name: None
+  nameWithType: AccessFlags.None
+  fullName: Ghost.Graphics.RenderGraphModule.AccessFlags.None
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: None
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+    startLine: 10
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: None = 0
+    return:
+      type: Ghost.Graphics.RenderGraphModule.AccessFlags
+- uid: Ghost.Graphics.RenderGraphModule.AccessFlags.Read
+  commentId: F:Ghost.Graphics.RenderGraphModule.AccessFlags.Read
+  id: Read
+  parent: Ghost.Graphics.RenderGraphModule.AccessFlags
+  langs:
+  - csharp
+  - vb
+  name: Read
+  nameWithType: AccessFlags.Read
+  fullName: Ghost.Graphics.RenderGraphModule.AccessFlags.Read
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Read
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+    startLine: 11
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: Read = 1
+    return:
+      type: Ghost.Graphics.RenderGraphModule.AccessFlags
+- uid: Ghost.Graphics.RenderGraphModule.AccessFlags.Write
+  commentId: F:Ghost.Graphics.RenderGraphModule.AccessFlags.Write
+  id: Write
+  parent: Ghost.Graphics.RenderGraphModule.AccessFlags
+  langs:
+  - csharp
+  - vb
+  name: Write
+  nameWithType: AccessFlags.Write
+  fullName: Ghost.Graphics.RenderGraphModule.AccessFlags.Write
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Write
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+    startLine: 12
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: Write = 2
+    return:
+      type: Ghost.Graphics.RenderGraphModule.AccessFlags
+- uid: Ghost.Graphics.RenderGraphModule.AccessFlags.Discard
+  commentId: F:Ghost.Graphics.RenderGraphModule.AccessFlags.Discard
+  id: Discard
+  parent: Ghost.Graphics.RenderGraphModule.AccessFlags
+  langs:
+  - csharp
+  - vb
+  name: Discard
+  nameWithType: AccessFlags.Discard
+  fullName: Ghost.Graphics.RenderGraphModule.AccessFlags.Discard
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Discard
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+    startLine: 13
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: Discard = 4
+    return:
+      type: Ghost.Graphics.RenderGraphModule.AccessFlags
+- uid: Ghost.Graphics.RenderGraphModule.AccessFlags.WriteAll
+  commentId: F:Ghost.Graphics.RenderGraphModule.AccessFlags.WriteAll
+  id: WriteAll
+  parent: Ghost.Graphics.RenderGraphModule.AccessFlags
+  langs:
+  - csharp
+  - vb
+  name: WriteAll
+  nameWithType: AccessFlags.WriteAll
+  fullName: Ghost.Graphics.RenderGraphModule.AccessFlags.WriteAll
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WriteAll
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+    startLine: 15
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: WriteAll = Write | Discard
+    return:
+      type: Ghost.Graphics.RenderGraphModule.AccessFlags
+    content.vb: WriteAll = Write Or Discard
+- uid: Ghost.Graphics.RenderGraphModule.AccessFlags.ReadWrite
+  commentId: F:Ghost.Graphics.RenderGraphModule.AccessFlags.ReadWrite
+  id: ReadWrite
+  parent: Ghost.Graphics.RenderGraphModule.AccessFlags
+  langs:
+  - csharp
+  - vb
+  name: ReadWrite
+  nameWithType: AccessFlags.ReadWrite
+  fullName: Ghost.Graphics.RenderGraphModule.AccessFlags.ReadWrite
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ReadWrite
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+    startLine: 16
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: ReadWrite = Read | Write
+    return:
+      type: Ghost.Graphics.RenderGraphModule.AccessFlags
+    content.vb: ReadWrite = Read Or Write
+references:
+- uid: Ghost.Graphics.RenderGraphModule
+  commentId: N:Ghost.Graphics.RenderGraphModule
+  href: Ghost.html
+  name: Ghost.Graphics.RenderGraphModule
+  nameWithType: Ghost.Graphics.RenderGraphModule
+  fullName: Ghost.Graphics.RenderGraphModule
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RenderGraphModule
+    name: RenderGraphModule
+    href: Ghost.Graphics.RenderGraphModule.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RenderGraphModule
+    name: RenderGraphModule
+    href: Ghost.Graphics.RenderGraphModule.html
+- uid: Ghost.Graphics.RenderGraphModule.AccessFlags
+  commentId: T:Ghost.Graphics.RenderGraphModule.AccessFlags
+  parent: Ghost.Graphics.RenderGraphModule
+  href: Ghost.Graphics.RenderGraphModule.AccessFlags.html
+  name: AccessFlags
+  nameWithType: AccessFlags
+  fullName: Ghost.Graphics.RenderGraphModule.AccessFlags

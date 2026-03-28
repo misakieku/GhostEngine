@@ -1,0 +1,292 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.FeatureSupport
+  commentId: T:Ghost.Graphics.RHI.FeatureSupport
+  id: FeatureSupport
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.FeatureSupport.AliasBuffersAndTextures
+  - Ghost.Graphics.RHI.FeatureSupport.BindlessResources
+  - Ghost.Graphics.RHI.FeatureSupport.MeshShaders
+  - Ghost.Graphics.RHI.FeatureSupport.None
+  - Ghost.Graphics.RHI.FeatureSupport.RayTracing
+  - Ghost.Graphics.RHI.FeatureSupport.SamplerFeedback
+  - Ghost.Graphics.RHI.FeatureSupport.VariableRateShading
+  - Ghost.Graphics.RHI.FeatureSupport.WorkGraphs
+  langs:
+  - csharp
+  - vb
+  name: FeatureSupport
+  nameWithType: FeatureSupport
+  fullName: Ghost.Graphics.RHI.FeatureSupport
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderDevice.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: FeatureSupport
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderDevice.cs
+    startLine: 2
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: >-
+      [Flags]
+
+      public enum FeatureSupport
+    content.vb: >-
+      <Flags>
+
+      Public Enum FeatureSupport
+  attributes:
+  - type: System.FlagsAttribute
+    ctor: System.FlagsAttribute.#ctor
+    arguments: []
+- uid: Ghost.Graphics.RHI.FeatureSupport.None
+  commentId: F:Ghost.Graphics.RHI.FeatureSupport.None
+  id: None
+  parent: Ghost.Graphics.RHI.FeatureSupport
+  langs:
+  - csharp
+  - vb
+  name: None
+  nameWithType: FeatureSupport.None
+  fullName: Ghost.Graphics.RHI.FeatureSupport.None
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderDevice.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: None
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderDevice.cs
+    startLine: 5
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: None = 0
+    return:
+      type: Ghost.Graphics.RHI.FeatureSupport
+- uid: Ghost.Graphics.RHI.FeatureSupport.RayTracing
+  commentId: F:Ghost.Graphics.RHI.FeatureSupport.RayTracing
+  id: RayTracing
+  parent: Ghost.Graphics.RHI.FeatureSupport
+  langs:
+  - csharp
+  - vb
+  name: RayTracing
+  nameWithType: FeatureSupport.RayTracing
+  fullName: Ghost.Graphics.RHI.FeatureSupport.RayTracing
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderDevice.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: RayTracing
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderDevice.cs
+    startLine: 6
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: RayTracing = 1
+    return:
+      type: Ghost.Graphics.RHI.FeatureSupport
+- uid: Ghost.Graphics.RHI.FeatureSupport.VariableRateShading
+  commentId: F:Ghost.Graphics.RHI.FeatureSupport.VariableRateShading
+  id: VariableRateShading
+  parent: Ghost.Graphics.RHI.FeatureSupport
+  langs:
+  - csharp
+  - vb
+  name: VariableRateShading
+  nameWithType: FeatureSupport.VariableRateShading
+  fullName: Ghost.Graphics.RHI.FeatureSupport.VariableRateShading
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderDevice.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: VariableRateShading
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderDevice.cs
+    startLine: 7
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: VariableRateShading = 2
+    return:
+      type: Ghost.Graphics.RHI.FeatureSupport
+- uid: Ghost.Graphics.RHI.FeatureSupport.MeshShaders
+  commentId: F:Ghost.Graphics.RHI.FeatureSupport.MeshShaders
+  id: MeshShaders
+  parent: Ghost.Graphics.RHI.FeatureSupport
+  langs:
+  - csharp
+  - vb
+  name: MeshShaders
+  nameWithType: FeatureSupport.MeshShaders
+  fullName: Ghost.Graphics.RHI.FeatureSupport.MeshShaders
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderDevice.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: MeshShaders
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderDevice.cs
+    startLine: 8
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: MeshShaders = 4
+    return:
+      type: Ghost.Graphics.RHI.FeatureSupport
+- uid: Ghost.Graphics.RHI.FeatureSupport.SamplerFeedback
+  commentId: F:Ghost.Graphics.RHI.FeatureSupport.SamplerFeedback
+  id: SamplerFeedback
+  parent: Ghost.Graphics.RHI.FeatureSupport
+  langs:
+  - csharp
+  - vb
+  name: SamplerFeedback
+  nameWithType: FeatureSupport.SamplerFeedback
+  fullName: Ghost.Graphics.RHI.FeatureSupport.SamplerFeedback
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderDevice.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SamplerFeedback
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderDevice.cs
+    startLine: 9
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: SamplerFeedback = 8
+    return:
+      type: Ghost.Graphics.RHI.FeatureSupport
+- uid: Ghost.Graphics.RHI.FeatureSupport.BindlessResources
+  commentId: F:Ghost.Graphics.RHI.FeatureSupport.BindlessResources
+  id: BindlessResources
+  parent: Ghost.Graphics.RHI.FeatureSupport
+  langs:
+  - csharp
+  - vb
+  name: BindlessResources
+  nameWithType: FeatureSupport.BindlessResources
+  fullName: Ghost.Graphics.RHI.FeatureSupport.BindlessResources
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderDevice.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: BindlessResources
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderDevice.cs
+    startLine: 10
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: BindlessResources = 16
+    return:
+      type: Ghost.Graphics.RHI.FeatureSupport
+- uid: Ghost.Graphics.RHI.FeatureSupport.WorkGraphs
+  commentId: F:Ghost.Graphics.RHI.FeatureSupport.WorkGraphs
+  id: WorkGraphs
+  parent: Ghost.Graphics.RHI.FeatureSupport
+  langs:
+  - csharp
+  - vb
+  name: WorkGraphs
+  nameWithType: FeatureSupport.WorkGraphs
+  fullName: Ghost.Graphics.RHI.FeatureSupport.WorkGraphs
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderDevice.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WorkGraphs
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderDevice.cs
+    startLine: 11
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: WorkGraphs = 32
+    return:
+      type: Ghost.Graphics.RHI.FeatureSupport
+- uid: Ghost.Graphics.RHI.FeatureSupport.AliasBuffersAndTextures
+  commentId: F:Ghost.Graphics.RHI.FeatureSupport.AliasBuffersAndTextures
+  id: AliasBuffersAndTextures
+  parent: Ghost.Graphics.RHI.FeatureSupport
+  langs:
+  - csharp
+  - vb
+  name: AliasBuffersAndTextures
+  nameWithType: FeatureSupport.AliasBuffersAndTextures
+  fullName: Ghost.Graphics.RHI.FeatureSupport.AliasBuffersAndTextures
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderDevice.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AliasBuffersAndTextures
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderDevice.cs
+    startLine: 12
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: AliasBuffersAndTextures = 64
+    return:
+      type: Ghost.Graphics.RHI.FeatureSupport
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.FeatureSupport
+  commentId: T:Ghost.Graphics.RHI.FeatureSupport
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.FeatureSupport.html
+  name: FeatureSupport
+  nameWithType: FeatureSupport
+  fullName: Ghost.Graphics.RHI.FeatureSupport

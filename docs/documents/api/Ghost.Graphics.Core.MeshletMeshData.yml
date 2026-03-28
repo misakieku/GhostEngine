@@ -1,0 +1,756 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.Core.MeshletMeshData
+  commentId: T:Ghost.Graphics.Core.MeshletMeshData
+  id: MeshletMeshData
+  parent: Ghost.Graphics.Core
+  children:
+  - Ghost.Graphics.Core.MeshletMeshData.Dispose
+  - Ghost.Graphics.Core.MeshletMeshData.groups
+  - Ghost.Graphics.Core.MeshletMeshData.hierarchyNodes
+  - Ghost.Graphics.Core.MeshletMeshData.lodLevelCount
+  - Ghost.Graphics.Core.MeshletMeshData.materialSlotCount
+  - Ghost.Graphics.Core.MeshletMeshData.meshletCount
+  - Ghost.Graphics.Core.MeshletMeshData.meshletTriangles
+  - Ghost.Graphics.Core.MeshletMeshData.meshletVertices
+  - Ghost.Graphics.Core.MeshletMeshData.meshlets
+  langs:
+  - csharp
+  - vb
+  name: MeshletMeshData
+  nameWithType: MeshletMeshData
+  fullName: Ghost.Graphics.Core.MeshletMeshData
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: MeshletMeshData
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 49
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: 'public struct MeshletMeshData : IDisposable'
+    content.vb: Public Structure MeshletMeshData Implements IDisposable
+  implements:
+  - System.IDisposable
+  inheritedMembers:
+  - System.ValueType.Equals(System.Object)
+  - System.ValueType.GetHashCode
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Graphics.Core.MeshletMeshData.meshlets
+  commentId: F:Ghost.Graphics.Core.MeshletMeshData.meshlets
+  id: meshlets
+  parent: Ghost.Graphics.Core.MeshletMeshData
+  langs:
+  - csharp
+  - vb
+  name: meshlets
+  nameWithType: MeshletMeshData.meshlets
+  fullName: Ghost.Graphics.Core.MeshletMeshData.meshlets
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: meshlets
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 52
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public UnsafeList<Meshlet> meshlets
+    return:
+      type: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.Core.Meshlet}
+    content.vb: Public meshlets As UnsafeList(Of Meshlet)
+- uid: Ghost.Graphics.Core.MeshletMeshData.groups
+  commentId: F:Ghost.Graphics.Core.MeshletMeshData.groups
+  id: groups
+  parent: Ghost.Graphics.Core.MeshletMeshData
+  langs:
+  - csharp
+  - vb
+  name: groups
+  nameWithType: MeshletMeshData.groups
+  fullName: Ghost.Graphics.Core.MeshletMeshData.groups
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: groups
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 53
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public UnsafeList<MeshletGroup> groups
+    return:
+      type: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.Core.MeshletGroup}
+    content.vb: Public groups As UnsafeList(Of MeshletGroup)
+- uid: Ghost.Graphics.Core.MeshletMeshData.hierarchyNodes
+  commentId: F:Ghost.Graphics.Core.MeshletMeshData.hierarchyNodes
+  id: hierarchyNodes
+  parent: Ghost.Graphics.Core.MeshletMeshData
+  langs:
+  - csharp
+  - vb
+  name: hierarchyNodes
+  nameWithType: MeshletMeshData.hierarchyNodes
+  fullName: Ghost.Graphics.Core.MeshletMeshData.hierarchyNodes
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: hierarchyNodes
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 54
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public UnsafeList<MeshletHierarchyNode> hierarchyNodes
+    return:
+      type: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.Core.MeshletHierarchyNode}
+    content.vb: Public hierarchyNodes As UnsafeList(Of MeshletHierarchyNode)
+- uid: Ghost.Graphics.Core.MeshletMeshData.meshletVertices
+  commentId: F:Ghost.Graphics.Core.MeshletMeshData.meshletVertices
+  id: meshletVertices
+  parent: Ghost.Graphics.Core.MeshletMeshData
+  langs:
+  - csharp
+  - vb
+  name: meshletVertices
+  nameWithType: MeshletMeshData.meshletVertices
+  fullName: Ghost.Graphics.Core.MeshletMeshData.meshletVertices
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: meshletVertices
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 55
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public UnsafeList<uint> meshletVertices
+    return:
+      type: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}
+    content.vb: Public meshletVertices As UnsafeList(Of UInteger)
+- uid: Ghost.Graphics.Core.MeshletMeshData.meshletTriangles
+  commentId: F:Ghost.Graphics.Core.MeshletMeshData.meshletTriangles
+  id: meshletTriangles
+  parent: Ghost.Graphics.Core.MeshletMeshData
+  langs:
+  - csharp
+  - vb
+  name: meshletTriangles
+  nameWithType: MeshletMeshData.meshletTriangles
+  fullName: Ghost.Graphics.Core.MeshletMeshData.meshletTriangles
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: meshletTriangles
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 56
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public UnsafeList<uint> meshletTriangles
+    return:
+      type: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}
+    content.vb: Public meshletTriangles As UnsafeList(Of UInteger)
+- uid: Ghost.Graphics.Core.MeshletMeshData.meshletCount
+  commentId: F:Ghost.Graphics.Core.MeshletMeshData.meshletCount
+  id: meshletCount
+  parent: Ghost.Graphics.Core.MeshletMeshData
+  langs:
+  - csharp
+  - vb
+  name: meshletCount
+  nameWithType: MeshletMeshData.meshletCount
+  fullName: Ghost.Graphics.Core.MeshletMeshData.meshletCount
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: meshletCount
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 57
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public int meshletCount
+    return:
+      type: System.Int32
+    content.vb: Public meshletCount As Integer
+- uid: Ghost.Graphics.Core.MeshletMeshData.lodLevelCount
+  commentId: F:Ghost.Graphics.Core.MeshletMeshData.lodLevelCount
+  id: lodLevelCount
+  parent: Ghost.Graphics.Core.MeshletMeshData
+  langs:
+  - csharp
+  - vb
+  name: lodLevelCount
+  nameWithType: MeshletMeshData.lodLevelCount
+  fullName: Ghost.Graphics.Core.MeshletMeshData.lodLevelCount
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: lodLevelCount
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 58
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public int lodLevelCount
+    return:
+      type: System.Int32
+    content.vb: Public lodLevelCount As Integer
+- uid: Ghost.Graphics.Core.MeshletMeshData.materialSlotCount
+  commentId: F:Ghost.Graphics.Core.MeshletMeshData.materialSlotCount
+  id: materialSlotCount
+  parent: Ghost.Graphics.Core.MeshletMeshData
+  langs:
+  - csharp
+  - vb
+  name: materialSlotCount
+  nameWithType: MeshletMeshData.materialSlotCount
+  fullName: Ghost.Graphics.Core.MeshletMeshData.materialSlotCount
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: materialSlotCount
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 59
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  syntax:
+    content: public int materialSlotCount
+    return:
+      type: System.Int32
+    content.vb: Public materialSlotCount As Integer
+- uid: Ghost.Graphics.Core.MeshletMeshData.Dispose
+  commentId: M:Ghost.Graphics.Core.MeshletMeshData.Dispose
+  id: Dispose
+  parent: Ghost.Graphics.Core.MeshletMeshData
+  langs:
+  - csharp
+  - vb
+  name: Dispose()
+  nameWithType: MeshletMeshData.Dispose()
+  fullName: Ghost.Graphics.Core.MeshletMeshData.Dispose()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Dispose
+    path: src/Runtime/Ghost.Graphics/Core/Mesh.cs
+    startLine: 61
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.Core
+  summary: Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+  example: []
+  syntax:
+    content: public void Dispose()
+    content.vb: Public Sub Dispose()
+  overload: Ghost.Graphics.Core.MeshletMeshData.Dispose*
+  implements:
+  - System.IDisposable.Dispose
+references:
+- uid: Ghost.Graphics.Core
+  commentId: N:Ghost.Graphics.Core
+  href: Ghost.html
+  name: Ghost.Graphics.Core
+  nameWithType: Ghost.Graphics.Core
+  fullName: Ghost.Graphics.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Core
+    name: Core
+    href: Ghost.Graphics.Core.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.Core
+    name: Core
+    href: Ghost.Graphics.Core.html
+- uid: System.IDisposable
+  commentId: T:System.IDisposable
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable
+  name: IDisposable
+  nameWithType: IDisposable
+  fullName: System.IDisposable
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.Core.Meshlet}
+  commentId: T:Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.Core.Meshlet}
+  parent: Misaki.HighPerformance.LowLevel.Collections
+  definition: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+  href: Ghost.Graphics.Core.Meshlet.html
+  name: UnsafeList<Meshlet>
+  nameWithType: UnsafeList<Meshlet>
+  fullName: Misaki.HighPerformance.LowLevel.Collections.UnsafeList<Ghost.Graphics.Core.Meshlet>
+  nameWithType.vb: UnsafeList(Of Meshlet)
+  fullName.vb: Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of Ghost.Graphics.Core.Meshlet)
+  name.vb: UnsafeList(Of Meshlet)
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: <
+  - uid: Ghost.Graphics.Core.Meshlet
+    name: Meshlet
+    href: Ghost.Graphics.Core.Meshlet.html
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.Core.Meshlet
+    name: Meshlet
+    href: Ghost.Graphics.Core.Meshlet.html
+  - name: )
+- uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+  commentId: T:Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+  name: UnsafeList<T>
+  nameWithType: UnsafeList<T>
+  fullName: Misaki.HighPerformance.LowLevel.Collections.UnsafeList<T>
+  nameWithType.vb: UnsafeList(Of T)
+  fullName.vb: Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of T)
+  name.vb: UnsafeList(Of T)
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Misaki.HighPerformance.LowLevel.Collections
+  commentId: N:Misaki.HighPerformance.LowLevel.Collections
+  name: Misaki.HighPerformance.LowLevel.Collections
+  nameWithType: Misaki.HighPerformance.LowLevel.Collections
+  fullName: Misaki.HighPerformance.LowLevel.Collections
+  spec.csharp:
+  - uid: Misaki
+    name: Misaki
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel
+    name: LowLevel
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel.Collections
+    name: Collections
+  spec.vb:
+  - uid: Misaki
+    name: Misaki
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel
+    name: LowLevel
+  - name: .
+  - uid: Misaki.HighPerformance.LowLevel.Collections
+    name: Collections
+- uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.Core.MeshletGroup}
+  commentId: T:Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.Core.MeshletGroup}
+  parent: Misaki.HighPerformance.LowLevel.Collections
+  definition: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+  href: Ghost.Graphics.Core.MeshletGroup.html
+  name: UnsafeList<MeshletGroup>
+  nameWithType: UnsafeList<MeshletGroup>
+  fullName: Misaki.HighPerformance.LowLevel.Collections.UnsafeList<Ghost.Graphics.Core.MeshletGroup>
+  nameWithType.vb: UnsafeList(Of MeshletGroup)
+  fullName.vb: Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of Ghost.Graphics.Core.MeshletGroup)
+  name.vb: UnsafeList(Of MeshletGroup)
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: <
+  - uid: Ghost.Graphics.Core.MeshletGroup
+    name: MeshletGroup
+    href: Ghost.Graphics.Core.MeshletGroup.html
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.Core.MeshletGroup
+    name: MeshletGroup
+    href: Ghost.Graphics.Core.MeshletGroup.html
+  - name: )
+- uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.Core.MeshletHierarchyNode}
+  commentId: T:Misaki.HighPerformance.LowLevel.Collections.UnsafeList{Ghost.Graphics.Core.MeshletHierarchyNode}
+  parent: Misaki.HighPerformance.LowLevel.Collections
+  definition: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+  href: Ghost.Graphics.Core.MeshletHierarchyNode.html
+  name: UnsafeList<MeshletHierarchyNode>
+  nameWithType: UnsafeList<MeshletHierarchyNode>
+  fullName: Misaki.HighPerformance.LowLevel.Collections.UnsafeList<Ghost.Graphics.Core.MeshletHierarchyNode>
+  nameWithType.vb: UnsafeList(Of MeshletHierarchyNode)
+  fullName.vb: Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of Ghost.Graphics.Core.MeshletHierarchyNode)
+  name.vb: UnsafeList(Of MeshletHierarchyNode)
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: <
+  - uid: Ghost.Graphics.Core.MeshletHierarchyNode
+    name: MeshletHierarchyNode
+    href: Ghost.Graphics.Core.MeshletHierarchyNode.html
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.Core.MeshletHierarchyNode
+    name: MeshletHierarchyNode
+    href: Ghost.Graphics.Core.MeshletHierarchyNode.html
+  - name: )
+- uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}
+  commentId: T:Misaki.HighPerformance.LowLevel.Collections.UnsafeList{System.UInt32}
+  parent: Misaki.HighPerformance.LowLevel.Collections
+  definition: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+  href: https://learn.microsoft.com/dotnet/api/system.uint32
+  name: UnsafeList<uint>
+  nameWithType: UnsafeList<uint>
+  fullName: Misaki.HighPerformance.LowLevel.Collections.UnsafeList<uint>
+  nameWithType.vb: UnsafeList(Of UInteger)
+  fullName.vb: Misaki.HighPerformance.LowLevel.Collections.UnsafeList(Of UInteger)
+  name.vb: UnsafeList(Of UInteger)
+  spec.csharp:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: <
+  - uid: System.UInt32
+    name: uint
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.uint32
+  - name: '>'
+  spec.vb:
+  - uid: Misaki.HighPerformance.LowLevel.Collections.UnsafeList`1
+    name: UnsafeList
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: System.UInt32
+    name: UInteger
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.uint32
+  - name: )
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.int32
+  name: int
+  nameWithType: int
+  fullName: int
+  nameWithType.vb: Integer
+  fullName.vb: Integer
+  name.vb: Integer
+- uid: Ghost.Graphics.Core.MeshletMeshData.Dispose*
+  commentId: Overload:Ghost.Graphics.Core.MeshletMeshData.Dispose
+  href: Ghost.Graphics.Core.MeshletMeshData.html#Ghost_Graphics_Core_MeshletMeshData_Dispose
+  name: Dispose
+  nameWithType: MeshletMeshData.Dispose
+  fullName: Ghost.Graphics.Core.MeshletMeshData.Dispose
+- uid: System.IDisposable.Dispose
+  commentId: M:System.IDisposable.Dispose
+  parent: System.IDisposable
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  name: Dispose()
+  nameWithType: IDisposable.Dispose()
+  fullName: System.IDisposable.Dispose()
+  spec.csharp:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )

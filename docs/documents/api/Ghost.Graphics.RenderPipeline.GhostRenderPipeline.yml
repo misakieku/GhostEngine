@@ -1,0 +1,662 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RenderPipeline.GhostRenderPipeline
+  commentId: T:Ghost.Graphics.RenderPipeline.GhostRenderPipeline
+  id: GhostRenderPipeline
+  parent: Ghost.Graphics.RenderPipeline
+  children:
+  - Ghost.Graphics.RenderPipeline.GhostRenderPipeline.Dispose
+  - Ghost.Graphics.RenderPipeline.GhostRenderPipeline.Finalize
+  - Ghost.Graphics.RenderPipeline.GhostRenderPipeline.Render(Ghost.Graphics.RHI.RenderContext,System.ReadOnlySpan{Ghost.Graphics.Core.RenderRequest})
+  - Ghost.Graphics.RenderPipeline.GhostRenderPipeline.ThrowIfDisposed
+  langs:
+  - csharp
+  - vb
+  name: GhostRenderPipeline
+  nameWithType: GhostRenderPipeline
+  fullName: Ghost.Graphics.RenderPipeline.GhostRenderPipeline
+  type: Class
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderPipeline/GhostRenderPipeline.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GhostRenderPipeline
+    path: src/Runtime/Ghost.Graphics/RenderPipeline/GhostRenderPipeline.cs
+    startLine: 16
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderPipeline
+  syntax:
+    content: 'public class GhostRenderPipeline : IRenderPipeline, IDisposable'
+    content.vb: Public Class GhostRenderPipeline Implements IRenderPipeline, IDisposable
+  inheritance:
+  - System.Object
+  implements:
+  - Ghost.Graphics.RenderPipeline.IRenderPipeline
+  - System.IDisposable
+  inheritedMembers:
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.MemberwiseClone
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.ToString
+- uid: Ghost.Graphics.RenderPipeline.GhostRenderPipeline.Finalize
+  commentId: M:Ghost.Graphics.RenderPipeline.GhostRenderPipeline.Finalize
+  id: Finalize
+  parent: Ghost.Graphics.RenderPipeline.GhostRenderPipeline
+  langs:
+  - csharp
+  - vb
+  name: ~GhostRenderPipeline()
+  nameWithType: GhostRenderPipeline.~GhostRenderPipeline()
+  fullName: Ghost.Graphics.RenderPipeline.GhostRenderPipeline.~GhostRenderPipeline()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderPipeline/GhostRenderPipeline.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Finalize
+    path: src/Runtime/Ghost.Graphics/RenderPipeline/GhostRenderPipeline.cs
+    startLine: 22
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderPipeline
+  syntax:
+    content: protected ~GhostRenderPipeline()
+    content.vb: 'Protected '
+  overload: Ghost.Graphics.RenderPipeline.GhostRenderPipeline.Finalize*
+  nameWithType.vb: ''
+  fullName.vb: ''
+  name.vb: ''
+- uid: Ghost.Graphics.RenderPipeline.GhostRenderPipeline.ThrowIfDisposed
+  commentId: M:Ghost.Graphics.RenderPipeline.GhostRenderPipeline.ThrowIfDisposed
+  id: ThrowIfDisposed
+  parent: Ghost.Graphics.RenderPipeline.GhostRenderPipeline
+  langs:
+  - csharp
+  - vb
+  name: ThrowIfDisposed()
+  nameWithType: GhostRenderPipeline.ThrowIfDisposed()
+  fullName: Ghost.Graphics.RenderPipeline.GhostRenderPipeline.ThrowIfDisposed()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderPipeline/GhostRenderPipeline.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ThrowIfDisposed
+    path: src/Runtime/Ghost.Graphics/RenderPipeline/GhostRenderPipeline.cs
+    startLine: 27
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderPipeline
+  syntax:
+    content: >-
+      [Conditional("DEBUG")]
+
+      protected void ThrowIfDisposed()
+    content.vb: >-
+      <Conditional("DEBUG")>
+
+      Protected Sub ThrowIfDisposed()
+  overload: Ghost.Graphics.RenderPipeline.GhostRenderPipeline.ThrowIfDisposed*
+  attributes:
+  - type: System.Diagnostics.ConditionalAttribute
+    ctor: System.Diagnostics.ConditionalAttribute.#ctor(System.String)
+    arguments:
+    - type: System.String
+      value: DEBUG
+- uid: Ghost.Graphics.RenderPipeline.GhostRenderPipeline.Render(Ghost.Graphics.RHI.RenderContext,System.ReadOnlySpan{Ghost.Graphics.Core.RenderRequest})
+  commentId: M:Ghost.Graphics.RenderPipeline.GhostRenderPipeline.Render(Ghost.Graphics.RHI.RenderContext,System.ReadOnlySpan{Ghost.Graphics.Core.RenderRequest})
+  id: Render(Ghost.Graphics.RHI.RenderContext,System.ReadOnlySpan{Ghost.Graphics.Core.RenderRequest})
+  parent: Ghost.Graphics.RenderPipeline.GhostRenderPipeline
+  langs:
+  - csharp
+  - vb
+  name: Render(RenderContext, ReadOnlySpan<RenderRequest>)
+  nameWithType: GhostRenderPipeline.Render(RenderContext, ReadOnlySpan<RenderRequest>)
+  fullName: Ghost.Graphics.RenderPipeline.GhostRenderPipeline.Render(Ghost.Graphics.RHI.RenderContext, System.ReadOnlySpan<Ghost.Graphics.Core.RenderRequest>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderPipeline/GhostRenderPipeline.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Render
+    path: src/Runtime/Ghost.Graphics/RenderPipeline/GhostRenderPipeline.cs
+    startLine: 43
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderPipeline
+  example: []
+  syntax:
+    content: public void Render(RenderContext ctx, ReadOnlySpan<RenderRequest> requests)
+    parameters:
+    - id: ctx
+      type: Ghost.Graphics.RHI.RenderContext
+    - id: requests
+      type: System.ReadOnlySpan{Ghost.Graphics.Core.RenderRequest}
+    content.vb: Public Sub Render(ctx As RenderContext, requests As ReadOnlySpan(Of RenderRequest))
+  overload: Ghost.Graphics.RenderPipeline.GhostRenderPipeline.Render*
+  implements:
+  - Ghost.Graphics.RenderPipeline.IRenderPipeline.Render(Ghost.Graphics.RHI.RenderContext,System.ReadOnlySpan{Ghost.Graphics.Core.RenderRequest})
+  nameWithType.vb: GhostRenderPipeline.Render(RenderContext, ReadOnlySpan(Of RenderRequest))
+  fullName.vb: Ghost.Graphics.RenderPipeline.GhostRenderPipeline.Render(Ghost.Graphics.RHI.RenderContext, System.ReadOnlySpan(Of Ghost.Graphics.Core.RenderRequest))
+  name.vb: Render(RenderContext, ReadOnlySpan(Of RenderRequest))
+- uid: Ghost.Graphics.RenderPipeline.GhostRenderPipeline.Dispose
+  commentId: M:Ghost.Graphics.RenderPipeline.GhostRenderPipeline.Dispose
+  id: Dispose
+  parent: Ghost.Graphics.RenderPipeline.GhostRenderPipeline
+  langs:
+  - csharp
+  - vb
+  name: Dispose()
+  nameWithType: GhostRenderPipeline.Dispose()
+  fullName: Ghost.Graphics.RenderPipeline.GhostRenderPipeline.Dispose()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderPipeline/GhostRenderPipeline.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Dispose
+    path: src/Runtime/Ghost.Graphics/RenderPipeline/GhostRenderPipeline.cs
+    startLine: 58
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderPipeline
+  summary: Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+  example: []
+  syntax:
+    content: public void Dispose()
+    content.vb: Public Sub Dispose()
+  overload: Ghost.Graphics.RenderPipeline.GhostRenderPipeline.Dispose*
+  implements:
+  - System.IDisposable.Dispose
+references:
+- uid: Ghost.Graphics.RenderPipeline
+  commentId: N:Ghost.Graphics.RenderPipeline
+  href: Ghost.html
+  name: Ghost.Graphics.RenderPipeline
+  nameWithType: Ghost.Graphics.RenderPipeline
+  fullName: Ghost.Graphics.RenderPipeline
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RenderPipeline
+    name: RenderPipeline
+    href: Ghost.Graphics.RenderPipeline.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RenderPipeline
+    name: RenderPipeline
+    href: Ghost.Graphics.RenderPipeline.html
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: Ghost.Graphics.RenderPipeline.IRenderPipeline
+  commentId: T:Ghost.Graphics.RenderPipeline.IRenderPipeline
+  parent: Ghost.Graphics.RenderPipeline
+  href: Ghost.Graphics.RenderPipeline.IRenderPipeline.html
+  name: IRenderPipeline
+  nameWithType: IRenderPipeline
+  fullName: Ghost.Graphics.RenderPipeline.IRenderPipeline
+- uid: System.IDisposable
+  commentId: T:System.IDisposable
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable
+  name: IDisposable
+  nameWithType: IDisposable
+  fullName: System.IDisposable
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  name: Equals(object)
+  nameWithType: object.Equals(object)
+  fullName: object.Equals(object)
+  nameWithType.vb: Object.Equals(Object)
+  fullName.vb: Object.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  name: GetHashCode()
+  nameWithType: object.GetHashCode()
+  fullName: object.GetHashCode()
+  nameWithType.vb: Object.GetHashCode()
+  fullName.vb: Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  name: MemberwiseClone()
+  nameWithType: object.MemberwiseClone()
+  fullName: object.MemberwiseClone()
+  nameWithType.vb: Object.MemberwiseClone()
+  fullName.vb: Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  name: ToString()
+  nameWithType: object.ToString()
+  fullName: object.ToString()
+  nameWithType.vb: Object.ToString()
+  fullName.vb: Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RenderPipeline.GhostRenderPipeline.Finalize*
+  commentId: Overload:Ghost.Graphics.RenderPipeline.GhostRenderPipeline.Finalize
+  href: Ghost.Graphics.RenderPipeline.GhostRenderPipeline.html#Ghost_Graphics_RenderPipeline_GhostRenderPipeline_Finalize
+  name: ~GhostRenderPipeline
+  nameWithType: GhostRenderPipeline.~GhostRenderPipeline
+  fullName: Ghost.Graphics.RenderPipeline.GhostRenderPipeline.~GhostRenderPipeline
+  spec.csharp:
+  - name: "~"
+  - uid: Ghost.Graphics.RenderPipeline.GhostRenderPipeline.Finalize*
+    name: GhostRenderPipeline
+    href: Ghost.Graphics.RenderPipeline.GhostRenderPipeline.html#Ghost_Graphics_RenderPipeline_GhostRenderPipeline_Finalize
+- uid: Ghost.Graphics.RenderPipeline.GhostRenderPipeline.ThrowIfDisposed*
+  commentId: Overload:Ghost.Graphics.RenderPipeline.GhostRenderPipeline.ThrowIfDisposed
+  href: Ghost.Graphics.RenderPipeline.GhostRenderPipeline.html#Ghost_Graphics_RenderPipeline_GhostRenderPipeline_ThrowIfDisposed
+  name: ThrowIfDisposed
+  nameWithType: GhostRenderPipeline.ThrowIfDisposed
+  fullName: Ghost.Graphics.RenderPipeline.GhostRenderPipeline.ThrowIfDisposed
+- uid: Ghost.Graphics.RenderPipeline.GhostRenderPipeline.Render*
+  commentId: Overload:Ghost.Graphics.RenderPipeline.GhostRenderPipeline.Render
+  href: Ghost.Graphics.RenderPipeline.GhostRenderPipeline.html#Ghost_Graphics_RenderPipeline_GhostRenderPipeline_Render_Ghost_Graphics_RHI_RenderContext_System_ReadOnlySpan_Ghost_Graphics_Core_RenderRequest__
+  name: Render
+  nameWithType: GhostRenderPipeline.Render
+  fullName: Ghost.Graphics.RenderPipeline.GhostRenderPipeline.Render
+- uid: Ghost.Graphics.RenderPipeline.IRenderPipeline.Render(Ghost.Graphics.RHI.RenderContext,System.ReadOnlySpan{Ghost.Graphics.Core.RenderRequest})
+  commentId: M:Ghost.Graphics.RenderPipeline.IRenderPipeline.Render(Ghost.Graphics.RHI.RenderContext,System.ReadOnlySpan{Ghost.Graphics.Core.RenderRequest})
+  parent: Ghost.Graphics.RenderPipeline.IRenderPipeline
+  isExternal: true
+  href: Ghost.Graphics.RenderPipeline.IRenderPipeline.html#Ghost_Graphics_RenderPipeline_IRenderPipeline_Render_Ghost_Graphics_RHI_RenderContext_System_ReadOnlySpan_Ghost_Graphics_Core_RenderRequest__
+  name: Render(RenderContext, ReadOnlySpan<RenderRequest>)
+  nameWithType: IRenderPipeline.Render(RenderContext, ReadOnlySpan<RenderRequest>)
+  fullName: Ghost.Graphics.RenderPipeline.IRenderPipeline.Render(Ghost.Graphics.RHI.RenderContext, System.ReadOnlySpan<Ghost.Graphics.Core.RenderRequest>)
+  nameWithType.vb: IRenderPipeline.Render(RenderContext, ReadOnlySpan(Of RenderRequest))
+  fullName.vb: Ghost.Graphics.RenderPipeline.IRenderPipeline.Render(Ghost.Graphics.RHI.RenderContext, System.ReadOnlySpan(Of Ghost.Graphics.Core.RenderRequest))
+  name.vb: Render(RenderContext, ReadOnlySpan(Of RenderRequest))
+  spec.csharp:
+  - uid: Ghost.Graphics.RenderPipeline.IRenderPipeline.Render(Ghost.Graphics.RHI.RenderContext,System.ReadOnlySpan{Ghost.Graphics.Core.RenderRequest})
+    name: Render
+    href: Ghost.Graphics.RenderPipeline.IRenderPipeline.html#Ghost_Graphics_RenderPipeline_IRenderPipeline_Render_Ghost_Graphics_RHI_RenderContext_System_ReadOnlySpan_Ghost_Graphics_Core_RenderRequest__
+  - name: (
+  - uid: Ghost.Graphics.RHI.RenderContext
+    name: RenderContext
+  - name: ','
+  - name: " "
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: <
+  - uid: Ghost.Graphics.Core.RenderRequest
+    name: RenderRequest
+    href: Ghost.Graphics.Core.RenderRequest.html
+  - name: '>'
+  - name: )
+  spec.vb:
+  - uid: Ghost.Graphics.RenderPipeline.IRenderPipeline.Render(Ghost.Graphics.RHI.RenderContext,System.ReadOnlySpan{Ghost.Graphics.Core.RenderRequest})
+    name: Render
+    href: Ghost.Graphics.RenderPipeline.IRenderPipeline.html#Ghost_Graphics_RenderPipeline_IRenderPipeline_Render_Ghost_Graphics_RHI_RenderContext_System_ReadOnlySpan_Ghost_Graphics_Core_RenderRequest__
+  - name: (
+  - uid: Ghost.Graphics.RHI.RenderContext
+    name: RenderContext
+  - name: ','
+  - name: " "
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.Core.RenderRequest
+    name: RenderRequest
+    href: Ghost.Graphics.Core.RenderRequest.html
+  - name: )
+  - name: )
+- uid: Ghost.Graphics.RHI.RenderContext
+  commentId: T:Ghost.Graphics.RHI.RenderContext
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.RenderContext.html
+  name: RenderContext
+  nameWithType: RenderContext
+  fullName: Ghost.Graphics.RHI.RenderContext
+- uid: System.ReadOnlySpan{Ghost.Graphics.Core.RenderRequest}
+  commentId: T:System.ReadOnlySpan{Ghost.Graphics.Core.RenderRequest}
+  parent: System
+  definition: System.ReadOnlySpan`1
+  href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  name: ReadOnlySpan<RenderRequest>
+  nameWithType: ReadOnlySpan<RenderRequest>
+  fullName: System.ReadOnlySpan<Ghost.Graphics.Core.RenderRequest>
+  nameWithType.vb: ReadOnlySpan(Of RenderRequest)
+  fullName.vb: System.ReadOnlySpan(Of Ghost.Graphics.Core.RenderRequest)
+  name.vb: ReadOnlySpan(Of RenderRequest)
+  spec.csharp:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: <
+  - uid: Ghost.Graphics.Core.RenderRequest
+    name: RenderRequest
+    href: Ghost.Graphics.Core.RenderRequest.html
+  - name: '>'
+  spec.vb:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.Core.RenderRequest
+    name: RenderRequest
+    href: Ghost.Graphics.Core.RenderRequest.html
+  - name: )
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.ReadOnlySpan`1
+  commentId: T:System.ReadOnlySpan`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  name: ReadOnlySpan<T>
+  nameWithType: ReadOnlySpan<T>
+  fullName: System.ReadOnlySpan<T>
+  nameWithType.vb: ReadOnlySpan(Of T)
+  fullName.vb: System.ReadOnlySpan(Of T)
+  name.vb: ReadOnlySpan(Of T)
+  spec.csharp:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.ReadOnlySpan`1
+    name: ReadOnlySpan
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.readonlyspan-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Graphics.RenderPipeline.GhostRenderPipeline.Dispose*
+  commentId: Overload:Ghost.Graphics.RenderPipeline.GhostRenderPipeline.Dispose
+  href: Ghost.Graphics.RenderPipeline.GhostRenderPipeline.html#Ghost_Graphics_RenderPipeline_GhostRenderPipeline_Dispose
+  name: Dispose
+  nameWithType: GhostRenderPipeline.Dispose
+  fullName: Ghost.Graphics.RenderPipeline.GhostRenderPipeline.Dispose
+- uid: System.IDisposable.Dispose
+  commentId: M:System.IDisposable.Dispose
+  parent: System.IDisposable
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  name: Dispose()
+  nameWithType: IDisposable.Dispose()
+  fullName: System.IDisposable.Dispose()
+  spec.csharp:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )

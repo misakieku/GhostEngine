@@ -1,0 +1,477 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.CreationOptions
+  commentId: T:Ghost.Graphics.RHI.CreationOptions
+  id: CreationOptions
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.CreationOptions.AllocationType
+  - Ghost.Graphics.RHI.CreationOptions.Heap
+  - Ghost.Graphics.RHI.CreationOptions.Offset
+  langs:
+  - csharp
+  - vb
+  name: CreationOptions
+  nameWithType: CreationOptions
+  fullName: Ghost.Graphics.RHI.CreationOptions
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CreationOptions
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+    startLine: 11
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public struct CreationOptions
+    content.vb: Public Structure CreationOptions
+  inheritedMembers:
+  - System.ValueType.Equals(System.Object)
+  - System.ValueType.GetHashCode
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Graphics.RHI.CreationOptions.AllocationType
+  commentId: P:Ghost.Graphics.RHI.CreationOptions.AllocationType
+  id: AllocationType
+  parent: Ghost.Graphics.RHI.CreationOptions
+  langs:
+  - csharp
+  - vb
+  name: AllocationType
+  nameWithType: CreationOptions.AllocationType
+  fullName: Ghost.Graphics.RHI.CreationOptions.AllocationType
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AllocationType
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+    startLine: 13
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public ResourceAllocationType AllocationType { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.ResourceAllocationType
+    content.vb: Public Property AllocationType As ResourceAllocationType
+  overload: Ghost.Graphics.RHI.CreationOptions.AllocationType*
+- uid: Ghost.Graphics.RHI.CreationOptions.Heap
+  commentId: P:Ghost.Graphics.RHI.CreationOptions.Heap
+  id: Heap
+  parent: Ghost.Graphics.RHI.CreationOptions
+  langs:
+  - csharp
+  - vb
+  name: Heap
+  nameWithType: CreationOptions.Heap
+  fullName: Ghost.Graphics.RHI.CreationOptions.Heap
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Heap
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+    startLine: 18
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public Handle<GPUResource> Heap { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+    content.vb: Public Property Heap As Handle(Of GPUResource)
+  overload: Ghost.Graphics.RHI.CreationOptions.Heap*
+- uid: Ghost.Graphics.RHI.CreationOptions.Offset
+  commentId: P:Ghost.Graphics.RHI.CreationOptions.Offset
+  id: Offset
+  parent: Ghost.Graphics.RHI.CreationOptions
+  langs:
+  - csharp
+  - vb
+  name: Offset
+  nameWithType: CreationOptions.Offset
+  fullName: Ghost.Graphics.RHI.CreationOptions.Offset
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Offset
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+    startLine: 23
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public ulong Offset { readonly get; set; }
+    parameters: []
+    return:
+      type: System.UInt64
+    content.vb: Public Property Offset As ULong
+  overload: Ghost.Graphics.RHI.CreationOptions.Offset*
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RHI.CreationOptions.AllocationType*
+  commentId: Overload:Ghost.Graphics.RHI.CreationOptions.AllocationType
+  href: Ghost.Graphics.RHI.CreationOptions.html#Ghost_Graphics_RHI_CreationOptions_AllocationType
+  name: AllocationType
+  nameWithType: CreationOptions.AllocationType
+  fullName: Ghost.Graphics.RHI.CreationOptions.AllocationType
+- uid: Ghost.Graphics.RHI.ResourceAllocationType
+  commentId: T:Ghost.Graphics.RHI.ResourceAllocationType
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ResourceAllocationType.html
+  name: ResourceAllocationType
+  nameWithType: ResourceAllocationType
+  fullName: Ghost.Graphics.RHI.ResourceAllocationType
+- uid: Ghost.Graphics.RHI.CreationOptions.Heap*
+  commentId: Overload:Ghost.Graphics.RHI.CreationOptions.Heap
+  href: Ghost.Graphics.RHI.CreationOptions.html#Ghost_Graphics_RHI_CreationOptions_Heap
+  name: Heap
+  nameWithType: CreationOptions.Heap
+  fullName: Ghost.Graphics.RHI.CreationOptions.Heap
+- uid: Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+  commentId: T:Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+  parent: Ghost.Core
+  definition: Ghost.Core.Handle`1
+  href: Ghost.Graphics.RHI.GPUResource.html
+  name: Handle<GPUResource>
+  nameWithType: Handle<GPUResource>
+  fullName: Ghost.Core.Handle<Ghost.Graphics.RHI.GPUResource>
+  nameWithType.vb: Handle(Of GPUResource)
+  fullName.vb: Ghost.Core.Handle(Of Ghost.Graphics.RHI.GPUResource)
+  name.vb: Handle(Of GPUResource)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - uid: Ghost.Graphics.RHI.GPUResource
+    name: GPUResource
+    href: Ghost.Graphics.RHI.GPUResource.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.GPUResource
+    name: GPUResource
+    href: Ghost.Graphics.RHI.GPUResource.html
+  - name: )
+- uid: Ghost.Core.Handle`1
+  commentId: T:Ghost.Core.Handle`1
+  name: Handle<T>
+  nameWithType: Handle<T>
+  fullName: Ghost.Core.Handle<T>
+  nameWithType.vb: Handle(Of T)
+  fullName.vb: Ghost.Core.Handle(Of T)
+  name.vb: Handle(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Core
+  commentId: N:Ghost.Core
+  name: Ghost.Core
+  nameWithType: Ghost.Core
+  fullName: Ghost.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+- uid: Ghost.Graphics.RHI.CreationOptions.Offset*
+  commentId: Overload:Ghost.Graphics.RHI.CreationOptions.Offset
+  href: Ghost.Graphics.RHI.CreationOptions.html#Ghost_Graphics_RHI_CreationOptions_Offset
+  name: Offset
+  nameWithType: CreationOptions.Offset
+  fullName: Ghost.Graphics.RHI.CreationOptions.Offset
+- uid: System.UInt64
+  commentId: T:System.UInt64
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.uint64
+  name: ulong
+  nameWithType: ulong
+  fullName: ulong
+  nameWithType.vb: ULong
+  fullName.vb: ULong
+  name.vb: ULong

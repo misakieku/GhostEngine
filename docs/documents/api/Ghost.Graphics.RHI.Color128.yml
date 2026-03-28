@@ -1,0 +1,1006 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.Color128
+  commentId: T:Ghost.Graphics.RHI.Color128
+  id: Color128
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.Color128.#ctor(Ghost.Graphics.RHI.Color32)
+  - Ghost.Graphics.RHI.Color128.#ctor(Misaki.HighPerformance.Mathematics.float4)
+  - Ghost.Graphics.RHI.Color128.#ctor(System.Drawing.Color)
+  - Ghost.Graphics.RHI.Color128.#ctor(System.Single,System.Single,System.Single,System.Single)
+  - Ghost.Graphics.RHI.Color128.Equals(Ghost.Graphics.RHI.Color128)
+  - Ghost.Graphics.RHI.Color128.Equals(System.Object)
+  - Ghost.Graphics.RHI.Color128.GetHashCode
+  - Ghost.Graphics.RHI.Color128.a
+  - Ghost.Graphics.RHI.Color128.b
+  - Ghost.Graphics.RHI.Color128.g
+  - Ghost.Graphics.RHI.Color128.op_Equality(Ghost.Graphics.RHI.Color128,Ghost.Graphics.RHI.Color128)
+  - Ghost.Graphics.RHI.Color128.op_Inequality(Ghost.Graphics.RHI.Color128,Ghost.Graphics.RHI.Color128)
+  - Ghost.Graphics.RHI.Color128.r
+  langs:
+  - csharp
+  - vb
+  name: Color128
+  nameWithType: Color128
+  fullName: Ghost.Graphics.RHI.Color128
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Color128
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 75
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Represents a color with 16 bytes components.
+  example: []
+  syntax:
+    content: 'public struct Color128 : IEquatable<Color128>'
+    content.vb: Public Structure Color128 Implements IEquatable(Of Color128)
+  implements:
+  - System.IEquatable{Ghost.Graphics.RHI.Color128}
+  inheritedMembers:
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Graphics.RHI.Color128.r
+  commentId: F:Ghost.Graphics.RHI.Color128.r
+  id: r
+  parent: Ghost.Graphics.RHI.Color128
+  langs:
+  - csharp
+  - vb
+  name: r
+  nameWithType: Color128.r
+  fullName: Ghost.Graphics.RHI.Color128.r
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: r
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 78
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public float r
+    return:
+      type: System.Single
+    content.vb: Public r As Single
+- uid: Ghost.Graphics.RHI.Color128.g
+  commentId: F:Ghost.Graphics.RHI.Color128.g
+  id: g
+  parent: Ghost.Graphics.RHI.Color128
+  langs:
+  - csharp
+  - vb
+  name: g
+  nameWithType: Color128.g
+  fullName: Ghost.Graphics.RHI.Color128.g
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: g
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 79
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public float g
+    return:
+      type: System.Single
+    content.vb: Public g As Single
+- uid: Ghost.Graphics.RHI.Color128.b
+  commentId: F:Ghost.Graphics.RHI.Color128.b
+  id: b
+  parent: Ghost.Graphics.RHI.Color128
+  langs:
+  - csharp
+  - vb
+  name: b
+  nameWithType: Color128.b
+  fullName: Ghost.Graphics.RHI.Color128.b
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: b
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 80
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public float b
+    return:
+      type: System.Single
+    content.vb: Public b As Single
+- uid: Ghost.Graphics.RHI.Color128.a
+  commentId: F:Ghost.Graphics.RHI.Color128.a
+  id: a
+  parent: Ghost.Graphics.RHI.Color128
+  langs:
+  - csharp
+  - vb
+  name: a
+  nameWithType: Color128.a
+  fullName: Ghost.Graphics.RHI.Color128.a
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: a
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 81
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public float a
+    return:
+      type: System.Single
+    content.vb: Public a As Single
+- uid: Ghost.Graphics.RHI.Color128.#ctor(System.Single,System.Single,System.Single,System.Single)
+  commentId: M:Ghost.Graphics.RHI.Color128.#ctor(System.Single,System.Single,System.Single,System.Single)
+  id: '#ctor(System.Single,System.Single,System.Single,System.Single)'
+  parent: Ghost.Graphics.RHI.Color128
+  langs:
+  - csharp
+  - vb
+  name: Color128(float, float, float, float)
+  nameWithType: Color128.Color128(float, float, float, float)
+  fullName: Ghost.Graphics.RHI.Color128.Color128(float, float, float, float)
+  type: Constructor
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: .ctor
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 83
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public Color128(float r, float g, float b, float a)
+    parameters:
+    - id: r
+      type: System.Single
+    - id: g
+      type: System.Single
+    - id: b
+      type: System.Single
+    - id: a
+      type: System.Single
+    content.vb: Public Sub New(r As Single, g As Single, b As Single, a As Single)
+  overload: Ghost.Graphics.RHI.Color128.#ctor*
+  nameWithType.vb: Color128.New(Single, Single, Single, Single)
+  fullName.vb: Ghost.Graphics.RHI.Color128.New(Single, Single, Single, Single)
+  name.vb: New(Single, Single, Single, Single)
+- uid: Ghost.Graphics.RHI.Color128.#ctor(System.Drawing.Color)
+  commentId: M:Ghost.Graphics.RHI.Color128.#ctor(System.Drawing.Color)
+  id: '#ctor(System.Drawing.Color)'
+  parent: Ghost.Graphics.RHI.Color128
+  langs:
+  - csharp
+  - vb
+  name: Color128(Color)
+  nameWithType: Color128.Color128(Color)
+  fullName: Ghost.Graphics.RHI.Color128.Color128(System.Drawing.Color)
+  type: Constructor
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: .ctor
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 91
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public Color128(Color color)
+    parameters:
+    - id: color
+      type: System.Drawing.Color
+    content.vb: Public Sub New(color As Color)
+  overload: Ghost.Graphics.RHI.Color128.#ctor*
+  nameWithType.vb: Color128.New(Color)
+  fullName.vb: Ghost.Graphics.RHI.Color128.New(System.Drawing.Color)
+  name.vb: New(Color)
+- uid: Ghost.Graphics.RHI.Color128.#ctor(Ghost.Graphics.RHI.Color32)
+  commentId: M:Ghost.Graphics.RHI.Color128.#ctor(Ghost.Graphics.RHI.Color32)
+  id: '#ctor(Ghost.Graphics.RHI.Color32)'
+  parent: Ghost.Graphics.RHI.Color128
+  langs:
+  - csharp
+  - vb
+  name: Color128(Color32)
+  nameWithType: Color128.Color128(Color32)
+  fullName: Ghost.Graphics.RHI.Color128.Color128(Ghost.Graphics.RHI.Color32)
+  type: Constructor
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: .ctor
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 96
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public Color128(Color32 color32)
+    parameters:
+    - id: color32
+      type: Ghost.Graphics.RHI.Color32
+    content.vb: Public Sub New(color32 As Color32)
+  overload: Ghost.Graphics.RHI.Color128.#ctor*
+  nameWithType.vb: Color128.New(Color32)
+  fullName.vb: Ghost.Graphics.RHI.Color128.New(Ghost.Graphics.RHI.Color32)
+  name.vb: New(Color32)
+- uid: Ghost.Graphics.RHI.Color128.#ctor(Misaki.HighPerformance.Mathematics.float4)
+  commentId: M:Ghost.Graphics.RHI.Color128.#ctor(Misaki.HighPerformance.Mathematics.float4)
+  id: '#ctor(Misaki.HighPerformance.Mathematics.float4)'
+  parent: Ghost.Graphics.RHI.Color128
+  langs:
+  - csharp
+  - vb
+  name: Color128(float4)
+  nameWithType: Color128.Color128(float4)
+  fullName: Ghost.Graphics.RHI.Color128.Color128(Misaki.HighPerformance.Mathematics.float4)
+  type: Constructor
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: .ctor
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 101
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public Color128(float4 v)
+    parameters:
+    - id: v
+      type: Misaki.HighPerformance.Mathematics.float4
+    content.vb: Public Sub New(v As float4)
+  overload: Ghost.Graphics.RHI.Color128.#ctor*
+  nameWithType.vb: Color128.New(float4)
+  fullName.vb: Ghost.Graphics.RHI.Color128.New(Misaki.HighPerformance.Mathematics.float4)
+  name.vb: New(float4)
+- uid: Ghost.Graphics.RHI.Color128.Equals(Ghost.Graphics.RHI.Color128)
+  commentId: M:Ghost.Graphics.RHI.Color128.Equals(Ghost.Graphics.RHI.Color128)
+  id: Equals(Ghost.Graphics.RHI.Color128)
+  parent: Ghost.Graphics.RHI.Color128
+  langs:
+  - csharp
+  - vb
+  name: Equals(Color128)
+  nameWithType: Color128.Equals(Color128)
+  fullName: Ghost.Graphics.RHI.Color128.Equals(Ghost.Graphics.RHI.Color128)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Equals
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 106
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Indicates whether the current object is equal to another object of the same type.
+  example: []
+  syntax:
+    content: public readonly bool Equals(Color128 other)
+    parameters:
+    - id: other
+      type: Ghost.Graphics.RHI.Color128
+      description: An object to compare with this object.
+    return:
+      type: System.Boolean
+      description: <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">true</a> if the current object is equal to the <code class="paramref">other</code> parameter; otherwise, <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">false</a>.
+    content.vb: Public Function Equals(other As Color128) As Boolean
+  overload: Ghost.Graphics.RHI.Color128.Equals*
+  implements:
+  - System.IEquatable{Ghost.Graphics.RHI.Color128}.Equals(Ghost.Graphics.RHI.Color128)
+- uid: Ghost.Graphics.RHI.Color128.Equals(System.Object)
+  commentId: M:Ghost.Graphics.RHI.Color128.Equals(System.Object)
+  id: Equals(System.Object)
+  parent: Ghost.Graphics.RHI.Color128
+  langs:
+  - csharp
+  - vb
+  name: Equals(object?)
+  nameWithType: Color128.Equals(object?)
+  fullName: Ghost.Graphics.RHI.Color128.Equals(object?)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Equals
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 111
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Indicates whether this instance and a specified object are equal.
+  example: []
+  syntax:
+    content: public override readonly bool Equals(object? obj)
+    parameters:
+    - id: obj
+      type: System.Object
+      description: The object to compare with the current instance.
+    return:
+      type: System.Boolean
+      description: <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">true</a> if <code class="paramref">obj</code> and this instance are the same type and represent the same value; otherwise, <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">false</a>.
+    content.vb: Public Overrides Function Equals(obj As Object) As Boolean
+  overridden: System.ValueType.Equals(System.Object)
+  overload: Ghost.Graphics.RHI.Color128.Equals*
+  nameWithType.vb: Color128.Equals(Object)
+  fullName.vb: Ghost.Graphics.RHI.Color128.Equals(Object)
+  name.vb: Equals(Object)
+- uid: Ghost.Graphics.RHI.Color128.GetHashCode
+  commentId: M:Ghost.Graphics.RHI.Color128.GetHashCode
+  id: GetHashCode
+  parent: Ghost.Graphics.RHI.Color128
+  langs:
+  - csharp
+  - vb
+  name: GetHashCode()
+  nameWithType: Color128.GetHashCode()
+  fullName: Ghost.Graphics.RHI.Color128.GetHashCode()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetHashCode
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 116
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Returns the hash code for this instance.
+  example: []
+  syntax:
+    content: public override readonly int GetHashCode()
+    return:
+      type: System.Int32
+      description: A 32-bit signed integer that is the hash code for this instance.
+    content.vb: Public Overrides Function GetHashCode() As Integer
+  overridden: System.ValueType.GetHashCode
+  overload: Ghost.Graphics.RHI.Color128.GetHashCode*
+- uid: Ghost.Graphics.RHI.Color128.op_Equality(Ghost.Graphics.RHI.Color128,Ghost.Graphics.RHI.Color128)
+  commentId: M:Ghost.Graphics.RHI.Color128.op_Equality(Ghost.Graphics.RHI.Color128,Ghost.Graphics.RHI.Color128)
+  id: op_Equality(Ghost.Graphics.RHI.Color128,Ghost.Graphics.RHI.Color128)
+  parent: Ghost.Graphics.RHI.Color128
+  langs:
+  - csharp
+  - vb
+  name: operator ==(Color128, Color128)
+  nameWithType: Color128.operator ==(Color128, Color128)
+  fullName: Ghost.Graphics.RHI.Color128.operator ==(Ghost.Graphics.RHI.Color128, Ghost.Graphics.RHI.Color128)
+  type: Operator
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: op_Equality
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 121
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public static bool operator ==(Color128 left, Color128 right)
+    parameters:
+    - id: left
+      type: Ghost.Graphics.RHI.Color128
+    - id: right
+      type: Ghost.Graphics.RHI.Color128
+    return:
+      type: System.Boolean
+    content.vb: Public Shared Operator =(left As Color128, right As Color128) As Boolean
+  overload: Ghost.Graphics.RHI.Color128.op_Equality*
+  nameWithType.vb: Color128.=(Color128, Color128)
+  fullName.vb: Ghost.Graphics.RHI.Color128.=(Ghost.Graphics.RHI.Color128, Ghost.Graphics.RHI.Color128)
+  name.vb: =(Color128, Color128)
+- uid: Ghost.Graphics.RHI.Color128.op_Inequality(Ghost.Graphics.RHI.Color128,Ghost.Graphics.RHI.Color128)
+  commentId: M:Ghost.Graphics.RHI.Color128.op_Inequality(Ghost.Graphics.RHI.Color128,Ghost.Graphics.RHI.Color128)
+  id: op_Inequality(Ghost.Graphics.RHI.Color128,Ghost.Graphics.RHI.Color128)
+  parent: Ghost.Graphics.RHI.Color128
+  langs:
+  - csharp
+  - vb
+  name: operator !=(Color128, Color128)
+  nameWithType: Color128.operator !=(Color128, Color128)
+  fullName: Ghost.Graphics.RHI.Color128.operator !=(Ghost.Graphics.RHI.Color128, Ghost.Graphics.RHI.Color128)
+  type: Operator
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: op_Inequality
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 126
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public static bool operator !=(Color128 left, Color128 right)
+    parameters:
+    - id: left
+      type: Ghost.Graphics.RHI.Color128
+    - id: right
+      type: Ghost.Graphics.RHI.Color128
+    return:
+      type: System.Boolean
+    content.vb: Public Shared Operator <>(left As Color128, right As Color128) As Boolean
+  overload: Ghost.Graphics.RHI.Color128.op_Inequality*
+  nameWithType.vb: Color128.<>(Color128, Color128)
+  fullName.vb: Ghost.Graphics.RHI.Color128.<>(Ghost.Graphics.RHI.Color128, Ghost.Graphics.RHI.Color128)
+  name.vb: <>(Color128, Color128)
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.IEquatable{Ghost.Graphics.RHI.Color128}
+  commentId: T:System.IEquatable{Ghost.Graphics.RHI.Color128}
+  parent: System
+  definition: System.IEquatable`1
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  name: IEquatable<Color128>
+  nameWithType: IEquatable<Color128>
+  fullName: System.IEquatable<Ghost.Graphics.RHI.Color128>
+  nameWithType.vb: IEquatable(Of Color128)
+  fullName.vb: System.IEquatable(Of Ghost.Graphics.RHI.Color128)
+  name.vb: IEquatable(Of Color128)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: <
+  - uid: Ghost.Graphics.RHI.Color128
+    name: Color128
+    href: Ghost.Graphics.RHI.Color128.html
+  - name: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.Color128
+    name: Color128
+    href: Ghost.Graphics.RHI.Color128.html
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.IEquatable`1
+  commentId: T:System.IEquatable`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  name: IEquatable<T>
+  nameWithType: IEquatable<T>
+  fullName: System.IEquatable<T>
+  nameWithType.vb: IEquatable(Of T)
+  fullName.vb: System.IEquatable(Of T)
+  name.vb: IEquatable(Of T)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System.Single
+  commentId: T:System.Single
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.single
+  name: float
+  nameWithType: float
+  fullName: float
+  nameWithType.vb: Single
+  fullName.vb: Single
+  name.vb: Single
+- uid: Ghost.Graphics.RHI.Color128.#ctor*
+  commentId: Overload:Ghost.Graphics.RHI.Color128.#ctor
+  href: Ghost.Graphics.RHI.Color128.html#Ghost_Graphics_RHI_Color128__ctor_System_Single_System_Single_System_Single_System_Single_
+  name: Color128
+  nameWithType: Color128.Color128
+  fullName: Ghost.Graphics.RHI.Color128.Color128
+  nameWithType.vb: Color128.New
+  fullName.vb: Ghost.Graphics.RHI.Color128.New
+  name.vb: New
+- uid: System.Drawing.Color
+  commentId: T:System.Drawing.Color
+  parent: System.Drawing
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.drawing.color
+  name: Color
+  nameWithType: Color
+  fullName: System.Drawing.Color
+- uid: System.Drawing
+  commentId: N:System.Drawing
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Drawing
+  nameWithType: System.Drawing
+  fullName: System.Drawing
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Drawing
+    name: Drawing
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.drawing
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Drawing
+    name: Drawing
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.drawing
+- uid: Ghost.Graphics.RHI.Color32
+  commentId: T:Ghost.Graphics.RHI.Color32
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.Color32.html
+  name: Color32
+  nameWithType: Color32
+  fullName: Ghost.Graphics.RHI.Color32
+- uid: Misaki.HighPerformance.Mathematics.float4
+  commentId: T:Misaki.HighPerformance.Mathematics.float4
+  parent: Misaki.HighPerformance.Mathematics
+  isExternal: true
+  name: float4
+  nameWithType: float4
+  fullName: Misaki.HighPerformance.Mathematics.float4
+- uid: Misaki.HighPerformance.Mathematics
+  commentId: N:Misaki.HighPerformance.Mathematics
+  isExternal: true
+  name: Misaki.HighPerformance.Mathematics
+  nameWithType: Misaki.HighPerformance.Mathematics
+  fullName: Misaki.HighPerformance.Mathematics
+  spec.csharp:
+  - uid: Misaki
+    name: Misaki
+    isExternal: true
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+    isExternal: true
+  - name: .
+  - uid: Misaki.HighPerformance.Mathematics
+    name: Mathematics
+    isExternal: true
+  spec.vb:
+  - uid: Misaki
+    name: Misaki
+    isExternal: true
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+    isExternal: true
+  - name: .
+  - uid: Misaki.HighPerformance.Mathematics
+    name: Mathematics
+    isExternal: true
+- uid: Ghost.Graphics.RHI.Color128.Equals*
+  commentId: Overload:Ghost.Graphics.RHI.Color128.Equals
+  href: Ghost.Graphics.RHI.Color128.html#Ghost_Graphics_RHI_Color128_Equals_Ghost_Graphics_RHI_Color128_
+  name: Equals
+  nameWithType: Color128.Equals
+  fullName: Ghost.Graphics.RHI.Color128.Equals
+- uid: System.IEquatable{Ghost.Graphics.RHI.Color128}.Equals(Ghost.Graphics.RHI.Color128)
+  commentId: M:System.IEquatable{Ghost.Graphics.RHI.Color128}.Equals(Ghost.Graphics.RHI.Color128)
+  parent: System.IEquatable{Ghost.Graphics.RHI.Color128}
+  definition: System.IEquatable`1.Equals(`0)
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  name: Equals(Color128)
+  nameWithType: IEquatable<Color128>.Equals(Color128)
+  fullName: System.IEquatable<Ghost.Graphics.RHI.Color128>.Equals(Ghost.Graphics.RHI.Color128)
+  nameWithType.vb: IEquatable(Of Color128).Equals(Color128)
+  fullName.vb: System.IEquatable(Of Ghost.Graphics.RHI.Color128).Equals(Ghost.Graphics.RHI.Color128)
+  spec.csharp:
+  - uid: System.IEquatable{Ghost.Graphics.RHI.Color128}.Equals(Ghost.Graphics.RHI.Color128)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  - name: (
+  - uid: Ghost.Graphics.RHI.Color128
+    name: Color128
+    href: Ghost.Graphics.RHI.Color128.html
+  - name: )
+  spec.vb:
+  - uid: System.IEquatable{Ghost.Graphics.RHI.Color128}.Equals(Ghost.Graphics.RHI.Color128)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  - name: (
+  - uid: Ghost.Graphics.RHI.Color128
+    name: Color128
+    href: Ghost.Graphics.RHI.Color128.html
+  - name: )
+- uid: Ghost.Graphics.RHI.Color128
+  commentId: T:Ghost.Graphics.RHI.Color128
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.Color128.html
+  name: Color128
+  nameWithType: Color128
+  fullName: Ghost.Graphics.RHI.Color128
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.boolean
+  name: bool
+  nameWithType: bool
+  fullName: bool
+  nameWithType.vb: Boolean
+  fullName.vb: Boolean
+  name.vb: Boolean
+- uid: System.IEquatable`1.Equals(`0)
+  commentId: M:System.IEquatable`1.Equals(`0)
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  name: Equals(T)
+  nameWithType: IEquatable<T>.Equals(T)
+  fullName: System.IEquatable<T>.Equals(T)
+  nameWithType.vb: IEquatable(Of T).Equals(T)
+  fullName.vb: System.IEquatable(Of T).Equals(T)
+  spec.csharp:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  - name: (
+  - name: T
+  - name: )
+  spec.vb:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  - name: (
+  - name: T
+  - name: )
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: Ghost.Graphics.RHI.Color128.GetHashCode*
+  commentId: Overload:Ghost.Graphics.RHI.Color128.GetHashCode
+  href: Ghost.Graphics.RHI.Color128.html#Ghost_Graphics_RHI_Color128_GetHashCode
+  name: GetHashCode
+  nameWithType: Color128.GetHashCode
+  fullName: Ghost.Graphics.RHI.Color128.GetHashCode
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.int32
+  name: int
+  nameWithType: int
+  fullName: int
+  nameWithType.vb: Integer
+  fullName.vb: Integer
+  name.vb: Integer
+- uid: Ghost.Graphics.RHI.Color128.op_Equality*
+  commentId: Overload:Ghost.Graphics.RHI.Color128.op_Equality
+  href: Ghost.Graphics.RHI.Color128.html#Ghost_Graphics_RHI_Color128_op_Equality_Ghost_Graphics_RHI_Color128_Ghost_Graphics_RHI_Color128_
+  name: operator ==
+  nameWithType: Color128.operator ==
+  fullName: Ghost.Graphics.RHI.Color128.operator ==
+  nameWithType.vb: Color128.=
+  fullName.vb: Ghost.Graphics.RHI.Color128.=
+  name.vb: =
+  spec.csharp:
+  - name: operator
+  - name: " "
+  - uid: Ghost.Graphics.RHI.Color128.op_Equality*
+    name: ==
+    href: Ghost.Graphics.RHI.Color128.html#Ghost_Graphics_RHI_Color128_op_Equality_Ghost_Graphics_RHI_Color128_Ghost_Graphics_RHI_Color128_
+- uid: Ghost.Graphics.RHI.Color128.op_Inequality*
+  commentId: Overload:Ghost.Graphics.RHI.Color128.op_Inequality
+  href: Ghost.Graphics.RHI.Color128.html#Ghost_Graphics_RHI_Color128_op_Inequality_Ghost_Graphics_RHI_Color128_Ghost_Graphics_RHI_Color128_
+  name: operator !=
+  nameWithType: Color128.operator !=
+  fullName: Ghost.Graphics.RHI.Color128.operator !=
+  nameWithType.vb: Color128.<>
+  fullName.vb: Ghost.Graphics.RHI.Color128.<>
+  name.vb: <>
+  spec.csharp:
+  - name: operator
+  - name: " "
+  - uid: Ghost.Graphics.RHI.Color128.op_Inequality*
+    name: '!='
+    href: Ghost.Graphics.RHI.Color128.html#Ghost_Graphics_RHI_Color128_op_Inequality_Ghost_Graphics_RHI_Color128_Ghost_Graphics_RHI_Color128_

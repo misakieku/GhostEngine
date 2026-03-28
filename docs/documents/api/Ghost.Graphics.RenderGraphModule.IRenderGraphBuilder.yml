@@ -1,0 +1,714 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder
+  commentId: T:Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder
+  id: IRenderGraphBuilder
+  parent: Ghost.Graphics.RenderGraphModule
+  children:
+  - Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.AllowPassCulling(System.Boolean)
+  - Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateBuffer(Ghost.Graphics.RHI.BufferDesc@,System.String)
+  - Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateBuffers(Ghost.Graphics.RHI.BufferDesc@,System.String,System.Span{Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGBuffer}})
+  - Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateTexture(Ghost.Graphics.RenderGraphModule.RGTextureDesc@,System.String)
+  - Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateTextures(Ghost.Graphics.RenderGraphModule.RGTextureDesc@,System.String,System.Span{Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture}})
+  - Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.UseBuffer(Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGBuffer},Ghost.Graphics.RenderGraphModule.AccessFlags)
+  - Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.UseTexture(Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture},Ghost.Graphics.RenderGraphModule.AccessFlags)
+  langs:
+  - csharp
+  - vb
+  name: IRenderGraphBuilder
+  nameWithType: IRenderGraphBuilder
+  fullName: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder
+  type: Interface
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IRenderGraphBuilder
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+    startLine: 19
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: 'public interface IRenderGraphBuilder : IDisposable'
+    content.vb: Public Interface IRenderGraphBuilder Inherits IDisposable
+  inheritedMembers:
+  - System.IDisposable.Dispose
+- uid: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.AllowPassCulling(System.Boolean)
+  commentId: M:Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.AllowPassCulling(System.Boolean)
+  id: AllowPassCulling(System.Boolean)
+  parent: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder
+  langs:
+  - csharp
+  - vb
+  name: AllowPassCulling(bool)
+  nameWithType: IRenderGraphBuilder.AllowPassCulling(bool)
+  fullName: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.AllowPassCulling(bool)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AllowPassCulling
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+    startLine: 25
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Enables or disables pass culling for the current context.
+  example: []
+  syntax:
+    content: void AllowPassCulling(bool value)
+    parameters:
+    - id: value
+      type: System.Boolean
+      description: A value indicating whether pass culling is allowed.
+    content.vb: Sub AllowPassCulling(value As Boolean)
+  overload: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.AllowPassCulling*
+  nameWithType.vb: IRenderGraphBuilder.AllowPassCulling(Boolean)
+  fullName.vb: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.AllowPassCulling(Boolean)
+  name.vb: AllowPassCulling(Boolean)
+- uid: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateTexture(Ghost.Graphics.RenderGraphModule.RGTextureDesc@,System.String)
+  commentId: M:Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateTexture(Ghost.Graphics.RenderGraphModule.RGTextureDesc@,System.String)
+  id: CreateTexture(Ghost.Graphics.RenderGraphModule.RGTextureDesc@,System.String)
+  parent: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder
+  langs:
+  - csharp
+  - vb
+  name: CreateTexture(in RGTextureDesc, string)
+  nameWithType: IRenderGraphBuilder.CreateTexture(in RGTextureDesc, string)
+  fullName: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateTexture(in Ghost.Graphics.RenderGraphModule.RGTextureDesc, string)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CreateTexture
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+    startLine: 33
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Creates a new texture resource based on the specified desc.
+  example: []
+  syntax:
+    content: Identifier<RGTexture> CreateTexture(in RGTextureDesc desc, string name)
+    parameters:
+    - id: desc
+      type: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+      description: A structure that defines the properties and configuration of the texture to create.
+    - id: name
+      type: System.String
+      description: The name of the texture resource.
+    return:
+      type: Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture}
+      description: An identifier for the newly created texture resource.
+    content.vb: Function CreateTexture(desc As RGTextureDesc, name As String) As Identifier(Of RGTexture)
+  overload: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateTexture*
+  nameWithType.vb: IRenderGraphBuilder.CreateTexture(RGTextureDesc, String)
+  fullName.vb: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateTexture(Ghost.Graphics.RenderGraphModule.RGTextureDesc, String)
+  name.vb: CreateTexture(RGTextureDesc, String)
+- uid: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateTextures(Ghost.Graphics.RenderGraphModule.RGTextureDesc@,System.String,System.Span{Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture}})
+  commentId: M:Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateTextures(Ghost.Graphics.RenderGraphModule.RGTextureDesc@,System.String,System.Span{Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture}})
+  id: CreateTextures(Ghost.Graphics.RenderGraphModule.RGTextureDesc@,System.String,System.Span{Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture}})
+  parent: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder
+  langs:
+  - csharp
+  - vb
+  name: CreateTextures(in RGTextureDesc, string, Span<Identifier<RGTexture>>)
+  nameWithType: IRenderGraphBuilder.CreateTextures(in RGTextureDesc, string, Span<Identifier<RGTexture>>)
+  fullName: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateTextures(in Ghost.Graphics.RenderGraphModule.RGTextureDesc, string, System.Span<Ghost.Core.Identifier<Ghost.Graphics.RenderGraphModule.RGTexture>>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CreateTextures
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+    startLine: 44
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Creates multiple texture resources based on the specified desc.
+  remarks: Those textures will be used as multi buffering in the render graph automaticlly and not aliasable with other resources.
+  example: []
+  syntax:
+    content: void CreateTextures(in RGTextureDesc desc, string name, Span<Identifier<RGTexture>> textureIDs)
+    parameters:
+    - id: desc
+      type: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+      description: A structure that defines the properties and configuration of the texture to create.
+    - id: name
+      type: System.String
+      description: The base name of the texture resources. The actual name for each texture will be generated by appending an index to this base name.
+    - id: textureIDs
+      type: System.Span{Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture}}
+      description: A span to receive the identifiers for the newly created texture resources. The length of the span determines how many textures will be created.
+    content.vb: Sub CreateTextures(desc As RGTextureDesc, name As String, textureIDs As Span(Of Identifier(Of RGTexture)))
+  overload: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateTextures*
+  nameWithType.vb: IRenderGraphBuilder.CreateTextures(RGTextureDesc, String, Span(Of Identifier(Of RGTexture)))
+  fullName.vb: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateTextures(Ghost.Graphics.RenderGraphModule.RGTextureDesc, String, System.Span(Of Ghost.Core.Identifier(Of Ghost.Graphics.RenderGraphModule.RGTexture)))
+  name.vb: CreateTextures(RGTextureDesc, String, Span(Of Identifier(Of RGTexture)))
+- uid: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateBuffer(Ghost.Graphics.RHI.BufferDesc@,System.String)
+  commentId: M:Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateBuffer(Ghost.Graphics.RHI.BufferDesc@,System.String)
+  id: CreateBuffer(Ghost.Graphics.RHI.BufferDesc@,System.String)
+  parent: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder
+  langs:
+  - csharp
+  - vb
+  name: CreateBuffer(in BufferDesc, string)
+  nameWithType: IRenderGraphBuilder.CreateBuffer(in BufferDesc, string)
+  fullName: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateBuffer(in Ghost.Graphics.RHI.BufferDesc, string)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CreateBuffer
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+    startLine: 52
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Creates a new buffer resource based on the specified desc.
+  example: []
+  syntax:
+    content: Identifier<RGBuffer> CreateBuffer(in BufferDesc desc, string name)
+    parameters:
+    - id: desc
+      type: Ghost.Graphics.RHI.BufferDesc
+      description: A structure that defines the properties and configuration of the buffer to create.
+    - id: name
+      type: System.String
+      description: The name of the buffer resource.
+    return:
+      type: Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGBuffer}
+      description: An identifier for the newly created buffer resource.
+    content.vb: Function CreateBuffer(desc As BufferDesc, name As String) As Identifier(Of RGBuffer)
+  overload: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateBuffer*
+  nameWithType.vb: IRenderGraphBuilder.CreateBuffer(BufferDesc, String)
+  fullName.vb: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateBuffer(Ghost.Graphics.RHI.BufferDesc, String)
+  name.vb: CreateBuffer(BufferDesc, String)
+- uid: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateBuffers(Ghost.Graphics.RHI.BufferDesc@,System.String,System.Span{Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGBuffer}})
+  commentId: M:Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateBuffers(Ghost.Graphics.RHI.BufferDesc@,System.String,System.Span{Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGBuffer}})
+  id: CreateBuffers(Ghost.Graphics.RHI.BufferDesc@,System.String,System.Span{Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGBuffer}})
+  parent: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder
+  langs:
+  - csharp
+  - vb
+  name: CreateBuffers(in BufferDesc, string, Span<Identifier<RGBuffer>>)
+  nameWithType: IRenderGraphBuilder.CreateBuffers(in BufferDesc, string, Span<Identifier<RGBuffer>>)
+  fullName: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateBuffers(in Ghost.Graphics.RHI.BufferDesc, string, System.Span<Ghost.Core.Identifier<Ghost.Graphics.RenderGraphModule.RGBuffer>>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CreateBuffers
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+    startLine: 63
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Creates multiple buffer resources based on the specified desc.
+  remarks: Those buffers will be used as multi buffering in the render graph automaticlly and not aliasable with other resources.
+  example: []
+  syntax:
+    content: void CreateBuffers(in BufferDesc desc, string name, Span<Identifier<RGBuffer>> bufferIDs)
+    parameters:
+    - id: desc
+      type: Ghost.Graphics.RHI.BufferDesc
+      description: A structure that defines the properties and configuration of the buffer to create.
+    - id: name
+      type: System.String
+      description: The base name of the buffer resources. The actual name for each buffer will be generated by appending an index to this base name.
+    - id: bufferIDs
+      type: System.Span{Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGBuffer}}
+      description: A span to receive the identifiers for the newly created buffer resources. The length of the span determines how many buffers will be created.
+    content.vb: Sub CreateBuffers(desc As BufferDesc, name As String, bufferIDs As Span(Of Identifier(Of RGBuffer)))
+  overload: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateBuffers*
+  nameWithType.vb: IRenderGraphBuilder.CreateBuffers(BufferDesc, String, Span(Of Identifier(Of RGBuffer)))
+  fullName.vb: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateBuffers(Ghost.Graphics.RHI.BufferDesc, String, System.Span(Of Ghost.Core.Identifier(Of Ghost.Graphics.RenderGraphModule.RGBuffer)))
+  name.vb: CreateBuffers(BufferDesc, String, Span(Of Identifier(Of RGBuffer)))
+- uid: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.UseTexture(Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture},Ghost.Graphics.RenderGraphModule.AccessFlags)
+  commentId: M:Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.UseTexture(Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture},Ghost.Graphics.RenderGraphModule.AccessFlags)
+  id: UseTexture(Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture},Ghost.Graphics.RenderGraphModule.AccessFlags)
+  parent: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder
+  langs:
+  - csharp
+  - vb
+  name: UseTexture(Identifier<RGTexture>, AccessFlags)
+  nameWithType: IRenderGraphBuilder.UseTexture(Identifier<RGTexture>, AccessFlags)
+  fullName: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.UseTexture(Ghost.Core.Identifier<Ghost.Graphics.RenderGraphModule.RGTexture>, Ghost.Graphics.RenderGraphModule.AccessFlags)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: UseTexture
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+    startLine: 71
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Registers the specified texture for use in the current render graph pass with the given access mode.
+  example: []
+  syntax:
+    content: Identifier<RGTexture> UseTexture(Identifier<RGTexture> texture, AccessFlags accessMode)
+    parameters:
+    - id: texture
+      type: Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture}
+      description: The identifier of the texture to be used in the render graph pass.
+    - id: accessMode
+      type: Ghost.Graphics.RenderGraphModule.AccessFlags
+      description: The access mode specifying how the texture will be read or written during the pass.
+    return:
+      type: Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture}
+      description: An identifier for the texture.
+    content.vb: Function UseTexture(texture As Identifier(Of RGTexture), accessMode As AccessFlags) As Identifier(Of RGTexture)
+  overload: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.UseTexture*
+  nameWithType.vb: IRenderGraphBuilder.UseTexture(Identifier(Of RGTexture), AccessFlags)
+  fullName.vb: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.UseTexture(Ghost.Core.Identifier(Of Ghost.Graphics.RenderGraphModule.RGTexture), Ghost.Graphics.RenderGraphModule.AccessFlags)
+  name.vb: UseTexture(Identifier(Of RGTexture), AccessFlags)
+- uid: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.UseBuffer(Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGBuffer},Ghost.Graphics.RenderGraphModule.AccessFlags)
+  commentId: M:Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.UseBuffer(Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGBuffer},Ghost.Graphics.RenderGraphModule.AccessFlags)
+  id: UseBuffer(Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGBuffer},Ghost.Graphics.RenderGraphModule.AccessFlags)
+  parent: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder
+  langs:
+  - csharp
+  - vb
+  name: UseBuffer(Identifier<RGBuffer>, AccessFlags)
+  nameWithType: IRenderGraphBuilder.UseBuffer(Identifier<RGBuffer>, AccessFlags)
+  fullName: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.UseBuffer(Ghost.Core.Identifier<Ghost.Graphics.RenderGraphModule.RGBuffer>, Ghost.Graphics.RenderGraphModule.AccessFlags)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: UseBuffer
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphBuilder.cs
+    startLine: 80
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Registers the specified buffer for use in the current render graph pass with the given access mode.
+  example: []
+  syntax:
+    content: Identifier<RGBuffer> UseBuffer(Identifier<RGBuffer> buffer, AccessFlags accessMode)
+    parameters:
+    - id: buffer
+      type: Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGBuffer}
+      description: The identifier of the buffer to be used in the render graph pass.
+    - id: accessMode
+      type: Ghost.Graphics.RenderGraphModule.AccessFlags
+      description: The access mode specifying how the buffer will be read or written during the pass.
+    return:
+      type: Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGBuffer}
+      description: An identifier for the buffer.
+    content.vb: Function UseBuffer(buffer As Identifier(Of RGBuffer), accessMode As AccessFlags) As Identifier(Of RGBuffer)
+  overload: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.UseBuffer*
+  nameWithType.vb: IRenderGraphBuilder.UseBuffer(Identifier(Of RGBuffer), AccessFlags)
+  fullName.vb: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.UseBuffer(Ghost.Core.Identifier(Of Ghost.Graphics.RenderGraphModule.RGBuffer), Ghost.Graphics.RenderGraphModule.AccessFlags)
+  name.vb: UseBuffer(Identifier(Of RGBuffer), AccessFlags)
+references:
+- uid: Ghost.Graphics.RenderGraphModule
+  commentId: N:Ghost.Graphics.RenderGraphModule
+  href: Ghost.html
+  name: Ghost.Graphics.RenderGraphModule
+  nameWithType: Ghost.Graphics.RenderGraphModule
+  fullName: Ghost.Graphics.RenderGraphModule
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RenderGraphModule
+    name: RenderGraphModule
+    href: Ghost.Graphics.RenderGraphModule.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RenderGraphModule
+    name: RenderGraphModule
+    href: Ghost.Graphics.RenderGraphModule.html
+- uid: System.IDisposable.Dispose
+  commentId: M:System.IDisposable.Dispose
+  parent: System.IDisposable
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  name: Dispose()
+  nameWithType: IDisposable.Dispose()
+  fullName: System.IDisposable.Dispose()
+  spec.csharp:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+- uid: System.IDisposable
+  commentId: T:System.IDisposable
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable
+  name: IDisposable
+  nameWithType: IDisposable
+  fullName: System.IDisposable
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.AllowPassCulling*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.AllowPassCulling
+  href: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.html#Ghost_Graphics_RenderGraphModule_IRenderGraphBuilder_AllowPassCulling_System_Boolean_
+  name: AllowPassCulling
+  nameWithType: IRenderGraphBuilder.AllowPassCulling
+  fullName: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.AllowPassCulling
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.boolean
+  name: bool
+  nameWithType: bool
+  fullName: bool
+  nameWithType.vb: Boolean
+  fullName.vb: Boolean
+  name.vb: Boolean
+- uid: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateTexture*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateTexture
+  href: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.html#Ghost_Graphics_RenderGraphModule_IRenderGraphBuilder_CreateTexture_Ghost_Graphics_RenderGraphModule_RGTextureDesc__System_String_
+  name: CreateTexture
+  nameWithType: IRenderGraphBuilder.CreateTexture
+  fullName: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateTexture
+- uid: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  commentId: T:Ghost.Graphics.RenderGraphModule.RGTextureDesc
+  parent: Ghost.Graphics.RenderGraphModule
+  href: Ghost.Graphics.RenderGraphModule.RGTextureDesc.html
+  name: RGTextureDesc
+  nameWithType: RGTextureDesc
+  fullName: Ghost.Graphics.RenderGraphModule.RGTextureDesc
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.string
+  name: string
+  nameWithType: string
+  fullName: string
+  nameWithType.vb: String
+  fullName.vb: String
+  name.vb: String
+- uid: Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture}
+  commentId: T:Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture}
+  parent: Ghost.Core
+  definition: Ghost.Core.Identifier`1
+  href: Ghost.Graphics.RenderGraphModule.RGTexture.html
+  name: Identifier<RGTexture>
+  nameWithType: Identifier<RGTexture>
+  fullName: Ghost.Core.Identifier<Ghost.Graphics.RenderGraphModule.RGTexture>
+  nameWithType.vb: Identifier(Of RGTexture)
+  fullName.vb: Ghost.Core.Identifier(Of Ghost.Graphics.RenderGraphModule.RGTexture)
+  name.vb: Identifier(Of RGTexture)
+  spec.csharp:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: <
+  - uid: Ghost.Graphics.RenderGraphModule.RGTexture
+    name: RGTexture
+    href: Ghost.Graphics.RenderGraphModule.RGTexture.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RenderGraphModule.RGTexture
+    name: RGTexture
+    href: Ghost.Graphics.RenderGraphModule.RGTexture.html
+  - name: )
+- uid: Ghost.Core.Identifier`1
+  commentId: T:Ghost.Core.Identifier`1
+  name: Identifier<T>
+  nameWithType: Identifier<T>
+  fullName: Ghost.Core.Identifier<T>
+  nameWithType.vb: Identifier(Of T)
+  fullName.vb: Ghost.Core.Identifier(Of T)
+  name.vb: Identifier(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Core
+  commentId: N:Ghost.Core
+  name: Ghost.Core
+  nameWithType: Ghost.Core
+  fullName: Ghost.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+- uid: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateTextures*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateTextures
+  href: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.html#Ghost_Graphics_RenderGraphModule_IRenderGraphBuilder_CreateTextures_Ghost_Graphics_RenderGraphModule_RGTextureDesc__System_String_System_Span_Ghost_Core_Identifier_Ghost_Graphics_RenderGraphModule_RGTexture___
+  name: CreateTextures
+  nameWithType: IRenderGraphBuilder.CreateTextures
+  fullName: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateTextures
+- uid: System.Span{Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture}}
+  commentId: T:System.Span{Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGTexture}}
+  parent: System
+  definition: System.Span`1
+  href: https://learn.microsoft.com/dotnet/api/system.span-1
+  name: Span<Identifier<RGTexture>>
+  nameWithType: Span<Identifier<RGTexture>>
+  fullName: System.Span<Ghost.Core.Identifier<Ghost.Graphics.RenderGraphModule.RGTexture>>
+  nameWithType.vb: Span(Of Identifier(Of RGTexture))
+  fullName.vb: System.Span(Of Ghost.Core.Identifier(Of Ghost.Graphics.RenderGraphModule.RGTexture))
+  name.vb: Span(Of Identifier(Of RGTexture))
+  spec.csharp:
+  - uid: System.Span`1
+    name: Span
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.span-1
+  - name: <
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: <
+  - uid: Ghost.Graphics.RenderGraphModule.RGTexture
+    name: RGTexture
+    href: Ghost.Graphics.RenderGraphModule.RGTexture.html
+  - name: '>'
+  - name: '>'
+  spec.vb:
+  - uid: System.Span`1
+    name: Span
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.span-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RenderGraphModule.RGTexture
+    name: RGTexture
+    href: Ghost.Graphics.RenderGraphModule.RGTexture.html
+  - name: )
+  - name: )
+- uid: System.Span`1
+  commentId: T:System.Span`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.span-1
+  name: Span<T>
+  nameWithType: Span<T>
+  fullName: System.Span<T>
+  nameWithType.vb: Span(Of T)
+  fullName.vb: System.Span(Of T)
+  name.vb: Span(Of T)
+  spec.csharp:
+  - uid: System.Span`1
+    name: Span
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.span-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.Span`1
+    name: Span
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.span-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateBuffer*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateBuffer
+  href: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.html#Ghost_Graphics_RenderGraphModule_IRenderGraphBuilder_CreateBuffer_Ghost_Graphics_RHI_BufferDesc__System_String_
+  name: CreateBuffer
+  nameWithType: IRenderGraphBuilder.CreateBuffer
+  fullName: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateBuffer
+- uid: Ghost.Graphics.RHI.BufferDesc
+  commentId: T:Ghost.Graphics.RHI.BufferDesc
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.BufferDesc.html
+  name: BufferDesc
+  nameWithType: BufferDesc
+  fullName: Ghost.Graphics.RHI.BufferDesc
+- uid: Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGBuffer}
+  commentId: T:Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGBuffer}
+  parent: Ghost.Core
+  definition: Ghost.Core.Identifier`1
+  href: Ghost.Graphics.RenderGraphModule.RGBuffer.html
+  name: Identifier<RGBuffer>
+  nameWithType: Identifier<RGBuffer>
+  fullName: Ghost.Core.Identifier<Ghost.Graphics.RenderGraphModule.RGBuffer>
+  nameWithType.vb: Identifier(Of RGBuffer)
+  fullName.vb: Ghost.Core.Identifier(Of Ghost.Graphics.RenderGraphModule.RGBuffer)
+  name.vb: Identifier(Of RGBuffer)
+  spec.csharp:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: <
+  - uid: Ghost.Graphics.RenderGraphModule.RGBuffer
+    name: RGBuffer
+    href: Ghost.Graphics.RenderGraphModule.RGBuffer.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RenderGraphModule.RGBuffer
+    name: RGBuffer
+    href: Ghost.Graphics.RenderGraphModule.RGBuffer.html
+  - name: )
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateBuffers*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateBuffers
+  href: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.html#Ghost_Graphics_RenderGraphModule_IRenderGraphBuilder_CreateBuffers_Ghost_Graphics_RHI_BufferDesc__System_String_System_Span_Ghost_Core_Identifier_Ghost_Graphics_RenderGraphModule_RGBuffer___
+  name: CreateBuffers
+  nameWithType: IRenderGraphBuilder.CreateBuffers
+  fullName: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.CreateBuffers
+- uid: System.Span{Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGBuffer}}
+  commentId: T:System.Span{Ghost.Core.Identifier{Ghost.Graphics.RenderGraphModule.RGBuffer}}
+  parent: System
+  definition: System.Span`1
+  href: https://learn.microsoft.com/dotnet/api/system.span-1
+  name: Span<Identifier<RGBuffer>>
+  nameWithType: Span<Identifier<RGBuffer>>
+  fullName: System.Span<Ghost.Core.Identifier<Ghost.Graphics.RenderGraphModule.RGBuffer>>
+  nameWithType.vb: Span(Of Identifier(Of RGBuffer))
+  fullName.vb: System.Span(Of Ghost.Core.Identifier(Of Ghost.Graphics.RenderGraphModule.RGBuffer))
+  name.vb: Span(Of Identifier(Of RGBuffer))
+  spec.csharp:
+  - uid: System.Span`1
+    name: Span
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.span-1
+  - name: <
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: <
+  - uid: Ghost.Graphics.RenderGraphModule.RGBuffer
+    name: RGBuffer
+    href: Ghost.Graphics.RenderGraphModule.RGBuffer.html
+  - name: '>'
+  - name: '>'
+  spec.vb:
+  - uid: System.Span`1
+    name: Span
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.span-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RenderGraphModule.RGBuffer
+    name: RGBuffer
+    href: Ghost.Graphics.RenderGraphModule.RGBuffer.html
+  - name: )
+  - name: )
+- uid: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.UseTexture*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.UseTexture
+  href: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.html#Ghost_Graphics_RenderGraphModule_IRenderGraphBuilder_UseTexture_Ghost_Core_Identifier_Ghost_Graphics_RenderGraphModule_RGTexture__Ghost_Graphics_RenderGraphModule_AccessFlags_
+  name: UseTexture
+  nameWithType: IRenderGraphBuilder.UseTexture
+  fullName: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.UseTexture
+- uid: Ghost.Graphics.RenderGraphModule.AccessFlags
+  commentId: T:Ghost.Graphics.RenderGraphModule.AccessFlags
+  parent: Ghost.Graphics.RenderGraphModule
+  href: Ghost.Graphics.RenderGraphModule.AccessFlags.html
+  name: AccessFlags
+  nameWithType: AccessFlags
+  fullName: Ghost.Graphics.RenderGraphModule.AccessFlags
+- uid: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.UseBuffer*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.UseBuffer
+  href: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.html#Ghost_Graphics_RenderGraphModule_IRenderGraphBuilder_UseBuffer_Ghost_Core_Identifier_Ghost_Graphics_RenderGraphModule_RGBuffer__Ghost_Graphics_RenderGraphModule_AccessFlags_
+  name: UseBuffer
+  nameWithType: IRenderGraphBuilder.UseBuffer
+  fullName: Ghost.Graphics.RenderGraphModule.IRenderGraphBuilder.UseBuffer

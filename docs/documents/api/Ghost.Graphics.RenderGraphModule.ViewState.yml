@@ -1,0 +1,828 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RenderGraphModule.ViewState
+  commentId: T:Ghost.Graphics.RenderGraphModule.ViewState
+  id: ViewState
+  parent: Ghost.Graphics.RenderGraphModule
+  children:
+  - Ghost.Graphics.RenderGraphModule.ViewState.#ctor(System.UInt32,System.UInt32,System.UInt32,System.UInt32)
+  - Ghost.Graphics.RenderGraphModule.ViewState.Equals(Ghost.Graphics.RenderGraphModule.ViewState)
+  - Ghost.Graphics.RenderGraphModule.ViewState.Equals(System.Object)
+  - Ghost.Graphics.RenderGraphModule.ViewState.GetHashCode
+  - Ghost.Graphics.RenderGraphModule.ViewState.actualHeight
+  - Ghost.Graphics.RenderGraphModule.ViewState.actualWidth
+  - Ghost.Graphics.RenderGraphModule.ViewState.op_Equality(Ghost.Graphics.RenderGraphModule.ViewState,Ghost.Graphics.RenderGraphModule.ViewState)
+  - Ghost.Graphics.RenderGraphModule.ViewState.op_Inequality(Ghost.Graphics.RenderGraphModule.ViewState,Ghost.Graphics.RenderGraphModule.ViewState)
+  - Ghost.Graphics.RenderGraphModule.ViewState.viewportHeight
+  - Ghost.Graphics.RenderGraphModule.ViewState.viewportWidth
+  langs:
+  - csharp
+  - vb
+  name: ViewState
+  nameWithType: ViewState
+  fullName: Ghost.Graphics.RenderGraphModule.ViewState
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ViewState
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 33
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: View state information for resolving relative texture sizes.
+  example: []
+  syntax:
+    content: 'public struct ViewState : IEquatable<ViewState>'
+    content.vb: Public Structure ViewState Implements IEquatable(Of ViewState)
+  implements:
+  - System.IEquatable{Ghost.Graphics.RenderGraphModule.ViewState}
+  inheritedMembers:
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Graphics.RenderGraphModule.ViewState.viewportWidth
+  commentId: F:Ghost.Graphics.RenderGraphModule.ViewState.viewportWidth
+  id: viewportWidth
+  parent: Ghost.Graphics.RenderGraphModule.ViewState
+  langs:
+  - csharp
+  - vb
+  name: viewportWidth
+  nameWithType: ViewState.viewportWidth
+  fullName: Ghost.Graphics.RenderGraphModule.ViewState.viewportWidth
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: viewportWidth
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 35
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public uint viewportWidth
+    return:
+      type: System.UInt32
+    content.vb: Public viewportWidth As UInteger
+- uid: Ghost.Graphics.RenderGraphModule.ViewState.viewportHeight
+  commentId: F:Ghost.Graphics.RenderGraphModule.ViewState.viewportHeight
+  id: viewportHeight
+  parent: Ghost.Graphics.RenderGraphModule.ViewState
+  langs:
+  - csharp
+  - vb
+  name: viewportHeight
+  nameWithType: ViewState.viewportHeight
+  fullName: Ghost.Graphics.RenderGraphModule.ViewState.viewportHeight
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: viewportHeight
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 36
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public uint viewportHeight
+    return:
+      type: System.UInt32
+    content.vb: Public viewportHeight As UInteger
+- uid: Ghost.Graphics.RenderGraphModule.ViewState.actualWidth
+  commentId: F:Ghost.Graphics.RenderGraphModule.ViewState.actualWidth
+  id: actualWidth
+  parent: Ghost.Graphics.RenderGraphModule.ViewState
+  langs:
+  - csharp
+  - vb
+  name: actualWidth
+  nameWithType: ViewState.actualWidth
+  fullName: Ghost.Graphics.RenderGraphModule.ViewState.actualWidth
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: actualWidth
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 39
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public uint actualWidth
+    return:
+      type: System.UInt32
+    content.vb: Public actualWidth As UInteger
+- uid: Ghost.Graphics.RenderGraphModule.ViewState.actualHeight
+  commentId: F:Ghost.Graphics.RenderGraphModule.ViewState.actualHeight
+  id: actualHeight
+  parent: Ghost.Graphics.RenderGraphModule.ViewState
+  langs:
+  - csharp
+  - vb
+  name: actualHeight
+  nameWithType: ViewState.actualHeight
+  fullName: Ghost.Graphics.RenderGraphModule.ViewState.actualHeight
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: actualHeight
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 40
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public uint actualHeight
+    return:
+      type: System.UInt32
+    content.vb: Public actualHeight As UInteger
+- uid: Ghost.Graphics.RenderGraphModule.ViewState.#ctor(System.UInt32,System.UInt32,System.UInt32,System.UInt32)
+  commentId: M:Ghost.Graphics.RenderGraphModule.ViewState.#ctor(System.UInt32,System.UInt32,System.UInt32,System.UInt32)
+  id: '#ctor(System.UInt32,System.UInt32,System.UInt32,System.UInt32)'
+  parent: Ghost.Graphics.RenderGraphModule.ViewState
+  langs:
+  - csharp
+  - vb
+  name: ViewState(uint, uint, uint, uint)
+  nameWithType: ViewState.ViewState(uint, uint, uint, uint)
+  fullName: Ghost.Graphics.RenderGraphModule.ViewState.ViewState(uint, uint, uint, uint)
+  type: Constructor
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: .ctor
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 42
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public ViewState(uint width, uint height, uint actualWidth, uint actualHeight)
+    parameters:
+    - id: width
+      type: System.UInt32
+    - id: height
+      type: System.UInt32
+    - id: actualWidth
+      type: System.UInt32
+    - id: actualHeight
+      type: System.UInt32
+    content.vb: Public Sub New(width As UInteger, height As UInteger, actualWidth As UInteger, actualHeight As UInteger)
+  overload: Ghost.Graphics.RenderGraphModule.ViewState.#ctor*
+  nameWithType.vb: ViewState.New(UInteger, UInteger, UInteger, UInteger)
+  fullName.vb: Ghost.Graphics.RenderGraphModule.ViewState.New(UInteger, UInteger, UInteger, UInteger)
+  name.vb: New(UInteger, UInteger, UInteger, UInteger)
+- uid: Ghost.Graphics.RenderGraphModule.ViewState.Equals(Ghost.Graphics.RenderGraphModule.ViewState)
+  commentId: M:Ghost.Graphics.RenderGraphModule.ViewState.Equals(Ghost.Graphics.RenderGraphModule.ViewState)
+  id: Equals(Ghost.Graphics.RenderGraphModule.ViewState)
+  parent: Ghost.Graphics.RenderGraphModule.ViewState
+  langs:
+  - csharp
+  - vb
+  name: Equals(ViewState)
+  nameWithType: ViewState.Equals(ViewState)
+  fullName: Ghost.Graphics.RenderGraphModule.ViewState.Equals(Ghost.Graphics.RenderGraphModule.ViewState)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Equals
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 50
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Indicates whether the current object is equal to another object of the same type.
+  example: []
+  syntax:
+    content: public readonly bool Equals(ViewState other)
+    parameters:
+    - id: other
+      type: Ghost.Graphics.RenderGraphModule.ViewState
+      description: An object to compare with this object.
+    return:
+      type: System.Boolean
+      description: <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">true</a> if the current object is equal to the <code class="paramref">other</code> parameter; otherwise, <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">false</a>.
+    content.vb: Public Function Equals(other As ViewState) As Boolean
+  overload: Ghost.Graphics.RenderGraphModule.ViewState.Equals*
+  implements:
+  - System.IEquatable{Ghost.Graphics.RenderGraphModule.ViewState}.Equals(Ghost.Graphics.RenderGraphModule.ViewState)
+- uid: Ghost.Graphics.RenderGraphModule.ViewState.Equals(System.Object)
+  commentId: M:Ghost.Graphics.RenderGraphModule.ViewState.Equals(System.Object)
+  id: Equals(System.Object)
+  parent: Ghost.Graphics.RenderGraphModule.ViewState
+  langs:
+  - csharp
+  - vb
+  name: Equals(object?)
+  nameWithType: ViewState.Equals(object?)
+  fullName: Ghost.Graphics.RenderGraphModule.ViewState.Equals(object?)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Equals
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 56
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Indicates whether this instance and a specified object are equal.
+  example: []
+  syntax:
+    content: public override readonly bool Equals(object? obj)
+    parameters:
+    - id: obj
+      type: System.Object
+      description: The object to compare with the current instance.
+    return:
+      type: System.Boolean
+      description: <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">true</a> if <code class="paramref">obj</code> and this instance are the same type and represent the same value; otherwise, <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">false</a>.
+    content.vb: Public Overrides Function Equals(obj As Object) As Boolean
+  overridden: System.ValueType.Equals(System.Object)
+  overload: Ghost.Graphics.RenderGraphModule.ViewState.Equals*
+  nameWithType.vb: ViewState.Equals(Object)
+  fullName.vb: Ghost.Graphics.RenderGraphModule.ViewState.Equals(Object)
+  name.vb: Equals(Object)
+- uid: Ghost.Graphics.RenderGraphModule.ViewState.GetHashCode
+  commentId: M:Ghost.Graphics.RenderGraphModule.ViewState.GetHashCode
+  id: GetHashCode
+  parent: Ghost.Graphics.RenderGraphModule.ViewState
+  langs:
+  - csharp
+  - vb
+  name: GetHashCode()
+  nameWithType: ViewState.GetHashCode()
+  fullName: Ghost.Graphics.RenderGraphModule.ViewState.GetHashCode()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetHashCode
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 61
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  summary: Returns the hash code for this instance.
+  example: []
+  syntax:
+    content: public override readonly int GetHashCode()
+    return:
+      type: System.Int32
+      description: A 32-bit signed integer that is the hash code for this instance.
+    content.vb: Public Overrides Function GetHashCode() As Integer
+  overridden: System.ValueType.GetHashCode
+  overload: Ghost.Graphics.RenderGraphModule.ViewState.GetHashCode*
+- uid: Ghost.Graphics.RenderGraphModule.ViewState.op_Equality(Ghost.Graphics.RenderGraphModule.ViewState,Ghost.Graphics.RenderGraphModule.ViewState)
+  commentId: M:Ghost.Graphics.RenderGraphModule.ViewState.op_Equality(Ghost.Graphics.RenderGraphModule.ViewState,Ghost.Graphics.RenderGraphModule.ViewState)
+  id: op_Equality(Ghost.Graphics.RenderGraphModule.ViewState,Ghost.Graphics.RenderGraphModule.ViewState)
+  parent: Ghost.Graphics.RenderGraphModule.ViewState
+  langs:
+  - csharp
+  - vb
+  name: operator ==(ViewState, ViewState)
+  nameWithType: ViewState.operator ==(ViewState, ViewState)
+  fullName: Ghost.Graphics.RenderGraphModule.ViewState.operator ==(Ghost.Graphics.RenderGraphModule.ViewState, Ghost.Graphics.RenderGraphModule.ViewState)
+  type: Operator
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: op_Equality
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 66
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public static bool operator ==(ViewState left, ViewState right)
+    parameters:
+    - id: left
+      type: Ghost.Graphics.RenderGraphModule.ViewState
+    - id: right
+      type: Ghost.Graphics.RenderGraphModule.ViewState
+    return:
+      type: System.Boolean
+    content.vb: Public Shared Operator =(left As ViewState, right As ViewState) As Boolean
+  overload: Ghost.Graphics.RenderGraphModule.ViewState.op_Equality*
+  nameWithType.vb: ViewState.=(ViewState, ViewState)
+  fullName.vb: Ghost.Graphics.RenderGraphModule.ViewState.=(Ghost.Graphics.RenderGraphModule.ViewState, Ghost.Graphics.RenderGraphModule.ViewState)
+  name.vb: =(ViewState, ViewState)
+- uid: Ghost.Graphics.RenderGraphModule.ViewState.op_Inequality(Ghost.Graphics.RenderGraphModule.ViewState,Ghost.Graphics.RenderGraphModule.ViewState)
+  commentId: M:Ghost.Graphics.RenderGraphModule.ViewState.op_Inequality(Ghost.Graphics.RenderGraphModule.ViewState,Ghost.Graphics.RenderGraphModule.ViewState)
+  id: op_Inequality(Ghost.Graphics.RenderGraphModule.ViewState,Ghost.Graphics.RenderGraphModule.ViewState)
+  parent: Ghost.Graphics.RenderGraphModule.ViewState
+  langs:
+  - csharp
+  - vb
+  name: operator !=(ViewState, ViewState)
+  nameWithType: ViewState.operator !=(ViewState, ViewState)
+  fullName: Ghost.Graphics.RenderGraphModule.ViewState.operator !=(Ghost.Graphics.RenderGraphModule.ViewState, Ghost.Graphics.RenderGraphModule.ViewState)
+  type: Operator
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: op_Inequality
+    path: src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphTypes.cs
+    startLine: 71
+  assemblies:
+  - Ghost.Graphics
+  namespace: Ghost.Graphics.RenderGraphModule
+  syntax:
+    content: public static bool operator !=(ViewState left, ViewState right)
+    parameters:
+    - id: left
+      type: Ghost.Graphics.RenderGraphModule.ViewState
+    - id: right
+      type: Ghost.Graphics.RenderGraphModule.ViewState
+    return:
+      type: System.Boolean
+    content.vb: Public Shared Operator <>(left As ViewState, right As ViewState) As Boolean
+  overload: Ghost.Graphics.RenderGraphModule.ViewState.op_Inequality*
+  nameWithType.vb: ViewState.<>(ViewState, ViewState)
+  fullName.vb: Ghost.Graphics.RenderGraphModule.ViewState.<>(Ghost.Graphics.RenderGraphModule.ViewState, Ghost.Graphics.RenderGraphModule.ViewState)
+  name.vb: <>(ViewState, ViewState)
+references:
+- uid: Ghost.Graphics.RenderGraphModule
+  commentId: N:Ghost.Graphics.RenderGraphModule
+  href: Ghost.html
+  name: Ghost.Graphics.RenderGraphModule
+  nameWithType: Ghost.Graphics.RenderGraphModule
+  fullName: Ghost.Graphics.RenderGraphModule
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RenderGraphModule
+    name: RenderGraphModule
+    href: Ghost.Graphics.RenderGraphModule.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RenderGraphModule
+    name: RenderGraphModule
+    href: Ghost.Graphics.RenderGraphModule.html
+- uid: System.IEquatable{Ghost.Graphics.RenderGraphModule.ViewState}
+  commentId: T:System.IEquatable{Ghost.Graphics.RenderGraphModule.ViewState}
+  parent: System
+  definition: System.IEquatable`1
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  name: IEquatable<ViewState>
+  nameWithType: IEquatable<ViewState>
+  fullName: System.IEquatable<Ghost.Graphics.RenderGraphModule.ViewState>
+  nameWithType.vb: IEquatable(Of ViewState)
+  fullName.vb: System.IEquatable(Of Ghost.Graphics.RenderGraphModule.ViewState)
+  name.vb: IEquatable(Of ViewState)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: <
+  - uid: Ghost.Graphics.RenderGraphModule.ViewState
+    name: ViewState
+    href: Ghost.Graphics.RenderGraphModule.ViewState.html
+  - name: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RenderGraphModule.ViewState
+    name: ViewState
+    href: Ghost.Graphics.RenderGraphModule.ViewState.html
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.IEquatable`1
+  commentId: T:System.IEquatable`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  name: IEquatable<T>
+  nameWithType: IEquatable<T>
+  fullName: System.IEquatable<T>
+  nameWithType.vb: IEquatable(Of T)
+  fullName.vb: System.IEquatable(Of T)
+  name.vb: IEquatable(Of T)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System.UInt32
+  commentId: T:System.UInt32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.uint32
+  name: uint
+  nameWithType: uint
+  fullName: uint
+  nameWithType.vb: UInteger
+  fullName.vb: UInteger
+  name.vb: UInteger
+- uid: Ghost.Graphics.RenderGraphModule.ViewState.#ctor*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.ViewState.#ctor
+  href: Ghost.Graphics.RenderGraphModule.ViewState.html#Ghost_Graphics_RenderGraphModule_ViewState__ctor_System_UInt32_System_UInt32_System_UInt32_System_UInt32_
+  name: ViewState
+  nameWithType: ViewState.ViewState
+  fullName: Ghost.Graphics.RenderGraphModule.ViewState.ViewState
+  nameWithType.vb: ViewState.New
+  fullName.vb: Ghost.Graphics.RenderGraphModule.ViewState.New
+  name.vb: New
+- uid: Ghost.Graphics.RenderGraphModule.ViewState.Equals*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.ViewState.Equals
+  href: Ghost.Graphics.RenderGraphModule.ViewState.html#Ghost_Graphics_RenderGraphModule_ViewState_Equals_Ghost_Graphics_RenderGraphModule_ViewState_
+  name: Equals
+  nameWithType: ViewState.Equals
+  fullName: Ghost.Graphics.RenderGraphModule.ViewState.Equals
+- uid: System.IEquatable{Ghost.Graphics.RenderGraphModule.ViewState}.Equals(Ghost.Graphics.RenderGraphModule.ViewState)
+  commentId: M:System.IEquatable{Ghost.Graphics.RenderGraphModule.ViewState}.Equals(Ghost.Graphics.RenderGraphModule.ViewState)
+  parent: System.IEquatable{Ghost.Graphics.RenderGraphModule.ViewState}
+  definition: System.IEquatable`1.Equals(`0)
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  name: Equals(ViewState)
+  nameWithType: IEquatable<ViewState>.Equals(ViewState)
+  fullName: System.IEquatable<Ghost.Graphics.RenderGraphModule.ViewState>.Equals(Ghost.Graphics.RenderGraphModule.ViewState)
+  nameWithType.vb: IEquatable(Of ViewState).Equals(ViewState)
+  fullName.vb: System.IEquatable(Of Ghost.Graphics.RenderGraphModule.ViewState).Equals(Ghost.Graphics.RenderGraphModule.ViewState)
+  spec.csharp:
+  - uid: System.IEquatable{Ghost.Graphics.RenderGraphModule.ViewState}.Equals(Ghost.Graphics.RenderGraphModule.ViewState)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  - name: (
+  - uid: Ghost.Graphics.RenderGraphModule.ViewState
+    name: ViewState
+    href: Ghost.Graphics.RenderGraphModule.ViewState.html
+  - name: )
+  spec.vb:
+  - uid: System.IEquatable{Ghost.Graphics.RenderGraphModule.ViewState}.Equals(Ghost.Graphics.RenderGraphModule.ViewState)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  - name: (
+  - uid: Ghost.Graphics.RenderGraphModule.ViewState
+    name: ViewState
+    href: Ghost.Graphics.RenderGraphModule.ViewState.html
+  - name: )
+- uid: Ghost.Graphics.RenderGraphModule.ViewState
+  commentId: T:Ghost.Graphics.RenderGraphModule.ViewState
+  parent: Ghost.Graphics.RenderGraphModule
+  href: Ghost.Graphics.RenderGraphModule.ViewState.html
+  name: ViewState
+  nameWithType: ViewState
+  fullName: Ghost.Graphics.RenderGraphModule.ViewState
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.boolean
+  name: bool
+  nameWithType: bool
+  fullName: bool
+  nameWithType.vb: Boolean
+  fullName.vb: Boolean
+  name.vb: Boolean
+- uid: System.IEquatable`1.Equals(`0)
+  commentId: M:System.IEquatable`1.Equals(`0)
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  name: Equals(T)
+  nameWithType: IEquatable<T>.Equals(T)
+  fullName: System.IEquatable<T>.Equals(T)
+  nameWithType.vb: IEquatable(Of T).Equals(T)
+  fullName.vb: System.IEquatable(Of T).Equals(T)
+  spec.csharp:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  - name: (
+  - name: T
+  - name: )
+  spec.vb:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  - name: (
+  - name: T
+  - name: )
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: Ghost.Graphics.RenderGraphModule.ViewState.GetHashCode*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.ViewState.GetHashCode
+  href: Ghost.Graphics.RenderGraphModule.ViewState.html#Ghost_Graphics_RenderGraphModule_ViewState_GetHashCode
+  name: GetHashCode
+  nameWithType: ViewState.GetHashCode
+  fullName: Ghost.Graphics.RenderGraphModule.ViewState.GetHashCode
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.int32
+  name: int
+  nameWithType: int
+  fullName: int
+  nameWithType.vb: Integer
+  fullName.vb: Integer
+  name.vb: Integer
+- uid: Ghost.Graphics.RenderGraphModule.ViewState.op_Equality*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.ViewState.op_Equality
+  href: Ghost.Graphics.RenderGraphModule.ViewState.html#Ghost_Graphics_RenderGraphModule_ViewState_op_Equality_Ghost_Graphics_RenderGraphModule_ViewState_Ghost_Graphics_RenderGraphModule_ViewState_
+  name: operator ==
+  nameWithType: ViewState.operator ==
+  fullName: Ghost.Graphics.RenderGraphModule.ViewState.operator ==
+  nameWithType.vb: ViewState.=
+  fullName.vb: Ghost.Graphics.RenderGraphModule.ViewState.=
+  name.vb: =
+  spec.csharp:
+  - name: operator
+  - name: " "
+  - uid: Ghost.Graphics.RenderGraphModule.ViewState.op_Equality*
+    name: ==
+    href: Ghost.Graphics.RenderGraphModule.ViewState.html#Ghost_Graphics_RenderGraphModule_ViewState_op_Equality_Ghost_Graphics_RenderGraphModule_ViewState_Ghost_Graphics_RenderGraphModule_ViewState_
+- uid: Ghost.Graphics.RenderGraphModule.ViewState.op_Inequality*
+  commentId: Overload:Ghost.Graphics.RenderGraphModule.ViewState.op_Inequality
+  href: Ghost.Graphics.RenderGraphModule.ViewState.html#Ghost_Graphics_RenderGraphModule_ViewState_op_Inequality_Ghost_Graphics_RenderGraphModule_ViewState_Ghost_Graphics_RenderGraphModule_ViewState_
+  name: operator !=
+  nameWithType: ViewState.operator !=
+  fullName: Ghost.Graphics.RenderGraphModule.ViewState.operator !=
+  nameWithType.vb: ViewState.<>
+  fullName.vb: Ghost.Graphics.RenderGraphModule.ViewState.<>
+  name.vb: <>
+  spec.csharp:
+  - name: operator
+  - name: " "
+  - uid: Ghost.Graphics.RenderGraphModule.ViewState.op_Inequality*
+    name: '!='
+    href: Ghost.Graphics.RenderGraphModule.ViewState.html#Ghost_Graphics_RenderGraphModule_ViewState_op_Inequality_Ghost_Graphics_RenderGraphModule_ViewState_Ghost_Graphics_RenderGraphModule_ViewState_

@@ -1,0 +1,23 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.Core.Contracts
+  commentId: N:Ghost.Graphics.Core.Contracts
+  id: Ghost.Graphics.Core.Contracts
+  children:
+  - Ghost.Graphics.Core.Contracts.IRenderPass
+  langs:
+  - csharp
+  - vb
+  name: Ghost.Graphics.Core.Contracts
+  nameWithType: Ghost.Graphics.Core.Contracts
+  fullName: Ghost.Graphics.Core.Contracts
+  type: Namespace
+  assemblies:
+  - Ghost.Graphics
+references:
+- uid: Ghost.Graphics.Core.Contracts.IRenderPass
+  commentId: T:Ghost.Graphics.Core.Contracts.IRenderPass
+  href: Ghost.Graphics.Core.Contracts.IRenderPass.html
+  name: IRenderPass
+  nameWithType: IRenderPass
+  fullName: Ghost.Graphics.Core.Contracts.IRenderPass

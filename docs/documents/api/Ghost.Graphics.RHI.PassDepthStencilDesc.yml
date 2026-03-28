@@ -1,0 +1,647 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.PassDepthStencilDesc
+  commentId: T:Ghost.Graphics.RHI.PassDepthStencilDesc
+  id: PassDepthStencilDesc
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.PassDepthStencilDesc.ClearDepth
+  - Ghost.Graphics.RHI.PassDepthStencilDesc.ClearStencil
+  - Ghost.Graphics.RHI.PassDepthStencilDesc.DepthLoadOp
+  - Ghost.Graphics.RHI.PassDepthStencilDesc.DepthStoreOp
+  - Ghost.Graphics.RHI.PassDepthStencilDesc.StencilLoadOp
+  - Ghost.Graphics.RHI.PassDepthStencilDesc.StencilStoreOp
+  - Ghost.Graphics.RHI.PassDepthStencilDesc.Texture
+  langs:
+  - csharp
+  - vb
+  name: PassDepthStencilDesc
+  nameWithType: PassDepthStencilDesc
+  fullName: Ghost.Graphics.RHI.PassDepthStencilDesc
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: PassDepthStencilDesc
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 407
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public struct PassDepthStencilDesc
+    content.vb: Public Structure PassDepthStencilDesc
+  inheritedMembers:
+  - System.ValueType.Equals(System.Object)
+  - System.ValueType.GetHashCode
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Graphics.RHI.PassDepthStencilDesc.Texture
+  commentId: P:Ghost.Graphics.RHI.PassDepthStencilDesc.Texture
+  id: Texture
+  parent: Ghost.Graphics.RHI.PassDepthStencilDesc
+  langs:
+  - csharp
+  - vb
+  name: Texture
+  nameWithType: PassDepthStencilDesc.Texture
+  fullName: Ghost.Graphics.RHI.PassDepthStencilDesc.Texture
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Texture
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 409
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public Handle<Texture> Texture { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+    content.vb: Public Property Texture As Handle(Of Texture)
+  overload: Ghost.Graphics.RHI.PassDepthStencilDesc.Texture*
+- uid: Ghost.Graphics.RHI.PassDepthStencilDesc.ClearDepth
+  commentId: P:Ghost.Graphics.RHI.PassDepthStencilDesc.ClearDepth
+  id: ClearDepth
+  parent: Ghost.Graphics.RHI.PassDepthStencilDesc
+  langs:
+  - csharp
+  - vb
+  name: ClearDepth
+  nameWithType: PassDepthStencilDesc.ClearDepth
+  fullName: Ghost.Graphics.RHI.PassDepthStencilDesc.ClearDepth
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ClearDepth
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 414
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public float ClearDepth { readonly get; set; }
+    parameters: []
+    return:
+      type: System.Single
+    content.vb: Public Property ClearDepth As Single
+  overload: Ghost.Graphics.RHI.PassDepthStencilDesc.ClearDepth*
+- uid: Ghost.Graphics.RHI.PassDepthStencilDesc.ClearStencil
+  commentId: P:Ghost.Graphics.RHI.PassDepthStencilDesc.ClearStencil
+  id: ClearStencil
+  parent: Ghost.Graphics.RHI.PassDepthStencilDesc
+  langs:
+  - csharp
+  - vb
+  name: ClearStencil
+  nameWithType: PassDepthStencilDesc.ClearStencil
+  fullName: Ghost.Graphics.RHI.PassDepthStencilDesc.ClearStencil
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ClearStencil
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 419
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public byte ClearStencil { readonly get; set; }
+    parameters: []
+    return:
+      type: System.Byte
+    content.vb: Public Property ClearStencil As Byte
+  overload: Ghost.Graphics.RHI.PassDepthStencilDesc.ClearStencil*
+- uid: Ghost.Graphics.RHI.PassDepthStencilDesc.DepthLoadOp
+  commentId: P:Ghost.Graphics.RHI.PassDepthStencilDesc.DepthLoadOp
+  id: DepthLoadOp
+  parent: Ghost.Graphics.RHI.PassDepthStencilDesc
+  langs:
+  - csharp
+  - vb
+  name: DepthLoadOp
+  nameWithType: PassDepthStencilDesc.DepthLoadOp
+  fullName: Ghost.Graphics.RHI.PassDepthStencilDesc.DepthLoadOp
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: DepthLoadOp
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 427
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Specifies how to load the depth buffer at the start of the render pass.
+  example: []
+  syntax:
+    content: public AttachmentLoadOp DepthLoadOp { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.AttachmentLoadOp
+    content.vb: Public Property DepthLoadOp As AttachmentLoadOp
+  overload: Ghost.Graphics.RHI.PassDepthStencilDesc.DepthLoadOp*
+- uid: Ghost.Graphics.RHI.PassDepthStencilDesc.DepthStoreOp
+  commentId: P:Ghost.Graphics.RHI.PassDepthStencilDesc.DepthStoreOp
+  id: DepthStoreOp
+  parent: Ghost.Graphics.RHI.PassDepthStencilDesc
+  langs:
+  - csharp
+  - vb
+  name: DepthStoreOp
+  nameWithType: PassDepthStencilDesc.DepthStoreOp
+  fullName: Ghost.Graphics.RHI.PassDepthStencilDesc.DepthStoreOp
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: DepthStoreOp
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 435
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Specifies how to store the depth buffer at the end of the render pass.
+  example: []
+  syntax:
+    content: public AttachmentStoreOp DepthStoreOp { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.AttachmentStoreOp
+    content.vb: Public Property DepthStoreOp As AttachmentStoreOp
+  overload: Ghost.Graphics.RHI.PassDepthStencilDesc.DepthStoreOp*
+- uid: Ghost.Graphics.RHI.PassDepthStencilDesc.StencilLoadOp
+  commentId: P:Ghost.Graphics.RHI.PassDepthStencilDesc.StencilLoadOp
+  id: StencilLoadOp
+  parent: Ghost.Graphics.RHI.PassDepthStencilDesc
+  langs:
+  - csharp
+  - vb
+  name: StencilLoadOp
+  nameWithType: PassDepthStencilDesc.StencilLoadOp
+  fullName: Ghost.Graphics.RHI.PassDepthStencilDesc.StencilLoadOp
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: StencilLoadOp
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 443
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Specifies how to load the stencil buffer at the start of the render pass.
+  example: []
+  syntax:
+    content: public AttachmentLoadOp StencilLoadOp { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.AttachmentLoadOp
+    content.vb: Public Property StencilLoadOp As AttachmentLoadOp
+  overload: Ghost.Graphics.RHI.PassDepthStencilDesc.StencilLoadOp*
+- uid: Ghost.Graphics.RHI.PassDepthStencilDesc.StencilStoreOp
+  commentId: P:Ghost.Graphics.RHI.PassDepthStencilDesc.StencilStoreOp
+  id: StencilStoreOp
+  parent: Ghost.Graphics.RHI.PassDepthStencilDesc
+  langs:
+  - csharp
+  - vb
+  name: StencilStoreOp
+  nameWithType: PassDepthStencilDesc.StencilStoreOp
+  fullName: Ghost.Graphics.RHI.PassDepthStencilDesc.StencilStoreOp
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: StencilStoreOp
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 451
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Specifies how to store the stencil buffer at the end of the render pass.
+  example: []
+  syntax:
+    content: public AttachmentStoreOp StencilStoreOp { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.AttachmentStoreOp
+    content.vb: Public Property StencilStoreOp As AttachmentStoreOp
+  overload: Ghost.Graphics.RHI.PassDepthStencilDesc.StencilStoreOp*
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RHI.PassDepthStencilDesc.Texture*
+  commentId: Overload:Ghost.Graphics.RHI.PassDepthStencilDesc.Texture
+  href: Ghost.Graphics.RHI.PassDepthStencilDesc.html#Ghost_Graphics_RHI_PassDepthStencilDesc_Texture
+  name: Texture
+  nameWithType: PassDepthStencilDesc.Texture
+  fullName: Ghost.Graphics.RHI.PassDepthStencilDesc.Texture
+- uid: Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+  commentId: T:Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+  parent: Ghost.Core
+  definition: Ghost.Core.Handle`1
+  href: Ghost.Graphics.RHI.Texture.html
+  name: Handle<Texture>
+  nameWithType: Handle<Texture>
+  fullName: Ghost.Core.Handle<Ghost.Graphics.RHI.Texture>
+  nameWithType.vb: Handle(Of Texture)
+  fullName.vb: Ghost.Core.Handle(Of Ghost.Graphics.RHI.Texture)
+  name.vb: Handle(Of Texture)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - uid: Ghost.Graphics.RHI.Texture
+    name: Texture
+    href: Ghost.Graphics.RHI.Texture.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.Texture
+    name: Texture
+    href: Ghost.Graphics.RHI.Texture.html
+  - name: )
+- uid: Ghost.Core.Handle`1
+  commentId: T:Ghost.Core.Handle`1
+  name: Handle<T>
+  nameWithType: Handle<T>
+  fullName: Ghost.Core.Handle<T>
+  nameWithType.vb: Handle(Of T)
+  fullName.vb: Ghost.Core.Handle(Of T)
+  name.vb: Handle(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Core
+  commentId: N:Ghost.Core
+  name: Ghost.Core
+  nameWithType: Ghost.Core
+  fullName: Ghost.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+- uid: Ghost.Graphics.RHI.PassDepthStencilDesc.ClearDepth*
+  commentId: Overload:Ghost.Graphics.RHI.PassDepthStencilDesc.ClearDepth
+  href: Ghost.Graphics.RHI.PassDepthStencilDesc.html#Ghost_Graphics_RHI_PassDepthStencilDesc_ClearDepth
+  name: ClearDepth
+  nameWithType: PassDepthStencilDesc.ClearDepth
+  fullName: Ghost.Graphics.RHI.PassDepthStencilDesc.ClearDepth
+- uid: System.Single
+  commentId: T:System.Single
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.single
+  name: float
+  nameWithType: float
+  fullName: float
+  nameWithType.vb: Single
+  fullName.vb: Single
+  name.vb: Single
+- uid: Ghost.Graphics.RHI.PassDepthStencilDesc.ClearStencil*
+  commentId: Overload:Ghost.Graphics.RHI.PassDepthStencilDesc.ClearStencil
+  href: Ghost.Graphics.RHI.PassDepthStencilDesc.html#Ghost_Graphics_RHI_PassDepthStencilDesc_ClearStencil
+  name: ClearStencil
+  nameWithType: PassDepthStencilDesc.ClearStencil
+  fullName: Ghost.Graphics.RHI.PassDepthStencilDesc.ClearStencil
+- uid: System.Byte
+  commentId: T:System.Byte
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.byte
+  name: byte
+  nameWithType: byte
+  fullName: byte
+  nameWithType.vb: Byte
+  fullName.vb: Byte
+  name.vb: Byte
+- uid: Ghost.Graphics.RHI.PassDepthStencilDesc.DepthLoadOp*
+  commentId: Overload:Ghost.Graphics.RHI.PassDepthStencilDesc.DepthLoadOp
+  href: Ghost.Graphics.RHI.PassDepthStencilDesc.html#Ghost_Graphics_RHI_PassDepthStencilDesc_DepthLoadOp
+  name: DepthLoadOp
+  nameWithType: PassDepthStencilDesc.DepthLoadOp
+  fullName: Ghost.Graphics.RHI.PassDepthStencilDesc.DepthLoadOp
+- uid: Ghost.Graphics.RHI.AttachmentLoadOp
+  commentId: T:Ghost.Graphics.RHI.AttachmentLoadOp
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.AttachmentLoadOp.html
+  name: AttachmentLoadOp
+  nameWithType: AttachmentLoadOp
+  fullName: Ghost.Graphics.RHI.AttachmentLoadOp
+- uid: Ghost.Graphics.RHI.PassDepthStencilDesc.DepthStoreOp*
+  commentId: Overload:Ghost.Graphics.RHI.PassDepthStencilDesc.DepthStoreOp
+  href: Ghost.Graphics.RHI.PassDepthStencilDesc.html#Ghost_Graphics_RHI_PassDepthStencilDesc_DepthStoreOp
+  name: DepthStoreOp
+  nameWithType: PassDepthStencilDesc.DepthStoreOp
+  fullName: Ghost.Graphics.RHI.PassDepthStencilDesc.DepthStoreOp
+- uid: Ghost.Graphics.RHI.AttachmentStoreOp
+  commentId: T:Ghost.Graphics.RHI.AttachmentStoreOp
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.AttachmentStoreOp.html
+  name: AttachmentStoreOp
+  nameWithType: AttachmentStoreOp
+  fullName: Ghost.Graphics.RHI.AttachmentStoreOp
+- uid: Ghost.Graphics.RHI.PassDepthStencilDesc.StencilLoadOp*
+  commentId: Overload:Ghost.Graphics.RHI.PassDepthStencilDesc.StencilLoadOp
+  href: Ghost.Graphics.RHI.PassDepthStencilDesc.html#Ghost_Graphics_RHI_PassDepthStencilDesc_StencilLoadOp
+  name: StencilLoadOp
+  nameWithType: PassDepthStencilDesc.StencilLoadOp
+  fullName: Ghost.Graphics.RHI.PassDepthStencilDesc.StencilLoadOp
+- uid: Ghost.Graphics.RHI.PassDepthStencilDesc.StencilStoreOp*
+  commentId: Overload:Ghost.Graphics.RHI.PassDepthStencilDesc.StencilStoreOp
+  href: Ghost.Graphics.RHI.PassDepthStencilDesc.html#Ghost_Graphics_RHI_PassDepthStencilDesc_StencilStoreOp
+  name: StencilStoreOp
+  nameWithType: PassDepthStencilDesc.StencilStoreOp
+  fullName: Ghost.Graphics.RHI.PassDepthStencilDesc.StencilStoreOp

@@ -6,7 +6,9 @@
         {
           "src": "src",
           "files": [
-            "Runtime/Ghost.Entities/*.csproj"
+            "Runtime/Ghost.Entities/*.csproj",
+            "Runtime/Ghost.Graphics/*.csproj",
+            "Runtime/Ghost.Graphics.RHI/*.csproj"
           ]
         }
       ],

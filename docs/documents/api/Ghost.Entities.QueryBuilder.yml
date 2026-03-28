@@ -409,7 +409,7 @@ items:
       repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Build
     path: src/Runtime/Ghost.Entities/Query.cs
-    startLine: 646
+    startLine: 642
   assemblies:
   - Ghost.Entities
   namespace: Ghost.Entities
@@ -445,7 +445,7 @@ items:
       repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Clear
     path: src/Runtime/Ghost.Entities/Query.cs
-    startLine: 679
+    startLine: 671
   assemblies:
   - Ghost.Entities
   namespace: Ghost.Entities
@@ -471,7 +471,7 @@ items:
       repo: https://git.personalnas.com/Misaki/GhostEngine.git
     id: Dispose
     path: src/Runtime/Ghost.Entities/Query.cs
-    startLine: 690
+    startLine: 682
   assemblies:
   - Ghost.Entities
   namespace: Ghost.Entities

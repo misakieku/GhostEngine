@@ -1,0 +1,594 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.ResourceHandleExtensions
+  commentId: T:Ghost.Graphics.RHI.ResourceHandleExtensions
+  id: ResourceHandleExtensions
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.ResourceHandleExtensions.AsGraphicsBuffer(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  - Ghost.Graphics.RHI.ResourceHandleExtensions.AsResource(Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer})
+  - Ghost.Graphics.RHI.ResourceHandleExtensions.AsResource(Ghost.Core.Handle{Ghost.Graphics.RHI.Texture})
+  - Ghost.Graphics.RHI.ResourceHandleExtensions.AsTexture(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  langs:
+  - csharp
+  - vb
+  name: ResourceHandleExtensions
+  nameWithType: ResourceHandleExtensions
+  fullName: Ghost.Graphics.RHI.ResourceHandleExtensions
+  type: Class
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ResourceHandle.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ResourceHandleExtensions
+    path: src/Runtime/Ghost.Graphics.RHI/ResourceHandle.cs
+    startLine: 10
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public static class ResourceHandleExtensions
+    content.vb: Public Module ResourceHandleExtensions
+  inheritance:
+  - System.Object
+  inheritedMembers:
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.MemberwiseClone
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.ToString
+- uid: Ghost.Graphics.RHI.ResourceHandleExtensions.AsResource(Ghost.Core.Handle{Ghost.Graphics.RHI.Texture})
+  commentId: M:Ghost.Graphics.RHI.ResourceHandleExtensions.AsResource(Ghost.Core.Handle{Ghost.Graphics.RHI.Texture})
+  id: AsResource(Ghost.Core.Handle{Ghost.Graphics.RHI.Texture})
+  isExtensionMethod: true
+  parent: Ghost.Graphics.RHI.ResourceHandleExtensions
+  langs:
+  - csharp
+  - vb
+  name: AsResource(Handle<Texture>)
+  nameWithType: ResourceHandleExtensions.AsResource(Handle<Texture>)
+  fullName: Ghost.Graphics.RHI.ResourceHandleExtensions.AsResource(Ghost.Core.Handle<Ghost.Graphics.RHI.Texture>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ResourceHandle.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AsResource
+    path: src/Runtime/Ghost.Graphics.RHI/ResourceHandle.cs
+    startLine: 12
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public static Handle<GPUResource> AsResource(this Handle<Texture> texture)
+    parameters:
+    - id: texture
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+    return:
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+    content.vb: Public Shared Function AsResource(texture As Handle(Of Texture)) As Handle(Of GPUResource)
+  overload: Ghost.Graphics.RHI.ResourceHandleExtensions.AsResource*
+  nameWithType.vb: ResourceHandleExtensions.AsResource(Handle(Of Texture))
+  fullName.vb: Ghost.Graphics.RHI.ResourceHandleExtensions.AsResource(Ghost.Core.Handle(Of Ghost.Graphics.RHI.Texture))
+  name.vb: AsResource(Handle(Of Texture))
+- uid: Ghost.Graphics.RHI.ResourceHandleExtensions.AsResource(Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer})
+  commentId: M:Ghost.Graphics.RHI.ResourceHandleExtensions.AsResource(Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer})
+  id: AsResource(Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer})
+  isExtensionMethod: true
+  parent: Ghost.Graphics.RHI.ResourceHandleExtensions
+  langs:
+  - csharp
+  - vb
+  name: AsResource(Handle<GraphicsBuffer>)
+  nameWithType: ResourceHandleExtensions.AsResource(Handle<GraphicsBuffer>)
+  fullName: Ghost.Graphics.RHI.ResourceHandleExtensions.AsResource(Ghost.Core.Handle<Ghost.Graphics.RHI.GraphicsBuffer>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ResourceHandle.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AsResource
+    path: src/Runtime/Ghost.Graphics.RHI/ResourceHandle.cs
+    startLine: 17
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public static Handle<GPUResource> AsResource(this Handle<GraphicsBuffer> buffer)
+    parameters:
+    - id: buffer
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer}
+    return:
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+    content.vb: Public Shared Function AsResource(buffer As Handle(Of GraphicsBuffer)) As Handle(Of GPUResource)
+  overload: Ghost.Graphics.RHI.ResourceHandleExtensions.AsResource*
+  nameWithType.vb: ResourceHandleExtensions.AsResource(Handle(Of GraphicsBuffer))
+  fullName.vb: Ghost.Graphics.RHI.ResourceHandleExtensions.AsResource(Ghost.Core.Handle(Of Ghost.Graphics.RHI.GraphicsBuffer))
+  name.vb: AsResource(Handle(Of GraphicsBuffer))
+- uid: Ghost.Graphics.RHI.ResourceHandleExtensions.AsTexture(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  commentId: M:Ghost.Graphics.RHI.ResourceHandleExtensions.AsTexture(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  id: AsTexture(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  isExtensionMethod: true
+  parent: Ghost.Graphics.RHI.ResourceHandleExtensions
+  langs:
+  - csharp
+  - vb
+  name: AsTexture(Handle<GPUResource>)
+  nameWithType: ResourceHandleExtensions.AsTexture(Handle<GPUResource>)
+  fullName: Ghost.Graphics.RHI.ResourceHandleExtensions.AsTexture(Ghost.Core.Handle<Ghost.Graphics.RHI.GPUResource>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ResourceHandle.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AsTexture
+    path: src/Runtime/Ghost.Graphics.RHI/ResourceHandle.cs
+    startLine: 22
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public static Handle<Texture> AsTexture(this Handle<GPUResource> resource)
+    parameters:
+    - id: resource
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+    return:
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+    content.vb: Public Shared Function AsTexture(resource As Handle(Of GPUResource)) As Handle(Of Texture)
+  overload: Ghost.Graphics.RHI.ResourceHandleExtensions.AsTexture*
+  nameWithType.vb: ResourceHandleExtensions.AsTexture(Handle(Of GPUResource))
+  fullName.vb: Ghost.Graphics.RHI.ResourceHandleExtensions.AsTexture(Ghost.Core.Handle(Of Ghost.Graphics.RHI.GPUResource))
+  name.vb: AsTexture(Handle(Of GPUResource))
+- uid: Ghost.Graphics.RHI.ResourceHandleExtensions.AsGraphicsBuffer(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  commentId: M:Ghost.Graphics.RHI.ResourceHandleExtensions.AsGraphicsBuffer(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  id: AsGraphicsBuffer(Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource})
+  isExtensionMethod: true
+  parent: Ghost.Graphics.RHI.ResourceHandleExtensions
+  langs:
+  - csharp
+  - vb
+  name: AsGraphicsBuffer(Handle<GPUResource>)
+  nameWithType: ResourceHandleExtensions.AsGraphicsBuffer(Handle<GPUResource>)
+  fullName: Ghost.Graphics.RHI.ResourceHandleExtensions.AsGraphicsBuffer(Ghost.Core.Handle<Ghost.Graphics.RHI.GPUResource>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/ResourceHandle.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AsGraphicsBuffer
+    path: src/Runtime/Ghost.Graphics.RHI/ResourceHandle.cs
+    startLine: 27
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public static Handle<GraphicsBuffer> AsGraphicsBuffer(this Handle<GPUResource> resource)
+    parameters:
+    - id: resource
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+    return:
+      type: Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer}
+    content.vb: Public Shared Function AsGraphicsBuffer(resource As Handle(Of GPUResource)) As Handle(Of GraphicsBuffer)
+  overload: Ghost.Graphics.RHI.ResourceHandleExtensions.AsGraphicsBuffer*
+  nameWithType.vb: ResourceHandleExtensions.AsGraphicsBuffer(Handle(Of GPUResource))
+  fullName.vb: Ghost.Graphics.RHI.ResourceHandleExtensions.AsGraphicsBuffer(Ghost.Core.Handle(Of Ghost.Graphics.RHI.GPUResource))
+  name.vb: AsGraphicsBuffer(Handle(Of GPUResource))
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  name: Equals(object)
+  nameWithType: object.Equals(object)
+  fullName: object.Equals(object)
+  nameWithType.vb: Object.Equals(Object)
+  fullName.vb: Object.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  name: GetHashCode()
+  nameWithType: object.GetHashCode()
+  fullName: object.GetHashCode()
+  nameWithType.vb: Object.GetHashCode()
+  fullName.vb: Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  name: MemberwiseClone()
+  nameWithType: object.MemberwiseClone()
+  fullName: object.MemberwiseClone()
+  nameWithType.vb: Object.MemberwiseClone()
+  fullName.vb: Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  name: ToString()
+  nameWithType: object.ToString()
+  fullName: object.ToString()
+  nameWithType.vb: Object.ToString()
+  fullName.vb: Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RHI.ResourceHandleExtensions.AsResource*
+  commentId: Overload:Ghost.Graphics.RHI.ResourceHandleExtensions.AsResource
+  href: Ghost.Graphics.RHI.ResourceHandleExtensions.html#Ghost_Graphics_RHI_ResourceHandleExtensions_AsResource_Ghost_Core_Handle_Ghost_Graphics_RHI_Texture__
+  name: AsResource
+  nameWithType: ResourceHandleExtensions.AsResource
+  fullName: Ghost.Graphics.RHI.ResourceHandleExtensions.AsResource
+- uid: Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+  commentId: T:Ghost.Core.Handle{Ghost.Graphics.RHI.Texture}
+  parent: Ghost.Core
+  definition: Ghost.Core.Handle`1
+  href: Ghost.Graphics.RHI.Texture.html
+  name: Handle<Texture>
+  nameWithType: Handle<Texture>
+  fullName: Ghost.Core.Handle<Ghost.Graphics.RHI.Texture>
+  nameWithType.vb: Handle(Of Texture)
+  fullName.vb: Ghost.Core.Handle(Of Ghost.Graphics.RHI.Texture)
+  name.vb: Handle(Of Texture)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - uid: Ghost.Graphics.RHI.Texture
+    name: Texture
+    href: Ghost.Graphics.RHI.Texture.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.Texture
+    name: Texture
+    href: Ghost.Graphics.RHI.Texture.html
+  - name: )
+- uid: Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+  commentId: T:Ghost.Core.Handle{Ghost.Graphics.RHI.GPUResource}
+  parent: Ghost.Core
+  definition: Ghost.Core.Handle`1
+  href: Ghost.Graphics.RHI.GPUResource.html
+  name: Handle<GPUResource>
+  nameWithType: Handle<GPUResource>
+  fullName: Ghost.Core.Handle<Ghost.Graphics.RHI.GPUResource>
+  nameWithType.vb: Handle(Of GPUResource)
+  fullName.vb: Ghost.Core.Handle(Of Ghost.Graphics.RHI.GPUResource)
+  name.vb: Handle(Of GPUResource)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - uid: Ghost.Graphics.RHI.GPUResource
+    name: GPUResource
+    href: Ghost.Graphics.RHI.GPUResource.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.GPUResource
+    name: GPUResource
+    href: Ghost.Graphics.RHI.GPUResource.html
+  - name: )
+- uid: Ghost.Core.Handle`1
+  commentId: T:Ghost.Core.Handle`1
+  name: Handle<T>
+  nameWithType: Handle<T>
+  fullName: Ghost.Core.Handle<T>
+  nameWithType.vb: Handle(Of T)
+  fullName.vb: Ghost.Core.Handle(Of T)
+  name.vb: Handle(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Core
+  commentId: N:Ghost.Core
+  name: Ghost.Core
+  nameWithType: Ghost.Core
+  fullName: Ghost.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+- uid: Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer}
+  commentId: T:Ghost.Core.Handle{Ghost.Graphics.RHI.GraphicsBuffer}
+  parent: Ghost.Core
+  definition: Ghost.Core.Handle`1
+  href: Ghost.Graphics.RHI.GraphicsBuffer.html
+  name: Handle<GraphicsBuffer>
+  nameWithType: Handle<GraphicsBuffer>
+  fullName: Ghost.Core.Handle<Ghost.Graphics.RHI.GraphicsBuffer>
+  nameWithType.vb: Handle(Of GraphicsBuffer)
+  fullName.vb: Ghost.Core.Handle(Of Ghost.Graphics.RHI.GraphicsBuffer)
+  name.vb: Handle(Of GraphicsBuffer)
+  spec.csharp:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: <
+  - uid: Ghost.Graphics.RHI.GraphicsBuffer
+    name: GraphicsBuffer
+    href: Ghost.Graphics.RHI.GraphicsBuffer.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Handle`1
+    name: Handle
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.GraphicsBuffer
+    name: GraphicsBuffer
+    href: Ghost.Graphics.RHI.GraphicsBuffer.html
+  - name: )
+- uid: Ghost.Graphics.RHI.ResourceHandleExtensions.AsTexture*
+  commentId: Overload:Ghost.Graphics.RHI.ResourceHandleExtensions.AsTexture
+  href: Ghost.Graphics.RHI.ResourceHandleExtensions.html#Ghost_Graphics_RHI_ResourceHandleExtensions_AsTexture_Ghost_Core_Handle_Ghost_Graphics_RHI_GPUResource__
+  name: AsTexture
+  nameWithType: ResourceHandleExtensions.AsTexture
+  fullName: Ghost.Graphics.RHI.ResourceHandleExtensions.AsTexture
+- uid: Ghost.Graphics.RHI.ResourceHandleExtensions.AsGraphicsBuffer*
+  commentId: Overload:Ghost.Graphics.RHI.ResourceHandleExtensions.AsGraphicsBuffer
+  href: Ghost.Graphics.RHI.ResourceHandleExtensions.html#Ghost_Graphics_RHI_ResourceHandleExtensions_AsGraphicsBuffer_Ghost_Core_Handle_Ghost_Graphics_RHI_GPUResource__
+  name: AsGraphicsBuffer
+  nameWithType: ResourceHandleExtensions.AsGraphicsBuffer
+  fullName: Ghost.Graphics.RHI.ResourceHandleExtensions.AsGraphicsBuffer

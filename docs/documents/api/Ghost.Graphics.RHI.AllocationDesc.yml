@@ -1,0 +1,452 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.AllocationDesc
+  commentId: T:Ghost.Graphics.RHI.AllocationDesc
+  id: AllocationDesc
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.AllocationDesc.Alignment
+  - Ghost.Graphics.RHI.AllocationDesc.HeapFlags
+  - Ghost.Graphics.RHI.AllocationDesc.HeapType
+  - Ghost.Graphics.RHI.AllocationDesc.Size
+  langs:
+  - csharp
+  - vb
+  name: AllocationDesc
+  nameWithType: AllocationDesc
+  fullName: Ghost.Graphics.RHI.AllocationDesc
+  type: Struct
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AllocationDesc
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+    startLine: 45
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public struct AllocationDesc
+    content.vb: Public Structure AllocationDesc
+  inheritedMembers:
+  - System.ValueType.Equals(System.Object)
+  - System.ValueType.GetHashCode
+  - System.ValueType.ToString
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+- uid: Ghost.Graphics.RHI.AllocationDesc.Size
+  commentId: P:Ghost.Graphics.RHI.AllocationDesc.Size
+  id: Size
+  parent: Ghost.Graphics.RHI.AllocationDesc
+  langs:
+  - csharp
+  - vb
+  name: Size
+  nameWithType: AllocationDesc.Size
+  fullName: Ghost.Graphics.RHI.AllocationDesc.Size
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Size
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+    startLine: 47
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public ulong Size { readonly get; set; }
+    parameters: []
+    return:
+      type: System.UInt64
+    content.vb: Public Property Size As ULong
+  overload: Ghost.Graphics.RHI.AllocationDesc.Size*
+- uid: Ghost.Graphics.RHI.AllocationDesc.Alignment
+  commentId: P:Ghost.Graphics.RHI.AllocationDesc.Alignment
+  id: Alignment
+  parent: Ghost.Graphics.RHI.AllocationDesc
+  langs:
+  - csharp
+  - vb
+  name: Alignment
+  nameWithType: AllocationDesc.Alignment
+  fullName: Ghost.Graphics.RHI.AllocationDesc.Alignment
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Alignment
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+    startLine: 52
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public ulong Alignment { readonly get; set; }
+    parameters: []
+    return:
+      type: System.UInt64
+    content.vb: Public Property Alignment As ULong
+  overload: Ghost.Graphics.RHI.AllocationDesc.Alignment*
+- uid: Ghost.Graphics.RHI.AllocationDesc.HeapType
+  commentId: P:Ghost.Graphics.RHI.AllocationDesc.HeapType
+  id: HeapType
+  parent: Ghost.Graphics.RHI.AllocationDesc
+  langs:
+  - csharp
+  - vb
+  name: HeapType
+  nameWithType: AllocationDesc.HeapType
+  fullName: Ghost.Graphics.RHI.AllocationDesc.HeapType
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: HeapType
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+    startLine: 57
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public HeapType HeapType { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.HeapType
+    content.vb: Public Property HeapType As HeapType
+  overload: Ghost.Graphics.RHI.AllocationDesc.HeapType*
+- uid: Ghost.Graphics.RHI.AllocationDesc.HeapFlags
+  commentId: P:Ghost.Graphics.RHI.AllocationDesc.HeapFlags
+  id: HeapFlags
+  parent: Ghost.Graphics.RHI.AllocationDesc
+  langs:
+  - csharp
+  - vb
+  name: HeapFlags
+  nameWithType: AllocationDesc.HeapFlags
+  fullName: Ghost.Graphics.RHI.AllocationDesc.HeapFlags
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: HeapFlags
+    path: src/Runtime/Ghost.Graphics.RHI/IResourceAllocator.cs
+    startLine: 62
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public HeapFlags HeapFlags { readonly get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.HeapFlags
+    content.vb: Public Property HeapFlags As HeapFlags
+  overload: Ghost.Graphics.RHI.AllocationDesc.HeapFlags*
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  name: Equals(object)
+  nameWithType: ValueType.Equals(object)
+  fullName: System.ValueType.Equals(object)
+  nameWithType.vb: ValueType.Equals(Object)
+  fullName.vb: System.ValueType.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.equals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.gethashcode
+  - name: (
+  - name: )
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.valuetype.tostring
+  - name: (
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.valuetype
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RHI.AllocationDesc.Size*
+  commentId: Overload:Ghost.Graphics.RHI.AllocationDesc.Size
+  href: Ghost.Graphics.RHI.AllocationDesc.html#Ghost_Graphics_RHI_AllocationDesc_Size
+  name: Size
+  nameWithType: AllocationDesc.Size
+  fullName: Ghost.Graphics.RHI.AllocationDesc.Size
+- uid: System.UInt64
+  commentId: T:System.UInt64
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.uint64
+  name: ulong
+  nameWithType: ulong
+  fullName: ulong
+  nameWithType.vb: ULong
+  fullName.vb: ULong
+  name.vb: ULong
+- uid: Ghost.Graphics.RHI.AllocationDesc.Alignment*
+  commentId: Overload:Ghost.Graphics.RHI.AllocationDesc.Alignment
+  href: Ghost.Graphics.RHI.AllocationDesc.html#Ghost_Graphics_RHI_AllocationDesc_Alignment
+  name: Alignment
+  nameWithType: AllocationDesc.Alignment
+  fullName: Ghost.Graphics.RHI.AllocationDesc.Alignment
+- uid: Ghost.Graphics.RHI.AllocationDesc.HeapType*
+  commentId: Overload:Ghost.Graphics.RHI.AllocationDesc.HeapType
+  href: Ghost.Graphics.RHI.AllocationDesc.html#Ghost_Graphics_RHI_AllocationDesc_HeapType
+  name: HeapType
+  nameWithType: AllocationDesc.HeapType
+  fullName: Ghost.Graphics.RHI.AllocationDesc.HeapType
+- uid: Ghost.Graphics.RHI.HeapType
+  commentId: T:Ghost.Graphics.RHI.HeapType
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.HeapType.html
+  name: HeapType
+  nameWithType: HeapType
+  fullName: Ghost.Graphics.RHI.HeapType
+- uid: Ghost.Graphics.RHI.AllocationDesc.HeapFlags*
+  commentId: Overload:Ghost.Graphics.RHI.AllocationDesc.HeapFlags
+  href: Ghost.Graphics.RHI.AllocationDesc.html#Ghost_Graphics_RHI_AllocationDesc_HeapFlags
+  name: HeapFlags
+  nameWithType: AllocationDesc.HeapFlags
+  fullName: Ghost.Graphics.RHI.AllocationDesc.HeapFlags
+- uid: Ghost.Graphics.RHI.HeapFlags
+  commentId: T:Ghost.Graphics.RHI.HeapFlags
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.HeapFlags.html
+  name: HeapFlags
+  nameWithType: HeapFlags
+  fullName: Ghost.Graphics.RHI.HeapFlags

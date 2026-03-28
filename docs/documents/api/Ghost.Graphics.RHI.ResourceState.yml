@@ -1,0 +1,481 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.ResourceState
+  commentId: T:Ghost.Graphics.RHI.ResourceState
+  id: ResourceState
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.ResourceState.Auto
+  - Ghost.Graphics.RHI.ResourceState.Common
+  - Ghost.Graphics.RHI.ResourceState.CopyDest
+  - Ghost.Graphics.RHI.ResourceState.CopySource
+  - Ghost.Graphics.RHI.ResourceState.DepthRead
+  - Ghost.Graphics.RHI.ResourceState.DepthWrite
+  - Ghost.Graphics.RHI.ResourceState.GenericRead
+  - Ghost.Graphics.RHI.ResourceState.IndexBuffer
+  - Ghost.Graphics.RHI.ResourceState.IndirectArgument
+  - Ghost.Graphics.RHI.ResourceState.NonPixelShaderResource
+  - Ghost.Graphics.RHI.ResourceState.PixelShaderResource
+  - Ghost.Graphics.RHI.ResourceState.Present
+  - Ghost.Graphics.RHI.ResourceState.RenderTarget
+  - Ghost.Graphics.RHI.ResourceState.UnorderedAccess
+  - Ghost.Graphics.RHI.ResourceState.VertexAndConstantBuffer
+  langs:
+  - csharp
+  - vb
+  name: ResourceState
+  nameWithType: ResourceState
+  fullName: Ghost.Graphics.RHI.ResourceState
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ResourceState
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1190
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: >-
+      [Flags]
+
+      public enum ResourceState
+    content.vb: >-
+      <Flags>
+
+      Public Enum ResourceState
+  attributes:
+  - type: System.FlagsAttribute
+    ctor: System.FlagsAttribute.#ctor
+    arguments: []
+- uid: Ghost.Graphics.RHI.ResourceState.Auto
+  commentId: F:Ghost.Graphics.RHI.ResourceState.Auto
+  id: Auto
+  parent: Ghost.Graphics.RHI.ResourceState
+  langs:
+  - csharp
+  - vb
+  name: Auto
+  nameWithType: ResourceState.Auto
+  fullName: Ghost.Graphics.RHI.ResourceState.Auto
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Auto
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1193
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Auto = -1
+    return:
+      type: Ghost.Graphics.RHI.ResourceState
+- uid: Ghost.Graphics.RHI.ResourceState.Common
+  commentId: F:Ghost.Graphics.RHI.ResourceState.Common
+  id: Common
+  parent: Ghost.Graphics.RHI.ResourceState
+  langs:
+  - csharp
+  - vb
+  name: Common
+  nameWithType: ResourceState.Common
+  fullName: Ghost.Graphics.RHI.ResourceState.Common
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Common
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1194
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Common = 0
+    return:
+      type: Ghost.Graphics.RHI.ResourceState
+- uid: Ghost.Graphics.RHI.ResourceState.VertexAndConstantBuffer
+  commentId: F:Ghost.Graphics.RHI.ResourceState.VertexAndConstantBuffer
+  id: VertexAndConstantBuffer
+  parent: Ghost.Graphics.RHI.ResourceState
+  langs:
+  - csharp
+  - vb
+  name: VertexAndConstantBuffer
+  nameWithType: ResourceState.VertexAndConstantBuffer
+  fullName: Ghost.Graphics.RHI.ResourceState.VertexAndConstantBuffer
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: VertexAndConstantBuffer
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1195
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: VertexAndConstantBuffer = 1
+    return:
+      type: Ghost.Graphics.RHI.ResourceState
+- uid: Ghost.Graphics.RHI.ResourceState.IndexBuffer
+  commentId: F:Ghost.Graphics.RHI.ResourceState.IndexBuffer
+  id: IndexBuffer
+  parent: Ghost.Graphics.RHI.ResourceState
+  langs:
+  - csharp
+  - vb
+  name: IndexBuffer
+  nameWithType: ResourceState.IndexBuffer
+  fullName: Ghost.Graphics.RHI.ResourceState.IndexBuffer
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IndexBuffer
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1196
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: IndexBuffer = 2
+    return:
+      type: Ghost.Graphics.RHI.ResourceState
+- uid: Ghost.Graphics.RHI.ResourceState.RenderTarget
+  commentId: F:Ghost.Graphics.RHI.ResourceState.RenderTarget
+  id: RenderTarget
+  parent: Ghost.Graphics.RHI.ResourceState
+  langs:
+  - csharp
+  - vb
+  name: RenderTarget
+  nameWithType: ResourceState.RenderTarget
+  fullName: Ghost.Graphics.RHI.ResourceState.RenderTarget
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: RenderTarget
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1197
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: RenderTarget = 4
+    return:
+      type: Ghost.Graphics.RHI.ResourceState
+- uid: Ghost.Graphics.RHI.ResourceState.UnorderedAccess
+  commentId: F:Ghost.Graphics.RHI.ResourceState.UnorderedAccess
+  id: UnorderedAccess
+  parent: Ghost.Graphics.RHI.ResourceState
+  langs:
+  - csharp
+  - vb
+  name: UnorderedAccess
+  nameWithType: ResourceState.UnorderedAccess
+  fullName: Ghost.Graphics.RHI.ResourceState.UnorderedAccess
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: UnorderedAccess
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1198
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: UnorderedAccess = 8
+    return:
+      type: Ghost.Graphics.RHI.ResourceState
+- uid: Ghost.Graphics.RHI.ResourceState.DepthWrite
+  commentId: F:Ghost.Graphics.RHI.ResourceState.DepthWrite
+  id: DepthWrite
+  parent: Ghost.Graphics.RHI.ResourceState
+  langs:
+  - csharp
+  - vb
+  name: DepthWrite
+  nameWithType: ResourceState.DepthWrite
+  fullName: Ghost.Graphics.RHI.ResourceState.DepthWrite
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: DepthWrite
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1199
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: DepthWrite = 16
+    return:
+      type: Ghost.Graphics.RHI.ResourceState
+- uid: Ghost.Graphics.RHI.ResourceState.DepthRead
+  commentId: F:Ghost.Graphics.RHI.ResourceState.DepthRead
+  id: DepthRead
+  parent: Ghost.Graphics.RHI.ResourceState
+  langs:
+  - csharp
+  - vb
+  name: DepthRead
+  nameWithType: ResourceState.DepthRead
+  fullName: Ghost.Graphics.RHI.ResourceState.DepthRead
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: DepthRead
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1200
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: DepthRead = 32
+    return:
+      type: Ghost.Graphics.RHI.ResourceState
+- uid: Ghost.Graphics.RHI.ResourceState.PixelShaderResource
+  commentId: F:Ghost.Graphics.RHI.ResourceState.PixelShaderResource
+  id: PixelShaderResource
+  parent: Ghost.Graphics.RHI.ResourceState
+  langs:
+  - csharp
+  - vb
+  name: PixelShaderResource
+  nameWithType: ResourceState.PixelShaderResource
+  fullName: Ghost.Graphics.RHI.ResourceState.PixelShaderResource
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: PixelShaderResource
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1201
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: PixelShaderResource = 64
+    return:
+      type: Ghost.Graphics.RHI.ResourceState
+- uid: Ghost.Graphics.RHI.ResourceState.CopyDest
+  commentId: F:Ghost.Graphics.RHI.ResourceState.CopyDest
+  id: CopyDest
+  parent: Ghost.Graphics.RHI.ResourceState
+  langs:
+  - csharp
+  - vb
+  name: CopyDest
+  nameWithType: ResourceState.CopyDest
+  fullName: Ghost.Graphics.RHI.ResourceState.CopyDest
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CopyDest
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1202
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: CopyDest = 128
+    return:
+      type: Ghost.Graphics.RHI.ResourceState
+- uid: Ghost.Graphics.RHI.ResourceState.CopySource
+  commentId: F:Ghost.Graphics.RHI.ResourceState.CopySource
+  id: CopySource
+  parent: Ghost.Graphics.RHI.ResourceState
+  langs:
+  - csharp
+  - vb
+  name: CopySource
+  nameWithType: ResourceState.CopySource
+  fullName: Ghost.Graphics.RHI.ResourceState.CopySource
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: CopySource
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1203
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: CopySource = 256
+    return:
+      type: Ghost.Graphics.RHI.ResourceState
+- uid: Ghost.Graphics.RHI.ResourceState.GenericRead
+  commentId: F:Ghost.Graphics.RHI.ResourceState.GenericRead
+  id: GenericRead
+  parent: Ghost.Graphics.RHI.ResourceState
+  langs:
+  - csharp
+  - vb
+  name: GenericRead
+  nameWithType: ResourceState.GenericRead
+  fullName: Ghost.Graphics.RHI.ResourceState.GenericRead
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GenericRead
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1204
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: GenericRead = 512
+    return:
+      type: Ghost.Graphics.RHI.ResourceState
+- uid: Ghost.Graphics.RHI.ResourceState.IndirectArgument
+  commentId: F:Ghost.Graphics.RHI.ResourceState.IndirectArgument
+  id: IndirectArgument
+  parent: Ghost.Graphics.RHI.ResourceState
+  langs:
+  - csharp
+  - vb
+  name: IndirectArgument
+  nameWithType: ResourceState.IndirectArgument
+  fullName: Ghost.Graphics.RHI.ResourceState.IndirectArgument
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IndirectArgument
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1205
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: IndirectArgument = 1024
+    return:
+      type: Ghost.Graphics.RHI.ResourceState
+- uid: Ghost.Graphics.RHI.ResourceState.NonPixelShaderResource
+  commentId: F:Ghost.Graphics.RHI.ResourceState.NonPixelShaderResource
+  id: NonPixelShaderResource
+  parent: Ghost.Graphics.RHI.ResourceState
+  langs:
+  - csharp
+  - vb
+  name: NonPixelShaderResource
+  nameWithType: ResourceState.NonPixelShaderResource
+  fullName: Ghost.Graphics.RHI.ResourceState.NonPixelShaderResource
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: NonPixelShaderResource
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1206
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: NonPixelShaderResource = 2048
+    return:
+      type: Ghost.Graphics.RHI.ResourceState
+- uid: Ghost.Graphics.RHI.ResourceState.Present
+  commentId: F:Ghost.Graphics.RHI.ResourceState.Present
+  id: Present
+  parent: Ghost.Graphics.RHI.ResourceState
+  langs:
+  - csharp
+  - vb
+  name: Present
+  nameWithType: ResourceState.Present
+  fullName: Ghost.Graphics.RHI.ResourceState.Present
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Present
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1207
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Present = 0
+    return:
+      type: Ghost.Graphics.RHI.ResourceState
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.ResourceState
+  commentId: T:Ghost.Graphics.RHI.ResourceState
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ResourceState.html
+  name: ResourceState
+  nameWithType: ResourceState
+  fullName: Ghost.Graphics.RHI.ResourceState

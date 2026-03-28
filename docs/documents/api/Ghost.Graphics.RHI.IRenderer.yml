@@ -1,0 +1,330 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.IRenderer
+  commentId: T:Ghost.Graphics.RHI.IRenderer
+  id: IRenderer
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.IRenderer.Render(Ghost.Graphics.RHI.ICommandAllocator)
+  - Ghost.Graphics.RHI.IRenderer.RenderFunc
+  - Ghost.Graphics.RHI.IRenderer.RenderOutput
+  langs:
+  - csharp
+  - vb
+  name: IRenderer
+  nameWithType: IRenderer
+  fullName: Ghost.Graphics.RHI.IRenderer
+  type: Interface
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IRenderer
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderer.cs
+    startLine: 17
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: High-level renderer interface that uses RHI abstractions
+  example: []
+  syntax:
+    content: 'public interface IRenderer : IDisposable'
+    content.vb: Public Interface IRenderer Inherits IDisposable
+  inheritedMembers:
+  - System.IDisposable.Dispose
+- uid: Ghost.Graphics.RHI.IRenderer.RenderOutput
+  commentId: P:Ghost.Graphics.RHI.IRenderer.RenderOutput
+  id: RenderOutput
+  parent: Ghost.Graphics.RHI.IRenderer
+  langs:
+  - csharp
+  - vb
+  name: RenderOutput
+  nameWithType: IRenderer.RenderOutput
+  fullName: Ghost.Graphics.RHI.IRenderer.RenderOutput
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: RenderOutput
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderer.cs
+    startLine: 22
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Gets or sets the render output target for this renderer.
+  example: []
+  syntax:
+    content: IRenderOutput? RenderOutput { get; set; }
+    parameters: []
+    return:
+      type: Ghost.Graphics.RHI.IRenderOutput
+    content.vb: Property RenderOutput As IRenderOutput
+  overload: Ghost.Graphics.RHI.IRenderer.RenderOutput*
+- uid: Ghost.Graphics.RHI.IRenderer.RenderFunc
+  commentId: P:Ghost.Graphics.RHI.IRenderer.RenderFunc
+  id: RenderFunc
+  parent: Ghost.Graphics.RHI.IRenderer
+  langs:
+  - csharp
+  - vb
+  name: RenderFunc
+  nameWithType: IRenderer.RenderFunc
+  fullName: Ghost.Graphics.RHI.IRenderer.RenderFunc
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: RenderFunc
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderer.cs
+    startLine: 30
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: The function that performs the actual rendering operations. Skip rendering if this is null.
+  example: []
+  syntax:
+    content: Func<RenderContext, Error>? RenderFunc { get; set; }
+    parameters: []
+    return:
+      type: System.Func{Ghost.Graphics.RHI.RenderContext,Ghost.Core.Error}
+    content.vb: Property RenderFunc As Func(Of RenderContext, [Error])
+  overload: Ghost.Graphics.RHI.IRenderer.RenderFunc*
+- uid: Ghost.Graphics.RHI.IRenderer.Render(Ghost.Graphics.RHI.ICommandAllocator)
+  commentId: M:Ghost.Graphics.RHI.IRenderer.Render(Ghost.Graphics.RHI.ICommandAllocator)
+  id: Render(Ghost.Graphics.RHI.ICommandAllocator)
+  parent: Ghost.Graphics.RHI.IRenderer
+  langs:
+  - csharp
+  - vb
+  name: Render(ICommandAllocator)
+  nameWithType: IRenderer.Render(ICommandAllocator)
+  fullName: Ghost.Graphics.RHI.IRenderer.Render(Ghost.Graphics.RHI.ICommandAllocator)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/IRenderer.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Render
+    path: src/Runtime/Ghost.Graphics.RHI/IRenderer.cs
+    startLine: 40
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  summary: Renders a frame
+  example: []
+  syntax:
+    content: Result Render(ICommandAllocator commandAllocator)
+    parameters:
+    - id: commandAllocator
+      type: Ghost.Graphics.RHI.ICommandAllocator
+      description: Command allocator to use for rendering
+    return:
+      type: Ghost.Core.Result
+      description: Result of the rendering operation
+    content.vb: Function Render(commandAllocator As ICommandAllocator) As Result
+  overload: Ghost.Graphics.RHI.IRenderer.Render*
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: System.IDisposable.Dispose
+  commentId: M:System.IDisposable.Dispose
+  parent: System.IDisposable
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  name: Dispose()
+  nameWithType: IDisposable.Dispose()
+  fullName: System.IDisposable.Dispose()
+  spec.csharp:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+- uid: System.IDisposable
+  commentId: T:System.IDisposable
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable
+  name: IDisposable
+  nameWithType: IDisposable
+  fullName: System.IDisposable
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Graphics.RHI.IRenderer.RenderOutput*
+  commentId: Overload:Ghost.Graphics.RHI.IRenderer.RenderOutput
+  href: Ghost.Graphics.RHI.IRenderer.html#Ghost_Graphics_RHI_IRenderer_RenderOutput
+  name: RenderOutput
+  nameWithType: IRenderer.RenderOutput
+  fullName: Ghost.Graphics.RHI.IRenderer.RenderOutput
+- uid: Ghost.Graphics.RHI.IRenderOutput
+  commentId: T:Ghost.Graphics.RHI.IRenderOutput
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.IRenderOutput.html
+  name: IRenderOutput
+  nameWithType: IRenderOutput
+  fullName: Ghost.Graphics.RHI.IRenderOutput
+- uid: Ghost.Graphics.RHI.IRenderer.RenderFunc*
+  commentId: Overload:Ghost.Graphics.RHI.IRenderer.RenderFunc
+  href: Ghost.Graphics.RHI.IRenderer.html#Ghost_Graphics_RHI_IRenderer_RenderFunc
+  name: RenderFunc
+  nameWithType: IRenderer.RenderFunc
+  fullName: Ghost.Graphics.RHI.IRenderer.RenderFunc
+- uid: System.Func{Ghost.Graphics.RHI.RenderContext,Ghost.Core.Error}
+  commentId: T:System.Func{Ghost.Graphics.RHI.RenderContext,Ghost.Core.Error}
+  parent: System
+  definition: System.Func`2
+  href: https://learn.microsoft.com/dotnet/api/system.func-2
+  name: Func<RenderContext, Error>
+  nameWithType: Func<RenderContext, Error>
+  fullName: System.Func<Ghost.Graphics.RHI.RenderContext, Ghost.Core.Error>
+  nameWithType.vb: Func(Of RenderContext, Error)
+  fullName.vb: System.Func(Of Ghost.Graphics.RHI.RenderContext, Ghost.Core.Error)
+  name.vb: Func(Of RenderContext, Error)
+  spec.csharp:
+  - uid: System.Func`2
+    name: Func
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.func-2
+  - name: <
+  - uid: Ghost.Graphics.RHI.RenderContext
+    name: RenderContext
+    href: Ghost.Graphics.RHI.RenderContext.html
+  - name: ','
+  - name: " "
+  - uid: Ghost.Core.Error
+    name: Error
+  - name: '>'
+  spec.vb:
+  - uid: System.Func`2
+    name: Func
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.func-2
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Graphics.RHI.RenderContext
+    name: RenderContext
+    href: Ghost.Graphics.RHI.RenderContext.html
+  - name: ','
+  - name: " "
+  - uid: Ghost.Core.Error
+    name: Error
+  - name: )
+- uid: System.Func`2
+  commentId: T:System.Func`2
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.func-2
+  name: Func<T, TResult>
+  nameWithType: Func<T, TResult>
+  fullName: System.Func<T, TResult>
+  nameWithType.vb: Func(Of T, TResult)
+  fullName.vb: System.Func(Of T, TResult)
+  name.vb: Func(Of T, TResult)
+  spec.csharp:
+  - uid: System.Func`2
+    name: Func
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.func-2
+  - name: <
+  - name: T
+  - name: ','
+  - name: " "
+  - name: TResult
+  - name: '>'
+  spec.vb:
+  - uid: System.Func`2
+    name: Func
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.func-2
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: ','
+  - name: " "
+  - name: TResult
+  - name: )
+- uid: Ghost.Graphics.RHI.IRenderer.Render*
+  commentId: Overload:Ghost.Graphics.RHI.IRenderer.Render
+  href: Ghost.Graphics.RHI.IRenderer.html#Ghost_Graphics_RHI_IRenderer_Render_Ghost_Graphics_RHI_ICommandAllocator_
+  name: Render
+  nameWithType: IRenderer.Render
+  fullName: Ghost.Graphics.RHI.IRenderer.Render
+- uid: Ghost.Graphics.RHI.ICommandAllocator
+  commentId: T:Ghost.Graphics.RHI.ICommandAllocator
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ICommandAllocator.html
+  name: ICommandAllocator
+  nameWithType: ICommandAllocator
+  fullName: Ghost.Graphics.RHI.ICommandAllocator
+- uid: Ghost.Core.Result
+  commentId: T:Ghost.Core.Result
+  parent: Ghost.Core
+  name: Result
+  nameWithType: Result
+  fullName: Ghost.Core.Result
+- uid: Ghost.Core
+  commentId: N:Ghost.Core
+  name: Ghost.Core
+  nameWithType: Ghost.Core
+  fullName: Ghost.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core

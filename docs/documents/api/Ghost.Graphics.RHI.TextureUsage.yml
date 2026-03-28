@@ -1,0 +1,211 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.TextureUsage
+  commentId: T:Ghost.Graphics.RHI.TextureUsage
+  id: TextureUsage
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.TextureUsage.DepthStencil
+  - Ghost.Graphics.RHI.TextureUsage.None
+  - Ghost.Graphics.RHI.TextureUsage.RenderTarget
+  - Ghost.Graphics.RHI.TextureUsage.ShaderResource
+  - Ghost.Graphics.RHI.TextureUsage.UnorderedAccess
+  langs:
+  - csharp
+  - vb
+  name: TextureUsage
+  nameWithType: TextureUsage
+  fullName: Ghost.Graphics.RHI.TextureUsage
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: TextureUsage
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1253
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: >-
+      [Flags]
+
+      public enum TextureUsage
+    content.vb: >-
+      <Flags>
+
+      Public Enum TextureUsage
+  attributes:
+  - type: System.FlagsAttribute
+    ctor: System.FlagsAttribute.#ctor
+    arguments: []
+- uid: Ghost.Graphics.RHI.TextureUsage.None
+  commentId: F:Ghost.Graphics.RHI.TextureUsage.None
+  id: None
+  parent: Ghost.Graphics.RHI.TextureUsage
+  langs:
+  - csharp
+  - vb
+  name: None
+  nameWithType: TextureUsage.None
+  fullName: Ghost.Graphics.RHI.TextureUsage.None
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: None
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1256
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: None = 0
+    return:
+      type: Ghost.Graphics.RHI.TextureUsage
+- uid: Ghost.Graphics.RHI.TextureUsage.ShaderResource
+  commentId: F:Ghost.Graphics.RHI.TextureUsage.ShaderResource
+  id: ShaderResource
+  parent: Ghost.Graphics.RHI.TextureUsage
+  langs:
+  - csharp
+  - vb
+  name: ShaderResource
+  nameWithType: TextureUsage.ShaderResource
+  fullName: Ghost.Graphics.RHI.TextureUsage.ShaderResource
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ShaderResource
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1257
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: ShaderResource = 1
+    return:
+      type: Ghost.Graphics.RHI.TextureUsage
+- uid: Ghost.Graphics.RHI.TextureUsage.RenderTarget
+  commentId: F:Ghost.Graphics.RHI.TextureUsage.RenderTarget
+  id: RenderTarget
+  parent: Ghost.Graphics.RHI.TextureUsage
+  langs:
+  - csharp
+  - vb
+  name: RenderTarget
+  nameWithType: TextureUsage.RenderTarget
+  fullName: Ghost.Graphics.RHI.TextureUsage.RenderTarget
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: RenderTarget
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1258
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: RenderTarget = 2
+    return:
+      type: Ghost.Graphics.RHI.TextureUsage
+- uid: Ghost.Graphics.RHI.TextureUsage.DepthStencil
+  commentId: F:Ghost.Graphics.RHI.TextureUsage.DepthStencil
+  id: DepthStencil
+  parent: Ghost.Graphics.RHI.TextureUsage
+  langs:
+  - csharp
+  - vb
+  name: DepthStencil
+  nameWithType: TextureUsage.DepthStencil
+  fullName: Ghost.Graphics.RHI.TextureUsage.DepthStencil
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: DepthStencil
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1259
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: DepthStencil = 4
+    return:
+      type: Ghost.Graphics.RHI.TextureUsage
+- uid: Ghost.Graphics.RHI.TextureUsage.UnorderedAccess
+  commentId: F:Ghost.Graphics.RHI.TextureUsage.UnorderedAccess
+  id: UnorderedAccess
+  parent: Ghost.Graphics.RHI.TextureUsage
+  langs:
+  - csharp
+  - vb
+  name: UnorderedAccess
+  nameWithType: TextureUsage.UnorderedAccess
+  fullName: Ghost.Graphics.RHI.TextureUsage.UnorderedAccess
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: UnorderedAccess
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1260
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: UnorderedAccess = 8
+    return:
+      type: Ghost.Graphics.RHI.TextureUsage
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.TextureUsage
+  commentId: T:Ghost.Graphics.RHI.TextureUsage
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.TextureUsage.html
+  name: TextureUsage
+  nameWithType: TextureUsage
+  fullName: Ghost.Graphics.RHI.TextureUsage

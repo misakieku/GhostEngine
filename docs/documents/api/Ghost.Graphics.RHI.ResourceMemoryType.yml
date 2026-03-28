@@ -1,0 +1,147 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Graphics.RHI.ResourceMemoryType
+  commentId: T:Ghost.Graphics.RHI.ResourceMemoryType
+  id: ResourceMemoryType
+  parent: Ghost.Graphics.RHI
+  children:
+  - Ghost.Graphics.RHI.ResourceMemoryType.Default
+  - Ghost.Graphics.RHI.ResourceMemoryType.Readback
+  - Ghost.Graphics.RHI.ResourceMemoryType.Upload
+  langs:
+  - csharp
+  - vb
+  name: ResourceMemoryType
+  nameWithType: ResourceMemoryType
+  fullName: Ghost.Graphics.RHI.ResourceMemoryType
+  type: Enum
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ResourceMemoryType
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1240
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: public enum ResourceMemoryType
+    content.vb: Public Enum ResourceMemoryType
+- uid: Ghost.Graphics.RHI.ResourceMemoryType.Default
+  commentId: F:Ghost.Graphics.RHI.ResourceMemoryType.Default
+  id: Default
+  parent: Ghost.Graphics.RHI.ResourceMemoryType
+  langs:
+  - csharp
+  - vb
+  name: Default
+  nameWithType: ResourceMemoryType.Default
+  fullName: Ghost.Graphics.RHI.ResourceMemoryType.Default
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Default
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1242
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Default = 0
+    return:
+      type: Ghost.Graphics.RHI.ResourceMemoryType
+- uid: Ghost.Graphics.RHI.ResourceMemoryType.Upload
+  commentId: F:Ghost.Graphics.RHI.ResourceMemoryType.Upload
+  id: Upload
+  parent: Ghost.Graphics.RHI.ResourceMemoryType
+  langs:
+  - csharp
+  - vb
+  name: Upload
+  nameWithType: ResourceMemoryType.Upload
+  fullName: Ghost.Graphics.RHI.ResourceMemoryType.Upload
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Upload
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1243
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Upload = 1
+    return:
+      type: Ghost.Graphics.RHI.ResourceMemoryType
+- uid: Ghost.Graphics.RHI.ResourceMemoryType.Readback
+  commentId: F:Ghost.Graphics.RHI.ResourceMemoryType.Readback
+  id: Readback
+  parent: Ghost.Graphics.RHI.ResourceMemoryType
+  langs:
+  - csharp
+  - vb
+  name: Readback
+  nameWithType: ResourceMemoryType.Readback
+  fullName: Ghost.Graphics.RHI.ResourceMemoryType.Readback
+  type: Field
+  source:
+    remote:
+      path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Readback
+    path: src/Runtime/Ghost.Graphics.RHI/Common.cs
+    startLine: 1244
+  assemblies:
+  - Ghost.Graphics.RHI
+  namespace: Ghost.Graphics.RHI
+  syntax:
+    content: Readback = 2
+    return:
+      type: Ghost.Graphics.RHI.ResourceMemoryType
+references:
+- uid: Ghost.Graphics.RHI
+  commentId: N:Ghost.Graphics.RHI
+  href: Ghost.html
+  name: Ghost.Graphics.RHI
+  nameWithType: Ghost.Graphics.RHI
+  fullName: Ghost.Graphics.RHI
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Graphics
+    name: Graphics
+    href: Ghost.Graphics.html
+  - name: .
+  - uid: Ghost.Graphics.RHI
+    name: RHI
+    href: Ghost.Graphics.RHI.html
+- uid: Ghost.Graphics.RHI.ResourceMemoryType
+  commentId: T:Ghost.Graphics.RHI.ResourceMemoryType
+  parent: Ghost.Graphics.RHI
+  href: Ghost.Graphics.RHI.ResourceMemoryType.html
+  name: ResourceMemoryType
+  nameWithType: ResourceMemoryType
+  fullName: Ghost.Graphics.RHI.ResourceMemoryType
