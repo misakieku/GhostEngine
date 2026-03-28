@@ -1,6 +1,7 @@
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
+using Ghost.Core;
 using Ghost.Editor.Core.Controls.Internal.Docking;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -308,41 +309,27 @@ public sealed partial class DockLayout : Control
                 return;
             }
 
-            int originalIndex = _sourceNode.Items.IndexOf(_draggedItem);
             object? originalSelection = _sourceNode.SelectedItem;
 
-            if (originalIndex == -1)
+            App.TryTearOffTab(_sourceNode.Items, _draggedItem, () =>
             {
-                ClearDragOperationState();
-                return;
-            }
-
-            try
-            {
-                // Remove from current tree
-                if (_sourceNode.Items.Remove(_draggedItem))
+                try
                 {
-                    try
-                    {
-                        // Raise event to let the host handle window creation
-                        TabTornOff.Invoke(this, new TabTornOffEventArgs(_draggedItem));
-                        
-                        // Only cleanup if the tear-off was successful (didn't throw)
-                        DockMutationEngine.CleanupEmptyNodes(_sourceNode);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Rollback: Re-insert the item at original position if the tear-off handler fails
-                        _sourceNode.Items.Insert(originalIndex, _draggedItem);
-                        _sourceNode.SelectedItem = originalSelection;
-                        Logger.LogError(ex);
-                    }
+                    // Raise event to let the host handle window creation
+                    TabTornOff.Invoke(this, new TabTornOffEventArgs(_draggedItem));
+                    
+                    // Only cleanup if the tear-off was successful
+                    DockMutationEngine.CleanupEmptyNodes(_sourceNode);
                 }
-            }
-            finally
-            {
-                ClearDragOperationState();
-            }
+                catch (Exception ex)
+                {
+                    // If the event handler fails, we still need to cleanup or restore selection
+                    _sourceNode.SelectedItem = originalSelection;
+                    throw; // Re-throw to trigger rollback in TryTearOffTab
+                }
+            });
+
+            ClearDragOperationState();
         }
     }
 

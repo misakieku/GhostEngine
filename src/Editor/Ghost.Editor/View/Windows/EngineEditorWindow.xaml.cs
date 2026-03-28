@@ -43,28 +43,18 @@ internal sealed partial class EngineEditorWindow : WindowEx
         // For static tabs in EngineEditorWindow, we remove the item from TabItems
         if (sender.TabItems.Contains(args.Item))
         {
-            int originalIndex = sender.TabItems.IndexOf(args.Item);
             object? originalSelection = sender.SelectedItem;
-
-            try
+            
+            App.TryTearOffTab(sender.TabItems, args.Item, () =>
             {
-                sender.TabItems.Remove(args.Item);
-                
-                try
-                {
-                    App.CreateAndShowDockWindow(args.Item);
-                }
-                catch (Exception ex)
-                {
-                    // Rollback: Re-insert the item at original position if the tear-off fails
-                    sender.TabItems.Insert(originalIndex, args.Item);
-                    sender.SelectedItem = originalSelection;
-                    Logger.LogError(ex);
-                }
-            }
-            catch (Exception ex)
+                // If we need to do anything else on success
+            });
+            
+            // Note: If TryTearOffTab fails, it will have already re-inserted the item.
+            // We might want to restore selection if it was the selected item.
+            if (sender.TabItems.Contains(args.Item) && sender.SelectedItem == null)
             {
-                Logger.LogError(ex);
+                sender.SelectedItem = originalSelection;
             }
         }
     }
