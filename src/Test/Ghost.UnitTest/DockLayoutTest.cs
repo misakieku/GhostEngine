@@ -59,4 +59,48 @@ public class DockLayoutTest
         var pos = DockMath.CalculateDockPosition(100, 100, 90, 90, THRESHOLD);
         Assert.AreEqual(DockPosition.Right, pos);
     }
+
+    [TestMethod]
+    public void TestCalculateDockPosition_Boundary_Left()
+    {
+        // x = 25 is exactly on the threshold. Current logic: x < 25 is Left, so 25 is Center.
+        var pos = DockMath.CalculateDockPosition(100, 100, 25, 50, THRESHOLD);
+        Assert.AreEqual(DockPosition.Center, pos);
+
+        pos = DockMath.CalculateDockPosition(100, 100, 24.9, 50, THRESHOLD);
+        Assert.AreEqual(DockPosition.Left, pos);
+    }
+
+    [TestMethod]
+    public void TestCalculateDockPosition_Boundary_Right()
+    {
+        // x = 75 is exactly on the threshold (100 * (1 - 0.25)). Current logic: x > 75 is Right, so 75 is Center.
+        var pos = DockMath.CalculateDockPosition(100, 100, 75, 50, THRESHOLD);
+        Assert.AreEqual(DockPosition.Center, pos);
+
+        pos = DockMath.CalculateDockPosition(100, 100, 75.1, 50, THRESHOLD);
+        Assert.AreEqual(DockPosition.Right, pos);
+    }
+
+    [TestMethod]
+    public void TestCalculateDockPosition_InvalidSize()
+    {
+        var pos = DockMath.CalculateDockPosition(0, 100, 50, 50, THRESHOLD);
+        Assert.AreEqual(DockPosition.None, pos);
+
+        pos = DockMath.CalculateDockPosition(100, -10, 50, 50, THRESHOLD);
+        Assert.AreEqual(DockPosition.None, pos);
+    }
+
+    [TestMethod]
+    public void TestCalculateDockPosition_ThresholdClamping()
+    {
+        // Threshold > 0.5 should be clamped to 0.5
+        var pos = DockMath.CalculateDockPosition(100, 100, 40, 50, 0.8);
+        Assert.AreEqual(DockPosition.Left, pos);
+
+        // Threshold < 0 should be clamped to 0
+        pos = DockMath.CalculateDockPosition(100, 100, 0.1, 50, -0.1);
+        Assert.AreEqual(DockPosition.Center, pos);
+    }
 }

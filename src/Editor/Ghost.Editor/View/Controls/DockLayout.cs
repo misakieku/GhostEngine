@@ -324,16 +324,21 @@ public sealed partial class DockLayout : Control
 
     private void TabView_DragLeave(object sender, DragEventArgs e)
     {
-        ClearDragState();
+        ClearOverlayState();
     }
 
-    private void ClearDragState()
+    private void ClearOverlayState()
     {
         if (_dropTargetOverlay != null)
         {
             _dropTargetOverlay.Visibility = Visibility.Collapsed;
         }
         _currentDropPosition = DockPosition.None;
+    }
+
+    private void ClearDragOperationState()
+    {
+        ClearOverlayState();
         _draggedItem = null;
         _sourceNode = null;
     }
@@ -374,10 +379,9 @@ public sealed partial class DockLayout : Control
         }
     }
 
-    // Add a dummy TabView_Drop method so it compiles, we will implement it in Task 6
     private void TabView_Drop(object sender, DragEventArgs e)
     {
-        ClearDragState();
+        ClearDragOperationState();
     }
 
     protected override void OnApplyTemplate()
