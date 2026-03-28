@@ -40,6 +40,7 @@ public partial class DockGroup : DockContainer
             _tabView.DragOver -= OnDragOver;
             _tabView.Drop -= OnDrop;
             _tabView.DragLeave -= OnDragLeave;
+            _tabView.TabCloseRequested -= OnTabCloseRequested;
         }
 
         _tabView = GetTemplateChild(PART_TAB_VIEW) as TabView;
@@ -51,6 +52,7 @@ public partial class DockGroup : DockContainer
             _tabView.DragOver += OnDragOver;
             _tabView.Drop += OnDrop;
             _tabView.DragLeave += OnDragLeave;
+            _tabView.TabCloseRequested += OnTabCloseRequested;
         }
 
         UpdateTabs();
@@ -92,6 +94,14 @@ public partial class DockGroup : DockContainer
     private void OnDragLeave(object sender, DragEventArgs e)
     {
         Root?.HideHighlight();
+    }
+
+    private void OnTabCloseRequested(TabView sender, TabViewTabCloseRequestedEventArgs args)
+    {
+        if (args.Tab.Tag is DockDocument doc)
+        {
+            RemoveChild(doc);
+        }
     }
 
     protected override void OnChildrenUpdated()

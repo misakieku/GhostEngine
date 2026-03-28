@@ -116,6 +116,7 @@ public class DockingLayout : Control
 
     private void SplitGroup(DockGroup targetGroup, DockDocument doc, DockTarget target)
     {
+        doc.Owner?.RemoveChild(doc);
         var parentPanel = targetGroup.Owner as DockPanel;
 
         if (parentPanel == null)
