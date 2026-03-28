@@ -67,9 +67,17 @@ public partial class DockGroupNode : DockNode
         if (_children.Contains(node))
         {
             int oldIndex = _children.IndexOf(node);
-            if (oldIndex == index || oldIndex == index - 1) return;
+            if (oldIndex == index) return;
+            
+            // If we're moving an item forward, the target index will shift after removal
+            int targetIndex = index;
+            if (targetIndex > oldIndex) targetIndex--;
+            
+            if (oldIndex == targetIndex) return;
+
             _children.RemoveAt(oldIndex);
-            if (index > oldIndex) index--;
+            _children.Insert(targetIndex, node);
+            return;
         }
 
         // Check for cycles

@@ -401,42 +401,42 @@ public sealed partial class DockLayout : Control
             return; // Reordering within same tab is handled natively by TabView
         }
 
-        // 1. Validate target for split
-        if (_currentDropPosition != DockPosition.Center && targetNode.Parent == null)
+        // 1. Prepare mutation plan
+        bool isHorizontalSplit = _currentDropPosition == DockPosition.Left || _currentDropPosition == DockPosition.Right;
+        bool isAfter = _currentDropPosition == DockPosition.Right || _currentDropPosition == DockPosition.Bottom;
+
+        // 2. Execute mutation
+        if (_currentDropPosition == DockPosition.Center)
         {
-            // If target has no parent, it must be the root (or wrapped in root).
-            // We can't split it without a parent group unless we wrap it.
-            if (ReferenceEquals(targetNode, Root) || (Root?.Children.Count == 1 && ReferenceEquals(Root.Children[0], targetNode)))
-            {
-                // This is allowed, we'll handle it by wrapping in a new group if needed
-            }
-            else
+            if (!_sourceNode.Items.Remove(_draggedItem))
             {
                 ClearDragOperationState();
                 return;
             }
-        }
-
-        // 2. Remove from source
-        _sourceNode.Items.Remove(_draggedItem);
-        var sourceNodeCopy = _sourceNode; // Keep reference for cleanup
-        CleanupEmptyNodes(sourceNodeCopy);
-
-        // 3. Add to target
-        if (_currentDropPosition == DockPosition.Center)
-        {
             targetNode.Items.Add(_draggedItem);
+            CleanupEmptyNodes(_sourceNode);
         }
         else
         {
             // Split scenario
-            bool isHorizontalSplit = _currentDropPosition == DockPosition.Left || _currentDropPosition == DockPosition.Right;
-            bool isAfter = _currentDropPosition == DockPosition.Right || _currentDropPosition == DockPosition.Bottom;
-
             var parentGroup = targetNode.Parent;
             if (parentGroup == null)
             {
-                // Target is root or only child of root. Wrap it.
+                // Target is root or only child of root.
+                // We must ensure we can wrap it.
+                if (Root == null)
+                {
+                    ClearDragOperationState();
+                    return;
+                }
+
+                // Remove from source first (if it's the same node, we'll re-add it to the new structure)
+                if (!_sourceNode.Items.Remove(_draggedItem))
+                {
+                    ClearDragOperationState();
+                    return;
+                }
+
                 var newRoot = new DockGroupNode
                 {
                     Orientation = isHorizontalSplit ? Orientation.Horizontal : Orientation.Vertical
@@ -445,66 +445,71 @@ public sealed partial class DockLayout : Control
                 var newNode = new DockPanelNode();
                 newNode.Items.Add(_draggedItem);
 
-            if (ReferenceEquals(targetNode, Root))
-            {
-                Root = newRoot;
-            }
-            else if (Root != null && Root.Children.Count == 1 && ReferenceEquals(Root.Children[0], targetNode))
-            {
-                Root.RemoveChild(targetNode);
-                Root.AddChild(newRoot);
+                // If targetNode was the only child of Root, we replace it in Root.
+                // If targetNode WAS the Root (impossible by type, but let's be safe with the model), we replace Root.
+                // Actually, Root is always a DockGroupNode. So targetNode must be a child of Root if parent is null? 
+                // No, if parent is null it's either detached or it IS the root. 
+                // But targetNode is DockPanelNode, and Root is DockGroupNode.
+                
+                // If targetNode is detached, we can't split it.
+                // Let's assume it's a child of a group that we don't have a reference to? No, Parent should be set.
+                // The only case where Parent is null for a DockPanelNode in a valid tree is if it's NOT in the tree.
+                // Wait, if Root has only one child, that child's parent SHOULD be Root.
+                
+                ClearDragOperationState();
+                return; // Abort for now, parent should not be null in a valid tree for a Panel.
             }
 
-                if (isAfter)
-                {
-                    newRoot.AddChild(targetNode);
-                    newRoot.AddChild(newNode);
-                }
-                else
-                {
-                    newRoot.AddChild(newNode);
-                    newRoot.AddChild(targetNode);
-                }
+            int targetIndex = parentGroup.Children.IndexOf(targetNode);
+            if (targetIndex < 0)
+            {
+                ClearDragOperationState();
+                return;
+            }
+
+            // Remove from source
+            if (!_sourceNode.Items.Remove(_draggedItem))
+            {
+                ClearDragOperationState();
+                return;
+            }
+
+            if ((isHorizontalSplit && parentGroup.Orientation == Orientation.Horizontal) ||
+                (!isHorizontalSplit && parentGroup.Orientation == Orientation.Vertical))
+            {
+                // Same orientation, just insert next to it
+                var newNode = new DockPanelNode();
+                newNode.Items.Add(_draggedItem);
+                parentGroup.InsertChild(isAfter ? targetIndex + 1 : targetIndex, newNode);
             }
             else
             {
-                int targetIndex = parentGroup.Children.IndexOf(targetNode);
-
-                if ((isHorizontalSplit && parentGroup.Orientation == Orientation.Horizontal) ||
-                    (!isHorizontalSplit && parentGroup.Orientation == Orientation.Vertical))
+                // Different orientation, need to replace targetNode with a new group
+                parentGroup.RemoveChild(targetNode);
+                
+                var newGroup = new DockGroupNode
                 {
-                    // Same orientation, just insert next to it
-                    var newNode = new DockPanelNode();
-                    newNode.Items.Add(_draggedItem);
-                    parentGroup.InsertChild(isAfter ? targetIndex + 1 : targetIndex, newNode);
+                    Orientation = isHorizontalSplit ? Orientation.Horizontal : Orientation.Vertical
+                };
+                
+                var newNode = new DockPanelNode();
+                newNode.Items.Add(_draggedItem);
+
+                if (isAfter)
+                {
+                    newGroup.AddChild(targetNode);
+                    newGroup.AddChild(newNode);
                 }
                 else
                 {
-                    // Different orientation, need to replace targetNode with a new group
-                    parentGroup.RemoveChild(targetNode);
-                    
-                    var newGroup = new DockGroupNode
-                    {
-                        Orientation = isHorizontalSplit ? Orientation.Horizontal : Orientation.Vertical
-                    };
-                    
-                    var newNode = new DockPanelNode();
-                    newNode.Items.Add(_draggedItem);
-
-                    if (isAfter)
-                    {
-                        newGroup.AddChild(targetNode);
-                        newGroup.AddChild(newNode);
-                    }
-                    else
-                    {
-                        newGroup.AddChild(newNode);
-                        newGroup.AddChild(targetNode);
-                    }
-
-                    parentGroup.InsertChild(targetIndex, newGroup);
+                    newGroup.AddChild(newNode);
+                    newGroup.AddChild(targetNode);
                 }
+
+                parentGroup.InsertChild(targetIndex, newGroup);
             }
+
+            CleanupEmptyNodes(_sourceNode);
         }
 
         ClearDragOperationState();
@@ -513,45 +518,40 @@ public sealed partial class DockLayout : Control
     private void CleanupEmptyNodes(DockNode node)
     {
         if (node is DockPanelNode panelNode && panelNode.Items.Count > 0) return;
-        if (node is DockGroupNode groupNode && groupNode.Children.Count > 0 && groupNode.Children.Count != 1) return;
-
-        var parentGroup = node.Parent;
         
-        // Handle collapsing group with 1 child
-        if (node is DockGroupNode collapsingGroup && collapsingGroup.Children.Count == 1)
+        var parentGroup = node.Parent;
+        if (parentGroup == null) return;
+
+        // If it's an empty panel, remove it
+        if (node is DockPanelNode emptyPanel && emptyPanel.Items.Count == 0)
         {
-            var onlyChild = collapsingGroup.Children[0];
-            if (parentGroup != null)
-            {
-                int groupIndex = parentGroup.Children.IndexOf(collapsingGroup);
-                parentGroup.RemoveChild(collapsingGroup);
-                parentGroup.InsertChild(groupIndex, onlyChild);
-                CleanupEmptyNodes(parentGroup); // Recursively clean parent
-            }
-            else if (collapsingGroup == Root)
-            {
-                collapsingGroup.RemoveChild(onlyChild);
-                if (onlyChild is DockGroupNode newRootGroup)
-                {
-                    Root = newRootGroup;
-                }
-                else
-                {
-                    var wrapperGroup = new DockGroupNode();
-                    wrapperGroup.AddChild(onlyChild);
-                    Root = wrapperGroup;
-                }
-            }
+            parentGroup.RemoveChild(emptyPanel);
+            CleanupEmptyNodes(parentGroup);
             return;
         }
 
-        // Handle empty node (Panel or Group)
-        if (parentGroup != null)
+        // If it's a group with 0 or 1 children, collapse it
+        if (node is DockGroupNode group)
         {
-            parentGroup.RemoveChild(node);
-            CleanupEmptyNodes(parentGroup); // Recursively clean parent
+            if (group.Children.Count == 0)
+            {
+                parentGroup.RemoveChild(group);
+                CleanupEmptyNodes(parentGroup);
+            }
+            else if (group.Children.Count == 1)
+            {
+                var onlyChild = group.Children[0];
+                int index = parentGroup.Children.IndexOf(group);
+                if (index >= 0)
+                {
+                    parentGroup.RemoveChild(group);
+                    parentGroup.InsertChild(index, onlyChild);
+                    CleanupEmptyNodes(parentGroup);
+                }
+            }
         }
     }
+
 
     protected override void OnApplyTemplate()
     {

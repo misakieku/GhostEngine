@@ -160,18 +160,42 @@ public class DockingModelTest
     }
 
     [TestMethod]
-    public void TestPanel_SetInvalidSelectedItem_ResetsSelection()
+    public void TestInsertChild_Reorder()
     {
-        var panel = new DockPanelNode();
-        var item1 = new object();
-        var item2 = new object();
+        var group = new DockGroupNode();
+        var child1 = new DockPanelNode();
+        var child2 = new DockPanelNode();
+        var child3 = new DockPanelNode();
 
-        panel.Items.Add(item1);
-        panel.SelectedItem = item1;
+        group.AddChild(child1);
+        group.AddChild(child2);
+        group.AddChild(child3);
 
-        panel.SelectedItem = item2; // Not in collection
+        // Move child1 to end
+        group.InsertChild(3, child1);
+        Assert.AreEqual(child2, group.Children[0]);
+        Assert.AreEqual(child3, group.Children[1]);
+        Assert.AreEqual(child1, group.Children[2]);
 
-        Assert.IsNull(panel.SelectedItem);
-        Assert.AreEqual(-1, panel.SelectedIndex);
+        // Move child3 to start
+        group.InsertChild(0, child3);
+        Assert.AreEqual(child3, group.Children[0]);
+        Assert.AreEqual(child2, group.Children[1]);
+        Assert.AreEqual(child1, group.Children[2]);
+    }
+
+    [TestMethod]
+    public void TestInsertChild_SameIndex_NoOp()
+    {
+        var group = new DockGroupNode();
+        var child1 = new DockPanelNode();
+        var child2 = new DockPanelNode();
+
+        group.AddChild(child1);
+        group.AddChild(child2);
+
+        group.InsertChild(0, child1);
+        Assert.AreEqual(child1, group.Children[0]);
+        Assert.AreEqual(child2, group.Children[1]);
     }
 }
