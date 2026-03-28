@@ -43,13 +43,12 @@ internal sealed partial class EngineEditorWindow : WindowEx
         // For static tabs in EngineEditorWindow, we remove the item from TabItems
         if (sender.TabItems is System.Collections.IList list && list.Contains(args.Item))
         {
-            var result = TabTearOffService.TryTearOffTab(list, args.Item, sender);
-            
-            if (result.IsSuccess)
+            var result = TabTearOffService.TryTearOffTab(list, args.Item, (tab) =>
             {
-                App.CreateAndShowDockWindow(args.Item);
-            }
-            else
+                App.CreateAndShowDockWindow(tab);
+            }, sender);
+            
+            if (!result.IsSuccess)
             {
                 Logger.LogWarning($"Tab tear-off failed: {result.Message}");
             }

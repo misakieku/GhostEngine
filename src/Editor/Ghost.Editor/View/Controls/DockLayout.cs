@@ -3,7 +3,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using Ghost.Core;
 using Ghost.Editor.Core.Controls.Internal.Docking;
-using Ghost.Editor.View.Windows;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
@@ -435,13 +434,14 @@ public sealed partial class DockLayout : Control
                 // Validate that the item actually belongs to this source node before attempting tear-off
                 if (sourceNode.Items.Contains(args.Item))
                 {
-                    var result = TabTearOffService.TryTearOffTab(sourceNode.Items, args.Item, sourceNode);
+                    var result = TabTearOffService.TryTearOffTab(sourceNode.Items, args.Item, (tab) =>
+                    {
+                        // Raise event to let the host handle window creation
+                        TabTornOff?.Invoke(this, new TabTornOffEventArgs(tab, sourceNode));
+                    }, sourceNode);
 
                     if (result.IsSuccess)
                     {
-                        // Raise event to let the host handle window creation
-                        TabTornOff?.Invoke(this, new TabTornOffEventArgs(args.Item, sourceNode));
-                        
                         DockMutationEngine.CleanupEmptyNodes(sourceNode);
                     }
                     else

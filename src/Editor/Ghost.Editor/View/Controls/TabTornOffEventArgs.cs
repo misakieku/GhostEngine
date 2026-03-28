@@ -1,3 +1,5 @@
+using Ghost.Editor.Core.Controls.Internal.Docking;
+
 namespace Ghost.Editor.View.Controls;
 
 /// <summary>
@@ -13,9 +15,9 @@ public sealed class TabTornOffEventArgs : EventArgs
     /// <summary>
     /// Gets the source node the tab is being torn off from.
     /// </summary>
-    public object SourceNode { get; }
+    public DockPanelNode SourceNode { get; }
 
-    public TabTornOffEventArgs(object tabContent, object sourceNode)
+    public TabTornOffEventArgs(object tabContent, DockPanelNode sourceNode)
     {
         TabContent = tabContent;
         SourceNode = sourceNode;

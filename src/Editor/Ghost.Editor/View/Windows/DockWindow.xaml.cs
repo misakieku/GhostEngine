@@ -1,3 +1,4 @@
+using Ghost.Core;
 using Ghost.Editor.Core.Controls.Internal.Docking;
 using Ghost.Editor.View.Controls;
 using WinUIEx;
@@ -22,8 +23,15 @@ internal sealed partial class DockWindow : WindowEx
 
     private void OnTabTornOff(object? sender, TabTornOffEventArgs e)
     {
-        App.CreateAndShowDockWindow(e.TabContent);
+        try
+        {
+            App.CreateAndShowDockWindow(e.TabContent);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex);
+            // The service handles rollback if this was called from TryTearOffTab
+            throw; 
+        }
     }
-}
-
 }
