@@ -8,12 +8,13 @@
             <Setter.Value>
                 <ControlTemplate TargetType="local:DockGroup">
                     <Grid>
-                        <TabView x:Name="PART_TabView" 
-                                 IsAddTabButtonVisible="False"
-                                 CanDragTabs="True"
-                                 CanReorderTabs="False"
-                                 AllowDrop="True">
-                        </TabView>
+                        <TabView
+                            x:Name="PART_TabView"
+                            VerticalAlignment="Stretch"
+                            AllowDrop="True"
+                            CanDragTabs="True"
+                            CanReorderTabs="False"
+                            IsAddTabButtonVisible="False" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>

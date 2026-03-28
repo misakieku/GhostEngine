@@ -41,10 +41,6 @@ public class NotificationService : INotificationService
 
     internal void ClearReference()
     {
-        if (_infoBar != null)
-        {
-            _infoBar.IsOpen = false;
-        }
         _infoBar = null;
         _notificationQueue = null;
     }

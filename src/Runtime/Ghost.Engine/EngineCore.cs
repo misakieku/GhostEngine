@@ -18,7 +18,7 @@ public sealed partial class EngineCore : IDisposable
     public JobScheduler JobScheduler => _jobScheduler;
     public RenderSystem RenderSystem => _renderSystem;
 
-    internal EngineCore()
+    public EngineCore()
     {
         _jobScheduler = new JobScheduler(Environment.ProcessorCount - 2); // We -2 here, one for main thread, one for render thread
 
@@ -35,6 +35,7 @@ public sealed partial class EngineCore : IDisposable
 
     public void Dispose()
     {
+        _renderSystem.Dispose();
         _jobScheduler.Dispose();
     }
 }

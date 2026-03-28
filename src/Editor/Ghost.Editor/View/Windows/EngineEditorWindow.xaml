@@ -64,8 +64,12 @@
             </ctc:TabbedCommandBar>
         </Grid>
 
+        <Grid xmlns:dock="using:Ghost.Editor.View.Controls.Docking" Grid.Row="2">
+            <dock:DockingLayout x:Name="MainDockingLayout" />
+        </Grid>
+
         <!--  Editor  -->
-        <Grid Grid.Row="2">
+        <!--<Grid Grid.Row="2">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
@@ -134,7 +138,7 @@
                     </TabViewItem>
                 </ghost:NavigationTabView.TabItems>
             </ghost:NavigationTabView>
-        </Grid>
+        </Grid>-->
 
         <!--  Status Bar  -->
         <Grid

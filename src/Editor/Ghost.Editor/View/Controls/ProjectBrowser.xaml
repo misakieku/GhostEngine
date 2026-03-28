@@ -144,6 +144,8 @@
                     DoubleTapped="PART_FilesView_DoubleTapped"
                     IsDoubleTapEnabled="True"
                     ItemsSource="{x:Bind ViewModel.Files, Mode=OneWay}"
+                    ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                    ScrollViewer.HorizontalScrollMode="Disabled"
                     SelectionChanged="PART_FilesView_SelectionChanged"
                     SelectionMode="Single">
                     <ItemsView.ItemTemplate>

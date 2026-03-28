@@ -144,11 +144,16 @@ public partial class App : Application
             Host.StopAsync().GetAwaiter().GetResult();
             Host.Dispose();
 
-            EditorApplication.Shutdown();
+            //EditorApplication.Shutdown();
+            ActivationHandler.Shutdown();
         }
         catch (Exception ex)
         {
             Debugger.BreakForUserUnhandledException(ex);
+        }
+        finally
+        {
+            //Environment.Exit(0);
         }
     }
 
