@@ -10,8 +10,9 @@
                     <Grid>
                         <Grid x:Name="PART_RootGrid" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" />
                         <Border x:Name="PART_DropTargetOverlay" 
-                                Background="#660078D4" 
-                                BorderBrush="#FF0078D4" 
+                                Background="{ThemeResource SystemControlHighlightAccentBrush}" 
+                                Opacity="0.4"
+                                BorderBrush="{ThemeResource SystemControlHighlightAccentBrush}" 
                                 BorderThickness="2" 
                                 Visibility="Collapsed" 
                                 IsHitTestVisible="False" />
