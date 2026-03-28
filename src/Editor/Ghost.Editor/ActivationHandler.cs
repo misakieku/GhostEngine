@@ -3,6 +3,7 @@ using Ghost.Editor.Models;
 using Ghost.Engine;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Editor;
 
@@ -52,6 +53,23 @@ internal static class ActivationHandler
         return arguments;
     }
 
+    private static void LoadDll()
+    {
+        var currentDir = AppContext.BaseDirectory;
+        var platform = OperatingSystem.IsWindows() ? "win" :
+                       OperatingSystem.IsLinux() ? "linux" :
+                       OperatingSystem.IsMacOS() ? "osx" : "unknown";
+        var arch = Environment.Is64BitProcess ? "x64" : "x86";
+        var nativeDllDir = Path.Combine(currentDir, "runtimes", platform + "-" + arch, "native");
+        if (Directory.Exists(nativeDllDir))
+        {
+            foreach (var dll in Directory.EnumerateFiles(nativeDllDir, "*.dll"))
+            {
+                NativeLibrary.Load(dll);
+            }
+        }
+    }
+
     public static async Task HandleAsync(LaunchArguments args)
     {
         var opts = new AllocationManagerInitOpts
@@ -66,7 +84,8 @@ internal static class ActivationHandler
         await Task.Run(() =>
         {
             TypeCache.Init();
-            App.GetService<EngineCore>();
+            //LoadDll();
+            //App.GetService<EngineCore>();
         });
 
         // await ((Core.AssetHandle.AssetService)App.GetService<IAssetService>()).Init();
