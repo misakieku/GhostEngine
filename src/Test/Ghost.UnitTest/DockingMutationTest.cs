@@ -107,6 +107,7 @@ public class DockingMutationTest
         {
             var onlyChild = group1.Children[0];
             var parent = group1.Parent;
+            Assert.IsNotNull(parent);
             int index = parent.Children.IndexOf(group1);
             
             parent.RemoveChild(group1);

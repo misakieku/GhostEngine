@@ -39,6 +39,7 @@ public partial class DockGroupNode : DockNode
     /// <exception cref="InvalidOperationException">Thrown if adding the node would create a cycle or if adding self.</exception>
     public void AddChild(DockNode node)
     {
+        if (_children.Contains(node)) return;
         InsertChild(_children.Count, node);
     }
 
