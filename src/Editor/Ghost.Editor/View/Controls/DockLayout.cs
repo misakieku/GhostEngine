@@ -15,6 +15,8 @@ namespace Ghost.Editor.View.Controls;
 public sealed partial class DockLayout : Control
 {
     private const string PART_ROOT_GRID = "PART_RootGrid";
+    private const double MIN_PANE_SIZE = 100;
+    private const double SPLITTER_THICKNESS = 4;
 
     private readonly HashSet<DockNode> _subscribedNodes = new();
 
@@ -176,100 +178,110 @@ public sealed partial class DockLayout : Control
     {
         if (node is DockGroupNode groupNode)
         {
-            var grid = new Grid();
-            bool isHorizontal = groupNode.Orientation == Orientation.Horizontal;
-            int childCount = groupNode.Children.Count;
-
-            for (int i = 0; i < childCount; i++)
-            {
-                var childNode = groupNode.Children[i];
-                var childUI = CreateUIForNode(childNode);
-
-                if (isHorizontal)
-                {
-                    grid.ColumnDefinitions.Add(new ColumnDefinition
-                    {
-                        Width = new GridLength(1, GridUnitType.Star),
-                        MinWidth = 100
-                    });
-                    Grid.SetColumn((FrameworkElement)childUI, i * 2);
-                }
-                else
-                {
-                    grid.RowDefinitions.Add(new RowDefinition
-                    {
-                        Height = new GridLength(1, GridUnitType.Star),
-                        MinHeight = 100
-                    });
-                    Grid.SetRow((FrameworkElement)childUI, i * 2);
-                }
-                
-                grid.Children.Add(childUI);
-
-                // Add GridSplitter between children
-                if (i < childCount - 1)
-                {
-                    if (isHorizontal)
-                    {
-                        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                        var splitter = new CommunityToolkit.WinUI.Controls.GridSplitter
-                        {
-                            Width = 4,
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            ResizeDirection = CommunityToolkit.WinUI.Controls.GridSplitter.GridResizeDirection.Columns
-                        };
-                        Grid.SetColumn(splitter, (i * 2) + 1);
-                        grid.Children.Add(splitter);
-                    }
-                    else
-                    {
-                        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                        var splitter = new CommunityToolkit.WinUI.Controls.GridSplitter
-                        {
-                            Height = 4,
-                            VerticalAlignment = VerticalAlignment.Center,
-                            ResizeDirection = CommunityToolkit.WinUI.Controls.GridSplitter.GridResizeDirection.Rows
-                        };
-                        Grid.SetRow(splitter, (i * 2) + 1);
-                        grid.Children.Add(splitter);
-                    }
-                }
-            }
-
-            return grid;
+            return CreateGroupUI(groupNode);
         }
         else if (node is DockPanelNode panelNode)
         {
-            var tabView = new Ghost.Editor.Controls.NavigationTabView 
-            { 
-                TabItemsSource = panelNode.Items,
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                VerticalAlignment = VerticalAlignment.Stretch,
-                CanDragTabs = true,
-                AllowDrop = true,
-                Tag = panelNode // Store reference to data node
-            };
-            
-            // Bind selection state using TabView DPs
-            tabView.SetBinding(TabView.SelectedIndexProperty, new Binding
-            {
-                Source = panelNode,
-                Path = new PropertyPath(nameof(DockPanelNode.SelectedIndex)),
-                Mode = BindingMode.TwoWay
-            });
-
-            tabView.SetBinding(TabView.SelectedItemProperty, new Binding
-            {
-                Source = panelNode,
-                Path = new PropertyPath(nameof(DockPanelNode.SelectedItem)),
-                Mode = BindingMode.TwoWay
-            });
-
-            return tabView;
+            return CreatePanelUI(panelNode);
         }
-        
+
         Debug.Fail($"Unsupported node type: {node.GetType().Name}");
         return new Grid(); // Fallback
+    }
+
+    private UIElement CreateGroupUI(DockGroupNode groupNode)
+    {
+        var grid = new Grid();
+        bool isHorizontal = groupNode.Orientation == Orientation.Horizontal;
+        int childCount = groupNode.Children.Count;
+
+        for (int i = 0; i < childCount; i++)
+        {
+            var childNode = groupNode.Children[i];
+            var childUI = CreateUIForNode(childNode);
+
+            if (isHorizontal)
+            {
+                grid.ColumnDefinitions.Add(new ColumnDefinition
+                {
+                    Width = new GridLength(1, GridUnitType.Star),
+                    MinWidth = MIN_PANE_SIZE
+                });
+                Grid.SetColumn((FrameworkElement)childUI, i * 2);
+            }
+            else
+            {
+                grid.RowDefinitions.Add(new RowDefinition
+                {
+                    Height = new GridLength(1, GridUnitType.Star),
+                    MinHeight = MIN_PANE_SIZE
+                });
+                Grid.SetRow((FrameworkElement)childUI, i * 2);
+            }
+
+            grid.Children.Add(childUI);
+
+            // Add GridSplitter between children
+            if (i < childCount - 1)
+            {
+                if (isHorizontal)
+                {
+                    grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                    var splitter = new CommunityToolkit.WinUI.Controls.GridSplitter
+                    {
+                        Width = SPLITTER_THICKNESS,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        ResizeDirection = CommunityToolkit.WinUI.Controls.GridSplitter.GridResizeDirection.Columns
+                    };
+                    Grid.SetColumn(splitter, (i * 2) + 1);
+                    grid.Children.Add(splitter);
+                }
+                else
+                {
+                    grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                    var splitter = new CommunityToolkit.WinUI.Controls.GridSplitter
+                    {
+                        Height = SPLITTER_THICKNESS,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        ResizeDirection = CommunityToolkit.WinUI.Controls.GridSplitter.GridResizeDirection.Rows
+                    };
+                    Grid.SetRow(splitter, (i * 2) + 1);
+                    grid.Children.Add(splitter);
+                }
+            }
+        }
+
+        return grid;
+    }
+
+    private UIElement CreatePanelUI(DockPanelNode panelNode)
+    {
+        var tabView = new Ghost.Editor.Controls.NavigationTabView
+        {
+            TabItemsSource = panelNode.Items,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch,
+            CanDragTabs = true,
+            AllowDrop = true,
+            Tag = panelNode // Store reference to data node
+        };
+
+        // Bind selection state using TabView DPs
+        tabView.SetBinding(TabView.SelectedIndexProperty, new Binding
+        {
+            Source = panelNode,
+            Path = new PropertyPath(nameof(DockPanelNode.SelectedIndex)),
+            Mode = BindingMode.TwoWay
+        });
+
+        tabView.SetBinding(TabView.SelectedItemProperty, new Binding
+        {
+            Source = panelNode,
+            Path = new PropertyPath(nameof(DockPanelNode.SelectedItem)),
+            Mode = BindingMode.TwoWay
+        });
+
+        return tabView;
     }
 
     protected override void OnApplyTemplate()
