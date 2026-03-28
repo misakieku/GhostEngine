@@ -235,6 +235,7 @@ public class DockingLayout : Control
         }
         else
         {
+            if (doc.Owner == targetGroup && targetGroup.Children.Count == 1) return;
             SplitGroup(targetGroup, doc, target);
         }
     }

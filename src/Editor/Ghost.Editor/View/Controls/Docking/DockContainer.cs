@@ -9,7 +9,7 @@ namespace Ghost.Editor.View.Controls.Docking;
 public abstract class DockContainer : DockModule
 {
     private readonly ObservableCollection<DockModule> _children = new();
-    protected bool _isCleaningUp;
+    private bool _isCleaningUp;
     /// <summary>
     /// Gets the collection of child modules.
     /// </summary>
@@ -50,7 +50,15 @@ public abstract class DockContainer : DockModule
         if (_children.Contains(module))
             return;
 
-        module.Owner?.RemoveChildInternal(module, false);
+        if (module.Owner == this)
+        {
+            RemoveChildInternal(module, false);
+        }
+        else
+        {
+            module.Owner?.RemoveChild(module);
+        }
+
         module.Owner = this;
         module.Root = Root;
         _children.Insert(index, module);
@@ -90,11 +98,20 @@ public abstract class DockContainer : DockModule
         ArgumentNullException.ThrowIfNull(oldChild);
         ValidateChild(newChild);
 
+        if (oldChild == newChild) return;
+
         int index = _children.IndexOf(oldChild);
         if (index < 0) throw new ArgumentException("oldChild not found");
 
         // Detach newChild from its current owner if any
-        newChild.Owner?.RemoveChildInternal(newChild, false);
+        if (newChild.Owner == this)
+        {
+            newChild.Owner.RemoveChildInternal(newChild, false);
+        }
+        else
+        {
+            newChild.Owner?.RemoveChild(newChild);
+        }
 
         // Remove oldChild without triggering cleanup
         _isCleaningUp = true;

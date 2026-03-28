@@ -61,8 +61,10 @@ public class DockPanel : DockContainer
             }
             else if (Root != null && Root.RootPanel == this)
             {
-                // If this is the root panel, we can't easily replace it if the child is a DockGroup, 
-                // because RootPanel must be a DockPanel. So we just leave it.
+                if (child is DockPanel childPanel)
+                {
+                    Root.RootPanel = childPanel;
+                }
             }
         }
     }
