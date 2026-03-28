@@ -42,6 +42,13 @@ internal sealed partial class EngineEditorWindow : WindowEx
         this.CenterOnScreen();
 
         InitializeDockLayout();
+        
+        this.Unloaded += OnUnloaded;
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        PART_DockLayout.TabTornOff -= OnTabTornOff;
     }
 
     private void InitializeDockLayout()
@@ -68,7 +75,12 @@ internal sealed partial class EngineEditorWindow : WindowEx
         root.AddChild(rightGroup);
 
         PART_DockLayout.Root = root;
-        PART_DockLayout.TabTornOff += (s, e) => App.CreateAndShowDockWindow(e.TabContent);
+        PART_DockLayout.TabTornOff += OnTabTornOff;
+    }
+
+    private void OnTabTornOff(object? sender, TabTornOffEventArgs e)
+    {
+        App.CreateAndShowDockWindow(e.TabContent);
     }
 
     private void MainGrid_Loaded(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)

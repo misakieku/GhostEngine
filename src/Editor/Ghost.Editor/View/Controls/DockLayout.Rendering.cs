@@ -110,50 +110,52 @@ public sealed partial class DockLayout
     {
         if (_isSyncingSizes) return;
 
-        bool isHorizontal = groupNode.Orientation == Orientation.Horizontal;
-        bool changed = false;
-
-        if (isHorizontal)
+        try
         {
-            for (int i = 0; i < groupNode.Children.Count; i++)
+            bool isHorizontal = groupNode.Orientation == Orientation.Horizontal;
+            bool changed = false;
+
+            if (isHorizontal)
             {
-                if (i < groupNode.Sizes.Count && i * 2 < grid.ColumnDefinitions.Count)
+                for (int i = 0; i < groupNode.Children.Count; i++)
                 {
-                    var newWidth = grid.ColumnDefinitions[i * 2].Width;
-                    if (!groupNode.Sizes[i].Equals(newWidth))
+                    if (i < groupNode.Sizes.Count && i * 2 < grid.ColumnDefinitions.Count)
                     {
-                        // Only sync if it's a star or pixel value (not Auto)
-                        if (newWidth.IsStar || newWidth.IsAbsolute)
+                        var newWidth = grid.ColumnDefinitions[i * 2].Width;
+                        if (!groupNode.Sizes[i].Equals(newWidth))
                         {
-                            _isSyncingSizes = true;
-                            groupNode.Sizes[i] = newWidth;
-                            changed = true;
+                            // Only sync if it's a star or pixel value (not Auto)
+                            if (newWidth.IsStar || newWidth.IsAbsolute)
+                            {
+                                _isSyncingSizes = true;
+                                groupNode.Sizes[i] = newWidth;
+                                changed = true;
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                for (int i = 0; i < groupNode.Children.Count; i++)
+                {
+                    if (i < groupNode.Sizes.Count && i * 2 < grid.RowDefinitions.Count)
+                    {
+                        var newHeight = grid.RowDefinitions[i * 2].Height;
+                        if (!groupNode.Sizes[i].Equals(newHeight))
+                        {
+                            if (newHeight.IsStar || newHeight.IsAbsolute)
+                            {
+                                _isSyncingSizes = true;
+                                groupNode.Sizes[i] = newHeight;
+                                changed = true;
+                            }
                         }
                     }
                 }
             }
         }
-        else
-        {
-            for (int i = 0; i < groupNode.Children.Count; i++)
-            {
-                if (i < groupNode.Sizes.Count && i * 2 < grid.RowDefinitions.Count)
-                {
-                    var newHeight = grid.RowDefinitions[i * 2].Height;
-                    if (!groupNode.Sizes[i].Equals(newHeight))
-                    {
-                        if (newHeight.IsStar || newHeight.IsAbsolute)
-                        {
-                            _isSyncingSizes = true;
-                            groupNode.Sizes[i] = newHeight;
-                            changed = true;
-                        }
-                    }
-                }
-            }
-        }
-
-        if (changed)
+        finally
         {
             _isSyncingSizes = false;
         }
