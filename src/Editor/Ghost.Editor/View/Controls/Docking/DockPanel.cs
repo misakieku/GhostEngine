@@ -63,6 +63,7 @@ public class DockPanel : DockContainer
             {
                 if (child is DockPanel childPanel)
                 {
+                    RemoveChildInternal(childPanel, false);
                     Root.RootPanel = childPanel;
                 }
             }

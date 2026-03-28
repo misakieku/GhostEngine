@@ -53,14 +53,7 @@ public abstract class DockContainer : DockModule
         if (_children.Contains(module))
             return;
 
-        if (module.Owner == this)
-        {
-            RemoveChildInternal(module, false);
-        }
-        else
-        {
-            module.Owner?.RemoveChild(module);
-        }
+        module.Owner?.RemoveChild(module);
 
         module.Owner = this;
         module.Root = Root;

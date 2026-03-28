@@ -59,6 +59,11 @@ public class DockingLayout : Control
                     throw new InvalidOperationException("Panel is already owned by another DockingLayout");
                 }
 
+                if (newPanel.Owner != null)
+                {
+                    newPanel.Owner.RemoveChild(newPanel);
+                }
+
                 newPanel.Root = layout;
             }
         }
