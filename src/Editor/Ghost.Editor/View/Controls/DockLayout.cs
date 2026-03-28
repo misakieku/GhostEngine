@@ -19,7 +19,7 @@ public sealed partial class DockLayout : Control
 {
     private const string PART_ROOT_GRID = "PART_RootGrid";
     private const string PART_DROP_TARGET_OVERLAY = "PART_DropTargetOverlay";
-    private const string DRAG_PROPERTY_DOCK_TAB = "DockTab";
+    private const string DRAG_PROPERTY_DOCK_TAB = "Ghost.Editor.DockLayout.TabDragPayload";
     private const double MIN_PANE_SIZE = 100;
     private const double SPLITTER_THICKNESS = 4;
     private const double DROP_EDGE_THRESHOLD = 0.25;
@@ -301,16 +301,26 @@ public sealed partial class DockLayout : Control
     private DockPanelNode? _sourceNode;
     private DockPosition _currentDropPosition = DockPosition.None;
 
+    private record DockDragPayload(object Item, DockPanelNode SourceNode);
+
     private void TabView_TabDragStarting(Microsoft.UI.Xaml.Controls.TabView sender, Microsoft.UI.Xaml.Controls.TabViewTabDragStartingEventArgs args)
     {
         _draggedItem = args.Item;
         _sourceNode = sender.Tag as DockPanelNode;
-        args.Data.Properties.Add(DRAG_PROPERTY_DOCK_TAB, _draggedItem); // Identify our drag
+
+        if (_draggedItem != null && _sourceNode != null)
+        {
+            var payload = new DockDragPayload(_draggedItem, _sourceNode);
+            args.Data.Properties.Add(DRAG_PROPERTY_DOCK_TAB, payload); // Identify our drag
+        }
     }
 
     private void TabView_DragOver(object sender, DragEventArgs e)
     {
-        if (e.DataView.Properties.ContainsKey(DRAG_PROPERTY_DOCK_TAB) && sender is FrameworkElement targetElement)
+        if (e.DataView.Properties.TryGetValue(DRAG_PROPERTY_DOCK_TAB, out var payloadObj) && 
+            payloadObj is DockDragPayload payload &&
+            payload.Item == _draggedItem &&
+            sender is FrameworkElement targetElement)
         {
             e.AcceptedOperation = global::Windows.ApplicationModel.DataTransfer.DataPackageOperation.Move;
 
@@ -386,9 +396,11 @@ public sealed partial class DockLayout : Control
     {
         if (_dropTargetOverlay != null) _dropTargetOverlay.Visibility = Visibility.Collapsed;
 
-        if (!e.DataView.Properties.TryGetValue(DRAG_PROPERTY_DOCK_TAB, out var payload) ||
-            payload != _draggedItem ||
-            _draggedItem == null || _sourceNode == null || !(sender is FrameworkElement targetElement) || !(targetElement.Tag is DockPanelNode targetNode))
+        if (!e.DataView.Properties.TryGetValue(DRAG_PROPERTY_DOCK_TAB, out var payloadObj) ||
+            payloadObj is not DockDragPayload payload ||
+            payload.Item != _draggedItem ||
+            !(sender is FrameworkElement targetElement) || 
+            !(targetElement.Tag is DockPanelNode targetNode))
         {
             ClearDragOperationState();
             return;
@@ -400,7 +412,7 @@ public sealed partial class DockLayout : Control
             return;
         }
 
-        if (_sourceNode == targetNode && _currentDropPosition == DockPosition.Center)
+        if (payload.SourceNode == targetNode && _currentDropPosition == DockPosition.Center)
         {
             ClearDragOperationState();
             return; // Reordering within same tab is handled natively by TabView
@@ -413,9 +425,9 @@ public sealed partial class DockLayout : Control
         }
 
         // 1. Execute mutation
-        if (DockMutationEngine.TryApplyDropMutation(Root, targetNode, _sourceNode, _draggedItem, _currentDropPosition))
+        if (DockMutationEngine.TryApplyDropMutation(Root, targetNode, payload.SourceNode, payload.Item, _currentDropPosition))
         {
-            DockMutationEngine.CleanupEmptyNodes(_sourceNode);
+            DockMutationEngine.CleanupEmptyNodes(payload.SourceNode);
         }
 
         ClearDragOperationState();
@@ -440,6 +452,10 @@ public sealed partial class DockLayout : Control
                     {
                         Logger.LogWarning($"Tab tear-off failed: {result.Message}");
                     }
+                }
+                else
+                {
+                    Logger.LogWarning($"TabDroppedOutside: Item {args.Item} not found in source node {sourceNode}.");
                 }
             }
         }
