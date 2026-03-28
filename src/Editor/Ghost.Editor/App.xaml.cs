@@ -47,6 +47,10 @@ public partial class App : Application
             app._secondaryWindows.Add(window);
             window.Closed += (s, e) => app._secondaryWindows.Remove(window);
         }
+        else
+        {
+            throw new InvalidOperationException("App instance is not available.");
+        }
     }
 
     internal IHost Host
@@ -151,6 +155,14 @@ public partial class App : Application
     {
         try
         {
+            // Close all secondary windows when the primary window closes
+            var secondaryWindows = _secondaryWindows.ToArray();
+            foreach (var window in secondaryWindows)
+            {
+                window.Close();
+            }
+            _secondaryWindows.Clear();
+
             Host.StopAsync().GetAwaiter().GetResult();
             Host.Dispose();
 

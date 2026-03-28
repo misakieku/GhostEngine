@@ -295,6 +295,8 @@ public sealed partial class DockLayout : Control
         return tabView;
     }
 
+    public event EventHandler<TabTornOffEventArgs>? TabTornOff;
+
     private void TabView_TabDroppedOutside(Microsoft.UI.Xaml.Controls.TabView sender, Microsoft.UI.Xaml.Controls.TabViewTabDroppedOutsideEventArgs args)
     {
         if (_sourceNode != null && _draggedItem != null)
@@ -304,14 +306,18 @@ public sealed partial class DockLayout : Control
             {
                 DockMutationEngine.CleanupEmptyNodes(_sourceNode);
 
-                // Create new window and register it with App to prevent GC
-                var newWindow = new Ghost.Editor.View.Windows.DockWindow(_draggedItem);
-                App.AddSecondaryWindow(newWindow);
-                newWindow.Activate();
+                // Raise event to let the host handle window creation
+                TabTornOff?.Invoke(this, new TabTornOffEventArgs(_draggedItem));
             }
 
             ClearDragOperationState();
         }
+    }
+
+    public class TabTornOffEventArgs : EventArgs
+    {
+        public object TabContent { get; }
+        public TabTornOffEventArgs(object tabContent) => TabContent = tabContent;
     }
 
     private object? _draggedItem;
