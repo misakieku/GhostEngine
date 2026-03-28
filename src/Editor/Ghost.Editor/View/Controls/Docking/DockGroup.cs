@@ -31,7 +31,56 @@ public partial class DockGroup : DockContainer
     {
         base.OnApplyTemplate();
         _tabView = GetTemplateChild(PART_TAB_VIEW) as TabView;
+
+        if (_tabView != null)
+        {
+            _tabView.TabDragStarting += OnTabDragStarting;
+            _tabView.TabDroppedOutside += OnTabDroppedOutside;
+            _tabView.DragOver += OnDragOver;
+            _tabView.Drop += OnDrop;
+            _tabView.DragLeave += OnDragLeave;
+        }
+
         UpdateTabs();
+    }
+
+    private void OnTabDragStarting(TabView sender, TabViewTabDragStartingEventArgs args)
+    {
+        if (args.Tab.Tag is DockDocument doc)
+        {
+            args.Data.Properties.Add("DockDocument", doc);
+            doc.Detach();
+        }
+    }
+
+    private void OnTabDroppedOutside(TabView sender, TabViewTabDroppedOutsideEventArgs args)
+    {
+        if (args.Tab.Tag is DockDocument doc)
+        {
+            Root?.CreateFloatingWindow(doc);
+        }
+    }
+
+    private void OnDragOver(object sender, DragEventArgs e)
+    {
+        if (e.DataView.Properties.ContainsKey("DockDocument"))
+        {
+            e.AcceptedOperation = Windows.ApplicationModel.DataTransfer.DataPackageOperation.Move;
+            Root?.ShowHighlight(this, e.GetPosition(this));
+        }
+    }
+
+    private void OnDrop(object sender, DragEventArgs e)
+    {
+        if (e.DataView.Properties.TryGetValue("DockDocument", out var obj) && obj is DockDocument doc)
+        {
+            Root?.HandleDrop(doc, this, e.GetPosition(this));
+        }
+    }
+
+    private void OnDragLeave(object sender, DragEventArgs e)
+    {
+        Root?.HideHighlight();
     }
 
     protected override void OnChildrenUpdated()
