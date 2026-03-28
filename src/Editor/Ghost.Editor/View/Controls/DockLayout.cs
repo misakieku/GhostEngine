@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using Ghost.Core;
 using Ghost.Editor.Core.Controls.Internal.Docking;
+using Ghost.Editor.View.Windows;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
@@ -296,8 +297,6 @@ public sealed partial class DockLayout : Control
         return tabView;
     }
 
-    public event EventHandler<TabTornOffEventArgs>? TabTornOff;
-
     private void TabView_TabDroppedOutside(Microsoft.UI.Xaml.Controls.TabView sender, Microsoft.UI.Xaml.Controls.TabViewTabDroppedOutsideEventArgs args)
     {
         if (_sourceNode != null && _draggedItem != null)
@@ -310,135 +309,12 @@ public sealed partial class DockLayout : Control
             }
             else
             {
-                Logger.LogWarning($"Tab tear-off failed: {result.Error}");
+                Logger.LogWarning($"Tab tear-off failed: {result.Message}");
             }
 
             ClearDragOperationState();
         }
     }
-
-    private object? _draggedItem;
-    private DockPanelNode? _sourceNode;
-    private DockPosition _currentDropPosition = DockPosition.None;
-
-    private void TabView_TabDragStarting(Microsoft.UI.Xaml.Controls.TabView sender, Microsoft.UI.Xaml.Controls.TabViewTabDragStartingEventArgs args)
-    {
-        _draggedItem = args.Item;
-        _sourceNode = sender.Tag as DockPanelNode;
-        args.Data.Properties.Add(DRAG_PROPERTY_DOCK_TAB, _draggedItem); // Identify our drag
-    }
-
-    private void TabView_DragOver(object sender, DragEventArgs e)
-    {
-        if (e.DataView.Properties.ContainsKey(DRAG_PROPERTY_DOCK_TAB) && sender is FrameworkElement targetElement)
-        {
-            e.AcceptedOperation = global::Windows.ApplicationModel.DataTransfer.DataPackageOperation.Move;
-
-            var position = e.GetPosition(targetElement);
-            var newPosition = DockMath.CalculateDockPosition(targetElement.ActualWidth, targetElement.ActualHeight, position.X, position.Y, DROP_EDGE_THRESHOLD);
-
-            if (newPosition != _currentDropPosition)
-            {
-                _currentDropPosition = newPosition;
-                UpdateDropOverlay(targetElement, _currentDropPosition);
-            }
-        }
-    }
-
-    private void TabView_DragLeave(object sender, DragEventArgs e)
-    {
-        ClearOverlayState();
-    }
-
-    private void ClearOverlayState()
-    {
-        if (_dropTargetOverlay != null)
-        {
-            _dropTargetOverlay.Visibility = Visibility.Collapsed;
-        }
-        _currentDropPosition = DockPosition.None;
-    }
-
-    private void ClearDragOperationState()
-    {
-        ClearOverlayState();
-        _draggedItem = null;
-        _sourceNode = null;
-    }
-
-    private void UpdateDropOverlay(FrameworkElement targetElement, DockPosition position)
-    {
-        if (_dropTargetOverlay == null) return;
-        if (position == DockPosition.None)
-        {
-            _dropTargetOverlay.Visibility = Visibility.Collapsed;
-            return;
-        }
-
-        var transform = targetElement.TransformToVisual(this);
-        var bounds = transform.TransformBounds(new global::Windows.Foundation.Rect(0, 0, targetElement.ActualWidth, targetElement.ActualHeight));
-
-        _dropTargetOverlay.Visibility = Visibility.Visible;
-        _dropTargetOverlay.Width = double.NaN;
-        _dropTargetOverlay.Height = double.NaN;
-
-        switch (position)
-        {
-            case DockPosition.Center:
-                _dropTargetOverlay.Margin = new Thickness(bounds.Left, bounds.Top, ActualWidth - bounds.Right, ActualHeight - bounds.Bottom);
-                break;
-            case DockPosition.Left:
-                _dropTargetOverlay.Margin = new Thickness(bounds.Left, bounds.Top, ActualWidth - (bounds.Left + bounds.Width / 2), ActualHeight - bounds.Bottom);
-                break;
-            case DockPosition.Right:
-                _dropTargetOverlay.Margin = new Thickness(bounds.Left + bounds.Width / 2, bounds.Top, ActualWidth - bounds.Right, ActualHeight - bounds.Bottom);
-                break;
-            case DockPosition.Top:
-                _dropTargetOverlay.Margin = new Thickness(bounds.Left, bounds.Top, ActualWidth - bounds.Right, ActualHeight - (bounds.Top + bounds.Height / 2));
-                break;
-            case DockPosition.Bottom:
-                _dropTargetOverlay.Margin = new Thickness(bounds.Left, bounds.Top + bounds.Height / 2, ActualWidth - bounds.Right, ActualHeight - bounds.Bottom);
-                break;
-        }
-    }
-
-    private void TabView_Drop(object sender, DragEventArgs e)
-    {
-        if (_dropTargetOverlay != null) _dropTargetOverlay.Visibility = Visibility.Collapsed;
-
-        if (_draggedItem == null || _sourceNode == null || !(sender is FrameworkElement targetElement) || !(targetElement.Tag is DockPanelNode targetNode))
-        {
-            ClearDragOperationState();
-            return;
-        }
-
-        if (_currentDropPosition == DockPosition.None)
-        {
-            ClearDragOperationState();
-            return;
-        }
-
-        if (_sourceNode == targetNode && _currentDropPosition == DockPosition.Center)
-        {
-            ClearDragOperationState();
-            return; // Reordering within same tab is handled natively by TabView
-        }
-
-        if (Root == null)
-        {
-            ClearDragOperationState();
-            return;
-        }
-
-        // 1. Execute mutation
-        if (DockMutationEngine.TryApplyDropMutation(Root, targetNode, _sourceNode, _draggedItem, _currentDropPosition))
-        {
-            DockMutationEngine.CleanupEmptyNodes(_sourceNode);
-        }
-
-        ClearDragOperationState();
-    }
-
 
     protected override void OnApplyTemplate()
     {

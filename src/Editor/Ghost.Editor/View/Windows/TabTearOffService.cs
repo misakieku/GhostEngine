@@ -38,11 +38,20 @@ internal static class TabTearOffService
             }
             catch (Exception ex)
             {
-                // Rollback collection
-                sourceItems.Insert(originalIndex, tabItem);
-                RestoreSelection(selectionContainer, originalSelection);
-                
                 Logger.LogError(ex);
+
+                // Rollback collection and selection
+                try
+                {
+                    sourceItems.Insert(originalIndex, tabItem);
+                    RestoreSelection(selectionContainer, originalSelection);
+                }
+                catch (Exception rollbackEx)
+                {
+                    Logger.LogError(rollbackEx);
+                    return Result.Failure($"Failed to create tear-off window and rollback failed: {ex.Message}. Rollback error: {rollbackEx.Message}");
+                }
+                
                 return Result.Failure($"Failed to create tear-off window: {ex.Message}");
             }
         }
