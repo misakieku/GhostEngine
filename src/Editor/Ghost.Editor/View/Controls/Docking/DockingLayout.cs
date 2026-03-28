@@ -72,6 +72,8 @@ public class DockingLayout : Control
     /// <param name="targetGroup">The target group to add the document to. If null, a suitable group will be found or created.</param>
     public void AddDocument(DockDocument document, DockTarget target, DockGroup? targetGroup = null)
     {
+        ArgumentNullException.ThrowIfNull(document);
+
         if (targetGroup != null && targetGroup.Root != this)
         {
             throw new ArgumentException("targetGroup does not belong to this DockingLayout");

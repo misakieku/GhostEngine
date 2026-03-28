@@ -57,10 +57,12 @@ public class DockPanel : DockContainer
 
             if (owner != null)
             {
-                int index = owner.Children.IndexOf(this);
-                owner.RemoveChild(this);
-                child.Detach();
-                owner.InsertChild(index, child);
+                owner.ReplaceChild(this, child);
+            }
+            else if (Root != null && Root.RootPanel == this)
+            {
+                // If this is the root panel, we can't easily replace it if the child is a DockGroup, 
+                // because RootPanel must be a DockPanel. So we just leave it.
             }
         }
     }
