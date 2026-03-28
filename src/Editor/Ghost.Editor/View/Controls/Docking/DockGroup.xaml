@@ -1,0 +1,22 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Ghost.Editor.View.Controls.Docking">
+
+    <Style TargetType="local:DockGroup">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="local:DockGroup">
+                    <Grid>
+                        <TabView x:Name="PART_TabView" 
+                                 IsAddTabButtonVisible="False"
+                                 CanDragTabs="True"
+                                 CanReorderTabs="True"
+                                 AllowDrop="True">
+                        </TabView>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>
