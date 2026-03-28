@@ -386,7 +386,8 @@ public sealed partial class DockLayout : Control
     {
         if (_dropTargetOverlay != null) _dropTargetOverlay.Visibility = Visibility.Collapsed;
 
-        if (_draggedItem == null || _sourceNode == null || !(sender is FrameworkElement targetElement) || !(targetElement.Tag is DockPanelNode targetNode))
+        if (!e.DataView.Properties.ContainsKey(DRAG_PROPERTY_DOCK_TAB) ||
+            _draggedItem == null || _sourceNode == null || !(sender is FrameworkElement targetElement) || !(targetElement.Tag is DockPanelNode targetNode))
         {
             ClearDragOperationState();
             return;
@@ -421,19 +422,24 @@ public sealed partial class DockLayout : Control
 
     private void TabView_TabDroppedOutside(Microsoft.UI.Xaml.Controls.TabView sender, Microsoft.UI.Xaml.Controls.TabViewTabDroppedOutsideEventArgs args)
     {
-        if (_sourceNode != null && _draggedItem != null)
+        try
         {
-            var result = TabTearOffService.TryTearOffTab(_sourceNode.Items, _draggedItem, _sourceNode);
-            
-            if (result.IsSuccess)
+            if (_sourceNode != null && _draggedItem != null)
             {
-                DockMutationEngine.CleanupEmptyNodes(_sourceNode);
-            }
-            else
-            {
-                Logger.LogWarning($"Tab tear-off failed: {result.Message}");
-            }
+                var result = TabTearOffService.TryTearOffTab(_sourceNode.Items, _draggedItem, _sourceNode);
 
+                if (result.IsSuccess)
+                {
+                    DockMutationEngine.CleanupEmptyNodes(_sourceNode);
+                }
+                else
+                {
+                    Logger.LogWarning($"Tab tear-off failed: {result.Message}");
+                }
+            }
+        }
+        finally
+        {
             ClearDragOperationState();
         }
     }
