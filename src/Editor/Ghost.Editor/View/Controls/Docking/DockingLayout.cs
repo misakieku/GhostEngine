@@ -34,14 +34,23 @@ public class DockingLayout : Control
 
     private static void OnRootPanelChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
-        if (d is DockingLayout layout && e.NewValue is DockPanel panel)
+        if (d is DockingLayout layout)
         {
-            panel.Root = layout;
+            if (e.OldValue is DockPanel oldPanel)
+            {
+                oldPanel.Root = null;
+            }
+
+            if (e.NewValue is DockPanel newPanel)
+            {
+                newPanel.Root = layout;
+            }
         }
     }
 
     public void AddDocument(DockDocument document, DockTarget target, DockGroup? targetGroup = null)
     {
+        // TODO: Handle non-Center targets (Task 5)
         if (RootPanel == null)
         {
             RootPanel = new DockPanel();
