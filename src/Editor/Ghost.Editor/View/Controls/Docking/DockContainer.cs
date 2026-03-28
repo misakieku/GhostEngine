@@ -38,6 +38,9 @@ public abstract class DockContainer : DockModule
     /// <summary>
     /// Inserts a child module at the specified index.
     /// </summary>
+    /// <remarks>
+    /// This method does not support reordering existing children within the same container.
+    /// </remarks>
     /// <param name="index">The zero-based index at which the module should be inserted.</param>
     /// <param name="module">The module to insert.</param>
     public virtual void InsertChild(int index, DockModule module)
@@ -101,7 +104,7 @@ public abstract class DockContainer : DockModule
         if (oldChild == newChild) return;
 
         int index = _children.IndexOf(oldChild);
-        if (index < 0) throw new ArgumentException("oldChild not found");
+        if (index < 0) throw new ArgumentException("oldChild not found in this container", nameof(oldChild));
 
         // Detach newChild from its current owner if any
         if (newChild.Owner == this)

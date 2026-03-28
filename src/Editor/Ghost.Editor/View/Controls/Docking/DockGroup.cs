@@ -11,6 +11,7 @@ namespace Ghost.Editor.View.Controls.Docking;
 public partial class DockGroup : DockContainer
 {
     private const string PART_TAB_VIEW = "PART_TabView";
+    private const string DRAG_DOCUMENT_KEY = "DockDocument";
     private TabView? _tabView;
 
     public DockGroup()
@@ -59,7 +60,7 @@ public partial class DockGroup : DockContainer
     {
         if (args.Tab.Tag is DockDocument doc)
         {
-            args.Data.Properties.Add("DockDocument", doc);
+            args.Data.Properties.Add(DRAG_DOCUMENT_KEY, doc);
         }
     }
 
@@ -73,7 +74,7 @@ public partial class DockGroup : DockContainer
 
     private void OnDragOver(object sender, DragEventArgs e)
     {
-        if (e.DataView.Properties.ContainsKey("DockDocument"))
+        if (e.DataView.Properties.ContainsKey(DRAG_DOCUMENT_KEY))
         {
             e.AcceptedOperation = global::Windows.ApplicationModel.DataTransfer.DataPackageOperation.Move;
             Root?.ShowHighlight(this, e.GetPosition(this));
@@ -82,7 +83,7 @@ public partial class DockGroup : DockContainer
 
     private void OnDrop(object sender, DragEventArgs e)
     {
-        if (e.DataView.Properties.TryGetValue("DockDocument", out var obj) && obj is DockDocument doc)
+        if (e.DataView.Properties.TryGetValue(DRAG_DOCUMENT_KEY, out var obj) && obj is DockDocument doc)
         {
             Root?.HandleDrop(doc, this, e.GetPosition(this));
         }

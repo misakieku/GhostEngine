@@ -76,7 +76,7 @@ public class DockingLayout : Control
 
         if (targetGroup != null && targetGroup.Root != this)
         {
-            throw new ArgumentException("targetGroup does not belong to this DockingLayout");
+            throw new ArgumentException("targetGroup does not belong to this DockingLayout", nameof(targetGroup));
         }
 
         if (RootPanel == null)
@@ -150,7 +150,7 @@ public class DockingLayout : Control
             {
                 // Different orientation, need a new sub-panel
                 var newPanel = new DockPanel { Orientation = orientation };
-                parentPanel.InsertChild(index, newPanel);
+                parentPanel.ReplaceChild(targetGroup, newPanel);
 
                 if (target == DockTarget.Left || target == DockTarget.Top)
                 {
