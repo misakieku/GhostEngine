@@ -105,7 +105,7 @@ public abstract class DockContainer : DockModule
             throw new ArgumentException("newChild is already in this container", nameof(newChild));
         }
         
-        newChild.Owner?.RemoveChild(newChild);
+        newChild.Owner?.RemoveChildInternal(newChild, false);
 
         // Remove oldChild without triggering cleanup
         _isCleaningUp = true;

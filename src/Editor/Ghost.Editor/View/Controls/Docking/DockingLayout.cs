@@ -100,7 +100,7 @@ public class DockingLayout : Control
             }
         }
 
-        if (target == DockTarget.Center)
+        if (target == DockTarget.Center || targetGroup.Children.Count == 0)
         {
             targetGroup.AddChild(document);
         }
