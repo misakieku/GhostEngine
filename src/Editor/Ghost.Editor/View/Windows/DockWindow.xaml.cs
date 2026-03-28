@@ -27,6 +27,7 @@ internal sealed partial class DockWindow : WindowEx
         
         this.Closed += (s, e) => 
         {
+            PART_DockLayout.TabTornOff -= OnTabTornOff;
             if (_rootPropertyToken != 0)
             {
                 PART_DockLayout.UnregisterPropertyChangedCallback(DockLayout.RootProperty, _rootPropertyToken);
