@@ -104,12 +104,23 @@ public class DockingLayout : Control
                 {
                     // Root is not a container, or contains no groups. Wrap it.
                     var newGroup = new DockGroup();
+                    newGroup.AddChild(document);
+                    
                     if (RootModule is DockDocument existingDoc)
                     {
-                        RootModule = null; // Detach first
+                        RootModule = null;
                         newGroup.AddChild(existingDoc);
+                        RootModule = newGroup;
                     }
-                    RootModule = newGroup;
+                    else
+                    {
+                        var oldRoot = RootModule;
+                        RootModule = null;
+                        var panel = new DockPanel();
+                        panel.AddChild(oldRoot);
+                        panel.AddChild(newGroup);
+                        RootModule = panel;
+                    }
                     targetGroup = newGroup;
                 }
             }

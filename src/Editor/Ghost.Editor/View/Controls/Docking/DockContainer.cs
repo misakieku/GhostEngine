@@ -47,6 +47,9 @@ public abstract class DockContainer : DockModule
     {
         ValidateChild(module);
 
+        if (module.Owner == null && module.Root != null && module.Root != this.Root)
+            throw new InvalidOperationException("Cannot insert a module that is the root of another layout. Detach it first.");
+
         if (index < 0 || index > _children.Count)
             throw new ArgumentOutOfRangeException(nameof(index));
 
@@ -93,6 +96,9 @@ public abstract class DockContainer : DockModule
     {
         ArgumentNullException.ThrowIfNull(oldChild);
         ValidateChild(newChild);
+
+        if (newChild.Owner == null && newChild.Root != null && newChild.Root != this.Root)
+            throw new InvalidOperationException("Cannot insert a module that is the root of another layout. Detach it first.");
 
         if (oldChild == newChild) return;
 
