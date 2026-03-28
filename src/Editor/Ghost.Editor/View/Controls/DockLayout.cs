@@ -208,18 +208,20 @@ public sealed partial class DockLayout : Control
 
             if (isHorizontal)
             {
+                var width = (i < groupNode.Sizes.Count) ? groupNode.Sizes[i] : new GridLength(1, GridUnitType.Star);
                 grid.ColumnDefinitions.Add(new ColumnDefinition
                 {
-                    Width = new GridLength(1, GridUnitType.Star),
+                    Width = width,
                     MinWidth = MIN_PANE_SIZE
                 });
                 Grid.SetColumn((FrameworkElement)childUI, i * 2);
             }
             else
             {
+                var height = (i < groupNode.Sizes.Count) ? groupNode.Sizes[i] : new GridLength(1, GridUnitType.Star);
                 grid.RowDefinitions.Add(new RowDefinition
                 {
-                    Height = new GridLength(1, GridUnitType.Star),
+                    Height = height,
                     MinHeight = MIN_PANE_SIZE
                 });
                 Grid.SetRow((FrameworkElement)childUI, i * 2);
@@ -297,6 +299,7 @@ public sealed partial class DockLayout : Control
     }
 
     private DockPosition _currentDropPosition = DockPosition.None;
+    private FrameworkElement? _lastTargetElement;
 
     private record DockDragPayload(object Item, DockPanelNode SourceNode);
 
@@ -322,9 +325,10 @@ public sealed partial class DockLayout : Control
             var position = e.GetPosition(targetElement);
             var newPosition = DockMath.CalculateDockPosition(targetElement.ActualWidth, targetElement.ActualHeight, position.X, position.Y, DROP_EDGE_THRESHOLD);
 
-            if (newPosition != _currentDropPosition)
+            if (newPosition != _currentDropPosition || targetElement != _lastTargetElement)
             {
                 _currentDropPosition = newPosition;
+                _lastTargetElement = targetElement;
                 UpdateDropOverlay(targetElement, _currentDropPosition);
             }
         }
@@ -332,6 +336,7 @@ public sealed partial class DockLayout : Control
 
     private void TabView_DragLeave(object sender, DragEventArgs e)
     {
+        _lastTargetElement = null;
         ClearOverlayState();
     }
 

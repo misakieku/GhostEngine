@@ -38,31 +38,41 @@ internal sealed partial class EngineEditorWindow : WindowEx
 
         SetTitleBar(PART_TitleBar);
         this.CenterOnScreen();
+
+        InitializeDockLayout();
+    }
+
+    private void InitializeDockLayout()
+    {
+        var root = new DockGroupNode { Orientation = Orientation.Horizontal };
+        
+        var leftGroup = new DockGroupNode { Orientation = Orientation.Vertical };
+        var hierarchyPanel = new DockPanelNode();
+        hierarchyPanel.Items.Add(new TabViewItem { Header = "Hierarchy", Content = new Hierarchy() });
+        leftGroup.AddChild(hierarchyPanel);
+        
+        var centerGroup = new DockGroupNode { Orientation = Orientation.Vertical };
+        var scenePanel = new DockPanelNode();
+        scenePanel.Items.Add(new ScenePage { Header = "Scene" });
+        centerGroup.AddChild(scenePanel);
+        
+        var rightGroup = new DockGroupNode { Orientation = Orientation.Vertical };
+        var inspectorPanel = new DockPanelNode();
+        inspectorPanel.Items.Add(new InspectorPage { Header = "Inspector" });
+        rightGroup.AddChild(inspectorPanel);
+
+        root.AddChild(leftGroup);
+        root.AddChild(centerGroup);
+        root.AddChild(rightGroup);
+
+        PART_DockLayout.Root = root;
+        PART_DockLayout.TabTornOff += (s, e) => App.CreateAndShowDockWindow(e.TabContent);
     }
 
     private void OnTabDroppedOutside(Microsoft.UI.Xaml.Controls.TabView sender, Microsoft.UI.Xaml.Controls.TabViewTabDroppedOutsideEventArgs args)
     {
-        // For static tabs in EngineEditorWindow, we remove the item from TabItems
-        if (sender.TabItems is System.Collections.IList list)
-        {
-            if (list.Contains(args.Item))
-            {
-                var result = TabTearOffService.TryTearOffTab(list, args.Item, (tab) =>
-                {
-                    App.CreateAndShowDockWindow(tab);
-                }, sender);
-                
-                if (!result.IsSuccess)
-                {
-                    Logger.LogWarning($"Tab tear-off failed: {result.Message}");
-                }
-            }
-            else
-            {
-                string itemInfo = args.Item is FrameworkElement fe ? fe.GetType().Name : args.Item?.ToString() ?? "unknown";
-                Logger.LogWarning($"OnTabDroppedOutside: Item '{itemInfo}' not found in source TabView (Items count: {list.Count}).");
-            }
-        }
+        // This is now handled by DockLayout.TabTornOff for dynamic tabs.
+        // If we still have static tabs, we'd handle them here.
     }
 
     private void MainGrid_Loaded(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)

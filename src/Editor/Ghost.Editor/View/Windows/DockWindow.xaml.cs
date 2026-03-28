@@ -19,6 +19,14 @@ internal sealed partial class DockWindow : WindowEx
         
         PART_DockLayout.Root = rootGroup;
         PART_DockLayout.TabTornOff += OnTabTornOff;
+
+        ((System.Collections.Specialized.INotifyCollectionChanged)rootGroup.Children).CollectionChanged += (s, e) =>
+        {
+            if (rootGroup.Children.Count == 0)
+            {
+                this.Close();
+            }
+        };
     }
 
     private void OnTabTornOff(object? sender, TabTornOffEventArgs e)

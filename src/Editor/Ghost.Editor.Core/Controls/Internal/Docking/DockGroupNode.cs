@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
 namespace Ghost.Editor.Core.Controls.Internal.Docking;
@@ -23,12 +25,45 @@ public partial class DockGroupNode : DockNode
     public ReadOnlyObservableCollection<DockNode> Children { get; }
 
     /// <summary>
+    /// Gets the collection of sizes for the children.
+    /// </summary>
+    public ObservableCollection<Microsoft.UI.Xaml.GridLength> Sizes { get; } = new();
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="DockGroupNode"/> class.
     /// </summary>
     public DockGroupNode()
     {
         Children = new ReadOnlyObservableCollection<DockNode>(_children);
+        _children.CollectionChanged += OnChildrenChanged;
         Orientation = Orientation.Horizontal;
+    }
+
+    private void OnChildrenChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        // Maintain Sizes collection to match Children
+        if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems != null)
+        {
+            for (int i = 0; i < e.NewItems.Count; i++)
+            {
+                Sizes.Insert(e.NewStartingIndex + i, new Microsoft.UI.Xaml.GridLength(1, Microsoft.UI.Xaml.GridUnitType.Star));
+            }
+        }
+        else if (e.Action == NotifyCollectionChangedAction.Remove && e.OldItems != null)
+        {
+            for (int i = 0; i < e.OldItems.Count; i++)
+            {
+                Sizes.RemoveAt(e.OldStartingIndex);
+            }
+        }
+        else if (e.Action == NotifyCollectionChangedAction.Reset)
+        {
+            Sizes.Clear();
+            foreach (var _ in _children)
+            {
+                Sizes.Add(new Microsoft.UI.Xaml.GridLength(1, Microsoft.UI.Xaml.GridUnitType.Star));
+            }
+        }
     }
 
     /// <summary>
