@@ -5,5 +5,5 @@ namespace Ghost.Editor.Core.Controls.Internal.Docking;
 public abstract partial class DockNode : ObservableObject
 {
     [ObservableProperty]
-    private DockGroupNode? _parent;
+    public partial DockGroupNode? Parent { get; set; }
 }
