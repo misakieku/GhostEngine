@@ -132,9 +132,17 @@ public abstract class DockContainer : DockModule
     /// </summary>
     protected virtual void CheckCleanup()
     {
-        if (_children.Count == 0)
+        if (Children.Count == 0)
         {
-            Owner?.RemoveChildInternal(this, true);
+            if (Owner != null)
+            {
+                Owner.RemoveChildInternal(this, true);
+            }
+            else if (Root != null && Root.RootModule == this)
+            {
+                Root.RootModule = null;
+                Root.NotifyLayoutEmpty();
+            }
         }
     }
 

@@ -46,15 +46,9 @@ public class DockPanel : DockContainer
 
     protected override void CheckCleanup()
     {
-        if (Children.Count == 0)
-        {
-            if (Root != null && Root.RootModule == this)
-            {
-                Root.NotifyLayoutEmpty();
-            }
-            base.CheckCleanup();
-        }
-        else if (Children.Count == 1)
+        base.CheckCleanup();
+
+        if (Children.Count == 1)
         {
             var child = Children[0];
             var owner = Owner;
