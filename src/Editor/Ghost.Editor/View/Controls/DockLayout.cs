@@ -20,6 +20,25 @@ public sealed partial class DockLayout : Control
     public DockLayout()
     {
         DefaultStyleKey = typeof(DockLayout);
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        if (Root != null)
+        {
+            SubscribeToNode(Root);
+        }
+        RenderTree();
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (Root != null)
+        {
+            UnsubscribeFromNode(Root);
+        }
     }
 
     public DockGroupNode? Root
@@ -40,7 +59,7 @@ public sealed partial class DockLayout : Control
                 layout.UnsubscribeFromNode(oldRoot);
             }
 
-            if (e.NewValue is DockGroupNode newRoot)
+            if (e.NewValue is DockGroupNode newRoot && layout.IsLoaded)
             {
                 layout.SubscribeToNode(newRoot);
             }
@@ -79,26 +98,43 @@ public sealed partial class DockLayout : Control
 
     private void OnNodePropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        // Re-render on relevant property changes (e.g. Orientation)
-        RenderTree();
+        // Filter to relevant property names
+        if (e.PropertyName == nameof(DockGroupNode.Orientation) ||
+            e.PropertyName == nameof(DockPanelNode.SelectedIndex) ||
+            e.PropertyName == nameof(DockPanelNode.SelectedItem))
+        {
+            RenderTree();
+        }
     }
 
     private void OnChildrenCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        // Handle subscriptions for new/removed children
-        if (e.OldItems != null)
+        if (e.Action == NotifyCollectionChangedAction.Reset)
         {
-            foreach (DockNode oldNode in e.OldItems)
+            // On Reset, we don't know what was removed. 
+            // Simplest is to unsubscribe from everything and resubscribe from Root.
+            if (Root != null)
             {
-                UnsubscribeFromNode(oldNode);
+                UnsubscribeFromNode(Root);
+                SubscribeToNode(Root);
             }
         }
-
-        if (e.NewItems != null)
+        else
         {
-            foreach (DockNode newNode in e.NewItems)
+            if (e.OldItems != null)
             {
-                SubscribeToNode(newNode);
+                foreach (DockNode oldNode in e.OldItems)
+                {
+                    UnsubscribeFromNode(oldNode);
+                }
+            }
+
+            if (e.NewItems != null)
+            {
+                foreach (DockNode newNode in e.NewItems)
+                {
+                    SubscribeToNode(newNode);
+                }
             }
         }
 
@@ -122,11 +158,30 @@ public sealed partial class DockLayout : Control
     {
         if (node is DockGroupNode groupNode)
         {
-            // Simple visualizer for now, full grid logic in next step
             var grid = new Grid();
-            foreach (var child in groupNode.Children)
+            var children = groupNode.Children;
+
+            for (int i = 0; i < children.Count; i++)
             {
-                grid.Children.Add(CreateUIForNode(child));
+                if (groupNode.Orientation == Orientation.Horizontal)
+                {
+                    grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                }
+                else
+                {
+                    grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                }
+
+                var childUI = CreateUIForNode(children[i]);
+                if (groupNode.Orientation == Orientation.Horizontal)
+                {
+                    Grid.SetColumn(childUI as FrameworkElement, i);
+                }
+                else
+                {
+                    Grid.SetRow(childUI as FrameworkElement, i);
+                }
+                grid.Children.Add(childUI);
             }
             return grid;
         }
@@ -139,15 +194,15 @@ public sealed partial class DockLayout : Control
                 VerticalAlignment = VerticalAlignment.Stretch
             };
 
-            // Bind selection state
-            tabView.SetBinding(Selector.SelectedIndexProperty, new Binding
+            // Bind selection state using TabView DPs
+            tabView.SetBinding(TabView.SelectedIndexProperty, new Binding
             {
                 Source = panelNode,
                 Path = new PropertyPath(nameof(DockPanelNode.SelectedIndex)),
                 Mode = BindingMode.TwoWay
             });
 
-            tabView.SetBinding(Selector.SelectedItemProperty, new Binding
+            tabView.SetBinding(TabView.SelectedItemProperty, new Binding
             {
                 Source = panelNode,
                 Path = new PropertyPath(nameof(DockPanelNode.SelectedItem)),
