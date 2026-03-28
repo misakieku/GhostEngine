@@ -61,6 +61,7 @@ public sealed partial class DockLayout
 
     private void ClearDragOperationState()
     {
+        _lastTargetElement = null;
         ClearOverlayState();
     }
 

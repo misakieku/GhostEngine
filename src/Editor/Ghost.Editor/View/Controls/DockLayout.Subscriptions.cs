@@ -19,7 +19,6 @@ public sealed partial class DockLayout
         if (node is DockGroupNode groupNode)
         {
             ((INotifyCollectionChanged)groupNode.Children).CollectionChanged += OnChildrenCollectionChanged;
-            groupNode.Sizes.CollectionChanged += OnSizesCollectionChanged;
             foreach (var child in groupNode.Children)
             {
                 SubscribeToNode(child);
@@ -39,7 +38,6 @@ public sealed partial class DockLayout
         if (node is DockGroupNode groupNode)
         {
             ((INotifyCollectionChanged)groupNode.Children).CollectionChanged -= OnChildrenCollectionChanged;
-            groupNode.Sizes.CollectionChanged -= OnSizesCollectionChanged;
             foreach (var child in groupNode.Children)
             {
                 UnsubscribeFromNode(child);
@@ -57,15 +55,9 @@ public sealed partial class DockLayout
             if (node is DockGroupNode groupNode)
             {
                 ((INotifyCollectionChanged)groupNode.Children).CollectionChanged -= OnChildrenCollectionChanged;
-                groupNode.Sizes.CollectionChanged -= OnSizesCollectionChanged;
             }
         }
         _subscribedNodes.Clear();
-    }
-
-    private void OnSizesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-    {
-        RenderTree();
     }
 
     private void OnNodePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
