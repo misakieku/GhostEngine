@@ -286,7 +286,95 @@ public sealed partial class DockLayout : Control
             Mode = BindingMode.TwoWay
         });
 
+        tabView.DragOver += TabView_DragOver;
+        tabView.DragLeave += TabView_DragLeave;
+        tabView.Drop += TabView_Drop;
+        tabView.TabDragStarting += TabView_TabDragStarting;
+
         return tabView;
+    }
+
+    private object? _draggedItem;
+    private DockPanelNode? _sourceNode;
+    private DockPosition _currentDropPosition = DockPosition.None;
+
+    private void TabView_TabDragStarting(Microsoft.UI.Xaml.Controls.TabView sender, Microsoft.UI.Xaml.Controls.TabViewTabDragStartingEventArgs args)
+    {
+        _draggedItem = args.Item;
+        _sourceNode = sender.Tag as DockPanelNode;
+        args.Data.Properties.Add("DockTab", _draggedItem); // Identify our drag
+    }
+
+    private void TabView_DragOver(object sender, DragEventArgs e)
+    {
+        if (e.DataView.Properties.ContainsKey("DockTab") && sender is FrameworkElement targetElement)
+        {
+            e.AcceptedOperation = global::Windows.ApplicationModel.DataTransfer.DataPackageOperation.Move;
+
+            var position = e.GetPosition(targetElement);
+            double width = targetElement.ActualWidth;
+            double height = targetElement.ActualHeight;
+
+            double edgeThreshold = 0.25; // 25% of edge triggers split
+
+            if (position.X < width * edgeThreshold) _currentDropPosition = DockPosition.Left;
+            else if (position.X > width * (1 - edgeThreshold)) _currentDropPosition = DockPosition.Right;
+            else if (position.Y < height * edgeThreshold) _currentDropPosition = DockPosition.Top;
+            else if (position.Y > height * (1 - edgeThreshold)) _currentDropPosition = DockPosition.Bottom;
+            else _currentDropPosition = DockPosition.Center;
+
+            UpdateDropOverlay(targetElement, _currentDropPosition);
+        }
+    }
+
+    private void TabView_DragLeave(object sender, DragEventArgs e)
+    {
+        if (_dropTargetOverlay != null)
+        {
+            _dropTargetOverlay.Visibility = Visibility.Collapsed;
+            _currentDropPosition = DockPosition.None;
+        }
+    }
+
+    private void UpdateDropOverlay(FrameworkElement targetElement, DockPosition position)
+    {
+        if (_dropTargetOverlay == null) return;
+        if (position == DockPosition.None)
+        {
+            _dropTargetOverlay.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var transform = targetElement.TransformToVisual(this);
+        var bounds = transform.TransformBounds(new global::Windows.Foundation.Rect(0, 0, targetElement.ActualWidth, targetElement.ActualHeight));
+
+        _dropTargetOverlay.Visibility = Visibility.Visible;
+        _dropTargetOverlay.Width = double.NaN;
+        _dropTargetOverlay.Height = double.NaN;
+
+        switch (position)
+        {
+            case DockPosition.Center:
+                _dropTargetOverlay.Margin = new Thickness(bounds.Left, bounds.Top, ActualWidth - bounds.Right, ActualHeight - bounds.Bottom);
+                break;
+            case DockPosition.Left:
+                _dropTargetOverlay.Margin = new Thickness(bounds.Left, bounds.Top, ActualWidth - (bounds.Left + bounds.Width / 2), ActualHeight - bounds.Bottom);
+                break;
+            case DockPosition.Right:
+                _dropTargetOverlay.Margin = new Thickness(bounds.Left + bounds.Width / 2, bounds.Top, ActualWidth - bounds.Right, ActualHeight - bounds.Bottom);
+                break;
+            case DockPosition.Top:
+                _dropTargetOverlay.Margin = new Thickness(bounds.Left, bounds.Top, ActualWidth - bounds.Right, ActualHeight - (bounds.Top + bounds.Height / 2));
+                break;
+            case DockPosition.Bottom:
+                _dropTargetOverlay.Margin = new Thickness(bounds.Left, bounds.Top + bounds.Height / 2, ActualWidth - bounds.Right, ActualHeight - bounds.Bottom);
+                break;
+        }
+    }
+
+    // Add a dummy TabView_Drop method so it compiles, we will implement it in Task 6
+    private void TabView_Drop(object sender, DragEventArgs e)
+    {
     }
 
     protected override void OnApplyTemplate()
