@@ -39,7 +39,25 @@ public partial class DockGroupNode : DockNode
     /// <exception cref="InvalidOperationException">Thrown if adding the node would create a cycle or if adding self.</exception>
     public void AddChild(DockNode node)
     {
+        InsertChild(_children.Count, node);
+    }
+
+    /// <summary>
+    /// Inserts a child node at the specified index, enforcing tree invariants.
+    /// </summary>
+    /// <param name="index">The zero-based index at which node should be inserted.</param>
+    /// <param name="node">The node to insert.</param>
+    /// <exception cref="ArgumentNullException">Thrown if node is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if index is less than 0 or greater than Children.Count.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if adding the node would create a cycle or if adding self.</exception>
+    public void InsertChild(int index, DockNode node)
+    {
         ArgumentNullException.ThrowIfNull(node);
+
+        if (index < 0 || index > _children.Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(index));
+        }
 
         if (node == this)
         {
@@ -48,7 +66,10 @@ public partial class DockGroupNode : DockNode
 
         if (_children.Contains(node))
         {
-            return;
+            int oldIndex = _children.IndexOf(node);
+            if (oldIndex == index || oldIndex == index - 1) return;
+            _children.RemoveAt(oldIndex);
+            if (index > oldIndex) index--;
         }
 
         // Check for cycles
@@ -68,7 +89,7 @@ public partial class DockGroupNode : DockNode
         }
 
         node.Parent = this;
-        _children.Add(node);
+        _children.Insert(index, node);
     }
 
     /// <summary>

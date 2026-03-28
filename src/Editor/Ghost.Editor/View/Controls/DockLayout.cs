@@ -381,7 +381,119 @@ public sealed partial class DockLayout : Control
 
     private void TabView_Drop(object sender, DragEventArgs e)
     {
+        if (_dropTargetOverlay != null) _dropTargetOverlay.Visibility = Visibility.Collapsed;
+
+        if (_draggedItem == null || _sourceNode == null || !(sender is FrameworkElement targetElement) || !(targetElement.Tag is DockPanelNode targetNode))
+        {
+            ClearDragOperationState();
+            return;
+        }
+
+        if (_sourceNode == targetNode && _currentDropPosition == DockPosition.Center)
+        {
+            ClearDragOperationState();
+            return; // Reordering within same tab is handled natively by TabView
+        }
+
+        // 1. Remove from source
+        _sourceNode.Items.Remove(_draggedItem);
+        var sourceNodeCopy = _sourceNode; // Keep reference for cleanup
+        CleanupEmptyNodes(sourceNodeCopy);
+
+        // 2. Add to target
+        if (_currentDropPosition == DockPosition.Center)
+        {
+            targetNode.Items.Add(_draggedItem);
+        }
+        else
+        {
+            // Split scenario
+            var parentGroup = targetNode.Parent;
+            if (parentGroup != null)
+            {
+                int targetIndex = parentGroup.Children.IndexOf(targetNode);
+                bool isHorizontalSplit = _currentDropPosition == DockPosition.Left || _currentDropPosition == DockPosition.Right;
+                bool isAfter = _currentDropPosition == DockPosition.Right || _currentDropPosition == DockPosition.Bottom;
+
+                if ((isHorizontalSplit && parentGroup.Orientation == Orientation.Horizontal) ||
+                    (!isHorizontalSplit && parentGroup.Orientation == Orientation.Vertical))
+                {
+                    // Same orientation, just insert next to it
+                    var newNode = new DockPanelNode();
+                    newNode.Items.Add(_draggedItem);
+                    parentGroup.InsertChild(isAfter ? targetIndex + 1 : targetIndex, newNode);
+                }
+                else
+                {
+                    // Different orientation, need to replace targetNode with a new group
+                    parentGroup.RemoveChild(targetNode);
+                    
+                    var newGroup = new DockGroupNode
+                    {
+                        Orientation = isHorizontalSplit ? Orientation.Horizontal : Orientation.Vertical
+                    };
+                    
+                    var newNode = new DockPanelNode();
+                    newNode.Items.Add(_draggedItem);
+
+                    if (isAfter)
+                    {
+                        newGroup.AddChild(targetNode);
+                        newGroup.AddChild(newNode);
+                    }
+                    else
+                    {
+                        newGroup.AddChild(newNode);
+                        newGroup.AddChild(targetNode);
+                    }
+
+                    parentGroup.InsertChild(targetIndex, newGroup);
+                }
+            }
+        }
+
         ClearDragOperationState();
+    }
+
+    private void CleanupEmptyNodes(DockPanelNode panelNode)
+    {
+        if (panelNode.Items.Count > 0) return;
+
+        var parentGroup = panelNode.Parent;
+        if (parentGroup != null)
+        {
+            parentGroup.RemoveChild(panelNode);
+            
+            // If group only has 1 child left, collapse it
+            if (parentGroup.Children.Count == 1)
+            {
+                var onlyChild = parentGroup.Children[0];
+                var grandParent = parentGroup.Parent;
+                
+                if (grandParent != null)
+                {
+                    int groupIndex = grandParent.Children.IndexOf(parentGroup);
+                    grandParent.RemoveChild(parentGroup);
+                    grandParent.InsertChild(groupIndex, onlyChild);
+                }
+                else if (parentGroup == Root)
+                {
+                    // If root is collapsing, the only child becomes the new root
+                    parentGroup.RemoveChild(onlyChild);
+                    if (onlyChild is DockGroupNode newRootGroup)
+                    {
+                        Root = newRootGroup;
+                    }
+                    else
+                    {
+                        // Wrap panel in a new group to keep Root as a GroupNode
+                        var wrapperGroup = new DockGroupNode();
+                        wrapperGroup.AddChild(onlyChild);
+                        Root = wrapperGroup;
+                    }
+                }
+            }
+        }
     }
 
     protected override void OnApplyTemplate()
