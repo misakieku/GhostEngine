@@ -69,12 +69,6 @@ internal sealed partial class EngineEditorWindow : WindowEx
         PART_DockLayout.TabTornOff += (s, e) => App.CreateAndShowDockWindow(e.TabContent);
     }
 
-    private void OnTabDroppedOutside(Microsoft.UI.Xaml.Controls.TabView sender, Microsoft.UI.Xaml.Controls.TabViewTabDroppedOutsideEventArgs args)
-    {
-        // This is now handled by DockLayout.TabTornOff for dynamic tabs.
-        // If we still have static tabs, we'd handle them here.
-    }
-
     private void MainGrid_Loaded(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
     {
         PART_TitleBar.Title = EditorApplication.ProjectName;
