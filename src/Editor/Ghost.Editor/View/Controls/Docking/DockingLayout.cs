@@ -32,6 +32,9 @@ public class DockingLayout : Control
     private DockRegionHighlight? _highlight;
     private readonly List<FloatingWindow> _floatingWindows = new();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DockingLayout"/> class.
+    /// </summary>
     public DockingLayout()
     {
         DefaultStyleKey = typeof(DockingLayout);
@@ -126,6 +129,11 @@ public class DockingLayout : Control
         var orientation = (target == DockTarget.Left || target == DockTarget.Right) ? Orientation.Horizontal : Orientation.Vertical;
 
         int index = parentPanel.Children.IndexOf(targetGroup);
+
+        if (index < 0)
+        {
+            throw new InvalidOperationException("targetGroup not found in parentPanel");
+        }
 
         if (parentPanel.Orientation == orientation)
         {
@@ -248,6 +256,7 @@ public class DockingLayout : Control
 
     internal void CreateFloatingWindow(DockDocument doc)
     {
+        ArgumentNullException.ThrowIfNull(doc);
         var window = new FloatingWindow(doc);
         _floatingWindows.Add(window);
         window.Closed += (s, e) => _floatingWindows.Remove(window);
