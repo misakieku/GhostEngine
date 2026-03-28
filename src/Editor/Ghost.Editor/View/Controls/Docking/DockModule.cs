@@ -10,7 +10,7 @@ public abstract class DockModule : Control
     
     public void Detach()
     {
-        // Owner?.Children.Remove(this);
+        Owner?.Children.Remove(this);
         Owner = null;
     }
 }
