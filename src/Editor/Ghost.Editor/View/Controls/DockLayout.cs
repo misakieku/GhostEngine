@@ -290,8 +290,25 @@ public sealed partial class DockLayout : Control
         tabView.DragLeave += TabView_DragLeave;
         tabView.Drop += TabView_Drop;
         tabView.TabDragStarting += TabView_TabDragStarting;
+        tabView.TabDroppedOutside += TabView_TabDroppedOutside;
 
         return tabView;
+    }
+
+    private void TabView_TabDroppedOutside(Microsoft.UI.Xaml.Controls.TabView sender, Microsoft.UI.Xaml.Controls.TabViewTabDroppedOutsideEventArgs args)
+    {
+        if (_sourceNode != null && _draggedItem != null)
+        {
+            // Remove from current tree
+            _sourceNode.Items.Remove(_draggedItem);
+            DockMutationEngine.CleanupEmptyNodes(_sourceNode, Root);
+
+            // Create new window
+            var newWindow = new Ghost.Editor.View.Windows.DockWindow(_draggedItem);
+            newWindow.Activate();
+
+            ClearDragOperationState();
+        }
     }
 
     private object? _draggedItem;

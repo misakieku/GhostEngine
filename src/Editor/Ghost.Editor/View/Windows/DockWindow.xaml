@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<winex:WindowEx
+    x:Class="Ghost.Editor.View.Windows.DockWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:Ghost.Editor.View.Controls"
+    xmlns:winex="using:WinUIEx">
+    <Grid>
+        <controls:DockLayout x:Name="PART_DockLayout" />
+    </Grid>
+</winex:WindowEx>
