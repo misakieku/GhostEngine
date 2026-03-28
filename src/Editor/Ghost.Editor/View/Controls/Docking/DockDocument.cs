@@ -3,6 +3,9 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Ghost.Editor.View.Controls.Docking;
 
+/// <summary>
+/// Represents a document module in the docking system.
+/// </summary>
 public partial class DockDocument : DockModule
 {
     public static readonly DependencyProperty TitleProperty = DependencyProperty.Register(
@@ -29,6 +32,9 @@ public partial class DockDocument : DockModule
         set => SetValue(ContentProperty, value);
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DockDocument"/> class.
+    /// </summary>
     public DockDocument()
     {
         DefaultStyleKey = typeof(DockDocument);

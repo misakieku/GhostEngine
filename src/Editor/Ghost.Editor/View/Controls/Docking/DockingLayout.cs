@@ -95,22 +95,28 @@ public class DockingLayout : Control
             throw new ArgumentException("targetGroup does not belong to this DockingLayout", nameof(targetGroup));
         }
 
-        if (RootModule == null)
-        {
-            RootModule = new DockPanel();
-        }
-
         if (targetGroup == null)
         {
-            targetGroup = FindFirstDockGroup(RootModule as DockContainer);
-
-            if (targetGroup == null)
+            if (RootModule != null)
+            {
+                targetGroup = FindFirstDockGroup(RootModule as DockContainer);
+                if (targetGroup == null)
+                {
+                    // Root is not a container, or contains no groups. Wrap it.
+                    var newGroup = new DockGroup();
+                    if (RootModule is DockDocument existingDoc)
+                    {
+                        RootModule = null; // Detach first
+                        newGroup.AddChild(existingDoc);
+                    }
+                    RootModule = newGroup;
+                    targetGroup = newGroup;
+                }
+            }
+            else
             {
                 targetGroup = new DockGroup();
-                if (RootModule is DockContainer container)
-                {
-                    container.AddChild(targetGroup);
-                }
+                RootModule = targetGroup;
             }
         }
 
@@ -191,8 +197,10 @@ public class DockingLayout : Control
         }
     }
 
-    private static DockGroup? FindFirstDockGroup(DockContainer container)
+    private static DockGroup? FindFirstDockGroup(DockContainer? container)
     {
+        if (container == null) return null;
+
         if (container is DockGroup group)
         {
             return group;
