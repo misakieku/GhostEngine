@@ -8,7 +8,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="local:DockingLayout">
                     <Grid>
-                        <ContentPresenter x:Name="PART_Content" Content="{TemplateBinding RootPanel}" />
+                        <ContentPresenter x:Name="PART_Content" Content="{TemplateBinding RootModule}" />
                         <Canvas x:Name="PART_OverlayCanvas" IsHitTestVisible="False">
                             <local:DockRegionHighlight x:Name="PART_Highlight" Visibility="Collapsed" />
                         </Canvas>

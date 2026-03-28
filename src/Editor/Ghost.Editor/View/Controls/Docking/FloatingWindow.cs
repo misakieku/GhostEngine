@@ -19,13 +19,12 @@ public class FloatingWindow : Window
         var group = new DockGroup();
         group.AddChild(document);
         
-        var panel = new DockPanel();
-        panel.AddChild(group);
-        layout.RootPanel = panel;
+        layout.RootModule = group;
+        layout.LayoutEmpty += (s, e) => Close();
 
         Content = layout;
         
         // Basic window setup
-        AppWindow.Resize(new Windows.Graphics.SizeInt32(800, 600));
+        AppWindow.Resize(new global::Windows.Graphics.SizeInt32(800, 600));
     }
 }

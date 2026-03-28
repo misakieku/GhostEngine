@@ -14,19 +14,26 @@ public class DockingLayout : Control
     private const string PART_HIGHLIGHT = "PART_Highlight";
 
     /// <summary>
-    /// Gets or sets the root panel of the docking layout.
+    /// Gets or sets the root module of the docking layout.
     /// </summary>
-    public static readonly DependencyProperty RootPanelProperty = DependencyProperty.Register(
-        nameof(RootPanel), typeof(DockPanel), typeof(DockingLayout), new PropertyMetadata(null, OnRootPanelChanged));
+    public static readonly DependencyProperty RootModuleProperty = DependencyProperty.Register(
+        nameof(RootModule), typeof(DockModule), typeof(DockingLayout), new PropertyMetadata(null, OnRootModuleChanged));
 
     /// <summary>
-    /// Gets or sets the root panel of the docking layout.
+    /// Gets or sets the root module of the docking layout.
     /// </summary>
-    public DockPanel? RootPanel
+    public DockModule? RootModule
     {
-        get => (DockPanel?)GetValue(RootPanelProperty);
-        set => SetValue(RootPanelProperty, value);
+        get => (DockModule?)GetValue(RootModuleProperty);
+        set => SetValue(RootModuleProperty, value);
     }
+
+    /// <summary>
+    /// Occurs when the layout becomes empty.
+    /// </summary>
+    public event EventHandler? LayoutEmpty;
+
+    internal void NotifyLayoutEmpty() => LayoutEmpty?.Invoke(this, EventArgs.Empty);
 
     private Canvas? _overlayCanvas;
     private DockRegionHighlight? _highlight;
@@ -47,28 +54,28 @@ public class DockingLayout : Control
         _highlight = GetTemplateChild(PART_HIGHLIGHT) as DockRegionHighlight;
     }
 
-    private static void OnRootPanelChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    private static void OnRootModuleChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is DockingLayout layout)
         {
-            if (e.OldValue is DockPanel oldPanel)
+            if (e.OldValue is DockModule oldModule)
             {
-                oldPanel.Root = null;
+                oldModule.Root = null;
             }
 
-            if (e.NewValue is DockPanel newPanel)
+            if (e.NewValue is DockModule newModule)
             {
-                if (newPanel.Root != null && newPanel.Root != layout)
+                if (newModule.Root != null && newModule.Root != layout)
                 {
-                    throw new InvalidOperationException("Panel is already owned by another DockingLayout");
+                    throw new InvalidOperationException("Module is already owned by another DockingLayout");
                 }
 
-                if (newPanel.Owner != null)
+                if (newModule.Owner != null)
                 {
-                    newPanel.Owner.RemoveChild(newPanel);
+                    newModule.Owner.RemoveChild(newModule);
                 }
 
-                newPanel.Root = layout;
+                newModule.Root = layout;
             }
         }
     }
@@ -88,19 +95,22 @@ public class DockingLayout : Control
             throw new ArgumentException("targetGroup does not belong to this DockingLayout", nameof(targetGroup));
         }
 
-        if (RootPanel == null)
+        if (RootModule == null)
         {
-            RootPanel = new DockPanel();
+            RootModule = new DockPanel();
         }
 
         if (targetGroup == null)
         {
-            targetGroup = FindFirstDockGroup(RootPanel);
+            targetGroup = FindFirstDockGroup(RootModule as DockContainer);
 
             if (targetGroup == null)
             {
                 targetGroup = new DockGroup();
-                RootPanel.AddChild(targetGroup);
+                if (RootModule is DockContainer container)
+                {
+                    container.AddChild(targetGroup);
+                }
             }
         }
 
@@ -119,15 +129,29 @@ public class DockingLayout : Control
         doc.Owner?.RemoveChild(doc);
         var parentPanel = targetGroup.Owner as DockPanel;
 
-        if (parentPanel == null)
-        {
-            throw new InvalidOperationException("targetGroup must be owned by a DockPanel to be split.");
-        }
-
         var newGroup = new DockGroup();
         newGroup.AddChild(doc);
 
         var orientation = (target == DockTarget.Left || target == DockTarget.Right) ? Orientation.Horizontal : Orientation.Vertical;
+
+        if (parentPanel == null)
+        {
+            // targetGroup is the RootModule
+            var newPanel = new DockPanel { Orientation = orientation };
+            RootModule = newPanel;
+
+            if (target == DockTarget.Left || target == DockTarget.Top)
+            {
+                newPanel.AddChild(newGroup);
+                newPanel.AddChild(targetGroup);
+            }
+            else
+            {
+                newPanel.AddChild(targetGroup);
+                newPanel.AddChild(newGroup);
+            }
+            return;
+        }
 
         int index = parentPanel.Children.IndexOf(targetGroup);
 

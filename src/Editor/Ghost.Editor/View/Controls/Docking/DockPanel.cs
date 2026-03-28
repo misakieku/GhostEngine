@@ -48,6 +48,10 @@ public class DockPanel : DockContainer
     {
         if (Children.Count == 0)
         {
+            if (Root != null && Root.RootModule == this)
+            {
+                Root.NotifyLayoutEmpty();
+            }
             base.CheckCleanup();
         }
         else if (Children.Count == 1)
@@ -59,16 +63,10 @@ public class DockPanel : DockContainer
             {
                 owner.ReplaceChild(this, child);
             }
-            else if (Root != null && Root.RootPanel == this)
+            else if (Root != null && Root.RootModule == this)
             {
-                // We only collapse the root panel if the child is also a DockPanel 
-                // because DockingLayout.RootPanel is strongly typed as DockPanel, 
-                // so we can't assign a DockGroup to it directly.
-                if (child is DockPanel childPanel)
-                {
-                    RemoveChildInternal(childPanel, false);
-                    Root.RootPanel = childPanel;
-                }
+                RemoveChildInternal(child, false);
+                Root.RootModule = child;
             }
         }
     }
