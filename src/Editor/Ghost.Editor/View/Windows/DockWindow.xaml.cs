@@ -22,8 +22,6 @@ internal sealed partial class DockWindow : WindowEx
 
     private void OnTabTornOff(object? sender, TabTornOffEventArgs e)
     {
-        var newWindow = new DockWindow(e.TabContent);
-        App.AddSecondaryWindow(newWindow);
-        newWindow.Activate();
+        App.CreateAndShowDockWindow(e.TabContent);
     }
 }

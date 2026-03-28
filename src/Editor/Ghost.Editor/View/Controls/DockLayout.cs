@@ -299,36 +299,50 @@ public sealed partial class DockLayout : Control
 
     private void TabView_TabDroppedOutside(Microsoft.UI.Xaml.Controls.TabView sender, Microsoft.UI.Xaml.Controls.TabViewTabDroppedOutsideEventArgs args)
     {
-        if (_sourceNode != null && _draggedItem != null && TabTornOff != null)
+        if (_sourceNode != null && _draggedItem != null)
         {
+            if (TabTornOff == null)
+            {
+                Logger.LogWarning("Tab dropped outside but no TabTornOff subscribers found.");
+                ClearDragOperationState();
+                return;
+            }
+
             int originalIndex = _sourceNode.Items.IndexOf(_draggedItem);
+            object? originalSelection = _sourceNode.SelectedItem;
+
             if (originalIndex == -1)
             {
                 ClearDragOperationState();
                 return;
             }
 
-            // Remove from current tree
-            if (_sourceNode.Items.Remove(_draggedItem))
+            try
             {
-                try
+                // Remove from current tree
+                if (_sourceNode.Items.Remove(_draggedItem))
                 {
-                    // Raise event to let the host handle window creation
-                    TabTornOff.Invoke(this, new TabTornOffEventArgs(_draggedItem));
-                    
-                    // Only cleanup if the tear-off was successful (didn't throw)
-                    DockMutationEngine.CleanupEmptyNodes(_sourceNode);
-                }
-                catch (Exception ex)
-                {
-                    // Rollback: Re-insert the item at original position if the tear-off handler fails
-                    _sourceNode.Items.Insert(originalIndex, _draggedItem);
-                    _sourceNode.SelectedItem = _draggedItem;
-                    Logger.LogError(ex);
+                    try
+                    {
+                        // Raise event to let the host handle window creation
+                        TabTornOff.Invoke(this, new TabTornOffEventArgs(_draggedItem));
+                        
+                        // Only cleanup if the tear-off was successful (didn't throw)
+                        DockMutationEngine.CleanupEmptyNodes(_sourceNode);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Rollback: Re-insert the item at original position if the tear-off handler fails
+                        _sourceNode.Items.Insert(originalIndex, _draggedItem);
+                        _sourceNode.SelectedItem = originalSelection;
+                        Logger.LogError(ex);
+                    }
                 }
             }
-
-            ClearDragOperationState();
+            finally
+            {
+                ClearDragOperationState();
+            }
         }
     }
 

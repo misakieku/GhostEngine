@@ -53,6 +53,16 @@ public partial class App : Application
         }
     }
 
+    /// <summary>
+    /// Creates, registers, and shows a new DockWindow for a torn-off tab.
+    /// </summary>
+    internal static void CreateAndShowDockWindow(object tabContent)
+    {
+        var newWindow = new Ghost.Editor.View.Windows.DockWindow(tabContent);
+        AddSecondaryWindow(newWindow);
+        newWindow.Activate();
+    }
+
     internal IHost Host
     {
         get;

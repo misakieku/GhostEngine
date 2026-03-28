@@ -1,3 +1,4 @@
+using Ghost.Core;
 using Ghost.Editor.Core;
 using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.Services;
@@ -42,11 +43,29 @@ internal sealed partial class EngineEditorWindow : WindowEx
         // For static tabs in EngineEditorWindow, we remove the item from TabItems
         if (sender.TabItems.Contains(args.Item))
         {
-            sender.TabItems.Remove(args.Item);
-            
-            var newWindow = new DockWindow(args.Item);
-            App.AddSecondaryWindow(newWindow);
-            newWindow.Activate();
+            int originalIndex = sender.TabItems.IndexOf(args.Item);
+            object? originalSelection = sender.SelectedItem;
+
+            try
+            {
+                sender.TabItems.Remove(args.Item);
+                
+                try
+                {
+                    App.CreateAndShowDockWindow(args.Item);
+                }
+                catch (Exception ex)
+                {
+                    // Rollback: Re-insert the item at original position if the tear-off fails
+                    sender.TabItems.Insert(originalIndex, args.Item);
+                    sender.SelectedItem = originalSelection;
+                    Logger.LogError(ex);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex);
+            }
         }
     }
 
