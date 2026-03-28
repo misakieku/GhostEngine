@@ -16,6 +16,9 @@ public class DockPanel : DockContainer
     public static readonly DependencyProperty OrientationProperty = DependencyProperty.Register(
         nameof(Orientation), typeof(Orientation), typeof(DockPanel), new PropertyMetadata(Orientation.Horizontal, OnOrientationChanged));
 
+    /// <summary>
+    /// Gets or sets the orientation of the panel.
+    /// </summary>
     public Orientation Orientation
     {
         get => (Orientation)GetValue(OrientationProperty);
@@ -89,7 +92,7 @@ public class DockPanel : DockContainer
                 if (i < Children.Count - 1)
                 {
                     _grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                    var splitter = new CommunityToolkit.WinUI.Controls.GridSplitter { ResizeDirection = CommunityToolkit.WinUI.Controls.GridSplitter.GridResizeDirection.Columns, Width = SPLITTER_THICKNESS };
+                    var splitter = new GridSplitter { ResizeDirection = GridSplitter.GridResizeDirection.Columns, Width = SPLITTER_THICKNESS };
                     Grid.SetColumn(splitter, i * 2 + 1);
                     _grid.Children.Add(splitter);
                 }
@@ -107,7 +110,7 @@ public class DockPanel : DockContainer
                 if (i < Children.Count - 1)
                 {
                     _grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                    var splitter = new CommunityToolkit.WinUI.Controls.GridSplitter { ResizeDirection = CommunityToolkit.WinUI.Controls.GridSplitter.GridResizeDirection.Rows, Height = SPLITTER_THICKNESS };
+                    var splitter = new GridSplitter { ResizeDirection = GridSplitter.GridResizeDirection.Rows, Height = SPLITTER_THICKNESS };
                     Grid.SetRow(splitter, i * 2 + 1);
                     _grid.Children.Add(splitter);
                 }

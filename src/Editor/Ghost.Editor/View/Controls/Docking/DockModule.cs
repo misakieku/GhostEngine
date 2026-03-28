@@ -7,6 +7,9 @@ namespace Ghost.Editor.View.Controls.Docking;
 /// </summary>
 public abstract class DockModule : Control
 {
+    /// <summary>
+    /// Gets the container that owns this module.
+    /// </summary>
     public DockContainer? Owner { get; internal set; }
     
     private DockingLayout? _root;
@@ -29,6 +32,9 @@ public abstract class DockModule : Control
 
     protected virtual void OnRootChanged() { }
     
+    /// <summary>
+    /// Detaches this module from its current owner.
+    /// </summary>
     public void Detach()
     {
         Owner?.RemoveChild(this);

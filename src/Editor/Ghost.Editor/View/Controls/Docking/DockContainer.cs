@@ -9,6 +9,9 @@ namespace Ghost.Editor.View.Controls.Docking;
 public abstract class DockContainer : DockModule
 {
     private readonly ObservableCollection<DockModule> _children = new();
+    /// <summary>
+    /// Gets the collection of child modules.
+    /// </summary>
     public ReadOnlyObservableCollection<DockModule> Children { get; }
 
     protected DockContainer()
@@ -22,14 +25,26 @@ public abstract class DockContainer : DockModule
         OnChildrenUpdated();
     }
 
+    /// <summary>
+    /// Adds a child module to the end of the container.
+    /// </summary>
+    /// <param name="module">The module to add.</param>
     public virtual void AddChild(DockModule module)
     {
         InsertChild(_children.Count, module);
     }
 
+    /// <summary>
+    /// Inserts a child module at the specified index.
+    /// </summary>
+    /// <param name="index">The zero-based index at which the module should be inserted.</param>
+    /// <param name="module">The module to insert.</param>
     public virtual void InsertChild(int index, DockModule module)
     {
         ArgumentNullException.ThrowIfNull(module);
+
+        if (index < 0 || index > _children.Count)
+            throw new ArgumentOutOfRangeException(nameof(index));
 
         if (module == this)
             throw new ArgumentException("Cannot add a container to itself.", nameof(module));
@@ -54,6 +69,10 @@ public abstract class DockContainer : DockModule
         _children.Insert(index, module);
     }
 
+    /// <summary>
+    /// Removes a child module from the container.
+    /// </summary>
+    /// <param name="module">The module to remove.</param>
     public virtual void RemoveChild(DockModule module)
     {
         ArgumentNullException.ThrowIfNull(module);
@@ -74,6 +93,9 @@ public abstract class DockContainer : DockModule
         }
     }
 
+    /// <summary>
+    /// Removes all child modules from the container.
+    /// </summary>
     public void Clear()
     {
         foreach (var child in _children)

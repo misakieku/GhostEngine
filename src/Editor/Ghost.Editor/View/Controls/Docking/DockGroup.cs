@@ -157,5 +157,9 @@ public partial class DockGroup : DockContainer
         {
             _tabView.SelectedItem = newSelectedItem;
         }
+        else
+        {
+            _tabView.SelectedItem = _tabView.TabItems.FirstOrDefault();
+        }
     }
 }

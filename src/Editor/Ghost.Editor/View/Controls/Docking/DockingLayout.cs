@@ -147,8 +147,8 @@ public class DockingLayout : Control
             else
             {
                 // Different orientation, need a new sub-panel
-                targetGroup.Detach();
                 var newPanel = new DockPanel { Orientation = orientation };
+                parentPanel.InsertChild(index, newPanel);
 
                 if (target == DockTarget.Left || target == DockTarget.Top)
                 {
@@ -160,8 +160,6 @@ public class DockingLayout : Control
                     newPanel.AddChild(targetGroup);
                     newPanel.AddChild(newGroup);
                 }
-
-                parentPanel.InsertChild(index, newPanel);
             }
         }
     }
@@ -228,10 +226,9 @@ public class DockingLayout : Control
         HideHighlight();
         var target = CalculateDockTarget(targetGroup, position);
 
-        doc.Detach();
-
         if (target == DockTarget.Center)
         {
+            if (doc.Owner == targetGroup) return;
             targetGroup.AddChild(doc);
         }
         else
@@ -256,7 +253,6 @@ public class DockingLayout : Control
 
     internal void CreateFloatingWindow(DockDocument doc)
     {
-        doc.Detach();
         // To be implemented in Task 6
     }
 }
