@@ -12,7 +12,7 @@ namespace Ghost.Editor.View.Controls;
 /// A control that renders a docking layout tree.
 /// </summary>
 [TemplatePart(Name = PART_ROOT_GRID, Type = typeof(Grid))]
-[TemplatePart(Name = PART_DROP_TARGET_OVERLAY, Type = typeof(Border))]
+[TemplatePart(Name = PART_DROP_TARGET_OVERLAY, Type = typeof(FrameworkElement))]
 public sealed partial class DockLayout : Control
 {
     private const string PART_ROOT_GRID = "PART_RootGrid";
@@ -20,7 +20,7 @@ public sealed partial class DockLayout : Control
     private const double MIN_PANE_SIZE = 100;
     private const double SPLITTER_THICKNESS = 4;
 
-    private Border? _dropTargetOverlay;
+    private FrameworkElement? _dropTargetOverlay;
     private readonly HashSet<DockNode> _subscribedNodes = new();
 
     internal enum DockPosition { Center, Top, Bottom, Left, Right, None }
@@ -292,7 +292,7 @@ public sealed partial class DockLayout : Control
     protected override void OnApplyTemplate()
     {
         base.OnApplyTemplate();
-        _dropTargetOverlay = GetTemplateChild(PART_DROP_TARGET_OVERLAY) as Border;
+        _dropTargetOverlay = GetTemplateChild(PART_DROP_TARGET_OVERLAY) as FrameworkElement;
         RenderTree();
     }
 }

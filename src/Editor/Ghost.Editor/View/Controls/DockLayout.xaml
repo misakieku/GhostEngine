@@ -9,13 +9,10 @@
                 <ControlTemplate TargetType="local:DockLayout">
                     <Grid>
                         <Grid x:Name="PART_RootGrid" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" />
-                        <Border x:Name="PART_DropTargetOverlay" 
-                                Background="{ThemeResource SystemControlHighlightAccentBrush}" 
-                                Opacity="0.4"
-                                BorderBrush="{ThemeResource SystemControlHighlightAccentBrush}" 
-                                BorderThickness="2" 
-                                Visibility="Collapsed" 
-                                IsHitTestVisible="False" />
+                        <Grid x:Name="PART_DropTargetOverlay" Visibility="Collapsed" IsHitTestVisible="False">
+                            <Border Background="{ThemeResource SystemControlHighlightAccentBrush}" Opacity="0.4" />
+                            <Border BorderBrush="{ThemeResource SystemControlHighlightAccentBrush}" BorderThickness="2" />
+                        </Grid>
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
