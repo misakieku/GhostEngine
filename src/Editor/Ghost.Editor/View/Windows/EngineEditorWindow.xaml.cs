@@ -41,9 +41,9 @@ internal sealed partial class EngineEditorWindow : WindowEx
     private void OnTabDroppedOutside(Microsoft.UI.Xaml.Controls.TabView sender, Microsoft.UI.Xaml.Controls.TabViewTabDroppedOutsideEventArgs args)
     {
         // For static tabs in EngineEditorWindow, we remove the item from TabItems
-        if (sender.TabItems.Contains(args.Item))
+        if (sender.TabItems is System.Collections.IList list && list.Contains(args.Item))
         {
-            var result = TabTearOffService.TryTearOffTab((System.Collections.IList)sender.TabItems, args.Item, sender);
+            var result = TabTearOffService.TryTearOffTab(list, args.Item, sender);
             
             if (!result.IsSuccess)
             {
