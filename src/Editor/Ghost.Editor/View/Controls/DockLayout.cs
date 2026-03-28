@@ -306,18 +306,21 @@ public sealed partial class DockLayout : Control
             {
                 DockMutationEngine.CleanupEmptyNodes(_sourceNode);
 
-                // Raise event to let the host handle window creation
-                TabTornOff?.Invoke(this, new TabTornOffEventArgs(_draggedItem));
+                try
+                {
+                    // Raise event to let the host handle window creation
+                    TabTornOff?.Invoke(this, new TabTornOffEventArgs(_draggedItem));
+                }
+                catch (Exception ex)
+                {
+                    // Rollback: Re-insert the item if the tear-off handler fails
+                    _sourceNode.Items.Add(_draggedItem);
+                    Logger.LogError($"Failed to tear off tab: {ex.Message}");
+                }
             }
 
             ClearDragOperationState();
         }
-    }
-
-    public class TabTornOffEventArgs : EventArgs
-    {
-        public object TabContent { get; }
-        public TabTornOffEventArgs(object tabContent) => TabContent = tabContent;
     }
 
     private object? _draggedItem;

@@ -1,6 +1,7 @@
 using Ghost.Editor.Core;
 using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.Services;
+using Ghost.Editor.View.Controls;
 using Ghost.Editor.ViewModels.Windows;
 using Windows.ApplicationModel;
 using WinUIEx;
@@ -34,6 +35,17 @@ internal sealed partial class EngineEditorWindow : WindowEx
 
         SetTitleBar(PART_TitleBar);
         this.CenterOnScreen();
+
+        // Note: DockLayout is not directly in the XAML but created by RenderTree.
+        // However, we can subscribe to the event if we find it or if it's exposed.
+        // Since DockLayout is a TemplatePart or child of a Grid, we might need to wait for it.
+    }
+
+    private void OnTabTornOff(object? sender, TabTornOffEventArgs e)
+    {
+        var newWindow = new DockWindow(e.TabContent);
+        App.AddSecondaryWindow(newWindow);
+        newWindow.Activate();
     }
 
     private void MainGrid_Loaded(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
