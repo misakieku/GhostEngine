@@ -19,6 +19,7 @@ public sealed partial class DockLayout : Control
     private const double DROP_EDGE_THRESHOLD = 0.25;
 
     private FrameworkElement? _dropTargetOverlay;
+    private bool _isSyncingSizes;
 
     public DockLayout()
     {

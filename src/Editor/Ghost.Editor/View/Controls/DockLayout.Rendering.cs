@@ -101,21 +101,31 @@ public sealed partial class DockLayout
         }
 
         // Capture size changes to persist back to model
-        grid.SizeChanged += (s, e) => SyncSizesToModel(groupNode, grid);
+        grid.LayoutUpdated += (s, e) => SyncSizesToModel(groupNode, grid);
 
         return grid;
     }
 
     private void SyncSizesToModel(DockGroupNode groupNode, Grid grid)
     {
+        if (_isSyncingSizes) return;
+
         bool isHorizontal = groupNode.Orientation == Orientation.Horizontal;
+        bool changed = false;
+
         if (isHorizontal)
         {
             for (int i = 0; i < groupNode.Children.Count; i++)
             {
                 if (i < groupNode.Sizes.Count && i * 2 < grid.ColumnDefinitions.Count)
                 {
-                    groupNode.Sizes[i] = grid.ColumnDefinitions[i * 2].Width;
+                    var newWidth = grid.ColumnDefinitions[i * 2].Width;
+                    if (!groupNode.Sizes[i].Equals(newWidth))
+                    {
+                        _isSyncingSizes = true;
+                        groupNode.Sizes[i] = newWidth;
+                        changed = true;
+                    }
                 }
             }
         }
@@ -125,9 +135,20 @@ public sealed partial class DockLayout
             {
                 if (i < groupNode.Sizes.Count && i * 2 < grid.RowDefinitions.Count)
                 {
-                    groupNode.Sizes[i] = grid.RowDefinitions[i * 2].Height;
+                    var newHeight = grid.RowDefinitions[i * 2].Height;
+                    if (!groupNode.Sizes[i].Equals(newHeight))
+                    {
+                        _isSyncingSizes = true;
+                        groupNode.Sizes[i] = newHeight;
+                        changed = true;
+                    }
                 }
             }
+        }
+
+        if (changed)
+        {
+            _isSyncingSizes = false;
         }
     }
 
