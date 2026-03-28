@@ -59,8 +59,22 @@ public partial class App : Application
     internal static void CreateAndShowDockWindow(object tabContent)
     {
         var newWindow = new Ghost.Editor.View.Windows.DockWindow(tabContent);
-        AddSecondaryWindow(newWindow);
-        newWindow.Activate();
+        try
+        {
+            AddSecondaryWindow(newWindow);
+            newWindow.Activate();
+        }
+        catch (Exception ex)
+        {
+            // Cleanup partially created window
+            if (Current is App app)
+            {
+                app._secondaryWindows.Remove(newWindow);
+            }
+            newWindow.Close();
+            Logger.LogError(ex);
+            throw;
+        }
     }
 
     internal IHost Host

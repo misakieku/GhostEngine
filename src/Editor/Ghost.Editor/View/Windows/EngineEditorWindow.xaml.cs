@@ -42,16 +42,24 @@ internal sealed partial class EngineEditorWindow : WindowEx
     private void OnTabDroppedOutside(Microsoft.UI.Xaml.Controls.TabView sender, Microsoft.UI.Xaml.Controls.TabViewTabDroppedOutsideEventArgs args)
     {
         // For static tabs in EngineEditorWindow, we remove the item from TabItems
-        if (sender.TabItems is System.Collections.IList list && list.Contains(args.Item))
+        if (sender.TabItems is System.Collections.IList list)
         {
-            var result = TabTearOffService.TryTearOffTab(list, args.Item, (tab) =>
+            if (list.Contains(args.Item))
             {
-                App.CreateAndShowDockWindow(tab);
-            }, sender);
-            
-            if (!result.IsSuccess)
+                var result = TabTearOffService.TryTearOffTab(list, args.Item, (tab) =>
+                {
+                    App.CreateAndShowDockWindow(tab);
+                }, sender);
+                
+                if (!result.IsSuccess)
+                {
+                    Logger.LogWarning($"Tab tear-off failed: {result.Message}");
+                }
+            }
+            else
             {
-                Logger.LogWarning($"Tab tear-off failed: {result.Message}");
+                string itemInfo = args.Item is FrameworkElement fe ? fe.GetType().Name : args.Item?.ToString() ?? "unknown";
+                Logger.LogWarning($"OnTabDroppedOutside: Item '{itemInfo}' not found in source TabView (Items count: {list.Count}).");
             }
         }
     }

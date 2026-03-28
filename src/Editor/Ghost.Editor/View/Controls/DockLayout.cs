@@ -434,13 +434,14 @@ public sealed partial class DockLayout : Control
                 // Validate that the item actually belongs to this source node before attempting tear-off
                 if (sourceNode.Items.Contains(args.Item))
                 {
+                    if (TabTornOff == null)
+                    {
+                        Logger.LogWarning("Tab dropped outside but no TabTornOff subscribers found.");
+                        return;
+                    }
+
                     var result = TabTearOffService.TryTearOffTab(sourceNode.Items, args.Item, (tab) =>
                     {
-                        if (TabTornOff == null)
-                        {
-                            throw new InvalidOperationException("No tear-off handler attached.");
-                        }
-
                         // Raise event to let the host handle window creation
                         TabTornOff.Invoke(this, new TabTornOffEventArgs(tab, sourceNode));
                     }, sourceNode);
