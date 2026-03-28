@@ -18,28 +18,14 @@ public partial class DockGroup : DockContainer
         DefaultStyleKey = typeof(DockGroup);
     }
 
-    public override void AddChild(DockModule module)
+    protected override void ValidateChild(DockModule module)
     {
-        ArgumentNullException.ThrowIfNull(module);
+        base.ValidateChild(module);
 
         if (module is not DockDocument)
         {
             throw new ArgumentException($"{nameof(DockGroup)} only accepts {nameof(DockDocument)} children.", nameof(module));
         }
-
-        base.AddChild(module);
-    }
-
-    public override void InsertChild(int index, DockModule module)
-    {
-        ArgumentNullException.ThrowIfNull(module);
-
-        if (module is not DockDocument)
-        {
-            throw new ArgumentException($"{nameof(DockGroup)} only accepts {nameof(DockDocument)} children.", nameof(module));
-        }
-
-        base.InsertChild(index, module);
     }
 
     protected override void OnApplyTemplate()

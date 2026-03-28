@@ -42,29 +42,15 @@ public abstract class DockContainer : DockModule
     /// <param name="module">The module to insert.</param>
     public virtual void InsertChild(int index, DockModule module)
     {
-        ArgumentNullException.ThrowIfNull(module);
+        ValidateChild(module);
 
         if (index < 0 || index > _children.Count)
             throw new ArgumentOutOfRangeException(nameof(index));
 
-        if (module == this)
-            throw new ArgumentException("Cannot add a container to itself.", nameof(module));
-
-        if (module is DockContainer container)
-        {
-            var current = Owner;
-            while (current != null)
-            {
-                if (current == container)
-                    throw new ArgumentException("Cannot add a container that is an ancestor of this container.", nameof(module));
-                current = current.Owner;
-            }
-        }
-
         if (_children.Contains(module))
             return;
 
-        module.Owner?.RemoveChild(module);
+        module.Owner?.RemoveChildInternal(module, false);
         module.Owner = this;
         module.Root = Root;
         _children.Insert(index, module);
@@ -76,28 +62,39 @@ public abstract class DockContainer : DockModule
     /// <param name="module">The module to remove.</param>
     public virtual void RemoveChild(DockModule module)
     {
+        RemoveChildInternal(module, true);
+    }
+
+    internal void RemoveChildInternal(DockModule module, bool triggerCleanup)
+    {
         ArgumentNullException.ThrowIfNull(module);
 
         if (_children.Remove(module))
         {
             module.Owner = null;
             module.Root = null;
-            if (!_isCleaningUp)
+            if (!_isCleaningUp && triggerCleanup)
             {
                 CheckCleanup();
             }
         }
     }
 
+    /// <summary>
+    /// Replaces an existing child module with a new one.
+    /// </summary>
+    /// <param name="oldChild">The child module to be replaced.</param>
+    /// <param name="newChild">The new child module to insert.</param>
     public virtual void ReplaceChild(DockModule oldChild, DockModule newChild)
     {
         ArgumentNullException.ThrowIfNull(oldChild);
-        ArgumentNullException.ThrowIfNull(newChild);
+        ValidateChild(newChild);
+
         int index = _children.IndexOf(oldChild);
         if (index < 0) throw new ArgumentException("oldChild not found");
 
         // Detach newChild from its current owner if any
-        newChild.Owner?.RemoveChild(newChild);
+        newChild.Owner?.RemoveChildInternal(newChild, false);
 
         // Remove oldChild without triggering cleanup
         _isCleaningUp = true;
@@ -115,15 +112,41 @@ public abstract class DockContainer : DockModule
         {
             _isCleaningUp = false;
         }
-        OnChildrenUpdated();
+
         CheckCleanup();
     }
 
+    /// <summary>
+    /// Checks if the container is empty and removes it from its owner if necessary.
+    /// </summary>
     protected virtual void CheckCleanup()
     {
         if (_children.Count == 0)
         {
-            Owner?.RemoveChild(this);
+            Owner?.RemoveChildInternal(this, true);
+        }
+    }
+
+    /// <summary>
+    /// Validates if a module can be added as a child to this container.
+    /// </summary>
+    /// <param name="module">The module to validate.</param>
+    protected virtual void ValidateChild(DockModule module)
+    {
+        ArgumentNullException.ThrowIfNull(module);
+
+        if (module == this)
+            throw new ArgumentException("Cannot add a container to itself.", nameof(module));
+
+        if (module is DockContainer container)
+        {
+            var current = Owner;
+            while (current != null)
+            {
+                if (current == container)
+                    throw new ArgumentException("Cannot add a container that is an ancestor of this container.", nameof(module));
+                current = current.Owner;
+            }
         }
     }
 
