@@ -19,7 +19,7 @@ public abstract class DockContainer : DockModule
         OnChildrenUpdated();
     }
 
-    public void AddChild(DockModule module)
+    public virtual void AddChild(DockModule module)
     {
         ArgumentNullException.ThrowIfNull(module);
 
@@ -45,7 +45,7 @@ public abstract class DockContainer : DockModule
         _children.Add(module);
     }
 
-    public void RemoveChild(DockModule module)
+    public virtual void RemoveChild(DockModule module)
     {
         ArgumentNullException.ThrowIfNull(module);
 

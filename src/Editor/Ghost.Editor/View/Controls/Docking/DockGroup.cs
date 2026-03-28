@@ -1,6 +1,5 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-
 using Microsoft.UI.Xaml.Data;
 
 namespace Ghost.Editor.View.Controls.Docking;
@@ -14,6 +13,16 @@ public partial class DockGroup : DockContainer
     public DockGroup()
     {
         DefaultStyleKey = typeof(DockGroup);
+    }
+
+    public override void AddChild(DockModule module)
+    {
+        if (module is not DockDocument)
+        {
+            throw new ArgumentException($"{nameof(DockGroup)} only accepts {nameof(DockDocument)} children.", nameof(module));
+        }
+
+        base.AddChild(module);
     }
 
     protected override void OnApplyTemplate()
