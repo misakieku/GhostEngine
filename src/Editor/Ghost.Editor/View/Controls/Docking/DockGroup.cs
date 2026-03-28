@@ -115,37 +115,70 @@ public partial class DockGroup : DockContainer
 
         var selectedDoc = _tabView.SelectedItem is TabViewItem selectedItem ? selectedItem.Tag as DockDocument : null;
 
-        _tabView.TabItems.Clear();
+        // Remove tabs that are no longer in Children
+        for (int i = _tabView.TabItems.Count - 1; i >= 0; i--)
+        {
+            if (_tabView.TabItems[i] is TabViewItem tabItem && tabItem.Tag is DockDocument doc)
+            {
+                if (!Children.Contains(doc))
+                {
+                    tabItem.ClearValue(ContentControl.ContentProperty);
+                    tabItem.Content = null;
+                    _tabView.TabItems.RemoveAt(i);
+                }
+            }
+        }
+
         TabViewItem? newSelectedItem = null;
 
-        foreach (var child in Children)
+        // Add tabs that are in Children but not in TabItems, and ensure correct order
+        for (int i = 0; i < Children.Count; i++)
         {
-            if (child is DockDocument doc)
+            if (Children[i] is DockDocument doc)
             {
-                var tabItem = new TabViewItem
+                TabViewItem? existingTab = null;
+                for (int j = 0; j < _tabView.TabItems.Count; j++)
                 {
-                    Tag = doc
-                };
+                    if (_tabView.TabItems[j] is TabViewItem tabItem && tabItem.Tag == doc)
+                    {
+                        existingTab = tabItem;
+                        // Fix order if necessary
+                        if (j != i)
+                        {
+                            _tabView.TabItems.RemoveAt(j);
+                            _tabView.TabItems.Insert(i, existingTab);
+                        }
+                        break;
+                    }
+                }
 
-                tabItem.SetBinding(TabViewItem.HeaderProperty, new Binding
+                if (existingTab == null)
                 {
-                    Source = doc,
-                    Path = new PropertyPath(nameof(DockDocument.Title)),
-                    Mode = BindingMode.OneWay
-                });
+                    existingTab = new TabViewItem
+                    {
+                        Tag = doc
+                    };
 
-                tabItem.SetBinding(ContentControl.ContentProperty, new Binding
-                {
-                    Source = doc,
-                    Path = new PropertyPath(nameof(DockDocument.Content)),
-                    Mode = BindingMode.OneWay
-                });
+                    existingTab.SetBinding(TabViewItem.HeaderProperty, new Binding
+                    {
+                        Source = doc,
+                        Path = new PropertyPath(nameof(DockDocument.Title)),
+                        Mode = BindingMode.OneWay
+                    });
 
-                _tabView.TabItems.Add(tabItem);
+                    existingTab.SetBinding(ContentControl.ContentProperty, new Binding
+                    {
+                        Source = doc,
+                        Path = new PropertyPath(nameof(DockDocument.Content)),
+                        Mode = BindingMode.OneWay
+                    });
+
+                    _tabView.TabItems.Insert(i, existingTab);
+                }
 
                 if (doc == selectedDoc)
                 {
-                    newSelectedItem = tabItem;
+                    newSelectedItem = existingTab;
                 }
             }
         }
@@ -154,9 +187,9 @@ public partial class DockGroup : DockContainer
         {
             _tabView.SelectedItem = newSelectedItem;
         }
-        else
+        else if (_tabView.TabItems.Count > 0)
         {
-            _tabView.SelectedItem = _tabView.TabItems.FirstOrDefault();
+            _tabView.SelectedItem = _tabView.TabItems[0];
         }
     }
 }
