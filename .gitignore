@@ -13,6 +13,7 @@
 AGENTS.md
 ref/
 docfx/
+NUL
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
