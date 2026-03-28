@@ -19,11 +19,12 @@ public class DockingMutationTest
         root.AddChild(panel2);
 
         // Simulate Center Drop: panel1 -> panel2
-        panel1.Items.Remove(item);
+        bool removed = panel1.Items.Remove(item);
+        Assert.IsTrue(removed);
         panel2.Items.Add(item);
 
-        Assert.AreEqual(0, panel1.Items.Count);
-        Assert.AreEqual(1, panel2.Items.Count);
+        Assert.IsEmpty(panel1.Items);
+        Assert.HasCount(1, panel2.Items);
         Assert.AreEqual(item, panel2.Items[0]);
     }
 
@@ -39,7 +40,8 @@ public class DockingMutationTest
 
         // Simulate Vertical Split Drop (Bottom) on panel1
         // 1. Remove from source
-        panel1.Items.Remove(item);
+        bool removed = panel1.Items.Remove(item);
+        Assert.IsTrue(removed);
         
         // 2. Different orientation (Vertical), replace panel1 with new group
         root.RemoveChild(panel1);
@@ -51,9 +53,9 @@ public class DockingMutationTest
         newGroup.AddChild(newNode); // New split
         root.AddChild(newGroup);
 
-        Assert.AreEqual(1, root.Children.Count);
+        Assert.HasCount(1, root.Children);
         Assert.AreEqual(newGroup, root.Children[0]);
-        Assert.AreEqual(2, newGroup.Children.Count);
+        Assert.HasCount(2, newGroup.Children);
         Assert.AreEqual(panel1, newGroup.Children[0]);
         Assert.AreEqual(newNode, newGroup.Children[1]);
         Assert.AreEqual(item, newNode.Items[0]);
@@ -82,7 +84,7 @@ public class DockingMutationTest
             root.RemoveChild(group1);
         }
 
-        Assert.AreEqual(0, root.Children.Count);
+        Assert.IsEmpty(root.Children);
         Assert.IsNull(group1.Parent);
         Assert.IsNull(panel1.Parent);
     }
@@ -114,7 +116,7 @@ public class DockingMutationTest
             parent.InsertChild(index, onlyChild);
         }
 
-        Assert.AreEqual(1, root.Children.Count);
+        Assert.HasCount(1, root.Children);
         Assert.AreEqual(panel1, root.Children[0]);
         Assert.AreEqual(root, panel1.Parent);
     }

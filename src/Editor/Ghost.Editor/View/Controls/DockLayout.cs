@@ -414,7 +414,7 @@ public sealed partial class DockLayout : Control
     /// Applies the tree mutation for a drop operation.
     /// </summary>
     /// <returns>True if the mutation was applied; otherwise, false.</returns>
-    private bool TryApplyDropMutation(DockPanelNode targetNode, DockPanelNode sourceNode, object item, DockPosition position)
+    internal bool TryApplyDropMutation(DockPanelNode targetNode, DockPanelNode sourceNode, object item, DockPosition position)
     {
         if (position == DockPosition.Center)
         {

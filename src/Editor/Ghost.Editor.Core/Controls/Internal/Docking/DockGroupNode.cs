@@ -74,7 +74,17 @@ public partial class DockGroupNode : DockNode
             int oldIndex = _children.IndexOf(node);
             if (oldIndex == index) return;
 
-            _children.Move(oldIndex, index);
+            // ObservableCollection.Move(oldIndex, newIndex) requires newIndex < Count.
+            // If index is Count, we move it to the last position (Count - 1).
+            int targetIndex = index;
+            if (targetIndex >= _children.Count)
+            {
+                targetIndex = _children.Count - 1;
+            }
+
+            if (oldIndex == targetIndex) return;
+
+            _children.Move(oldIndex, targetIndex);
             return;
         }
 
