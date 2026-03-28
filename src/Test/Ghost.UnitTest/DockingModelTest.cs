@@ -171,17 +171,23 @@ public class DockingModelTest
         group.AddChild(child2);
         group.AddChild(child3);
 
-        // Move child1 to end
-        group.InsertChild(3, child1);
+        // Move child1 to end (index 2)
+        group.InsertChild(2, child1);
         Assert.AreEqual(child2, group.Children[0]);
         Assert.AreEqual(child3, group.Children[1]);
         Assert.AreEqual(child1, group.Children[2]);
 
-        // Move child3 to start
+        // Move child3 to start (index 0)
         group.InsertChild(0, child3);
         Assert.AreEqual(child3, group.Children[0]);
         Assert.AreEqual(child2, group.Children[1]);
         Assert.AreEqual(child1, group.Children[2]);
+        
+        // Move child2 forward by one (index 1 -> 2)
+        group.InsertChild(2, child2);
+        Assert.AreEqual(child3, group.Children[0]);
+        Assert.AreEqual(child1, group.Children[1]);
+        Assert.AreEqual(child2, group.Children[2]);
     }
 
     [TestMethod]
@@ -197,5 +203,21 @@ public class DockingModelTest
         group.InsertChild(0, child1);
         Assert.AreEqual(child1, group.Children[0]);
         Assert.AreEqual(child2, group.Children[1]);
+    }
+
+    [TestMethod]
+    public void TestPanel_SetInvalidSelectedItem_ResetsSelection()
+    {
+        var panel = new DockPanelNode();
+        var item1 = new object();
+        var item2 = new object();
+
+        panel.Items.Add(item1);
+        panel.SelectedItem = item1;
+
+        panel.SelectedItem = item2; // Not in collection
+
+        Assert.IsNull(panel.SelectedItem);
+        Assert.AreEqual(-1, panel.SelectedIndex);
     }
 }

@@ -47,6 +47,10 @@ public partial class DockGroupNode : DockNode
     /// </summary>
     /// <param name="index">The zero-based index at which node should be inserted.</param>
     /// <param name="node">The node to insert.</param>
+    /// <remarks>
+    /// If the node is already a child of this group, it will be moved to the specified index.
+    /// The index represents the desired final position in the collection.
+    /// </remarks>
     /// <exception cref="ArgumentNullException">Thrown if node is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if index is less than 0 or greater than Children.Count.</exception>
     /// <exception cref="InvalidOperationException">Thrown if adding the node would create a cycle or if adding self.</exception>
@@ -68,15 +72,8 @@ public partial class DockGroupNode : DockNode
         {
             int oldIndex = _children.IndexOf(node);
             if (oldIndex == index) return;
-            
-            // If we're moving an item forward, the target index will shift after removal
-            int targetIndex = index;
-            if (targetIndex > oldIndex) targetIndex--;
-            
-            if (oldIndex == targetIndex) return;
 
-            _children.RemoveAt(oldIndex);
-            _children.Insert(targetIndex, node);
+            _children.Move(oldIndex, index);
             return;
         }
 

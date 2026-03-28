@@ -430,86 +430,99 @@ public sealed partial class DockLayout : Control
                     return;
                 }
 
-                // Remove from source first (if it's the same node, we'll re-add it to the new structure)
+                // If targetNode is the only child of Root, we wrap it.
+                if (Root.Children.Count == 1 && ReferenceEquals(Root.Children[0], targetNode))
+                {
+                    // Remove from source first
+                    if (!_sourceNode.Items.Remove(_draggedItem))
+                    {
+                        ClearDragOperationState();
+                        return;
+                    }
+
+                    var newGroup = new DockGroupNode
+                    {
+                        Orientation = isHorizontalSplit ? Orientation.Horizontal : Orientation.Vertical
+                    };
+
+                    var newNode = new DockPanelNode();
+                    newNode.Items.Add(_draggedItem);
+
+                    Root.RemoveChild(targetNode);
+                    Root.AddChild(newGroup);
+
+                    if (isAfter)
+                    {
+                        newGroup.AddChild(targetNode);
+                        newGroup.AddChild(newNode);
+                    }
+                    else
+                    {
+                        newGroup.AddChild(newNode);
+                        newGroup.AddChild(targetNode);
+                    }
+                    
+                    CleanupEmptyNodes(_sourceNode);
+                }
+                else
+                {
+                    ClearDragOperationState();
+                    return;
+                }
+            }
+            else
+            {
+                int targetIndex = parentGroup.Children.IndexOf(targetNode);
+                if (targetIndex < 0)
+                {
+                    ClearDragOperationState();
+                    return;
+                }
+
+                // Remove from source
                 if (!_sourceNode.Items.Remove(_draggedItem))
                 {
                     ClearDragOperationState();
                     return;
                 }
 
-                var newRoot = new DockGroupNode
+                if ((isHorizontalSplit && parentGroup.Orientation == Orientation.Horizontal) ||
+                    (!isHorizontalSplit && parentGroup.Orientation == Orientation.Vertical))
                 {
-                    Orientation = isHorizontalSplit ? Orientation.Horizontal : Orientation.Vertical
-                };
-
-                var newNode = new DockPanelNode();
-                newNode.Items.Add(_draggedItem);
-
-                // If targetNode was the only child of Root, we replace it in Root.
-                // If targetNode WAS the Root (impossible by type, but let's be safe with the model), we replace Root.
-                // Actually, Root is always a DockGroupNode. So targetNode must be a child of Root if parent is null? 
-                // No, if parent is null it's either detached or it IS the root. 
-                // But targetNode is DockPanelNode, and Root is DockGroupNode.
-                
-                // If targetNode is detached, we can't split it.
-                // Let's assume it's a child of a group that we don't have a reference to? No, Parent should be set.
-                // The only case where Parent is null for a DockPanelNode in a valid tree is if it's NOT in the tree.
-                // Wait, if Root has only one child, that child's parent SHOULD be Root.
-                
-                ClearDragOperationState();
-                return; // Abort for now, parent should not be null in a valid tree for a Panel.
-            }
-
-            int targetIndex = parentGroup.Children.IndexOf(targetNode);
-            if (targetIndex < 0)
-            {
-                ClearDragOperationState();
-                return;
-            }
-
-            // Remove from source
-            if (!_sourceNode.Items.Remove(_draggedItem))
-            {
-                ClearDragOperationState();
-                return;
-            }
-
-            if ((isHorizontalSplit && parentGroup.Orientation == Orientation.Horizontal) ||
-                (!isHorizontalSplit && parentGroup.Orientation == Orientation.Vertical))
-            {
-                // Same orientation, just insert next to it
-                var newNode = new DockPanelNode();
-                newNode.Items.Add(_draggedItem);
-                parentGroup.InsertChild(isAfter ? targetIndex + 1 : targetIndex, newNode);
-            }
-            else
-            {
-                // Different orientation, need to replace targetNode with a new group
-                parentGroup.RemoveChild(targetNode);
-                
-                var newGroup = new DockGroupNode
-                {
-                    Orientation = isHorizontalSplit ? Orientation.Horizontal : Orientation.Vertical
-                };
-                
-                var newNode = new DockPanelNode();
-                newNode.Items.Add(_draggedItem);
-
-                if (isAfter)
-                {
-                    newGroup.AddChild(targetNode);
-                    newGroup.AddChild(newNode);
+                    // Same orientation, just insert next to it
+                    var newNode = new DockPanelNode();
+                    newNode.Items.Add(_draggedItem);
+                    parentGroup.InsertChild(isAfter ? targetIndex + 1 : targetIndex, newNode);
                 }
                 else
                 {
-                    newGroup.AddChild(newNode);
-                    newGroup.AddChild(targetNode);
+                    // Different orientation, need to replace targetNode with a new group
+                    parentGroup.RemoveChild(targetNode);
+                    
+                    var newGroup = new DockGroupNode
+                    {
+                        Orientation = isHorizontalSplit ? Orientation.Horizontal : Orientation.Vertical
+                    };
+                    
+                    var newNode = new DockPanelNode();
+                    newNode.Items.Add(_draggedItem);
+
+                    if (isAfter)
+                    {
+                        newGroup.AddChild(targetNode);
+                        newGroup.AddChild(newNode);
+                    }
+                    else
+                    {
+                        newGroup.AddChild(newNode);
+                        newGroup.AddChild(targetNode);
+                    }
+
+                    parentGroup.InsertChild(targetIndex, newGroup);
                 }
 
-                parentGroup.InsertChild(targetIndex, newGroup);
+                CleanupEmptyNodes(_sourceNode);
             }
-
-            CleanupEmptyNodes(_sourceNode);
         }
 
         ClearDragOperationState();
