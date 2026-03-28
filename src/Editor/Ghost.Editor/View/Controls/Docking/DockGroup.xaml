@@ -10,8 +10,8 @@
                     <Grid>
                         <TabView x:Name="PART_TabView" 
                                  IsAddTabButtonVisible="False"
-                                 CanDragTabs="True"
-                                 CanReorderTabs="True"
+                                 CanDragTabs="False"
+                                 CanReorderTabs="False"
                                  AllowDrop="True">
                         </TabView>
                     </Grid>

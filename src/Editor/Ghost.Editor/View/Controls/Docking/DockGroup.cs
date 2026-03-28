@@ -4,10 +4,10 @@ using Microsoft.UI.Xaml.Data;
 
 namespace Ghost.Editor.View.Controls.Docking;
 
-[TemplatePart(Name = PART_TabView, Type = typeof(TabView))]
+[TemplatePart(Name = PART_TAB_VIEW, Type = typeof(TabView))]
 public partial class DockGroup : DockContainer
 {
-    private const string PART_TabView = "PART_TabView";
+    private const string PART_TAB_VIEW = "PART_TabView";
     private TabView? _tabView;
 
     public DockGroup()
@@ -17,6 +17,8 @@ public partial class DockGroup : DockContainer
 
     public override void AddChild(DockModule module)
     {
+        ArgumentNullException.ThrowIfNull(module);
+
         if (module is not DockDocument)
         {
             throw new ArgumentException($"{nameof(DockGroup)} only accepts {nameof(DockDocument)} children.", nameof(module));
@@ -28,7 +30,7 @@ public partial class DockGroup : DockContainer
     protected override void OnApplyTemplate()
     {
         base.OnApplyTemplate();
-        _tabView = GetTemplateChild(PART_TabView) as TabView;
+        _tabView = GetTemplateChild(PART_TAB_VIEW) as TabView;
         UpdateTabs();
     }
 
@@ -41,7 +43,11 @@ public partial class DockGroup : DockContainer
     {
         if (_tabView == null) return;
 
+        var selectedDoc = _tabView.SelectedItem is TabViewItem selectedItem ? selectedItem.Tag as DockDocument : null;
+
         _tabView.TabItems.Clear();
+        TabViewItem? newSelectedItem = null;
+
         foreach (var child in Children)
         {
             if (child is DockDocument doc)
@@ -66,7 +72,17 @@ public partial class DockGroup : DockContainer
                 });
 
                 _tabView.TabItems.Add(tabItem);
+
+                if (doc == selectedDoc)
+                {
+                    newSelectedItem = tabItem;
+                }
             }
+        }
+
+        if (newSelectedItem != null)
+        {
+            _tabView.SelectedItem = newSelectedItem;
         }
     }
 }
