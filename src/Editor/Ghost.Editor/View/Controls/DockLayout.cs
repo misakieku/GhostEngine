@@ -298,7 +298,6 @@ public sealed partial class DockLayout : Control
     }
 
     private object? _draggedItem;
-    private DockPanelNode? _sourceNode;
     private DockPosition _currentDropPosition = DockPosition.None;
 
     private record DockDragPayload(object Item, DockPanelNode SourceNode);
@@ -306,11 +305,10 @@ public sealed partial class DockLayout : Control
     private void TabView_TabDragStarting(Microsoft.UI.Xaml.Controls.TabView sender, Microsoft.UI.Xaml.Controls.TabViewTabDragStartingEventArgs args)
     {
         _draggedItem = args.Item;
-        _sourceNode = sender.Tag as DockPanelNode;
 
-        if (_draggedItem != null && _sourceNode != null)
+        if (_draggedItem != null && sender.Tag is DockPanelNode sourceNode)
         {
-            var payload = new DockDragPayload(_draggedItem, _sourceNode);
+            var payload = new DockDragPayload(_draggedItem, sourceNode);
             args.Data.Properties.Add(DRAG_PROPERTY_DOCK_TAB, payload); // Identify our drag
         }
     }
@@ -319,7 +317,6 @@ public sealed partial class DockLayout : Control
     {
         if (e.DataView.Properties.TryGetValue(DRAG_PROPERTY_DOCK_TAB, out var payloadObj) && 
             payloadObj is DockDragPayload payload &&
-            payload.Item == _draggedItem &&
             sender is FrameworkElement targetElement)
         {
             e.AcceptedOperation = global::Windows.ApplicationModel.DataTransfer.DataPackageOperation.Move;
@@ -353,7 +350,6 @@ public sealed partial class DockLayout : Control
     {
         ClearOverlayState();
         _draggedItem = null;
-        _sourceNode = null;
     }
 
     private void UpdateDropOverlay(FrameworkElement targetElement, DockPosition position)
@@ -398,7 +394,6 @@ public sealed partial class DockLayout : Control
 
         if (!e.DataView.Properties.TryGetValue(DRAG_PROPERTY_DOCK_TAB, out var payloadObj) ||
             payloadObj is not DockDragPayload payload ||
-            payload.Item != _draggedItem ||
             !(sender is FrameworkElement targetElement) || 
             !(targetElement.Tag is DockPanelNode targetNode))
         {
@@ -455,7 +450,8 @@ public sealed partial class DockLayout : Control
                 }
                 else
                 {
-                    Logger.LogWarning($"TabDroppedOutside: Item {args.Item} not found in source node {sourceNode}.");
+                    string itemInfo = args.Item is FrameworkElement fe ? fe.GetType().Name : args.Item.ToString() ?? "unknown";
+                    Logger.LogWarning($"TabDroppedOutside: Item '{itemInfo}' not found in source node (Items count: {sourceNode.Items.Count}).");
                 }
             }
         }
