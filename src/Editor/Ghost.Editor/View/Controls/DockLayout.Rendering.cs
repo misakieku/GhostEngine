@@ -122,9 +122,13 @@ public sealed partial class DockLayout
                     var newWidth = grid.ColumnDefinitions[i * 2].Width;
                     if (!groupNode.Sizes[i].Equals(newWidth))
                     {
-                        _isSyncingSizes = true;
-                        groupNode.Sizes[i] = newWidth;
-                        changed = true;
+                        // Only sync if it's a star or pixel value (not Auto)
+                        if (newWidth.IsStar || newWidth.IsAbsolute)
+                        {
+                            _isSyncingSizes = true;
+                            groupNode.Sizes[i] = newWidth;
+                            changed = true;
+                        }
                     }
                 }
             }
@@ -138,9 +142,12 @@ public sealed partial class DockLayout
                     var newHeight = grid.RowDefinitions[i * 2].Height;
                     if (!groupNode.Sizes[i].Equals(newHeight))
                     {
-                        _isSyncingSizes = true;
-                        groupNode.Sizes[i] = newHeight;
-                        changed = true;
+                        if (newHeight.IsStar || newHeight.IsAbsolute)
+                        {
+                            _isSyncingSizes = true;
+                            groupNode.Sizes[i] = newHeight;
+                            changed = true;
+                        }
                     }
                 }
             }

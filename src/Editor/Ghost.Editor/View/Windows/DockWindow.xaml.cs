@@ -7,6 +7,9 @@ namespace Ghost.Editor.View.Windows;
 
 internal sealed partial class DockWindow : WindowEx
 {
+    private long _rootPropertyToken;
+    private DockGroupNode? _currentRoot;
+
     public DockWindow(object initialTabContent)
     {
         InitializeComponent();
@@ -21,45 +24,52 @@ internal sealed partial class DockWindow : WindowEx
         PART_DockLayout.TabTornOff += OnTabTornOff;
 
         RegisterCloseHandler();
+        
+        this.Closed += (s, e) => 
+        {
+            if (_rootPropertyToken != 0)
+            {
+                PART_DockLayout.UnregisterPropertyChangedCallback(DockLayout.RootProperty, _rootPropertyToken);
+                _rootPropertyToken = 0;
+            }
+            UnsubscribeFromRoot(_currentRoot);
+        };
     }
 
     private void RegisterCloseHandler()
     {
-        // Subscribe to Root changes to ensure we always track the current tree
-        var rootProperty = DockLayout.RootProperty;
-        
-        void OnRootChildrenChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        _rootPropertyToken = PART_DockLayout.RegisterPropertyChangedCallback(DockLayout.RootProperty, (s, dp) =>
         {
-            if (PART_DockLayout.Root?.Children.Count == 0)
-            {
-                this.Close();
-            }
-        }
-
-        void SubscribeToRoot(DockGroupNode? root)
-        {
-            if (root != null)
-            {
-                ((System.Collections.Specialized.INotifyCollectionChanged)root.Children).CollectionChanged += OnRootChildrenChanged;
-            }
-        }
-
-        void UnsubscribeFromRoot(DockGroupNode? root)
-        {
-            if (root != null)
-            {
-                ((System.Collections.Specialized.INotifyCollectionChanged)root.Children).CollectionChanged -= OnRootChildrenChanged;
-            }
-        }
-
-        PART_DockLayout.RegisterPropertyChangedCallback(DockLayout.RootProperty, (s, dp) =>
-        {
-            // This is a bit tricky since we don't have the old value easily here in RegisterPropertyChangedCallback
-            // But for DockWindow, the root is usually set once.
+            UnsubscribeFromRoot(_currentRoot);
             SubscribeToRoot(PART_DockLayout.Root);
         });
 
         SubscribeToRoot(PART_DockLayout.Root);
+    }
+
+    private void OnRootChildrenChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+    {
+        if (PART_DockLayout.Root?.Children.Count == 0)
+        {
+            this.Close();
+        }
+    }
+
+    private void SubscribeToRoot(DockGroupNode? root)
+    {
+        _currentRoot = root;
+        if (_currentRoot != null)
+        {
+            ((System.Collections.Specialized.INotifyCollectionChanged)_currentRoot.Children).CollectionChanged += OnRootChildrenChanged;
+        }
+    }
+
+    private void UnsubscribeFromRoot(DockGroupNode? root)
+    {
+        if (root != null)
+        {
+            ((System.Collections.Specialized.INotifyCollectionChanged)root.Children).CollectionChanged -= OnRootChildrenChanged;
+        }
     }
 
     private void OnTabTornOff(object? sender, TabTornOffEventArgs e)
