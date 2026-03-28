@@ -261,6 +261,7 @@ public class DockingLayout : Control
 
     internal void CreateFloatingWindow(DockDocument doc)
     {
-        // To be implemented in Task 6
+        var window = new FloatingWindow(doc);
+        window.Activate();
     }
 }
