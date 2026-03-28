@@ -17,6 +17,8 @@ public sealed partial class DockLayout : Control
 {
     private const string PART_ROOT_GRID = "PART_RootGrid";
 
+    private readonly HashSet<DockNode> _subscribedNodes = new();
+
     public DockLayout()
     {
         DefaultStyleKey = typeof(DockLayout);
@@ -35,10 +37,7 @@ public sealed partial class DockLayout : Control
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
-        if (Root != null)
-        {
-            UnsubscribeFromNode(Root);
-        }
+        UnsubscribeFromAll();
     }
 
     public DockGroupNode? Root
@@ -54,10 +53,7 @@ public sealed partial class DockLayout : Control
     {
         if (d is DockLayout layout)
         {
-            if (e.OldValue is DockGroupNode oldRoot)
-            {
-                layout.UnsubscribeFromNode(oldRoot);
-            }
+            layout.UnsubscribeFromAll();
 
             if (e.NewValue is DockGroupNode newRoot && layout.IsLoaded)
             {
@@ -70,6 +66,11 @@ public sealed partial class DockLayout : Control
 
     private void SubscribeToNode(DockNode node)
     {
+        if (!_subscribedNodes.Add(node))
+        {
+            return;
+        }
+
         node.PropertyChanged += OnNodePropertyChanged;
 
         if (node is DockGroupNode groupNode)
@@ -84,6 +85,11 @@ public sealed partial class DockLayout : Control
 
     private void UnsubscribeFromNode(DockNode node)
     {
+        if (!_subscribedNodes.Remove(node))
+        {
+            return;
+        }
+
         node.PropertyChanged -= OnNodePropertyChanged;
 
         if (node is DockGroupNode groupNode)
@@ -96,12 +102,25 @@ public sealed partial class DockLayout : Control
         }
     }
 
+    private void UnsubscribeFromAll()
+    {
+        // Copy to array to avoid modification during enumeration
+        var nodes = _subscribedNodes.ToArray();
+        foreach (var node in nodes)
+        {
+            node.PropertyChanged -= OnNodePropertyChanged;
+            if (node is DockGroupNode groupNode)
+            {
+                ((INotifyCollectionChanged)groupNode.Children).CollectionChanged -= OnChildrenCollectionChanged;
+            }
+        }
+        _subscribedNodes.Clear();
+    }
+
     private void OnNodePropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        // Filter to relevant property names
-        if (e.PropertyName == nameof(DockGroupNode.Orientation) ||
-            e.PropertyName == nameof(DockPanelNode.SelectedIndex) ||
-            e.PropertyName == nameof(DockPanelNode.SelectedItem))
+        // Filter to structural property names
+        if (e.PropertyName == nameof(DockGroupNode.Orientation))
         {
             RenderTree();
         }
@@ -112,10 +131,10 @@ public sealed partial class DockLayout : Control
         if (e.Action == NotifyCollectionChangedAction.Reset)
         {
             // On Reset, we don't know what was removed. 
-            // Simplest is to unsubscribe from everything and resubscribe from Root.
+            // We must unsubscribe from everything and resubscribe from Root to avoid leaks.
+            UnsubscribeFromAll();
             if (Root != null)
             {
-                UnsubscribeFromNode(Root);
                 SubscribeToNode(Root);
             }
         }
@@ -175,11 +194,11 @@ public sealed partial class DockLayout : Control
                 var childUI = CreateUIForNode(children[i]);
                 if (groupNode.Orientation == Orientation.Horizontal)
                 {
-                    Grid.SetColumn(childUI as FrameworkElement, i);
+                    Grid.SetColumn((FrameworkElement)childUI, i);
                 }
                 else
                 {
-                    Grid.SetRow(childUI as FrameworkElement, i);
+                    Grid.SetRow((FrameworkElement)childUI, i);
                 }
                 grid.Children.Add(childUI);
             }
