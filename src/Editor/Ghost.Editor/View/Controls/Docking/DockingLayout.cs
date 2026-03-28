@@ -56,6 +56,11 @@ public class DockingLayout : Control
 
             if (e.NewValue is DockPanel newPanel)
             {
+                if (newPanel.Root != null && newPanel.Root != layout)
+                {
+                    throw new InvalidOperationException("Panel is already owned by another DockingLayout");
+                }
+
                 newPanel.Root = layout;
             }
         }
@@ -74,6 +79,11 @@ public class DockingLayout : Control
             throw new NotImplementedException("Target docking will be implemented in Task 5");
         }
 
+        if (targetGroup != null && targetGroup.Root != this)
+        {
+            throw new ArgumentException("targetGroup does not belong to this DockingLayout");
+        }
+
         if (RootPanel == null)
         {
             RootPanel = new DockPanel();
@@ -81,7 +91,7 @@ public class DockingLayout : Control
 
         if (targetGroup == null)
         {
-            targetGroup = FindFirstLeafDockGroup(RootPanel);
+            targetGroup = FindFirstDockGroup(RootPanel);
 
             if (targetGroup == null)
             {
@@ -93,7 +103,7 @@ public class DockingLayout : Control
         targetGroup.AddChild(document);
     }
 
-    private static DockGroup? FindFirstLeafDockGroup(DockContainer container)
+    private static DockGroup? FindFirstDockGroup(DockContainer container)
     {
         if (container is DockGroup group)
         {
@@ -104,7 +114,7 @@ public class DockingLayout : Control
         {
             if (child is DockContainer childContainer)
             {
-                var result = FindFirstLeafDockGroup(childContainer);
+                var result = FindFirstDockGroup(childContainer);
                 if (result != null)
                 {
                     return result;
