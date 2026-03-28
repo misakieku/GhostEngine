@@ -64,7 +64,7 @@ public partial class App : Application
             AddSecondaryWindow(newWindow);
             newWindow.Activate();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             // Cleanup partially created window
             if (Current is App app)
