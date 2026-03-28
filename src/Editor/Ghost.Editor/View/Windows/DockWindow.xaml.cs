@@ -3,7 +3,7 @@ using WinUIEx;
 
 namespace Ghost.Editor.View.Windows;
 
-public sealed partial class DockWindow : WindowEx
+internal sealed partial class DockWindow : WindowEx
 {
     public DockWindow(object initialTabContent)
     {
@@ -16,7 +16,5 @@ public sealed partial class DockWindow : WindowEx
         rootGroup.AddChild(panel);
         
         PART_DockLayout.Root = rootGroup;
-        
-        // Optional: Titlebar setup etc.
     }
 }

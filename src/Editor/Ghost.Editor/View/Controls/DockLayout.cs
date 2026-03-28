@@ -300,12 +300,15 @@ public sealed partial class DockLayout : Control
         if (_sourceNode != null && _draggedItem != null)
         {
             // Remove from current tree
-            _sourceNode.Items.Remove(_draggedItem);
-            DockMutationEngine.CleanupEmptyNodes(_sourceNode, Root);
+            if (_sourceNode.Items.Remove(_draggedItem))
+            {
+                DockMutationEngine.CleanupEmptyNodes(_sourceNode);
 
-            // Create new window
-            var newWindow = new Ghost.Editor.View.Windows.DockWindow(_draggedItem);
-            newWindow.Activate();
+                // Create new window and register it with App to prevent GC
+                var newWindow = new Ghost.Editor.View.Windows.DockWindow(_draggedItem);
+                App.AddSecondaryWindow(newWindow);
+                newWindow.Activate();
+            }
 
             ClearDragOperationState();
         }

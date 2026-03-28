@@ -23,6 +23,7 @@ namespace Ghost.Editor;
 public partial class App : Application
 {
     private Window? _window;
+    private readonly List<Window> _secondaryWindows = new();
 
     internal static Window? Window
     {
@@ -36,6 +37,15 @@ public partial class App : Application
                 app._window = value;
                 app._window?.Closed += app.OnClosed;
             }
+        }
+    }
+
+    internal static void AddSecondaryWindow(Window window)
+    {
+        if (Current is App app)
+        {
+            app._secondaryWindows.Add(window);
+            window.Closed += (s, e) => app._secondaryWindows.Remove(window);
         }
     }
 
