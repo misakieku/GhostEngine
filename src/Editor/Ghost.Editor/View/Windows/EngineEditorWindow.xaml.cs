@@ -43,10 +43,10 @@ internal sealed partial class EngineEditorWindow : WindowEx
 
         InitializeDockLayout();
         
-        this.Unloaded += OnUnloaded;
+        this.Closed += OnUnloaded;
     }
 
-    private void OnUnloaded(object sender, RoutedEventArgs e)
+    private void OnUnloaded(object sender, WindowEventArgs e)
     {
         PART_DockLayout.TabTornOff -= OnTabTornOff;
     }

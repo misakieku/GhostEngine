@@ -16,10 +16,18 @@ public sealed partial class DockLayout
 
     private void TabView_TabDragStarting(TabView sender, TabViewTabDragStartingEventArgs args)
     {
-        if (args.Item != null && sender.Tag is DockPanelNode sourceNode)
+        if (sender.Tag is DockPanelNode sourceNode)
         {
-            var payload = new DockDragPayload(args.Item, sourceNode);
-            args.Data.Properties.Add(DRAG_PROPERTY_DOCK_TAB, payload); // Identify our drag
+            object? dragItem = null;
+            if (args.Item != null && sourceNode.Items.Contains(args.Item)) dragItem = args.Item;
+            else if (args.Tab != null && sourceNode.Items.Contains(args.Tab)) dragItem = args.Tab;
+            else dragItem = args.Item ?? args.Tab;
+
+            if (dragItem != null)
+            {
+                var payload = new DockDragPayload(dragItem, sourceNode);
+                args.Data.Properties.Add(DRAG_PROPERTY_DOCK_TAB, payload); // Identify our drag
+            }
         }
     }
 
@@ -30,6 +38,7 @@ public sealed partial class DockLayout
             sender is FrameworkElement targetElement)
         {
             e.AcceptedOperation = global::Windows.ApplicationModel.DataTransfer.DataPackageOperation.Move;
+            e.Handled = true;
 
             var position = e.GetPosition(targetElement);
             var newPosition = DockMath.CalculateDockPosition(targetElement.ActualWidth, targetElement.ActualHeight, position.X, position.Y, DROP_EDGE_THRESHOLD);
@@ -113,41 +122,41 @@ public sealed partial class DockLayout
             return;
         }
 
-        if (_currentDropPosition == DockPosition.None)
-        {
-            ClearDragOperationState();
-            return;
-        }
-
-        if (payload.SourceNode == targetNode && _currentDropPosition == DockPosition.Center)
-        {
-            ClearDragOperationState();
-            return; // Reordering within same tab is handled natively by TabView
-        }
-
-        if (Root == null)
-        {
-            ClearDragOperationState();
-            return;
-        }
-
-        // 1. Execute mutation
-        if (DockMutationEngine.TryApplyDropMutation(Root, targetNode, payload.SourceNode, payload.Item, _currentDropPosition))
-        {
-            DockMutationEngine.CleanupEmptyNodes(payload.SourceNode);
-        }
-
+        var dropPosition = _currentDropPosition;
         ClearDragOperationState();
+
+        if (dropPosition == DockPosition.None || 
+           (payload.SourceNode == targetNode && dropPosition == DockPosition.Center) || 
+           Root == null)
+        {
+            return;
+        }
+
+        e.Handled = true;
+
+        // Defer the visual tree mutation to the next tick
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            if (DockMutationEngine.TryApplyDropMutation(Root, targetNode, payload.SourceNode, payload.Item, dropPosition))
+            {
+                DockMutationEngine.CleanupEmptyNodes(payload.SourceNode);
+            }
+        });
     }
 
     private void TabView_TabDroppedOutside(TabView sender, TabViewTabDroppedOutsideEventArgs args)
     {
         try
         {
-            if (sender.Tag is DockPanelNode sourceNode && args.Item != null)
+            if (sender.Tag is DockPanelNode sourceNode)
             {
+                object? dragItem = null;
+                if (args.Item != null && sourceNode.Items.Contains(args.Item)) dragItem = args.Item;
+                else if (args.Tab != null && sourceNode.Items.Contains(args.Tab)) dragItem = args.Tab;
+                else dragItem = args.Item ?? args.Tab;
+
                 // Validate that the item actually belongs to this source node before attempting tear-off
-                if (sourceNode.Items.Contains(args.Item))
+                if (dragItem != null && sourceNode.Items.Contains(dragItem))
                 {
                     var handler = TabTornOff;
                     if (handler == null)
@@ -156,7 +165,7 @@ public sealed partial class DockLayout
                         return;
                     }
 
-                    var result = TabTearOffService.TryTearOffTab(sourceNode.Items, args.Item, (tab) =>
+                    var result = TabTearOffService.TryTearOffTab(sourceNode.Items, dragItem, (tab) =>
                     {
                         // Raise event to let the host handle window creation
                         handler.Invoke(this, new TabTornOffEventArgs(tab, sourceNode));
@@ -173,7 +182,7 @@ public sealed partial class DockLayout
                 }
                 else
                 {
-                    string itemInfo = args.Item is FrameworkElement fe ? fe.GetType().Name : args.Item.ToString() ?? "unknown";
+                    string itemInfo = args.Item is FrameworkElement fe ? fe.GetType().Name : args.Item?.ToString() ?? "unknown";
                     Logger.LogWarning($"TabDroppedOutside: Item '{itemInfo}' not found in source node (Items count: {sourceNode.Items.Count}).");
                 }
             }
