@@ -386,7 +386,8 @@ public sealed partial class DockLayout : Control
     {
         if (_dropTargetOverlay != null) _dropTargetOverlay.Visibility = Visibility.Collapsed;
 
-        if (!e.DataView.Properties.ContainsKey(DRAG_PROPERTY_DOCK_TAB) ||
+        if (!e.DataView.Properties.TryGetValue(DRAG_PROPERTY_DOCK_TAB, out var payload) ||
+            payload != _draggedItem ||
             _draggedItem == null || _sourceNode == null || !(sender is FrameworkElement targetElement) || !(targetElement.Tag is DockPanelNode targetNode))
         {
             ClearDragOperationState();
@@ -424,17 +425,21 @@ public sealed partial class DockLayout : Control
     {
         try
         {
-            if (_sourceNode != null && _draggedItem != null)
+            if (sender.Tag is DockPanelNode sourceNode && args.Item != null)
             {
-                var result = TabTearOffService.TryTearOffTab(_sourceNode.Items, _draggedItem, _sourceNode);
+                // Validate that the item actually belongs to this source node before attempting tear-off
+                if (sourceNode.Items.Contains(args.Item))
+                {
+                    var result = TabTearOffService.TryTearOffTab(sourceNode.Items, args.Item, sourceNode);
 
-                if (result.IsSuccess)
-                {
-                    DockMutationEngine.CleanupEmptyNodes(_sourceNode);
-                }
-                else
-                {
-                    Logger.LogWarning($"Tab tear-off failed: {result.Message}");
+                    if (result.IsSuccess)
+                    {
+                        DockMutationEngine.CleanupEmptyNodes(sourceNode);
+                    }
+                    else
+                    {
+                        Logger.LogWarning($"Tab tear-off failed: {result.Message}");
+                    }
                 }
             }
         }
