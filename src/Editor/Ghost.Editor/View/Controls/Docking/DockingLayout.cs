@@ -28,9 +28,7 @@ public class DockingLayout : Control
         set => SetValue(RootPanelProperty, value);
     }
 
-    // Used in Task 5 for drag and drop highlight
     private Canvas? _overlayCanvas;
-    // Used in Task 5 for drag and drop highlight
     private DockRegionHighlight? _highlight;
 
     public DockingLayout()
@@ -74,11 +72,6 @@ public class DockingLayout : Control
     /// <param name="targetGroup">The target group to add the document to. If null, a suitable group will be found or created.</param>
     public void AddDocument(DockDocument document, DockTarget target, DockGroup? targetGroup = null)
     {
-        if (target != DockTarget.Center)
-        {
-            throw new NotImplementedException("Target docking will be implemented in Task 5");
-        }
-
         if (targetGroup != null && targetGroup.Root != this)
         {
             throw new ArgumentException("targetGroup does not belong to this DockingLayout");
@@ -100,7 +93,77 @@ public class DockingLayout : Control
             }
         }
 
-        targetGroup.AddChild(document);
+        if (target == DockTarget.Center)
+        {
+            targetGroup.AddChild(document);
+        }
+        else
+        {
+            SplitGroup(targetGroup, document, target);
+        }
+    }
+
+    private void SplitGroup(DockGroup targetGroup, DockDocument doc, DockTarget target)
+    {
+        var parentPanel = targetGroup.Owner as DockPanel;
+        var newGroup = new DockGroup();
+        newGroup.AddChild(doc);
+
+        var orientation = (target == DockTarget.Left || target == DockTarget.Right) ? Orientation.Horizontal : Orientation.Vertical;
+
+        if (parentPanel == null)
+        {
+            // targetGroup is the root
+            var newPanel = new DockPanel { Orientation = orientation };
+            RootPanel = newPanel;
+
+            if (target == DockTarget.Left || target == DockTarget.Top)
+            {
+                newPanel.AddChild(newGroup);
+                newPanel.AddChild(targetGroup);
+            }
+            else
+            {
+                newPanel.AddChild(targetGroup);
+                newPanel.AddChild(newGroup);
+            }
+        }
+        else
+        {
+            int index = parentPanel.Children.IndexOf(targetGroup);
+
+            if (parentPanel.Orientation == orientation)
+            {
+                // Same orientation, just insert
+                if (target == DockTarget.Left || target == DockTarget.Top)
+                {
+                    parentPanel.InsertChild(index, newGroup);
+                }
+                else
+                {
+                    parentPanel.InsertChild(index + 1, newGroup);
+                }
+            }
+            else
+            {
+                // Different orientation, need a new sub-panel
+                targetGroup.Detach();
+                var newPanel = new DockPanel { Orientation = orientation };
+
+                if (target == DockTarget.Left || target == DockTarget.Top)
+                {
+                    newPanel.AddChild(newGroup);
+                    newPanel.AddChild(targetGroup);
+                }
+                else
+                {
+                    newPanel.AddChild(targetGroup);
+                    newPanel.AddChild(newGroup);
+                }
+
+                parentPanel.InsertChild(index, newPanel);
+            }
+        }
     }
 
     private static DockGroup? FindFirstDockGroup(DockContainer container)
@@ -125,7 +188,7 @@ public class DockingLayout : Control
         return null;
     }
 
-    internal void ShowHighlight(DockGroup targetGroup, Windows.Foundation.Point position)
+    internal void ShowHighlight(DockGroup targetGroup, global::Windows.Foundation.Point position)
     {
         if (_highlight == null || _overlayCanvas == null) return;
 
@@ -147,10 +210,10 @@ public class DockingLayout : Control
         }
 
         var transform = targetGroup.TransformToVisual(_overlayCanvas);
-        var point = transform.TransformPoint(new Windows.Foundation.Point(x, y));
+        var point = transform.TransformPoint(new global::Windows.Foundation.Point(x, y));
 
-        Canvas.SetLeft(_highlight, point.X);
-        Canvas.SetTop(_highlight, point.Y);
+        Microsoft.UI.Xaml.Controls.Canvas.SetLeft(_highlight, point.X);
+        Microsoft.UI.Xaml.Controls.Canvas.SetTop(_highlight, point.Y);
         _highlight.Width = width;
         _highlight.Height = height;
     }
@@ -160,10 +223,12 @@ public class DockingLayout : Control
         if (_highlight != null) _highlight.Visibility = Visibility.Collapsed;
     }
 
-    internal void HandleDrop(DockDocument doc, DockGroup targetGroup, Windows.Foundation.Point position)
+    internal void HandleDrop(DockDocument doc, DockGroup targetGroup, global::Windows.Foundation.Point position)
     {
         HideHighlight();
         var target = CalculateDockTarget(targetGroup, position);
+
+        doc.Detach();
 
         if (target == DockTarget.Center)
         {
@@ -171,34 +236,11 @@ public class DockingLayout : Control
         }
         else
         {
-            // Split logic: create new DockPanel, move targetGroup and doc into it
-            var parentPanel = targetGroup.Owner as DockPanel;
-            if (parentPanel != null)
-            {
-                int index = parentPanel.Children.IndexOf(targetGroup);
-                targetGroup.Detach();
-
-                var newPanel = new DockPanel { Orientation = (target == DockTarget.Left || target == DockTarget.Right) ? Orientation.Horizontal : Orientation.Vertical };
-                var newGroup = new DockGroup();
-                newGroup.AddChild(doc);
-
-                if (target == DockTarget.Left || target == DockTarget.Top)
-                {
-                    newPanel.AddChild(newGroup);
-                    newPanel.AddChild(targetGroup);
-                }
-                else
-                {
-                    newPanel.AddChild(targetGroup);
-                    newPanel.AddChild(newGroup);
-                }
-
-                parentPanel.Children.Insert(index, newPanel);
-            }
+            SplitGroup(targetGroup, doc, target);
         }
     }
 
-    private DockTarget CalculateDockTarget(DockGroup group, Windows.Foundation.Point position)
+    private DockTarget CalculateDockTarget(DockGroup group, global::Windows.Foundation.Point position)
     {
         double w = group.ActualWidth;
         double h = group.ActualHeight;
@@ -214,6 +256,7 @@ public class DockingLayout : Control
 
     internal void CreateFloatingWindow(DockDocument doc)
     {
+        doc.Detach();
         // To be implemented in Task 6
     }
 }

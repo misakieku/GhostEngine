@@ -2,14 +2,32 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Ghost.Editor.View.Controls.Docking;
 
+/// <summary>
+/// Base class for all dockable modules in the docking system.
+/// </summary>
 public abstract class DockModule : Control
 {
     public DockContainer? Owner { get; internal set; }
     
+    private DockingLayout? _root;
+
     /// <summary>
     /// Gets or sets the root docking layout this module belongs to.
     /// </summary>
-    public DockingLayout? Root { get; internal set; }
+    public virtual DockingLayout? Root
+    {
+        get => _root;
+        internal set
+        {
+            if (_root != value)
+            {
+                _root = value;
+                OnRootChanged();
+            }
+        }
+    }
+
+    protected virtual void OnRootChanged() { }
     
     public void Detach()
     {

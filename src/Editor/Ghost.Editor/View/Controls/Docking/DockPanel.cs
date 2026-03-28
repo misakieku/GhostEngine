@@ -41,6 +41,27 @@ public class DockPanel : DockContainer
         UpdateLayoutStructure();
     }
 
+    protected override void CheckCleanup()
+    {
+        if (Children.Count == 0)
+        {
+            base.CheckCleanup();
+        }
+        else if (Children.Count == 1)
+        {
+            var child = Children[0];
+            var owner = Owner;
+
+            if (owner != null)
+            {
+                int index = owner.Children.IndexOf(this);
+                owner.RemoveChild(this);
+                child.Detach();
+                owner.InsertChild(index, child);
+            }
+        }
+    }
+
     private static void OnOrientationChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         ((DockPanel)d).UpdateLayoutStructure();
@@ -68,7 +89,7 @@ public class DockPanel : DockContainer
                 if (i < Children.Count - 1)
                 {
                     _grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                    var splitter = new GridSplitter { ResizeDirection = GridSplitter.GridResizeDirection.Columns, Width = SPLITTER_THICKNESS };
+                    var splitter = new CommunityToolkit.WinUI.Controls.GridSplitter { ResizeDirection = CommunityToolkit.WinUI.Controls.GridSplitter.GridResizeDirection.Columns, Width = SPLITTER_THICKNESS };
                     Grid.SetColumn(splitter, i * 2 + 1);
                     _grid.Children.Add(splitter);
                 }
@@ -86,7 +107,7 @@ public class DockPanel : DockContainer
                 if (i < Children.Count - 1)
                 {
                     _grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                    var splitter = new GridSplitter { ResizeDirection = GridSplitter.GridResizeDirection.Rows, Height = SPLITTER_THICKNESS };
+                    var splitter = new CommunityToolkit.WinUI.Controls.GridSplitter { ResizeDirection = CommunityToolkit.WinUI.Controls.GridSplitter.GridResizeDirection.Rows, Height = SPLITTER_THICKNESS };
                     Grid.SetRow(splitter, i * 2 + 1);
                     _grid.Children.Add(splitter);
                 }

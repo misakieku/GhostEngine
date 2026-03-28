@@ -3,6 +3,9 @@ using System.Collections.ObjectModel;
 
 namespace Ghost.Editor.View.Controls.Docking;
 
+/// <summary>
+/// Base class for containers that can hold other dock modules.
+/// </summary>
 public abstract class DockContainer : DockModule
 {
     private readonly ObservableCollection<DockModule> _children = new();
@@ -20,6 +23,11 @@ public abstract class DockContainer : DockModule
     }
 
     public virtual void AddChild(DockModule module)
+    {
+        InsertChild(_children.Count, module);
+    }
+
+    public virtual void InsertChild(int index, DockModule module)
     {
         ArgumentNullException.ThrowIfNull(module);
 
@@ -42,7 +50,8 @@ public abstract class DockContainer : DockModule
 
         module.Owner?.RemoveChild(module);
         module.Owner = this;
-        _children.Add(module);
+        module.Root = Root;
+        _children.Insert(index, module);
     }
 
     public virtual void RemoveChild(DockModule module)
@@ -52,6 +61,16 @@ public abstract class DockContainer : DockModule
         if (_children.Remove(module))
         {
             module.Owner = null;
+            module.Root = null;
+            CheckCleanup();
+        }
+    }
+
+    protected virtual void CheckCleanup()
+    {
+        if (_children.Count == 0)
+        {
+            Owner?.RemoveChild(this);
         }
     }
 
@@ -60,8 +79,17 @@ public abstract class DockContainer : DockModule
         foreach (var child in _children)
         {
             child.Owner = null;
+            child.Root = null;
         }
         _children.Clear();
+    }
+
+    protected override void OnRootChanged()
+    {
+        foreach (var child in _children)
+        {
+            child.Root = Root;
+        }
     }
     
     protected virtual void OnChildrenUpdated() { }

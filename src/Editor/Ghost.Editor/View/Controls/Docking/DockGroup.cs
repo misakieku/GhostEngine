@@ -4,6 +4,9 @@ using Microsoft.UI.Xaml.Data;
 
 namespace Ghost.Editor.View.Controls.Docking;
 
+/// <summary>
+/// A container that displays its children (documents) as tabs.
+/// </summary>
 [TemplatePart(Name = PART_TAB_VIEW, Type = typeof(TabView))]
 public partial class DockGroup : DockContainer
 {
@@ -27,9 +30,31 @@ public partial class DockGroup : DockContainer
         base.AddChild(module);
     }
 
+    public override void InsertChild(int index, DockModule module)
+    {
+        ArgumentNullException.ThrowIfNull(module);
+
+        if (module is not DockDocument)
+        {
+            throw new ArgumentException($"{nameof(DockGroup)} only accepts {nameof(DockDocument)} children.", nameof(module));
+        }
+
+        base.InsertChild(index, module);
+    }
+
     protected override void OnApplyTemplate()
     {
         base.OnApplyTemplate();
+
+        if (_tabView != null)
+        {
+            _tabView.TabDragStarting -= OnTabDragStarting;
+            _tabView.TabDroppedOutside -= OnTabDroppedOutside;
+            _tabView.DragOver -= OnDragOver;
+            _tabView.Drop -= OnDrop;
+            _tabView.DragLeave -= OnDragLeave;
+        }
+
         _tabView = GetTemplateChild(PART_TAB_VIEW) as TabView;
 
         if (_tabView != null)
@@ -49,7 +74,6 @@ public partial class DockGroup : DockContainer
         if (args.Tab.Tag is DockDocument doc)
         {
             args.Data.Properties.Add("DockDocument", doc);
-            doc.Detach();
         }
     }
 
@@ -65,7 +89,7 @@ public partial class DockGroup : DockContainer
     {
         if (e.DataView.Properties.ContainsKey("DockDocument"))
         {
-            e.AcceptedOperation = Windows.ApplicationModel.DataTransfer.DataPackageOperation.Move;
+            e.AcceptedOperation = global::Windows.ApplicationModel.DataTransfer.DataPackageOperation.Move;
             Root?.ShowHighlight(this, e.GetPosition(this));
         }
     }
