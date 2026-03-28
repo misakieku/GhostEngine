@@ -1,5 +1,4 @@
 using Ghost.Editor.Core.Controls.Internal.Docking;
-using Microsoft.UI.Xaml.Controls;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Ghost.UnitTest;
@@ -50,7 +49,7 @@ public class DockingModelTest
         {
             thrown = true;
         }
-        Assert.IsTrue(thrown);
+        Assert.IsTrue(thrown, "Should have thrown InvalidOperationException due to cycle.");
     }
 
     [TestMethod]

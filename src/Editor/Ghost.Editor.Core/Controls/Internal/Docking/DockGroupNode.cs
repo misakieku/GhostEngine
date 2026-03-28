@@ -15,16 +15,19 @@ public partial class DockGroupNode : DockNode
     [ObservableProperty]
     public partial Orientation Orientation { get; set; }
 
+    private readonly ObservableCollection<DockNode> _children = new();
+
     /// <summary>
     /// Gets the collection of child nodes.
     /// </summary>
-    public ObservableCollection<DockNode> Children { get; } = new();
+    public ReadOnlyObservableCollection<DockNode> Children { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DockGroupNode"/> class.
     /// </summary>
     public DockGroupNode()
     {
+        Children = new ReadOnlyObservableCollection<DockNode>(_children);
         Orientation = Orientation.Horizontal;
     }
 
@@ -35,7 +38,6 @@ public partial class DockGroupNode : DockNode
     /// <exception cref="ArgumentNullException">Thrown if node is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown if adding the node would create a cycle or if adding self.</exception>
     public void AddChild(DockNode node)
-
     {
         ArgumentNullException.ThrowIfNull(node);
 
@@ -44,7 +46,7 @@ public partial class DockGroupNode : DockNode
             throw new InvalidOperationException("Cannot add a node to itself.");
         }
 
-        if (Children.Contains(node))
+        if (_children.Contains(node))
         {
             return;
         }
@@ -66,7 +68,7 @@ public partial class DockGroupNode : DockNode
         }
 
         node.Parent = this;
-        Children.Add(node);
+        _children.Add(node);
     }
 
     /// <summary>
@@ -75,7 +77,7 @@ public partial class DockGroupNode : DockNode
     /// <param name="node">The node to remove.</param>
     public void RemoveChild(DockNode node)
     {
-        if (Children.Remove(node))
+        if (_children.Remove(node))
         {
             node.Parent = null;
         }
