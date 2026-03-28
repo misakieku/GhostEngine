@@ -30,6 +30,7 @@ public class DockingLayout : Control
 
     private Canvas? _overlayCanvas;
     private DockRegionHighlight? _highlight;
+    private readonly List<FloatingWindow> _floatingWindows = new();
 
     public DockingLayout()
     {
@@ -113,16 +114,36 @@ public class DockingLayout : Control
     private void SplitGroup(DockGroup targetGroup, DockDocument doc, DockTarget target)
     {
         var parentPanel = targetGroup.Owner as DockPanel;
+
+        if (parentPanel == null)
+        {
+            throw new InvalidOperationException("targetGroup must be owned by a DockPanel to be split.");
+        }
+
         var newGroup = new DockGroup();
         newGroup.AddChild(doc);
 
         var orientation = (target == DockTarget.Left || target == DockTarget.Right) ? Orientation.Horizontal : Orientation.Vertical;
 
-        if (parentPanel == null)
+        int index = parentPanel.Children.IndexOf(targetGroup);
+
+        if (parentPanel.Orientation == orientation)
         {
-            // targetGroup is the root
+            // Same orientation, just insert
+            if (target == DockTarget.Left || target == DockTarget.Top)
+            {
+                parentPanel.InsertChild(index, newGroup);
+            }
+            else
+            {
+                parentPanel.InsertChild(index + 1, newGroup);
+            }
+        }
+        else
+        {
+            // Different orientation, need a new sub-panel
             var newPanel = new DockPanel { Orientation = orientation };
-            RootPanel = newPanel;
+            parentPanel.ReplaceChild(targetGroup, newPanel);
 
             if (target == DockTarget.Left || target == DockTarget.Top)
             {
@@ -133,40 +154,6 @@ public class DockingLayout : Control
             {
                 newPanel.AddChild(targetGroup);
                 newPanel.AddChild(newGroup);
-            }
-        }
-        else
-        {
-            int index = parentPanel.Children.IndexOf(targetGroup);
-
-            if (parentPanel.Orientation == orientation)
-            {
-                // Same orientation, just insert
-                if (target == DockTarget.Left || target == DockTarget.Top)
-                {
-                    parentPanel.InsertChild(index, newGroup);
-                }
-                else
-                {
-                    parentPanel.InsertChild(index + 1, newGroup);
-                }
-            }
-            else
-            {
-                // Different orientation, need a new sub-panel
-                var newPanel = new DockPanel { Orientation = orientation };
-                parentPanel.ReplaceChild(targetGroup, newPanel);
-
-                if (target == DockTarget.Left || target == DockTarget.Top)
-                {
-                    newPanel.AddChild(newGroup);
-                    newPanel.AddChild(targetGroup);
-                }
-                else
-                {
-                    newPanel.AddChild(targetGroup);
-                    newPanel.AddChild(newGroup);
-                }
             }
         }
     }
@@ -262,6 +249,8 @@ public class DockingLayout : Control
     internal void CreateFloatingWindow(DockDocument doc)
     {
         var window = new FloatingWindow(doc);
+        _floatingWindows.Add(window);
+        window.Closed += (s, e) => _floatingWindows.Remove(window);
         window.Activate();
     }
 }
