@@ -1,11 +1,14 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
+using Microsoft.UI.Xaml.Data;
+
 namespace Ghost.Editor.View.Controls.Docking;
 
-[TemplatePart(Name = "PART_TabView", Type = typeof(TabView))]
-public class DockGroup : DockContainer
+[TemplatePart(Name = PART_TabView, Type = typeof(TabView))]
+public partial class DockGroup : DockContainer
 {
+    private const string PART_TabView = "PART_TabView";
     private TabView? _tabView;
 
     public DockGroup()
@@ -16,7 +19,7 @@ public class DockGroup : DockContainer
     protected override void OnApplyTemplate()
     {
         base.OnApplyTemplate();
-        _tabView = GetTemplateChild("PART_TabView") as TabView;
+        _tabView = GetTemplateChild(PART_TabView) as TabView;
         UpdateTabs();
     }
 
@@ -36,10 +39,23 @@ public class DockGroup : DockContainer
             {
                 var tabItem = new TabViewItem
                 {
-                    Header = doc.Title,
-                    Content = doc.Content,
                     Tag = doc
                 };
+
+                tabItem.SetBinding(TabViewItem.HeaderProperty, new Binding
+                {
+                    Source = doc,
+                    Path = new PropertyPath(nameof(DockDocument.Title)),
+                    Mode = BindingMode.OneWay
+                });
+
+                tabItem.SetBinding(ContentControl.ContentProperty, new Binding
+                {
+                    Source = doc,
+                    Path = new PropertyPath(nameof(DockDocument.Content)),
+                    Mode = BindingMode.OneWay
+                });
+
                 _tabView.TabItems.Add(tabItem);
             }
         }
