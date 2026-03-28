@@ -4,7 +4,6 @@ using System.Diagnostics;
 using Ghost.Editor.Core.Controls.Internal.Docking;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Data;
 
 namespace Ghost.Editor.View.Controls;
@@ -47,7 +46,7 @@ public sealed partial class DockLayout : Control
     }
 
     public static readonly DependencyProperty RootProperty =
-        DependencyProperty.Register("Root", typeof(DockGroupNode), typeof(DockLayout), new PropertyMetadata(null, OnRootChanged));
+        DependencyProperty.Register(nameof(Root), typeof(DockGroupNode), typeof(DockLayout), new PropertyMetadata(null, OnRootChanged));
 
     private static void OnRootChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
