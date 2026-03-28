@@ -72,7 +72,6 @@ internal static class TabTearOffService
 
     private static void RestoreSelection(object? container, object? selection)
     {
-        if (selection == null) return;
         if (container is DockPanelNode panel) panel.SelectedItem = selection;
         else if (container is TabView tabView) tabView.SelectedItem = selection;
     }

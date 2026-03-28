@@ -23,15 +23,6 @@ internal sealed partial class DockWindow : WindowEx
 
     private void OnTabTornOff(object? sender, TabTornOffEventArgs e)
     {
-        try
-        {
-            App.CreateAndShowDockWindow(e.TabContent);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex);
-            // The service handles rollback if this was called from TryTearOffTab
-            throw; 
-        }
+        App.CreateAndShowDockWindow(e.TabContent);
     }
 }
