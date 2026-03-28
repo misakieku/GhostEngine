@@ -16,7 +16,7 @@ public class DockingModelTest
         group.AddChild(child);
 
         Assert.AreEqual(group, child.Parent);
-        Assert.IsTrue(group.Children.Contains(child));
+        CollectionAssert.Contains(group.Children, child);
     }
 
     [TestMethod]
@@ -30,8 +30,8 @@ public class DockingModelTest
         group2.AddChild(child);
 
         Assert.AreEqual(group2, child.Parent);
-        Assert.IsFalse(group1.Children.Contains(child));
-        Assert.IsTrue(group2.Children.Contains(child));
+        CollectionAssert.DoesNotContain(group1.Children, child);
+        CollectionAssert.Contains(group2.Children, child);
     }
 
     [TestMethod]
@@ -63,7 +63,7 @@ public class DockingModelTest
         group.RemoveChild(child);
 
         Assert.IsNull(child.Parent);
-        Assert.IsFalse(group.Children.Contains(child));
+        CollectionAssert.DoesNotContain(group.Children, child);
     }
 
     [TestMethod]
@@ -119,5 +119,60 @@ public class DockingModelTest
         panel.Items.Remove(item1);
         Assert.AreEqual(-1, panel.SelectedIndex);
         Assert.IsNull(panel.SelectedItem);
+    }
+
+    [TestMethod]
+    public void TestPanel_RemoveMiddleItem_MaintainsSelection()
+    {
+        var panel = new DockPanelNode();
+        var item1 = new object();
+        var item2 = new object();
+        var item3 = new object();
+
+        panel.Items.Add(item1);
+        panel.Items.Add(item2);
+        panel.Items.Add(item3);
+
+        panel.SelectedItem = item2;
+        Assert.AreEqual(1, panel.SelectedIndex);
+
+        // Remove item1 (before selection)
+        panel.Items.Remove(item1);
+        Assert.AreEqual(item2, panel.SelectedItem);
+        Assert.AreEqual(0, panel.SelectedIndex);
+    }
+
+    [TestMethod]
+    public void TestPanel_RemoveSelectedItem_UpdatesSelection()
+    {
+        var panel = new DockPanelNode();
+        var item1 = new object();
+        var item2 = new object();
+
+        panel.Items.Add(item1);
+        panel.Items.Add(item2);
+
+        panel.SelectedItem = item1;
+        panel.Items.Remove(item1);
+
+        // Should fallback to next available item at same index
+        Assert.AreEqual(item2, panel.SelectedItem);
+        Assert.AreEqual(0, panel.SelectedIndex);
+    }
+
+    [TestMethod]
+    public void TestPanel_SetInvalidSelectedItem_ResetsSelection()
+    {
+        var panel = new DockPanelNode();
+        var item1 = new object();
+        var item2 = new object();
+
+        panel.Items.Add(item1);
+        panel.SelectedItem = item1;
+
+        panel.SelectedItem = item2; // Not in collection
+
+        Assert.IsNull(panel.SelectedItem);
+        Assert.AreEqual(-1, panel.SelectedIndex);
     }
 }

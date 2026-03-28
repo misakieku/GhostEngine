@@ -4,19 +4,38 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Ghost.Editor.Core.Controls.Internal.Docking;
 
+/// <summary>
+/// A docking node that contains multiple children and arranges them in a specific orientation.
+/// </summary>
 public partial class DockGroupNode : DockNode
 {
+    /// <summary>
+    /// Gets or sets the layout orientation of the children.
+    /// </summary>
     [ObservableProperty]
     public partial Orientation Orientation { get; set; }
 
+    /// <summary>
+    /// Gets the collection of child nodes.
+    /// </summary>
+    public ObservableCollection<DockNode> Children { get; } = new();
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DockGroupNode"/> class.
+    /// </summary>
     public DockGroupNode()
     {
         Orientation = Orientation.Horizontal;
     }
 
-    public ObservableCollection<DockNode> Children { get; } = new();
-
+    /// <summary>
+    /// Adds a child node to this group, enforcing tree invariants.
+    /// </summary>
+    /// <param name="node">The node to add.</param>
+    /// <exception cref="ArgumentNullException">Thrown if node is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if adding the node would create a cycle or if adding self.</exception>
     public void AddChild(DockNode node)
+
     {
         ArgumentNullException.ThrowIfNull(node);
 
@@ -50,6 +69,10 @@ public partial class DockGroupNode : DockNode
         Children.Add(node);
     }
 
+    /// <summary>
+    /// Removes a child node from this group.
+    /// </summary>
+    /// <param name="node">The node to remove.</param>
     public void RemoveChild(DockNode node)
     {
         if (Children.Remove(node))
