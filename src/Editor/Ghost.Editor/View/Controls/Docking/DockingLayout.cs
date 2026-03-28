@@ -3,7 +3,6 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Ghost.Editor.View.Controls.Docking;
 
-[TemplatePart(Name = "PART_Content", Type = typeof(ContentPresenter))]
 [TemplatePart(Name = "PART_OverlayCanvas", Type = typeof(Canvas))]
 [TemplatePart(Name = "PART_Highlight", Type = typeof(DockRegionHighlight))]
 public class DockingLayout : Control
@@ -17,7 +16,9 @@ public class DockingLayout : Control
         set => SetValue(RootPanelProperty, value);
     }
 
+    // Used in Task 5 for drag and drop highlight
     private Canvas? _overlayCanvas;
+    // Used in Task 5 for drag and drop highlight
     private DockRegionHighlight? _highlight;
 
     public DockingLayout()
@@ -50,7 +51,11 @@ public class DockingLayout : Control
 
     public void AddDocument(DockDocument document, DockTarget target, DockGroup? targetGroup = null)
     {
-        // TODO: Handle non-Center targets (Task 5)
+        if (target != DockTarget.Center)
+        {
+            throw new NotImplementedException("Target docking will be implemented in Task 5");
+        }
+
         if (RootPanel == null)
         {
             RootPanel = new DockPanel();
@@ -65,7 +70,18 @@ public class DockingLayout : Control
                 RootPanel.AddChild(group);
                 return;
             }
-            targetGroup = RootPanel.Children[0] as DockGroup;
+
+            if (RootPanel.Children[0] is DockGroup existingGroup)
+            {
+                targetGroup = existingGroup;
+            }
+            else
+            {
+                var group = new DockGroup();
+                group.AddChild(document);
+                RootPanel.AddChild(group);
+                return;
+            }
         }
 
         if (targetGroup != null)
