@@ -4,8 +4,10 @@ using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.Services;
 using Ghost.Editor.Core.Controls.Internal.Docking;
 using Ghost.Editor.View.Controls;
+using Ghost.Editor.View.Pages.EngineEditor;
 using Ghost.Editor.ViewModels.Windows;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Windows.ApplicationModel;
 using WinUIEx;
 

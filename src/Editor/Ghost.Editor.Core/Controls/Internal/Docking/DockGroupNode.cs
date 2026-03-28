@@ -42,27 +42,45 @@ public partial class DockGroupNode : DockNode
     private void OnChildrenChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         // Maintain Sizes collection to match Children
-        if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems != null)
+        switch (e.Action)
         {
-            for (int i = 0; i < e.NewItems.Count; i++)
-            {
-                Sizes.Insert(e.NewStartingIndex + i, new Microsoft.UI.Xaml.GridLength(1, Microsoft.UI.Xaml.GridUnitType.Star));
-            }
-        }
-        else if (e.Action == NotifyCollectionChangedAction.Remove && e.OldItems != null)
-        {
-            for (int i = 0; i < e.OldItems.Count; i++)
-            {
-                Sizes.RemoveAt(e.OldStartingIndex);
-            }
-        }
-        else if (e.Action == NotifyCollectionChangedAction.Reset)
-        {
-            Sizes.Clear();
-            foreach (var _ in _children)
-            {
-                Sizes.Add(new Microsoft.UI.Xaml.GridLength(1, Microsoft.UI.Xaml.GridUnitType.Star));
-            }
+            case NotifyCollectionChangedAction.Add:
+                if (e.NewItems != null)
+                {
+                    for (int i = 0; i < e.NewItems.Count; i++)
+                    {
+                        Sizes.Insert(e.NewStartingIndex + i, new Microsoft.UI.Xaml.GridLength(1, Microsoft.UI.Xaml.GridUnitType.Star));
+                    }
+                }
+                break;
+            case NotifyCollectionChangedAction.Remove:
+                if (e.OldItems != null)
+                {
+                    for (int i = 0; i < e.OldItems.Count; i++)
+                    {
+                        Sizes.RemoveAt(e.OldStartingIndex);
+                    }
+                }
+                break;
+            case NotifyCollectionChangedAction.Move:
+                Sizes.Move(e.OldStartingIndex, e.NewStartingIndex);
+                break;
+            case NotifyCollectionChangedAction.Replace:
+                if (e.NewItems != null)
+                {
+                    for (int i = 0; i < e.NewItems.Count; i++)
+                    {
+                        Sizes[e.NewStartingIndex + i] = new Microsoft.UI.Xaml.GridLength(1, Microsoft.UI.Xaml.GridUnitType.Star);
+                    }
+                }
+                break;
+            case NotifyCollectionChangedAction.Reset:
+                Sizes.Clear();
+                foreach (var _ in _children)
+                {
+                    Sizes.Add(new Microsoft.UI.Xaml.GridLength(1, Microsoft.UI.Xaml.GridUnitType.Star));
+                }
+                break;
         }
     }
 

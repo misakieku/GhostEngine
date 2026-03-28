@@ -2,7 +2,6 @@ using Ghost.Editor.Core.Controls.Internal.Docking;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
-using System.Diagnostics;
 
 namespace Ghost.Editor.View.Controls;
 
