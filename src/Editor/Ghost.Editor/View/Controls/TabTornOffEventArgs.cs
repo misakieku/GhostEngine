@@ -10,8 +10,14 @@ public sealed class TabTornOffEventArgs : EventArgs
     /// </summary>
     public object TabContent { get; }
 
-    public TabTornOffEventArgs(object tabContent)
+    /// <summary>
+    /// Gets the source node the tab is being torn off from.
+    /// </summary>
+    public object SourceNode { get; }
+
+    public TabTornOffEventArgs(object tabContent, object sourceNode)
     {
         TabContent = tabContent;
+        SourceNode = sourceNode;
     }
 }

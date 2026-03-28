@@ -45,7 +45,11 @@ internal sealed partial class EngineEditorWindow : WindowEx
         {
             var result = TabTearOffService.TryTearOffTab(list, args.Item, sender);
             
-            if (!result.IsSuccess)
+            if (result.IsSuccess)
+            {
+                App.CreateAndShowDockWindow(args.Item);
+            }
+            else
             {
                 Logger.LogWarning($"Tab tear-off failed: {result.Message}");
             }

@@ -17,5 +17,13 @@ internal sealed partial class DockWindow : WindowEx
         rootGroup.AddChild(panel);
         
         PART_DockLayout.Root = rootGroup;
+        PART_DockLayout.TabTornOff += OnTabTornOff;
     }
+
+    private void OnTabTornOff(object? sender, TabTornOffEventArgs e)
+    {
+        App.CreateAndShowDockWindow(e.TabContent);
+    }
+}
+
 }

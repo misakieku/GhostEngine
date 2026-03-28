@@ -33,7 +33,8 @@ internal static class TabTearOffService
 
             try
             {
-                App.CreateAndShowDockWindow(tabItem);
+                // We no longer create the window here to decouple the service from the app shell.
+                // The caller is responsible for window creation (e.g. via an event handler).
                 return Result.Success();
             }
             catch (Exception ex)
@@ -49,10 +50,10 @@ internal static class TabTearOffService
                 catch (Exception rollbackEx)
                 {
                     Logger.LogError(rollbackEx);
-                    return Result.Failure($"Failed to create tear-off window and rollback failed: {ex.Message}. Rollback error: {rollbackEx.Message}");
+                    return Result.Failure($"Failed to tear off tab and rollback failed: {ex.Message}. Rollback error: {rollbackEx.Message}");
                 }
                 
-                return Result.Failure($"Failed to create tear-off window: {ex.Message}");
+                return Result.Failure($"Failed to tear off tab: {ex.Message}");
             }
         }
         catch (Exception ex)

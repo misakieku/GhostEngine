@@ -297,18 +297,17 @@ public sealed partial class DockLayout : Control
         return tabView;
     }
 
-    private object? _draggedItem;
     private DockPosition _currentDropPosition = DockPosition.None;
 
     private record DockDragPayload(object Item, DockPanelNode SourceNode);
 
+    public event EventHandler<TabTornOffEventArgs>? TabTornOff;
+
     private void TabView_TabDragStarting(Microsoft.UI.Xaml.Controls.TabView sender, Microsoft.UI.Xaml.Controls.TabViewTabDragStartingEventArgs args)
     {
-        _draggedItem = args.Item;
-
-        if (_draggedItem != null && sender.Tag is DockPanelNode sourceNode)
+        if (args.Item != null && sender.Tag is DockPanelNode sourceNode)
         {
-            var payload = new DockDragPayload(_draggedItem, sourceNode);
+            var payload = new DockDragPayload(args.Item, sourceNode);
             args.Data.Properties.Add(DRAG_PROPERTY_DOCK_TAB, payload); // Identify our drag
         }
     }
@@ -316,7 +315,7 @@ public sealed partial class DockLayout : Control
     private void TabView_DragOver(object sender, DragEventArgs e)
     {
         if (e.DataView.Properties.TryGetValue(DRAG_PROPERTY_DOCK_TAB, out var payloadObj) && 
-            payloadObj is DockDragPayload payload &&
+            payloadObj is DockDragPayload &&
             sender is FrameworkElement targetElement)
         {
             e.AcceptedOperation = global::Windows.ApplicationModel.DataTransfer.DataPackageOperation.Move;
@@ -349,7 +348,6 @@ public sealed partial class DockLayout : Control
     private void ClearDragOperationState()
     {
         ClearOverlayState();
-        _draggedItem = null;
     }
 
     private void UpdateDropOverlay(FrameworkElement targetElement, DockPosition position)
@@ -441,6 +439,9 @@ public sealed partial class DockLayout : Control
 
                     if (result.IsSuccess)
                     {
+                        // Raise event to let the host handle window creation
+                        TabTornOff?.Invoke(this, new TabTornOffEventArgs(args.Item, sourceNode));
+                        
                         DockMutationEngine.CleanupEmptyNodes(sourceNode);
                     }
                     else
