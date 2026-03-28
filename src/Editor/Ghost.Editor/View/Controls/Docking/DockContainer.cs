@@ -4,67 +4,48 @@ namespace Ghost.Editor.View.Controls.Docking;
 
 public abstract class DockContainer : DockModule
 {
-    public ObservableCollection<DockModule> Children { get; } = new();
+    private readonly ObservableCollection<DockModule> _children = new();
+    public ReadOnlyObservableCollection<DockModule> Children { get; }
 
     protected DockContainer()
     {
-        Children.CollectionChanged += OnChildrenChanged;
+        Children = new ReadOnlyObservableCollection<DockModule>(_children);
+        _children.CollectionChanged += OnChildrenChanged;
     }
 
     private void OnChildrenChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
     {
-        if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Reset)
-        {
-            // Reset is tricky because e.OldItems is null.
-            // We should have handled this by clearing owners before Clear() was called,
-            // or by using a custom collection that notifies before clearing.
-            // For now, we'll just log or handle it if we can.
-        }
-
-        if (e.OldItems != null)
-        {
-            foreach (DockModule module in e.OldItems)
-            {
-                if (module.Owner == this)
-                {
-                    module.Owner = null;
-                }
-            }
-        }
-
-        if (e.NewItems != null)
-        {
-            foreach (DockModule module in e.NewItems)
-            {
-                // Re-parenting: if it has an owner, detach it
-                if (module.Owner != null && module.Owner != this)
-                {
-                    module.Owner.Children.Remove(module);
-                }
-                
-                module.Owner = this;
-                // module.Root = Root;
-            }
-        }
-        
         OnChildrenUpdated();
     }
 
     public void AddChild(DockModule module)
     {
-        if (Children.Contains(module))
+        if (module == this)
+            throw new System.ArgumentException("Cannot add a container to itself.", nameof(module));
+
+        if (_children.Contains(module))
             return;
 
-        Children.Add(module);
+        module.Owner?.RemoveChild(module);
+        module.Owner = this;
+        _children.Add(module);
+    }
+
+    public void RemoveChild(DockModule module)
+    {
+        if (_children.Remove(module))
+        {
+            module.Owner = null;
+        }
     }
 
     public void Clear()
     {
-        foreach (var child in Children)
+        foreach (var child in _children)
         {
             child.Owner = null;
         }
-        Children.Clear();
+        _children.Clear();
     }
     
     protected virtual void OnChildrenUpdated() { }
