@@ -1,4 +1,3 @@
-using Ghost.Editor.Core.Controls.Internal.Docking;
 using Microsoft.UI.Xaml.Controls;
 
 namespace Ghost.Editor.Core.Controls.Internal.Docking;
@@ -6,7 +5,7 @@ namespace Ghost.Editor.Core.Controls.Internal.Docking;
 /// <summary>
 /// Provides methods for mutating the docking layout tree.
 /// </summary>
-public static class DockMutationEngine
+internal static class DockMutationEngine
 {
     /// <summary>
     /// Applies the tree mutation for a drop operation.
@@ -14,6 +13,14 @@ public static class DockMutationEngine
     /// <returns>True if the mutation was applied; otherwise, false.</returns>
     public static bool TryApplyDropMutation(DockGroupNode root, DockPanelNode targetNode, DockPanelNode sourceNode, object item, DockPosition position)
     {
+        if (position == DockPosition.None) return false;
+
+        // Validate ancestry
+        if (!IsDescendantOf(root, targetNode) || !IsDescendantOf(root, sourceNode))
+        {
+            return false;
+        }
+
         if (position == DockPosition.Center)
         {
             if (!sourceNode.Items.Remove(item)) return false;
@@ -138,5 +145,16 @@ public static class DockMutationEngine
                 }
             }
         }
+    }
+
+    private static bool IsDescendantOf(DockGroupNode root, DockNode node)
+    {
+        var current = node.Parent;
+        while (current != null)
+        {
+            if (ReferenceEquals(current, root)) return true;
+            current = current.Parent;
+        }
+        return false;
     }
 }
