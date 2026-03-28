@@ -1,0 +1,51 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Entities.IEnableableComponent
+  commentId: T:Ghost.Entities.IEnableableComponent
+  id: IEnableableComponent
+  parent: Ghost.Entities
+  children: []
+  langs:
+  - csharp
+  - vb
+  name: IEnableableComponent
+  nameWithType: IEnableableComponent
+  fullName: Ghost.Entities.IEnableableComponent
+  type: Interface
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Component.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IEnableableComponent
+    path: src/Runtime/Ghost.Entities/Component.cs
+    startLine: 9
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: 'public interface IEnableableComponent : IComponent'
+    content.vb: Public Interface IEnableableComponent Inherits IComponent
+references:
+- uid: Ghost.Entities
+  commentId: N:Ghost.Entities
+  href: Ghost.html
+  name: Ghost.Entities
+  nameWithType: Ghost.Entities
+  fullName: Ghost.Entities
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Entities
+    name: Entities
+    href: Ghost.Entities.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Entities
+    name: Entities
+    href: Ghost.Entities.html

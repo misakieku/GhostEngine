@@ -1,0 +1,54 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Entities.IComponent
+  commentId: T:Ghost.Entities.IComponent
+  id: IComponent
+  parent: Ghost.Entities
+  children: []
+  langs:
+  - csharp
+  - vb
+  name: IComponent
+  nameWithType: IComponent
+  fullName: Ghost.Entities.IComponent
+  type: Interface
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/Component.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: IComponent
+    path: src/Runtime/Ghost.Entities/Component.cs
+    startLine: 8
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public interface IComponent
+    content.vb: Public Interface IComponent
+  derivedClasses:
+  - Ghost.Entities.ManagedEntityRef
+  - Ghost.Entities.Shared`1
+references:
+- uid: Ghost.Entities
+  commentId: N:Ghost.Entities
+  href: Ghost.html
+  name: Ghost.Entities
+  nameWithType: Ghost.Entities
+  fullName: Ghost.Entities
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Entities
+    name: Entities
+    href: Ghost.Entities.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Entities
+    name: Entities
+    href: Ghost.Entities.html

@@ -1,0 +1,652 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Entities.SystemGroup
+  commentId: T:Ghost.Entities.SystemGroup
+  id: SystemGroup
+  parent: Ghost.Entities
+  children:
+  - Ghost.Entities.SystemGroup.AddSystem``1
+  - Ghost.Entities.SystemGroup.Cleanup(Ghost.Entities.SystemAPI@)
+  - Ghost.Entities.SystemGroup.Initialize(Ghost.Entities.SystemAPI@)
+  - Ghost.Entities.SystemGroup.SortSystems
+  - Ghost.Entities.SystemGroup.Update(Ghost.Entities.SystemAPI@)
+  - Ghost.Entities.SystemGroup.World
+  langs:
+  - csharp
+  - vb
+  name: SystemGroup
+  nameWithType: SystemGroup
+  fullName: Ghost.Entities.SystemGroup
+  type: Class
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/System.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SystemGroup
+    path: src/Runtime/Ghost.Entities/System.cs
+    startLine: 178
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: 'public abstract class SystemGroup : ISystem'
+    content.vb: Public MustInherit Class SystemGroup Implements ISystem
+  inheritance:
+  - System.Object
+  derivedClasses:
+  - Ghost.Entities.DefaultSystemGroup
+  implements:
+  - Ghost.Entities.ISystem
+  inheritedMembers:
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.MemberwiseClone
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.ToString
+- uid: Ghost.Entities.SystemGroup.World
+  commentId: P:Ghost.Entities.SystemGroup.World
+  id: World
+  parent: Ghost.Entities.SystemGroup
+  langs:
+  - csharp
+  - vb
+  name: World
+  nameWithType: SystemGroup.World
+  fullName: Ghost.Entities.SystemGroup.World
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/System.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: World
+    path: src/Runtime/Ghost.Entities/System.cs
+    startLine: 186
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public World World { get; init; }
+    parameters: []
+    return:
+      type: Ghost.Entities.World
+    content.vb: Public Property World As World
+  overload: Ghost.Entities.SystemGroup.World*
+- uid: Ghost.Entities.SystemGroup.AddSystem``1
+  commentId: M:Ghost.Entities.SystemGroup.AddSystem``1
+  id: AddSystem``1
+  parent: Ghost.Entities.SystemGroup
+  langs:
+  - csharp
+  - vb
+  name: AddSystem<T>()
+  nameWithType: SystemGroup.AddSystem<T>()
+  fullName: Ghost.Entities.SystemGroup.AddSystem<T>()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/System.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AddSystem
+    path: src/Runtime/Ghost.Entities/System.cs
+    startLine: 276
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: 'public void AddSystem<T>() where T : ISystem, new()'
+    typeParameters:
+    - id: T
+    content.vb: Public Sub AddSystem(Of T As {ISystem, New})()
+  overload: Ghost.Entities.SystemGroup.AddSystem*
+  nameWithType.vb: SystemGroup.AddSystem(Of T)()
+  fullName.vb: Ghost.Entities.SystemGroup.AddSystem(Of T)()
+  name.vb: AddSystem(Of T)()
+- uid: Ghost.Entities.SystemGroup.SortSystems
+  commentId: M:Ghost.Entities.SystemGroup.SortSystems
+  id: SortSystems
+  parent: Ghost.Entities.SystemGroup
+  langs:
+  - csharp
+  - vb
+  name: SortSystems()
+  nameWithType: SystemGroup.SortSystems()
+  fullName: Ghost.Entities.SystemGroup.SortSystems()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/System.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SortSystems
+    path: src/Runtime/Ghost.Entities/System.cs
+    startLine: 283
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public void SortSystems()
+    content.vb: Public Sub SortSystems()
+  overload: Ghost.Entities.SystemGroup.SortSystems*
+- uid: Ghost.Entities.SystemGroup.Initialize(Ghost.Entities.SystemAPI@)
+  commentId: M:Ghost.Entities.SystemGroup.Initialize(Ghost.Entities.SystemAPI@)
+  id: Initialize(Ghost.Entities.SystemAPI@)
+  parent: Ghost.Entities.SystemGroup
+  langs:
+  - csharp
+  - vb
+  name: Initialize(ref readonly SystemAPI)
+  nameWithType: SystemGroup.Initialize(ref readonly SystemAPI)
+  fullName: Ghost.Entities.SystemGroup.Initialize(ref readonly Ghost.Entities.SystemAPI)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/System.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Initialize
+    path: src/Runtime/Ghost.Entities/System.cs
+    startLine: 309
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  example: []
+  syntax:
+    content: public void Initialize(ref readonly SystemAPI systemAPI)
+    parameters:
+    - id: systemAPI
+      type: Ghost.Entities.SystemAPI
+    content.vb: Public Sub Initialize(systemAPI As SystemAPI)
+  overload: Ghost.Entities.SystemGroup.Initialize*
+  implements:
+  - Ghost.Entities.ISystem.Initialize(Ghost.Entities.SystemAPI@)
+  nameWithType.vb: SystemGroup.Initialize(SystemAPI)
+  fullName.vb: Ghost.Entities.SystemGroup.Initialize(Ghost.Entities.SystemAPI)
+  name.vb: Initialize(SystemAPI)
+- uid: Ghost.Entities.SystemGroup.Update(Ghost.Entities.SystemAPI@)
+  commentId: M:Ghost.Entities.SystemGroup.Update(Ghost.Entities.SystemAPI@)
+  id: Update(Ghost.Entities.SystemAPI@)
+  parent: Ghost.Entities.SystemGroup
+  langs:
+  - csharp
+  - vb
+  name: Update(ref readonly SystemAPI)
+  nameWithType: SystemGroup.Update(ref readonly SystemAPI)
+  fullName: Ghost.Entities.SystemGroup.Update(ref readonly Ghost.Entities.SystemAPI)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/System.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Update
+    path: src/Runtime/Ghost.Entities/System.cs
+    startLine: 319
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  example: []
+  syntax:
+    content: public void Update(ref readonly SystemAPI systemAPI)
+    parameters:
+    - id: systemAPI
+      type: Ghost.Entities.SystemAPI
+    content.vb: Public Sub Update(systemAPI As SystemAPI)
+  overload: Ghost.Entities.SystemGroup.Update*
+  implements:
+  - Ghost.Entities.ISystem.Update(Ghost.Entities.SystemAPI@)
+  nameWithType.vb: SystemGroup.Update(SystemAPI)
+  fullName.vb: Ghost.Entities.SystemGroup.Update(Ghost.Entities.SystemAPI)
+  name.vb: Update(SystemAPI)
+- uid: Ghost.Entities.SystemGroup.Cleanup(Ghost.Entities.SystemAPI@)
+  commentId: M:Ghost.Entities.SystemGroup.Cleanup(Ghost.Entities.SystemAPI@)
+  id: Cleanup(Ghost.Entities.SystemAPI@)
+  parent: Ghost.Entities.SystemGroup
+  langs:
+  - csharp
+  - vb
+  name: Cleanup(ref readonly SystemAPI)
+  nameWithType: SystemGroup.Cleanup(ref readonly SystemAPI)
+  fullName: Ghost.Entities.SystemGroup.Cleanup(ref readonly Ghost.Entities.SystemAPI)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/System.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Cleanup
+    path: src/Runtime/Ghost.Entities/System.cs
+    startLine: 329
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  example: []
+  syntax:
+    content: public void Cleanup(ref readonly SystemAPI systemAPI)
+    parameters:
+    - id: systemAPI
+      type: Ghost.Entities.SystemAPI
+    content.vb: Public Sub Cleanup(systemAPI As SystemAPI)
+  overload: Ghost.Entities.SystemGroup.Cleanup*
+  implements:
+  - Ghost.Entities.ISystem.Cleanup(Ghost.Entities.SystemAPI@)
+  nameWithType.vb: SystemGroup.Cleanup(SystemAPI)
+  fullName.vb: Ghost.Entities.SystemGroup.Cleanup(Ghost.Entities.SystemAPI)
+  name.vb: Cleanup(SystemAPI)
+references:
+- uid: Ghost.Entities
+  commentId: N:Ghost.Entities
+  href: Ghost.html
+  name: Ghost.Entities
+  nameWithType: Ghost.Entities
+  fullName: Ghost.Entities
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Entities
+    name: Entities
+    href: Ghost.Entities.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Entities
+    name: Entities
+    href: Ghost.Entities.html
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: Ghost.Entities.ISystem
+  commentId: T:Ghost.Entities.ISystem
+  parent: Ghost.Entities
+  href: Ghost.Entities.ISystem.html
+  name: ISystem
+  nameWithType: ISystem
+  fullName: Ghost.Entities.ISystem
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  name: Equals(object)
+  nameWithType: object.Equals(object)
+  fullName: object.Equals(object)
+  nameWithType.vb: Object.Equals(Object)
+  fullName.vb: Object.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  name: GetHashCode()
+  nameWithType: object.GetHashCode()
+  fullName: object.GetHashCode()
+  nameWithType.vb: Object.GetHashCode()
+  fullName.vb: Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  name: MemberwiseClone()
+  nameWithType: object.MemberwiseClone()
+  fullName: object.MemberwiseClone()
+  nameWithType.vb: Object.MemberwiseClone()
+  fullName.vb: Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  name: ToString()
+  nameWithType: object.ToString()
+  fullName: object.ToString()
+  nameWithType.vb: Object.ToString()
+  fullName.vb: Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Ghost.Entities.SystemGroup.World*
+  commentId: Overload:Ghost.Entities.SystemGroup.World
+  href: Ghost.Entities.SystemGroup.html#Ghost_Entities_SystemGroup_World
+  name: World
+  nameWithType: SystemGroup.World
+  fullName: Ghost.Entities.SystemGroup.World
+- uid: Ghost.Entities.World
+  commentId: T:Ghost.Entities.World
+  parent: Ghost.Entities
+  href: Ghost.Entities.World.html
+  name: World
+  nameWithType: World
+  fullName: Ghost.Entities.World
+- uid: Ghost.Entities.SystemGroup.AddSystem*
+  commentId: Overload:Ghost.Entities.SystemGroup.AddSystem
+  href: Ghost.Entities.SystemGroup.html#Ghost_Entities_SystemGroup_AddSystem__1
+  name: AddSystem
+  nameWithType: SystemGroup.AddSystem
+  fullName: Ghost.Entities.SystemGroup.AddSystem
+- uid: Ghost.Entities.SystemGroup.SortSystems*
+  commentId: Overload:Ghost.Entities.SystemGroup.SortSystems
+  href: Ghost.Entities.SystemGroup.html#Ghost_Entities_SystemGroup_SortSystems
+  name: SortSystems
+  nameWithType: SystemGroup.SortSystems
+  fullName: Ghost.Entities.SystemGroup.SortSystems
+- uid: Ghost.Entities.SystemGroup.Initialize*
+  commentId: Overload:Ghost.Entities.SystemGroup.Initialize
+  href: Ghost.Entities.SystemGroup.html#Ghost_Entities_SystemGroup_Initialize_Ghost_Entities_SystemAPI__
+  name: Initialize
+  nameWithType: SystemGroup.Initialize
+  fullName: Ghost.Entities.SystemGroup.Initialize
+- uid: Ghost.Entities.ISystem.Initialize(Ghost.Entities.SystemAPI@)
+  commentId: M:Ghost.Entities.ISystem.Initialize(Ghost.Entities.SystemAPI@)
+  parent: Ghost.Entities.ISystem
+  href: Ghost.Entities.ISystem.html#Ghost_Entities_ISystem_Initialize_Ghost_Entities_SystemAPI__
+  name: Initialize(ref readonly SystemAPI)
+  nameWithType: ISystem.Initialize(ref readonly SystemAPI)
+  fullName: Ghost.Entities.ISystem.Initialize(ref readonly Ghost.Entities.SystemAPI)
+  nameWithType.vb: ISystem.Initialize(SystemAPI)
+  fullName.vb: Ghost.Entities.ISystem.Initialize(Ghost.Entities.SystemAPI)
+  name.vb: Initialize(SystemAPI)
+  spec.csharp:
+  - uid: Ghost.Entities.ISystem.Initialize(Ghost.Entities.SystemAPI@)
+    name: Initialize
+    href: Ghost.Entities.ISystem.html#Ghost_Entities_ISystem_Initialize_Ghost_Entities_SystemAPI__
+  - name: (
+  - name: ref
+  - name: " "
+  - name: readonly
+  - name: " "
+  - uid: Ghost.Entities.SystemAPI
+    name: SystemAPI
+    href: Ghost.Entities.SystemAPI.html
+  - name: )
+  spec.vb:
+  - uid: Ghost.Entities.ISystem.Initialize(Ghost.Entities.SystemAPI@)
+    name: Initialize
+    href: Ghost.Entities.ISystem.html#Ghost_Entities_ISystem_Initialize_Ghost_Entities_SystemAPI__
+  - name: (
+  - uid: Ghost.Entities.SystemAPI
+    name: SystemAPI
+    href: Ghost.Entities.SystemAPI.html
+  - name: )
+- uid: Ghost.Entities.SystemAPI
+  commentId: T:Ghost.Entities.SystemAPI
+  parent: Ghost.Entities
+  href: Ghost.Entities.SystemAPI.html
+  name: SystemAPI
+  nameWithType: SystemAPI
+  fullName: Ghost.Entities.SystemAPI
+- uid: Ghost.Entities.SystemGroup.Update*
+  commentId: Overload:Ghost.Entities.SystemGroup.Update
+  href: Ghost.Entities.SystemGroup.html#Ghost_Entities_SystemGroup_Update_Ghost_Entities_SystemAPI__
+  name: Update
+  nameWithType: SystemGroup.Update
+  fullName: Ghost.Entities.SystemGroup.Update
+- uid: Ghost.Entities.ISystem.Update(Ghost.Entities.SystemAPI@)
+  commentId: M:Ghost.Entities.ISystem.Update(Ghost.Entities.SystemAPI@)
+  parent: Ghost.Entities.ISystem
+  href: Ghost.Entities.ISystem.html#Ghost_Entities_ISystem_Update_Ghost_Entities_SystemAPI__
+  name: Update(ref readonly SystemAPI)
+  nameWithType: ISystem.Update(ref readonly SystemAPI)
+  fullName: Ghost.Entities.ISystem.Update(ref readonly Ghost.Entities.SystemAPI)
+  nameWithType.vb: ISystem.Update(SystemAPI)
+  fullName.vb: Ghost.Entities.ISystem.Update(Ghost.Entities.SystemAPI)
+  name.vb: Update(SystemAPI)
+  spec.csharp:
+  - uid: Ghost.Entities.ISystem.Update(Ghost.Entities.SystemAPI@)
+    name: Update
+    href: Ghost.Entities.ISystem.html#Ghost_Entities_ISystem_Update_Ghost_Entities_SystemAPI__
+  - name: (
+  - name: ref
+  - name: " "
+  - name: readonly
+  - name: " "
+  - uid: Ghost.Entities.SystemAPI
+    name: SystemAPI
+    href: Ghost.Entities.SystemAPI.html
+  - name: )
+  spec.vb:
+  - uid: Ghost.Entities.ISystem.Update(Ghost.Entities.SystemAPI@)
+    name: Update
+    href: Ghost.Entities.ISystem.html#Ghost_Entities_ISystem_Update_Ghost_Entities_SystemAPI__
+  - name: (
+  - uid: Ghost.Entities.SystemAPI
+    name: SystemAPI
+    href: Ghost.Entities.SystemAPI.html
+  - name: )
+- uid: Ghost.Entities.SystemGroup.Cleanup*
+  commentId: Overload:Ghost.Entities.SystemGroup.Cleanup
+  href: Ghost.Entities.SystemGroup.html#Ghost_Entities_SystemGroup_Cleanup_Ghost_Entities_SystemAPI__
+  name: Cleanup
+  nameWithType: SystemGroup.Cleanup
+  fullName: Ghost.Entities.SystemGroup.Cleanup
+- uid: Ghost.Entities.ISystem.Cleanup(Ghost.Entities.SystemAPI@)
+  commentId: M:Ghost.Entities.ISystem.Cleanup(Ghost.Entities.SystemAPI@)
+  parent: Ghost.Entities.ISystem
+  href: Ghost.Entities.ISystem.html#Ghost_Entities_ISystem_Cleanup_Ghost_Entities_SystemAPI__
+  name: Cleanup(ref readonly SystemAPI)
+  nameWithType: ISystem.Cleanup(ref readonly SystemAPI)
+  fullName: Ghost.Entities.ISystem.Cleanup(ref readonly Ghost.Entities.SystemAPI)
+  nameWithType.vb: ISystem.Cleanup(SystemAPI)
+  fullName.vb: Ghost.Entities.ISystem.Cleanup(Ghost.Entities.SystemAPI)
+  name.vb: Cleanup(SystemAPI)
+  spec.csharp:
+  - uid: Ghost.Entities.ISystem.Cleanup(Ghost.Entities.SystemAPI@)
+    name: Cleanup
+    href: Ghost.Entities.ISystem.html#Ghost_Entities_ISystem_Cleanup_Ghost_Entities_SystemAPI__
+  - name: (
+  - name: ref
+  - name: " "
+  - name: readonly
+  - name: " "
+  - uid: Ghost.Entities.SystemAPI
+    name: SystemAPI
+    href: Ghost.Entities.SystemAPI.html
+  - name: )
+  spec.vb:
+  - uid: Ghost.Entities.ISystem.Cleanup(Ghost.Entities.SystemAPI@)
+    name: Cleanup
+    href: Ghost.Entities.ISystem.html#Ghost_Entities_ISystem_Cleanup_Ghost_Entities_SystemAPI__
+  - name: (
+  - uid: Ghost.Entities.SystemAPI
+    name: SystemAPI
+    href: Ghost.Entities.SystemAPI.html
+  - name: )

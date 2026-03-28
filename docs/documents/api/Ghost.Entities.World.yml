@@ -1,0 +1,1584 @@
+### YamlMime:ManagedReference
+items:
+- uid: Ghost.Entities.World
+  commentId: T:Ghost.Entities.World
+  id: World
+  parent: Ghost.Entities
+  children:
+  - Ghost.Entities.World.AddService``1(``0)
+  - Ghost.Entities.World.ComponentManager
+  - Ghost.Entities.World.Create(Misaki.HighPerformance.Jobs.JobScheduler,System.Int32)
+  - Ghost.Entities.World.Destroy(Ghost.Core.Identifier{Ghost.Entities.World})
+  - Ghost.Entities.World.Dispose
+  - Ghost.Entities.World.EntityCommandBuffer
+  - Ghost.Entities.World.EntityManager
+  - Ghost.Entities.World.Equals(Ghost.Entities.World)
+  - Ghost.Entities.World.Equals(System.Object)
+  - Ghost.Entities.World.Finalize
+  - Ghost.Entities.World.GetHashCode
+  - Ghost.Entities.World.GetService``1
+  - Ghost.Entities.World.GetThreadLocalEntityCommandBuffer(System.Int32)
+  - Ghost.Entities.World.GetWorld(Ghost.Core.Identifier{Ghost.Entities.World})
+  - Ghost.Entities.World.GetWorldUncheck(Ghost.Core.Identifier{Ghost.Entities.World})
+  - Ghost.Entities.World.HasService``1
+  - Ghost.Entities.World.ID
+  - Ghost.Entities.World.JobScheduler
+  - Ghost.Entities.World.SystemManager
+  - Ghost.Entities.World.Version
+  - Ghost.Entities.World.WorldCount
+  - Ghost.Entities.World.op_Equality(Ghost.Entities.World,Ghost.Entities.World)
+  - Ghost.Entities.World.op_Inequality(Ghost.Entities.World,Ghost.Entities.World)
+  langs:
+  - csharp
+  - vb
+  name: World
+  nameWithType: World
+  fullName: Ghost.Entities.World
+  type: Class
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/World.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: World
+    path: src/Runtime/Ghost.Entities/World.cs
+    startLine: 75
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: 'public class World : IDisposable, IEquatable<World>'
+    content.vb: Public Class World Implements IDisposable, IEquatable(Of World)
+  inheritance:
+  - System.Object
+  implements:
+  - System.IDisposable
+  - System.IEquatable{Ghost.Entities.World}
+  inheritedMembers:
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.MemberwiseClone
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.ToString
+- uid: Ghost.Entities.World.WorldCount
+  commentId: P:Ghost.Entities.World.WorldCount
+  id: WorldCount
+  parent: Ghost.Entities.World
+  langs:
+  - csharp
+  - vb
+  name: WorldCount
+  nameWithType: World.WorldCount
+  fullName: Ghost.Entities.World.WorldCount
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/World.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: WorldCount
+    path: src/Runtime/Ghost.Entities/World.cs
+    startLine: 13
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public static int WorldCount { get; }
+    parameters: []
+    return:
+      type: System.Int32
+    content.vb: Public Shared ReadOnly Property WorldCount As Integer
+  overload: Ghost.Entities.World.WorldCount*
+- uid: Ghost.Entities.World.Create(Misaki.HighPerformance.Jobs.JobScheduler,System.Int32)
+  commentId: M:Ghost.Entities.World.Create(Misaki.HighPerformance.Jobs.JobScheduler,System.Int32)
+  id: Create(Misaki.HighPerformance.Jobs.JobScheduler,System.Int32)
+  parent: Ghost.Entities.World
+  langs:
+  - csharp
+  - vb
+  name: Create(JobScheduler?, int)
+  nameWithType: World.Create(JobScheduler?, int)
+  fullName: Ghost.Entities.World.Create(Misaki.HighPerformance.Jobs.JobScheduler?, int)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/World.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Create
+    path: src/Runtime/Ghost.Entities/World.cs
+    startLine: 15
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public static World Create(JobScheduler? jobScheduler = null, int entityCapacity = 16)
+    parameters:
+    - id: jobScheduler
+      type: Misaki.HighPerformance.Jobs.JobScheduler
+    - id: entityCapacity
+      type: System.Int32
+    return:
+      type: Ghost.Entities.World
+    content.vb: Public Shared Function Create(jobScheduler As JobScheduler = Nothing, entityCapacity As Integer = 16) As World
+  overload: Ghost.Entities.World.Create*
+  nameWithType.vb: World.Create(JobScheduler, Integer)
+  fullName.vb: Ghost.Entities.World.Create(Misaki.HighPerformance.Jobs.JobScheduler, Integer)
+  name.vb: Create(JobScheduler, Integer)
+- uid: Ghost.Entities.World.Destroy(Ghost.Core.Identifier{Ghost.Entities.World})
+  commentId: M:Ghost.Entities.World.Destroy(Ghost.Core.Identifier{Ghost.Entities.World})
+  id: Destroy(Ghost.Core.Identifier{Ghost.Entities.World})
+  parent: Ghost.Entities.World
+  langs:
+  - csharp
+  - vb
+  name: Destroy(Identifier<World>)
+  nameWithType: World.Destroy(Identifier<World>)
+  fullName: Ghost.Entities.World.Destroy(Ghost.Core.Identifier<Ghost.Entities.World>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/World.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Destroy
+    path: src/Runtime/Ghost.Entities/World.cs
+    startLine: 33
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public static void Destroy(Identifier<World> id)
+    parameters:
+    - id: id
+      type: Ghost.Core.Identifier{Ghost.Entities.World}
+    content.vb: Public Shared Sub Destroy(id As Identifier(Of World))
+  overload: Ghost.Entities.World.Destroy*
+  nameWithType.vb: World.Destroy(Identifier(Of World))
+  fullName.vb: Ghost.Entities.World.Destroy(Ghost.Core.Identifier(Of Ghost.Entities.World))
+  name.vb: Destroy(Identifier(Of World))
+- uid: Ghost.Entities.World.GetWorldUncheck(Ghost.Core.Identifier{Ghost.Entities.World})
+  commentId: M:Ghost.Entities.World.GetWorldUncheck(Ghost.Core.Identifier{Ghost.Entities.World})
+  id: GetWorldUncheck(Ghost.Core.Identifier{Ghost.Entities.World})
+  parent: Ghost.Entities.World
+  langs:
+  - csharp
+  - vb
+  name: GetWorldUncheck(Identifier<World>)
+  nameWithType: World.GetWorldUncheck(Identifier<World>)
+  fullName: Ghost.Entities.World.GetWorldUncheck(Ghost.Core.Identifier<Ghost.Entities.World>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/World.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetWorldUncheck
+    path: src/Runtime/Ghost.Entities/World.cs
+    startLine: 47
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public static World GetWorldUncheck(Identifier<World> id)
+    parameters:
+    - id: id
+      type: Ghost.Core.Identifier{Ghost.Entities.World}
+    return:
+      type: Ghost.Entities.World
+    content.vb: Public Shared Function GetWorldUncheck(id As Identifier(Of World)) As World
+  overload: Ghost.Entities.World.GetWorldUncheck*
+  nameWithType.vb: World.GetWorldUncheck(Identifier(Of World))
+  fullName.vb: Ghost.Entities.World.GetWorldUncheck(Ghost.Core.Identifier(Of Ghost.Entities.World))
+  name.vb: GetWorldUncheck(Identifier(Of World))
+- uid: Ghost.Entities.World.GetWorld(Ghost.Core.Identifier{Ghost.Entities.World})
+  commentId: M:Ghost.Entities.World.GetWorld(Ghost.Core.Identifier{Ghost.Entities.World})
+  id: GetWorld(Ghost.Core.Identifier{Ghost.Entities.World})
+  parent: Ghost.Entities.World
+  langs:
+  - csharp
+  - vb
+  name: GetWorld(Identifier<World>)
+  nameWithType: World.GetWorld(Identifier<World>)
+  fullName: Ghost.Entities.World.GetWorld(Ghost.Core.Identifier<Ghost.Entities.World>)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/World.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetWorld
+    path: src/Runtime/Ghost.Entities/World.cs
+    startLine: 63
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public static World? GetWorld(Identifier<World> id)
+    parameters:
+    - id: id
+      type: Ghost.Core.Identifier{Ghost.Entities.World}
+    return:
+      type: Ghost.Entities.World
+    content.vb: Public Shared Function GetWorld(id As Identifier(Of World)) As World
+  overload: Ghost.Entities.World.GetWorld*
+  nameWithType.vb: World.GetWorld(Identifier(Of World))
+  fullName.vb: Ghost.Entities.World.GetWorld(Ghost.Core.Identifier(Of Ghost.Entities.World))
+  name.vb: GetWorld(Identifier(Of World))
+- uid: Ghost.Entities.World.ID
+  commentId: P:Ghost.Entities.World.ID
+  id: ID
+  parent: Ghost.Entities.World
+  langs:
+  - csharp
+  - vb
+  name: ID
+  nameWithType: World.ID
+  fullName: Ghost.Entities.World.ID
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/World.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ID
+    path: src/Runtime/Ghost.Entities/World.cs
+    startLine: 95
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: Gets the unique identifier of this world.
+  example: []
+  syntax:
+    content: public Identifier<World> ID { get; }
+    parameters: []
+    return:
+      type: Ghost.Core.Identifier{Ghost.Entities.World}
+    content.vb: Public ReadOnly Property ID As Identifier(Of World)
+  overload: Ghost.Entities.World.ID*
+- uid: Ghost.Entities.World.JobScheduler
+  commentId: P:Ghost.Entities.World.JobScheduler
+  id: JobScheduler
+  parent: Ghost.Entities.World
+  langs:
+  - csharp
+  - vb
+  name: JobScheduler
+  nameWithType: World.JobScheduler
+  fullName: Ghost.Entities.World.JobScheduler
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/World.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: JobScheduler
+    path: src/Runtime/Ghost.Entities/World.cs
+    startLine: 100
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: Gets the job scheduler associated with this world.
+  example: []
+  syntax:
+    content: public JobScheduler? JobScheduler { get; }
+    parameters: []
+    return:
+      type: Misaki.HighPerformance.Jobs.JobScheduler
+    content.vb: Public ReadOnly Property JobScheduler As JobScheduler
+  overload: Ghost.Entities.World.JobScheduler*
+- uid: Ghost.Entities.World.EntityManager
+  commentId: P:Ghost.Entities.World.EntityManager
+  id: EntityManager
+  parent: Ghost.Entities.World
+  langs:
+  - csharp
+  - vb
+  name: EntityManager
+  nameWithType: World.EntityManager
+  fullName: Ghost.Entities.World.EntityManager
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/World.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: EntityManager
+    path: src/Runtime/Ghost.Entities/World.cs
+    startLine: 105
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: Gets the publicntity manager for this world.
+  example: []
+  syntax:
+    content: public EntityManager EntityManager { get; }
+    parameters: []
+    return:
+      type: Ghost.Entities.EntityManager
+    content.vb: Public ReadOnly Property EntityManager As EntityManager
+  overload: Ghost.Entities.World.EntityManager*
+- uid: Ghost.Entities.World.ComponentManager
+  commentId: P:Ghost.Entities.World.ComponentManager
+  id: ComponentManager
+  parent: Ghost.Entities.World
+  langs:
+  - csharp
+  - vb
+  name: ComponentManager
+  nameWithType: World.ComponentManager
+  fullName: Ghost.Entities.World.ComponentManager
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/World.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: ComponentManager
+    path: src/Runtime/Ghost.Entities/World.cs
+    startLine: 110
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: Gets the component manager for this world.
+  example: []
+  syntax:
+    content: public ComponentManager ComponentManager { get; }
+    parameters: []
+    return:
+      type: Ghost.Entities.ComponentManager
+    content.vb: Public ReadOnly Property ComponentManager As ComponentManager
+  overload: Ghost.Entities.World.ComponentManager*
+- uid: Ghost.Entities.World.SystemManager
+  commentId: P:Ghost.Entities.World.SystemManager
+  id: SystemManager
+  parent: Ghost.Entities.World
+  langs:
+  - csharp
+  - vb
+  name: SystemManager
+  nameWithType: World.SystemManager
+  fullName: Ghost.Entities.World.SystemManager
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/World.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: SystemManager
+    path: src/Runtime/Ghost.Entities/World.cs
+    startLine: 115
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: Gets the system manager for this world.
+  example: []
+  syntax:
+    content: public SystemManager SystemManager { get; }
+    parameters: []
+    return:
+      type: Ghost.Entities.SystemManager
+    content.vb: Public ReadOnly Property SystemManager As SystemManager
+  overload: Ghost.Entities.World.SystemManager*
+- uid: Ghost.Entities.World.Version
+  commentId: P:Ghost.Entities.World.Version
+  id: Version
+  parent: Ghost.Entities.World
+  langs:
+  - csharp
+  - vb
+  name: Version
+  nameWithType: World.Version
+  fullName: Ghost.Entities.World.Version
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/World.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Version
+    path: src/Runtime/Ghost.Entities/World.cs
+    startLine: 120
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: Gets the current version number of the world.
+  example: []
+  syntax:
+    content: public int Version { get; }
+    parameters: []
+    return:
+      type: System.Int32
+    content.vb: Public ReadOnly Property Version As Integer
+  overload: Ghost.Entities.World.Version*
+- uid: Ghost.Entities.World.EntityCommandBuffer
+  commentId: P:Ghost.Entities.World.EntityCommandBuffer
+  id: EntityCommandBuffer
+  parent: Ghost.Entities.World
+  langs:
+  - csharp
+  - vb
+  name: EntityCommandBuffer
+  nameWithType: World.EntityCommandBuffer
+  fullName: Ghost.Entities.World.EntityCommandBuffer
+  type: Property
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/World.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: EntityCommandBuffer
+    path: src/Runtime/Ghost.Entities/World.cs
+    startLine: 128
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: Gets the main entity command buffer for this world.
+  remarks: Use <xref href="Ghost.Entities.World.GetThreadLocalEntityCommandBuffer(System.Int32)" data-throw-if-not-resolved="false"></xref> to get thread-local command buffers for multi-threaded jobs.
+  example: []
+  syntax:
+    content: public EntityCommandBuffer EntityCommandBuffer { get; }
+    parameters: []
+    return:
+      type: Ghost.Entities.EntityCommandBuffer
+    content.vb: Public ReadOnly Property EntityCommandBuffer As EntityCommandBuffer
+  overload: Ghost.Entities.World.EntityCommandBuffer*
+- uid: Ghost.Entities.World.Finalize
+  commentId: M:Ghost.Entities.World.Finalize
+  id: Finalize
+  parent: Ghost.Entities.World
+  langs:
+  - csharp
+  - vb
+  name: ~World()
+  nameWithType: World.~World()
+  fullName: Ghost.Entities.World.~World()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/World.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Finalize
+    path: src/Runtime/Ghost.Entities/World.cs
+    startLine: 153
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: protected ~World()
+    content.vb: 'Protected '
+  overload: Ghost.Entities.World.Finalize*
+  nameWithType.vb: ''
+  fullName.vb: ''
+  name.vb: ''
+- uid: Ghost.Entities.World.GetThreadLocalEntityCommandBuffer(System.Int32)
+  commentId: M:Ghost.Entities.World.GetThreadLocalEntityCommandBuffer(System.Int32)
+  id: GetThreadLocalEntityCommandBuffer(System.Int32)
+  parent: Ghost.Entities.World
+  langs:
+  - csharp
+  - vb
+  name: GetThreadLocalEntityCommandBuffer(int)
+  nameWithType: World.GetThreadLocalEntityCommandBuffer(int)
+  fullName: Ghost.Entities.World.GetThreadLocalEntityCommandBuffer(int)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/World.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetThreadLocalEntityCommandBuffer
+    path: src/Runtime/Ghost.Entities/World.cs
+    startLine: 181
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: Gets the thread-local entity command buffer for the specified thread index.
+  example: []
+  syntax:
+    content: public EntityCommandBuffer GetThreadLocalEntityCommandBuffer(int threadIndex)
+    parameters:
+    - id: threadIndex
+      type: System.Int32
+    return:
+      type: Ghost.Entities.EntityCommandBuffer
+    content.vb: Public Function GetThreadLocalEntityCommandBuffer(threadIndex As Integer) As EntityCommandBuffer
+  overload: Ghost.Entities.World.GetThreadLocalEntityCommandBuffer*
+  nameWithType.vb: World.GetThreadLocalEntityCommandBuffer(Integer)
+  fullName.vb: Ghost.Entities.World.GetThreadLocalEntityCommandBuffer(Integer)
+  name.vb: GetThreadLocalEntityCommandBuffer(Integer)
+- uid: Ghost.Entities.World.AddService``1(``0)
+  commentId: M:Ghost.Entities.World.AddService``1(``0)
+  id: AddService``1(``0)
+  parent: Ghost.Entities.World
+  langs:
+  - csharp
+  - vb
+  name: AddService<T>(T)
+  nameWithType: World.AddService<T>(T)
+  fullName: Ghost.Entities.World.AddService<T>(T)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/World.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: AddService
+    path: src/Runtime/Ghost.Entities/World.cs
+    startLine: 195
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: Registers or overwrites a global resource in the world.
+  example: []
+  syntax:
+    content: 'public void AddService<T>(T resource) where T : class'
+    parameters:
+    - id: resource
+      type: '{T}'
+    typeParameters:
+    - id: T
+    content.vb: Public Sub AddService(Of T As Class)(resource As T)
+  overload: Ghost.Entities.World.AddService*
+  nameWithType.vb: World.AddService(Of T)(T)
+  fullName.vb: Ghost.Entities.World.AddService(Of T)(T)
+  name.vb: AddService(Of T)(T)
+- uid: Ghost.Entities.World.GetService``1
+  commentId: M:Ghost.Entities.World.GetService``1
+  id: GetService``1
+  parent: Ghost.Entities.World
+  langs:
+  - csharp
+  - vb
+  name: GetService<T>()
+  nameWithType: World.GetService<T>()
+  fullName: Ghost.Entities.World.GetService<T>()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/World.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetService
+    path: src/Runtime/Ghost.Entities/World.cs
+    startLine: 205
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: Retrieves a global resource from the world.
+  example: []
+  syntax:
+    content: 'public T GetService<T>() where T : class'
+    typeParameters:
+    - id: T
+    return:
+      type: '{T}'
+    content.vb: Public Function GetService(Of T As Class)() As T
+  overload: Ghost.Entities.World.GetService*
+  nameWithType.vb: World.GetService(Of T)()
+  fullName.vb: Ghost.Entities.World.GetService(Of T)()
+  name.vb: GetService(Of T)()
+- uid: Ghost.Entities.World.HasService``1
+  commentId: M:Ghost.Entities.World.HasService``1
+  id: HasService``1
+  parent: Ghost.Entities.World
+  langs:
+  - csharp
+  - vb
+  name: HasService<T>()
+  nameWithType: World.HasService<T>()
+  fullName: Ghost.Entities.World.HasService<T>()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/World.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: HasService
+    path: src/Runtime/Ghost.Entities/World.cs
+    startLine: 220
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: Checks if a global resource exists.
+  example: []
+  syntax:
+    content: 'public bool HasService<T>() where T : class'
+    typeParameters:
+    - id: T
+    return:
+      type: System.Boolean
+    content.vb: Public Function HasService(Of T As Class)() As Boolean
+  overload: Ghost.Entities.World.HasService*
+  nameWithType.vb: World.HasService(Of T)()
+  fullName.vb: Ghost.Entities.World.HasService(Of T)()
+  name.vb: HasService(Of T)()
+- uid: Ghost.Entities.World.Equals(Ghost.Entities.World)
+  commentId: M:Ghost.Entities.World.Equals(Ghost.Entities.World)
+  id: Equals(Ghost.Entities.World)
+  parent: Ghost.Entities.World
+  langs:
+  - csharp
+  - vb
+  name: Equals(World?)
+  nameWithType: World.Equals(World?)
+  fullName: Ghost.Entities.World.Equals(Ghost.Entities.World?)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/World.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Equals
+    path: src/Runtime/Ghost.Entities/World.cs
+    startLine: 227
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: Indicates whether the current object is equal to another object of the same type.
+  example: []
+  syntax:
+    content: public bool Equals(World? other)
+    parameters:
+    - id: other
+      type: Ghost.Entities.World
+      description: An object to compare with this object.
+    return:
+      type: System.Boolean
+      description: <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">true</a> if the current object is equal to the <code class="paramref">other</code> parameter; otherwise, <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">false</a>.
+    content.vb: Public Function Equals(other As World) As Boolean
+  overload: Ghost.Entities.World.Equals*
+  implements:
+  - System.IEquatable{Ghost.Entities.World}.Equals(Ghost.Entities.World)
+  nameWithType.vb: World.Equals(World)
+  fullName.vb: Ghost.Entities.World.Equals(Ghost.Entities.World)
+  name.vb: Equals(World)
+- uid: Ghost.Entities.World.GetHashCode
+  commentId: M:Ghost.Entities.World.GetHashCode
+  id: GetHashCode
+  parent: Ghost.Entities.World
+  langs:
+  - csharp
+  - vb
+  name: GetHashCode()
+  nameWithType: World.GetHashCode()
+  fullName: Ghost.Entities.World.GetHashCode()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/World.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: GetHashCode
+    path: src/Runtime/Ghost.Entities/World.cs
+    startLine: 232
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: Serves as the default hash function.
+  example: []
+  syntax:
+    content: public override int GetHashCode()
+    return:
+      type: System.Int32
+      description: A hash code for the current object.
+    content.vb: Public Overrides Function GetHashCode() As Integer
+  overridden: System.Object.GetHashCode
+  overload: Ghost.Entities.World.GetHashCode*
+- uid: Ghost.Entities.World.Equals(System.Object)
+  commentId: M:Ghost.Entities.World.Equals(System.Object)
+  id: Equals(System.Object)
+  parent: Ghost.Entities.World
+  langs:
+  - csharp
+  - vb
+  name: Equals(object?)
+  nameWithType: World.Equals(object?)
+  fullName: Ghost.Entities.World.Equals(object?)
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/World.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Equals
+    path: src/Runtime/Ghost.Entities/World.cs
+    startLine: 237
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: Determines whether the specified object is equal to the current object.
+  example: []
+  syntax:
+    content: public override bool Equals(object? obj)
+    parameters:
+    - id: obj
+      type: System.Object
+      description: The object to compare with the current object.
+    return:
+      type: System.Boolean
+      description: <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">true</a> if the specified object  is equal to the current object; otherwise, <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">false</a>.
+    content.vb: Public Overrides Function Equals(obj As Object) As Boolean
+  overridden: System.Object.Equals(System.Object)
+  overload: Ghost.Entities.World.Equals*
+  nameWithType.vb: World.Equals(Object)
+  fullName.vb: Ghost.Entities.World.Equals(Object)
+  name.vb: Equals(Object)
+- uid: Ghost.Entities.World.op_Equality(Ghost.Entities.World,Ghost.Entities.World)
+  commentId: M:Ghost.Entities.World.op_Equality(Ghost.Entities.World,Ghost.Entities.World)
+  id: op_Equality(Ghost.Entities.World,Ghost.Entities.World)
+  parent: Ghost.Entities.World
+  langs:
+  - csharp
+  - vb
+  name: operator ==(World?, World?)
+  nameWithType: World.operator ==(World?, World?)
+  fullName: Ghost.Entities.World.operator ==(Ghost.Entities.World?, Ghost.Entities.World?)
+  type: Operator
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/World.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: op_Equality
+    path: src/Runtime/Ghost.Entities/World.cs
+    startLine: 242
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public static bool operator ==(World? left, World? right)
+    parameters:
+    - id: left
+      type: Ghost.Entities.World
+    - id: right
+      type: Ghost.Entities.World
+    return:
+      type: System.Boolean
+    content.vb: Public Shared Operator =(left As World, right As World) As Boolean
+  overload: Ghost.Entities.World.op_Equality*
+  nameWithType.vb: World.=(World, World)
+  fullName.vb: Ghost.Entities.World.=(Ghost.Entities.World, Ghost.Entities.World)
+  name.vb: =(World, World)
+- uid: Ghost.Entities.World.op_Inequality(Ghost.Entities.World,Ghost.Entities.World)
+  commentId: M:Ghost.Entities.World.op_Inequality(Ghost.Entities.World,Ghost.Entities.World)
+  id: op_Inequality(Ghost.Entities.World,Ghost.Entities.World)
+  parent: Ghost.Entities.World
+  langs:
+  - csharp
+  - vb
+  name: operator !=(World?, World?)
+  nameWithType: World.operator !=(World?, World?)
+  fullName: Ghost.Entities.World.operator !=(Ghost.Entities.World?, Ghost.Entities.World?)
+  type: Operator
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/World.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: op_Inequality
+    path: src/Runtime/Ghost.Entities/World.cs
+    startLine: 247
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  syntax:
+    content: public static bool operator !=(World? left, World? right)
+    parameters:
+    - id: left
+      type: Ghost.Entities.World
+    - id: right
+      type: Ghost.Entities.World
+    return:
+      type: System.Boolean
+    content.vb: Public Shared Operator <>(left As World, right As World) As Boolean
+  overload: Ghost.Entities.World.op_Inequality*
+  nameWithType.vb: World.<>(World, World)
+  fullName.vb: Ghost.Entities.World.<>(Ghost.Entities.World, Ghost.Entities.World)
+  name.vb: <>(World, World)
+- uid: Ghost.Entities.World.Dispose
+  commentId: M:Ghost.Entities.World.Dispose
+  id: Dispose
+  parent: Ghost.Entities.World
+  langs:
+  - csharp
+  - vb
+  name: Dispose()
+  nameWithType: World.Dispose()
+  fullName: Ghost.Entities.World.Dispose()
+  type: Method
+  source:
+    remote:
+      path: src/Runtime/Ghost.Entities/World.cs
+      branch: develop
+      repo: https://git.personalnas.com/Misaki/GhostEngine.git
+    id: Dispose
+    path: src/Runtime/Ghost.Entities/World.cs
+    startLine: 252
+  assemblies:
+  - Ghost.Entities
+  namespace: Ghost.Entities
+  summary: Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+  example: []
+  syntax:
+    content: public void Dispose()
+    content.vb: Public Sub Dispose()
+  overload: Ghost.Entities.World.Dispose*
+  implements:
+  - System.IDisposable.Dispose
+references:
+- uid: Ghost.Entities
+  commentId: N:Ghost.Entities
+  href: Ghost.html
+  name: Ghost.Entities
+  nameWithType: Ghost.Entities
+  fullName: Ghost.Entities
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Entities
+    name: Entities
+    href: Ghost.Entities.html
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+    href: Ghost.html
+  - name: .
+  - uid: Ghost.Entities
+    name: Entities
+    href: Ghost.Entities.html
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System.IDisposable
+  commentId: T:System.IDisposable
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable
+  name: IDisposable
+  nameWithType: IDisposable
+  fullName: System.IDisposable
+- uid: System.IEquatable{Ghost.Entities.World}
+  commentId: T:System.IEquatable{Ghost.Entities.World}
+  parent: System
+  definition: System.IEquatable`1
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  name: IEquatable<World>
+  nameWithType: IEquatable<World>
+  fullName: System.IEquatable<Ghost.Entities.World>
+  nameWithType.vb: IEquatable(Of World)
+  fullName.vb: System.IEquatable(Of Ghost.Entities.World)
+  name.vb: IEquatable(Of World)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: <
+  - uid: Ghost.Entities.World
+    name: World
+    href: Ghost.Entities.World.html
+  - name: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Entities.World
+    name: World
+    href: Ghost.Entities.World.html
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  name: MemberwiseClone()
+  nameWithType: object.MemberwiseClone()
+  fullName: object.MemberwiseClone()
+  nameWithType.vb: Object.MemberwiseClone()
+  fullName.vb: Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  name: ToString()
+  nameWithType: object.ToString()
+  fullName: object.ToString()
+  nameWithType.vb: Object.ToString()
+  fullName.vb: Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.IEquatable`1
+  commentId: T:System.IEquatable`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  name: IEquatable<T>
+  nameWithType: IEquatable<T>
+  fullName: System.IEquatable<T>
+  nameWithType.vb: IEquatable(Of T)
+  fullName.vb: System.IEquatable(Of T)
+  name.vb: IEquatable(Of T)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Entities.World.WorldCount*
+  commentId: Overload:Ghost.Entities.World.WorldCount
+  href: Ghost.Entities.World.html#Ghost_Entities_World_WorldCount
+  name: WorldCount
+  nameWithType: World.WorldCount
+  fullName: Ghost.Entities.World.WorldCount
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.int32
+  name: int
+  nameWithType: int
+  fullName: int
+  nameWithType.vb: Integer
+  fullName.vb: Integer
+  name.vb: Integer
+- uid: Ghost.Entities.World.Create*
+  commentId: Overload:Ghost.Entities.World.Create
+  href: Ghost.Entities.World.html#Ghost_Entities_World_Create_Misaki_HighPerformance_Jobs_JobScheduler_System_Int32_
+  name: Create
+  nameWithType: World.Create
+  fullName: Ghost.Entities.World.Create
+- uid: Misaki.HighPerformance.Jobs.JobScheduler
+  commentId: T:Misaki.HighPerformance.Jobs.JobScheduler
+  parent: Misaki.HighPerformance.Jobs
+  name: JobScheduler
+  nameWithType: JobScheduler
+  fullName: Misaki.HighPerformance.Jobs.JobScheduler
+- uid: Ghost.Entities.World
+  commentId: T:Ghost.Entities.World
+  parent: Ghost.Entities
+  href: Ghost.Entities.World.html
+  name: World
+  nameWithType: World
+  fullName: Ghost.Entities.World
+- uid: Misaki.HighPerformance.Jobs
+  commentId: N:Misaki.HighPerformance.Jobs
+  name: Misaki.HighPerformance.Jobs
+  nameWithType: Misaki.HighPerformance.Jobs
+  fullName: Misaki.HighPerformance.Jobs
+  spec.csharp:
+  - uid: Misaki
+    name: Misaki
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+  - name: .
+  - uid: Misaki.HighPerformance.Jobs
+    name: Jobs
+  spec.vb:
+  - uid: Misaki
+    name: Misaki
+  - name: .
+  - uid: Misaki.HighPerformance
+    name: HighPerformance
+  - name: .
+  - uid: Misaki.HighPerformance.Jobs
+    name: Jobs
+- uid: Ghost.Entities.World.Destroy*
+  commentId: Overload:Ghost.Entities.World.Destroy
+  href: Ghost.Entities.World.html#Ghost_Entities_World_Destroy_Ghost_Core_Identifier_Ghost_Entities_World__
+  name: Destroy
+  nameWithType: World.Destroy
+  fullName: Ghost.Entities.World.Destroy
+- uid: Ghost.Core.Identifier{Ghost.Entities.World}
+  commentId: T:Ghost.Core.Identifier{Ghost.Entities.World}
+  parent: Ghost.Core
+  definition: Ghost.Core.Identifier`1
+  href: Ghost.Entities.World.html
+  name: Identifier<World>
+  nameWithType: Identifier<World>
+  fullName: Ghost.Core.Identifier<Ghost.Entities.World>
+  nameWithType.vb: Identifier(Of World)
+  fullName.vb: Ghost.Core.Identifier(Of Ghost.Entities.World)
+  name.vb: Identifier(Of World)
+  spec.csharp:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: <
+  - uid: Ghost.Entities.World
+    name: World
+    href: Ghost.Entities.World.html
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Ghost.Entities.World
+    name: World
+    href: Ghost.Entities.World.html
+  - name: )
+- uid: Ghost.Core.Identifier`1
+  commentId: T:Ghost.Core.Identifier`1
+  name: Identifier<T>
+  nameWithType: Identifier<T>
+  fullName: Ghost.Core.Identifier<T>
+  nameWithType.vb: Identifier(Of T)
+  fullName.vb: Ghost.Core.Identifier(Of T)
+  name.vb: Identifier(Of T)
+  spec.csharp:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: Ghost.Core.Identifier`1
+    name: Identifier
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Ghost.Core
+  commentId: N:Ghost.Core
+  name: Ghost.Core
+  nameWithType: Ghost.Core
+  fullName: Ghost.Core
+  spec.csharp:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+  spec.vb:
+  - uid: Ghost
+    name: Ghost
+  - name: .
+  - uid: Ghost.Core
+    name: Core
+- uid: Ghost.Entities.World.GetWorldUncheck*
+  commentId: Overload:Ghost.Entities.World.GetWorldUncheck
+  href: Ghost.Entities.World.html#Ghost_Entities_World_GetWorldUncheck_Ghost_Core_Identifier_Ghost_Entities_World__
+  name: GetWorldUncheck
+  nameWithType: World.GetWorldUncheck
+  fullName: Ghost.Entities.World.GetWorldUncheck
+- uid: Ghost.Entities.World.GetWorld*
+  commentId: Overload:Ghost.Entities.World.GetWorld
+  href: Ghost.Entities.World.html#Ghost_Entities_World_GetWorld_Ghost_Core_Identifier_Ghost_Entities_World__
+  name: GetWorld
+  nameWithType: World.GetWorld
+  fullName: Ghost.Entities.World.GetWorld
+- uid: Ghost.Entities.World.ID*
+  commentId: Overload:Ghost.Entities.World.ID
+  href: Ghost.Entities.World.html#Ghost_Entities_World_ID
+  name: ID
+  nameWithType: World.ID
+  fullName: Ghost.Entities.World.ID
+- uid: Ghost.Entities.World.JobScheduler*
+  commentId: Overload:Ghost.Entities.World.JobScheduler
+  href: Ghost.Entities.World.html#Ghost_Entities_World_JobScheduler
+  name: JobScheduler
+  nameWithType: World.JobScheduler
+  fullName: Ghost.Entities.World.JobScheduler
+- uid: Ghost.Entities.World.EntityManager*
+  commentId: Overload:Ghost.Entities.World.EntityManager
+  href: Ghost.Entities.World.html#Ghost_Entities_World_EntityManager
+  name: EntityManager
+  nameWithType: World.EntityManager
+  fullName: Ghost.Entities.World.EntityManager
+- uid: Ghost.Entities.EntityManager
+  commentId: T:Ghost.Entities.EntityManager
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityManager.html
+  name: EntityManager
+  nameWithType: EntityManager
+  fullName: Ghost.Entities.EntityManager
+- uid: Ghost.Entities.World.ComponentManager*
+  commentId: Overload:Ghost.Entities.World.ComponentManager
+  href: Ghost.Entities.World.html#Ghost_Entities_World_ComponentManager
+  name: ComponentManager
+  nameWithType: World.ComponentManager
+  fullName: Ghost.Entities.World.ComponentManager
+- uid: Ghost.Entities.ComponentManager
+  commentId: T:Ghost.Entities.ComponentManager
+  parent: Ghost.Entities
+  href: Ghost.Entities.ComponentManager.html
+  name: ComponentManager
+  nameWithType: ComponentManager
+  fullName: Ghost.Entities.ComponentManager
+- uid: Ghost.Entities.World.SystemManager*
+  commentId: Overload:Ghost.Entities.World.SystemManager
+  href: Ghost.Entities.World.html#Ghost_Entities_World_SystemManager
+  name: SystemManager
+  nameWithType: World.SystemManager
+  fullName: Ghost.Entities.World.SystemManager
+- uid: Ghost.Entities.SystemManager
+  commentId: T:Ghost.Entities.SystemManager
+  parent: Ghost.Entities
+  href: Ghost.Entities.SystemManager.html
+  name: SystemManager
+  nameWithType: SystemManager
+  fullName: Ghost.Entities.SystemManager
+- uid: Ghost.Entities.World.Version*
+  commentId: Overload:Ghost.Entities.World.Version
+  href: Ghost.Entities.World.html#Ghost_Entities_World_Version
+  name: Version
+  nameWithType: World.Version
+  fullName: Ghost.Entities.World.Version
+- uid: Ghost.Entities.World.GetThreadLocalEntityCommandBuffer(System.Int32)
+  commentId: M:Ghost.Entities.World.GetThreadLocalEntityCommandBuffer(System.Int32)
+  isExternal: true
+  href: Ghost.Entities.World.html#Ghost_Entities_World_GetThreadLocalEntityCommandBuffer_System_Int32_
+  name: GetThreadLocalEntityCommandBuffer(int)
+  nameWithType: World.GetThreadLocalEntityCommandBuffer(int)
+  fullName: Ghost.Entities.World.GetThreadLocalEntityCommandBuffer(int)
+  nameWithType.vb: World.GetThreadLocalEntityCommandBuffer(Integer)
+  fullName.vb: Ghost.Entities.World.GetThreadLocalEntityCommandBuffer(Integer)
+  name.vb: GetThreadLocalEntityCommandBuffer(Integer)
+  spec.csharp:
+  - uid: Ghost.Entities.World.GetThreadLocalEntityCommandBuffer(System.Int32)
+    name: GetThreadLocalEntityCommandBuffer
+    href: Ghost.Entities.World.html#Ghost_Entities_World_GetThreadLocalEntityCommandBuffer_System_Int32_
+  - name: (
+  - uid: System.Int32
+    name: int
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.int32
+  - name: )
+  spec.vb:
+  - uid: Ghost.Entities.World.GetThreadLocalEntityCommandBuffer(System.Int32)
+    name: GetThreadLocalEntityCommandBuffer
+    href: Ghost.Entities.World.html#Ghost_Entities_World_GetThreadLocalEntityCommandBuffer_System_Int32_
+  - name: (
+  - uid: System.Int32
+    name: Integer
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.int32
+  - name: )
+- uid: Ghost.Entities.World.EntityCommandBuffer*
+  commentId: Overload:Ghost.Entities.World.EntityCommandBuffer
+  href: Ghost.Entities.World.html#Ghost_Entities_World_EntityCommandBuffer
+  name: EntityCommandBuffer
+  nameWithType: World.EntityCommandBuffer
+  fullName: Ghost.Entities.World.EntityCommandBuffer
+- uid: Ghost.Entities.EntityCommandBuffer
+  commentId: T:Ghost.Entities.EntityCommandBuffer
+  parent: Ghost.Entities
+  href: Ghost.Entities.EntityCommandBuffer.html
+  name: EntityCommandBuffer
+  nameWithType: EntityCommandBuffer
+  fullName: Ghost.Entities.EntityCommandBuffer
+- uid: Ghost.Entities.World.Finalize*
+  commentId: Overload:Ghost.Entities.World.Finalize
+  href: Ghost.Entities.World.html#Ghost_Entities_World_Finalize
+  name: ~World
+  nameWithType: World.~World
+  fullName: Ghost.Entities.World.~World
+  spec.csharp:
+  - name: "~"
+  - uid: Ghost.Entities.World.Finalize*
+    name: World
+    href: Ghost.Entities.World.html#Ghost_Entities_World_Finalize
+- uid: Ghost.Entities.World.GetThreadLocalEntityCommandBuffer*
+  commentId: Overload:Ghost.Entities.World.GetThreadLocalEntityCommandBuffer
+  href: Ghost.Entities.World.html#Ghost_Entities_World_GetThreadLocalEntityCommandBuffer_System_Int32_
+  name: GetThreadLocalEntityCommandBuffer
+  nameWithType: World.GetThreadLocalEntityCommandBuffer
+  fullName: Ghost.Entities.World.GetThreadLocalEntityCommandBuffer
+- uid: Ghost.Entities.World.AddService*
+  commentId: Overload:Ghost.Entities.World.AddService
+  href: Ghost.Entities.World.html#Ghost_Entities_World_AddService__1___0_
+  name: AddService
+  nameWithType: World.AddService
+  fullName: Ghost.Entities.World.AddService
+- uid: '{T}'
+  commentId: '!:T'
+  definition: T
+  name: T
+  nameWithType: T
+  fullName: T
+- uid: T
+  name: T
+  nameWithType: T
+  fullName: T
+- uid: Ghost.Entities.World.GetService*
+  commentId: Overload:Ghost.Entities.World.GetService
+  href: Ghost.Entities.World.html#Ghost_Entities_World_GetService__1
+  name: GetService
+  nameWithType: World.GetService
+  fullName: Ghost.Entities.World.GetService
+- uid: Ghost.Entities.World.HasService*
+  commentId: Overload:Ghost.Entities.World.HasService
+  href: Ghost.Entities.World.html#Ghost_Entities_World_HasService__1
+  name: HasService
+  nameWithType: World.HasService
+  fullName: Ghost.Entities.World.HasService
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.boolean
+  name: bool
+  nameWithType: bool
+  fullName: bool
+  nameWithType.vb: Boolean
+  fullName.vb: Boolean
+  name.vb: Boolean
+- uid: Ghost.Entities.World.Equals*
+  commentId: Overload:Ghost.Entities.World.Equals
+  href: Ghost.Entities.World.html#Ghost_Entities_World_Equals_Ghost_Entities_World_
+  name: Equals
+  nameWithType: World.Equals
+  fullName: Ghost.Entities.World.Equals
+- uid: System.IEquatable{Ghost.Entities.World}.Equals(Ghost.Entities.World)
+  commentId: M:System.IEquatable{Ghost.Entities.World}.Equals(Ghost.Entities.World)
+  parent: System.IEquatable{Ghost.Entities.World}
+  definition: System.IEquatable`1.Equals(`0)
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  name: Equals(World)
+  nameWithType: IEquatable<World>.Equals(World)
+  fullName: System.IEquatable<Ghost.Entities.World>.Equals(Ghost.Entities.World)
+  nameWithType.vb: IEquatable(Of World).Equals(World)
+  fullName.vb: System.IEquatable(Of Ghost.Entities.World).Equals(Ghost.Entities.World)
+  spec.csharp:
+  - uid: System.IEquatable{Ghost.Entities.World}.Equals(Ghost.Entities.World)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  - name: (
+  - uid: Ghost.Entities.World
+    name: World
+    href: Ghost.Entities.World.html
+  - name: )
+  spec.vb:
+  - uid: System.IEquatable{Ghost.Entities.World}.Equals(Ghost.Entities.World)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  - name: (
+  - uid: Ghost.Entities.World
+    name: World
+    href: Ghost.Entities.World.html
+  - name: )
+- uid: System.IEquatable`1.Equals(`0)
+  commentId: M:System.IEquatable`1.Equals(`0)
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  name: Equals(T)
+  nameWithType: IEquatable<T>.Equals(T)
+  fullName: System.IEquatable<T>.Equals(T)
+  nameWithType.vb: IEquatable(Of T).Equals(T)
+  fullName.vb: System.IEquatable(Of T).Equals(T)
+  spec.csharp:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  - name: (
+  - name: T
+  - name: )
+  spec.vb:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1.equals
+  - name: (
+  - name: T
+  - name: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  name: GetHashCode()
+  nameWithType: object.GetHashCode()
+  fullName: object.GetHashCode()
+  nameWithType.vb: Object.GetHashCode()
+  fullName.vb: Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+- uid: Ghost.Entities.World.GetHashCode*
+  commentId: Overload:Ghost.Entities.World.GetHashCode
+  href: Ghost.Entities.World.html#Ghost_Entities_World_GetHashCode
+  name: GetHashCode
+  nameWithType: World.GetHashCode
+  fullName: Ghost.Entities.World.GetHashCode
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  name: Equals(object)
+  nameWithType: object.Equals(object)
+  fullName: object.Equals(object)
+  nameWithType.vb: Object.Equals(Object)
+  fullName.vb: Object.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: Ghost.Entities.World.op_Equality*
+  commentId: Overload:Ghost.Entities.World.op_Equality
+  href: Ghost.Entities.World.html#Ghost_Entities_World_op_Equality_Ghost_Entities_World_Ghost_Entities_World_
+  name: operator ==
+  nameWithType: World.operator ==
+  fullName: Ghost.Entities.World.operator ==
+  nameWithType.vb: World.=
+  fullName.vb: Ghost.Entities.World.=
+  name.vb: =
+  spec.csharp:
+  - name: operator
+  - name: " "
+  - uid: Ghost.Entities.World.op_Equality*
+    name: ==
+    href: Ghost.Entities.World.html#Ghost_Entities_World_op_Equality_Ghost_Entities_World_Ghost_Entities_World_
+- uid: Ghost.Entities.World.op_Inequality*
+  commentId: Overload:Ghost.Entities.World.op_Inequality
+  href: Ghost.Entities.World.html#Ghost_Entities_World_op_Inequality_Ghost_Entities_World_Ghost_Entities_World_
+  name: operator !=
+  nameWithType: World.operator !=
+  fullName: Ghost.Entities.World.operator !=
+  nameWithType.vb: World.<>
+  fullName.vb: Ghost.Entities.World.<>
+  name.vb: <>
+  spec.csharp:
+  - name: operator
+  - name: " "
+  - uid: Ghost.Entities.World.op_Inequality*
+    name: '!='
+    href: Ghost.Entities.World.html#Ghost_Entities_World_op_Inequality_Ghost_Entities_World_Ghost_Entities_World_
+- uid: Ghost.Entities.World.Dispose*
+  commentId: Overload:Ghost.Entities.World.Dispose
+  href: Ghost.Entities.World.html#Ghost_Entities_World_Dispose
+  name: Dispose
+  nameWithType: World.Dispose
+  fullName: Ghost.Entities.World.Dispose
+- uid: System.IDisposable.Dispose
+  commentId: M:System.IDisposable.Dispose
+  parent: System.IDisposable
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  name: Dispose()
+  nameWithType: IDisposable.Dispose()
+  fullName: System.IDisposable.Dispose()
+  spec.csharp:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.idisposable.dispose
+  - name: (
+  - name: )
