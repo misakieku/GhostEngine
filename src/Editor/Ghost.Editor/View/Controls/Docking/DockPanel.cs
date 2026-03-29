@@ -88,31 +88,58 @@ public partial class DockPanel : DockContainer
             }
         }
 
-        _grid.RowDefinitions.Clear();
-        _grid.ColumnDefinitions.Clear();
-
-        if (Children.Count == 0) return;
+        if (Children.Count == 0)
+        {
+            _grid.RowDefinitions.Clear();
+            _grid.ColumnDefinitions.Clear();
+            return;
+        }
 
         if (Orientation == Orientation.Horizontal)
         {
+            _grid.RowDefinitions.Clear();
+
+            int requiredColumns = (Children.Count * 2) - 1;
+            while (_grid.ColumnDefinitions.Count > requiredColumns)
+            {
+                _grid.ColumnDefinitions.RemoveAt(_grid.ColumnDefinitions.Count - 1);
+            }
+
             for (var i = 0; i < Children.Count; i++)
             {
-                _grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                int columnIndex = i * 2;
+                if (columnIndex >= _grid.ColumnDefinitions.Count)
+                {
+                    _grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                }
+                else
+                {
+                    _grid.ColumnDefinitions[columnIndex].Width = new GridLength(1, GridUnitType.Star);
+                }
+
                 var child = Children[i];
-                
                 if (!_grid.Children.Contains(child))
                 {
                     _grid.Children.Add(child);
                 }
-                
-                Grid.SetColumn(child, i * 2);
+
+                Grid.SetColumn(child, columnIndex);
                 Grid.SetRow(child, 0);
 
                 if (i < Children.Count - 1)
                 {
-                    _grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                    int splitterIndex = i * 2 + 1;
+                    if (splitterIndex >= _grid.ColumnDefinitions.Count)
+                    {
+                        _grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                    }
+                    else
+                    {
+                        _grid.ColumnDefinitions[splitterIndex].Width = GridLength.Auto;
+                    }
+
                     var splitter = new GridSplitter { ResizeDirection = GridSplitter.GridResizeDirection.Columns, Width = SPLITTER_THICKNESS };
-                    Grid.SetColumn(splitter, i * 2 + 1);
+                    Grid.SetColumn(splitter, splitterIndex);
                     Grid.SetRow(splitter, 0);
                     _grid.Children.Add(splitter);
                 }
@@ -120,24 +147,49 @@ public partial class DockPanel : DockContainer
         }
         else
         {
+            _grid.ColumnDefinitions.Clear();
+
+            int requiredRows = (Children.Count * 2) - 1;
+            while (_grid.RowDefinitions.Count > requiredRows)
+            {
+                _grid.RowDefinitions.RemoveAt(_grid.RowDefinitions.Count - 1);
+            }
+
             for (var i = 0; i < Children.Count; i++)
             {
-                _grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                int rowIndex = i * 2;
+                if (rowIndex >= _grid.RowDefinitions.Count)
+                {
+                    _grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                }
+                else
+                {
+                    _grid.RowDefinitions[rowIndex].Height = new GridLength(1, GridUnitType.Star);
+                }
+
                 var child = Children[i];
-                
                 if (!_grid.Children.Contains(child))
                 {
                     _grid.Children.Add(child);
                 }
-                
-                Grid.SetRow(child, i * 2);
+
+                Grid.SetRow(child, rowIndex);
                 Grid.SetColumn(child, 0);
 
                 if (i < Children.Count - 1)
                 {
-                    _grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                    int splitterIndex = i * 2 + 1;
+                    if (splitterIndex >= _grid.RowDefinitions.Count)
+                    {
+                        _grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                    }
+                    else
+                    {
+                        _grid.RowDefinitions[splitterIndex].Height = GridLength.Auto;
+                    }
+
                     var splitter = new GridSplitter { ResizeDirection = GridSplitter.GridResizeDirection.Rows, Height = SPLITTER_THICKNESS };
-                    Grid.SetRow(splitter, i * 2 + 1);
+                    Grid.SetRow(splitter, splitterIndex);
                     Grid.SetColumn(splitter, 0);
                     _grid.Children.Add(splitter);
                 }
