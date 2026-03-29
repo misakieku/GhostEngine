@@ -147,7 +147,8 @@
                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                     ScrollViewer.HorizontalScrollMode="Disabled"
                     SelectionChanged="PART_FilesView_SelectionChanged"
-                    SelectionMode="Single">
+                    SelectionMode="Single"
+                    SizeChanged="PART_FilesView_SizeChanged">
                     <ItemsView.ItemTemplate>
                         <DataTemplate x:DataType="model:ExplorerItem">
                             <ItemContainer>

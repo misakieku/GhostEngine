@@ -152,8 +152,9 @@ public abstract class DockContainer : DockModule
             }
             else if (Root != null && Root.RootModule == this)
             {
-                Root.RootModule = null;
-                Root.NotifyLayoutEmpty();
+                var root = Root;
+                root.RootModule = null;
+                root.NotifyLayoutEmpty();
             }
         }
     }

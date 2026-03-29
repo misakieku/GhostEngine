@@ -107,6 +107,14 @@ internal sealed partial class ProjectBrowser : UserControl
         _isUpdatingSelection = false;
     }
 
+    private void PART_FilesView_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (e.NewSize.Width > 0 && e.NewSize.Height > 0)
+        {
+            PART_FilesView.UpdateLayout();
+        }
+    }
+
     private async void PART_FilesView_DoubleTapped(object sender, Microsoft.UI.Xaml.Input.DoubleTappedRoutedEventArgs e)
     {
         if (PART_FilesView.SelectedItem is ExplorerItem selectedItem)
