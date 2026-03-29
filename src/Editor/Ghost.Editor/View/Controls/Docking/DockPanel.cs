@@ -1,6 +1,6 @@
+using CommunityToolkit.WinUI.Controls;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using CommunityToolkit.WinUI.Controls;
 
 namespace Ghost.Editor.View.Controls.Docking;
 
@@ -8,10 +8,10 @@ namespace Ghost.Editor.View.Controls.Docking;
 /// A container that can host multiple dock modules with splitters.
 /// </summary>
 [TemplatePart(Name = PART_GRID, Type = typeof(Grid))]
-public class DockPanel : DockContainer
+public partial class DockPanel : DockContainer
 {
     private const string PART_GRID = "PART_Grid";
-    private const double SPLITTER_THICKNESS = 4;
+    private const double SPLITTER_THICKNESS = 1;
 
     public static readonly DependencyProperty OrientationProperty = DependencyProperty.Register(
         nameof(Orientation), typeof(Orientation), typeof(DockPanel), new PropertyMetadata(Orientation.Horizontal, OnOrientationChanged));
@@ -74,7 +74,20 @@ public class DockPanel : DockContainer
     {
         if (_grid == null) return;
 
-        _grid.Children.Clear();
+        // Remove splitters and children that are no longer in the collection
+        for (int i = _grid.Children.Count - 1; i >= 0; i--)
+        {
+            var child = _grid.Children[i];
+            if (child is GridSplitter)
+            {
+                _grid.Children.RemoveAt(i);
+            }
+            else if (child is DockModule module && !Children.Contains(module))
+            {
+                _grid.Children.RemoveAt(i);
+            }
+        }
+
         _grid.RowDefinitions.Clear();
         _grid.ColumnDefinitions.Clear();
 
@@ -82,36 +95,50 @@ public class DockPanel : DockContainer
 
         if (Orientation == Orientation.Horizontal)
         {
-            for (int i = 0; i < Children.Count; i++)
+            for (var i = 0; i < Children.Count; i++)
             {
                 _grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 var child = Children[i];
+                
+                if (!_grid.Children.Contains(child))
+                {
+                    _grid.Children.Add(child);
+                }
+                
                 Grid.SetColumn(child, i * 2);
-                _grid.Children.Add(child);
+                Grid.SetRow(child, 0);
 
                 if (i < Children.Count - 1)
                 {
                     _grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                     var splitter = new GridSplitter { ResizeDirection = GridSplitter.GridResizeDirection.Columns, Width = SPLITTER_THICKNESS };
                     Grid.SetColumn(splitter, i * 2 + 1);
+                    Grid.SetRow(splitter, 0);
                     _grid.Children.Add(splitter);
                 }
             }
         }
         else
         {
-            for (int i = 0; i < Children.Count; i++)
+            for (var i = 0; i < Children.Count; i++)
             {
                 _grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
                 var child = Children[i];
+                
+                if (!_grid.Children.Contains(child))
+                {
+                    _grid.Children.Add(child);
+                }
+                
                 Grid.SetRow(child, i * 2);
-                _grid.Children.Add(child);
+                Grid.SetColumn(child, 0);
 
                 if (i < Children.Count - 1)
                 {
                     _grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
                     var splitter = new GridSplitter { ResizeDirection = GridSplitter.GridResizeDirection.Rows, Height = SPLITTER_THICKNESS };
                     Grid.SetRow(splitter, i * 2 + 1);
+                    Grid.SetColumn(splitter, 0);
                     _grid.Children.Add(splitter);
                 }
             }
