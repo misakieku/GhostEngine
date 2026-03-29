@@ -11,6 +11,11 @@ public abstract class DockModule : Control
     /// Gets the container that owns this module.
     /// </summary>
     public DockContainer? Owner { get; internal set; }
+
+    /// <summary>
+    /// Gets or sets the proportional length (star weight) of this module within its parent panel.
+    /// </summary>
+    public double DockLength { get; set; } = 1.0;
     
     private DockingLayout? _root;
 

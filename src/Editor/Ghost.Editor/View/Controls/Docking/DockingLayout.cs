@@ -144,6 +144,7 @@ public partial class DockingLayout : Control
     private void SplitGroup(DockGroup targetGroup, DockDocument doc, DockTarget target)
     {
         var parentPanel = targetGroup.Owner as DockPanel;
+        parentPanel?.SyncLengths(); // Sync before modifying!
 
         var newGroup = new DockGroup();
         newGroup.AddChild(doc);
@@ -155,6 +156,9 @@ public partial class DockingLayout : Control
             // targetGroup is the RootModule
             var newPanel = new DockPanel { Orientation = orientation };
             RootModule = newPanel;
+
+            targetGroup.DockLength = 1.0;
+            newGroup.DockLength = 1.0;
 
             if (target == DockTarget.Left || target == DockTarget.Top)
             {
@@ -178,7 +182,11 @@ public partial class DockingLayout : Control
 
         if (parentPanel.Orientation == orientation)
         {
-            // Same orientation, just insert
+            // Splitting in the same orientation. Share the length.
+            double halfLength = targetGroup.DockLength / 2.0;
+            targetGroup.DockLength = halfLength;
+            newGroup.DockLength = halfLength;
+
             if (target == DockTarget.Left || target == DockTarget.Top)
             {
                 parentPanel.InsertChild(index, newGroup);
@@ -190,8 +198,13 @@ public partial class DockingLayout : Control
         }
         else
         {
-            // Different orientation, need a new sub-panel
+            // Splitting in opposite orientation. New panel takes the full length.
             var newPanel = new DockPanel { Orientation = orientation };
+            newPanel.DockLength = targetGroup.DockLength;
+
+            targetGroup.DockLength = 1.0;
+            newGroup.DockLength = 1.0;
+
             parentPanel.ReplaceChild(targetGroup, newPanel);
 
             if (target == DockTarget.Left || target == DockTarget.Top)

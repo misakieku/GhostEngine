@@ -45,6 +45,33 @@ public partial class DockPanel : DockContainer
         UpdateLayoutStructure();
     }
 
+    internal void SyncLengths()
+    {
+        if (_grid == null) return;
+        if (Orientation == Orientation.Horizontal)
+        {
+            for (int i = 0; i < Children.Count; i++)
+            {
+                int col = i * 2;
+                if (col < _grid.ColumnDefinitions.Count)
+                {
+                    Children[i].DockLength = _grid.ColumnDefinitions[col].Width.Value;
+                }
+            }
+        }
+        else
+        {
+            for (int i = 0; i < Children.Count; i++)
+            {
+                int row = i * 2;
+                if (row < _grid.RowDefinitions.Count)
+                {
+                    Children[i].DockLength = _grid.RowDefinitions[row].Height.Value;
+                }
+            }
+        }
+    }
+
     internal override void CheckCleanup()
     {
         base.CheckCleanup();
@@ -85,7 +112,7 @@ public partial class DockPanel : DockContainer
         {
             for (int i = 0; i < Children.Count; i++)
             {
-                _grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                _grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(Children[i].DockLength, GridUnitType.Star) });
                 var child = Children[i];
                 Grid.SetColumn(child, i * 2);
                 _grid.Children.Add(child);
@@ -103,7 +130,7 @@ public partial class DockPanel : DockContainer
         {
             for (int i = 0; i < Children.Count; i++)
             {
-                _grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                _grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(Children[i].DockLength, GridUnitType.Star) });
                 var child = Children[i];
                 Grid.SetRow(child, i * 2);
                 _grid.Children.Add(child);
