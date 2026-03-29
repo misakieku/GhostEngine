@@ -111,7 +111,7 @@ public partial class DockGroup : DockContainer
 
     private void UpdateTabs()
     {
-        if (_tabView == null) return;
+        if (_tabView == null || Root == null) return;
 
         var selectedDoc = _tabView.SelectedItem is TabViewItem selectedItem ? selectedItem.Tag as DockDocument : null;
 
