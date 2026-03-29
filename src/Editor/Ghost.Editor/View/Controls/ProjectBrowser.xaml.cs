@@ -17,6 +17,9 @@ internal sealed partial class ProjectBrowser : UserControl
 
     private readonly IInspectorService _inspectorService;
     private bool _isUpdatingSelection = false;
+    private double _savedHorizontalOffset;
+    private double _savedVerticalOffset;
+    private ScrollViewer? _filesScrollViewer;
 
     public ProjectBrowserViewModel ViewModel
     {
@@ -50,11 +53,41 @@ internal sealed partial class ProjectBrowser : UserControl
     {
         _inspectorService.OnSelectionChanged += _inspectorService_OnSelectionChanged;
         PART_FilesView.UpdateLayout();
+
+        DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+        {
+            if (_filesScrollViewer == null)
+            {
+                _filesScrollViewer = FindVisualChild<ScrollViewer>(PART_FilesView);
+            }
+
+            if (_filesScrollViewer != null)
+            {
+                // Sometimes resetting the ItemsSource helps clear corrupted virtualization state
+                var itemsSource = PART_FilesView.ItemsSource;
+                PART_FilesView.ItemsSource = null;
+                PART_FilesView.ItemsSource = itemsSource;
+
+                PART_FilesView.UpdateLayout();
+                _filesScrollViewer.ChangeView(_savedHorizontalOffset, _savedVerticalOffset, null, true);
+            }
+        });
     }
 
     private void ProjectBrowser_Unloaded(object sender, RoutedEventArgs e)
     {
         _inspectorService.OnSelectionChanged -= _inspectorService_OnSelectionChanged;
+
+        if (_filesScrollViewer == null)
+        {
+            _filesScrollViewer = FindVisualChild<ScrollViewer>(PART_FilesView);
+        }
+
+        if (_filesScrollViewer != null)
+        {
+            _savedHorizontalOffset = _filesScrollViewer.HorizontalOffset;
+            _savedVerticalOffset = _filesScrollViewer.VerticalOffset;
+        }
 
         if (LastFocused == this)
         {
@@ -69,6 +102,26 @@ internal sealed partial class ProjectBrowser : UserControl
             PART_FilesView.DeselectAll();
             PART_DirectoriesView.SelectedNodes.Clear();
         }
+    }
+
+    private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+    {
+        for (int i = 0; i < Microsoft.UI.Xaml.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetChild(parent, i);
+            if (child is T t)
+            {
+                return t;
+            }
+
+            var result = FindVisualChild<T>(child);
+            if (result != null)
+            {
+                return result;
+            }
+        }
+
+        return null;
     }
 
     private void PART_DirectoriesView_SelectionChanged(TreeView sender, TreeViewSelectionChangedEventArgs args)
