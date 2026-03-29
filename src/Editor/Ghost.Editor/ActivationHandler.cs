@@ -1,5 +1,6 @@
 using Ghost.Editor.Core.Utilities;
 using Ghost.Editor.Models;
+using Ghost.Engine;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Reflection;
 
@@ -62,11 +63,8 @@ internal static class ActivationHandler
 
         AllocationManager.Initialize(opts);
         TypeCache.Initialize();
-
-        // await ((Core.AssetHandle.AssetService)App.GetService<IAssetService>()).Init();
-
-        // TODO: Init other subsystems here.
-        // await Task.Delay(10000); // Wait 10 seconds to simulate work.
+        
+        //App.GetService<EngineCore>();
 
         return ValueTask.CompletedTask;
     }

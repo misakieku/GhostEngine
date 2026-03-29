@@ -6,7 +6,7 @@ public partial class GetDirectoryNameConverter : IValueConverter
 {
     public object? Convert(object value, Type targetType, object parameter, string language)
     {
-        return value is string path ? System.IO.Path.GetDirectoryName(path) : null;
+        return value is string path ? Path.GetDirectoryName(path) : null;
     }
 
     public object? ConvertBack(object value, Type targetType, object parameter, string language)

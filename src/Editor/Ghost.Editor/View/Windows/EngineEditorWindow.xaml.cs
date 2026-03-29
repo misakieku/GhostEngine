@@ -49,31 +49,31 @@ internal sealed partial class EngineEditorWindow : WindowEx
 
     private void InitializeDockingLayout()
     {
-        var sceneDoc = new Ghost.Editor.View.Controls.Docking.DockDocument { Title = "Scene", Content = new Ghost.Editor.View.Pages.EngineEditor.ScenePage() };
-        var hierarchyDoc = new Ghost.Editor.View.Controls.Docking.DockDocument { Title = "Hierarchy", Content = new Ghost.Editor.View.Controls.Hierarchy() };
-        var inspectorDoc = new Ghost.Editor.View.Controls.Docking.DockDocument { Title = "Inspector", Content = new Ghost.Editor.View.Pages.EngineEditor.InspectorPage() };
-        var projectDoc = new Ghost.Editor.View.Controls.Docking.DockDocument { Title = "Project", Content = new Ghost.Editor.View.Controls.ProjectBrowser() };
-        var consoleDoc = new Ghost.Editor.View.Controls.Docking.DockDocument { Title = "Console", Content = new Ghost.Editor.View.Pages.EngineEditor.ConsolePage() };
+        var sceneDoc = new Controls.Docking.DockDocument { Title = "Scene", Content = new Pages.EngineEditor.ScenePage() };
+        var hierarchyDoc = new Controls.Docking.DockDocument { Title = "Hierarchy", Content = new Controls.Hierarchy() };
+        var inspectorDoc = new Controls.Docking.DockDocument { Title = "Inspector", Content = new Pages.EngineEditor.InspectorPage() };
+        var projectDoc = new Controls.Docking.DockDocument { Title = "Project", Content = new Controls.ProjectBrowser() };
+        var consoleDoc = new Controls.Docking.DockDocument { Title = "Console", Content = new Pages.EngineEditor.ConsolePage() };
 
-        var leftGroup = new Ghost.Editor.View.Controls.Docking.DockGroup();
+        var leftGroup = new Controls.Docking.DockGroup();
         leftGroup.AddChild(hierarchyDoc);
 
-        var centerGroup = new Ghost.Editor.View.Controls.Docking.DockGroup();
+        var centerGroup = new Controls.Docking.DockGroup();
         centerGroup.AddChild(sceneDoc);
 
-        var rightGroup = new Ghost.Editor.View.Controls.Docking.DockGroup();
+        var rightGroup = new Controls.Docking.DockGroup();
         rightGroup.AddChild(inspectorDoc);
 
-        var bottomGroup = new Ghost.Editor.View.Controls.Docking.DockGroup();
+        var bottomGroup = new Controls.Docking.DockGroup();
         bottomGroup.AddChild(projectDoc);
         bottomGroup.AddChild(consoleDoc);
 
-        var topPanel = new Ghost.Editor.View.Controls.Docking.DockPanel { Orientation = Microsoft.UI.Xaml.Controls.Orientation.Horizontal };
+        var topPanel = new Controls.Docking.DockPanel { Orientation = Microsoft.UI.Xaml.Controls.Orientation.Horizontal };
         topPanel.AddChild(leftGroup);
         topPanel.AddChild(centerGroup);
         topPanel.AddChild(rightGroup);
 
-        var rootPanel = new Ghost.Editor.View.Controls.Docking.DockPanel { Orientation = Microsoft.UI.Xaml.Controls.Orientation.Vertical };
+        var rootPanel = new Controls.Docking.DockPanel { Orientation = Microsoft.UI.Xaml.Controls.Orientation.Vertical };
         rootPanel.AddChild(topPanel);
         rootPanel.AddChild(bottomGroup);
 

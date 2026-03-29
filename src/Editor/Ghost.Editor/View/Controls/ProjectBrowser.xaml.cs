@@ -1,3 +1,4 @@
+using CommunityToolkit.WinUI;
 using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Models;
 using Ghost.Editor.ViewModels.Controls;
@@ -49,9 +50,6 @@ internal sealed partial class ProjectBrowser : UserControl
     private void ProjectBrowser_Loaded(object sender, RoutedEventArgs e)
     {
         _inspectorService.OnSelectionChanged += _inspectorService_OnSelectionChanged;
-
-        // HACK: Scroll a little bit to trigger ScrollView to update it's scrollbar visibility. Otherwise the scrollbar will show a incorrect state when docking layout changes.
-        PART_FilesView.ScrollView.ScrollBy(1, 0);
     }
 
     private void ProjectBrowser_Unloaded(object sender, RoutedEventArgs e)
@@ -92,7 +90,7 @@ internal sealed partial class ProjectBrowser : UserControl
         _isUpdatingSelection = false;
     }
 
-    private void PART_FilesView_SelectionChanged(ItemsView sender, ItemsViewSelectionChangedEventArgs args)
+    private void PART_FilesView_SelectionChanged(object sender, SelectionChangedEventArgs args)
     {
         if (_isUpdatingSelection)
         {
@@ -139,7 +137,7 @@ internal sealed partial class ProjectBrowser : UserControl
                 else if (navigatedItem.Item2 == 1)
                 {
                     var index = ViewModel.Files.IndexOf(navigatedItem.Item1);
-                    PART_FilesView.Select(index);
+                    PART_FilesView.SelectedIndex = index;
                 }
             }
 
