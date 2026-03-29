@@ -7,6 +7,7 @@
         <ResourceDictionary Source="/View/Controls/Docking/DockGroup.xaml" />
         <ResourceDictionary Source="/View/Controls/Docking/DockPanel.xaml" />
         <ResourceDictionary Source="/View/Controls/Docking/DockRegionHighlight.xaml" />
+        <ResourceDictionary Source="/View/Controls/Docking/DockDocument.xaml" />
     </ResourceDictionary.MergedDictionaries>
 
 </ResourceDictionary>

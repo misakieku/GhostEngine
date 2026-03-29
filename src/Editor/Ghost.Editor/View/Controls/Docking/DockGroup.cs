@@ -115,70 +115,41 @@ public partial class DockGroup : DockContainer
 
         var selectedDoc = _tabView.SelectedItem is TabViewItem selectedItem ? selectedItem.Tag as DockDocument : null;
 
-        // Remove tabs that are no longer in Children
-        for (int i = _tabView.TabItems.Count - 1; i >= 0; i--)
+        // Detach all existing tabs
+        foreach (var item in _tabView.TabItems)
         {
-            if (_tabView.TabItems[i] is TabViewItem tabItem && tabItem.Tag is DockDocument doc)
+            if (item is TabViewItem tabItem)
             {
-                if (!Children.Contains(doc))
-                {
-                    tabItem.ClearValue(ContentControl.ContentProperty);
-                    tabItem.Content = null;
-                    _tabView.TabItems.RemoveAt(i);
-                }
+                tabItem.Content = null;
             }
         }
+        _tabView.TabItems.Clear();
 
         TabViewItem? newSelectedItem = null;
 
-        // Add tabs that are in Children but not in TabItems, and ensure correct order
-        for (int i = 0; i < Children.Count; i++)
+        foreach (var child in Children)
         {
-            if (Children[i] is DockDocument doc)
+            if (child is DockDocument doc)
             {
-                TabViewItem? existingTab = null;
-                for (int j = 0; j < _tabView.TabItems.Count; j++)
+                var tabItem = new TabViewItem
                 {
-                    if (_tabView.TabItems[j] is TabViewItem tabItem && tabItem.Tag == doc)
-                    {
-                        existingTab = tabItem;
-                        // Fix order if necessary
-                        if (j != i)
-                        {
-                            _tabView.TabItems.RemoveAt(j);
-                            _tabView.TabItems.Insert(i, existingTab);
-                        }
-                        break;
-                    }
-                }
+                    Tag = doc
+                };
 
-                if (existingTab == null)
+                tabItem.SetBinding(TabViewItem.HeaderProperty, new Microsoft.UI.Xaml.Data.Binding
                 {
-                    existingTab = new TabViewItem
-                    {
-                        Tag = doc
-                    };
+                    Source = doc,
+                    Path = new PropertyPath(nameof(DockDocument.Title)),
+                    Mode = Microsoft.UI.Xaml.Data.BindingMode.OneWay
+                });
 
-                    existingTab.SetBinding(TabViewItem.HeaderProperty, new Binding
-                    {
-                        Source = doc,
-                        Path = new PropertyPath(nameof(DockDocument.Title)),
-                        Mode = BindingMode.OneWay
-                    });
+                tabItem.Content = doc;
 
-                    existingTab.SetBinding(ContentControl.ContentProperty, new Binding
-                    {
-                        Source = doc,
-                        Path = new PropertyPath(nameof(DockDocument.Content)),
-                        Mode = BindingMode.OneWay
-                    });
-
-                    _tabView.TabItems.Insert(i, existingTab);
-                }
+                _tabView.TabItems.Add(tabItem);
 
                 if (doc == selectedDoc)
                 {
-                    newSelectedItem = existingTab;
+                    newSelectedItem = tabItem;
                 }
             }
         }
