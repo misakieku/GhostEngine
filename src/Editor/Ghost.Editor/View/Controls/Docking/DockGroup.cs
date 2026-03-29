@@ -128,24 +128,49 @@ public partial class DockGroup : DockContainer
             }
         }
 
-        // Add new tabs that aren't in TabItems yet
-        foreach (var child in Children)
+        // Add new tabs that aren't in TabItems yet, and ensure correct order
+        for (int i = 0; i < Children.Count; i++)
         {
-            if (child is DockDocument doc && !_tabView.TabItems.Any(t => t is TabViewItem item && item.Tag.Equals(doc)))
+            if (Children[i] is DockDocument doc)
             {
-                var tabItem = new TabViewItem { Tag = doc, Content = doc };
-                tabItem.SetBinding(TabViewItem.HeaderProperty, new Microsoft.UI.Xaml.Data.Binding
+                TabViewItem? existingTab = null;
+                for (int j = 0; j < _tabView.TabItems.Count; j++)
                 {
-                    Source = doc,
-                    Path = new PropertyPath(nameof(DockDocument.Title)),
-                    Mode = BindingMode.OneWay
-                });
-                _tabView.TabItems.Add(tabItem);
+                    if (_tabView.TabItems[j] is TabViewItem tabItem && tabItem.Tag == doc)
+                    {
+                        existingTab = tabItem;
+                        // Fix order if necessary
+                        if (j != i)
+                        {
+                            _tabView.TabItems.RemoveAt(j);
+                            _tabView.TabItems.Insert(i, existingTab);
+                        }
+                        break;
+                    }
+                }
+
+                if (existingTab == null)
+                {
+                    existingTab = new TabViewItem
+                    {
+                        Tag = doc,
+                        Content = doc
+                    };
+
+                    existingTab.SetBinding(TabViewItem.HeaderProperty, new Microsoft.UI.Xaml.Data.Binding
+                    {
+                        Source = doc,
+                        Path = new PropertyPath(nameof(DockDocument.Title)),
+                        Mode = Microsoft.UI.Xaml.Data.BindingMode.OneWay
+                    });
+
+                    _tabView.TabItems.Insert(i, existingTab);
+                }
             }
         }
 
         // Restore selection
-        if (selectedDoc != null && _tabView.TabItems.FirstOrDefault(t => t is TabViewItem item && item.Tag.Equals(selectedDoc)) is TabViewItem newSelected)
+        if (selectedDoc != null && _tabView.TabItems.FirstOrDefault(t => t is TabViewItem item && item.Tag == selectedDoc) is TabViewItem newSelected)
         {
             _tabView.SelectedItem = newSelected;
         }
