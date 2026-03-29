@@ -45,7 +45,7 @@ public partial class DockPanel : DockContainer
         UpdateLayoutStructure();
     }
 
-    protected override void CheckCleanup()
+    internal override void CheckCleanup()
     {
         base.CheckCleanup();
 

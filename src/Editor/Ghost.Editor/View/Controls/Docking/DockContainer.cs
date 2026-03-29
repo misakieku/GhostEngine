@@ -142,7 +142,7 @@ public abstract class DockContainer : DockModule
     /// <summary>
     /// Checks if the container is empty and removes it from its owner if necessary.
     /// </summary>
-    protected virtual void CheckCleanup()
+    internal virtual void CheckCleanup()
     {
         if (Children.Count == 0)
         {

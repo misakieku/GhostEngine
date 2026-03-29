@@ -143,7 +143,6 @@ public partial class DockingLayout : Control
 
     private void SplitGroup(DockGroup targetGroup, DockDocument doc, DockTarget target)
     {
-        doc.Owner?.RemoveChild(doc);
         var parentPanel = targetGroup.Owner as DockPanel;
 
         var newGroup = new DockGroup();
@@ -272,6 +271,9 @@ public partial class DockingLayout : Control
         HideHighlight();
         var target = CalculateDockTarget(targetGroup, position);
 
+        var oldOwner = doc.Owner as DockContainer;
+        oldOwner?.RemoveChildInternal(doc, false);
+
         if (target == DockTarget.Center)
         {
             if (doc.Owner == targetGroup) return;
@@ -281,6 +283,14 @@ public partial class DockingLayout : Control
         {
             if (doc.Owner == targetGroup && targetGroup.Children.Count == 1) return;
             SplitGroup(targetGroup, doc, target);
+        }
+
+        if (oldOwner != null)
+        {
+            DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Normal, () =>
+            {
+                oldOwner.CheckCleanup();
+            });
         }
     }
 
@@ -301,9 +311,21 @@ public partial class DockingLayout : Control
     internal void CreateFloatingWindow(DockDocument doc)
     {
         ArgumentNullException.ThrowIfNull(doc);
+
+        var oldOwner = doc.Owner as DockContainer;
+        oldOwner?.RemoveChildInternal(doc, false);
+
         var window = new FloatingWindow(doc);
         _floatingWindows.Add(window);
         window.Closed += (s, e) => _floatingWindows.Remove(window);
         window.Activate();
+
+        if (oldOwner != null)
+        {
+            DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Normal, () =>
+            {
+                oldOwner.CheckCleanup();
+            });
+        }
     }
 }
