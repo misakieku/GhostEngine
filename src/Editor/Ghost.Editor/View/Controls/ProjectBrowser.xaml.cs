@@ -49,6 +49,9 @@ internal sealed partial class ProjectBrowser : UserControl
     private void ProjectBrowser_Loaded(object sender, RoutedEventArgs e)
     {
         _inspectorService.OnSelectionChanged += _inspectorService_OnSelectionChanged;
+
+        // HACK: Scroll a little bit to trigger ScrollView to update it's scrollbar visibility. Otherwise the scrollbar will show a incorrect state when docking layout changes.
+        PART_FilesView.ScrollView.ScrollBy(1, 0);
     }
 
     private void ProjectBrowser_Unloaded(object sender, RoutedEventArgs e)

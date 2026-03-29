@@ -116,25 +116,32 @@ public partial class App : Application
             return;
         }
 
-        EditorApplication.Initialize(Host.Services, arguments.ProjectPath, arguments.ProjectName);
+        try
+        {
+            EditorApplication.Initialize(Host.Services, arguments.ProjectPath, arguments.ProjectName);
 
-        // NOTE: We must call DispatcherQueue.GetForCurrentThread() on the UI thread before any await.
-        EditorApplication.SetDispatcherQueue(DispatcherQueue.GetForCurrentThread());
+            // NOTE: We must call DispatcherQueue.GetForCurrentThread() on the UI thread before any await.
+            EditorApplication.SetDispatcherQueue(DispatcherQueue.GetForCurrentThread());
 
-        var splashWindow = new SplashWindow();
-        splashWindow.Activate();
-        Window = splashWindow;
+            var splashWindow = new SplashWindow();
+            splashWindow.Activate();
+            Window = splashWindow;
 
-        await Host.StartAsync();
-        await ActivationHandler.HandleAsync(arguments);
+            await Host.StartAsync();
+            await ActivationHandler.HandleAsync(arguments);
 
-        splashWindow.Hide();
+            splashWindow.Hide();
 
-        var editorWindow = new EngineEditorWindow();
-        editorWindow.Activate();
-        Window = editorWindow;
+            var editorWindow = new EngineEditorWindow();
+            editorWindow.Activate();
+            Window = editorWindow;
 
-        splashWindow.Close();
+            splashWindow.Close();
+        }
+        catch (Exception ex)
+        {
+            Environment.Exit(ex.HResult);
+        }
     }
 
     private void OnClosed(object? sender, WindowEventArgs args)
@@ -153,7 +160,7 @@ public partial class App : Application
         }
         finally
         {
-            //Environment.Exit(0);
+            Environment.Exit(0);
         }
     }
 

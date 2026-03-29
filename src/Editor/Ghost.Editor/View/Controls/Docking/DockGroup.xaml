@@ -7,15 +7,15 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:DockGroup">
-                    <Grid>
-                        <TabView
-                            x:Name="PART_TabView"
-                            VerticalAlignment="Stretch"
-                            AllowDrop="True"
-                            CanDragTabs="True"
-                            CanReorderTabs="False"
-                            IsAddTabButtonVisible="False" />
-                    </Grid>
+                    <TabView
+                        x:Name="PART_TabView"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
+                        AllowDrop="True"
+                        CanDragTabs="True"
+                        CanReorderTabs="True"
+                        IsAddTabButtonVisible="True"
+                        TabWidthMode="Compact" />
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

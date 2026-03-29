@@ -1,7 +1,7 @@
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:controls="using:Microsoft.UI.Xaml.Controls"
+    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     xmlns:ghost="using:Ghost.Editor.Controls"
     xmlns:local="using:Ghost.Editor.Core">
 
@@ -42,6 +42,11 @@
         <Setter Property="TabWidthMode" Value="Compact" />
     </Style>
     <Style TargetType="NumberBox" />
+    <Style TargetType="controls:GridSplitter">
+        <Setter Property="MinHeight" Value="2" />
+        <Setter Property="MinWidth" Value="2" />
+        <Setter Property="Background" Value="{ThemeResource AcrylicBackgroundFillColorBaseBrush}" />
+    </Style>
 
     <!--  Named Style  -->
     <Style

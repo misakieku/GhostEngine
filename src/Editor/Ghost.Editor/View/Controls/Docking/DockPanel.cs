@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using CommunityToolkit.WinUI.Controls;
+using Windows.Foundation;
 
 namespace Ghost.Editor.View.Controls.Docking;
 
@@ -8,7 +9,7 @@ namespace Ghost.Editor.View.Controls.Docking;
 /// A container that can host multiple dock modules with splitters.
 /// </summary>
 [TemplatePart(Name = PART_GRID, Type = typeof(Grid))]
-public class DockPanel : DockContainer
+public partial class DockPanel : DockContainer
 {
     private const string PART_GRID = "PART_Grid";
     private const double SPLITTER_THICKNESS = 4;
@@ -116,5 +117,7 @@ public class DockPanel : DockContainer
                 }
             }
         }
+
+        UpdateLayout();
     }
 }

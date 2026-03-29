@@ -8,7 +8,7 @@ namespace Ghost.Editor.View.Controls.Docking;
 /// </summary>
 [TemplatePart(Name = PART_OVERLAY_CANVAS, Type = typeof(Canvas))]
 [TemplatePart(Name = PART_HIGHLIGHT, Type = typeof(DockRegionHighlight))]
-public class DockingLayout : Control
+public partial class DockingLayout : Control
 {
     private const string PART_OVERLAY_CANVAS = "PART_OverlayCanvas";
     private const string PART_HIGHLIGHT = "PART_Highlight";
