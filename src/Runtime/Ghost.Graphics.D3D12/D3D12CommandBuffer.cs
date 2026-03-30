@@ -307,7 +307,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         pNativeObject->Barrier(groupCount, groups);
     }
 
-    public void SetRenderTargets(ReadOnlySpan<Handle<Texture>> renderTargets, Handle<Texture> depthTarget)
+    public void SetRenderTargets(ReadOnlySpan<Handle<GPUTexture>> renderTargets, Handle<GPUTexture> depthTarget)
     {
         AssertNotDisposed();
         ThrowIfNotRecording();
@@ -360,7 +360,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         pNativeObject->OMSetRenderTargets(rtvCount, pRtvHandles, FALSE, pDsvHandle);
     }
 
-    public void ClearRenderTargetView(Handle<Texture> renderTarget, Color128 clearColor)
+    public void ClearRenderTargetView(Handle<GPUTexture> renderTarget, Color128 clearColor)
     {
         AssertNotDisposed();
         ThrowIfNotRecording();
@@ -385,7 +385,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         pNativeObject->ClearRenderTargetView(cpuHandle, (float*)&clearColor, 0, null);
     }
 
-    public void ClearDepthStencilView(Handle<Texture> depthStencil, bool inlcudeDepth, bool includeStencil, float clearDepth = 1.0f, byte clearStencil = 0)
+    public void ClearDepthStencilView(Handle<GPUTexture> depthStencil, bool inlcudeDepth, bool includeStencil, float clearDepth = 1.0f, byte clearStencil = 0)
     {
         AssertNotDisposed();
         ThrowIfNotRecording();
@@ -631,7 +631,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         pNativeObject->SetPipelineState(psor.Value);
     }
 
-    public void SetConstantBufferView(uint slot, Handle<GraphicsBuffer> buffer)
+    public void SetConstantBufferView(uint slot, Handle<RHI.GPUBuffer> buffer)
     {
         AssertNotDisposed();
         ThrowIfNotRecording();
@@ -647,7 +647,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         pNativeObject->SetGraphicsRootConstantBufferView(slot, resource.Get()->GetGPUVirtualAddress());
     }
 
-    public void SetVertexBuffer(uint slot, Handle<GraphicsBuffer> buffer, ulong offset = 0)
+    public void SetVertexBuffer(uint slot, Handle<RHI.GPUBuffer> buffer, ulong offset = 0)
     {
         AssertNotDisposed();
         ThrowIfNotRecording();
@@ -677,7 +677,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         pNativeObject->IASetVertexBuffers(slot, 1, &vbView);
     }
 
-    public void SetIndexBuffer(Handle<GraphicsBuffer> buffer, IndexType type, ulong offset = 0)
+    public void SetIndexBuffer(Handle<RHI.GPUBuffer> buffer, IndexType type, ulong offset = 0)
     {
         AssertNotDisposed();
         ThrowIfNotRecording();
@@ -817,7 +817,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         throw new NotImplementedException();
     }
 
-    public void ExecuteIndirect(Handle<GraphicsBuffer> argumentBuffer, ulong argumentOffset, Handle<GraphicsBuffer> countBuffer, ulong countBufferOffset)
+    public void ExecuteIndirect(Handle<RHI.GPUBuffer> argumentBuffer, ulong argumentOffset, Handle<RHI.GPUBuffer> countBuffer, ulong countBufferOffset)
     {
         throw new NotImplementedException();
 
@@ -841,7 +841,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
 
     }
 
-    public void UploadBuffer<T>(Handle<GraphicsBuffer> buffer, params ReadOnlySpan<T> data)
+    public void UploadBuffer<T>(Handle<RHI.GPUBuffer> buffer, params ReadOnlySpan<T> data)
         where T : unmanaged
     {
         static void Map(T* pData, nuint size, ulong offset, SharedPtr<ID3D12Resource> resource)
@@ -891,7 +891,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         }
     }
 
-    public void UploadTexture(Handle<Texture> texture, params ReadOnlySpan<SubResourceData> subresources)
+    public void UploadTexture(Handle<GPUTexture> texture, params ReadOnlySpan<SubResourceData> subresources)
     {
         AssertNotDisposed();
         ThrowIfNotRecording();
@@ -932,7 +932,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
             d3d12Subresources);
     }
 
-    public void CopyBuffer(Handle<GraphicsBuffer> dst, Handle<GraphicsBuffer> src, ulong dstOffset = 0, ulong srcOffset = 0, ulong numBytes = 0)
+    public void CopyBuffer(Handle<RHI.GPUBuffer> dst, Handle<RHI.GPUBuffer> src, ulong dstOffset = 0, ulong srcOffset = 0, ulong numBytes = 0)
     {
         AssertNotDisposed();
         ThrowIfNotRecording();
@@ -991,7 +991,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                && desc1.SampleDesc.Count == desc2.SampleDesc.Count;
     }
 
-    public void CopyTexture(Handle<Texture> dst, TextureRegion? dstRegion, Handle<Texture> src, TextureRegion? srcRegion)
+    public void CopyTexture(Handle<GPUTexture> dst, TextureRegion? dstRegion, Handle<GPUTexture> src, TextureRegion? srcRegion)
     {
         AssertNotDisposed();
         ThrowIfNotRecording();

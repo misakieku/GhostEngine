@@ -99,7 +99,6 @@ internal class D3D12ResourceDatabase : IResourceDatabase
 
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
 
-    // TODO: Change AOS to SOA?
     private UnsafeSlotMap<ResourceRecord> _resources;
     private UnsafeHashMap<SamplerDesc, Identifier<Sampler>> _samplers;
 #if DEBUG || GHOST_EDITOR

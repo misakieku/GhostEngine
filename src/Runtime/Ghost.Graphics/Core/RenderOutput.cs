@@ -25,7 +25,7 @@ internal class SwapChainRenderOutput : IRenderOutput
         Scissor = new ScissorRectDesc { Right = swapChain.Width, Bottom = swapChain.Height };
     }
 
-    public Handle<Texture> GetRenderTarget()
+    public Handle<GPUTexture> GetRenderTarget()
     {
         return _swapChain.GetCurrentBackBuffer();
     }
@@ -58,7 +58,7 @@ internal class SwapChainRenderOutput : IRenderOutput
 
 internal class TextureRenderOutput : IRenderOutput
 {
-    private readonly Handle<Texture> _texture;
+    private readonly Handle<GPUTexture> _texture;
 
     public ViewportDesc Viewport
     {
@@ -70,12 +70,12 @@ internal class TextureRenderOutput : IRenderOutput
         get; set;
     }
 
-    public TextureRenderOutput(Handle<Texture> texture)
+    public TextureRenderOutput(Handle<GPUTexture> texture)
     {
         _texture = texture;
     }
 
-    public Handle<Texture> GetRenderTarget()
+    public Handle<GPUTexture> GetRenderTarget()
     {
         return _texture;
     }

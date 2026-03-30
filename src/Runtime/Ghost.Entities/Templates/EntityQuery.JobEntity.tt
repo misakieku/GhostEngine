@@ -137,15 +137,15 @@ public unsafe partial struct EntityQuery
         }
 
         // 1. Flatten the World
-        var chunks = new UnsafeList<IntPtr>(128, JobScheduler.TempAllocatorHandle);
-        var chunkVersions = new UnsafeList<IntPtr>(128, JobScheduler.TempAllocatorHandle);
-        var chunkEntityCounts = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var entityOffsets = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var chunks = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
+        var chunkVersions = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
+        var chunkEntityCounts = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var entityOffsets = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
 <# for (var j = 0; j < i; j++){ #>
-        var offsets<#= j #> = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets<#= j #> = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices<#= j #> = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets<#= j #> = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets<#= j #> = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices<#= j #> = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
 <# } #>
         // Iterate the Query's matching archetypes

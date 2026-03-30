@@ -138,7 +138,7 @@ public struct Mesh : IResourceReleasable
     /// <summary>
     /// Gets the handle to the vertex buffer on the GPU.
     /// </summary>
-    public Handle<GraphicsBuffer> VertexBuffer
+    public Handle<RHI.GPUBuffer> VertexBuffer
     {
         get; internal set;
     }
@@ -146,7 +146,7 @@ public struct Mesh : IResourceReleasable
     /// <summary>
     /// Gets the handle to the index buffer on the GPU.
     /// </summary>
-    public Handle<GraphicsBuffer> IndexBuffer
+    public Handle<RHI.GPUBuffer> IndexBuffer
     {
         get; internal set;
     }
@@ -154,7 +154,7 @@ public struct Mesh : IResourceReleasable
     /// <summary>
     /// Gets the handle to the meshlet buffer on the GPU.
     /// </summary>
-    public Handle<GraphicsBuffer> MeshLetBuffer
+    public Handle<RHI.GPUBuffer> MeshLetBuffer
     {
         get; internal set;
     }
@@ -162,7 +162,7 @@ public struct Mesh : IResourceReleasable
     /// <summary>
     /// Gets the handle to the meshlet vertices buffer on the GPU.
     /// </summary>
-    public Handle<GraphicsBuffer> MeshletVerticesBuffer
+    public Handle<RHI.GPUBuffer> MeshletVerticesBuffer
     {
         get; internal set;
     }
@@ -170,7 +170,7 @@ public struct Mesh : IResourceReleasable
     /// <summary>
     /// Gets the handle to the meshlet triangles buffer on the GPU.
     /// </summary>
-    public Handle<GraphicsBuffer> MeshletTrianglesBuffer
+    public Handle<RHI.GPUBuffer> MeshletTrianglesBuffer
     {
         get; internal set;
     }
@@ -178,12 +178,12 @@ public struct Mesh : IResourceReleasable
     /// <summary>
     /// Gets the handle to the mesh data buffer on the GPU.
     /// </summary>
-    public Handle<GraphicsBuffer> ObjectDataBuffer
+    public Handle<RHI.GPUBuffer> ObjectDataBuffer
     {
         get; internal set;
     }
 
-    internal Mesh(ReadOnlySpan<Vertex> vertices, ReadOnlySpan<uint> indices, Handle<GraphicsBuffer> vertexBuffer, Handle<GraphicsBuffer> indexBuffer)
+    internal Mesh(ReadOnlySpan<Vertex> vertices, ReadOnlySpan<uint> indices, Handle<RHI.GPUBuffer> vertexBuffer, Handle<RHI.GPUBuffer> indexBuffer)
     {
         Vertices = new UnsafeList<Vertex>(vertices.Length, Allocator.Persistent);
         Indices = new UnsafeList<uint>(indices.Length, Allocator.Persistent);

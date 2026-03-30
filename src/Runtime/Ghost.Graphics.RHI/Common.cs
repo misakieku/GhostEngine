@@ -292,12 +292,12 @@ public struct RenderDesc
     }
 
     // The "Target" (Where to write pixels)
-    public Handle<Texture> Target
+    public Handle<GPUTexture> Target
     {
         get; set;
     }
 
-    public Handle<Texture> DepthTarget
+    public Handle<GPUTexture> DepthTarget
     {
         get; set;
     }
@@ -377,7 +377,7 @@ public struct SubResourceData
 
 public struct PassRenderTargetDesc
 {
-    public Handle<Texture> Texture
+    public Handle<GPUTexture> Texture
     {
         get; set;
     }
@@ -407,7 +407,7 @@ public struct PassRenderTargetDesc
 
 public struct PassDepthStencilDesc
 {
-    public Handle<Texture> Texture
+    public Handle<GPUTexture> Texture
     {
         get; set;
     }

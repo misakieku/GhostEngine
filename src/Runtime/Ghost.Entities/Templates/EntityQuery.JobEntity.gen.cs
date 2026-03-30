@@ -1107,14 +1107,14 @@ public unsafe partial struct EntityQuery
         }
 
         // 1. Flatten the World
-        var chunks = new UnsafeList<IntPtr>(128, JobScheduler.TempAllocatorHandle);
-        var chunkVersions = new UnsafeList<IntPtr>(128, JobScheduler.TempAllocatorHandle);
-        var chunkEntityCounts = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var entityOffsets = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var chunks = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
+        var chunkVersions = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
+        var chunkEntityCounts = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var entityOffsets = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets0 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets0 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices0 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
         // Iterate the Query's matching archetypes
         foreach (var archID in _matchingArchetypes)
@@ -1248,18 +1248,18 @@ public unsafe partial struct EntityQuery
         }
 
         // 1. Flatten the World
-        var chunks = new UnsafeList<IntPtr>(128, JobScheduler.TempAllocatorHandle);
-        var chunkVersions = new UnsafeList<IntPtr>(128, JobScheduler.TempAllocatorHandle);
-        var chunkEntityCounts = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var entityOffsets = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var chunks = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
+        var chunkVersions = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
+        var chunkEntityCounts = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var entityOffsets = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets0 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets0 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices0 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets1 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets1 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices1 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
         // Iterate the Query's matching archetypes
         foreach (var archID in _matchingArchetypes)
@@ -1415,22 +1415,22 @@ public unsafe partial struct EntityQuery
         }
 
         // 1. Flatten the World
-        var chunks = new UnsafeList<IntPtr>(128, JobScheduler.TempAllocatorHandle);
-        var chunkVersions = new UnsafeList<IntPtr>(128, JobScheduler.TempAllocatorHandle);
-        var chunkEntityCounts = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var entityOffsets = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var chunks = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
+        var chunkVersions = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
+        var chunkEntityCounts = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var entityOffsets = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets0 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets0 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices0 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets1 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets1 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices1 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets2 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets2 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices2 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
         // Iterate the Query's matching archetypes
         foreach (var archID in _matchingArchetypes)
@@ -1608,26 +1608,26 @@ public unsafe partial struct EntityQuery
         }
 
         // 1. Flatten the World
-        var chunks = new UnsafeList<IntPtr>(128, JobScheduler.TempAllocatorHandle);
-        var chunkVersions = new UnsafeList<IntPtr>(128, JobScheduler.TempAllocatorHandle);
-        var chunkEntityCounts = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var entityOffsets = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var chunks = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
+        var chunkVersions = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
+        var chunkEntityCounts = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var entityOffsets = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets0 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets0 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices0 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets1 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets1 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices1 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets2 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets2 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices2 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets3 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets3 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices3 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
         // Iterate the Query's matching archetypes
         foreach (var archID in _matchingArchetypes)
@@ -1827,30 +1827,30 @@ public unsafe partial struct EntityQuery
         }
 
         // 1. Flatten the World
-        var chunks = new UnsafeList<IntPtr>(128, JobScheduler.TempAllocatorHandle);
-        var chunkVersions = new UnsafeList<IntPtr>(128, JobScheduler.TempAllocatorHandle);
-        var chunkEntityCounts = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var entityOffsets = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var chunks = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
+        var chunkVersions = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
+        var chunkEntityCounts = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var entityOffsets = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets0 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets0 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices0 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets1 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets1 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices1 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets2 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets2 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices2 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets3 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets3 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices3 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets4 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets4 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices4 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets4 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets4 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices4 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
         // Iterate the Query's matching archetypes
         foreach (var archID in _matchingArchetypes)
@@ -2072,34 +2072,34 @@ public unsafe partial struct EntityQuery
         }
 
         // 1. Flatten the World
-        var chunks = new UnsafeList<IntPtr>(128, JobScheduler.TempAllocatorHandle);
-        var chunkVersions = new UnsafeList<IntPtr>(128, JobScheduler.TempAllocatorHandle);
-        var chunkEntityCounts = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var entityOffsets = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var chunks = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
+        var chunkVersions = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
+        var chunkEntityCounts = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var entityOffsets = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets0 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets0 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices0 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets1 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets1 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices1 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets2 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets2 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices2 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets3 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets3 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices3 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets4 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets4 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices4 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets4 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets4 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices4 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets5 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets5 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices5 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets5 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets5 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices5 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
         // Iterate the Query's matching archetypes
         foreach (var archID in _matchingArchetypes)
@@ -2343,38 +2343,38 @@ public unsafe partial struct EntityQuery
         }
 
         // 1. Flatten the World
-        var chunks = new UnsafeList<IntPtr>(128, JobScheduler.TempAllocatorHandle);
-        var chunkVersions = new UnsafeList<IntPtr>(128, JobScheduler.TempAllocatorHandle);
-        var chunkEntityCounts = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var entityOffsets = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var chunks = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
+        var chunkVersions = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
+        var chunkEntityCounts = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var entityOffsets = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets0 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets0 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices0 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets1 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets1 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices1 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets2 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets2 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices2 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets3 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets3 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices3 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets4 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets4 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices4 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets4 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets4 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices4 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets5 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets5 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices5 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets5 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets5 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices5 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets6 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets6 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices6 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets6 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets6 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices6 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
         // Iterate the Query's matching archetypes
         foreach (var archID in _matchingArchetypes)
@@ -2640,42 +2640,42 @@ public unsafe partial struct EntityQuery
         }
 
         // 1. Flatten the World
-        var chunks = new UnsafeList<IntPtr>(128, JobScheduler.TempAllocatorHandle);
-        var chunkVersions = new UnsafeList<IntPtr>(128, JobScheduler.TempAllocatorHandle);
-        var chunkEntityCounts = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var entityOffsets = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var chunks = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
+        var chunkVersions = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
+        var chunkEntityCounts = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var entityOffsets = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets0 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets0 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices0 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets1 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets1 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices1 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets2 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets2 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices2 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets3 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets3 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices3 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets4 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets4 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices4 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets4 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets4 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices4 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets5 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets5 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices5 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets5 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets5 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices5 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets6 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets6 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices6 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets6 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets6 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices6 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
-        var offsets7 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var bitsOffsets7 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
-        var versionIndices7 = new UnsafeList<int>(128, JobScheduler.TempAllocatorHandle);
+        var offsets7 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var bitsOffsets7 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var versionIndices7 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
 
         // Iterate the Query's matching archetypes
         foreach (var archID in _matchingArchetypes)

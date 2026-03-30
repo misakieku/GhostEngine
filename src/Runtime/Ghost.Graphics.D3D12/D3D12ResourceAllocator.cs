@@ -454,7 +454,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
     private readonly D3D12PipelineLibrary _pipelineLibrary;
 
     // TODO: We should use ring buffer pool in d3d12ma for upload buffer.
-    private readonly Handle<GraphicsBuffer> _uploadBatch;
+    private readonly Handle<RHI.GPUBuffer> _uploadBatch;
     private ulong _uploadBatchOffset;
 
     private bool _disposed;
@@ -600,7 +600,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         return TrackAllocation(alloc, barrierData, ResourceViewGroup.Invalid, default, name, false);
     }
 
-    public Handle<Texture> CreateTexture(ref readonly TextureDesc desc, string name, CreationOptions options = default)
+    public Handle<GPUTexture> CreateTexture(ref readonly TextureDesc desc, string name, CreationOptions options = default)
     {
         Debug.Assert(!_disposed);
 
@@ -633,7 +633,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 #if DEBUG
             ThrowIfFailed(hr);
 #endif
-            return Handle<Texture>.Invalid;
+            return Handle<GPUTexture>.Invalid;
         }
 
         var isTemp = options.AllocationType == ResourceAllocationType.Temporary;
@@ -698,7 +698,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         return resource.AsTexture();
     }
 
-    public Handle<Texture> CreateRenderTarget(ref readonly RenderTargetDesc desc, string name, CreationOptions options = default)
+    public Handle<GPUTexture> CreateRenderTarget(ref readonly RenderTargetDesc desc, string name, CreationOptions options = default)
     {
         Debug.Assert(!_disposed);
 
@@ -706,7 +706,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         return CreateTexture(in textureDesc, name, options);
     }
 
-    public Handle<GraphicsBuffer> CreateBuffer(ref readonly BufferDesc desc, string name, CreationOptions options = default)
+    public Handle<RHI.GPUBuffer> CreateBuffer(ref readonly BufferDesc desc, string name, CreationOptions options = default)
     {
         Debug.Assert(!_disposed);
         CheckBufferSize(desc.Size);
@@ -748,7 +748,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 #if DEBUG
             ThrowIfFailed(hr);
 #endif
-            return Handle<GraphicsBuffer>.Invalid;
+            return Handle<RHI.GPUBuffer>.Invalid;
         }
 
         var isTemp = options.AllocationType == ResourceAllocationType.Temporary;
@@ -808,7 +808,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         return resource.AsGraphicsBuffer();
     }
 
-    public Handle<GraphicsBuffer> CreateTempUploadBuffer(ulong sizeInBytes, out ulong offset)
+    public Handle<RHI.GPUBuffer> CreateTempUploadBuffer(ulong sizeInBytes, out ulong offset)
     {
         if (sizeInBytes <= _MAX_RESOURCE_SIZE_TO_FIT_IN_UPLOAD_BATCH && sizeInBytes + _uploadBatchOffset <= _UPLOAD_BATCH_SIZE)
         {

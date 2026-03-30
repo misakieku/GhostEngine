@@ -1,3 +1,4 @@
+using Ghost.Core;
 using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.CompilerServices;
@@ -57,7 +58,7 @@ public unsafe partial struct EntityQuery
             throw new InvalidOperationException("The World has no JobScheduler assigned.");
         }
 
-        var chunkInfos = new UnsafeList<ChunkInfo>(_matchingArchetypes.Count * 2, JobScheduler.TempAllocatorHandle);
+        var chunkInfos = new UnsafeList<ChunkInfo>(_matchingArchetypes.Count * 2, TempJobAllocator.AllocationHandle);
 
         foreach (var archID in _matchingArchetypes)
         {

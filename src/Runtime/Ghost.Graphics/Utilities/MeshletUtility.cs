@@ -1,7 +1,6 @@
 using Ghost.MeshOptimizer;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
-using Misaki.HighPerformance.LowLevel.Utilities;
 using Misaki.HighPerformance.Mathematics;
 using System.Diagnostics;
 
@@ -19,9 +18,9 @@ internal struct Cluster : IDisposable
 
     public void Dispose()
     {
-        if (indices.IsCreated) indices.Dispose();
-        if (uniqueVertices.IsCreated) uniqueVertices.Dispose();
-        if (localIndices.IsCreated) localIndices.Dispose();
+        indices.Dispose();
+        uniqueVertices.Dispose();
+        localIndices.Dispose();
     }
 }
 
@@ -267,7 +266,7 @@ public static unsafe class MeshletUtility
 
             for (nuint j = 0; j < meshlet.triangle_count * 3; j++)
             {
-                byte localIdx = pMeshletTriangles[meshlet.triangle_offset + j];
+                var localIdx = pMeshletTriangles[meshlet.triangle_offset + j];
                 cluster.localIndices.Add(localIdx);
                 cluster.indices.Add(pMeshletVertices[meshlet.vertex_offset + localIdx]);
             }

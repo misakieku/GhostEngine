@@ -81,7 +81,7 @@ public sealed partial class GraphicsTestWindow : Window
         _world.EntityManager.SetComponent(cameraEntity, new Camera
         {
             swapChainIndex = 0,
-            depthTarget = Handle<Texture>.Invalid,
+            depthTarget = Handle<GPUTexture>.Invalid,
             nearClipPlane = 0.1f,
             farClipPlane = 1000.0f,
             focalLength = 50.0f,

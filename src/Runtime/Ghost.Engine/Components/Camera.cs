@@ -24,8 +24,8 @@ public unsafe struct Camera : IComponent
     public int swapChainIndex; // The index of the swap chain to render to. -1 means render to rt only.
     public int priority;
 
-    public Handle<Texture> colorTarget;
-    public Handle<Texture> depthTarget;
+    public Handle<GPUTexture> colorTarget;
+    public Handle<GPUTexture> depthTarget;
     // TODO: Add more render targets like motion vector, etc.
 
     // Custim render function. If it's not null, the render system will call this function instead of the default render pipeline.

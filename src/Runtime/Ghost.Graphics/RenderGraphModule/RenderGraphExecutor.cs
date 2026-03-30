@@ -134,7 +134,7 @@ internal sealed class RenderGraphExecutor
                 {
                     Texture = nativePass.hasDepthAttachment
                         ? _resources.GetResource(nativePass.depthAttachment.texture).backingResource.AsTexture()
-                        : Handle<Texture>.Invalid,
+                        : Handle<GPUTexture>.Invalid,
                     ClearDepth = nativePass.depthAttachment.clearDepth,
                     ClearStencil = nativePass.depthAttachment.clearStencil,
                     DepthLoadOp = nativePass.hasDepthAttachment

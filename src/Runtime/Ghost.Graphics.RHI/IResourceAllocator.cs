@@ -98,7 +98,7 @@ public interface IResourceAllocator : IDisposable
     /// <param name="name">Debug name of the resource</param>
     /// <param name="options">Additional options of the resource allocation</param>
     /// <returns>An <see cref="Handle{Texture}"/> point to the resource</returns>
-    Handle<Texture> CreateTexture(ref readonly TextureDesc desc, string name, CreationOptions options = default);
+    Handle<GPUTexture> CreateTexture(ref readonly TextureDesc desc, string name, CreationOptions options = default);
 
     /// <summary>
     /// Creates a render Target for off-screen rendering
@@ -107,7 +107,7 @@ public interface IResourceAllocator : IDisposable
     /// <param name="name">Debug name of the resource</param>
     /// <param name="options">Additional options of the resource allocation</param>
     /// <returns>An <see cref="Handle{Texture}"/> point to the resource</returns>
-    Handle<Texture> CreateRenderTarget(ref readonly RenderTargetDesc desc, string name, CreationOptions options = default);
+    Handle<GPUTexture> CreateRenderTarget(ref readonly RenderTargetDesc desc, string name, CreationOptions options = default);
 
     /// <summary>
     /// Creates a buffer resource
@@ -116,7 +116,7 @@ public interface IResourceAllocator : IDisposable
     /// <param name="name">Debug name of the resource</param>
     /// <param name="options">Additional options of the resource allocation</param>
     /// <returns>An <see cref="Handle{GraphicsBuffer}"/> point to the resource</returns>
-    Handle<GraphicsBuffer> CreateBuffer(ref readonly BufferDesc desc, string name, CreationOptions options = default);
+    Handle<GPUBuffer> CreateBuffer(ref readonly BufferDesc desc, string name, CreationOptions options = default);
 
     /// <summary>
     /// Creates a temporary upload buffer of the specified size in bytes.
@@ -127,7 +127,7 @@ public interface IResourceAllocator : IDisposable
     /// <param name="sizeInBytes">The size of the upload buffer to create, in bytes.</param>
     /// <param name="offset">The offset within the upload buffer where the allocation begins.</param>
     /// <returns>An <see cref="Handle{GraphicsBuffer}"/> pointing to the created upload buffer.</returns>
-    Handle<GraphicsBuffer> CreateTempUploadBuffer(ulong sizeInBytes, out ulong offset);
+    Handle<GPUBuffer> CreateTempUploadBuffer(ulong sizeInBytes, out ulong offset);
 
     /// <summary>
     /// Creates a new sampler object using the specified sampler description.

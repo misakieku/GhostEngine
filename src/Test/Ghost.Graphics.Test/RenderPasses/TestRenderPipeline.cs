@@ -126,7 +126,7 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
                 continue; // Nothing to render
             }
 
-            Handle<Texture> rt;
+            Handle<GPUTexture> rt;
             if (request.swapChainIndex < 0)
             {
                 rt = request.colorTarget;

@@ -9,7 +9,7 @@
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <IsAotCompatible>True</IsAotCompatible>
-    <DefineConstants>$(DefineConstants);ENABLE_DEBUG_LAYER</DefineConstants>
+    <DefineConstants>$(DefineConstants);MHP_ENABLE_SAFETY_CHECKS</DefineConstants>
     <IsTrimmable>True</IsTrimmable>
   </PropertyGroup>
 
@@ -19,9 +19,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Misaki.HighPerformance" Version="1.0.5" />
-    <PackageReference Include="Misaki.HighPerformance.Jobs" Version="1.5.3" />
-    <PackageReference Include="Misaki.HighPerformance.LowLevel" Version="1.5.4">
+    <PackageReference Include="Misaki.HighPerformance" Version="1.0.6" />
+    <PackageReference Include="Misaki.HighPerformance.Jobs" Version="1.5.5" />
+    <PackageReference Include="Misaki.HighPerformance.LowLevel" Version="1.6.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

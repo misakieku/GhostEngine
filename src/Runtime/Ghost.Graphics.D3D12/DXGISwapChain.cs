@@ -19,7 +19,7 @@ internal unsafe class DXGISwapChain : ISwapChain
     private readonly D3D12RenderDevice _device;
 
     private UniquePtr<IDXGISwapChain4> _swapChain;
-    private UnsafeArray<Handle<Texture>> _backBuffers;
+    private UnsafeArray<Handle<GPUTexture>> _backBuffers;
 
     private readonly object? _compositionSurface;
 
@@ -117,7 +117,7 @@ internal unsafe class DXGISwapChain : ISwapChain
         var pSfwapChain = CreateSwapChain(device, desc, bufferCount);
         _swapChain.Attach(pSfwapChain);
 
-        _backBuffers = new UnsafeArray<Handle<Texture>>((int)bufferCount, Allocator.Persistent);
+        _backBuffers = new UnsafeArray<Handle<GPUTexture>>((int)bufferCount, Allocator.Persistent);
 
         Width = desc.Width;
         Height = desc.Height;
@@ -166,14 +166,14 @@ internal unsafe class DXGISwapChain : ISwapChain
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Handle<Texture> GetCurrentBackBuffer()
+    public Handle<GPUTexture> GetCurrentBackBuffer()
     {
         Debug.Assert(!_disposed);
         return _backBuffers[_swapChain.Get()->GetCurrentBackBufferIndex()];
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ReadOnlySpan<Handle<Texture>> GetBackBuffers()
+    public ReadOnlySpan<Handle<GPUTexture>> GetBackBuffers()
     {
         Debug.Assert(!_disposed);
         return _backBuffers.AsSpan();

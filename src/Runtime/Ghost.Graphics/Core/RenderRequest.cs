@@ -183,8 +183,8 @@ public unsafe struct RenderRequest: IDisposable
     public RenderView view;
 
     public int swapChainIndex;
-    public Handle<Texture> colorTarget;
-    public Handle<Texture> depthTarget;
+    public Handle<GPUTexture> colorTarget;
+    public Handle<GPUTexture> depthTarget;
 
     public RenderList opaqueRenderList;
     public RenderList transparentRenderList;

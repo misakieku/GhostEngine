@@ -163,7 +163,7 @@ internal sealed class RenderGraphResourceRegistry
         _resources.Clear();
     }
 
-    public Identifier<RGTexture> ImportTexture(ref readonly TextureDesc desc, Handle<Texture> texture, string name,
+    public Identifier<RGTexture> ImportTexture(ref readonly TextureDesc desc, Handle<GPUTexture> texture, string name,
         Color128 clearColor, float clearDepth, byte clearStencil,
         bool clearAtFirstUse, bool discardAtLastUse)
     {
@@ -211,7 +211,7 @@ internal sealed class RenderGraphResourceRegistry
         return new Identifier<RGTexture>(resource.index);
     }
 
-    public Identifier<RGBuffer> ImportBuffer(ref readonly BufferDesc desc, Handle<GraphicsBuffer> buffer, string name)
+    public Identifier<RGBuffer> ImportBuffer(ref readonly BufferDesc desc, Handle<RHI.GPUBuffer> buffer, string name)
     {
         var resource = _pool.Rent<RenderGraphResource>();
         resource.name = name;

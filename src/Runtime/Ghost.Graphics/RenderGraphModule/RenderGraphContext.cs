@@ -11,11 +11,11 @@ public interface IRenderGraphContext
     IResourceDatabase ResourceDatabase { get; }
 
     Handle<GPUResource> GetActualResource(Identifier<RGResource> resource);
-    Handle<Texture> GetActualTexture(Identifier<RGTexture> texture);
-    Handle<GraphicsBuffer> GetActualBuffer(Identifier<RGBuffer> buffer);
+    Handle<GPUTexture> GetActualTexture(Identifier<RGTexture> texture);
+    Handle<RHI.GPUBuffer> GetActualBuffer(Identifier<RGBuffer> buffer);
 
-    Handle<Texture> GetHistoryTexture(ReadOnlySpan<Identifier<RGTexture>> texture, int historyOffset);
-    Handle<GraphicsBuffer> GetHistoryBuffer(ReadOnlySpan<Identifier<RGBuffer>> buffer, int historyOffset);
+    Handle<GPUTexture> GetHistoryTexture(ReadOnlySpan<Identifier<RGTexture>> texture, int historyOffset);
+    Handle<RHI.GPUBuffer> GetHistoryBuffer(ReadOnlySpan<Identifier<RGBuffer>> buffer, int historyOffset);
 
     ICommandBuffer GetCommandBufferUnsafe();
 }
@@ -60,8 +60,8 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
     private TextureFormat _dsvFormat;
     private int _rtvCount;
 
-    private Handle<GraphicsBuffer> _activePerMaterialData;
-    private Handle<GraphicsBuffer> _activePerMeshData;
+    private Handle<RHI.GPUBuffer> _activePerMaterialData;
+    private Handle<RHI.GPUBuffer> _activePerMeshData;
     private int _activeMeshIndexCount;
 
     private uint _activeFrameBuffer;
@@ -115,21 +115,21 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         return _resources.GetResource(resource).backingResource;
     }
 
-    public Handle<Texture> GetActualTexture(Identifier<RGTexture> texture)
+    public Handle<GPUTexture> GetActualTexture(Identifier<RGTexture> texture)
     {
         return _resources.GetResource(texture.AsResource()).backingResource.AsTexture();
     }
 
-    public Handle<GraphicsBuffer> GetActualBuffer(Identifier<RGBuffer> buffer)
+    public Handle<RHI.GPUBuffer> GetActualBuffer(Identifier<RGBuffer> buffer)
     {
         return _resources.GetResource(buffer.AsResource()).backingResource.AsGraphicsBuffer();
     }
 
-    public Handle<Texture> GetHistoryTexture(ReadOnlySpan<Identifier<RGTexture>> textures, int historyOffset)
+    public Handle<GPUTexture> GetHistoryTexture(ReadOnlySpan<Identifier<RGTexture>> textures, int historyOffset)
     {
         if (historyOffset < 0 || historyOffset >= textures.Length)
         {
-            return Handle<Texture>.Invalid;
+            return Handle<GPUTexture>.Invalid;
         }
 
         var index = (int)(_frameIndex % textures.Length) - historyOffset;
@@ -141,11 +141,11 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         return GetActualTexture(textures[index]);
     }
 
-    public Handle<GraphicsBuffer> GetHistoryBuffer(ReadOnlySpan<Identifier<RGBuffer>> buffers, int historyOffset)
+    public Handle<RHI.GPUBuffer> GetHistoryBuffer(ReadOnlySpan<Identifier<RGBuffer>> buffers, int historyOffset)
     {
         if (historyOffset < 0 || historyOffset >= buffers.Length)
         {
-            return Handle<GraphicsBuffer>.Invalid;
+            return Handle<RHI.GPUBuffer>.Invalid;
         }
 
         var index = (int)(_frameIndex % buffers.Length) - historyOffset;
@@ -172,7 +172,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         var r = _resourceManager.GetMaterialReference(material);
         if (r.IsFailure)
         {
-            _activePerMaterialData = Handle<GraphicsBuffer>.Invalid;
+            _activePerMaterialData = Handle<RHI.GPUBuffer>.Invalid;
             return;
         }
 
@@ -185,7 +185,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         var shaderResult = _resourceManager.GetShaderReference(material.Shader);
         if (shaderResult.IsFailure)
         {
-            _activePerMaterialData = Handle<GraphicsBuffer>.Invalid;
+            _activePerMaterialData = Handle<RHI.GPUBuffer>.Invalid;
             return;
         }
 
@@ -230,7 +230,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         var r = _resourceManager.GetMeshReference(mesh);
         if (r.IsFailure)
         {
-            _activePerMeshData = Handle<GraphicsBuffer>.Invalid;
+            _activePerMeshData = Handle<RHI.GPUBuffer>.Invalid;
             _activeMeshIndexCount = 0;
             return;
         }

@@ -18,7 +18,7 @@ public interface IRenderOutput
     /// Gets a handle to the current render target texture.
     /// </summary>
     /// <returns>A handle to the texture that is currently set as the render target.</returns>
-    Handle<Texture> GetRenderTarget();
+    Handle<GPUTexture> GetRenderTarget();
 
     /// <summary>
     /// Begins a rendering operation using the specified command buffer. Typically this will include resource barriers,

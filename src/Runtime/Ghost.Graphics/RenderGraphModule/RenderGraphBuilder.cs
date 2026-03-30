@@ -79,6 +79,20 @@ public interface IRenderGraphBuilder : IDisposable
     /// <param name="hint">Optional hint about how the buffer will be used.</param>
     /// <returns>An identifier for the buffer.</returns>
     Identifier<RGBuffer> UseBuffer(Identifier<RGBuffer> buffer, AccessFlags accessMode);
+
+    /// <summary>
+    /// Extracts the actual texture resource associated with the given identifier for use in outside of the render graph execution context.
+    /// </summary>
+    /// <param name="texture">The identifier of the texture to be extracted.</param>
+    /// <returns>A handle to the actual texture resource that can be used outside of the render graph execution context.</returns>
+    Handle<GPUTexture> ExtractTexture(Identifier<RGTexture> texture);
+
+    /// <summary>
+    /// Extracts the actual buffer resource associated with the given identifier for use in outside of the render graph execution context.
+    /// </summary>
+    /// <param name="buffer">The identifier of the buffer to be extracted.</param>
+    /// <returns>A handle to the actual buffer resource that can be used outside of the render graph execution context.</returns>
+    Handle<GPUBuffer> ExtractBuffer(Identifier<RGBuffer> buffer);
 }
 
 public interface IRasterRenderGraphBuilder : IRenderGraphBuilder
@@ -252,6 +266,17 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
     {
         ThrowIfDisposed();
         return UseResource(buffer.AsResource(), flags, RenderGraphResourceType.Buffer).AsBuffer();
+    }
+
+    // TODO: Implement ExtractTexture and ExtractBuffer to allow users to get the actual GPU resources for use outside of the render graph execution context.
+    public Handle<GPUTexture> ExtractTexture(Identifier<RGTexture> texture)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Handle<GPUBuffer> ExtractBuffer(Identifier<RGBuffer> buffer)
+    {
+        throw new NotImplementedException();
     }
 
     public Identifier<RGTexture> UseRandomAccessTexture(Identifier<RGTexture> texture)

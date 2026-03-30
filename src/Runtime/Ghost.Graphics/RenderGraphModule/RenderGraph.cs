@@ -105,7 +105,7 @@ public sealed class RenderGraph : IDisposable
     /// </summary>
     /// <param name="texture">The external texture handle.</param>
     /// <returns>The identifier of the imported render graph texture. Invalid if import fails.</returns>
-    public Identifier<RGTexture> ImportTexture(Handle<Texture> texture, string name,
+    public Identifier<RGTexture> ImportTexture(Handle<GPUTexture> texture, string name,
         Color128 clearColor = default, float clearDepth = 1.0f, byte clearStencil = 0,
         bool clearAtFirstUse = true, bool discardAtLastUse = true)
     {
@@ -125,7 +125,7 @@ public sealed class RenderGraph : IDisposable
     /// </summary>
     /// <param name="buffer">The external buffer handle.</param>
     /// <returns>The identifier of the imported render graph buffer. Invalid if import fails.</returns>
-    public Identifier<RGBuffer> ImportBuffer(Handle<GraphicsBuffer> buffer, string name)
+    public Identifier<RGBuffer> ImportBuffer(Handle<RHI.GPUBuffer> buffer, string name)
     {
         var r = _resourceDatabase.GetResourceDescription(buffer.AsResource());
         if (r.IsFailure)

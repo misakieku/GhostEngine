@@ -11,16 +11,16 @@ namespace Ghost.Graphics.Core;
 internal struct CBufferCache : IResourceReleasable
 {
     private UnsafeArray<byte> _cpuData;
-    private Handle<GraphicsBuffer> _gpuResource;
+    private Handle<RHI.GPUBuffer> _gpuResource;
     private uint _size;
 
     public readonly UnsafeArray<byte> CpuData => _cpuData;
-    public readonly Handle<GraphicsBuffer> GpuResource => _gpuResource;
+    public readonly Handle<RHI.GPUBuffer> GpuResource => _gpuResource;
     public readonly uint Size => _size;
 
     public readonly bool IsCreated => _size != 0 && _gpuResource.IsValid && _cpuData.IsCreated;
 
-    public CBufferCache(Handle<GraphicsBuffer> buffer, uint bufferSize)
+    public CBufferCache(Handle<RHI.GPUBuffer> buffer, uint bufferSize)
     {
         _size = bufferSize;
         _cpuData = new UnsafeArray<byte>((int)bufferSize, Allocator.Persistent);
@@ -37,7 +37,7 @@ internal struct CBufferCache : IResourceReleasable
         _cpuData.Dispose();
         database.ReleaseResource(_gpuResource.AsResource());
 
-        _gpuResource = Handle<GraphicsBuffer>.Invalid;
+        _gpuResource = Handle<RHI.GPUBuffer>.Invalid;
         _size = 0;
     }
 }

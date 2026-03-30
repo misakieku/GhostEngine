@@ -242,7 +242,7 @@ public readonly unsafe ref struct RenderingContext
         TransitionBarrier(bufferHandle, false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.PixelShading | BarrierSync.NonPixelShading);
     }
 
-    public Handle<Texture> CreateTexture<T>(ref readonly TextureDesc desc, ReadOnlySpan<T> data, string name)
+    public Handle<GPUTexture> CreateTexture<T>(ref readonly TextureDesc desc, ReadOnlySpan<T> data, string name)
         where T : unmanaged
     {
         var handle = ResourceAllocator.CreateTexture(in desc, name);
@@ -251,7 +251,7 @@ public readonly unsafe ref struct RenderingContext
         return handle;
     }
 
-    public void UploadTexture<T>(Handle<Texture> texture, ReadOnlySpan<T> data)
+    public void UploadTexture<T>(Handle<GPUTexture> texture, ReadOnlySpan<T> data)
         where T : unmanaged
     {
         var desc = ResourceDatabase.GetResourceDescription(texture.AsResource()).GetValueOrThrow();

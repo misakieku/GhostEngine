@@ -63,14 +63,14 @@ public interface ICommandBuffer : IDisposable
     /// <param name="renderTargets">A read-only span of handles to textures that will be used as render targets.
     /// The order of handles determines the order in which render targets are bound.</param>
     /// <param name="depthTarget">A handle to the texture to be used as the depth Target. Specify a invalid handle if no depth Target is required.</param>
-    void SetRenderTargets(ReadOnlySpan<Handle<Texture>> renderTargets, Handle<Texture> depthTarget);
+    void SetRenderTargets(ReadOnlySpan<Handle<GPUTexture>> renderTargets, Handle<GPUTexture> depthTarget);
 
     /// <summary>
     /// Clears the specified render target to a given color.
     /// </summary>
     /// <param name="renderTarget">A handle to the render target texture to be cleared. Must reference a valid render target.</param>
     /// <param name="clearColor">The color value used to clear the render target. Specifies the RGBA components to fill the target.</param>
-    void ClearRenderTargetView(Handle<Texture> renderTarget, Color128 clearColor);
+    void ClearRenderTargetView(Handle<GPUTexture> renderTarget, Color128 clearColor);
 
     /// <summary>
     /// Clears the specified depth-stencil view by resetting its depth and/or stencil values.
@@ -80,7 +80,7 @@ public interface ICommandBuffer : IDisposable
     /// <param name="includeStencil">A value indicating whether the stencil component should be cleared.</param>
     /// <param name="clearDepth">The value to which the depth buffer will be set. Typically ranges from 0.0f (nearest) to 1.0f (farthest).</param>
     /// <param name="clearStencil">The value to which the stencil buffer will be set. Must be a valid stencil value supported by the format.</param>
-    void ClearDepthStencilView(Handle<Texture> depthStencil, bool inlcludeDepth, bool includeStencil, float clearDepth = 1.0f, byte clearStencil = 0);
+    void ClearDepthStencilView(Handle<GPUTexture> depthStencil, bool inlcludeDepth, bool includeStencil, float clearDepth = 1.0f, byte clearStencil = 0);
 
     /// <summary>
     /// Begins a render pass with the specified render Target
@@ -112,7 +112,7 @@ public interface ICommandBuffer : IDisposable
     /// </summary>
     /// <param name="slot">The zero-based index of the slot to bind the constant buffer view to.</param>
     /// <param name="buffer">A graphics buffer to use as the constant buffer view.</param>
-    void SetConstantBufferView(uint slot, Handle<GraphicsBuffer> buffer);
+    void SetConstantBufferView(uint slot, Handle<GPUBuffer> buffer);
 
     /// <summary>
     /// Binds a vertex buffer to the specified slot for subsequent draw calls.
@@ -120,7 +120,7 @@ public interface ICommandBuffer : IDisposable
     /// <param name="slot">The vertex buffer slot to bind to.</param>
     /// <param name="buffer">The handle to the graphics buffer containing vertex data.</param>
     /// <param name="offset">The Offset in bytes from the start of the buffer.</param>
-    void SetVertexBuffer(uint slot, Handle<GraphicsBuffer> buffer, ulong offset = 0);
+    void SetVertexBuffer(uint slot, Handle<GPUBuffer> buffer, ulong offset = 0);
 
     /// <summary>
     /// Binds an index buffer for indexed drawing.
@@ -128,7 +128,7 @@ public interface ICommandBuffer : IDisposable
     /// <param name="buffer">The handle to the graphics buffer containing index data.</param>
     /// <param name="type">The space of indices (e.g., 16-bit or 32-bit).</param>
     /// <param name="offset">The Offset in bytes from the start of the buffer.</param>
-    void SetIndexBuffer(Handle<GraphicsBuffer> buffer, IndexType type, ulong offset = 0);
+    void SetIndexBuffer(Handle<GPUBuffer> buffer, IndexType type, ulong offset = 0);
 
     /// <summary>
     /// Sets the primitive topology to be used for subsequent drawing operations.
@@ -192,7 +192,7 @@ public interface ICommandBuffer : IDisposable
     /// <param name="buffer">A handle to the buffer that will receive the uploaded data.</param>
     /// <param name="data">A read-only span containing the data to upload to the buffer. The span must contain elements of space
     /// <typeparamref name="T"/>.</param>
-    void UploadBuffer<T>(Handle<GraphicsBuffer> buffer, params ReadOnlySpan<T> data)
+    void UploadBuffer<T>(Handle<GPUBuffer> buffer, params ReadOnlySpan<T> data)
         where T : unmanaged;
 
     /// <summary>
@@ -201,7 +201,7 @@ public interface ICommandBuffer : IDisposable
     /// <param name="texture">The texture resource to which the subresource data will be uploaded. Must be a valid, initialized texture handle.</param>
     /// <param name="subresources">A reference to the structure containing the subresource data to upload. The data must match the Format and layout expected by the texture.</param>
     /// Must be greater than zero and not exceed the remaining subresources in the texture.</param>
-    void UploadTexture(Handle<Texture> texture, params ReadOnlySpan<SubResourceData> subresources);
+    void UploadTexture(Handle<GPUTexture> texture, params ReadOnlySpan<SubResourceData> subresources);
 
     /// <summary>
     /// Copies a specified number of bytes from the source graphics buffer to the destination graphics buffer.
@@ -211,7 +211,7 @@ public interface ICommandBuffer : IDisposable
     /// <param name="destOffset">The byte Offset in the destination buffer at which to begin writing. Must be zero or greater.</param>
     /// <param name="srcOffset">The byte Offset in the source buffer at which to begin reading. Must be zero or greater.</param>
     /// <param name="numBytes">The number of bytes to copy. If zero, copies the remaining bytes from the source buffer starting at <paramref name="srcOffset"/>.</param>
-    void CopyBuffer(Handle<GraphicsBuffer> dest, Handle<GraphicsBuffer> src, ulong destOffset = 0, ulong srcOffset = 0, ulong numBytes = 0);
+    void CopyBuffer(Handle<GPUBuffer> dest, Handle<GPUBuffer> src, ulong destOffset = 0, ulong srcOffset = 0, ulong numBytes = 0);
 
     /// <summary>
     /// Copies a region of a source texture to a destination texture. The source and destination regions can be specified to copy a subset of the textures, or the entire textures if the regions are null.
@@ -220,5 +220,5 @@ public interface ICommandBuffer : IDisposable
     /// <param name="dstRegion">The region of the destination texture to copy to. If null, the entire texture will be used.</param>
     /// <param name="src">The handle to the source texture from which data will be read.</param>
     /// <param name="srcRegion">The region of the source texture to copy from. If null, the entire texture will be used.</param>
-    void CopyTexture(Handle<Texture> dst, TextureRegion? dstRegion, Handle<Texture> src, TextureRegion? srcRegion);
+    void CopyTexture(Handle<GPUTexture> dst, TextureRegion? dstRegion, Handle<GPUTexture> src, TextureRegion? srcRegion);
 }

@@ -43,13 +43,13 @@ public interface ISwapChain : IDisposable
     /// Gets the current back buffer texture
     /// </summary>
     /// <returns>Current back buffer texture</returns>
-    Handle<Texture> GetCurrentBackBuffer();
+    Handle<GPUTexture> GetCurrentBackBuffer();
 
     /// <summary>
     /// Gets all back buffer textures
     /// </summary>
     /// <returns>AlowBufferAndTexture back buffer textures</returns>
-    ReadOnlySpan<Handle<Texture>> GetBackBuffers();
+    ReadOnlySpan<Handle<GPUTexture>> GetBackBuffers();
 
     /// <summary>
     /// Presents the rendered frame

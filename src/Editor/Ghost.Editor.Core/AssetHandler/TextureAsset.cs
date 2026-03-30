@@ -54,12 +54,12 @@ public class TextureAsset : Asset
     internal const string _TYPE_ID = "0906F4EB-C3F0-431B-BCEA-132C88AB0C3F";
     internal static readonly Guid s_typeGuid = Guid.Parse(_TYPE_ID);
 
-    private readonly Handle<Texture> _texture;
+    private readonly Handle<GPUTexture> _texture;
 
     public override Guid TypeID => s_typeGuid;
-    public Handle<Texture> Texture => _texture;
+    public Handle<GPUTexture> Texture => _texture;
 
-    public TextureAsset(Guid id, Guid[] dependencies, IAssetSettings? settings, Handle<Texture> texture)
+    public TextureAsset(Guid id, Guid[] dependencies, IAssetSettings? settings, Handle<GPUTexture> texture)
         : base(id, dependencies, settings)
     {
         _texture = texture;
