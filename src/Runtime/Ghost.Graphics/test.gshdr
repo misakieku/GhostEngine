@@ -29,11 +29,12 @@ shader "MyShader/Standard"
 
         hlsl
         {
+            #line 31 "MyShader_Standard_Forward_hlsl_block"
             struct PixelInput
             {
                 float4 position : SV_POSITION;
                 float4 color : COLOR;
-                float4 uv : TEXCOORD0;
+                float2 uv : TEXCOORD0;
                 nointerpolation uint meshletID : MESHLET_ID;
             };
 
@@ -72,9 +73,9 @@ shader "MyShader/Standard"
                     float4 worldPos = mul(instanceData.localToWorld, float4(v.position.xyz, 1.0f));
                     float4 viewPos = mul(viewData.viewMatrix, worldPos);
 
-                    // outVerts[groupThreadID.x].position = mul(viewData.projectionMatrix, viewPos);
+                    outVerts[groupThreadID.x].position = mul(viewData.projectionMatrix, viewPos);
                     // For testing.
-                    outVerts[groupThreadID.x].position = float4(v.position.xyz, 1.0f);
+                    // outVerts[groupThreadID.x].position = v.position.xyz;
 
                     outVerts[groupThreadID.x].color = v.color;
                     outVerts[groupThreadID.x].uv = v.uv;

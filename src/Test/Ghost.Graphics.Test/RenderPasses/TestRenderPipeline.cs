@@ -159,8 +159,8 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
                 // NOTE: We assume camera's scale is always (1, 1, 1). Otherwise fastinverse will fail and we need to use regular inverse which is more expensive.
                 var viewMatrix = math.fastinverse(request.view.localToWorld);
 
-                var vfov = 2.0f * math.atan(request.view.sensorSize.y / 2.0f * request.view.focalLength);
-                var hfov = 2.0f * math.atan(request.view.sensorSize.x / 2.0f * request.view.focalLength);
+                var vfov = 2.0f * math.atan(request.view.sensorSize.y / (2.0f * request.view.focalLength));
+                var hfov = 2.0f * math.atan(request.view.sensorSize.x / (2.0f * request.view.focalLength));
                 var aspectSensor = request.view.sensorSize.x / request.view.sensorSize.y;
 
                 float vfovF;
@@ -200,10 +200,10 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
                         break;
                 }
 
-                var m_00 = 1.0f / aspectScreen * math.tan(vfovF * 0.5f);
                 var m_11 = 1.0f / math.tan(vfovF * 0.5f);
-                var m_22 = -(request.view.farClipPlane + request.view.nearClipPlane) / (request.view.farClipPlane - request.view.nearClipPlane);
-                var m_23 = -(2.0f * request.view.farClipPlane * request.view.nearClipPlane) / (request.view.farClipPlane - request.view.nearClipPlane);
+                var m_00 = m_11 / aspectScreen;
+                var m_22 = -request.view.farClipPlane / (request.view.farClipPlane - request.view.nearClipPlane);
+                var m_23 = -(request.view.farClipPlane * request.view.nearClipPlane) / (request.view.farClipPlane - request.view.nearClipPlane);
 
                 var projectionMatrix = new float4x4
                 (

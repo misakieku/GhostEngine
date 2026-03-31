@@ -582,7 +582,7 @@ public static unsafe class MeshletUtility
                     }
                 }
 
-                var targetSize = ((nuint)merged.Count / 3) * (nuint)config.simplifyRatio * 3;
+                var targetSize = (nuint)(merged.Count / 3 * config.simplifyRatio * 3.0f);
                 var bounds = MergeBounds(clusters, groups[i]);
 
                 var error = 0.0f;

@@ -132,7 +132,7 @@ public struct Color128 : IEquatable<Color128>
 
 
 [StructLayout(LayoutKind.Sequential)]
-public struct Vertex
+public record struct Vertex
 {
     public static class Semantic
     {
@@ -145,11 +145,11 @@ public struct Vertex
         public static readonly FixedText32 Color = new("COLOR"u8);
     }
 
-    public float4 position;
-    public float4 normal;
-    public float4 tangent;
-    public float4 uv;
     public Color128 color;
+    public float4 tangent;
+    public float3 position;
+    public float3 normal;
+    public float2 uv;
 }
 
 public readonly struct ShaderVariant;

@@ -59,15 +59,6 @@ public partial class UnitTestApp : Application
     {
         LoadDll();
 
-        var opts = new AllocationManagerInitOpts
-        {
-            ArenaCapacity = 1024 * 1024 * 1024, // 1GB
-            StackCapacity = 1024 * 1024 * 32, // 32MB
-            FreeListConcurrencyLevel = Environment.ProcessorCount,
-        };
-
-        AllocationManager.Initialize(opts);
-
         _window = new GraphicsTestWindow();
         _window.Activate();
 
@@ -77,6 +68,7 @@ public partial class UnitTestApp : Application
 #if DEBUG
             System.Diagnostics.Debugger.Break();
 #endif
+            Environment.FailFast("Unhandled exception", e.Exception);
         };
     }
 }

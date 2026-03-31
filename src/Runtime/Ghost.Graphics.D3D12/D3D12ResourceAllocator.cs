@@ -740,7 +740,10 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         else
         {
             hr = CreateResource(&allocationDesc, &resourceDesc, initialState, options, null, (void**)&pAllocation);
-            pResource = pAllocation->GetResource();
+            if (hr.SUCCEEDED)
+            {
+                pResource = pAllocation->GetResource();
+            }
         }
 
         if (hr.FAILED)

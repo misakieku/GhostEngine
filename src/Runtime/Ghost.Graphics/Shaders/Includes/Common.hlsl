@@ -3,11 +3,11 @@
 
 struct Vertex
 {
-    float4 position;
-    float4 normal;
-    float4 tangent;
-    float4 uv;
     float4 color;
+    float4 tangent;
+    float3 position;
+    float3 normal;
+    float2 uv;
 };
 
 struct Meshlet

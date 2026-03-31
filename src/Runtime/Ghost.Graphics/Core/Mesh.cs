@@ -210,18 +210,20 @@ public struct Mesh : IResourceReleasable
             maxVertices = 64,
             minTriangles = 32,
             maxTriangles = 124,
-            partitionSize = 128,
-            clusterSpatial = true,
+            partitionSpatial = true,
+            partitionSize = 16,
+            clusterSpatial = false,
+            clusterSplitFactor = 2.0f,
             clusterFillWeight = 1.0f,
-            clusterSplitFactor = 1.0f,
             simplifyRatio = 0.5f,
-            simplifyThreshold = 0.5f,
-            simplifyErrorMergePrevious = 0.5f,
-            simplifyErrorMergeAdditive = 0.5f,
-            simplifyErrorFactorSloppy = 1.0f,
-            simplifyErrorEdgeLimit = 1.0f,
-            optimizeBounds = true,
-            optimizeClusters = true
+            simplifyThreshold = 0.85f,
+            simplifyErrorMergePrevious = 1.0f,
+            simplifyErrorFactorSloppy = 2.0f,
+            simplifyPermissive = true,
+            simplifyFallbackPermissive = false,
+            simplifyFallbackSloppy = true,
+            //optimizeBounds = true,
+            //optimizeClusters = true
         };
 
         // 2. Map Mesh to ClodMesh

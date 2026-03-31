@@ -5,6 +5,7 @@ using Ghost.Engine.Utilities;
 using Ghost.Entities;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
+using Ghost.Graphics.Test.Utilities;
 using Ghost.Graphics.Utilities;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -33,6 +34,15 @@ public sealed partial class GraphicsTestWindow : Window
 
         Panel.SizeChanged += SwapChainPanel_SizeChanged;
         Panel.CompositionScaleChanged += SwapChainPanel_CompositionScaleChanged;
+        
+        var opts = new AllocationManagerInitOpts
+        {
+            ArenaCapacity = 1024 * 1024 * 1024, // 1GB
+            StackCapacity = 1024 * 1024 * 32, // 32MB
+            FreeListConcurrencyLevel = Environment.ProcessorCount,
+        };
+
+        AllocationManager.Initialize(opts);
     }
 
     private void GraphicsTestWindow_Activated(object sender, WindowActivatedEventArgs e)
@@ -41,6 +51,9 @@ public sealed partial class GraphicsTestWindow : Window
         {
             return;
         }
+
+        e.Handled = true;
+        _isFirstActivationHandled = true;
 
         _renderSystem = new RenderSystem(new RenderSystemDesc()
         {
@@ -92,11 +105,12 @@ public sealed partial class GraphicsTestWindow : Window
 
         _world.EntityManager.SetComponent(cameraEntity, new LocalToWorld
         {
-            matrix = float4x4.TRS(new float3(0.0f, 0.0f, -5.0f), quaternion.identity, new float3(1.0f, 1.0f, 1.0f))
+            matrix = float4x4.TRS(new float3(0.0f, 1.0f, 5.0f), quaternion.EulerXYZ(new float3(0, 0, 0)), new float3(1.0f, 1.0f, 1.0f))
         });
 
         // Create Mesh Entity
-        MeshBuilder.CreateCube(0.75f, default, Allocator.Persistent, out var vertices, out var indices);
+        //MeshBuilder.CreateCube(0.75f, default, Allocator.Persistent, out var vertices, out var indices);
+        MeshUtility.LoadMesh("F:/c/SimpleRayTracer/native/assets/bunny.obj", Allocator.Persistent, out var vertices, out var indices).ThrowIfFailed();
 
         // TODO: Put this to the beginning of the frame without createing another command buffer?
         using var directCmd = _renderSystem.GraphicsEngine.CreateCommandBuffer(CommandBufferType.Graphics);
@@ -127,27 +141,34 @@ public sealed partial class GraphicsTestWindow : Window
         });
 
         CompositionTarget.Rendering += OnRendering;
-
-        e.Handled = true;
-        _isFirstActivationHandled = true;
     }
 
     private void GraphicsTestWindow_Closed(object sender, WindowEventArgs e)
     {
-        CompositionTarget.Rendering -= OnRendering;
-        _renderSystem?.Stop();
-
-        if (_world != null)
+        try
         {
-            World.Destroy(_world.ID);
+            CompositionTarget.Rendering -= OnRendering;
+            _renderSystem?.Stop();
+
+            if (_world != null)
+            {
+                World.Destroy(_world.ID);
+            }
+
+            _renderSystem?.ResourceManager.ReleaseMesh(_meshHandle);
+
+            _swapChain?.Dispose();
+            _renderSystem?.Dispose();
+
+            AllocationManager.Dispose();
         }
-
-        _renderSystem?.ResourceManager.ReleaseMesh(_meshHandle);
-
-        _swapChain?.Dispose();
-        _renderSystem?.Dispose();
-
-        AllocationManager.Dispose();
+        catch (Exception ex)
+        {
+            Environment.FailFast("Failed to close the window properly.", ex);
+        }
+        finally
+        {
+        }
     }
 
     private void SwapChainPanel_SizeChanged(object sender, SizeChangedEventArgs e)

@@ -17,12 +17,12 @@ public static unsafe class MeshBuilder
         vertices = new UnsafeList<Vertex>(24, allocator);
         indices = new UnsafeList<uint>(36, allocator);
 
-        var corners = new float4[]
+        var corners = new float3[]
         {
-            new (-half, -half, -half, 1.0f), new (half, -half, -half, 1.0f),
-            new (half, half, -half, 1.0f), new (-half, half, -half, 1.0f),
-            new (-half, -half, half, 1.0f), new (half, -half, half, 1.0f),
-            new (half, half, half, 1.0f), new (-half, half, half, 1.0f)
+            new (-half, -half, -half), new (half, -half, -half),
+            new (half, half, -half), new (-half, half, -half),
+            new (-half, -half, half), new (half, -half, half),
+            new (half, half, half), new (-half, half, half)
         };
 
         var faces = stackalloc int[]
@@ -46,10 +46,10 @@ public static unsafe class MeshBuilder
                 var vertex = new Vertex
                 {
                     position = corners[face[i]],
-                    normal = float4.zero,
+                    normal = float3.zero,
                     tangent = float4.zero,
                     color = color,
-                    uv = new(uvs[i], 0.0f, 0.0f)
+                    uv = uvs[i]
                 };
 
                 vertices.Add(vertex);
@@ -81,38 +81,38 @@ public static unsafe class MeshBuilder
 
         vertices.Add(new Vertex()
         {
-            position = new(-hw, 0.0f, -hd, 0.0f),
-            normal = float4.zero,
+            position = new float3(-hw, 0.0f, -hd),
+            normal = float3.zero,
             tangent = float4.zero,
             color = color,
-            uv = new(0.0f)
+            uv = float2.zero
         });
 
         vertices.Add(new Vertex()
         {
-            position = new(hw, 0.0f, -hd, 0.0f),
-            normal = float4.zero,
+            position = new float3(hw, 0.0f, -hd),
+            normal = float3.zero,
             tangent = float4.zero,
             color = color,
-            uv = new(1.0f, 0.0f, 0.0f, 0.0f)
+            uv = new float2(1.0f, 0.0f)
         });
 
         vertices.Add(new Vertex()
         {
-            position = new(hw, 0.0f, hd, 0.0f),
-            normal = float4.zero,
+            position = new float3(hw, 0.0f, hd),
+            normal = float3.zero,
             tangent = float4.zero,
             color = color,
-            uv = new(1.0f, 1.0f, 0.0f, 0.0f)
+            uv = new float2(1.0f, 1.0f)
         });
 
         vertices.Add(new Vertex()
         {
-            position = new(-hw, 0.0f, hd, 0.0f),
-            normal = float4.zero,
+            position = new float3(-hw, 0.0f, hd),
+            normal = float3.zero,
             tangent = float4.zero,
             color = color,
-            uv = new(0.0f, 1.0f, 0.0f, 0.0f)
+            uv = new float2(0.0f, 1.0f)
         });
 
         indices.Add(0);
@@ -153,11 +153,11 @@ public static unsafe class MeshBuilder
 
                 vertices.Add(new Vertex
                 {
-                    position = new float4(x, y, z, 0.0f) * radius,
-                    normal = float4.zero,
+                    position = new float3(x, y, z) * radius,
+                    normal = float3.zero,
                     tangent = float4.zero,
                     color = color,
-                    uv = new float4((float)lon / longitudeSegments, (float)lat / latitudeSegments, 0.0f, 0.0f)
+                    uv = new float2((float)lon / longitudeSegments, (float)lat / latitudeSegments)
                 });
             }
         }
@@ -231,7 +231,7 @@ public static unsafe class MeshBuilder
     public static void ComputeTangents(UnsafeList<Vertex> vertices, UnsafeList<uint> indices)
     {
         using var scope = AllocationManager.CreateStackScope();
-        var bitangents = new UnsafeArray<float4>(vertices.Count, scope.AllocationHandle);
+        var bitangents = new UnsafeArray<float3>(vertices.Count, scope.AllocationHandle, AllocationOption.Clear);
 
         for (var i = 0; i < indices.Count; i += 3)
         {
@@ -269,7 +269,7 @@ public static unsafe class MeshBuilder
         for (var i = 0; i < vertices.Count; i++)
         {
             var n = vertices[i].normal;
-            var t = vertices[i].tangent;
+            var t = vertices[i].tangent.xyz;
 
             var proj = n * math.dot(n, t);
             t = math.normalize(t - proj);
@@ -277,7 +277,7 @@ public static unsafe class MeshBuilder
             var b = bitangents[i];
             var w = math.dot(math.cross(n.xyz, t.xyz), b.xyz) < 0.0f ? -1.0f : 1.0f;
 
-            vertices[i].tangent = new float4(t.x, t.y, t.z, w);
+            vertices[i].tangent = new float4(t.xyz, w);
         }
     }
 }
