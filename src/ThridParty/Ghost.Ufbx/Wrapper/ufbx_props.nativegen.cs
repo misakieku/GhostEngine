@@ -204,11 +204,14 @@ public unsafe partial struct ufbx_props
     /// From: <see cref="Api.ufbx_find_prop_concat(ufbx_props*, ufbx_string*, nuint)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public ufbx_prop* FindPropConcat(ufbx_string* parts, nuint num_parts)
+    public ufbx_prop* FindPropConcat(ReadOnlySpan<ufbx_string> parts)
     {
-        return Api.ufbx_find_prop_concat(
-            (ufbx_props*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
-            parts,
-            num_parts);
+        fixed (ufbx_string* pparts = parts)
+        {
+            return Api.ufbx_find_prop_concat(
+                (ufbx_props*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
+                (ufbx_string*)pparts,
+                (nuint)parts.Length);
+        }
     }
 }

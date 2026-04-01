@@ -80,15 +80,15 @@ internal static class MeshUtility
                     continue;
                 }
 
-                var maxScratchIndices = (uint)(pMesh->max_face_triangles * 3u);
+                var maxScratchIndices = (int)(pMesh->max_face_triangles * 3u);
                 
-                using var triIndicesArray = new UnsafeArray<uint>((int)maxScratchIndices, scope1.AllocationHandle);
+                using var triIndicesArray = new UnsafeArray<uint>(maxScratchIndices, scope1.AllocationHandle);
 
                 for (var j = 0u; j < pMesh->num_faces; j++)
                 {
                     var face = pMesh->faces.data[j];
 
-                    var numTris = UfbxApi.TriangulateFace((uint*)triIndicesArray.GetUnsafePtr(), maxScratchIndices, pMesh, face);
+                    var numTris = UfbxApi.TriangulateFace(triIndicesArray.AsSpan(0, maxScratchIndices), pMesh, face);
 
                     var totalIndices = numTris * 3;
                     for (var k = 0; k < totalIndices; k++)
@@ -147,13 +147,13 @@ internal static class MeshUtility
             vertex_size = (nuint)sizeof(Vertex)
         };
 
-        var numUniqueVertices = stream.GenerateIndices(1, (uint*)weldedIndices.GetUnsafePtr(), (nuint)weldedIndices.Count, null, &error);
+        var numUniqueVertices = UfbxApi.GenerateIndices([stream], weldedIndices, null, &error);
         if (numUniqueVertices == 0 && error.type != ufbx_error_type.UFBX_ERROR_NONE)
         {
             return Result.Failure($"Welding failed: {error.description}");
         }
 
-        MeshOptApi.OptimizeVertexCache((uint*)cachedIndices.GetUnsafePtr(), (uint*)weldedIndices.GetUnsafePtr(), numIndices, numIndices);
+        MeshOptApi.OptimizeVertexCache((uint*)cachedIndices.GetUnsafePtr(), (uint*)weldedIndices.GetUnsafePtr(), numIndices, numUniqueVertices);
 
         vertices = new UnsafeList<Vertex>((int)numUniqueVertices, allocator);
         indices = new UnsafeList<uint>((int)numIndices, allocator);
@@ -165,11 +165,11 @@ internal static class MeshUtility
         MemoryUtility.MemCpy(indices.GetUnsafePtr(), cachedIndices.GetUnsafePtr(), numIndices * sizeof(uint));
         indices.UnsafeSetCount((int)numIndices);
 
-        if (needComputeNormals)
-        {
-            MeshBuilder.ComputeNormal(vertices, indices);
-            MeshBuilder.ComputeTangents(vertices, indices);
-        }
+        //if (needComputeNormals)
+        //{
+        //    MeshBuilder.ComputeNormal(vertices, indices);
+        //    MeshBuilder.ComputeTangents(vertices, indices);
+        //}
 
         return Result.Success();
     }

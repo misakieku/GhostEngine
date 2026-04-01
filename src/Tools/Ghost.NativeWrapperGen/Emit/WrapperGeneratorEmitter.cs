@@ -140,18 +140,36 @@ public sealed class WrapperGeneratorEmitter
     {
         foreach (var condition in conditions)
         {
-            // Handle parameterised conditions before the switch.
-            if (condition.StartsWith("NAME_CONDITION(", StringComparison.Ordinal) &&
-                condition.EndsWith(')'))
+            var inverseCondition = false;
+
+            var conditionSpan = condition.AsSpan();
+            if (conditionSpan[0] == '!')
             {
-                var pattern = condition["NAME_CONDITION(".Length..^1];
+                inverseCondition = true;
+            }
+
+            var remainingCondition = conditionSpan[(inverseCondition ? 1 : 0)..].Trim();
+
+            // Handle parameterised conditions before the switch.
+            if (remainingCondition.StartsWith("NAME_CONDITION(", StringComparison.Ordinal) &&
+                remainingCondition.EndsWith(')'))
+            {
+                var pattern = remainingCondition["NAME_CONDITION(".Length..^1];
+
                 // $TSelf → full struct name (e.g. "NvttSurface")
                 // $TBare → struct name with the library prefix stripped (e.g. "Surface")
                 var bareName = StripPrefix(targetStructName, config.NativeTypePrefix);
-                var resolvedPattern = pattern
+                var resolvedPattern = pattern.ToString()
                     .Replace("$TBare", bareName, StringComparison.Ordinal)
                     .Replace("$TSelf", targetStructName, StringComparison.Ordinal);
-                if (!Regex.IsMatch(func.Name, resolvedPattern, RegexOptions.IgnoreCase))
+
+                var match = Regex.IsMatch(func.Name, resolvedPattern, RegexOptions.IgnoreCase);
+                if (inverseCondition)
+                {
+                    match = !match;
+                }
+
+                if (!match)
                 {
                     return false;
                 }
@@ -159,13 +177,13 @@ public sealed class WrapperGeneratorEmitter
                 continue;
             }
 
-            switch (condition)
+            switch (remainingCondition)
             {
                 case "SELF_PTR":
                     if (func.Parameters.Count == 0 ||
                         resolver.TryGetBindingStructName(func.Parameters[0].TypeName) is null)
                     {
-                        return false;
+                        return inverseCondition;
                     }
 
                     break;
@@ -174,7 +192,7 @@ public sealed class WrapperGeneratorEmitter
                     if (func.Parameters.Count > 0 &&
                         resolver.TryGetBindingStructName(func.Parameters[0].TypeName) is not null)
                     {
-                        return false;
+                        return inverseCondition;
                     }
 
                     break;
@@ -182,7 +200,7 @@ public sealed class WrapperGeneratorEmitter
                 case "RETURN_BINDING_TYPE":
                     if (resolver.TryGetBindingStructName(func.ReturnType) is null)
                     {
-                        return false;
+                        return inverseCondition;
                     }
 
                     break;
@@ -190,7 +208,7 @@ public sealed class WrapperGeneratorEmitter
                 case "VOID_RETURN":
                     if (!string.Equals(func.ReturnType, "void", StringComparison.Ordinal))
                     {
-                        return false;
+                        return inverseCondition;
                     }
 
                     break;
@@ -466,7 +484,7 @@ public sealed class WrapperGeneratorEmitter
                 continue;
             }
 
-            var expectedSiblingName = param.Name + remap.DerivesFrom.ParamSuffix;
+            var expectedSiblingName = remap.DerivesFrom.ParamPrefix + param.Name + remap.DerivesFrom.ParamSuffix;
             for (var j = i + 1; j < func.Parameters.Count; j++)
             {
                 if (string.Equals(func.Parameters[j].Name, expectedSiblingName, StringComparison.Ordinal))
@@ -522,17 +540,17 @@ public sealed class WrapperGeneratorEmitter
                 var convertBack = matchedRemap.Adapter.ConvertBack;
                 var publicParam = new PublicParam
                 {
-                    PublicType = matchedRemap.Dst,
+                    PublicType = matchedRemap.Dst.Replace("$TYPE", param.RawTypeName),
                     PublicName = param.Name,
-                    WrapCall = convertBack.WrapCall,
-                    PassAs = convertBack.PassAs,
+                    WrapCall = convertBack.WrapCall.Replace("$TYPE", param.RawTypeName),
+                    PassAs = convertBack.PassAs.Replace("$TYPE", param.RawTypeName),
                 };
                 publicParams.Add(publicParam);
                 allNativeParams.Add(new NativeParamInfo
                 {
                     NativeName = param.Name,
                     PublicName = param.Name,
-                    PassAs = convertBack.PassAs,
+                    PassAs = convertBack.PassAs.Replace("$TYPE", param.RawTypeName),
                 });
             }
             else
@@ -581,7 +599,8 @@ public sealed class WrapperGeneratorEmitter
                 continue;
             }
 
-            if (!string.Equals(remap.Src, param.TypeName, StringComparison.Ordinal))
+            var src = remap.Src.Replace("$TYPE", param.RawTypeName);
+            if (!string.Equals(src, param.TypeName, StringComparison.Ordinal))
             {
                 continue;
             }

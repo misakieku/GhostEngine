@@ -17,11 +17,29 @@
       "dst": "ReadOnlySpan<byte>",
       "scope": [ "parameter" ],
       "filter": [ ".*name", ".*filename", ".*path", ".*prop$" ],
-      "derivesFrom": { "paramSuffix": "_len", "expr": "(nuint)$arg.Length" },
+      "derivesFrom": {
+        "paramSuffix": "_len",
+        "expr": "(nuint)$arg.Length"
+      },
       "adapter": {
         "convertBack": {
           "wrapCall": "fixed (byte* p$arg = $arg) { $CALL }",
           "passAs": "(sbyte*)p$arg"
+        }
+      }
+    },
+    {
+      "src": "$TYPE*",
+      "dst": "ReadOnlySpan<$TYPE>",
+      "scope": [ "parameter" ],
+      "derivesFrom": {
+        "paramPrefix": "num_",
+        "expr": "(nuint)$arg.Length"
+      },
+      "adapter": {
+        "convertBack": {
+          "wrapCall": "fixed ($TYPE* p$arg = $arg) { $CALL }",
+          "passAs": "($TYPE*)p$arg"
         }
       }
     }
@@ -57,14 +75,13 @@
       // Instance method: first param is T* of a known binding struct → method on T
       "comment": "First param is T* of a known binding struct → instance method on T",
       "filter": "EXTERN_API",
-      "conditions": [ "SELF_PTR" ],
+      "conditions": [ "SELF_PTR", "!NAME_CONDITION(ufbx_generate_indices)", "!NAME_CONDITION(ufbx_topo_next_vertex_edge)", "!NAME_CONDITION(ufbx_topo_prev_vertex_edge)" ],
       "targetType": "FIRST_PARAM_TYPE",
       "apply": {
         "type": "INSTANCE_METHOD",
         "opts": {
           "removeFirstParam": true,
           "passAs": "($TSelf*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this)",
-          // Change "ufbx_free_scene" to "free"
           "name": {
             "remove": [
               "PREFIX",

@@ -10,27 +10,33 @@ public unsafe partial struct ufbx_cache_channel
     /// From: <see cref="Api.ufbx_sample_geometry_cache_real(ufbx_cache_channel*, double, float*, nuint, ufbx_geometry_cache_data_opts*)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public nuint SampleGeometryCacheReal(double time, float* data, nuint num_data, ufbx_geometry_cache_data_opts* opts)
+    public nuint SampleGeometryCacheReal(double time, ReadOnlySpan<float> data, ufbx_geometry_cache_data_opts* opts)
     {
-        return Api.ufbx_sample_geometry_cache_real(
-            (ufbx_cache_channel*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
-            time,
-            data,
-            num_data,
-            opts);
+        fixed (float* pdata = data)
+        {
+            return Api.ufbx_sample_geometry_cache_real(
+                (ufbx_cache_channel*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
+                time,
+                (float*)pdata,
+                (nuint)data.Length,
+                opts);
+        }
     }
 
     /// <summary>
     /// From: <see cref="Api.ufbx_sample_geometry_cache_vec3(ufbx_cache_channel*, double, Misaki.HighPerformance.Mathematics.float3*, nuint, ufbx_geometry_cache_data_opts*)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public nuint SampleGeometryCacheVec3(double time, Misaki.HighPerformance.Mathematics.float3* data, nuint num_data, ufbx_geometry_cache_data_opts* opts)
+    public nuint SampleGeometryCacheVec3(double time, ReadOnlySpan<Misaki.HighPerformance.Mathematics.float3> data, ufbx_geometry_cache_data_opts* opts)
     {
-        return Api.ufbx_sample_geometry_cache_vec3(
-            (ufbx_cache_channel*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
-            time,
-            data,
-            num_data,
-            opts);
+        fixed (Misaki.HighPerformance.Mathematics.float3* pdata = data)
+        {
+            return Api.ufbx_sample_geometry_cache_vec3(
+                (ufbx_cache_channel*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
+                time,
+                (Misaki.HighPerformance.Mathematics.float3*)pdata,
+                (nuint)data.Length,
+                opts);
+        }
     }
 }

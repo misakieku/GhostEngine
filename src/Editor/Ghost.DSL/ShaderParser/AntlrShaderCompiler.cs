@@ -241,11 +241,11 @@ public class AntlrShaderCompiler
                     {
                         "disabled" => ZTest.Disabled,
                         "less" => ZTest.Less,
-                        "lessequal" => ZTest.LessEqual,
+                        "less_equal" => ZTest.LessEqual,
                         "equal" => ZTest.Equal,
-                        "greaterequal" => ZTest.GreaterEqual,
+                        "greater_equal" => ZTest.GreaterEqual,
                         "greater" => ZTest.Greater,
-                        "notequal" => ZTest.NotEqual,
+                        "not_equal" => ZTest.NotEqual,
                         "always" => ZTest.Always,
                         _ => ZTest.Disabled
                     };
@@ -269,7 +269,7 @@ public class AntlrShaderCompiler
                         "alpha" => Blend.Alpha,
                         "additive" => Blend.Additive,
                         "multiply" => Blend.Multiply,
-                        "premultipliedalpha" => Blend.PremultipliedAlpha,
+                        "premultiplied_alpha" => Blend.PremultipliedAlpha,
                         _ => Blend.Opaque
                     };
                     break;

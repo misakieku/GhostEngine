@@ -23,53 +23,65 @@ public unsafe partial struct ufbx_panic
     /// From: <see cref="Api.ufbx_catch_triangulate_face(ufbx_panic*, uint*, nuint, ufbx_mesh*, ufbx_face)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public uint CatchTriangulateFace(uint* indices, nuint num_indices, ufbx_mesh* mesh, ufbx_face face)
+    public uint CatchTriangulateFace(ReadOnlySpan<uint> indices, ufbx_mesh* mesh, ufbx_face face)
     {
-        return Api.ufbx_catch_triangulate_face(
-            (ufbx_panic*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
-            indices,
-            num_indices,
-            mesh,
-            face);
+        fixed (uint* pindices = indices)
+        {
+            return Api.ufbx_catch_triangulate_face(
+                (ufbx_panic*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
+                (uint*)pindices,
+                (nuint)indices.Length,
+                mesh,
+                face);
+        }
     }
 
     /// <summary>
     /// From: <see cref="Api.ufbx_catch_compute_topology(ufbx_panic*, ufbx_mesh*, ufbx_topo_edge*, nuint)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void CatchComputeTopology(ufbx_mesh* mesh, ufbx_topo_edge* topo, nuint num_topo)
+    public void CatchComputeTopology(ufbx_mesh* mesh, ReadOnlySpan<ufbx_topo_edge> topo)
     {
-        Api.ufbx_catch_compute_topology(
-            (ufbx_panic*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
-            mesh,
-            topo,
-            num_topo);
+        fixed (ufbx_topo_edge* ptopo = topo)
+        {
+            Api.ufbx_catch_compute_topology(
+                (ufbx_panic*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
+                mesh,
+                (ufbx_topo_edge*)ptopo,
+                (nuint)topo.Length);
+        }
     }
 
     /// <summary>
     /// From: <see cref="Api.ufbx_catch_topo_next_vertex_edge(ufbx_panic*, ufbx_topo_edge*, nuint, uint)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public uint CatchTopoNextVertexEdge(ufbx_topo_edge* topo, nuint num_topo, uint index)
+    public uint CatchTopoNextVertexEdge(ReadOnlySpan<ufbx_topo_edge> topo, uint index)
     {
-        return Api.ufbx_catch_topo_next_vertex_edge(
-            (ufbx_panic*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
-            topo,
-            num_topo,
-            index);
+        fixed (ufbx_topo_edge* ptopo = topo)
+        {
+            return Api.ufbx_catch_topo_next_vertex_edge(
+                (ufbx_panic*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
+                (ufbx_topo_edge*)ptopo,
+                (nuint)topo.Length,
+                index);
+        }
     }
 
     /// <summary>
     /// From: <see cref="Api.ufbx_catch_topo_prev_vertex_edge(ufbx_panic*, ufbx_topo_edge*, nuint, uint)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public uint CatchTopoPrevVertexEdge(ufbx_topo_edge* topo, nuint num_topo, uint index)
+    public uint CatchTopoPrevVertexEdge(ReadOnlySpan<ufbx_topo_edge> topo, uint index)
     {
-        return Api.ufbx_catch_topo_prev_vertex_edge(
-            (ufbx_panic*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
-            topo,
-            num_topo,
-            index);
+        fixed (ufbx_topo_edge* ptopo = topo)
+        {
+            return Api.ufbx_catch_topo_prev_vertex_edge(
+                (ufbx_panic*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
+                (ufbx_topo_edge*)ptopo,
+                (nuint)topo.Length,
+                index);
+        }
     }
 
     /// <summary>
@@ -88,32 +100,44 @@ public unsafe partial struct ufbx_panic
     /// From: <see cref="Api.ufbx_catch_generate_normal_mapping(ufbx_panic*, ufbx_mesh*, ufbx_topo_edge*, nuint, uint*, nuint, bool)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public nuint CatchGenerateNormalMapping(ufbx_mesh* mesh, ufbx_topo_edge* topo, nuint num_topo, uint* normal_indices, nuint num_normal_indices, bool assume_smooth)
+    public nuint CatchGenerateNormalMapping(ufbx_mesh* mesh, ReadOnlySpan<ufbx_topo_edge> topo, ReadOnlySpan<uint> normal_indices, bool assume_smooth)
     {
-        return Api.ufbx_catch_generate_normal_mapping(
-            (ufbx_panic*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
-            mesh,
-            topo,
-            num_topo,
-            normal_indices,
-            num_normal_indices,
-            assume_smooth);
+        fixed (ufbx_topo_edge* ptopo = topo)
+        {
+            fixed (uint* pnormal_indices = normal_indices)
+            {
+                return Api.ufbx_catch_generate_normal_mapping(
+                    (ufbx_panic*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
+                    mesh,
+                    (ufbx_topo_edge*)ptopo,
+                    (nuint)topo.Length,
+                    (uint*)pnormal_indices,
+                    (nuint)normal_indices.Length,
+                    assume_smooth);
+            }
+        }
     }
 
     /// <summary>
     /// From: <see cref="Api.ufbx_catch_compute_normals(ufbx_panic*, ufbx_mesh*, ufbx_vertex_vec3*, uint*, nuint, Misaki.HighPerformance.Mathematics.float3*, nuint)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void CatchComputeNormals(ufbx_mesh* mesh, ufbx_vertex_vec3* positions, uint* normal_indices, nuint num_normal_indices, Misaki.HighPerformance.Mathematics.float3* normals, nuint num_normals)
+    public void CatchComputeNormals(ufbx_mesh* mesh, ufbx_vertex_vec3* positions, ReadOnlySpan<uint> normal_indices, ReadOnlySpan<Misaki.HighPerformance.Mathematics.float3> normals)
     {
-        Api.ufbx_catch_compute_normals(
-            (ufbx_panic*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
-            mesh,
-            positions,
-            normal_indices,
-            num_normal_indices,
-            normals,
-            num_normals);
+        fixed (uint* pnormal_indices = normal_indices)
+        {
+            fixed (Misaki.HighPerformance.Mathematics.float3* pnormals = normals)
+            {
+                Api.ufbx_catch_compute_normals(
+                    (ufbx_panic*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
+                    mesh,
+                    positions,
+                    (uint*)pnormal_indices,
+                    (nuint)normal_indices.Length,
+                    (Misaki.HighPerformance.Mathematics.float3*)pnormals,
+                    (nuint)normals.Length);
+            }
+        }
     }
 
     /// <summary>

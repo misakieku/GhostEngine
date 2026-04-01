@@ -10,6 +10,7 @@ using Ghost.Graphics.Utilities;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
 
@@ -19,6 +20,7 @@ public sealed partial class GraphicsTestWindow : Window
 {
     private RenderSystem? _renderSystem;
     private ISwapChain? _swapChain;
+    private JobScheduler _jobScheduler;
     private World? _world;
 
     private Handle<Mesh> _meshHandle;
@@ -43,6 +45,8 @@ public sealed partial class GraphicsTestWindow : Window
         };
 
         AllocationManager.Initialize(opts);
+
+        _jobScheduler = new JobScheduler(Environment.ProcessorCount - 1);
     }
 
     private void GraphicsTestWindow_Activated(object sender, WindowActivatedEventArgs e)
@@ -75,7 +79,7 @@ public sealed partial class GraphicsTestWindow : Window
         _renderSystem.Start();
 
         // ECS Setup
-        _world = World.Create();
+        _world = World.Create(_jobScheduler);
         _world.AddService(_renderSystem);
 
         // Add Systems
@@ -105,7 +109,7 @@ public sealed partial class GraphicsTestWindow : Window
 
         _world.EntityManager.SetComponent(cameraEntity, new LocalToWorld
         {
-            matrix = float4x4.TRS(new float3(0.0f, 1.0f, 5.0f), quaternion.EulerXYZ(new float3(0, 0, 0)), new float3(1.0f, 1.0f, 1.0f))
+            matrix = float4x4.TRS(new float3(0.0f, 1.0f, -5.0f), quaternion.EulerXYZ(new float3(0, 0, 0)), float3.one)
         });
 
         // Create Mesh Entity
@@ -158,6 +162,7 @@ public sealed partial class GraphicsTestWindow : Window
             _renderSystem?.ResourceManager.ReleaseMesh(_meshHandle);
 
             _swapChain?.Dispose();
+            _jobScheduler.Dispose();
             _renderSystem?.Dispose();
 
             AllocationManager.Dispose();

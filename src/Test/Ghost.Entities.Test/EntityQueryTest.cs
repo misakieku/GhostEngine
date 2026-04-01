@@ -91,7 +91,6 @@ public partial class EntityQueryTest : ITest
     {
         _world.Dispose();
         _jobScheduler.Dispose();
-        JobScheduler.ReleaseTempAllocator();
     }
 }
 

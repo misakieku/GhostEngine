@@ -21,42 +21,57 @@ public unsafe partial struct ufbx_mesh : System.IDisposable
     /// From: <see cref="Api.ufbx_compute_topology(ufbx_mesh*, ufbx_topo_edge*, nuint)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void ComputeTopology(ufbx_topo_edge* topo, nuint num_topo)
+    public void ComputeTopology(ReadOnlySpan<ufbx_topo_edge> topo)
     {
-        Api.ufbx_compute_topology(
-            (ufbx_mesh*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
-            topo,
-            num_topo);
+        fixed (ufbx_topo_edge* ptopo = topo)
+        {
+            Api.ufbx_compute_topology(
+                (ufbx_mesh*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
+                (ufbx_topo_edge*)ptopo,
+                (nuint)topo.Length);
+        }
     }
 
     /// <summary>
     /// From: <see cref="Api.ufbx_generate_normal_mapping(ufbx_mesh*, ufbx_topo_edge*, nuint, uint*, nuint, bool)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public nuint GenerateNormalMapping(ufbx_topo_edge* topo, nuint num_topo, uint* normal_indices, nuint num_normal_indices, bool assume_smooth)
+    public nuint GenerateNormalMapping(ReadOnlySpan<ufbx_topo_edge> topo, ReadOnlySpan<uint> normal_indices, bool assume_smooth)
     {
-        return Api.ufbx_generate_normal_mapping(
-            (ufbx_mesh*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
-            topo,
-            num_topo,
-            normal_indices,
-            num_normal_indices,
-            assume_smooth);
+        fixed (ufbx_topo_edge* ptopo = topo)
+        {
+            fixed (uint* pnormal_indices = normal_indices)
+            {
+                return Api.ufbx_generate_normal_mapping(
+                    (ufbx_mesh*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
+                    (ufbx_topo_edge*)ptopo,
+                    (nuint)topo.Length,
+                    (uint*)pnormal_indices,
+                    (nuint)normal_indices.Length,
+                    assume_smooth);
+            }
+        }
     }
 
     /// <summary>
     /// From: <see cref="Api.ufbx_compute_normals(ufbx_mesh*, ufbx_vertex_vec3*, uint*, nuint, Misaki.HighPerformance.Mathematics.float3*, nuint)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void ComputeNormals(ufbx_vertex_vec3* positions, uint* normal_indices, nuint num_normal_indices, Misaki.HighPerformance.Mathematics.float3* normals, nuint num_normals)
+    public void ComputeNormals(ufbx_vertex_vec3* positions, ReadOnlySpan<uint> normal_indices, ReadOnlySpan<Misaki.HighPerformance.Mathematics.float3> normals)
     {
-        Api.ufbx_compute_normals(
-            (ufbx_mesh*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
-            positions,
-            normal_indices,
-            num_normal_indices,
-            normals,
-            num_normals);
+        fixed (uint* pnormal_indices = normal_indices)
+        {
+            fixed (Misaki.HighPerformance.Mathematics.float3* pnormals = normals)
+            {
+                Api.ufbx_compute_normals(
+                    (ufbx_mesh*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
+                    positions,
+                    (uint*)pnormal_indices,
+                    (nuint)normal_indices.Length,
+                    (Misaki.HighPerformance.Mathematics.float3*)pnormals,
+                    (nuint)normals.Length);
+            }
+        }
     }
 
     /// <summary>

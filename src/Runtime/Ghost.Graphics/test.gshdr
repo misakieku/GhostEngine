@@ -14,9 +14,9 @@ shader "MyShader/Standard"
     {
         pipeline
         {
-            ztest = disabled;
-            zwrite = off;
-            cull = off;
+            ztest = less_equal;
+            zwrite = on;
+            cull = back;
             blend = opaque;
             color_mask = all;
         }
@@ -34,6 +34,7 @@ shader "MyShader/Standard"
             {
                 float4 position : SV_POSITION;
                 float4 color : COLOR;
+                float3 normal : NORMAL;
                 float2 uv : TEXCOORD0;
                 nointerpolation uint meshletID : MESHLET_ID;
             };
@@ -78,6 +79,7 @@ shader "MyShader/Standard"
                     // outVerts[groupThreadID.x].position = v.position.xyz;
 
                     outVerts[groupThreadID.x].color = v.color;
+                    outVerts[groupThreadID.x].normal = normalize(mul((float3x3)instanceData.localToWorld, v.normal));
                     outVerts[groupThreadID.x].uv = v.uv;
                     outVerts[groupThreadID.x].meshletID = groupID.x;
                 }
@@ -110,13 +112,14 @@ shader "MyShader/Standard"
                 // float4 blendedColor = (color1 + color2 + color3 + color4) * 0.25f;
                 // return perMaterialData.color * blendedColor + input.color;
 
-                uint hash = PCGHash(input.meshletID);
-
-                float r = float((hash & 0xFF0000u) >> 16) / 255.0;
-                float g = float((hash & 0x00FF00u) >> 8)  / 255.0;
-                float b = float((hash & 0x0000FFu))       / 255.0;
-
-                return float4(r, g, b, 1.0);
+                // uint hash = PCGHash(input.meshletID);
+                // 
+                // float r = float((hash & 0xFF0000u) >> 16) / 255.0;
+                // float g = float((hash & 0x00FF00u) >> 8)  / 255.0;
+                // float b = float((hash & 0x0000FFu))       / 255.0;
+                // 
+                // return float4(r, g, b, 1.0);
+                return float4(input.normal, 1.0);
             }
         }
 

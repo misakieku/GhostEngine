@@ -1,6 +1,7 @@
 using Ghost.Core;
 using Ghost.Entities;
 using Ghost.Graphics.Core;
+using Ghost.Graphics.RenderPipeline;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Mathematics;
 

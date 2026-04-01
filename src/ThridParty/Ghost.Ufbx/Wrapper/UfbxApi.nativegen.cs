@@ -257,13 +257,67 @@ public unsafe partial struct UfbxApi
     /// From: <see cref="Api.ufbx_triangulate_face(uint*, nuint, ufbx_mesh*, ufbx_face)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static uint TriangulateFace(uint* indices, nuint num_indices, ufbx_mesh* mesh, ufbx_face face)
+    public static uint TriangulateFace(ReadOnlySpan<uint> indices, ufbx_mesh* mesh, ufbx_face face)
     {
-        return Api.ufbx_triangulate_face(
-            indices,
-            num_indices,
-            mesh,
-            face);
+        fixed (uint* pindices = indices)
+        {
+            return Api.ufbx_triangulate_face(
+                (uint*)pindices,
+                (nuint)indices.Length,
+                mesh,
+                face);
+        }
+    }
+
+    /// <summary>
+    /// From: <see cref="Api.ufbx_topo_next_vertex_edge(ufbx_topo_edge*, nuint, uint)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static uint TopoNextVertexEdge(ReadOnlySpan<ufbx_topo_edge> topo, uint index)
+    {
+        fixed (ufbx_topo_edge* ptopo = topo)
+        {
+            return Api.ufbx_topo_next_vertex_edge(
+                (ufbx_topo_edge*)ptopo,
+                (nuint)topo.Length,
+                index);
+        }
+    }
+
+    /// <summary>
+    /// From: <see cref="Api.ufbx_topo_prev_vertex_edge(ufbx_topo_edge*, nuint, uint)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static uint TopoPrevVertexEdge(ReadOnlySpan<ufbx_topo_edge> topo, uint index)
+    {
+        fixed (ufbx_topo_edge* ptopo = topo)
+        {
+            return Api.ufbx_topo_prev_vertex_edge(
+                (ufbx_topo_edge*)ptopo,
+                (nuint)topo.Length,
+                index);
+        }
+    }
+
+    /// <summary>
+    /// From: <see cref="Api.ufbx_generate_indices(ufbx_vertex_stream*, nuint, uint*, nuint, ufbx_allocator_opts*, ufbx_error*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static nuint GenerateIndices(ReadOnlySpan<ufbx_vertex_stream> streams, ReadOnlySpan<uint> indices, ufbx_allocator_opts* allocator, ufbx_error* error)
+    {
+        fixed (ufbx_vertex_stream* pstreams = streams)
+        {
+            fixed (uint* pindices = indices)
+            {
+                return Api.ufbx_generate_indices(
+                    (ufbx_vertex_stream*)pstreams,
+                    (nuint)streams.Length,
+                    (uint*)pindices,
+                    (nuint)indices.Length,
+                    allocator,
+                    error);
+            }
+        }
     }
 
     /// <summary>

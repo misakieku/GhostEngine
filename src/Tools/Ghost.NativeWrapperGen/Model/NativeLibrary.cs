@@ -38,6 +38,9 @@ public sealed class NativeParameter
 {
     public required string Name { get; init; }
     public required string TypeName { get; init; }
+
+    private string? _rawTypeName;
+    public string RawTypeName => _rawTypeName ??= TypeName.TrimEnd('*', '&');
 }
 
 public sealed class NativeMember

@@ -24,6 +24,7 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
 {
     private class MeshletDebugPassData
     {
+        public Identifier<RGTexture> depth;
         public Identifier<RGTexture> backbuffer;
         public RenderList renderList;
         public Handle<Material> material;
@@ -202,7 +203,7 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
 
                 var m_11 = 1.0f / math.tan(vfovF * 0.5f);
                 var m_00 = m_11 / aspectScreen;
-                var m_22 = -request.view.farClipPlane / (request.view.farClipPlane - request.view.nearClipPlane);
+                var m_22 = request.view.farClipPlane / (request.view.farClipPlane - request.view.nearClipPlane);
                 var m_23 = -(request.view.farClipPlane * request.view.nearClipPlane) / (request.view.farClipPlane - request.view.nearClipPlane);
 
                 var projectionMatrix = new float4x4
@@ -210,7 +211,7 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
                     m_00, 0, 0, 0,
                     0, m_11, 0, 0,
                     0, 0, m_22, m_23,
-                    0, 0, -1, 0
+                    0, 0, 1, 0
                 );
 
                 //var vp = math.mul(projectionMatrix, viewMatrix);
@@ -341,12 +342,13 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
         }
     }
 
-    // FIX: We still not change our root signature layout yet.
-
     private void MeshletDebugPass(Identifier<RGTexture> backbuffer, RenderList renderList, uint globalIndex, uint viewIndex, uint instanceBuffer)
     {
         using (var builder = _renderGraph.AddRasterRenderPass<MeshletDebugPassData>("Meshlet Debug Pass", out var passData))
         {
+            var depth = builder.CreateTexture(RGTextureDesc.RelativeDepth(1.0f), "Depth Texture");
+
+            passData.depth = depth;
             passData.backbuffer = backbuffer;
             passData.renderList = renderList;
             passData.globalIndex = globalIndex;
@@ -355,6 +357,8 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
             passData.material = _meshletMaterial;
 
             builder.SetColorAttachment(backbuffer, 0);
+            builder.SetDepthAttachment(depth);
+
             builder.SetRenderFunc<MeshletDebugPassData>(static (data, ctx)=>
             {
                 ctx.SetGlobalData(data.globalIndex, data.viewIndex);

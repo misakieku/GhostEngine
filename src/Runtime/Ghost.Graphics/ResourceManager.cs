@@ -205,7 +205,8 @@ public sealed class ResourceManager : IDisposable
     {
         Debug.Assert(!_disposed);
 
-        if (!_meshes.TryGetElementAt(handle.ID, handle.Generation, out var mesh))
+        ref var mesh = ref _meshes.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
+        if (!exist)
         {
             return;
         }
@@ -249,7 +250,7 @@ public sealed class ResourceManager : IDisposable
     {
         Debug.Assert(!_disposed);
 
-        var material = _materials.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
+        ref var material = ref _materials.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
         if (!exist)
         {
             return;
@@ -359,7 +360,7 @@ public sealed class ResourceManager : IDisposable
             return;
         }
 
-        var shader = _shaders[id.Value];
+        ref var shader = ref _shaders[id.Value];
         shader.ReleaseResource(_resourceDatabase);
     }
 
@@ -402,17 +403,17 @@ public sealed class ResourceManager : IDisposable
             return;
         }
 
-        foreach (var mesh in _meshes)
+        foreach (ref var mesh in _meshes)
         {
             mesh.ReleaseResource(_resourceDatabase);
         }
 
-        foreach (var material in _materials)
+        foreach (ref var material in _materials)
         {
             material.ReleaseResource(_resourceDatabase);
         }
 
-        foreach (var shader in _shaders)
+        foreach (ref var shader in _shaders)
         {
             shader.ReleaseResource(_resourceDatabase);
         }

@@ -25,40 +25,12 @@ public partial class UnitTestApp : Application
         InitializeComponent();
     }
 
-    private static void LoadDll()
-    {
-        var currentDir = AppContext.BaseDirectory;
-        var platform = OperatingSystem.IsWindows() ? "win" :
-                       OperatingSystem.IsLinux() ? "linux" :
-                       OperatingSystem.IsMacOS() ? "osx" : "unknown";
-        var arch = Environment.Is64BitProcess ? "x64" : "x86";
-        var nativeDllDir = Path.Combine(currentDir, "runtimes", platform + "-" + arch, "native");
-        if (Directory.Exists(nativeDllDir))
-        {
-            foreach (var dll in Directory.EnumerateFiles(nativeDllDir, "*.dll"))
-            {
-                NativeLibrary.Load(dll);
-            }
-        }
-        //NativeLibrary.SetDllImportResolver(typeof(UnitTestApp).Assembly, (libraryName, assembly, searchPath) =>
-        //{
-        //    if (libraryName == "dxcompiler")
-        //    {
-        //        NativeLibrary.Load(Path.Combine(nativeDllDir, "dxil.dll"));
-        //    }
-
-        //    return IntPtr.Zero;
-        //});
-    }
-
     /// <summary>
     /// Invoked when the application is launched.
     /// </summary>
     /// <param name="args">Details about the launch request and process.</param>
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        LoadDll();
-
         _window = new GraphicsTestWindow();
         _window.Activate();
 

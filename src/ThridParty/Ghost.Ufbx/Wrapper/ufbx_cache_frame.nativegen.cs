@@ -10,25 +10,31 @@ public unsafe partial struct ufbx_cache_frame
     /// From: <see cref="Api.ufbx_read_geometry_cache_real(ufbx_cache_frame*, float*, nuint, ufbx_geometry_cache_data_opts*)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public nuint ReadGeometryCacheReal(float* data, nuint num_data, ufbx_geometry_cache_data_opts* opts)
+    public nuint ReadGeometryCacheReal(ReadOnlySpan<float> data, ufbx_geometry_cache_data_opts* opts)
     {
-        return Api.ufbx_read_geometry_cache_real(
-            (ufbx_cache_frame*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
-            data,
-            num_data,
-            opts);
+        fixed (float* pdata = data)
+        {
+            return Api.ufbx_read_geometry_cache_real(
+                (ufbx_cache_frame*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
+                (float*)pdata,
+                (nuint)data.Length,
+                opts);
+        }
     }
 
     /// <summary>
     /// From: <see cref="Api.ufbx_read_geometry_cache_vec3(ufbx_cache_frame*, Misaki.HighPerformance.Mathematics.float3*, nuint, ufbx_geometry_cache_data_opts*)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public nuint ReadGeometryCacheVec3(Misaki.HighPerformance.Mathematics.float3* data, nuint num_data, ufbx_geometry_cache_data_opts* opts)
+    public nuint ReadGeometryCacheVec3(ReadOnlySpan<Misaki.HighPerformance.Mathematics.float3> data, ufbx_geometry_cache_data_opts* opts)
     {
-        return Api.ufbx_read_geometry_cache_vec3(
-            (ufbx_cache_frame*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
-            data,
-            num_data,
-            opts);
+        fixed (Misaki.HighPerformance.Mathematics.float3* pdata = data)
+        {
+            return Api.ufbx_read_geometry_cache_vec3(
+                (ufbx_cache_frame*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
+                (Misaki.HighPerformance.Mathematics.float3*)pdata,
+                (nuint)data.Length,
+                opts);
+        }
     }
 }

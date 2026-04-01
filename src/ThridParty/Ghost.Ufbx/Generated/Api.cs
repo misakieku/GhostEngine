@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using static Ghost.Ufbx.ufbx_aperture_format;
 using static Ghost.Ufbx.ufbx_aperture_mode;
@@ -166,6 +167,29 @@ namespace Ghost.Ufbx
         public const int UFBX_UNICODE_ERROR_HANDLING_COUNT = (int)(UFBX_UNICODE_ERROR_HANDLING_UNSAFE_IGNORE + 1);
 
         public const int UFBX_BAKE_STEP_HANDLING_COUNT = (int)(UFBX_BAKE_STEP_HANDLING_IGNORE + 1);
+
+        static Api()
+        {
+            NativeLibrary.SetDllImportResolver(Assembly.GetExecutingAssembly(), (libraryName, assembly, searchPath) =>
+            {
+                if (libraryName != "ufbx")
+                {
+                    return IntPtr.Zero;
+                }
+
+                var platform = OperatingSystem.IsWindows() ? "win" :
+                                OperatingSystem.IsLinux() ? "linux" :
+                                OperatingSystem.IsMacOS() ? "osx" : "unknown";
+                var ext = OperatingSystem.IsWindows() ? ".dll" :
+                            OperatingSystem.IsLinux() ? ".so" :
+                            OperatingSystem.IsMacOS() ? ".dylib" : "";
+
+                var arch = Environment.Is64BitProcess ? "x64" : "x86";
+                var nativeDllDir = Path.Combine("./runtimes", platform + "-" + arch, "native");
+
+                return NativeLibrary.Load(Path.Combine(nativeDllDir, libraryName + ext));
+            });
+        }
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("_Bool")]

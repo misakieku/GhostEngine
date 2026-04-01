@@ -102,7 +102,7 @@ public partial class DockingLayout : Control
                 targetGroup = FindFirstDockGroup(RootModule as DockContainer);
                 if (targetGroup == null)
                 {
-                    // Root is not a container, or contains no groups. Wrap it.
+                    // Root is not a container, or contains no pGroups. Wrap it.
                     var newGroup = new DockGroup();
                     newGroup.AddChild(document);
                     

@@ -7,11 +7,38 @@ using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Loader;
 
 namespace Ghost.Graphics.D3D12;
 
 public static class D3D12GraphicsEngineFactory
 {
+    static D3D12GraphicsEngineFactory()
+    {
+        var currentDir = AppContext.BaseDirectory;
+        var platform = OperatingSystem.IsWindows() ? "win" :
+                       OperatingSystem.IsLinux() ? "linux" :
+                       OperatingSystem.IsMacOS() ? "osx" : "unknown";
+        var arch = Environment.Is64BitProcess ? "x64" : "x86";
+        var nativeDllDir = Path.Combine(currentDir, "runtimes", platform + "-" + arch, "native");
+
+        AssemblyLoadContext.Default.ResolvingUnmanagedDll += (assembly, libraryName) =>
+        {
+            if (libraryName == "dxcompiler")
+            {
+                NativeLibrary.TryLoad(Path.Combine(nativeDllDir, "dxil.dll"), out _);
+
+                if (NativeLibrary.TryLoad(Path.Combine(nativeDllDir, "dxcompiler.dll"), out var dxcHandle))
+                {
+                    return dxcHandle;
+                }
+            }
+
+            return IntPtr.Zero;
+        };
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IGraphicsEngine Create(GraphicsEngineDesc desc)
     {

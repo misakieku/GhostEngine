@@ -1,9 +1,9 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Utilities;
+using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
-using Misaki.HighPerformance.LowLevel.Utilities;
 using Misaki.HighPerformance.Mathematics;
 using Misaki.HighPerformance.Mathematics.Geometry;
 using System.Diagnostics.CodeAnalysis;
@@ -246,6 +246,7 @@ public struct Mesh : IResourceReleasable
     private static unsafe int MeshletOutputCallback(void* context, ClodGroup group, ReadOnlyUnsafeCollection<ClodCluster> clusters)
     {
         var mesh = (Mesh*)context;
+
         ref var data = ref mesh->_meshletData;
 
         // Ensure lists are initialized

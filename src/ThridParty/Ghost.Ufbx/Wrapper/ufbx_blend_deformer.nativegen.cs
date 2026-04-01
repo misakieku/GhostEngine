@@ -21,12 +21,15 @@ public unsafe partial struct ufbx_blend_deformer
     /// From: <see cref="Api.ufbx_add_blend_vertex_offsets(ufbx_blend_deformer*, Misaki.HighPerformance.Mathematics.float3*, nuint, float)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void AddBlendVertexOffsets(Misaki.HighPerformance.Mathematics.float3* vertices, nuint num_vertices, float weight)
+    public void AddBlendVertexOffsets(ReadOnlySpan<Misaki.HighPerformance.Mathematics.float3> vertices, float weight)
     {
-        Api.ufbx_add_blend_vertex_offsets(
-            (ufbx_blend_deformer*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
-            vertices,
-            num_vertices,
-            weight);
+        fixed (Misaki.HighPerformance.Mathematics.float3* pvertices = vertices)
+        {
+            Api.ufbx_add_blend_vertex_offsets(
+                (ufbx_blend_deformer*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
+                (Misaki.HighPerformance.Mathematics.float3*)pvertices,
+                (nuint)vertices.Length,
+                weight);
+        }
     }
 }

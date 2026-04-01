@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Graphics.RenderPipeline;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Mathematics;
 using System.Runtime.CompilerServices;

@@ -48,7 +48,7 @@ public sealed partial class ContextFlyout : MenuFlyout
         Opening += ContextFlyout_Opening;
     }
 
-    // Recursively sorts nodes and calculates folder groups
+    // Recursively sorts nodes and calculates folder pGroups
     private static void PrepareNodes(List<MenuNode> nodes)
     {
         if (nodes.Count == 0)

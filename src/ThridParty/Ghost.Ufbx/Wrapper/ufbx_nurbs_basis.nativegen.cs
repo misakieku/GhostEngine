@@ -10,14 +10,20 @@ public unsafe partial struct ufbx_nurbs_basis
     /// From: <see cref="Api.ufbx_evaluate_nurbs_basis(ufbx_nurbs_basis*, float, float*, nuint, float*, nuint)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public nuint Evaluate(float u, float* weights, nuint num_weights, float* derivatives, nuint num_derivatives)
+    public nuint Evaluate(float u, ReadOnlySpan<float> weights, ReadOnlySpan<float> derivatives)
     {
-        return Api.ufbx_evaluate_nurbs_basis(
-            (ufbx_nurbs_basis*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
-            u,
-            weights,
-            num_weights,
-            derivatives,
-            num_derivatives);
+        fixed (float* pweights = weights)
+        {
+            fixed (float* pderivatives = derivatives)
+            {
+                return Api.ufbx_evaluate_nurbs_basis(
+                    (ufbx_nurbs_basis*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
+                    u,
+                    (float*)pweights,
+                    (nuint)weights.Length,
+                    (float*)pderivatives,
+                    (nuint)derivatives.Length);
+            }
+        }
     }
 }
