@@ -365,6 +365,18 @@ internal sealed class RenderGraphNativePassBuilder
                 attachment.storeOp = AttachmentStoreOp.Store;
             }
 
+            var hasStencil = resource.rgTextureDesc.format == TextureFormat.D24_UNorm_S8_UInt;
+            if (hasStencil)
+            {
+                attachment.stencilLoadOp = attachment.loadOp;
+                attachment.stencilStoreOp = attachment.storeOp;
+            }
+            else
+            {
+                attachment.stencilLoadOp = AttachmentLoadOp.DontCare;
+                attachment.stencilStoreOp = AttachmentStoreOp.DontCare;
+            }
+
         }
     }
 }

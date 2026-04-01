@@ -537,6 +537,12 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                 _ => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE
             };
 
+            if (!depthDesc.HasStencil)
+            {
+                stencilLoadAccessType = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS;
+                stencilStoreAccessType = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS;
+            }
+
             var desc = new D3D12_RENDER_PASS_DEPTH_STENCIL_DESC
             {
                 cpuDescriptor = cpuHandle,

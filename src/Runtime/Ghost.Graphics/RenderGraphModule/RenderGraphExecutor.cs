@@ -144,11 +144,13 @@ internal sealed class RenderGraphExecutor
                         ? nativePass.depthAttachment.storeOp
                         : AttachmentStoreOp.DontCare,
                     StencilLoadOp = nativePass.hasDepthAttachment
-                        ? nativePass.depthAttachment.loadOp
+                        ? nativePass.depthAttachment.stencilLoadOp
                         : AttachmentLoadOp.DontCare,
                     StencilStoreOp = nativePass.hasDepthAttachment
-                        ? nativePass.depthAttachment.storeOp
-                        : AttachmentStoreOp.DontCare
+                        ? nativePass.depthAttachment.stencilStoreOp
+                        : AttachmentStoreOp.DontCare,
+                    HasStencil = nativePass.hasDepthAttachment && 
+                        (_resources.GetResource(nativePass.depthAttachment.texture).rgTextureDesc.format == TextureFormat.D24_UNorm_S8_UInt)
                 };
 
                 commandBuffer.BeginRenderPass(new Span<PassRenderTargetDesc>(pPassRTDescs, nativePass.colorAttachmentCount), depthDesc);

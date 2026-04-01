@@ -454,6 +454,10 @@ public struct PassDepthStencilDesc
         get; set;
     }
 
+    public bool HasStencil
+    {
+        get; set;
+    }
 }
 
 
@@ -1287,7 +1291,10 @@ public enum TextureFormat
     R16G16B16A16_Float,
     R32G32B32A32_Float,
     D24_UNorm_S8_UInt,
-    D32_Float
+    D32_Float,
+
+    R32_Typeless,
+    R24G8_Typeless,
 }
 
 [Flags]

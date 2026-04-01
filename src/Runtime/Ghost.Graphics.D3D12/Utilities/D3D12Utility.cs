@@ -140,6 +140,8 @@ internal static unsafe class D3D12Utility
             TextureFormat.R32G32B32A32_Float => DXGI_FORMAT_R32G32B32A32_FLOAT,
             TextureFormat.D24_UNorm_S8_UInt => DXGI_FORMAT_D24_UNORM_S8_UINT,
             TextureFormat.D32_Float => DXGI_FORMAT_D32_FLOAT,
+            TextureFormat.R32_Typeless => DXGI_FORMAT_R32_TYPELESS,
+            TextureFormat.R24G8_Typeless => DXGI_FORMAT_R24G8_TYPELESS,
             _ => throw new NotSupportedException($"Texture format {format} is not supported."),
         };
     }
@@ -154,6 +156,8 @@ internal static unsafe class D3D12Utility
             DXGI_FORMAT_R32G32B32A32_FLOAT => TextureFormat.R32G32B32A32_Float,
             DXGI_FORMAT_D24_UNORM_S8_UINT => TextureFormat.D24_UNorm_S8_UInt,
             DXGI_FORMAT_D32_FLOAT => TextureFormat.D32_Float,
+            DXGI_FORMAT_R32_TYPELESS => TextureFormat.R32_Typeless,
+            DXGI_FORMAT_R24G8_TYPELESS => TextureFormat.R24G8_Typeless,
             _ => throw new NotSupportedException($"DXGI format {format} is not supported.")
         };
     }
@@ -385,6 +389,19 @@ internal static unsafe class D3D12Utility
     public static D3D12_RESOURCE_DESC ToD3D12ResourceDesc(this in TextureDesc desc)
     {
         var dxgiFormat = desc.Format.ToDXGIFormat();
+        
+        if (desc.Usage.HasFlag(TextureUsage.DepthStencil) && desc.Usage.HasFlag(TextureUsage.ShaderResource))
+        {
+            if (dxgiFormat == DXGI_FORMAT_D32_FLOAT)
+            {
+                dxgiFormat = DXGI_FORMAT_R32_TYPELESS;
+            }
+            else if (dxgiFormat == DXGI_FORMAT_D24_UNORM_S8_UINT)
+            {
+                dxgiFormat = DXGI_FORMAT_R24G8_TYPELESS;
+            }
+        }
+
         var maxDimension = Math.Max(desc.Width, Math.Max(desc.Height, desc.Slice));
         var mipLevels = desc.MipLevels == 0
             ? (ushort)(1 + Math.Floor(Math.Log2(maxDimension)))

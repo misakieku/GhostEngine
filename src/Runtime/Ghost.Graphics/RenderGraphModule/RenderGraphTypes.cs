@@ -384,6 +384,8 @@ internal struct DepthStencilInfo
     public AccessFlags access;
     public AttachmentLoadOp loadOp;
     public AttachmentStoreOp storeOp;
+    public AttachmentLoadOp stencilLoadOp;
+    public AttachmentStoreOp stencilStoreOp;
     public float clearDepth;
     public byte clearStencil;
 }

@@ -39,7 +39,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator
         }
     }
 
-    private static D3D12_SHADER_RESOURCE_VIEW_DESC CreateTextureSrvDesc(ID3D12Resource* pResource, uint mipLevels, uint arraySize, bool isCubeMap)
+    private static D3D12_SHADER_RESOURCE_VIEW_DESC CreateTextureSrvDesc(ID3D12Resource* pResource, uint mipLevels, uint arraySize, bool isCubeMap, TextureFormat originalFormat)
     {
         var resourceDesc = pResource->GetDesc();
         var srvDesc = new D3D12_SHADER_RESOURCE_VIEW_DESC
@@ -47,6 +47,15 @@ internal sealed unsafe partial class D3D12ResourceAllocator
             Format = resourceDesc.Format,
             Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING
         };
+
+        if (originalFormat == TextureFormat.D32_Float)
+        {
+            srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+        }
+        else if (originalFormat == TextureFormat.D24_UNorm_S8_UInt)
+        {
+            srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+        }
 
         switch (resourceDesc.Dimension)
         {
@@ -251,7 +260,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator
         return rtvDesc;
     }
 
-    private static D3D12_DEPTH_STENCIL_VIEW_DESC CreateDsvDesc(ID3D12Resource* pResource, uint mipSlice = 0, uint firstArraySlice = 0, D3D12_DSV_FLAGS flags = D3D12_DSV_FLAG_NONE)
+    private static D3D12_DEPTH_STENCIL_VIEW_DESC CreateDsvDesc(ID3D12Resource* pResource, uint mipSlice = 0, uint firstArraySlice = 0, D3D12_DSV_FLAGS flags = D3D12_DSV_FLAG_NONE, TextureFormat originalFormat = TextureFormat.Unknown)
     {
         var resourceDesc = pResource->GetDesc();
         var dsvDesc = new D3D12_DEPTH_STENCIL_VIEW_DESC
@@ -276,7 +285,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator
                 break;
         }
 
-        dsvDesc.Format = resourceDesc.Format;
+        dsvDesc.Format = originalFormat == TextureFormat.Unknown ? resourceDesc.Format : originalFormat.ToDXGIFormat();
 
         var isArray =
             dsvDesc.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE2DARRAY ||
@@ -644,7 +653,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             var cpuHandle = _descriptorAllocator.GetCpuHandle(resourceDescriptor.srv);
 
             var isCubeMap = desc.Dimension == TextureDimension.TextureCube || desc.Dimension == TextureDimension.TextureCubeArray;
-            var srvDesc = CreateTextureSrvDesc(pResource, resourceDesc.MipLevels, resourceDesc.DepthOrArraySize, isCubeMap);
+            var srvDesc = CreateTextureSrvDesc(pResource, resourceDesc.MipLevels, resourceDesc.DepthOrArraySize, isCubeMap, desc.Format);
 
             _device.NativeObject.Get()->CreateShaderResourceView(pResource, &srvDesc, cpuHandle);
             _descriptorAllocator.CopyToShaderVisible(resourceDescriptor.srv);
@@ -663,7 +672,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         {
             resourceDescriptor.dsv = _descriptorAllocator.AllocateDSV();
             var cpuHandle = _descriptorAllocator.GetCpuHandle(resourceDescriptor.dsv);
-            var dsvDesc = CreateDsvDesc(pResource);
+            var dsvDesc = CreateDsvDesc(pResource, 0, 0, D3D12_DSV_FLAG_NONE, desc.Format);
 
             _device.NativeObject.Get()->CreateDepthStencilView(pResource, &dsvDesc, cpuHandle);
         }
