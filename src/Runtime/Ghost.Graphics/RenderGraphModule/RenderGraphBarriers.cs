@@ -238,6 +238,41 @@ internal static class RenderGraphBarriers
             for (var j = 0; j < readList.Count; j++)
             {
                 var handle = readList[j];
+
+                bool isExplicitlyHandled = false;
+                if (pass.type == RenderPassType.Raster)
+                {
+                    for (var c = 0; c <= pass.maxColorIndex; c++)
+                    {
+                        if (pass.colorAccess[c].id.IsValid && pass.colorAccess[c].id.Value == handle.Value)
+                        {
+                            isExplicitlyHandled = true;
+                        }
+                    }
+
+                    if (!isExplicitlyHandled && pass.depthAccess.id.IsValid && pass.depthAccess.id.Value == handle.Value)
+                    {
+                        isExplicitlyHandled = true;
+                    }
+                }
+
+                if (!isExplicitlyHandled)
+                {
+                    for (var u = 0; u < pass.randomAccess.Count; u++)
+                    {
+                        if (pass.randomAccess[u].Value == handle.Value)
+                        {
+                            isExplicitlyHandled = true;
+                        }
+                    }
+                }
+
+                // Skip generic SRV barrier if handled specifically
+                if (isExplicitlyHandled)
+                {
+                    continue;
+                }
+
                 var targetState = GetBufferReadBarrierData(handle, pass, (RenderGraphResourceType)i, resources);
                 AddTransition(handle, targetState);
             }

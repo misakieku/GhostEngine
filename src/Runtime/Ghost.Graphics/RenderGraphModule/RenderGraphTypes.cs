@@ -212,7 +212,8 @@ public struct RGTextureDesc : IEquatable<RGTextureDesc>
         byte clearStencil = 0,
         bool clearAtFirstUse = true,
         bool discardAtLastUse = true,
-        TextureFormat format = TextureFormat.D32_Float)
+        TextureFormat format = TextureFormat.D32_Float,
+        TextureUsage usage = TextureUsage.DepthStencil)
     {
         return new RGTextureDesc
         {
@@ -228,7 +229,7 @@ public struct RGTextureDesc : IEquatable<RGTextureDesc>
             dimension = TextureDimension.Texture2D,
             mipLevels = 1,
             slice = 1,
-            usage = TextureUsage.DepthStencil | TextureUsage.ShaderResource
+            usage = usage
         };
     }
 
