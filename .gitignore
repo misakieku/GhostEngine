@@ -13,6 +13,7 @@
 AGENTS.md
 ref/
 docfx/
+.opencode/
 NUL
 
 # User-specific files (MonoDevelop/Xamarin Studio)

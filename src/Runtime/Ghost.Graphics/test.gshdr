@@ -112,14 +112,14 @@ shader "MyShader/Standard"
                 // float4 blendedColor = (color1 + color2 + color3 + color4) * 0.25f;
                 // return perMaterialData.color * blendedColor + input.color;
 
-                // uint hash = PCGHash(input.meshletID);
-                // 
-                // float r = float((hash & 0xFF0000u) >> 16) / 255.0;
-                // float g = float((hash & 0x00FF00u) >> 8)  / 255.0;
-                // float b = float((hash & 0x0000FFu))       / 255.0;
-                // 
-                // return float4(r, g, b, 1.0);
-                return float4(input.normal, 1.0);
+                uint hash = PCGHash(input.meshletID);
+                
+                float r = float((hash & 0xFF0000u) >> 16) / 255.0;
+                float g = float((hash & 0x00FF00u) >> 8)  / 255.0;
+                float b = float((hash & 0x0000FFu))       / 255.0;
+                
+                return float4(r, g, b, 1.0);
+                // return float4(input.normal, 1.0);
             }
         }
 

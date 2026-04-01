@@ -504,7 +504,7 @@ internal static unsafe class D3D12Utility
     public static D3D12_RASTERIZER_DESC D3D12_RASTERIZER_DESC_CREATE(
         D3D12_FILL_MODE fillMode,
         D3D12_CULL_MODE cullMode,
-        bool frontCounterClockwise = true,
+        bool frontCounterClockwise = false,
         int depthBias = D3D12_DEFAULT_DEPTH_BIAS,
         float depthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP,
         float slopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS,

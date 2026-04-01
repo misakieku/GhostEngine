@@ -5,12 +5,10 @@ using Ghost.Engine.Utilities;
 using Ghost.Entities;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
-using Ghost.Graphics.Test.Utilities;
 using Ghost.Graphics.Utilities;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
-using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
 
@@ -20,7 +18,7 @@ public sealed partial class GraphicsTestWindow : Window
 {
     private RenderSystem? _renderSystem;
     private ISwapChain? _swapChain;
-    private JobScheduler _jobScheduler;
+    //private JobScheduler _jobScheduler;
     private World? _world;
 
     private Handle<Mesh> _meshHandle;
@@ -36,7 +34,7 @@ public sealed partial class GraphicsTestWindow : Window
 
         Panel.SizeChanged += SwapChainPanel_SizeChanged;
         Panel.CompositionScaleChanged += SwapChainPanel_CompositionScaleChanged;
-        
+
         var opts = new AllocationManagerInitOpts
         {
             ArenaCapacity = 1024 * 1024 * 1024, // 1GB
@@ -46,7 +44,7 @@ public sealed partial class GraphicsTestWindow : Window
 
         AllocationManager.Initialize(opts);
 
-        _jobScheduler = new JobScheduler(Environment.ProcessorCount - 1);
+        //_jobScheduler = new JobScheduler(Environment.ProcessorCount - 1);
     }
 
     private void GraphicsTestWindow_Activated(object sender, WindowActivatedEventArgs e)
@@ -79,7 +77,7 @@ public sealed partial class GraphicsTestWindow : Window
         _renderSystem.Start();
 
         // ECS Setup
-        _world = World.Create(_jobScheduler);
+        _world = World.Create();
         _world.AddService(_renderSystem);
 
         // Add Systems
@@ -109,12 +107,12 @@ public sealed partial class GraphicsTestWindow : Window
 
         _world.EntityManager.SetComponent(cameraEntity, new LocalToWorld
         {
-            matrix = float4x4.TRS(new float3(0.0f, 1.0f, -5.0f), quaternion.EulerXYZ(new float3(0, 0, 0)), float3.one)
+            matrix = float4x4.TRS(new float3(0.0f, 1.0f, 5.0f), quaternion.EulerXYZ(new float3(0, math.radians(180.0f), 0)), float3.one)
         });
 
         // Create Mesh Entity
         //MeshBuilder.CreateCube(0.75f, default, Allocator.Persistent, out var vertices, out var indices);
-        MeshUtility.LoadMesh("F:/c/SimpleRayTracer/native/assets/bunny.obj", Allocator.Persistent, out var vertices, out var indices).ThrowIfFailed();
+        Utilities.MeshUtility.LoadMesh("F:/c/SimpleRayTracer/native/assets/bunny.obj", Allocator.Persistent, out var vertices, out var indices).ThrowIfFailed();
 
         // TODO: Put this to the beginning of the frame without createing another command buffer?
         using var directCmd = _renderSystem.GraphicsEngine.CreateCommandBuffer(CommandBufferType.Graphics);
@@ -141,7 +139,7 @@ public sealed partial class GraphicsTestWindow : Window
 
         _world.EntityManager.SetComponent(meshEntity, new LocalToWorld
         {
-            matrix = float4x4.identity
+            matrix = float4x4.TRS(float3.zero, quaternion.EulerXYZ(new float3(0, 0, 0)), float3.one)
         });
 
         CompositionTarget.Rendering += OnRendering;
@@ -162,7 +160,7 @@ public sealed partial class GraphicsTestWindow : Window
             _renderSystem?.ResourceManager.ReleaseMesh(_meshHandle);
 
             _swapChain?.Dispose();
-            _jobScheduler.Dispose();
+            //_jobScheduler.Dispose();
             _renderSystem?.Dispose();
 
             AllocationManager.Dispose();

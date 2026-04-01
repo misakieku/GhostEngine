@@ -1359,11 +1359,13 @@ public enum AttachmentLoadOp
 {
     Load,
     Clear,
-    DontCare
+    DontCare,
+    NoAccess
 }
 
 public enum AttachmentStoreOp
 {
     Store,
-    DontCare
+    DontCare,
+    NoAccess
 }

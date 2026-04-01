@@ -294,7 +294,7 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         }
     }
 
-    public void SetDepthAttachment(Identifier<RGTexture> texture, AccessFlags flags = AccessFlags.WriteAll)
+    public void SetDepthAttachment(Identifier<RGTexture> texture, AccessFlags flags = AccessFlags.ReadWrite)
     {
         ThrowIfDisposed();
 

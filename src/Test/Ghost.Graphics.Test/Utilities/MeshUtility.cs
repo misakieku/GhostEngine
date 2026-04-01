@@ -1,6 +1,5 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
-using Ghost.Graphics.Utilities;
 using Ghost.MeshOptimizer;
 using Ghost.Ufbx;
 using Misaki.HighPerformance.LowLevel;
@@ -8,18 +7,26 @@ using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using Misaki.HighPerformance.Mathematics;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Ghost.Graphics.Test.Utilities;
 
 internal static class MeshUtility
 {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static float4 ComputeTangent(float3 t, float3 n, float3 b)
     {
         var proj = n * math.dot(n, t);
         t = math.normalize(t - proj);
         var w = math.dot(math.cross(n.xyz, t.xyz), b.xyz) < 0.0f ? -1.0f : 1.0f;
         return new float4(t.xyz, w);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static float3 RightHandToLeft(float3 p)
+    {
+        return new float3(p.x, p.y, -p.z);
     }
 
     public static unsafe Result LoadMesh(string filePath, Allocator allocator, out UnsafeList<Vertex> vertices, out UnsafeList<uint> indices)
@@ -38,7 +45,25 @@ internal static class MeshUtility
             return Result.Failure("Unsupported file format. Only .obj and .fbx are supported.");
         }
 
-        var load_Opts = new ufbx_load_opts();
+        var load_Opts = new ufbx_load_opts
+        {
+            target_axes = new ufbx_coordinate_axes
+            {
+                right = ufbx_coordinate_axis.UFBX_COORDINATE_AXIS_POSITIVE_X,
+                up = ufbx_coordinate_axis.UFBX_COORDINATE_AXIS_POSITIVE_Y,
+                front = ufbx_coordinate_axis.UFBX_COORDINATE_AXIS_POSITIVE_Z
+            },
+            obj_axes = new ufbx_coordinate_axes
+            {
+                right = ufbx_coordinate_axis.UFBX_COORDINATE_AXIS_POSITIVE_X,
+                up = ufbx_coordinate_axis.UFBX_COORDINATE_AXIS_POSITIVE_Y,
+                front = ufbx_coordinate_axis.UFBX_COORDINATE_AXIS_NEGATIVE_Z
+            },
+            // Force X-axis mirroring to correctly convert handedness to Left-Handed,
+            // while preserving correct left/right orientation when viewed from the front.
+            handedness_conversion_axis = ufbx_mirror_axis.UFBX_MIRROR_AXIS_X,
+            space_conversion = ufbx_space_conversion.UFBX_SPACE_CONVERSION_MODIFY_GEOMETRY,
+        };
         var error = new ufbx_error();
 
         using var pool = new MemoryPool<VirtualStack, VirtualStack.CreationOpts>(new VirtualStack.CreationOpts
@@ -81,7 +106,7 @@ internal static class MeshUtility
                 }
 
                 var maxScratchIndices = (int)(pMesh->max_face_triangles * 3u);
-                
+
                 using var triIndicesArray = new UnsafeArray<uint>(maxScratchIndices, scope1.AllocationHandle);
 
                 for (var j = 0u; j < pMesh->num_faces; j++)
@@ -95,12 +120,9 @@ internal static class MeshUtility
                     {
                         var ufbxTopologyIndex = triIndicesArray[k];
 
-                        // TODO: Check if normals/UVs exist before accessing .flatIndices.data
-                        // If it does not exist, we leave uv as (0,0) and compute normals/tangents later
-
                         var posIdx = pMesh->vertex_position.indices.data[ufbxTopologyIndex];
                         var normIdx = pMesh->vertex_normal.exists ? pMesh->vertex_normal.indices.data[ufbxTopologyIndex] : uint.MaxValue;
-                        var tanIdx =  pMesh->vertex_tangent.exists ? pMesh->vertex_tangent.indices.data[ufbxTopologyIndex] : uint.MaxValue;
+                        var tanIdx = pMesh->vertex_tangent.exists ? pMesh->vertex_tangent.indices.data[ufbxTopologyIndex] : uint.MaxValue;
                         var uvIdx = pMesh->vertex_uv.exists ? pMesh->vertex_uv.indices.data[ufbxTopologyIndex] : uint.MaxValue;
                         var colIdx = pMesh->vertex_color.exists ? pMesh->vertex_color.indices.data[ufbxTopologyIndex] : uint.MaxValue;
                         var btanIdx = pMesh->vertex_bitangent.exists ? pMesh->vertex_bitangent.indices.data[ufbxTopologyIndex] : uint.MaxValue;
@@ -124,7 +146,6 @@ internal static class MeshUtility
                         var newIndex = (uint)flatVertices.Count;
 
                         flatVertices.Add(vertex);
-                        //flatIndices.Add(newIndex);
 
                         if (!needComputeNormals)
                         {

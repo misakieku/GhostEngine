@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Core.Utilities;
 using System.IO.Hashing;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.RHI;
@@ -10,6 +11,7 @@ public static class RHIUtility
 {
     public const int MAX_RENDER_TARGETS = 8;
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint GetBytesPerPixel(this TextureFormat format)
     {
         return format switch
@@ -24,9 +26,16 @@ public static class RHIUtility
         };
     }
 
-    public static uint GetTotalBytes(this TextureDesc desc)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsDepthStencilFormat(this TextureFormat format)
     {
-        return desc.Format.GetBytesPerPixel() * desc.Width * desc.Height * desc.Slice;
+        return format == TextureFormat.D24_UNorm_S8_UInt || format == TextureFormat.D32_Float;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsStencilFormat(this TextureFormat format)
+    {
+        return format == TextureFormat.D24_UNorm_S8_UInt;
     }
 
     public static void GetSurfaceInfo(this TextureFormat format, uint width, uint height, out uint rowPitch, out uint slicePitch, out uint rowCount)
@@ -136,12 +145,14 @@ public static class RHIUtility
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Key64<ShaderPass> CreateShaderPassKey(string passID)
     {
         var passIdSpan = passID.AsSpan();
         return new Key64<ShaderPass>(XxHash3.HashToUInt64(MemoryMarshal.AsBytes(passIdSpan)));
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Key64<ShaderVariant> CreateShaderVariantKey(Key64<ShaderPass> passKey, ref readonly LocalKeywordSet keywords)
     {
         var passHash = passKey.Value;
@@ -176,6 +187,7 @@ public static class RHIUtility
         return new Key128<GraphicsPipeline>(new UInt128(lo, hi));
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryGetString(this Key128<GraphicsPipeline> key, Span<char> destination)
     {
         return key.Value.TryFormat(destination, out var _, "X16");

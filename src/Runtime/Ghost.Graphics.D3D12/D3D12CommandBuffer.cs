@@ -509,6 +509,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                 AttachmentLoadOp.Load => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE,
                 AttachmentLoadOp.Clear => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR,
                 AttachmentLoadOp.DontCare => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD,
+                AttachmentLoadOp.NoAccess => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS,
                 _ => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE
             };
 
@@ -517,7 +518,8 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
             {
                 AttachmentStoreOp.Store => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE,
                 AttachmentStoreOp.DontCare => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD,
-                _ => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE
+                AttachmentStoreOp.NoAccess => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS,
+                _ => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS
             };
 
             // Map stencil load operation
@@ -526,6 +528,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                 AttachmentLoadOp.Load => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE,
                 AttachmentLoadOp.Clear => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR,
                 AttachmentLoadOp.DontCare => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD,
+                AttachmentLoadOp.NoAccess => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS,
                 _ => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE
             };
 
@@ -534,14 +537,9 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
             {
                 AttachmentStoreOp.Store => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE,
                 AttachmentStoreOp.DontCare => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD,
-                _ => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE
+                AttachmentStoreOp.NoAccess => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS,
+                _ => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS
             };
-
-            if (!depthDesc.HasStencil)
-            {
-                stencilLoadAccessType = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS;
-                stencilStoreAccessType = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS;
-            }
 
             var desc = new D3D12_RENDER_PASS_DEPTH_STENCIL_DESC
             {
