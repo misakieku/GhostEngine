@@ -14,6 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Runtime\Ghost.Graphics\Ghost.Graphics.csproj" />
     <ProjectReference Include="..\..\Test\Ghost.Test.Core\Ghost.Test.Core.csproj" />
     <ProjectReference Include="..\..\ThridParty\Ghost.Nvtt\Ghost.Nvtt.csproj" />
     <ProjectReference Include="..\..\ThridParty\Ghost.Ufbx\Ghost.Ufbx.csproj" />

@@ -1,6 +1,8 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
+using Ghost.Graphics.Utilities;
 using Ghost.MeshOptimizer;
+using Ghost.Test.Core;
 using Ghost.Ufbx;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
@@ -10,9 +12,9 @@ using Misaki.HighPerformance.Mathematics;
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace Ghost.Graphics.Test.Utilities;
+namespace Ghost.MicroTest;
 
-internal static class MeshUtility
+internal class MeshoptBenchmark : ITest
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static float4 ComputeTangent(float3 t, float3 n, float3 b)
@@ -177,5 +179,78 @@ internal static class MeshUtility
         //}
 
         return Result.Success();
+    }
+
+    private UnsafeList<Vertex> _vertices;
+    private UnsafeList<uint> _indices;
+
+    private ClodConfig _config;
+    private ClodMesh _clodMesh;
+
+    public unsafe void Setup()
+    {
+        var opts = new AllocationManagerInitOpts
+        {
+            ArenaCapacity = 1024 * 1024 * 1024, // 1GB
+            StackCapacity = 1024 * 1024 * 32, // 32MB
+            FreeListConcurrencyLevel = Environment.ProcessorCount,
+        };
+
+        AllocationManager.Initialize(opts);
+
+        LoadMesh("F:/c/SimpleRayTracer/native/assets/bunny.obj", Allocator.Persistent, out _vertices, out _indices).ThrowIfFailed();
+
+        _config = new ClodConfig
+        {
+            maxVertices = 64,
+            minTriangles = 32,
+            maxTriangles = 124,
+
+            partitionSpatial = true,
+            partitionSize = 16,
+
+            clusterSpatial = false,
+            clusterSplitFactor = 2.0f,
+
+            optimizeClusters = true,
+            optimizeClustersLevel = 1,
+
+            simplifyRatio = 0.5f,
+            simplifyThreshold = 0.85f,
+            simplifyErrorMergePrevious = 1.0f,
+            simplifyErrorFactorSloppy = 2.0f,
+            simplifyPermissive = true,
+            simplifyFallbackPermissive = false,
+            simplifyFallbackSloppy = true,
+        };
+
+        // 2. Map Mesh to ClodMesh
+        _clodMesh = new ClodMesh
+        {
+            vertexPositions = (float*)Unsafe.AsPointer(ref _vertices[0].position),
+            vertexCount = (nuint)_vertices.Count,
+            vertexPositionsStride = (nuint)sizeof(Vertex),
+            vertexAttributes = (float*)Unsafe.AsPointer(ref _vertices[0].normal),
+            vertexAttributesStride = (nuint)sizeof(Vertex),
+            indices = (uint*)_indices.GetUnsafePtr(),
+            indexCount = (nuint)_indices.Count,
+            attributeProtectMask = 0,
+        };
+    }
+
+    public unsafe void Run()
+    {
+        // 3. Build
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        MeshletUtility.Build(in _config, in _clodMesh, null, null);
+        Console.WriteLine($"Meshlet build time: {sw.Elapsed.TotalSeconds:F3} seconds");
+    }
+
+    public void Cleanup()
+    {
+        _vertices.Dispose();
+        _indices.Dispose();
+
+        AllocationManager.Dispose();
     }
 }

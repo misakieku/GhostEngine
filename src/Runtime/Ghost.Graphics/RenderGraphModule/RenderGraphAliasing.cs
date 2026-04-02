@@ -370,8 +370,8 @@ internal sealed class ResourceAliasingManager
 
         // ===== PASS 2: Create a single heap of the peak size and do the real allocation =====
 
-        _heap.Reset();
         _heap.size = peakMemoryUsage;
+        _heap.Reset();
 
         // Allocate each logical resource in the heap
         foreach (var (logicalIndex, logicalResource) in logicalResources)

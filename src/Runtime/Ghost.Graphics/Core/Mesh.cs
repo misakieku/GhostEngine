@@ -204,17 +204,51 @@ public struct Mesh : IResourceReleasable
 
     public unsafe void CookMeshlets()
     {
+        if (_meshletData.meshlets.IsCreated)
+        {
+            _meshletData.meshlets.Dispose();
+        }
+
+        if (_meshletData.groups.IsCreated)
+        {
+            _meshletData.groups.Dispose();
+        }
+
+        if (_meshletData.hierarchyNodes.IsCreated)
+        {
+            _meshletData.hierarchyNodes.Dispose();
+        }
+
+        if (_meshletData.meshletVertices.IsCreated)
+        {
+            _meshletData.meshletVertices.Dispose();
+        }
+
+        if (_meshletData.meshletTriangles.IsCreated)
+        {
+            _meshletData.meshletTriangles.Dispose();
+        }
+
+        _meshletData.meshletCount = 0;
+        _meshletData.lodLevelCount = 0;
+        _meshletData.materialSlotCount = 0;
+
         // 1. Prepare Configuration
         var config = new ClodConfig
         {
             maxVertices = 64,
             minTriangles = 32,
             maxTriangles = 124,
+
             partitionSpatial = true,
             partitionSize = 16,
+
             clusterSpatial = false,
             clusterSplitFactor = 2.0f,
-            clusterFillWeight = 1.0f,
+
+            optimizeClusters = true,
+            optimizeClustersLevel = 1,
+
             simplifyRatio = 0.5f,
             simplifyThreshold = 0.85f,
             simplifyErrorMergePrevious = 1.0f,
@@ -222,25 +256,38 @@ public struct Mesh : IResourceReleasable
             simplifyPermissive = true,
             simplifyFallbackPermissive = false,
             simplifyFallbackSloppy = true,
-            //optimizeBounds = true,
-            //optimizeClusters = true
         };
 
         // 2. Map Mesh to ClodMesh
         var clodMesh = new ClodMesh
         {
-            vertexPositions = (float*)_vertices.GetUnsafePtr(),
+            vertexPositions = (float*)Unsafe.AsPointer(ref _vertices[0].position),
             vertexCount = (nuint)_vertices.Count,
             vertexPositionsStride = (nuint)sizeof(Vertex),
+            vertexAttributes = (float*)Unsafe.AsPointer(ref _vertices[0].normal),
+            vertexAttributesStride = (nuint)sizeof(Vertex),
             indices = (uint*)_indices.GetUnsafePtr(),
             indexCount = (nuint)_indices.Count,
-            attributeProtectMask = 0
+            attributeProtectMask = 0,
         };
 
         // 3. Build
-        MeshletUtility.Build(config, clodMesh, Unsafe.AsPointer(ref this), MeshletOutputCallback);
+        MeshletUtility.Build(in config, in clodMesh, Unsafe.AsPointer(ref this), MeshletOutputCallback);
 
-        _meshletData.meshletCount = _meshletData.meshlets.Count;
+        _meshletData.meshletCount = _meshletData.meshlets.IsCreated ? _meshletData.meshlets.Count : 0;
+
+        if (_meshletData.groups.IsCreated && _meshletData.groups.Count > 0)
+        {
+            var maxLodLevel = 0u;
+            for (var i = 0; i < _meshletData.groups.Count; i++)
+            {
+                maxLodLevel = Math.Max(maxLodLevel, _meshletData.groups[i].lodLevel);
+            }
+
+            _meshletData.lodLevelCount = (int)maxLodLevel + 1;
+        }
+
+        _meshletData.materialSlotCount = 1;
     }
 
     private static unsafe int MeshletOutputCallback(void* context, ClodGroup group, ReadOnlyUnsafeCollection<ClodCluster> clusters)
@@ -257,6 +304,9 @@ public struct Mesh : IResourceReleasable
 
         var meshletGroup = new MeshletGroup
         {
+            boundingSphere = new SphereBounds(group.simplified.center, group.simplified.radius),
+            boundingBox = new AABB(group.simplified.center - group.simplified.radius, group.simplified.center + group.simplified.radius),
+            parentError = group.simplified.error,
             meshletStartIndex = (uint)data.meshlets.Count,
             meshletCount = (uint)clusters.Count,
             lodLevel = (uint)group.depth
@@ -269,11 +319,16 @@ public struct Mesh : IResourceReleasable
 
             var meshlet = new Meshlet
             {
+                boundingSphere = new SphereBounds(cluster.bounds.center, cluster.bounds.radius),
+                boundingBox = new AABB(cluster.bounds.center - cluster.bounds.radius, cluster.bounds.center + cluster.bounds.radius),
                 vertexCount = (byte)cluster.vertexCount,
                 triangleCount = (byte)(cluster.localIndexCount / 3),
                 vertexOffset = (uint)data.meshletVertices.Count,
                 triangleOffset = (uint)data.meshletTriangles.Count,
-                groupIndex = (uint)data.groups.Count - 1
+                groupIndex = (uint)data.groups.Count - 1,
+                parentError = cluster.bounds.error,
+                localMaterialIndex = 0, // TODO: support multiple materials
+                lodLevel = (byte)group.depth,
             };
             data.meshlets.Add(meshlet);
 

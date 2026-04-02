@@ -66,7 +66,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
     private readonly D3D12DebugLayer _debugLayer;
 #endif
     private readonly D3D12RenderDevice _device;
-    private readonly DxcShaderCompiler _shaderCompiler;
+    private readonly DXCShaderCompiler _shaderCompiler;
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
     private readonly D3D12ResourceDatabase _resourceDatabase;
     private readonly D3D12PipelineLibrary _pipelineLibrary;
@@ -92,7 +92,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         _debugLayer = new D3D12DebugLayer();
 #endif
         _device = new D3D12RenderDevice();
-        _shaderCompiler = new DxcShaderCompiler();
+        _shaderCompiler = new DXCShaderCompiler();
         _descriptorAllocator = new D3D12DescriptorAllocator(_device);
 
         _resourceDatabase = new D3D12ResourceDatabase(_descriptorAllocator);

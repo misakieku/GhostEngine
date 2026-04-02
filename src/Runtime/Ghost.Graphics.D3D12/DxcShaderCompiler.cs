@@ -14,7 +14,7 @@ using static TerraFX.Interop.DirectX.DXC;
 
 namespace Ghost.Graphics.Core;
 
-internal sealed partial class DxcShaderCompiler
+internal sealed partial class DXCShaderCompiler
 {
     private static string GetProfileString(ShaderStage stage, CompilerTier version)
     {
@@ -149,7 +149,7 @@ internal sealed partial class DxcShaderCompiler
     }
 }
 
-internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
+internal sealed unsafe partial class DXCShaderCompiler : IShaderCompiler
 {
     private UniquePtr<IDxcCompiler3> _compiler;
     private UniquePtr<IDxcUtils> _utils;
@@ -159,7 +159,7 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
 
     private bool _disposed;
 
-    public DxcShaderCompiler()
+    public DXCShaderCompiler()
     {
         // Initialize DXC _compiler.Get() and _utils.Get()
         var dxccID = CLSID.CLSID_DxcCompiler;
@@ -176,7 +176,7 @@ internal sealed unsafe partial class DxcShaderCompiler : IShaderCompiler
         _compiledResults = new Dictionary<Key64<ShaderVariant>, GraphicsCompiledResult>();
     }
 
-    ~DxcShaderCompiler()
+    ~DXCShaderCompiler()
     {
         Dispose();
     }
