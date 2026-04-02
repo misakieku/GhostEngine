@@ -5,7 +5,7 @@ using System.Diagnostics;
 namespace Ghost.Graphics.RenderGraphModule;
 
 /// <summary>
-/// Main render graph class that manages resource allocation and pass execution.
+/// Main render graph class that manages heap allocation and pass execution.
 /// </summary>
 public sealed class RenderGraph : IDisposable
 {
@@ -125,7 +125,7 @@ public sealed class RenderGraph : IDisposable
     /// </summary>
     /// <param name="buffer">The external buffer handle.</param>
     /// <returns>The identifier of the imported render graph buffer. Invalid if import fails.</returns>
-    public Identifier<RGBuffer> ImportBuffer(Handle<RHI.GPUBuffer> buffer, string name)
+    public Identifier<RGBuffer> ImportBuffer(Handle<GPUBuffer> buffer, string name)
     {
         var r = _resourceDatabase.GetResourceDescription(buffer.AsResource());
         if (r.IsFailure)
@@ -178,7 +178,7 @@ public sealed class RenderGraph : IDisposable
     }
 
     /// <summary>
-    /// Compiles the render graph by culling unused passes and determining resource lifetimes.
+    /// Compiles the render graph by culling unused passes and determining heap lifetimes.
     /// </summary>
     public Error Compile(ViewState viewState)
     {

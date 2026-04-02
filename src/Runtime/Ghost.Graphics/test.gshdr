@@ -53,11 +53,11 @@ shader "MyShader/Standard"
                 MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
 
                 ByteAddressBuffer meshletBuffer = GET_BUFFER(meshData.meshletBuffer);
-                Meshlet m = meshletBuffer.Load<Meshlet>(groupID.x * sizeof(Meshlet));
+                Meshlet meshlet = meshletBuffer.Load<Meshlet>(groupID.x * sizeof(Meshlet));
 
                 s_Payload.meshletIndex = groupID.x;
 
-                uint lodLevel = (m.packedCounts >> 24) & 0xFFu;
+                uint lodLevel = (meshlet.packedCounts >> 24) & 0xFFu;
                 uint emitMeshlet = lodLevel == 0u ? 1u : 0u;
                 DispatchMesh(emitMeshlet, 1u, 1u, s_Payload);
             }
@@ -74,10 +74,10 @@ shader "MyShader/Standard"
                 MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
 
                 ByteAddressBuffer meshletBuffer = GET_BUFFER(meshData.meshletBuffer);
-                Meshlet m = meshletBuffer.Load<Meshlet>(meshPayload.meshletIndex * sizeof(Meshlet));
+                Meshlet meshlet = meshletBuffer.Load<Meshlet>(meshPayload.meshletIndex * sizeof(Meshlet));
 
-                uint vertexCount = m.packedCounts & 0xFFu;
-                uint triangleCount = (m.packedCounts >> 8) & 0xFFu;
+                uint vertexCount = meshlet.packedCounts & 0xFFu;
+                uint triangleCount = (meshlet.packedCounts >> 8) & 0xFFu;
                 SetMeshOutputCounts(vertexCount, triangleCount);
 
                 ByteAddressBuffer meshletVerticesBuffer = GET_BUFFER(meshData.meshletVerticesBuffer);
@@ -86,7 +86,7 @@ shader "MyShader/Standard"
                 // Write vertex output
                 if (groupThreadID.x < vertexCount)
                 {
-                    uint vertexIndex = meshletVerticesBuffer.Load((m.vertexOffset + groupThreadID.x) * 4);
+                    uint vertexIndex = meshletVerticesBuffer.Load((meshlet.vertexOffset + groupThreadID.x) * 4);
                     ByteAddressBuffer vertices = GET_BUFFER(meshData.vertexBuffer);
                     Vertex v = vertices.Load<Vertex>(vertexIndex * sizeof(Vertex));
 
@@ -112,7 +112,7 @@ shader "MyShader/Standard"
                     uint triangleIndex = groupThreadID.x;
 
                     // Load the packed 32-bit integer containing the 3 local indices
-                    uint packedIndices = meshletTrianglesBuffer.Load((m.triangleOffset + triangleIndex) * 4);
+                    uint packedIndices = meshletTrianglesBuffer.Load((meshlet.triangleOffset + triangleIndex) * 4);
 
                     uint i0 = packedIndices & 0xFF;
                     uint i1 = (packedIndices >> 8) & 0xFF;

@@ -67,7 +67,6 @@ internal static class MeshUtility
         }
 
         using var flatVertices = new UnsafeList<Vertex>(1024, scope0.AllocationHandle);
-        //using var flatIndices = new UnsafeList<uint>(1024, scope0.AllocationHandle);
 
         var needComputeNormals = false;
 
@@ -91,7 +90,7 @@ internal static class MeshUtility
 
                 var maxScratchIndices = (int)(pMesh->max_face_triangles * 3u);
 
-                using var triIndicesArray = new UnsafeArray<uint>(maxScratchIndices, scope1.AllocationHandle);
+                var triIndicesArray = new UnsafeArray<uint>(maxScratchIndices, scope1.AllocationHandle);
 
                 for (var j = 0u; j < pMesh->num_faces; j++)
                 {

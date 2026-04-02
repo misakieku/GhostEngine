@@ -211,7 +211,7 @@ internal sealed class RenderGraphResourceRegistry
         return new Identifier<RGTexture>(resource.index);
     }
 
-    public Identifier<RGBuffer> ImportBuffer(ref readonly BufferDesc desc, Handle<RHI.GPUBuffer> buffer, string name)
+    public Identifier<RGBuffer> ImportBuffer(ref readonly BufferDesc desc, Handle<GPUBuffer> buffer, string name)
     {
         var resource = _pool.Rent<RenderGraphResource>();
         resource.name = name;
@@ -256,7 +256,7 @@ internal sealed class RenderGraphResourceRegistry
     }
 
     /// <summary>
-    /// Gets resource by global index. Use this when iterating over all resources.
+    /// Gets heap by global index. Use this when iterating over all resources.
     /// </summary>
     public RenderGraphResource GetResourceByIndex(int index)
     {

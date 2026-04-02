@@ -6,6 +6,7 @@ using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
+using TerraFX.Interop.Gdiplus;
 using TerraFX.Interop.Windows;
 
 using static TerraFX.Aliases.D3D_Alias;
@@ -635,7 +636,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         pNativeObject->SetPipelineState(psor.Value);
     }
 
-    public void SetConstantBufferView(uint slot, Handle<RHI.GPUBuffer> buffer)
+    public void SetConstantBufferView(uint slot, Handle<GPUBuffer> buffer)
     {
         AssertNotDisposed();
         ThrowIfNotRecording();
@@ -651,7 +652,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         pNativeObject->SetGraphicsRootConstantBufferView(slot, resource.Get()->GetGPUVirtualAddress());
     }
 
-    public void SetVertexBuffer(uint slot, Handle<RHI.GPUBuffer> buffer, ulong offset = 0)
+    public void SetVertexBuffer(uint slot, Handle<GPUBuffer> buffer, ulong offset = 0)
     {
         AssertNotDisposed();
         ThrowIfNotRecording();
@@ -681,7 +682,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         pNativeObject->IASetVertexBuffers(slot, 1, &vbView);
     }
 
-    public void SetIndexBuffer(Handle<RHI.GPUBuffer> buffer, IndexType type, ulong offset = 0)
+    public void SetIndexBuffer(Handle<GPUBuffer> buffer, IndexType type, ulong offset = 0)
     {
         AssertNotDisposed();
         ThrowIfNotRecording();
@@ -821,7 +822,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         throw new NotImplementedException();
     }
 
-    public void ExecuteIndirect(Handle<RHI.GPUBuffer> argumentBuffer, ulong argumentOffset, Handle<RHI.GPUBuffer> countBuffer, ulong countBufferOffset)
+    public void ExecuteIndirect(Handle<GPUBuffer> argumentBuffer, ulong argumentOffset, Handle<GPUBuffer> countBuffer, ulong countBufferOffset)
     {
         throw new NotImplementedException();
 
@@ -845,57 +846,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
 
     }
 
-    public void UploadBuffer<T>(Handle<RHI.GPUBuffer> buffer, params ReadOnlySpan<T> data)
-        where T : unmanaged
-    {
-        static void Map(T* pData, nuint size, ulong offset, SharedPtr<ID3D12Resource> resource)
-        {
-            void* pMappedData;
-            resource.Get()->Map(0, null, &pMappedData);
-            MemoryUtility.MemCpy((byte*)pMappedData + offset, pData, size);
-            resource.Get()->Unmap(0, null);
-        }
-
-        AssertNotDisposed();
-        ThrowIfNotRecording();
-#if !DEBUG
-        if (_lastError.Status != Error.None)
-        {
-            return;
-        }
-#endif
-        IncrementCommandCount();
-
-        var pResource = _resourceDatabase.GetResource(buffer.AsResource());
-
-        D3D12_HEAP_PROPERTIES properties;
-        D3D12_HEAP_FLAGS flags;
-        ThrowIfFailed(pResource.Get()->GetHeapProperties(&properties, &flags));
-
-        if (properties.Type == D3D12_HEAP_TYPE_UPLOAD)
-        {
-            fixed (T* pData = data)
-            {
-                Map(pData, (nuint)(data.Length * sizeof(T)), 0, pResource);
-            }
-        }
-        else
-        {
-            var sizeInBytes = (uint)(data.Length * sizeof(T));
-
-            var uploadHandle = _resourceAllocator.CreateTempUploadBuffer(sizeInBytes, out var offset);
-            var uploadResource = _resourceDatabase.GetResource(uploadHandle.AsResource());
-
-            fixed (T* pData = data)
-            {
-                Map(pData, sizeInBytes, offset, uploadResource);
-            }
-
-            pNativeObject->CopyBufferRegion(pResource, 0, uploadResource, offset, sizeInBytes);
-        }
-    }
-
-    public void UploadTexture(Handle<GPUTexture> texture, params ReadOnlySpan<SubResourceData> subresources)
+    public void CopyBuffer(Handle<GPUBuffer> dst, Handle<GPUBuffer> src, ulong dstOffset = 0, ulong srcOffset = 0, ulong numBytes = 0)
     {
         AssertNotDisposed();
         ThrowIfNotRecording();
@@ -905,47 +856,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
             return;
         }
 #endif
-        IncrementCommandCount();
 
-        var resource = _resourceDatabase.GetResource(texture.AsResource());
-
-        var resourceDesc = resource.Get()->GetDesc();
-        var requiredSize = GetRequiredIntermediateSize(resource, 0, (uint)subresources.Length);
-
-        var uploadHandle = _resourceAllocator.CreateTempUploadBuffer(requiredSize, out var offset);
-        var pUploadResource = _resourceDatabase.GetResource(uploadHandle.AsResource());
-
-        var d3d12Subresources = stackalloc D3D12_SUBRESOURCE_DATA[subresources.Length];
-        for (var i = 0; i < subresources.Length; i++)
-        {
-            d3d12Subresources[i] = new D3D12_SUBRESOURCE_DATA
-            {
-                pData = subresources[i].pData,
-                RowPitch = (nint)subresources[i].rowPitch,
-                SlicePitch = (nint)subresources[i].slicePitch
-            };
-        }
-
-        UpdateSubresources(
-            (ID3D12GraphicsCommandList*)pNativeObject,
-            resource,
-            pUploadResource,
-            offset,
-            0,
-            (uint)subresources.Length,
-            d3d12Subresources);
-    }
-
-    public void CopyBuffer(Handle<RHI.GPUBuffer> dst, Handle<RHI.GPUBuffer> src, ulong dstOffset = 0, ulong srcOffset = 0, ulong numBytes = 0)
-    {
-        AssertNotDisposed();
-        ThrowIfNotRecording();
-#if !DEBUG
-        if (_lastError.Status != Error.None)
-        {
-            return;
-        }
-#endif
         if (dst == src)
         {
             return;
@@ -969,6 +880,48 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         {
             pNativeObject->CopyBufferRegion(pDstResource, dstOffset, pSrcResource, srcOffset, numBytes);
         }
+    }
+
+    public void UpdateSubResources(Handle<GPUResource> resource, Handle<GPUResource> intermediate, params ReadOnlySpan<SubResourceData> subResources)
+    {
+        AssertNotDisposed();
+        ThrowIfNotRecording();
+#if !DEBUG
+        if (_lastError.Status != Error.None)
+        {
+            return;
+        }
+#endif
+
+        IncrementCommandCount();
+
+        var d3d12Resource = _resourceDatabase.GetResource(resource);
+        var d3d12Intermediate = _resourceDatabase.GetResource(intermediate);
+        if (d3d12Intermediate == null || d3d12Resource == null)
+        {
+            RecordError(nameof(UpdateSubResources), Error.InvalidArgument);
+            return;
+        }
+
+        var d3d12Subresources = stackalloc D3D12_SUBRESOURCE_DATA[subResources.Length];
+        for (var i = 0; i < subResources.Length; i++)
+        {
+            d3d12Subresources[i] = new D3D12_SUBRESOURCE_DATA
+            {
+                pData = subResources[i].pData,
+                RowPitch = (nint)subResources[i].rowPitch,
+                SlicePitch = (nint)subResources[i].slicePitch
+            };
+        }
+
+        UpdateSubresources(
+            (ID3D12GraphicsCommandList*)pNativeObject,
+            d3d12Resource,
+            d3d12Intermediate,
+            0,
+            0,
+            (uint)subResources.Length,
+            d3d12Subresources);
     }
 
     private D3D12_TEXTURE_COPY_LOCATION GetTextureCopyLocation(SharedPtr<ID3D12Resource> texture, TextureSubresource subres)

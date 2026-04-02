@@ -16,16 +16,16 @@ internal sealed class CachedCompilation
     // Culling decisions for each pass
     public readonly List<bool> passCulledFlags = new(64);
 
-    // Physical resource aliasing mappings (logical index -> physical index)
+    // Physical heap aliasing mappings (logical index -> physical index)
     public readonly Dictionary<int, int> logicalToPhysical = new(128);
 
-    // Placed resource metadata
+    // Placed heap metadata
     public readonly List<PlacedResourceData> placedResources = new(32);
 
     // Compiled barriers (stores only target states, queries before state from ResourceManager)
     public readonly List<CompiledBarrier> compiledBarriers = new(128);
 
-    // Real gpu resource
+    // Real gpu heap
     public readonly List<Handle<GPUResource>> backingResources = new(32);
 
     // View state used for this compilation
@@ -44,7 +44,7 @@ internal sealed class CachedCompilation
 }
 
 /// <summary>
-/// Placed resource data for caching.
+/// Placed heap data for caching.
 /// </summary>
 internal struct PlacedResourceData
 {

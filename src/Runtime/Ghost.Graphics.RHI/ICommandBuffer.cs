@@ -186,24 +186,6 @@ public interface ICommandBuffer : IDisposable
     void DispatchRay();
 
     /// <summary>
-    /// Uploads the specified data to the buffer represented by the given handle.
-    /// </summary>
-    /// <typeparam name="T">The unmanaged Value space of the elements to upload to the buffer.</typeparam>
-    /// <param name="buffer">A handle to the buffer that will receive the uploaded data.</param>
-    /// <param name="data">A read-only span containing the data to upload to the buffer. The span must contain elements of space
-    /// <typeparamref name="T"/>.</param>
-    void UploadBuffer<T>(Handle<GPUBuffer> buffer, params ReadOnlySpan<T> data)
-        where T : unmanaged;
-
-    /// <summary>
-    /// Uploads texture data to the specified texture resource starting at the given subresource index.
-    /// </summary>
-    /// <param name="texture">The texture resource to which the subresource data will be uploaded. Must be a valid, initialized texture handle.</param>
-    /// <param name="subresources">A reference to the structure containing the subresource data to upload. The data must match the Format and layout expected by the texture.</param>
-    /// Must be greater than zero and not exceed the remaining subresources in the texture.</param>
-    void UploadTexture(Handle<GPUTexture> texture, params ReadOnlySpan<SubResourceData> subresources);
-
-    /// <summary>
     /// Copies a specified number of bytes from the source graphics buffer to the destination graphics buffer.
     /// </summary>
     /// <param name="dest">The handle to the destination graphics buffer where data will be written.</param>
@@ -221,4 +203,6 @@ public interface ICommandBuffer : IDisposable
     /// <param name="src">The handle to the source texture from which data will be read.</param>
     /// <param name="srcRegion">The region of the source texture to copy from. If null, the entire texture will be used.</param>
     void CopyTexture(Handle<GPUTexture> dst, TextureRegion? dstRegion, Handle<GPUTexture> src, TextureRegion? srcRegion);
+
+    void UpdateSubResources(Handle<GPUResource> resource, Handle<GPUResource> intermediate, params ReadOnlySpan<SubResourceData> subResources);
 }

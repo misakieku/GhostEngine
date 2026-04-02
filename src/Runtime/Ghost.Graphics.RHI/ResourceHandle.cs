@@ -25,7 +25,7 @@ public static class ResourceHandleExtensions
         return new Handle<GPUTexture>(resource.ID, resource.Generation);
     }
 
-    public static Handle<GPUBuffer> AsGraphicsBuffer(this Handle<GPUResource> resource)
+    public static Handle<GPUBuffer> AsBuffer(this Handle<GPUResource> resource)
     {
         return new Handle<GPUBuffer>(resource.ID, resource.Generation);
     }

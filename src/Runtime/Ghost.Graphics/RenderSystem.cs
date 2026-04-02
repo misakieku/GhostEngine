@@ -163,7 +163,7 @@ public class RenderSystem : IDisposable
                 throw new NotSupportedException($"The specified graphics API '{desc.GraphicsAPI}' is not supported.");
         }
 
-        _resourceManager = new ResourceManager(_graphicsEngine.ResourceAllocator, _graphicsEngine.ResourceDatabase);
+        _resourceManager = new ResourceManager(_graphicsEngine.Device, _graphicsEngine.ResourceAllocator, _graphicsEngine.ResourceDatabase);
         _swapChainManager = new SwapChainManager(_graphicsEngine);
 
         // Create frame resources for synchronization
@@ -246,7 +246,7 @@ public class RenderSystem : IDisposable
                 var flushFence = _graphicsEngine.Device.GraphicsQueue.Signal(_gpuFenceValue);
                 _graphicsEngine.Device.GraphicsQueue.WaitForValue(flushFence);
 
-                // Sync the current frame resource to this new fence to keep state consistent
+                // Sync the current frame heap to this new fence to keep state consistent
                 frameResource.FenceValue = flushFence;
 
                 foreach (var resource in _frameResources)
@@ -322,7 +322,7 @@ public class RenderSystem : IDisposable
             }
 
             // End the frame and present
-            _resourceManager.EndFrame(_cpuFenceValue);
+            _resourceManager.EndFrame(_gpuFenceValue);
             r = _graphicsEngine.EndFrame(_gpuFenceValue);
 
             if (r.IsFailure)
@@ -426,9 +426,11 @@ public class RenderSystem : IDisposable
 
         _renderPipeline.Dispose();
 
-        _swapChainManager.Dispose();
         _resourceManager.Dispose();
         _graphicsEngine.Dispose();
+
+        _swapChainManager.Dispose();
+
         _shutdownEvent.Dispose();
 
         _disposed = true;

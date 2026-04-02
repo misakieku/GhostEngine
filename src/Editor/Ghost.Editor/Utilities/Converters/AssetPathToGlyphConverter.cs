@@ -18,7 +18,7 @@ public partial class AssetPathToGlyphConverter : IValueConverter
 
         var extension = Path.GetExtension(path).ToLowerInvariant();
 
-        // TODO: Use resource dictionary for icons.
+        // TODO: Use heap dictionary for icons.
         return extension switch
         {
             ".ghostscene" => "\uF159",

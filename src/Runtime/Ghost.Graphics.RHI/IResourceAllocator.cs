@@ -5,7 +5,6 @@ namespace Ghost.Graphics.RHI;
 public enum ResourceAllocationType
 {
     Default,
-    Temporary,
     Suballocation,
 }
 
@@ -36,11 +35,12 @@ public enum HeapType
 
 public enum HeapFlags
 {
-    None = 0,
-    AllowBuffers,
-    AllowTextures,
-    AllowRTAndDS,
-    AlowBufferAndTexture,
+    None,
+    Shared,
+    AllowOnlyBuffers,
+    AllowOnlyTextures,
+    AllowOnlyRTAndDS,
+    AllowAllBufferAndTexture,
 }
 
 public struct AllocationDesc
@@ -89,7 +89,7 @@ public interface IResourceAllocator : IDisposable
     /// <param name="desc">Allocation description</param>
     /// <param name="name">Debug name of the allocation</param>
     /// <returns>An <see cref="Handle{GPUResource}"/> point to the allocated memory</returns>
-    Handle<GPUResource> Allocate(ref readonly AllocationDesc desc, string name);
+    Handle<GPUResource> Allocate(ref readonly AllocationDesc desc, string? name = null);
 
     /// <summary>
     /// Creates a texture resource
@@ -98,7 +98,7 @@ public interface IResourceAllocator : IDisposable
     /// <param name="name">Debug name of the resource</param>
     /// <param name="options">Additional options of the resource allocation</param>
     /// <returns>An <see cref="Handle{Texture}"/> point to the resource</returns>
-    Handle<GPUTexture> CreateTexture(ref readonly TextureDesc desc, string name, CreationOptions options = default);
+    Handle<GPUTexture> CreateTexture(ref readonly TextureDesc desc, string? name = null, CreationOptions options = default);
 
     /// <summary>
     /// Creates a render Target for off-screen rendering
@@ -107,7 +107,7 @@ public interface IResourceAllocator : IDisposable
     /// <param name="name">Debug name of the resource</param>
     /// <param name="options">Additional options of the resource allocation</param>
     /// <returns>An <see cref="Handle{Texture}"/> point to the resource</returns>
-    Handle<GPUTexture> CreateRenderTarget(ref readonly RenderTargetDesc desc, string name, CreationOptions options = default);
+    Handle<GPUTexture> CreateRenderTarget(ref readonly RenderTargetDesc desc, string? name = null, CreationOptions options = default);
 
     /// <summary>
     /// Creates a buffer resource
@@ -116,18 +116,7 @@ public interface IResourceAllocator : IDisposable
     /// <param name="name">Debug name of the resource</param>
     /// <param name="options">Additional options of the resource allocation</param>
     /// <returns>An <see cref="Handle{GraphicsBuffer}"/> point to the resource</returns>
-    Handle<GPUBuffer> CreateBuffer(ref readonly BufferDesc desc, string name, CreationOptions options = default);
-
-    /// <summary>
-    /// Creates a temporary upload buffer of the specified size in bytes.
-    /// </summary>
-    /// <remarks>
-    /// This method has been optimized for frequent calls during frame updates. It efficiently manages memory to minimize fragmentation and overhead.
-    /// </remarks>
-    /// <param name="sizeInBytes">The size of the upload buffer to create, in bytes.</param>
-    /// <param name="offset">The offset within the upload buffer where the allocation begins.</param>
-    /// <returns>An <see cref="Handle{GraphicsBuffer}"/> pointing to the created upload buffer.</returns>
-    Handle<GPUBuffer> CreateTempUploadBuffer(ulong sizeInBytes, out ulong offset);
+    Handle<GPUBuffer> CreateBuffer(ref readonly BufferDesc desc, string? name = null, CreationOptions options = default);
 
     /// <summary>
     /// Creates a new sampler object using the specified sampler description.

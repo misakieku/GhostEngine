@@ -12,7 +12,7 @@ internal struct MemoryBlock
     public bool isFree;
     public int firstUsePass;
     public int lastUsePass;
-    public int logicalResourceIndex; // Which logical resource is currently using this block
+    public int logicalResourceIndex; // Which logical heap is currently using this block
 
     public MemoryBlock(ulong offset, ulong size)
     {
@@ -267,7 +267,7 @@ internal sealed class ResourceAliasingManager
 
     private readonly ResourceHeap _heap;
     private readonly List<PlacedResource> _placedResources;
-    // Mapping from logical resource index to placed resource index
+    // Mapping from logical heap index to placed heap index
     private readonly Dictionary<int, int> _logicalToPlaced;
 
     private const ulong _DEFAULT_TEXTURE_ALIGNMENT = 65536; // 64KB
@@ -373,7 +373,7 @@ internal sealed class ResourceAliasingManager
         _heap.size = peakMemoryUsage;
         _heap.Reset();
 
-        // Allocate each logical resource in the heap
+        // Allocate each logical heap in the heap
         foreach (var (logicalIndex, logicalResource) in logicalResources)
         {
             // TODO: Currently we are recalculating the aliasing candidates in the real allocation pass.
@@ -414,7 +414,7 @@ internal sealed class ResourceAliasingManager
         }
 
         // Second pass: Populate aliasedLogicalResources lists
-        // For each placed resource, find all OTHER placed resources at the same offset
+        // For each placed heap, find all OTHER placed resources at the same offset
         for (var i = 0; i < _placedResources.Count; i++)
         {
             var placed = _placedResources[i];
@@ -432,7 +432,7 @@ internal sealed class ResourceAliasingManager
                 // Check if they're at the same offset
                 if (other.heapOffset == placed.heapOffset)
                 {
-                    // Add the other's logical resource to this one's aliased list
+                    // Add the other's logical heap to this one's aliased list
                     var otherLogicalIndex = other.aliasedLogicalResources[0]; // Each has exactly one at this point
                     if (!placed.aliasedLogicalResources.Contains(otherLogicalIndex))
                     {

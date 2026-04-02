@@ -4,14 +4,14 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
 
 namespace Ghost.Graphics.D3D12;
 
-// TODO: Thread safety
-internal class D3D12ResourceDatabase : IResourceDatabase
+internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 {
     internal unsafe record struct ResourceRecord
     {
@@ -109,7 +109,7 @@ internal class D3D12ResourceDatabase : IResourceDatabase
 
     private int _writeLock;
 
-    private ulong _currentFrame;
+    private ulong _cpuFrame;
     private bool _disposed;
 
     public D3D12ResourceDatabase(D3D12DescriptorAllocator descriptorAllocator)
@@ -323,12 +323,12 @@ internal class D3D12ResourceDatabase : IResourceDatabase
     {
         Debug.Assert(!_disposed);
 
-        if (_resources.TryGetElementAt(handle.ID, handle.Generation, out var record))
+        if (!_resources.TryGetElementAt(handle.ID, handle.Generation, out var record))
         {
             return;
         }
 
-        var entry = new ReleaseEntry(record, _currentFrame);
+        var entry = new ReleaseEntry(record, _cpuFrame);
 
         _releaseQueue.Enqueue(entry);
         _resources.Remove(handle.ID, handle.Generation);
@@ -399,20 +399,52 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         return Error.None;
     }
 
-    public void BeginFrame(ulong currentFrame)
+    public Error Map(Handle<GPUResource> handle, uint subResource, ResourceRange? readRange, ResourceRange? writeRange, void* pData, nuint size)
     {
-        Debug.Assert(!_disposed);
-        _currentFrame = currentFrame;
+        var r = GetResourceRecord(handle);
+        if (r.IsFailure)
+        {
+            return r.Error;
+        }
+
+        var resource = r.Value.ResourcePtr;
+
+        var rRange = readRange.HasValue ? new D3D12_RANGE { Begin = readRange.Value.Start, End = readRange.Value.End } : default;
+        var wRange = writeRange.HasValue ? new D3D12_RANGE { Begin = writeRange.Value.Start, End = writeRange.Value.End } : default;
+
+        void * mappedData = null;
+        resource.Get()->Map(subResource, readRange.HasValue ? &rRange : null, &mappedData);
+        MemoryUtility.MemCpy(mappedData, pData, size);
+        resource.Get()->Unmap(subResource, writeRange.HasValue ? &wRange : null);
+
+        return Error.None;
     }
 
-    public void EndFrame(ulong completedFrame)
+    public ulong GetIntermediateResourceSize(Handle<GPUResource> resource, uint firstSubResource, uint numSubResources)
+    {
+        var r = GetResourceRecord(resource);
+        if (r.IsFailure)
+        {
+            return 0;
+        }
+
+        return GetRequiredIntermediateSize(r.Value.ResourcePtr.Get(), firstSubResource, numSubResources);
+    }
+
+    public void BeginFrame(ulong cpuFrame)
+    {
+        Debug.Assert(!_disposed);
+        _cpuFrame = cpuFrame;
+    }
+
+    public void EndFrame(ulong gpuFrame)
     {
         Debug.Assert(!_disposed);
 
         while (_releaseQueue.Count > 0)
         {
             var toRelease = _releaseQueue.Peek();
-            if (toRelease.fenceValue > completedFrame)
+            if (toRelease.fenceValue > gpuFrame)
             {
                 break;
             }
@@ -431,6 +463,8 @@ internal class D3D12ResourceDatabase : IResourceDatabase
         {
             record.Release(_descriptorAllocator);
         }
+
+        _resources.Clear();
     }
 
     public void Dispose()

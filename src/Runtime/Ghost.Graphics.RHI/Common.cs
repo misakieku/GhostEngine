@@ -152,6 +152,19 @@ public record struct Vertex
     public float2 uv;
 }
 
+public struct ResourceRange
+{
+    public nuint Start
+    {
+        get; set;
+    }
+
+    public nuint End
+    {
+        get; set;
+    }
+}
+
 public readonly struct ShaderVariant;
 public readonly struct GraphicsPipeline;
 

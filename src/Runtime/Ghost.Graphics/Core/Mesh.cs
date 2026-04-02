@@ -1,7 +1,6 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Utilities;
-using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
@@ -138,7 +137,7 @@ public struct Mesh : IResourceReleasable
     /// <summary>
     /// Gets the handle to the vertex buffer on the GPU.
     /// </summary>
-    public Handle<RHI.GPUBuffer> VertexBuffer
+    public Handle<GPUBuffer> VertexBuffer
     {
         get; internal set;
     }
@@ -146,7 +145,7 @@ public struct Mesh : IResourceReleasable
     /// <summary>
     /// Gets the handle to the index buffer on the GPU.
     /// </summary>
-    public Handle<RHI.GPUBuffer> IndexBuffer
+    public Handle<GPUBuffer> IndexBuffer
     {
         get; internal set;
     }
@@ -154,7 +153,7 @@ public struct Mesh : IResourceReleasable
     /// <summary>
     /// Gets the handle to the meshlet buffer on the GPU.
     /// </summary>
-    public Handle<RHI.GPUBuffer> MeshLetBuffer
+    public Handle<GPUBuffer> MeshLetBuffer
     {
         get; internal set;
     }
@@ -162,7 +161,7 @@ public struct Mesh : IResourceReleasable
     /// <summary>
     /// Gets the handle to the meshlet vertices buffer on the GPU.
     /// </summary>
-    public Handle<RHI.GPUBuffer> MeshletVerticesBuffer
+    public Handle<GPUBuffer> MeshletVerticesBuffer
     {
         get; internal set;
     }
@@ -170,7 +169,7 @@ public struct Mesh : IResourceReleasable
     /// <summary>
     /// Gets the handle to the meshlet triangles buffer on the GPU.
     /// </summary>
-    public Handle<RHI.GPUBuffer> MeshletTrianglesBuffer
+    public Handle<GPUBuffer> MeshletTrianglesBuffer
     {
         get; internal set;
     }
@@ -178,12 +177,12 @@ public struct Mesh : IResourceReleasable
     /// <summary>
     /// Gets the handle to the mesh data buffer on the GPU.
     /// </summary>
-    public Handle<RHI.GPUBuffer> ObjectDataBuffer
+    public Handle<GPUBuffer> ObjectDataBuffer
     {
         get; internal set;
     }
 
-    internal Mesh(ReadOnlySpan<Vertex> vertices, ReadOnlySpan<uint> indices, Handle<RHI.GPUBuffer> vertexBuffer, Handle<RHI.GPUBuffer> indexBuffer)
+    internal Mesh(ReadOnlySpan<Vertex> vertices, ReadOnlySpan<uint> indices, Handle<GPUBuffer> vertexBuffer, Handle<GPUBuffer> indexBuffer)
     {
         Vertices = new UnsafeList<Vertex>(vertices.Length, Allocator.Persistent);
         Indices = new UnsafeList<uint>(indices.Length, Allocator.Persistent);

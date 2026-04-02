@@ -4,7 +4,7 @@ using Ghost.Graphics.RHI;
 namespace Ghost.Graphics.RenderGraphModule;
 
 /// <summary>
-/// Handles compilation of the render graph including pass culling, resource allocation,
+/// Handles compilation of the render graph including pass culling, heap allocation,
 /// barrier compilation, and cache management.
 /// </summary>
 internal sealed class RenderGraphCompiler
@@ -229,7 +229,7 @@ internal sealed class RenderGraphCompiler
         {
             Size = _aliasingManager.Heap.size + 64 * 1024, // Add 64KB padding to avoid potential overflows
             Alignment = ResourceHeap.DEFAULT_ALIGNMENT,
-            HeapFlags = HeapFlags.AlowBufferAndTexture,
+            HeapFlags = HeapFlags.AllowAllBufferAndTexture,
             HeapType = HeapType.Default
         };
 

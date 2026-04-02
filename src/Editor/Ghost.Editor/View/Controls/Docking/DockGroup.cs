@@ -157,7 +157,7 @@ public partial class DockGroup : DockContainer
                         Content = doc
                     };
 
-                    existingTab.SetBinding(TabViewItem.HeaderProperty, new Microsoft.UI.Xaml.Data.Binding
+                    existingTab.SetBinding(TabViewItem.HeaderProperty, new Binding
                     {
                         Source = doc,
                         Path = new PropertyPath(nameof(DockDocument.Title)),

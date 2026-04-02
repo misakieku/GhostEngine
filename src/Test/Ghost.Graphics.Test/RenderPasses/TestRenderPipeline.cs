@@ -141,9 +141,9 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
                 continue;
             }
 
-            Handle<GPUResource> instanceBufferHandle = default;
-            Handle<GPUResource> viewBufferHandle = default;
-            Handle<GPUResource> frameBufferHandle = default;
+            Handle<GPUBuffer> instanceBufferHandle = default;
+            Handle<GPUBuffer> viewBufferHandle = default;
+            Handle<GPUBuffer> frameBufferHandle = default;
 
             try
             {
@@ -220,17 +220,16 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
                 //var frustum = CreateFrustum(request.view.nearClipPlane, request.view.farClipPlane, vp, viewDir, viewPos);
 
                 var instanceDataSize = (uint)(instanceCount * sizeof(InstanceData));
-                var instanceBufferDesc = ResourceDesc.Buffer(new BufferDesc
+                var instanceBufferDesc = new BufferDesc
                 {
                     Size = instanceDataSize,
                     Stride = (uint)sizeof(InstanceData),
                     Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
                     MemoryType = ResourceMemoryType.Upload, // Upload directly for simplicity in testing
-                });
+                };
 
-                // TODO: Optimize by suballocation.
-                instanceBufferHandle = resourceManager.GetPooledResource(instanceBufferDesc);
-                var instanceBufferResource = instanceBufferHandle.AsGraphicsBuffer();
+                instanceBufferHandle = resourceManager.CreateTransientBuffer(in instanceBufferDesc, "Instance Buffer");
+                var instanceBufferResource = instanceBufferHandle.AsResource();
 
                 var instanceDataArray = new InstanceData[instanceCount];
                 var instanceIdx = 0;
@@ -256,21 +255,21 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
                     };
                 }
 
-                ctx.CommandBuffer.Barrier(BarrierDesc.Buffer(instanceBufferHandle, null, BarrierSync.Copy, null, BarrierAccess.CopyDest));
-                ctx.CommandBuffer.UploadBuffer(instanceBufferResource, instanceDataArray.AsSpan());
-                ctx.CommandBuffer.Barrier(BarrierDesc.Buffer(instanceBufferHandle, BarrierSync.Copy, BarrierSync.AllShading, BarrierAccess.CopyDest, BarrierAccess.ShaderResource));
+                ctx.CommandBuffer.Barrier(BarrierDesc.Buffer(instanceBufferResource, null, BarrierSync.Copy, null, BarrierAccess.CopyDest));
+                ctx.CommandBuffer.UploadBuffer(instanceBufferHandle, instanceDataArray.AsSpan());
+                ctx.CommandBuffer.Barrier(BarrierDesc.Buffer(instanceBufferResource, BarrierSync.Copy, BarrierSync.AllShading, BarrierAccess.CopyDest, BarrierAccess.ShaderResource));
 
                 // 2. Allocate and populate View Data buffer
-                var viewDataSize = (uint)sizeof(ViewData);
-                var viewBufferDesc = ResourceDesc.Buffer(new BufferDesc
+                var viewBufferDesc = new BufferDesc
                 {
-                    Size = viewDataSize,
-                    Stride = viewDataSize,
+                    Size = (uint)sizeof(ViewData),
+                    Stride = (uint)sizeof(ViewData),
                     Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
                     MemoryType = ResourceMemoryType.Upload,
-                });
+                };
 
-                viewBufferHandle = resourceManager.GetPooledResource(viewBufferDesc);
+                viewBufferHandle = resourceManager.CreateTransientBuffer(in viewBufferDesc, "View Buffer");
+                var viewBufferResource = viewBufferHandle.AsResource();
 
                 var viewData = new ViewData
                 {
@@ -283,31 +282,32 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
                     screenSize = new float4(request.view.sensorSize.x, request.view.sensorSize.y, 1.0f / request.view.sensorSize.x, 1.0f / request.view.sensorSize.y)
                 };
 
-                ctx.CommandBuffer.Barrier(BarrierDesc.Buffer(viewBufferHandle, null, BarrierSync.Copy, null, BarrierAccess.CopyDest));
-                ctx.CommandBuffer.UploadBuffer(viewBufferHandle.AsGraphicsBuffer(), new ReadOnlySpan<ViewData>(in viewData));
-                ctx.CommandBuffer.Barrier(BarrierDesc.Buffer(viewBufferHandle, BarrierSync.Copy, BarrierSync.AllShading, BarrierAccess.CopyDest, BarrierAccess.ShaderResource));
+                ctx.CommandBuffer.Barrier(BarrierDesc.Buffer(viewBufferResource, null, BarrierSync.Copy, null, BarrierAccess.CopyDest));
+                ctx.CommandBuffer.UploadBuffer(viewBufferHandle, new ReadOnlySpan<ViewData>(in viewData));
+                ctx.CommandBuffer.Barrier(BarrierDesc.Buffer(viewBufferResource, BarrierSync.Copy, BarrierSync.AllShading, BarrierAccess.CopyDest, BarrierAccess.ShaderResource));
 
                 // 3. Allocate and populate Global Frame Data buffer
                 var frameDataSize = (uint)sizeof(FrameData);
-                var frameBufferDesc = ResourceDesc.Buffer(new BufferDesc
+                var frameBufferDesc = new BufferDesc
                 {
                     Size = frameDataSize,
                     Stride = frameDataSize,
                     Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
                     MemoryType = ResourceMemoryType.Upload,
-                });
+                };
 
-                frameBufferHandle = resourceManager.GetPooledResource(frameBufferDesc);
+                frameBufferHandle = resourceManager.CreateTransientBuffer(in frameBufferDesc, "Frame Buffer");
+                var frameBufferResource = frameBufferHandle.AsResource();
 
                 var frameData = new FrameData
                 {
-                    viewBufferIndex = resourceDatabase.GetBindlessIndex(viewBufferHandle),
-                    instanceBufferIndex = resourceDatabase.GetBindlessIndex(instanceBufferResource.AsResource()),
+                    viewBufferIndex = resourceDatabase.GetBindlessIndex(viewBufferResource),
+                    instanceBufferIndex = resourceDatabase.GetBindlessIndex(instanceBufferResource),
                 };
 
-                ctx.CommandBuffer.Barrier(BarrierDesc.Buffer(frameBufferHandle, null, BarrierSync.Copy, null, BarrierAccess.CopyDest));
-                ctx.CommandBuffer.UploadBuffer(frameBufferHandle.AsGraphicsBuffer(), new ReadOnlySpan<FrameData>(in frameData));
-                ctx.CommandBuffer.Barrier(BarrierDesc.Buffer(frameBufferHandle, BarrierSync.Copy, BarrierSync.AllShading, BarrierAccess.CopyDest, BarrierAccess.ShaderResource));
+                ctx.CommandBuffer.Barrier(BarrierDesc.Buffer(frameBufferResource, null, BarrierSync.Copy, null, BarrierAccess.CopyDest));
+                ctx.CommandBuffer.UploadBuffer(frameBufferHandle, new ReadOnlySpan<FrameData>(in frameData));
+                ctx.CommandBuffer.Barrier(BarrierDesc.Buffer(frameBufferResource, BarrierSync.Copy, BarrierSync.AllShading, BarrierAccess.CopyDest, BarrierAccess.ShaderResource));
 
                 if (request.renderFunc != null)
                 {
@@ -320,7 +320,9 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
                     var backBuffer = _renderGraph.ImportTexture(rt, "BackBuffer");
 
                     MeshletDebugPass(backBuffer, request.opaqueRenderList, 
-                        resourceDatabase.GetBindlessIndex(frameBufferHandle), resourceDatabase.GetBindlessIndex(viewBufferHandle), resourceDatabase.GetBindlessIndex(instanceBufferHandle));
+                        resourceDatabase.GetBindlessIndex(frameBufferResource),
+                        resourceDatabase.GetBindlessIndex(viewBufferResource),
+                        resourceDatabase.GetBindlessIndex(instanceBufferResource));
 
                     var viewState = new ViewState(rtSize.x, rtSize.y, rtSize.x, rtSize.y);
                     _renderGraph.Compile(viewState);
@@ -329,10 +331,9 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
             }
             finally
             {
-                // We must enqueue a return for the pooled resources so they are freed next frame.
-                resourceManager.ReturnPooledResource(instanceBufferHandle);
-                resourceManager.ReturnPooledResource(viewBufferHandle);
-                resourceManager.ReturnPooledResource(frameBufferHandle);
+                _renderSystem.GraphicsEngine.ResourceDatabase.ReleaseResource(instanceBufferHandle.AsResource());
+                _renderSystem.GraphicsEngine.ResourceDatabase.ReleaseResource(viewBufferHandle.AsResource());
+                _renderSystem.GraphicsEngine.ResourceDatabase.ReleaseResource(frameBufferHandle.AsResource());
 
                 if (request.swapChainIndex >= 0)
                 {

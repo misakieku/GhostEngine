@@ -108,7 +108,7 @@ internal sealed partial class ProjectBrowser : UserControl
         _isUpdatingSelection = false;
     }
 
-    private async void PART_FilesView_DoubleTapped(object sender, Microsoft.UI.Xaml.Input.DoubleTappedRoutedEventArgs e)
+    private async void PART_FilesView_DoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
     {
         if (PART_FilesView.SelectedItem is ExplorerItem selectedItem)
         {

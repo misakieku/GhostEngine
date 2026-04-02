@@ -209,7 +209,7 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
         if (stop >= start)
         {
             var input = context.Start.InputStream;
-            hlsl.Code = input.GetText(new Antlr4.Runtime.Misc.Interval(start, stop));
+            hlsl.Code = input.GetText(new Interval(start, stop));
         }
 
         return hlsl;

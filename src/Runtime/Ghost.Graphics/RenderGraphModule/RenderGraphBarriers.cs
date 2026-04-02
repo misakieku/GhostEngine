@@ -12,7 +12,7 @@ internal enum BarrierFlags
 }
 
 /// <summary>
-/// Represents a resource barrier requirement that needs to be resolved at runtime.
+/// Represents a heap barrier requirement that needs to be resolved at runtime.
 /// </summary>
 internal struct ResourceBarrier
 {
@@ -55,7 +55,7 @@ internal struct ResourceBarrier
 }
 
 /// <summary>
-/// Tracks the current state of a resource across passes during compilation.
+/// Tracks the current state of a heap across passes during compilation.
 /// </summary>
 internal sealed class ResourceStateTracker
 {
@@ -124,7 +124,7 @@ internal static class RenderGraphBarriers
     }
 
     /// <summary>
-    /// Inserts aliasing barriers when a placed resource is reused.
+    /// Inserts aliasing barriers when a placed heap is reused.
     /// </summary>
     private static void InsertAliasingBarriers(
         RenderGraphPassBase pass,
@@ -148,20 +148,20 @@ internal static class RenderGraphBarriers
                     continue;
                 }
 
-                // Check if this is the first use of this logical resource
+                // Check if this is the first use of this logical heap
                 if (resource.firstUsePass == pass.index)
                 {
-                    // Get the placed resource
+                    // Get the placed heap
                     var placedIndex = aliasingManager.GetPlacedResourceIndex(id.Value);
                     if (placedIndex >= 0)
                     {
                         var placed = aliasingManager.GetPlacedResource(placedIndex);
 
-                        // If this placed resource has multiple aliased resources,
+                        // If this placed heap has multiple aliased resources,
                         // we need an aliasing barrier when switching between them
                         if (placed != null && placed.aliasedLogicalResources.Count > 1)
                         {
-                            // Find the resource that used this placed memory most recently before this pass
+                            // Find the heap that used this placed memory most recently before this pass
                             Identifier<RGResource> resourceBefore = default;
                             var mostRecentLastUse = -1;
 
@@ -169,10 +169,10 @@ internal static class RenderGraphBarriers
                             {
                                 if (otherLogicalIndex != id.Value)
                                 {
-                                    // Get resource by global index
+                                    // Get heap by global index
                                     var otherResource = resources.GetResourceByIndex(otherLogicalIndex);
 
-                                    // Check if this resource finished before our resource starts
+                                    // Check if this heap finished before our heap starts
                                     if (otherResource.lastUsePass < pass.index &&
                                         otherResource.lastUsePass > mostRecentLastUse)
                                     {
@@ -182,7 +182,7 @@ internal static class RenderGraphBarriers
                                 }
                             }
 
-                            // If we found a previous resource, insert aliasing barrier
+                            // If we found a previous heap, insert aliasing barrier
                             if (mostRecentLastUse >= 0)
                             {
                                 // Aliasing Requirement: Transition to Undefined, Sync with Predecessor
@@ -215,7 +215,7 @@ internal static class RenderGraphBarriers
         List<CompiledBarrier> compiledBarriers,
         RenderGraphResourceRegistry resources)
     {
-        // Helper to add a compiled barrier for a resource transition
+        // Helper to add a compiled barrier for a heap transition
         void AddTransition(Identifier<RGResource> id, ResourceBarrierData targetState)
         {
             var resource = resources.GetResource(id);

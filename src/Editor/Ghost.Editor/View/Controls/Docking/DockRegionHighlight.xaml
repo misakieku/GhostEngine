@@ -7,7 +7,12 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:DockRegionHighlight">
-                    <Border Background="{ThemeResource SystemControlHighlightAccentBrush}" Opacity="0.25" BorderBrush="{ThemeResource SystemControlHighlightAccentBrush}" BorderThickness="2" CornerRadius="4" />
+                    <Border
+                        Background="{ThemeResource SystemControlHighlightAccentBrush}"
+                        BorderBrush="{ThemeResource SystemControlHighlightAccentBrush}"
+                        BorderThickness="2"
+                        CornerRadius="4"
+                        Opacity="0.25" />
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

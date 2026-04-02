@@ -22,7 +22,7 @@ public enum ResourceExtractionFlags : byte
 {
     None = 0,
     /// <summary>
-    /// Releases the old resource after extraction.
+    /// Releases the old heap after extraction.
     /// </summary>
     ReleaseAfterExtract = 1 << 0,
 }
@@ -36,19 +36,19 @@ public interface IRenderGraphBuilder : IDisposable
     void AllowPassCulling(bool value);
 
     /// <summary>
-    /// Creates a new texture resource based on the specified desc.
+    /// Creates a new texture heap based on the specified desc.
     /// </summary>
     /// <param name="desc">A structure that defines the properties and configuration of the texture to create.</param>
-    /// <param name="name">The name of the texture resource.</param>
-    /// <returns>An identifier for the newly created texture resource.</returns>
+    /// <param name="name">The name of the texture heap.</param>
+    /// <returns>An identifier for the newly created texture heap.</returns>
     Identifier<RGTexture> CreateTexture(in RGTextureDesc desc, string name);
 
     /// <summary>
-    /// Creates a new buffer resource based on the specified desc.
+    /// Creates a new buffer heap based on the specified desc.
     /// </summary>
     /// <param name="desc">A structure that defines the properties and configuration of the buffer to create.</param>
-    /// <param name="name">The name of the buffer resource.</param>
-    /// <returns>An identifier for the newly created buffer resource.</returns>
+    /// <param name="name">The name of the buffer heap.</param>
+    /// <returns>An identifier for the newly created buffer heap.</returns>
     Identifier<RGBuffer> CreateBuffer(in BufferDesc desc, string name);
 
     /// <summary>
@@ -69,17 +69,17 @@ public interface IRenderGraphBuilder : IDisposable
     Identifier<RGBuffer> UseBuffer(Identifier<RGBuffer> buffer, AccessFlags accessMode);
 
     /// <summary>
-    /// Extracts the actual texture resource associated with the given identifier for use in outside of the render graph execution context.
+    /// Extracts the actual texture heap associated with the given identifier for use in outside of the render graph execution context.
     /// </summary>
     /// <param name="src">The identifier of the texture to be extracted.</param>
-    /// <param name="dst">A handle to receive the actual GPU texture resource.</param>
+    /// <param name="dst">A handle to receive the actual GPU texture heap.</param>
     void QueryTextureExtraction(Identifier<RGTexture> src, Handle<GPUTexture> dst, ResourceExtractionFlags flags = ResourceExtractionFlags.ReleaseAfterExtract);
 
     /// <summary>
-    /// Extracts the actual buffer resource associated with the given identifier for use in outside of the render graph execution context.
+    /// Extracts the actual buffer heap associated with the given identifier for use in outside of the render graph execution context.
     /// </summary>
     /// <param name="src">The identifier of the buffer to be extracted.</param>
-    /// <param name="dst">A handle to receive the actual GPU buffer resource.</param>
+    /// <param name="dst">A handle to receive the actual GPU buffer heap.</param>
     void QueryBufferExtraction(Identifier<RGBuffer> src, Handle<GPUBuffer> dst, ResourceExtractionFlags flags = ResourceExtractionFlags.ReleaseAfterExtract);
 }
 
@@ -94,7 +94,7 @@ public interface IRasterRenderGraphBuilder : IRenderGraphBuilder
     /// <summary>
     /// Specifies that the given buffer will be used for random access operations with the specified access mode within the current context.
     /// </summary>
-    /// <param name="buffer">An identifier for the buffer to be used for random access. Must reference a valid buffer resource.</param>
+    /// <param name="buffer">An identifier for the buffer to be used for random access. Must reference a valid buffer heap.</param>
     /// <returns>An identifier for the buffer.</returns>
     Identifier<RGBuffer> UseRandomAccessBuffer(Identifier<RGBuffer> buffer);
 
@@ -150,7 +150,7 @@ public interface IUnsafeRenderGraphBuilder : IRenderGraphBuilder
     /// <summary>
     /// Specifies that the given buffer will be used for random access operations with the specified access mode within the current context.
     /// </summary>
-    /// <param name="buffer">An identifier for the buffer to be used for random access. Must reference a valid buffer resource.</param>
+    /// <param name="buffer">An identifier for the buffer to be used for random access. Must reference a valid buffer heap.</param>
     /// <returns>An identifier for the buffer.</returns>
     Identifier<RGBuffer> UseRandomAccessBuffer(Identifier<RGBuffer> buffer);
 

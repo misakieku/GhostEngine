@@ -8,7 +8,7 @@ using System.Diagnostics;
 
 namespace Ghost.Graphics;
 
-public sealed class ResourceManager : IDisposable
+public sealed partial class ResourceManager : IDisposable
 {
     private readonly struct ResourceReturnEntry
     {
@@ -22,6 +22,7 @@ public sealed class ResourceManager : IDisposable
         }
     }
 
+    private readonly IRenderDevice _renderDevice;
     private readonly IResourceAllocator _resourceAllocator;
     private readonly IResourceDatabase _resourceDatabase;
 
@@ -31,15 +32,13 @@ public sealed class ResourceManager : IDisposable
 
     private readonly MaterialPaletteStore _materialPalettes;
 
-    private ulong _currentFrame;
-
-    private UnsafeHashMap<ResourceDesc, UnsafeQueue<Handle<GPUResource>>> _resourceCache;
-    private UnsafeQueue<ResourceReturnEntry> _resourceReturnQueue;
+    private ulong _cpuFrame;
 
     private bool _disposed;
 
-    public ResourceManager(IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase)
+    public ResourceManager(IRenderDevice renderDevice, IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase)
     {
+        _renderDevice = renderDevice;
         _resourceAllocator = resourceAllocator;
         _resourceDatabase = resourceDatabase;
 
@@ -48,9 +47,8 @@ public sealed class ResourceManager : IDisposable
         _shaders = new UnsafeList<Shader>(16, Allocator.Persistent);
 
         _materialPalettes = new MaterialPaletteStore();
-
-        _resourceCache = new UnsafeHashMap<ResourceDesc, UnsafeQueue<Handle<GPUResource>>>(32, Allocator.Persistent);
-        _resourceReturnQueue = new UnsafeQueue<ResourceReturnEntry>(32, Allocator.Persistent);
+    
+        InitializePool();
     }
 
     ~ResourceManager()
@@ -58,30 +56,16 @@ public sealed class ResourceManager : IDisposable
         Dispose();
     }
 
-    internal void BeginFrame(ulong currentFrame)
+    internal void BeginFrame(ulong cpuFrame)
     {
         Debug.Assert(!_disposed);
-        _currentFrame = currentFrame;
+        _cpuFrame = cpuFrame;
     }
 
-    internal void EndFrame(ulong completedFrame)
+    internal void EndFrame(ulong gpuFrame)
     {
         Debug.Assert(!_disposed);
-
-        while (_resourceReturnQueue.TryPeek(out var entry) && entry.returnFrame <= completedFrame)
-        {
-            _resourceReturnQueue.Dequeue();
-            var result = _resourceDatabase.GetResourceDescription(entry.handle);
-            Debug.Assert(result.IsSuccess);
-
-            ref var queue = ref _resourceCache.GetValueRefOrAddDefault(result.Value, out var exist);
-            if (!exist)
-            {
-                queue = new UnsafeQueue<Handle<GPUResource>>(4, Allocator.Persistent);
-            }
-
-            queue.Enqueue(entry.handle);
-        }
+        EndFramePool(gpuFrame);
     }
 
     /// <summary>
@@ -198,7 +182,7 @@ public sealed class ResourceManager : IDisposable
     }
 
     /// <summary>
-    /// Releases the mesh resource associated with the specified handle, freeing any resources held by it. Includes both CPU and GPU resources.
+    /// Releases the mesh heap associated with the specified handle, freeing any resources held by it. Includes both CPU and GPU resources.
     /// </summary>
     /// <param name="handle">The handle of the mesh to release. Must refer to a mesh that was previously created and not already released.</param>
     public void ReleaseMesh(Handle<Mesh> handle)
@@ -364,38 +348,6 @@ public sealed class ResourceManager : IDisposable
         shader.ReleaseResource(_resourceDatabase);
     }
 
-    public Handle<GPUResource> GetPooledResource(in ResourceDesc desc)
-    {
-        Debug.Assert(!_disposed);
-
-        ref var queue = ref _resourceCache.GetValueRef(desc, out var exist);
-        if (exist && queue.TryDequeue(out Handle<GPUResource> handle))
-        {
-            return handle;
-        }
-
-        handle = desc.Type switch
-        {
-            ResourceType.Buffer => _resourceAllocator.CreateBuffer(in desc.BufferDescription, "PooledBuffer").AsResource(),
-            ResourceType.Texture => _resourceAllocator.CreateTexture(in desc.TextureDescription, "PooledTexture").AsResource(),
-            _ => throw new ArgumentException("Invalid resource type.", nameof(desc)),
-        };
-
-        return handle;
-    }
-
-    public void ReturnPooledResource(Handle<GPUResource> handle)
-    {
-        Debug.Assert(!_disposed);
-
-        if (handle.IsInvalid)
-        {
-            return;
-        }
-
-        _resourceReturnQueue.Enqueue(new ResourceReturnEntry(handle, _currentFrame));
-    }
-
     public void Dispose()
     {
         if (_disposed)
@@ -423,19 +375,7 @@ public sealed class ResourceManager : IDisposable
         _shaders.Dispose();
         _materialPalettes.Dispose();
 
-        foreach (var kvp in _resourceCache)
-        {
-            var queue = kvp.Value;
-            while (queue.TryDequeue(out var handle))
-            {
-                _resourceDatabase.ReleaseResource(handle);
-            }
-
-            queue.Dispose();
-        }
-
-        _resourceCache.Dispose();
-        _resourceReturnQueue.Dispose();
+        DisposePool();
 
         _disposed = true;
         GC.SuppressFinalize(this);

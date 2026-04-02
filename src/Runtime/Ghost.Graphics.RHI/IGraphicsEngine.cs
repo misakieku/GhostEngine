@@ -74,14 +74,14 @@ public interface IGraphicsEngine : IDisposable
     /// <summary>
     /// Begin the current frame.
     /// </summary>
-    /// <param name="currentFrame">CPU fence value for synchronization</param>
+    /// <param name="cpuFrame">CPU fence value for synchronization</param>
     /// <returns>Result of the begin frame operation</returns>
-    Result BeginFrame(ulong currentFrame);
+    Result BeginFrame(ulong cpuFrame);
 
     /// <summary>
     /// End the current frame.
     /// </summary>
-    /// <param name="completedFrame">GPU fence value for synchronization</param>
+    /// <param name="gpuFrame">GPU fence value for synchronization</param>
     /// <returns>Result of the end frame operation</returns>
-    Result EndFrame(ulong completedFrame);
+    Result EndFrame(ulong gpuFrame);
 }

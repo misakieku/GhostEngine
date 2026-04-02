@@ -48,7 +48,7 @@ public interface ISwapChain : IDisposable
     /// <summary>
     /// Gets all back buffer textures
     /// </summary>
-    /// <returns>AlowBufferAndTexture back buffer textures</returns>
+    /// <returns>AllowAllBufferAndTexture back buffer textures</returns>
     ReadOnlySpan<Handle<GPUTexture>> GetBackBuffers();
 
     /// <summary>

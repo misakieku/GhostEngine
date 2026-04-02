@@ -31,22 +31,8 @@ public enum BindlessAccess
     UnorderedAccess,
 }
 
-// TODO: Consider adding methods for resource enumeration, statistics, and bulk operations.
-// TODO: Consider adding async resource loading and streaming support.
-public interface IResourceDatabase : IDisposable
+public unsafe interface IResourceDatabase : IDisposable
 {
-    /*
-    /// <summary>
-    /// Imports an external unmanaged resource and returns a handle for use within the resource management system.
-    /// </summary>
-    /// <typeparam name="T">The space of the unmanaged resource pointer to import.</typeparam>
-    /// <param name="resourcePtr">A pointer to the external unmanaged resource to be imported. Must remain valid for the duration of the resource's usage.</param>
-    /// <param name="initialState">The initial state to assign to the imported resource.</param>
-    /// <returns>A handle representing the imported resource, which can be used for subsequent operations.</returns>
-    unsafe Handle<GPUResource> ImportExternalResource<T>(T resourcePtr, ResourceState initialState, string? name = null)
-        where T : unmanaged;
-    */
-
     void EnterParallelRead();
 
     void ExitParallelRead();
@@ -139,4 +125,8 @@ public interface IResourceDatabase : IDisposable
     /// <param name="handleB">The second handle whose associated resource is to be swapped.</param>
     /// <returns>An Error indicating the success or failure of the swap operation.</returns>
     Error Swap(Handle<GPUResource> handleA, Handle<GPUResource> handleB);
+
+    Error Map(Handle<GPUResource> handle, uint subResource, ResourceRange? readRange, ResourceRange? writeRange, void* pData, nuint size);
+
+    ulong GetIntermediateResourceSize(Handle<GPUResource> resource, uint firstSubResource, uint numSubResources);
 }

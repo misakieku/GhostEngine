@@ -386,6 +386,31 @@ internal static unsafe class D3D12Utility
         return flags;
     }
 
+    public static D3D12_HEAP_TYPE ToD3D12HeapType(this HeapType heapType)
+    {
+        return heapType switch
+        {
+            HeapType.Default => D3D12_HEAP_TYPE_DEFAULT,
+            HeapType.Upload => D3D12_HEAP_TYPE_UPLOAD,
+            HeapType.Readback => D3D12_HEAP_TYPE_READBACK,
+            _ => throw new ArgumentException($"Unknown heap type: {heapType}")
+        };
+    }
+
+    public static D3D12_HEAP_FLAGS ToD3D12HeapFlags(this HeapFlags flags)
+    {
+        return flags switch
+        {
+            HeapFlags.None => D3D12_HEAP_FLAG_NONE,
+            HeapFlags.Shared => D3D12_HEAP_FLAG_SHARED,
+            HeapFlags.AllowOnlyBuffers => D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS,
+            HeapFlags.AllowOnlyTextures => D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES,
+            HeapFlags.AllowOnlyRTAndDS => D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES,
+            HeapFlags.AllowAllBufferAndTexture => D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES,
+            _ => throw new ArgumentException($"Unknown heap flags: {flags}")
+        };
+    }
+
     public static D3D12_RESOURCE_DESC ToD3D12ResourceDesc(this in TextureDesc desc)
     {
         var dxgiFormat = desc.Format.ToDXGIFormat();

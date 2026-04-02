@@ -75,7 +75,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
     private readonly Queue<ICommandBuffer> _commandBufferPool;
     private readonly Queue<CommandBufferReturnEntry> _commandBufferReturnQueue;
 
-    private ulong _currentFrame;
+    private ulong _cpuFrame;
     private bool _disposed;
 
     public IRenderDevice Device => _device;
@@ -147,7 +147,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
 
     public void ReturnPooledCommandBuffer(ICommandBuffer commandBuffer)
     {
-        _commandBufferReturnQueue.Enqueue(new CommandBufferReturnEntry(commandBuffer, _currentFrame));
+        _commandBufferReturnQueue.Enqueue(new CommandBufferReturnEntry(commandBuffer, _cpuFrame));
     }
 
     public ISwapChain CreateSwapChain(SwapChainDesc desc)
@@ -156,22 +156,22 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         return new DXGISwapChain(_resourceDatabase, _descriptorAllocator, _device, desc, _desc.FrameBufferCount);
     }
 
-    public Result BeginFrame(ulong currentFrame)
+    public Result BeginFrame(ulong cpuFrame)
     {
         ThrowIfDisposed();
 
-        _currentFrame = currentFrame;
-        _resourceDatabase.BeginFrame(currentFrame);
+        _cpuFrame = cpuFrame;
+        _resourceDatabase.BeginFrame(cpuFrame);
         return Result.Success();
     }
 
-    public Result EndFrame(ulong completedFrame)
+    public Result EndFrame(ulong gpuFrame)
     {
         ThrowIfDisposed();
 
-        _resourceDatabase.EndFrame(completedFrame);
+        _resourceDatabase.EndFrame(gpuFrame);
 
-        while (_commandBufferReturnQueue.TryPeek(out var entry) && entry.returnFrame <= completedFrame)
+        while (_commandBufferReturnQueue.TryPeek(out var entry) && entry.returnFrame <= gpuFrame)
         {
             _commandBufferPool.Enqueue(entry.commandBuffer);
             _commandBufferReturnQueue.Dequeue();

@@ -462,10 +462,6 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
     private readonly D3D12ResourceDatabase _resourceDatabase;
     private readonly D3D12PipelineLibrary _pipelineLibrary;
 
-    // TODO: We should use ring buffer pool in d3d12ma for upload buffer.
-    private readonly Handle<RHI.GPUBuffer> _uploadBatch;
-    private ulong _uploadBatchOffset;
-
     private bool _disposed;
 
     public D3D12ResourceAllocator(
@@ -489,34 +485,11 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         _descriptorAllocator = descriptorAllocator;
         _resourceDatabase = resourceDatabase;
         _pipelineLibrary = pipelineLibrary;
-
-        // Create an upload batch
-        var uploadDesc = new BufferDesc
-        {
-            Size = _UPLOAD_BATCH_SIZE,
-            Usage = BufferUsage.Upload,
-            MemoryType = ResourceMemoryType.Upload,
-        };
-
-        _uploadBatch = CreateBuffer(in uploadDesc, "D3D12ResourceAllocator_UploadBatch");
-        _uploadBatchOffset = 0;
     }
 
     ~D3D12ResourceAllocator()
     {
         Dispose();
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Handle<GPUResource> TrackAllocation(D3D12MA_Allocation* allocation, ResourceBarrierData barrierData, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string name, bool isTemp)
-    {
-        var handle = _resourceDatabase.AddAllocation(allocation, barrierData, resourceDescriptor, desc, name);
-        if (isTemp)
-        {
-            _resourceDatabase.ReleaseResource(handle);
-        }
-
-        return handle;
     }
 
     private HRESULT CreateResource(D3D12MA_ALLOCATION_DESC* pAllocationDesc, D3D12_RESOURCE_DESC* pResourceDesc, D3D12_RESOURCE_STATES initialState, CreationOptions options, Guid* riid, void** ppv)
@@ -563,27 +536,13 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         };
     }
 
-    public Handle<GPUResource> Allocate(ref readonly AllocationDesc desc, string name)
+    public Handle<GPUResource> Allocate(ref readonly AllocationDesc desc, string? name = null)
     {
         var allocDesc = new D3D12MA_ALLOCATION_DESC
         {
-            HeapType = desc.HeapType switch
-            {
-                HeapType.Default => D3D12_HEAP_TYPE_DEFAULT,
-                HeapType.Upload => D3D12_HEAP_TYPE_UPLOAD,
-                HeapType.Readback => D3D12_HEAP_TYPE_READBACK,
-                _ => D3D12_HEAP_TYPE_DEFAULT
-            },
+            HeapType = desc.HeapType.ToD3D12HeapType(),
             Flags = D3D12MA_ALLOCATION_FLAG_COMMITTED,
-            ExtraHeapFlags = desc.HeapFlags switch
-            {
-                HeapFlags.None => D3D12_HEAP_FLAG_NONE,
-                HeapFlags.AllowBuffers => D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS,
-                HeapFlags.AllowTextures => D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES,
-                HeapFlags.AllowRTAndDS => D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES,
-                HeapFlags.AlowBufferAndTexture => D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES,
-                _ => D3D12_HEAP_FLAG_NONE
-            }
+            ExtraHeapFlags = desc.HeapFlags.ToD3D12HeapFlags()
         };
 
         // SizeInBytes must be aligned to 64KB for committed resources
@@ -606,10 +565,10 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             sync = BarrierSync.None
         };
 
-        return TrackAllocation(alloc, barrierData, ResourceViewGroup.Invalid, default, name, false);
+        return _resourceDatabase.AddAllocation(alloc, barrierData, ResourceViewGroup.Invalid, default, name);
     }
 
-    public Handle<GPUTexture> CreateTexture(ref readonly TextureDesc desc, string name, CreationOptions options = default)
+    public Handle<GPUTexture> CreateTexture(ref readonly TextureDesc desc, string? name = null, CreationOptions options = default)
     {
         Debug.Assert(!_disposed);
 
@@ -634,7 +593,10 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         else
         {
             hr = CreateResource(&allocationDesc, &resourceDesc, D3D12_RESOURCE_STATE_COMMON, options, null, (void**)&pAllocation);
-            pResource = pAllocation->GetResource();
+            if (hr.SUCCEEDED)
+            {
+                pResource = pAllocation->GetResource();
+            }
         }
 
         if (hr.FAILED)
@@ -645,7 +607,6 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             return Handle<GPUTexture>.Invalid;
         }
 
-        var isTemp = options.AllocationType == ResourceAllocationType.Temporary;
         var resourceDescriptor = ResourceViewGroup.Invalid;
         if (desc.Usage.HasFlag(TextureUsage.ShaderResource))
         {
@@ -701,13 +662,13 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         }
         else
         {
-            resource = TrackAllocation(pAllocation, barrierData, resourceDescriptor, ResourceDesc.Texture(desc), name, isTemp);
+            resource = _resourceDatabase.AddAllocation(pAllocation, barrierData, resourceDescriptor, ResourceDesc.Texture(desc), name);
         }
 
         return resource.AsTexture();
     }
 
-    public Handle<GPUTexture> CreateRenderTarget(ref readonly RenderTargetDesc desc, string name, CreationOptions options = default)
+    public Handle<GPUTexture> CreateRenderTarget(ref readonly RenderTargetDesc desc, string? name = null, CreationOptions options = default)
     {
         Debug.Assert(!_disposed);
 
@@ -715,7 +676,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         return CreateTexture(in textureDesc, name, options);
     }
 
-    public Handle<RHI.GPUBuffer> CreateBuffer(ref readonly BufferDesc desc, string name, CreationOptions options = default)
+    public Handle<GPUBuffer> CreateBuffer(ref readonly BufferDesc desc, string? name = null, CreationOptions options = default)
     {
         Debug.Assert(!_disposed);
         CheckBufferSize(desc.Size);
@@ -760,10 +721,9 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 #if DEBUG
             ThrowIfFailed(hr);
 #endif
-            return Handle<RHI.GPUBuffer>.Invalid;
+            return Handle<GPUBuffer>.Invalid;
         }
 
-        var isTemp = options.AllocationType == ResourceAllocationType.Temporary;
         var resourceDescriptor = ResourceViewGroup.Invalid;
 
         if (desc.Usage.HasFlag(BufferUsage.Constant))
@@ -814,40 +774,10 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         }
         else
         {
-            resource = TrackAllocation(pAllocation, barrierData, resourceDescriptor, ResourceDesc.Buffer(desc), name, isTemp);
+            resource = _resourceDatabase.AddAllocation(pAllocation, barrierData, resourceDescriptor, ResourceDesc.Buffer(desc), name);
         }
 
-        return resource.AsGraphicsBuffer();
-    }
-
-    public Handle<RHI.GPUBuffer> CreateTempUploadBuffer(ulong sizeInBytes, out ulong offset)
-    {
-        if (sizeInBytes <= _MAX_RESOURCE_SIZE_TO_FIT_IN_UPLOAD_BATCH && sizeInBytes + _uploadBatchOffset <= _UPLOAD_BATCH_SIZE)
-        {
-            offset = _uploadBatchOffset;
-            _uploadBatchOffset += sizeInBytes;
-            return _uploadBatch;
-        }
-        else
-        {
-            var bufferDesc = new BufferDesc
-            {
-                Size = (uint)sizeInBytes,
-                Usage = BufferUsage.Upload,
-                MemoryType = ResourceMemoryType.Upload,
-            };
-
-            var options = new CreationOptions
-            {
-                AllocationType = ResourceAllocationType.Temporary,
-            };
-
-            offset = 0;
-            var handle = CreateBuffer(in bufferDesc, "TempUploadBuffer", options);
-
-            _resourceDatabase.ReleaseResource(handle.AsResource());
-            return handle;
-        }
+        return resource.AsBuffer();
     }
 
     public Identifier<Sampler> CreateSampler(ref readonly SamplerDesc desc)
@@ -887,7 +817,6 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             return;
         }
 
-        _resourceDatabase.ReleaseResourceImmediately(_uploadBatch.AsResource());
         _d3d12MA.Dispose();
 
         _disposed = true;

@@ -78,7 +78,7 @@ internal static class RenderGraphHasher
     }
 
     /// <summary>
-    /// Computes a hash of a texture resource's structural properties.
+    /// Computes a hash of a texture heap's structural properties.
     /// For imported textures, hashes the backing handle.
     /// For transient textures, hashes the descriptor (respecting size mode).
     /// </summary>
@@ -94,7 +94,7 @@ internal static class RenderGraphHasher
         // Hash imported flag
         writer.Write(resource.isImported);
 
-        // For imported textures, hash the backing resource handle
+        // For imported textures, hash the backing heap handle
         if (resource.isImported)
         {
             writer.Write(resource.backingResource.GetHashCode());

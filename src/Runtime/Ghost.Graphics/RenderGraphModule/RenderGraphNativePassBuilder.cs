@@ -204,7 +204,7 @@ internal sealed class RenderGraphNativePassBuilder
     {
         var laterPass = compiledPasses[passB];
 
-        // Build a set of render target resource IDs (color + depth)
+        // Build a set of render target heap IDs (color + depth)
         var renderTargets = new HashSet<Identifier<RGResource>>();
         for (var i = 0; i <= laterPass.maxColorIndex; i++)
         {
@@ -241,7 +241,7 @@ internal sealed class RenderGraphNativePassBuilder
 
     /// <summary>
     /// Infers optimal load/store operations for all attachments in a native render pass.
-    /// Uses resource lifetime information to minimize memory bandwidth (critical for TBDR GPUs).
+    /// Uses heap lifetime information to minimize memory bandwidth (critical for TBDR GPUs).
     /// </summary>
     private void InferLoadStoreOps(NativeRenderPass nativePass)
     {

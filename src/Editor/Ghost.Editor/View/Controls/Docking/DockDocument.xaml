@@ -10,9 +10,10 @@
             <Setter.Value>
                 <ControlTemplate TargetType="local:DockDocument">
                     <Border Background="Transparent">
-                        <ContentPresenter Content="{TemplateBinding Content}"
-                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        <ContentPresenter
+                            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                            Content="{TemplateBinding Content}" />
                     </Border>
                 </ControlTemplate>
             </Setter.Value>
