@@ -259,7 +259,7 @@ public partial class ResourceManager
             _retiringPages.Enqueue(new RetiringPage
             {
                 page = page,
-                retireFrame = _cpuFrame
+                retireFrame = _submittedFrame
             });
         }
 

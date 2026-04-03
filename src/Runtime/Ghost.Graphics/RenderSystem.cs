@@ -65,6 +65,11 @@ public class RenderSystem : IDisposable
             get; set;
         }
 
+        public bool CpuWriteOpen
+        {
+            get; set;
+        }
+
         [UnscopedRef]
         public ref UnsafeList<RenderRequest> RenderRequests => ref _renderRequests;
 
@@ -262,11 +267,13 @@ public class RenderSystem : IDisposable
                 _submittedFenceValue = _completedFenceValue;
             }
 
+            var nextFenceValue = _submittedFenceValue + 1;
+
             // Begin rendering for this frame
             frameResource.CommandAllocator.Reset();
 
-            _resourceManager.BeginFrame(_submittedFenceValue + 1);
-            var r = _graphicsEngine.BeginFrame(_submittedFenceValue + 1);
+            _resourceManager.BeginFrame(nextFenceValue);
+            var r = _graphicsEngine.BeginFrame(nextFenceValue);
 
             if (r.IsFailure)
             {
@@ -275,7 +282,7 @@ public class RenderSystem : IDisposable
             }
 
             // Start recording commands
-
+            Debug.WriteLine($"GPU: Frame started.");
             // TODO: How can we support async compute and async copy?
             var cmd = _graphicsEngine.GetPooledCommandBuffer(CommandBufferType.Graphics);
             ref var renderRequests = ref frameResource.RenderRequests;
@@ -286,7 +293,6 @@ public class RenderSystem : IDisposable
 
                 var renderCtx = new RenderContext(_graphicsEngine, _resourceManager, cmd);
 
-                //Debug.WriteLine($"GPU: Frame started.");
                 _renderPipeline.Render(renderCtx, renderRequests.AsSpan());
                 _swapChainManager.TransitionToPresent(cmd);
 
@@ -313,7 +319,13 @@ public class RenderSystem : IDisposable
                 renderRequests.Clear();
             }
 
-            // End the frame and retire resources based on actual GPU progress.
+            _submittedFenceValue = nextFenceValue;
+            frameResource.FenceValue = _graphicsEngine.Device.GraphicsQueue.Signal(nextFenceValue);
+            frameResource.GpuReadyEvent.Set();
+
+            _completedFenceValue = _graphicsEngine.Device.GraphicsQueue.GetCompletedValue();
+
+            // End the frame and retire resources based on the freshest observed GPU progress.
             _resourceManager.EndFrame(_completedFenceValue);
             r = _graphicsEngine.EndFrame(_completedFenceValue);
 
@@ -323,9 +335,6 @@ public class RenderSystem : IDisposable
                 break;
             }
 
-            _submittedFenceValue++;
-            frameResource.GpuReadyEvent.Set();
-            frameResource.FenceValue = _graphicsEngine.Device.GraphicsQueue.Signal(_submittedFenceValue);
         }
     }
 
@@ -361,7 +370,12 @@ public class RenderSystem : IDisposable
         Debug.Assert(!_disposed, "Cannot signal CPU ready on a disposed RenderSystem.");
 
         var eventIndex = (int)(_cpuFenceValue % _config.FrameBufferCount);
-        _frameResources[eventIndex].CpuReadyEvent.Set();
+        ref var frameResource = ref _frameResources[eventIndex];
+
+        Debug.Assert(frameResource.CpuWriteOpen, "SignalCPUReady called without a matching successful TryAcquireCPUFrame.");
+        frameResource.CpuWriteOpen = false;
+
+        frameResource.CpuReadyEvent.Set();
         _cpuFenceValue++;
     }
 
@@ -381,7 +395,12 @@ public class RenderSystem : IDisposable
         }
 
         var eventIndex = (int)(_cpuFenceValue % _config.FrameBufferCount);
-        _frameResources[eventIndex].RenderRequests.Clear();
+        ref var frameResource = ref _frameResources[eventIndex];
+
+        Debug.Assert(!frameResource.CpuWriteOpen, "TryAcquireCPUFrame called while the previous CPU frame is still open. Call SignalCPUReady first.");
+
+        frameResource.CpuWriteOpen = true;
+        frameResource.RenderRequests.Clear();
 
         return true;
     }
@@ -391,14 +410,23 @@ public class RenderSystem : IDisposable
         Debug.Assert(!_disposed, "Cannot add render request to a disposed RenderSystem.");
 
         var frameIndex = (int)(_cpuFenceValue % _config.FrameBufferCount);
-        _frameResources[frameIndex].RenderRequests.Add(request);
+        ref var frameResource = ref _frameResources[frameIndex];
+
+        Debug.Assert(frameResource.CpuWriteOpen, "AddRenderRequest requires a successful TryAcquireCPUFrame and must happen before SignalCPUReady.");
+        frameResource.RenderRequests.Add(request);
     }
 
     public bool WaitForGPUReady(int timeOut = -1)
     {
         Debug.Assert(!_disposed, "Cannot wait for GPU ready on a disposed RenderSystem.");
 
-        var eventIndex = (int)(_cpuFenceValue % _config.FrameBufferCount);
+        var submittedFenceValue = Volatile.Read(ref _submittedFenceValue);
+        if (submittedFenceValue == 0)
+        {
+            return true;
+        }
+
+        var eventIndex = (int)((submittedFenceValue - 1) % _config.FrameBufferCount);
         return _frameResources[eventIndex].GpuReadyEvent.WaitOne(timeOut);
     }
 

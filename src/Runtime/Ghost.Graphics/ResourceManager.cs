@@ -32,7 +32,7 @@ public sealed partial class ResourceManager : IDisposable
 
     private readonly MaterialPaletteStore _materialPalettes;
 
-    private ulong _cpuFrame;
+    private ulong _submittedFrame;
 
     private bool _disposed;
 
@@ -59,13 +59,16 @@ public sealed partial class ResourceManager : IDisposable
     internal void BeginFrame(ulong cpuFrame)
     {
         Debug.Assert(!_disposed);
-        _cpuFrame = cpuFrame;
+        _submittedFrame = cpuFrame;
     }
 
-    internal void EndFrame(ulong gpuFrame)
+    internal void EndFrame(ulong completedFrame)
     {
         Debug.Assert(!_disposed);
-        EndFramePool(gpuFrame);
+
+        //_submittedFrame = submittedFrame;
+
+        EndFramePool(completedFrame);
     }
 
     /// <summary>

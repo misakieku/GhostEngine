@@ -125,6 +125,9 @@ public sealed partial class GraphicsTestWindow : Window
         ctx.UpdateObjectData(_meshHandle);
 
         directCmd.End().ThrowIfFailed();
+
+        // FIX: This will bump the complete value of the queue and cause the render thread render the first frame twice, which is not expected. We should have a better way to handle this.
+        // Maybe a async upload support in the future?
         _renderSystem.GraphicsEngine.Device.GraphicsQueue.Submit(directCmd);
         _renderSystem.GraphicsEngine.Device.GraphicsQueue.WaitIdle();
 
@@ -205,7 +208,7 @@ public sealed partial class GraphicsTestWindow : Window
 
         if (_renderSystem.TryAcquireCPUFrame())
         {
-            //Debug.WriteLine($"CPU: Frame started.");
+            Debug.WriteLine($"CPU: Frame started.");
             _world.SystemManager.UpdateAll(default);
             _renderSystem.SignalCPUReady();
         }
