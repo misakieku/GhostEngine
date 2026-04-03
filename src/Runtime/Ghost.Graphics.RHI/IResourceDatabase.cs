@@ -126,7 +126,7 @@ public unsafe interface IResourceDatabase : IDisposable
     /// <returns>An Error indicating the success or failure of the swap operation.</returns>
     Error Swap(Handle<GPUResource> handleA, Handle<GPUResource> handleB);
 
-    Error Map(Handle<GPUResource> handle, uint subResource, ResourceRange? readRange, ResourceRange? writeRange, void* pData, nuint size);
+    Error MapResource(Handle<GPUResource> handle, uint subResource, ResourceRange? readRange, ResourceRange? writeRange, void* pData, nuint size);
 
     ulong GetIntermediateResourceSize(Handle<GPUResource> resource, uint firstSubResource, uint numSubResources);
 }

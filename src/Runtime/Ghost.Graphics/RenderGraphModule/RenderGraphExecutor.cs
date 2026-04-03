@@ -217,6 +217,7 @@ internal sealed class RenderGraphExecutor
         }
 
         // Process all pre-compiled barriers for this pass
+        // TODO: We can insert BarrierAccess.NoAccess to the resource that aliased with others after their last usage to reduce cache burden.
         while (barrierIndex < compiledBarriers.Count && compiledBarriers[barrierIndex].PassIndex == passIndex)
         {
             var compiledBarrier = compiledBarriers[barrierIndex++];
@@ -231,60 +232,23 @@ internal sealed class RenderGraphExecutor
             }
 
             var currentState = currentStateResult.Value;
-
-            BarrierLayout layoutBefore;
-            BarrierAccess accessBefore;
-            BarrierSync syncBefore;
-
-            // Handle aliasing barriers specially
-            if (compiledBarrier.AliasingPredecessor.IsValid)
-            {
-                var predHandle = _resources.GetResource(compiledBarrier.AliasingPredecessor).backingResource;
-                var predStateResult = _resourceDatabase.GetResourceBarrierData(predHandle);
-                if (predStateResult.IsFailure)
-                {
-                    return predStateResult.Error;
-                }
-
-                var predState = predStateResult.Value;
-
-                layoutBefore = BarrierLayout.Undefined;
-                accessBefore = BarrierAccess.NoAccess;
-                syncBefore = predState.sync;
-            }
-            else
-            {
-                layoutBefore = currentState.layout;
-                accessBefore = currentState.access;
-                syncBefore = currentState.sync;
-            }
-
             var target = compiledBarrier.TargetState;
-
-            // Skip if already in target state (optimization)
-            if (!compiledBarrier.AliasingPredecessor.IsValid &&
-                layoutBefore == target.layout &&
-                accessBefore == target.access &&
-                syncBefore == target.sync)
-            {
-                continue;
-            }
 
             // Create barrier descriptor
             BarrierDesc desc;
             if (compiledBarrier.ResourceType == RenderGraphResourceType.Texture)
             {
-                desc = BarrierDesc.Texture(resourceHandle,
-                    syncBefore, target.sync,
-                    accessBefore, target.access,
-                    layoutBefore, target.layout,
+                desc = BarrierDesc.Texture(resourceHandle, target.sync, target.access, target.layout,
                     discard: compiledBarrier.Flags.HasFlag(BarrierFlags.Discard));
             }
             else
             {
-                desc = BarrierDesc.Buffer(resourceHandle,
-                    syncBefore, target.sync,
-                    accessBefore, target.access);
+                desc = BarrierDesc.Buffer(resourceHandle, target.sync, target.access);
+            }
+
+            if (compiledBarrier.AliasingPredecessor.IsValid)
+            {
+                desc.IsAliasing = true;
             }
 
             if (barrierCount >= MaxBatch)

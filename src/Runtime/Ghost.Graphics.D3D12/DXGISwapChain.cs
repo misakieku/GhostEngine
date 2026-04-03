@@ -160,7 +160,7 @@ internal unsafe class DXGISwapChain : ISwapChain
                 sync = BarrierSync.None,
             };
 
-            var handle = _resourceDatabase.ImportExternalResource(pBackBuffer, barrierData, view);
+            var handle = _resourceDatabase.ImportExternalResource(pBackBuffer, barrierData, view, D3D12Utility.GetResourceDesc(pBackBuffer, view));
             _backBuffers[i] = handle.AsTexture();
         }
     }

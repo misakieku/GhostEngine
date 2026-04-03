@@ -556,27 +556,12 @@ public struct BarrierDesc
         get; set;
     }
 
-    public BarrierSync? SyncBefore
-    {
-        get; set;
-    }
-
     public BarrierSync SyncAfter
     {
         get; set;
     }
 
-    public BarrierAccess? AccessBefore
-    {
-        get; set;
-    }
-
     public BarrierAccess AccessAfter
-    {
-        get; set;
-    }
-
-    public BarrierLayout? LayoutBefore
     {
         get; set;
     }
@@ -601,45 +586,45 @@ public struct BarrierDesc
         get; set;
     }
 
-    public static BarrierDesc Global(BarrierSync syncBefore, BarrierSync syncAfter, BarrierAccess accessBefore, BarrierAccess accessAfter)
+    public bool IsAliasing
+    {
+        get; set;
+    }
+
+    public static BarrierDesc Global(BarrierSync syncAfter, BarrierAccess accessAfter)
     {
         return new BarrierDesc
         {
             Type = BarrierType.Global,
-            SyncBefore = syncBefore,
             SyncAfter = syncAfter,
-            AccessBefore = accessBefore,
             AccessAfter = accessAfter
         };
     }
 
-    public static BarrierDesc Buffer(Handle<GPUResource> resource, BarrierSync? syncBefore, BarrierSync syncAfter, BarrierAccess? accessBefore, BarrierAccess accessAfter)
+    public static BarrierDesc Buffer(Handle<GPUResource> resource, BarrierSync syncAfter, BarrierAccess accessAfter, bool isAliasing = false)
     {
         return new BarrierDesc
         {
             Type = BarrierType.Buffer,
             Resource = resource,
-            SyncBefore = syncBefore,
             SyncAfter = syncAfter,
-            AccessBefore = accessBefore,
-            AccessAfter = accessAfter
+            AccessAfter = accessAfter,
+            IsAliasing = isAliasing
         };
     }
 
-    public static BarrierDesc Texture(Handle<GPUResource> resource, BarrierSync? syncBefore, BarrierSync syncAfter, BarrierAccess? accessBefore, BarrierAccess accessAfter, BarrierLayout? layoutBefore, BarrierLayout layoutAfter, BarrierSubresourceRange subresources = default, bool discard = false)
+    public static BarrierDesc Texture(Handle<GPUResource> resource, BarrierSync syncAfter, BarrierAccess accessAfter, BarrierLayout layoutAfter, BarrierSubresourceRange subresources = default, bool discard = false, bool isAliasing = false)
     {
         return new BarrierDesc
         {
             Type = BarrierType.Texture,
             Resource = resource,
-            SyncBefore = syncBefore,
             SyncAfter = syncAfter,
-            AccessBefore = accessBefore,
             AccessAfter = accessAfter,
-            LayoutBefore = layoutBefore,
             LayoutAfter = layoutAfter,
             Subresources = subresources,
-            Discard = discard
+            Discard = discard,
+            IsAliasing = isAliasing
         };
     }
 }
@@ -722,6 +707,16 @@ public record struct ResourceDesc
             ResourceType.Texture => HashCode.Combine(Type, TextureDescription),
             ResourceType.Buffer => HashCode.Combine(Type, BufferDescription),
             _ => throw new InvalidOperationException($"Unknown resource type: {Type}")
+        };
+    }
+
+    public override string ToString()
+    {
+        return Type switch
+        {
+            ResourceType.Texture => $"Texture: {TextureDescription}",
+            ResourceType.Buffer => $"Buffer: {BufferDescription}",
+            _ => $"Unknown resource type: {Type}"
         };
     }
 }
@@ -998,7 +993,7 @@ public record struct BufferDesc
         get; set;
     }
 
-    public ResourceMemoryType MemoryType
+    public HeapType HeapType
     {
         get; set;
     }
@@ -1253,13 +1248,6 @@ public enum RenderTargetCreationFlags
     AllowMSAA = 1 << 1,
     DynamicallyResolution = 1 << 2,
     GenerateMips = 1 << 3
-}
-
-public enum ResourceMemoryType
-{
-    Default,    // GPU memory
-    Upload,     // CPU-to-GPU memory
-    Readback    // GPU-to-CPU memory
 }
 
 public enum ResourceType

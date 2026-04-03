@@ -100,7 +100,8 @@ public class RenderSystem : IDisposable
 
     private uint _frameIndex;
     private ulong _cpuFenceValue;
-    private ulong _gpuFenceValue;
+    private ulong _submittedFenceValue;
+    private ulong _completedFenceValue;
 
     private bool _isRunning;
     private bool _disposed;
@@ -112,7 +113,8 @@ public class RenderSystem : IDisposable
     public bool IsRunning => _isRunning;
 
     public ulong CPUFenceValue => _cpuFenceValue;
-    public ulong GPUFenceValue => _gpuFenceValue;
+    public ulong SubmittedFenceValue => _submittedFenceValue;
+    public ulong CompletedFenceValue => _completedFenceValue;
     public uint FrameIndex => _frameIndex;
     public uint MaxFrameLatency => _config.FrameBufferCount;
 
@@ -219,7 +221,7 @@ public class RenderSystem : IDisposable
 
         while (_isRunning)
         {
-            _frameIndex = (uint)(_gpuFenceValue % _config.FrameBufferCount);
+            _frameIndex = (uint)(_submittedFenceValue % _config.FrameBufferCount);
             ref var frameResource = ref _frameResources[_frameIndex];
 
             // Wait for either CPU ready signal or shutdown signal
@@ -242,17 +244,7 @@ public class RenderSystem : IDisposable
 
             if (!_resizeRequest.IsEmpty)
             {
-                _gpuFenceValue++;
-                var flushFence = _graphicsEngine.Device.GraphicsQueue.Signal(_gpuFenceValue);
-                _graphicsEngine.Device.GraphicsQueue.WaitForValue(flushFence);
-
-                // Sync the current frame heap to this new fence to keep state consistent
-                frameResource.FenceValue = flushFence;
-
-                foreach (var resource in _frameResources)
-                {
-                    resource.CommandAllocator.Reset();
-                }
+                WaitIdle();
 
                 var keys = _resizeRequest.Keys.ToArray();
                 foreach (var swapChain in keys)
@@ -262,17 +254,19 @@ public class RenderSystem : IDisposable
                         swapChain.Resize(newSize.x, newSize.y);
                     }
                 }
-
-                frameResource.GpuReadyEvent.Set();
-
-                continue; // Skip rendering this frame since we just resized and may have invalid render targets
+            }
+            
+            _completedFenceValue = _graphicsEngine.Device.GraphicsQueue.GetCompletedValue();
+            if (_submittedFenceValue < _completedFenceValue)
+            {
+                _submittedFenceValue = _completedFenceValue;
             }
 
             // Begin rendering for this frame
             frameResource.CommandAllocator.Reset();
 
-            _resourceManager.BeginFrame(_cpuFenceValue);
-            var r = _graphicsEngine.BeginFrame(_cpuFenceValue);
+            _resourceManager.BeginFrame(_submittedFenceValue + 1);
+            var r = _graphicsEngine.BeginFrame(_submittedFenceValue + 1);
 
             if (r.IsFailure)
             {
@@ -290,11 +284,9 @@ public class RenderSystem : IDisposable
             {
                 cmd.Begin(frameResource.CommandAllocator);
 
-                var renderCtx = new RenderContext
-                {
-                    CommandBuffer = cmd
-                };
+                var renderCtx = new RenderContext(_graphicsEngine, _resourceManager, cmd);
 
+                //Debug.WriteLine($"GPU: Frame started.");
                 _renderPipeline.Render(renderCtx, renderRequests.AsSpan());
                 _swapChainManager.TransitionToPresent(cmd);
 
@@ -321,9 +313,9 @@ public class RenderSystem : IDisposable
                 renderRequests.Clear();
             }
 
-            // End the frame and present
-            _resourceManager.EndFrame(_gpuFenceValue);
-            r = _graphicsEngine.EndFrame(_gpuFenceValue);
+            // End the frame and retire resources based on actual GPU progress.
+            _resourceManager.EndFrame(_completedFenceValue);
+            r = _graphicsEngine.EndFrame(_completedFenceValue);
 
             if (r.IsFailure)
             {
@@ -331,11 +323,9 @@ public class RenderSystem : IDisposable
                 break;
             }
 
-            // Prepare for the next frame.
-            _gpuFenceValue++;
-
+            _submittedFenceValue++;
             frameResource.GpuReadyEvent.Set();
-            frameResource.FenceValue = _graphicsEngine.Device.GraphicsQueue.Signal(_gpuFenceValue);
+            frameResource.FenceValue = _graphicsEngine.Device.GraphicsQueue.Signal(_submittedFenceValue);
         }
     }
 
@@ -379,6 +369,21 @@ public class RenderSystem : IDisposable
     {
         Debug.Assert(!_disposed, "Cannot request swap chain resize on a disposed RenderSystem.");
         _resizeRequest.AddOrUpdate(swapChain, newSize, (_, _) => newSize);
+    }
+
+    internal bool TryAcquireCPUFrame()
+    {
+        ulong requiredGpuFence = _cpuFenceValue < _config.FrameBufferCount ? 0 : _cpuFenceValue - _config.FrameBufferCount + 1;
+
+        if (requiredGpuFence > 0 && _graphicsEngine.Device.GraphicsQueue.GetCompletedValue() < requiredGpuFence)
+        {
+            return false;
+        }
+
+        var eventIndex = (int)(_cpuFenceValue % _config.FrameBufferCount);
+        _frameResources[eventIndex].RenderRequests.Clear();
+
+        return true;
     }
 
     public void AddRenderRequest(in RenderRequest request)

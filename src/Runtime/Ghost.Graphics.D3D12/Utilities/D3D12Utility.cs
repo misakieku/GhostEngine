@@ -397,6 +397,17 @@ internal static unsafe class D3D12Utility
         };
     }
 
+    public static HeapType ToHeapType(this D3D12_HEAP_TYPE heapType)
+    {
+        return heapType switch
+        {
+            D3D12_HEAP_TYPE_DEFAULT => HeapType.Default,
+            D3D12_HEAP_TYPE_UPLOAD => HeapType.Upload,
+            D3D12_HEAP_TYPE_READBACK => HeapType.Readback,
+            _ => throw new ArgumentException($"Unknown D3D12 heap type: {heapType}")
+        };
+    }
+
     public static D3D12_HEAP_FLAGS ToD3D12HeapFlags(this HeapFlags flags)
     {
         return flags switch
@@ -408,6 +419,24 @@ internal static unsafe class D3D12Utility
             HeapFlags.AllowOnlyRTAndDS => D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES,
             HeapFlags.AllowAllBufferAndTexture => D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES,
             _ => throw new ArgumentException($"Unknown heap flags: {flags}")
+        };
+    }
+
+    public static HeapFlags ToHeapFlags(this D3D12_HEAP_FLAGS flags)
+    {
+        if (flags == D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES)
+        {
+            return HeapFlags.AllowAllBufferAndTexture;
+        }
+
+        return flags switch
+        {
+            D3D12_HEAP_FLAG_NONE => HeapFlags.None,
+            D3D12_HEAP_FLAG_SHARED => HeapFlags.Shared,
+            D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS => HeapFlags.AllowOnlyBuffers,
+            D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES => HeapFlags.AllowOnlyTextures,
+            D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES => HeapFlags.AllowOnlyRTAndDS,
+            _ => throw new ArgumentException($"Unknown D3D12 heap flags: {flags}")
         };
     }
 
@@ -497,17 +526,22 @@ internal static unsafe class D3D12Utility
         return D3D12_RESOURCE_DESC.Buffer(alignedSize, resourceFlags);
     }
 
-
-    public static ResourceDesc ToResourceDesc(this D3D12_RESOURCE_DESC desc)
+    public static ResourceDesc GetResourceDesc(ID3D12Resource* pResource, ResourceViewGroup viewGroup)
     {
+        D3D12_HEAP_PROPERTIES heapProperties;
+        D3D12_HEAP_FLAGS heapFlags;
+
+        ThrowIfFailed(pResource->GetHeapProperties(&heapProperties, &heapFlags));
+        var desc = pResource->GetDesc();
+
         if (desc.Dimension == D3D12_RESOURCE_DIMENSION.D3D12_RESOURCE_DIMENSION_BUFFER)
         {
             return ResourceDesc.Buffer(new BufferDesc
             {
                 Size = (uint)desc.Width,
                 Stride = 0,
-                Usage = BufferUsage.None,
-                MemoryType = ResourceMemoryType.Default
+                Usage = viewGroup.GetBufferUsage(),
+                HeapType = heapProperties.Type.ToHeapType()
             });
         }
         else
@@ -520,7 +554,7 @@ internal static unsafe class D3D12Utility
                 Format = desc.Format.ToTextureFormat(),
                 Dimension = desc.Dimension.ToTextureDimension(),
                 MipLevels = desc.MipLevels,
-                Usage = TextureUsage.None,
+                Usage = viewGroup.GetTextureUsage(),
             });
         }
     }

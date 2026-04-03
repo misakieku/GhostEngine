@@ -10,6 +10,7 @@ public partial class ResourceManager
 {
     private const ulong _DEFAULT_TRANSIENT_PAGE_SIZE = 16 * 1024 * 1024; // 16MB
 
+    [DebuggerDisplay("Heap: {heap}, Offset: {offset}, HeapType: {heapType}, HeapFlags: {heapFlags}")]
     private struct Page
     {
         public Handle<GPUResource> heap;
@@ -19,6 +20,7 @@ public partial class ResourceManager
         public HeapType heapType;
     }
 
+    [DebuggerDisplay("Page Heap: {page.heap}, RetireFrame: {retireFrame}")]
     private struct RetiringPage
     {
         public Page page;
@@ -26,14 +28,14 @@ public partial class ResourceManager
     }
 
     private UnsafeList<Page> _activePages;
-    private UnsafeQueue<RetiringPage> _retiringPages;
+    private Queue<RetiringPage> _retiringPages;
 
     private UnsafeList<Handle<GPUResource>> _oversizedTransientResources;
 
     private void InitializePool()
     {
         _activePages = new UnsafeList<Page>(4, Allocator.Persistent);
-        _retiringPages = new UnsafeQueue<RetiringPage>(4, Allocator.Persistent);
+        _retiringPages = new Queue<RetiringPage>(4);
         _oversizedTransientResources = new UnsafeList<Handle<GPUResource>>(4, Allocator.Persistent);
     }
 
@@ -152,10 +154,10 @@ public partial class ResourceManager
             return bufHandle;
         }
 
-        var requiredHeapType = desc.MemoryType switch
+        var requiredHeapType = desc.HeapType switch
         {
-            ResourceMemoryType.Upload => HeapType.Upload,
-            ResourceMemoryType.Readback => HeapType.Readback,
+            HeapType.Upload => HeapType.Upload,
+            HeapType.Readback => HeapType.Readback,
             _ => HeapType.Default
         };
 
@@ -265,7 +267,7 @@ public partial class ResourceManager
         }
 
         _activePages.Dispose();
-        _retiringPages.Dispose();
+        //_retiringPages.Dispose();
         _oversizedTransientResources.Dispose();
     }
 }

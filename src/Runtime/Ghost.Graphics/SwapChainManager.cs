@@ -127,9 +127,9 @@ internal class SwapChainManager : IDisposable
             }
 
             commandBuffer.Barrier(BarrierDesc.Texture(record.SwapChain.GetCurrentBackBuffer().AsResource(),
-                null, BarrierSync.None,
-                null, BarrierAccess.NoAccess,
-                null, BarrierLayout.Present));
+                BarrierSync.None,
+                BarrierAccess.NoAccess,
+                BarrierLayout.Present));
         }
     }
 

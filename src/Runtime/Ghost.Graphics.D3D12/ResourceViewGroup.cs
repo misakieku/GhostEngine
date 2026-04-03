@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Graphics.RHI;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -25,4 +26,52 @@ internal struct ResourceViewGroup
         uav = Identifier<CbvSrvUavDescriptor>.Invalid,
         sampler = Identifier<SamplerDescriptor>.Invalid,
     };
+
+    public readonly TextureUsage GetTextureUsage()
+    {
+        var usage = TextureUsage.None;
+        if (rtv.IsValid)
+        {
+            usage |= TextureUsage.RenderTarget;
+        }
+        
+        if (dsv.IsValid)
+        {
+            usage |= TextureUsage.DepthStencil;
+        }
+        
+        if (srv.IsValid)
+        {
+            usage |= TextureUsage.ShaderResource;
+        }
+        
+        if (uav.IsValid)
+        {
+            usage |= TextureUsage.UnorderedAccess;
+        }
+
+        return usage;
+    }
+
+    public readonly BufferUsage GetBufferUsage()
+    {
+        var usage = BufferUsage.None;
+        
+        if (cbv.IsValid)
+        {
+            usage |= BufferUsage.Constant;
+        }
+
+        if (srv.IsValid)
+        {
+            usage |= BufferUsage.ShaderResource;
+        }
+
+        if (uav.IsValid)
+        {
+            usage |= BufferUsage.UnorderedAccess;
+        }
+
+        return usage;
+    }
 }

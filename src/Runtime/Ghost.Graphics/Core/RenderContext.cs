@@ -7,13 +7,13 @@ using System.Diagnostics;
 namespace Ghost.Graphics.Core;
 
 // TODO: Temporary rendering context for heap creation and data upload. We will refactor it later when we have a better understanding of the engine architecture.
-public readonly unsafe ref struct RenderingContext
+public readonly unsafe ref struct RenderContext
 {
     private readonly IGraphicsEngine _engine;
     private readonly ResourceManager _resourceManager;
-    private readonly ICommandBuffer _directCmd;
+    private readonly ICommandBuffer _cmd;
 
-    public ICommandBuffer DirectCommandBuffer => _directCmd;
+    public ICommandBuffer CommandBuffer => _cmd;
 
     public IShaderCompiler ShaderCompiler => _engine.ShaderCompiler;
     public ResourceManager ResourceManager => _resourceManager;
@@ -21,69 +21,29 @@ public readonly unsafe ref struct RenderingContext
     public IResourceDatabase ResourceDatabase => _engine.ResourceDatabase;
     public IPipelineLibrary PipelineLibrary => _engine.PipelineLibrary;
 
-    internal RenderingContext(IGraphicsEngine engine, ResourceManager resourceManager, ICommandBuffer directCmd)
+    internal RenderContext(IGraphicsEngine engine, ResourceManager resourceManager, ICommandBuffer cmd)
     {
         _engine = engine;
         _resourceManager = resourceManager;
-        _directCmd = directCmd;
-    }
-
-    public ICommandBuffer CrearteCommandBuffer(CommandBufferType type)
-    {
-        return _engine.CreateCommandBuffer(type);
-    }
-
-    // TODO: ExecuteCommandBufferAsync with fencene.Device.GraphicsQueue.Submit(commandBuffer);
-    public void ExecuteCommandBuffer(ICommandBuffer commandBuffer)
-    {
-        var queue = commandBuffer.Type switch
-        {
-            CommandBufferType.Graphics => _engine.Device.GraphicsQueue,
-            CommandBufferType.Compute => _engine.Device.ComputeQueue,
-            CommandBufferType.Copy => _engine.Device.CopyQueue,
-            _ => throw new InvalidOperationException("Unknown command buffer type."),
-        };
-
-        queue.Submit(commandBuffer);
-        queue.WaitIdle();
+        _cmd = cmd;
     }
 
     private void TransitionBarrier(Handle<GPUResource> resource, bool isTexture, BarrierLayout newLayout, BarrierAccess newAccess, BarrierSync newSync)
     {
-        var r = ResourceDatabase.GetResourceBarrierData(resource);
-        if (r.IsFailure)
-        {
-            return;
-        }
-
-        var data = r.Value;
-        if (data.layout == newLayout && data.access == newAccess && data.sync == newSync)
-        {
-            return;
-        }
-
         BarrierDesc desc;
         if (isTexture)
         {
-            desc = BarrierDesc.Texture(
-            resource,
-            data.sync, newSync,
-            data.access, newAccess,
-            data.layout, newLayout);
+            desc = BarrierDesc.Texture(resource, newSync, newAccess, newLayout);
         }
         else
         {
-            desc = BarrierDesc.Buffer(
-            resource,
-            data.sync, newSync,
-            data.access, newAccess);
+            desc = BarrierDesc.Buffer(resource, newSync, newAccess);
         }
 
-        _directCmd.Barrier(new ReadOnlySpan<BarrierDesc>(in desc));
-        ResourceDatabase.SetResourceBarrierData(resource, new ResourceBarrierData(newLayout, newAccess, newSync));
+        _cmd.Barrier(desc);
     }
 
-    private void UploadBuffer<T>(Handle<GPUBuffer> buffer, params ReadOnlySpan<T> data)
+    public void UploadBuffer<T>(Handle<GPUBuffer> buffer, params ReadOnlySpan<T> data)
         where T : unmanaged
     {
         var r = _engine.ResourceDatabase.GetResourceDescription(buffer.AsResource());
@@ -95,34 +55,43 @@ public readonly unsafe ref struct RenderingContext
         Debug.Assert(r.Value.Type == ResourceType.Buffer);
 
         var sizeInBytes = (nuint)(data.Length * sizeof(T));
-        var memoryType = r.Value.BufferDescription.MemoryType;
+        var memoryType = r.Value.BufferDescription.HeapType;
 
-        if (memoryType == ResourceMemoryType.Upload)
+        if (memoryType == HeapType.Upload)
         {
             fixed (T* pData = data)
             {
-                ResourceDatabase.Map(buffer.AsResource(), 0, null, null, pData, sizeInBytes);
+                ResourceDatabase.MapResource(buffer.AsResource(), 0, null, null, pData, sizeInBytes);
             }
         }
         else
         {
-            //var uploadHandle = _resourceAllocator.CreateTempUploadBuffer(sizeInBytes, out var offset);
-            //var uploadResource = _resourceDatabase.GetResource(uploadHandle.AsResource());
             var uploadDesc = new BufferDesc
             {
                 Size = sizeInBytes,
                 Usage = BufferUsage.Upload,
-                MemoryType = ResourceMemoryType.Upload,
+                HeapType = HeapType.Upload,
             };
 
             var uploadHandle = _resourceManager.CreateTransientBuffer(in uploadDesc);
-
-            fixed (T* pData = data)
+            if (uploadHandle.IsInvalid)
             {
-                ResourceDatabase.Map(uploadHandle.AsResource(), 0, null, null, pData, sizeInBytes);
+                throw new OutOfMemoryException("Failed to create upload buffer for buffer data.");
             }
 
-            _directCmd.CopyBuffer(buffer, uploadHandle, 0, 0, sizeInBytes);
+            try
+            {
+                fixed (T* pData = data)
+                {
+                    ResourceDatabase.MapResource(uploadHandle.AsResource(), 0, null, null, pData, sizeInBytes);
+                }
+
+                _cmd.CopyBuffer(buffer, uploadHandle, 0, 0, sizeInBytes);
+            }
+            finally
+            {
+                ResourceDatabase.ReleaseResource(uploadHandle.AsResource());
+            }
         }
     }
 
@@ -168,8 +137,6 @@ public readonly unsafe ref struct RenderingContext
 
         return CreateMesh(vertexList, indexList, staticMesh);
     }
-
-    // TODO: Make one memory pool for upload.
 
     /// <summary>
     /// Uploads the mesh data to the GPU.
@@ -221,14 +188,14 @@ public readonly unsafe ref struct RenderingContext
             Size = (uint)(meshletData.meshlets.Count * sizeof(Meshlet)),
             Stride = (uint)sizeof(Meshlet),
             Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
-            MemoryType = ResourceMemoryType.Default,
+            HeapType = HeapType.Default,
         };
         var verticesDesc = new BufferDesc
         {
             Size = (uint)(meshletData.meshletVertices.Count * sizeof(uint)),
             Stride = sizeof(uint),
             Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
-            MemoryType = ResourceMemoryType.Default,
+            HeapType = HeapType.Default,
         };
         // Ensure size is multiple of 4 for Raw buffer
         var trianglesSize = (uint)meshletData.meshletTriangles.Count * sizeof(uint);
@@ -237,7 +204,7 @@ public readonly unsafe ref struct RenderingContext
             Size = trianglesSize,
             Stride = sizeof(uint),
             Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
-            MemoryType = ResourceMemoryType.Default,
+            HeapType = HeapType.Default,
         };
 
         meshRef.MeshLetBuffer = _engine.ResourceAllocator.CreateBuffer(in meshletDesc, "Meshlets");
@@ -296,12 +263,6 @@ public readonly unsafe ref struct RenderingContext
     public void UploadTexture<T>(Handle<GPUTexture> texture, ReadOnlySpan<T> data)
         where T : unmanaged
     {
-        //var size = ResourceAllocator.GetSizeInfo(desc).Size;
-        //if ((ulong)(data.Length * sizeof(T)) != ResourceAllocator.GetSizeInfo(desc).Size)
-        //{
-        //    throw new ArgumentException("Data size does not match texture size.");
-        //}
-
         var desc = ResourceDatabase.GetResourceDescription(texture.AsResource()).GetValueOrThrow();
         desc.TextureDescription.Format.GetSurfaceInfo(desc.TextureDescription.Width, desc.TextureDescription.Height, out var rowPitch, out var slicePitch, out _);
 
@@ -310,7 +271,7 @@ public readonly unsafe ref struct RenderingContext
         {
             Size = requiredSize,
             Usage = BufferUsage.Upload,
-            MemoryType = ResourceMemoryType.Upload,
+            HeapType = HeapType.Upload,
         };
 
         var uploadHandle = _resourceManager.CreateTransientBuffer(in uploadDesc);
@@ -319,18 +280,25 @@ public readonly unsafe ref struct RenderingContext
             throw new OutOfMemoryException("Failed to create upload buffer for texture data.");
         }
 
-        TransitionBarrier(texture.AsResource(), true, BarrierLayout.CopyDest, BarrierAccess.CopyDest, BarrierSync.Copy);
-
-        fixed (T* pData = data)
+        try
         {
-            var subresourceData = new SubResourceData
-            {
-                pData = pData,
-                rowPitch = rowPitch,
-                slicePitch = slicePitch
-            };
+            TransitionBarrier(texture.AsResource(), true, BarrierLayout.CopyDest, BarrierAccess.CopyDest, BarrierSync.Copy);
 
-            _directCmd.UpdateSubResources(texture.AsResource(), uploadHandle.AsResource(), subresourceData);
+            fixed (T* pData = data)
+            {
+                var subresourceData = new SubResourceData
+                {
+                    pData = pData,
+                    rowPitch = rowPitch,
+                    slicePitch = slicePitch
+                };
+
+                _cmd.UpdateSubResources(texture.AsResource(), uploadHandle.AsResource(), subresourceData);
+            }
+        }
+        finally
+        {
+            ResourceDatabase.ReleaseResource(uploadHandle.AsResource());
         }
     }
 }

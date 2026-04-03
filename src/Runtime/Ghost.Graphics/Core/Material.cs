@@ -117,7 +117,7 @@ public struct Material : IResourceReleasable
             {
                 Size = shader.CBufferSize,
                 Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
-                MemoryType = ResourceMemoryType.Default,
+                HeapType = HeapType.Default,
             };
 
             var buffer = resourceAllocator.CreateBuffer(ref desc, "MaterialCBuffer");
@@ -243,7 +243,7 @@ public struct Material : IResourceReleasable
         return _keywordMask.IsKeywordEnabled(localIndex);
     }
 
-    public readonly void UploadData(ICommandBuffer cmd, IResourceDatabase resourceDatabase)
+    public readonly void UploadData(RenderContext ctx)
     {
         if (!_isDirty)
         {
@@ -251,31 +251,20 @@ public struct Material : IResourceReleasable
         }
 
         var cbufferResource = _cBufferCache.GpuResource.AsResource();
-        var r = resourceDatabase.GetResourceBarrierData(cbufferResource);
-        if (r.IsFailure)
-        {
-            return;
-        }
-
-        var barrierData = r.Value;
         var desc = BarrierDesc.Buffer(
             cbufferResource,
-            barrierData.sync,
             BarrierSync.Copy,
-            barrierData.access,
             BarrierAccess.CopyDest);
 
-        cmd.Barrier(desc);
-        cmd.UploadBuffer(_cBufferCache.GpuResource, _cBufferCache.CpuData.AsSpan());
+        ctx.CommandBuffer.Barrier(desc);
+        ctx.UploadBuffer(_cBufferCache.GpuResource, _cBufferCache.CpuData.AsSpan());
 
         desc = BarrierDesc.Buffer(
             cbufferResource,
-            BarrierSync.Copy,
             BarrierSync.AllShading,
-            BarrierAccess.CopyDest,
             BarrierAccess.ShaderResource);
 
-        cmd.Barrier(desc);
+        ctx.CommandBuffer.Barrier(desc);
     }
 
     public void ReleaseResource(IResourceDatabase database)

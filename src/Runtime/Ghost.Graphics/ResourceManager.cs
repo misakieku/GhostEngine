@@ -83,7 +83,7 @@ public sealed partial class ResourceManager : IDisposable
             Size = (uint)(vertices.Count * sizeof(Vertex)),
             Stride = (uint)sizeof(Vertex),
             Usage = BufferUsage.Vertex | BufferUsage.ShaderResource | BufferUsage.Raw,
-            MemoryType = ResourceMemoryType.Default,
+            HeapType = HeapType.Default,
         };
 
         var indexBufferDesc = new BufferDesc
@@ -91,7 +91,7 @@ public sealed partial class ResourceManager : IDisposable
             Size = (uint)(indices.Count * sizeof(uint)),
             Stride = sizeof(uint),
             Usage = BufferUsage.Index | BufferUsage.ShaderResource | BufferUsage.Raw,
-            MemoryType = ResourceMemoryType.Default,
+            HeapType = HeapType.Default,
         };
 
         var objectBufferDesc = new BufferDesc
@@ -99,7 +99,7 @@ public sealed partial class ResourceManager : IDisposable
             Size = (uint)sizeof(MeshData),
             Stride = (uint)sizeof(MeshData),
             Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
-            MemoryType = ResourceMemoryType.Default,
+            HeapType = HeapType.Default,
         };
 
         var vertexBuffer = _resourceAllocator.CreateBuffer(in vertexBufferDesc, "VertexBuffer");

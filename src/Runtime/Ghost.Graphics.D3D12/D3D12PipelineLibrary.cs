@@ -140,7 +140,7 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
         fs.Write(buffer.AsSpan());
     }
 
-    private static Result<CBufferInfo> ValidateReflectionData(ShaderReflectionData reflectionData)
+    private static Result ValidateReflectionData(ShaderReflectionData reflectionData)
     {
         if (reflectionData.ResourcesBindings.Count > RootSignatureLayout.ROOT_PARAMETER_COUNT)
         {
@@ -149,7 +149,7 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
 
         if (reflectionData.ResourcesBindings.Count == 0)
         {
-            return Result.Success(default(CBufferInfo));
+            return Result.Success();
         }
 
         var rootConstant = reflectionData.ResourcesBindings[0];
@@ -163,16 +163,7 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
             return Result.Failure($"Root constant buffer size must be {sizeof(PushConstantsData)} bytes.");
         }
 
-        var cbufferInfo = new CBufferInfo
-        {
-            Name = rootConstant.Name,
-            RegisterSlot = rootConstant.BindPoint,
-            RegisterSpace = rootConstant.Space,
-            SizeInBytes = rootConstant.Size,
-            Properties = rootConstant.Properties
-        };
-
-        return Result.Success(cbufferInfo);
+        return Result.Success();
     }
 
     private static D3D12_DEPTH_STENCIL_DESC BuildDepthStencil(ZTest ztest, ZWrite zwrite)
@@ -185,7 +176,7 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
 
     public Result<Key128<GraphicsPipeline>> CompilePSO(ref readonly GraphicsPSODescriptor descriptor, ref readonly GraphicsCompiledResult compiled)
     {
-        static Result<CBufferInfo> ValidatePassReflectionData(ref readonly GraphicsCompiledResult compiled)
+        static Result ValidatePassReflectionData(ref readonly GraphicsCompiledResult compiled)
         {
             var msr = ValidateReflectionData(compiled.msResult.reflectionData);
             if (msr.IsFailure)
@@ -199,12 +190,6 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
                 return Result.Failure("Validation of pixel shader reflection data failed: " + psr.Message);
             }
 
-            if (msr.Value.Properties != null
-                && msr.Value.SizeInBytes != psr.Value.SizeInBytes)
-            {
-                return Result.Failure("Mesh shader and pixel shader constant buffer layouts do not match.");
-            }
-
             if (compiled.tsResult.IsCreated)
             {
                 var tsr = ValidateReflectionData(compiled.tsResult.reflectionData);
@@ -212,16 +197,9 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
                 {
                     return Result.Failure("Validation of task shader reflection data failed: " + tsr.Message);
                 }
-
-                if (tsr.Value.Properties != null
-                    && tsr.Value.SizeInBytes != psr.Value.SizeInBytes)
-                {
-                    return Result.Failure("Task shader and pixel shader constant buffer layouts do not match.");
-                }
             }
 
-            // ts and ms may not use per material cbuffer at all, so we return the psr value.
-            return psr.Value;
+            return Result.Success();
         }
 
         AssertNotDisposed();
@@ -236,11 +214,11 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
 
         if (!_pipelineCache.ContainsKey(pipelineKey))
         {
-            //var result = ValidatePassReflectionData(in compiled);
-            //if (result.IsFailure)
-            //{
-            //    return Result.Failure(result.Message);
-            //}
+            var result = ValidatePassReflectionData(in compiled);
+            if (result.IsFailure)
+            {
+                return result;
+            }
 
             var desc = new D3DX12_MESH_SHADER_PIPELINE_STATE_DESC
             {

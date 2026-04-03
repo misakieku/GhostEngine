@@ -200,13 +200,20 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
             switch (desc.Type)
             {
                 case BarrierType.Global:
+                    if (desc.SyncAfter == _resourceDatabase.globalBarrier.sync && desc.AccessAfter == _resourceDatabase.globalBarrier.access)
+                    {
+                        continue;
+                    }
+
                     pGlobalBarriers[globalIndex++] = new D3D12_GLOBAL_BARRIER
                     {
-                        SyncBefore = (D3D12_BARRIER_SYNC)(desc.SyncBefore ?? 0),
+                        SyncBefore = (D3D12_BARRIER_SYNC)_resourceDatabase.globalBarrier.sync,
                         SyncAfter = (D3D12_BARRIER_SYNC)desc.SyncAfter,
-                        AccessBefore = (D3D12_BARRIER_ACCESS)(desc.AccessBefore ?? 0),
+                        AccessBefore = (D3D12_BARRIER_ACCESS)_resourceDatabase.globalBarrier.access,
                         AccessAfter = (D3D12_BARRIER_ACCESS)desc.AccessAfter
                     };
+
+                    _resourceDatabase.globalBarrier = new ResourceBarrierData(BarrierLayout.Undefined, desc.AccessAfter, desc.SyncAfter);
                     break;
                 case BarrierType.Buffer:
                 {
@@ -218,12 +225,19 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                     }
 
                     ref var record = ref r.Value;
+                    var accessBefore = desc.IsAliasing ? BarrierAccess.NoAccess : record.barrierData.access;
+
+                    if (record.barrierData.sync == desc.SyncAfter && accessBefore == desc.AccessAfter)
+                    {
+                        continue;
+                    }
+
                     var resource = record.ResourcePtr;
                     pBufferBarriers[bufferIndex++] = new D3D12_BUFFER_BARRIER
                     {
-                        SyncBefore = (D3D12_BARRIER_SYNC)(desc.SyncBefore ?? record.barrierData.sync),
+                        SyncBefore = (D3D12_BARRIER_SYNC)record.barrierData.sync,
                         SyncAfter = (D3D12_BARRIER_SYNC)desc.SyncAfter,
-                        AccessBefore = (D3D12_BARRIER_ACCESS)(desc.AccessBefore ?? record.barrierData.access),
+                        AccessBefore = (D3D12_BARRIER_ACCESS)accessBefore,
                         AccessAfter = (D3D12_BARRIER_ACCESS)desc.AccessAfter,
                         pResource = resource,
                         Offset = 0,
@@ -243,14 +257,22 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                     }
 
                     ref var record = ref r.Value;
+                    var accessBefore = desc.IsAliasing ? BarrierAccess.NoAccess : record.barrierData.access;
+                    var layoutBefore = desc.IsAliasing ? BarrierLayout.Undefined : record.barrierData.layout;
+
+                    if (record.barrierData.sync == desc.SyncAfter && accessBefore == desc.AccessAfter && layoutBefore == desc.LayoutAfter)
+                    {
+                        continue;
+                    }
+
                     var resource = record.ResourcePtr;
                     pTextureBarriers[textureIndex++] = new D3D12_TEXTURE_BARRIER
                     {
-                        SyncBefore = (D3D12_BARRIER_SYNC)(desc.SyncBefore ?? record.barrierData.sync),
+                        SyncBefore = (D3D12_BARRIER_SYNC)record.barrierData.sync,
                         SyncAfter = (D3D12_BARRIER_SYNC)desc.SyncAfter,
-                        AccessBefore = (D3D12_BARRIER_ACCESS)(desc.AccessBefore ?? record.barrierData.access),
+                        AccessBefore = (D3D12_BARRIER_ACCESS)accessBefore,
                         AccessAfter = (D3D12_BARRIER_ACCESS)desc.AccessAfter,
-                        LayoutBefore = (D3D12_BARRIER_LAYOUT)(desc.LayoutBefore ?? record.barrierData.layout),
+                        LayoutBefore = (D3D12_BARRIER_LAYOUT)layoutBefore,
                         LayoutAfter = (D3D12_BARRIER_LAYOUT)desc.LayoutAfter,
                         pResource = resource,
                         Subresources = new D3D12_BARRIER_SUBRESOURCE_RANGE
@@ -272,37 +294,42 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         var groups = stackalloc D3D12_BARRIER_GROUP[3];
         var groupCount = 0u;
 
-        if (globalCount > 0)
+        if (globalIndex > 0)
         {
             groups[groupCount] = new D3D12_BARRIER_GROUP
             {
                 Type = D3D12_BARRIER_TYPE.D3D12_BARRIER_TYPE_GLOBAL,
-                NumBarriers = (uint)globalCount,
+                NumBarriers = (uint)globalIndex,
             };
             groups[groupCount].Anonymous.pGlobalBarriers = pGlobalBarriers;
             groupCount++;
         }
 
-        if (bufferCount > 0)
+        if (bufferIndex > 0)
         {
             groups[groupCount] = new D3D12_BARRIER_GROUP
             {
                 Type = D3D12_BARRIER_TYPE.D3D12_BARRIER_TYPE_BUFFER,
-                NumBarriers = (uint)bufferCount,
+                NumBarriers = (uint)bufferIndex,
             };
             groups[groupCount].Anonymous.pBufferBarriers = pBufferBarriers;
             groupCount++;
         }
 
-        if (textureCount > 0)
+        if (textureIndex > 0)
         {
             groups[groupCount] = new D3D12_BARRIER_GROUP
             {
                 Type = D3D12_BARRIER_TYPE.D3D12_BARRIER_TYPE_TEXTURE,
-                NumBarriers = (uint)textureCount,
+                NumBarriers = (uint)textureIndex,
             };
             groups[groupCount].Anonymous.pTextureBarriers = pTextureBarriers;
             groupCount++;
+        }
+
+        if (groupCount == 0)
+        {
+            return;
         }
 
         pNativeObject->Barrier(groupCount, groups);

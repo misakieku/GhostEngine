@@ -437,17 +437,6 @@ internal sealed unsafe partial class D3D12ResourceAllocator
 
         return uavDesc;
     }
-
-    private static D3D12_HEAP_TYPE ConvertMemoryType(ResourceMemoryType memoryType)
-    {
-        return memoryType switch
-        {
-            ResourceMemoryType.Default => D3D12_HEAP_TYPE_DEFAULT,
-            ResourceMemoryType.Upload => D3D12_HEAP_TYPE_UPLOAD,
-            ResourceMemoryType.Readback => D3D12_HEAP_TYPE_READBACK,
-            _ => throw new ArgumentException($"Unsupported memory type: {memoryType}")
-        };
-    }
 }
 
 internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
@@ -658,7 +647,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         Handle<GPUResource> resource;
         if (isSubAllocation)
         {
-            resource = _resourceDatabase.ImportExternalResource(pResource, barrierData, resourceDescriptor, name);
+            resource = _resourceDatabase.ImportExternalResource(pResource, barrierData, resourceDescriptor, ResourceDesc.Texture(desc), name);
         }
         else
         {
@@ -686,7 +675,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
         var allocationDesc = new D3D12MA_ALLOCATION_DESC
         {
-            HeapType = ConvertMemoryType(desc.MemoryType),
+            HeapType = desc.HeapType.ToD3D12HeapType(),
             Flags = D3D12MA_ALLOCATION_FLAG_NONE,
         };
 
@@ -695,11 +684,11 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         ID3D12Resource* pResource = default;
         HRESULT hr;
 
-        var initialState = desc.MemoryType switch
+        var initialState = desc.HeapType switch
         {
-            ResourceMemoryType.Default => D3D12_RESOURCE_STATE_COMMON,
-            ResourceMemoryType.Upload => D3D12_RESOURCE_STATE_GENERIC_READ,
-            ResourceMemoryType.Readback => D3D12_RESOURCE_STATE_COPY_DEST,
+            HeapType.Default => D3D12_RESOURCE_STATE_COMMON,
+            HeapType.Upload => D3D12_RESOURCE_STATE_GENERIC_READ,
+            HeapType.Readback => D3D12_RESOURCE_STATE_COPY_DEST,
             _ => D3D12_RESOURCE_STATE_COMMON
         };
 
@@ -770,7 +759,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         Handle<GPUResource> resource;
         if (isSubAllocation)
         {
-            resource = _resourceDatabase.ImportExternalResource(pResource, barrierData, resourceDescriptor, name);
+            resource = _resourceDatabase.ImportExternalResource(pResource, barrierData, resourceDescriptor, ResourceDesc.Buffer(desc), name);
         }
         else
         {

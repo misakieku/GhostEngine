@@ -10,6 +10,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
+using System.Diagnostics;
 
 namespace Ghost.Graphics.Test.Windows;
 
@@ -113,9 +114,9 @@ public sealed partial class GraphicsTestWindow : Window
         //MeshBuilder.CreateCube(0.75f, default, Allocator.Persistent, out var vertices, out var indices);
         Utilities.MeshUtility.LoadMesh("F:/c/SimpleRayTracer/native/assets/bunny.obj", Allocator.Persistent, out var vertices, out var indices).ThrowIfFailed();
 
-        // TODO: Put this to the beginning of the frame without createing another command buffer?
+        // TODO: Put this to the beginning of the frame without creating another command buffer?
         using var directCmd = _renderSystem.GraphicsEngine.CreateCommandBuffer(CommandBufferType.Graphics);
-        var ctx = new RenderingContext(_renderSystem.GraphicsEngine, _renderSystem.ResourceManager, directCmd);
+        var ctx = new RenderContext(_renderSystem.GraphicsEngine, _renderSystem.ResourceManager, directCmd);
 
         using var cmdAllocator = _renderSystem.GraphicsEngine.CreateCommandAllocator(CommandBufferType.Graphics);
         directCmd.Begin(cmdAllocator);
@@ -158,7 +159,6 @@ public sealed partial class GraphicsTestWindow : Window
 
             _renderSystem?.ResourceManager.ReleaseMesh(_meshHandle);
 
-            _swapChain?.Dispose();
             //_jobScheduler.Dispose();
             _renderSystem?.Dispose();
 
@@ -203,8 +203,9 @@ public sealed partial class GraphicsTestWindow : Window
             return;
         }
 
-        if (_renderSystem.CPUFenceValue < _renderSystem.GPUFenceValue + _renderSystem.MaxFrameLatency)
+        if (_renderSystem.TryAcquireCPUFrame())
         {
+            //Debug.WriteLine($"CPU: Frame started.");
             _world.SystemManager.UpdateAll(default);
             _renderSystem.SignalCPUReady();
         }

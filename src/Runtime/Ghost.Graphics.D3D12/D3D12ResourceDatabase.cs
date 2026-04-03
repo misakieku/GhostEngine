@@ -45,24 +45,24 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         public readonly bool Allocated => isExternal ? resource.resource.Get() != null : resource.allocation.Get() != null;
         public readonly SharedPtr<ID3D12Resource> ResourcePtr => isExternal ? resource.resource.Get() : resource.allocation.Get()->GetResource();
 
-        public ResourceRecord(D3D12MA_Allocation* allocation, ResourceBarrierData barrierData, ResourceViewGroup resourceDescriptor, ResourceDesc desc)
+        public ResourceRecord(D3D12MA_Allocation* allocation, ResourceBarrierData barrierData, ResourceViewGroup viewGroup, ResourceDesc desc)
         {
             this.resource = new ResourceUnion(allocation);
             this.isExternal = false;
 
-            this.viewGroup = resourceDescriptor;
+            this.viewGroup = viewGroup;
             this.barrierData = barrierData;
             this.desc = desc;
         }
 
-        public ResourceRecord(ID3D12Resource* resource, ResourceBarrierData barrierData, ResourceViewGroup viewGroup)
+        public ResourceRecord(ID3D12Resource* resource, ResourceBarrierData barrierData, ResourceViewGroup viewGroup, ResourceDesc desc)
         {
             this.resource = new ResourceUnion(resource);
             this.isExternal = true;
 
             this.viewGroup = viewGroup;
             this.barrierData = barrierData;
-            this.desc = resource->GetDesc().ToResourceDesc();
+            this.desc = desc;
         }
 
         public readonly uint Release(D3D12DescriptorAllocator descriptorAllocator)
@@ -112,6 +112,8 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
     private ulong _cpuFrame;
     private bool _disposed;
 
+    public ResourceBarrierData globalBarrier;
+
     public D3D12ResourceDatabase(D3D12DescriptorAllocator descriptorAllocator)
     {
         _descriptorAllocator = descriptorAllocator;
@@ -130,7 +132,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         Dispose();
     }
 
-    internal unsafe Handle<GPUResource> ImportExternalResource(ID3D12Resource* pResource, ResourceBarrierData initialBarrierData, ResourceViewGroup viewGroup, string? name = null)
+    internal Handle<GPUResource> ImportExternalResource(ID3D12Resource* pResource, ResourceBarrierData initialBarrierData, ResourceViewGroup viewGroup, ResourceDesc desc, string? name = null)
     {
         Debug.Assert(!_disposed);
 
@@ -150,7 +152,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
         try
         {
-            var id = _resources.Add(new ResourceRecord(pResource, initialBarrierData, viewGroup), out var generation);
+            var id = _resources.Add(new ResourceRecord(pResource, initialBarrierData, viewGroup, desc), out var generation);
             var handle = new Handle<GPUResource>(id, generation);
 
 #if DEBUG || GHOST_EDITOR
@@ -169,7 +171,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         }
     }
 
-    internal unsafe Handle<GPUResource> AddAllocation(D3D12MA_Allocation* allocation, ResourceBarrierData initialBarrierData, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string? name = null)
+    internal Handle<GPUResource> AddAllocation(D3D12MA_Allocation* allocation, ResourceBarrierData initialBarrierData, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string? name = null)
     {
         Debug.Assert(!_disposed);
 
@@ -399,7 +401,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         return Error.None;
     }
 
-    public Error Map(Handle<GPUResource> handle, uint subResource, ResourceRange? readRange, ResourceRange? writeRange, void* pData, nuint size)
+    public Error MapResource(Handle<GPUResource> handle, uint subResource, ResourceRange? readRange, ResourceRange? writeRange, void* pData, nuint size)
     {
         var r = GetResourceRecord(handle);
         if (r.IsFailure)

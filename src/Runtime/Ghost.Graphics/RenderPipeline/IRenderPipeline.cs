@@ -1,15 +1,9 @@
+using Ghost.Core;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
+using System.Diagnostics;
 
 namespace Ghost.Graphics.RenderPipeline;
-
-public readonly struct RenderContext
-{
-    public ICommandBuffer CommandBuffer { get; init; }
-    public ICommandQueue GraphicsQueue { get; init; }
-    public ICommandQueue ComputeQueue { get; init; }
-    public ICommandQueue CopyQueue { get; init; }
-}
 
 public interface IRenderPipelineSettings
 {
