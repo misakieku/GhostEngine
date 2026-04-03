@@ -28,19 +28,52 @@ public partial class ResourceManager
     }
 
     private UnsafeList<Page> _activePages;
-    private Queue<RetiringPage> _retiringPages;
+    private Queue<Page> _freePages = null!;
+    private Queue<RetiringPage> _retiringPages = null!;
 
     private UnsafeList<Handle<GPUResource>> _oversizedTransientResources;
 
     private void InitializePool()
     {
         _activePages = new UnsafeList<Page>(4, Allocator.Persistent);
+        _freePages = new Queue<Page>(4);
         _retiringPages = new Queue<RetiringPage>(4);
         _oversizedTransientResources = new UnsafeList<Handle<GPUResource>>(4, Allocator.Persistent);
     }
 
+    private static bool IsHeapFlagsCompatible(HeapFlags pageHeapFlags, HeapFlags requiredHeapFlags)
+    {
+        return pageHeapFlags == requiredHeapFlags || pageHeapFlags == HeapFlags.AllowAllBufferAndTexture;
+    }
+
+    private bool TryRentReusablePage(HeapType heapType, HeapFlags heapFlags, out Page page)
+    {
+        var freePageCount = _freePages.Count;
+        for (var i = 0; i < freePageCount; i++)
+        {
+            var candidate = _freePages.Dequeue();
+            if (candidate.heapType == heapType && IsHeapFlagsCompatible(candidate.heapFlags, heapFlags))
+            {
+                candidate.offset = 0;
+                page = candidate;
+                return true;
+            }
+
+            _freePages.Enqueue(candidate);
+        }
+
+        page = default;
+        return false;
+    }
+
     private Error CreateNewActivePage(HeapType heapType, HeapFlags heapFlags)
     {
+        if (TryRentReusablePage(heapType, heapFlags, out var reusablePage))
+        {
+            _activePages.Add(reusablePage);
+            return Error.None;
+        }
+
         var allocationDesc = new AllocationDesc
         {
             Size = _DEFAULT_TRANSIENT_PAGE_SIZE,
@@ -49,7 +82,7 @@ public partial class ResourceManager
             HeapFlags = heapFlags,
         };
 
-        var buffer = _resourceAllocator.Allocate(in allocationDesc, $"Page {_activePages.Count + _retiringPages.Count}");
+        var buffer = _resourceAllocator.Allocate(in allocationDesc, $"Page {_activePages.Count + _freePages.Count + _retiringPages.Count}");
         if (buffer.IsInvalid)
         {
             return Error.OutOfMemory;
@@ -98,7 +131,7 @@ public partial class ResourceManager
                 continue;
             }
 
-            if (p.heapFlags != requiredHeapFlags && p.heapFlags != HeapFlags.AllowAllBufferAndTexture)
+            if (!IsHeapFlagsCompatible(p.heapFlags, requiredHeapFlags))
             {
                 continue;
             }
@@ -176,7 +209,7 @@ public partial class ResourceManager
                 continue;
             }
 
-            if (p.heapFlags != requiredHeapFlags && p.heapFlags != HeapFlags.AllowAllBufferAndTexture)
+            if (!IsHeapFlagsCompatible(p.heapFlags, requiredHeapFlags))
             {
                 continue;
             }
@@ -238,7 +271,7 @@ public partial class ResourceManager
 
             // Reset the page for reuse
             retiringPage.page.offset = 0;
-            _activePages.Add(retiringPage.page);
+            _freePages.Enqueue(retiringPage.page);
         }
 
         for (var i = 0; i < _oversizedTransientResources.Count; i++)
@@ -252,6 +285,11 @@ public partial class ResourceManager
     private void DisposePool()
     {
         foreach (var page in _activePages)
+        {
+            _resourceDatabase.ReleaseResourceImmediately(page.heap);
+        }
+
+        foreach (var page in _freePages)
         {
             _resourceDatabase.ReleaseResourceImmediately(page.heap);
         }
