@@ -72,6 +72,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
 
     public int ActiveMeshIndexCount => _activeMeshIndexCount;
 
+    // TODO: Upload relative scale to gpu.
     public float2 RelativeScale
     {
         get; set;

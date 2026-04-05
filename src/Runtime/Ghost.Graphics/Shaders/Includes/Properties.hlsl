@@ -15,8 +15,6 @@ struct PushConstantData
 
 struct FrameData
 {
-    BYTE_ADDRESS_BUFFER viewBuffer;
-    BYTE_ADDRESS_BUFFER instanceBuffer;
     BYTE_ADDRESS_BUFFER userBuffer;
 };
 

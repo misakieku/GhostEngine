@@ -3,7 +3,7 @@ namespace Ghost.Graphics.RHI;
 /// <summary>
 /// Command queue interface
 /// </summary>
-public interface ICommandQueue : IDisposable
+public interface ICommandQueue : IRHIObject
 {
     /// <summary>
     /// Type of commands this queue can execute

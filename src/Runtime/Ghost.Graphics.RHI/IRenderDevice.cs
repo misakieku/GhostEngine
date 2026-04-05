@@ -18,7 +18,7 @@ public enum FeatureSupport
 /// <summary>
 /// D3D12-native render device interface for creating graphics resources
 /// </summary>
-public interface IRenderDevice : IDisposable
+public interface IRenderDevice : IRHIObject
 {
     /// <summary>
     /// Graphics command queue for rendering operations

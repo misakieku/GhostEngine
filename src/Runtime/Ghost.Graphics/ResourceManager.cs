@@ -54,10 +54,10 @@ public sealed partial class ResourceManager : IDisposable
         Dispose();
     }
 
-    internal void BeginFrame(ulong cpuFrame)
+    internal void BeginFrame(ulong submittedFrame)
     {
         Debug.Assert(!_disposed);
-        _submittedFrame = cpuFrame;
+        _submittedFrame = submittedFrame;
     }
 
     internal void EndFrame(ulong completedFrame)

@@ -241,8 +241,8 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
                     instanceDataArray[instanceIdx++] = new InstanceData
                     {
                         localToWorld = record.localToWorld,
-                        meshBufferIndex = resourceDatabase.GetBindlessIndex(mesh.Get().ObjectDataBuffer.AsResource()),
-                        materialBufferIndex = resourceDatabase.GetBindlessIndex(mat.Get()._cBufferCache.GpuResource.AsResource())
+                        meshBuffer = resourceDatabase.GetBindlessIndex(mesh.Get().ObjectDataBuffer.AsResource()),
+                        materialBuffer = resourceDatabase.GetBindlessIndex(mat.Get()._cBufferCache.GpuResource.AsResource())
                     };
                 }
 
@@ -287,18 +287,14 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
                     HeapType = HeapType.Upload,
                 };
 
-                var frameBufferHandle = resourceManager.CreateTransientBuffer(in frameBufferDesc, "Frame Buffer");
-                var frameBufferResource = frameBufferHandle.AsResource();
+                //var frameBufferHandle = resourceManager.CreateTransientBuffer(in frameBufferDesc, "Frame Buffer");
+                //var frameBufferResource = frameBufferHandle.AsResource();
 
-                var frameData = new FrameData
-                {
-                    viewBufferIndex = resourceDatabase.GetBindlessIndex(viewBufferResource),
-                    instanceBufferIndex = resourceDatabase.GetBindlessIndex(instanceBufferResource),
-                };
+                //var frameData = new FrameData();
 
-                ctx.CommandBuffer.Barrier(BarrierDesc.Buffer(frameBufferResource, BarrierSync.Copy, BarrierAccess.CopyDest));
-                ctx.UploadBuffer(frameBufferHandle, new ReadOnlySpan<FrameData>(in frameData));
-                ctx.CommandBuffer.Barrier(BarrierDesc.Buffer(frameBufferResource, BarrierSync.AllShading, BarrierAccess.ShaderResource));
+                //ctx.CommandBuffer.Barrier(BarrierDesc.Buffer(frameBufferResource, BarrierSync.Copy, BarrierAccess.CopyDest));
+                //ctx.UploadBuffer(frameBufferHandle, new ReadOnlySpan<FrameData>(in frameData));
+                //ctx.CommandBuffer.Barrier(BarrierDesc.Buffer(frameBufferResource, BarrierSync.AllShading, BarrierAccess.ShaderResource));
 
                 if (request.renderFunc != null)
                 {
@@ -311,7 +307,7 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
                     var backBuffer = _renderGraph.ImportTexture(rt, "BackBuffer");
 
                     MeshletDebugPass(backBuffer, request.opaqueRenderList,
-                        resourceDatabase.GetBindlessIndex(frameBufferResource),
+                        uint.MaxValue,
                         resourceDatabase.GetBindlessIndex(viewBufferResource),
                         resourceDatabase.GetBindlessIndex(instanceBufferResource));
 

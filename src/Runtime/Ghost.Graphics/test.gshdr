@@ -90,7 +90,6 @@ shader "MyShader/Standard"
                     ByteAddressBuffer vertices = GET_BUFFER(meshData.vertexBuffer);
                     Vertex v = vertices.Load<Vertex>(vertexIndex * sizeof(Vertex));
 
-                    FrameData globalFrameData = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
                     ViewData viewData = LoadData<ViewData>(g_PushConstantData.viewBuffer, 0);
 
                     float4 worldPos = mul(instanceData.localToWorld, float4(v.position.xyz, 1.0f));

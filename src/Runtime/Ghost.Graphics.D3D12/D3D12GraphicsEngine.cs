@@ -5,6 +5,7 @@
 using Ghost.Core;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.Utilities;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -72,7 +73,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
     private readonly D3D12PipelineLibrary _pipelineLibrary;
     private readonly D3D12ResourceAllocator _resourceAllocator;
 
-    private readonly Queue<ICommandBuffer> _commandBufferPool;
+    private readonly List<ICommandBuffer> _commandBufferPool;
     private readonly Queue<CommandBufferReturnEntry> _commandBufferReturnQueue;
 
     private ulong _cpuFrame;
@@ -99,7 +100,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         _pipelineLibrary = new D3D12PipelineLibrary(_device, _resourceDatabase);
         _resourceAllocator = new D3D12ResourceAllocator(_device, _descriptorAllocator, _resourceDatabase, _pipelineLibrary);
 
-        _commandBufferPool = new Queue<ICommandBuffer>(4);
+        _commandBufferPool = new List<ICommandBuffer>(4);
         _commandBufferReturnQueue = new Queue<CommandBufferReturnEntry>(4);
     }
 
@@ -108,21 +109,15 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         Dispose();
     }
 
-    [Conditional("DEBUG")]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ThrowIfDisposed()
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-    }
-
     public ICommandAllocator CreateCommandAllocator(CommandBufferType type = CommandBufferType.Graphics)
     {
+        Debug.Assert(!_disposed);
         return new D3D12CommandAllocator(_device, type);
     }
 
     public ICommandBuffer CreateCommandBuffer(CommandBufferType type = CommandBufferType.Graphics)
     {
-        ThrowIfDisposed();
+        Debug.Assert(!_disposed);
 
         return new D3D12CommandBuffer(
             _device,
@@ -135,49 +130,58 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
 
     public ICommandBuffer GetPooledCommandBuffer(CommandBufferType type = CommandBufferType.Graphics)
     {
-        if (_commandBufferPool.TryDequeue(out var commandBuffer))
+        Debug.Assert(!_disposed);
+
+        for (int i = 0; i < _commandBufferPool.Count; i++)
         {
-            return commandBuffer;
+            if (_commandBufferPool[i].Type == type)
+            {
+                var commandBuffer = _commandBufferPool[i];
+                _commandBufferPool.RemoveAndSwapBack(i);
+                return commandBuffer;
+            }
         }
-        else
-        {
-            return CreateCommandBuffer(type);
-        }
+
+        return CreateCommandBuffer(type);
     }
 
     public void ReturnPooledCommandBuffer(ICommandBuffer commandBuffer)
     {
+        Debug.Assert(!_disposed);
         _commandBufferReturnQueue.Enqueue(new CommandBufferReturnEntry(commandBuffer, _cpuFrame));
     }
 
     public ISwapChain CreateSwapChain(SwapChainDesc desc)
     {
-        ThrowIfDisposed();
+        Debug.Assert(!_disposed);
         return new DXGISwapChain(_resourceDatabase, _descriptorAllocator, _device, desc, _desc.FrameBufferCount);
     }
 
-    public Result BeginFrame(ulong cpuFrame)
+    public ICommandSignature CreateCommandSignature(ref readonly CommandSignatureDesc desc, Key128<GraphicsPipeline> pipelineKey)
     {
-        ThrowIfDisposed();
+        Debug.Assert(!_disposed);
+        return new D3D12CommandSignature(_device, _pipelineLibrary, in desc, pipelineKey);
+    }
+
+    public void BeginFrame(ulong cpuFrame)
+    {
+        Debug.Assert(!_disposed);
 
         _cpuFrame = cpuFrame;
         _resourceDatabase.BeginFrame(cpuFrame);
-        return Result.Success();
     }
 
-    public Result EndFrame(ulong gpuFrame)
+    public void EndFrame(ulong gpuFrame)
     {
-        ThrowIfDisposed();
+        Debug.Assert(!_disposed);
 
         _resourceDatabase.EndFrame(gpuFrame);
 
         while (_commandBufferReturnQueue.TryPeek(out var entry) && entry.returnFrame < gpuFrame)
         {
-            _commandBufferPool.Enqueue(entry.commandBuffer);
+            _commandBufferPool.Add(entry.commandBuffer);
             _commandBufferReturnQueue.Dequeue();
         }
-
-        return Result.Success();
     }
 
     public void Dispose()
@@ -192,9 +196,9 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
             entry.commandBuffer.Dispose();
         }
 
-        while (_commandBufferPool.TryDequeue(out var cmd))
+        foreach (var commandBuffer in _commandBufferPool)
         {
-            cmd.Dispose();
+            commandBuffer.Dispose();
         }
 
         _resourceDatabase.ReleaseAllResourcesImmediately();

@@ -24,17 +24,15 @@ public struct PushConstantsData
 [StructLayout(LayoutKind.Sequential)]
 public struct FrameData
 {
-    public uint viewBufferIndex;
-    public uint instanceBufferIndex;
-    public uint userBufferIndex;
+    public uint userBuffer;
 }
 
 [StructLayout(LayoutKind.Sequential, Pack = 4)]
 public struct InstanceData
 {
     public float4x4 localToWorld;
-    public uint meshBufferIndex;
-    public uint materialBufferIndex;
+    public uint meshBuffer;
+    public uint materialBuffer;
 }
 
 [StructLayout(LayoutKind.Sequential, Pack = 4)]

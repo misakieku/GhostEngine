@@ -2,12 +2,10 @@ using Ghost.Core;
 
 namespace Ghost.Graphics.RHI;
 
-// TODO: Add ICommandAllocator support for thread local command buffers. We often use one allocator for multiple command buffers in a single frame.
-
 /// <summary>
 /// D3D12-style command buffer interface for recording rendering commands
 /// </summary>
-public interface ICommandBuffer : IDisposable
+public interface ICommandBuffer : IRHIObject
 {
     /// <summary>
     /// Gets the space of the command buffer.
@@ -23,12 +21,6 @@ public interface ICommandBuffer : IDisposable
     bool IsEmpty
     {
         get;
-    }
-
-    string Name
-    {
-        get;
-        set;
     }
 
     /// <summary>
@@ -182,8 +174,17 @@ public interface ICommandBuffer : IDisposable
     /// <summary>
     /// Dispatches ray tracing threads
     /// </summary>
-    // TODO: This method is not supported yet.
     void DispatchRay();
+
+    /// <summary>
+    /// Executes a sequence of GPU commands indirectly using the specified command signature and argument buffers.
+    /// </summary>
+    /// <param name="commandSignature">The command signature that defines the layout and type of commands to execute.</param>
+    /// <param name="argumentBuffer">A handle to the GPU buffer containing the arguments for each command.</param>
+    /// <param name="argumentOffset">The byte offset within the argument buffer at which to begin reading command arguments.</param>
+    /// <param name="countBuffer">A handle to the GPU buffer that specifies the number of commands to execute.</param>
+    /// <param name="countBufferOffset">The byte offset within the count buffer at which to read the command count.</param>
+    void ExecuteIndirect(ICommandSignature commandSignature, Handle<GPUBuffer> argumentBuffer, ulong argumentOffset, Handle<GPUBuffer> countBuffer, ulong countBufferOffset);
 
     /// <summary>
     /// Copies a specified number of bytes from the source graphics buffer to the destination graphics buffer.
@@ -204,5 +205,11 @@ public interface ICommandBuffer : IDisposable
     /// <param name="srcRegion">The region of the source texture to copy from. If null, the entire texture will be used.</param>
     void CopyTexture(Handle<GPUTexture> dst, TextureRegion? dstRegion, Handle<GPUTexture> src, TextureRegion? srcRegion);
 
+    /// <summary>
+    /// Updates the subresources of a GPU resource using data from the specified intermediate resource and subresource data spans.
+    /// </summary>
+    /// <param name="resource">A handle to the destination GPU resource whose subresources will be updated.</param>
+    /// <param name="intermediate">A handle to an intermediate GPU resource used to stage the subresource data before copying to the destination resource.</param>
+    /// <param name="subResources">A span containing the data for each subresource to update. Each element represents a subresource and its associated data.</param>
     void UpdateSubResources(Handle<GPUResource> resource, Handle<GPUResource> intermediate, params ReadOnlySpan<SubResourceData> subResources);
 }

@@ -210,10 +210,9 @@ public class RenderSystem : IDisposable
     {
         void StopRenderLoop(Result result)
         {
-            Debug.Assert(result.IsFailure, "StopRenderLoop should only be called with a failure result.");
-
             _isRunning = false;
             _shutdownEvent.Set();
+
 #if DEBUG
             Debugger.Break();
 #endif
@@ -224,113 +223,107 @@ public class RenderSystem : IDisposable
 
         while (_isRunning)
         {
-            _frameIndex = (uint)(_submittedFenceValue % _config.FrameBufferCount);
-            ref var frameResource = ref _frameResources[_frameIndex];
-
-            // Wait for either CPU ready signal or shutdown signal
-            waitHandles[0] = frameResource.CpuReadyEvent;
-            var waitResult = WaitHandle.WaitAny(waitHandles);
-
-            // If shutdown was signaled or timeout occurred, exit the loop
-            if (!_isRunning || waitResult == 1 || waitResult == WaitHandle.WaitTimeout)
-            {
-                break;
-            }
-
-            // Only proceed if CPU ready event was signaled
-            if (waitResult != 0)
-            {
-                continue;
-            }
-
-            _graphicsEngine.Device.GraphicsQueue.WaitForValue(frameResource.FenceValue);
-
-            if (!_resizeRequest.IsEmpty)
-            {
-                WaitIdle();
-
-                var keys = _resizeRequest.Keys.ToArray();
-                foreach (var swapChain in keys)
-                {
-                    if (_resizeRequest.TryRemove(swapChain, out var newSize))
-                    {
-                        swapChain.Resize(newSize.x, newSize.y);
-                    }
-                }
-            }
-
-            var completedFenceValue = _graphicsEngine.Device.GraphicsQueue.GetCompletedValue();
-            if (_submittedFenceValue < completedFenceValue)
-            {
-                _submittedFenceValue = completedFenceValue;
-            }
-
-            // Begin rendering for this frame
-            frameResource.CommandAllocator.Reset();
-
-            _resourceManager.BeginFrame(_submittedFenceValue);
-            var r = _graphicsEngine.BeginFrame(_submittedFenceValue);
-
-            if (r.IsFailure)
-            {
-                StopRenderLoop(r);
-                break;
-            }
-
-            // Start recording commands
-
-            // TODO: How can we support async compute and async copy?
-            var cmd = _graphicsEngine.GetPooledCommandBuffer(CommandBufferType.Graphics);
-            ref var renderRequests = ref frameResource.RenderRequests;
-
             try
             {
-                cmd.Begin(frameResource.CommandAllocator);
+                _frameIndex = (uint)(_submittedFenceValue % _config.FrameBufferCount);
+                ref var frameResource = ref _frameResources[_frameIndex];
 
-                var renderCtx = new RenderContext(_graphicsEngine, _resourceManager, cmd);
+                // Wait for either CPU ready signal or shutdown signal
+                waitHandles[0] = frameResource.CpuReadyEvent;
+                var waitResult = WaitHandle.WaitAny(waitHandles);
 
-                _renderPipeline.Render(renderCtx, renderRequests.AsSpan());
-                _swapChainManager.TransitionToPresent(cmd);
-
-                // End recording commands and submit
-                r = cmd.End();
-                if (r.IsFailure)
+                // If shutdown was signaled or timeout occurred, exit the loop
+                if (!_isRunning || waitResult == 1 || waitResult == WaitHandle.WaitTimeout)
                 {
-                    StopRenderLoop(r);
                     break;
                 }
 
-                _graphicsEngine.Device.GraphicsQueue.Submit(cmd);
-                _swapChainManager.PresentAll(cmd);
-            }
-            finally
-            {
-                _graphicsEngine.ReturnPooledCommandBuffer(cmd);
-
-                for (var i = 0; i < renderRequests.Count; i++)
+                // Only proceed if CPU ready event was signaled
+                if (waitResult != 0)
                 {
-                    renderRequests[i].Dispose();
+                    continue;
                 }
 
-                renderRequests.Clear();
+                _graphicsEngine.Device.GraphicsQueue.WaitForValue(frameResource.FenceValue);
+
+                if (!_resizeRequest.IsEmpty)
+                {
+                    WaitIdle();
+
+                    var keys = _resizeRequest.Keys.ToArray();
+                    foreach (var swapChain in keys)
+                    {
+                        if (_resizeRequest.TryRemove(swapChain, out var newSize))
+                        {
+                            swapChain.Resize(newSize.x, newSize.y);
+                        }
+                    }
+                }
+
+                var completedFrame = _graphicsEngine.Device.GraphicsQueue.GetCompletedValue();
+                if (_submittedFenceValue < completedFrame)
+                {
+                    _submittedFenceValue = completedFrame;
+                }
+
+                // Begin rendering for this frame
+                frameResource.CommandAllocator.Reset();
+
+                _resourceManager.BeginFrame(_submittedFenceValue);
+                _graphicsEngine.BeginFrame(_submittedFenceValue);
+
+                // Start recording commands
+
+                // TODO: How can we support async compute and async copy?
+                var cmd = _graphicsEngine.GetPooledCommandBuffer(CommandBufferType.Graphics);
+                ref var renderRequests = ref frameResource.RenderRequests;
+
+                try
+                {
+                    cmd.Begin(frameResource.CommandAllocator);
+
+                    var renderCtx = new RenderContext(_graphicsEngine, _resourceManager, cmd);
+
+                    _renderPipeline.Render(renderCtx, renderRequests.AsSpan());
+                    _swapChainManager.TransitionToPresent(cmd);
+
+                    // End recording commands and submit
+                    var r = cmd.End();
+                    if (r.IsFailure)
+                    {
+                        StopRenderLoop(r);
+                        break;
+                    }
+
+                    _graphicsEngine.Device.GraphicsQueue.Submit(cmd);
+                    _swapChainManager.PresentAll(cmd);
+                }
+                finally
+                {
+                    _graphicsEngine.ReturnPooledCommandBuffer(cmd);
+
+                    for (var i = 0; i < renderRequests.Count; i++)
+                    {
+                        renderRequests[i].Dispose();
+                    }
+
+                    renderRequests.Clear();
+                }
+
+                _submittedFenceValue++;
+                frameResource.FenceValue = _graphicsEngine.Device.GraphicsQueue.Signal(_submittedFenceValue);
+                frameResource.GpuReadyEvent.Set();
+
+                completedFrame = _graphicsEngine.Device.GraphicsQueue.GetCompletedValue();
+
+                // End the frame and retire resources based on the freshest observed GPU progress.
+                _resourceManager.EndFrame(completedFrame);
+                _graphicsEngine.EndFrame(completedFrame);
             }
-
-            _submittedFenceValue++;
-            frameResource.FenceValue = _graphicsEngine.Device.GraphicsQueue.Signal(_submittedFenceValue);
-            frameResource.GpuReadyEvent.Set();
-
-            completedFenceValue = _graphicsEngine.Device.GraphicsQueue.GetCompletedValue();
-
-            // End the frame and retire resources based on the freshest observed GPU progress.
-            _resourceManager.EndFrame(completedFenceValue);
-            r = _graphicsEngine.EndFrame(completedFenceValue);
-
-            if (r.IsFailure)
+            catch (Exception ex)
             {
-                StopRenderLoop(r);
-                break;
+                StopRenderLoop(Result.Failure($"An exception occurred during rendering: {ex.Message}"));
             }
-
         }
     }
 

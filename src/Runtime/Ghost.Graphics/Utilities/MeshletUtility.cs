@@ -1,6 +1,8 @@
 // Source: https://github.com/zeux/meshoptimizer/blob/master/demo/clusterlod.h
 // Translated from C++ to C#.
 
+// TODO: This file should be moved to editor project since there is no reason we need to build meshlets and LOD at runtime.
+
 using Ghost.MeshOptimizer;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;

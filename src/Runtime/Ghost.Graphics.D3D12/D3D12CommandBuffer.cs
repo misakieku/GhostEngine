@@ -834,12 +834,6 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     public void DispatchRay()
     {
         throw new NotImplementedException();
-
-        // AssertNotDisposed();
-        // ThrowIfNotRecording();
-        // IncrementCommandCount();
-
-        // _device.Get()->DispatchRays();
     }
 
     public void DispatchGraph()
@@ -847,7 +841,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         throw new NotImplementedException();
     }
 
-    public void ExecuteIndirect(Handle<GPUBuffer> argumentBuffer, ulong argumentOffset, Handle<GPUBuffer> countBuffer, ulong countBufferOffset)
+    public void ExecuteIndirect(ICommandSignature commandSignature, Handle<GPUBuffer> argumentBuffer, ulong argumentOffset, Handle<GPUBuffer> countBuffer, ulong countBufferOffset)
     {
         AssertNotDisposed();
         ThrowIfNotRecording();
@@ -860,11 +854,12 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
 
         IncrementCommandCount();
 
+        Debug.Assert(commandSignature is D3D12CommandSignature);
+
         var resource = _resourceDatabase.GetResource(argumentBuffer.AsResource());
         var countResource = _resourceDatabase.GetResource(countBuffer.AsResource());
 
-        // TODO
-        pNativeObject->ExecuteIndirect(null, 0,
+        pNativeObject->ExecuteIndirect(((D3D12CommandSignature)commandSignature).NativeObject, 0,
             resource, argumentOffset, countResource, countBufferOffset);
     }
 

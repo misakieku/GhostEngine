@@ -1,6 +1,6 @@
 namespace Ghost.Graphics.RHI;
 
-public interface ICommandAllocator : IDisposable
+public interface ICommandAllocator : IRHIObject
 {
     void Reset();
 }

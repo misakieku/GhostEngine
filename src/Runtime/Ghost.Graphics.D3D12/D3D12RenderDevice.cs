@@ -1,9 +1,9 @@
-using Ghost.Core;
 using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
+
 using static TerraFX.Aliases.D3D_Alias;
 using static TerraFX.Aliases.D3D12_Alias;
 using static TerraFX.Aliases.DXGI_Alias;
@@ -18,15 +18,13 @@ internal unsafe class D3D12RenderDevice : D3D12Object<ID3D12Device14>, IRenderDe
     private readonly D3D12CommandQueue _graphicsQueue;
     private readonly D3D12CommandQueue _computeQueue;
     private readonly D3D12CommandQueue _copyQueue;
+    private readonly FeatureSupport _featureSupport;
 
     public ICommandQueue GraphicsQueue => _graphicsQueue;
     public ICommandQueue ComputeQueue => _computeQueue;
     public ICommandQueue CopyQueue => _copyQueue;
 
-    public FeatureSupport FeatureSupport
-    {
-        get;
-    }
+    public FeatureSupport FeatureSupport => _featureSupport;
 
     public SharedPtr<IDXGIFactory7> DXGIFactory => _dxgiFactory.Share();
     public SharedPtr<IDXGIAdapter1> Adapter => _adapter.Share();
@@ -35,7 +33,7 @@ internal unsafe class D3D12RenderDevice : D3D12Object<ID3D12Device14>, IRenderDe
     public SharedPtr<ID3D12CommandQueue> NativeCopyQueue => _copyQueue.NativeObject;
 
     public D3D12RenderDevice()
-        :base(CreateDevice(out var dxgiFactory, out var adapter))
+        : base(CreateDevice(out var dxgiFactory, out var adapter))
     {
         _dxgiFactory.Attach(dxgiFactory);
         _adapter.Attach(adapter);
@@ -44,7 +42,7 @@ internal unsafe class D3D12RenderDevice : D3D12Object<ID3D12Device14>, IRenderDe
         _computeQueue = new D3D12CommandQueue(this, CommandQueueType.Compute);
         _copyQueue = new D3D12CommandQueue(this, CommandQueueType.Copy);
 
-        FeatureSupport = GetFeatureSupport();
+        _featureSupport = GetFeatureSupport();
     }
 
     private static ID3D12Device14* CreateDevice(out IDXGIFactory7* dxgiFactory, out IDXGIAdapter1* adapter)

@@ -1017,6 +1017,124 @@ public struct CommandError
     }
 }
 
+public struct IndirectArgumentDesc
+{
+    public struct VertexBufferDesc
+    {
+        public uint Slot
+        {
+            get; set;
+        }
+    }
+
+    public struct ConstantDesc
+    {
+        public uint RootParameterIndex
+        {
+            get; set;
+        }
+        public uint DestOffsetIn32BitValues
+        {
+            get; set;
+        }
+        public uint Num32BitValuesToSet
+        {
+            get; set;
+        }
+    }
+
+    public struct ConstantBufferViewDesc
+    {
+        public uint RootParameterIndex
+        {
+            get; set;
+        }
+    }
+
+    public struct ShaderResourceViewDesc
+    {
+        public uint RootParameterIndex
+        {
+            get; set;
+        }
+    }
+
+    public struct UnorderedAccessViewDesc
+    {
+        public uint RootParameterIndex
+        {
+            get; set;
+        }
+    }
+
+    public struct IncrementingConstantDesc
+    {
+        public uint RootParameterIndex
+        {
+            get; set;
+        }
+        public uint DestOffsetIn32BitValues
+        {
+            get; set;
+        }
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    private struct __union
+    {
+        [FieldOffset(0)]
+        public VertexBufferDesc vertexBuffer;
+        [FieldOffset(0)]
+        public ConstantDesc constant;
+        [FieldOffset(0)]
+        public ConstantBufferViewDesc constantBufferView;
+        [FieldOffset(0)]
+        public ShaderResourceViewDesc shaderResourceView;
+        [FieldOffset(0)]
+        public UnorderedAccessViewDesc unorderedAccessView;
+        [FieldOffset(0)]
+        public IncrementingConstantDesc incrementingConstant;
+    }
+
+    public IndirectArgumentType Type
+    {
+        get; set;
+    }
+
+    private __union _data;
+
+    [UnscopedRef]
+    public ref VertexBufferDesc VertexBuffer => ref _data.vertexBuffer;
+
+    [UnscopedRef]
+    public ref ConstantDesc Constant => ref _data.constant;
+
+    [UnscopedRef]
+    public ref ConstantBufferViewDesc ConstantBufferView => ref _data.constantBufferView;
+
+    [UnscopedRef]
+    public ref ShaderResourceViewDesc ShaderResourceView => ref _data.shaderResourceView;
+
+    [UnscopedRef]
+    public ref UnorderedAccessViewDesc UnorderedAccessView => ref _data.unorderedAccessView;
+
+    [UnscopedRef]
+    public ref IncrementingConstantDesc IncrementingConstant => ref _data.incrementingConstant;
+}
+
+public ref struct CommandSignatureDesc
+{
+    public uint Stride
+    {
+        get; set;
+    }
+
+    public ReadOnlySpan<IndirectArgumentDesc> Arguments
+    {
+        get; set;
+    }
+}
+
 public struct SwapChainDesc
 {
     public uint Width
@@ -1369,4 +1487,20 @@ public enum AttachmentStoreOp
     Store,
     DontCare,
     NoAccess
+}
+
+public enum IndirectArgumentType
+{
+    Draw,
+    DrawIndexed,
+    Dispatch,
+    VertexBufferView,
+    IndexBufferView,
+    Constant,
+    ConstantBufferView,
+    ShaderResourceView,
+    UnorderedAccessView,
+    DispatchRays,
+    DispatchMesh,
+    IncrementingConstant,
 }
