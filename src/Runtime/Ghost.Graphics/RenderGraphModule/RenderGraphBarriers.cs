@@ -11,97 +11,39 @@ internal enum BarrierFlags
     Discard = 1 << 1
 }
 
-/// <summary>
-/// Represents a heap barrier requirement that needs to be resolved at runtime.
-/// </summary>
-internal struct ResourceBarrier
-{
-    public int PassIndex;
-    public Identifier<RGResource> Resource;
-    public ResourceBarrierData TargetState;
-    public Identifier<RGResource> AliasingPredecessor; // Invalid if not aliasing
-    public BarrierFlags Flags;
-
-    public static ResourceBarrier CreateTransition(int passIndex, Identifier<RGResource> resource, ResourceBarrierData targetState, BarrierFlags flags = BarrierFlags.None)
-    {
-        return new ResourceBarrier
-        {
-            PassIndex = passIndex,
-            Resource = resource,
-            TargetState = targetState,
-            AliasingPredecessor = Identifier<RGResource>.Invalid,
-            Flags = flags
-        };
-    }
-
-    public static ResourceBarrier CreateAliasing(int passIndex, Identifier<RGResource> resource, Identifier<RGResource> predecessor, ResourceBarrierData targetState)
-    {
-        return new ResourceBarrier
-        {
-            PassIndex = passIndex,
-            Resource = resource,
-            TargetState = targetState,
-            AliasingPredecessor = predecessor,
-            Flags = BarrierFlags.FirstUsage | BarrierFlags.Discard // Aliasing implies starting fresh
-        };
-    }
-
-    public override readonly string ToString()
-    {
-        return AliasingPredecessor.IsValid
-            ? $"[Pass {PassIndex}] Aliasing Barrier: {AliasingPredecessor.Value}->{Resource.Value} Target: {TargetState.layout}"
-            : $"[Pass {PassIndex}] Barrier: {Resource.Value} Target: {TargetState.layout}";
-    }
-}
-
-/// <summary>
-/// Tracks the current state of a heap across passes during compilation.
-/// </summary>
 internal sealed class ResourceStateTracker
 {
     public int resourceIndex;
-    public ResourceBarrierData currentState;
     public int lastAccessPass = -1;
+    public ResourceBarrierData currentState;
 
     public void Reset()
     {
         resourceIndex = -1;
-        currentState = default;
         lastAccessPass = -1;
+        currentState = default;
     }
 }
 
-/// <summary>
-/// Represents a compiled barrier with only the target state.
-/// The before state is always queried from ResourceManager at execution time.
-/// </summary>
 internal struct CompiledBarrier
 {
-    public int PassIndex;
-    public Identifier<RGResource> Resource;
-    public ResourceBarrierData TargetState;
-    public Identifier<RGResource> AliasingPredecessor; // Invalid if not aliasing
-    public BarrierFlags Flags;
-    public RenderGraphResourceType ResourceType;
+    public int passIndex;
+    public Identifier<RGResource> resource;
+    public ResourceBarrierData targetState;
+    public Identifier<RGResource> aliasingPredecessor; // Invalid if not aliasing
+    public BarrierFlags flags;
+    public RenderGraphResourceType resourceType;
 
     public override readonly string ToString()
     {
-        return AliasingPredecessor.IsValid
-            ? $"[Pass {PassIndex}] Aliasing: {AliasingPredecessor.Value}->{Resource.Value} -> {TargetState.layout}"
-            : $"[Pass {PassIndex}] Transition: {Resource.Value} -> {TargetState.layout}";
+        return aliasingPredecessor.IsValid
+            ? $"[Pass {passIndex}] Aliasing: {aliasingPredecessor.Value}->{resource.Value} -> {targetState.layout}"
+            : $"[Pass {passIndex}] Transition: {resource.Value} -> {targetState.layout}";
     }
 }
 
-/// <summary>
-/// Static class containing barrier compilation logic.
-/// Compiles barriers at graph compilation time, storing only target states.
-/// </summary>
 internal static class RenderGraphBarriers
 {
-    /// <summary>
-    /// Compiles all barriers needed for execution, storing only target states.
-    /// Barriers include aliasing barriers and implicit state transitions.
-    /// </summary>
     public static void CompileBarriers(
         List<RenderGraphPassBase> compiledPasses,
         List<CompiledBarrier> compiledBarriers,
@@ -123,9 +65,6 @@ internal static class RenderGraphBarriers
         }
     }
 
-    /// <summary>
-    /// Inserts aliasing barriers when a placed heap is reused.
-    /// </summary>
     private static void InsertAliasingBarriers(
         RenderGraphPassBase pass,
         int passIdx,
@@ -189,12 +128,12 @@ internal static class RenderGraphBarriers
                                 var targetState = new ResourceBarrierData(BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierSync.None);
                                 var barrier = new CompiledBarrier
                                 {
-                                    PassIndex = passIdx,
-                                    Resource = id,
-                                    TargetState = targetState,
-                                    AliasingPredecessor = resourceBefore,
-                                    Flags = BarrierFlags.FirstUsage | BarrierFlags.Discard,
-                                    ResourceType = resource.type
+                                    passIndex = passIdx,
+                                    resource = id,
+                                    targetState = targetState,
+                                    aliasingPredecessor = resourceBefore,
+                                    flags = BarrierFlags.FirstUsage | BarrierFlags.Discard,
+                                    resourceType = resource.type
                                 };
                                 compiledBarriers.Add(barrier);
                             }
@@ -205,10 +144,6 @@ internal static class RenderGraphBarriers
         }
     }
 
-    /// <summary>
-    /// Compiles implicit state transitions for all resources accessed by a pass.
-    /// Stores only the target state - the before state will be queried from ResourceManager at execution time.
-    /// </summary>
     private static void CompileImplicitTransitions(
         RenderGraphPassBase pass,
         int passIdx,
@@ -221,12 +156,12 @@ internal static class RenderGraphBarriers
             var resource = resources.GetResource(id);
             var barrier = new CompiledBarrier
             {
-                PassIndex = passIdx,
-                Resource = id,
-                TargetState = targetState,
-                AliasingPredecessor = Identifier<RGResource>.Invalid,
-                Flags = BarrierFlags.None,
-                ResourceType = resource.type
+                passIndex = passIdx,
+                resource = id,
+                targetState = targetState,
+                aliasingPredecessor = Identifier<RGResource>.Invalid,
+                flags = BarrierFlags.None,
+                resourceType = resource.type
             };
             compiledBarriers.Add(barrier);
         }

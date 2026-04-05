@@ -8,7 +8,7 @@ namespace Ghost.Graphics;
 
 public partial class ResourceManager
 {
-    private const ulong _DEFAULT_TRANSIENT_PAGE_SIZE = 16 * 1024 * 1024; // 16MB
+    public const ulong DEFAULT_TRANSIENT_PAGE_SIZE = 16 * 1024 * 1024; // 16MB
 
     [DebuggerDisplay("Heap: {heap}, Offset: {offset}, HeapType: {heapType}, HeapFlags: {heapFlags}")]
     private struct Page
@@ -27,19 +27,11 @@ public partial class ResourceManager
         public ulong retireFrame;
     }
 
-    private UnsafeList<Page> _activePages;
-    private Queue<Page> _freePages = null!;
-    private Queue<RetiringPage> _retiringPages = null!;
+    private UnsafeList<Page> _activePages = new UnsafeList<Page>(4, Allocator.Persistent);
+    private UnsafeQueue<Page> _freePages = new UnsafeQueue<Page>(4, Allocator.Persistent);
+    private UnsafeQueue<RetiringPage> _retiringPages = new UnsafeQueue<RetiringPage>(4, Allocator.Persistent);
 
-    private UnsafeList<Handle<GPUResource>> _oversizedTransientResources;
-
-    private void InitializePool()
-    {
-        _activePages = new UnsafeList<Page>(4, Allocator.Persistent);
-        _freePages = new Queue<Page>(4);
-        _retiringPages = new Queue<RetiringPage>(4);
-        _oversizedTransientResources = new UnsafeList<Handle<GPUResource>>(4, Allocator.Persistent);
-    }
+    private UnsafeList<Handle<GPUResource>> _frameTransientResources = new UnsafeList<Handle<GPUResource>>(4, Allocator.Persistent);
 
     private static bool IsHeapFlagsCompatible(HeapFlags pageHeapFlags, HeapFlags requiredHeapFlags)
     {
@@ -76,7 +68,7 @@ public partial class ResourceManager
 
         var allocationDesc = new AllocationDesc
         {
-            Size = _DEFAULT_TRANSIENT_PAGE_SIZE,
+            Size = DEFAULT_TRANSIENT_PAGE_SIZE,
             Alignment = 65536, // 64KB
             HeapType = heapType,
             HeapFlags = heapFlags,
@@ -104,12 +96,12 @@ public partial class ResourceManager
         var isRTOrDS = desc.Usage.HasFlag(TextureUsage.DepthStencil) || desc.Usage.HasFlag(TextureUsage.RenderTarget);
         var size = _resourceAllocator.GetSizeInfo(ResourceDesc.Texture(desc));
 
-        if (size.Size > _DEFAULT_TRANSIENT_PAGE_SIZE)
+        if (size.Size > DEFAULT_TRANSIENT_PAGE_SIZE)
         {
             var texHandle = _resourceAllocator.CreateTexture(in desc, name);
             if (texHandle.IsValid)
             {
-                _oversizedTransientResources.Add(texHandle.AsResource());
+                _frameTransientResources.Add(texHandle.AsResource());
             }
 
             return texHandle;
@@ -138,7 +130,7 @@ public partial class ResourceManager
 
             var proposedOffset = (p.offset + (size.Alignment - 1)) & ~(size.Alignment - 1);
 
-            if (proposedOffset + size.Size <= _DEFAULT_TRANSIENT_PAGE_SIZE)
+            if (proposedOffset + size.Size <= DEFAULT_TRANSIENT_PAGE_SIZE)
             {
                 foundPageIndex = i;
                 alignedOffset = proposedOffset;
@@ -168,7 +160,11 @@ public partial class ResourceManager
             Offset = alignedOffset,
         });
 
-        page.offset = alignedOffset + size.Size;
+        if (handle.IsValid)
+        {
+            page.offset = alignedOffset + size.Size;
+            _frameTransientResources.Add(handle.AsResource());
+        }
 
         return handle;
     }
@@ -176,12 +172,12 @@ public partial class ResourceManager
     public Handle<GPUBuffer> CreateTransientBuffer(ref readonly BufferDesc desc, string? name = null)
     {
         var size = _resourceAllocator.GetSizeInfo(ResourceDesc.Buffer(desc));
-        if (size.Size > _DEFAULT_TRANSIENT_PAGE_SIZE)
+        if (size.Size > DEFAULT_TRANSIENT_PAGE_SIZE)
         {
             var bufHandle = _resourceAllocator.CreateBuffer(in desc, name);
             if (bufHandle.IsValid)
             {
-                _oversizedTransientResources.Add(bufHandle.AsResource());
+                _frameTransientResources.Add(bufHandle.AsResource());
             }
 
             return bufHandle;
@@ -216,7 +212,7 @@ public partial class ResourceManager
 
             var proposedOffset = (p.offset + (size.Alignment - 1)) & ~(size.Alignment - 1);
 
-            if (proposedOffset + size.Size <= _DEFAULT_TRANSIENT_PAGE_SIZE)
+            if (proposedOffset + size.Size <= DEFAULT_TRANSIENT_PAGE_SIZE)
             {
                 foundPageIndex = i;
                 alignedOffset = proposedOffset;
@@ -246,12 +242,16 @@ public partial class ResourceManager
             Offset = alignedOffset,
         });
 
-        page.offset = alignedOffset + size.Size;
+        if (handle.IsValid)
+        {
+            page.offset = alignedOffset + size.Size;
+            _frameTransientResources.Add(handle.AsResource());
+        }
 
         return handle;
     }
 
-    private void EndFramePool(ulong gpuFrame)
+    private void EndFramePool(ulong completedFrame)
     {
         for (var i = 0; i < _activePages.Count; i++)
         {
@@ -265,7 +265,7 @@ public partial class ResourceManager
 
         _activePages.Clear();
 
-        while (_retiringPages.TryPeek(out var retiringPage) && retiringPage.retireFrame <= gpuFrame)
+        while (_retiringPages.TryPeek(out var retiringPage) && retiringPage.retireFrame < completedFrame)
         {
             _retiringPages.Dequeue();
 
@@ -274,16 +274,21 @@ public partial class ResourceManager
             _freePages.Enqueue(retiringPage.page);
         }
 
-        for (var i = 0; i < _oversizedTransientResources.Count; i++)
+        for (var i = 0; i < _frameTransientResources.Count; i++)
         {
-            _resourceDatabase.ReleaseResource(_oversizedTransientResources[i]);
+            _resourceDatabase.ReleaseResource(_frameTransientResources[i]);
         }
 
-        _oversizedTransientResources.Clear();
+        _frameTransientResources.Clear();
     }
 
     private void DisposePool()
     {
+        foreach (var resource in _frameTransientResources)
+        {
+            _resourceDatabase.ReleaseResourceImmediately(resource);
+        }
+
         foreach (var page in _activePages)
         {
             _resourceDatabase.ReleaseResourceImmediately(page.heap);
@@ -299,13 +304,9 @@ public partial class ResourceManager
             _resourceDatabase.ReleaseResourceImmediately(page.page.heap);
         }
 
-        foreach (var resource in _oversizedTransientResources)
-        {
-            _resourceDatabase.ReleaseResourceImmediately(resource);
-        }
-
         _activePages.Dispose();
-        //_retiringPages.Dispose();
-        _oversizedTransientResources.Dispose();
+        _freePages.Dispose();
+        _retiringPages.Dispose();
+        _frameTransientResources.Dispose();
     }
 }

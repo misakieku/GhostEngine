@@ -171,7 +171,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
 
         _resourceDatabase.EndFrame(gpuFrame);
 
-        while (_commandBufferReturnQueue.TryPeek(out var entry) && entry.returnFrame <= gpuFrame)
+        while (_commandBufferReturnQueue.TryPeek(out var entry) && entry.returnFrame < gpuFrame)
         {
             _commandBufferPool.Enqueue(entry.commandBuffer);
             _commandBufferReturnQueue.Dequeue();

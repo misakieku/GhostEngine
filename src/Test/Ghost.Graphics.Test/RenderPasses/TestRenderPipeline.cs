@@ -22,8 +22,6 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
 {
     private class MeshletDebugPassData
     {
-        public Identifier<RGTexture> depth;
-        public Identifier<RGTexture> backbuffer;
         public RenderList renderList;
         public Handle<Material> material;
         public uint globalIndex;
@@ -71,7 +69,6 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
 
         renderSystem.GraphicsEngine.ShaderCompiler.CompilePass(in pass, in config, variantKey).GetValueOrThrow();
     }
-
 
     private static float3 IntersectFrustumPlanes(float4 p0, float4 p1, float4 p2)
     {
@@ -138,10 +135,6 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
             {
                 continue;
             }
-
-            Handle<GPUBuffer> instanceBufferHandle = default;
-            Handle<GPUBuffer> viewBufferHandle = default;
-            Handle<GPUBuffer> frameBufferHandle = default;
 
             try
             {
@@ -226,7 +219,7 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
                     HeapType = HeapType.Upload, // Upload directly for simplicity in testing
                 };
 
-                instanceBufferHandle = resourceManager.CreateTransientBuffer(in instanceBufferDesc, "Instance Buffer");
+                var instanceBufferHandle = resourceManager.CreateTransientBuffer(in instanceBufferDesc, "Instance Buffer");
                 var instanceBufferResource = instanceBufferHandle.AsResource();
 
                 var instanceDataArray = new InstanceData[instanceCount];
@@ -266,7 +259,7 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
                     HeapType = HeapType.Upload,
                 };
 
-                viewBufferHandle = resourceManager.CreateTransientBuffer(in viewBufferDesc, "View Buffer");
+                var viewBufferHandle = resourceManager.CreateTransientBuffer(in viewBufferDesc, "View Buffer");
                 var viewBufferResource = viewBufferHandle.AsResource();
 
                 var viewData = new ViewData
@@ -294,7 +287,7 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
                     HeapType = HeapType.Upload,
                 };
 
-                frameBufferHandle = resourceManager.CreateTransientBuffer(in frameBufferDesc, "Frame Buffer");
+                var frameBufferHandle = resourceManager.CreateTransientBuffer(in frameBufferDesc, "Frame Buffer");
                 var frameBufferResource = frameBufferHandle.AsResource();
 
                 var frameData = new FrameData
@@ -329,10 +322,6 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
             }
             finally
             {
-                _renderSystem.GraphicsEngine.ResourceDatabase.ReleaseResource(instanceBufferHandle.AsResource());
-                _renderSystem.GraphicsEngine.ResourceDatabase.ReleaseResource(viewBufferHandle.AsResource());
-                _renderSystem.GraphicsEngine.ResourceDatabase.ReleaseResource(frameBufferHandle.AsResource());
-
                 if (request.swapChainIndex >= 0)
                 {
                     _renderSystem.SwapChainManager.ReleaseSwapChain(request.swapChainIndex);
@@ -347,8 +336,6 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
         {
             var depth = builder.CreateTexture(RGTextureDesc.RelativeDepth(1.0f), "Depth Texture");
 
-            passData.depth = depth;
-            passData.backbuffer = backbuffer;
             passData.renderList = renderList;
             passData.globalIndex = globalIndex;
             passData.viewIndex = viewIndex;

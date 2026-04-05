@@ -8,24 +8,39 @@ public delegate void EndImageDelegate();
 
 public delegate void ErrorDelegate(NvttError error);
 
+public class NvttOutputHandler : IDisposable
+{
+    public BeginImageDelegate? beginImageHandler;
+    public OutputDelegate? outputHandler;
+    public EndImageDelegate? endImageHandler;
+    public ErrorDelegate? errorHandler;
+
+    public void Dispose()
+    {
+        beginImageHandler = null;
+        outputHandler = null;
+        endImageHandler = null;
+        errorHandler = null;
+
+        GC.SuppressFinalize(this);
+    }
+}
+
 public unsafe partial struct NvttOutputOptions
 {
-    public void SetOutputHandler(BeginImageDelegate? beginImageHandler, OutputDelegate? outputHandler, EndImageDelegate? endImageHandler)
+    public void SetOutputHandler(NvttOutputHandler handler)
     {
-        var beginPtr = beginImageHandler == null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(beginImageHandler);
-        var outputPtr = outputHandler == null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(outputHandler);
-        var endPtr = endImageHandler == null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(endImageHandler);
+        var beginPtr = handler.beginImageHandler == null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(handler.beginImageHandler);
+        var outputPtr = handler.outputHandler == null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(handler.outputHandler);
+        var endPtr = handler.endImageHandler == null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(handler.endImageHandler);
 
         Api.nvttSetOutputOptionsOutputHandler(
             (NvttOutputOptions*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
             (delegate* unmanaged[Cdecl]<int, int, int, int, int, int, void>)beginPtr,
             (delegate* unmanaged[Cdecl]<void*, int, NvttBoolean>)outputPtr,
             endPtr);
-    }
 
-    public void SetErrorHandler(ErrorDelegate? errorHandler)
-    {
-        var errorPtr = errorHandler == null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(errorHandler);
+        var errorPtr = handler.errorHandler == null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(handler.errorHandler);
 
         Api.nvttSetOutputOptionsErrorHandler(
             (NvttOutputOptions*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),

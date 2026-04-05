@@ -39,6 +39,7 @@ internal static class MeshUtility
             return Result.Failure("Unsupported file format. Only .obj and .fbx are supported.");
         }
 
+        var error = new ufbx_error();
         var load_Opts = new ufbx_load_opts
         {
             target_axes = ufbx_coordinate_axes.left_handed_y_up,
@@ -48,15 +49,8 @@ internal static class MeshUtility
             handedness_conversion_axis = ufbx_mirror_axis.UFBX_MIRROR_AXIS_X,
             space_conversion = ufbx_space_conversion.UFBX_SPACE_CONVERSION_MODIFY_GEOMETRY,
         };
-        var error = new ufbx_error();
 
-        using var pool = new MemoryPool<VirtualStack, VirtualStack.CreationOpts>(new VirtualStack.CreationOpts
-        {
-            reserveCapacity = 256 * 1024 * 1024 // 256 MB should be enough for most models, adjust as needed. Note that this use virtual memory and does not actually consume physical memory until allocations are made.
-        });
-
-        using var scope0 = pool.Allocator.CreateScope(pool.AllocationHandle);
-        using var str = new UnsafeArray<byte>(Encoding.UTF8.GetByteCount(filePath) + 1, scope0.AllocationHandle);
+        using var str = new UnsafeArray<byte>(Encoding.UTF8.GetByteCount(filePath) + 1, Allocator.FreeList);
         var count = Encoding.UTF8.GetBytes(filePath, str.AsSpan());
         str[count] = 0;
 
@@ -66,7 +60,7 @@ internal static class MeshUtility
             return Result.Failure(error.description.ToString());
         }
 
-        using var flatVertices = new UnsafeList<Vertex>(1024, scope0.AllocationHandle);
+        using var flatVertices = new UnsafeList<Vertex>(1024, Allocator.FreeList);
 
         var needComputeNormals = false;
 
@@ -78,8 +72,6 @@ internal static class MeshUtility
                 continue;
             }
 
-            using var scope1 = pool.Allocator.CreateScope(pool.AllocationHandle);
-
             if (node->mesh != null)
             {
                 var pMesh = node->mesh;
@@ -90,7 +82,7 @@ internal static class MeshUtility
 
                 var maxScratchIndices = (int)(pMesh->max_face_triangles * 3u);
 
-                var triIndicesArray = new UnsafeArray<uint>(maxScratchIndices, scope1.AllocationHandle);
+                using var triIndicesArray = new UnsafeArray<uint>(maxScratchIndices, Allocator.FreeList);
 
                 for (var j = 0u; j < pMesh->num_faces; j++)
                 {
@@ -141,8 +133,8 @@ internal static class MeshUtility
 
         var numIndices = (uint)flatVertices.Count;
 
-        using var weldedIndices = new UnsafeArray<uint>((int)numIndices, scope0.AllocationHandle);
-        using var cachedIndices = new UnsafeArray<uint>((int)numIndices, scope0.AllocationHandle);
+        using var weldedIndices = new UnsafeArray<uint>((int)numIndices, Allocator.FreeList);
+        using var cachedIndices = new UnsafeArray<uint>((int)numIndices, Allocator.FreeList);
 
         var stream = new ufbx_vertex_stream
         {

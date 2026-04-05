@@ -48,4 +48,10 @@ public interface ICommandQueue : IDisposable
     /// Waits until all submitted commands have finished executing
     /// </summary>
     void WaitIdle();
+
+    /// <summary>
+    /// Waits asynchronously until all submitted commands have finished executing
+    /// </summary>
+    /// <returns>Task that completes when the queue is idle</returns>
+    Task WaitAsync();
 }

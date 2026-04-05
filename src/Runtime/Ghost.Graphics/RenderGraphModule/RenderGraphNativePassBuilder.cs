@@ -221,16 +221,16 @@ internal sealed class RenderGraphNativePassBuilder
         // Check if any compiled barriers for passB affect render targets
         for (var i = 0; i < compiledBarriers.Count; i++)
         {
-            if (compiledBarriers[i].PassIndex == passB)
+            if (compiledBarriers[i].passIndex == passB)
             {
                 // Only prevent merge if barrier affects a render target
-                if (renderTargets.Contains(compiledBarriers[i].Resource))
+                if (renderTargets.Contains(compiledBarriers[i].resource))
                 {
                     return true;  // Barrier affects render target, cannot merge
                 }
             }
 
-            if (compiledBarriers[i].PassIndex > passB)
+            if (compiledBarriers[i].passIndex > passB)
             {
                 break;  // No more barriers for this pass
             }

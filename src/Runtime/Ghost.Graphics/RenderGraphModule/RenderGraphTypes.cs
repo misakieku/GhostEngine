@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.Mathematics;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.RenderGraphModule;
@@ -46,6 +47,14 @@ public struct ViewState : IEquatable<ViewState>
         viewportHeight = height;
         this.actualWidth = actualWidth;
         this.actualHeight = actualHeight;
+    }
+
+    public readonly float2 CalculateScale(ViewState other)
+    {
+        return new float2(
+            (float)viewportWidth / other.viewportWidth,
+            (float)viewportHeight / other.viewportHeight
+        );
     }
 
     public readonly bool Equals(ViewState other)

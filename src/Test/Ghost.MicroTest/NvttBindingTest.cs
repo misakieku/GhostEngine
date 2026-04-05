@@ -117,20 +117,25 @@ internal sealed unsafe class NvttBindingTest : ITest
         pOutOpts->SetSrgbFlag(true);
         pOutOpts->SetContainer(NvttContainer.NVTT_Container_DDS10);
 
-        pOutOpts->SetOutputHandler(
-            (size, w, h, d, face, mip) =>
+        using var handler = new NvttOutputHandler
+        {
+            beginImageHandler = (size, w, h, d, face, mip) =>
             {
                 imagesBegun++;
             },
-            (ptr, len) =>
+            outputHandler = (ptr, len) =>
             {
                 totalBytesReceived += len;
                 return true;
             },
-            null
-        );
-        pOutOpts->SetErrorHandler(err =>
-            Console.WriteLine($"/n         [NVTT Error] {err}"));
+            endImageHandler = null,
+            errorHandler = (err) =>
+            {
+                Console.WriteLine($"/n         [NVTT Error] {err}");
+            }
+        };
+
+        pOutOpts->SetOutputHandler(handler);
 
         var pCtx = NvttContext.Create();
         pCtx->SetCudaAcceleration(false); // CPU only for the test
@@ -214,7 +219,7 @@ internal sealed unsafe class NvttBindingTest : ITest
     {
         (*(int*)userData)++;
 
-        int i = 0;
+        var i = 0;
         while (msg[i] != 0)
         {
             i++;

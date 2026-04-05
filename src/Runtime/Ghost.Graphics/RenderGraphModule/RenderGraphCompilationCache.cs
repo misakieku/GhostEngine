@@ -4,10 +4,6 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
-/// <summary>
-/// Represents cached compilation results for a render graph.
-/// This avoids recompiling the graph when the structure hasn't changed.
-/// </summary>
 internal sealed class CachedCompilation
 {
     // Compiled pass indices (indices into the _passes list)
@@ -43,9 +39,6 @@ internal sealed class CachedCompilation
     }
 }
 
-/// <summary>
-/// Placed heap data for caching.
-/// </summary>
 internal struct PlacedResourceData
 {
     public int index;
@@ -56,40 +49,24 @@ internal struct PlacedResourceData
     public int lastUsePass;
 }
 
-/// <summary>
-/// Manages compilation caching for render graphs.
-/// Stores compiled results and allows cache hits when graph structure is unchanged.
-/// </summary>
 internal sealed class RenderGraphCompilationCache
 {
     private readonly CachedCompilation _cached = new();
     private ulong _cachedHash;
     private bool _hasCachedData;
 
-    // Statistics
-    public int CacheHits { get; private set; }
-    public int CacheMisses { get; private set; }
-
-    /// <summary>
-    /// Attempts to retrieve cached compilation results.
-    /// </summary>
     public bool TryGetCached(ulong hash, [MaybeNullWhen(false)] out CachedCompilation result)
     {
         if (_hasCachedData && _cachedHash == hash)
         {
             result = _cached;
-            CacheHits++;
             return true;
         }
 
         result = null;
-        CacheMisses++;
         return false;
     }
 
-    /// <summary>
-    /// Stores compilation results in the cache.
-    /// </summary>
     public void Store(ulong hash, CachedCompilation data)
     {
         _cachedHash = hash;
@@ -112,9 +89,6 @@ internal sealed class RenderGraphCompilationCache
         _cached.backingResources.AddRange(data.backingResources);
     }
 
-    /// <summary>
-    /// Invalidates the cache, forcing recompilation on next Compile().
-    /// </summary>
     public void Invalidate()
     {
         _hasCachedData = false;
@@ -130,15 +104,5 @@ internal sealed class RenderGraphCompilationCache
         }
 
         _cached.backingResources[logicalIndex] = resource;
-    }
-
-    /// <summary>
-    /// Gets cache statistics for debugging.
-    /// </summary>
-    public (int hits, int misses, double hitRate) GetStatistics()
-    {
-        var total = CacheHits + CacheMisses;
-        var hitRate = total > 0 ? (double)CacheHits / total : 0.0;
-        return (CacheHits, CacheMisses, hitRate);
     }
 }

@@ -304,7 +304,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
             BindlessAccess.ShaderResource => (uint)r.Value.viewGroup.srv.Value,
             BindlessAccess.ConstantBuffer => (uint)r.Value.viewGroup.cbv.Value,
             BindlessAccess.UnorderedAccess => (uint)r.Value.viewGroup.uav.Value,
-            _ => ~0u,
+            _ => uint.MaxValue,
         };
     }
 
@@ -414,7 +414,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         var rRange = readRange.HasValue ? new D3D12_RANGE { Begin = readRange.Value.Start, End = readRange.Value.End } : default;
         var wRange = writeRange.HasValue ? new D3D12_RANGE { Begin = writeRange.Value.Start, End = writeRange.Value.End } : default;
 
-        void * mappedData = null;
+        void* mappedData = null;
         resource.Get()->Map(subResource, readRange.HasValue ? &rRange : null, &mappedData);
         MemoryUtility.MemCpy(mappedData, pData, size);
         resource.Get()->Unmap(subResource, writeRange.HasValue ? &wRange : null);
@@ -433,26 +433,19 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         return GetRequiredIntermediateSize(r.Value.ResourcePtr.Get(), firstSubResource, numSubResources);
     }
 
-    public void BeginFrame(ulong cpuFrame)
+    internal void BeginFrame(ulong cpuFrame)
     {
         Debug.Assert(!_disposed);
         _cpuFrame = cpuFrame;
     }
 
-    public void EndFrame(ulong gpuFrame)
+    internal void EndFrame(ulong gpuFrame)
     {
         Debug.Assert(!_disposed);
 
-        while (_releaseQueue.Count > 0)
+        while (_releaseQueue.TryPeek(out var toRelease) && toRelease.fenceValue < gpuFrame)
         {
-            var toRelease = _releaseQueue.Peek();
-            if (toRelease.fenceValue > gpuFrame)
-            {
-                break;
-            }
-
             _releaseQueue.Dequeue();
-
             toRelease.record.Release(_descriptorAllocator);
         }
     }
@@ -460,6 +453,11 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
     internal void ReleaseAllResourcesImmediately()
     {
         Debug.Assert(!_disposed);
+
+        foreach (ref var entry in _releaseQueue)
+        {
+            entry.record.Release(_descriptorAllocator);
+        }
 
         foreach (ref var record in _resources)
         {

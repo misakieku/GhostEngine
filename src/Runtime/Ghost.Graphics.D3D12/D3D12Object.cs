@@ -38,7 +38,7 @@ public unsafe abstract class D3D12Object<T>: IRHIObject
 
     ~D3D12Object()
     {
-        Dispose(disposing: false);
+        Dispose(false);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -65,7 +65,7 @@ public unsafe abstract class D3D12Object<T>: IRHIObject
             return;
         }
 
-        Dispose(disposing: true);
+        Dispose(true);
 
         _nativeObject.Dispose();
 

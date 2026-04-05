@@ -65,7 +65,7 @@ public sealed class RenderGraph : IDisposable
         );
 
         _nativePassBuilder = new RenderGraphNativePassBuilder(_objectPool, _resources);
-        _compiler = new RenderGraphCompiler(_resourceManager, _resourceDatabase, _resourceAllocator, _resources, _aliasingManager, _nativePassBuilder, _compilationCache);
+        _compiler = new RenderGraphCompiler(_resourceDatabase, _resourceAllocator, _resources, _aliasingManager, _nativePassBuilder, _compilationCache);
         _executor = new RenderGraphExecutor(_resourceManager, _resourceDatabase, _resources, _context);
 
         _blackboard = new RenderGraphBlackboard();
@@ -190,11 +190,13 @@ public sealed class RenderGraph : IDisposable
         _resources.ResolveTextureSizes(in viewState);
 
         var graphHash = RenderGraphHasher.ComputeGraphHash(_passes, _resources);
-        var error = _compiler.Compile(in viewState, graphHash, _passes, _compiledPasses, _nativePasses, _compiledBarriers);
-        if (error != Error.None)
+        var result = _compiler.Compile(in viewState, graphHash, _passes, _compiledPasses, _nativePasses, _compiledBarriers);
+        if (result.IsFailure)
         {
-            return error;
+            return result.Error;
         }
+
+        _context.RelativeScale = result.Value;
 
         _compiled = true;
         return Error.None;

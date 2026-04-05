@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
@@ -9,7 +10,6 @@ namespace Ghost.Graphics.RenderGraphModule;
 /// </summary>
 internal sealed class RenderGraphCompiler
 {
-    private readonly ResourceManager _resourceManager;
     private readonly IResourceDatabase _resourceDatabase;
     private readonly IResourceAllocator _resourceAllocator;
     private readonly RenderGraphResourceRegistry _resources;
@@ -20,7 +20,6 @@ internal sealed class RenderGraphCompiler
     private Handle<GPUResource> _resourceHeap;
 
     public RenderGraphCompiler(
-        ResourceManager resourceManager,
         IResourceDatabase resourceDatabase,
         IResourceAllocator resourceAllocator,
         RenderGraphResourceRegistry resources,
@@ -28,7 +27,6 @@ internal sealed class RenderGraphCompiler
         RenderGraphNativePassBuilder nativePassBuilder,
         RenderGraphCompilationCache compilationCache)
     {
-        _resourceManager = resourceManager;
         _resourceDatabase = resourceDatabase;
         _resourceAllocator = resourceAllocator;
         _resources = resources;
@@ -41,7 +39,7 @@ internal sealed class RenderGraphCompiler
     /// <summary>
     /// Compiles the render graph by culling passes, allocating resources, and preparing barriers.
     /// </summary>
-    public Error Compile(
+    public Result<float2, Error> Compile(
         in ViewState viewState,
         ulong graphHash,
         List<RenderGraphPassBase> passes,
@@ -55,7 +53,8 @@ internal sealed class RenderGraphCompiler
         if (_compilationCache.TryGetCached(graphHash, out var cached))
         {
             // Check if view state changed
-            if (!cached.viewState.Equals(viewState))
+            var scale = viewState.CalculateScale(cached.viewState);
+            if (math.any(scale > float2.one))
             {
                 // View state changed - re-resolve sizes and recreate GPU resources
                 _resources.ResolveTextureSizes(in viewState);
@@ -69,14 +68,15 @@ internal sealed class RenderGraphCompiler
                 }
 
                 cached.viewState = viewState;
+
+                return float2.one;
             }
             else
             {
                 // Perfect cache hit - restore everything
                 RestoreFromCache(cached, compiledPasses, passes, nativePasses, compiledBarriers);
+                return scale;
             }
-
-            return Error.None;
         }
 
         // Fresh compilation needed
@@ -109,7 +109,7 @@ internal sealed class RenderGraphCompiler
         _nativePassBuilder.BuildNativeRenderPasses(compiledPasses, nativePasses, compiledBarriers);
         StoreInCache(graphHash, viewState, compiledPasses, passes, compiledBarriers);
 
-        return Error.None;
+        return float2.one;
     }
 
     private void MarkPassesWithSideEffects(List<RenderGraphPassBase> passes)

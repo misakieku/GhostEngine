@@ -8,21 +8,20 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <IsAotCompatible>True</IsAotCompatible>
     <DefineConstants>$(DefineConstants);MHP_ENABLE_SAFETY_CHECKS</DefineConstants>
+    <IsAotCompatible>True</IsAotCompatible>
     <IsTrimmable>True</IsTrimmable>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <IsAotCompatible>True</IsAotCompatible>
-    <!--<DefineConstants>$(DefineConstants);MHP_ENABLE_SAFETY_CHECKS</DefineConstants>-->
     <IsTrimmable>True</IsTrimmable>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Misaki.HighPerformance" Version="1.0.6" />
+    <PackageReference Include="Misaki.HighPerformance" Version="1.0.7" />
     <PackageReference Include="Misaki.HighPerformance.Jobs" Version="1.5.8" />
-    <PackageReference Include="Misaki.HighPerformance.LowLevel" Version="1.6.9">
+    <PackageReference Include="Misaki.HighPerformance.LowLevel" Version="1.6.10">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

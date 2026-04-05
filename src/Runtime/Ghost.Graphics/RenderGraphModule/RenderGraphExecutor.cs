@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.Mathematics;
 using System.Diagnostics;
 using TerraFX.Interop.Windows;
 
@@ -11,8 +12,6 @@ internal sealed class RenderGraphExecutor
     private readonly IResourceDatabase _resourceDatabase;
     private readonly RenderGraphResourceRegistry _resources;
     private readonly RenderGraphContext _context;
-
-    private uint _frameIndex;
 
     public RenderGraphExecutor(
         ResourceManager resourceManager,
@@ -89,7 +88,7 @@ internal sealed class RenderGraphExecutor
         var nativePassIndex = 0;
         var logicalPassIndex = 0;
 
-        _context.BeginNewFrame(_frameIndex++, commandBuffer);
+        _context.BeginNewFrame(commandBuffer);
 
         var pPassRTDescs = stackalloc PassRenderTargetDesc[8];
         var pRtFormats = stackalloc TextureFormat[8];
@@ -218,10 +217,10 @@ internal sealed class RenderGraphExecutor
 
         // Process all pre-compiled barriers for this pass
         // TODO: We can insert BarrierAccess.NoAccess to the resource that aliased with others after their last usage to reduce cache burden.
-        while (barrierIndex < compiledBarriers.Count && compiledBarriers[barrierIndex].PassIndex == passIndex)
+        while (barrierIndex < compiledBarriers.Count && compiledBarriers[barrierIndex].passIndex == passIndex)
         {
             var compiledBarrier = compiledBarriers[barrierIndex++];
-            var resource = _resources.GetResource(compiledBarrier.Resource);
+            var resource = _resources.GetResource(compiledBarrier.resource);
             var resourceHandle = resource.backingResource;
 
             // Always query the before state from ResourceManager (single source of truth)
@@ -232,21 +231,21 @@ internal sealed class RenderGraphExecutor
             }
 
             var currentState = currentStateResult.Value;
-            var target = compiledBarrier.TargetState;
+            var target = compiledBarrier.targetState;
 
             // Create barrier descriptor
             BarrierDesc desc;
-            if (compiledBarrier.ResourceType == RenderGraphResourceType.Texture)
+            if (compiledBarrier.resourceType == RenderGraphResourceType.Texture)
             {
                 desc = BarrierDesc.Texture(resourceHandle, target.sync, target.access, target.layout,
-                    discard: compiledBarrier.Flags.HasFlag(BarrierFlags.Discard));
+                    discard: compiledBarrier.flags.HasFlag(BarrierFlags.Discard));
             }
             else
             {
                 desc = BarrierDesc.Buffer(resourceHandle, target.sync, target.access);
             }
 
-            if (compiledBarrier.AliasingPredecessor.IsValid)
+            if (compiledBarrier.aliasingPredecessor.IsValid)
             {
                 desc.IsAliasing = true;
             }

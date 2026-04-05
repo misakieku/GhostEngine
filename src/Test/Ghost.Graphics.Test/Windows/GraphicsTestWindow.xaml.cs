@@ -35,14 +35,7 @@ public sealed partial class GraphicsTestWindow : Window
         Panel.SizeChanged += SwapChainPanel_SizeChanged;
         Panel.CompositionScaleChanged += SwapChainPanel_CompositionScaleChanged;
 
-        var opts = new AllocationManagerInitOpts
-        {
-            ArenaCapacity = 1024 * 1024 * 1024, // 1GB
-            StackCapacity = 1024 * 1024 * 32, // 32MB
-            FreeListConcurrencyLevel = Environment.ProcessorCount,
-        };
-
-        AllocationManager.Initialize(opts);
+        AllocationManager.Initialize(AllocationManagerInitOpts.Default);
 
         //_jobScheduler = new JobScheduler(Environment.ProcessorCount - 1);
     }
@@ -90,7 +83,7 @@ public sealed partial class GraphicsTestWindow : Window
         // Create Camera Entity
 
         using var scope = AllocationManager.CreateStackScope();
-        var camSet = new ComponentSet(scope.AllocationHandle, ComponentTypeID<Camera>.Value, ComponentTypeID<LocalToWorld>.Value);
+        using var camSet = new ComponentSet(scope.AllocationHandle, ComponentTypeID<Camera>.Value, ComponentTypeID<LocalToWorld>.Value);
         var cameraEntity = _world.EntityManager.CreateEntity(camSet);
 
         _world.EntityManager.SetComponent(cameraEntity, new Camera
@@ -126,12 +119,10 @@ public sealed partial class GraphicsTestWindow : Window
 
         directCmd.End().ThrowIfFailed();
 
-        // FIX: This will bump the complete value of the queue and cause the render thread render the first frame twice, which is not expected. We should have a better way to handle this.
-        // Maybe a async upload support in the future?
+        // Maybe async upload support in the future?
         _renderSystem.GraphicsEngine.Device.GraphicsQueue.Submit(directCmd);
-        _renderSystem.GraphicsEngine.Device.GraphicsQueue.WaitIdle();
 
-        var meshSet = new ComponentSet(scope.AllocationHandle, ComponentTypeID<MeshInstance>.Value, ComponentTypeID<LocalToWorld>.Value);
+        using var meshSet = new ComponentSet(scope.AllocationHandle, ComponentTypeID<MeshInstance>.Value, ComponentTypeID<LocalToWorld>.Value);
         var meshEntity = _world.EntityManager.CreateEntity(meshSet);
         _world.EntityManager.SetComponent(meshEntity, new MeshInstance
         {
@@ -208,7 +199,6 @@ public sealed partial class GraphicsTestWindow : Window
 
         if (_renderSystem.TryAcquireCPUFrame())
         {
-            Debug.WriteLine($"CPU: Frame started.");
             _world.SystemManager.UpdateAll(default);
             _renderSystem.SignalCPUReady();
         }

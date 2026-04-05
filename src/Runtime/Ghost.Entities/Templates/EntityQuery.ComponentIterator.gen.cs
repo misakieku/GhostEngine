@@ -152,6 +152,7 @@ public unsafe partial struct EntityQuery
 
             public readonly void Dispose()
             {
+                _changedComponentIDs.Dispose();
                 _scope.Dispose();
             }
         }
@@ -354,6 +355,7 @@ public unsafe partial struct EntityQuery
 
             public readonly void Dispose()
             {
+                _changedComponentIDs.Dispose();
                 _scope.Dispose();
             }
         }
@@ -566,6 +568,7 @@ public unsafe partial struct EntityQuery
 
             public readonly void Dispose()
             {
+                _changedComponentIDs.Dispose();
                 _scope.Dispose();
             }
         }
@@ -788,6 +791,7 @@ public unsafe partial struct EntityQuery
 
             public readonly void Dispose()
             {
+                _changedComponentIDs.Dispose();
                 _scope.Dispose();
             }
         }
@@ -1020,6 +1024,7 @@ public unsafe partial struct EntityQuery
 
             public readonly void Dispose()
             {
+                _changedComponentIDs.Dispose();
                 _scope.Dispose();
             }
         }
@@ -1262,6 +1267,7 @@ public unsafe partial struct EntityQuery
 
             public readonly void Dispose()
             {
+                _changedComponentIDs.Dispose();
                 _scope.Dispose();
             }
         }
@@ -1514,6 +1520,7 @@ public unsafe partial struct EntityQuery
 
             public readonly void Dispose()
             {
+                _changedComponentIDs.Dispose();
                 _scope.Dispose();
             }
         }
@@ -1776,6 +1783,7 @@ public unsafe partial struct EntityQuery
 
             public readonly void Dispose()
             {
+                _changedComponentIDs.Dispose();
                 _scope.Dispose();
             }
         }

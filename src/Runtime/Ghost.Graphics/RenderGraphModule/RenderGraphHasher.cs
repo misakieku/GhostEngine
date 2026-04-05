@@ -5,7 +5,7 @@ using System.IO.Hashing;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
-internal static class RenderGraphHasher
+internal static unsafe class RenderGraphHasher
 {
     /// <summary>
     /// Computes a hash of the entire render graph structure.
@@ -14,7 +14,7 @@ internal static class RenderGraphHasher
     public static ulong ComputeGraphHash(List<RenderGraphPassBase> passes, RenderGraphResourceRegistry resources)
     {
         using var scope = AllocationManager.CreateStackScope();
-        var writer = new BufferWriter(2048, scope.AllocationHandle);
+        using var writer = new BufferWriter(2048, scope.AllocationHandle);
 
         // Hash pass count
         writer.Write(passes.Count);
@@ -29,14 +29,14 @@ internal static class RenderGraphHasher
             writer.Write(pass.asyncCompute);
 
             // Hash depth attachment
-            ComputeTextureHash(ref writer, pass.depthAccess.id, resources);
+            ComputeTextureHash(&writer, pass.depthAccess.id, resources);
 
             writer.Write(pass.depthAccess.accessFlags);
             writer.Write(pass.maxColorIndex);
 
             for (var j = 0; j <= pass.maxColorIndex; j++)
             {
-                ComputeTextureHash(ref writer, pass.colorAccess[j].id, resources);
+                ComputeTextureHash(&writer, pass.colorAccess[j].id, resources);
                 writer.Write(pass.colorAccess[j].accessFlags);
             }
 
@@ -82,7 +82,7 @@ internal static class RenderGraphHasher
     /// For imported textures, hashes the backing handle.
     /// For transient textures, hashes the descriptor (respecting size mode).
     /// </summary>
-    private static void ComputeTextureHash(ref BufferWriter writer, Identifier<RGTexture> texture, RenderGraphResourceRegistry resources)
+    private static void ComputeTextureHash(BufferWriter* writer, Identifier<RGTexture> texture, RenderGraphResourceRegistry resources)
     {
         if (texture.IsInvalid)
         {
@@ -92,39 +92,39 @@ internal static class RenderGraphHasher
         var resource = resources.GetResource(texture.AsResource());
 
         // Hash imported flag
-        writer.Write(resource.isImported);
+        writer->Write(resource.isImported);
 
         // For imported textures, hash the backing heap handle
         if (resource.isImported)
         {
-            writer.Write(resource.backingResource.GetHashCode());
+            writer->Write(resource.backingResource.GetHashCode());
             return;
         }
 
         var desc = resource.rgTextureDesc;
 
-        writer.Write(desc.format);
-        writer.Write(desc.sizeMode);
+        writer->Write(desc.format);
+        writer->Write(desc.sizeMode);
 
         // Hash size specification based on mode
         if (desc.sizeMode == RGTextureSizeMode.Absolute)
         {
             // Absolute mode: hash actual dimensions
-            writer.Write(desc.width);
-            writer.Write(desc.height);
+            writer->Write(desc.width);
+            writer->Write(desc.height);
         }
         else
         {
             // Relative mode: hash scale factors (NOT resolved dimensions)
-            writer.Write(desc.scaleX);
-            writer.Write(desc.scaleY);
+            writer->Write(desc.scaleX);
+            writer->Write(desc.scaleY);
         }
 
         // Hash other structural properties
-        writer.Write(desc.dimension);
-        writer.Write(desc.mipLevels);
-        writer.Write(desc.usage);
-        writer.Write(desc.clearAtFirstUse);
-        writer.Write(desc.discardAtLastUse);
+        writer->Write(desc.dimension);
+        writer->Write(desc.mipLevels);
+        writer->Write(desc.usage);
+        writer->Write(desc.clearAtFirstUse);
+        writer->Write(desc.discardAtLastUse);
     }
 }

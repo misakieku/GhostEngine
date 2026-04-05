@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Misaki.HighPerformance.Jobs;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities;
@@ -213,6 +214,19 @@ public partial class World : IDisposable, IEquatable<World>
         }
 
         throw new InvalidOperationException($"Resource of type {typeof(T).FullName} has not been registered in the World.");
+    }
+
+    public bool TryGetService<T>([MaybeNullWhen(false)]out T resource)
+        where T : class
+    {
+        if (_services.TryGetValue(typeof(T), out var obj))
+        {
+            resource = (T)obj;
+            return true;
+        }
+
+        resource = null;
+        return false;
     }
 
     /// <summary>

@@ -47,8 +47,6 @@ public sealed partial class ResourceManager : IDisposable
         _shaders = new UnsafeList<Shader>(16, Allocator.Persistent);
 
         _materialPalettes = new MaterialPaletteStore();
-    
-        InitializePool();
     }
 
     ~ResourceManager()
@@ -65,9 +63,6 @@ public sealed partial class ResourceManager : IDisposable
     internal void EndFrame(ulong completedFrame)
     {
         Debug.Assert(!_disposed);
-
-        //_submittedFrame = submittedFrame;
-
         EndFramePool(completedFrame);
     }
 

@@ -682,6 +682,14 @@ public ref partial struct QueryBuilder : IDisposable
 
     public readonly void Dispose()
     {
+        _all.Dispose();
+        _any.Dispose();
+        _absent.Dispose();
+        _none.Dispose();
+        _disabled.Dispose();
+        _present.Dispose();
+        _rw.Dispose();
+
         _scope.Dispose();
     }
 }

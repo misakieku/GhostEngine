@@ -18,31 +18,37 @@ public readonly struct Result
         _message = message;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Result Success()
     {
         return new Result(true);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Result Failure(string? message = null)
     {
         return new Result(false, message);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Result Failure(Error status)
     {
         return new Result(false, status.ToString());
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Result<T> Success<T>(T value)
     {
         return Result<T>.Success(value);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Result<T> Failure<T>(string? message = null)
     {
         return Result<T>.Failure(message);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Result<T> Failure<T>(Error status)
     {
         return Result<T>.Failure(status.ToString());
@@ -69,6 +75,7 @@ public readonly struct Result<T>
     /// </summary>
     public T Value
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
 #if DEBUG || GHOST_EDITOR
@@ -92,11 +99,13 @@ public readonly struct Result<T>
         _message = message;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Result<T> Success(T value)
     {
         return new Result<T>(true, value);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Result<T> Failure(string? message = null)
     {
         return new Result<T>(false, default!, message);
@@ -144,6 +153,7 @@ public readonly struct Result<T, E>
     /// </summary>
     public T Value
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
 #if DEBUG || GHOST_EDITOR
@@ -166,11 +176,13 @@ public readonly struct Result<T, E>
         _error = status;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Result<T, E> Success(T value)
     {
         return new Result<T, E>(value, default);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Result<T, E> Failure(E status)
     {
         return new Result<T, E>(default!, status);
@@ -200,6 +212,7 @@ public readonly ref struct RefResult<T, E>
     /// </summary>
     public ref T Value
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
 #if DEBUG || GHOST_EDITOR
@@ -222,11 +235,13 @@ public readonly ref struct RefResult<T, E>
         _error = error;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static RefResult<T, E> Success(ref T value)
     {
         return new RefResult<T, E>(ref value, default);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static RefResult<T, E> Failure(E error)
     {
         return new RefResult<T, E>(ref Unsafe.NullRef<T>(), error);

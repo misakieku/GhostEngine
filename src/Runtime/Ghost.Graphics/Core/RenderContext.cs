@@ -79,19 +79,12 @@ public readonly unsafe ref struct RenderContext
                 throw new OutOfMemoryException("Failed to create upload buffer for buffer data.");
             }
 
-            try
+            fixed (T* pData = data)
             {
-                fixed (T* pData = data)
-                {
-                    ResourceDatabase.MapResource(uploadHandle.AsResource(), 0, null, null, pData, sizeInBytes);
-                }
+                ResourceDatabase.MapResource(uploadHandle.AsResource(), 0, null, null, pData, sizeInBytes);
+            }
 
-                _cmd.CopyBuffer(buffer, uploadHandle, 0, 0, sizeInBytes);
-            }
-            finally
-            {
-                ResourceDatabase.ReleaseResource(uploadHandle.AsResource());
-            }
+            _cmd.CopyBuffer(buffer, uploadHandle, 0, 0, sizeInBytes);
         }
     }
 
@@ -280,25 +273,18 @@ public readonly unsafe ref struct RenderContext
             throw new OutOfMemoryException("Failed to create upload buffer for texture data.");
         }
 
-        try
-        {
-            TransitionBarrier(texture.AsResource(), true, BarrierLayout.CopyDest, BarrierAccess.CopyDest, BarrierSync.Copy);
+        TransitionBarrier(texture.AsResource(), true, BarrierLayout.CopyDest, BarrierAccess.CopyDest, BarrierSync.Copy);
 
-            fixed (T* pData = data)
+        fixed (T* pData = data)
+        {
+            var subresourceData = new SubResourceData
             {
-                var subresourceData = new SubResourceData
-                {
-                    pData = pData,
-                    rowPitch = rowPitch,
-                    slicePitch = slicePitch
-                };
+                pData = pData,
+                rowPitch = rowPitch,
+                slicePitch = slicePitch
+            };
 
-                _cmd.UpdateSubResources(texture.AsResource(), uploadHandle.AsResource(), subresourceData);
-            }
-        }
-        finally
-        {
-            ResourceDatabase.ReleaseResource(uploadHandle.AsResource());
+            _cmd.UpdateSubResources(texture.AsResource(), uploadHandle.AsResource(), subresourceData);
         }
     }
 }

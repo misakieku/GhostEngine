@@ -106,7 +106,6 @@ public class RenderSystem : IDisposable
     private uint _frameIndex;
     private ulong _cpuFenceValue;
     private ulong _submittedFenceValue;
-    private ulong _completedFenceValue;
 
     private bool _isRunning;
     private bool _disposed;
@@ -119,7 +118,6 @@ public class RenderSystem : IDisposable
 
     public ulong CPUFenceValue => _cpuFenceValue;
     public ulong SubmittedFenceValue => _submittedFenceValue;
-    public ulong CompletedFenceValue => _completedFenceValue;
     public uint FrameIndex => _frameIndex;
     public uint MaxFrameLatency => _config.FrameBufferCount;
 
@@ -260,20 +258,18 @@ public class RenderSystem : IDisposable
                     }
                 }
             }
-            
-            _completedFenceValue = _graphicsEngine.Device.GraphicsQueue.GetCompletedValue();
-            if (_submittedFenceValue < _completedFenceValue)
-            {
-                _submittedFenceValue = _completedFenceValue;
-            }
 
-            var nextFenceValue = _submittedFenceValue + 1;
+            var completedFenceValue = _graphicsEngine.Device.GraphicsQueue.GetCompletedValue();
+            if (_submittedFenceValue < completedFenceValue)
+            {
+                _submittedFenceValue = completedFenceValue;
+            }
 
             // Begin rendering for this frame
             frameResource.CommandAllocator.Reset();
 
-            _resourceManager.BeginFrame(nextFenceValue);
-            var r = _graphicsEngine.BeginFrame(nextFenceValue);
+            _resourceManager.BeginFrame(_submittedFenceValue);
+            var r = _graphicsEngine.BeginFrame(_submittedFenceValue);
 
             if (r.IsFailure)
             {
@@ -282,7 +278,7 @@ public class RenderSystem : IDisposable
             }
 
             // Start recording commands
-            Debug.WriteLine($"GPU: Frame started.");
+
             // TODO: How can we support async compute and async copy?
             var cmd = _graphicsEngine.GetPooledCommandBuffer(CommandBufferType.Graphics);
             ref var renderRequests = ref frameResource.RenderRequests;
@@ -319,15 +315,15 @@ public class RenderSystem : IDisposable
                 renderRequests.Clear();
             }
 
-            _submittedFenceValue = nextFenceValue;
-            frameResource.FenceValue = _graphicsEngine.Device.GraphicsQueue.Signal(nextFenceValue);
+            _submittedFenceValue++;
+            frameResource.FenceValue = _graphicsEngine.Device.GraphicsQueue.Signal(_submittedFenceValue);
             frameResource.GpuReadyEvent.Set();
 
-            _completedFenceValue = _graphicsEngine.Device.GraphicsQueue.GetCompletedValue();
+            completedFenceValue = _graphicsEngine.Device.GraphicsQueue.GetCompletedValue();
 
             // End the frame and retire resources based on the freshest observed GPU progress.
-            _resourceManager.EndFrame(_completedFenceValue);
-            r = _graphicsEngine.EndFrame(_completedFenceValue);
+            _resourceManager.EndFrame(completedFenceValue);
+            r = _graphicsEngine.EndFrame(completedFenceValue);
 
             if (r.IsFailure)
             {
@@ -387,7 +383,9 @@ public class RenderSystem : IDisposable
 
     internal bool TryAcquireCPUFrame()
     {
-        ulong requiredGpuFence = _cpuFenceValue < _config.FrameBufferCount ? 0 : _cpuFenceValue - _config.FrameBufferCount + 1;
+        Debug.Assert(!_disposed, "Cannot acquire CPU frame on a disposed RenderSystem.");
+
+        var requiredGpuFence = _cpuFenceValue < _config.FrameBufferCount ? 0 : _cpuFenceValue - _config.FrameBufferCount + 1;
 
         if (requiredGpuFence > 0 && _graphicsEngine.Device.GraphicsQueue.GetCompletedValue() < requiredGpuFence)
         {
@@ -460,9 +458,9 @@ public class RenderSystem : IDisposable
         _renderPipeline.Dispose();
 
         _resourceManager.Dispose();
-        _graphicsEngine.Dispose();
-
         _swapChainManager.Dispose();
+        
+        _graphicsEngine.Dispose();
 
         _shutdownEvent.Dispose();
 
