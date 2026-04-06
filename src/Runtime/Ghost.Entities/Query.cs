@@ -90,11 +90,11 @@ public readonly unsafe ref struct ChunkView
     private readonly ReadOnlyUnsafeCollection<Archetype.ComponentMemoryLayout> _layouts;
     private readonly ReadOnlyUnsafeCollection<int> _layoutIndexLookup;
     private readonly byte* _pChunkData;
-    private readonly int* _pVersion;
+    private readonly uint* _pVersion;
     private readonly int _entityOffset;
     private readonly int _entityCount;
-    private readonly int _structuralVersion;
-    private readonly int _currentVersion;
+    private readonly uint _structuralVersion;
+    private readonly uint _currentVersion;
 
     public readonly int EntityCount => _entityCount;
 
@@ -168,7 +168,7 @@ public readonly unsafe ref struct ChunkView
     /// <param name="id">The identifier of the component for which to retrieve the version number. Must reference a valid component.</param>
     /// <returns>The version number of the specified component.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly int GetComponentVersion(Identifier<IComponent> id)
+    public readonly uint GetComponentVersion(Identifier<IComponent> id)
     {
         return _pVersion[id];
     }
@@ -179,7 +179,7 @@ public readonly unsafe ref struct ChunkView
     /// <typeparam name="T">The component space for which to retrieve the version. Must be an unmanaged space that implements <see cref="IComponent"/>.</typeparam>
     /// <returns>The version number of the component space <typeparamref name="T"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly int GetComponentVersion<T>()
+    public readonly uint GetComponentVersion<T>()
         where T : unmanaged, IComponent
     {
         return _pVersion[ComponentTypeID<T>.Value];

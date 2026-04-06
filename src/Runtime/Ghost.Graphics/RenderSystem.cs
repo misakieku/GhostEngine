@@ -43,8 +43,6 @@ public class RenderSystem : IDisposable
 {
     private struct FrameResource : IDisposable
     {
-        private UnsafeList<RenderRequest> _renderRequests;
-
         public required AutoResetEvent CpuReadyEvent
         {
             get; init;
@@ -65,26 +63,11 @@ public class RenderSystem : IDisposable
             get; set;
         }
 
-        public bool CpuWriteOpen
-        {
-            get; set;
-        }
-
-        [UnscopedRef]
-        public ref UnsafeList<RenderRequest> RenderRequests => ref _renderRequests;
-
-        public void Dispose()
+        public readonly void Dispose()
         {
             CpuReadyEvent.Dispose();
             GpuReadyEvent.Dispose();
             CommandAllocator.Dispose();
-
-            for (var i = 0; i < _renderRequests.Count; i++)
-            {
-                _renderRequests[i].Dispose();
-            }
-
-            _renderRequests.Dispose();
         }
     }
 
@@ -102,8 +85,8 @@ public class RenderSystem : IDisposable
 
     private IRenderPipelineSettings _renderPipelineSettings;
     private IRenderPipeline _renderPipeline;
+    private IRenderPayload _renderPayload;
 
-    private uint _frameIndex;
     private ulong _cpuFenceValue;
     private ulong _submittedFenceValue;
 
@@ -118,9 +101,10 @@ public class RenderSystem : IDisposable
 
     public ulong CPUFenceValue => _cpuFenceValue;
     public ulong SubmittedFenceValue => _submittedFenceValue;
-    public uint FrameIndex => _frameIndex;
+
     public uint MaxFrameLatency => _config.FrameBufferCount;
 
+    public IRenderPayload RenderPayload => _renderPayload;
     public IRenderPipelineSettings RenderPipelineSettings
     {
         get => _renderPipelineSettings;
@@ -135,8 +119,10 @@ public class RenderSystem : IDisposable
             }
 
             _renderPipeline?.Dispose();
+            _renderPayload?.Dispose();
+
             _renderPipelineSettings = value;
-            _renderPipeline = _renderPipelineSettings.CreatePipeline(this);
+            _renderPipelineSettings.CreatePipeline(this, out _renderPipeline, out _renderPayload);
         }
     }
 
@@ -180,7 +166,6 @@ public class RenderSystem : IDisposable
                 CpuReadyEvent = new AutoResetEvent(false),
                 GpuReadyEvent = new AutoResetEvent(true),
                 CommandAllocator = _graphicsEngine.CreateCommandAllocator(CommandBufferType.Graphics),
-                RenderRequests = new UnsafeList<RenderRequest>(2, Allocator.Persistent)
             };
         }
 
@@ -195,7 +180,7 @@ public class RenderSystem : IDisposable
         _resizeRequest = new ConcurrentDictionary<ISwapChain, uint2>();
 
         _renderPipelineSettings = _config.InitialRenderPipelineSettings ?? new GhostRenderPipelineSettings();
-        _renderPipeline = _renderPipelineSettings.CreatePipeline(this);
+        _renderPipelineSettings.CreatePipeline(this, out _renderPipeline, out _renderPayload);
 
         _isRunning = false;
         _disposed = false;
@@ -225,8 +210,8 @@ public class RenderSystem : IDisposable
         {
             try
             {
-                _frameIndex = (uint)(_submittedFenceValue % _config.FrameBufferCount);
-                ref var frameResource = ref _frameResources[_frameIndex];
+                var frameIndex = (int)(_submittedFenceValue % _config.FrameBufferCount);
+                ref var frameResource = ref _frameResources[frameIndex];
 
                 // Wait for either CPU ready signal or shutdown signal
                 waitHandles[0] = frameResource.CpuReadyEvent;
@@ -276,15 +261,14 @@ public class RenderSystem : IDisposable
 
                 // TODO: How can we support async compute and async copy?
                 var cmd = _graphicsEngine.GetPooledCommandBuffer(CommandBufferType.Graphics);
-                ref var renderRequests = ref frameResource.RenderRequests;
 
                 try
                 {
                     cmd.Begin(frameResource.CommandAllocator);
 
-                    var renderCtx = new RenderContext(_graphicsEngine, _resourceManager, cmd);
+                    var ctx = new RenderContext(_graphicsEngine, _resourceManager, cmd);
 
-                    _renderPipeline.Render(renderCtx, renderRequests.AsSpan());
+                    _renderPipeline.Render(ctx, frameIndex, _renderPayload);
                     _swapChainManager.TransitionToPresent(cmd);
 
                     // End recording commands and submit
@@ -301,13 +285,6 @@ public class RenderSystem : IDisposable
                 finally
                 {
                     _graphicsEngine.ReturnPooledCommandBuffer(cmd);
-
-                    for (var i = 0; i < renderRequests.Count; i++)
-                    {
-                        renderRequests[i].Dispose();
-                    }
-
-                    renderRequests.Clear();
                 }
 
                 _submittedFenceValue++;
@@ -361,9 +338,6 @@ public class RenderSystem : IDisposable
         var eventIndex = (int)(_cpuFenceValue % _config.FrameBufferCount);
         ref var frameResource = ref _frameResources[eventIndex];
 
-        Debug.Assert(frameResource.CpuWriteOpen, "SignalCPUReady called without a matching successful TryAcquireCPUFrame.");
-        frameResource.CpuWriteOpen = false;
-
         frameResource.CpuReadyEvent.Set();
         _cpuFenceValue++;
     }
@@ -388,23 +362,7 @@ public class RenderSystem : IDisposable
         var eventIndex = (int)(_cpuFenceValue % _config.FrameBufferCount);
         ref var frameResource = ref _frameResources[eventIndex];
 
-        Debug.Assert(!frameResource.CpuWriteOpen, "TryAcquireCPUFrame called while the previous CPU frame is still open. Call SignalCPUReady first.");
-
-        frameResource.CpuWriteOpen = true;
-        frameResource.RenderRequests.Clear();
-
         return true;
-    }
-
-    public void AddRenderRequest(in RenderRequest request)
-    {
-        Debug.Assert(!_disposed, "Cannot add render request to a disposed RenderSystem.");
-
-        var frameIndex = (int)(_cpuFenceValue % _config.FrameBufferCount);
-        ref var frameResource = ref _frameResources[frameIndex];
-
-        Debug.Assert(frameResource.CpuWriteOpen, "AddRenderRequest requires a successful TryAcquireCPUFrame and must happen before SignalCPUReady.");
-        frameResource.RenderRequests.Add(request);
     }
 
     public bool WaitForGPUReady(int timeOut = -1)

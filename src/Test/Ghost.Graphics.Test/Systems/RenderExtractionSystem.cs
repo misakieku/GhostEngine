@@ -1,12 +1,13 @@
 using Ghost.Core;
+using Ghost.Engine;
 using Ghost.Engine.Components;
 using Ghost.Entities;
-using Ghost.Graphics;
 using Ghost.Graphics.Core;
+using Ghost.Graphics.Test.RenderPipeline;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
 
-namespace Ghost.Engine.Systems;
+namespace Ghost.Graphics.Test.Systems;
 
 public class RenderExtractionSystem : ISystem
 {
@@ -32,7 +33,7 @@ public class RenderExtractionSystem : ISystem
             .Build(systemAPI.World, true);
     }
 
-    public unsafe void Update(ref readonly SystemAPI systemAPI)
+    public void Update(ref readonly SystemAPI systemAPI)
     {
         if (_meshQueryID.IsInvalid)
         {
@@ -52,7 +53,7 @@ public class RenderExtractionSystem : ISystem
             var transparentRenderList = new RenderList(1, 64, Allocator.FreeList);
             var shadowCasterRenderList = new RenderList(1, 64, Allocator.FreeList);
 
-            // TODO: This chould be done in parallel jobs.
+            // TODO: This chould be done in earallel jobs.
             foreach (var chunk in meshQuery.GetChunkIterator())
             {
                 var meshInstances = chunk.GetComponentData<MeshInstance>();
@@ -111,7 +112,6 @@ public class RenderExtractionSystem : ISystem
                 opaqueRenderList = renderList,
                 shadowCasterRenderList = shadowCasterRenderList,
                 transparentRenderList = transparentRenderList,
-                renderFunc = camRef.renderFunc,
                 view = new RenderView
                 {
                     localToWorld = camLtwRef.matrix,
@@ -135,7 +135,7 @@ public class RenderExtractionSystem : ISystem
                 },
             };
 
-            _renderSystem.AddRenderRequest(request);
+            ((TestRenderPayload)_renderSystem.RenderPayload).AddRenderRequest(request);
         }
     }
 

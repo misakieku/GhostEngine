@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Diagnostics;
 
 namespace Ghost.Graphics.Utilities;
@@ -24,7 +25,9 @@ public static unsafe class RenderingUtility
         {
             fixed (T* pData = data)
             {
-                resourceDatabase.MapResource(buffer.AsResource(), 0, null, null, pData, sizeInBytes);
+                var mappedData = resourceDatabase.MapResource(buffer.AsResource(), 0, null);
+                MemoryUtility.MemCpy(mappedData, pData, sizeInBytes);
+                resourceDatabase.UnmapResource(buffer.AsResource(), 0, null);
             }
         }
         else
@@ -44,7 +47,9 @@ public static unsafe class RenderingUtility
 
             fixed (T* pData = data)
             {
-                resourceDatabase.MapResource(uploadHandle.AsResource(), 0, null, null, pData, sizeInBytes);
+                var mappedData = resourceDatabase.MapResource(uploadHandle.AsResource(), 0, null);
+                MemoryUtility.MemCpy(mappedData, pData, sizeInBytes);
+                resourceDatabase.UnmapResource(uploadHandle.AsResource(), 0, null);
             }
 
             cmd.CopyBuffer(buffer, uploadHandle, 0, 0, sizeInBytes);

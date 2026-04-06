@@ -8,6 +8,7 @@ namespace Ghost.Entities;
 
 public interface IComponent;
 public interface IEnableableComponent : IComponent;
+public interface ICleanupComponent : IComponent;
 
 [AttributeUsage(AttributeTargets.Struct)]
 public class RequireComponentAttribute<T> : Attribute
@@ -24,6 +25,7 @@ internal struct ComponentInfo
     public int alignment;
     public bool isEnableable;
     public bool isSharedWarper;
+    public bool isCleanup;
 }
 
 /// <summary>
@@ -69,6 +71,7 @@ internal static class ComponentRegistry
                 alignment = (int)MemoryUtility.AlignOf<T>(),
                 isEnableable = typeof(IEnableableComponent).IsAssignableFrom(type),
                 isSharedWarper = typeof(ISharedWarper).IsAssignableFrom(type),
+                isCleanup = typeof(ICleanupComponent).IsAssignableFrom(type),
             };
 
             s_registeredComponents.Add(info);

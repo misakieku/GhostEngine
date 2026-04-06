@@ -1,16 +1,15 @@
-using Ghost.Core;
 using Ghost.Graphics.Core;
-using Ghost.Graphics.RHI;
-using System.Diagnostics;
 
 namespace Ghost.Graphics.RenderPipeline;
 
+public interface IRenderPayload : IDisposable;
+
 public interface IRenderPipelineSettings
 {
-    IRenderPipeline CreatePipeline(RenderSystem renderSystem);
+    void CreatePipeline(RenderSystem renderSystem, out IRenderPipeline renderPipeline, out IRenderPayload renderPayload);
 }
 
 public interface IRenderPipeline : IDisposable
 {
-    void Render(RenderContext ctx, ReadOnlySpan<RenderRequest> requests);
+    void Render(RenderContext ctx, int frameIndex, IRenderPayload payload);
 }

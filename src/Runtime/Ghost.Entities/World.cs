@@ -88,7 +88,7 @@ public partial class World : IDisposable, IEquatable<World>
 
     private readonly Dictionary<Type, object> _services;
 
-    private int _version;
+    private uint _version;
     private bool _disposed = false;
 
     /// <summary>
@@ -119,7 +119,7 @@ public partial class World : IDisposable, IEquatable<World>
     /// <summary>
     /// Gets the current version number of the world.
     /// </summary>
-    public int Version => Interlocked.CompareExchange(ref _version, 0, 0);
+    public uint Version => Interlocked.CompareExchange(ref _version, 0, 0);
 
     /// <summary>
     /// Gets the main entity command buffer for this world.
@@ -172,7 +172,7 @@ public partial class World : IDisposable, IEquatable<World>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal int AdvanceVersion()
+    internal uint AdvanceVersion()
     {
         return Interlocked.Increment(ref _version);
     }

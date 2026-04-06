@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Diagnostics;
 
 namespace Ghost.Graphics.Core;
@@ -61,7 +62,9 @@ public readonly unsafe ref struct RenderContext
         {
             fixed (T* pData = data)
             {
-                ResourceDatabase.MapResource(buffer.AsResource(), 0, null, null, pData, sizeInBytes);
+                var mappedData = _engine.ResourceDatabase.MapResource(buffer.AsResource(), 0, null);
+                MemoryUtility.MemCpy(mappedData, pData, sizeInBytes);
+                _engine.ResourceDatabase.UnmapResource(buffer.AsResource(), 0, null);
             }
         }
         else
@@ -81,7 +84,9 @@ public readonly unsafe ref struct RenderContext
 
             fixed (T* pData = data)
             {
-                ResourceDatabase.MapResource(uploadHandle.AsResource(), 0, null, null, pData, sizeInBytes);
+                var mappedData = _engine.ResourceDatabase.MapResource(uploadHandle.AsResource(), 0, null);
+                MemoryUtility.MemCpy(mappedData, pData, sizeInBytes);
+                _engine.ResourceDatabase.UnmapResource(uploadHandle.AsResource(), 0, null);
             }
 
             _cmd.CopyBuffer(buffer, uploadHandle, 0, 0, sizeInBytes);

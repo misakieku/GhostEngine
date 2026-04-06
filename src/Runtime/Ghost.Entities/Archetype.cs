@@ -109,10 +109,9 @@ internal unsafe struct Chunk : IDisposable
     public const int BIT_ALIGNMENT_MINUS_ONE = BIT_ALIGNMENT - 1;
 
     private UnsafeArray<byte> _data;
-    private UnsafeArray<int> _versions;
+    private UnsafeArray<uint> _versions;
 
-    // TODO: Add structual change versioning, similar to DidOrderChange in unity ecs.
-    internal int _structuralVersion;
+    internal uint _structuralVersion;
 
     internal int _count;
     internal readonly int _capacity;
@@ -123,10 +122,10 @@ internal unsafe struct Chunk : IDisposable
     internal int _archetypeID;
 #endif
 
-    public Chunk(int bufferSize, int capacity, int componentCount, int globalVersion)
+    public Chunk(int bufferSize, int capacity, int componentCount, uint globalVersion)
     {
         _data = new UnsafeArray<byte>(bufferSize, Allocator.Persistent, AllocationOption.Clear);
-        _versions = new UnsafeArray<int>(componentCount, Allocator.Persistent);
+        _versions = new UnsafeArray<uint>(componentCount, Allocator.Persistent);
         _capacity = capacity;
         _count = 0;
 
@@ -141,9 +140,9 @@ internal unsafe struct Chunk : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly int* GetVersionUnsafePtr()
+    public readonly uint* GetVersionUnsafePtr()
     {
-        return (int*)_versions.GetUnsafePtr();
+        return (uint*)_versions.GetUnsafePtr();
     }
 
     public void Dispose()
@@ -175,7 +174,6 @@ internal unsafe struct Archetype : IDisposable
     internal UnsafeArray<ComponentMemoryLayout> _layouts;
     internal UnsafeArray<int> _componentIDToLayoutIndex;
 
-    // TODO: Is hash map better?
     private UnsafeList<Edge> _edgesAdd;
     private UnsafeList<Edge> _edgesRemove;
 
@@ -186,6 +184,9 @@ internal unsafe struct Archetype : IDisposable
     private int _entityCapacity;
     private int _maxComponentID;
     private int _entityIdsOffset;
+
+    // -1 means no cleanup component, 0 means haven't computed yet (since 0 is the empty archetype), positive value means the archetype id of the cleanup edge.
+    internal int _cleanupEdge;
 
     public readonly Identifier<Archetype> ID => _id;
     public readonly Identifier<World> WorldID => _worldID;
@@ -235,10 +236,21 @@ internal unsafe struct Archetype : IDisposable
         var entityAlign = (int)MemoryUtility.AlignOf<Entity>();
 
         var components = (Span<ComponentInfo>)stackalloc ComponentInfo[componentIds.Length];
+
+        var cleanupCount = 0;
         for (var i = 0; i < componentIds.Length; i++)
         {
             _signature.SetBit(componentIds[i]);
             components[i] = ComponentRegistry.GetComponentInfo(componentIds[i]);
+            if (components[i].isCleanup)
+            {
+                cleanupCount++;
+            }
+        }
+
+        if (cleanupCount == 0)
+        {
+            _cleanupEdge = -1;
         }
 
         // Calculate total size per entity to get an initial capacity estimate
@@ -456,7 +468,7 @@ internal unsafe struct Archetype : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Error MarkChanged(int chunkIndex, int componentTypeId, int globalVersion)
+    public readonly Error MarkChanged(int chunkIndex, int componentTypeId, uint globalVersion)
     {
         var layoutResult = GetLayout(componentTypeId);
         if (layoutResult.IsFailure)
@@ -471,7 +483,7 @@ internal unsafe struct Archetype : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Result<int, Error> GetVersion(int chunkIndex, int componentTypeId)
+    public readonly Result<uint, Error> GetVersion(int chunkIndex, int componentTypeId)
     {
         var layoutResult = GetLayout(componentTypeId);
         if (layoutResult.Error != Error.None)

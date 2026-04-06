@@ -179,7 +179,7 @@ public struct RenderView
     public RenderingLayerMask renderingLayerMask;
 }
 
-public unsafe struct RenderRequest: IDisposable
+public struct RenderRequest: IDisposable
 {
     public RenderView view;
 
@@ -190,8 +190,6 @@ public unsafe struct RenderRequest: IDisposable
     public RenderList opaqueRenderList;
     public RenderList transparentRenderList;
     public RenderList shadowCasterRenderList;
-
-    public delegate*<ref readonly RenderContext, ref readonly RenderRequest, void> renderFunc;
 
     public void Dispose()
     {

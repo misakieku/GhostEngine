@@ -401,7 +401,24 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         return Error.None;
     }
 
-    public Error MapResource(Handle<GPUResource> handle, uint subResource, ResourceRange? readRange, ResourceRange? writeRange, void* pData, nuint size)
+    public void* MapResource(Handle<GPUResource> handle, uint subResource, ResourceRange? readRange)
+    {
+        var r = GetResourceRecord(handle);
+        if (r.IsFailure)
+        {
+            return null;
+        }
+
+        var resource = r.Value.ResourcePtr;
+        var rRange = readRange.HasValue ? new D3D12_RANGE { Begin = readRange.Value.Start, End = readRange.Value.End } : default;
+
+        void* mappedData = null;
+        resource.Get()->Map(subResource, readRange.HasValue ? &rRange : null, &mappedData);
+
+        return mappedData;
+    }
+
+    public Error UnmapResource(Handle<GPUResource> handle, uint subResource, ResourceRange? writtenRange)
     {
         var r = GetResourceRecord(handle);
         if (r.IsFailure)
@@ -410,14 +427,9 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         }
 
         var resource = r.Value.ResourcePtr;
+        var wRange = writtenRange.HasValue ? new D3D12_RANGE { Begin = writtenRange.Value.Start, End = writtenRange.Value.End } : default;
 
-        var rRange = readRange.HasValue ? new D3D12_RANGE { Begin = readRange.Value.Start, End = readRange.Value.End } : default;
-        var wRange = writeRange.HasValue ? new D3D12_RANGE { Begin = writeRange.Value.Start, End = writeRange.Value.End } : default;
-
-        void* mappedData = null;
-        resource.Get()->Map(subResource, readRange.HasValue ? &rRange : null, &mappedData);
-        MemoryUtility.MemCpy(mappedData, pData, size);
-        resource.Get()->Unmap(subResource, writeRange.HasValue ? &wRange : null);
+        resource.Get()->Unmap(subResource, writtenRange.HasValue ? &wRange : null);
 
         return Error.None;
     }

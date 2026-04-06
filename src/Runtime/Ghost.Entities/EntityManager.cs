@@ -85,6 +85,29 @@ public unsafe partial class EntityManager : IDisposable
         return Error.NotFound;
     }
 
+    private static void CopyData(ref Archetype oldArch, int oldChunk, int oldRow,
+                                 ref Archetype newArch, int newChunk, int newRow)
+    {
+        // Iterate every component space in the OLD archetype
+        for (var i = 0; i < oldArch._layouts.Count; i++)
+        {
+            var layout = oldArch._layouts[i];
+
+            var src = oldArch._chunks[oldChunk].GetUnsafePtr() + layout.offset + (layout.size * oldRow);
+            var r = newArch.GetLayout(layout.componentID);
+            if (r.Error != Error.None)
+            {
+                // New archetype does not have this component, skip it.
+                // This can happen when removing components.
+                continue;
+            }
+
+            var dst = newArch._chunks[newChunk].GetUnsafePtr() + r.Value.offset + (layout.size * newRow);
+
+            MemoryUtility.MemCpy(dst, src, (nuint)layout.size);
+        }
+    }
+
     /// <summary>
     /// Create an entity with no components.
     /// </summary>
@@ -227,29 +250,20 @@ public unsafe partial class EntityManager : IDisposable
         }
     }
 
-    private void DestoryManagedEntityIfExists(ref readonly Archetype archetype, EntityLocation location)
-    {
-        var pManagedRef = archetype.GetComponentData(location.chunkIndex, location.rowIndex, ComponentTypeID<ManagedEntityRef>.Value);
-        if (pManagedRef != null)
-        {
-            DestroyManagedEntity(((ManagedEntityRef*)pManagedRef)->entity);
-        }
-    }
+    // private void DestoryManagedEntityIfExists(ref readonly Archetype archetype, EntityLocation location)
+    // {
+    //     var pManagedRef = archetype.GetComponentData(location.chunkIndex, location.rowIndex, ComponentTypeID<ManagedEntityRef>.Value);
+    //     if (pManagedRef != null)
+    //     {
+    //         DestroyManagedEntity(((ManagedEntityRef*)pManagedRef)->entity);
+    //     }
+    // }
 
-    /// <summary>
-    /// Destroy the specified entity.
-    /// </summary>
-    /// <returns>The result status of the operation.</returns>
-    public Error DestroyEntity(Entity entity)
+    private Error DestroyEntity_Internal(Entity entity, EntityLocation location)
     {
-        if (!_entityLocations.TryGetElementAt(entity.ID, entity.Generation, out var location))
-        {
-            return Error.NotFound;
-        }
-
         ref var archetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
 
-        DestoryManagedEntityIfExists(in archetype, location);
+        // DestoryManagedEntityIfExists(in archetype, location);
         var r = archetype.RemoveEntity(location.chunkIndex, location.rowIndex);
         if (r != Error.None)
         {
@@ -265,26 +279,99 @@ public unsafe partial class EntityManager : IDisposable
     }
 
     /// <summary>
+    /// Destroy the specified entity.
+    /// </summary>
+    /// <returns>The result status of the operation.</returns>
+    public Error DestroyEntity(Entity entity)
+    {
+        if (!_entityLocations.TryGetElementAt(entity.ID, entity.Generation, out var location))
+        {
+            return Error.NotFound;
+        }
+
+        ref var archetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
+
+        if (archetype._cleanupEdge < 0)
+        {
+            return DestroyEntity_Internal(entity, location);
+        }
+        else
+        {
+            Identifier<Archetype> newArcID = default;
+            if (archetype._cleanupEdge == 0)
+            {
+                ref var signature = ref archetype._signature;
+
+                using var scope = AllocationManager.CreateStackScope();
+                using var newSignature = new UnsafeBitSet(signature.Count, scope.AllocationHandle);
+
+                var compCount = 0;
+                var it = signature.GetIterator();
+                while (it.Next(out var componentID))
+                {
+                    if (ComponentRegistry.GetComponentInfo(componentID).isCleanup)
+                    {
+                        newSignature.SetBit(componentID);
+                        compCount++;
+                    }
+                }
+
+                var newSignatureHash = newSignature.GetHashCode();
+                newArcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(newSignatureHash);
+                if (newArcID.IsInvalid)
+                {
+                    // Create new archetype
+                    Span<Identifier<IComponent>> componentTypeIDs = stackalloc Identifier<IComponent>[compCount];
+
+                    var newIt = newSignature.GetIterator();
+                    var i = 0;
+                    while (newIt.Next(out var index))
+                    {
+                        componentTypeIDs[i++] = index;
+                    }
+
+                    newArcID = _world.ComponentManager.CreateArchetype(componentTypeIDs, newSignatureHash);
+                }
+
+                archetype._cleanupEdge = newArcID;
+            }
+            else
+            {
+                newArcID = archetype._cleanupEdge;
+            }
+
+            ref var newArchetype = ref _world.ComponentManager.GetArchetypeReference(newArcID);
+            newArchetype.AllocateEntity(out var newChunkIndex, out var newRowIndex);
+            CopyData(ref archetype, location.chunkIndex, location.rowIndex,
+                    ref newArchetype, newChunkIndex, newRowIndex);
+
+            newArchetype.SetEntity(newChunkIndex, newRowIndex, entity);
+        }
+
+        return Error.None;
+    }
+
+    /// <summary>
     /// Destroy the specified entities.
     /// </summary>
     /// <param name="entities">The entities to destroy.</param>
     public void DestroyEntities(ReadOnlySpan<Entity> entities)
     {
-        void RemoveManagedEntity(ReadOnlySpan<int> rowIndicesCache, ref readonly Archetype archetype, int chunkIndex)
-        {
-            for (var j = 0; j < rowIndicesCache.Length; j++)
-            {
-                var rowIndex = rowIndicesCache[j];
-                var location = new EntityLocation
-                {
-                    archetypeID = archetype.ID,
-                    chunkIndex = chunkIndex,
-                    rowIndex = rowIndex
-                };
-
-                DestoryManagedEntityIfExists(in archetype, location);
-            }
-        }
+        // void RemoveManagedEntity(ReadOnlySpan<int> rowIndicesCache, ref readonly Archetype archetype, int chunkIndex)
+        // {
+        //     for (var j = 0; j < rowIndicesCache.Length; j++)
+        //     {
+        //         var rowIndex = rowIndicesCache[j];
+        //         var location = new EntityLocation
+        //         {
+        //             archetypeID = archetype.ID,
+        //             chunkIndex = chunkIndex,
+        //             rowIndex = rowIndex
+        //         };
+        //
+        //         DestoryManagedEntityIfExists(in archetype, location);
+        //     }
+        // }
 
         if (entities.Length == 0)
         {
@@ -292,8 +379,8 @@ public unsafe partial class EntityManager : IDisposable
         }
 
         using var scope = AllocationManager.CreateStackScope();
-        var batchDestroy = new UnsafeList<EntityLocation>(entities.Length, scope.AllocationHandle);
-        var rowIndicesCache = new UnsafeList<int>(32, scope.AllocationHandle);
+        using var batchDestroy = new UnsafeList<EntityLocation>(entities.Length, scope.AllocationHandle);
+        using var rowIndicesCache = new UnsafeList<int>(32, scope.AllocationHandle);
 
         // 1. GATHER
         // Resolve all entities to their locations
@@ -335,7 +422,9 @@ public unsafe partial class EntityManager : IDisposable
                 ref var prevArchetype = ref _world.ComponentManager.GetArchetypeReference(prevArchetypeID);
 
                 // Remove Managed Entities first
-                RemoveManagedEntity(rowIndicesCache.AsSpan(), in prevArchetype, prevChunkIndex);
+                // RemoveManagedEntity(rowIndicesCache.AsSpan(), in prevArchetype, prevChunkIndex);
+
+                // TODO: Handle ICleanupComponent here before we remove the entities from the archetype.
 
                 // Execute the hole-filling/swap logic
                 prevArchetype.RemoveEntities(prevChunkIndex, rowIndicesCache.AsSpan());
@@ -355,7 +444,7 @@ public unsafe partial class EntityManager : IDisposable
         {
             ref var lastArchetype = ref _world.ComponentManager.GetArchetypeReference(prevArchetypeID);
 
-            RemoveManagedEntity(rowIndicesCache.AsSpan(), in lastArchetype, prevChunkIndex);
+            // RemoveManagedEntity(rowIndicesCache.AsSpan(), in lastArchetype, prevChunkIndex);
             lastArchetype.RemoveEntities(prevChunkIndex, rowIndicesCache.AsSpan());
         }
 
@@ -468,29 +557,6 @@ public unsafe partial class EntityManager : IDisposable
     {
         var ptr = GetSingleton(ComponentTypeID<T>.Value);
         return ref *(T*)ptr; // This will return null ref if ptr is null.
-    }
-
-    private static void CopyData(ref Archetype oldArch, int oldChunk, int oldRow,
-                                 ref Archetype newArch, int newChunk, int newRow)
-    {
-        // Iterate every component space in the OLD archetype
-        for (var i = 0; i < oldArch._layouts.Count; i++)
-        {
-            var layout = oldArch._layouts[i];
-
-            var src = oldArch._chunks[oldChunk].GetUnsafePtr() + layout.offset + (layout.size * oldRow);
-            var r = newArch.GetLayout(layout.componentID);
-            if (r.Error != Error.None)
-            {
-                // New archetype does not have this component, skip it.
-                // This can happen when removing components.
-                continue;
-            }
-
-            var dst = newArch._chunks[newChunk].GetUnsafePtr() + r.Value.offset + (layout.size * newRow);
-
-            MemoryUtility.MemCpy(dst, src, (nuint)layout.size);
-        }
     }
 
     /// <summary>
@@ -640,6 +706,12 @@ public unsafe partial class EntityManager : IDisposable
                 }
             }
 
+            if (compCount == 0)
+            {
+                // If there is no component left, we destroy the entity directly.
+                return DestroyEntity_Internal(entity, location);
+            }
+
             // Find or create new archetype
             var newSignatureHash = newSignature.GetHashCode();
             newArcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(newSignatureHash);
@@ -676,11 +748,11 @@ public unsafe partial class EntityManager : IDisposable
             return r;
         }
 
-        var pManagedRef = oldArchetype.GetComponentData(location.chunkIndex, location.rowIndex, ComponentTypeID<ManagedEntityRef>.Value);
-        if (pManagedRef != null)
-        {
-            DestroyManagedEntity(((ManagedEntityRef*)pManagedRef)->entity);
-        }
+        // var pManagedRef = oldArchetype.GetComponentData(location.chunkIndex, location.rowIndex, ComponentTypeID<ManagedEntityRef>.Value);
+        // if (pManagedRef != null)
+        // {
+        //     DestroyManagedEntity(((ManagedEntityRef*)pManagedRef)->entity);
+        // }
 
         // Update location
         location.archetypeID = newArcID;
@@ -832,6 +904,8 @@ public unsafe partial class EntityManager : IDisposable
         {
             maskBase[byteIndex] &= (byte)~(1 << bitIndex);
         }
+
+        chunk.GetVersionUnsafePtr()[layoutResult.Value.versionIndex] = _world.Version;
 
         return Error.None;
     }

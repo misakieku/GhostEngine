@@ -8,15 +8,7 @@ using Misaki.HighPerformance.Mathematics;
 using Misaki.HighPerformance.Mathematics.Geometry;
 using Misaki.HighPerformance.Utilities;
 
-namespace Ghost.Graphics.Test.RenderPasses;
-
-public sealed class TestRenderPipelineSettings : IRenderPipelineSettings
-{
-    public IRenderPipeline CreatePipeline(RenderSystem renderSystem)
-    {
-        return new TestRenderPipeline(renderSystem);
-    }
-}
+namespace Ghost.Graphics.Test.RenderPipeline;
 
 public unsafe partial class TestRenderPipeline : IRenderPipeline
 {
@@ -29,8 +21,9 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
         public uint instanceIndex;
     }
 
-    private readonly RenderGraph _renderGraph;
     private readonly RenderSystem _renderSystem;
+
+    private readonly RenderGraph _renderGraph;
     private Identifier<Shader> _meshletShader;
     private Handle<Material> _meshletMaterial;
 
@@ -44,6 +37,7 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
     internal TestRenderPipeline(RenderSystem renderSystem)
     {
         _renderSystem = renderSystem;
+
         _renderGraph = new RenderGraph(renderSystem.ResourceManager,
                 renderSystem.GraphicsEngine.ResourceAllocator,
                 renderSystem.GraphicsEngine.ResourceDatabase,
@@ -106,12 +100,17 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
         return frustum;
     }
 
-    public void Render(RenderContext ctx, ReadOnlySpan<RenderRequest> requests)
+    public void Render(RenderContext ctx, int frameIndex, IRenderPayload payload)
     {
-        var resourceManager = _renderSystem.ResourceManager;
-        var resourceDatabase = _renderSystem.GraphicsEngine.ResourceDatabase;
+        var testPayload = (TestRenderPayload)payload;
 
-        for (var i = 0; i < requests.Length; i++)
+        var renderSystem = testPayload.RenderSystem;
+        var resourceManager = renderSystem.ResourceManager;
+        var resourceDatabase = renderSystem.GraphicsEngine.ResourceDatabase;
+
+        var requests = testPayload.FrameRequestData[frameIndex].renderRequests;
+
+        for (var i = 0; i < requests.Count; i++)
         {
             ref readonly var request = ref requests[i];
 
@@ -127,7 +126,7 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
             {
                 rt = request.colorTarget;
             }
-            else if (_renderSystem.SwapChainManager.TryGetSwapChain(request.swapChainIndex, out var swapChain))
+            else if (renderSystem.SwapChainManager.TryGetSwapChain(request.swapChainIndex, out var swapChain))
             {
                 rt = swapChain.GetCurrentBackBuffer();
             }
@@ -138,7 +137,7 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
 
             try
             {
-                var rtResult = _renderSystem.GraphicsEngine.ResourceDatabase.GetResourceDescription(rt.AsResource());
+                var rtResult = renderSystem.GraphicsEngine.ResourceDatabase.GetResourceDescription(rt.AsResource());
                 if (rtResult.IsFailure)
                 {
                     continue;
@@ -296,31 +295,24 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
                 //ctx.UploadBuffer(frameBufferHandle, new ReadOnlySpan<FrameData>(in frameData));
                 //ctx.CommandBuffer.Barrier(BarrierDesc.Buffer(frameBufferResource, BarrierSync.AllShading, BarrierAccess.ShaderResource));
 
-                if (request.renderFunc != null)
-                {
-                    request.renderFunc(in ctx, in request);
-                }
-                else
-                {
-                    _renderGraph.Reset();
+                _renderGraph.Reset();
 
-                    var backBuffer = _renderGraph.ImportTexture(rt, "BackBuffer");
+                var backBuffer = _renderGraph.ImportTexture(rt, "BackBuffer");
 
-                    MeshletDebugPass(backBuffer, request.opaqueRenderList,
-                        uint.MaxValue,
-                        resourceDatabase.GetBindlessIndex(viewBufferResource),
-                        resourceDatabase.GetBindlessIndex(instanceBufferResource));
+                MeshletDebugPass(backBuffer, request.opaqueRenderList,
+                    uint.MaxValue,
+                    resourceDatabase.GetBindlessIndex(viewBufferResource),
+                    resourceDatabase.GetBindlessIndex(instanceBufferResource));
 
-                    var viewState = new ViewState(rtSize.x, rtSize.y, rtSize.x, rtSize.y);
-                    _renderGraph.Compile(viewState);
-                    _renderGraph.Execute(ctx.CommandBuffer);
-                }
+                var viewState = new ViewState(rtSize.x, rtSize.y, rtSize.x, rtSize.y);
+                _renderGraph.Compile(viewState);
+                _renderGraph.Execute(ctx.CommandBuffer);
             }
             finally
             {
                 if (request.swapChainIndex >= 0)
                 {
-                    _renderSystem.SwapChainManager.ReleaseSwapChain(request.swapChainIndex);
+                    renderSystem.SwapChainManager.ReleaseSwapChain(request.swapChainIndex);
                 }
             }
         }

@@ -33,8 +33,14 @@ public enum BindlessAccess
 
 public unsafe interface IResourceDatabase : IDisposable
 {
+    /// <summary>
+    /// Enters a parallel read section, allowing multiple threads to read from the resource database concurrently and block any write operations until all readers have exited.
+    /// </summary>
     void EnterParallelRead();
 
+    /// <summary>
+    /// Exits a parallel read section, allowing write operations to proceed once all readers have exited.
+    /// </summary>
     void ExitParallelRead();
 
     /// <summary>
@@ -126,7 +132,30 @@ public unsafe interface IResourceDatabase : IDisposable
     /// <returns>An Error indicating the success or failure of the swap operation.</returns>
     Error Swap(Handle<GPUResource> handleA, Handle<GPUResource> handleB);
 
-    Error MapResource(Handle<GPUResource> handle, uint subResource, ResourceRange? readRange, ResourceRange? writeRange, void* pData, nuint size);
+    /// <summary>
+    /// Maps a subresource of a GPU resource for CPU access, specifying read and write ranges.
+    /// </summary>
+    /// <param name="handle">A handle to the GPU resource to be mapped.</param>
+    /// <param name="subResource">The zero-based index of the subresource to map.</param>
+    /// <param name="readRange">The range of the resource to be read by the CPU. Specify null to indicate read access to the entire resource.</param>
+    /// <returns>A pointer to the mapped subresource data, or null if the mapping operation fails.</returns>
+    void* MapResource(Handle<GPUResource> handle, uint subResource, ResourceRange? readRange);
 
+    /// <summary>
+    /// Unmaps a previously mapped subresource of a GPU resource, optionally specifying the range of data that was written by the CPU.
+    /// </summary>
+    /// <param name="handle">A handle to the GPU resource to unmap. Must reference a resource that was previously mapped.</param>
+    /// <param name="subResource">The zero-based index of the subresource to unmap.</param>
+    /// <param name="writtenRange">The range within the resource that was written to by the CPU. Specify null if no data was written or if the entire resource was modified.</param>
+    /// <returns>An Error value indicating the result of the operation. Returns Error.None if the resource was successfully unmapped.</returns>
+    Error UnmapResource(Handle<GPUResource> handle, uint subResource, ResourceRange? writtenRange);
+
+    /// <summary>
+    /// Gets the total size in bytes of the specified GPU resource, including all its subresources. This method is useful for determining the memory footprint of a resource and can be used for memory management and optimization purposes.
+    /// </summary>
+    /// <param name="resource">The handle to the GPU resource.</param>
+    /// <param name="firstSubResource">The index of the first subresource to include in the size calculation.</param>
+    /// <param name="numSubResources">The number of subresources to include in the size calculation.</param>
+    /// <returns>The total size in bytes of the specified GPU resource and its subresources.</returns>
     ulong GetIntermediateResourceSize(Handle<GPUResource> resource, uint firstSubResource, uint numSubResources);
 }
