@@ -7,10 +7,10 @@ namespace Ghost.Ufbx;
 public unsafe partial struct ufbx_panic
 {
     /// <summary>
-    /// From: <see cref="Api.ufbx_catch_get_skin_vertex_matrix(ufbx_panic*, ufbx_skin_deformer*, nuint, Misaki.HighPerformance.Mathematics.float3x4*)" />
+    /// From: <see cref="Api.ufbx_catch_get_skin_vertex_matrix(ufbx_panic*, ufbx_skin_deformer*, nuint, ufbx_matrix*)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Misaki.HighPerformance.Mathematics.float3x4 CatchGetSkinVertexMatrix(ufbx_skin_deformer* skin, nuint vertex, Misaki.HighPerformance.Mathematics.float3x4* fallback)
+    public ufbx_matrix CatchGetSkinVertexMatrix(ufbx_skin_deformer* skin, nuint vertex, ufbx_matrix* fallback)
     {
         return Api.ufbx_catch_get_skin_vertex_matrix(
             (ufbx_panic*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
@@ -88,7 +88,7 @@ public unsafe partial struct ufbx_panic
     /// From: <see cref="Api.ufbx_catch_get_weighted_face_normal(ufbx_panic*, ufbx_vertex_vec3*, ufbx_face)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Misaki.HighPerformance.Mathematics.float3 CatchGetWeightedFaceNormal(ufbx_vertex_vec3* positions, ufbx_face face)
+    public ufbx_vec3 CatchGetWeightedFaceNormal(ufbx_vertex_vec3* positions, ufbx_face face)
     {
         return Api.ufbx_catch_get_weighted_face_normal(
             (ufbx_panic*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
@@ -119,14 +119,14 @@ public unsafe partial struct ufbx_panic
     }
 
     /// <summary>
-    /// From: <see cref="Api.ufbx_catch_compute_normals(ufbx_panic*, ufbx_mesh*, ufbx_vertex_vec3*, uint*, nuint, Misaki.HighPerformance.Mathematics.float3*, nuint)" />
+    /// From: <see cref="Api.ufbx_catch_compute_normals(ufbx_panic*, ufbx_mesh*, ufbx_vertex_vec3*, uint*, nuint, ufbx_vec3*, nuint)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void CatchComputeNormals(ufbx_mesh* mesh, ufbx_vertex_vec3* positions, ReadOnlySpan<uint> normal_indices, ReadOnlySpan<Misaki.HighPerformance.Mathematics.float3> normals)
+    public void CatchComputeNormals(ufbx_mesh* mesh, ufbx_vertex_vec3* positions, ReadOnlySpan<uint> normal_indices, ReadOnlySpan<ufbx_vec3> normals)
     {
         fixed (uint* pnormal_indices = normal_indices)
         {
-            fixed (Misaki.HighPerformance.Mathematics.float3* pnormals = normals)
+            fixed (ufbx_vec3* pnormals = normals)
             {
                 Api.ufbx_catch_compute_normals(
                     (ufbx_panic*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
@@ -134,7 +134,7 @@ public unsafe partial struct ufbx_panic
                     positions,
                     (uint*)pnormal_indices,
                     (nuint)normal_indices.Length,
-                    (Misaki.HighPerformance.Mathematics.float3*)pnormals,
+                    (ufbx_vec3*)pnormals,
                     (nuint)normals.Length);
             }
         }
@@ -156,7 +156,7 @@ public unsafe partial struct ufbx_panic
     /// From: <see cref="Api.ufbx_catch_get_vertex_vec2(ufbx_panic*, ufbx_vertex_vec2*, nuint)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Misaki.HighPerformance.Mathematics.float2 CatchGetVertexVec2(ufbx_vertex_vec2* v, nuint index)
+    public ufbx_vec2 CatchGetVertexVec2(ufbx_vertex_vec2* v, nuint index)
     {
         return Api.ufbx_catch_get_vertex_vec2(
             (ufbx_panic*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
@@ -168,7 +168,7 @@ public unsafe partial struct ufbx_panic
     /// From: <see cref="Api.ufbx_catch_get_vertex_vec3(ufbx_panic*, ufbx_vertex_vec3*, nuint)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Misaki.HighPerformance.Mathematics.float3 CatchGetVertexVec3(ufbx_vertex_vec3* v, nuint index)
+    public ufbx_vec3 CatchGetVertexVec3(ufbx_vertex_vec3* v, nuint index)
     {
         return Api.ufbx_catch_get_vertex_vec3(
             (ufbx_panic*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
@@ -180,7 +180,7 @@ public unsafe partial struct ufbx_panic
     /// From: <see cref="Api.ufbx_catch_get_vertex_vec4(ufbx_panic*, ufbx_vertex_vec4*, nuint)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Misaki.HighPerformance.Mathematics.float4 CatchGetVertexVec4(ufbx_vertex_vec4* v, nuint index)
+    public ufbx_vec4 CatchGetVertexVec4(ufbx_vertex_vec4* v, nuint index)
     {
         return Api.ufbx_catch_get_vertex_vec4(
             (ufbx_panic*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),

@@ -34,22 +34,19 @@ namespace Ghost.Ufbx
 
         public ufbx_transform transform_offset;
 
-        [NativeTypeName("ufbx_vec3")]
-        public Misaki.HighPerformance.Mathematics.float3 aim_vector;
+        public ufbx_vec3 aim_vector;
 
         public ufbx_constraint_aim_up_type aim_up_type;
 
         public ufbx_node* aim_up_node;
 
-        [NativeTypeName("ufbx_vec3")]
-        public Misaki.HighPerformance.Mathematics.float3 aim_up_vector;
+        public ufbx_vec3 aim_up_vector;
 
         public ufbx_node* ik_effector;
 
         public ufbx_node* ik_end_node;
 
-        [NativeTypeName("ufbx_vec3")]
-        public Misaki.HighPerformance.Mathematics.float3 ik_pole_vector;
+        public ufbx_vec3 ik_pole_vector;
 
         [UnscopedRef]
         public ref ufbx_element element

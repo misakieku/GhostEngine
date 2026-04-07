@@ -26,7 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="TerraFX.Interop.D3D12MemoryAllocator" Version="3.0.1" />
+    <PackageReference Include="TerraFX.Interop.D3D12MemoryAllocator" Version="3.1.0" />
   </ItemGroup>
   
   <ItemGroup>

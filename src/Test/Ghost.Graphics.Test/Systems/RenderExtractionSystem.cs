@@ -11,6 +11,7 @@ using Misaki.HighPerformance.Mathematics;
 namespace Ghost.Graphics.Test.Systems;
 
 [RenderPipelineSystem<TestRenderPipelineSettings>]
+[UpdateAfter<CameraMovingSystem>]
 public class RenderExtractionSystem : ISystem
 {
     private RenderSystem _renderSystem = null!;

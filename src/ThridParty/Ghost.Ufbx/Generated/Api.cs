@@ -1,5 +1,4 @@
 using System;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using static Ghost.Ufbx.ufbx_aperture_format;
 using static Ghost.Ufbx.ufbx_aperture_mode;
@@ -168,29 +167,6 @@ namespace Ghost.Ufbx
 
         public const int UFBX_BAKE_STEP_HANDLING_COUNT = (int)(UFBX_BAKE_STEP_HANDLING_IGNORE + 1);
 
-        static Api()
-        {
-            NativeLibrary.SetDllImportResolver(Assembly.GetExecutingAssembly(), (libraryName, assembly, searchPath) =>
-            {
-                if (libraryName != "ufbx")
-                {
-                    return IntPtr.Zero;
-                }
-
-                var platform = OperatingSystem.IsWindows() ? "win" :
-                                OperatingSystem.IsLinux() ? "linux" :
-                                OperatingSystem.IsMacOS() ? "osx" : "unknown";
-                var ext = OperatingSystem.IsWindows() ? ".dll" :
-                            OperatingSystem.IsLinux() ? ".so" :
-                            OperatingSystem.IsMacOS() ? ".dylib" : "";
-
-                var arch = Environment.Is64BitProcess ? "x64" : "x86";
-                var nativeDllDir = Path.Combine("./runtimes", platform + "-" + arch, "native");
-
-                return NativeLibrary.Load(Path.Combine(nativeDllDir, libraryName + ext));
-            });
-        }
-
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("_Bool")]
         public static extern bool ufbx_is_thread_safe();
@@ -241,12 +217,10 @@ namespace Ghost.Ufbx
         public static extern float ufbx_find_real([NativeTypeName("const ufbx_props *")] ufbx_props* props, [NativeTypeName("const char *")] sbyte* name, [NativeTypeName("ufbx_real")] float def);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_vec3")]
-        public static extern Misaki.HighPerformance.Mathematics.float3 ufbx_find_vec3_len([NativeTypeName("const ufbx_props *")] ufbx_props* props, [NativeTypeName("const char *")] sbyte* name, [NativeTypeName("size_t")] nuint name_len, [NativeTypeName("ufbx_vec3")] Misaki.HighPerformance.Mathematics.float3 def);
+        public static extern ufbx_vec3 ufbx_find_vec3_len([NativeTypeName("const ufbx_props *")] ufbx_props* props, [NativeTypeName("const char *")] sbyte* name, [NativeTypeName("size_t")] nuint name_len, ufbx_vec3 def);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_vec3")]
-        public static extern Misaki.HighPerformance.Mathematics.float3 ufbx_find_vec3([NativeTypeName("const ufbx_props *")] ufbx_props* props, [NativeTypeName("const char *")] sbyte* name, [NativeTypeName("ufbx_vec3")] Misaki.HighPerformance.Mathematics.float3 def);
+        public static extern ufbx_vec3 ufbx_find_vec3([NativeTypeName("const ufbx_props *")] ufbx_props* props, [NativeTypeName("const char *")] sbyte* name, ufbx_vec3 def);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("int64_t")]
@@ -322,8 +296,7 @@ namespace Ghost.Ufbx
         public static extern ufbx_anim_prop_list ufbx_find_anim_props([NativeTypeName("const ufbx_anim_layer *")] ufbx_anim_layer* layer, [NativeTypeName("const ufbx_element *")] ufbx_element* element);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_matrix")]
-        public static extern Misaki.HighPerformance.Mathematics.float3x4 ufbx_get_compatible_matrix_for_normals([NativeTypeName("const ufbx_node *")] ufbx_node* node);
+        public static extern ufbx_matrix ufbx_get_compatible_matrix_for_normals([NativeTypeName("const ufbx_node *")] ufbx_node* node);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("ptrdiff_t")]
@@ -362,16 +335,14 @@ namespace Ghost.Ufbx
         public static extern float ufbx_evaluate_anim_value_real([NativeTypeName("const ufbx_anim_value *")] ufbx_anim_value* anim_value, double time);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_vec3")]
-        public static extern Misaki.HighPerformance.Mathematics.float3 ufbx_evaluate_anim_value_vec3([NativeTypeName("const ufbx_anim_value *")] ufbx_anim_value* anim_value, double time);
+        public static extern ufbx_vec3 ufbx_evaluate_anim_value_vec3([NativeTypeName("const ufbx_anim_value *")] ufbx_anim_value* anim_value, double time);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("ufbx_real")]
         public static extern float ufbx_evaluate_anim_value_real_flags([NativeTypeName("const ufbx_anim_value *")] ufbx_anim_value* anim_value, double time, [NativeTypeName("uint32_t")] uint flags);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_vec3")]
-        public static extern Misaki.HighPerformance.Mathematics.float3 ufbx_evaluate_anim_value_vec3_flags([NativeTypeName("const ufbx_anim_value *")] ufbx_anim_value* anim_value, double time, [NativeTypeName("uint32_t")] uint flags);
+        public static extern ufbx_vec3 ufbx_evaluate_anim_value_vec3_flags([NativeTypeName("const ufbx_anim_value *")] ufbx_anim_value* anim_value, double time, [NativeTypeName("uint32_t")] uint flags);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern ufbx_prop ufbx_evaluate_prop_len([NativeTypeName("const ufbx_anim *")] ufbx_anim* anim, [NativeTypeName("const ufbx_element *")] ufbx_element* element, [NativeTypeName("const char *")] sbyte* name, [NativeTypeName("size_t")] nuint name_len, double time);
@@ -439,12 +410,10 @@ namespace Ghost.Ufbx
         public static extern ufbx_baked_element* ufbx_find_baked_element(ufbx_baked_anim* bake, ufbx_element* element);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_vec3")]
-        public static extern Misaki.HighPerformance.Mathematics.float3 ufbx_evaluate_baked_vec3(ufbx_baked_vec3_list keyframes, double time);
+        public static extern ufbx_vec3 ufbx_evaluate_baked_vec3(ufbx_baked_vec3_list keyframes, double time);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_quat")]
-        public static extern Misaki.HighPerformance.Mathematics.quaternion ufbx_evaluate_baked_quat(ufbx_baked_quat_list keyframes, double time);
+        public static extern ufbx_quat ufbx_evaluate_baked_quat(ufbx_baked_quat_list keyframes, double time);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern ufbx_bone_pose* ufbx_get_bone_pose([NativeTypeName("const ufbx_pose *")] ufbx_pose* pose, [NativeTypeName("const ufbx_node *")] ufbx_node* node);
@@ -478,78 +447,62 @@ namespace Ghost.Ufbx
         public static extern bool ufbx_coordinate_axes_valid(ufbx_coordinate_axes axes);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_vec3")]
-        public static extern Misaki.HighPerformance.Mathematics.float3 ufbx_vec3_normalize([NativeTypeName("ufbx_vec3")] Misaki.HighPerformance.Mathematics.float3 v);
+        public static extern ufbx_vec3 ufbx_vec3_normalize(ufbx_vec3 v);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("ufbx_real")]
-        public static extern float ufbx_quat_dot([NativeTypeName("ufbx_quat")] Misaki.HighPerformance.Mathematics.quaternion a, [NativeTypeName("ufbx_quat")] Misaki.HighPerformance.Mathematics.quaternion b);
+        public static extern float ufbx_quat_dot(ufbx_quat a, ufbx_quat b);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_quat")]
-        public static extern Misaki.HighPerformance.Mathematics.quaternion ufbx_quat_mul([NativeTypeName("ufbx_quat")] Misaki.HighPerformance.Mathematics.quaternion a, [NativeTypeName("ufbx_quat")] Misaki.HighPerformance.Mathematics.quaternion b);
+        public static extern ufbx_quat ufbx_quat_mul(ufbx_quat a, ufbx_quat b);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_quat")]
-        public static extern Misaki.HighPerformance.Mathematics.quaternion ufbx_quat_normalize([NativeTypeName("ufbx_quat")] Misaki.HighPerformance.Mathematics.quaternion q);
+        public static extern ufbx_quat ufbx_quat_normalize(ufbx_quat q);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_quat")]
-        public static extern Misaki.HighPerformance.Mathematics.quaternion ufbx_quat_fix_antipodal([NativeTypeName("ufbx_quat")] Misaki.HighPerformance.Mathematics.quaternion q, [NativeTypeName("ufbx_quat")] Misaki.HighPerformance.Mathematics.quaternion reference);
+        public static extern ufbx_quat ufbx_quat_fix_antipodal(ufbx_quat q, ufbx_quat reference);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_quat")]
-        public static extern Misaki.HighPerformance.Mathematics.quaternion ufbx_quat_slerp([NativeTypeName("ufbx_quat")] Misaki.HighPerformance.Mathematics.quaternion a, [NativeTypeName("ufbx_quat")] Misaki.HighPerformance.Mathematics.quaternion b, [NativeTypeName("ufbx_real")] float t);
+        public static extern ufbx_quat ufbx_quat_slerp(ufbx_quat a, ufbx_quat b, [NativeTypeName("ufbx_real")] float t);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_vec3")]
-        public static extern Misaki.HighPerformance.Mathematics.float3 ufbx_quat_rotate_vec3([NativeTypeName("ufbx_quat")] Misaki.HighPerformance.Mathematics.quaternion q, [NativeTypeName("ufbx_vec3")] Misaki.HighPerformance.Mathematics.float3 v);
+        public static extern ufbx_vec3 ufbx_quat_rotate_vec3(ufbx_quat q, ufbx_vec3 v);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_vec3")]
-        public static extern Misaki.HighPerformance.Mathematics.float3 ufbx_quat_to_euler([NativeTypeName("ufbx_quat")] Misaki.HighPerformance.Mathematics.quaternion q, ufbx_rotation_order order);
+        public static extern ufbx_vec3 ufbx_quat_to_euler(ufbx_quat q, ufbx_rotation_order order);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_quat")]
-        public static extern Misaki.HighPerformance.Mathematics.quaternion ufbx_euler_to_quat([NativeTypeName("ufbx_vec3")] Misaki.HighPerformance.Mathematics.float3 v, ufbx_rotation_order order);
+        public static extern ufbx_quat ufbx_euler_to_quat(ufbx_vec3 v, ufbx_rotation_order order);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_matrix")]
-        public static extern Misaki.HighPerformance.Mathematics.float3x4 ufbx_matrix_mul([NativeTypeName("const ufbx_matrix *")] Misaki.HighPerformance.Mathematics.float3x4* a, [NativeTypeName("const ufbx_matrix *")] Misaki.HighPerformance.Mathematics.float3x4* b);
+        public static extern ufbx_matrix ufbx_matrix_mul([NativeTypeName("const ufbx_matrix *")] ufbx_matrix* a, [NativeTypeName("const ufbx_matrix *")] ufbx_matrix* b);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("ufbx_real")]
-        public static extern float ufbx_matrix_determinant([NativeTypeName("const ufbx_matrix *")] Misaki.HighPerformance.Mathematics.float3x4* m);
+        public static extern float ufbx_matrix_determinant([NativeTypeName("const ufbx_matrix *")] ufbx_matrix* m);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_matrix")]
-        public static extern Misaki.HighPerformance.Mathematics.float3x4 ufbx_matrix_invert([NativeTypeName("const ufbx_matrix *")] Misaki.HighPerformance.Mathematics.float3x4* m);
+        public static extern ufbx_matrix ufbx_matrix_invert([NativeTypeName("const ufbx_matrix *")] ufbx_matrix* m);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_matrix")]
-        public static extern Misaki.HighPerformance.Mathematics.float3x4 ufbx_matrix_for_normals([NativeTypeName("const ufbx_matrix *")] Misaki.HighPerformance.Mathematics.float3x4* m);
+        public static extern ufbx_matrix ufbx_matrix_for_normals([NativeTypeName("const ufbx_matrix *")] ufbx_matrix* m);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_vec3")]
-        public static extern Misaki.HighPerformance.Mathematics.float3 ufbx_transform_position([NativeTypeName("const ufbx_matrix *")] Misaki.HighPerformance.Mathematics.float3x4* m, [NativeTypeName("ufbx_vec3")] Misaki.HighPerformance.Mathematics.float3 v);
+        public static extern ufbx_vec3 ufbx_transform_position([NativeTypeName("const ufbx_matrix *")] ufbx_matrix* m, ufbx_vec3 v);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_vec3")]
-        public static extern Misaki.HighPerformance.Mathematics.float3 ufbx_transform_direction([NativeTypeName("const ufbx_matrix *")] Misaki.HighPerformance.Mathematics.float3x4* m, [NativeTypeName("ufbx_vec3")] Misaki.HighPerformance.Mathematics.float3 v);
+        public static extern ufbx_vec3 ufbx_transform_direction([NativeTypeName("const ufbx_matrix *")] ufbx_matrix* m, ufbx_vec3 v);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_matrix")]
-        public static extern Misaki.HighPerformance.Mathematics.float3x4 ufbx_transform_to_matrix([NativeTypeName("const ufbx_transform *")] ufbx_transform* t);
+        public static extern ufbx_matrix ufbx_transform_to_matrix([NativeTypeName("const ufbx_transform *")] ufbx_transform* t);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern ufbx_transform ufbx_matrix_to_transform([NativeTypeName("const ufbx_matrix *")] Misaki.HighPerformance.Mathematics.float3x4* m);
+        public static extern ufbx_transform ufbx_matrix_to_transform([NativeTypeName("const ufbx_matrix *")] ufbx_matrix* m);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_matrix")]
-        public static extern Misaki.HighPerformance.Mathematics.float3x4 ufbx_catch_get_skin_vertex_matrix(ufbx_panic* panic, [NativeTypeName("const ufbx_skin_deformer *")] ufbx_skin_deformer* skin, [NativeTypeName("size_t")] nuint vertex, [NativeTypeName("const ufbx_matrix *")] Misaki.HighPerformance.Mathematics.float3x4* fallback);
+        public static extern ufbx_matrix ufbx_catch_get_skin_vertex_matrix(ufbx_panic* panic, [NativeTypeName("const ufbx_skin_deformer *")] ufbx_skin_deformer* skin, [NativeTypeName("size_t")] nuint vertex, [NativeTypeName("const ufbx_matrix *")] ufbx_matrix* fallback);
 
-        [return: NativeTypeName("ufbx_matrix")]
-        public static Misaki.HighPerformance.Mathematics.float3x4 ufbx_get_skin_vertex_matrix([NativeTypeName("const ufbx_skin_deformer *")] ufbx_skin_deformer* skin, [NativeTypeName("size_t")] nuint vertex, [NativeTypeName("const ufbx_matrix *")] Misaki.HighPerformance.Mathematics.float3x4* fallback)
+        public static ufbx_matrix ufbx_get_skin_vertex_matrix([NativeTypeName("const ufbx_skin_deformer *")] ufbx_skin_deformer* skin, [NativeTypeName("size_t")] nuint vertex, [NativeTypeName("const ufbx_matrix *")] ufbx_matrix* fallback)
         {
             return ufbx_catch_get_skin_vertex_matrix(null, skin, vertex, fallback);
         }
@@ -559,18 +512,16 @@ namespace Ghost.Ufbx
         public static extern uint ufbx_get_blend_shape_offset_index([NativeTypeName("const ufbx_blend_shape *")] ufbx_blend_shape* shape, [NativeTypeName("size_t")] nuint vertex);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_vec3")]
-        public static extern Misaki.HighPerformance.Mathematics.float3 ufbx_get_blend_shape_vertex_offset([NativeTypeName("const ufbx_blend_shape *")] ufbx_blend_shape* shape, [NativeTypeName("size_t")] nuint vertex);
+        public static extern ufbx_vec3 ufbx_get_blend_shape_vertex_offset([NativeTypeName("const ufbx_blend_shape *")] ufbx_blend_shape* shape, [NativeTypeName("size_t")] nuint vertex);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_vec3")]
-        public static extern Misaki.HighPerformance.Mathematics.float3 ufbx_get_blend_vertex_offset([NativeTypeName("const ufbx_blend_deformer *")] ufbx_blend_deformer* blend, [NativeTypeName("size_t")] nuint vertex);
+        public static extern ufbx_vec3 ufbx_get_blend_vertex_offset([NativeTypeName("const ufbx_blend_deformer *")] ufbx_blend_deformer* blend, [NativeTypeName("size_t")] nuint vertex);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void ufbx_add_blend_shape_vertex_offsets([NativeTypeName("const ufbx_blend_shape *")] ufbx_blend_shape* shape, [NativeTypeName("ufbx_vec3 *")] Misaki.HighPerformance.Mathematics.float3* vertices, [NativeTypeName("size_t")] nuint num_vertices, [NativeTypeName("ufbx_real")] float weight);
+        public static extern void ufbx_add_blend_shape_vertex_offsets([NativeTypeName("const ufbx_blend_shape *")] ufbx_blend_shape* shape, ufbx_vec3* vertices, [NativeTypeName("size_t")] nuint num_vertices, [NativeTypeName("ufbx_real")] float weight);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void ufbx_add_blend_vertex_offsets([NativeTypeName("const ufbx_blend_deformer *")] ufbx_blend_deformer* blend, [NativeTypeName("ufbx_vec3 *")] Misaki.HighPerformance.Mathematics.float3* vertices, [NativeTypeName("size_t")] nuint num_vertices, [NativeTypeName("ufbx_real")] float weight);
+        public static extern void ufbx_add_blend_vertex_offsets([NativeTypeName("const ufbx_blend_deformer *")] ufbx_blend_deformer* blend, ufbx_vec3* vertices, [NativeTypeName("size_t")] nuint num_vertices, [NativeTypeName("ufbx_real")] float weight);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("size_t")]
@@ -629,12 +580,10 @@ namespace Ghost.Ufbx
         public static extern uint ufbx_topo_prev_vertex_edge([NativeTypeName("const ufbx_topo_edge *")] ufbx_topo_edge* topo, [NativeTypeName("size_t")] nuint num_topo, [NativeTypeName("uint32_t")] uint index);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_vec3")]
-        public static extern Misaki.HighPerformance.Mathematics.float3 ufbx_catch_get_weighted_face_normal(ufbx_panic* panic, [NativeTypeName("const ufbx_vertex_vec3 *")] ufbx_vertex_vec3* positions, ufbx_face face);
+        public static extern ufbx_vec3 ufbx_catch_get_weighted_face_normal(ufbx_panic* panic, [NativeTypeName("const ufbx_vertex_vec3 *")] ufbx_vertex_vec3* positions, ufbx_face face);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_vec3")]
-        public static extern Misaki.HighPerformance.Mathematics.float3 ufbx_get_weighted_face_normal([NativeTypeName("const ufbx_vertex_vec3 *")] ufbx_vertex_vec3* positions, ufbx_face face);
+        public static extern ufbx_vec3 ufbx_get_weighted_face_normal([NativeTypeName("const ufbx_vertex_vec3 *")] ufbx_vertex_vec3* positions, ufbx_face face);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("size_t")]
@@ -645,10 +594,10 @@ namespace Ghost.Ufbx
         public static extern nuint ufbx_generate_normal_mapping([NativeTypeName("const ufbx_mesh *")] ufbx_mesh* mesh, [NativeTypeName("const ufbx_topo_edge *")] ufbx_topo_edge* topo, [NativeTypeName("size_t")] nuint num_topo, [NativeTypeName("uint32_t *")] uint* normal_indices, [NativeTypeName("size_t")] nuint num_normal_indices, [NativeTypeName("_Bool")] bool assume_smooth);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void ufbx_catch_compute_normals(ufbx_panic* panic, [NativeTypeName("const ufbx_mesh *")] ufbx_mesh* mesh, [NativeTypeName("const ufbx_vertex_vec3 *")] ufbx_vertex_vec3* positions, [NativeTypeName("const uint32_t *")] uint* normal_indices, [NativeTypeName("size_t")] nuint num_normal_indices, [NativeTypeName("ufbx_vec3 *")] Misaki.HighPerformance.Mathematics.float3* normals, [NativeTypeName("size_t")] nuint num_normals);
+        public static extern void ufbx_catch_compute_normals(ufbx_panic* panic, [NativeTypeName("const ufbx_mesh *")] ufbx_mesh* mesh, [NativeTypeName("const ufbx_vertex_vec3 *")] ufbx_vertex_vec3* positions, [NativeTypeName("const uint32_t *")] uint* normal_indices, [NativeTypeName("size_t")] nuint num_normal_indices, ufbx_vec3* normals, [NativeTypeName("size_t")] nuint num_normals);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void ufbx_compute_normals([NativeTypeName("const ufbx_mesh *")] ufbx_mesh* mesh, [NativeTypeName("const ufbx_vertex_vec3 *")] ufbx_vertex_vec3* positions, [NativeTypeName("const uint32_t *")] uint* normal_indices, [NativeTypeName("size_t")] nuint num_normal_indices, [NativeTypeName("ufbx_vec3 *")] Misaki.HighPerformance.Mathematics.float3* normals, [NativeTypeName("size_t")] nuint num_normals);
+        public static extern void ufbx_compute_normals([NativeTypeName("const ufbx_mesh *")] ufbx_mesh* mesh, [NativeTypeName("const ufbx_vertex_vec3 *")] ufbx_vertex_vec3* positions, [NativeTypeName("const uint32_t *")] uint* normal_indices, [NativeTypeName("size_t")] nuint num_normal_indices, ufbx_vec3* normals, [NativeTypeName("size_t")] nuint num_normals);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern ufbx_mesh* ufbx_subdivide_mesh([NativeTypeName("const ufbx_mesh *")] ufbx_mesh* mesh, [NativeTypeName("size_t")] nuint level, [NativeTypeName("const ufbx_subdivide_opts *")] ufbx_subdivide_opts* opts, ufbx_error* error);
@@ -677,7 +626,7 @@ namespace Ghost.Ufbx
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("size_t")]
-        public static extern nuint ufbx_read_geometry_cache_vec3([NativeTypeName("const ufbx_cache_frame *")] ufbx_cache_frame* frame, [NativeTypeName("ufbx_vec3 *")] Misaki.HighPerformance.Mathematics.float3* data, [NativeTypeName("size_t")] nuint num_data, [NativeTypeName("const ufbx_geometry_cache_data_opts *")] ufbx_geometry_cache_data_opts* opts);
+        public static extern nuint ufbx_read_geometry_cache_vec3([NativeTypeName("const ufbx_cache_frame *")] ufbx_cache_frame* frame, ufbx_vec3* data, [NativeTypeName("size_t")] nuint num_data, [NativeTypeName("const ufbx_geometry_cache_data_opts *")] ufbx_geometry_cache_data_opts* opts);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("size_t")]
@@ -685,7 +634,7 @@ namespace Ghost.Ufbx
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("size_t")]
-        public static extern nuint ufbx_sample_geometry_cache_vec3([NativeTypeName("const ufbx_cache_channel *")] ufbx_cache_channel* channel, double time, [NativeTypeName("ufbx_vec3 *")] Misaki.HighPerformance.Mathematics.float3* data, [NativeTypeName("size_t")] nuint num_data, [NativeTypeName("const ufbx_geometry_cache_data_opts *")] ufbx_geometry_cache_data_opts* opts);
+        public static extern nuint ufbx_sample_geometry_cache_vec3([NativeTypeName("const ufbx_cache_channel *")] ufbx_cache_channel* channel, double time, ufbx_vec3* data, [NativeTypeName("size_t")] nuint num_data, [NativeTypeName("const ufbx_geometry_cache_data_opts *")] ufbx_geometry_cache_data_opts* opts);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern ufbx_dom_node* ufbx_dom_find_len([NativeTypeName("const ufbx_dom_node *")] ufbx_dom_node* parent, [NativeTypeName("const char *")] sbyte* name, [NativeTypeName("size_t")] nuint name_len);
@@ -711,16 +660,13 @@ namespace Ghost.Ufbx
         public static extern float ufbx_catch_get_vertex_real(ufbx_panic* panic, [NativeTypeName("const ufbx_vertex_real *")] ufbx_vertex_real* v, [NativeTypeName("size_t")] nuint index);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_vec2")]
-        public static extern Misaki.HighPerformance.Mathematics.float2 ufbx_catch_get_vertex_vec2(ufbx_panic* panic, [NativeTypeName("const ufbx_vertex_vec2 *")] ufbx_vertex_vec2* v, [NativeTypeName("size_t")] nuint index);
+        public static extern ufbx_vec2 ufbx_catch_get_vertex_vec2(ufbx_panic* panic, [NativeTypeName("const ufbx_vertex_vec2 *")] ufbx_vertex_vec2* v, [NativeTypeName("size_t")] nuint index);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_vec3")]
-        public static extern Misaki.HighPerformance.Mathematics.float3 ufbx_catch_get_vertex_vec3(ufbx_panic* panic, [NativeTypeName("const ufbx_vertex_vec3 *")] ufbx_vertex_vec3* v, [NativeTypeName("size_t")] nuint index);
+        public static extern ufbx_vec3 ufbx_catch_get_vertex_vec3(ufbx_panic* panic, [NativeTypeName("const ufbx_vertex_vec3 *")] ufbx_vertex_vec3* v, [NativeTypeName("size_t")] nuint index);
 
         [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("ufbx_vec4")]
-        public static extern Misaki.HighPerformance.Mathematics.float4 ufbx_catch_get_vertex_vec4(ufbx_panic* panic, [NativeTypeName("const ufbx_vertex_vec4 *")] ufbx_vertex_vec4* v, [NativeTypeName("size_t")] nuint index);
+        public static extern ufbx_vec4 ufbx_catch_get_vertex_vec4(ufbx_panic* panic, [NativeTypeName("const ufbx_vertex_vec4 *")] ufbx_vertex_vec4* v, [NativeTypeName("size_t")] nuint index);
 
         [return: NativeTypeName("ufbx_real")]
         public static float ufbx_get_vertex_real([NativeTypeName("const ufbx_vertex_real *")] ufbx_vertex_real* v, [NativeTypeName("size_t")] nuint index)
@@ -729,22 +675,19 @@ namespace Ghost.Ufbx
             return v->values.data[(int)(v->indices.data[index])];
         }
 
-        [return: NativeTypeName("ufbx_vec2")]
-        public static Misaki.HighPerformance.Mathematics.float2 ufbx_get_vertex_vec2([NativeTypeName("const ufbx_vertex_vec2 *")] ufbx_vertex_vec2* v, [NativeTypeName("size_t")] nuint index)
+        public static ufbx_vec2 ufbx_get_vertex_vec2([NativeTypeName("const ufbx_vertex_vec2 *")] ufbx_vertex_vec2* v, [NativeTypeName("size_t")] nuint index)
         {
             ;
             return v->values.data[(int)(v->indices.data[index])];
         }
 
-        [return: NativeTypeName("ufbx_vec3")]
-        public static Misaki.HighPerformance.Mathematics.float3 ufbx_get_vertex_vec3([NativeTypeName("const ufbx_vertex_vec3 *")] ufbx_vertex_vec3* v, [NativeTypeName("size_t")] nuint index)
+        public static ufbx_vec3 ufbx_get_vertex_vec3([NativeTypeName("const ufbx_vertex_vec3 *")] ufbx_vertex_vec3* v, [NativeTypeName("size_t")] nuint index)
         {
             ;
             return v->values.data[(int)(v->indices.data[index])];
         }
 
-        [return: NativeTypeName("ufbx_vec4")]
-        public static Misaki.HighPerformance.Mathematics.float4 ufbx_get_vertex_vec4([NativeTypeName("const ufbx_vertex_vec4 *")] ufbx_vertex_vec4* v, [NativeTypeName("size_t")] nuint index)
+        public static ufbx_vec4 ufbx_get_vertex_vec4([NativeTypeName("const ufbx_vertex_vec4 *")] ufbx_vertex_vec4* v, [NativeTypeName("size_t")] nuint index)
         {
             ;
             return v->values.data[(int)(v->indices.data[index])];

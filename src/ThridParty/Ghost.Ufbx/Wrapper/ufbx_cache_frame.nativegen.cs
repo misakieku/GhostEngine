@@ -23,16 +23,16 @@ public unsafe partial struct ufbx_cache_frame
     }
 
     /// <summary>
-    /// From: <see cref="Api.ufbx_read_geometry_cache_vec3(ufbx_cache_frame*, Misaki.HighPerformance.Mathematics.float3*, nuint, ufbx_geometry_cache_data_opts*)" />
+    /// From: <see cref="Api.ufbx_read_geometry_cache_vec3(ufbx_cache_frame*, ufbx_vec3*, nuint, ufbx_geometry_cache_data_opts*)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public nuint ReadGeometryCacheVec3(ReadOnlySpan<Misaki.HighPerformance.Mathematics.float3> data, ufbx_geometry_cache_data_opts* opts)
+    public nuint ReadGeometryCacheVec3(ReadOnlySpan<ufbx_vec3> data, ufbx_geometry_cache_data_opts* opts)
     {
-        fixed (Misaki.HighPerformance.Mathematics.float3* pdata = data)
+        fixed (ufbx_vec3* pdata = data)
         {
             return Api.ufbx_read_geometry_cache_vec3(
                 (ufbx_cache_frame*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
-                (Misaki.HighPerformance.Mathematics.float3*)pdata,
+                (ufbx_vec3*)pdata,
                 (nuint)data.Length,
                 opts);
         }

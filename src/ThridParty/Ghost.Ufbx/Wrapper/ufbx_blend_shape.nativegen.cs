@@ -21,7 +21,7 @@ public unsafe partial struct ufbx_blend_shape
     /// From: <see cref="Api.ufbx_get_blend_shape_vertex_offset(ufbx_blend_shape*, nuint)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Misaki.HighPerformance.Mathematics.float3 GetVertexOffset(nuint vertex)
+    public ufbx_vec3 GetVertexOffset(nuint vertex)
     {
         return Api.ufbx_get_blend_shape_vertex_offset(
             (ufbx_blend_shape*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
@@ -29,16 +29,16 @@ public unsafe partial struct ufbx_blend_shape
     }
 
     /// <summary>
-    /// From: <see cref="Api.ufbx_add_blend_shape_vertex_offsets(ufbx_blend_shape*, Misaki.HighPerformance.Mathematics.float3*, nuint, float)" />
+    /// From: <see cref="Api.ufbx_add_blend_shape_vertex_offsets(ufbx_blend_shape*, ufbx_vec3*, nuint, float)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void AddVertexOffsets(ReadOnlySpan<Misaki.HighPerformance.Mathematics.float3> vertices, float weight)
+    public void AddVertexOffsets(ReadOnlySpan<ufbx_vec3> vertices, float weight)
     {
-        fixed (Misaki.HighPerformance.Mathematics.float3* pvertices = vertices)
+        fixed (ufbx_vec3* pvertices = vertices)
         {
             Api.ufbx_add_blend_shape_vertex_offsets(
                 (ufbx_blend_shape*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
-                (Misaki.HighPerformance.Mathematics.float3*)pvertices,
+                (ufbx_vec3*)pvertices,
                 (nuint)vertices.Length,
                 weight);
         }

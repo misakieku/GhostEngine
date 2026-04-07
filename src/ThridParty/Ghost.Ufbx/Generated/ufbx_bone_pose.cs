@@ -4,10 +4,8 @@ namespace Ghost.Ufbx
     {
         public ufbx_node* bone_node;
 
-        [NativeTypeName("ufbx_matrix")]
-        public Misaki.HighPerformance.Mathematics.float3x4 bone_to_world;
+        public ufbx_matrix bone_to_world;
 
-        [NativeTypeName("ufbx_matrix")]
-        public Misaki.HighPerformance.Mathematics.float3x4 bone_to_parent;
+        public ufbx_matrix bone_to_parent;
     }
 }

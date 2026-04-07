@@ -61,7 +61,7 @@ public unsafe partial struct UfbxApi
     /// From: <see cref="Api.ufbx_evaluate_baked_vec3(ufbx_baked_vec3_list, double)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Misaki.HighPerformance.Mathematics.float3 EvaluateBakedVec3(ufbx_baked_vec3_list keyframes, double time)
+    public static ufbx_vec3 EvaluateBakedVec3(ufbx_baked_vec3_list keyframes, double time)
     {
         return Api.ufbx_evaluate_baked_vec3(
             keyframes,
@@ -72,7 +72,7 @@ public unsafe partial struct UfbxApi
     /// From: <see cref="Api.ufbx_evaluate_baked_quat(ufbx_baked_quat_list, double)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Misaki.HighPerformance.Mathematics.quaternion EvaluateBakedQuat(ufbx_baked_quat_list keyframes, double time)
+    public static ufbx_quat EvaluateBakedQuat(ufbx_baked_quat_list keyframes, double time)
     {
         return Api.ufbx_evaluate_baked_quat(
             keyframes,
@@ -89,19 +89,19 @@ public unsafe partial struct UfbxApi
     }
 
     /// <summary>
-    /// From: <see cref="Api.ufbx_vec3_normalize(Misaki.HighPerformance.Mathematics.float3)" />
+    /// From: <see cref="Api.ufbx_vec3_normalize(ufbx_vec3)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Misaki.HighPerformance.Mathematics.float3 Vec3Normalize(Misaki.HighPerformance.Mathematics.float3 v)
+    public static ufbx_vec3 Vec3Normalize(ufbx_vec3 v)
     {
         return Api.ufbx_vec3_normalize(v);
     }
 
     /// <summary>
-    /// From: <see cref="Api.ufbx_quat_dot(Misaki.HighPerformance.Mathematics.quaternion, Misaki.HighPerformance.Mathematics.quaternion)" />
+    /// From: <see cref="Api.ufbx_quat_dot(ufbx_quat, ufbx_quat)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static float QuatDot(Misaki.HighPerformance.Mathematics.quaternion a, Misaki.HighPerformance.Mathematics.quaternion b)
+    public static float QuatDot(ufbx_quat a, ufbx_quat b)
     {
         return Api.ufbx_quat_dot(
             a,
@@ -109,10 +109,10 @@ public unsafe partial struct UfbxApi
     }
 
     /// <summary>
-    /// From: <see cref="Api.ufbx_quat_mul(Misaki.HighPerformance.Mathematics.quaternion, Misaki.HighPerformance.Mathematics.quaternion)" />
+    /// From: <see cref="Api.ufbx_quat_mul(ufbx_quat, ufbx_quat)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Misaki.HighPerformance.Mathematics.quaternion QuatMul(Misaki.HighPerformance.Mathematics.quaternion a, Misaki.HighPerformance.Mathematics.quaternion b)
+    public static ufbx_quat QuatMul(ufbx_quat a, ufbx_quat b)
     {
         return Api.ufbx_quat_mul(
             a,
@@ -120,19 +120,19 @@ public unsafe partial struct UfbxApi
     }
 
     /// <summary>
-    /// From: <see cref="Api.ufbx_quat_normalize(Misaki.HighPerformance.Mathematics.quaternion)" />
+    /// From: <see cref="Api.ufbx_quat_normalize(ufbx_quat)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Misaki.HighPerformance.Mathematics.quaternion QuatNormalize(Misaki.HighPerformance.Mathematics.quaternion q)
+    public static ufbx_quat QuatNormalize(ufbx_quat q)
     {
         return Api.ufbx_quat_normalize(q);
     }
 
     /// <summary>
-    /// From: <see cref="Api.ufbx_quat_fix_antipodal(Misaki.HighPerformance.Mathematics.quaternion, Misaki.HighPerformance.Mathematics.quaternion)" />
+    /// From: <see cref="Api.ufbx_quat_fix_antipodal(ufbx_quat, ufbx_quat)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Misaki.HighPerformance.Mathematics.quaternion QuatFixAntipodal(Misaki.HighPerformance.Mathematics.quaternion q, Misaki.HighPerformance.Mathematics.quaternion reference)
+    public static ufbx_quat QuatFixAntipodal(ufbx_quat q, ufbx_quat reference)
     {
         return Api.ufbx_quat_fix_antipodal(
             q,
@@ -140,10 +140,10 @@ public unsafe partial struct UfbxApi
     }
 
     /// <summary>
-    /// From: <see cref="Api.ufbx_quat_slerp(Misaki.HighPerformance.Mathematics.quaternion, Misaki.HighPerformance.Mathematics.quaternion, float)" />
+    /// From: <see cref="Api.ufbx_quat_slerp(ufbx_quat, ufbx_quat, float)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Misaki.HighPerformance.Mathematics.quaternion QuatSlerp(Misaki.HighPerformance.Mathematics.quaternion a, Misaki.HighPerformance.Mathematics.quaternion b, float t)
+    public static ufbx_quat QuatSlerp(ufbx_quat a, ufbx_quat b, float t)
     {
         return Api.ufbx_quat_slerp(
             a,
@@ -152,10 +152,10 @@ public unsafe partial struct UfbxApi
     }
 
     /// <summary>
-    /// From: <see cref="Api.ufbx_quat_rotate_vec3(Misaki.HighPerformance.Mathematics.quaternion, Misaki.HighPerformance.Mathematics.float3)" />
+    /// From: <see cref="Api.ufbx_quat_rotate_vec3(ufbx_quat, ufbx_vec3)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Misaki.HighPerformance.Mathematics.float3 QuatRotateVec3(Misaki.HighPerformance.Mathematics.quaternion q, Misaki.HighPerformance.Mathematics.float3 v)
+    public static ufbx_vec3 QuatRotateVec3(ufbx_quat q, ufbx_vec3 v)
     {
         return Api.ufbx_quat_rotate_vec3(
             q,
@@ -163,10 +163,10 @@ public unsafe partial struct UfbxApi
     }
 
     /// <summary>
-    /// From: <see cref="Api.ufbx_quat_to_euler(Misaki.HighPerformance.Mathematics.quaternion, ufbx_rotation_order)" />
+    /// From: <see cref="Api.ufbx_quat_to_euler(ufbx_quat, ufbx_rotation_order)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Misaki.HighPerformance.Mathematics.float3 QuatToEuler(Misaki.HighPerformance.Mathematics.quaternion q, ufbx_rotation_order order)
+    public static ufbx_vec3 QuatToEuler(ufbx_quat q, ufbx_rotation_order order)
     {
         return Api.ufbx_quat_to_euler(
             q,
@@ -174,83 +174,14 @@ public unsafe partial struct UfbxApi
     }
 
     /// <summary>
-    /// From: <see cref="Api.ufbx_euler_to_quat(Misaki.HighPerformance.Mathematics.float3, ufbx_rotation_order)" />
+    /// From: <see cref="Api.ufbx_euler_to_quat(ufbx_vec3, ufbx_rotation_order)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Misaki.HighPerformance.Mathematics.quaternion EulerToQuat(Misaki.HighPerformance.Mathematics.float3 v, ufbx_rotation_order order)
+    public static ufbx_quat EulerToQuat(ufbx_vec3 v, ufbx_rotation_order order)
     {
         return Api.ufbx_euler_to_quat(
             v,
             order);
-    }
-
-    /// <summary>
-    /// From: <see cref="Api.ufbx_matrix_mul(Misaki.HighPerformance.Mathematics.float3x4*, Misaki.HighPerformance.Mathematics.float3x4*)" />
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Misaki.HighPerformance.Mathematics.float3x4 MatrixMul(Misaki.HighPerformance.Mathematics.float3x4* a, Misaki.HighPerformance.Mathematics.float3x4* b)
-    {
-        return Api.ufbx_matrix_mul(
-            a,
-            b);
-    }
-
-    /// <summary>
-    /// From: <see cref="Api.ufbx_matrix_determinant(Misaki.HighPerformance.Mathematics.float3x4*)" />
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static float MatrixDeterminant(Misaki.HighPerformance.Mathematics.float3x4* m)
-    {
-        return Api.ufbx_matrix_determinant(m);
-    }
-
-    /// <summary>
-    /// From: <see cref="Api.ufbx_matrix_invert(Misaki.HighPerformance.Mathematics.float3x4*)" />
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Misaki.HighPerformance.Mathematics.float3x4 MatrixInvert(Misaki.HighPerformance.Mathematics.float3x4* m)
-    {
-        return Api.ufbx_matrix_invert(m);
-    }
-
-    /// <summary>
-    /// From: <see cref="Api.ufbx_matrix_for_normals(Misaki.HighPerformance.Mathematics.float3x4*)" />
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Misaki.HighPerformance.Mathematics.float3x4 MatrixForNormals(Misaki.HighPerformance.Mathematics.float3x4* m)
-    {
-        return Api.ufbx_matrix_for_normals(m);
-    }
-
-    /// <summary>
-    /// From: <see cref="Api.ufbx_transform_position(Misaki.HighPerformance.Mathematics.float3x4*, Misaki.HighPerformance.Mathematics.float3)" />
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Misaki.HighPerformance.Mathematics.float3 TransformPosition(Misaki.HighPerformance.Mathematics.float3x4* m, Misaki.HighPerformance.Mathematics.float3 v)
-    {
-        return Api.ufbx_transform_position(
-            m,
-            v);
-    }
-
-    /// <summary>
-    /// From: <see cref="Api.ufbx_transform_direction(Misaki.HighPerformance.Mathematics.float3x4*, Misaki.HighPerformance.Mathematics.float3)" />
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Misaki.HighPerformance.Mathematics.float3 TransformDirection(Misaki.HighPerformance.Mathematics.float3x4* m, Misaki.HighPerformance.Mathematics.float3 v)
-    {
-        return Api.ufbx_transform_direction(
-            m,
-            v);
-    }
-
-    /// <summary>
-    /// From: <see cref="Api.ufbx_matrix_to_transform(Misaki.HighPerformance.Mathematics.float3x4*)" />
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static ufbx_transform MatrixToTransform(Misaki.HighPerformance.Mathematics.float3x4* m)
-    {
-        return Api.ufbx_matrix_to_transform(m);
     }
 
     /// <summary>

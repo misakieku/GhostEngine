@@ -113,26 +113,26 @@ public abstract class SystemBase : ISystem
     }
 }
 
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = true)]
-public class UpdateAfterAttribute : Attribute
+public abstract class UpdateAfterAttribute : Attribute
 {
-    public Type SystemType { get; }
+    public abstract Type SystemType { get; }
+}
 
-    public UpdateAfterAttribute(Type systemType)
-    {
-        SystemType = systemType;
-    }
+public abstract class UpdateBeforeAttribute : Attribute
+{
+    public abstract Type SystemType { get; }
 }
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = true)]
-public class UpdateBeforeAttribute : Attribute
+public class UpdateAfterAttribute<T> : UpdateAfterAttribute
 {
-    public Type SystemType { get; }
+    public override Type SystemType => typeof(T);
+}
 
-    public UpdateBeforeAttribute(Type systemType)
-    {
-        SystemType = systemType;
-    }
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = true)]
+public class UpdateBeforeAttribute<T> : UpdateBeforeAttribute
+{
+    public override Type SystemType => typeof(T);
 }
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false)]

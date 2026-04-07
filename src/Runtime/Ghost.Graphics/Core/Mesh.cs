@@ -15,10 +15,12 @@ namespace Ghost.Graphics.Core;
 public struct Meshlet
 {
     public SphereBounds boundingSphere;   // 16 bytes
+    public SphereBounds parentBoundingSphere; // 16 bytes
     public AABB boundingBox;              // 24 bytes
     public uint vertexOffset;             // offset into meshlet vertex index array
     public uint triangleOffset;           // offset into packed triangle array
     public uint groupIndex;               // owning group
+    public float clusterError;            // geometric error of this meshlet/cluster
     public float parentError;             // geometric refinement error carried into runtime LOD tests
     public byte vertexCount;              // max 64
     public byte triangleCount;            // max 124
@@ -319,13 +321,15 @@ public struct Mesh : IResourceReleasable
             var meshlet = new Meshlet
             {
                 boundingSphere = new SphereBounds(cluster.bounds.center, cluster.bounds.radius),
+                parentBoundingSphere = new SphereBounds(group.simplified.center, group.simplified.radius),
                 boundingBox = new AABB(cluster.bounds.center - cluster.bounds.radius, cluster.bounds.center + cluster.bounds.radius),
                 vertexCount = (byte)cluster.vertexCount,
                 triangleCount = (byte)(cluster.localIndexCount / 3),
                 vertexOffset = (uint)data.meshletVertices.Count,
                 triangleOffset = (uint)data.meshletTriangles.Count,
                 groupIndex = (uint)data.groups.Count - 1,
-                parentError = cluster.bounds.error,
+                clusterError = cluster.bounds.error,
+                parentError = group.simplified.error,
                 localMaterialIndex = 0, // TODO: support multiple materials
                 lodLevel = (byte)group.depth,
             };

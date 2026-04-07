@@ -13,23 +13,18 @@ namespace Ghost.Ufbx
         [NativeTypeName("_Bool")]
         public bool resolution_is_pixels;
 
-        [NativeTypeName("ufbx_vec2")]
-        public Misaki.HighPerformance.Mathematics.float2 resolution;
+        public ufbx_vec2 resolution;
 
-        [NativeTypeName("ufbx_vec2")]
-        public Misaki.HighPerformance.Mathematics.float2 field_of_view_deg;
+        public ufbx_vec2 field_of_view_deg;
 
-        [NativeTypeName("ufbx_vec2")]
-        public Misaki.HighPerformance.Mathematics.float2 field_of_view_tan;
+        public ufbx_vec2 field_of_view_tan;
 
         [NativeTypeName("ufbx_real")]
         public float orthographic_extent;
 
-        [NativeTypeName("ufbx_vec2")]
-        public Misaki.HighPerformance.Mathematics.float2 orthographic_size;
+        public ufbx_vec2 orthographic_size;
 
-        [NativeTypeName("ufbx_vec2")]
-        public Misaki.HighPerformance.Mathematics.float2 projection_plane;
+        public ufbx_vec2 projection_plane;
 
         [NativeTypeName("ufbx_real")]
         public float aspect_ratio;
@@ -53,11 +48,9 @@ namespace Ghost.Ufbx
         [NativeTypeName("ufbx_real")]
         public float focal_length_mm;
 
-        [NativeTypeName("ufbx_vec2")]
-        public Misaki.HighPerformance.Mathematics.float2 film_size_inch;
+        public ufbx_vec2 film_size_inch;
 
-        [NativeTypeName("ufbx_vec2")]
-        public Misaki.HighPerformance.Mathematics.float2 aperture_size_inch;
+        public ufbx_vec2 aperture_size_inch;
 
         [NativeTypeName("ufbx_real")]
         public float squeeze_ratio;

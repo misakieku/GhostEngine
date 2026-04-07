@@ -61,10 +61,10 @@ public unsafe partial struct ufbx_props
     }
 
     /// <summary>
-    /// From: <see cref="Api.ufbx_find_vec3_len(ufbx_props*, sbyte*, nuint, Misaki.HighPerformance.Mathematics.float3)" />
+    /// From: <see cref="Api.ufbx_find_vec3_len(ufbx_props*, sbyte*, nuint, ufbx_vec3)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Misaki.HighPerformance.Mathematics.float3 FindVec3Len(ReadOnlySpan<byte> name, Misaki.HighPerformance.Mathematics.float3 def)
+    public ufbx_vec3 FindVec3Len(ReadOnlySpan<byte> name, ufbx_vec3 def)
     {
         fixed (byte* pname = name)
         {
@@ -77,10 +77,10 @@ public unsafe partial struct ufbx_props
     }
 
     /// <summary>
-    /// From: <see cref="Api.ufbx_find_vec3(ufbx_props*, sbyte*, Misaki.HighPerformance.Mathematics.float3)" />
+    /// From: <see cref="Api.ufbx_find_vec3(ufbx_props*, sbyte*, ufbx_vec3)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Misaki.HighPerformance.Mathematics.float3 FindVec3(sbyte* name, Misaki.HighPerformance.Mathematics.float3 def)
+    public ufbx_vec3 FindVec3(sbyte* name, ufbx_vec3 def)
     {
         return Api.ufbx_find_vec3(
             (ufbx_props*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),

@@ -10,17 +10,13 @@ namespace Ghost.Ufbx
 
         public ufbx_node* bone_node;
 
-        [NativeTypeName("ufbx_matrix")]
-        public Misaki.HighPerformance.Mathematics.float3x4 geometry_to_bone;
+        public ufbx_matrix geometry_to_bone;
 
-        [NativeTypeName("ufbx_matrix")]
-        public Misaki.HighPerformance.Mathematics.float3x4 mesh_node_to_bone;
+        public ufbx_matrix mesh_node_to_bone;
 
-        [NativeTypeName("ufbx_matrix")]
-        public Misaki.HighPerformance.Mathematics.float3x4 bind_to_world;
+        public ufbx_matrix bind_to_world;
 
-        [NativeTypeName("ufbx_matrix")]
-        public Misaki.HighPerformance.Mathematics.float3x4 geometry_to_world;
+        public ufbx_matrix geometry_to_world;
 
         public ufbx_transform geometry_to_world_transform;
 

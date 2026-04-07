@@ -54,21 +54,21 @@ public unsafe partial struct ufbx_mesh : System.IDisposable
     }
 
     /// <summary>
-    /// From: <see cref="Api.ufbx_compute_normals(ufbx_mesh*, ufbx_vertex_vec3*, uint*, nuint, Misaki.HighPerformance.Mathematics.float3*, nuint)" />
+    /// From: <see cref="Api.ufbx_compute_normals(ufbx_mesh*, ufbx_vertex_vec3*, uint*, nuint, ufbx_vec3*, nuint)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void ComputeNormals(ufbx_vertex_vec3* positions, ReadOnlySpan<uint> normal_indices, ReadOnlySpan<Misaki.HighPerformance.Mathematics.float3> normals)
+    public void ComputeNormals(ufbx_vertex_vec3* positions, ReadOnlySpan<uint> normal_indices, ReadOnlySpan<ufbx_vec3> normals)
     {
         fixed (uint* pnormal_indices = normal_indices)
         {
-            fixed (Misaki.HighPerformance.Mathematics.float3* pnormals = normals)
+            fixed (ufbx_vec3* pnormals = normals)
             {
                 Api.ufbx_compute_normals(
                     (ufbx_mesh*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
                     positions,
                     (uint*)pnormal_indices,
                     (nuint)normal_indices.Length,
-                    (Misaki.HighPerformance.Mathematics.float3*)pnormals,
+                    (ufbx_vec3*)pnormals,
                     (nuint)normals.Length);
             }
         }

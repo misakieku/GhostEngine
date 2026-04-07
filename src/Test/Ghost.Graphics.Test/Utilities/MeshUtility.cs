@@ -66,6 +66,7 @@ internal static class MeshUtility
 
         for (var i = 0u; i < scene.Get()->nodes.count; i++)
         {
+            var data = scene.Get()->nodes.data;
             var node = scene.Get()->nodes.data[i];
             if (node->is_root)
             {
@@ -102,19 +103,27 @@ internal static class MeshUtility
                         var colIdx = pMesh->vertex_color.exists ? pMesh->vertex_color.indices.data[ufbxTopologyIndex] : uint.MaxValue;
                         var btanIdx = pMesh->vertex_bitangent.exists ? pMesh->vertex_bitangent.indices.data[ufbxTopologyIndex] : uint.MaxValue;
 
+                        var position = pMesh->vertex_position.values.data[posIdx];
+                        var normal = normIdx != uint.MaxValue ? pMesh->vertex_normal.values.data[normIdx] : default;
+                        var uv = uvIdx != uint.MaxValue ? pMesh->vertex_uv.values.data[uvIdx] : default;
+                        var color = colIdx != uint.MaxValue ? pMesh->vertex_color.values.data[colIdx] : default;
+
                         var vertex = new Vertex
                         {
-                            position = pMesh->vertex_position.values.data[posIdx],
-                            normal = normIdx != uint.MaxValue ? pMesh->vertex_normal.values.data[normIdx] : default,
-                            uv = uvIdx != uint.MaxValue ? pMesh->vertex_uv.values.data[uvIdx] : default,
-                            color = colIdx != uint.MaxValue ? new Color128(pMesh->vertex_color.values.data[colIdx]) : default,
+                            position = new float3(position.x, position.y, position.z),
+                            normal = new float3(normal.x, normal.y, normal.z),
+                            uv = new float2(uv.x, uv.y),
+                            color = new Color128(color.x, color.y, color.z, color.w)
                         };
 
                         if (tanIdx != uint.MaxValue)
                         {
-                            var t = pMesh->vertex_tangent.values.data[tanIdx];
+                            var mt = pMesh->vertex_tangent.values.data[tanIdx];
+                            var mb = btanIdx != uint.MaxValue ? pMesh->vertex_bitangent.values.data[btanIdx] : default;
+
+                            var t = new float3(mt.x, mt.y, mt.z);
                             var n = vertex.normal;
-                            var b = btanIdx != uint.MaxValue ? pMesh->vertex_bitangent.values.data[btanIdx] : math.cross(n, t);
+                            var b = btanIdx != uint.MaxValue ? new float3(mb.x, mb.y, mb.z) : math.cross(n, t);
                             vertex.tangent = ComputeTangent(t, n, b);
                         }
 

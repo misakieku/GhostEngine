@@ -5,9 +5,9 @@ using System.Runtime.InteropServices;
 
 namespace Ghost.Ufbx
 {
-    public partial struct ufbx_quat
+    public partial struct ufbx_vec4
     {
-        [NativeTypeName("__AnonymousRecord_ufbx_L329_C2")]
+        [NativeTypeName("__AnonymousRecord_ufbx_L319_C2")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -59,7 +59,7 @@ namespace Ghost.Ufbx
         public partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_ufbx_L330_C3")]
+            [NativeTypeName("__AnonymousRecord_ufbx_L320_C3")]
             public _Anonymous_e__Struct Anonymous;
 
             [FieldOffset(0)]

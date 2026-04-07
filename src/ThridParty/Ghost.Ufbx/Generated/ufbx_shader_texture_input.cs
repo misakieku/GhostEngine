@@ -41,7 +41,7 @@ namespace Ghost.Ufbx
         }
 
         [UnscopedRef]
-        public ref Misaki.HighPerformance.Mathematics.float2 value_vec2
+        public ref ufbx_vec2 value_vec2
         {
             get
             {
@@ -50,7 +50,7 @@ namespace Ghost.Ufbx
         }
 
         [UnscopedRef]
-        public ref Misaki.HighPerformance.Mathematics.float3 value_vec3
+        public ref ufbx_vec3 value_vec3
         {
             get
             {
@@ -59,7 +59,7 @@ namespace Ghost.Ufbx
         }
 
         [UnscopedRef]
-        public ref Misaki.HighPerformance.Mathematics.float4 value_vec4
+        public ref ufbx_vec4 value_vec4
         {
             get
             {
@@ -75,16 +75,13 @@ namespace Ghost.Ufbx
             public float value_real;
 
             [FieldOffset(0)]
-            [NativeTypeName("ufbx_vec2")]
-            public Misaki.HighPerformance.Mathematics.float2 value_vec2;
+            public ufbx_vec2 value_vec2;
 
             [FieldOffset(0)]
-            [NativeTypeName("ufbx_vec3")]
-            public Misaki.HighPerformance.Mathematics.float3 value_vec3;
+            public ufbx_vec3 value_vec3;
 
             [FieldOffset(0)]
-            [NativeTypeName("ufbx_vec4")]
-            public Misaki.HighPerformance.Mathematics.float4 value_vec4;
+            public ufbx_vec4 value_vec4;
         }
     }
 }

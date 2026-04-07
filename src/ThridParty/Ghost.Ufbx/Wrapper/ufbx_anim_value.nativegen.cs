@@ -21,7 +21,7 @@ public unsafe partial struct ufbx_anim_value
     /// From: <see cref="Api.ufbx_evaluate_anim_value_vec3(ufbx_anim_value*, double)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Misaki.HighPerformance.Mathematics.float3 EvaluateVec3(double time)
+    public ufbx_vec3 EvaluateVec3(double time)
     {
         return Api.ufbx_evaluate_anim_value_vec3(
             (ufbx_anim_value*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
@@ -44,7 +44,7 @@ public unsafe partial struct ufbx_anim_value
     /// From: <see cref="Api.ufbx_evaluate_anim_value_vec3_flags(ufbx_anim_value*, double, uint)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Misaki.HighPerformance.Mathematics.float3 EvaluateVec3Flags(double time, uint flags)
+    public ufbx_vec3 EvaluateVec3Flags(double time, uint flags)
     {
         return Api.ufbx_evaluate_anim_value_vec3_flags(
             (ufbx_anim_value*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),

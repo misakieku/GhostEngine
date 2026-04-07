@@ -8,8 +8,7 @@ namespace Ghost.Ufbx
         [NativeTypeName("__AnonymousRecord_ufbx_L1671_C2")]
         public _Anonymous_e__Union Anonymous;
 
-        [NativeTypeName("ufbx_vec3")]
-        public Misaki.HighPerformance.Mathematics.float3 color;
+        public ufbx_vec3 color;
 
         public ufbx_vec3_list control_points;
 

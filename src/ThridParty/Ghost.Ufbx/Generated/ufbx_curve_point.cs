@@ -5,10 +5,8 @@ namespace Ghost.Ufbx
         [NativeTypeName("_Bool")]
         public bool valid;
 
-        [NativeTypeName("ufbx_vec3")]
-        public Misaki.HighPerformance.Mathematics.float3 position;
+        public ufbx_vec3 position;
 
-        [NativeTypeName("ufbx_vec3")]
-        public Misaki.HighPerformance.Mathematics.float3 derivative;
+        public ufbx_vec3 derivative;
     }
 }

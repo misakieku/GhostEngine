@@ -5,9 +5,9 @@ using System.Runtime.InteropServices;
 
 namespace Ghost.Ufbx
 {
-    public partial struct ufbx_quat
+    public partial struct ufbx_vec3
     {
-        [NativeTypeName("__AnonymousRecord_ufbx_L329_C2")]
+        [NativeTypeName("__AnonymousRecord_ufbx_L309_C2")]
         public _Anonymous_e__Union Anonymous;
 
         [UnscopedRef]
@@ -38,15 +38,6 @@ namespace Ghost.Ufbx
         }
 
         [UnscopedRef]
-        public ref float w
-        {
-            get
-            {
-                return ref Anonymous.Anonymous.w;
-            }
-        }
-
-        [UnscopedRef]
         public Span<float> v
         {
             get
@@ -59,11 +50,11 @@ namespace Ghost.Ufbx
         public partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_ufbx_L330_C3")]
+            [NativeTypeName("__AnonymousRecord_ufbx_L310_C3")]
             public _Anonymous_e__Struct Anonymous;
 
             [FieldOffset(0)]
-            [NativeTypeName("ufbx_real[4]")]
+            [NativeTypeName("ufbx_real[3]")]
             public _v_e__FixedBuffer v;
 
             public partial struct _Anonymous_e__Struct
@@ -76,12 +67,9 @@ namespace Ghost.Ufbx
 
                 [NativeTypeName("ufbx_real")]
                 public float z;
-
-                [NativeTypeName("ufbx_real")]
-                public float w;
             }
 
-            [InlineArray(4)]
+            [InlineArray(3)]
             public partial struct _v_e__FixedBuffer
             {
                 public float e0;

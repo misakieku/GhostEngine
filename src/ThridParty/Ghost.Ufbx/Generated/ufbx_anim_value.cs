@@ -8,8 +8,7 @@ namespace Ghost.Ufbx
         [NativeTypeName("__AnonymousRecord_ufbx_L3136_C2")]
         public _Anonymous_e__Union Anonymous;
 
-        [NativeTypeName("ufbx_vec3")]
-        public Misaki.HighPerformance.Mathematics.float3 default_value;
+        public ufbx_vec3 default_value;
 
         [NativeTypeName("ufbx_anim_curve *[3]")]
         public _curves_e__FixedBuffer curves;

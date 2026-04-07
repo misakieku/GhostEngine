@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -118,7 +119,7 @@ namespace Ghost.Ufbx
         }
 
         [UnscopedRef]
-        public Span<System.Numerics.Vector3> cols
+        public Span<ufbx_vec3> cols
         {
             get
             {
@@ -192,7 +193,7 @@ namespace Ghost.Ufbx
             [InlineArray(4)]
             public partial struct _cols_e__FixedBuffer
             {
-                public System.Numerics.Vector3 e0;
+                public ufbx_vec3 e0;
             }
 
             [InlineArray(12)]

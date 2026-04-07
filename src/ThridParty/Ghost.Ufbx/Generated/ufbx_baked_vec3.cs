@@ -4,8 +4,7 @@ namespace Ghost.Ufbx
     {
         public double time;
 
-        [NativeTypeName("ufbx_vec3")]
-        public Misaki.HighPerformance.Mathematics.float3 value;
+        public ufbx_vec3 value;
 
         public ufbx_baked_key_flags flags;
     }

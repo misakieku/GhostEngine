@@ -2,13 +2,10 @@ namespace Ghost.Ufbx
 {
     public partial struct ufbx_transform
     {
-        [NativeTypeName("ufbx_vec3")]
-        public Misaki.HighPerformance.Mathematics.float3 translation;
+        public ufbx_vec3 translation;
 
-        [NativeTypeName("ufbx_quat")]
-        public Misaki.HighPerformance.Mathematics.quaternion rotation;
+        public ufbx_quat rotation;
 
-        [NativeTypeName("ufbx_vec3")]
-        public Misaki.HighPerformance.Mathematics.float3 scale;
+        public ufbx_vec3 scale;
     }
 }

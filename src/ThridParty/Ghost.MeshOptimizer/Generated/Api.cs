@@ -5,29 +5,6 @@ namespace Ghost.MeshOptimizer
 {
     public static unsafe partial class Api
     {
-        static Api()
-        {
-            NativeLibrary.SetDllImportResolver(Assembly.GetExecutingAssembly(), (libraryName, assembly, searchPath) =>
-            {
-                if (libraryName != "meshoptimizer")
-                {
-                    return IntPtr.Zero;
-                }
-
-                var platform = OperatingSystem.IsWindows() ? "win" :
-                                OperatingSystem.IsLinux() ? "linux" :
-                                OperatingSystem.IsMacOS() ? "osx" : "unknown";
-                var ext = OperatingSystem.IsWindows() ? ".dll" :
-                            OperatingSystem.IsLinux() ? ".so" :
-                            OperatingSystem.IsMacOS() ? ".dylib" : "";
-
-                var arch = Environment.Is64BitProcess ? "x64" : "x86";
-                var nativeDllDir = Path.Combine("./runtimes", platform + "-" + arch, "native");
-
-                return NativeLibrary.Load(Path.Combine(nativeDllDir, libraryName + ext));
-            });
-        }
-
         [DllImport("meshoptimizer", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("size_t")]
         public static extern nuint meshopt_generateVertexRemap([NativeTypeName("unsigned int *")] uint* destination, [NativeTypeName("const unsigned int *")] uint* indices, [NativeTypeName("size_t")] nuint index_count, [NativeTypeName("const void *")] void* vertices, [NativeTypeName("size_t")] nuint vertex_count, [NativeTypeName("size_t")] nuint vertex_size);

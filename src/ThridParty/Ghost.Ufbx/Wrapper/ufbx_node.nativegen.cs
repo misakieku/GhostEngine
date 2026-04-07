@@ -10,7 +10,7 @@ public unsafe partial struct ufbx_node
     /// From: <see cref="Api.ufbx_get_compatible_matrix_for_normals(ufbx_node*)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Misaki.HighPerformance.Mathematics.float3x4 GetCompatibleMatrixForNormals()
+    public ufbx_matrix GetCompatibleMatrixForNormals()
     {
         return Api.ufbx_get_compatible_matrix_for_normals((ufbx_node*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }

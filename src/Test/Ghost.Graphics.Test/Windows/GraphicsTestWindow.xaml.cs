@@ -10,6 +10,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
+using Windows.Devices.Geolocation;
 
 namespace Ghost.Graphics.Test.Windows;
 
@@ -75,6 +76,7 @@ public sealed partial class GraphicsTestWindow : Window
         // Add Systems
         var group = _world.SystemManager.GetSystem<DefaultSystemGroup>();
         group.AddSystem<RenderExtractionSystem>();
+        group.AddSystem<CameraMovingSystem>();
         group.SortSystems();
 
         _world.SystemManager.InitializeAll(default);

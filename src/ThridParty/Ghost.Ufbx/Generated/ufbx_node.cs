@@ -38,42 +38,32 @@ namespace Ghost.Ufbx
 
         public ufbx_transform geometry_transform;
 
-        [NativeTypeName("ufbx_vec3")]
-        public Misaki.HighPerformance.Mathematics.float3 inherit_scale;
+        public ufbx_vec3 inherit_scale;
 
         public ufbx_node* inherit_scale_node;
 
         public ufbx_rotation_order rotation_order;
 
-        [NativeTypeName("ufbx_vec3")]
-        public Misaki.HighPerformance.Mathematics.float3 euler_rotation;
+        public ufbx_vec3 euler_rotation;
 
-        [NativeTypeName("ufbx_matrix")]
-        public Misaki.HighPerformance.Mathematics.float3x4 node_to_parent;
+        public ufbx_matrix node_to_parent;
 
-        [NativeTypeName("ufbx_matrix")]
-        public Misaki.HighPerformance.Mathematics.float3x4 node_to_world;
+        public ufbx_matrix node_to_world;
 
-        [NativeTypeName("ufbx_matrix")]
-        public Misaki.HighPerformance.Mathematics.float3x4 geometry_to_node;
+        public ufbx_matrix geometry_to_node;
 
-        [NativeTypeName("ufbx_matrix")]
-        public Misaki.HighPerformance.Mathematics.float3x4 geometry_to_world;
+        public ufbx_matrix geometry_to_world;
 
-        [NativeTypeName("ufbx_matrix")]
-        public Misaki.HighPerformance.Mathematics.float3x4 unscaled_node_to_world;
+        public ufbx_matrix unscaled_node_to_world;
 
-        [NativeTypeName("ufbx_vec3")]
-        public Misaki.HighPerformance.Mathematics.float3 adjust_pre_translation;
+        public ufbx_vec3 adjust_pre_translation;
 
-        [NativeTypeName("ufbx_quat")]
-        public Misaki.HighPerformance.Mathematics.quaternion adjust_pre_rotation;
+        public ufbx_quat adjust_pre_rotation;
 
         [NativeTypeName("ufbx_real")]
         public float adjust_pre_scale;
 
-        [NativeTypeName("ufbx_quat")]
-        public Misaki.HighPerformance.Mathematics.quaternion adjust_post_rotation;
+        public ufbx_quat adjust_post_rotation;
 
         [NativeTypeName("ufbx_real")]
         public float adjust_post_scale;

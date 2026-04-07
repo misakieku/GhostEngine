@@ -19,9 +19,13 @@ public static class MathUtility
         {
             var R = new float3x3(rotation);
             return new float4x4(
-                    R[0][0] * scale.x, R[0][1] * scale.y, R[0][2] * scale.z, position.x,
-                    R[1][0] * scale.x, R[1][1] * scale.y, R[1][2] * scale.z, position.y,
-                    R[2][0] * scale.x, R[2][1] * scale.y, R[2][2] * scale.z, position.z,
+                    // Row 0: Right.x, Up.x, Forward.x, Pos.x
+                    R[0][0] * scale.x, R[1][0] * scale.y, R[2][0] * scale.z, position.x,
+                    // Row 1: Right.y, Up.y, Forward.y, Pos.y
+                    R[0][1] * scale.x, R[1][1] * scale.y, R[2][1] * scale.z, position.y,
+                    // Row 2: Right.z, Up.z, Forward.z, Pos.z
+                    R[0][2] * scale.x, R[1][2] * scale.y, R[2][2] * scale.z, position.z,
+                    // Row 3: 0, 0, 0, 1
                     0f, 0f, 0f, 1f
                 );
         }

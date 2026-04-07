@@ -49,11 +49,9 @@ namespace Ghost.Ufbx
 
         public ufbx_transform uv_transform;
 
-        [NativeTypeName("ufbx_matrix")]
-        public Misaki.HighPerformance.Mathematics.float3x4 texture_to_uv;
+        public ufbx_matrix texture_to_uv;
 
-        [NativeTypeName("ufbx_matrix")]
-        public Misaki.HighPerformance.Mathematics.float3x4 uv_to_texture;
+        public ufbx_matrix uv_to_texture;
 
         [UnscopedRef]
         public ref ufbx_element element

@@ -268,7 +268,7 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
                     nearClip = request.view.nearClipPlane,
                     cameraDirection = viewMatrix.c2.xyz, // check if that's correct orientation
                     farClip = request.view.farClipPlane,
-                    screenSize = new float4(request.view.sensorSize.x, request.view.sensorSize.y, 1.0f / request.view.sensorSize.x, 1.0f / request.view.sensorSize.y)
+                    screenSize = new float4(rtSize.x, rtSize.y, 1.0f / rtSize.x, 1.0f / rtSize.y)
                 };
 
                 ctx.CommandBuffer.Barrier(BarrierDesc.Buffer(viewBufferResource, BarrierSync.Copy, BarrierAccess.CopyDest));

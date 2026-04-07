@@ -16,8 +16,7 @@ namespace Ghost.Ufbx
         [NativeTypeName("_Bool")]
         public bool frozen;
 
-        [NativeTypeName("ufbx_vec3")]
-        public Misaki.HighPerformance.Mathematics.float3 ui_color;
+        public ufbx_vec3 ui_color;
 
         [UnscopedRef]
         public ref ufbx_element element

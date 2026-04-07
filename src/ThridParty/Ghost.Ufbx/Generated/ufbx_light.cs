@@ -8,14 +8,12 @@ namespace Ghost.Ufbx
         [NativeTypeName("__AnonymousRecord_ufbx_L1421_C2")]
         public _Anonymous_e__Union Anonymous;
 
-        [NativeTypeName("ufbx_vec3")]
-        public Misaki.HighPerformance.Mathematics.float3 color;
+        public ufbx_vec3 color;
 
         [NativeTypeName("ufbx_real")]
         public float intensity;
 
-        [NativeTypeName("ufbx_vec3")]
-        public Misaki.HighPerformance.Mathematics.float3 local_direction;
+        public ufbx_vec3 local_direction;
 
         public ufbx_light_type type;
 

@@ -10,7 +10,7 @@ public unsafe partial struct ufbx_vertex_vec3
     /// From: <see cref="Api.ufbx_get_weighted_face_normal(ufbx_vertex_vec3*, ufbx_face)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Misaki.HighPerformance.Mathematics.float3 GetWeightedFaceNormal(ufbx_face face)
+    public ufbx_vec3 GetWeightedFaceNormal(ufbx_face face)
     {
         return Api.ufbx_get_weighted_face_normal(
             (ufbx_vertex_vec3*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),

@@ -10,7 +10,7 @@ public unsafe partial struct ufbx_transform
     /// From: <see cref="Api.ufbx_transform_to_matrix(ufbx_transform*)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Misaki.HighPerformance.Mathematics.float3x4 ToMatrix()
+    public ufbx_matrix ToMatrix()
     {
         return Api.ufbx_transform_to_matrix((ufbx_transform*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this));
     }

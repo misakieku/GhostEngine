@@ -10,8 +10,7 @@ namespace Ghost.Ufbx
 
         public ufbx_string prop_name;
 
-        [NativeTypeName("ufbx_vec4")]
-        public Misaki.HighPerformance.Mathematics.float4 value;
+        public ufbx_vec4 value;
 
         public ufbx_string value_str;
 

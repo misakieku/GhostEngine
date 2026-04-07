@@ -11,8 +11,7 @@ namespace Ghost.Ufbx
 
         public double frames_per_second;
 
-        [NativeTypeName("ufbx_vec3")]
-        public Misaki.HighPerformance.Mathematics.float3 ambient_color;
+        public ufbx_vec3 ambient_color;
 
         public ufbx_string default_camera;
 

@@ -13,11 +13,13 @@ struct Vertex
 struct Meshlet
 {
     float4 boundingSphere;
+    float4 parentBoundingSphere;
     float3 boundingBoxMin;
     float3 boundingBoxMax;
     uint vertexOffset;
     uint triangleOffset;
     uint groupIndex;
+    float clusterError;
     float parentError;
     uint packedCounts; // byte vertexCount, byte triangleCount, byte localMaterialIndex, byte lodLevel
 };
