@@ -37,11 +37,11 @@ public class ResourceUploadBatch
 
     public void WaitIdle()
     {
-        _device.GraphicsQueue.WaitIdle();
+        _device.CopyQueue.WaitIdle();
     }
 
     public Task WaitAsync()
     {
-        return _device.GraphicsQueue.WaitAsync();
+        return _device.CopyQueue.WaitAsync();
     }
 }

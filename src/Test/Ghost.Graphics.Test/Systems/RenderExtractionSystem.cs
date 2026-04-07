@@ -1,6 +1,7 @@
 using Ghost.Core;
 using Ghost.Engine;
 using Ghost.Engine.Components;
+using Ghost.Engine.Systems;
 using Ghost.Entities;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.Test.RenderPipeline;
@@ -9,6 +10,7 @@ using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Graphics.Test.Systems;
 
+[RenderPipelineSystem<TestRenderPipelineSettings>]
 public class RenderExtractionSystem : ISystem
 {
     private RenderSystem _renderSystem = null!;
@@ -135,7 +137,7 @@ public class RenderExtractionSystem : ISystem
                 },
             };
 
-            ((TestRenderPayload)_renderSystem.RenderPayload).AddRenderRequest(request);
+            ((TestRenderPayload)_renderSystem.GetCurrentFramePayload()).renderRequests.Add(request);
         }
     }
 

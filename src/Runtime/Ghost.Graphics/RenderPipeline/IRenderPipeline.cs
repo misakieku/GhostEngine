@@ -2,11 +2,15 @@ using Ghost.Graphics.Core;
 
 namespace Ghost.Graphics.RenderPipeline;
 
-public interface IRenderPayload : IDisposable;
+public interface IRenderPayload : IDisposable
+{
+    void Reset();
+}
 
 public interface IRenderPipelineSettings
 {
-    void CreatePipeline(RenderSystem renderSystem, out IRenderPipeline renderPipeline, out IRenderPayload renderPayload);
+    IRenderPipeline CreatePipeline(RenderSystem renderSystem);
+    IRenderPayload CreatePayload(RenderSystem renderSystem);
 }
 
 public interface IRenderPipeline : IDisposable

@@ -28,13 +28,13 @@ internal unsafe struct JobEntityBatch<TJob, T0> : IJobParallelFor
     public UnsafeList<int> bitsOffsets0;
     public UnsafeList<int> versionIndices0;
 
-    public int version;
+    public uint version;
 
     public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {
         // 1. Get the specific pChunk for this thread
         var pChunk = (byte*)chunks[loopIndex];
-        var pVersions = (int*)chunkVersions[loopIndex];
+        var pVersions = (uint*)chunkVersions[loopIndex];
         var count = chunkCount[loopIndex];
 
         var off0 = offsets0[loopIndex];
@@ -93,13 +93,13 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1> : IJobParallelFor
     public UnsafeList<int> bitsOffsets1;
     public UnsafeList<int> versionIndices1;
 
-    public int version;
+    public uint version;
 
     public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {
         // 1. Get the specific pChunk for this thread
         var pChunk = (byte*)chunks[loopIndex];
-        var pVersions = (int*)chunkVersions[loopIndex];
+        var pVersions = (uint*)chunkVersions[loopIndex];
         var count = chunkCount[loopIndex];
 
         var off0 = offsets0[loopIndex];
@@ -179,13 +179,13 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2> : IJobParallelFor
     public UnsafeList<int> bitsOffsets2;
     public UnsafeList<int> versionIndices2;
 
-    public int version;
+    public uint version;
 
     public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {
         // 1. Get the specific pChunk for this thread
         var pChunk = (byte*)chunks[loopIndex];
-        var pVersions = (int*)chunkVersions[loopIndex];
+        var pVersions = (uint*)chunkVersions[loopIndex];
         var count = chunkCount[loopIndex];
 
         var off0 = offsets0[loopIndex];
@@ -286,13 +286,13 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3> : IJobParallelFor
     public UnsafeList<int> bitsOffsets3;
     public UnsafeList<int> versionIndices3;
 
-    public int version;
+    public uint version;
 
     public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {
         // 1. Get the specific pChunk for this thread
         var pChunk = (byte*)chunks[loopIndex];
-        var pVersions = (int*)chunkVersions[loopIndex];
+        var pVersions = (uint*)chunkVersions[loopIndex];
         var count = chunkCount[loopIndex];
 
         var off0 = offsets0[loopIndex];
@@ -414,13 +414,13 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4> : IJobParallelFo
     public UnsafeList<int> bitsOffsets4;
     public UnsafeList<int> versionIndices4;
 
-    public int version;
+    public uint version;
 
     public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {
         // 1. Get the specific pChunk for this thread
         var pChunk = (byte*)chunks[loopIndex];
-        var pVersions = (int*)chunkVersions[loopIndex];
+        var pVersions = (uint*)chunkVersions[loopIndex];
         var count = chunkCount[loopIndex];
 
         var off0 = offsets0[loopIndex];
@@ -563,13 +563,13 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5> : IJobParall
     public UnsafeList<int> bitsOffsets5;
     public UnsafeList<int> versionIndices5;
 
-    public int version;
+    public uint version;
 
     public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {
         // 1. Get the specific pChunk for this thread
         var pChunk = (byte*)chunks[loopIndex];
-        var pVersions = (int*)chunkVersions[loopIndex];
+        var pVersions = (uint*)chunkVersions[loopIndex];
         var count = chunkCount[loopIndex];
 
         var off0 = offsets0[loopIndex];
@@ -733,13 +733,13 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6> : IJobPa
     public UnsafeList<int> bitsOffsets6;
     public UnsafeList<int> versionIndices6;
 
-    public int version;
+    public uint version;
 
     public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {
         // 1. Get the specific pChunk for this thread
         var pChunk = (byte*)chunks[loopIndex];
-        var pVersions = (int*)chunkVersions[loopIndex];
+        var pVersions = (uint*)chunkVersions[loopIndex];
         var count = chunkCount[loopIndex];
 
         var off0 = offsets0[loopIndex];
@@ -924,13 +924,13 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6, T7> : IJ
     public UnsafeList<int> bitsOffsets7;
     public UnsafeList<int> versionIndices7;
 
-    public int version;
+    public uint version;
 
     public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {
         // 1. Get the specific pChunk for this thread
         var pChunk = (byte*)chunks[loopIndex];
-        var pVersions = (int*)chunkVersions[loopIndex];
+        var pVersions = (uint*)chunkVersions[loopIndex];
         var count = chunkCount[loopIndex];
 
         var off0 = offsets0[loopIndex];
@@ -1167,7 +1167,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i = 0; i < 1; i++)
+            for (var i =0; i < 1; i++)
             {
                 if (id == runner.componentIDs[i])
                 {
@@ -1321,7 +1321,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i = 0; i < 1; i++)
+            for (var i =0; i < 1; i++)
             {
                 if (id == runner.componentIDs[i])
                 {
@@ -1501,7 +1501,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i = 0; i < 1; i++)
+            for (var i =0; i < 1; i++)
             {
                 if (id == runner.componentIDs[i])
                 {
@@ -1707,7 +1707,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i = 0; i < 1; i++)
+            for (var i =0; i < 1; i++)
             {
                 if (id == runner.componentIDs[i])
                 {
@@ -1939,7 +1939,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i = 0; i < 1; i++)
+            for (var i =0; i < 1; i++)
             {
                 if (id == runner.componentIDs[i])
                 {
@@ -2197,7 +2197,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i = 0; i < 1; i++)
+            for (var i =0; i < 1; i++)
             {
                 if (id == runner.componentIDs[i])
                 {
@@ -2481,7 +2481,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i = 0; i < 1; i++)
+            for (var i =0; i < 1; i++)
             {
                 if (id == runner.componentIDs[i])
                 {
@@ -2791,7 +2791,7 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i = 0; i < 1; i++)
+            for (var i =0; i < 1; i++)
             {
                 if (id == runner.componentIDs[i])
                 {

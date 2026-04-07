@@ -3,12 +3,9 @@ using Ghost.Graphics.Core;
 using Ghost.Graphics.D3D12;
 using Ghost.Graphics.RenderPipeline;
 using Ghost.Graphics.RHI;
-using Misaki.HighPerformance.LowLevel.Buffer;
-using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Ghost.Graphics;
 
@@ -17,21 +14,21 @@ internal enum GraphicsAPI
     Direct3D12
 }
 
-internal struct RenderSystemDesc
+internal readonly struct RenderSystemDesc
 {
     public GraphicsAPI GraphicsAPI
     {
-        get; set;
+        get; init;
     }
 
     public uint FrameBufferCount
     {
-        get; set;
+        get; init;
     }
 
-    public IRenderPipelineSettings? InitialRenderPipelineSettings
+    public required IRenderPipelineSettings InitialRenderPipelineSettings
     {
-        get; set;
+        get; init;
     }
 }
 
@@ -63,11 +60,17 @@ public class RenderSystem : IDisposable
             get; set;
         }
 
+        public IRenderPayload RenderPayload
+        {
+            get; set;
+        }
+
         public readonly void Dispose()
         {
             CpuReadyEvent.Dispose();
             GpuReadyEvent.Dispose();
             CommandAllocator.Dispose();
+            RenderPayload.Dispose();
         }
     }
 
@@ -85,7 +88,6 @@ public class RenderSystem : IDisposable
 
     private IRenderPipelineSettings _renderPipelineSettings;
     private IRenderPipeline _renderPipeline;
-    private IRenderPayload _renderPayload;
 
     private ulong _cpuFenceValue;
     private ulong _submittedFenceValue;
@@ -104,7 +106,6 @@ public class RenderSystem : IDisposable
 
     public uint MaxFrameLatency => _config.FrameBufferCount;
 
-    public IRenderPayload RenderPayload => _renderPayload;
     public IRenderPipelineSettings RenderPipelineSettings
     {
         get => _renderPipelineSettings;
@@ -119,10 +120,18 @@ public class RenderSystem : IDisposable
             }
 
             _renderPipeline?.Dispose();
-            _renderPayload?.Dispose();
+            for (int i = 0; i < _frameResources.Length; i++)
+            {
+                _frameResources[i].RenderPayload?.Dispose();
+            }
 
             _renderPipelineSettings = value;
-            _renderPipelineSettings.CreatePipeline(this, out _renderPipeline, out _renderPayload);
+
+            _renderPipeline = _renderPipelineSettings.CreatePipeline(this);
+            for (var i = 0; i < _frameResources.Length; i++)
+            {
+                _frameResources[i].RenderPayload = _renderPipelineSettings.CreatePayload(this);
+            }
         }
     }
 
@@ -179,8 +188,13 @@ public class RenderSystem : IDisposable
         _shutdownEvent = new AutoResetEvent(false);
         _resizeRequest = new ConcurrentDictionary<ISwapChain, uint2>();
 
-        _renderPipelineSettings = _config.InitialRenderPipelineSettings ?? new GhostRenderPipelineSettings();
-        _renderPipelineSettings.CreatePipeline(this, out _renderPipeline, out _renderPayload);
+        _renderPipelineSettings = _config.InitialRenderPipelineSettings;
+
+        _renderPipeline = _renderPipelineSettings.CreatePipeline(this);
+        for (var i = 0; i < _frameResources.Length; i++)
+        {
+            _frameResources[i].RenderPayload = _renderPipelineSettings.CreatePayload(this);
+        }
 
         _isRunning = false;
         _disposed = false;
@@ -208,10 +222,11 @@ public class RenderSystem : IDisposable
 
         while (_isRunning)
         {
+            var frameIndex = (int)(_submittedFenceValue % _config.FrameBufferCount);
+            ref var frameResource = ref _frameResources[frameIndex];
+
             try
             {
-                var frameIndex = (int)(_submittedFenceValue % _config.FrameBufferCount);
-                ref var frameResource = ref _frameResources[frameIndex];
 
                 // Wait for either CPU ready signal or shutdown signal
                 waitHandles[0] = frameResource.CpuReadyEvent;
@@ -268,7 +283,7 @@ public class RenderSystem : IDisposable
 
                     var ctx = new RenderContext(_graphicsEngine, _resourceManager, cmd);
 
-                    _renderPipeline.Render(ctx, frameIndex, _renderPayload);
+                    _renderPipeline.Render(ctx, frameIndex, frameResource.RenderPayload);
                     _swapChainManager.TransitionToPresent(cmd);
 
                     // End recording commands and submit
@@ -296,6 +311,8 @@ public class RenderSystem : IDisposable
                 // End the frame and retire resources based on the freshest observed GPU progress.
                 _resourceManager.EndFrame(completedFrame);
                 _graphicsEngine.EndFrame(completedFrame);
+
+                frameResource.RenderPayload.Reset();
             }
             catch (Exception ex)
             {
@@ -391,6 +408,16 @@ public class RenderSystem : IDisposable
         }
     }
 
+    public IRenderPayload GetCurrentFramePayload()
+    {
+        Debug.Assert(!_disposed, "Cannot get current frame payload from a disposed RenderSystem.");
+
+        var eventIndex = (int)(_cpuFenceValue % _config.FrameBufferCount);
+        ref var frameResource = ref _frameResources[eventIndex];
+
+        return frameResource.RenderPayload;
+    }
+
     public void Dispose()
     {
         if (_disposed)
@@ -410,7 +437,7 @@ public class RenderSystem : IDisposable
 
         _resourceManager.Dispose();
         _swapChainManager.Dispose();
-        
+
         _graphicsEngine.Dispose();
 
         _shutdownEvent.Dispose();

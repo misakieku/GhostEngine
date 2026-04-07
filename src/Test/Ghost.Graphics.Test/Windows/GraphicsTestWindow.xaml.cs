@@ -1,10 +1,10 @@
 using Ghost.Core;
 using Ghost.Engine.Components;
-using Ghost.Engine.Systems;
 using Ghost.Engine.Utilities;
 using Ghost.Entities;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
+using Ghost.Graphics.Test.Systems;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -53,7 +53,7 @@ public sealed partial class GraphicsTestWindow : Window
         {
             FrameBufferCount = 2,
             GraphicsAPI = GraphicsAPI.Direct3D12,
-            InitialRenderPipelineSettings = new RenderPasses.TestRenderPipelineSettings()
+            InitialRenderPipelineSettings = new RenderPipeline.TestRenderPipelineSettings()
         });
 
         _swapChain = _renderSystem.SwapChainManager.EnsureSwapChain(0, new SwapChainDesc
@@ -159,6 +159,9 @@ public sealed partial class GraphicsTestWindow : Window
         }
         catch (Exception ex)
         {
+#if DEBUG
+            System.Diagnostics.Debugger.Break();
+#endif
             Environment.FailFast("Failed to close the window properly.", ex);
         }
         finally

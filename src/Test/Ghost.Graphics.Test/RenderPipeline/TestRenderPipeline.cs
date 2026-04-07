@@ -104,11 +104,10 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
     {
         var testPayload = (TestRenderPayload)payload;
 
-        var renderSystem = testPayload.RenderSystem;
-        var resourceManager = renderSystem.ResourceManager;
-        var resourceDatabase = renderSystem.GraphicsEngine.ResourceDatabase;
+        var resourceManager = _renderSystem.ResourceManager;
+        var resourceDatabase = _renderSystem.GraphicsEngine.ResourceDatabase;
 
-        var requests = testPayload.FrameRequestData[frameIndex].renderRequests;
+        var requests = testPayload.renderRequests;
 
         for (var i = 0; i < requests.Count; i++)
         {
@@ -126,7 +125,7 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
             {
                 rt = request.colorTarget;
             }
-            else if (renderSystem.SwapChainManager.TryGetSwapChain(request.swapChainIndex, out var swapChain))
+            else if (_renderSystem.SwapChainManager.TryGetSwapChain(request.swapChainIndex, out var swapChain))
             {
                 rt = swapChain.GetCurrentBackBuffer();
             }
@@ -137,7 +136,7 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
 
             try
             {
-                var rtResult = renderSystem.GraphicsEngine.ResourceDatabase.GetResourceDescription(rt.AsResource());
+                var rtResult = _renderSystem.GraphicsEngine.ResourceDatabase.GetResourceDescription(rt.AsResource());
                 if (rtResult.IsFailure)
                 {
                     continue;
@@ -312,7 +311,7 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
             {
                 if (request.swapChainIndex >= 0)
                 {
-                    renderSystem.SwapChainManager.ReleaseSwapChain(request.swapChainIndex);
+                    _renderSystem.SwapChainManager.ReleaseSwapChain(request.swapChainIndex);
                 }
             }
         }

@@ -52,7 +52,7 @@ internal class MeshoptBenchmark : ITest
         };
         var error = new ufbx_error();
 
-        using var pool = new MemoryPool<VirtualStack, VirtualStack.CreationOpts>(new VirtualStack.CreationOpts
+        using var pool = new MemoryPool<VirtualStack, VirtualStack.CreationOptions>(new VirtualStack.CreationOptions
         {
             reserveCapacity = 256 * 1024 * 1024 // 256 MB should be enough for most models, adjust as needed. Note that this use virtual memory and does not actually consume physical memory until allocations are made.
         });

@@ -41,13 +41,13 @@ internal unsafe struct JobEntityBatch<TJob, <#= generics #>> : IJobParallelFor
     public UnsafeList<int> versionIndices<#= j #>;
 
 <# } #>
-    public int version;
+    public uint version;
 
     public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {
         // 1. Get the specific pChunk for this thread
         var pChunk = (byte*)chunks[loopIndex];
-        var pVersions = (int*)chunkVersions[loopIndex];
+        var pVersions = (uint*)chunkVersions[loopIndex];
         var count = chunkCount[loopIndex];
 
 <# for (var j = 0; j < i; j++){ #>

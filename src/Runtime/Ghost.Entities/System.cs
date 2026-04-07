@@ -31,10 +31,10 @@ public abstract class SystemBase : ISystem
         get; init;
     } = null!;
 
-    public int LastSystemVersion
+    public uint LastSystemVersion
     {
         get; internal set;
-    } = -2;
+    } = uint.MaxValue - 1;
 
     private bool ShouldUpdate()
     {

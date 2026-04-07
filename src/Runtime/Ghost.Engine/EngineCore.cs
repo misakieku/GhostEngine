@@ -26,6 +26,7 @@ public sealed partial class EngineCore : IDisposable
         {
             FrameBufferCount = 2,
             GraphicsAPI = GraphicsAPI.Direct3D12,
+            InitialRenderPipelineSettings = null! // TODO: We should allow user to specify the initial render pipeline settings.
         };
 
         _renderSystem = new RenderSystem(renderingConfig);
