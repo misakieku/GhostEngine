@@ -14,18 +14,18 @@ namespace Ghost.Graphics.Core;
 [StructLayout(LayoutKind.Sequential)]
 public struct Meshlet
 {
-    public SphereBounds boundingSphere;   // 16 bytes
-    public SphereBounds parentBoundingSphere; // 16 bytes
-    public AABB boundingBox;              // 24 bytes
-    public uint vertexOffset;             // offset into meshlet vertex index array
-    public uint triangleOffset;           // offset into packed triangle array
-    public uint groupIndex;               // owning group
-    public float clusterError;            // geometric error of this meshlet/cluster
-    public float parentError;             // geometric refinement error carried into runtime LOD tests
-    public byte vertexCount;              // max 64
-    public byte triangleCount;            // max 124
-    public byte localMaterialIndex;       // mesh-local material slot
-    public byte lodLevel;                 // this meshlet's LOD level
+    public SphereBounds boundingSphere;         // 16 bytes
+    public SphereBounds parentBoundingSphere;   // 16 bytes
+    public AABB boundingBox;                    // 24 bytes
+    public uint vertexOffset;                   // offset into meshlet vertex index array
+    public uint triangleOffset;                 // offset into packed triangle array
+    public uint groupIndex;                     // owning group
+    public float clusterError;                  // geometric error of this meshlet/cluster
+    public float parentError;                   // geometric refinement error carried into runtime LOD tests
+    public byte vertexCount;                    // max 64
+    public byte triangleCount;                  // max 124
+    public byte localMaterialIndex;             // mesh-local material slot
+    public byte lodLevel;                       // this meshlet's LOD level
 }
 
 [StructLayout(LayoutKind.Sequential)]

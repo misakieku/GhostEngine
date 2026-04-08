@@ -189,7 +189,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
             };
 
             var compiled = compiledCacheResult.Value;
-            _pipelineLibrary.CompilePSO(in psoDes, in compiled).GetValueOrThrow();
+            _pipelineLibrary.CreatePSO(in psoDes, in compiled).GetValueOrThrow();
         }
 
         _activePerMaterialData = material._cBufferCache.GpuResource;

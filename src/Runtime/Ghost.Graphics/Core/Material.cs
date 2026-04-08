@@ -111,17 +111,17 @@ public struct Material : IResourceReleasable
             };
         }
 
-        if (shader.CBufferSize != 0)
+        if (shader.PropertyBufferSize != 0)
         {
             var desc = new BufferDesc
             {
-                Size = shader.CBufferSize,
+                Size = shader.PropertyBufferSize,
                 Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
                 HeapType = HeapType.Default,
             };
 
             var buffer = resourceAllocator.CreateBuffer(ref desc, "MaterialCBuffer");
-            _cBufferCache = new CBufferCache(buffer, shader.CBufferSize);
+            _cBufferCache = new CBufferCache(buffer, shader.PropertyBufferSize);
         }
 
         return Error.None;

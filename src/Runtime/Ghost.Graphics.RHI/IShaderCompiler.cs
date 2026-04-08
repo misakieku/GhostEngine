@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
+using Ghost.Core.Utilities;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 
@@ -9,6 +10,7 @@ public struct ShaderCompileResult : IDisposable
 {
     public UnsafeArray<byte> bytecode;
     public ShaderReflectionData reflectionData;
+    public ulong hashCode;
 
     public readonly bool IsCreated => bytecode.IsCreated;
 
@@ -20,9 +22,24 @@ public struct ShaderCompileResult : IDisposable
 
 public struct GraphicsCompiledResult : IDisposable
 {
+    private ulong _hashCode;
+
     public ShaderCompileResult tsResult;
     public ShaderCompileResult msResult;
     public ShaderCompileResult psResult;
+
+    public Key64<GraphicsCompiledResult> HashCode
+    {
+        get
+        {
+            if (_hashCode == 0)
+            {
+                _hashCode = Hash.Combine64(tsResult.hashCode, msResult.hashCode, psResult.hashCode);
+            }
+
+            return _hashCode;
+        }
+    }
 
     public void Dispose()
     {
@@ -144,6 +161,6 @@ public readonly struct ShaderReflectionData
 public interface IShaderCompiler : IDisposable
 {
     Result<ShaderCompileResult> Compile(ref readonly ShaderCompilationConfig config, Allocator allocator);
-    Result<GraphicsCompiledResult> CompilePass(ref readonly PassDescriptor descriptor, ref readonly ShaderCompilationConfig additionalConfig, Key64<ShaderVariant> key);
+    Result<GraphicsCompiledResult> CompilePass(ref readonly PassDescriptor descriptor, ref readonly ShaderCompilationConfig additionalConfig, ref readonly LocalKeywordSet keywords);
     Result<GraphicsCompiledResult, Error> LoadCompiledCache(Key64<ShaderVariant> key);
 }

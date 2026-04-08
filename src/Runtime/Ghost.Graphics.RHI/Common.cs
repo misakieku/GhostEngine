@@ -473,7 +473,6 @@ public struct PassDepthStencilDesc
     }
 }
 
-
 public struct TextureSubresource
 {
     public uint MipLevel
@@ -1135,6 +1134,131 @@ public ref struct CommandSignatureDesc
     }
 }
 
+public unsafe struct ProgramIdentifier
+{
+    public void* pIdentifier;
+}
+
+public unsafe struct NodeCPUInput
+{
+    public uint entryPointIndex;
+    public uint numRecords;
+    public void* pRecords;
+    public ulong recordStrideInBytes;
+}
+
+public unsafe struct MultiNodeCPUInput
+{
+    public uint numNodeInputs;
+    public NodeCPUInput* pNodeInputs;
+    public ulong nodeInputStrideInBytes;
+}
+
+public struct DispatchGraphDesc
+{
+    [StructLayout(LayoutKind.Explicit)]
+    private struct __union
+    {
+        [FieldOffset(0)]
+        public NodeCPUInput nodeCPUInput;
+        [FieldOffset(0)]
+        public ulong nodeGPUInput;
+        [FieldOffset(0)]
+        public MultiNodeCPUInput multiNodeCPUInput;
+        [FieldOffset(0)]
+        public ulong multiNodeGPUInput;
+    }
+
+    private __union _input;
+
+    public GraphDispatchMode DispatchMode
+    {
+        get; set;
+    }
+
+    [UnscopedRef]
+    public ref NodeCPUInput NodeCPUInput => ref _input.nodeCPUInput;
+    [UnscopedRef]
+    public ref ulong NodeGPUInput => ref _input.nodeGPUInput;
+    [UnscopedRef]
+    public ref MultiNodeCPUInput MultiNodeCPUInput => ref _input.multiNodeCPUInput;
+    [UnscopedRef]
+    public ref ulong MultiNodeGPUInput => ref _input.multiNodeGPUInput;
+}
+
+public struct WorkGraphMemoryRequirements
+{
+    public ulong MinSizeInBytes
+    {
+        get; set;
+    }
+
+    public ulong MaxSizeInBytes
+    {
+        get; set;
+    }
+
+    public uint SizeGranularityInBytes
+    {
+        get; set;
+    }
+}
+
+public struct WorkGraphSubObjectDesc
+{
+    public string ProgramName
+    {
+        get; set;
+    }
+
+    public bool IncludeAllAvailableNodes
+    {
+        get; set;
+    }
+}
+
+public struct SetProgramDesc
+{
+    public ProgramIdentifier ProgramIdentifier
+    {
+        get; set;
+    }
+
+    public SetWorkGraphFlags Flags
+    {
+        get; set;
+    }
+
+
+    // D3D12_GPU_VIRTUAL_ADDRESS_RANGE
+    public ulong BackingMemoryAddress
+    {
+        get; set;
+    }
+
+    public ulong BackingMemorySize
+    {
+        get; set;
+    }
+
+
+    // D3D12_GPU_VIRTUAL_ADDRESS_RANGE_AND_STRIDE
+    public ulong NodeLocalRootArgumentsTableAddress
+    {
+        get; set;
+    }
+
+    public ulong NodeLocalRootArgumentsTableSizeInBytes
+    {
+        get; set;
+    }
+
+    public ulong NodeLocalRootArgumentsTableStrideInBytes
+    {
+        get; set;
+    }
+}
+
 public struct SwapChainDesc
 {
     public uint Width
@@ -1185,7 +1309,6 @@ public struct SwapChainTarget
         get; set;
     }
 
-
     public static SwapChainTarget FromWindowHandle(nint hwnd)
     {
         return new SwapChainTarget
@@ -1212,7 +1335,6 @@ public enum SwapChainTargetType
     WindowHandle,
     Composition
 }
-
 
 public enum BarrierType
 {
@@ -1503,4 +1625,19 @@ public enum IndirectArgumentType
     DispatchRays,
     DispatchMesh,
     IncrementingConstant,
+}
+
+public enum GraphDispatchMode
+{
+    CPUInput,
+    GPUInput,
+    MultiCPUInput,
+    MultiGPUInput
+}
+
+[Flags]
+public enum SetWorkGraphFlags
+{
+    None,
+    Initialize
 }

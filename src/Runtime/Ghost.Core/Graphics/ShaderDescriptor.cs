@@ -33,21 +33,14 @@ public struct KeywordsGroup
     public List<string> keywords;
 }
 
-public struct PropertyDescriptor
-{
-    public string name;
-    public int offset;
-    public int size;
-    public ShaderPropertyType type;
-
-    public object? defaultValue;
-}
-
 public struct PassDescriptor
 {
-    public string identifier;
+    public ShaderDescriptor shader;
+
+    public ulong identifier;
     public string name;
 
+    public string? hlsl;
     public ShaderEntryPoint taskShader;
     public ShaderEntryPoint meshShader;
     public ShaderEntryPoint pixelShader;
@@ -55,54 +48,23 @@ public struct PassDescriptor
     public string[] includes;
     public KeywordsGroup[] keywords;
     public PipelineState localPipeline;
-    public string? hlsl;
 }
 
 public class ShaderDescriptor
 {
     public string name = string.Empty;
-    public int cbufferSize;
-    public PropertyDescriptor[] globalProperties = null!;
-    public PropertyDescriptor[] properties = null!;
-    public PassDescriptor[] passes = null!;
-    public string? hlsl;
+    public string propertiesCode = string.Empty;
+    public uint propertyBufferSize;
+    public PassDescriptor[] passes = Array.Empty<PassDescriptor>();
 }
 
-public static class ShaderDescriptorExtensions
+public class ComputeShaderDescriptor
 {
-    public static int GetSize(this ShaderPropertyType type)
-    {
-        return type switch
-        {
-            ShaderPropertyType.Float
-            or ShaderPropertyType.Int
-            or ShaderPropertyType.UInt
-            or ShaderPropertyType.Bool => 4,
-
-            ShaderPropertyType.Float2
-            or ShaderPropertyType.Int2
-            or ShaderPropertyType.UInt2
-            or ShaderPropertyType.Bool2 => 8,
-
-            ShaderPropertyType.Float3
-            or ShaderPropertyType.Int3
-            or ShaderPropertyType.UInt3
-            or ShaderPropertyType.Bool3 => 12,
-
-            ShaderPropertyType.Float4
-            or ShaderPropertyType.Int4
-            or ShaderPropertyType.UInt4
-            or ShaderPropertyType.Bool4 => 16,
-
-            ShaderPropertyType.Float4x4 => 64,
-
-            ShaderPropertyType.Texture2D
-            or ShaderPropertyType.Texture3D
-            or ShaderPropertyType.TextureCube
-            or ShaderPropertyType.Texture2DArray
-            or ShaderPropertyType.TextureCubeArray
-            or ShaderPropertyType.Sampler => 4, // Bindless resource use uint32
-            _ => 0,
-        };
-    }
+    public string name = string.Empty;
+    public string propertiesCode = string.Empty;
+    public uint propertyBufferSize;
+    public ShaderEntryPoint entryPoint;
+    public string[] defines = Array.Empty<string>();
+    public string[] includes = Array.Empty<string>();
+    public KeywordsGroup[] keywords = Array.Empty<KeywordsGroup>();
 }

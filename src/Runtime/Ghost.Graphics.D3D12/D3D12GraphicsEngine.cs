@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
+using TerraFX.Interop.DirectX;
 
 namespace Ghost.Graphics.D3D12;
 

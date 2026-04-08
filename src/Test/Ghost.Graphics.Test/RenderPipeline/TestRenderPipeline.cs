@@ -2,7 +2,6 @@ using Ghost.Core;
 using Ghost.DSL.ShaderCompiler;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RenderGraphModule;
-using Ghost.Graphics.RenderPipeline;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Mathematics;
 using Misaki.HighPerformance.Mathematics.Geometry;
@@ -45,8 +44,6 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
                 renderSystem.GraphicsEngine.ShaderCompiler);
 
         var shaderDescriptor = DSLShaderCompiler.CompileShader("F:/csharp/GhostEngine/src/Runtime/Ghost.Graphics/test.gshdr", "C:/Users/Misaki/Downloads/Archive").GetValueOrThrow();
-        _meshletShader = renderSystem.ResourceManager.CreateGraphicsShader(shaderDescriptor);
-        _meshletMaterial = renderSystem.ResourceManager.CreateMaterial(_meshletShader);
 
         var config = new ShaderCompilationConfig
         {
@@ -55,13 +52,12 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
             tier = CompilerTier.Tier2
         };
 
-        var pass = shaderDescriptor.passes[0];
+        ref readonly var pass = ref shaderDescriptor.passes[0];
         var emptyKeywords = new LocalKeywordSet();
-        var variantKey = RHIUtility.CreateShaderVariantKey(
-            RHIUtility.CreateShaderPassKey(pass.identifier),
-            in emptyKeywords);
-
-        renderSystem.GraphicsEngine.ShaderCompiler.CompilePass(in pass, in config, variantKey).GetValueOrThrow();
+        var compiled = renderSystem.GraphicsEngine.ShaderCompiler.CompilePass(in pass, in config, in emptyKeywords).GetValueOrThrow();
+        
+        _meshletShader = renderSystem.ResourceManager.CreateGraphicsShader(shaderDescriptor, in compiled);
+        _meshletMaterial = renderSystem.ResourceManager.CreateMaterial(_meshletShader);
     }
 
     private static float3 IntersectFrustumPlanes(float4 p0, float4 p1, float4 p2)

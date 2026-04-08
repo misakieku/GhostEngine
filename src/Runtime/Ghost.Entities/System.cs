@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Misaki.HighPerformance.LowLevel.Collections;
 
 namespace Ghost.Entities;
 
@@ -24,7 +25,7 @@ public interface ISystem
 
 public abstract class SystemBase : ISystem
 {
-    private List<int>? _requiredQueries;
+    private UnsafeList<int> _requiredQueries;
 
     public World World
     {
@@ -38,13 +39,14 @@ public abstract class SystemBase : ISystem
 
     private bool ShouldUpdate()
     {
-        if (_requiredQueries == null || _requiredQueries.Count == 0)
+        if (!_requiredQueries.IsCreated || _requiredQueries.Count == 0)
         {
             return true;
         }
 
-        foreach (var queryID in _requiredQueries)
+        for  (var i = 0; i < _requiredQueries.Count; i++)
         {
+            var queryID = _requiredQueries[i];
             ref var query = ref World.ComponentManager.GetEntityQueryReference(new Identifier<EntityQuery>(queryID));
             if (query.CalculateEntityCount() == 0)
             {
@@ -57,7 +59,11 @@ public abstract class SystemBase : ISystem
 
     protected void RequireQueryForUpdate(Identifier<EntityQuery> queryID)
     {
-        _requiredQueries ??= new List<int>(4);
+        if (!_requiredQueries.IsCreated)
+        {
+            _requiredQueries = new UnsafeList<int>(4, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
+        }
+
         _requiredQueries.Add(queryID.Value);
     }
 
@@ -89,6 +95,7 @@ public abstract class SystemBase : ISystem
 
     void ISystem.Cleanup(ref readonly SystemAPI systemAPI)
     {
+        _requiredQueries.Dispose();
         OnCleanup(in systemAPI);
     }
 

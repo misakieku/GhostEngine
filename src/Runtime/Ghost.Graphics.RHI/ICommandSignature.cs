@@ -1,3 +1,6 @@
 namespace Ghost.Graphics.RHI;
 
-public interface ICommandSignature : IRHIObject;
+public unsafe interface ICommandSignature : IRHIObject
+{
+    IntPtr NativePointer { get; }
+}

@@ -1,15 +1,5 @@
 shader "MyShader/Standard"
 {
-    properties
-    {
-        //float4 color = { 1, 1, 1, 1 };
-        //tex2d texture1 = { black };
-        //tex2d texture2 = { white };
-        //tex2d texture3 = { grey };
-        //tex2d texture4 = { normal };
-        //sampler tex_sampler;
-    }
-
     pass "Forward"
     {
         pipeline

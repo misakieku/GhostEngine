@@ -186,6 +186,9 @@ public readonly struct Key64<T> : IEquatable<Key64<T>>
     {
         return !a.Equals(b);
     }
+
+    public static implicit operator ulong(Key64<T> key) => key.Value;
+    public static implicit operator Key64<T>(ulong value) => new Key64<T>(value);
 }
 
 public readonly struct Key128<T> : IEquatable<Key128<T>>
@@ -239,4 +242,7 @@ public readonly struct Key128<T> : IEquatable<Key128<T>>
     {
         return !a.Equals(b);
     }
+
+    public static implicit operator UInt128(Key128<T> key) => key.Value;
+    public static implicit operator Key128<T>(UInt128 value) => new Key128<T>(value);
 }

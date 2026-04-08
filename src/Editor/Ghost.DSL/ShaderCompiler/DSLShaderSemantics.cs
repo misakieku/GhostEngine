@@ -8,14 +8,6 @@ public enum PropertyScope
     Local,
 }
 
-public class PropertySemantic
-{
-    public PropertyScope scope;
-    public ShaderPropertyType type;
-    public string name = string.Empty;
-    public object? defaultValue;
-}
-
 public class PipelineSemantic
 {
     public ZTest? zTest;
@@ -41,8 +33,6 @@ public class PassSemantic
 public class DSLShaderSemantics
 {
     public string name = string.Empty;
-    public string? hlsl;
-    public List<PropertySemantic>? properties;
     public PipelineSemantic? pipeline;
     public List<PassSemantic>? passes;
 }

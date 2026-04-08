@@ -2,7 +2,7 @@ lexer grammar GhostShaderLexer;
 
 // Keywords
 SHADER: 'shader';
-PROPERTIES: 'properties';
+COMPUTE: 'compute';
 PIPELINE: 'pipeline';
 PASS: 'pass';
 DEFINES: 'defines';

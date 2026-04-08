@@ -174,7 +174,7 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
         return D3D12Utility.D3D12_DEPTH_STENCIL_DESC_CREATE(depthEnabled, writeEnabled, cmp);
     }
 
-    public Result<Key128<GraphicsPipeline>> CompilePSO(ref readonly GraphicsPSODescriptor descriptor, ref readonly GraphicsCompiledResult compiled)
+    public Result<Key128<GraphicsPipeline>> CreatePSO(ref readonly GraphicsPSODescriptor descriptor, ref readonly GraphicsCompiledResult compiled)
     {
         static Result ValidatePassReflectionData(ref readonly GraphicsCompiledResult compiled)
         {

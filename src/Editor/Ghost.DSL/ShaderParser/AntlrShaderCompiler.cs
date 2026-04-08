@@ -71,7 +71,6 @@ public class AntlrShaderCompiler
         var semantics = new DSLShaderSemantics
         {
             name = model.Name,
-            properties = ConvertProperties(model.Properties, errors),
             pipeline = ConvertPipeline(model.Pipeline, errors)
         };
 
@@ -86,48 +85,6 @@ public class AntlrShaderCompiler
         }
 
         return semantics;
-    }
-
-    private static List<PropertySemantic>? ConvertProperties(PropertiesBlockModel? properties, List<DSLShaderError> errors)
-    {
-        if (properties == null || properties.Properties.Count == 0)
-        {
-            return null;
-        }
-
-        var result = new List<PropertySemantic>();
-        var usedNames = new HashSet<string>();
-
-        foreach (var prop in properties.Properties)
-        {
-            if (usedNames.Contains(prop.Name))
-            {
-                errors.Add(new DSLShaderError
-                {
-                    message = $"Duplicate property name '{prop.Name}'.",
-                    line = 0,
-                    column = 0
-                });
-                continue;
-            }
-
-            var semantic = new PropertySemantic
-            {
-                name = prop.Name,
-                scope = prop.Scope?.ToLower() == "global" ? PropertyScope.Global : PropertyScope.Local,
-                type = ParsePropertyType(prop.Type, errors)
-            };
-
-            if (prop.Initializer.Count > 0)
-            {
-                semantic.defaultValue = ParsePropertyValue(semantic.type, prop.Initializer, errors);
-            }
-
-            usedNames.Add(prop.Name);
-            result.Add(semantic);
-        }
-
-        return result;
     }
 
     private static ShaderPropertyType ParsePropertyType(string type, List<DSLShaderError> errors)

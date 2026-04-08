@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
+using Ghost.Core.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
@@ -83,19 +84,20 @@ public partial struct Shader : IResourceReleasable
     // We can use a int array since the number and index of tags are fixed at compile time.
 
     public readonly int PassCount => _shaderPasses.Count;
-    public readonly uint CBufferSize => _cbufferSize;
+    public readonly uint PropertyBufferSize => _cbufferSize;
 
-    internal Shader(ShaderDescriptor descriptor)
+    internal Shader(ShaderDescriptor descriptor, ref readonly GraphicsCompiledResult compiledResult)
     {
-        _cbufferSize = (uint)descriptor.cbufferSize;
+        _cbufferSize = descriptor.propertyBufferSize;
         _shaderPasses = new UnsafeArray<ShaderPass>(descriptor.passes.Length, Allocator.Persistent);
         _passIDToLocal = new UnsafeHashMap<int, int>(descriptor.passes.Length, Allocator.Persistent);
         _keywordIDToLocal = new UnsafeHashMap<int, int>(32, Allocator.Persistent);
 
         for (var i = 0; i < descriptor.passes.Length; i++)
         {
-            var pass = descriptor.passes[i];
-            var passKey = RHIUtility.CreateShaderPassKey(pass.identifier);
+            ref readonly var pass = ref descriptor.passes[i];
+
+            var passKey = RHIUtility.CreateShaderPassKey(pass.identifier, compiledResult.HashCode);
             var keywords = default(LocalKeywordSet);
 
             if (pass.keywords.Length > 0)

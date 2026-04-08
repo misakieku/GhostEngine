@@ -6,7 +6,9 @@ using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Utilities;
+using System.IO.Hashing;
 using System.Runtime.InteropServices;
+using System.Text;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 
@@ -88,7 +90,7 @@ internal sealed partial class DXCShaderCompiler
         return argsArray;
     }
 
-    private static Result<string, Error> GetFinalShaderCode(string shaderPath, ReadOnlySpan<string> includes, string? injectedCode)
+    private static Result<string, Error> BuildFinalShaderCode(string shaderPath, ReadOnlySpan<string> includes, string? injectedCode)
     {
         string shaderCode;
         if (shaderPath == "hlsl_block")
@@ -110,7 +112,7 @@ internal sealed partial class DXCShaderCompiler
             shaderCode = File.ReadAllText(shaderPath);
         }
 
-        var sb = new System.Text.StringBuilder();
+        var sb = new StringBuilder();
         foreach (var includePath in includes)
         {
             sb.AppendLine($"#include \"{includePath}\"");
@@ -118,13 +120,13 @@ internal sealed partial class DXCShaderCompiler
 
         if (!string.IsNullOrEmpty(injectedCode))
         {
-            sb.AppendLine($"#line 1 \"hlsl_block\"");
+            sb.AppendLine($"#line 0 \"injected_code\"");
             sb.AppendLine(injectedCode);
         }
 
         if (!string.IsNullOrEmpty(shaderCode))
         {
-            sb.AppendLine($"#line 1 \"{shaderPath}\"");
+            sb.AppendLine($"#line 0 \"{shaderPath}\"");
             sb.AppendLine(shaderCode);
         }
 
@@ -155,7 +157,7 @@ internal sealed unsafe partial class DXCShaderCompiler : IShaderCompiler
     private UniquePtr<IDxcUtils> _utils;
     // NOTE: This is just a temporary cache for compiled shader code. We will implement a proper disk cache later.
     // TODO: This should be shader variant specific cache instead of pass specific.
-    private readonly Dictionary<Key64<ShaderVariant>, GraphicsCompiledResult> _compiledResults;
+    private readonly Dictionary<ulong, GraphicsCompiledResult> _compiledResults;
 
     private bool _disposed;
 
@@ -173,7 +175,7 @@ internal sealed unsafe partial class DXCShaderCompiler : IShaderCompiler
         _compiler.Attach(pCompiler);
         _utils.Attach(pUtils);
 
-        _compiledResults = new Dictionary<Key64<ShaderVariant>, GraphicsCompiledResult>();
+        _compiledResults = new Dictionary<ulong, GraphicsCompiledResult>();
     }
 
     ~DXCShaderCompiler()
@@ -285,7 +287,7 @@ internal sealed unsafe partial class DXCShaderCompiler : IShaderCompiler
 
         ThrowIfFailed(_utils.Get()->CreateDefaultIncludeHandler(includeHandler.GetAddressOf()));
 
-        var finalShaderCodeResult = GetFinalShaderCode(config.shaderPath, config.includes, config.injectedCode);
+        var finalShaderCodeResult = BuildFinalShaderCode(config.shaderPath, config.includes, config.injectedCode);
         if (finalShaderCodeResult.IsFailure)
         {
             return Result.Failure(finalShaderCodeResult.Error);
@@ -364,6 +366,7 @@ internal sealed unsafe partial class DXCShaderCompiler : IShaderCompiler
             {
                 bytecode = bytecode,
                 reflectionData = reflectionData,
+                hashCode = XxHash64.HashToUInt64(bytecode)
             };
         }
         finally
@@ -377,7 +380,7 @@ internal sealed unsafe partial class DXCShaderCompiler : IShaderCompiler
 
     // TODO: This should be shader variant specific compile instead of pass specific.
     // TODO: Build final shader code in memory before compiling.
-    public Result<GraphicsCompiledResult> CompilePass(ref readonly PassDescriptor descriptor, ref readonly ShaderCompilationConfig additionalConfig, Key64<ShaderVariant> key)
+    public Result<GraphicsCompiledResult> CompilePass(ref readonly PassDescriptor descriptor, ref readonly ShaderCompilationConfig additionalConfig, ref readonly LocalKeywordSet keywords)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -385,6 +388,13 @@ internal sealed unsafe partial class DXCShaderCompiler : IShaderCompiler
         var fullDefines = new string[defineCountInDescriptor + additionalConfig.defines.Length];
         descriptor.defines?.CopyTo(fullDefines);
         additionalConfig.defines.CopyTo(fullDefines.AsSpan(defineCountInDescriptor));
+
+        var injectedCodeBuilder = new StringBuilder();
+        injectedCodeBuilder.AppendLine(descriptor.shader.propertiesCode);
+        injectedCodeBuilder.AppendLine(descriptor.hlsl);
+        injectedCodeBuilder.AppendLine(additionalConfig.injectedCode);
+
+        var injectedCode = injectedCodeBuilder.ToString();
 
         ShaderCompileResult tsResult = default;
         var tsEntry = descriptor.taskShader;
@@ -396,7 +406,7 @@ internal sealed unsafe partial class DXCShaderCompiler : IShaderCompiler
                 includes = descriptor.includes.AsSpan(),
                 shaderPath = tsEntry.shader,
                 entryPoint = tsEntry.entry,
-                injectedCode = descriptor.hlsl + additionalConfig.injectedCode,
+                injectedCode = injectedCode,
                 stage = ShaderStage.TaskShader,
                 tier = additionalConfig.tier,
                 optimizeLevel = additionalConfig.optimizeLevel,
@@ -422,7 +432,7 @@ internal sealed unsafe partial class DXCShaderCompiler : IShaderCompiler
                 includes = descriptor.includes.AsSpan(),
                 shaderPath = msEntry.shader,
                 entryPoint = msEntry.entry,
-                injectedCode = descriptor.hlsl + additionalConfig.injectedCode,
+                injectedCode = injectedCode,
                 stage = ShaderStage.MeshShader,
                 tier = additionalConfig.tier,
                 optimizeLevel = additionalConfig.optimizeLevel,
@@ -452,7 +462,7 @@ internal sealed unsafe partial class DXCShaderCompiler : IShaderCompiler
                 includes = descriptor.includes.AsSpan(),
                 shaderPath = psEntry.shader,
                 entryPoint = psEntry.entry,
-                injectedCode = descriptor.hlsl + additionalConfig.injectedCode,
+                injectedCode = injectedCode,
                 stage = ShaderStage.PixelShader,
                 tier = additionalConfig.tier,
                 optimizeLevel = additionalConfig.optimizeLevel,
@@ -479,7 +489,10 @@ internal sealed unsafe partial class DXCShaderCompiler : IShaderCompiler
             psResult = psResult,
         };
 
-        _compiledResults[key] = compiled;
+        var passHash = RHIUtility.CreateShaderPassKey(descriptor.identifier, compiled.HashCode);
+        var variantHash = RHIUtility.CreateShaderVariantKey(passHash, in keywords);
+
+        _compiledResults[variantHash] = compiled;
         return compiled;
     }
 

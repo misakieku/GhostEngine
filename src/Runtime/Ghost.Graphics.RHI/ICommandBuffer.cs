@@ -80,7 +80,7 @@ public interface ICommandBuffer : IRHIObject
     /// <param name="rtDescs">Render Target descriptions</param>
     /// <param name="depthDesc">Depth stencil description</param>
     /// <param name="allowUAVWrites">Whether UAV writes are allowed during the render pass</param>
-    void BeginRenderPass(ReadOnlySpan<PassRenderTargetDesc> rtDescs, PassDepthStencilDesc depthDesc, bool allowUAVWrites = false);
+    void BeginRenderPass(ReadOnlySpan<PassRenderTargetDesc> rtDescs, ref readonly PassDepthStencilDesc depthDesc, bool allowUAVWrites = false);
 
     /// <summary>
     /// Ends the current render pass
@@ -136,6 +136,8 @@ public interface ICommandBuffer : IRHIObject
     /// <param name="offsetIn32Bits">The Offset, in 32-bit values, from the start of the root parameter where the constants will be set.</param>
     void SetGraphicsRoot32Constants(uint rootIndex, ReadOnlySpan<uint> constantBuffer, uint offsetIn32Bits = 0);
 
+    void SetProgram(ref readonly SetProgramDesc desc);
+
     /// <summary>
     /// Issues a non-indexed draw call.
     /// </summary>
@@ -175,6 +177,8 @@ public interface ICommandBuffer : IRHIObject
     /// Dispatches ray tracing threads
     /// </summary>
     void DispatchRay();
+
+    void DispatchGraph(ref readonly DispatchGraphDesc desc);
 
     /// <summary>
     /// Executes a sequence of GPU commands indirectly using the specified command signature and argument buffers.

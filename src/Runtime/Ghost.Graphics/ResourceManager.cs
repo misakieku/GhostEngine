@@ -5,6 +5,7 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Diagnostics;
+using System.Numerics;
 
 namespace Ghost.Graphics;
 
@@ -141,11 +142,11 @@ public sealed partial class ResourceManager : IDisposable
     /// </summary>
     /// <returns>An <see cref="Identifier{Shader}"/> representing the newly created shader.</returns>
     /// <param name="descriptor">The viewGroup containing the shader's properties and passes.</param>
-    public Identifier<Shader> CreateGraphicsShader(ShaderDescriptor descriptor)
+    public Identifier<Shader> CreateGraphicsShader(ShaderDescriptor descriptor, ref readonly GraphicsCompiledResult compiledResult)
     {
         Debug.Assert(!_disposed);
 
-        var shader = new Shader(descriptor);
+        var shader = new Shader(descriptor, in compiledResult);
 
         var id = _shaders.Count;
         _shaders.Add(shader);

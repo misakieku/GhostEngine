@@ -27,11 +27,6 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
         var shaderBody = context.shaderBody();
         if (shaderBody != null)
         {
-            foreach (var propBlock in shaderBody.propertiesBlock())
-            {
-                shader.Properties = (PropertiesBlockModel)VisitPropertiesBlock(propBlock);
-            }
-
             foreach (var pipelineBlock in shaderBody.pipelineBlock())
             {
                 shader.Pipeline = (PipelineBlockModel)VisitPipelineBlock(pipelineBlock);
@@ -49,47 +44,6 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
         }
 
         return shader;
-    }
-
-    public override object VisitPropertiesBlock([NotNull] GhostShaderParser.PropertiesBlockContext context)
-    {
-        var properties = new PropertiesBlockModel();
-
-        foreach (var propDecl in context.propertyDeclaration())
-        {
-            properties.Properties.Add((PropertyDeclarationModel)VisitPropertyDeclaration(propDecl));
-        }
-
-        return properties;
-    }
-
-    public override object VisitPropertyDeclaration([NotNull] GhostShaderParser.PropertyDeclarationContext context)
-    {
-        var property = new PropertyDeclarationModel
-        {
-            Type = context.IDENTIFIER(0).GetText(),
-            Name = context.IDENTIFIER(1).GetText()
-        };
-
-        if (context.scope() != null)
-        {
-            property.Scope = context.scope().GetText();
-        }
-
-        if (context.propertyInitializer() != null)
-        {
-            var init = context.propertyInitializer();
-            foreach (var number in init.NUMBER())
-            {
-                property.Initializer.Add(number.GetText());
-            }
-            foreach (var identifier in init.IDENTIFIER())
-            {
-                property.Initializer.Add(identifier.GetText());
-            }
-        }
-
-        return property;
     }
 
     public override object VisitPipelineBlock([NotNull] GhostShaderParser.PipelineBlockContext context)

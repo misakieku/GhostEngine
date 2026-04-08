@@ -150,7 +150,7 @@ internal sealed class RenderGraphExecutor
                         : AttachmentStoreOp.NoAccess,
                 };
 
-                commandBuffer.BeginRenderPass(new Span<PassRenderTargetDesc>(pPassRTDescs, nativePass.colorAttachmentCount), depthDesc);
+                commandBuffer.BeginRenderPass(new Span<PassRenderTargetDesc>(pPassRTDescs, nativePass.colorAttachmentCount), in depthDesc);
 
                 for (var i = 0; i < nativePass.colorAttachmentCount; i++)
                 {

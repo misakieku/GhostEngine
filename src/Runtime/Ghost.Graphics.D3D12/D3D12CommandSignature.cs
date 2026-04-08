@@ -86,6 +86,8 @@ internal unsafe class D3D12CommandSignature : D3D12Object<ID3D12CommandSignature
         return pCommandSignature;
     }
 
+    public IntPtr NativePointer => (IntPtr)NativeObject.Get();
+
     public D3D12CommandSignature(D3D12RenderDevice device, D3D12PipelineLibrary pipelineLibrary, ref readonly CommandSignatureDesc desc, Key128<GraphicsPipeline> pipelineKey)
         : base(CreateCommandSignature(device, pipelineLibrary, in desc))
     {

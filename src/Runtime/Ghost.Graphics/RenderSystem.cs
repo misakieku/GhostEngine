@@ -1,7 +1,6 @@
 using Ghost.Core;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.D3D12;
-using Ghost.Graphics.RenderPipeline;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Mathematics;
 using System.Collections.Concurrent;
@@ -130,7 +129,7 @@ public class RenderSystem : IDisposable
             _renderPipeline = _renderPipelineSettings.CreatePipeline(this);
             for (var i = 0; i < _frameResources.Length; i++)
             {
-                _frameResources[i].RenderPayload = _renderPipelineSettings.CreatePayload(this);
+                _frameResources[i].RenderPayload = _renderPipelineSettings.CreatePayload(this, _renderPipeline);
             }
         }
     }
@@ -193,7 +192,7 @@ public class RenderSystem : IDisposable
         _renderPipeline = _renderPipelineSettings.CreatePipeline(this);
         for (var i = 0; i < _frameResources.Length; i++)
         {
-            _frameResources[i].RenderPayload = _renderPipelineSettings.CreatePayload(this);
+            _frameResources[i].RenderPayload = _renderPipelineSettings.CreatePayload(this, _renderPipeline);
         }
 
         _isRunning = false;

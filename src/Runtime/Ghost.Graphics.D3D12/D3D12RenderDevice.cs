@@ -96,8 +96,6 @@ internal unsafe class D3D12RenderDevice : D3D12Object<ID3D12Device14>, IRenderDe
 
     private FeatureSupport GetFeatureSupport()
     {
-        ThrowIfDisposed();
-
         var support = FeatureSupport.None;
 
         D3D12_FEATURE_DATA_D3D12_OPTIONS options = default;
@@ -149,7 +147,7 @@ internal unsafe class D3D12RenderDevice : D3D12Object<ID3D12Device14>, IRenderDe
         D3D12_FEATURE_DATA_D3D12_OPTIONS21 options9 = default;
         if (pNativeObject->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS21, &options9, (uint)sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS8)).SUCCEEDED)
         {
-            if (options9.WorkGraphsTier != D3D12_WORK_GRAPHS_TIER.D3D12_WORK_GRAPHS_TIER_NOT_SUPPORTED)
+            if (options9.WorkGraphsTier != D3D12_WORK_GRAPHS_TIER_NOT_SUPPORTED)
             {
                 support |= FeatureSupport.WorkGraphs;
             }

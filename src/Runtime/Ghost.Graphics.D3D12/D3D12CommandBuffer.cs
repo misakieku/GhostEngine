@@ -442,7 +442,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
             null);
     }
 
-    public void BeginRenderPass(ReadOnlySpan<PassRenderTargetDesc> rtDescs, PassDepthStencilDesc depthDesc, bool allowUAVWrites = false)
+    public void BeginRenderPass(ReadOnlySpan<PassRenderTargetDesc> rtDescs, ref readonly PassDepthStencilDesc depthDesc, bool allowUAVWrites = false)
     {
         AssertNotDisposed();
         ThrowIfNotRecording();
@@ -786,6 +786,11 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         pNativeObject->DrawInstanced(vertexCount, instanceCount, startVertex, startInstance);
     }
 
+    public void SetProgram(ref readonly SetProgramDesc desc)
+    {
+        // TODO
+    }
+
     public void DrawIndexed(uint indexCount, uint instanceCount = 1, uint startIndex = 0, int baseVertex = 0, uint startInstance = 0)
     {
         AssertNotDisposed();
@@ -836,7 +841,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         throw new NotImplementedException();
     }
 
-    public void DispatchGraph()
+    public void DispatchGraph(ref readonly DispatchGraphDesc desc)
     {
         throw new NotImplementedException();
     }
@@ -859,7 +864,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         var resource = _resourceDatabase.GetResource(argumentBuffer.AsResource());
         var countResource = _resourceDatabase.GetResource(countBuffer.AsResource());
 
-        pNativeObject->ExecuteIndirect(((D3D12CommandSignature)commandSignature).NativeObject, 0,
+        pNativeObject->ExecuteIndirect((ID3D12CommandSignature*)commandSignature.NativePointer, 0,
             resource, argumentOffset, countResource, countBufferOffset);
     }
 

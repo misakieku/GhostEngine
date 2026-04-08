@@ -146,10 +146,9 @@ public static class RHIUtility
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Key64<ShaderPass> CreateShaderPassKey(string passID)
+    public static Key64<ShaderPass> CreateShaderPassKey(ulong passID, ulong compiledHash)
     {
-        var passIdSpan = passID.AsSpan();
-        return new Key64<ShaderPass>(XxHash3.HashToUInt64(MemoryMarshal.AsBytes(passIdSpan)));
+        return Hash.Combine64(passID, compiledHash);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -157,7 +156,7 @@ public static class RHIUtility
     {
         var passHash = passKey.Value;
         var keywordHash = keywords.GetHash64();
-        return new Key64<ShaderVariant>(Hash.Hash64(passHash, keywordHash));
+        return new Key64<ShaderVariant>(Hash.Combine64(passHash, keywordHash));
     }
 
     public static unsafe Key128<GraphicsPipeline> CreateGraphicsPipelineKey(Key64<ShaderVariant> shaderVariantKey, PipelineState pipelineState, PassPipelineHash passKey)

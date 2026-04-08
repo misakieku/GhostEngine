@@ -1,5 +1,5 @@
 using Ghost.Entities;
-using Ghost.Graphics.RenderPipeline;
+using Ghost.Graphics;
 
 namespace Ghost.Engine.Systems;
 
@@ -17,20 +17,20 @@ public class RenderPipelineSystemAttribute<T> : RenderPipelineSystemAttribute
 
 public static class RenderPipelineSystemRegistry
 {
-    private static readonly Dictionary<Type, List<Func<ISystem>>> s_renderPipelineSystems = new();
+    private static readonly Dictionary<nint, List<Func<ISystem>>> s_renderPipelineSystems = new();
 
-    public static void RegisterRenderPipelineSystem(Type settingsType, Func<ISystem> systemFactory)
+    public static void RegisterRenderPipelineSystem(nint settingsType, Func<ISystem> systemFactory)
     {
         if (!s_renderPipelineSystems.TryGetValue(settingsType, out var systems))
         {
-            systems = new List<Func<ISystem>>();
+            systems = new List<Func<ISystem>>(4);
             s_renderPipelineSystems[settingsType] = systems;
         }
 
         systems.Add(systemFactory);
     }
 
-    internal static IEnumerable<Func<ISystem>> GetRenderPipelineSystems(Type settingsType)
+    internal static IEnumerable<Func<ISystem>> GetRenderPipelineSystems(nint settingsType)
     {
         if (s_renderPipelineSystems.TryGetValue(settingsType, out var systems))
         {

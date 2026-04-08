@@ -1,41 +1,22 @@
-parser grammar GhostShaderParser;
+parser grammar GhostComputeParser;
 
 options {
-    tokenVocab = GhostShaderLexer;
+    tokenVocab = GhostComputeLexer;
 }
 
 // Top-level rule
-shaderFile: shader+ EOF;
+computeFile: compute+ EOF;
 
-shader:
-    SHADER STRING_LITERAL LBRACE
-        shaderBody
+compute:
+    COMPUTE STRING_LITERAL LBRACE
+        computeBody
     RBRACE;
 
-shaderBody:
-    (pipelineBlock | passBlock | functionCall)*;
+computeBody:
+    (definesBlock | includesBlock | keywordsBlock | hlslBlock | computeEntry)*;
 
 scope:
     GLOBAL | LOCAL;
-
-// Pipeline block
-pipelineBlock:
-    PIPELINE LBRACE
-        pipelineStatement*
-    RBRACE;
-
-pipelineStatement:
-    IDENTIFIER EQUALS IDENTIFIER SEMICOLON;
-
-// Pass block
-passBlock:
-    PASS STRING_LITERAL LBRACE
-        passBody
-    RBRACE;
-
-// Template
-passBody:
-    (definesBlock | includesBlock | keywordsBlock | pipelineBlock | hlslBlock | shaderEntry)*;
 
 definesBlock:
     DEFINES LBRACE
@@ -74,7 +55,7 @@ hlslBody:
         LBRACE hlslBody RBRACE  // Or match a nested block recursively
     )*;
 
-shaderEntry:
+computeEntry:
     IDENTIFIER STRING_LITERAL COLON STRING_LITERAL SEMICOLON;
 
 functionCall:
