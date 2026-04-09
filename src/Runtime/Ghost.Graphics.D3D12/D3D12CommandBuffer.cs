@@ -650,7 +650,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
 #endif
         IncrementCommandCount();
 
-        var psor = _pipelineLibrary.GetGraphicsPSO(pipelineKey);
+        var psor = _pipelineLibrary.GetPipelineStateObject(pipelineKey);
         if (psor.Error != Error.None)
         {
             RecordError(nameof(SetPipelineState), psor.Error);

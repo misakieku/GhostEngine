@@ -5,6 +5,7 @@ namespace Ghost.Graphics.RHI;
 public interface IPipelineLibrary : IDisposable
 {
     void SaveLibraryToDisk(string filePath);
-    bool HasPipeline(Key128<GraphicsPipeline> key);
-    Result<Key128<GraphicsPipeline>> CreatePSO(ref readonly GraphicsPSODescriptor descriptor, ref readonly GraphicsCompiledResult compiled);
+    bool HasPipelineStateObject(UInt128 key);
+    Result<Key128<GraphicsPipeline>> CreateGraphicsPipeline(ref readonly GraphicsPSODescriptor descriptor, ref readonly GraphicsCompiledResult compiled);
+    Result<Key128<ComputePipeline>> CreateComputePipeline(ref readonly ComputePSODescriptor descriptor, ref readonly ShaderCompileResult compiled);
 }

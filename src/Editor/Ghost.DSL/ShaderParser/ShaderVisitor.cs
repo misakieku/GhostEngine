@@ -5,13 +5,13 @@ namespace Ghost.DSL.ShaderParser;
 
 public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
 {
-    public List<ShaderModel> Shaders { get; } = new();
+    public List<GraphicsShaderModel> Shaders { get; } = new();
 
     public override object VisitShaderFile([NotNull] GhostShaderParser.ShaderFileContext context)
     {
         foreach (var shaderContext in context.shader())
         {
-            var shader = (ShaderModel)VisitShader(shaderContext);
+            var shader = (GraphicsShaderModel)VisitShader(shaderContext);
             Shaders.Add(shader);
         }
         return Shaders;
@@ -19,7 +19,7 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
 
     public override object VisitShader([NotNull] GhostShaderParser.ShaderContext context)
     {
-        var shader = new ShaderModel
+        var shader = new GraphicsShaderModel
         {
             Name = StripQuotes(context.STRING_LITERAL().GetText())
         };
@@ -27,6 +27,8 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
         var shaderBody = context.shaderBody();
         if (shaderBody != null)
         {
+            shader.SM = shaderBody.shaderModel()?.GetText() ?? string.Empty;
+
             foreach (var pipelineBlock in shaderBody.pipelineBlock())
             {
                 shader.Pipeline = (PipelineBlockModel)VisitPipelineBlock(pipelineBlock);

@@ -18,22 +18,22 @@ namespace Ghost.Graphics.Core;
 
 internal sealed partial class DXCShaderCompiler
 {
-    private static string GetProfileString(ShaderStage stage, CompilerTier version)
+    private static string GetProfileString(ShaderStage stage, ShaderModel version)
     {
         return (stage, version) switch
         {
-            (ShaderStage.TaskShader, CompilerTier.Tier0) => "as_6_6",
-            (ShaderStage.PixelShader, CompilerTier.Tier0) => "ps_6_6",
-            (ShaderStage.MeshShader, CompilerTier.Tier0) => "ms_6_6",
-            (ShaderStage.ComputeShader, CompilerTier.Tier0) => "cs_6_6",
-            (ShaderStage.TaskShader, CompilerTier.Tier1) => "as_6_7",
-            (ShaderStage.PixelShader, CompilerTier.Tier1) => "ps_6_7",
-            (ShaderStage.MeshShader, CompilerTier.Tier1) => "ms_6_7",
-            (ShaderStage.ComputeShader, CompilerTier.Tier1) => "cs_6_7",
-            (ShaderStage.TaskShader, CompilerTier.Tier2) => "as_6_8",
-            (ShaderStage.PixelShader, CompilerTier.Tier2) => "ps_6_8",
-            (ShaderStage.MeshShader, CompilerTier.Tier2) => "ms_6_8",
-            (ShaderStage.ComputeShader, CompilerTier.Tier2) => "cs_6_8",
+            (ShaderStage.TaskShader, ShaderModel.SM_6_6) => "as_6_6",
+            (ShaderStage.PixelShader, ShaderModel.SM_6_6) => "ps_6_6",
+            (ShaderStage.MeshShader, ShaderModel.SM_6_6) => "ms_6_6",
+            (ShaderStage.ComputeShader, ShaderModel.SM_6_6) => "cs_6_6",
+            (ShaderStage.TaskShader, ShaderModel.SM_6_7) => "as_6_7",
+            (ShaderStage.PixelShader, ShaderModel.SM_6_7) => "ps_6_7",
+            (ShaderStage.MeshShader, ShaderModel.SM_6_7) => "ms_6_7",
+            (ShaderStage.ComputeShader, ShaderModel.SM_6_7) => "cs_6_7",
+            (ShaderStage.TaskShader, ShaderModel.SM_6_8) => "as_6_8",
+            (ShaderStage.PixelShader, ShaderModel.SM_6_8) => "ps_6_8",
+            (ShaderStage.MeshShader, ShaderModel.SM_6_8) => "ms_6_8",
+            (ShaderStage.ComputeShader, ShaderModel.SM_6_8) => "cs_6_8",
             _ => throw new ArgumentOutOfRangeException(nameof(stage), "Unsupported shader stage or compiler version")
         };
     }
@@ -54,7 +54,7 @@ internal sealed partial class DXCShaderCompiler
     {
         var argsArray = new List<string>
         {
-            "-T", GetProfileString(config.stage, config.tier),   // Target profile (ms_6_6, ps_6_6)
+            "-T", GetProfileString(config.stage, config.model),   // Target profile (ms_6_6, ps_6_6)
             "-E", config.entryPoint,                                    // Entry point
             "-HV", "2021",                                              // HLSL version 2021
             "-enable-16bit-types",                                      // Enable 16-bit types
@@ -65,6 +65,19 @@ internal sealed partial class DXCShaderCompiler
         {
             argsArray.Add("-D");
             argsArray.Add(define);
+        }
+
+        if (config.stage == ShaderStage.TaskShader
+            || config.stage == ShaderStage.MeshShader
+            || config.stage == ShaderStage.PixelShader)
+        {
+            argsArray.Add("-D");
+            argsArray.Add("__GRAPHICS__");
+        }
+        else if (config.stage == ShaderStage.ComputeShader)
+        {
+            argsArray.Add("-D");
+            argsArray.Add("__COMPUTE__");
         }
 
         if (!config.options.HasFlag(CompilerOption.KeepDebugInfo))
@@ -378,16 +391,22 @@ internal sealed unsafe partial class DXCShaderCompiler : IShaderCompiler
         }
     }
 
-    // TODO: This should be shader variant specific compile instead of pass specific.
-    // TODO: Build final shader code in memory before compiling.
     public Result<GraphicsCompiledResult> CompilePass(ref readonly PassDescriptor descriptor, ref readonly ShaderCompilationConfig additionalConfig, ref readonly LocalKeywordSet keywords)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        var defineCountInDescriptor = descriptor.defines?.Length ?? 0;
-        var fullDefines = new string[defineCountInDescriptor + additionalConfig.defines.Length];
-        descriptor.defines?.CopyTo(fullDefines);
-        additionalConfig.defines.CopyTo(fullDefines.AsSpan(defineCountInDescriptor));
+        string[] fullDefines;
+        var totalDefineCount = descriptor.defines.Length + additionalConfig.defines.Length;
+        if (totalDefineCount == 0)
+        {
+            fullDefines = Array.Empty<string>();
+        }
+        else
+        {
+            fullDefines = new string[totalDefineCount];
+            descriptor.defines.CopyTo(fullDefines);
+            additionalConfig.defines.CopyTo(fullDefines.AsSpan(descriptor.defines.Length));
+        }
 
         var injectedCodeBuilder = new StringBuilder();
         injectedCodeBuilder.AppendLine(descriptor.shader.propertiesCode);
@@ -402,13 +421,13 @@ internal sealed unsafe partial class DXCShaderCompiler : IShaderCompiler
         {
             var config = new ShaderCompilationConfig
             {
-                defines = fullDefines.AsSpan(),
-                includes = descriptor.includes.AsSpan(),
+                defines = fullDefines,
+                includes = descriptor.includes,
                 shaderPath = tsEntry.shader,
                 entryPoint = tsEntry.entry,
                 injectedCode = injectedCode,
                 stage = ShaderStage.TaskShader,
-                tier = additionalConfig.tier,
+                model = additionalConfig.model,
                 optimizeLevel = additionalConfig.optimizeLevel,
                 options = additionalConfig.options,
             };
@@ -428,13 +447,13 @@ internal sealed unsafe partial class DXCShaderCompiler : IShaderCompiler
         {
             var config = new ShaderCompilationConfig
             {
-                defines = fullDefines.AsSpan(),
-                includes = descriptor.includes.AsSpan(),
+                defines = fullDefines,
+                includes = descriptor.includes,
                 shaderPath = msEntry.shader,
                 entryPoint = msEntry.entry,
                 injectedCode = injectedCode,
                 stage = ShaderStage.MeshShader,
-                tier = additionalConfig.tier,
+                model = additionalConfig.model,
                 optimizeLevel = additionalConfig.optimizeLevel,
                 options = additionalConfig.options,
             };
@@ -458,13 +477,13 @@ internal sealed unsafe partial class DXCShaderCompiler : IShaderCompiler
         {
             var config = new ShaderCompilationConfig
             {
-                defines = fullDefines.AsSpan(),
-                includes = descriptor.includes.AsSpan(),
+                defines = fullDefines,
+                includes = descriptor.includes,
                 shaderPath = psEntry.shader,
                 entryPoint = psEntry.entry,
                 injectedCode = injectedCode,
                 stage = ShaderStage.PixelShader,
-                tier = additionalConfig.tier,
+                model = additionalConfig.model,
                 optimizeLevel = additionalConfig.optimizeLevel,
                 options = additionalConfig.options,
             };

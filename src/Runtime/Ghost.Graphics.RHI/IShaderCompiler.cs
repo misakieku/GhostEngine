@@ -57,16 +57,9 @@ public ref struct ShaderCompilationConfig
     public string entryPoint;
     public string? injectedCode;
     public ShaderStage stage;
-    public CompilerTier tier;
+    public ShaderModel model;
     public CompilerOptimizeLevel optimizeLevel;
     public CompilerOption options;
-}
-
-public enum CompilerTier
-{
-    Tier0,
-    Tier1,
-    Tier2
 }
 
 public enum CompilerOptimizeLevel
@@ -92,7 +85,8 @@ public enum ShaderStage
     TaskShader,
     MeshShader,
     PixelShader,
-    ComputeShader
+    ComputeShader,
+    Library // For ray tracing shaders or work graph shaders that don't fit into the traditional shader stages
 }
 
 public enum ShaderInputType

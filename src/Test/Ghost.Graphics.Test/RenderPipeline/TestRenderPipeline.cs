@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Core.Graphics;
 using Ghost.DSL.ShaderCompiler;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RenderGraphModule;
@@ -43,13 +44,13 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
                 renderSystem.GraphicsEngine.PipelineLibrary,
                 renderSystem.GraphicsEngine.ShaderCompiler);
 
-        var shaderDescriptor = DSLShaderCompiler.CompileShader("F:/csharp/GhostEngine/src/Runtime/Ghost.Graphics/test.gshdr", "C:/Users/Misaki/Downloads/Archive").GetValueOrThrow();
+        var shaderDescriptor = DSLShaderCompiler.CompileGraphicsShader("F:/csharp/GhostEngine/src/Runtime/Ghost.Graphics/test.gshdr").GetValueOrThrow();
 
         var config = new ShaderCompilationConfig
         {
             optimizeLevel = CompilerOptimizeLevel.O3,
             options = CompilerOption.KeepReflections,
-            tier = CompilerTier.Tier2
+            model = shaderDescriptor.shaderModel
         };
 
         ref readonly var pass = ref shaderDescriptor.passes[0];
@@ -281,14 +282,17 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
                     HeapType = HeapType.Upload,
                 };
 
-                //var frameBufferHandle = resourceManager.CreateTransientBuffer(in frameBufferDesc, "Frame Buffer");
-                //var frameBufferResource = frameBufferHandle.AsResource();
+                var frameBufferHandle = resourceManager.CreateTransientBuffer(in frameBufferDesc, "Frame Buffer");
+                var frameBufferResource = frameBufferHandle.AsResource();
 
-                //var frameData = new FrameData();
+                var frameData = new FrameData
+                {
+                    instanceBuffer = resourceDatabase.GetBindlessIndex(instanceBufferResource)
+                };
 
-                //ctx.CommandBuffer.Barrier(BarrierDesc.Buffer(frameBufferResource, BarrierSync.Copy, BarrierAccess.CopyDest));
-                //ctx.UploadBuffer(frameBufferHandle, new ReadOnlySpan<FrameData>(in frameData));
-                //ctx.CommandBuffer.Barrier(BarrierDesc.Buffer(frameBufferResource, BarrierSync.AllShading, BarrierAccess.ShaderResource));
+                ctx.CommandBuffer.Barrier(BarrierDesc.Buffer(frameBufferResource, BarrierSync.Copy, BarrierAccess.CopyDest));
+                ctx.UploadBuffer(frameBufferHandle, new ReadOnlySpan<FrameData>(in frameData));
+                ctx.CommandBuffer.Barrier(BarrierDesc.Buffer(frameBufferResource, BarrierSync.AllShading, BarrierAccess.ShaderResource));
 
                 _renderGraph.Reset();
 
@@ -296,8 +300,7 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
 
                 MeshletDebugPass(backBuffer, request.opaqueRenderList,
                     uint.MaxValue,
-                    resourceDatabase.GetBindlessIndex(viewBufferResource),
-                    resourceDatabase.GetBindlessIndex(instanceBufferResource));
+                    resourceDatabase.GetBindlessIndex(viewBufferResource));
 
                 var viewState = new ViewState(rtSize.x, rtSize.y, rtSize.x, rtSize.y);
                 _renderGraph.Compile(viewState);
@@ -313,7 +316,7 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
         }
     }
 
-    private void MeshletDebugPass(Identifier<RGTexture> backbuffer, RenderList renderList, uint globalIndex, uint viewIndex, uint instanceBuffer)
+    private void MeshletDebugPass(Identifier<RGTexture> backbuffer, RenderList renderList, uint globalIndex, uint viewIndex)
     {
         using (var builder = _renderGraph.AddRasterRenderPass<MeshletDebugPassData>("Meshlet Debug Pass", out var passData))
         {
@@ -322,7 +325,6 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
             passData.renderList = renderList;
             passData.globalIndex = globalIndex;
             passData.viewIndex = viewIndex;
-            passData.instanceIndex = instanceBuffer;
             passData.material = _meshletMaterial;
 
             builder.SetColorAttachment(backbuffer, 0);
@@ -331,7 +333,6 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
             builder.SetRenderFunc<MeshletDebugPassData>(static (data, ctx) =>
             {
                 ctx.SetGlobalData(data.globalIndex, data.viewIndex);
-                ctx.SetInstanceData(data.instanceIndex);
                 ctx.SetActiveMaterial(data.material);
 
                 var instanceIndex = 0u;

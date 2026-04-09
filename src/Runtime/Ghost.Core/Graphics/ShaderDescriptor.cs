@@ -1,22 +1,17 @@
 namespace Ghost.Core.Graphics;
 
+public enum ShaderModel
+{
+    Invalid,
+    SM_6_6,
+    SM_6_7,
+    SM_6_8
+}
+
 public enum KeywordSpace
 {
     Local,
     Global,
-}
-
-public enum ShaderPropertyType
-{
-    None,
-    Float, Float2, Float3, Float4,
-    Float4x4,
-    Int, Int2, Int3, Int4,
-    UInt, UInt2, UInt3, UInt4,
-    Bool, Bool2, Bool3, Bool4,
-    Texture2D, Texture3D, TextureCube,
-    Texture2DArray, TextureCubeArray,
-    Sampler
 }
 
 public struct ShaderEntryPoint
@@ -35,7 +30,7 @@ public struct KeywordsGroup
 
 public struct PassDescriptor
 {
-    public ShaderDescriptor shader;
+    public GraphicsShaderDescriptor shader;
 
     public ulong identifier;
     public string name;
@@ -50,21 +45,25 @@ public struct PassDescriptor
     public PipelineState localPipeline;
 }
 
-public class ShaderDescriptor
+public class GraphicsShaderDescriptor
 {
     public string name = string.Empty;
     public string propertiesCode = string.Empty;
     public uint propertyBufferSize;
+    public ShaderModel shaderModel;
     public PassDescriptor[] passes = Array.Empty<PassDescriptor>();
 }
 
 public class ComputeShaderDescriptor
 {
+    public ulong identifier;
     public string name = string.Empty;
     public string propertiesCode = string.Empty;
     public uint propertyBufferSize;
-    public ShaderEntryPoint entryPoint;
+    public string? hlsl;
+    public ShaderModel shaderModel;
     public string[] defines = Array.Empty<string>();
     public string[] includes = Array.Empty<string>();
     public KeywordsGroup[] keywords = Array.Empty<KeywordsGroup>();
+    public ShaderEntryPoint[] entryPoints = Array.Empty<ShaderEntryPoint>();
 }

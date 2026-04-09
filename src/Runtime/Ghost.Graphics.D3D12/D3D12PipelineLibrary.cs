@@ -16,7 +16,6 @@ namespace Ghost.Graphics.D3D12;
 
 internal struct D3D12PipelineState : IDisposable
 {
-    public D3DX12_MESH_SHADER_PIPELINE_STATE_DESC psoDesc;
     public UniquePtr<ID3D12PipelineState> pso;
     public Key64<ShaderVariant> shaderVariant;
 
@@ -33,7 +32,7 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
 
     private UniquePtr<ID3D12RootSignature> _defaultRootSignature;
 
-    private UnsafeHashMap<Key128<GraphicsPipeline>, D3D12PipelineState> _pipelineCache;
+    private UnsafeHashMap<UInt128, D3D12PipelineState> _pipelineCache;
 
     public ID3D12RootSignature* DefaultRootSignature => _defaultRootSignature.Get();
 
@@ -58,12 +57,12 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
     }
 
     public D3D12PipelineLibrary(D3D12RenderDevice device, D3D12ResourceDatabase resourceDatabase)
-        :base(CreateLibrary(device, null)) // TODO: we need to path to load the existing library from disk.
+        : base(CreateLibrary(device, null)) // TODO: we need to path to load the existing library from disk.
     {
         _device = device;
         _resourceDatabase = resourceDatabase;
 
-        _pipelineCache = new UnsafeHashMap<Key128<GraphicsPipeline>, D3D12PipelineState>(32, Allocator.Persistent);
+        _pipelineCache = new UnsafeHashMap<UInt128, D3D12PipelineState>(32, Allocator.Persistent);
 
         CreateDefaultRootSignature().ThrowIfFailed();
     }
@@ -174,7 +173,38 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
         return D3D12Utility.D3D12_DEPTH_STENCIL_DESC_CREATE(depthEnabled, writeEnabled, cmp);
     }
 
-    public Result<Key128<GraphicsPipeline>> CreatePSO(ref readonly GraphicsPSODescriptor descriptor, ref readonly GraphicsCompiledResult compiled)
+    private Result CreatePSO(Key64<ShaderVariant> shaderVariantKey, UInt128 pipelineKey, D3D12_PIPELINE_STATE_STREAM_DESC* pStreamDesc)
+    {
+        ID3D12PipelineState* pPipelineState = default;
+
+        var pKeyStr = stackalloc char[33]; // 32 for 128 bits key + 1 for null terminator
+        var keySpan = new Span<char>(pKeyStr, 33);
+        if (!RHIUtility.TryGetStringFromHash(pipelineKey, keySpan))
+        {
+            return Result.Failure("Failed to convert pipeline key to string.");
+        }
+
+        var hr = pNativeObject->LoadPipeline(pKeyStr, pStreamDesc, __uuidof(pPipelineState), (void**)&pPipelineState);
+        if (hr == E.E_INVALIDARG)
+        {
+            // Pipeline not found in the library, create a new one.
+            ThrowIfFailed(_device.NativeObject.Get()->CreatePipelineState(pStreamDesc, __uuidof(pPipelineState), (void**)&pPipelineState));
+            ThrowIfFailed(pNativeObject->StorePipeline(pKeyStr, pPipelineState));
+        }
+        else
+        {
+            ThrowIfFailed(hr);
+        }
+
+        D3D12PipelineState pso = default;
+        pso.shaderVariant = shaderVariantKey;
+        pso.pso.Attach(pPipelineState);
+
+        _pipelineCache[pipelineKey] = pso;
+        return Result.Success();
+    }
+
+    public Result<Key128<GraphicsPipeline>> CreateGraphicsPipeline(ref readonly GraphicsPSODescriptor descriptor, ref readonly GraphicsCompiledResult compiled)
     {
         static Result ValidatePassReflectionData(ref readonly GraphicsCompiledResult compiled)
         {
@@ -270,45 +300,55 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
                 SizeInBytes = (nuint)sizeof(CD3DX12_PIPELINE_MESH_STATE_STREAM)
             };
 
-            ID3D12PipelineState* pPipelineState = default;
-
-            var pKeyStr = stackalloc char[33]; // 32 for 128 bits key + 1 for null terminator
-            var keySpan = new Span<char>(pKeyStr, 33);
-            if (!pipelineKey.TryGetString(keySpan))
+            result = CreatePSO(descriptor.VariantKey, pipelineKey, &streamDesc);
+            if (result.IsFailure)
             {
-                return Result.Failure("Failed to convert pipeline key to string.");
+                return result;
             }
-
-            var hr = pNativeObject->LoadPipeline(pKeyStr, &streamDesc, __uuidof(pPipelineState), (void**)&pPipelineState);
-            if (hr == E.E_INVALIDARG)
-            {
-                // Pipeline not found in the library, create a new one.
-                ThrowIfFailed(_device.NativeObject.Get()->CreatePipelineState(&streamDesc, __uuidof(pPipelineState), (void**)&pPipelineState));
-                ThrowIfFailed(pNativeObject->StorePipeline(pKeyStr, pPipelineState));
-            }
-            else
-            {
-                ThrowIfFailed(hr);
-            }
-
-            D3D12PipelineState pso = default;
-            pso.shaderVariant = descriptor.VariantKey;
-            pso.psoDesc = desc;
-            pso.pso.Attach(pPipelineState);
-
-            _pipelineCache[pipelineKey] = pso;
         }
 
         return pipelineKey;
     }
 
-    public bool HasPipeline(Key128<GraphicsPipeline> key)
+    public Result<Key128<ComputePipeline>> CreateComputePipeline(ref readonly ComputePSODescriptor descriptor, ref readonly ShaderCompileResult compiled)
+    {
+        AssertNotDisposed();
+
+        var pipelineKey = RHIUtility.CreateComputePipelineKey(descriptor.VariantKey, compiled.hashCode);
+        if (!_pipelineCache.ContainsKey(pipelineKey))
+        {
+            var result = ValidateReflectionData(compiled.reflectionData);
+            if (result.IsFailure)
+            {
+                return result;
+            }
+
+            var byteCode = new D3D12_SHADER_BYTECODE(compiled.bytecode.GetUnsafePtr(), (nuint)compiled.bytecode.Length);
+            var desc = new CD3DX12_PIPELINE_STATE_STREAM_CS(in byteCode);
+
+            var streamDesc = new D3D12_PIPELINE_STATE_STREAM_DESC
+            {
+                pPipelineStateSubobjectStream = &desc,
+                SizeInBytes = (nuint)sizeof(CD3DX12_PIPELINE_STATE_STREAM_CS)
+            };
+
+            result = CreatePSO(descriptor.VariantKey, pipelineKey, &streamDesc);
+            if (result.IsFailure)
+            {
+                return result;
+            }
+        }
+
+        return pipelineKey;
+    }
+
+    public bool HasPipelineStateObject(UInt128 key)
     {
         AssertNotDisposed();
         return _pipelineCache.ContainsKey(key);
     }
 
-    public Result<SharedPtr<ID3D12PipelineState>, Error> GetGraphicsPSO(Key128<GraphicsPipeline> key)
+    public Result<SharedPtr<ID3D12PipelineState>, Error> GetPipelineStateObject(UInt128 key)
     {
         AssertNotDisposed();
         if (_pipelineCache.TryGetValue(key, out var cacheEntry))

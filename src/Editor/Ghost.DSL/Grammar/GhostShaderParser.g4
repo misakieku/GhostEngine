@@ -13,7 +13,10 @@ shader:
     RBRACE;
 
 shaderBody:
-    (pipelineBlock | passBlock | functionCall)*;
+    shaderModel | (pipelineBlock | passBlock | functionCall)*;
+
+shaderModel:
+    SM IDENTIFIER SEMICOLON;
 
 scope:
     GLOBAL | LOCAL;

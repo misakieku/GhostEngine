@@ -25,7 +25,6 @@ public interface IRasterRenderContext : IRenderGraphContext
     void SetScissorRect(ScissorRectDesc desc);
 
     void SetGlobalData(uint globalIndex, uint viewIndex);
-    void SetInstanceData(uint instanceBuffer);
     void SetInstanceIndex(uint instanceIndex);
 
     void SetActiveMaterial(Handle<Material> material);
@@ -64,7 +63,6 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
 
     private uint _activeFrameBuffer;
     private uint _activeViewBuffer;
-    private uint _activeInstanceBuffer;
     private uint _activeInstanceIndex;
 
     public ResourceManager ResourceManager => _resourceManager;
@@ -189,7 +187,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
             };
 
             var compiled = compiledCacheResult.Value;
-            _pipelineLibrary.CreatePSO(in psoDes, in compiled).GetValueOrThrow();
+            _pipelineLibrary.CreateGraphicsPipeline(in psoDes, in compiled).GetValueOrThrow();
         }
 
         _activePerMaterialData = material._cBufferCache.GpuResource;
@@ -222,11 +220,6 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         _activeViewBuffer = viewBuffer;
     }
 
-    public void SetInstanceData(uint instanceBuffer)
-    {
-        _activeInstanceBuffer = instanceBuffer;
-    }
-
     public void SetInstanceIndex(uint instanceIndex)
     {
         _activeInstanceIndex = instanceIndex;
@@ -238,7 +231,6 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         {
             frameBuffer = _activeFrameBuffer,
             viewBuffer = _activeViewBuffer,
-            instanceBuffer = _activeInstanceBuffer,
             instanceIndex = _activeInstanceIndex,
         };
 

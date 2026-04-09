@@ -1,7 +1,7 @@
-parser grammar GhostComputeParser;
+parser grammar GhostComputeShaderParser;
 
 options {
-    tokenVocab = GhostComputeLexer;
+    tokenVocab = GhostShaderLexer;
 }
 
 // Top-level rule
@@ -13,7 +13,10 @@ compute:
     RBRACE;
 
 computeBody:
-    (definesBlock | includesBlock | keywordsBlock | hlslBlock | computeEntry)*;
+    shaderModel | (definesBlock | includesBlock | keywordsBlock | hlslBlock | computeEntry)*;
+
+shaderModel:
+    SM IDENTIFIER SEMICOLON;
 
 scope:
     GLOBAL | LOCAL;

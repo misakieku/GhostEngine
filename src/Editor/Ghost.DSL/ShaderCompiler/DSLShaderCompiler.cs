@@ -45,20 +45,22 @@ internal static class DSLShaderCompiler
 
     // TODO: Implement shader inheritance resolution, including property and pass merging.
     // Currently, we just ignore inheritance.
-    public static Result<ShaderDescriptor> ResolveShader(DSLShaderSemantics semantics)
+    public static Result<GraphicsShaderDescriptor> ResolveShader(DSLShaderSemantics semantics)
     {
-        var descriptor = new ShaderDescriptor
+        var descriptor = new GraphicsShaderDescriptor
         {
             name = semantics.name,
         };
 
-        if (!ShaderPropertiesRegistry.TryGetCode(semantics.name, out var info))
+        if (!ShaderPropertiesRegistry.TryGetInfo(semantics.name, out var info))
         {
             info = default;
         }
 
         descriptor.propertiesCode = info.code ?? string.Empty;
         descriptor.propertyBufferSize = info.size;
+
+        descriptor.shaderModel = semantics.shaderModel;
 
         if (semantics.passes != null)
         {
@@ -91,7 +93,7 @@ internal static class DSLShaderCompiler
         return descriptor;
     }
 
-    public static Result<ShaderDescriptor> CompileShader(string shaderPath, string generatedOutputDirectory)
+    public static Result<GraphicsShaderDescriptor> CompileGraphicsShader(string shaderPath)
     {
         try
         {
@@ -142,5 +144,83 @@ internal static class DSLShaderCompiler
         {
             return Result.Failure("Failed to compile shader: " + ex.Message);
         }
+    }
+
+    public static Result<ComputeShaderDescriptor> CompileComputeShader(string shaderPath)
+    {
+        try
+        {
+            var source = File.ReadAllText(shaderPath);
+
+            var shaderModels = AntlrShaderCompiler.ParseComputeShaders(source, out var parseErrors);
+
+            if (parseErrors.Count != 0)
+            {
+                var errorMessages = new StringBuilder();
+                foreach (var error in parseErrors)
+                {
+                    errorMessages.AppendLine(error.ToString());
+                }
+
+                return Result.Failure("Failed to parse compute shader due to errors:\n" + errorMessages.ToString());
+            }
+
+            if (shaderModels.Count == 0)
+            {
+                return Result.Failure("No compute shader found in the provided file.");
+            }
+
+            var model = AntlrShaderCompiler.ConvertToComputeSemantics(shaderModels[0], out var errors);
+
+            if (errors.Count != 0 || model == null)
+            {
+                var errorMessages = new StringBuilder();
+                foreach (var error in errors)
+                {
+                    errorMessages.AppendLine(error.ToString());
+                }
+
+                return Result.Failure("Failed to compile compute shader due to errors:\n" + errorMessages.ToString());
+            }
+
+            var result = ResolveComputeShader(model);
+            if (result.IsFailure)
+            {
+                return result;
+            }
+
+            return result.Value;
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure("Failed to compile compute shader: " + ex.Message);
+        }
+    }
+
+    public static Result<ComputeShaderDescriptor> ResolveComputeShader(DSLComputeShaderSemantics semantics)
+    {
+        var descriptor = new ComputeShaderDescriptor
+        {
+            identifier = XxHash64.HashToUInt64(MemoryMarshal.AsBytes(semantics.name.AsSpan())),
+            name = semantics.name,
+        };
+
+        if (!ShaderPropertiesRegistry.TryGetInfo(semantics.name, out var info))
+        {
+            info = default;
+        }
+
+        descriptor.propertiesCode = info.code ?? string.Empty;
+        descriptor.propertyBufferSize = info.size;
+
+        descriptor.shaderModel = semantics.shaderModel;
+
+        descriptor.hlsl = semantics.hlsl;
+        descriptor.defines = semantics.defines?.ToArray() ?? Array.Empty<string>();
+        descriptor.includes = semantics.includes?.ToArray() ?? Array.Empty<string>();
+        descriptor.keywords = semantics.keywords?.ToArray() ?? Array.Empty<KeywordsGroup>();
+        descriptor.entryPoints = semantics.entryPoints?.ToArray() ?? Array.Empty<ShaderEntryPoint>();
+
+        return descriptor;
     }
 }

@@ -5,16 +5,23 @@
 
 // TODO: This should be auto generated to match the c# side.
 
-struct PushConstantData
+struct GraphicsPushConstantData
 {
     BYTE_ADDRESS_BUFFER frameBuffer;
     BYTE_ADDRESS_BUFFER viewBuffer;
-    BYTE_ADDRESS_BUFFER instanceBuffer;
     uint instanceIndex;
+};
+
+struct ComputePushConstantData
+{
+    BYTE_ADDRESS_BUFFER frameBuffer;
+    BYTE_ADDRESS_BUFFER viewBuffer;
+    BYTE_ADDRESS_BUFFER propertiesBuffer;
 };
 
 struct FrameData
 {
+    BYTE_ADDRESS_BUFFER instanceBuffer;
     BYTE_ADDRESS_BUFFER userBuffer;
 };
 
@@ -48,6 +55,10 @@ struct MeshData
     BYTE_ADDRESS_BUFFER meshletTrianglesBuffer;
 };
 
-PushConstantData g_PushConstantData : register(b0);
+#if define(__GRAPHICS__)
+GraphicsPushConstantData g_PushConstantData : register(b0);
+#elif defined(__COMPUTE__)
+ComputePushConstantData g_PushConstantData : register(b0);
+#endif
 
 #endif // GHOST_PROPERTIES_HLSL

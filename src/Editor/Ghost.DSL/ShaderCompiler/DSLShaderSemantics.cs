@@ -33,6 +33,18 @@ public class PassSemantic
 public class DSLShaderSemantics
 {
     public string name = string.Empty;
+    public ShaderModel shaderModel;
     public PipelineSemantic? pipeline;
     public List<PassSemantic>? passes;
+}
+
+public class DSLComputeShaderSemantics
+{
+    public string name = string.Empty;
+    public string? hlsl;
+    public ShaderModel shaderModel;
+    public List<string>? defines;
+    public List<string>? includes;
+    public List<KeywordsGroup>? keywords;
+    public List<ShaderEntryPoint>? entryPoints;
 }

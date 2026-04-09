@@ -10,20 +10,25 @@ public static class RootSignatureLayout
     public const int ROOT_PARAMETER_COUNT = 1;
 }
 
-[StructLayout(LayoutKind.Sequential, Size = 16)]
+[StructLayout(LayoutKind.Explicit, Size = 12)]
 public struct PushConstantsData
 {
-    public const uint NUM_32BITS_VALUE = 16u / sizeof(uint);
-
+    public const uint NUM_32BITS_VALUE = 12u / sizeof(uint);
+    
+    [FieldOffset(0)]
     public uint frameBuffer;
+    [FieldOffset(4)]
     public uint viewBuffer;
-    public uint instanceBuffer;
+    [FieldOffset(8)]
     public uint instanceIndex;
+    [FieldOffset(8)]
+    public uint propertyBuffer;
 }
 
 [StructLayout(LayoutKind.Sequential)]
 public struct FrameData
 {
+    public uint instanceBuffer;
     public uint userBuffer;
 }
 

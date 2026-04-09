@@ -46,7 +46,8 @@ shader "MyShader/Standard"
             [numthreads(1, 1, 1)]
             void ASMain(uint3 groupID : SV_GroupID)
             {
-                InstanceData instanceData = LoadData<InstanceData>(g_PushConstantData.instanceBuffer, g_PushConstantData.instanceIndex);
+                FrameData frameData = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
+                InstanceData instanceData = LoadData<InstanceData>(frameData.instanceBuffer, g_PushConstantData.instanceIndex);
                 MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
 
                 uint meshletIndex = groupID.x;
@@ -100,7 +101,8 @@ shader "MyShader/Standard"
                 out vertices PixelInput outVerts[64],
                 out indices uint3 outTris[124])
             {
-                InstanceData instanceData = LoadData<InstanceData>(g_PushConstantData.instanceBuffer, g_PushConstantData.instanceIndex);
+                FrameData frameData = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
+                InstanceData instanceData = LoadData<InstanceData>(frameData.instanceBuffer, g_PushConstantData.instanceIndex);
                 MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
 
                 ByteAddressBuffer meshletBuffer = GET_BUFFER(meshData.meshletBuffer);
@@ -171,13 +173,14 @@ shader "MyShader/Standard"
 
                 return float4(r, g, b, 1.0);
 
-                // InstanceData instanceData = LoadData<InstanceData>(g_PushConstantData.instanceBuffer, g_PushConstantData.instanceIndex);
+                // FrameData frameData = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
+                // InstanceData instanceData = LoadData<InstanceData>(frameData.instanceBuffer, g_PushConstantData.instanceIndex);
                 // return mul(instanceData.localToWorld, float4(input.normal, 1.0f));
             }
         }
 
-        task "hlsl_block" : "ASMain";
-        mesh "hlsl_block" : "MSMain";
-        pixel "hlsl_block" : "PSMain";
+        as "hlsl_block" : "ASMain";
+        ms "hlsl_block" : "MSMain";
+        ps "hlsl_block" : "PSMain";
     }
 }

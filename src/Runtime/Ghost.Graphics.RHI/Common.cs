@@ -167,6 +167,7 @@ public struct ResourceRange
 
 public readonly struct ShaderVariant;
 public readonly struct GraphicsPipeline;
+public readonly struct ComputePipeline;
 
 public readonly struct ShaderPass
 {
@@ -236,6 +237,14 @@ public ref struct GraphicsPSODescriptor
     }
 
     public TextureFormat DsvFormat
+    {
+        get; set;
+    }
+}
+
+public ref struct ComputePSODescriptor
+{
+    public Key64<ShaderVariant> VariantKey
     {
         get; set;
     }

@@ -11,6 +11,7 @@ INCLUDES: 'includes';
 GLOBAL: 'global';
 LOCAL: 'local';
 HLSL: 'hlsl';
+SM: 'sm';
 
 // Punctuation
 LBRACE: '{';

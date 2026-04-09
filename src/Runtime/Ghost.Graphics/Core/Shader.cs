@@ -4,6 +4,7 @@ using Ghost.Core.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -75,7 +76,7 @@ public partial struct Shader
 /// </summary>
 public partial struct Shader : IResourceReleasable
 {
-    private readonly uint _cbufferSize;
+    private readonly uint _propertyBufferSize;
     private UnsafeArray<ShaderPass> _shaderPasses;
     private UnsafeHashMap<int, int> _passIDToLocal;
     private UnsafeHashMap<int, int> _keywordIDToLocal;
@@ -84,11 +85,11 @@ public partial struct Shader : IResourceReleasable
     // We can use a int array since the number and index of tags are fixed at compile time.
 
     public readonly int PassCount => _shaderPasses.Count;
-    public readonly uint PropertyBufferSize => _cbufferSize;
+    public readonly uint PropertyBufferSize => _propertyBufferSize;
 
-    internal Shader(ShaderDescriptor descriptor, ref readonly GraphicsCompiledResult compiledResult)
+    internal Shader(GraphicsShaderDescriptor descriptor, ref readonly GraphicsCompiledResult compiledResult)
     {
-        _cbufferSize = descriptor.propertyBufferSize;
+        _propertyBufferSize = descriptor.propertyBufferSize;
         _shaderPasses = new UnsafeArray<ShaderPass>(descriptor.passes.Length, Allocator.Persistent);
         _passIDToLocal = new UnsafeHashMap<int, int>(descriptor.passes.Length, Allocator.Persistent);
         _keywordIDToLocal = new UnsafeHashMap<int, int>(32, Allocator.Persistent);
@@ -196,5 +197,33 @@ public partial struct Shader : IResourceReleasable
         _keywordIDToLocal.Dispose();
         _shaderPasses.Dispose();
         _passIDToLocal.Dispose();
+    }
+}
+
+
+public unsafe partial struct ComputeShader
+{
+    private fixed ulong _entryHash[8];
+    private readonly int _entryPointCount;
+    private readonly uint _propertyBufferSize;
+
+    public readonly uint PropertyBufferSize => _propertyBufferSize;
+
+    internal ComputeShader(ComputeShaderDescriptor descriptor, ReadOnlySpan<ShaderCompileResult> compiledResults)
+    {
+        Debug.Assert(descriptor.entryPoints.Length == compiledResults.Length);
+
+        _propertyBufferSize = descriptor.propertyBufferSize;
+        _entryPointCount = descriptor.entryPoints.Length;
+        for (var i = 0; i < descriptor.entryPoints.Length; i++)
+        {
+            _entryHash[i] = Hash.Combine64(descriptor.identifier, compiledResults[i].hashCode);
+        }
+    }
+
+    public ulong GetEntryHash(int entryPointIndex)
+    {
+        Debug.Assert(entryPointIndex >= 0 && entryPointIndex < _entryPointCount);
+        return _entryHash[entryPointIndex];
     }
 }

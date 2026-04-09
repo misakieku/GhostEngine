@@ -1,0 +1,20 @@
+compute "TestComputeShader"
+{
+    hlsl
+    {
+        RWTexture2D<float4> OutputTexture : register(u0);
+        [numthreads(8, 8, 1)]
+        void CSMain(uint3 DTid : SV_DispatchThreadID)
+        {
+            OutputTexture[DTid.xy] = float4(DTid.x / 512.0f, DTid.y / 512.0f, 0.0f, 1.0f);
+        }
+
+        void CSMain2(uint3 DTid : SV_DispatchThreadID)
+        {
+            OutputTexture[DTid.xy] = float4(1.0f, 0.0f, 0.0f, 1.0f);
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+    cs "hlsl_block" : "CSMain2";
+}

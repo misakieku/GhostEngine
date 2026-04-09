@@ -18,6 +18,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="TestCompute.gcomp" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Misaki.HighPerformance.Analyzer" Version="1.1.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

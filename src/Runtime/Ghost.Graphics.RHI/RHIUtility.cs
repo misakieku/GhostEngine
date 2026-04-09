@@ -10,6 +10,10 @@ namespace Ghost.Graphics.RHI;
 public static class RHIUtility
 {
     public const int MAX_RENDER_TARGETS = 8;
+    public const ulong PIPELINE_KEY_MASK = 0xFFFFFFFFFFFFFFF0ul;
+    public const ulong GRAPHICS_PIPELINE_KEY_FLAG = 0x1ul;
+    public const ulong COMPUTE_PIPELINE_KEY_FLAG = 0x2ul;
+
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint GetBytesPerPixel(this TextureFormat format)
@@ -180,15 +184,29 @@ public static class RHIUtility
         var pHi = pPasskey[1];
 
         // Distinct constants + cross-feeding to reduce structural collisions.
-        var lo = Mix64(mLo ^ (pLo + 0x9E3779B97F4A7C15ul) ^ (mHi * 0xD6E8FEB86659FD93ul));
         var hi = Mix64(mHi ^ (pHi + 0xC2B2AE3D27D4EB4Ful) ^ (pLo * 0x165667B19E3779F9ul));
+        var lo = Mix64(mLo ^ (pLo + 0x9E3779B97F4A7C15ul) ^ (mHi * 0xD6E8FEB86659FD93ul));
 
-        return new Key128<GraphicsPipeline>(new UInt128(lo, hi));
+        lo = lo & PIPELINE_KEY_MASK | GRAPHICS_PIPELINE_KEY_FLAG; // Ensure graphics pipeline keys are distinguishable from compute pipeline keys.
+
+        return new Key128<GraphicsPipeline>(new UInt128(hi, lo));
+    }
+
+    public static Key128<ComputePipeline> CreateComputePipelineKey(Key64<ShaderVariant> shaderVariantKey, ulong compiledHash)
+    {
+        var shaderHash = shaderVariantKey.Value;
+        var stateHash = compiledHash;
+        // Simple XOR mix. Not as robust as the graphics pipeline key, but sufficient for compute shaders which have fewer variants.
+        var hi = shaderHash ^ (stateHash + 0x9E3779B97F4A7C15ul) ^ (shaderHash * 0xD6E8FEB86659FD93ul);
+        var lo = stateHash ^ (shaderHash + 0xC2B2AE3D27D4EB4Ful) ^ (stateHash * 0x165667B19E3779F9ul);
+        lo = lo & PIPELINE_KEY_MASK | COMPUTE_PIPELINE_KEY_FLAG; // Ensure compute pipeline keys are distinguishable from graphics pipeline keys.
+
+        return new Key128<ComputePipeline>(new UInt128(hi, lo));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryGetString(this Key128<GraphicsPipeline> key, Span<char> destination)
+    public static bool TryGetStringFromHash(UInt128 key, Span<char> destination)
     {
-        return key.Value.TryFormat(destination, out var _, "X16");
+        return key.TryFormat(destination, out var _, "X16");
     }
 }

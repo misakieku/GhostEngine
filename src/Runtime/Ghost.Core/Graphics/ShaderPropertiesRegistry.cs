@@ -33,7 +33,7 @@ public static class ShaderPropertiesRegistry
         s_nameToCode[name] = new ShaderPropertyInfo { shaderName = name, code = code, size = size };
     }
 
-    public static bool TryGetCode(string name, out ShaderPropertyInfo info)
+    public static bool TryGetInfo(string name, out ShaderPropertyInfo info)
     {
         return s_nameToCode.TryGetValue(name, out info);
     }

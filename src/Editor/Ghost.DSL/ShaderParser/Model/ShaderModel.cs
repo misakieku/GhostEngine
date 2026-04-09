@@ -1,25 +1,24 @@
 namespace Ghost.DSL.ShaderParser.Model;
 
-public class ShaderModel
+public class GraphicsShaderModel
 {
     public string Name { get; set; } = string.Empty;
-    public PropertiesBlockModel? Properties { get; set; }
+    public string SM { get; set; } = string.Empty;
     public PipelineBlockModel? Pipeline { get; set; }
     public List<PassBlockModel> Passes { get; set; } = new();
     public List<FunctionCallModel> FunctionCalls { get; set; } = new();
 }
 
-public class PropertiesBlockModel
+public class ComputeShaderModel
 {
-    public List<PropertyDeclarationModel> Properties { get; set; } = new();
-}
-
-public class PropertyDeclarationModel
-{
-    public string? Scope { get; set; }
-    public string Type { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
-    public List<string> Initializer { get; set; } = new();
+    public string SM { get; set; } = string.Empty;
+    public DefinesBlockModel? Defines { get; set; }
+    public IncludesBlockModel? Includes { get; set; }
+    public KeywordsBlockModel? Keywords { get; set; }
+    public HlslBlockModel? Hlsl { get; set; }
+    public List<FunctionCallModel> FunctionCalls { get; set; } = new();
+    public List<ShaderEntryModel> ShaderEntries { get; set; } = new();
 }
 
 public class PipelineBlockModel
