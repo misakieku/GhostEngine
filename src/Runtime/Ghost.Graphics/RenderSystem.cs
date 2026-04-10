@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.D3D12;
 using Ghost.Graphics.RHI;
+using Ghost.Graphics.Services;
 using Misaki.HighPerformance.Mathematics;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -280,7 +281,7 @@ public class RenderSystem : IDisposable
                 {
                     cmd.Begin(frameResource.CommandAllocator);
 
-                    var ctx = new RenderContext(_graphicsEngine, _resourceManager, cmd);
+                    var ctx = new RenderContext(_resourceManager, _graphicsEngine, cmd);
 
                     _renderPipeline.Render(ctx, frameIndex, frameResource.RenderPayload);
                     _swapChainManager.TransitionToPresent(cmd);

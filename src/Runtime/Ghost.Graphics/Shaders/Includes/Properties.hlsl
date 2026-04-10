@@ -3,6 +3,12 @@
 
 #include "F:/csharp/GhostEngine/src/Runtime/Ghost.Graphics/Shaders/Includes/Common.hlsl"
 
+#define GLOBAL_BINDLESS_SIG \
+    "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | " \
+    "CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED | " \
+    "SAMPLER_HEAP_DIRECTLY_INDEXED), " \
+    "RootConstants(num32BitConstants=3, b0, space=0)"
+
 // TODO: This should be auto generated to match the c# side.
 
 struct GraphicsPushConstantData
@@ -59,6 +65,9 @@ struct MeshData
 GraphicsPushConstantData g_PushConstantData : register(b0);
 #elif defined(__COMPUTE__)
 ComputePushConstantData g_PushConstantData : register(b0);
+#elif defined(__WORK_GRAPH__)
+#define WorkGraphPushConstantData ComputePushConstantData
+WorkGraphPushConstantData g_PushConstantData : register(b0);
 #endif
 
 #endif // GHOST_PROPERTIES_HLSL

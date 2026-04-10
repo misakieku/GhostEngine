@@ -50,14 +50,14 @@ public struct Material : IResourceReleasable
         public PipelineState options;
     }
 
-    private Identifier<Shader> _shader;
+    private Handle<Shader> _shader;
     private UnsafeArray<PipelineOverride> _passPipelineOverride;
     private bool _isDirty;
 
     internal CBufferCache _cBufferCache;
     internal LocalKeywordSet _keywordMask;
 
-    public readonly Identifier<Shader> Shader => _shader;
+    public readonly Handle<Shader> Shader => _shader;
     public readonly bool IsDirty => _isDirty;
 
     public int ActivePassIndex
@@ -71,7 +71,7 @@ public struct Material : IResourceReleasable
         get; set;
     }
 
-    public Error SetShader(Identifier<Shader> shaderId, ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator)
+    public Error SetShader(Handle<Shader> shaderId, ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator)
     {
         if (!shaderId.IsValid)
         {

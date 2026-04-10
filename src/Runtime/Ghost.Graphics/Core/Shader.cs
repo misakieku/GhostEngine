@@ -87,8 +87,10 @@ public partial struct Shader : IResourceReleasable
     public readonly int PassCount => _shaderPasses.Count;
     public readonly uint PropertyBufferSize => _propertyBufferSize;
 
-    internal Shader(GraphicsShaderDescriptor descriptor, ref readonly GraphicsCompiledResult compiledResult)
+    internal Shader(GraphicsShaderDescriptor descriptor, ReadOnlySpan<GraphicsCompiledResult> compiledResults)
     {
+        Debug.Assert(descriptor.passes.Length == compiledResults.Length);
+
         _propertyBufferSize = descriptor.propertyBufferSize;
         _shaderPasses = new UnsafeArray<ShaderPass>(descriptor.passes.Length, Allocator.Persistent);
         _passIDToLocal = new UnsafeHashMap<int, int>(descriptor.passes.Length, Allocator.Persistent);
@@ -98,7 +100,7 @@ public partial struct Shader : IResourceReleasable
         {
             ref readonly var pass = ref descriptor.passes[i];
 
-            var passKey = RHIUtility.CreateShaderPassKey(pass.identifier, compiledResult.HashCode);
+            var passKey = RHIUtility.CreateShaderPassKey(pass.identifier, compiledResults[i].HashCode);
             var keywords = default(LocalKeywordSet);
 
             if (pass.keywords.Length > 0)
@@ -141,7 +143,7 @@ public partial struct Shader : IResourceReleasable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal readonly int GetLocalKeywordIndex(int globalKeywordID)
+    internal int GetLocalKeywordIndex(int globalKeywordID)
     {
         if (_keywordIDToLocal.TryGetValue(globalKeywordID, out var localIndex))
         {
@@ -152,7 +154,7 @@ public partial struct Shader : IResourceReleasable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly int GetPassIndex(Identifier<ShaderPass> passID)
+    public int GetPassIndex(Identifier<ShaderPass> passID)
     {
         if (_passIDToLocal.TryGetValue(passID.Value, out var index))
         {
@@ -163,7 +165,7 @@ public partial struct Shader : IResourceReleasable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly int GetPassIndex(string passName)
+    public int GetPassIndex(string passName)
     {
         if (_passIDToLocal.TryGetValue(GetPassID(passName), out var index))
         {
@@ -174,13 +176,13 @@ public partial struct Shader : IResourceReleasable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly ref ShaderPass GetPassReference(int index)
+    public ref ShaderPass GetPassReference(int index)
     {
         return ref _shaderPasses[index];
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Result<ShaderPass, Error> TryGetPass(Identifier<ShaderPass> passID, out int passIndex)
+    public Result<ShaderPass, Error> TryGetPass(Identifier<ShaderPass> passID, out int passIndex)
     {
         if (_passIDToLocal.TryGetValue(passID.Value, out var index))
         {
@@ -200,24 +202,51 @@ public partial struct Shader : IResourceReleasable
     }
 }
 
-
-public unsafe partial struct ComputeShader
+public unsafe partial struct ComputeShader : IResourceReleasable
 {
     private fixed ulong _entryHash[8];
     private readonly int _entryPointCount;
     private readonly uint _propertyBufferSize;
 
+    private LocalKeywordSet _localKeywordSet;
+    private UnsafeHashMap<int, int> _keywordIDToLocal;
+
     public readonly uint PropertyBufferSize => _propertyBufferSize;
 
     internal ComputeShader(ComputeShaderDescriptor descriptor, ReadOnlySpan<ShaderCompileResult> compiledResults)
     {
-        Debug.Assert(descriptor.entryPoints.Length == compiledResults.Length);
+        Debug.Assert(descriptor.shaderCodes.Length == compiledResults.Length);
 
         _propertyBufferSize = descriptor.propertyBufferSize;
-        _entryPointCount = descriptor.entryPoints.Length;
-        for (var i = 0; i < descriptor.entryPoints.Length; i++)
+        _entryPointCount = descriptor.shaderCodes.Length;
+
+        _keywordIDToLocal = new UnsafeHashMap<int, int>(32, Allocator.Persistent);
+
+        for (var i = 0; i < descriptor.shaderCodes.Length; i++)
         {
             _entryHash[i] = Hash.Combine64(descriptor.identifier, compiledResults[i].hashCode);
+        }
+
+        var localKeywordIndex = 0;
+        for (var i = 0; i < descriptor.keywords.Length; i++)
+        {
+            var group = descriptor.keywords[i];
+            if (group.keywords == null)
+            {
+                continue;
+            }
+
+            if (group.space == KeywordSpace.Local)
+            {
+                foreach (var kw in group.keywords)
+                {
+                    var kwID = Shader.GetKeywordID(kw);
+                    var idx = localKeywordIndex++;
+
+                    _localKeywordSet.SetKeyword(idx, true);
+                    _keywordIDToLocal.TryAdd(kwID, idx);
+                }
+            }
         }
     }
 
@@ -225,5 +254,21 @@ public unsafe partial struct ComputeShader
     {
         Debug.Assert(entryPointIndex >= 0 && entryPointIndex < _entryPointCount);
         return _entryHash[entryPointIndex];
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal int GetLocalKeywordIndex(int globalKeywordID)
+    {
+        if (_keywordIDToLocal.TryGetValue(globalKeywordID, out var localIndex))
+        {
+            return localIndex;
+        }
+
+        return -1;
+    }
+
+    public void ReleaseResource(IResourceDatabase database)
+    {
+        _keywordIDToLocal.Dispose();
     }
 }

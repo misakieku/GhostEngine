@@ -169,7 +169,7 @@ public class AntlrShaderCompiler
                 semantics.entryPoints ??= new List<ShaderEntryPoint>();
                 semantics.entryPoints.Add(new ShaderEntryPoint
                 {
-                    shader = entry.ShaderPath,
+                    shaderPath = entry.ShaderPath,
                     entry = entry.EntryPoint
                 });
             }
@@ -355,7 +355,7 @@ public class AntlrShaderCompiler
             var entryType = entry.EntryType.ToLower();
             var shaderEntry = new ShaderEntryPoint
             {
-                shader = entry.ShaderPath,
+                shaderPath = entry.ShaderPath,
                 entry = entry.EntryPoint
             };
 
@@ -368,7 +368,7 @@ public class AntlrShaderCompiler
                     semantic.pixelShader = shaderEntry;
                     break;
                 case "as":
-                    semantic.taskShader = shaderEntry;
+                    semantic.amplificationShader = shaderEntry;
                     break;
                 default:
                     errors.Add(new DSLShaderError
@@ -381,7 +381,7 @@ public class AntlrShaderCompiler
             }
         }
 
-        if (semantic.meshShader.shader == null || semantic.pixelShader.shader == null)
+        if (semantic.meshShader.shaderPath == null || semantic.pixelShader.shaderPath == null)
         {
             errors.Add(new DSLShaderError
             {

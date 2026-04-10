@@ -191,7 +191,7 @@ struct {info.Name}
                 codeBuilder.Clear();
 
                 var typeFullName = info.TypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                registerBuilder.AppendLine($@"        global::Ghost.Core.Graphics.ShaderPropertiesRegistry.Register(""{info.ShaderName}"", {typeFullName}.HLSL_SOURCE, (uint)sizeof({typeFullName}));");
+                registerBuilder.AppendLine($@"        global::Ghost.DSL.ShaderPropertiesRegistry.Register(""{info.ShaderName}"", {typeFullName}.HLSL_SOURCE, (uint)sizeof({typeFullName}));");
             }
 
             var registerTypeName = "g_shaderproperty_registeration";

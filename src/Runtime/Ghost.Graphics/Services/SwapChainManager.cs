@@ -1,7 +1,7 @@
 using Ghost.Graphics.RHI;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Ghost.Graphics;
+namespace Ghost.Graphics.Services;
 
 internal sealed class SwapChainRecord
 {

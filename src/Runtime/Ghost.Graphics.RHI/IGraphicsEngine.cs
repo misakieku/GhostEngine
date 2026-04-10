@@ -17,11 +17,6 @@ public interface IGraphicsEngine : IDisposable
         get;
     }
 
-    IShaderCompiler ShaderCompiler
-    {
-        get;
-    }
-
     IPipelineLibrary PipelineLibrary
     {
         get;

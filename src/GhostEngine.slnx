@@ -15,6 +15,7 @@
     </Project>
   </Folder>
   <Folder Name="/ThridParty/">
+    <Project Path="ThridParty/Ghost.DXC/Ghost.DXC.csproj" />
     <Project Path="ThridParty/Ghost.FMOD/Ghost.FMOD.csproj" />
     <Project Path="ThridParty/Ghost.MeshOptimizer/Ghost.MeshOptimizer.csproj" />
     <Project Path="ThridParty/Ghost.Nvtt/Ghost.Nvtt.csproj" />

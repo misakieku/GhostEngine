@@ -1,7 +1,7 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
 
-namespace Ghost.Graphics;
+namespace Ghost.Graphics.Services;
 
 public class ResourceUploadBatch
 {

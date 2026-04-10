@@ -156,11 +156,10 @@ public static class RHIUtility
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Key64<ShaderVariant> CreateShaderVariantKey(Key64<ShaderPass> passKey, ref readonly LocalKeywordSet keywords)
+    public static Key64<ShaderVariant> CreateShaderVariantKey(ulong passKey, ref readonly LocalKeywordSet keywords)
     {
-        var passHash = passKey.Value;
         var keywordHash = keywords.GetHash64();
-        return new Key64<ShaderVariant>(Hash.Combine64(passHash, keywordHash));
+        return new Key64<ShaderVariant>(Hash.Combine64(passKey, keywordHash));
     }
 
     public static unsafe Key128<GraphicsPipeline> CreateGraphicsPipelineKey(Key64<ShaderVariant> shaderVariantKey, PipelineState pipelineState, PassPipelineHash passKey)
@@ -192,10 +191,10 @@ public static class RHIUtility
         return new Key128<GraphicsPipeline>(new UInt128(hi, lo));
     }
 
-    public static Key128<ComputePipeline> CreateComputePipelineKey(Key64<ShaderVariant> shaderVariantKey, ulong compiledHash)
+    public static Key128<ComputePipeline> CreateComputePipelineKey(Key64<ShaderVariant> shaderVariantKey)
     {
         var shaderHash = shaderVariantKey.Value;
-        var stateHash = compiledHash;
+        var stateHash = ~shaderVariantKey.Value;
         // Simple XOR mix. Not as robust as the graphics pipeline key, but sufficient for compute shaders which have fewer variants.
         var hi = shaderHash ^ (stateHash + 0x9E3779B97F4A7C15ul) ^ (shaderHash * 0xD6E8FEB86659FD93ul);
         var lo = stateHash ^ (shaderHash + 0xC2B2AE3D27D4EB4Ful) ^ (stateHash * 0x165667B19E3779F9ul);

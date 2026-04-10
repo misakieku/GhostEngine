@@ -1,22 +1,5 @@
-namespace Ghost.Core.Graphics;
+namespace Ghost.DSL;
 
-[AttributeUsage(AttributeTargets.Struct)]
-public class GenerateShaderPropertyAttribute : Attribute
-{
-    public GenerateShaderPropertyAttribute(string shaderName, string? name = null)
-    {
-    }
-}
-
-[AttributeUsage(AttributeTargets.Field)]
-public class GenerateAsHLSLTypeAttribute : Attribute
-{
-    public GenerateAsHLSLTypeAttribute(string hlslTypeName)
-    {
-    }
-}
-
-#if DEBUG || GHOST_EDITOR
 public struct ShaderPropertyInfo
 {
     public string shaderName;
@@ -38,4 +21,3 @@ public static class ShaderPropertiesRegistry
         return s_nameToCode.TryGetValue(name, out info);
     }
 }
-#endif

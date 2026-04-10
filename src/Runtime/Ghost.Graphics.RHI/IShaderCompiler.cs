@@ -1,7 +1,6 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Core.Utilities;
-using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 
 namespace Ghost.Graphics.RHI;
@@ -9,7 +8,6 @@ namespace Ghost.Graphics.RHI;
 public struct ShaderCompileResult : IDisposable
 {
     public UnsafeArray<byte> bytecode;
-    public ShaderReflectionData reflectionData;
     public ulong hashCode;
 
     public readonly bool IsCreated => bytecode.IsCreated;
@@ -20,42 +18,36 @@ public struct ShaderCompileResult : IDisposable
     }
 }
 
-public struct GraphicsCompiledResult : IDisposable
+public struct GraphicsCompiledResult
 {
-    private ulong _hashCode;
+    public ulong tsResultHash;
+    public ulong msResultHash;
+    public ulong psResultHash;
 
-    public ShaderCompileResult tsResult;
-    public ShaderCompileResult msResult;
-    public ShaderCompileResult psResult;
+    public readonly ulong HashCode => Hash.Combine64(tsResultHash, msResultHash, psResultHash);
+}
 
-    public Key64<GraphicsCompiledResult> HashCode
+public unsafe struct ComputeCompileResult
+{
+    public fixed ulong resultHash[8];
+    public readonly int count;
+
+    public ulong HashCode
     {
         get
         {
-            if (_hashCode == 0)
-            {
-                _hashCode = Hash.Combine64(tsResult.hashCode, msResult.hashCode, psResult.hashCode);
-            }
-
-            return _hashCode;
+            var a = Hash.Combine64(resultHash[0], resultHash[1], resultHash[2], resultHash[3]);
+            var b = Hash.Combine64(resultHash[4], resultHash[5], resultHash[6], resultHash[7]);
+            return Hash.Combine64(a, b);
         }
-    }
-
-    public void Dispose()
-    {
-        tsResult.Dispose();
-        msResult.Dispose();
-        psResult.Dispose();
     }
 }
 
 public ref struct ShaderCompilationConfig
 {
     public ReadOnlySpan<string> defines;
-    public ReadOnlySpan<string> includes;
-    public string shaderPath;
+    public string shaderCode;
     public string entryPoint;
-    public string? injectedCode;
     public ShaderStage stage;
     public ShaderModel model;
     public CompilerOptimizeLevel optimizeLevel;
@@ -154,7 +146,7 @@ public readonly struct ShaderReflectionData
 
 public interface IShaderCompiler : IDisposable
 {
-    Result<ShaderCompileResult> Compile(ref readonly ShaderCompilationConfig config, Allocator allocator);
+    Result<Key64<ShaderCompileResult>> Compile(ref readonly ShaderCompilationConfig config);
     Result<GraphicsCompiledResult> CompilePass(ref readonly PassDescriptor descriptor, ref readonly ShaderCompilationConfig additionalConfig, ref readonly LocalKeywordSet keywords);
-    Result<GraphicsCompiledResult, Error> LoadCompiledCache(Key64<ShaderVariant> key);
+    Result<ShaderCompileResult, Error> GetCompiledCache(Key64<ShaderCompileResult> key);
 }

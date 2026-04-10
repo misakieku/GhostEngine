@@ -110,7 +110,7 @@ public sealed partial class GraphicsTestWindow : Window
 
         // TODO: Put this to the beginning of the frame without creating another command buffer?
         using var directCmd = _renderSystem.GraphicsEngine.CreateCommandBuffer(CommandBufferType.Graphics);
-        var ctx = new RenderContext(_renderSystem.GraphicsEngine, _renderSystem.ResourceManager, directCmd);
+        var ctx = new RenderContext(_renderSystem.ResourceManager, _renderSystem.GraphicsEngine, directCmd);
 
         using var cmdAllocator = _renderSystem.GraphicsEngine.CreateCommandAllocator(CommandBufferType.Graphics);
         directCmd.Begin(cmdAllocator);

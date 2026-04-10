@@ -28,7 +28,6 @@ internal struct D3D12PipelineState : IDisposable
 internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>, IPipelineLibrary
 {
     private readonly D3D12RenderDevice _device;
-    private readonly D3D12ResourceDatabase _resourceDatabase;
 
     private UniquePtr<ID3D12RootSignature> _defaultRootSignature;
 
@@ -56,11 +55,10 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
         return pLibrary;
     }
 
-    public D3D12PipelineLibrary(D3D12RenderDevice device, D3D12ResourceDatabase resourceDatabase)
+    public D3D12PipelineLibrary(D3D12RenderDevice device)
         : base(CreateLibrary(device, null)) // TODO: we need to path to load the existing library from disk.
     {
         _device = device;
-        _resourceDatabase = resourceDatabase;
 
         _pipelineCache = new UnsafeHashMap<UInt128, D3D12PipelineState>(32, Allocator.Persistent);
 
@@ -82,7 +80,7 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
             {
                 ShaderRegister = 0, // b0
                 RegisterSpace = 0,  // space0
-                Num32BitValues = PushConstantsData.NUM_32BITS_VALUE
+                Num32BitValues = PushConstantsData.NUM_32BITS_VALUE // 3
             }
         };
 
@@ -139,32 +137,6 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
         fs.Write(buffer.AsSpan());
     }
 
-    private static Result ValidateReflectionData(ShaderReflectionData reflectionData)
-    {
-        if (reflectionData.ResourcesBindings.Count > RootSignatureLayout.ROOT_PARAMETER_COUNT)
-        {
-            return Result.Failure($"Shader uses more root parameters than supported ({RootSignatureLayout.ROOT_PARAMETER_COUNT}).");
-        }
-
-        if (reflectionData.ResourcesBindings.Count == 0)
-        {
-            return Result.Success();
-        }
-
-        var rootConstant = reflectionData.ResourcesBindings[0];
-        if (rootConstant.Type != ShaderInputType.ConstantBuffer)
-        {
-            return Result.Failure($"Root constant parameter must be a constant buffer.");
-        }
-
-        if (rootConstant.Size != sizeof(PushConstantsData))
-        {
-            return Result.Failure($"Root constant buffer size must be {sizeof(PushConstantsData)} bytes.");
-        }
-
-        return Result.Success();
-    }
-
     private static D3D12_DEPTH_STENCIL_DESC BuildDepthStencil(ZTest ztest, ZWrite zwrite)
     {
         var depthEnabled = ztest != ZTest.Disabled;
@@ -185,6 +157,7 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
         }
 
         var hr = pNativeObject->LoadPipeline(pKeyStr, pStreamDesc, __uuidof(pPipelineState), (void**)&pPipelineState);
+        
         if (hr == E.E_INVALIDARG)
         {
             // Pipeline not found in the library, create a new one.
@@ -204,34 +177,8 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
         return Result.Success();
     }
 
-    public Result<Key128<GraphicsPipeline>> CreateGraphicsPipeline(ref readonly GraphicsPSODescriptor descriptor, ref readonly GraphicsCompiledResult compiled)
+    public Result<Key128<GraphicsPipeline>> CreateGraphicsPipeline(ref readonly GraphicsPSODescriptor descriptor, ReadOnlySpan<byte> asByteCode, ReadOnlySpan<byte> msByteCode, ReadOnlySpan<byte> psByteCode)
     {
-        static Result ValidatePassReflectionData(ref readonly GraphicsCompiledResult compiled)
-        {
-            var msr = ValidateReflectionData(compiled.msResult.reflectionData);
-            if (msr.IsFailure)
-            {
-                return Result.Failure("Validation of mesh shader reflection data failed: " + msr.Message);
-            }
-
-            var psr = ValidateReflectionData(compiled.psResult.reflectionData);
-            if (psr.IsFailure)
-            {
-                return Result.Failure("Validation of pixel shader reflection data failed: " + psr.Message);
-            }
-
-            if (compiled.tsResult.IsCreated)
-            {
-                var tsr = ValidateReflectionData(compiled.tsResult.reflectionData);
-                if (tsr.IsFailure)
-                {
-                    return Result.Failure("Validation of task shader reflection data failed: " + tsr.Message);
-                }
-            }
-
-            return Result.Success();
-        }
-
         AssertNotDisposed();
 
         if (descriptor.RtvFormats.Length > D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT)
@@ -244,98 +191,92 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
 
         if (!_pipelineCache.ContainsKey(pipelineKey))
         {
-            var result = ValidatePassReflectionData(in compiled);
-            if (result.IsFailure)
+            fixed (byte* pASByteCode = asByteCode, pMSByteCode = msByteCode, pPSByteCode = psByteCode)
             {
-                return result;
-            }
-
-            var desc = new D3DX12_MESH_SHADER_PIPELINE_STATE_DESC
-            {
-                pRootSignature = _defaultRootSignature.Get(),
-                MS = new D3D12_SHADER_BYTECODE(compiled.msResult.bytecode.GetUnsafePtr(), (nuint)compiled.msResult.bytecode.Count),
-                PS = new D3D12_SHADER_BYTECODE(compiled.psResult.bytecode.GetUnsafePtr(), (nuint)compiled.psResult.bytecode.Count),
-                PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
-                SampleMask = UINT32_MAX,
-                SampleDesc = new DXGI_SAMPLE_DESC(1, 0),
-                NumRenderTargets = (uint)descriptor.RtvFormats.Length,
-                DSVFormat = descriptor.DsvFormat.ToDXGIFormat(),
-                DepthStencilState = BuildDepthStencil(descriptor.PipelineOption.ZTest, descriptor.PipelineOption.ZWrite),
-                NodeMask = 0,
-                Flags = D3D12_PIPELINE_STATE_FLAG_NONE,
-
-                BlendState = descriptor.PipelineOption.Blend switch
+                var desc = new D3DX12_MESH_SHADER_PIPELINE_STATE_DESC
                 {
-                    Blend.Opaque => D3D12Utility.D3D12_BLEND_DESC_OPAQUE,
-                    Blend.Alpha => D3D12Utility.D3D12_BLEND_DESC_ALPHA_BLEND,
-                    Blend.Additive => D3D12Utility.D3D12_BLEND_DESC_ADDITIVE,
-                    Blend.Multiply => D3D12Utility.D3D12_BLEND_DESC_MULTIPLY,
-                    Blend.PremultipliedAlpha => D3D12Utility.D3D12_BLEND_DESC_PREMULTIPLIED,
-                    _ => D3D12Utility.D3D12_BLEND_DESC_OPAQUE
-                },
-                RasterizerState = descriptor.PipelineOption.Cull switch
+                    pRootSignature = _defaultRootSignature.Get(),
+                    MS = new D3D12_SHADER_BYTECODE(pMSByteCode, (nuint)msByteCode.Length),
+                    PS = new D3D12_SHADER_BYTECODE(pPSByteCode, (nuint)psByteCode.Length),
+                    PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
+                    SampleMask = UINT32_MAX,
+                    SampleDesc = new DXGI_SAMPLE_DESC(1, 0),
+                    NumRenderTargets = (uint)descriptor.RtvFormats.Length,
+                    DSVFormat = descriptor.DsvFormat.ToDXGIFormat(),
+                    DepthStencilState = BuildDepthStencil(descriptor.PipelineOption.ZTest, descriptor.PipelineOption.ZWrite),
+                    NodeMask = 0,
+                    Flags = D3D12_PIPELINE_STATE_FLAG_NONE,
+
+                    BlendState = descriptor.PipelineOption.Blend switch
+                    {
+                        Blend.Opaque => D3D12Utility.D3D12_BLEND_DESC_OPAQUE,
+                        Blend.Alpha => D3D12Utility.D3D12_BLEND_DESC_ALPHA_BLEND,
+                        Blend.Additive => D3D12Utility.D3D12_BLEND_DESC_ADDITIVE,
+                        Blend.Multiply => D3D12Utility.D3D12_BLEND_DESC_MULTIPLY,
+                        Blend.PremultipliedAlpha => D3D12Utility.D3D12_BLEND_DESC_PREMULTIPLIED,
+                        _ => D3D12Utility.D3D12_BLEND_DESC_OPAQUE
+                    },
+                    RasterizerState = descriptor.PipelineOption.Cull switch
+                    {
+                        Cull.Off => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_NONE,
+                        Cull.Front => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_CLOCKWISE,
+                        Cull.Back => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_COUNTER_CLOCKWISE,
+                        _ => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_NONE
+                    },
+                };
+
+                if (asByteCode.Length != 0)
                 {
-                    Cull.Off => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_NONE,
-                    Cull.Front => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_CLOCKWISE,
-                    Cull.Back => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_COUNTER_CLOCKWISE,
-                    _ => D3D12Utility.D3D12_RASTERIZER_DESC_CULL_NONE
-                },
-            };
+                    desc.AS = new D3D12_SHADER_BYTECODE(pASByteCode, (nuint)asByteCode.Length);
+                }
 
-            if (compiled.tsResult.IsCreated)
-            {
-                desc.AS = new D3D12_SHADER_BYTECODE(compiled.tsResult.bytecode.GetUnsafePtr(), (nuint)compiled.tsResult.bytecode.Count);
-            }
+                for (var i = 0; i < descriptor.RtvFormats.Length; i++)
+                {
+                    desc.RTVFormats[i] = descriptor.RtvFormats[i].ToDXGIFormat();
+                    desc.BlendState.RenderTarget[i].RenderTargetWriteMask = (byte)((int)descriptor.PipelineOption.ColorMask & 0x0F);
+                }
 
-            for (var i = 0; i < descriptor.RtvFormats.Length; i++)
-            {
-                desc.RTVFormats[i] = descriptor.RtvFormats[i].ToDXGIFormat();
-                desc.BlendState.RenderTarget[i].RenderTargetWriteMask = (byte)((int)descriptor.PipelineOption.ColorMask & 0x0F);
-            }
+                var meshStream = new CD3DX12_PIPELINE_MESH_STATE_STREAM(in desc);
+                var streamDesc = new D3D12_PIPELINE_STATE_STREAM_DESC
+                {
+                    pPipelineStateSubobjectStream = &meshStream,
+                    SizeInBytes = (nuint)sizeof(CD3DX12_PIPELINE_MESH_STATE_STREAM)
+                };
 
-            var meshStream = new CD3DX12_PIPELINE_MESH_STATE_STREAM(in desc);
-            var streamDesc = new D3D12_PIPELINE_STATE_STREAM_DESC
-            {
-                pPipelineStateSubobjectStream = &meshStream,
-                SizeInBytes = (nuint)sizeof(CD3DX12_PIPELINE_MESH_STATE_STREAM)
-            };
-
-            result = CreatePSO(descriptor.VariantKey, pipelineKey, &streamDesc);
-            if (result.IsFailure)
-            {
-                return result;
+                var result = CreatePSO(descriptor.VariantKey, pipelineKey, &streamDesc);
+                if (result.IsFailure)
+                {
+                    return result;
+                }
             }
         }
 
         return pipelineKey;
     }
 
-    public Result<Key128<ComputePipeline>> CreateComputePipeline(ref readonly ComputePSODescriptor descriptor, ref readonly ShaderCompileResult compiled)
+    public Result<Key128<ComputePipeline>> CreateComputePipeline(ref readonly ComputePSODescriptor descriptor, ReadOnlySpan<byte> csBytecode)
     {
         AssertNotDisposed();
 
-        var pipelineKey = RHIUtility.CreateComputePipelineKey(descriptor.VariantKey, compiled.hashCode);
+        var pipelineKey = RHIUtility.CreateComputePipelineKey(descriptor.VariantKey);
         if (!_pipelineCache.ContainsKey(pipelineKey))
         {
-            var result = ValidateReflectionData(compiled.reflectionData);
-            if (result.IsFailure)
+            fixed (byte* pCSByteCode = csBytecode)
             {
-                return result;
-            }
+                var byteCode = new D3D12_SHADER_BYTECODE(pCSByteCode, (nuint)csBytecode.Length);
+                var desc = new CD3DX12_PIPELINE_STATE_STREAM_CS(in byteCode);
 
-            var byteCode = new D3D12_SHADER_BYTECODE(compiled.bytecode.GetUnsafePtr(), (nuint)compiled.bytecode.Length);
-            var desc = new CD3DX12_PIPELINE_STATE_STREAM_CS(in byteCode);
+                var streamDesc = new D3D12_PIPELINE_STATE_STREAM_DESC
+                {
+                    pPipelineStateSubobjectStream = &desc,
+                    SizeInBytes = (nuint)sizeof(CD3DX12_PIPELINE_STATE_STREAM_CS)
+                };
 
-            var streamDesc = new D3D12_PIPELINE_STATE_STREAM_DESC
-            {
-                pPipelineStateSubobjectStream = &desc,
-                SizeInBytes = (nuint)sizeof(CD3DX12_PIPELINE_STATE_STREAM_CS)
-            };
-
-            result = CreatePSO(descriptor.VariantKey, pipelineKey, &streamDesc);
-            if (result.IsFailure)
-            {
-                return result;
+                var result = CreatePSO(descriptor.VariantKey, pipelineKey, &streamDesc);
+                if (result.IsFailure)
+                {
+                    return result;
+                }
             }
         }
 

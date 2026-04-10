@@ -433,4 +433,41 @@ public static class ResultExtensions
 
         return func(result.Value);
     }
+
+    public static void Match(this Result result, Action onSuccess, Action<string?> onFailure)
+    {
+        if (result.IsSuccess)
+        {
+            onSuccess();
+        }
+        else
+        {
+            onFailure(result.Message);
+        }
+    }
+
+    public static U Match<T, U>(this Result<T> result, Func<T, U> onSuccess, Func<string?, U> onFailure)
+    {
+        if (result.IsSuccess)
+        {
+            return onSuccess(result.Value);
+        }
+        else
+        {
+            return onFailure(result.Message);
+        }
+    }
+
+    public static U Match<T, U, E>(this Result<T, E> result, Func<T, U> onSuccess, Func<E, U> onFailure)
+        where E : struct, Enum
+    {
+        if (result.IsSuccess)
+        {
+            return onSuccess(result.Value);
+        }
+        else
+        {
+            return onFailure(result.Error);
+        }
+    }
 }

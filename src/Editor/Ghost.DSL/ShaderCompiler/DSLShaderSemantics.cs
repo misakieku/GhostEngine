@@ -8,6 +8,14 @@ public enum PropertyScope
     Local,
 }
 
+public struct ShaderEntryPoint
+{
+    public string entry;
+    public string shaderPath;
+
+    public readonly bool IsCreated => !string.IsNullOrEmpty(entry) && !string.IsNullOrEmpty(shaderPath);
+}
+
 public class PipelineSemantic
 {
     public ZTest? zTest;
@@ -20,7 +28,7 @@ public class PipelineSemantic
 public class PassSemantic
 {
     public string name = string.Empty;
-    public ShaderEntryPoint taskShader;
+    public ShaderEntryPoint amplificationShader;
     public ShaderEntryPoint meshShader;
     public ShaderEntryPoint pixelShader;
     public string? hlsl;
@@ -46,5 +54,5 @@ public class DSLComputeShaderSemantics
     public List<string>? defines;
     public List<string>? includes;
     public List<KeywordsGroup>? keywords;
-    public List<ShaderEntryPoint>? entryPoints;
+    public List<ShaderEntryPoint> entryPoints = null!;
 }

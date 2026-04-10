@@ -1,6 +1,6 @@
 namespace Ghost.Engine;
 
-public enum ShadowCastingMode
+public enum ShadowCastingMode : uint
 {
     Off,
     On,

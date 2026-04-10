@@ -10,22 +10,21 @@ namespace Ghost.Graphics.Core;
 // TODO: Temporary rendering context for heap creation and data upload. We will refactor it later when we have a better understanding of the engine architecture.
 public readonly unsafe ref struct RenderContext
 {
-    private readonly IGraphicsEngine _engine;
     private readonly ResourceManager _resourceManager;
+    private readonly IGraphicsEngine _engine;
     private readonly ICommandBuffer _cmd;
 
     public ICommandBuffer CommandBuffer => _cmd;
 
-    public IShaderCompiler ShaderCompiler => _engine.ShaderCompiler;
     public ResourceManager ResourceManager => _resourceManager;
     public IResourceAllocator ResourceAllocator => _engine.ResourceAllocator;
     public IResourceDatabase ResourceDatabase => _engine.ResourceDatabase;
     public IPipelineLibrary PipelineLibrary => _engine.PipelineLibrary;
 
-    internal RenderContext(IGraphicsEngine engine, ResourceManager resourceManager, ICommandBuffer cmd)
+    internal RenderContext(ResourceManager resourceManager, IGraphicsEngine engine, ICommandBuffer cmd)
     {
-        _engine = engine;
         _resourceManager = resourceManager;
+        _engine = engine;
         _cmd = cmd;
     }
 
@@ -242,10 +241,10 @@ public readonly unsafe ref struct RenderContext
             meshletTrianglesBuffer = _engine.ResourceDatabase.GetBindlessIndex(meshData.MeshletTrianglesBuffer.AsResource()),
         };
 
-        var bufferHandle = meshData.ObjectDataBuffer.AsResource();
+        var bufferHandle = meshData.MeshDataBuffer.AsResource();
 
         TransitionBarrier(bufferHandle, false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
-        UploadBuffer(meshData.ObjectDataBuffer, data);
+        UploadBuffer(meshData.MeshDataBuffer, data);
         TransitionBarrier(bufferHandle, false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.PixelShading | BarrierSync.NonPixelShading);
     }
 

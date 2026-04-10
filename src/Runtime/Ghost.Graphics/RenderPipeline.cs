@@ -24,10 +24,9 @@ public interface IRenderPipeline : IDisposable
     void Render(RenderContext ctx, int frameIndex, IRenderPayload payload);
 }
 
-
 public static class RenderPipelineUtility
 {
-    public static bool GetViewAndProjectionMatrices(RenderSystem renderSystem, ref readonly RenderRequest request, out float4x4 view, out float4x4 projection, out uint2 screenSize)
+    public static bool GetVPMatrices(RenderSystem renderSystem, ref readonly RenderRequest request, out float4x4 view, out float4x4 projection, out uint2 screenSize)
     {
         Handle<GPUTexture> rtHandle;
         if (request.swapChainIndex < 0)

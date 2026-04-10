@@ -5,7 +5,6 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Diagnostics;
-using System.Numerics;
 
 namespace Ghost.Graphics;
 
@@ -29,11 +28,13 @@ public sealed partial class ResourceManager : IDisposable
 
     private UnsafeSlotMap<Mesh> _meshes;
     private UnsafeSlotMap<Material> _materials;
-    private UnsafeList<Shader> _shaders; // TODO: Use SlotMap?
+    private UnsafeSlotMap<Shader> _shaders;
+    private UnsafeSlotMap<ComputeShader> _computeShaders;
 
     private readonly MaterialPaletteStore _materialPalettes;
 
     private ulong _submittedFrame;
+    private int _writeLock;
 
     private bool _disposed;
 
@@ -45,7 +46,8 @@ public sealed partial class ResourceManager : IDisposable
 
         _meshes = new UnsafeSlotMap<Mesh>(64, Allocator.Persistent);
         _materials = new UnsafeSlotMap<Material>(64, Allocator.Persistent);
-        _shaders = new UnsafeList<Shader>(16, Allocator.Persistent);
+        _shaders = new UnsafeSlotMap<Shader>(16, Allocator.Persistent);
+        _computeShaders = new UnsafeSlotMap<ComputeShader>(16, Allocator.Persistent);
 
         _materialPalettes = new MaterialPaletteStore();
     }
@@ -67,6 +69,18 @@ public sealed partial class ResourceManager : IDisposable
         EndFramePool(completedFrame);
     }
 
+    public void EnterParallelRead()
+    {
+        Debug.Assert(!_disposed);
+        Volatile.Write(ref _writeLock, 1);
+    }
+
+    public void ExitParallelRead()
+    {
+        Debug.Assert(!_disposed);
+        Volatile.Write(ref _writeLock, 0);
+    }
+
     /// <summary>
     /// Creates a new mesh from the specified vertex and index data.
     /// </summary>
@@ -77,80 +91,139 @@ public sealed partial class ResourceManager : IDisposable
     {
         Debug.Assert(!_disposed);
 
-        var vertexBufferDesc = new BufferDesc
+        var spinner = new SpinWait();
+        while (Interlocked.CompareExchange(ref _writeLock, 1, 0) != 0)
         {
-            Size = (uint)(vertices.Count * sizeof(Vertex)),
-            Stride = (uint)sizeof(Vertex),
-            Usage = BufferUsage.Vertex | BufferUsage.ShaderResource | BufferUsage.Raw,
-            HeapType = HeapType.Default,
-        };
+            spinner.SpinOnce();
+        }
 
-        var indexBufferDesc = new BufferDesc
+        try
         {
-            Size = (uint)(indices.Count * sizeof(uint)),
-            Stride = sizeof(uint),
-            Usage = BufferUsage.Index | BufferUsage.ShaderResource | BufferUsage.Raw,
-            HeapType = HeapType.Default,
-        };
+            var vertexBufferDesc = new BufferDesc
+            {
+                Size = (uint)(vertices.Count * sizeof(Vertex)),
+                Stride = (uint)sizeof(Vertex),
+                Usage = BufferUsage.Vertex | BufferUsage.ShaderResource | BufferUsage.Raw,
+                HeapType = HeapType.Default,
+            };
 
-        var objectBufferDesc = new BufferDesc
+            var indexBufferDesc = new BufferDesc
+            {
+                Size = (uint)(indices.Count * sizeof(uint)),
+                Stride = sizeof(uint),
+                Usage = BufferUsage.Index | BufferUsage.ShaderResource | BufferUsage.Raw,
+                HeapType = HeapType.Default,
+            };
+
+            var objectBufferDesc = new BufferDesc
+            {
+                Size = (uint)sizeof(MeshData),
+                Stride = (uint)sizeof(MeshData),
+                Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
+                HeapType = HeapType.Default,
+            };
+
+            var vertexBuffer = _resourceAllocator.CreateBuffer(in vertexBufferDesc, "VertexBuffer");
+            var indexBuffer = _resourceAllocator.CreateBuffer(in indexBufferDesc, "IndexBuffer");
+            var objectBuffer = _resourceAllocator.CreateBuffer(in objectBufferDesc, "ObjectBuffer");
+
+            var mesh = new Mesh
+            {
+                Vertices = vertices,
+                Indices = indices,
+                VertexBuffer = vertexBuffer,
+                IndexBuffer = indexBuffer,
+                MeshDataBuffer = objectBuffer,
+            };
+
+            var id = _meshes.Add(mesh, out var generation);
+            return new Handle<Mesh>(id, generation);
+        }
+        finally
         {
-            Size = (uint)sizeof(MeshData),
-            Stride = (uint)sizeof(MeshData),
-            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
-            HeapType = HeapType.Default,
-        };
-
-        var vertexBuffer = _resourceAllocator.CreateBuffer(in vertexBufferDesc, "VertexBuffer");
-        var indexBuffer = _resourceAllocator.CreateBuffer(in indexBufferDesc, "IndexBuffer");
-        var objectBuffer = _resourceAllocator.CreateBuffer(in objectBufferDesc, "ObjectBuffer");
-
-        var mesh = new Mesh
-        {
-            Vertices = vertices,
-            Indices = indices,
-            VertexBuffer = vertexBuffer,
-            IndexBuffer = indexBuffer,
-            ObjectDataBuffer = objectBuffer,
-        };
-
-        var id = _meshes.Add(mesh, out var generation);
-        return new Handle<Mesh>(id, generation);
+            Volatile.Write(ref _writeLock, 0);
+        }
     }
 
     /// <summary>
     /// Creates a new material instance using the specified shader.
     /// </summary>
     /// <param name="shader">The identifier of the shader to associate with the new material.</param>
-    /// <returns>An <see cref="Identifier{Material}"/> representing the newly created material.</returns>
-    public Handle<Material> CreateMaterial(Identifier<Shader> shader)
+    /// <returns>An <see cref="Handle{Material}"/> representing the newly created material.</returns>
+    public Handle<Material> CreateMaterial(Handle<Shader> shader)
     {
         Debug.Assert(!_disposed);
 
-        var material = new Material();
-        if (material.SetShader(shader, this, _resourceDatabase, _resourceAllocator) != Error.None)
+        var spinner = new SpinWait();
+        while (Interlocked.CompareExchange(ref _writeLock, 1, 0) != 0)
         {
-            return Handle<Material>.Invalid;
+            spinner.SpinOnce();
         }
 
-        var id = _materials.Add(material, out var generation);
-        return new Handle<Material>(id, generation);
+        try
+        {
+            var material = new Material();
+            if (material.SetShader(shader, this, _resourceDatabase, _resourceAllocator) != Error.None)
+            {
+                return Handle<Material>.Invalid;
+            }
+
+            var id = _materials.Add(material, out var generation);
+            return new Handle<Material>(id, generation);
+        }
+        finally
+        {
+            Volatile.Write(ref _writeLock, 0);
+        }
     }
 
     /// <summary>
     /// Creates a new shader and returns its unique identifier.
     /// </summary>
-    /// <returns>An <see cref="Identifier{Shader}"/> representing the newly created shader.</returns>
+    /// <returns>An <see cref="Handle{Shader}"/> representing the newly created shader.</returns>
     /// <param name="descriptor">The viewGroup containing the shader's properties and passes.</param>
-    public Identifier<Shader> CreateGraphicsShader(GraphicsShaderDescriptor descriptor, ref readonly GraphicsCompiledResult compiledResult)
+    public Handle<Shader> CreateGraphicsShader(GraphicsShaderDescriptor descriptor, ReadOnlySpan<GraphicsCompiledResult> compiledResults)
     {
         Debug.Assert(!_disposed);
 
-        var shader = new Shader(descriptor, in compiledResult);
+        var spinner = new SpinWait();
+        while (Interlocked.CompareExchange(ref _writeLock, 1, 0) != 0)
+        {
+            spinner.SpinOnce();
+        }
 
-        var id = _shaders.Count;
-        _shaders.Add(shader);
-        return new Identifier<Shader>(id);
+        try
+        {
+            var shader = new Shader(descriptor, compiledResults);
+
+            var id = _shaders.Add(shader, out var generation);
+            return new Handle<Shader>(id, generation);
+        }
+        finally
+        {
+            Volatile.Write(ref _writeLock, 0);
+        }
+    }
+
+    public Handle<ComputeShader> CreateComputeShader(ComputeShaderDescriptor descriptor, ReadOnlySpan<ShaderCompileResult> compiledResults)
+    {
+        Debug.Assert(!_disposed);
+        var spinner = new SpinWait();
+        while (Interlocked.CompareExchange(ref _writeLock, 1, 0) != 0)
+        {
+            spinner.SpinOnce();
+        }
+
+        try
+        {
+            var computeShader = new ComputeShader(descriptor, compiledResults);
+            var id = _computeShaders.Add(computeShader, out var generation);
+            return new Handle<ComputeShader>(id, generation);
+        }
+        finally
+        {
+            Volatile.Write(ref _writeLock, 0);
+        }
     }
 
     /// <summary>
@@ -309,42 +382,89 @@ public sealed partial class ResourceManager : IDisposable
     /// </summary>
     /// <param name="id">The identifier of the shader to check for existence.</param>
     /// <returns>true if a shader with the specified identifier exists; otherwise, false.</returns>
-    public bool HasShader(Identifier<Shader> id)
+    public bool HasShader(Handle<Shader> id)
     {
         Debug.Assert(!_disposed);
-        return id.Value >= 0 && id.Value < _shaders.Count;
+        return _shaders.Contains(id.ID, id.Generation);
     }
 
     /// <summary>
     /// Returns a reference to the shader associated with the specified identifier.
     /// </summary>
-    /// <param name="id">The identifier of the shader to retrieve. Must refer to a valid shader.</param>
+    /// <param name="handle">The identifier of the shader to retrieve. Must refer to a valid shader.</param>
     /// <returns>A result containing a reference to the shader corresponding to the specified identifier, or an error status if the identifier is invalid.</returns>
-    public RefResult<Shader, Error> GetShaderReference(Identifier<Shader> id)
+    public RefResult<Shader, Error> GetShaderReference(Handle<Shader> handle)
     {
-        if (!HasShader(id))
+        ref var shader = ref _shaders.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
+        if (!exist)
         {
             return Error.NotFound;
         }
 
-        return RefResult<Shader, Error>.Success(ref _shaders[id.Value]);
+        return RefResult<Shader, Error>.Success(ref shader);
     }
 
     /// <summary>
     /// Releases the shader associated with the specified identifier, freeing any resources allocated to it.
     /// </summary>
-    /// <param name="id">The identifier of the shader to release. Must refer to a valid, previously created shader.</param>
-    public void ReleaseShader(Identifier<Shader> id)
+    /// <param name="handle">The identifier of the shader to release. Must refer to a valid, previously created shader.</param>
+    public void ReleaseShader(Handle<Shader> handle)
     {
         Debug.Assert(!_disposed);
 
-        if (!HasShader(id))
+        ref var shader = ref _shaders.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
+        if (!exist)
         {
             return;
         }
 
-        ref var shader = ref _shaders[id.Value];
+        _shaders.Remove(handle.ID, handle.Generation);
         shader.ReleaseResource(_resourceDatabase);
+    }
+
+    /// <summary>
+    /// Determines whether a compute shader with the specified identifier exists in the collection.
+    /// </summary>
+    /// <param name="id">The identifier of the compute shader to check for existence.</param>
+    /// <returns>true if a compute shader with the specified identifier exists; otherwise, false.</returns>
+    public bool HasComputeShader(Handle<ComputeShader> id)
+    {
+        Debug.Assert(!_disposed);
+        return _computeShaders.Contains(id.ID, id.Generation);
+    }
+
+    /// <summary>
+    /// Returns a reference to the compute shader associated with the specified identifier.
+    /// </summary>
+    /// <param name="handle">The identifier of the compute shader to retrieve. Must refer to a valid ComputeShader.</param>
+    /// <returns>A result containing a reference to the compute shader corresponding to the specified identifier, or an error status if the identifier is invalid.</returns>
+    public RefResult<ComputeShader, Error> GetComputeShaderReference(Handle<ComputeShader> handle)
+    {
+        ref var computeShader = ref _computeShaders.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
+        if (!exist)
+        {
+            return Error.NotFound;
+        }
+
+        return RefResult<ComputeShader, Error>.Success(ref computeShader);
+    }
+
+    /// <summary>
+    /// Releases the compute shader associated with the specified identifier, freeing any resources allocated to it.
+    /// </summary>
+    /// <param name="handle">The identifier of the compute shader to release. Must refer to a valid, previously created ComputeShader.</param>
+    public void ReleaseComputeShader(Handle<ComputeShader> handle)
+    {
+        Debug.Assert(!_disposed);
+
+        ref var computeShader = ref _computeShaders.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
+        if (!exist)
+        {
+            return;
+        }
+
+        _computeShaders.Remove(handle.ID, handle.Generation);
+        computeShader.ReleaseResource(_resourceDatabase);
     }
 
     public void Dispose()

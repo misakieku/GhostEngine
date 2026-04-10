@@ -3,44 +3,15 @@
 #endif
 
 using Ghost.Core;
-using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Utilities;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Runtime.Loader;
-using TerraFX.Interop.DirectX;
 
 namespace Ghost.Graphics.D3D12;
 
 public static class D3D12GraphicsEngineFactory
 {
-    static D3D12GraphicsEngineFactory()
-    {
-        var currentDir = AppContext.BaseDirectory;
-        var platform = OperatingSystem.IsWindows() ? "win" :
-                       OperatingSystem.IsLinux() ? "linux" :
-                       OperatingSystem.IsMacOS() ? "osx" : "unknown";
-        var arch = Environment.Is64BitProcess ? "x64" : "x86";
-        var nativeDllDir = Path.Combine(currentDir, "runtimes", platform + "-" + arch, "native");
-
-        AssemblyLoadContext.Default.ResolvingUnmanagedDll += (assembly, libraryName) =>
-        {
-            if (libraryName == "dxcompiler")
-            {
-                NativeLibrary.TryLoad(Path.Combine(nativeDllDir, "dxil.dll"), out _);
-
-                if (NativeLibrary.TryLoad(Path.Combine(nativeDllDir, "dxcompiler.dll"), out var dxcHandle))
-                {
-                    return dxcHandle;
-                }
-            }
-
-            return IntPtr.Zero;
-        };
-    }
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IGraphicsEngine Create(GraphicsEngineDesc desc)
     {
@@ -68,7 +39,6 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
     private readonly D3D12DebugLayer _debugLayer;
 #endif
     private readonly D3D12RenderDevice _device;
-    private readonly DXCShaderCompiler _shaderCompiler;
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
     private readonly D3D12ResourceDatabase _resourceDatabase;
     private readonly D3D12PipelineLibrary _pipelineLibrary;
@@ -81,7 +51,6 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
     private bool _disposed;
 
     public IRenderDevice Device => _device;
-    public IShaderCompiler ShaderCompiler => _shaderCompiler;
     public IPipelineLibrary PipelineLibrary => _pipelineLibrary;
     public IResourceDatabase ResourceDatabase => _resourceDatabase;
     public IResourceAllocator ResourceAllocator => _resourceAllocator;
@@ -94,7 +63,6 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         _debugLayer = new D3D12DebugLayer();
 #endif
         _device = new D3D12RenderDevice();
-        _shaderCompiler = new DXCShaderCompiler();
         _descriptorAllocator = new D3D12DescriptorAllocator(_device);
 
         _resourceDatabase = new D3D12ResourceDatabase(_descriptorAllocator);
@@ -133,7 +101,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
     {
         Debug.Assert(!_disposed);
 
-        for (int i = 0; i < _commandBufferPool.Count; i++)
+        for (var i = 0; i < _commandBufferPool.Count; i++)
         {
             if (_commandBufferPool[i].Type == type)
             {
@@ -209,7 +177,6 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         _resourceDatabase.Dispose();
 
         _descriptorAllocator.Dispose();
-        _shaderCompiler.Dispose();
         _device.Dispose();
 #if ENABLE_DEBUG_LAYER
         _debugLayer.Dispose();

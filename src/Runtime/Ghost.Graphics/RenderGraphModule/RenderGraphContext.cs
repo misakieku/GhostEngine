@@ -36,6 +36,7 @@ public interface IRasterRenderContext : IRenderGraphContext
 
 public interface IComputeRenderContext : IRenderGraphContext
 {
+    void SetActiveCompute(Handle<ComputeShader> computeShader, uint entryIndex);
     void DispatchCompute(uint3 threadGroupCount);
 }
 
@@ -141,8 +142,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         var r = _resourceManager.GetMaterialReference(material);
         if (r.IsFailure)
         {
-            _activePerMaterialData = Handle<GPUBuffer>.Invalid;
-            return;
+            throw new InvalidOperationException($"Failed to get material reference for material handle {material}.");
         }
 
         ref readonly var mat = ref r.Value;
@@ -158,8 +158,8 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
             return;
         }
 
-        ref readonly var shader = ref shaderResult.Value;
-        ref readonly var pass = ref shader.GetPassReference(material.ActivePassIndex);
+        ref var shader = ref shaderResult.Value;
+        ref var pass = ref shader.GetPassReference(material.ActivePassIndex);
 
         var passPipelineHash = new PassPipelineHash(_rtvFormats, _dsvFormat);
         var materialPipeline = material.GetPassPipelineOverride(material.ActivePassIndex);
@@ -169,9 +169,9 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         var shaderVariantKey = RHIUtility.CreateShaderVariantKey(pass.Key, in variantMask);
         var pipelineKey = RHIUtility.CreateGraphicsPipelineKey(shaderVariantKey, materialPipeline, passPipelineHash);
 
-        if (!_pipelineLibrary.HasPipeline(pipelineKey))
+        if (!_pipelineLibrary.HasPipelineStateObject(pipelineKey))
         {
-            var compiledCacheResult = _shaderCompiler.LoadCompiledCache(shaderVariantKey);
+            var compiledCacheResult = _shaderCompiler.GetCompiledCache(shaderVariantKey);
             if (compiledCacheResult.IsFailure)
             {
                 throw new InvalidOperationException("Failed to load compiled shader cache for pipeline state object creation.");
@@ -199,9 +199,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         var r = _resourceManager.GetMeshReference(mesh);
         if (r.IsFailure)
         {
-            _activePerMeshData = Handle<GPUBuffer>.Invalid;
-            _activeMeshIndexCount = 0;
-            return;
+            throw new InvalidOperationException($"Failed to get mesh reference for mesh handle {mesh}.");
         }
 
         ref readonly var meshRef = ref r.Value;
@@ -210,7 +208,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
 
     public void SetActiveMesh(ref readonly Mesh mesh)
     {
-        _activePerMeshData = mesh.ObjectDataBuffer;
+        _activePerMeshData = mesh.MeshDataBuffer;
         _activeMeshIndexCount = mesh.IndexCount;
     }
 
@@ -239,11 +237,40 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         _commandBuffer.DispatchMesh(threadGroupCount.x, threadGroupCount.y, threadGroupCount.z);
     }
 
+    public void SetActiveCompute(Handle<ComputeShader> computeShader, uint entryIndex)
+    {
+        var r = _resourceManager.GetComputeShaderReference(computeShader);
+        if (r.IsFailure)
+        {
+            throw new InvalidOperationException($"Failed to get compute shader reference for handle {computeShader}.");
+        }
+
+        ref var shader = ref r.Value;
+        var entryHash = shader.GetEntryHash((int)entryIndex);
+        var keywordSet = new LocalKeywordSet(); // TODO: Support keywords in compute shader.
+        var variantKey = RHIUtility.CreateShaderVariantKey(entryHash, in keywordSet);
+        var pipelineKey = RHIUtility.CreateComputePipelineKey(variantKey);
+
+        if (!_pipelineLibrary.HasPipelineStateObject(pipelineKey))
+        {
+            var compiledCacheResult = _shaderCompiler.GetCompiledCache(variantKey);
+            if (compiledCacheResult.IsFailure)
+            {
+                throw new InvalidOperationException("Failed to load compiled shader cache for pipeline state object creation.");
+            }
+            var psoDes = new ComputePSODescriptor
+            {
+                VariantKey = variantKey,
+            };
+            var compiled = compiledCacheResult.Value;
+            _pipelineLibrary.CreateComputePipeline(in psoDes, in compiled).GetValueOrThrow();
+        }
+    }
+
     public void DispatchCompute(uint3 threadGroupCount)
     {
         throw new NotImplementedException();
     }
-
 
     public ICommandBuffer GetCommandBufferUnsafe()
     {

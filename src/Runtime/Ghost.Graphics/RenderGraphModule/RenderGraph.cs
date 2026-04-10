@@ -71,6 +71,11 @@ public sealed class RenderGraph : IDisposable
         _blackboard = new RenderGraphBlackboard();
     }
 
+    public RenderGraph(ResourceManager resourceManager, IGraphicsEngine graphicsEngine)
+        : this(resourceManager, graphicsEngine.ResourceAllocator, graphicsEngine.ResourceDatabase, graphicsEngine.PipelineLibrary, graphicsEngine.ShaderCompiler)
+    {
+    }
+
     /// <summary>
     /// Resets the render graph for a new frame.
     /// </summary>

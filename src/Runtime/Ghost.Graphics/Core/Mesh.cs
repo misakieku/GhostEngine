@@ -179,7 +179,7 @@ public struct Mesh : IResourceReleasable
     /// <summary>
     /// Gets the handle to the mesh data buffer on the GPU.
     /// </summary>
-    public Handle<GPUBuffer> ObjectDataBuffer
+    public Handle<GPUBuffer> MeshDataBuffer
     {
         get; internal set;
     }
@@ -364,7 +364,7 @@ public struct Mesh : IResourceReleasable
         database.ReleaseResource(MeshLetBuffer.AsResource());
         database.ReleaseResource(MeshletVerticesBuffer.AsResource());
         database.ReleaseResource(MeshletTrianglesBuffer.AsResource());
-        database.ReleaseResource(ObjectDataBuffer.AsResource());
+        database.ReleaseResource(MeshDataBuffer.AsResource());
     }
 }
 

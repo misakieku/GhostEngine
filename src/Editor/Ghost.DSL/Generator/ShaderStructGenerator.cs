@@ -1,3 +1,4 @@
+using Ghost.Core.Graphics;
 using Misaki.HighPerformance.Mathematics;
 using System.Numerics;
 using System.Reflection;
@@ -6,25 +7,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Ghost.DSL.Generator;
-
-public enum PackingRules
-{
-    Exact,
-    Aligned,
-}
-
-[AttributeUsage(AttributeTargets.Struct | AttributeTargets.Enum)]
-public class GenerateHLSLAttribute : Attribute
-{
-    private readonly PackingRules _packingRules;
-    private readonly string? _outputSource;
-
-    public GenerateHLSLAttribute(PackingRules packingRules, string? outputSource)
-    {
-        _packingRules = packingRules;
-        _outputSource = outputSource;
-    }
-}
 
 internal static partial class ShaderStructGenerator
 {

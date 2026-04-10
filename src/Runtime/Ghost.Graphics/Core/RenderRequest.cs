@@ -1,5 +1,4 @@
 using Ghost.Core;
-using Ghost.Graphics.RenderPipeline;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Mathematics;
 using System.Runtime.CompilerServices;
@@ -179,22 +178,11 @@ public struct RenderView
     public RenderingLayerMask renderingLayerMask;
 }
 
-public struct RenderRequest: IDisposable
+public struct RenderRequest
 {
     public RenderView view;
 
     public int swapChainIndex;
     public Handle<GPUTexture> colorTarget;
     public Handle<GPUTexture> depthTarget;
-
-    public RenderList opaqueRenderList;
-    public RenderList transparentRenderList;
-    public RenderList shadowCasterRenderList;
-
-    public void Dispose()
-    {
-        opaqueRenderList.Dispose();
-        transparentRenderList.Dispose();
-        shadowCasterRenderList.Dispose();
-    }
 }

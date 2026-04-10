@@ -24,7 +24,7 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
     private readonly RenderSystem _renderSystem;
 
     private readonly RenderGraph _renderGraph;
-    private Identifier<Shader> _meshletShader;
+    private Handle<Shader> _meshletShader;
     private Handle<Material> _meshletMaterial;
 
     private bool _disposed;
@@ -57,7 +57,7 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
         var emptyKeywords = new LocalKeywordSet();
         var compiled = renderSystem.GraphicsEngine.ShaderCompiler.CompilePass(in pass, in config, in emptyKeywords).GetValueOrThrow();
         
-        _meshletShader = renderSystem.ResourceManager.CreateGraphicsShader(shaderDescriptor, in compiled);
+        _meshletShader = renderSystem.ResourceManager.CreateGraphicsShader(shaderDescriptor, [compiled]);
         _meshletMaterial = renderSystem.ResourceManager.CreateMaterial(_meshletShader);
     }
 
@@ -236,7 +236,7 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
                     instanceDataArray[instanceIdx++] = new InstanceData
                     {
                         localToWorld = record.localToWorld,
-                        meshBuffer = resourceDatabase.GetBindlessIndex(mesh.Get().ObjectDataBuffer.AsResource()),
+                        meshBuffer = resourceDatabase.GetBindlessIndex(mesh.Get().MeshDataBuffer.AsResource()),
                         materialBuffer = resourceDatabase.GetBindlessIndex(mat.Get()._cBufferCache.GpuResource.AsResource())
                     };
                 }

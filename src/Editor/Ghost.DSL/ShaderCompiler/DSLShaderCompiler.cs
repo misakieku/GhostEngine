@@ -1,6 +1,7 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.DSL.ShaderParser;
+using Misaki.HighPerformance.Utilities;
 using System.IO.Hashing;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -43,51 +44,121 @@ internal static class DSLShaderCompiler
         };
     }
 
+    private static Result<string> BuildFinalShaderCode(string shaderPath, ReadOnlySpan<string> includes, string? injectedCode, string? properties)
+    {
+        string shaderCode;
+        if (shaderPath == "hlsl_block")
+        {
+            if (string.IsNullOrEmpty(injectedCode))
+            {
+                return Result.Failure("Shader code is empty. Either provide a valid shader path or inject shader code directly.");
+            }
+
+            shaderCode = string.Empty;
+        }
+        else
+        {
+            if (!File.Exists(shaderPath))
+            {
+                return Result.Failure("Shader file not found: " + shaderPath);
+            }
+
+            shaderCode = File.ReadAllText(shaderPath);
+        }
+
+        var sb = new StringBuilder();
+        foreach (var includePath in includes)
+        {
+            sb.AppendLine($"#include \"{includePath}\"");
+        }
+
+        if (!string.IsNullOrEmpty(properties))
+        {
+            sb.AppendLine($"#line 0 \"properties\"");
+            sb.AppendLine(properties);
+        }
+
+        if (!string.IsNullOrEmpty(injectedCode))
+        {
+            sb.AppendLine($"#line 0 \"injected_code\"");
+            sb.AppendLine(injectedCode);
+        }
+
+        if (!string.IsNullOrEmpty(shaderCode))
+        {
+            sb.AppendLine($"#line 0 \"{shaderPath}\"");
+            sb.AppendLine(shaderCode);
+        }
+
+        return sb.ToString();
+    }
+
     // TODO: Implement shader inheritance resolution, including property and pass merging.
     // Currently, we just ignore inheritance.
     public static Result<GraphicsShaderDescriptor> ResolveShader(DSLShaderSemantics semantics)
     {
+        if (!ShaderPropertiesRegistry.TryGetInfo(semantics.name, out var propertyInfo))
+        {
+            propertyInfo = default;
+        }
+
+        var passes = semantics.passes == null ? Array.Empty<PassDescriptor>() : new PassDescriptor[semantics.passes.Count];
+        for (var i = 0; i < passes.Length; i++)
+        {
+            var pass = semantics.passes![i];
+            var localPipeline = MeragePipeline(pass.localPipeline, PipelineState.Default);
+
+            var result = BuildFinalShaderCode(pass.amplificationShader.shaderPath, pass.includes.AsSpan(), pass.hlsl, propertyInfo.code);
+            if (result.IsFailure)
+            {
+                return Result.Failure($"Failed to build shader code for pass '{pass.name}': {result.Message}");
+            }
+
+            var amplificationShaderCode = new ShaderCode { code = result.Value, entryPoint = pass.amplificationShader.entry };
+
+            result = BuildFinalShaderCode(pass.meshShader.shaderPath, pass.includes.AsSpan(), pass.hlsl, propertyInfo.code);
+            if (result.IsFailure)
+            {
+                return Result.Failure($"Failed to build shader code for pass '{pass.name}': {result.Message}");
+            }
+
+            var meshShaderCode = new ShaderCode { code = result.Value, entryPoint = pass.meshShader.entry };
+
+            result = BuildFinalShaderCode(pass.pixelShader.shaderPath, pass.includes.AsSpan(), pass.hlsl, propertyInfo.code);
+            if (result.IsFailure)
+            {
+                return Result.Failure($"Failed to build shader code for pass '{pass.name}': {result.Message}");
+            }
+
+            var pixelShaderCode = new ShaderCode { code = result.Value, entryPoint = pass.pixelShader.entry };
+
+            passes[i] = new PassDescriptor
+            {
+                identifier = GetPassUniqueId(semantics, pass),
+                name = pass.name,
+
+                amplificationShaderCode = amplificationShaderCode,
+                meshShaderCode = meshShaderCode,
+                pixelShaderCode = pixelShaderCode,
+
+                localPipeline = localPipeline,
+                defines = pass.defines?.ToArray() ?? Array.Empty<string>(),
+                keywords = pass.keywords?.ToArray() ?? Array.Empty<KeywordsGroup>()
+            };
+        }
+
         var descriptor = new GraphicsShaderDescriptor
         {
             name = semantics.name,
+            propertyBufferSize = propertyInfo.size,
+
+            shaderModel = semantics.shaderModel,
+            passes = passes
         };
 
-        if (!ShaderPropertiesRegistry.TryGetInfo(semantics.name, out var info))
+        for (int i = 0; i < descriptor.passes.Length; i++)
         {
-            info = default;
-        }
-
-        descriptor.propertiesCode = info.code ?? string.Empty;
-        descriptor.propertyBufferSize = info.size;
-
-        descriptor.shaderModel = semantics.shaderModel;
-
-        if (semantics.passes != null)
-        {
-            descriptor.passes = new PassDescriptor[semantics.passes.Count];
-            for (var i = 0; i < semantics.passes.Count; i++)
-            {
-                var pass = semantics.passes[i];
-                var localPipeline = MeragePipeline(pass.localPipeline, PipelineState.Default);
-                descriptor.passes[i] = new PassDescriptor
-                {
-                    shader = descriptor,
-                    identifier = GetPassUniqueId(semantics, pass),
-                    name = pass.name,
-                    taskShader = pass.taskShader,
-                    meshShader = pass.meshShader,
-                    pixelShader = pass.pixelShader,
-                    localPipeline = localPipeline,
-                    defines = pass.defines?.ToArray() ?? Array.Empty<string>(),
-                    includes = pass.includes?.ToArray() ?? Array.Empty<string>(),
-                    keywords = pass.keywords?.ToArray() ?? Array.Empty<KeywordsGroup>(),
-                    hlsl = pass.hlsl
-                };
-            }
-        }
-        else
-        {
-            descriptor.passes = Array.Empty<PassDescriptor>();
+            descriptor.passes[i].shader = descriptor;
         }
 
         return descriptor;
@@ -199,28 +270,32 @@ internal static class DSLShaderCompiler
 
     public static Result<ComputeShaderDescriptor> ResolveComputeShader(DSLComputeShaderSemantics semantics)
     {
-        var descriptor = new ComputeShaderDescriptor
+        if (!ShaderPropertiesRegistry.TryGetInfo(semantics.name, out var propertyInfo))
+        {
+            propertyInfo = default;
+        }
+
+        var shaderCodes = new ShaderCode[semantics.entryPoints.Count];
+        for (int i = 0; i < shaderCodes.Length; i++)
+        {
+            var result = BuildFinalShaderCode(semantics.entryPoints[i].shaderPath, semantics.includes.AsSpan(), semantics.hlsl, propertyInfo.code);
+            if (result.IsFailure)
+            {
+                return Result.Failure($"Failed to build shader code for entry point '{semantics.entryPoints[i].entry}': {result.Message}");
+            }
+
+            shaderCodes[i] = new ShaderCode { code = result.Value, entryPoint = semantics.entryPoints[i].entry };
+        }
+
+        return new ComputeShaderDescriptor
         {
             identifier = XxHash64.HashToUInt64(MemoryMarshal.AsBytes(semantics.name.AsSpan())),
             name = semantics.name,
+            propertyBufferSize = propertyInfo.size,
+            shaderModel = semantics.shaderModel,
+            shaderCodes = shaderCodes,
+            defines = semantics.defines?.ToArray() ?? Array.Empty<string>(),
+            keywords = semantics.keywords?.ToArray() ?? Array.Empty<KeywordsGroup>()
         };
-
-        if (!ShaderPropertiesRegistry.TryGetInfo(semantics.name, out var info))
-        {
-            info = default;
-        }
-
-        descriptor.propertiesCode = info.code ?? string.Empty;
-        descriptor.propertyBufferSize = info.size;
-
-        descriptor.shaderModel = semantics.shaderModel;
-
-        descriptor.hlsl = semantics.hlsl;
-        descriptor.defines = semantics.defines?.ToArray() ?? Array.Empty<string>();
-        descriptor.includes = semantics.includes?.ToArray() ?? Array.Empty<string>();
-        descriptor.keywords = semantics.keywords?.ToArray() ?? Array.Empty<KeywordsGroup>();
-        descriptor.entryPoints = semantics.entryPoints?.ToArray() ?? Array.Empty<ShaderEntryPoint>();
-
-        return descriptor;
     }
 }

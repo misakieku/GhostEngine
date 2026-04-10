@@ -14,12 +14,12 @@ public enum KeywordSpace
     Global,
 }
 
-public struct ShaderEntryPoint
+public struct ShaderCode
 {
-    public string entry;
-    public string shader;
+    public string code;
+    public string entryPoint;
 
-    public readonly bool IsCreated => !string.IsNullOrEmpty(entry) && !string.IsNullOrEmpty(shader);
+    public readonly bool IsCreated => !string.IsNullOrEmpty(code) && !string.IsNullOrEmpty(entryPoint);
 }
 
 public struct KeywordsGroup
@@ -35,35 +35,29 @@ public struct PassDescriptor
     public ulong identifier;
     public string name;
 
-    public string? hlsl;
-    public ShaderEntryPoint taskShader;
-    public ShaderEntryPoint meshShader;
-    public ShaderEntryPoint pixelShader;
+    public ShaderCode amplificationShaderCode;
+    public ShaderCode meshShaderCode;
+    public ShaderCode pixelShaderCode;
     public string[] defines;
-    public string[] includes;
     public KeywordsGroup[] keywords;
     public PipelineState localPipeline;
 }
 
 public class GraphicsShaderDescriptor
 {
-    public string name = string.Empty;
-    public string propertiesCode = string.Empty;
-    public uint propertyBufferSize;
-    public ShaderModel shaderModel;
-    public PassDescriptor[] passes = Array.Empty<PassDescriptor>();
+    public required string name = string.Empty;
+    public required uint propertyBufferSize;
+    public required ShaderModel shaderModel;
+    public required PassDescriptor[] passes = Array.Empty<PassDescriptor>();
 }
 
 public class ComputeShaderDescriptor
 {
-    public ulong identifier;
-    public string name = string.Empty;
-    public string propertiesCode = string.Empty;
-    public uint propertyBufferSize;
-    public string? hlsl;
-    public ShaderModel shaderModel;
-    public string[] defines = Array.Empty<string>();
-    public string[] includes = Array.Empty<string>();
-    public KeywordsGroup[] keywords = Array.Empty<KeywordsGroup>();
-    public ShaderEntryPoint[] entryPoints = Array.Empty<ShaderEntryPoint>();
+    public required ulong identifier;
+    public required string name = string.Empty;
+    public required uint propertyBufferSize;
+    public required ShaderModel shaderModel;
+    public required ShaderCode[] shaderCodes;
+    public required string[] defines;
+    public required KeywordsGroup[] keywords;
 }
