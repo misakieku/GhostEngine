@@ -6,7 +6,7 @@ using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Diagnostics;
 
-namespace Ghost.Graphics;
+namespace Ghost.Graphics.Services;
 
 public sealed partial class ResourceManager : IDisposable
 {
@@ -182,7 +182,7 @@ public sealed partial class ResourceManager : IDisposable
     /// </summary>
     /// <returns>An <see cref="Handle{Shader}"/> representing the newly created shader.</returns>
     /// <param name="descriptor">The viewGroup containing the shader's properties and passes.</param>
-    public Handle<Shader> CreateGraphicsShader(GraphicsShaderDescriptor descriptor, ReadOnlySpan<GraphicsCompiledResult> compiledResults)
+    public Handle<Shader> CreateGraphicsShader(GraphicsShaderDescriptor descriptor)
     {
         Debug.Assert(!_disposed);
 
@@ -194,7 +194,7 @@ public sealed partial class ResourceManager : IDisposable
 
         try
         {
-            var shader = new Shader(descriptor, compiledResults);
+            var shader = new Shader(descriptor);
 
             var id = _shaders.Add(shader, out var generation);
             return new Handle<Shader>(id, generation);
@@ -205,7 +205,7 @@ public sealed partial class ResourceManager : IDisposable
         }
     }
 
-    public Handle<ComputeShader> CreateComputeShader(ComputeShaderDescriptor descriptor, ReadOnlySpan<ShaderCompileResult> compiledResults)
+    public Handle<ComputeShader> CreateComputeShader(ComputeShaderDescriptor descriptor)
     {
         Debug.Assert(!_disposed);
         var spinner = new SpinWait();
@@ -216,7 +216,7 @@ public sealed partial class ResourceManager : IDisposable
 
         try
         {
-            var computeShader = new ComputeShader(descriptor, compiledResults);
+            var computeShader = new ComputeShader(descriptor);
             var id = _computeShaders.Add(computeShader, out var generation);
             return new Handle<ComputeShader>(id, generation);
         }

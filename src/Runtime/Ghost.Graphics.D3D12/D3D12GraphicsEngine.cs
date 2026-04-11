@@ -66,7 +66,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         _descriptorAllocator = new D3D12DescriptorAllocator(_device);
 
         _resourceDatabase = new D3D12ResourceDatabase(_descriptorAllocator);
-        _pipelineLibrary = new D3D12PipelineLibrary(_device, _resourceDatabase);
+        _pipelineLibrary = new D3D12PipelineLibrary(_device);
         _resourceAllocator = new D3D12ResourceAllocator(_device, _descriptorAllocator, _resourceDatabase, _pipelineLibrary);
 
         _commandBufferPool = new List<ICommandBuffer>(4);

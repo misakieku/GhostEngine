@@ -38,7 +38,7 @@ internal class ComputeShaderVisitor : GhostComputeShaderParserBaseVisitor<object
         var computeBody = context.computeBody();
         if (computeBody != null)
         {
-            compute.SM = computeBody.shaderModel()?.GetText() ?? string.Empty;
+            compute.ShaderModel = computeBody.shaderModel()?.GetText() ?? string.Empty;
 
             foreach (var definesBlock in computeBody.definesBlock())
             {

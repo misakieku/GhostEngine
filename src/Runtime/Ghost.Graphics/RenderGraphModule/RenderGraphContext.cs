@@ -1,6 +1,7 @@
 using Ghost.Core;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
+using Ghost.Graphics.Services;
 using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Graphics.RenderGraphModule;
@@ -47,9 +48,9 @@ public interface IUnsafeRenderContext : IRasterRenderContext, IComputeRenderCont
 internal sealed class RenderGraphContext : IUnsafeRenderContext
 {
     private readonly ResourceManager _resourceManager;
+    private readonly ShaderLibrary _shaderLibrary;
     private readonly IResourceDatabase _resourceDatabase;
     private readonly IPipelineLibrary _pipelineLibrary;
-    private readonly IShaderCompiler _shaderCompiler;
     private readonly RenderGraphResourceRegistry _resources;
 
     private ICommandBuffer _commandBuffer;
@@ -77,12 +78,12 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         get; set;
     }
 
-    internal RenderGraphContext(ResourceManager resourceManager, IResourceDatabase resourceDatabase, IPipelineLibrary pipelineLibrary, IShaderCompiler shaderCompiler, RenderGraphResourceRegistry resources)
+    internal RenderGraphContext(ResourceManager resourceManager, ShaderLibrary shaderLibrary, IResourceDatabase resourceDatabase, IPipelineLibrary pipelineLibrary, RenderGraphResourceRegistry resources)
     {
         _resourceManager = resourceManager;
+        _shaderLibrary = shaderLibrary;
         _resourceDatabase = resourceDatabase;
         _pipelineLibrary = pipelineLibrary;
-        _shaderCompiler = shaderCompiler;
         _resources = resources;
 
         _commandBuffer = null!;
@@ -171,7 +172,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
 
         if (!_pipelineLibrary.HasPipelineStateObject(pipelineKey))
         {
-            var compiledCacheResult = _shaderCompiler.GetCompiledCache(shaderVariantKey);
+            var compiledCacheResult = _shaderLibrary.GetCache(shaderVariantKey);
             if (compiledCacheResult.IsFailure)
             {
                 throw new InvalidOperationException("Failed to load compiled shader cache for pipeline state object creation.");

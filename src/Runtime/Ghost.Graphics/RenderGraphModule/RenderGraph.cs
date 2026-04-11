@@ -1,6 +1,7 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
 using System.Diagnostics;
+using Ghost.Graphics.Services;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
@@ -9,8 +10,6 @@ namespace Ghost.Graphics.RenderGraphModule;
 /// </summary>
 public sealed class RenderGraph : IDisposable
 {
-    private readonly ResourceManager _resourceManager;
-    private readonly IResourceAllocator _resourceAllocator;
     private readonly IResourceDatabase _resourceDatabase;
 
     private readonly RenderGraphObjectPool _objectPool;
@@ -38,11 +37,9 @@ public sealed class RenderGraph : IDisposable
 
     public RenderGraphBlackboard Blackboard => _blackboard;
 
-    public RenderGraph(ResourceManager resourceManager, IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase, IPipelineLibrary pipelineLibrary, IShaderCompiler shaderCompiler)
+    public RenderGraph(RenderSystem renderSystem)
     {
-        _resourceManager = resourceManager;
-        _resourceAllocator = resourceAllocator;
-        _resourceDatabase = resourceDatabase;
+        _resourceDatabase = renderSystem.GraphicsEngine.ResourceDatabase;
 
         _objectPool = new RenderGraphObjectPool();
         _resources = new RenderGraphResourceRegistry(_objectPool);
@@ -52,28 +49,23 @@ public sealed class RenderGraph : IDisposable
         _nativePasses = new List<NativeRenderPass>(32);
 
         _builder = new RenderGraphBuilder();
-        _aliasingManager = new ResourceAliasingManager(_resourceAllocator, _objectPool);
+        _aliasingManager = new ResourceAliasingManager(renderSystem.GraphicsEngine.ResourceAllocator, _objectPool);
 
         _compilationCache = new RenderGraphCompilationCache();
 
         _context = new RenderGraphContext(
-            _resourceManager,
-            _resourceDatabase,
-            pipelineLibrary,
-            shaderCompiler,
+            renderSystem.ResourceManager,
+            renderSystem.ShaderLibrary,
+            renderSystem.GraphicsEngine.ResourceDatabase,
+            renderSystem.GraphicsEngine.PipelineLibrary,
             _resources
         );
 
         _nativePassBuilder = new RenderGraphNativePassBuilder(_objectPool, _resources);
-        _compiler = new RenderGraphCompiler(_resourceDatabase, _resourceAllocator, _resources, _aliasingManager, _nativePassBuilder, _compilationCache);
-        _executor = new RenderGraphExecutor(_resourceManager, _resourceDatabase, _resources, _context);
+        _compiler = new RenderGraphCompiler(renderSystem.GraphicsEngine.ResourceDatabase, renderSystem.GraphicsEngine.ResourceAllocator, _resources, _aliasingManager, _nativePassBuilder, _compilationCache);
+        _executor = new RenderGraphExecutor(renderSystem.ResourceManager, renderSystem.GraphicsEngine.ResourceDatabase, _resources, _context);
 
         _blackboard = new RenderGraphBlackboard();
-    }
-
-    public RenderGraph(ResourceManager resourceManager, IGraphicsEngine graphicsEngine)
-        : this(resourceManager, graphicsEngine.ResourceAllocator, graphicsEngine.ResourceDatabase, graphicsEngine.PipelineLibrary, graphicsEngine.ShaderCompiler)
-    {
     }
 
     /// <summary>

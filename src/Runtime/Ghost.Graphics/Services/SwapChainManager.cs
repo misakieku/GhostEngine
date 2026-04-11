@@ -50,7 +50,7 @@ internal sealed class SwapChainRecord
     }
 }
 
-internal class SwapChainManager : IDisposable
+public class SwapChainManager : IDisposable
 {
     public const int MAX_SWAP_CHAINS = 8;
     private readonly IGraphicsEngine _graphicsEngine;

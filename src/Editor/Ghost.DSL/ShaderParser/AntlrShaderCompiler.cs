@@ -99,6 +99,40 @@ public class AntlrShaderCompiler
         }
     }
 
+    private static bool TryGetShaderModel(string model, List<DSLShaderError> errors, out ShaderModel shaderModel)
+    {
+        if (string.IsNullOrEmpty(model))
+        {
+            shaderModel = ShaderModel.SM_6_6; // Default to lowest supported shader model for compute shaders
+        }
+        else
+        {
+            switch (model)
+            {
+                case "6_6":
+                    shaderModel = ShaderModel.SM_6_6;
+                    break;
+                case "6_7":
+                    shaderModel = ShaderModel.SM_6_7;
+                    break;
+                case "6_8":
+                    shaderModel = ShaderModel.SM_6_8;
+                    break;
+                default:
+                    shaderModel = default;
+                    errors.Add(new DSLShaderError
+                    {
+                        message = $"Unknown shader model '{model}'.",
+                        line = 0,
+                        column = 0
+                    });
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
     public static DSLComputeShaderSemantics? ConvertToComputeSemantics(ComputeShaderModel model, out List<DSLShaderError> errors)
     {
         errors = new List<DSLShaderError>();
@@ -122,29 +156,9 @@ public class AntlrShaderCompiler
             hlsl = model.Hlsl?.Code
         };
 
-        if (string.IsNullOrEmpty(model.SM))
+        if (TryGetShaderModel(model.ShaderModel, errors, out var shaderModel))
         {
-            semantics.shaderModel = ShaderModel.SM_6_8; // Default to highest supported shader model
-        }
-        else
-        {
-            semantics.shaderModel = model.SM.ToLower() switch
-            {
-                "6_6" => ShaderModel.SM_6_6,
-                "6_7" => ShaderModel.SM_6_7,
-                "6_8" => ShaderModel.SM_6_8,
-                _ => ShaderModel.Invalid
-            };
-
-            if (semantics.shaderModel == ShaderModel.Invalid)
-            {
-                errors.Add(new DSLShaderError
-                {
-                    message = $"Unknown shader model '{model.SM}'.",
-                    line = 0,
-                    column = 0
-                });
-            }
+            semantics.shaderModel = shaderModel;
         }
 
         if (model.Keywords != null)
@@ -202,65 +216,6 @@ public class AntlrShaderCompiler
                 line = 0,
                 column = 0
             });
-        }
-
-        return semantics;
-    }
-
-    public static DSLShaderSemantics? ConvertToSemantics(GraphicsShaderModel model, out List<DSLShaderError> errors)
-    {
-        errors = new List<DSLShaderError>();
-
-        if (string.IsNullOrWhiteSpace(model.Name))
-        {
-            errors.Add(new DSLShaderError
-            {
-                message = "Shader name cannot be empty.",
-                line = 0,
-                column = 0
-            });
-            return null;
-        }
-
-        var semantics = new DSLShaderSemantics
-        {
-            name = model.Name,
-            pipeline = ConvertPipeline(model.Pipeline, errors)
-        };
-
-        if (string.IsNullOrEmpty(model.SM))
-        {
-            semantics.shaderModel = ShaderModel.SM_6_8; // Default to highest supported shader model
-        }
-        else
-        {
-            semantics.shaderModel = model.SM.ToLower() switch
-            {
-                "6_6" => ShaderModel.SM_6_6,
-                "6_7" => ShaderModel.SM_6_7,
-                "6_8" => ShaderModel.SM_6_8,
-                _ => ShaderModel.Invalid
-            };
-
-            if (semantics.shaderModel == ShaderModel.Invalid)
-            {
-                errors.Add(new DSLShaderError
-                {
-                    message = $"Unknown shader model '{model.SM}'.",
-                    line = 0,
-                    column = 0
-                });
-            }
-        }
-
-        foreach (var pass in model.Passes)
-        {
-            var passSemantic = ConvertPass(pass, errors);
-            if (passSemantic != null)
-            {
-                semantics.passes ??= new List<PassSemantic>();
-                semantics.passes.Add(passSemantic);
-            }
         }
 
         return semantics;
@@ -392,6 +347,45 @@ public class AntlrShaderCompiler
         }
 
         return semantic;
+    }
+
+    public static DSLShaderSemantics? ConvertToSemantics(GraphicsShaderModel model, out List<DSLShaderError> errors)
+    {
+        errors = new List<DSLShaderError>();
+
+        if (string.IsNullOrWhiteSpace(model.Name))
+        {
+            errors.Add(new DSLShaderError
+            {
+                message = "Shader name cannot be empty.",
+                line = 0,
+                column = 0
+            });
+            return null;
+        }
+
+        var semantics = new DSLShaderSemantics
+        {
+            name = model.Name,
+            pipeline = ConvertPipeline(model.Pipeline, errors)
+        };
+
+        if (TryGetShaderModel(model.ShaderModel, errors, out var shaderModel))
+        {
+            semantics.shaderModel = shaderModel;
+        }
+
+        foreach (var pass in model.Passes)
+        {
+            var passSemantic = ConvertPass(pass, errors);
+            if (passSemantic != null)
+            {
+                semantics.passes ??= new List<PassSemantic>();
+                semantics.passes.Add(passSemantic);
+            }
+        }
+
+        return semantics;
     }
 
     private class ErrorListener : BaseErrorListener, IAntlrErrorListener<int>, IAntlrErrorListener<IToken>

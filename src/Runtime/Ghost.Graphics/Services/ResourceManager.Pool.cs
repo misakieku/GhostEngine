@@ -4,7 +4,7 @@ using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Diagnostics;
 
-namespace Ghost.Graphics;
+namespace Ghost.Graphics.Services;
 
 public partial class ResourceManager
 {

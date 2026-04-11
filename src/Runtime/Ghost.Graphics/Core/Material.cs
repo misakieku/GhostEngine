@@ -1,6 +1,7 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Graphics.RHI;
+using Ghost.Graphics.Services;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.CompilerServices;
@@ -87,7 +88,7 @@ public struct Material : IResourceReleasable
             return r.Error;
         }
 
-        ref readonly var shader = ref r.Value;
+        ref var shader = ref r.Value;
         if (_passPipelineOverride.Count < shader.PassCount)
         {
             if (!_passPipelineOverride.IsCreated)
@@ -212,7 +213,7 @@ public struct Material : IResourceReleasable
             return r.Error;
         }
 
-        ref readonly var shader = ref r.Value;
+        ref var shader = ref r.Value;
         var localIndex = shader.GetLocalKeywordIndex(keywordId);
         if (localIndex == -1)
         {
@@ -233,7 +234,7 @@ public struct Material : IResourceReleasable
             return false;
         }
 
-        ref readonly var shader = ref r.Value;
+        ref var shader = ref r.Value;
         var localIndex = shader.GetLocalKeywordIndex(keywordId);
         if (localIndex == -1)
         {

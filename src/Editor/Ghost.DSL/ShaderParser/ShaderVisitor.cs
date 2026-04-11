@@ -27,7 +27,7 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
         var shaderBody = context.shaderBody();
         if (shaderBody != null)
         {
-            shader.SM = shaderBody.shaderModel()?.GetText() ?? string.Empty;
+            shader.ShaderModel = shaderBody.shaderModel()?.GetText() ?? string.Empty;
 
             foreach (var pipelineBlock in shaderBody.pipelineBlock())
             {

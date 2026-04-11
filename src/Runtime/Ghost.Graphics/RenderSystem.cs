@@ -30,6 +30,16 @@ internal readonly struct RenderSystemDesc
     {
         get; init;
     }
+
+    public required string ShaderCacheDirectory
+    {
+        get; init;
+    }
+
+    public IShaderCompilationBridge? ShaderCompilationBridge
+    {
+        get; init;
+    }
 }
 
 /// <summary>
@@ -79,6 +89,7 @@ public class RenderSystem : IDisposable
     private readonly IGraphicsEngine _graphicsEngine;
     private readonly ResourceManager _resourceManager;
     private readonly SwapChainManager _swapChainManager;
+    private readonly ShaderLibrary _shaderLibrary;
 
     private readonly FrameResource[] _frameResources;
     private readonly Thread _renderThread;
@@ -95,10 +106,12 @@ public class RenderSystem : IDisposable
     private bool _isRunning;
     private bool _disposed;
 
-    internal SwapChainManager SwapChainManager => _swapChainManager;
+    internal ShaderLibrary ShaderLibrary => _shaderLibrary;
 
     public IGraphicsEngine GraphicsEngine => _graphicsEngine;
     public ResourceManager ResourceManager => _resourceManager;
+    public SwapChainManager SwapChainManager => _swapChainManager;
+
     public bool IsRunning => _isRunning;
 
     public ulong CPUFenceValue => _cpuFenceValue;
@@ -120,7 +133,7 @@ public class RenderSystem : IDisposable
             }
 
             _renderPipeline?.Dispose();
-            for (int i = 0; i < _frameResources.Length; i++)
+            for (var i = 0; i < _frameResources.Length; i++)
             {
                 _frameResources[i].RenderPayload?.Dispose();
             }
@@ -165,6 +178,7 @@ public class RenderSystem : IDisposable
 
         _resourceManager = new ResourceManager(_graphicsEngine.Device, _graphicsEngine.ResourceAllocator, _graphicsEngine.ResourceDatabase);
         _swapChainManager = new SwapChainManager(_graphicsEngine);
+        _shaderLibrary = new ShaderLibrary(desc.ShaderCompilationBridge, desc.ShaderCacheDirectory);
 
         // Create frame resources for synchronization
         _frameResources = new FrameResource[desc.FrameBufferCount];

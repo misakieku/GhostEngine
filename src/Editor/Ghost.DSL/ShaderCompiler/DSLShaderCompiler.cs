@@ -1,8 +1,10 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
+using Ghost.Core.Utilities;
 using Ghost.DSL.ShaderParser;
 using Misaki.HighPerformance.Utilities;
 using System.IO.Hashing;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -22,9 +24,15 @@ public struct DSLShaderError
 
 internal static class DSLShaderCompiler
 {
-    private static ulong GetPassUniqueId(DSLShaderSemantics shader, PassSemantic pass)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ulong GetUniqueId(string code)
     {
-        return XxHash64.HashToUInt64(MemoryMarshal.AsBytes($"{shader.name}_{pass.name}".AsSpan()));
+        if (string.IsNullOrEmpty(code))
+        {
+            return 0;
+        }
+
+        return XxHash64.HashToUInt64(MemoryMarshal.AsBytes(code.AsSpan()));
     }
 
     private static PipelineState MeragePipeline(PipelineSemantic? semantic, PipelineState parent)
@@ -132,9 +140,13 @@ internal static class DSLShaderCompiler
 
             var pixelShaderCode = new ShaderCode { code = result.Value, entryPoint = pass.pixelShader.entry };
 
+            var asHash = Hash.Combine64(GetUniqueId(amplificationShaderCode.code), GetUniqueId(amplificationShaderCode.entryPoint));
+            var msHash = Hash.Combine64(GetUniqueId(meshShaderCode.code), GetUniqueId(meshShaderCode.entryPoint));
+            var psHash = Hash.Combine64(GetUniqueId(pixelShaderCode.code), GetUniqueId(pixelShaderCode.entryPoint));
+
             passes[i] = new PassDescriptor
             {
-                identifier = GetPassUniqueId(semantics, pass),
+                identifier = Hash.Combine64(GetUniqueId(semantics.name + pass.name), asHash, msHash, psHash),
                 name = pass.name,
 
                 amplificationShaderCode = amplificationShaderCode,
@@ -289,7 +301,6 @@ internal static class DSLShaderCompiler
 
         return new ComputeShaderDescriptor
         {
-            identifier = XxHash64.HashToUInt64(MemoryMarshal.AsBytes(semantics.name.AsSpan())),
             name = semantics.name,
             propertyBufferSize = propertyInfo.size,
             shaderModel = semantics.shaderModel,

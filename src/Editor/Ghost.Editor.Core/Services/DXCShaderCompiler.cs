@@ -1,18 +1,15 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
+using Ghost.DXC;
+using Ghost.Editor.Core.Contracts;
 using Ghost.Graphics.D3D12.Utilities;
-using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
-using Misaki.HighPerformance.Utilities;
-using System.IO.Hashing;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using Ghost.DXC;
-
 using static Ghost.DXC.UUID;
-using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.Core;
 
@@ -26,14 +23,17 @@ internal sealed partial class DXCShaderCompiler
             (ShaderStage.PixelShader, ShaderModel.SM_6_6) => "ps_6_6",
             (ShaderStage.MeshShader, ShaderModel.SM_6_6) => "ms_6_6",
             (ShaderStage.ComputeShader, ShaderModel.SM_6_6) => "cs_6_6",
+            (ShaderStage.Library, ShaderModel.SM_6_6) => "lib_6_6",
             (ShaderStage.TaskShader, ShaderModel.SM_6_7) => "as_6_7",
             (ShaderStage.PixelShader, ShaderModel.SM_6_7) => "ps_6_7",
             (ShaderStage.MeshShader, ShaderModel.SM_6_7) => "ms_6_7",
             (ShaderStage.ComputeShader, ShaderModel.SM_6_7) => "cs_6_7",
+            (ShaderStage.Library, ShaderModel.SM_6_7) => "lib_6_7",
             (ShaderStage.TaskShader, ShaderModel.SM_6_8) => "as_6_8",
             (ShaderStage.PixelShader, ShaderModel.SM_6_8) => "ps_6_8",
             (ShaderStage.MeshShader, ShaderModel.SM_6_8) => "ms_6_8",
             (ShaderStage.ComputeShader, ShaderModel.SM_6_8) => "cs_6_8",
+            (ShaderStage.Library, ShaderModel.SM_6_8) => "lib_6_8",
             _ => throw new ArgumentOutOfRangeException(nameof(stage), "Unsupported shader stage or compiler version")
         };
     }
@@ -105,58 +105,12 @@ internal sealed partial class DXCShaderCompiler
 
         return argsArray;
     }
-
-    private static Result<string, Error> BuildFinalShaderCode(string shaderPath, ReadOnlySpan<string> includes, string? injectedCode)
-    {
-        string shaderCode;
-        if (shaderPath == "hlsl_block")
-        {
-            if (string.IsNullOrEmpty(injectedCode))
-            {
-                return Error.InvalidArgument;
-            }
-
-            shaderCode = string.Empty;
-        }
-        else
-        {
-            if (!File.Exists(shaderPath))
-            {
-                return Error.NotFound;
-            }
-
-            shaderCode = File.ReadAllText(shaderPath);
-        }
-
-        var sb = new StringBuilder();
-        foreach (var includePath in includes)
-        {
-            sb.AppendLine($"#include \"{includePath}\"");
-        }
-
-        if (!string.IsNullOrEmpty(injectedCode))
-        {
-            sb.AppendLine($"#line 0 \"injected_code\"");
-            sb.AppendLine(injectedCode);
-        }
-
-        if (!string.IsNullOrEmpty(shaderCode))
-        {
-            sb.AppendLine($"#line 0 \"{shaderPath}\"");
-            sb.AppendLine(shaderCode);
-        }
-
-        return sb.ToString();
-    }
 }
 
 internal sealed unsafe partial class DXCShaderCompiler : IShaderCompiler
 {
     private UniquePtr<IDxcCompiler3> _compiler;
     private UniquePtr<IDxcUtils> _utils;
-
-    // NOTE: This is just a temporary cache for compiled shader code. We will implement a proper disk cache later.
-    private readonly Dictionary<Key64<ShaderCompileResult>, ShaderCompileResult> _compiledResults;
 
     private bool _disposed;
 
@@ -179,8 +133,6 @@ internal sealed unsafe partial class DXCShaderCompiler : IShaderCompiler
 
         _compiler.Attach(pCompiler);
         _utils.Attach(pUtils);
-
-        _compiledResults = new Dictionary<Key64<ShaderCompileResult>, ShaderCompileResult>();
     }
 
     ~DXCShaderCompiler()
@@ -188,7 +140,7 @@ internal sealed unsafe partial class DXCShaderCompiler : IShaderCompiler
         Dispose();
     }
 
-    public Result<Key64<ShaderCompileResult>> Compile(ref readonly ShaderCompilationConfig config)
+    public Result<UnsafeArray<byte>> Compile(ref readonly ShaderCompilationConfig config, AllocationHandle allocationHandle)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -221,7 +173,7 @@ internal sealed unsafe partial class DXCShaderCompiler : IShaderCompiler
 
             IDxcResult* result = default;
             IDxcBlob* bytecodeBlob = default;
-            
+
             try
             {
                 // Compile shader
@@ -268,18 +220,11 @@ internal sealed unsafe partial class DXCShaderCompiler : IShaderCompiler
                 }
 
                 var bytecodeSize = bytecodeBlob->GetBufferSize();
-                var bytecode = new UnsafeArray<byte>((int)bytecodeSize, Allocator.Persistent);
+                var bytecode = new UnsafeArray<byte>((int)bytecodeSize, allocationHandle);
 
                 NativeMemory.Copy(bytecodeBlob->GetBufferPointer(), bytecode.GetUnsafePtr(), (nuint)bytecodeSize);
 
-                var compileResult = new ShaderCompileResult
-                {
-                    bytecode = bytecode,
-                    hashCode = XxHash64.HashToUInt64(bytecode)
-                };
-
-                _compiledResults[compileResult.hashCode] = compileResult;
-                return new Key64<ShaderCompileResult>(compileResult.hashCode);
+                return bytecode;
             }
             finally
             {
@@ -313,135 +258,11 @@ internal sealed unsafe partial class DXCShaderCompiler : IShaderCompiler
         }
     }
 
-    public Result<GraphicsCompiledResult> CompilePass(ref readonly PassDescriptor descriptor, ref readonly ShaderCompilationConfig additionalConfig, ref readonly LocalKeywordSet keywords)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        string[] fullDefines;
-        var totalDefineCount = descriptor.defines.Length + additionalConfig.defines.Length;
-        if (totalDefineCount == 0)
-        {
-            fullDefines = Array.Empty<string>();
-        }
-        else
-        {
-            fullDefines = new string[totalDefineCount];
-            descriptor.defines.CopyTo(fullDefines);
-            additionalConfig.defines.CopyTo(fullDefines.AsSpan(descriptor.defines.Length));
-        }
-
-        Key64<ShaderCompileResult> tsResult = default;
-        var asCode = descriptor.amplificationShaderCode;
-        if (asCode.IsCreated)
-        {
-            var config = new ShaderCompilationConfig
-            {
-                defines = fullDefines,
-                shaderCode = asCode.code,
-                entryPoint = asCode.entryPoint,
-                stage = ShaderStage.TaskShader,
-                model = additionalConfig.model,
-                optimizeLevel = additionalConfig.optimizeLevel,
-                options = additionalConfig.options,
-            };
-
-            var result = Compile(ref config);
-            if (result.IsFailure)
-            {
-                return Result.Failure(result.Message);
-            }
-
-            tsResult = result.Value;
-        }
-
-        Key64<ShaderCompileResult> msResult;
-        var msCode = descriptor.meshShaderCode;
-        if (msCode.IsCreated)
-        {
-            var config = new ShaderCompilationConfig
-            {
-                defines = fullDefines,
-                shaderCode = msCode.code,
-                entryPoint = msCode.entryPoint,
-                stage = ShaderStage.MeshShader,
-                model = additionalConfig.model,
-                optimizeLevel = additionalConfig.optimizeLevel,
-                options = additionalConfig.options,
-            };
-
-            var result = Compile(ref config);
-            if (result.IsFailure)
-            {
-                return Result.Failure(result.Message);
-            }
-
-            msResult = result.Value;
-        }
-        else
-        {
-            return Result.Failure("Mesh shader expected.");
-        }
-
-        Key64<ShaderCompileResult> psResult;
-        var psCode = descriptor.pixelShaderCode;
-        if (psCode.IsCreated)
-        {
-            var config = new ShaderCompilationConfig
-            {
-                defines = fullDefines,
-                shaderCode = psCode.code,
-                entryPoint = psCode.entryPoint,
-                stage = ShaderStage.PixelShader,
-                model = additionalConfig.model,
-                optimizeLevel = additionalConfig.optimizeLevel,
-                options = additionalConfig.options,
-            };
-
-            var result = Compile(ref config);
-            if (result.IsFailure)
-            {
-                return Result.Failure(result.Message);
-            }
-
-            psResult = result.Value;
-        }
-        else
-        {
-            return Result.Failure("Pixel shader expected.");
-        }
-
-        var compiled = new GraphicsCompiledResult
-        {
-            tsResultHash = tsResult,
-            msResultHash = msResult,
-            psResultHash = psResult,
-        };
-
-        return compiled;
-    }
-
-    public Result<ShaderCompileResult, Error> GetCompiledCache(Key64<ShaderCompileResult> key)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        if (_compiledResults.TryGetValue(key, out var compiledResult))
-        {
-            return compiledResult;
-        }
-
-        return Error.NotFound;
-    }
-
     public void Dispose()
     {
         if (_disposed)
         {
             return;
-        }
-
-        foreach (var kvp in _compiledResults)
-        {
-            kvp.Value.Dispose();
         }
 
         _compiler.Get()->Release();

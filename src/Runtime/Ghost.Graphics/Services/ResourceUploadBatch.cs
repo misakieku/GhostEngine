@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
+using Ghost.Graphics.Services;
 
 namespace Ghost.Graphics.Services;
 

@@ -1,5 +1,6 @@
 using Misaki.HighPerformance.LowLevel;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Core;
 
@@ -258,6 +259,64 @@ public readonly ref struct RefResult<T, E>
     public static implicit operator RefResult<T, E>(Ref<T> data) => new(ref data.Get(), default);
     public static implicit operator RefResult<T, E>(E error) => new(ref Unsafe.NullRef<T>(), error);
     public static implicit operator bool(RefResult<T, E> result) => result.IsSuccess;
+}
+
+[AsyncMethodBuilder(typeof(AsyncValueTaskMethodBuilder))]
+public readonly struct ResultTask
+{
+    private readonly ValueTask<Result> _task;
+
+    public ResultTask(ValueTask<Result> task)
+    {
+        _task = task;
+    }
+
+    public ValueTaskAwaiter<Result> GetAwaiter() => _task.GetAwaiter();
+
+    public ValueTask<Result> AsValueTask() => _task;
+    public Task<Result> AsTask() => _task.AsTask();
+
+    public static implicit operator ResultTask(ValueTask<Result> task) => new ResultTask(task);
+    public static implicit operator ValueTask<Result>(ResultTask resultTask) => resultTask._task;
+}
+
+[AsyncMethodBuilder(typeof(AsyncValueTaskMethodBuilder))]
+public readonly struct ResultTask<T>
+{
+    private readonly ValueTask<Result<T>> _task;
+
+    public ResultTask(ValueTask<Result<T>> task)
+    {
+        _task = task;
+    }
+
+    public ValueTaskAwaiter<Result<T>> GetAwaiter() => _task.GetAwaiter();
+
+    public ValueTask<Result<T>> AsValueTask() => _task;
+    public Task<Result<T>> AsTask() => _task.AsTask();
+
+    public static implicit operator ResultTask<T>(ValueTask<Result<T>> task) => new ResultTask<T>(task);
+    public static implicit operator ValueTask<Result<T>>(ResultTask<T> resultTask) => resultTask._task;
+}
+
+[AsyncMethodBuilder(typeof(AsyncValueTaskMethodBuilder))]
+public readonly struct ResultTask<T, E>
+    where E : struct, Enum
+{
+    private readonly ValueTask<Result<T, E>> _task;
+
+    public ResultTask(ValueTask<Result<T, E>> task)
+    {
+        _task = task;
+    }
+
+    public ValueTaskAwaiter<Result<T, E>> GetAwaiter() => _task.GetAwaiter();
+
+    public ValueTask<Result<T, E>> AsValueTask() => _task;
+    public Task<Result<T, E>> AsTask() => _task.AsTask();
+
+    public static implicit operator ResultTask<T, E>(ValueTask<Result<T, E>> task) => new ResultTask<T, E>(task);
+    public static implicit operator ValueTask<Result<T, E>>(ResultTask<T, E> resultTask) => resultTask._task;
 }
 
 public static class ResultExtensions

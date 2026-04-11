@@ -56,7 +56,7 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
         ref readonly var pass = ref shaderDescriptor.passes[0];
         var emptyKeywords = new LocalKeywordSet();
         var compiled = renderSystem.GraphicsEngine.ShaderCompiler.CompilePass(in pass, in config, in emptyKeywords).GetValueOrThrow();
-        
+
         _meshletShader = renderSystem.ResourceManager.CreateGraphicsShader(shaderDescriptor, [compiled]);
         _meshletMaterial = renderSystem.ResourceManager.CreateMaterial(_meshletShader);
     }

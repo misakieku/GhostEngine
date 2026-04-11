@@ -1,6 +1,5 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
-using Ghost.Core.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
@@ -87,10 +86,8 @@ public partial struct Shader : IResourceReleasable
     public readonly int PassCount => _shaderPasses.Count;
     public readonly uint PropertyBufferSize => _propertyBufferSize;
 
-    internal Shader(GraphicsShaderDescriptor descriptor, ReadOnlySpan<GraphicsCompiledResult> compiledResults)
+    internal Shader(GraphicsShaderDescriptor descriptor)
     {
-        Debug.Assert(descriptor.passes.Length == compiledResults.Length);
-
         _propertyBufferSize = descriptor.propertyBufferSize;
         _shaderPasses = new UnsafeArray<ShaderPass>(descriptor.passes.Length, Allocator.Persistent);
         _passIDToLocal = new UnsafeHashMap<int, int>(descriptor.passes.Length, Allocator.Persistent);
@@ -100,8 +97,7 @@ public partial struct Shader : IResourceReleasable
         {
             ref readonly var pass = ref descriptor.passes[i];
 
-            var passKey = RHIUtility.CreateShaderPassKey(pass.identifier, compiledResults[i].HashCode);
-            var keywords = default(LocalKeywordSet);
+            var keywords = new LocalKeywordSet();
 
             if (pass.keywords.Length > 0)
             {
@@ -133,7 +129,7 @@ public partial struct Shader : IResourceReleasable
 
             _shaderPasses[i] = new ShaderPass
             {
-                Key = passKey,
+                Key = pass.identifier,
                 DefaultState = pass.localPipeline,
                 KeywordIDs = keywords,
             };
@@ -213,10 +209,8 @@ public unsafe partial struct ComputeShader : IResourceReleasable
 
     public readonly uint PropertyBufferSize => _propertyBufferSize;
 
-    internal ComputeShader(ComputeShaderDescriptor descriptor, ReadOnlySpan<ShaderCompileResult> compiledResults)
+    internal ComputeShader(ComputeShaderDescriptor descriptor)
     {
-        Debug.Assert(descriptor.shaderCodes.Length == compiledResults.Length);
-
         _propertyBufferSize = descriptor.propertyBufferSize;
         _entryPointCount = descriptor.shaderCodes.Length;
 
@@ -224,7 +218,7 @@ public unsafe partial struct ComputeShader : IResourceReleasable
 
         for (var i = 0; i < descriptor.shaderCodes.Length; i++)
         {
-            _entryHash[i] = Hash.Combine64(descriptor.identifier, compiledResults[i].hashCode);
+            _entryHash[i] = descriptor.shaderCodes[i].GetHashCode64();
         }
 
         var localKeywordIndex = 0;

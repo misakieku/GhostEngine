@@ -3,7 +3,7 @@ namespace Ghost.DSL.ShaderParser.Model;
 public class GraphicsShaderModel
 {
     public string Name { get; set; } = string.Empty;
-    public string SM { get; set; } = string.Empty;
+    public string ShaderModel { get; set; } = string.Empty;
     public PipelineBlockModel? Pipeline { get; set; }
     public List<PassBlockModel> Passes { get; set; } = new();
     public List<FunctionCallModel> FunctionCalls { get; set; } = new();
@@ -12,7 +12,7 @@ public class GraphicsShaderModel
 public class ComputeShaderModel
 {
     public string Name { get; set; } = string.Empty;
-    public string SM { get; set; } = string.Empty;
+    public string ShaderModel { get; set; } = string.Empty;
     public DefinesBlockModel? Defines { get; set; }
     public IncludesBlockModel? Includes { get; set; }
     public KeywordsBlockModel? Keywords { get; set; }
