@@ -279,7 +279,7 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
     {
         ThrowIfDisposed();
 
-        Debug.Assert(index >= 0 && index < _pass.colorAccess.Length, "Color attachment index out of range.");
+        Logger.DebugAssert(index >= 0 && index < _pass.colorAccess.Length, "Color attachment index out of range.");
 
         var id = UseTexture(texture, flags);
         if (_pass.colorAccess[index].id == id || _pass.colorAccess[index].id.IsInvalid)

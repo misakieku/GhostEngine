@@ -10,7 +10,7 @@ using System.Diagnostics;
 
 namespace Ghost.Engine.RenderPipeline;
 
-internal class GhostRenderPipeline : IRenderPipeline
+internal partial class GhostRenderPipeline : IRenderPipeline
 {
     private struct AddInstanceData
     {
@@ -39,11 +39,11 @@ internal class GhostRenderPipeline : IRenderPipeline
     {
         _renderSystem = renderSystem;
 
-        _renderGraph = new RenderGraph(renderSystem.ResourceManager, renderSystem.GraphicsEngine);
+        _renderGraph = new RenderGraph(renderSystem);
         _gpuScene = new GPUScene(renderSystem.GraphicsEngine.ResourceAllocator, renderSystem.GraphicsEngine.ResourceDatabase, 102_400u); // 102.4k objects should be enough for now
     }
 
-    private static unsafe Handle<GPUBuffer> CreateAddInstanceBuffer(GhostRenderPayload ghostPayload, ResourceManager resourceManager, IResourceDatabase resourceDatabase)
+    private static unsafe Handle<GPUBuffer> CreateAddInstanceBuffer(GhostRenderPayload ghostPayload, ResourceManager resourceManager, IResourceDatabase resourceDatabase, out int count)
     {
         if (!ghostPayload.AddRequest.IsEmpty)
         {
@@ -82,13 +82,16 @@ internal class GhostRenderPipeline : IRenderPipeline
             }
 
             resourceDatabase.UnmapResource(addBuffer.AsResource(), 0, null);
+
+            count = i;
             return addBuffer;
         }
 
+        count = 0;
         return default;
     }
 
-    private static unsafe Handle<GPUBuffer> CreateRemoveInstanceBuffer(GhostRenderPayload ghostPayload, ResourceManager resourceManager, IResourceDatabase resourceDatabase)
+    private static unsafe Handle<GPUBuffer> CreateRemoveInstanceBuffer(GhostRenderPayload ghostPayload, ResourceManager resourceManager, IResourceDatabase resourceDatabase, out int count)
     {
         if (!ghostPayload.RemoveRequest.IsEmpty)
         {
@@ -116,9 +119,12 @@ internal class GhostRenderPipeline : IRenderPipeline
             }
 
             resourceDatabase.UnmapResource(removeBuffer.AsResource(), 0, null);
+
+            count = i;
             return removeBuffer;
         }
 
+        count = 0;
         return default;
     }
 
@@ -131,15 +137,20 @@ internal class GhostRenderPipeline : IRenderPipeline
 
         foreach (ref readonly var request in ghostPayload.RenderRequests)
         {
-            if (!RenderPipelineUtility.GetVPMatrices(_renderSystem, in request, out var view, out var projection, out var screenSize))
+            try
             {
-                continue;
+                using var viewData = new RenderViewData(_renderSystem.SwapChainManager, resourceDatabase, in request);
+                RenderPipelineUtility.GetVPMatrices(in request, viewData.ScreenSize, out var view, out var projection);
+
+                var addBuffer = CreateAddInstanceBuffer(ghostPayload, resourceManager, resourceDatabase, out var addCount);
+                var removeBuffer = CreateRemoveInstanceBuffer(ghostPayload, resourceManager, resourceDatabase, out var removeCount);
+
+                UpdateGPUScene(ctx, addBuffer, addCount, removeBuffer, removeCount);
             }
-
-            var addBuffer = CreateAddInstanceBuffer(ghostPayload, resourceManager, resourceDatabase);
-            var removeBuffer = CreateRemoveInstanceBuffer(ghostPayload, resourceManager, resourceDatabase);
-
-
+            catch (Exception ex)
+            {
+                Logger.Error(ex);
+            }
         }
     }
 

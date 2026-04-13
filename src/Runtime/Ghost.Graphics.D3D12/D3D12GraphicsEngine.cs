@@ -3,9 +3,9 @@
 #endif
 
 using Ghost.Core;
+using Ghost.Core.Graphics;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Utilities;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.D3D12;
@@ -80,13 +80,13 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
 
     public ICommandAllocator CreateCommandAllocator(CommandBufferType type = CommandBufferType.Graphics)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
         return new D3D12CommandAllocator(_device, type);
     }
 
     public ICommandBuffer CreateCommandBuffer(CommandBufferType type = CommandBufferType.Graphics)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
 
         return new D3D12CommandBuffer(
             _device,
@@ -99,7 +99,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
 
     public ICommandBuffer GetPooledCommandBuffer(CommandBufferType type = CommandBufferType.Graphics)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
 
         for (var i = 0; i < _commandBufferPool.Count; i++)
         {
@@ -116,25 +116,25 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
 
     public void ReturnPooledCommandBuffer(ICommandBuffer commandBuffer)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
         _commandBufferReturnQueue.Enqueue(new CommandBufferReturnEntry(commandBuffer, _cpuFrame));
     }
 
     public ISwapChain CreateSwapChain(SwapChainDesc desc)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
         return new DXGISwapChain(_resourceDatabase, _descriptorAllocator, _device, desc, _desc.FrameBufferCount);
     }
 
-    public ICommandSignature CreateCommandSignature(ref readonly CommandSignatureDesc desc, Key128<GraphicsPipeline> pipelineKey)
+    public ICommandSignature CreateCommandSignature(ref readonly CommandSignatureDesc desc, Key128<PipelineState> pipelineKey)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
         return new D3D12CommandSignature(_device, _pipelineLibrary, in desc, pipelineKey);
     }
 
     public void BeginFrame(ulong cpuFrame)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
 
         _cpuFrame = cpuFrame;
         _resourceDatabase.BeginFrame(cpuFrame);
@@ -142,7 +142,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
 
     public void EndFrame(ulong gpuFrame)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
 
         _resourceDatabase.EndFrame(gpuFrame);
 

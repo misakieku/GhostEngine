@@ -1,10 +1,11 @@
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Core.Utilities;
 
-public struct BufferWriter : IDisposable
+public unsafe struct BufferWriter : IDisposable
 {
     private UnsafeList<byte> _buffer;
     private int _position;
@@ -21,17 +22,21 @@ public struct BufferWriter : IDisposable
         _position = 0;
     }
 
-    public unsafe void Write<T>(T value)
+    public void Write<T>(T value)
         where T : unmanaged
     {
         Unsafe.WriteUnaligned(ref _buffer[_position], value);
         _position += sizeof(T);
     }
 
-    public void WriteBytes(ReadOnlySpan<byte> data)
+    public void WriteSpan<T>(ReadOnlySpan<T> data)
+        where T : unmanaged
     {
-        data.CopyTo(_buffer.AsSpan().Slice(_position, data.Length));
-        _position += data.Length;
+        var size = sizeof(T) * data.Length;
+        var byteSpan = MemoryMarshal.AsBytes(data);
+
+        byteSpan.CopyTo(_buffer.AsSpan().Slice(_position, size));
+        _position += size;
     }
 
     public Span<byte> ReserveSpan(int length)
@@ -49,5 +54,90 @@ public struct BufferWriter : IDisposable
     public void Dispose()
     {
         _buffer.Dispose();
+    }
+}
+
+public unsafe ref struct SpanWriter
+{
+    private Span<byte> _buffer;
+    private int _position;
+
+    public int Position
+    {
+        readonly get => _position;
+        set => _position = value;
+    }
+
+    public SpanWriter(Span<byte> buffer)
+    {
+        _buffer = buffer;
+        _position = 0;
+    }
+
+    public void Write<T>(T value)
+        where T : unmanaged
+    {
+        Unsafe.WriteUnaligned(ref _buffer[_position], value);
+        _position += sizeof(T);
+    }
+
+    public void WriteSpan<T>(ReadOnlySpan<T> data)
+        where T : unmanaged
+    {
+        var size = sizeof(T) * data.Length;
+        var byteSpan = MemoryMarshal.AsBytes(data);
+
+        byteSpan.CopyTo(_buffer.Slice(_position, size));
+        _position += size;
+
+    }
+
+    public readonly Span<byte> AsSpan()
+    {
+        return _buffer;
+    }
+}
+
+public unsafe ref struct SpanReader
+{
+    private readonly Span<byte> _buffer;
+    private int _position;
+
+    public int Position
+    {
+        readonly get => _position;
+        set => _position = value;
+    }
+
+    public SpanReader(Span<byte> buffer)
+    {
+        _buffer = buffer;
+        _position = 0;
+    }
+
+    public T Read<T>()
+        where T : unmanaged
+    {
+        var value = Unsafe.ReadUnaligned<T>(ref _buffer[_position]);
+        _position += Unsafe.SizeOf<T>();
+        return value;
+    }
+
+    public ReadOnlySpan<T> ReadSpan<T>(int length)
+        where T : unmanaged
+    {
+        var size = sizeof(T) * length;
+        var span = MemoryMarshal.Cast<byte, T>(_buffer.Slice(_position, size));
+
+        _position += size;
+        return span;
+    }
+
+    public ReadOnlySpan<T> ReadToEnd<T>()
+        where T : unmanaged
+    {
+        var span = MemoryMarshal.Cast<byte, T>(_buffer.Slice(_position));
+        _position += span.Length;
+        return span;
     }
 }

@@ -10,10 +10,10 @@ namespace Ghost.Graphics.RHI;
 public static class RHIUtility
 {
     public const int MAX_RENDER_TARGETS = 8;
+    public const ulong SHADER_ID_MASK = 0xFFFFFFFFFFFFFFF0ul;
     public const ulong PIPELINE_KEY_MASK = 0xFFFFFFFFFFFFFFF0ul;
     public const ulong GRAPHICS_PIPELINE_KEY_FLAG = 0x1ul;
     public const ulong COMPUTE_PIPELINE_KEY_FLAG = 0x2ul;
-
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint GetBytesPerPixel(this TextureFormat format)
@@ -150,6 +150,20 @@ public static class RHIUtility
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong GetShaderID(string shaderName)
+    {
+        var hash = XxHash64.HashToUInt64(MemoryMarshal.AsBytes(shaderName.AsSpan()));
+        return hash & SHADER_ID_MASK;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong GetPassID(ulong shaderID, int passIndex)
+    {
+        Logger.DebugAssert(passIndex >= 0 && passIndex < 16, "Pass index must be between 0 and 15 to fit within the shader ID mask.");
+        return shaderID | ((ulong)passIndex & 0xFul);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Key64<ShaderPass> CreateShaderPassKey(ulong passID, ulong compiledHash)
     {
         return Hash.Combine64(passID, compiledHash);
@@ -158,11 +172,11 @@ public static class RHIUtility
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Key64<ShaderVariant> CreateShaderVariantKey(ulong passKey, ref readonly LocalKeywordSet keywords)
     {
-        var keywordHash = keywords.GetHash64();
+        var keywordHash = keywords.GetHashCode64();
         return new Key64<ShaderVariant>(Hash.Combine64(passKey, keywordHash));
     }
 
-    public static unsafe Key128<GraphicsPipeline> CreateGraphicsPipelineKey(Key64<ShaderVariant> shaderVariantKey, PipelineState pipelineState, PassPipelineHash passKey)
+    public static unsafe Key128<PipelineState> CreateGraphicsPipelineKey(ulong compiledHash, PipelineState pipelineState, PassAttachmentHash passAttachmentHash)
     {
         // Order-sensitive 128-bit mix. Cheap and stable, avoids span hashing.
         static ulong Mix64(ulong x)
@@ -175,10 +189,10 @@ public static class RHIUtility
             return x;
         }
 
-        var mLo = shaderVariantKey.Value;
+        var mLo = compiledHash;
         var mHi = pipelineState.GetHashCode64();
 
-        var pPasskey = (ulong*)&passKey.value;
+        var pPasskey = (ulong*)&passAttachmentHash.value;
         var pLo = pPasskey[0];
         var pHi = pPasskey[1];
 
@@ -188,19 +202,25 @@ public static class RHIUtility
 
         lo = lo & PIPELINE_KEY_MASK | GRAPHICS_PIPELINE_KEY_FLAG; // Ensure graphics pipeline keys are distinguishable from compute pipeline keys.
 
-        return new Key128<GraphicsPipeline>(new UInt128(hi, lo));
+        return new Key128<PipelineState>(new UInt128(hi, lo));
     }
 
-    public static Key128<ComputePipeline> CreateComputePipelineKey(Key64<ShaderVariant> shaderVariantKey)
+    public static Key128<PipelineState> CreateComputePipelineKey(ulong compiledHash)
     {
-        var shaderHash = shaderVariantKey.Value;
-        var stateHash = ~shaderVariantKey.Value;
+        // Since compute shader don't have blend state or attachment configurations, we can afford a simpler key generation.
+        // Just use the compiled hash with a distinct flag to avoid collisions with graphics pipeline keys.
+#if true
+        return new Key128<PipelineState>(new UInt128(compiledHash, compiledHash ^ COMPUTE_PIPELINE_KEY_FLAG));
+#else
+        var shaderHash = compiledHash;
+        var stateHash = ~compiledHash;
         // Simple XOR mix. Not as robust as the graphics pipeline key, but sufficient for compute shaders which have fewer variants.
         var hi = shaderHash ^ (stateHash + 0x9E3779B97F4A7C15ul) ^ (shaderHash * 0xD6E8FEB86659FD93ul);
         var lo = stateHash ^ (shaderHash + 0xC2B2AE3D27D4EB4Ful) ^ (stateHash * 0x165667B19E3779F9ul);
         lo = lo & PIPELINE_KEY_MASK | COMPUTE_PIPELINE_KEY_FLAG; // Ensure compute pipeline keys are distinguishable from graphics pipeline keys.
 
         return new Key128<ComputePipeline>(new UInt128(hi, lo));
+#endif
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

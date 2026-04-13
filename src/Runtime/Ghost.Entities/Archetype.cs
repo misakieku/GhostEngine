@@ -124,8 +124,8 @@ internal unsafe struct Chunk : IDisposable
 
     public Chunk(int bufferSize, int capacity, int componentCount, uint globalVersion)
     {
-        _data = new UnsafeArray<byte>(bufferSize, Allocator.Persistent, AllocationOption.Clear);
-        _versions = new UnsafeArray<uint>(componentCount, Allocator.Persistent);
+        _data = new UnsafeArray<byte>(bufferSize, AllocationHandle.Persistent, AllocationOption.Clear);
+        _versions = new UnsafeArray<uint>(componentCount, AllocationHandle.Persistent);
         _capacity = capacity;
         _count = 0;
 
@@ -200,13 +200,13 @@ internal unsafe struct Archetype : IDisposable
         _id = id;
         _worldID = worldID;
 
-        _chunks = new UnsafeList<Chunk>(4, Allocator.Persistent);
-        _edgesAdd = new UnsafeList<Edge>(4, Allocator.Persistent);
-        _edgesRemove = new UnsafeList<Edge>(4, Allocator.Persistent);
+        _chunks = new UnsafeList<Chunk>(4, AllocationHandle.Persistent);
+        _edgesAdd = new UnsafeList<Edge>(4, AllocationHandle.Persistent);
+        _edgesRemove = new UnsafeList<Edge>(4, AllocationHandle.Persistent);
 
         if (componentIds.IsEmpty)
         {
-            _signature = new UnsafeBitSet(1, Allocator.Persistent, AllocationOption.Clear);
+            _signature = new UnsafeBitSet(1, AllocationHandle.Persistent, AllocationOption.Clear);
             _hash = 0;
 
             _signature.ClearAll();
@@ -224,7 +224,7 @@ internal unsafe struct Archetype : IDisposable
             }
         }
 
-        _signature = new UnsafeBitSet(highestComponentID + 1, Allocator.Persistent, AllocationOption.Clear);
+        _signature = new UnsafeBitSet(highestComponentID + 1, AllocationHandle.Persistent, AllocationOption.Clear);
         _hash = _signature.GetHashCode();
 
         CalculateLayout(componentIds);
@@ -268,8 +268,8 @@ internal unsafe struct Archetype : IDisposable
 
         _maxComponentID = maxComponentID;
         _entityCapacity = Chunk.CHUNK_BUFFER_SIZE / bytesPerEntity;
-        _layouts = new UnsafeArray<ComponentMemoryLayout>(components.Length, Allocator.Persistent);
-        _componentIDToLayoutIndex = new UnsafeArray<int>(_maxComponentID + 1, Allocator.Persistent);
+        _layouts = new UnsafeArray<ComponentMemoryLayout>(components.Length, AllocationHandle.Persistent);
+        _componentIDToLayoutIndex = new UnsafeArray<int>(_maxComponentID + 1, AllocationHandle.Persistent);
 
         _componentIDToLayoutIndex.AsSpan().Fill(-1);
 

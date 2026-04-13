@@ -108,7 +108,7 @@ internal unsafe class DXGISwapChain : ISwapChain
 
     public DXGISwapChain(D3D12ResourceDatabase resourceDatabase, D3D12DescriptorAllocator descriptorAllocator, D3D12RenderDevice device, SwapChainDesc desc, uint bufferCount)
     {
-        Debug.Assert(bufferCount >= 2);
+        Logger.DebugAssert(bufferCount >= 2);
 
         _resourceDatabase = resourceDatabase;
         _descriptorAllocator = descriptorAllocator;
@@ -117,7 +117,7 @@ internal unsafe class DXGISwapChain : ISwapChain
         var pSfwapChain = CreateSwapChain(device, desc, bufferCount);
         _swapChain.Attach(pSfwapChain);
 
-        _backBuffers = new UnsafeArray<Handle<GPUTexture>>((int)bufferCount, Allocator.Persistent);
+        _backBuffers = new UnsafeArray<Handle<GPUTexture>>((int)bufferCount, AllocationHandle.Persistent);
 
         Width = desc.Width;
         Height = desc.Height;
@@ -168,20 +168,20 @@ internal unsafe class DXGISwapChain : ISwapChain
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Handle<GPUTexture> GetCurrentBackBuffer()
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
         return _backBuffers[_swapChain.Get()->GetCurrentBackBufferIndex()];
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<Handle<GPUTexture>> GetBackBuffers()
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
         return _backBuffers.AsSpan();
     }
 
     public void Present(bool vsync = true)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
 
         var presentFlags = 0u;
         var syncInterval = vsync ? 1u : 0u;
@@ -192,7 +192,7 @@ internal unsafe class DXGISwapChain : ISwapChain
 
     public void Resize(uint width, uint height)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
 
         if (Width == width && Height == height)
         {
@@ -215,7 +215,7 @@ internal unsafe class DXGISwapChain : ISwapChain
 
     public void SetScale(float scaleX, float scaleY)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
 
         var inverseScaleX = 1.0f / scaleX;
         var inverseScaleY = 1.0f / scaleY;

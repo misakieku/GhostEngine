@@ -3,7 +3,6 @@ using Ghost.Core.Graphics;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -16,9 +15,6 @@ public partial struct Shader
     private static readonly Dictionary<string, int> s_passNameToID = new Dictionary<string, int>();
     private static int s_nextPassID = 0;
 
-    private static readonly Dictionary<string, int> s_propertyNameToID = new Dictionary<string, int>();
-    private static int s_nextPropertyID = 0;
-
     private static readonly Dictionary<string, int> s_keywordNameToID = new Dictionary<string, int>();
     private static readonly Dictionary<int, string> s_keywordIDToName = new Dictionary<int, string>();
     private static int s_nextKeywordID = 0;
@@ -29,17 +25,6 @@ public partial struct Shader
         if (!exists)
         {
             id = s_nextPassID++;
-        }
-
-        return id;
-    }
-
-    public static Identifier<ShaderProperty> GetPropertyID(string propertyName)
-    {
-        ref var id = ref CollectionsMarshal.GetValueRefOrAddDefault(s_propertyNameToID, propertyName, out var exists);
-        if (!exists)
-        {
-            id = s_nextPropertyID++;
         }
 
         return id;
@@ -75,6 +60,7 @@ public partial struct Shader
 /// </summary>
 public partial struct Shader : IResourceReleasable
 {
+    private readonly ulong _nameHash;
     private readonly uint _propertyBufferSize;
     private UnsafeArray<ShaderPass> _shaderPasses;
     private UnsafeHashMap<int, int> _passIDToLocal;
@@ -83,15 +69,17 @@ public partial struct Shader : IResourceReleasable
     // TODO: Tag to pass index for fast lookup.
     // We can use a int array since the number and index of tags are fixed at compile time.
 
+    public readonly ulong UniqueID => _nameHash;
     public readonly int PassCount => _shaderPasses.Count;
     public readonly uint PropertyBufferSize => _propertyBufferSize;
 
     internal Shader(GraphicsShaderDescriptor descriptor)
     {
+        _nameHash = RHIUtility.GetShaderID(descriptor.name);
         _propertyBufferSize = descriptor.propertyBufferSize;
-        _shaderPasses = new UnsafeArray<ShaderPass>(descriptor.passes.Length, Allocator.Persistent);
-        _passIDToLocal = new UnsafeHashMap<int, int>(descriptor.passes.Length, Allocator.Persistent);
-        _keywordIDToLocal = new UnsafeHashMap<int, int>(32, Allocator.Persistent);
+        _shaderPasses = new UnsafeArray<ShaderPass>(descriptor.passes.Length, AllocationHandle.Persistent);
+        _passIDToLocal = new UnsafeHashMap<int, int>(descriptor.passes.Length, AllocationHandle.Persistent);
+        _keywordIDToLocal = new UnsafeHashMap<int, int>(32, AllocationHandle.Persistent);
 
         for (var i = 0; i < descriptor.passes.Length; i++)
         {
@@ -129,7 +117,7 @@ public partial struct Shader : IResourceReleasable
 
             _shaderPasses[i] = new ShaderPass
             {
-                Key = pass.identifier,
+                Key = RHIUtility.GetPassID(_nameHash, i),
                 DefaultState = pass.localPipeline,
                 KeywordIDs = keywords,
             };
@@ -172,7 +160,7 @@ public partial struct Shader : IResourceReleasable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ref ShaderPass GetPassReference(int index)
+    public ref readonly ShaderPass GetPassReference(int index)
     {
         return ref _shaderPasses[index];
     }
@@ -200,25 +188,26 @@ public partial struct Shader : IResourceReleasable
 
 public unsafe partial struct ComputeShader : IResourceReleasable
 {
-    private fixed ulong _entryHash[8];
-    private readonly int _entryPointCount;
+    private readonly ulong _nameHash;
+    private fixed ulong entryHashes[8]; // Support up to 8 entry points for now, can be extended if needed.
     private readonly uint _propertyBufferSize;
 
     private LocalKeywordSet _localKeywordSet;
     private UnsafeHashMap<int, int> _keywordIDToLocal;
 
+    public readonly ulong UniqueID => _nameHash;
     public readonly uint PropertyBufferSize => _propertyBufferSize;
 
     internal ComputeShader(ComputeShaderDescriptor descriptor)
     {
+        _nameHash = RHIUtility.GetShaderID(descriptor.name);
         _propertyBufferSize = descriptor.propertyBufferSize;
-        _entryPointCount = descriptor.shaderCodes.Length;
 
-        _keywordIDToLocal = new UnsafeHashMap<int, int>(32, Allocator.Persistent);
+        _keywordIDToLocal = new UnsafeHashMap<int, int>(32, AllocationHandle.Persistent);
 
         for (var i = 0; i < descriptor.shaderCodes.Length; i++)
         {
-            _entryHash[i] = descriptor.shaderCodes[i].GetHashCode64();
+            entryHashes[i] = RHIUtility.GetPassID(_nameHash, i);
         }
 
         var localKeywordIndex = 0;
@@ -244,10 +233,10 @@ public unsafe partial struct ComputeShader : IResourceReleasable
         }
     }
 
-    public ulong GetEntryHash(int entryPointIndex)
+    public ulong GetEntryID(int entryIndex)
     {
-        Debug.Assert(entryPointIndex >= 0 && entryPointIndex < _entryPointCount);
-        return _entryHash[entryPointIndex];
+        Logger.DebugAssert(entryIndex >= 0 && entryIndex < 8, "Entry index out of bounds.");
+        return entryHashes[entryIndex];
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

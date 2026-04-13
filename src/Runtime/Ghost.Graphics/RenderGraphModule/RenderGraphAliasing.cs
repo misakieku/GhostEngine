@@ -1,3 +1,4 @@
+using Ghost.Core;
 using Ghost.Core.Utilities;
 using Ghost.Graphics.RHI;
 using System.Diagnostics;
@@ -359,7 +360,7 @@ internal sealed class ResourceAliasingManager
                 logicalIndex,
                 alignment);
 
-            Debug.Assert(success, "Simulation allocation failed - heap should be unlimited in size");
+            Logger.DebugAssert(success, "Simulation allocation failed - heap should be unlimited in size");
         }
 
         // Get peak usage from simulation

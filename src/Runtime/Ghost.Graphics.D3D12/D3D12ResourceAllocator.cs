@@ -2,7 +2,6 @@ using Ghost.Core;
 using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
@@ -510,11 +509,11 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         D3D12_RESOURCE_DESC d3d12Desc;
         if (desc.Type == ResourceType.Texture)
         {
-            d3d12Desc = desc.TextureDescription.ToD3D12ResourceDesc();
+            d3d12Desc = desc.TextureDescriptor.ToD3D12ResourceDesc();
         }
         else
         {
-            d3d12Desc = desc.BufferDescription.ToD3D12ResourceDesc();
+            d3d12Desc = desc.BufferDescriptor.ToD3D12ResourceDesc();
         }
 
         var info = _device.NativeObject.Get()->GetResourceAllocationInfo(0, 1, &d3d12Desc);
@@ -559,7 +558,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
     public Handle<GPUTexture> CreateTexture(ref readonly TextureDesc desc, string? name = null, CreationOptions options = default)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
 
         CheckTexture2DSize(desc.Width, desc.Height);
 
@@ -659,7 +658,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
     public Handle<GPUTexture> CreateRenderTarget(ref readonly RenderTargetDesc desc, string? name = null, CreationOptions options = default)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
 
         var textureDesc = desc.ToTextureDescription();
         return CreateTexture(in textureDesc, name, options);
@@ -667,7 +666,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
     public Handle<GPUBuffer> CreateBuffer(ref readonly BufferDesc desc, string? name = null, CreationOptions options = default)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
         CheckBufferSize(desc.Size);
 
         var resourceDesc = desc.ToD3D12ResourceDesc();
@@ -771,7 +770,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
     public Identifier<Sampler> CreateSampler(ref readonly SamplerDesc desc)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
 
         if (_resourceDatabase.TryGetSampler(in desc, out var id))
         {

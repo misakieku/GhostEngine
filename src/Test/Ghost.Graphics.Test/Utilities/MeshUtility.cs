@@ -50,7 +50,7 @@ internal static class MeshUtility
             space_conversion = ufbx_space_conversion.UFBX_SPACE_CONVERSION_MODIFY_GEOMETRY,
         };
 
-        using var str = new UnsafeArray<byte>(Encoding.UTF8.GetByteCount(filePath) + 1, Allocator.FreeList);
+        using var str = new UnsafeArray<byte>(Encoding.UTF8.GetByteCount(filePath) + 1, AllocationHandle.FreeList);
         var count = Encoding.UTF8.GetBytes(filePath, str.AsSpan());
         str[count] = 0;
 
@@ -60,7 +60,7 @@ internal static class MeshUtility
             return Result.Failure(error.description.ToString());
         }
 
-        using var flatVertices = new UnsafeList<Vertex>(1024, Allocator.FreeList);
+        using var flatVertices = new UnsafeList<Vertex>(1024, AllocationHandle.FreeList);
 
         var needComputeNormals = false;
 
@@ -83,7 +83,7 @@ internal static class MeshUtility
 
                 var maxScratchIndices = (int)(pMesh->max_face_triangles * 3u);
 
-                using var triIndicesArray = new UnsafeArray<uint>(maxScratchIndices, Allocator.FreeList);
+                using var triIndicesArray = new UnsafeArray<uint>(maxScratchIndices, AllocationHandle.FreeList);
 
                 for (var j = 0u; j < pMesh->num_faces; j++)
                 {
@@ -142,8 +142,8 @@ internal static class MeshUtility
 
         var numIndices = (uint)flatVertices.Count;
 
-        using var weldedIndices = new UnsafeArray<uint>((int)numIndices, Allocator.FreeList);
-        using var cachedIndices = new UnsafeArray<uint>((int)numIndices, Allocator.FreeList);
+        using var weldedIndices = new UnsafeArray<uint>((int)numIndices, AllocationHandle.FreeList);
+        using var cachedIndices = new UnsafeArray<uint>((int)numIndices, AllocationHandle.FreeList);
 
         var stream = new ufbx_vertex_stream
         {

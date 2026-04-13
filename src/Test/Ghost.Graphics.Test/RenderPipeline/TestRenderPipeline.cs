@@ -139,7 +139,7 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
                     continue;
                 }
 
-                var rtSize = new uint2(rtResult.Value.TextureDescription.Width, rtResult.Value.TextureDescription.Height);
+                var rtSize = new uint2(rtResult.Value.TextureDescriptor.Width, rtResult.Value.TextureDescriptor.Height);
                 var aspectScreen = (float)rtSize.x / rtSize.y;
 
 

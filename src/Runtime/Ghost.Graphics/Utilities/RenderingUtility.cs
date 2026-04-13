@@ -1,7 +1,6 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Utilities;
-using System.Diagnostics;
 using Ghost.Graphics.Services;
 
 namespace Ghost.Graphics.Utilities;
@@ -17,10 +16,10 @@ public static unsafe class RenderingUtility
             return;
         }
 
-        Debug.Assert(r.Value.Type == ResourceType.Buffer);
+        Logger.DebugAssert(r.Value.Type == ResourceType.Buffer);
 
         var sizeInBytes = (nuint)(data.Length * sizeof(T));
-        var memoryType = r.Value.BufferDescription.HeapType;
+        var memoryType = r.Value.BufferDescriptor.HeapType;
 
         if (memoryType == HeapType.Upload)
         {
@@ -61,7 +60,7 @@ public static unsafe class RenderingUtility
         where T : unmanaged
     {
         var desc = resourceDatabase.GetResourceDescription(texture.AsResource()).GetValueOrThrow();
-        desc.TextureDescription.Format.GetSurfaceInfo(desc.TextureDescription.Width, desc.TextureDescription.Height, out var rowPitch, out var slicePitch, out _);
+        desc.TextureDescriptor.Format.GetSurfaceInfo(desc.TextureDescriptor.Width, desc.TextureDescriptor.Height, out var rowPitch, out var slicePitch, out _);
 
         var requiredSize = resourceDatabase.GetIntermediateResourceSize(texture.AsResource(), 0, 1);
         var uploadDesc = new BufferDesc

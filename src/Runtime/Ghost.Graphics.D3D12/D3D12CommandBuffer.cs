@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Core.Graphics;
 using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
@@ -473,7 +474,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
 
             ref var record = ref recordResult.Value;
             var cpuHandle = _descriptorAllocator.GetCpuHandle(record.viewGroup.rtv);
-            var format = record.desc.TextureDescription.Format.ToDXGIFormat();
+            var format = record.desc.TextureDescriptor.Format.ToDXGIFormat();
             var clearColor = rtDesc.ClearColor;
 
             // Map load operation
@@ -527,7 +528,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
 
             ref var record = ref recordResult.Value;
             var cpuHandle = _descriptorAllocator.GetCpuHandle(record.viewGroup.dsv);
-            var format = record.desc.TextureDescription.Format.ToDXGIFormat();
+            var format = record.desc.TextureDescriptor.Format.ToDXGIFormat();
 
             // Map depth load operation
             var depthLoadAccessType = depthDesc.DepthLoadOp switch
@@ -638,7 +639,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         pNativeObject->RSSetViewports(1, &d3d12Viewport);
     }
 
-    public void SetPipelineState(Key128<GraphicsPipeline> pipelineKey)
+    public void SetPipelineState(Key128<PipelineState> pipelineKey)
     {
         AssertNotDisposed();
         ThrowIfNotRecording();
@@ -701,7 +702,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         {
             BufferLocation = record.ResourcePtr.Get()->GetGPUVirtualAddress() + offset,
             SizeInBytes = (uint)(record.ResourcePtr.Get()->GetDesc().Width - offset),
-            StrideInBytes = record.desc.BufferDescription.Stride
+            StrideInBytes = record.desc.BufferDescriptor.Stride
         };
 
         pNativeObject->IASetVertexBuffers(slot, 1, &vbView);
@@ -859,7 +860,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
 
         IncrementCommandCount();
 
-        Debug.Assert(commandSignature is D3D12CommandSignature);
+        Logger.DebugAssert(commandSignature is D3D12CommandSignature);
 
         var resource = _resourceDatabase.GetResource(argumentBuffer.AsResource());
         var countResource = _resourceDatabase.GetResource(countBuffer.AsResource());

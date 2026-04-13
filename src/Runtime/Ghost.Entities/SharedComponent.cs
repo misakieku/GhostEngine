@@ -56,7 +56,7 @@ internal sealed unsafe class SharedComponentStore : IDisposable
 
     public SharedComponentStore(int initialCapacity = 16)
     {
-        _perType = new UnsafeHashMap<int, TypeStore>(initialCapacity, Allocator.Persistent);
+        _perType = new UnsafeHashMap<int, TypeStore>(initialCapacity, AllocationHandle.Persistent);
     }
 
     ~SharedComponentStore()
@@ -203,9 +203,9 @@ internal sealed unsafe class SharedComponentStore : IDisposable
         var store = new TypeStore
         {
             typeSize = typeSize,
-            data = new UnsafeList<byte>(typeSize * 16, Allocator.Persistent),
-            infos = new UnsafeList<EntryInfo>(16, Allocator.Persistent),
-            hashLookup = new UnsafeHashMap<long, int>(16, Allocator.Persistent),
+            data = new UnsafeList<byte>(typeSize * 16, AllocationHandle.Persistent),
+            infos = new UnsafeList<EntryInfo>(16, AllocationHandle.Persistent),
+            hashLookup = new UnsafeHashMap<long, int>(16, AllocationHandle.Persistent),
             freeListHead = 0,
             versionCounter = 0
         };
@@ -217,7 +217,7 @@ internal sealed unsafe class SharedComponentStore : IDisposable
         _perType.Add(componentTypeId, store);
 
         existing = ref _perType.GetValueRef(componentTypeId, out exist);
-        Debug.Assert(exist);
+        Logger.DebugAssert(exist);
 
         return ref existing;
     }

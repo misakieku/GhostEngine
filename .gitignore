@@ -11,9 +11,11 @@
 *.sln.docstates
 
 AGENTS.md
+.opencode/
+.code-review-graph/
+
 ref/
 docfx/
-.opencode/
 NUL
 
 # User-specific files (MonoDevelop/Xamarin Studio)

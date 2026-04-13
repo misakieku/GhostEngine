@@ -15,6 +15,7 @@ public class RenderPipelineSystemAttribute<T> : RenderPipelineSystemAttribute
     public override Type SettingsType => typeof(T);
 }
 
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public static class RenderPipelineSystemRegistry
 {
     private static readonly Dictionary<nint, List<Func<ISystem>>> s_renderPipelineSystems = new();

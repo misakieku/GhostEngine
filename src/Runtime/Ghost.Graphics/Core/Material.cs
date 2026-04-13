@@ -24,7 +24,7 @@ internal struct CBufferCache : IResourceReleasable
     public CBufferCache(Handle<GPUBuffer> buffer, uint bufferSize)
     {
         _size = bufferSize;
-        _cpuData = new UnsafeArray<byte>((int)bufferSize, Allocator.Persistent);
+        _cpuData = new UnsafeArray<byte>((int)bufferSize, AllocationHandle.Persistent);
         _gpuResource = buffer;
     }
 
@@ -93,7 +93,7 @@ public struct Material : IResourceReleasable
         {
             if (!_passPipelineOverride.IsCreated)
             {
-                _passPipelineOverride = new UnsafeArray<PipelineOverride>(shader.PassCount, Allocator.Persistent);
+                _passPipelineOverride = new UnsafeArray<PipelineOverride>(shader.PassCount, AllocationHandle.Persistent);
             }
             else
             {
@@ -104,7 +104,7 @@ public struct Material : IResourceReleasable
         _keywordMask.Clear();
         for (var i = 0; i < shader.PassCount; i++)
         {
-            ref var pass = ref shader.GetPassReference(i);
+            ref readonly var pass = ref shader.GetPassReference(i);
             _passPipelineOverride[i] = new PipelineOverride
             {
                 shaderPass = pass.Key,

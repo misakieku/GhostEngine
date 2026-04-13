@@ -32,19 +32,19 @@ internal sealed class SwapChainRecord
         }
     }
 
-    public bool ReleaseRef()
+    public int ReleaseRef()
     {
         while (true)
         {
             var current = Volatile.Read(ref _refCount);
             if (current == 0)
             {
-                return false;
+                return 0;
             }
 
             if (Interlocked.CompareExchange(ref _refCount, current - 1, current) == current)
             {
-                return (current - 1) == 0;
+                return current - 1;
             }
         }
     }
@@ -109,13 +109,13 @@ public class SwapChainManager : IDisposable
     {
         var record = Volatile.Read(ref _swapChains[index]);
 
-        if (record != null && record.ReleaseRef())
+        if (record != null && record.ReleaseRef() == 0)
         {
             record.SwapChain.Dispose();
             Interlocked.CompareExchange(ref _swapChains[index], null, record);
         }
     }
-    
+
     public void TransitionToPresent(ICommandBuffer commandBuffer)
     {
         for (int i = 0; i < MAX_SWAP_CHAINS; i++)

@@ -166,7 +166,7 @@ public partial class App : Application
 
     private void App_UnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
     {
-        Logger.LogError(e.Exception);
+        Logger.Error(e.Exception);
 #if DEBUG
         Debugger.BreakForUserUnhandledException(e.Exception);
 #endif

@@ -124,8 +124,8 @@ public class RenderSystem : IDisposable
         get => _renderPipelineSettings;
         set
         {
-            Debug.Assert(value != null, "RenderPipelineSettings cannot be set to null.");
-            Debug.Assert(!_disposed, "Cannot set RenderPipelineSettings on a disposed RenderSystem.");
+            Logger.DebugAssert(value != null, "RenderPipelineSettings cannot be set to null.");
+            Logger.DebugAssert(!_disposed, "Cannot set RenderPipelineSettings on a disposed RenderSystem.");
 
             if (value == _renderPipelineSettings)
             {
@@ -229,7 +229,7 @@ public class RenderSystem : IDisposable
 #if DEBUG
             Debugger.Break();
 #endif
-            Logger.LogError($"Render failed: {result.Message}");
+            Logger.Error($"Render failed: {result.Message}");
         }
 
         var waitHandles = new WaitHandle[] { null!, _shutdownEvent };
@@ -295,7 +295,7 @@ public class RenderSystem : IDisposable
                 {
                     cmd.Begin(frameResource.CommandAllocator);
 
-                    var ctx = new RenderContext(_resourceManager, _graphicsEngine, cmd);
+                    var ctx = new RenderContext(_resourceManager, _shaderLibrary, _graphicsEngine, cmd);
 
                     _renderPipeline.Render(ctx, frameIndex, frameResource.RenderPayload);
                     _swapChainManager.TransitionToPresent(cmd);
@@ -337,7 +337,7 @@ public class RenderSystem : IDisposable
 
     internal void Start()
     {
-        Debug.Assert(!_disposed, "Cannot start a disposed RenderSystem.");
+        Logger.DebugAssert(!_disposed, "Cannot start a disposed RenderSystem.");
 
         if (_isRunning)
         {
@@ -350,7 +350,7 @@ public class RenderSystem : IDisposable
 
     internal void Stop()
     {
-        Debug.Assert(!_disposed, "Cannot stop a disposed RenderSystem.");
+        Logger.DebugAssert(!_disposed, "Cannot stop a disposed RenderSystem.");
 
         if (!_isRunning)
         {
@@ -364,7 +364,7 @@ public class RenderSystem : IDisposable
 
     internal void SignalCPUReady()
     {
-        Debug.Assert(!_disposed, "Cannot signal CPU ready on a disposed RenderSystem.");
+        Logger.DebugAssert(!_disposed, "Cannot signal CPU ready on a disposed RenderSystem.");
 
         var eventIndex = (int)(_cpuFenceValue % _config.FrameBufferCount);
         ref var frameResource = ref _frameResources[eventIndex];
@@ -375,13 +375,13 @@ public class RenderSystem : IDisposable
 
     internal void RequestSwapChainResize(ISwapChain swapChain, uint2 newSize)
     {
-        Debug.Assert(!_disposed, "Cannot request swap chain resize on a disposed RenderSystem.");
+        Logger.DebugAssert(!_disposed, "Cannot request swap chain resize on a disposed RenderSystem.");
         _resizeRequest.AddOrUpdate(swapChain, newSize, (_, _) => newSize);
     }
 
     internal bool TryAcquireCPUFrame()
     {
-        Debug.Assert(!_disposed, "Cannot acquire CPU frame on a disposed RenderSystem.");
+        Logger.DebugAssert(!_disposed, "Cannot acquire CPU frame on a disposed RenderSystem.");
 
         var requiredGpuFence = _cpuFenceValue < _config.FrameBufferCount ? 0 : _cpuFenceValue - _config.FrameBufferCount + 1;
 
@@ -398,7 +398,7 @@ public class RenderSystem : IDisposable
 
     public bool WaitForGPUReady(int timeOut = -1)
     {
-        Debug.Assert(!_disposed, "Cannot wait for GPU ready on a disposed RenderSystem.");
+        Logger.DebugAssert(!_disposed, "Cannot wait for GPU ready on a disposed RenderSystem.");
 
         var submittedFenceValue = Volatile.Read(ref _submittedFenceValue);
         if (submittedFenceValue == 0)
@@ -412,7 +412,7 @@ public class RenderSystem : IDisposable
 
     public void WaitIdle()
     {
-        Debug.Assert(!_disposed, "Cannot wait idle on a disposed RenderSystem.");
+        Logger.DebugAssert(!_disposed, "Cannot wait idle on a disposed RenderSystem.");
         foreach (var frameResource in _frameResources)
         {
             if (frameResource.FenceValue > 0)
@@ -424,7 +424,7 @@ public class RenderSystem : IDisposable
 
     public IRenderPayload GetCurrentFramePayload()
     {
-        Debug.Assert(!_disposed, "Cannot get current frame payload from a disposed RenderSystem.");
+        Logger.DebugAssert(!_disposed, "Cannot get current frame payload from a disposed RenderSystem.");
 
         var eventIndex = (int)(_cpuFenceValue % _config.FrameBufferCount);
         ref var frameResource = ref _frameResources[eventIndex];

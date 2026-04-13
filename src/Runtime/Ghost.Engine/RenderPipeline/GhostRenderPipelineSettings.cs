@@ -39,7 +39,7 @@ internal sealed class GhostRenderPayload : IRenderPayload
     {
         _renderPipeline = renderPipeline;
 
-        _renderRequests = new UnsafeList<RenderRequest>(4, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
+        _renderRequests = new UnsafeList<RenderRequest>(4, Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle.Persistent);
         _addRequest = new ConcurrentQueue<AddInstanceRequest>();
         _removeRequest = new ConcurrentQueue<RemoveInstanceRequest>();
     }

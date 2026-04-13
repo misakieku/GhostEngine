@@ -53,9 +53,9 @@ internal static unsafe class D3D12Utility
         var ptr = uPtr.Get();
         if (ptr != null)
         {
-            Debug.Assert(ptr != other);
+            Logger.DebugAssert(ptr != other);
             var refCount = ptr->Release();
-            Debug.Assert(refCount == 0);
+            Logger.DebugAssert(refCount == 0);
         }
 
         uPtr = new UniquePtr<T>(other);
@@ -69,7 +69,7 @@ internal static unsafe class D3D12Utility
         if (ptr != null)
         {
             var refCount = ptr->Release();
-            //Debug.Assert(refCount == 0);
+            //Logger.DebugAssert(refCount == 0);
         }
     }
 

@@ -168,11 +168,11 @@ public partial class ComponentManager : IDisposable
     {
         _world = world;
 
-        _archetypes = new UnsafeList<Archetype>(16, Allocator.Persistent);
-        _entityQueries = new UnsafeList<EntityQuery>(16, Allocator.Persistent);
+        _archetypes = new UnsafeList<Archetype>(16, AllocationHandle.Persistent);
+        _entityQueries = new UnsafeList<EntityQuery>(16, AllocationHandle.Persistent);
 
-        _archetypeLookup = new UnsafeHashMap<int, Identifier<Archetype>>(16, Allocator.Persistent);
-        _querieLookup = new UnsafeHashMap<int, Identifier<EntityQuery>>(16, Allocator.Persistent);
+        _archetypeLookup = new UnsafeHashMap<int, Identifier<Archetype>>(16, AllocationHandle.Persistent);
+        _querieLookup = new UnsafeHashMap<int, Identifier<EntityQuery>>(16, AllocationHandle.Persistent);
 
         // Create the empty archetype
         CreateArchetype(ReadOnlySpan<Identifier<IComponent>>.Empty, 0);
@@ -295,11 +295,6 @@ public struct ComponentSet : IDisposable, IEquatable<ComponentSet>
         components.CopyTo(_components.AsSpan());
 
         _hashCode = -1;
-    }
-
-    public ComponentSet(Allocator allocator, params ReadOnlySpan<Identifier<IComponent>> components)
-        : this(AllocationManager.GetAllocationHandle(allocator), components)
-    {
     }
 
     public readonly bool Equals(ComponentSet other)

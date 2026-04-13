@@ -4,7 +4,8 @@ using Ghost.Graphics.Services;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
-using System.Diagnostics;
+using Misaki.HighPerformance.Mathematics;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.Core;
 
@@ -12,21 +13,23 @@ namespace Ghost.Graphics.Core;
 public readonly unsafe ref struct RenderContext
 {
     private readonly ResourceManager _resourceManager;
+    private readonly ShaderLibrary _shaderLibrary;
     private readonly IGraphicsEngine _engine;
-    private readonly ICommandBuffer _cmd;
+    private readonly ICommandBuffer _commandBuffer;
 
-    public ICommandBuffer CommandBuffer => _cmd;
+    public ICommandBuffer CommandBuffer => _commandBuffer;
 
     public ResourceManager ResourceManager => _resourceManager;
     public IResourceAllocator ResourceAllocator => _engine.ResourceAllocator;
     public IResourceDatabase ResourceDatabase => _engine.ResourceDatabase;
     public IPipelineLibrary PipelineLibrary => _engine.PipelineLibrary;
 
-    internal RenderContext(ResourceManager resourceManager, IGraphicsEngine engine, ICommandBuffer cmd)
+    internal RenderContext(ResourceManager resourceManager, ShaderLibrary shaderLibrary, IGraphicsEngine engine, ICommandBuffer cmd)
     {
         _resourceManager = resourceManager;
+        _shaderLibrary = shaderLibrary;
         _engine = engine;
-        _cmd = cmd;
+        _commandBuffer = cmd;
     }
 
     private void TransitionBarrier(Handle<GPUResource> resource, bool isTexture, BarrierLayout newLayout, BarrierAccess newAccess, BarrierSync newSync)
@@ -41,7 +44,7 @@ public readonly unsafe ref struct RenderContext
             desc = BarrierDesc.Buffer(resource, newSync, newAccess);
         }
 
-        _cmd.Barrier(desc);
+        _commandBuffer.Barrier(desc);
     }
 
     public void UploadBuffer<T>(Handle<GPUBuffer> buffer, params ReadOnlySpan<T> data)
@@ -53,10 +56,10 @@ public readonly unsafe ref struct RenderContext
             return;
         }
 
-        Debug.Assert(r.Value.Type == ResourceType.Buffer);
+        Logger.DebugAssert(r.Value.Type == ResourceType.Buffer);
 
         var sizeInBytes = (nuint)(data.Length * sizeof(T));
-        var memoryType = r.Value.BufferDescription.HeapType;
+        var memoryType = r.Value.BufferDescriptor.HeapType;
 
         if (memoryType == HeapType.Upload)
         {
@@ -89,7 +92,7 @@ public readonly unsafe ref struct RenderContext
                 _engine.ResourceDatabase.UnmapResource(uploadHandle.AsResource(), 0, null);
             }
 
-            _cmd.CopyBuffer(buffer, uploadHandle, 0, 0, sizeInBytes);
+            _commandBuffer.CopyBuffer(buffer, uploadHandle, 0, 0, sizeInBytes);
         }
     }
 
@@ -127,8 +130,8 @@ public readonly unsafe ref struct RenderContext
 
     public Handle<Mesh> CreateMesh(ReadOnlySpan<Vertex> vertices, ReadOnlySpan<uint> indices, bool staticMesh)
     {
-        var vertexList = new UnsafeList<Vertex>(vertices.Length, Allocator.Persistent);
-        var indexList = new UnsafeList<uint>(indices.Length, Allocator.Persistent);
+        var vertexList = new UnsafeList<Vertex>(vertices.Length, AllocationHandle.Persistent);
+        var indexList = new UnsafeList<uint>(indices.Length, AllocationHandle.Persistent);
 
         vertexList.CopyFrom(vertices);
         indexList.CopyFrom(indices);
@@ -262,7 +265,7 @@ public readonly unsafe ref struct RenderContext
         where T : unmanaged
     {
         var desc = ResourceDatabase.GetResourceDescription(texture.AsResource()).GetValueOrThrow();
-        desc.TextureDescription.Format.GetSurfaceInfo(desc.TextureDescription.Width, desc.TextureDescription.Height, out var rowPitch, out var slicePitch, out _);
+        desc.TextureDescriptor.Format.GetSurfaceInfo(desc.TextureDescriptor.Width, desc.TextureDescriptor.Height, out var rowPitch, out var slicePitch, out _);
 
         var requiredSize = ResourceDatabase.GetIntermediateResourceSize(texture.AsResource(), 0, 1);
         var uploadDesc = new BufferDesc
@@ -289,7 +292,89 @@ public readonly unsafe ref struct RenderContext
                 slicePitch = slicePitch
             };
 
-            _cmd.UpdateSubResources(texture.AsResource(), uploadHandle.AsResource(), subresourceData);
+            _commandBuffer.UpdateSubResources(texture.AsResource(), uploadHandle.AsResource(), subresourceData);
         }
+    }
+
+    public void DispatchCompute<T>(Handle<ComputeShader> compute, int entryIndex, ref readonly LocalKeywordSet keywordSet, ref readonly T property, uint3 threadGroupCount)
+        where T : unmanaged
+    {
+        ref var shader = ref ResourceManager.GetComputeShaderReference(compute).GetValueOrThrow();
+
+        var entryHash = shader.GetEntryID(entryIndex);
+        var variantKey = RHIUtility.CreateShaderVariantKey(entryHash, in keywordSet);
+
+        // TODO: Refactor this into a helper method.
+        var (compiledHash, error) = _shaderLibrary.GetCompiledHash(variantKey);
+        if (error.IsFailure)
+        {
+            // TODO: Fallback to an error material.
+            Logger.Debug($"No compiled shader found for compute shader {shader.UniqueID} with entry point {entryIndex} and keywords {keywordSet}.");
+            return;
+        }
+
+        var pipelineKey = RHIUtility.CreateComputePipelineKey(compiledHash);
+
+        if (!PipelineLibrary.HasPipelineStateObject(pipelineKey))
+        {
+            using var scope = AllocationManager.CreateStackScope();
+            var compiledCacheResult = _shaderLibrary.GetCompiledCache(shader.UniqueID, entryIndex, scope.AllocationHandle);
+            if (compiledCacheResult.IsFailure)
+            {
+                // TODO: Fallback to a checkerboard shader.
+                throw new InvalidOperationException("Failed to load compiled shader cache for pipeline state object creation.");
+            }
+
+            var cache = compiledCacheResult.Value;
+            Logger.DebugAssert(cache.compiledHash == compiledHash);
+
+            ShaderLibrary.ParseCacheData(cache.byteCode, out _, out var byteCodeOffsets, out var byteCodes);
+            Logger.DebugAssert(byteCodeOffsets.Length == 1);
+
+            var psoDes = new ComputePSODesc
+            {
+                CompiledHash = compiledHash,
+                VariantKey = variantKey,
+                CsCode = byteCodes.Slice((int)byteCodeOffsets[0]),
+            };
+
+            PipelineLibrary.CreateComputePipeline(in psoDes).GetValueOrThrow();
+        }
+
+        _commandBuffer.SetPipelineState(pipelineKey);
+
+
+        var propertySpan = MemoryMarshal.AsBytes(new ReadOnlySpan<T>(in property));
+        // TODO: Placed resource has 64k alignment requirement, which can waste lots of memory. We can allocate a large buffer and slice it for each dispatch to avoid this issue.
+        var propertyBufferDesc = new BufferDesc
+        {
+            Size = (uint)propertySpan.Length,
+            Stride = (uint)sizeof(T),
+            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
+            HeapType = HeapType.Upload,
+        };
+        var properyBuffer = ResourceManager.CreateTransientBuffer(in propertyBufferDesc);
+
+        var mappedData = ResourceDatabase.MapResource(properyBuffer.AsResource(), 0, null);
+        Logger.DebugAssert(mappedData != null, "Failed to map property buffer.");
+
+        fixed (byte* pData = propertySpan)
+        {
+            MemoryUtility.MemCpy(mappedData, pData, (nuint)propertySpan.Length);
+        }
+
+        error = ResourceDatabase.UnmapResource(properyBuffer.AsResource(), 0, null);
+        Logger.DebugAssert(error.IsSuccess, $"Failed to unmap property buffer: {error}.");
+
+        var pushConstant = new PushConstantsData
+        {
+            // TODO: Support frame and view buffer.
+            frameBuffer = 0,
+            viewBuffer = 0,
+            propertyBuffer = ResourceDatabase.GetBindlessIndex(properyBuffer.AsResource()),
+        };
+
+        _commandBuffer.SetGraphicsRoot32Constants(0, pushConstant.AsUInts());
+        _commandBuffer.DispatchCompute(threadGroupCount.x, threadGroupCount.y, threadGroupCount.z);
     }
 }

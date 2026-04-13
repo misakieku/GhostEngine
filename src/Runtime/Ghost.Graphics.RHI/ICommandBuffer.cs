@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Core.Graphics;
 
 namespace Ghost.Graphics.RHI;
 
@@ -97,7 +98,7 @@ public interface ICommandBuffer : IRHIObject
     /// Sets the pipeline state object
     /// </summary>
     /// <param name="pipelineKey">Pipeline state to set</param>
-    void SetPipelineState(Key128<GraphicsPipeline> pipelineKey);
+    void SetPipelineState(Key128<PipelineState> pipelineKey);
 
     /// <summary>
     /// Sets the constant buffer view for the specified slot in the graphics pipeline.

@@ -353,8 +353,8 @@ public static class ResultExtensions
         return result.Value;
     }
 
-    public static T GetValueOrThrow<T, S>(this Result<T, S> result, [CallerArgumentExpression(nameof(result))] string? op = null)
-        where S : struct, Enum
+    public static T GetValueOrThrow<T, E>(this Result<T, E> result, [CallerArgumentExpression(nameof(result))] string? op = null)
+        where E : struct, Enum
     {
         if (!result.IsSuccess)
         {
@@ -364,15 +364,32 @@ public static class ResultExtensions
         return result.Value;
     }
 
+    public static ref T GetValueOrThrow<T, E>(this RefResult<T, E> result, [CallerArgumentExpression(nameof(result))] string? op = null)
+        where E : struct, Enum
+    {
+        if (!result.IsSuccess)
+        {
+            throw new InvalidOperationException($"{op} failed: status {result.Error}");
+        }
+
+        return ref result.Value;
+    }
+
     public static T? GetValueOrDefault<T>(this Result<T> result, T? defaultValue = default)
     {
         return result.IsSuccess ? result.Value : defaultValue;
     }
 
-    public static T? GetValueOrDefault<T, S>(this Result<T, S> result, T? defaultValue = default)
-        where S : struct, Enum
+    public static T? GetValueOrDefault<T, E>(this Result<T, E> result, T? defaultValue = default)
+        where E : struct, Enum
     {
         return result.IsSuccess ? result.Value : defaultValue;
+    }
+
+    public static ref T GetValueOrDefault<T, E>(this RefResult<T, E> result)
+        where E : struct, Enum
+    {
+        return ref result.IsSuccess ? ref result.Value : ref Unsafe.NullRef<T>();
     }
 
     public static bool TryGetValue<T>(this Result<T> result, out T value)

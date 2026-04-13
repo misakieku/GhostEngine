@@ -72,7 +72,6 @@ public struct PipelineState
         get; set;
     }
 
-
     public static PipelineState Default => new PipelineState
     {
         ZTest = ZTest.LessEqual,

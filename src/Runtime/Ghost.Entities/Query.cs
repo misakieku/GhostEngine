@@ -345,7 +345,7 @@ public unsafe partial struct EntityQuery : IDisposable
         _id = id;
         _worldID = worldID;
         _mask = mask;
-        _matchingArchetypes = new UnsafeList<Identifier<Archetype>>(8, Allocator.Persistent);
+        _matchingArchetypes = new UnsafeList<Identifier<Archetype>>(8, AllocationHandle.Persistent);
     }
 
     // TODO: Fetching layout every time is not optimal. Cache them?
@@ -642,7 +642,7 @@ public ref partial struct QueryBuilder : IDisposable
 
     public Identifier<EntityQuery> Build(World world, bool dispose = true)
     {
-        BuildQueryMask(AllocationManager.GetAllocationHandle(Allocator.Persistent), out var mask);
+        BuildQueryMask(AllocationHandle.Persistent, out var mask);
 
         var maskHash = mask.GetHashCode();
         var queryID = world.ComponentManager.GetEntityQueryIDByMaskHash(maskHash);

@@ -26,8 +26,8 @@ internal sealed class RenderGraphExecutor
 
     private void SetViewport(ReadOnlySpan<RenderTargetInfo> color, DepthStencilInfo depthStencil)
     {
-        // This should not happened since the compiler should have rejected any render pass with an invalid render target configuration, but just in case, we use Debug.Assert to validate our assumptions.
-        Debug.Assert(color.Length > 0 || depthStencil.texture.IsValid);
+        // This should not happened since the compiler should have rejected any render pass with an invalid render target configuration, but just in case, we use Logger.DebugAssert to validate our assumptions.
+        Logger.DebugAssert(color.Length > 0 || depthStencil.texture.IsValid);
 
         ViewportDesc viewportDesc = default;
         ScissorRectDesc scissorDesc = default;
@@ -178,7 +178,7 @@ internal sealed class RenderGraphExecutor
             else
             {
                 // All the reaster pass should be merged into native render pass, so if we encounter a raster pass here, it means something went wrong during compilation.
-                Debug.Assert(pass.type != RenderPassType.Raster);
+                Logger.DebugAssert(pass.type != RenderPassType.Raster);
 
                 // Compute pass or Unsafe pass
                 var e = ExecuteBarriersForPass(commandBuffer, logicalPassIndex, ref barrierIndex, compiledBarriers);

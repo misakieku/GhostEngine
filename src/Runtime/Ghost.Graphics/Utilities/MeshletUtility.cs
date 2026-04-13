@@ -3,6 +3,7 @@
 
 // TODO: This file should be moved to editor project since there is no reason we need to build meshlets and LOD at runtime.
 
+using Ghost.Core;
 using Ghost.MeshOptimizer;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
@@ -178,7 +179,7 @@ public static unsafe class MeshletUtility
 
     private static ClodBounds MergeBounds(UnsafeList<Cluster> clusters, UnsafeList<int> group)
     {
-        using var boundsList = new UnsafeArray<ClodBounds>(group.Count, Allocator.FreeList);
+        using var boundsList = new UnsafeArray<ClodBounds>(group.Count, AllocationHandle.FreeList);
         for (var j = 0; j < group.Count; j++)
         {
             boundsList[j] = (clusters[group[j]].bounds);
@@ -210,9 +211,9 @@ public static unsafe class MeshletUtility
     {
         var maxMeshlets = MeshOptApi.BuildMeshletsBound(indexCount, config.maxVertices, config.minTriangles);
 
-        using var meshlets = new UnsafeArray<meshopt_Meshlet>((int)maxMeshlets, Allocator.FreeList);
-        using var meshletVertices = new UnsafeArray<uint>((int)indexCount, Allocator.FreeList);
-        using var meshletTriangles = new UnsafeArray<byte>((int)indexCount, Allocator.FreeList);
+        using var meshlets = new UnsafeArray<meshopt_Meshlet>((int)maxMeshlets, AllocationHandle.FreeList);
+        using var meshletVertices = new UnsafeArray<uint>((int)indexCount, AllocationHandle.FreeList);
+        using var meshletTriangles = new UnsafeArray<byte>((int)indexCount, AllocationHandle.FreeList);
 
         var pMeshlets = (meshopt_Meshlet*)meshlets.GetUnsafePtr();
         var pMeshletVertices = (uint*)meshletVertices.GetUnsafePtr();
@@ -240,7 +241,7 @@ public static unsafe class MeshletUtility
             );
         }
 
-        var clusters = new UnsafeList<Cluster>((int)meshletCount, Allocator.FreeList);
+        var clusters = new UnsafeList<Cluster>((int)meshletCount, AllocationHandle.FreeList);
 
         for (nuint i = 0; i < meshletCount; i++)
         {
@@ -259,9 +260,9 @@ public static unsafe class MeshletUtility
             var cluster = new Cluster
             {
                 vertices = meshlet.vertex_count,
-                indices = new UnsafeList<uint>((int)(meshlet.triangle_count * 3), Allocator.FreeList),
-                uniqueVertices = new UnsafeList<uint>((int)meshlet.vertex_count, Allocator.FreeList),
-                localIndices = new UnsafeList<byte>((int)(meshlet.triangle_count * 3), Allocator.FreeList),
+                indices = new UnsafeList<uint>((int)(meshlet.triangle_count * 3), AllocationHandle.FreeList),
+                uniqueVertices = new UnsafeList<uint>((int)meshlet.vertex_count, AllocationHandle.FreeList),
+                localIndices = new UnsafeList<byte>((int)(meshlet.triangle_count * 3), AllocationHandle.FreeList),
                 group = -1,
                 refined = -1
             };
@@ -332,8 +333,8 @@ public static unsafe class MeshletUtility
     {
         if (pending.Count <= (int)config.partitionSize)
         {
-            var single = new UnsafeList<UnsafeList<int>>(1, Allocator.FreeList);
-            var pendingcpy = new UnsafeList<int>(pending.Count, Allocator.FreeList);
+            var single = new UnsafeList<UnsafeList<int>>(1, AllocationHandle.FreeList);
+            var pendingcpy = new UnsafeList<int>(pending.Count, AllocationHandle.FreeList);
 
             pendingcpy.AddRange(pending.AsSpan());
             single.Add(pendingcpy);
@@ -347,8 +348,8 @@ public static unsafe class MeshletUtility
             totalIndexCount += (nuint)clusters[pending[i]].indices.Count;
         }
 
-        using var clusterIndices = new UnsafeList<uint>((int)totalIndexCount, Allocator.FreeList);
-        using var clusterCounts = new UnsafeList<uint>(pending.Count, Allocator.FreeList);
+        using var clusterIndices = new UnsafeList<uint>((int)totalIndexCount, AllocationHandle.FreeList);
+        using var clusterCounts = new UnsafeList<uint>(pending.Count, AllocationHandle.FreeList);
 
         nuint offset = 0;
         for (var i = 0; i < pending.Count; i++)
@@ -363,7 +364,7 @@ public static unsafe class MeshletUtility
             offset += (nuint)cluster.indices.Count;
         }
 
-        using var clusterPart = new UnsafeArray<uint>(pending.Count, Allocator.FreeList);
+        using var clusterPart = new UnsafeArray<uint>(pending.Count, AllocationHandle.FreeList);
 
         var partitionCount = MeshOptApi.PartitionClusters(
             (uint*)clusterPart.GetUnsafePtr(),
@@ -377,10 +378,10 @@ public static unsafe class MeshletUtility
             config.partitionSize
         );
 
-        var partitions = new UnsafeList<UnsafeList<int>>((int)partitionCount, Allocator.FreeList);
+        var partitions = new UnsafeList<UnsafeList<int>>((int)partitionCount, AllocationHandle.FreeList);
         for (nuint i = 0; i < partitionCount; i++)
         {
-            partitions.Add(new UnsafeList<int>((int)(config.partitionSize + config.partitionSize / 3), Allocator.FreeList));
+            partitions.Add(new UnsafeList<int>((int)(config.partitionSize + config.partitionSize / 3), AllocationHandle.FreeList));
         }
 
         for (var i = 0; i < pending.Count; i++)
@@ -393,7 +394,7 @@ public static unsafe class MeshletUtility
 
     private static int OutputGroup(ref readonly ClodConfig config, ref readonly ClodMesh mesh, UnsafeList<Cluster> clusters, UnsafeList<int> group, ClodBounds simplified, int depth, void* outputContext, ClodOutputDelegate? outputCallback)
     {
-        using var groupClusters = new UnsafeList<ClodCluster>(group.Count, Allocator.FreeList);
+        using var groupClusters = new UnsafeList<ClodCluster>(group.Count, AllocationHandle.FreeList);
 
         for (var i = 0; i < group.Count; i++)
         {
@@ -429,8 +430,8 @@ public static unsafe class MeshletUtility
 
     private static void SimplifyFallback(ref UnsafeArray<uint> lod, ref readonly ClodMesh mesh, ReadOnlyUnsafeCollection<uint> indices, ReadOnlyUnsafeCollection<byte> locks, nuint target_count, float* error)
     {
-        using var subset = new UnsafeArray<SloppyVertex>(indices.Count, Allocator.FreeList);
-        using var subset_locks = new UnsafeArray<byte>(indices.Count, Allocator.FreeList);
+        using var subset = new UnsafeArray<SloppyVertex>(indices.Count, AllocationHandle.FreeList);
+        using var subset_locks = new UnsafeArray<byte>(indices.Count, AllocationHandle.FreeList);
 
         lod.Resize(indices.Count);
 
@@ -440,7 +441,7 @@ public static unsafe class MeshletUtility
         for (var i = 0; i < indices.Count; ++i)
         {
             var v = indices[i];
-            Debug.Assert(v < mesh.vertexCount);
+            Logger.DebugAssert(v < mesh.vertexCount);
 
             subset[i].x = mesh.vertexPositions[v * positions_stride + 0];
             subset[i].y = mesh.vertexPositions[v * positions_stride + 1];
@@ -466,7 +467,7 @@ public static unsafe class MeshletUtility
 
     public static UnsafeArray<uint> Simplify(ref readonly ClodConfig config, ref readonly ClodMesh mesh, ReadOnlyUnsafeCollection<uint> indices, ReadOnlyUnsafeCollection<byte> locks, nuint targetCount, float* error)
     {
-        var lod = new UnsafeArray<uint>(indices.Count, Allocator.FreeList);
+        var lod = new UnsafeArray<uint>(indices.Count, AllocationHandle.FreeList);
 
         if (targetCount >= (nuint)indices.Count)
         {
@@ -577,10 +578,10 @@ public static unsafe class MeshletUtility
     /// <returns>The total count of generated clusters.</returns>
     public static nuint Build(ref readonly ClodConfig config, ref readonly ClodMesh mesh, void* outputContext, ClodOutputDelegate? outputCallback)
     {
-        Debug.Assert(mesh.vertexAttributesStride % sizeof(float) == 0, "vertexAttributesStride must be a multiple of sizeof(float)");
+        Logger.DebugAssert(mesh.vertexAttributesStride % sizeof(float) == 0, "vertexAttributesStride must be a multiple of sizeof(float)");
 
-        using var locks = new UnsafeArray<byte>((int)mesh.vertexCount, Allocator.FreeList, AllocationOption.Clear); ;
-        using var remap = new UnsafeArray<uint>((int)mesh.vertexCount, Allocator.FreeList);
+        using var locks = new UnsafeArray<byte>((int)mesh.vertexCount, AllocationHandle.FreeList, AllocationOption.Clear); ;
+        using var remap = new UnsafeArray<uint>((int)mesh.vertexCount, AllocationHandle.FreeList);
 
         MeshOptApi.GeneratePositionRemap((uint*)remap.GetUnsafePtr(), mesh.vertexPositions, mesh.vertexCount, mesh.vertexPositionsStride);
 
@@ -610,7 +611,7 @@ public static unsafe class MeshletUtility
             clusters[i].bounds = ComputeBounds(in mesh, clusters[i].indices, 0.0f);
         }
 
-        using var pending = new UnsafeList<int>(clusters.Count, Allocator.FreeList);
+        using var pending = new UnsafeList<int>(clusters.Count, AllocationHandle.FreeList);
         for (var i = 0; i < clusters.Count; i++)
         {
             pending.Add(i);
@@ -627,7 +628,7 @@ public static unsafe class MeshletUtility
 
             for (var i = 0; i < groups.Count; i++)
             {
-                using var merged = new UnsafeList<uint>(groups[i].Count * (int)config.maxTriangles * 3, Allocator.FreeList);
+                using var merged = new UnsafeList<uint>(groups[i].Count * (int)config.maxTriangles * 3, AllocationHandle.FreeList);
                 for (var j = 0; j < groups[i].Count; j++)
                 {
                     var clusterIndices = clusters[groups[i][j]].indices;

@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Core.Graphics;
 using Ghost.Graphics.RHI;
 using TerraFX.Interop.DirectX;
 
@@ -88,7 +89,7 @@ internal unsafe class D3D12CommandSignature : D3D12Object<ID3D12CommandSignature
 
     public IntPtr NativePointer => (IntPtr)NativeObject.Get();
 
-    public D3D12CommandSignature(D3D12RenderDevice device, D3D12PipelineLibrary pipelineLibrary, ref readonly CommandSignatureDesc desc, Key128<GraphicsPipeline> pipelineKey)
+    public D3D12CommandSignature(D3D12RenderDevice device, D3D12PipelineLibrary pipelineLibrary, ref readonly CommandSignatureDesc desc, Key128<PipelineState> pipelineKey)
         : base(CreateCommandSignature(device, pipelineLibrary, in desc))
     {
     }

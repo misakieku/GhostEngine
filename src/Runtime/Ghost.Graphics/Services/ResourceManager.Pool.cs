@@ -27,11 +27,11 @@ public partial class ResourceManager
         public ulong retireFrame;
     }
 
-    private UnsafeList<Page> _activePages = new UnsafeList<Page>(4, Allocator.Persistent);
-    private UnsafeQueue<Page> _freePages = new UnsafeQueue<Page>(4, Allocator.Persistent);
-    private UnsafeQueue<RetiringPage> _retiringPages = new UnsafeQueue<RetiringPage>(4, Allocator.Persistent);
+    private UnsafeList<Page> _activePages = new UnsafeList<Page>(4, AllocationHandle.Persistent);
+    private UnsafeQueue<Page> _freePages = new UnsafeQueue<Page>(4, AllocationHandle.Persistent);
+    private UnsafeQueue<RetiringPage> _retiringPages = new UnsafeQueue<RetiringPage>(4, AllocationHandle.Persistent);
 
-    private UnsafeList<Handle<GPUResource>> _frameTransientResources = new UnsafeList<Handle<GPUResource>>(4, Allocator.Persistent);
+    private UnsafeList<Handle<GPUResource>> _frameTransientResources = new UnsafeList<Handle<GPUResource>>(4, AllocationHandle.Persistent);
 
     private static bool IsHeapFlagsCompatible(HeapFlags pageHeapFlags, HeapFlags requiredHeapFlags)
     {

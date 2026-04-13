@@ -1,3 +1,4 @@
+using Ghost.Core;
 using Ghost.Graphics.D3D12.Utilities;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Collections;
@@ -67,7 +68,7 @@ internal unsafe class D3D12DescriptorHeap : IDisposable
         Stride = device.NativeObject.Get()->GetDescriptorHandleIncrementSize(type);
 
         var success = AllocateResources(numDescriptors);
-        Debug.Assert(success);
+        Logger.DebugAssert(success);
 
         _heap.Get()->SetName(name);
         if (ShaderVisible)
@@ -240,7 +241,7 @@ internal unsafe class D3D12DescriptorHeap : IDisposable
 
         if (!_allocatedDescriptors.IsCreated)
         {
-            _allocatedDescriptors = new UnsafeBitSet(numDescriptors, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent, Misaki.HighPerformance.LowLevel.Buffer.AllocationOption.Clear);
+            _allocatedDescriptors = new UnsafeBitSet(numDescriptors, Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle.Persistent, Misaki.HighPerformance.LowLevel.Buffer.AllocationOption.Clear);
         }
         else
         {
@@ -299,7 +300,7 @@ internal unsafe class D3D12DescriptorHeap : IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
-        Debug.Assert(NumAllocatedDescriptors == 0);
+        Logger.DebugAssert(NumAllocatedDescriptors == 0);
 
         _heap.Dispose();
         _shaderVisibleHeap.Dispose();

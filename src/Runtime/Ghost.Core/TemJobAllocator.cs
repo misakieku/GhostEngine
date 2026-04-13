@@ -1,6 +1,5 @@
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Utilities;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Core;
@@ -13,7 +12,7 @@ public unsafe partial struct TempJobAllocator
 
     internal static void Initialize(nuint capacity)
     {
-        Debug.Assert(_pAllocator == null, "TempJobAllocator is already initialized.");
+        Logger.DebugAssert(_pAllocator == null, "TempJobAllocator is already initialized.");
         _pAllocator = (TempJobAllocator*)Malloc((nuint)sizeof(TempJobAllocator));
     }
 
@@ -71,52 +70,29 @@ public unsafe partial struct TempJobAllocator : IAllocator
             State = Unsafe.AsPointer(ref this),
             Alloc = &Allocate,
             Realloc = &Reallocate,
-            Free = &Free,
-#if MHP_ENABLE_SAFETY_CHECKS
-            IsValid = &IsValid,
-#else
-            IsValid = null,
-#endif
+            Free = &Free
         };
     }
 
-    private static void* Allocate(void* instance, nuint size, nuint alignment, AllocationOption allocationOption
-#if MHP_ENABLE_SAFETY_CHECKS
-            , MemoryHandle* pHandle
-#endif
-            )
+    private static void* Allocate(void* instance, nuint size, nuint alignment, AllocationOption allocationOption)
     {
         var pSelf = (TempJobAllocator*)instance;
         var pCurrentArena = pSelf->_pArena + pSelf->_currentFrameIndex;
         var ptr = pCurrentArena->Allocate(size, alignment, allocationOption);
         if (ptr == null)
         {
-#if MHP_ENABLE_SAFETY_CHECKS
-            *pHandle = MemoryHandle.Invalid;
-#endif
             return null;
         }
 
         Interlocked.Increment(ref pSelf->_allocationsPerFrame[pSelf->_currentFrameIndex]);
-#if MHP_ENABLE_SAFETY_CHECKS
-        *pHandle = new MemoryHandle(_MAGIC_ID, pSelf->_currentFrameCount);
-#endif
         return ptr;
     }
 
-    private static void* Reallocate(void* instance, void* ptr, nuint oldSize, nuint newSize, nuint alignment, AllocationOption allocationOption
-#if MHP_ENABLE_SAFETY_CHECKS
-            , MemoryHandle* pHandle
-#endif
-            )
+    private static void* Reallocate(void* instance, void* ptr, nuint oldSize, nuint newSize, nuint alignment, AllocationOption allocationOption)
     {
         if (ptr == null)
         {
-            return Allocate(instance, newSize, alignment, allocationOption
-#if MHP_ENABLE_SAFETY_CHECKS
-                , pHandle
-#endif
-                );
+            return Allocate(instance, newSize, alignment, allocationOption);
         }
 
         var pSelf = (TempJobAllocator*)instance;
@@ -132,23 +108,11 @@ public unsafe partial struct TempJobAllocator : IAllocator
         return newPtr;
     }
 
-    private static void Free(void* instance, void* ptr
-#if MHP_ENABLE_SAFETY_CHECKS
-            , MemoryHandle handle
-#endif
-            )
+    private static void Free(void* instance, void* ptr)
     {
         var pSelf = (TempJobAllocator*)instance;
         Interlocked.Decrement(ref pSelf->_allocationsPerFrame[pSelf->_currentFrameIndex]);
     }
-
-#if MHP_ENABLE_SAFETY_CHECKS
-    private static bool IsValid(void* instance, MemoryHandle handle)
-    {
-        var pSelf = (TempJobAllocator*)instance;
-        return handle.ID == _MAGIC_ID && handle.Generation > pSelf->_currentFrameCount - _FRAME_LATENCY;
-    }
-#endif
 
     public int AdvanceFrame()
     {

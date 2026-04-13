@@ -166,8 +166,6 @@ public struct ResourceRange
 }
 
 public readonly struct ShaderVariant;
-public readonly struct GraphicsPipeline;
-public readonly struct ComputePipeline;
 
 public readonly struct ShaderPass
 {
@@ -187,11 +185,11 @@ public readonly struct ShaderPass
     }
 }
 
-public readonly struct PassPipelineHash : IEquatable<PassPipelineHash>
+public readonly struct PassAttachmentHash : IEquatable<PassAttachmentHash>
 {
     public readonly UInt128 value;
 
-    public PassPipelineHash(ReadOnlySpan<TextureFormat> rtvFormats, TextureFormat dsvFormat)
+    public PassAttachmentHash(ReadOnlySpan<TextureFormat> rtvFormats, TextureFormat dsvFormat)
     {
         if (rtvFormats.Length > 8)
         {
@@ -211,16 +209,21 @@ public readonly struct PassPipelineHash : IEquatable<PassPipelineHash>
         value = new UInt128(rtvPart, (ulong)dsvFormat);
     }
 
-    public bool Equals(PassPipelineHash other) => value == other.value;
-    public override bool Equals(object? obj) => obj is PassPipelineHash other && Equals(other);
+    public bool Equals(PassAttachmentHash other) => value == other.value;
+    public override bool Equals(object? obj) => obj is PassAttachmentHash other && Equals(other);
     public override int GetHashCode() => value.GetHashCode();
 
-    public static bool operator ==(PassPipelineHash left, PassPipelineHash right) => left.Equals(right);
-    public static bool operator !=(PassPipelineHash left, PassPipelineHash right) => !(left == right);
+    public static bool operator ==(PassAttachmentHash left, PassAttachmentHash right) => left.Equals(right);
+    public static bool operator !=(PassAttachmentHash left, PassAttachmentHash right) => !(left == right);
 }
 
-public ref struct GraphicsPSODescriptor
+public ref struct GraphicsPSODesc
 {
+    public UInt128 CompiledHash
+    {
+        get; set;
+    }
+
     public Key64<ShaderVariant> VariantKey
     {
         get; set;
@@ -240,11 +243,36 @@ public ref struct GraphicsPSODescriptor
     {
         get; set;
     }
+
+    public ReadOnlySpan<byte> AsCode
+    {
+        get; set;
+    }
+
+    public ReadOnlySpan<byte> MsCode
+    {
+        get; set;
+    }
+
+    public ReadOnlySpan<byte> PsCode
+    {
+        get; set;
+    }
 }
 
-public ref struct ComputePSODescriptor
+public ref struct ComputePSODesc
 {
+    public UInt128 CompiledHash
+    {
+        get; set;
+    }
+
     public Key64<ShaderVariant> VariantKey
+    {
+        get; set;
+    }
+
+    public ReadOnlySpan<byte> CsCode
     {
         get; set;
     }
@@ -640,7 +668,7 @@ public struct BarrierDesc
 public record struct ResourceDesc
 {
     [StructLayout(LayoutKind.Explicit)]
-    internal struct resource_union
+    internal struct __union
     {
         [FieldOffset(0)]
         public TextureDesc textureDescription;
@@ -648,7 +676,7 @@ public record struct ResourceDesc
         public BufferDesc bufferDescription;
     }
 
-    private resource_union _desc;
+    private __union _desc;
 
     public ResourceType Type
     {
@@ -656,21 +684,21 @@ public record struct ResourceDesc
     }
 
     [UnscopedRef]
-    public ref TextureDesc TextureDescription
+    public ref TextureDesc TextureDescriptor
     {
         get
         {
-            Debug.Assert(Type == ResourceType.Texture);
+            Logger.DebugAssert(Type == ResourceType.Texture);
             return ref _desc.textureDescription;
         }
     }
 
     [UnscopedRef]
-    public ref BufferDesc BufferDescription
+    public ref BufferDesc BufferDescriptor
     {
         get
         {
-            Debug.Assert(Type == ResourceType.Buffer);
+            Logger.DebugAssert(Type == ResourceType.Buffer);
             return ref _desc.bufferDescription;
         }
     }
@@ -680,7 +708,7 @@ public record struct ResourceDesc
         return new ResourceDesc
         {
             Type = ResourceType.Buffer,
-            BufferDescription = desc
+            BufferDescriptor = desc
         };
     }
 
@@ -689,7 +717,7 @@ public record struct ResourceDesc
         return new ResourceDesc
         {
             Type = ResourceType.Texture,
-            TextureDescription = desc
+            TextureDescriptor = desc
         };
     }
 
@@ -702,8 +730,8 @@ public record struct ResourceDesc
 
         return Type switch
         {
-            ResourceType.Texture => TextureDescription.Equals(other.TextureDescription),
-            ResourceType.Buffer => BufferDescription.Equals(other.BufferDescription),
+            ResourceType.Texture => TextureDescriptor.Equals(other.TextureDescriptor),
+            ResourceType.Buffer => BufferDescriptor.Equals(other.BufferDescriptor),
             _ => throw new InvalidOperationException($"Unknown resource type: {Type}")
         };
     }
@@ -712,8 +740,8 @@ public record struct ResourceDesc
     {
         return Type switch
         {
-            ResourceType.Texture => HashCode.Combine(Type, TextureDescription),
-            ResourceType.Buffer => HashCode.Combine(Type, BufferDescription),
+            ResourceType.Texture => HashCode.Combine(Type, TextureDescriptor),
+            ResourceType.Buffer => HashCode.Combine(Type, BufferDescriptor),
             _ => throw new InvalidOperationException($"Unknown resource type: {Type}")
         };
     }
@@ -722,8 +750,8 @@ public record struct ResourceDesc
     {
         return Type switch
         {
-            ResourceType.Texture => $"Texture: {TextureDescription}",
-            ResourceType.Buffer => $"Buffer: {BufferDescription}",
+            ResourceType.Texture => $"Texture: {TextureDescriptor}",
+            ResourceType.Buffer => $"Buffer: {BufferDescriptor}",
             _ => $"Unknown resource type: {Type}"
         };
     }

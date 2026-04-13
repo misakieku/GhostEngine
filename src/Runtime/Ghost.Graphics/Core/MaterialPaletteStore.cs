@@ -50,8 +50,8 @@ internal sealed class MaterialPaletteStore : IDisposable
             initialCapacity = 16;
         }
 
-        _entries = new UnsafeList<Entry>(initialCapacity + 1, Allocator.Persistent);
-        _lookup = new UnsafeHashMap<ulong, int>(initialCapacity * 2, Allocator.Persistent);
+        _entries = new UnsafeList<Entry>(initialCapacity + 1, AllocationHandle.Persistent);
+        _lookup = new UnsafeHashMap<ulong, int>(initialCapacity * 2, AllocationHandle.Persistent);
         _freeListHead = 0;
     }
 
@@ -131,7 +131,7 @@ internal sealed class MaterialPaletteStore : IDisposable
 
         if (!newEntry.materials.IsCreated)
         {
-            newEntry.materials = new UnsafeList<Handle<Material>>(materials.Length, Allocator.Persistent);
+            newEntry.materials = new UnsafeList<Handle<Material>>(materials.Length, AllocationHandle.Persistent);
         }
         else
         {

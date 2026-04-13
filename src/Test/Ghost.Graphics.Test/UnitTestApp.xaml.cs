@@ -36,7 +36,7 @@ public partial class UnitTestApp : Application
 
         UnhandledException += (sender, e) =>
         {
-            Logger.LogError(e.Exception);
+            Logger.Error(e.Exception);
 #if DEBUG
             System.Diagnostics.Debugger.Break();
 #endif

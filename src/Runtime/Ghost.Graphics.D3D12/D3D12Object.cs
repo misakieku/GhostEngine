@@ -4,6 +4,7 @@ using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using Ghost.Core;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -51,7 +52,7 @@ public unsafe abstract class D3D12Object<T>: IRHIObject
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected void AssertNotDisposed()
     {
-        Debug.Assert(_nativeObject.Get() != null, "Object has been disposed.");
+        Logger.DebugAssert(_nativeObject.Get() != null, "Object has been disposed.");
     }
 
     protected virtual void Dispose(bool disposing)

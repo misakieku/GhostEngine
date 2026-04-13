@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace Ghost.Core;
 
@@ -151,90 +153,105 @@ public static class Logger
     public static LogCollection Logs => s_logger.Logs;
 
     [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Log(LogLevel level, object? message)
     {
         s_logger.Log(message?.ToString() ?? "null", level);
     }
 
     [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Log(LogLevel level, string message)
     {
         s_logger.Log(message, level);
     }
 
     [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Log(LogLevel level, string format, params object?[] args)
     {
         s_logger.Log(string.Format(format, args), level);
     }
 
     [StackTraceHidden]
-    public static void LogInfo(object? message)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Info(object? message)
     {
         s_logger.Log(message?.ToString() ?? "null", LogLevel.Info);
     }
 
     [StackTraceHidden]
-    public static void LogInfo(string message)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Info(string message)
     {
         s_logger.Log(message, LogLevel.Info);
     }
 
     [StackTraceHidden]
-    public static void LogInfo(string format, params object?[] args)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Info(string format, params object?[] args)
     {
         s_logger.Log(string.Format(format, args), LogLevel.Info);
     }
 
     [StackTraceHidden]
-    public static void LogWarning(object? message)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Warning(object? message)
     {
         s_logger.Log(message?.ToString() ?? "null", LogLevel.Warning);
     }
 
     [StackTraceHidden]
-    public static void LogWarning(string message)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Warning(string message)
     {
         s_logger.Log(message, LogLevel.Warning);
     }
 
     [StackTraceHidden]
-    public static void LogWarning(string format, params object?[] args)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Warning(string format, params object?[] args)
     {
         s_logger.Log(string.Format(format, args), LogLevel.Warning);
     }
 
     [StackTraceHidden]
-    public static void LogError(object? message)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Error(object? message)
     {
         s_logger.Log(message?.ToString() ?? "null", LogLevel.Error);
     }
 
     [StackTraceHidden]
-    public static void LogError(string message)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Error(string message)
     {
         s_logger.Log(message, LogLevel.Error);
     }
 
     [StackTraceHidden]
-    public static void LogError(string format, params object?[] args)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Error(string format, params object?[] args)
     {
         s_logger.Log(string.Format(format, args), LogLevel.Error);
     }
 
     [StackTraceHidden]
-    public static void LogError(Exception ex)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Error(Exception ex)
     {
         s_logger.Log(ex);
     }
 
     [StackTraceHidden]
-    public static void Assert(bool condition, string message)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Assert(bool condition, [CallerArgumentExpression(nameof(condition))] string? message = null)
     {
-        s_logger.Assert(condition, message);
+        s_logger.Assert(condition, message ?? "null");
     }
 
     [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [Conditional("DEBUG")]
     [Conditional("GHOST_EDITOR")]
     public static void Debug(object? message)
@@ -243,6 +260,7 @@ public static class Logger
     }
 
     [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [Conditional("DEBUG")]
     [Conditional("GHOST_EDITOR")]
     public static void Debug(string message)
@@ -251,10 +269,26 @@ public static class Logger
     }
 
     [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [Conditional("DEBUG")]
     [Conditional("GHOST_EDITOR")]
     public static void Debug(string format, params object?[] args)
     {
         s_logger.Log(string.Format(format, args), LogLevel.Debug);
+    }
+
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Conditional("DEBUG")]
+    [Conditional("GHOST_EDITOR")]
+    public static void DebugAssert([DoesNotReturnIf(false)] bool condition, [CallerArgumentExpression(nameof(condition))] string? message = null)
+    {
+        s_logger.Assert(condition, message?.ToString() ?? "null");
+#if DEBUG
+        if (!condition)
+        {
+            System.Diagnostics.Debug.Fail(message ?? "Assertion failed.");
+        }
+#endif
     }
 }

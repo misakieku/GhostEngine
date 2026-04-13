@@ -4,7 +4,6 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
-using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
@@ -16,19 +15,19 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
     internal unsafe record struct ResourceRecord
     {
         [StructLayout(LayoutKind.Explicit)]
-        public struct ResourceUnion
+        public struct __resource_union
         {
             [FieldOffset(0)]
             public UniquePtr<D3D12MA_Allocation> allocation;
             [FieldOffset(0)]
             public UniquePtr<ID3D12Resource> resource;
 
-            public ResourceUnion(D3D12MA_Allocation* allocation)
+            public __resource_union(D3D12MA_Allocation* allocation)
             {
                 this.allocation = allocation;
             }
 
-            public ResourceUnion(ID3D12Resource* resource)
+            public __resource_union(ID3D12Resource* resource)
             {
                 this.resource = resource;
             }
@@ -36,7 +35,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
         public ResourceDesc desc;
         public ResourceViewGroup viewGroup;
-        public ResourceUnion resource;
+        public __resource_union resource;
 
         public ResourceBarrierData barrierData;
 
@@ -47,7 +46,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
         public ResourceRecord(D3D12MA_Allocation* allocation, ResourceBarrierData barrierData, ResourceViewGroup viewGroup, ResourceDesc desc)
         {
-            this.resource = new ResourceUnion(allocation);
+            this.resource = new __resource_union(allocation);
             this.isExternal = false;
 
             this.viewGroup = viewGroup;
@@ -57,7 +56,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
         public ResourceRecord(ID3D12Resource* resource, ResourceBarrierData barrierData, ResourceViewGroup viewGroup, ResourceDesc desc)
         {
-            this.resource = new ResourceUnion(resource);
+            this.resource = new __resource_union(resource);
             this.isExternal = true;
 
             this.viewGroup = viewGroup;
@@ -118,13 +117,13 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
     {
         _descriptorAllocator = descriptorAllocator;
 
-        _resources = new UnsafeSlotMap<ResourceRecord>(64, Allocator.Persistent, AllocationOption.Clear);
-        _samplers = new UnsafeHashMap<SamplerDesc, Identifier<Sampler>>(32, Allocator.Persistent);
+        _resources = new UnsafeSlotMap<ResourceRecord>(64, AllocationHandle.Persistent, AllocationOption.Clear);
+        _samplers = new UnsafeHashMap<SamplerDesc, Identifier<Sampler>>(32, AllocationHandle.Persistent);
 #if DEBUG || GHOST_EDITOR
         _resourceName = new Dictionary<Handle<GPUResource>, string>(64);
 #endif
 
-        _releaseQueue = new UnsafeQueue<ReleaseEntry>(32, Allocator.Persistent);
+        _releaseQueue = new UnsafeQueue<ReleaseEntry>(32, AllocationHandle.Persistent);
     }
 
     ~D3D12ResourceDatabase()
@@ -134,7 +133,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
     internal Handle<GPUResource> ImportExternalResource(ID3D12Resource* pResource, ResourceBarrierData initialBarrierData, ResourceViewGroup viewGroup, ResourceDesc desc, string? name = null)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
 
         if (pResource == null)
         {
@@ -173,7 +172,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
     internal Handle<GPUResource> AddAllocation(D3D12MA_Allocation* allocation, ResourceBarrierData initialBarrierData, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string? name = null)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
 
         if (allocation == null)
         {
@@ -217,25 +216,25 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
     public void EnterParallelRead()
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
         Interlocked.Exchange(ref _writeLock, 1);
     }
 
     public void ExitParallelRead()
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
         Interlocked.Exchange(ref _writeLock, 0);
     }
 
     public bool HasResource(Handle<GPUResource> handle)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
         return _resources.Contains(handle.ID, handle.Generation);
     }
 
     public RefResult<ResourceRecord, Error> GetResourceRecord(Handle<GPUResource> handle)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
 
         ref var info = ref _resources.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
         if (!exist)
@@ -296,7 +295,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         var r = GetResourceRecord(handle);
         if (r.IsFailure || !r.Value.Allocated)
         {
-            return ~0u;
+            return uint.MaxValue;
         }
 
         return access switch
@@ -310,7 +309,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
     public string? GetResourceName(Handle<GPUResource> handle)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
 
 #if DEBUG || GHOST_EDITOR
         if (_resourceName.TryGetValue(handle, out var name))
@@ -323,7 +322,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
     public void ReleaseResource(Handle<GPUResource> handle)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
 
         if (!_resources.TryGetElementAt(handle.ID, handle.Generation, out var record))
         {
@@ -342,7 +341,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
     public void ReleaseResourceImmediately(Handle<GPUResource> handle)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
 
         ref var info = ref _resources.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
         if (!exist || !info.Allocated)
@@ -356,7 +355,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
     public Identifier<Sampler> AddSampler(ref readonly SamplerDesc desc, int id)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
 
         if (_samplers.ContainsKey(desc))
         {
@@ -371,13 +370,13 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
     public bool TryGetSampler(ref readonly SamplerDesc desc, out Identifier<Sampler> id)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
         return _samplers.TryGetValue(desc, out id);
     }
 
     public void ReleaseSampler(Identifier<Sampler> id)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
 
         // NOTE: We almost never release samplers individually, because they are cheap and can be reused.
         // Ideally we would release all samplers at once when disposing the ResourceDatabase.
@@ -447,13 +446,13 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
     internal void BeginFrame(ulong cpuFrame)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
         _cpuFrame = cpuFrame;
     }
 
     internal void EndFrame(ulong gpuFrame)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
 
         while (_releaseQueue.TryPeek(out var toRelease) && toRelease.fenceValue < gpuFrame)
         {
@@ -464,7 +463,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
     internal void ReleaseAllResourcesImmediately()
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
 
         foreach (ref var entry in _releaseQueue)
         {

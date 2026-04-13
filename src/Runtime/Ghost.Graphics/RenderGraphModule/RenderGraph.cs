@@ -1,7 +1,6 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
 using System.Diagnostics;
-using Ghost.Graphics.Services;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
@@ -114,7 +113,7 @@ public sealed class RenderGraph : IDisposable
         }
 
         var desc = r.Value;
-        return _resources.ImportTexture(in desc.TextureDescription, texture, name, clearColor, clearDepth, clearStencil, clearAtFirstUse, discardAtLastUse);
+        return _resources.ImportTexture(in desc.TextureDescriptor, texture, name, clearColor, clearDepth, clearStencil, clearAtFirstUse, discardAtLastUse);
     }
 
     /// <summary>
@@ -132,7 +131,7 @@ public sealed class RenderGraph : IDisposable
         }
 
         var desc = r.Value;
-        return _resources.ImportBuffer(in desc.BufferDescription, buffer, name);
+        return _resources.ImportBuffer(in desc.BufferDescriptor, buffer, name);
     }
 
     public IRasterRenderGraphBuilder AddRasterRenderPass<TPassData>(string name, out TPassData passData)

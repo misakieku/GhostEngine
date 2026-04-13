@@ -1,6 +1,5 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
-using System.Diagnostics;
 
 namespace Ghost.Engine.RenderPipeline;
 
@@ -16,6 +15,8 @@ internal unsafe class GPUScene : IDisposable
     private uint _requiredResize;
     private bool _disposed;
 
+    public Handle<GPUBuffer> SceneBuffer => _sceneBuffer;
+
     internal GPUScene(IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase, uint initialCount)
     {
         _resourceAllocator = resourceAllocator;
@@ -30,7 +31,7 @@ internal unsafe class GPUScene : IDisposable
         };
 
         _sceneBuffer = _resourceAllocator.CreateBuffer(in bufferDesc, "SceneBuffer");
-        Debug.Assert(_sceneBuffer.IsValid, "Failed to create GPUScene buffer.");
+        Logger.DebugAssert(_sceneBuffer.IsValid, "Failed to create GPUScene buffer.");
 
         _capacity = initialCount;
     }
@@ -48,22 +49,21 @@ internal unsafe class GPUScene : IDisposable
             return;
         }
 
-        var newCapacity = _capacity * 2;
-        newCapacity = Math.Max(newCapacity, _capacity + _requiredResize);
+        var newCapacity = Math.Max(_capacity * 2, _capacity + _requiredResize);
 
         var newBufferDesc = new BufferDesc
         {
-            Size = (ulong)newCapacity * (ulong)sizeof(InstanceData),
+            Size = newCapacity * (ulong)sizeof(InstanceData),
             Stride = (uint)sizeof(InstanceData),
             Usage = BufferUsage.Structured | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource,
             HeapType = HeapType.Default,
         };
 
         var newBuffer = _resourceAllocator.CreateBuffer(in newBufferDesc, "SceneBuffer_Resized");
-        Debug.Assert(newBuffer.IsValid);
+        Logger.DebugAssert(newBuffer.IsValid);
 
         // Copy existing data to the new buffer
-        cmd.CopyBuffer(newBuffer, _sceneBuffer, 0, 0, (ulong)_instanceCount * (ulong)sizeof(InstanceData));
+        cmd.CopyBuffer(newBuffer, _sceneBuffer, 0, 0, _instanceCount * (ulong)sizeof(InstanceData));
 
         // Replace old buffer with the new one
         _resourceDatabase.ReleaseResource(_sceneBuffer.AsResource());

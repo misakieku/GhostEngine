@@ -48,7 +48,6 @@ public struct PassDescriptor
 {
     public GraphicsShaderDescriptor shader;
 
-    public ulong identifier;
     public string name;
 
     public ShaderCode amplificationShaderCode;

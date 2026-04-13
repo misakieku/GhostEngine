@@ -52,9 +52,9 @@ public class RenderExtractionSystem : ISystem
             ref readonly var camLtwRef = ref camLtw.Get();
 
             // TODO: Classify transparent objects into a separate render list and render via oit.
-            var renderList = new RenderList(1, 64, Allocator.FreeList);
-            var transparentRenderList = new RenderList(1, 64, Allocator.FreeList);
-            var shadowCasterRenderList = new RenderList(1, 64, Allocator.FreeList);
+            var renderList = new RenderList(1, 64, AllocationHandle.FreeList);
+            var transparentRenderList = new RenderList(1, 64, AllocationHandle.FreeList);
+            var shadowCasterRenderList = new RenderList(1, 64, AllocationHandle.FreeList);
 
             // TODO: This chould be done in earallel jobs.
             foreach (var chunk in meshQuery.GetChunkIterator())

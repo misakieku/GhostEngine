@@ -186,8 +186,8 @@ public struct Mesh : IResourceReleasable
 
     internal Mesh(ReadOnlySpan<Vertex> vertices, ReadOnlySpan<uint> indices, Handle<GPUBuffer> vertexBuffer, Handle<GPUBuffer> indexBuffer)
     {
-        Vertices = new UnsafeList<Vertex>(vertices.Length, Allocator.Persistent);
-        Indices = new UnsafeList<uint>(indices.Length, Allocator.Persistent);
+        Vertices = new UnsafeList<Vertex>(vertices.Length, AllocationHandle.Persistent);
+        Indices = new UnsafeList<uint>(indices.Length, AllocationHandle.Persistent);
         Vertices.CopyFrom(vertices);
         Indices.CopyFrom(indices);
         VertexBuffer = vertexBuffer;
@@ -298,10 +298,10 @@ public struct Mesh : IResourceReleasable
         ref var data = ref mesh->_meshletData;
 
         // Ensure lists are initialized
-        if (!data.groups.IsCreated) data.groups = new UnsafeList<MeshletGroup>(16, Allocator.Persistent);
-        if (!data.meshlets.IsCreated) data.meshlets = new UnsafeList<Meshlet>(64, Allocator.Persistent);
-        if (!data.meshletVertices.IsCreated) data.meshletVertices = new UnsafeList<uint>(128, Allocator.Persistent);
-        if (!data.meshletTriangles.IsCreated) data.meshletTriangles = new UnsafeList<uint>(128, Allocator.Persistent);
+        if (!data.groups.IsCreated) data.groups = new UnsafeList<MeshletGroup>(16, AllocationHandle.Persistent);
+        if (!data.meshlets.IsCreated) data.meshlets = new UnsafeList<Meshlet>(64, AllocationHandle.Persistent);
+        if (!data.meshletVertices.IsCreated) data.meshletVertices = new UnsafeList<uint>(128, AllocationHandle.Persistent);
+        if (!data.meshletTriangles.IsCreated) data.meshletTriangles = new UnsafeList<uint>(128, AllocationHandle.Persistent);
 
         var meshletGroup = new MeshletGroup
         {

@@ -14,7 +14,7 @@ public static class RootSignatureLayout
 public struct PushConstantsData
 {
     public const uint NUM_32BITS_VALUE = 12u / sizeof(uint);
-    
+
     [FieldOffset(0)]
     public uint frameBuffer;
     [FieldOffset(4)]
@@ -23,6 +23,11 @@ public struct PushConstantsData
     public uint instanceIndex;
     [FieldOffset(8)]
     public uint propertyBuffer;
+
+    public ReadOnlySpan<uint> AsUInts()
+    {
+        return MemoryMarshal.CreateReadOnlySpan(ref frameBuffer, (int)NUM_32BITS_VALUE);
+    }
 }
 
 [StructLayout(LayoutKind.Sequential)]

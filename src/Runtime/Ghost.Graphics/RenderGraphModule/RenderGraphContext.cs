@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Graphics.RenderGraphModule;
@@ -30,14 +31,16 @@ public interface IRasterRenderContext : IRenderGraphContext
 
     void SetActiveMaterial(Handle<Material> material);
     void SetActiveMaterial(ref readonly Material material);
+    [Obsolete("No point to set active mesh anymore in gpu driven pipeline.")]
     void SetActiveMesh(Handle<Mesh> mesh);
+    [Obsolete("No point to set active mesh anymore in gpu driven pipeline.")]
     void SetActiveMesh(ref readonly Mesh mesh);
     void DispatchMesh(uint3 threadGroupCount);
 }
 
 public interface IComputeRenderContext : IRenderGraphContext
 {
-    void SetActiveCompute(Handle<ComputeShader> computeShader, uint entryIndex);
+    void SetActiveCompute(Handle<ComputeShader> computeShader, int entryIndex);
     void DispatchCompute(uint3 threadGroupCount);
 }
 
@@ -160,35 +163,58 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         }
 
         ref var shader = ref shaderResult.Value;
-        ref var pass = ref shader.GetPassReference(material.ActivePassIndex);
+        ref readonly var pass = ref shader.GetPassReference(material.ActivePassIndex);
 
-        var passPipelineHash = new PassPipelineHash(_rtvFormats, _dsvFormat);
+        var passPipelineHash = new PassAttachmentHash(_rtvFormats, _dsvFormat);
         var materialPipeline = material.GetPassPipelineOverride(material.ActivePassIndex);
 
         // Mask out the keywords that are not used in this pass.
         var variantMask = material._keywordMask & pass.KeywordIDs;
-        var shaderVariantKey = RHIUtility.CreateShaderVariantKey(pass.Key, in variantMask);
-        var pipelineKey = RHIUtility.CreateGraphicsPipelineKey(shaderVariantKey, materialPipeline, passPipelineHash);
+        var variantKey = RHIUtility.CreateShaderVariantKey(pass.Key, in variantMask);
+
+        var (compiledHash, error) = _shaderLibrary.GetCompiledHash(variantKey);
+        if (error.IsFailure)
+        {
+            // TODO: Fallback to a default shader or show an error material.
+            return;
+        }
+
+        var pipelineKey = RHIUtility.CreateGraphicsPipelineKey(compiledHash, materialPipeline, passPipelineHash);
 
         if (!_pipelineLibrary.HasPipelineStateObject(pipelineKey))
         {
-            var compiledCacheResult = _shaderLibrary.GetCache(shaderVariantKey);
+            using var scope = AllocationManager.CreateStackScope();
+            var compiledCacheResult = _shaderLibrary.GetCompiledCache(shader.UniqueID, material.ActivePassIndex, scope.AllocationHandle);
             if (compiledCacheResult.IsFailure)
             {
                 throw new InvalidOperationException("Failed to load compiled shader cache for pipeline state object creation.");
             }
 
-            var psoDes = new GraphicsPSODescriptor
+            var cache = compiledCacheResult.Value;
+            Logger.DebugAssert(cache.compiledHash == compiledHash);
+
+            ShaderLibrary.ParseCacheData(cache.byteCode, out _, out var byteCodeOffsets, out var byteCodes);
+            Logger.DebugAssert(byteCodeOffsets.Length == 3); // as, ms, ps
+
+            var asByteCode = byteCodes.Slice((int)byteCodeOffsets[0], (int)(byteCodeOffsets[1] - byteCodeOffsets[0]));
+            var msByteCode = byteCodes.Slice((int)byteCodeOffsets[1], (int)(byteCodeOffsets[2] - byteCodeOffsets[1]));
+            var psByteCode = byteCodes.Slice((int)byteCodeOffsets[2]);
+
+            var psoDes = new GraphicsPSODesc
             {
-                VariantKey = shaderVariantKey,
+                CompiledHash = compiledHash,
+                VariantKey = variantKey,
                 PipelineOption = materialPipeline,
 
                 RtvFormats = _rtvFormats.AsSpan(0, _rtvCount),
                 DsvFormat = _dsvFormat,
+
+                AsCode = asByteCode,
+                MsCode = msByteCode,
+                PsCode = psByteCode,
             };
 
-            var compiled = compiledCacheResult.Value;
-            _pipelineLibrary.CreateGraphicsPipeline(in psoDes, in compiled).GetValueOrThrow();
+            _pipelineLibrary.CreateGraphicsPipeline(in psoDes).GetValueOrThrow();
         }
 
         _activePerMaterialData = material._cBufferCache.GpuResource;
@@ -238,7 +264,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         _commandBuffer.DispatchMesh(threadGroupCount.x, threadGroupCount.y, threadGroupCount.z);
     }
 
-    public void SetActiveCompute(Handle<ComputeShader> computeShader, uint entryIndex)
+    public void SetActiveCompute(Handle<ComputeShader> computeShader, int entryIndex)
     {
         var r = _resourceManager.GetComputeShaderReference(computeShader);
         if (r.IsFailure)
@@ -247,30 +273,50 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         }
 
         ref var shader = ref r.Value;
-        var entryHash = shader.GetEntryHash((int)entryIndex);
+        var entryHash = shader.GetEntryID(entryIndex);
         var keywordSet = new LocalKeywordSet(); // TODO: Support keywords in compute shader.
         var variantKey = RHIUtility.CreateShaderVariantKey(entryHash, in keywordSet);
-        var pipelineKey = RHIUtility.CreateComputePipelineKey(variantKey);
+
+        var (compiledHash, error) = _shaderLibrary.GetCompiledHash(variantKey);
+        if (error.IsFailure)
+        {
+            // TODO: Fallback to a default shader or show an error material.
+            return;
+        }
+
+        var pipelineKey = RHIUtility.CreateComputePipelineKey(compiledHash);
 
         if (!_pipelineLibrary.HasPipelineStateObject(pipelineKey))
         {
-            var compiledCacheResult = _shaderCompiler.GetCompiledCache(variantKey);
+            using var scope = AllocationManager.CreateStackScope();
+            var compiledCacheResult = _shaderLibrary.GetCompiledCache(shader.UniqueID, entryIndex, scope.AllocationHandle);
             if (compiledCacheResult.IsFailure)
             {
                 throw new InvalidOperationException("Failed to load compiled shader cache for pipeline state object creation.");
             }
-            var psoDes = new ComputePSODescriptor
+
+            var cache = compiledCacheResult.Value;
+            Logger.DebugAssert(cache.compiledHash == compiledHash);
+
+            ShaderLibrary.ParseCacheData(cache.byteCode, out _, out var byteCodeOffsets, out var byteCodes);
+            Logger.DebugAssert(byteCodeOffsets.Length == 1);
+
+            var psoDes = new ComputePSODesc
             {
+                CompiledHash = compiledHash,
                 VariantKey = variantKey,
+                CsCode = byteCodes.Slice((int)byteCodeOffsets[0]),
             };
-            var compiled = compiledCacheResult.Value;
-            _pipelineLibrary.CreateComputePipeline(in psoDes, in compiled).GetValueOrThrow();
+
+            _pipelineLibrary.CreateComputePipeline(in psoDes).GetValueOrThrow();
         }
+
+        _commandBuffer.SetPipelineState(pipelineKey);
     }
 
     public void DispatchCompute(uint3 threadGroupCount)
     {
-        throw new NotImplementedException();
+
     }
 
     public ICommandBuffer GetCommandBufferUnsafe()

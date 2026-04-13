@@ -25,7 +25,7 @@ public unsafe class EntityCommandBuffer : IDisposable
     public EntityCommandBuffer(EntityManager entityManager)
     {
         _entityManager = entityManager;
-        _buffer = new UnsafeList<byte>(4096, Allocator.Persistent);
+        _buffer = new UnsafeList<byte>(4096, AllocationHandle.Persistent);
     }
 
     ~EntityCommandBuffer()

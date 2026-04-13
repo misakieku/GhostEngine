@@ -18,21 +18,21 @@ public enum GateFit : uint
 public struct Frustum
 {
     [InlineArray(6)]
-    public struct plane_array
+    public struct __plane_array
     {
         private float4 plane;
     }
 
     [InlineArray(8)]
-    public struct corner_array
+    public struct __corner_array
     {
         private float3 corner;
     }
 
-    public plane_array planes;
-    public corner_array corners;
+    public __plane_array planes;
+    public __corner_array corners;
 
-    public static void CalculateFrustumPlanes(float4x4 finalMatrix, ref plane_array outPlanes)
+    public static void CalculateFrustumPlanes(float4x4 finalMatrix, ref __plane_array outPlanes)
     {
         const int planeFrustumLeft = 0;
         const int planeFrustumRight = 1;

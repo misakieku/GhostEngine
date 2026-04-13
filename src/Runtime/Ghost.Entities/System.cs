@@ -61,7 +61,7 @@ public abstract class SystemBase : ISystem
     {
         if (!_requiredQueries.IsCreated)
         {
-            _requiredQueries = new UnsafeList<int>(4, Misaki.HighPerformance.LowLevel.Buffer.Allocator.Persistent);
+            _requiredQueries = new UnsafeList<int>(4, Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle.Persistent);
         }
 
         _requiredQueries.Add(queryID.Value);

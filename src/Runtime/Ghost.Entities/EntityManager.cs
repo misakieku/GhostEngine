@@ -50,7 +50,7 @@ public unsafe partial class EntityManager : IDisposable
     internal EntityManager(World world, int initialCapacity)
     {
         _world = world;
-        _entityLocations = new UnsafeSlotMap<EntityLocation>(initialCapacity, Allocator.Persistent, AllocationOption.Clear);
+        _entityLocations = new UnsafeSlotMap<EntityLocation>(initialCapacity, AllocationHandle.Persistent, AllocationOption.Clear);
         _scriptComponents = new SlotMap<List<ScriptComponent>>(initialCapacity / 2);
         // _storages = new IManagedComponentStorage[16];
     }
@@ -638,7 +638,7 @@ public unsafe partial class EntityManager : IDisposable
         newArchetype.SetComponentData(newChunkIndex, newRowIndex, componentID, pComponent);
 
         var r = oldArchetype.RemoveEntity(location.chunkIndex, location.rowIndex);
-        Debug.Assert(r == Error.None); // We assert it because the entity should exist if the whole system is consistent.
+        Logger.DebugAssert(r == Error.None); // We assert it because the entity should exist if the whole system is consistent.
         if (r != Error.None)
         {
             return r;
@@ -742,7 +742,7 @@ public unsafe partial class EntityManager : IDisposable
         newArchetype.SetEntity(newChunkIndex, newRowIndex, entity);
 
         var r = oldArchetype.RemoveEntity(location.chunkIndex, location.rowIndex);
-        Debug.Assert(r == Error.None); // We assert it because the entity should exist if the whole system is consistent.
+        Logger.DebugAssert(r == Error.None); // We assert it because the entity should exist if the whole system is consistent.
         if (r != Error.None)
         {
             return r;

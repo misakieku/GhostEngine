@@ -44,10 +44,10 @@ public sealed partial class ResourceManager : IDisposable
         _resourceAllocator = resourceAllocator;
         _resourceDatabase = resourceDatabase;
 
-        _meshes = new UnsafeSlotMap<Mesh>(64, Allocator.Persistent);
-        _materials = new UnsafeSlotMap<Material>(64, Allocator.Persistent);
-        _shaders = new UnsafeSlotMap<Shader>(16, Allocator.Persistent);
-        _computeShaders = new UnsafeSlotMap<ComputeShader>(16, Allocator.Persistent);
+        _meshes = new UnsafeSlotMap<Mesh>(64, AllocationHandle.Persistent);
+        _materials = new UnsafeSlotMap<Material>(64, AllocationHandle.Persistent);
+        _shaders = new UnsafeSlotMap<Shader>(16, AllocationHandle.Persistent);
+        _computeShaders = new UnsafeSlotMap<ComputeShader>(16, AllocationHandle.Persistent);
 
         _materialPalettes = new MaterialPaletteStore();
     }
@@ -59,25 +59,25 @@ public sealed partial class ResourceManager : IDisposable
 
     internal void BeginFrame(ulong submittedFrame)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
         _submittedFrame = submittedFrame;
     }
 
     internal void EndFrame(ulong completedFrame)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
         EndFramePool(completedFrame);
     }
 
     public void EnterParallelRead()
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
         Volatile.Write(ref _writeLock, 1);
     }
 
     public void ExitParallelRead()
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
         Volatile.Write(ref _writeLock, 0);
     }
 
@@ -89,7 +89,7 @@ public sealed partial class ResourceManager : IDisposable
     /// <returns>An <see cref="Identifier{Mesh}"/> representing the newly created mesh.</returns>
     public unsafe Handle<Mesh> CreateMesh(UnsafeList<Vertex> vertices, UnsafeList<uint> indices)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
 
         var spinner = new SpinWait();
         while (Interlocked.CompareExchange(ref _writeLock, 1, 0) != 0)
@@ -152,7 +152,7 @@ public sealed partial class ResourceManager : IDisposable
     /// <returns>An <see cref="Handle{Material}"/> representing the newly created material.</returns>
     public Handle<Material> CreateMaterial(Handle<Shader> shader)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
 
         var spinner = new SpinWait();
         while (Interlocked.CompareExchange(ref _writeLock, 1, 0) != 0)
@@ -184,7 +184,7 @@ public sealed partial class ResourceManager : IDisposable
     /// <param name="descriptor">The viewGroup containing the shader's properties and passes.</param>
     public Handle<Shader> CreateGraphicsShader(GraphicsShaderDescriptor descriptor)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
 
         var spinner = new SpinWait();
         while (Interlocked.CompareExchange(ref _writeLock, 1, 0) != 0)
@@ -207,7 +207,7 @@ public sealed partial class ResourceManager : IDisposable
 
     public Handle<ComputeShader> CreateComputeShader(ComputeShaderDescriptor descriptor)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
         var spinner = new SpinWait();
         while (Interlocked.CompareExchange(ref _writeLock, 1, 0) != 0)
         {
@@ -233,7 +233,7 @@ public sealed partial class ResourceManager : IDisposable
     /// <returns>true if a mesh with the specified Handle exists; otherwise, false.</returns>
     public bool HasMesh(Handle<Mesh> handle)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
         return _meshes.Contains(handle.ID, handle.Generation);
     }
 
@@ -259,7 +259,7 @@ public sealed partial class ResourceManager : IDisposable
     /// <param name="handle">The handle of the mesh to release. Must refer to a mesh that was previously created and not already released.</param>
     public void ReleaseMesh(Handle<Mesh> handle)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
 
         ref var mesh = ref _meshes.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
         if (!exist)
@@ -278,7 +278,7 @@ public sealed partial class ResourceManager : IDisposable
     /// <returns>true if a material with the specified handle exists; otherwise, false.</returns>
     public bool HasMaterial(Handle<Material> handle)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
         return _materials.Contains(handle.ID, handle.Generation);
     }
 
@@ -304,7 +304,7 @@ public sealed partial class ResourceManager : IDisposable
     /// <param name="handle">The handle of the material to release. Must refer to a material that has been previously acquired.</param>
     public void ReleaseMaterial(Handle<Material> handle)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
 
         ref var material = ref _materials.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
         if (!exist)
@@ -323,7 +323,7 @@ public sealed partial class ResourceManager : IDisposable
     /// <returns>The palette index. Index 0 represents an empty palette.</returns>
     public int GetOrCreateMaterialPalette(ReadOnlySpan<Handle<Material>> materials)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
 
         foreach (var material in materials)
         {
@@ -342,7 +342,7 @@ public sealed partial class ResourceManager : IDisposable
     /// <param name="paletteID">The palette index to validate.</param>
     public bool HasMaterialPalette(Identifier<MaterialPalette> paletteID)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
         return _materialPalettes.IsValid(paletteID);
     }
 
@@ -352,7 +352,7 @@ public sealed partial class ResourceManager : IDisposable
     /// <param name="paletteID">The palette index to query.</param>
     public MaterialPalette GetMaterialPaletteInfo(Identifier<MaterialPalette> paletteID)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
         return _materialPalettes.GetInfo(paletteID);
     }
 
@@ -363,7 +363,7 @@ public sealed partial class ResourceManager : IDisposable
     /// <param name="localMaterialIndex">The material slot inside the palette.</param>
     public Handle<Material> GetMaterialPaletteMaterial(Identifier<MaterialPalette> paletteID, int localMaterialIndex)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
         return _materialPalettes.GetMaterial(paletteID, localMaterialIndex);
     }
 
@@ -373,7 +373,7 @@ public sealed partial class ResourceManager : IDisposable
     /// <param name="paletteID">The palette index to release.</param>
     public void ReleaseMaterialPalette(Identifier<MaterialPalette> paletteID)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
         _materialPalettes.Release(paletteID);
     }
 
@@ -384,7 +384,7 @@ public sealed partial class ResourceManager : IDisposable
     /// <returns>true if a shader with the specified identifier exists; otherwise, false.</returns>
     public bool HasShader(Handle<Shader> id)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
         return _shaders.Contains(id.ID, id.Generation);
     }
 
@@ -410,7 +410,7 @@ public sealed partial class ResourceManager : IDisposable
     /// <param name="handle">The identifier of the shader to release. Must refer to a valid, previously created shader.</param>
     public void ReleaseShader(Handle<Shader> handle)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
 
         ref var shader = ref _shaders.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
         if (!exist)
@@ -429,7 +429,7 @@ public sealed partial class ResourceManager : IDisposable
     /// <returns>true if a compute shader with the specified identifier exists; otherwise, false.</returns>
     public bool HasComputeShader(Handle<ComputeShader> id)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
         return _computeShaders.Contains(id.ID, id.Generation);
     }
 
@@ -455,7 +455,7 @@ public sealed partial class ResourceManager : IDisposable
     /// <param name="handle">The identifier of the compute shader to release. Must refer to a valid, previously created ComputeShader.</param>
     public void ReleaseComputeShader(Handle<ComputeShader> handle)
     {
-        Debug.Assert(!_disposed);
+        Logger.DebugAssert(!_disposed);
 
         ref var computeShader = ref _computeShaders.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
         if (!exist)

@@ -140,13 +140,8 @@ internal static class DSLShaderCompiler
 
             var pixelShaderCode = new ShaderCode { code = result.Value, entryPoint = pass.pixelShader.entry };
 
-            var asHash = Hash.Combine64(GetUniqueId(amplificationShaderCode.code), GetUniqueId(amplificationShaderCode.entryPoint));
-            var msHash = Hash.Combine64(GetUniqueId(meshShaderCode.code), GetUniqueId(meshShaderCode.entryPoint));
-            var psHash = Hash.Combine64(GetUniqueId(pixelShaderCode.code), GetUniqueId(pixelShaderCode.entryPoint));
-
             passes[i] = new PassDescriptor
             {
-                identifier = Hash.Combine64(GetUniqueId(semantics.name + pass.name), asHash, msHash, psHash),
                 name = pass.name,
 
                 amplificationShaderCode = amplificationShaderCode,
