@@ -62,7 +62,6 @@ internal static class ActivationHandler
         };
 
         AllocationManager.Initialize(opts);
-        TypeCache.Initialize();
         
         //App.GetService<EngineCore>();
 

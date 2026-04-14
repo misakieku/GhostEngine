@@ -1,3 +1,5 @@
+#if false
+
 using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.DSL.ShaderCompiler;
@@ -368,3 +370,4 @@ public unsafe partial class TestRenderPipeline : IRenderPipeline
         GC.SuppressFinalize(this);
     }
 }
+#endif

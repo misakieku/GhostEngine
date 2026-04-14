@@ -175,5 +175,3 @@ public readonly struct AssetReference : IEquatable<AssetReference>
         return !(left == right);
     }
 }
-
-public interface IAssetSettings;

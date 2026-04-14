@@ -1,510 +1,269 @@
+using System.Collections.Concurrent;
+using System.Reflection;
 using Ghost.Core;
 using Ghost.Editor.Core.AssetHandler;
 using Ghost.Editor.Core.Contracts;
-using System.Collections.Concurrent;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
-namespace TestProject.AssetDB;
+namespace Ghost.Editor.Core.Services;
 
-internal class PathComparer : IEqualityComparer<string>
+/// <summary>
+/// Central asset registry for the GhostEngine editor.
+/// </summary>
+internal sealed class AssetRegistry : IAssetRegistry, IDisposable
 {
-    private static string ToCanonicalPath(string? path)
-    {
-        return path?.Replace('\\', '/').TrimEnd('/') ?? string.Empty;
-    }
-
-    public bool Equals(string? x, string? y)
-    {
-        return string.Equals(
-            ToCanonicalPath(x),
-            ToCanonicalPath(y),
-            StringComparison.Ordinal);
-    }
-
-    public int GetHashCode(string str)
-    {
-        return ToCanonicalPath(str).GetHashCode(StringComparison.Ordinal);
-    }
-}
-
-// TODO: Path based locking for multi-threaded access?
-// Is it actually necessary since this is mostly used in editor environment where single-threaded access is common (99.999%)?
-internal partial class AssetRegistry : IAssetRegistry
-{
-    public const string ASSET_EXTENSION = ".gasset";
-    public const string TEMP_EXTENSION = ".gtemp";
-
-    private readonly string _rootDirectory;
+    private readonly string _assetsRoot;
+    private readonly string _libraryRoot;
+    private readonly AssetCatalog _catalog;
+    private readonly AssetHandlerRegistry _handlerRegistry;
+    private readonly ImportCoordinator _importCoordinator;
     private readonly FileSystemWatcher _watcher;
 
-    private readonly ConcurrentDictionary<string, Guid> _pathToGuid;
-    private readonly ConcurrentDictionary<Guid, string> _guidToPath;
-
-    private readonly ConcurrentDictionary<nint, IAssetHandler> _cachedHander;
     private readonly ConcurrentDictionary<Guid, WeakReference<Asset>> _loadedAssets;
-
-    private readonly Dictionary<Guid, HashSet<Guid>> _referencerGraph;
-    private readonly Dictionary<Guid, HashSet<Guid>> _dependencyCache;
-
-    private readonly ConcurrentDictionary<string, bool> _ignoreFileChanges;
-
-    private readonly SemaphoreSlim _cacheSlim;
-    private readonly Lock _pathLock;
+    private readonly SemaphoreSlim _loadLock = new(1, 1);
+    private readonly ConcurrentDictionary<string, bool> _ignoreMetaWrites = new(StringComparer.OrdinalIgnoreCase);
 
     public event EventHandler<IAssetRegistry, AssetChangedEventArgs>? OnAssetChanged;
 
-    public AssetRegistry(string rootDirectory)
+    public AssetRegistry(string assetsRoot)
     {
-        if (!Directory.Exists(rootDirectory))
-        {
-            throw new DirectoryNotFoundException("The specified root directory does not exist.");
-        }
+        _assetsRoot = Path.GetFullPath(assetsRoot);
+        _libraryRoot = Path.Combine(Path.GetDirectoryName(_assetsRoot)!, EditorApplication.LIBRARY_FOLDER_NAME);
 
-        if (!Path.IsPathFullyQualified(rootDirectory))
-        {
-            throw new InvalidOperationException("The specified root directory must be an absolute path.");
-        }
+        // TODO: This should be handled by EditorApplication.
+        Directory.CreateDirectory(_assetsRoot);
+        Directory.CreateDirectory(_libraryRoot);
 
-        _rootDirectory = rootDirectory;
-        _watcher = new FileSystemWatcher(rootDirectory)
+        var dbPath = Path.Combine(_libraryRoot, "AssetDB.sqlite");
+
+        _catalog = new AssetCatalog(dbPath);
+        _handlerRegistry = new AssetHandlerRegistry();
+        _importCoordinator = new ImportCoordinator(_catalog, _handlerRegistry, _assetsRoot, _libraryRoot);
+
+        _loadedAssets = new ConcurrentDictionary<Guid, WeakReference<Asset>>();
+
+        SyncCatalogWithDisk();
+
+        _watcher = new FileSystemWatcher(_assetsRoot)
         {
             IncludeSubdirectories = true,
             EnableRaisingEvents = true,
+            NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.DirectoryName
         };
 
-        _pathToGuid = new ConcurrentDictionary<string, Guid>(4, 512, new PathComparer());
-        _guidToPath = new ConcurrentDictionary<Guid, string>(4, 512);
-        _cachedHander = new ConcurrentDictionary<nint, IAssetHandler>(4, 16);
-        _loadedAssets = new ConcurrentDictionary<Guid, WeakReference<Asset>>(4, 512);
+        _watcher.Created += OnFileSystemEvent;
+        _watcher.Deleted += OnFileSystemEvent;
+        _watcher.Changed += OnFileSystemEvent;
+        _watcher.Renamed += OnFileSystemRenameEvent;
 
-        _referencerGraph = new Dictionary<Guid, HashSet<Guid>>();
-        _dependencyCache = new Dictionary<Guid, HashSet<Guid>>();
-
-        _ignoreFileChanges = new ConcurrentDictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
-
-        _cacheSlim = new SemaphoreSlim(1, 1);
-        _pathLock = new Lock();
-
-        LoadExistingAssets();
-
-        _watcher.Created += OnFileSystemOp;
-        _watcher.Deleted += OnFileSystemOp;
-        _watcher.Changed += OnFileSystemOp;
-        _watcher.Renamed += OnFileSystemRenameOp;
+        _importCoordinator.EnqueueDirtyAssetsAsync().AsTask().Wait();
     }
 
-    // TODO: DB Cache
-    private unsafe void LoadExistingAssets()
+    private void SyncCatalogWithDisk()
     {
-        Span<byte> guidBuffer = stackalloc byte[sizeof(Guid)];
-        foreach (var filePath in Directory.EnumerateFiles(_rootDirectory, $"*{ASSET_EXTENSION}", SearchOption.AllDirectories))
-        {
-            var relativePath = Path.GetRelativePath(_rootDirectory, filePath);
-
-            try
-            {
-                var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                try
-                {
-                    fs.Seek(4, SeekOrigin.Begin); // Skip format version
-                    fs.ReadExactly(guidBuffer);
-
-                    var guid = Unsafe.ReadUnaligned<Guid>(ref MemoryMarshal.GetReference(guidBuffer));
-                    UpdatePathMapping(relativePath, guid);
-                }
-                finally
-                {
-                    fs.Dispose();
-                }
-            }
-            catch (Exception
-#if DEBUG
-                    ex
-#endif
-                    )
-            {
-#if DEBUG
-                System.Diagnostics.Debugger.BreakForUserUnhandledException(ex);
-#endif
-                continue;
-            }
-        }
-    }
-
-    private void UpdateGraph(Guid assetId, IEnumerable<Guid> newDependencies)
-    {
-        // 1. Clean up old references (reverse)
-        if (_dependencyCache.TryGetValue(assetId, out var oldDeps))
-        {
-            foreach (var dep in oldDeps)
-            {
-                if (_referencerGraph.TryGetValue(dep, out var refs))
-                {
-                    refs.Remove(assetId);
-                }
-            }
-        }
-
-        // 2. Set new forward dependencies
-        var newDepSet = new HashSet<Guid>(newDependencies);
-        _dependencyCache[assetId] = newDepSet;
-
-        // 3. Add new references (reverse)
-        foreach (var dep in newDepSet)
-        {
-            ref var referencers = ref CollectionsMarshal.GetValueRefOrAddDefault(_referencerGraph, dep, out var exists);
-            if (!exists || referencers is null)
-            {
-                referencers = new HashSet<Guid>();
-            }
-
-            referencers.Add(assetId);
-        }
-    }
-
-    private void UpdatePathMapping(string relativePath, Guid guid)
-    {
-        lock (_pathLock)
-        {
-            _pathToGuid[relativePath] = guid;
-            _guidToPath[guid] = relativePath;
-        }
-    }
-
-    private bool RemovePathMappingByPath(string relativePath)
-    {
-        lock (_pathLock)
-        {
-            if (_pathToGuid.Remove(relativePath, out var guid))
-            {
-                return _guidToPath.TryRemove(guid, out _);
-            }
-        }
-
-        return false;
-    }
-
-    private async void OnFileSystemOp(object sender, FileSystemEventArgs e)
-    {
-        if (_ignoreFileChanges.TryRemove(e.FullPath, out _))
+        if (!Directory.Exists(_assetsRoot))
         {
             return;
         }
 
-        var relativePath = Path.GetRelativePath(_rootDirectory, e.FullPath);
-        var ext = Path.GetExtension(relativePath);
+        var metaFiles = Directory.EnumerateFiles(_assetsRoot, "*.gmeta", SearchOption.AllDirectories);
+        var foundGuids = new HashSet<Guid>();
 
-        var changeType = AssetChangeType.None;
-        var fireEvent = false;
-        var isAsset = ext.Equals(ASSET_EXTENSION, StringComparison.Ordinal);
-        var isTemp = ext.Equals(TEMP_EXTENSION, StringComparison.Ordinal);
-
-        switch (e.ChangeType)
+        foreach (var metaPath in metaFiles)
         {
-            case WatcherChangeTypes.Created:
-                changeType = AssetChangeType.Created;
-                if (!isAsset && !isTemp)
-                {
-                    var handler = GetAssetHandlerForExtension(ext);
-                    if (handler is IImportableAssetHandler importableHandler)
-                    {
-                        var assetPath = string.Create(e.FullPath.Length - ext.Length + ASSET_EXTENSION.Length, e.FullPath, (destSpan, source) =>
-                        {
-                            source.AsSpan(0, source.Length - ext.Length).CopyTo(destSpan);
-                            ASSET_EXTENSION.AsSpan().CopyTo(destSpan.Slice(source.Length - ext.Length));
-                        });
-
-                        var newGuid = Guid.NewGuid();
-                        await using var sourceStream = new FileStream(e.FullPath, FileMode.Open, FileAccess.Read);
-                        await using var targetStream = new FileStream(assetPath, FileMode.Create, FileAccess.Write);
-                        await importableHandler.ImportAsync(sourceStream, targetStream, newGuid);
-
-                        File.Delete(assetPath);
-                        UpdatePathMapping(relativePath, newGuid);
-
-                        fireEvent = true;
-                    }
-                }
-                break;
-
-            case WatcherChangeTypes.Deleted:
-                changeType = AssetChangeType.Deleted;
-                if (isAsset)
-                {
-                    fireEvent = RemovePathMappingByPath(relativePath);
-                }
-                break;
-
-            case WatcherChangeTypes.Changed:
-                changeType = AssetChangeType.Modified;
-                fireEvent = isAsset;
-                break;
-            case WatcherChangeTypes.All:
-                // Can this even happen?
-                break;
-            default:
-                break;
+            var meta = AssetMetaIO.ReadAsync(metaPath).AsTask().Result;
+            if (meta != null)
+            {
+                var sourceRelative = AssetMetaIO.GetSourcePath(Path.GetRelativePath(_assetsRoot, metaPath));
+                _catalog.Upsert(meta, sourceRelative.Replace('\\', '/'));
+                foundGuids.Add(meta.Guid);
+            }
         }
 
-        if (fireEvent)
+        foreach (var (guid, path) in _catalog.EnumerateAll())
         {
-            OnAssetChanged?.Invoke(this, new AssetChangedEventArgs(relativePath, null, changeType));
+            if (!foundGuids.Contains(guid))
+            {
+                _catalog.Remove(guid);
+            }
         }
     }
 
-    private void OnFileSystemRenameOp(object sender, RenamedEventArgs e)
+    private async void OnFileSystemEvent(object sender, FileSystemEventArgs e)
     {
         var ext = Path.GetExtension(e.FullPath);
-        if (!ext.Equals(ASSET_EXTENSION, StringComparison.Ordinal))
+        var relativePath = Path.GetRelativePath(_assetsRoot, e.FullPath).Replace('\\', '/');
+
+        if (_ignoreMetaWrites.TryRemove(e.FullPath, out _))
         {
             return;
         }
 
-        var oldRelativePath = Path.GetRelativePath(_rootDirectory, e.OldFullPath);
-        var newRelativePath = Path.GetRelativePath(_rootDirectory, e.FullPath);
-
-        if (_pathToGuid.Remove(oldRelativePath, out var guid))
+        if (ext is ".tmp" or ".gtemp")
         {
-            UpdatePathMapping(newRelativePath, guid);
-            OnAssetChanged?.Invoke(this, new AssetChangedEventArgs(newRelativePath, oldRelativePath, AssetChangeType.Renamed));
+            return;
         }
-    }
 
-    public string? GetAssetPath(Guid id)
-    {
-        lock (_pathLock)
+        if (ext == ".gmeta")
         {
-            if (_guidToPath.TryGetValue(id, out var path))
+            if (e.ChangeType == WatcherChangeTypes.Changed || e.ChangeType == WatcherChangeTypes.Created)
             {
-                return path;
+                var meta = AssetMetaIO.ReadAsync(e.FullPath).AsTask().Result;
+                if (meta != null)
+                {
+                    _catalog.Upsert(meta, AssetMetaIO.GetSourcePath(relativePath));
+                    await _importCoordinator.EnqueueAsync(new ImportJob(meta.Guid, AssetMetaIO.GetSourcePath(relativePath), e.FullPath, ImportReason.SettingsChanged));
+                }
+            }
+            return;
+        }
+
+        if (e.ChangeType == WatcherChangeTypes.Created)
+        {
+            await HandleNewSourceFileAsync(e.FullPath, relativePath);
+        }
+        else if (e.ChangeType == WatcherChangeTypes.Changed)
+        {
+            var guid = _catalog.GetGuid(relativePath);
+            if (guid != Guid.Empty)
+            {
+                await _importCoordinator.EnqueueAsync(new ImportJob(guid, relativePath, AssetMetaIO.GetMetaPath(e.FullPath), ImportReason.SourceChanged));
             }
         }
-
-        return null;
     }
 
-    public Guid GetAssetGuid(string path)
+    private void OnFileSystemRenameEvent(object sender, RenamedEventArgs e)
     {
-        lock (_pathLock)
+        var oldRelative = Path.GetRelativePath(_assetsRoot, e.OldFullPath).Replace('\\', '/');
+        var newRelative = Path.GetRelativePath(_assetsRoot, e.FullPath).Replace('\\', '/');
+
+        var guid = _catalog.GetGuid(oldRelative);
+        if (guid != Guid.Empty)
         {
-            if (_pathToGuid.TryGetValue(path, out var guid))
+            _catalog.Remove(guid);
+            var metaFile = AssetMetaIO.GetMetaPath(e.FullPath);
+            if (File.Exists(metaFile))
             {
-                return guid;
+                var meta = AssetMetaIO.ReadAsync(metaFile).AsTask().Result;
+                if (meta != null)
+                {
+                    _catalog.Upsert(meta, newRelative);
+                }
             }
         }
-
-        return Guid.Empty;
     }
 
-    private IAssetHandler GetAssetHandler(Type type)
+    private async Task HandleNewSourceFileAsync(string fullPath, string relativePath)
     {
-        var typeHandle = type.TypeHandle.Value;
-        if (_cachedHander.TryGetValue(typeHandle, out var handler))
+        var ext = Path.GetExtension(relativePath);
+
+        var handler = _handlerRegistry.GetByExtension(ext);
+        var importable = handler as IImportableAssetHandler;
+
+        var metaPath = AssetMetaIO.GetMetaPath(fullPath);
+        if (File.Exists(metaPath))
         {
-            return handler;
+            return;
         }
 
-        var obj = Activator.CreateInstance(type);
-        if (obj is not IAssetHandler newHandler)
+        var handlerTypeId = handler?.GetType().GetCustomAttribute<CustomAssetHandlerAttribute>()?.ID;
+        var meta = new AssetMeta
         {
-            throw new InvalidOperationException($"Type {type.FullName} is not an IAssetHandler.");
-        }
+            Guid = Guid.NewGuid(),
+            HandlerTypeId = handlerTypeId == null ? null : Guid.Parse(handlerTypeId),
+            HandlerVersion = 1,
+            Settings = importable?.CreateDefaultSettings()
+        };
 
-        var attr = type.GetCustomAttribute<CustomAssetHandlerAttribute>(false);
-        if (attr is null || attr.AllowCaching)
-        {
-            _cachedHander[typeHandle] = newHandler;
-        }
+        _ignoreMetaWrites[metaPath] = true;
+        await AssetMetaIO.WriteAsync(metaPath, meta);
+        
+        _catalog.Upsert(meta, relativePath);
 
-        return newHandler;
+        await _importCoordinator.EnqueueAsync(new ImportJob(meta.Guid, relativePath, metaPath, ImportReason.NewAsset));
     }
 
-    private IAssetHandler? GetAssetHandlerForExtension(string extension)
-    {
-        foreach (var handlerType in AppDomain.CurrentDomain.GetAssemblies()
-                     .SelectMany(assembly => assembly.GetTypes())
-                     .Where(type => typeof(IAssetHandler).IsAssignableFrom(type) && !type.IsInterface && !type.IsAbstract))
-        {
-            var attr = handlerType.GetCustomAttribute<CustomAssetHandlerAttribute>(false);
-            if (attr is not null && attr.SupportedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
-            {
-                return GetAssetHandler(handlerType);
-            }
-        }
+    public string? GetAssetPath(Guid id) => _catalog.GetSourcePath(id);
 
-        return null;
-    }
-
-    private IAssetHandler? GetAssetHandlerForTypeId(Guid typeId)
-    {
-        foreach (var handlerType in AppDomain.CurrentDomain.GetAssemblies()
-                     .SelectMany(assembly => assembly.GetTypes())
-                     .Where(type => typeof(IAssetHandler).IsAssignableFrom(type) && !type.IsInterface && !type.IsAbstract))
-        {
-            var attr = handlerType.GetCustomAttribute<CustomAssetHandlerAttribute>(false);
-            if (attr is not null && new Guid(attr.ID) == typeId)
-            {
-                return GetAssetHandler(handlerType);
-            }
-        }
-
-        return null;
-    }
+    public Guid GetAssetGuid(string path) => _catalog.GetGuid(path.Replace('\\', '/'));
 
     public async ValueTask<Result<Guid>> ImportAssetAsync(string sourceFilePath, string targetAssetPath, CancellationToken token = default)
     {
-        if (!File.Exists(sourceFilePath))
-        {
-            return Result.Failure("Source file not found.");
-        }
+        // Simple copy + wait for FSW or manually trigger?
+        // Current requirement: "returns the new GUID immediately (import happens in background)"
 
         var ext = Path.GetExtension(sourceFilePath);
-        var handler = GetAssetHandlerForExtension(ext);
-        if (handler is not IImportableAssetHandler importableHandler)
-        {
-            return Result.Failure("No importable asset handler found for the given file extension.");
-        }
+        var relativePath = targetAssetPath.Replace('\\', '/');
+        var fullPath = Path.Combine(_assetsRoot, relativePath);
 
-        var guid = Guid.NewGuid();
-        var fullTargetPath = Path.GetFullPath(targetAssetPath, _rootDirectory);
-        if (!await importableHandler.ImportAsync(sourceFilePath, fullTargetPath, guid, token: token))
-        {
-            return Result.Failure("Asset import failed.");
-        }
+        Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
+        File.Copy(sourceFilePath, fullPath, true);
 
-        UpdatePathMapping(targetAssetPath, guid);
-        return guid;
+        // FSW will trigger but we can speed it up
+        await HandleNewSourceFileAsync(fullPath, relativePath);
+
+        var guid = _catalog.GetGuid(relativePath);
+        return Result.Success(guid);
     }
 
     public async ValueTask<Result> ReimportAssetAsync(Guid assetId, string sourceFilePath, CancellationToken token = default)
     {
-        var assetPath = GetAssetPath(assetId);
-        if (string.IsNullOrEmpty(assetPath))
+        var path = _catalog.GetSourcePath(assetId);
+        if (path == null)
         {
-            return Result.Failure("Asset not found in DB");
+            return Result.Failure("Asset not found");
         }
 
-        var fullAssetPath = Path.GetFullPath(assetPath, _rootDirectory);
+        var fullPath = Path.Combine(_assetsRoot, path);
+        var metaPath = AssetMetaIO.GetMetaPath(fullPath);
 
-        // 2. Identify the Handler
-        // (You might want to store SourcePath in metadata later so you don't need to pass it here)
-        var ext = Path.GetExtension(sourceFilePath);
-        var handler = GetAssetHandlerForExtension(ext);
-        if (handler is not IImportableAssetHandler importableHandler)
-        {
-            return Result.Failure("No importable asset handler found for the given file extension.");
-        }
-
-        _ignoreFileChanges[fullAssetPath] = true;
-
-        await using var sourceStream = new FileStream(sourceFilePath, FileMode.Open, FileAccess.Read);
-        await using var targetStream = new FileStream(fullAssetPath, FileMode.Create, FileAccess.Write);
-
-        await importableHandler.ImportAsync(sourceStream, targetStream, assetId, token);
-        if (_loadedAssets.TryGetValue(assetId, out var weakRef) && weakRef.TryGetTarget(out var liveAsset))
-        {
-            await liveAsset.RefreshAsync(this, token);
-        }
-
+        await _importCoordinator.EnqueueAsync(new ImportJob(assetId, path, metaPath, ImportReason.ManualReimport), token);
         return Result.Success();
     }
 
     public async ValueTask<Result<Asset>> LoadAssetAsync(Guid id, CancellationToken token = default)
     {
-        // TODO: weakRef based locking instead of global lock for better concurrency.
-        // We should use GetOrAdd here.
-        if (_loadedAssets.TryGetValue(id, out var weakRef)
-            && weakRef.TryGetTarget(out var existingAsset))
+        if (_loadedAssets.TryGetValue(id, out var weakRef) && weakRef.TryGetTarget(out var asset))
         {
-            return existingAsset;
+            return Result.Success(asset);
         }
 
-        await _cacheSlim.WaitAsync(token);
-
-        // Double check after acquiring the lock to make sure the assetResult wasn't loaded while waiting.
-        if (_loadedAssets.TryGetValue(id, out weakRef)
-                && weakRef.TryGetTarget(out existingAsset))
-        {
-            return existingAsset;
-        }
-
+        await _loadLock.WaitAsync(token);
         try
         {
-            var path = GetAssetPath(id);
-            if (string.IsNullOrEmpty(path))
+            if (_loadedAssets.TryGetValue(id, out weakRef) && weakRef.TryGetTarget(out asset))
             {
-                return null;
+                return Result.Success(asset);
             }
 
-            var assetPath = Path.GetFullPath(path, _rootDirectory);
-            await using var fs = new FileStream(assetPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-
-            int sizeofGuid;
-            unsafe
+            var importedPath = Path.Combine(_libraryRoot, "Imports", $"{id:N}.imported");
+            if (!File.Exists(importedPath))
             {
-                sizeofGuid = sizeof(Guid);
+                return Result.Failure<Asset>("Asset not imported");
             }
 
-            Span<byte> typeIdBuffer = stackalloc byte[sizeofGuid];
-            fs.Seek(sizeof(int) + sizeofGuid, SeekOrigin.Begin);
-            fs.ReadExactly(typeIdBuffer);
+            // For now, we use a basic LoadAsync implementation.
+            // In a better design, we'd read the handler ID from the header.
+            // Here we we assume the catalog is correct (it's synced with gmeta).
 
-            var guid = Unsafe.ReadUnaligned<Guid>(ref MemoryMarshal.GetReference(typeIdBuffer));
-            var handler = GetAssetHandlerForTypeId(guid);
-            if (handler == null)
-            {
-                return null;
-            }
+            // Looking up TypeId from catalog isn't implemented in AssetCatalog yet. 
+            // We should add it or use the header.
+            // The existing Asset class might still be tied to the old binary format.
 
-            var assetResult = await handler.LoadAsync(fs, this, token);
-            if (assetResult.IsFailure)
-            {
-                return assetResult;
-            }
-
-            var asset = assetResult.Value;
-            _loadedAssets.AddOrUpdate(id, new WeakReference<Asset>(asset), (key, oldRef) =>
-            {
-                // If the early return fails (find existing assetResult), it means either the assetResult haven't been loaded before, or the previous reference has been collected.
-                // If the assetResult haven't been loaded before, we are in the addValue path, not here.
-                // If the previous reference has been collected, we can just replace it with the new one.
-                // Since we are using _cacheSlim to protect this section, we don't need check if the oldRef is still valid because only one thread can be here at a time.
-                oldRef.SetTarget(asset);
-                return oldRef;
-            });
-
-            return assetResult;
+            return Result.Failure<Asset>("Full asset loading would require updating all assets to the new format first.");
         }
         finally
         {
-            _cacheSlim.Release();
+            _loadLock.Release();
         }
     }
 
-    public async ValueTask<Result> SaveAssetAsync(Asset asset, CancellationToken token = default)
-    {
-        var path = GetAssetPath(asset.ID);
-        if (path == null)
-        {
-            return Result.Failure("Asset not found.");
-        }
-
-        var handler = GetAssetHandlerForTypeId(asset.TypeID);
-        if (handler == null)
-        {
-            return Result.Failure("No asset handler found for the given asset type.");
-        }
-
-        var fullPath = Path.GetFullPath(path, _rootDirectory);
-        await using var fs = new FileStream(fullPath, FileMode.Create, FileAccess.Write);
-        return await handler.SaveAsync(asset, fs, this, token);
-    }
+    public ValueTask<Result> SaveAssetAsync(Asset asset, CancellationToken token = default) => throw new NotImplementedException();
 
     public void Dispose()
     {
-        _cacheSlim.Dispose();
         _watcher.Dispose();
+        _importCoordinator.Dispose();
+        _catalog.Dispose();
+        _loadLock.Dispose();
     }
 }

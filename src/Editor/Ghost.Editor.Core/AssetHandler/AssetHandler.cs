@@ -32,17 +32,18 @@ public interface IAssetHandler
 
 public interface IImportableAssetHandler : IAssetHandler
 {
-    ValueTask<Result> ImportAsync(Stream sourceStream, Stream targetStream, Guid id, CancellationToken token = default);
+    IAssetSettings? CreateDefaultSettings() => null;
+    ValueTask<Result> ImportAsync(Stream sourceStream, Stream targetStream, Guid id, IAssetSettings? settings, CancellationToken token = default);
     ValueTask<Result> ExportAsync(Stream assetStream, Stream targetStream, IAssetExportOptions? options, CancellationToken token = default);
 }
 
 public static class AssetHandlerExtensions
 {
-    public static async ValueTask<Result> ImportAsync(this IImportableAssetHandler handler, string sourceFilePath, string targetFilePath, Guid id, CancellationToken token = default)
+    public static async ValueTask<Result> ImportAsync(this IImportableAssetHandler handler, string sourceFilePath, string targetFilePath, Guid id, IAssetSettings? settings = null, CancellationToken token = default)
     {
         await using var sourceStream = new FileStream(sourceFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
         await using var targetStream = new FileStream(targetFilePath, FileMode.Create, FileAccess.Write, FileShare.None);
-        return await handler.ImportAsync(sourceStream, targetStream, id, token);
+        return await handler.ImportAsync(sourceStream, targetStream, id, settings, token);
     }
 
     public static async ValueTask<Result> ExportAsync(this IImportableAssetHandler handler, string assetFilePath, string targetFilePath, IAssetExportOptions? options, CancellationToken token = default)

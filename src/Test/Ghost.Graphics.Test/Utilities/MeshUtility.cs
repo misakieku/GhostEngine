@@ -23,7 +23,7 @@ internal static class MeshUtility
         return new float4(t.xyz, w);
     }
 
-    public static unsafe Result LoadMesh(string filePath, Allocator allocator, out UnsafeList<Vertex> vertices, out UnsafeList<uint> indices)
+    public static unsafe Result LoadMesh(string filePath, AllocationHandle allocationHandle, out UnsafeList<Vertex> vertices, out UnsafeList<uint> indices)
     {
         vertices = default;
         indices = default;
@@ -160,8 +160,8 @@ internal static class MeshUtility
 
         MeshOptApi.OptimizeVertexCache((uint*)cachedIndices.GetUnsafePtr(), (uint*)weldedIndices.GetUnsafePtr(), numIndices, numUniqueVertices);
 
-        vertices = new UnsafeList<Vertex>((int)numUniqueVertices, allocator);
-        indices = new UnsafeList<uint>((int)numIndices, allocator);
+        vertices = new UnsafeList<Vertex>((int)numUniqueVertices, allocationHandle);
+        indices = new UnsafeList<uint>((int)numIndices, allocationHandle);
 
         var finalVertexCount = MeshOptApi.OptimizeVertexFetch(vertices.GetUnsafePtr(), (uint*)cachedIndices.GetUnsafePtr(), numIndices, flatVertices.GetUnsafePtr(), numIndices, (nuint)sizeof(Vertex));
 

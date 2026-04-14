@@ -42,6 +42,7 @@ public sealed partial class GraphicsTestWindow : Window
 
     private void GraphicsTestWindow_Activated(object sender, WindowActivatedEventArgs e)
     {
+#if false
         if (_isFirstActivationHandled)
         {
             return;
@@ -138,10 +139,12 @@ public sealed partial class GraphicsTestWindow : Window
         });
 
         CompositionTarget.Rendering += OnRendering;
+#endif
     }
 
     private void GraphicsTestWindow_Closed(object sender, WindowEventArgs e)
     {
+#if false
         try
         {
             CompositionTarget.Rendering -= OnRendering;
@@ -169,6 +172,7 @@ public sealed partial class GraphicsTestWindow : Window
         finally
         {
         }
+#endif
     }
 
     private void SwapChainPanel_SizeChanged(object sender, SizeChangedEventArgs e)

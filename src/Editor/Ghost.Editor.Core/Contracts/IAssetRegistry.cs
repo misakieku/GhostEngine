@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Editor.Core.AssetHandler;
+using Ghost.Editor.Core.Services;
 
 namespace Ghost.Editor.Core.Contracts;
 
@@ -37,6 +38,7 @@ public sealed class AssetChangedEventArgs : EventArgs
     }
 }
 
+[EditorInjection(EditorInjectionAttribute.ServiceLifetime.Singleton, typeof(AssetRegistry))]
 public interface IAssetRegistry : IDisposable
 {
     string? GetAssetPath(Guid id);

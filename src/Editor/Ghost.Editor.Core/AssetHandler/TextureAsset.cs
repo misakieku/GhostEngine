@@ -290,13 +290,13 @@ internal class TextureAssetHandler : IImportableAssetHandler
         throw new NotImplementedException();
     }
 
-    public async ValueTask<Result> ImportAsync(Stream sourceStream, Stream targetStream, Guid id, CancellationToken token = default)
+    public async ValueTask<Result> ImportAsync(Stream sourceStream, Stream targetStream, Guid id, IAssetSettings? settings, CancellationToken token = default)
     {
+        var textureSettings = settings as TextureAssetSettings ?? new TextureAssetSettings();
         using var image = new MagickImage(sourceStream);
         var bytes = image.ToByteArray();
 
-        var settings = new TextureAssetSettings();
-        await TextureProcessor.CompressToCacheAsync(EditorApplication.LibraryFolderPath, id, bytes, image.Width, image.Height, image.Depth, settings, token).ConfigureAwait(false);
+        await TextureProcessor.CompressToCacheAsync(EditorApplication.LibraryFolderPath, id, bytes, image.Width, image.Height, image.Depth, textureSettings, token).ConfigureAwait(false);
 
         var header = new AssetMetadata(id, TextureAsset.s_typeGuid)
         {
@@ -305,7 +305,7 @@ internal class TextureAssetHandler : IImportableAssetHandler
         };
 
         targetStream.Seek(header.SettingsOffset, SeekOrigin.Begin);
-        var sizeResult = await WriteSettingsToStreamAsync(settings, targetStream, token).ConfigureAwait(false);
+        var sizeResult = await WriteSettingsToStreamAsync(textureSettings, targetStream, token).ConfigureAwait(false);
         if (sizeResult.IsFailure)
         {
             return Result.Failure($"Failed to write texture asset settings: {sizeResult.Message}");

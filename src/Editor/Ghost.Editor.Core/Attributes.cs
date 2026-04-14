@@ -55,23 +55,10 @@ public class EditorInjectionAttribute : DiscoverableAttributeBase
     {
         Singleton,
         Transient,
-        Scoped
     }
 
-    public ServiceLifetime Lifetime
+    public EditorInjectionAttribute(ServiceLifetime lifetime, Type implementationType)
     {
-        get;
-    }
-
-    public Type? ImplementationType
-    {
-        get;
-    }
-
-    public EditorInjectionAttribute(ServiceLifetime lifetime, Type? implementationType = null)
-    {
-        Lifetime = lifetime;
-        ImplementationType = implementationType;
     }
 }
 

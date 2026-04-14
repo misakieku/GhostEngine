@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Editor.Core;
 using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.Services;
+using Ghost.Editor.Core.Utilities;
 using Ghost.Editor.View.Pages.EngineEditor;
 using Ghost.Editor.View.Windows;
 using Ghost.Editor.ViewModels.Controls;
@@ -52,6 +53,8 @@ public partial class App : Application
     {
         InitializeComponent();
 
+        TypeCache.Initialize();
+
         Host = Microsoft.Extensions.Hosting.Host.
             CreateDefaultBuilder().
             UseContentRoot(AppContext.BaseDirectory).
@@ -68,6 +71,31 @@ public partial class App : Application
                 services.AddSingleton<EngineEditorViewModel>();
 
                 services.AddTransient<ProjectBrowserViewModel>();
+
+                foreach (var type in TypeCache.GetTypes())
+                {
+                    var data = type.GetCustomAttributesData().FirstOrDefault(a => a.AttributeType == typeof(EditorInjectionAttribute));
+                    if (data is null)
+                    {
+                        continue;
+                    }
+
+                    var lifeTime = (EditorInjectionAttribute.ServiceLifetime)data.ConstructorArguments[0].Value!;
+                    var implementationType = (Type)data.ConstructorArguments[1].Value!;
+                    var serviceType = type.IsInterface ? type.AsType() : implementationType;
+
+                    switch (lifeTime)
+                    {
+                        case EditorInjectionAttribute.ServiceLifetime.Singleton:
+                            services.AddSingleton(serviceType, implementationType);
+                            break;
+                        case EditorInjectionAttribute.ServiceLifetime.Transient:
+                            services.AddTransient(serviceType, implementationType);
+                            break;
+                        default:
+                            break;
+                    }
+                }
 
                 #region Should be deleted
                 services.AddTransient<ScenePage>();
@@ -119,7 +147,6 @@ public partial class App : Application
         try
         {
             EditorApplication.Initialize(Host.Services, arguments.ProjectPath, arguments.ProjectName);
-
             // NOTE: We must call DispatcherQueue.GetForCurrentThread() on the UI thread before any await.
             EditorApplication.SetDispatcherQueue(DispatcherQueue.GetForCurrentThread());
 

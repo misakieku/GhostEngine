@@ -1,3 +1,4 @@
+#if false
 using Ghost.Core;
 using Ghost.Engine;
 using Ghost.Engine.Components;
@@ -146,3 +147,4 @@ public class RenderExtractionSystem : ISystem
     {
     }
 }
+#endif

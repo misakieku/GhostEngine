@@ -36,7 +36,7 @@ internal class TestSystemA : SystemBase
     }
 }
 
-[UpdateAfter(typeof(TestSystemA))]
+[UpdateAfter<TestSystemA>]
 internal class TestSystemB : SystemBase
 {
     protected override void OnInitialize(ref readonly SystemAPI systemAPI)

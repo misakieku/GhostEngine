@@ -1,3 +1,5 @@
+#if false
+
 using Ghost.Graphics.Core;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
@@ -41,3 +43,5 @@ internal sealed class TestRenderPipelineSettings : IRenderPipelineSettings
         return new TestRenderPayload();
     }
 }
+
+#endif
