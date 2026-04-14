@@ -48,6 +48,11 @@ internal static class ComponentRegistry
     internal static readonly Dictionary<int, Type> s_runtimeIDToType = new();
 #endif
 
+    static ComponentRegistry()
+    {
+        GetOrRegisterComponentID<ManagedEntityRef>();
+    }
+
     public static unsafe Identifier<IComponent> GetOrRegisterComponentID<T>()
         where T : unmanaged, IComponent
     {

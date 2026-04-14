@@ -9,6 +9,7 @@ internal unsafe class GPUScene : IDisposable
     private readonly IResourceDatabase _resourceDatabase;
 
     private Handle<GPUBuffer> _sceneBuffer;
+    private Handle<GPUBuffer> _instanceCounterBuffer;
     private uint _instanceCount;
     private uint _capacity;
 
@@ -16,6 +17,8 @@ internal unsafe class GPUScene : IDisposable
     private bool _disposed;
 
     public Handle<GPUBuffer> SceneBuffer => _sceneBuffer;
+    public Handle<GPUBuffer> InstanceCounterBuffer => _instanceCounterBuffer;
+    public uint InstanceCount => Volatile.Read(ref _instanceCount);
 
     internal GPUScene(IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase, uint initialCount)
     {
@@ -30,8 +33,19 @@ internal unsafe class GPUScene : IDisposable
             HeapType = HeapType.Default,
         };
 
+        var counterBufferDesc = new BufferDesc
+        {
+            Size = sizeof(uint),
+            Stride = sizeof(uint),
+            Usage = BufferUsage.Structured | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource,
+            HeapType = HeapType.Default,
+        };
+
         _sceneBuffer = _resourceAllocator.CreateBuffer(in bufferDesc, "SceneBuffer");
         Logger.DebugAssert(_sceneBuffer.IsValid, "Failed to create GPUScene buffer.");
+
+        _instanceCounterBuffer = _resourceAllocator.CreateBuffer(in counterBufferDesc, "SceneInstanceCounterBuffer");
+        Logger.DebugAssert(_instanceCounterBuffer.IsValid, "Failed to create GPUScene instance counter buffer.");
 
         _capacity = initialCount;
     }
@@ -55,7 +69,7 @@ internal unsafe class GPUScene : IDisposable
         {
             Size = newCapacity * (ulong)sizeof(InstanceData),
             Stride = (uint)sizeof(InstanceData),
-            Usage = BufferUsage.Structured | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource,
+            Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource,
             HeapType = HeapType.Default,
         };
 
@@ -88,7 +102,7 @@ internal unsafe class GPUScene : IDisposable
     {
         if (index < 0 || index >= _capacity)
         {
-            return ~0u;
+            return uint.MaxValue;
         }
 
         // Return the last index. We will swap the last instance data with the removed index on gpu to keep the buffer compact.
@@ -104,6 +118,7 @@ internal unsafe class GPUScene : IDisposable
         }
 
         _resourceDatabase.ReleaseResource(_sceneBuffer.AsResource());
+        _resourceDatabase.ReleaseResource(_instanceCounterBuffer.AsResource());
 
         _disposed = true;
         GC.SuppressFinalize(this);

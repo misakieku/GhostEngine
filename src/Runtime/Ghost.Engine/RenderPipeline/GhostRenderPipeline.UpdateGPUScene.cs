@@ -2,7 +2,10 @@ using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
+using Ghost.Graphics.Services;
+using Misaki.HighPerformance.LowLevel.Utilities;
 using Misaki.HighPerformance.Mathematics;
+
 
 namespace Ghost.Engine.RenderPipeline;
 
@@ -18,8 +21,96 @@ public partial struct UpdateGPUSceneShaderProperty
 
 internal partial class GhostRenderPipeline
 {
-    public void UpdateGPUScene(RenderContext ctx, Handle<GPUBuffer> addBuffer, int addCount, Handle<GPUBuffer> removeBuffer, int removeCount)
+    private static unsafe Handle<GPUBuffer> CreateAddInstanceBuffer(GhostRenderPayload ghostPayload, ResourceManager resourceManager, IResourceDatabase resourceDatabase, out int count)
     {
+        if (!ghostPayload.AddRequest.IsEmpty)
+        {
+            var addDesc = new BufferDesc
+            {
+                Size = (nuint)ghostPayload.AddRequest.Count * MemoryUtility.SizeOf<AddInstanceData>(),
+                Stride = (uint)MemoryUtility.SizeOf<AddInstanceData>(),
+                Usage = BufferUsage.Structured | BufferUsage.ShaderResource,
+                HeapType = HeapType.Upload
+            };
+
+            var addBuffer = resourceManager.CreateTransientBuffer(in addDesc, "Add Instance Buffer");
+            var pAddData = (AddInstanceData*)resourceDatabase.MapResource(addBuffer.AsResource(), 0, null);
+
+            var i = 0;
+            while (ghostPayload.AddRequest.TryDequeue(out var addRequest))
+            {
+                var (mesh, error) = resourceManager.GetMeshReference(addRequest.meshInstance.mesh);
+                if (error.IsFailure)
+                {
+                    Logger.Error($"Failed to get mesh reference for mesh instance with ID {addRequest.instanceId}");
+                    continue;
+                }
+
+                pAddData[i] = new AddInstanceData
+                {
+                    localToWorld = addRequest.localToWorld,
+                    instanceID = addRequest.instanceId,
+                    meshBuffer = resourceDatabase.GetBindlessIndex(mesh.Get().MeshDataBuffer.AsResource()),
+                    materialPalette = (uint)addRequest.meshInstance.materialPalette.Value,
+                    renderingLayerMask = addRequest.meshInstance.renderingLayerMask,
+                    shadowCastingMode = (uint)addRequest.meshInstance.shadowCastingMode
+                };
+
+                i++;
+            }
+
+            resourceDatabase.UnmapResource(addBuffer.AsResource(), 0, null);
+
+            count = i;
+            return addBuffer;
+        }
+
+        count = 0;
+        return default;
+    }
+
+    private static unsafe Handle<GPUBuffer> CreateRemoveInstanceBuffer(GhostRenderPayload ghostPayload, ResourceManager resourceManager, IResourceDatabase resourceDatabase, out int count)
+    {
+        if (!ghostPayload.RemoveRequest.IsEmpty)
+        {
+            var addDesc = new BufferDesc
+            {
+                Size = (nuint)ghostPayload.AddRequest.Count * MemoryUtility.SizeOf<RemoveInstanceData>(),
+                Stride = (uint)MemoryUtility.SizeOf<RemoveInstanceData>(),
+                Usage = BufferUsage.Structured | BufferUsage.ShaderResource,
+                HeapType = HeapType.Upload
+            };
+
+            var removeBuffer = resourceManager.CreateTransientBuffer(in addDesc, "Remove Instance Buffer");
+            var pRemoveData = (RemoveInstanceData*)resourceDatabase.MapResource(removeBuffer.AsResource(), 0, null);
+
+            var i = 0;
+            while (ghostPayload.RemoveRequest.TryDequeue(out var removeRequest))
+            {
+                pRemoveData[i] = new RemoveInstanceData
+                {
+                    instanceID = removeRequest.instanceId,
+                    swapWithInstanceID = removeRequest.swapWithInstanceId
+                };
+
+                i++;
+            }
+
+            resourceDatabase.UnmapResource(removeBuffer.AsResource(), 0, null);
+
+            count = i;
+            return removeBuffer;
+        }
+
+        count = 0;
+        return default;
+    }
+
+    public void UpdateGPUScene(RenderContext ctx, GhostRenderPayload payload)
+    {
+        var addBuffer = CreateAddInstanceBuffer(payload, ctx.ResourceManager, ctx.ResourceDatabase, out var addCount);
+        var removeBuffer = CreateRemoveInstanceBuffer(payload, ctx.ResourceManager, ctx.ResourceDatabase, out var removeCount);
+
         if (addCount <= 0 && removeCount <= 0)
         {
             Logger.DebugAssert(addBuffer.IsInvalid && removeBuffer.IsInvalid, "Buffers should be invalid when there are no updates.");
@@ -42,7 +133,7 @@ internal partial class GhostRenderPipeline
         };
 
         // TODO: Write and load the shader. This is just a placeholder for now.
-        var shader = default(Handle<ComputeShader>);
+        var shader = Handle<ComputeShader>.Invalid;
         var keywords = new LocalKeywordSet();
 
         ctx.DispatchCompute(shader, 0, in keywords, in property, new uint3());

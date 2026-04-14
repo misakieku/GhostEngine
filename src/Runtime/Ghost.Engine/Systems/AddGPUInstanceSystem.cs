@@ -7,6 +7,7 @@ using Misaki.HighPerformance.Utilities;
 
 namespace Ghost.Engine.Systems;
 
+[UpdateAfter<RemoveGPUInstanceSystem>]
 [RenderPipelineSystem<GhostRenderPipelineSettings>]
 internal class AddGPUInstanceSystem : SystemBase
 {
@@ -48,5 +49,7 @@ internal class AddGPUInstanceSystem : SystemBase
                 systemAPI.World.EntityCommandBuffer.AddComponent(entity, new GPUInstanceRef { gpuSceneIndex = index });
             }
         }
+
+        payload.EndRecord();
     }
 }

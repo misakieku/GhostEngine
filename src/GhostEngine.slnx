@@ -6,7 +6,9 @@
   </Configurations>
   <Folder Name="/Editor/">
     <Project Path="Editor/Ghost.DSL/Ghost.DSL.csproj" />
-    <Project Path="Editor/Ghost.Editor.Core/Ghost.Editor.Core.csproj" />
+    <Project Path="Editor/Ghost.Editor.Core/Ghost.Editor.Core.csproj">
+      <Platform Solution="Debug|x64" Project="x64" />
+    </Project>
     <Project Path="Editor/Ghost.Editor/Ghost.Editor.csproj">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />

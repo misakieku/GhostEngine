@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Misaki.HighPerformance.LowLevel.Collections;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Entities;
 
@@ -201,6 +202,7 @@ public abstract class SystemGroup : ISystem
     //     _systems = SystemGroupRegistry.GetSystemsForGroup(GetType());
     // }
 
+    // TODO: Use Source Generators to generate group registrations at compile time, and remove the need for this public constructor.
     private static List<ISystem> Sort(List<ISystem> systems)
     {
         // 1. Build the Graph
@@ -211,10 +213,10 @@ public abstract class SystemGroup : ISystem
         foreach (var sys in systems)
         {
             var type = sys.GetType();
-            if (!dependencies.TryGetValue(type, out var value))
+            ref var value = ref CollectionsMarshal.GetValueRefOrAddDefault(dependencies, type, out var exists);
+            if (!exists || value == null)
             {
-                value = [];
-                dependencies[type] = value;
+                value = new HashSet<Type>();
             }
 
             // Handle [UpdateAfter(typeof(Other))] -> Other comes before This
@@ -229,8 +231,13 @@ public abstract class SystemGroup : ISystem
             foreach (var attr in type.GetCustomAttributes(typeof(UpdateBeforeAttribute), true))
             {
                 var targetType = ((UpdateBeforeAttribute)attr).SystemType;
-                if (!dependencies.ContainsKey(targetType)) dependencies[targetType] = [];
-                dependencies[targetType].Add(type);
+                ref var targetDeps = ref CollectionsMarshal.GetValueRefOrAddDefault(dependencies, targetType, out exists);
+                if (!exists || targetDeps == null)
+                {
+                    targetDeps = new HashSet<Type>();
+                }
+
+                targetDeps.Add(type);
             }
         }
 
@@ -246,7 +253,10 @@ public abstract class SystemGroup : ISystem
             foreach (var sys in systems)
             {
                 var type = sys.GetType();
-                if (visited.Contains(type)) continue;
+                if (visited.Contains(type))
+                {
+                    continue;
+                }
 
                 // Check if all dependencies for this system are already visited/sorted
                 var canRun = true;
@@ -297,7 +307,7 @@ public abstract class SystemGroup : ISystem
 
         if (_systems.Count == 0)
         {
-            _sortedSystems = [];
+            _sortedSystems = new List<ISystem>();
             _sortedVersion = _version;
             return;
         }

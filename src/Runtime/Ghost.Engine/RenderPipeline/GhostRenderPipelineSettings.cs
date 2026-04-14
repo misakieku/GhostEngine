@@ -30,10 +30,13 @@ internal sealed class GhostRenderPayload : IRenderPayload
     private readonly ConcurrentQueue<AddInstanceRequest> _addRequest;
     private readonly ConcurrentQueue<RemoveInstanceRequest> _removeRequest;
 
+    private uint _instanceCount;
+
     public ReadOnlySpan<RenderRequest> RenderRequests => _renderRequests;
 
     public ConcurrentQueue<AddInstanceRequest> AddRequest => _addRequest;
     public ConcurrentQueue<RemoveInstanceRequest> RemoveRequest => _removeRequest;
+    public uint InstanceCount => _instanceCount;
 
     public GhostRenderPayload(GhostRenderPipeline renderPipeline)
     {
@@ -53,6 +56,7 @@ internal sealed class GhostRenderPayload : IRenderPayload
     public uint AddInstance(float4x4 ltw, ref readonly MeshInstance meshInstance)
     {
         var index = _renderPipeline.GPUScene.AddInstance();
+
         _addRequest.Enqueue(new AddInstanceRequest { instanceId = index, localToWorld = ltw, meshInstance = meshInstance });
         return index;
     }
@@ -60,10 +64,16 @@ internal sealed class GhostRenderPayload : IRenderPayload
     public void RemoveInstance(uint instanceId)
     {
         var swapWithInstanceId = _renderPipeline.GPUScene.RemoveInstance(instanceId);
-        if (swapWithInstanceId != ~0u)
+        if (swapWithInstanceId != uint.MaxValue)
         {
             _removeRequest.Enqueue(new RemoveInstanceRequest { instanceId = instanceId, swapWithInstanceId = swapWithInstanceId });
         }
+    }
+
+    public void EndRecord()
+    {
+        // We capture the count here to prevent that main thread continues to add more requests for next frame while the render thread is still processing current frame's requests.
+        _instanceCount = _renderPipeline.GPUScene.InstanceCount;
     }
 
     public void Reset()

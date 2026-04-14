@@ -10,12 +10,12 @@ public static unsafe class MeshBuilder
     /// <summary>
     /// Creates a unit cube centered at the origin with size 1.
     /// </summary>
-    public static void CreateCube(float size, Color128 color, Allocator allocator, out UnsafeList<Vertex> vertices, out UnsafeList<uint> indices)
+    public static void CreateCube(float size, Color128 color, AllocationHandle allocationHandle, out UnsafeList<Vertex> vertices, out UnsafeList<uint> indices)
     {
         var half = size * 0.5f;
 
-        vertices = new UnsafeList<Vertex>(24, allocator);
-        indices = new UnsafeList<uint>(36, allocator);
+        vertices = new UnsafeList<Vertex>(24, allocationHandle);
+        indices = new UnsafeList<uint>(36, allocationHandle);
 
         var corners = new float3[]
         {
@@ -71,13 +71,13 @@ public static unsafe class MeshBuilder
     /// <summary>
     /// Creates a plane on the XZ axis centered at the origin.
     /// </summary>
-    public static void CreatePlane(float width, float depth, Color128 color, Allocator allocator, out UnsafeList<Vertex> vertices, out UnsafeList<uint> indices)
+    public static void CreatePlane(float width, float depth, Color128 color, AllocationHandle allocationHandle, out UnsafeList<Vertex> vertices, out UnsafeList<uint> indices)
     {
         var hw = width * 0.5f;
         var hd = depth * 0.5f;
 
-        vertices = new UnsafeList<Vertex>(4, allocator);
-        indices = new UnsafeList<uint>(6, allocator);
+        vertices = new UnsafeList<Vertex>(4, allocationHandle);
+        indices = new UnsafeList<uint>(6, allocationHandle);
 
         vertices.Add(new Vertex()
         {
@@ -129,10 +129,10 @@ public static unsafe class MeshBuilder
     /// <summary>
     /// Creates a UV sphere centered at the origin.
     /// </summary>
-    public static void CreateSphere(int latitudeSegments, int longitudeSegments, float radius, Color128 color, Allocator allocator, out UnsafeList<Vertex> vertices, out UnsafeList<uint> indices)
+    public static void CreateSphere(int latitudeSegments, int longitudeSegments, float radius, Color128 color, AllocationHandle allocationHandle, out UnsafeList<Vertex> vertices, out UnsafeList<uint> indices)
     {
-        vertices = new UnsafeList<Vertex>((latitudeSegments + 1) * (longitudeSegments + 1), allocator);
-        indices = new UnsafeList<uint>(latitudeSegments * longitudeSegments * 6, allocator);
+        vertices = new UnsafeList<Vertex>((latitudeSegments + 1) * (longitudeSegments + 1), allocationHandle);
+        indices = new UnsafeList<uint>(latitudeSegments * longitudeSegments * 6, allocationHandle);
 
         // Vertices
         for (var lat = 0; lat <= latitudeSegments; lat++)

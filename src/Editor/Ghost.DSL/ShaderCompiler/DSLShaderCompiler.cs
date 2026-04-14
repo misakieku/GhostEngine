@@ -1,11 +1,7 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
-using Ghost.Core.Utilities;
 using Ghost.DSL.ShaderParser;
 using Misaki.HighPerformance.Utilities;
-using System.IO.Hashing;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Ghost.DSL.ShaderCompiler;
@@ -24,17 +20,6 @@ public struct DSLShaderError
 
 internal static class DSLShaderCompiler
 {
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ulong GetUniqueId(string code)
-    {
-        if (string.IsNullOrEmpty(code))
-        {
-            return 0;
-        }
-
-        return XxHash64.HashToUInt64(MemoryMarshal.AsBytes(code.AsSpan()));
-    }
-
     private static PipelineState MeragePipeline(PipelineSemantic? semantic, PipelineState parent)
     {
         if (semantic == null)
@@ -163,7 +148,7 @@ internal static class DSLShaderCompiler
             passes = passes
         };
 
-        for (int i = 0; i < descriptor.passes.Length; i++)
+        for (var i = 0; i < descriptor.passes.Length; i++)
         {
             descriptor.passes[i].shader = descriptor;
         }
@@ -283,7 +268,7 @@ internal static class DSLShaderCompiler
         }
 
         var shaderCodes = new ShaderCode[semantics.entryPoints.Count];
-        for (int i = 0; i < shaderCodes.Length; i++)
+        for (var i = 0; i < shaderCodes.Length; i++)
         {
             var result = BuildFinalShaderCode(semantics.entryPoints[i].shaderPath, semantics.includes.AsSpan(), semantics.hlsl, propertyInfo.code);
             if (result.IsFailure)

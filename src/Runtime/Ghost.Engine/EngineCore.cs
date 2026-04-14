@@ -1,16 +1,9 @@
-using Ghost.Core.Graphics;
-using Ghost.Entities;
+using Ghost.Engine.RenderPipeline;
 using Ghost.Graphics;
 using Misaki.HighPerformance.Jobs;
 
 namespace Ghost.Engine;
 
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-internal class EngineEntryAttribute : Attribute
-{
-}
-
-[EngineEntry]
 public sealed partial class EngineCore : IDisposable
 {
     private readonly JobScheduler _jobScheduler;
@@ -27,12 +20,11 @@ public sealed partial class EngineCore : IDisposable
         {
             FrameBufferCount = 2,
             GraphicsAPI = GraphicsAPI.Direct3D12,
-            InitialRenderPipelineSettings = null! // TODO: We should allow user to specify the initial render pipeline settings.
+            InitialRenderPipelineSettings = new GhostRenderPipelineSettings(),
+            ShaderCacheDirectory = "ShaderCache",
         };
 
         _renderSystem = new RenderSystem(renderingConfig);
-
-        ComponentRegistry.GetOrRegisterComponentID<ManagedEntityRef>();
     }
 
     public void Dispose()

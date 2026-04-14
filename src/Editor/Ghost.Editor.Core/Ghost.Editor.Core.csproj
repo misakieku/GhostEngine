@@ -3,7 +3,8 @@
     <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <RootNamespace>Ghost.Editor.Core</RootNamespace>
-    <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
+    <Platforms>x64;ARM64</Platforms>
+    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
     <UseWinUI>true</UseWinUI>
     <ImplicitUsings>enable</ImplicitUsings>
     <SupportedOSPlatformVersion>10.0.20348.0</SupportedOSPlatformVersion>
@@ -13,8 +14,9 @@
     <langversion>preview</langversion>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Magick.NET-Q16-HDRI-OpenMP-x64" Version="14.12.0" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.5" />
-    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.7705" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.1721" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260317003" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="CommunityToolkit.WinUI.Behaviors" Version="8.2.251219" />

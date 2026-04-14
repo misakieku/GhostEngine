@@ -219,7 +219,11 @@ public static class Logger
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Error(object? message)
     {
-        s_logger.Log(message?.ToString() ?? "null", LogLevel.Error);
+        var messageStr = message?.ToString() ?? "null";
+        s_logger.Log(messageStr, LogLevel.Error);
+#if DEBUG
+        System.Diagnostics.Debug.Fail(messageStr);
+#endif
     }
 
     [StackTraceHidden]
@@ -227,13 +231,21 @@ public static class Logger
     public static void Error(string message)
     {
         s_logger.Log(message, LogLevel.Error);
+#if DEBUG
+        System.Diagnostics.Debug.Fail(message);
+#endif
     }
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Error(string format, params object?[] args)
     {
-        s_logger.Log(string.Format(format, args), LogLevel.Error);
+        var message = string.Format(format, args);
+        s_logger.Log(message, LogLevel.Error);
+#if DEBUG
+        System.Diagnostics.Debug.Fail(message);
+#endif
+
     }
 
     [StackTraceHidden]
@@ -241,6 +253,10 @@ public static class Logger
     public static void Error(Exception ex)
     {
         s_logger.Log(ex);
+#if DEBUG
+        System.Diagnostics.Debug.Fail(ex.Message);
+#endif
+
     }
 
     [StackTraceHidden]

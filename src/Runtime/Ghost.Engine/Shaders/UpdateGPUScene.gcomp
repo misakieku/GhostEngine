@@ -1,0 +1,37 @@
+compute "Internal/UpdateGPUScene"
+{
+    includes
+    {
+        "F:/csharp/GhostEngine/src/Runtime/Ghost.Graphics/Shaders/Includes/Properties.hlsl";
+    }
+
+    hlsl
+    {
+        [numthreads(64, 1, 1)]
+        void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
+        {
+            UpdateGPUSceneShaderProperty properties = LoadData<UpdateGPUSceneShaderProperty>(g_PushConstantData.propertiesBuffer, 0);
+            RWStructuredBuffer<InstanceData> gpuSceneBuffer = GET_BUFFER(properties.gpuSceneBuffer);
+
+            if (properties.addCount > 0)
+            {
+                StructuredBuffer<AddInstanceData> addBuffer = GET_BUFFER(properties.addBuffer);
+                AddInstanceData addData = addBuffer[dispatchThreadID.x];
+
+                gpuSceneBuffer[addData.instanceID].localToWorld = addData.localToWorld;
+                gpuSceneBuffer[addData.instanceID].meshBuffer = addData.meshBuffer;
+                gpuSceneBuffer[addData.instanceID].materialBuffer = addData.materialPalette;
+            }
+
+            if (properties.removeCount > 0)
+            {
+                StructuredBuffer<RemoveInstanceData> removeBuffer = GET_BUFFER(properties.removeBuffer);
+                RemoveInstanceData removeData = removeBuffer[dispatchThreadID.x];
+
+                gpuSceneBuffer[removeData.instanceID] = gpuSceneBuffer[removeData.swapWithInstanceID];
+            }
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

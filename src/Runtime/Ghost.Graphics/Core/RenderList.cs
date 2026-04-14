@@ -93,11 +93,6 @@ public struct RenderList : IDisposable
         }
     }
 
-    public RenderList(int maxLevelOfConcurrency, int capacity, Allocator allocator)
-        : this(maxLevelOfConcurrency, capacity, AllocationManager.GetAllocationHandle(allocator))
-    {
-    }
-
     private readonly void ThrowIfNotCreated()
     {
         if (!IsCreated)

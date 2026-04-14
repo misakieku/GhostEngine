@@ -8,7 +8,7 @@ public static class EditorApplication
     public const string ASSETS_FOLDER_NAME = "Assets";
     public const string SOURCES_FOLDER_NAME = "Sources";
     public const string PACKAGES_FOLDER_NAME = "Packages";
-    public const string CACHES_FOLDER_NAME = "Caches";
+    public const string LIBRARY_FOLDER_NAME = "Library";
     public const string CONFIG_FOLDER_NAME = "Config";
 
     private static IServiceProvider? s_serviceProvider;
@@ -25,7 +25,7 @@ public static class EditorApplication
     public static string AssetsFolderPath => Path.Combine(ProjectPath, ASSETS_FOLDER_NAME);
     public static string SourcesFolderPath => Path.Combine(ProjectPath, SOURCES_FOLDER_NAME);
     public static string PackagesFolderPath => Path.Combine(ProjectPath, PACKAGES_FOLDER_NAME);
-    public static string CachesFolderPath => Path.Combine(ProjectPath, CACHES_FOLDER_NAME);
+    public static string LibraryFolderPath => Path.Combine(ProjectPath, LIBRARY_FOLDER_NAME);
     public static string ConfigFolderPath => Path.Combine(ProjectPath, CONFIG_FOLDER_NAME);
 
     public static DispatcherQueue DispatcherQueue

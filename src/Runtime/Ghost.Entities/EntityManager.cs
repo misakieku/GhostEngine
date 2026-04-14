@@ -424,7 +424,7 @@ public unsafe partial class EntityManager : IDisposable
                 // Remove Managed Entities first
                 // RemoveManagedEntity(rowIndicesCache.AsSpan(), in prevArchetype, prevChunkIndex);
 
-                // TODO: Handle ICleanupComponent here before we remove the entities from the archetype.
+                // FIX: Handle ICleanupComponent here before we remove the entities from the archetype.
 
                 // Execute the hole-filling/swap logic
                 prevArchetype.RemoveEntities(prevChunkIndex, rowIndicesCache.AsSpan());
