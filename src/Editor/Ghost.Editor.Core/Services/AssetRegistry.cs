@@ -165,26 +165,32 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
             return;
         }
 
-        var handlerTypeId = handler?.GetType().GetCustomAttribute<CustomAssetHandlerAttribute>()?.ID;
+        var handlerTypeId = handler?.GetType().GetCustomAttributesData().FirstOrDefault(d => d.AttributeType == typeof(CustomAssetHandlerAttribute))?.ConstructorArguments[0].Value;
         var meta = new AssetMeta
         {
             Guid = Guid.NewGuid(),
-            HandlerTypeId = handlerTypeId == null ? null : Guid.Parse(handlerTypeId),
+            HandlerTypeId = handlerTypeId is string str? Guid.Parse(str) : null,
             HandlerVersion = 1,
             Settings = importable?.CreateDefaultSettings()
         };
 
         _ignoreMetaWrites[metaPath] = true;
         await AssetMetaIO.WriteAsync(metaPath, meta);
-        
+
         _catalog.Upsert(meta, relativePath);
 
         await _importCoordinator.EnqueueAsync(new ImportJob(meta.Guid, relativePath, metaPath, ImportReason.NewAsset));
     }
 
-    public string? GetAssetPath(Guid id) => _catalog.GetSourcePath(id);
+    public string? GetAssetPath(Guid id)
+    {
+        return _catalog.GetSourcePath(id);
+    }
 
-    public Guid GetAssetGuid(string path) => _catalog.GetGuid(path.Replace('\\', '/'));
+    public Guid GetAssetGuid(string path)
+    {
+        return _catalog.GetGuid(path.Replace(Path.DirectorySeparatorChar, '/'));
+    }
 
     public async ValueTask<Result<Guid>> ImportAssetAsync(string sourceFilePath, string targetAssetPath, CancellationToken token = default)
     {
@@ -192,7 +198,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
         // Current requirement: "returns the new GUID immediately (import happens in background)"
 
         var ext = Path.GetExtension(sourceFilePath);
-        var relativePath = targetAssetPath.Replace('\\', '/');
+        var relativePath = targetAssetPath.Replace(Path.DirectorySeparatorChar, '/');
         var fullPath = Path.Combine(_assetsRoot, relativePath);
 
         Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
@@ -224,7 +230,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
     {
         if (_loadedAssets.TryGetValue(id, out var weakRef) && weakRef.TryGetTarget(out var asset))
         {
-            return Result.Success(asset);
+            return asset;
         }
 
         await _loadLock.WaitAsync(token);
@@ -232,7 +238,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
         {
             if (_loadedAssets.TryGetValue(id, out weakRef) && weakRef.TryGetTarget(out asset))
             {
-                return Result.Success(asset);
+                return asset;
             }
 
             var importedPath = Path.Combine(_libraryRoot, "Imports", $"{id:N}.imported");
@@ -257,7 +263,10 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
         }
     }
 
-    public ValueTask<Result> SaveAssetAsync(Asset asset, CancellationToken token = default) => throw new NotImplementedException();
+    public ValueTask<Result> SaveAssetAsync(Asset asset, CancellationToken token = default)
+    {
+        throw new NotImplementedException();
+    }
 
     public void Dispose()
     {

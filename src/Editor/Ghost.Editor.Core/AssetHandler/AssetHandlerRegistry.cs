@@ -1,13 +1,10 @@
-using System.Reflection;
-using Ghost.Editor.Core.Utilities;
-
 namespace Ghost.Editor.Core.AssetHandler;
 
 /// <summary>
 /// One-time scan at editor startup → two dictionaries.
 /// All lookups are O(1) after construction.
 /// </summary>
-internal sealed class AssetHandlerRegistry
+public sealed class AssetHandlerRegistry
 {
     private readonly Dictionary<string, IAssetHandler> _byExtension;
     private readonly Dictionary<Guid, IAssetHandler> _byTypeId;
@@ -18,49 +15,17 @@ internal sealed class AssetHandlerRegistry
         _byExtension = new Dictionary<string, IAssetHandler>(StringComparer.OrdinalIgnoreCase);
         _byTypeId = new Dictionary<Guid, IAssetHandler>();
         _versionByTypeId = new Dictionary<Guid, int>();
+    }
 
-        foreach (var typeInfo in TypeCache.GetTypes())
+    public void RegisterHandler(IAssetHandler handler, ReadOnlySpan<string> extensions, Guid typeId, int version)
+    {
+        _byTypeId[typeId] = handler;
+        _versionByTypeId[typeId] = version;
+
+        foreach (var ext in extensions)
         {
-            if (typeInfo.IsAbstract || typeInfo.IsInterface)
-            {
-                continue;
-            }
-
-            if (!typeof(IAssetHandler).IsAssignableFrom(typeInfo))
-            {
-                continue;
-            }
-
-            var attr = typeInfo.GetCustomAttribute<CustomAssetHandlerAttribute>();
-            if (attr == null)
-            {
-                continue;
-            }
-
-            if (!Guid.TryParse(attr.ID, out var typeId))
-            {
-                continue;
-            }
-
-            try
-            {
-                if (Activator.CreateInstance(typeInfo) is IAssetHandler handler)
-                {
-                    _byTypeId[typeId] = handler;
-                    // Note: Versioning could be expanded, but for now we assume version 1 or look for a constant
-                    _versionByTypeId[typeId] = 1;
-
-                    foreach (var ext in attr.SupportedExtensions)
-                    {
-                        var normalizedExt = ext.StartsWith('.') ? ext : "." + ext;
-                        _byExtension[normalizedExt] = handler;
-                    }
-                }
-            }
-            catch
-            {
-                // Log failure to instantiate handler in real app
-            }
+            var normalizedExt = ext.StartsWith('.') ? ext : "." + ext;
+            _byExtension[normalizedExt] = handler;
         }
     }
 

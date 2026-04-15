@@ -5,13 +5,12 @@ using Ghost.Engine.Components;
 using Ghost.Engine.Systems;
 using Ghost.Entities;
 using Ghost.Graphics.Core;
-using Ghost.Graphics.Test.RenderPipeline;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Graphics.Test.Systems;
 
-[RenderPipelineSystem<TestRenderPipelineSettings>]
+//[RenderPipelineSystem<TestRenderPipelineSettings>]
 [UpdateAfter<CameraMovingSystem>]
 public class RenderExtractionSystem : ISystem
 {

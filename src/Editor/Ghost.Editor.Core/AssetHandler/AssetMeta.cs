@@ -67,6 +67,8 @@ public sealed class AssetMeta
 
 internal static class AssetMetaIO
 {
+    private const string _META_EXTENSION = ".gmeta";
+
     private static readonly JsonSerializerOptions s_options = new()
     {
         WriteIndented = true,
@@ -108,7 +110,7 @@ internal static class AssetMetaIO
         File.Move(tempPath, metaPath);
     }
 
-    public static string GetMetaPath(string sourceFilePath) => sourceFilePath + ".gmeta";
+    public static string GetMetaPath(string sourceFilePath) => sourceFilePath + _META_EXTENSION;
 
-    public static string GetSourcePath(string metaPath) => metaPath[..^".gmeta".Length];
+    public static string GetSourcePath(string metaPath) => metaPath[..^_META_EXTENSION.Length];
 }

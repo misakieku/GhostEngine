@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+
 namespace Ghost.Core;
 
 public readonly struct Handle<T> : IEquatable<Handle<T>>
@@ -245,4 +247,49 @@ public readonly struct Key128<T> : IEquatable<Key128<T>>
 
     public static implicit operator UInt128(Key128<T> key) => key.Value;
     public static implicit operator Key128<T>(UInt128 value) => new Key128<T>(value);
+}
+
+[StructLayout(LayoutKind.Sequential)]
+public readonly struct AssetRef<T> : IEquatable<AssetRef<T>>
+{
+    public readonly Guid guid;
+
+    public static AssetRef<T> Null => default;
+
+    public bool IsValid => guid != Guid.Empty;
+
+    public AssetRef(Guid guid)
+    {
+        this.guid = guid;
+    }
+
+    public bool Equals(AssetRef<T> other)
+    {
+        return guid == other.guid;
+    }
+
+    public override int GetHashCode()
+    {
+        return guid.GetHashCode();
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is AssetRef<T> r && Equals(r);
+    }
+
+    public override string ToString()
+    {
+        return $"AssetRef<{typeof(T).Name}>({guid:N})";
+    }
+
+    public static bool operator ==(AssetRef<T> a, AssetRef<T> b)
+    {
+        return a.Equals(b);
+    }
+
+    public static bool operator !=(AssetRef<T> a, AssetRef<T> b)
+    {
+        return !a.Equals(b);
+    }
 }

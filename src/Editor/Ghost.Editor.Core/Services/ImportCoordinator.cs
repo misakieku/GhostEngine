@@ -97,7 +97,7 @@ internal sealed class ImportCoordinator : IDisposable
             return;
         }
 
-        var handler = (meta.HandlerTypeId.HasValue)
+        var handler = meta.HandlerTypeId.HasValue
             ? _handlers.GetByTypeId(meta.HandlerTypeId.Value)
             : _handlers.GetByExtension(Path.GetExtension(job.SourcePath));
 

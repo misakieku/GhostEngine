@@ -57,8 +57,20 @@ public class EditorInjectionAttribute : DiscoverableAttributeBase
         Transient,
     }
 
+    public ServiceLifetime Lifetime
+    {
+        get;
+    }
+
+    public Type ImplementationType
+    {
+        get;
+    }
+
     public EditorInjectionAttribute(ServiceLifetime lifetime, Type implementationType)
     {
+        Lifetime = lifetime;
+        ImplementationType = implementationType;
     }
 }
 

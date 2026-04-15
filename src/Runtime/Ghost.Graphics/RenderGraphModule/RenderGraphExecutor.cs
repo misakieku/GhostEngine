@@ -1,7 +1,6 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
-using System.Diagnostics;
 
 namespace Ghost.Graphics.RenderGraphModule;
 

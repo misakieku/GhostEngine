@@ -72,6 +72,7 @@ public partial class App : Application
 
                 services.AddTransient<ProjectBrowserViewModel>();
 
+                // TODO: Use source generators to generate this code at compile time instead of using reflection at runtime.
                 foreach (var type in TypeCache.GetTypes())
                 {
                     var data = type.GetCustomAttributesData().FirstOrDefault(a => a.AttributeType == typeof(EditorInjectionAttribute));

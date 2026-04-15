@@ -186,7 +186,7 @@ internal static class TextureProcessor
         var workItem = new NvttPipelineTask(cachePath, image, width, height, depth, settings);
         ThreadPool.UnsafeQueueUserWorkItem(workItem, true);
         await workItem.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-        
+
         return cachePath;
     }
 

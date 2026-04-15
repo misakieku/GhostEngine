@@ -6,13 +6,13 @@ namespace Ghost.Editor.Core.Utilities;
 
 public static class TypeCache
 {
-    private static TypeInfo[] s_types;
-    private static Dictionary<nint, List<MethodInfo>> s_attributeMethodCache;
+    private static TypeInfo[] s_types = null!;
+    private static Dictionary<nint, List<MethodInfo>> s_attributeMethodCache = null!;
+    private static Dictionary<nint, List<int>> s_attributeTypeCache = null!;
 
     static TypeCache()
     {
-        s_types = LoadTypes();
-        s_attributeMethodCache = FindMethodWithAttribute();
+        Reload();
     }
 
     private static TypeInfo[] LoadTypes()
@@ -62,6 +62,29 @@ public static class TypeCache
         return dict;
     }
 
+    private static Dictionary<nint, List<int>> FindTypesWithAttribute()
+    {
+        var dict = new Dictionary<nint, List<int>>();
+        for (int i = 0; i < s_types.Length; i++)
+        {
+            TypeInfo? type = s_types[i];
+            var attrs = type.GetCustomAttributes<DiscoverableAttributeBase>(false);
+            foreach (var attr in attrs)
+            {
+                var key = attr.GetType().TypeHandle.Value;
+                ref var typeList = ref CollectionsMarshal.GetValueRefOrAddDefault(dict, key, out var exist);
+                if (!exist)
+                {
+                    typeList = new List<int>();
+                }
+
+                typeList!.Add(i);
+            }
+        }
+
+        return dict;
+    }
+
     internal static void Initialize()
     {
         // Intentionally left blank.
@@ -72,6 +95,7 @@ public static class TypeCache
     {
         s_types = LoadTypes();
         s_attributeMethodCache = FindMethodWithAttribute();
+        s_attributeTypeCache = FindTypesWithAttribute();
     }
 
     public static IReadOnlyCollection<TypeInfo> GetTypes()
@@ -79,13 +103,25 @@ public static class TypeCache
         return s_types;
     }
 
-    public static IReadOnlyCollection<MethodInfo>? GetMethodsWithAttribute<T>()
+    public static IEnumerable<MethodInfo>? GetMethodsWithAttribute<T>()
         where T : DiscoverableAttributeBase
     {
         var key = typeof(T).TypeHandle.Value;
         if (s_attributeMethodCache.TryGetValue(key, out var methods))
         {
             return methods;
+        }
+
+        return null;
+    }
+
+    public static IEnumerable<TypeInfo>? GetTypesWithAttribute<T>()
+        where T : DiscoverableAttributeBase
+    {
+        var key = typeof(T).TypeHandle.Value;
+        if (s_attributeTypeCache.TryGetValue(key, out var typeIndices))
+        {
+            return typeIndices.Select(i => s_types[i]);
         }
 
         return null;

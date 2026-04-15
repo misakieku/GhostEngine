@@ -224,6 +224,19 @@ internal sealed class AssetCatalog : IDisposable
         return list;
     }
 
+    public List<Guid> GetDependencies(Guid guid)
+    {
+        _cmdGetDependencies.Parameters.Clear();
+        _cmdGetDependencies.Parameters.AddWithValue("@guid", guid.ToByteArray());
+        using var reader = _cmdGetDependencies.ExecuteReader();
+        var list = new List<Guid>();
+        while (reader.Read())
+        {
+            list.Add(new Guid((byte[])reader[0]));
+        }
+        return list;
+    }
+
     public List<(Guid guid, string sourcePath)> GetDirtyAssets()
     {
         using var reader = _cmdGetDirty.ExecuteReader();
