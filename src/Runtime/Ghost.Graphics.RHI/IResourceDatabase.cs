@@ -133,6 +133,18 @@ public unsafe interface IResourceDatabase : IDisposable
     Error Swap(Handle<GPUResource> handleA, Handle<GPUResource> handleB);
 
     /// <summary>
+    /// Creates a new GPU resource that is a share of the specified source resource, including all its properties and data.
+    /// The new resource will have the same description and content as the source resource, but will be a distinct entity in the resource database with its own handle.
+    /// </summary>
+    /// <remarks>
+    /// The shared resource created by this method will have the same description and content as the source resource, but will be a distinct entity in the resource database with its own handle.
+    /// However, it is important to note that modifications to the shared resource through one handle will affect all other handles that reference the same underlying resource, as they all point to the same GPU memory.
+    /// </remarks>
+    /// <param name="src">The handle to the source resource.</param>
+    /// <returns>The handle to the newly created shared resource.</returns>
+    Handle<GPUResource> CreateShared(Handle<GPUResource> src);
+
+    /// <summary>
     /// Maps a subresource of a GPU resource for CPU access, specifying read and write ranges.
     /// </summary>
     /// <param name="handle">A handle to the GPU resource to be mapped.</param>

@@ -1,5 +1,7 @@
+using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections.Contracts;
 using System.Buffers;
+using MemoryHandle = System.Buffers.MemoryHandle;
 
 namespace Ghost.Core.Utilities;
 
@@ -24,6 +26,11 @@ public unsafe class NativeMemoryManager<T> : MemoryManager<T>
         }
 
         return new NativeMemoryManager<T>((T*)collection.GetUnsafePtr(), collection.Count);
+    }
+
+    public static NativeMemoryManager<T> FromMemoryBlock(MemoryBlock memoryBlock, int start, int length)
+    {
+        return new NativeMemoryManager<T>((T*)memoryBlock.GetUnsafePtr() + start, length);
     }
 
     public override Span<T> GetSpan()

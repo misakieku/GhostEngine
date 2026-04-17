@@ -1,6 +1,5 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
-using Ghost.Graphics.Services;
 
 namespace Ghost.Graphics.Services;
 
@@ -10,6 +9,8 @@ public class ResourceUploadBatch
 
     private readonly ICommandAllocator _commandAllocator;
     private readonly ICommandBuffer _commandBuffer;
+
+    public ICommandBuffer CommandBuffer => _commandBuffer;
 
     internal ResourceUploadBatch(IGraphicsEngine engine)
     {
@@ -21,6 +22,7 @@ public class ResourceUploadBatch
 
     public void Begin()
     {
+        _commandAllocator.Reset();
         _commandBuffer.Begin(_commandAllocator);
     }
 
@@ -32,7 +34,7 @@ public class ResourceUploadBatch
             return r;
         }
 
-        _device.GraphicsQueue.Submit(_commandBuffer);
+        _device.CopyQueue.Submit(_commandBuffer);
         return Result.Success();
     }
 

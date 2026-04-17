@@ -77,6 +77,11 @@ public readonly struct ResourceSizeInfo
     {
         get; init;
     }
+
+    public ulong Offset
+    {
+        get; init;
+    }
 }
 
 public interface IResourceAllocator : IDisposable
@@ -97,17 +102,9 @@ public interface IResourceAllocator : IDisposable
     /// <param name="desc">Texture description</param>
     /// <param name="name">Debug name of the resource</param>
     /// <param name="options">Additional options of the resource allocation</param>
+    /// <param name="additionalDesc">Additional texture description for some specific texture types</param>
     /// <returns>An <see cref="Handle{Texture}"/> point to the resource</returns>
-    Handle<GPUTexture> CreateTexture(ref readonly TextureDesc desc, string? name = null, CreationOptions options = default);
-
-    /// <summary>
-    /// Creates a render Target for off-screen rendering
-    /// </summary>
-    /// <param name="desc">Render Target description</param>
-    /// <param name="name">Debug name of the resource</param>
-    /// <param name="options">Additional options of the resource allocation</param>
-    /// <returns>An <see cref="Handle{Texture}"/> point to the resource</returns>
-    Handle<GPUTexture> CreateRenderTarget(ref readonly RenderTargetDesc desc, string? name = null, CreationOptions options = default);
+    Handle<GPUTexture> CreateTexture(ref readonly TextureDesc desc, string? name = null, CreationOptions options = default, AdditionalTextureDesc additionalDesc = default);
 
     /// <summary>
     /// Creates a buffer resource

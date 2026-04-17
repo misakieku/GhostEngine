@@ -98,6 +98,58 @@ public unsafe ref struct SpanWriter
     }
 }
 
+public unsafe struct BufferReader
+{
+    private readonly byte* _buffer;
+    private readonly nuint _size;
+
+    private byte* _position;
+
+    public readonly byte* Position => _position;
+
+    public nuint Offset
+    {
+        readonly get => (nuint)(_buffer + (_position - _buffer));
+        set => _position = _buffer + value;
+    }
+
+    public BufferReader(byte* buffer, nuint size)
+    {
+        _buffer = buffer;
+        _size = size;
+        _position = _buffer;
+    }
+
+    public T Read<T>()
+        where T : unmanaged
+    {
+        var value = *(T*)_position;
+        _position += (nuint)sizeof(T);
+        return value;
+    }
+
+    public ReadOnlySpan<T> ReadSpan<T>(int length)
+        where T : unmanaged
+    {
+        length = Math.Min(length, (int)((nuint)(_buffer + _size - _position) / (nuint)sizeof(T)));
+
+        var size = sizeof(T) * length;
+        var span = new ReadOnlySpan<T>(_position, length);
+
+        _position += (nuint)size;
+        return span;
+    }
+
+    public ReadOnlySpan<T> ReadToEnd<T>()
+        where T : unmanaged
+    {
+        var span = new ReadOnlySpan<T>(_position, (int)(_buffer + _size - _position));
+
+        _position += (nuint)(span.Length * sizeof(T));
+        return span;
+    }
+}
+
 public unsafe ref struct SpanReader
 {
     private readonly Span<byte> _buffer;

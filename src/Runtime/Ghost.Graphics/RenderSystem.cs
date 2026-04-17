@@ -60,6 +60,7 @@ public class RenderSystem : IDisposable
             get; init;
         }
 
+        // TODO: Thread local?
         public required ICommandAllocator CommandAllocator
         {
             get; init;

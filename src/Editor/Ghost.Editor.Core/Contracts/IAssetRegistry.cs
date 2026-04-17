@@ -1,6 +1,6 @@
 using Ghost.Core;
-using Ghost.Editor.Core.AssetHandler;
 using Ghost.Editor.Core.Services;
+using Ghost.Engine.AssetLoader;
 
 namespace Ghost.Editor.Core.Contracts;
 

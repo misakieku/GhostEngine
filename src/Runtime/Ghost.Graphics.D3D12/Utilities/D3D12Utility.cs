@@ -134,10 +134,31 @@ internal static unsafe class D3D12Utility
         return format switch
         {
             TextureFormat.Unknown => DXGI_FORMAT_UNKNOWN,
+
+            TextureFormat.R8_UNorm => DXGI_FORMAT_R8_UNORM,
+            TextureFormat.R8_SNorm => DXGI_FORMAT_R8_SNORM,
+            TextureFormat.R16_UNorm => DXGI_FORMAT_R16_UNORM,
+            TextureFormat.R16_SNorm => DXGI_FORMAT_R16_SNORM,
+            TextureFormat.R16_Float => DXGI_FORMAT_R16_FLOAT,
+            TextureFormat.R32_UInt => DXGI_FORMAT_R32_UINT,
+            TextureFormat.R32_SInt => DXGI_FORMAT_R32_SINT,
+
+            TextureFormat.R8G8_UNorm => DXGI_FORMAT_R8G8_UNORM,
+            TextureFormat.R8G8_SNorm => DXGI_FORMAT_R8G8_SNORM,
+            TextureFormat.R16G16_UNorm => DXGI_FORMAT_R16G16_UNORM,
+            TextureFormat.R16G16_SNorm => DXGI_FORMAT_R16G16_SNORM,
+            TextureFormat.R16G16_Float => DXGI_FORMAT_R16G16_FLOAT,
+            TextureFormat.R32G32_Float => DXGI_FORMAT_R32G32_FLOAT,
+
             TextureFormat.R8G8B8A8_UNorm => DXGI_FORMAT_R8G8B8A8_UNORM,
+            TextureFormat.R8G8B8A8_SNorm => DXGI_FORMAT_R8G8B8A8_SNORM,
             TextureFormat.B8G8R8A8_UNorm => DXGI_FORMAT_B8G8R8A8_UNORM,
+
+            TextureFormat.R10G10B10A2_UNorm => DXGI_FORMAT_R10G10B10A2_UNORM,
+
             TextureFormat.R16G16B16A16_Float => DXGI_FORMAT_R16G16B16A16_FLOAT,
             TextureFormat.R32G32B32A32_Float => DXGI_FORMAT_R32G32B32A32_FLOAT,
+
             TextureFormat.D24_UNorm_S8_UInt => DXGI_FORMAT_D24_UNORM_S8_UINT,
             TextureFormat.D32_Float => DXGI_FORMAT_D32_FLOAT,
             TextureFormat.R32_Typeless => DXGI_FORMAT_R32_TYPELESS,
@@ -150,10 +171,32 @@ internal static unsafe class D3D12Utility
     {
         return format switch
         {
+            DXGI_FORMAT_UNKNOWN => TextureFormat.Unknown,
+
+            DXGI_FORMAT_R8_UNORM => TextureFormat.R8_UNorm,
+            DXGI_FORMAT_R8_SNORM => TextureFormat.R8_SNorm,
+            DXGI_FORMAT_R16_UNORM => TextureFormat.R16_UNorm,
+            DXGI_FORMAT_R16_SNORM => TextureFormat.R16_SNorm,
+            DXGI_FORMAT_R16_FLOAT => TextureFormat.R16_Float,
+            DXGI_FORMAT_R32_UINT => TextureFormat.R32_UInt,
+            DXGI_FORMAT_R32_SINT => TextureFormat.R32_SInt,
+
+            DXGI_FORMAT_R8G8_UNORM => TextureFormat.R8G8_UNorm,
+            DXGI_FORMAT_R8G8_SNORM => TextureFormat.R8G8_SNorm,
+            DXGI_FORMAT_R16G16_UNORM => TextureFormat.R16G16_UNorm,
+            DXGI_FORMAT_R16G16_SNORM => TextureFormat.R16G16_SNorm,
+            DXGI_FORMAT_R16G16_FLOAT => TextureFormat.R16G16_Float,
+            DXGI_FORMAT_R32G32_FLOAT => TextureFormat.R32G32_Float,
+
             DXGI_FORMAT_R8G8B8A8_UNORM => TextureFormat.R8G8B8A8_UNorm,
+            DXGI_FORMAT_R8G8B8A8_SNORM => TextureFormat.R8G8B8A8_SNorm,
             DXGI_FORMAT_B8G8R8A8_UNORM => TextureFormat.B8G8R8A8_UNorm,
+
+            DXGI_FORMAT_R10G10B10A2_UNORM => TextureFormat.R10G10B10A2_UNorm,
+
             DXGI_FORMAT_R16G16B16A16_FLOAT => TextureFormat.R16G16B16A16_Float,
             DXGI_FORMAT_R32G32B32A32_FLOAT => TextureFormat.R32G32B32A32_Float,
+
             DXGI_FORMAT_D24_UNORM_S8_UINT => TextureFormat.D24_UNorm_S8_UInt,
             DXGI_FORMAT_D32_FLOAT => TextureFormat.D32_Float,
             DXGI_FORMAT_R32_TYPELESS => TextureFormat.R32_Typeless,
@@ -501,6 +544,67 @@ internal static unsafe class D3D12Utility
         };
     }
 
+    public static D3D12_RESOURCE_DESC1 ToD3D12ResourceDesc1(this in TextureDesc desc)
+    {
+        var dxgiFormat = desc.Format.ToDXGIFormat();
+
+        if (desc.Usage.HasFlag(TextureUsage.DepthStencil) && desc.Usage.HasFlag(TextureUsage.ShaderResource))
+        {
+            if (dxgiFormat == DXGI_FORMAT_D32_FLOAT)
+            {
+                dxgiFormat = DXGI_FORMAT_R32_TYPELESS;
+            }
+            else if (dxgiFormat == DXGI_FORMAT_D24_UNORM_S8_UINT)
+            {
+                dxgiFormat = DXGI_FORMAT_R24G8_TYPELESS;
+            }
+        }
+
+        var maxDimension = Math.Max(desc.Width, Math.Max(desc.Height, desc.Slice));
+        var mipLevels = desc.MipLevels == 0
+            ? (ushort)(1 + Math.Floor(Math.Log2(maxDimension)))
+            : (ushort)desc.MipLevels;
+
+        var resourceFlags = desc.Usage.ToD3D12ResourceFlag();
+        return desc.Dimension switch
+        {
+            TextureDimension.Texture2D => D3D12_RESOURCE_DESC1.Tex2D(
+                                dxgiFormat,
+                                desc.Width,
+                                desc.Height,
+                                mipLevels: mipLevels,
+                                flags: resourceFlags),
+            TextureDimension.Texture3D => D3D12_RESOURCE_DESC1.Tex3D(
+                                dxgiFormat,
+                                desc.Width,
+                                desc.Height,
+                                (ushort)desc.Slice,
+                                flags: resourceFlags),
+            TextureDimension.TextureCube => D3D12_RESOURCE_DESC1.Tex2D(
+                                dxgiFormat,
+                                desc.Width,
+                                desc.Height,
+                                mipLevels: mipLevels,
+                                arraySize: 6,
+                                flags: resourceFlags),
+            TextureDimension.Texture2DArray => D3D12_RESOURCE_DESC1.Tex2D(
+                                dxgiFormat,
+                                desc.Width,
+                                desc.Height,
+                                mipLevels: mipLevels,
+                                arraySize: (ushort)desc.Slice,
+                                flags: resourceFlags),
+            TextureDimension.TextureCubeArray => D3D12_RESOURCE_DESC1.Tex2D(
+                                dxgiFormat,
+                                desc.Width,
+                                desc.Height,
+                                mipLevels: mipLevels,
+                                arraySize: (ushort)(desc.Slice * 6),
+                                flags: resourceFlags),
+            _ => throw new ArgumentException($"Unsupported texture dimension: {desc.Dimension}"),
+        };
+    }
+
     public static D3D12_RESOURCE_FLAGS ToD3D12ResourceFlag(this BufferUsage usage)
     {
         var flags = D3D12_RESOURCE_FLAG_NONE;
@@ -524,6 +628,19 @@ internal static unsafe class D3D12Utility
 
         var resourceFlags = desc.Usage.ToD3D12ResourceFlag();
         return D3D12_RESOURCE_DESC.Buffer(alignedSize, resourceFlags);
+    }
+
+    public static D3D12_RESOURCE_DESC1 ToD3D12ResourceDesc1(this in BufferDesc desc)
+    {
+        var alignedSize = desc.Size;
+        if (desc.Usage.HasFlag(BufferUsage.Constant))
+        {
+            // D3D12 CBV size must be 256-byte aligned
+            alignedSize = (uint)(desc.Size + 255) & ~255u;
+        }
+
+        var resourceFlags = desc.Usage.ToD3D12ResourceFlag();
+        return D3D12_RESOURCE_DESC1.Buffer(alignedSize, resourceFlags);
     }
 
     public static ResourceDesc GetResourceDesc(ID3D12Resource* pResource, ResourceViewGroup viewGroup)

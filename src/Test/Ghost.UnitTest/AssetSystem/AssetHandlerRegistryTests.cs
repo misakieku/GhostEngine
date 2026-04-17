@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Core.Attributes;
 using Ghost.Editor.Core.AssetHandler;
 using Ghost.Editor.Core.Contracts;
+using Ghost.Engine.AssetLoader;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Ghost.UnitTest.AssetSystem;

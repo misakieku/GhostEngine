@@ -7,6 +7,7 @@ using Misaki.HighPerformance.LowLevel.Collections;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
+using TerraFX.Interop.Windows;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -39,7 +40,8 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
         public ResourceBarrierData barrierData;
 
-        public readonly bool isExternal;
+        public bool isExternal;
+        public bool isShared;
 
         public readonly bool Allocated => isExternal ? resource.resource.Get() != null : resource.allocation.Get() != null;
         public readonly SharedPtr<ID3D12Resource> ResourcePtr => isExternal ? resource.resource.Get() : resource.allocation.Get()->GetResource();
@@ -48,6 +50,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         {
             this.resource = new __resource_union(allocation);
             this.isExternal = false;
+            this.isShared = false;
 
             this.viewGroup = viewGroup;
             this.barrierData = barrierData;
@@ -58,6 +61,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         {
             this.resource = new __resource_union(resource);
             this.isExternal = true;
+            this.isShared = false;
 
             this.viewGroup = viewGroup;
             this.barrierData = barrierData;
@@ -66,6 +70,11 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
         public readonly uint Release(D3D12DescriptorAllocator descriptorAllocator)
         {
+            if (isShared)
+            {
+                return 0;
+            }
+
             var refCount = 0u;
             if (Allocated)
             {
@@ -398,6 +407,39 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         recordB = temp;
 
         return Error.None;
+    }
+
+    public Handle<GPUResource> CreateShared(Handle<GPUResource> src)
+    {
+        if (src.IsInvalid)
+        {
+            return Handle<GPUResource>.Invalid;
+        }
+
+        var spinner = new SpinWait();
+        while (Interlocked.CompareExchange(ref _writeLock, 1, 0) != 0)
+        {
+            spinner.SpinOnce();
+        }
+
+        try
+        {
+            var (srcRecord, error) = GetResourceRecord(src);
+            if (error.IsFailure)
+            {
+                return Handle<GPUResource>.Invalid;
+            }
+
+            var newRecord = srcRecord.Get();
+            newRecord.isShared = true;
+
+            var id = _resources.Add(newRecord, out var generation);
+            return new Handle<GPUResource>(id, generation);
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _writeLock, 0);
+        }
     }
 
     public void* MapResource(Handle<GPUResource> handle, uint subResource, ResourceRange? readRange)

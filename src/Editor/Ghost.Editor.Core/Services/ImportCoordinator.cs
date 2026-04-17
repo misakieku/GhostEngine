@@ -1,8 +1,8 @@
-using System.Threading.Channels;
 using Ghost.Core;
 using Ghost.Editor.Core.AssetHandler;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Threading.Channels;
 
 namespace Ghost.Editor.Core.Services;
 
@@ -115,7 +115,7 @@ internal sealed class ImportCoordinator : IDisposable
         }
 
         var importResult = Result.Success();
-        if (handler is IImportableAssetHandler importable)
+        if (handler is IAssetHandler importable)
         {
             // TODO: This should be handled by EditorApplication.
             var importsDir = Path.Combine(_libraryRoot, "Imports");

@@ -758,150 +758,6 @@ public record struct ResourceDesc
 }
 
 /// <summary>
-/// Render Target description
-/// Supports either color OR depth rendering, not both
-/// </summary>
-public struct RenderTargetDesc
-{
-    /// <summary>
-    /// Width of the render Target
-    /// </summary>
-    public uint Width
-    {
-        get; set;
-    }
-
-    /// <summary>
-    /// Height of the render Target
-    /// </summary>
-    public uint Height
-    {
-        get; set;
-    }
-
-    /// <summary>
-    /// Slice of the render Target
-    /// </summary>
-    public uint Slice
-    {
-        get; set;
-    }
-
-    /// <summary>
-    /// Type of render Target
-    /// </summary>
-    public RenderTargetType Type
-    {
-        get; set;
-    }
-
-    /// <summary>
-    /// Target texture Format
-    /// </summary>
-    public TextureFormat Format
-    {
-        get; set;
-    }
-
-    /// <summary>
-    /// Texture dimension
-    /// </summary>
-    public TextureDimension Dimension
-    {
-        get; set;
-    }
-
-    /// <summary>
-    /// Creation flags for the render Target
-    /// </summary>
-    public RenderTargetCreationFlags CreationFlags
-    {
-        get; set;
-    }
-
-    /// <summary>
-    /// Number of mip levels. 0 to generate full mip chain
-    /// </summary>
-    public uint MipLevels
-    {
-        get; set;
-    }
-
-    /// <summary>
-    /// Number of samples for MSAA
-    /// </summary>
-    public uint SampleCount
-    {
-        get; set;
-    }
-
-    /// <summary>
-    /// Creates a color render Target
-    /// </summary>
-    public static RenderTargetDesc Color(uint width, uint height, uint slice = 1,
-        TextureFormat format = TextureFormat.R8G8B8A8_UNorm, TextureDimension dimension = TextureDimension.Texture2D,
-        RenderTargetCreationFlags creationFlags = RenderTargetCreationFlags.AllowUAV | RenderTargetCreationFlags.DynamicallyResolution | RenderTargetCreationFlags.GenerateMips,
-        uint mipLevels = 0u, uint sampleCount = 1)
-    {
-        return new RenderTargetDesc
-        {
-            Width = width,
-            Height = height,
-            Slice = slice,
-            Type = RenderTargetType.Color,
-            Format = format,
-            Dimension = dimension,
-            CreationFlags = creationFlags,
-            MipLevels = mipLevels,
-            SampleCount = sampleCount
-        };
-    }
-
-    /// <summary>
-    /// Creates a depth render Target
-    /// </summary>
-    public static RenderTargetDesc Depth(uint width, uint height, uint slice = 1,
-        TextureFormat format = TextureFormat.D24_UNorm_S8_UInt, TextureDimension dimension = TextureDimension.Texture2D,
-        RenderTargetCreationFlags creationFlags = RenderTargetCreationFlags.AllowUAV | RenderTargetCreationFlags.DynamicallyResolution,
-        uint mipLevels = 0u, uint sampleCount = 1)
-    {
-        return new RenderTargetDesc
-        {
-            Width = width,
-            Height = height,
-            Slice = slice,
-            Type = RenderTargetType.Depth,
-            Format = format,
-            Dimension = dimension,
-            CreationFlags = creationFlags,
-            MipLevels = mipLevels,
-            SampleCount = sampleCount
-        };
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public TextureDesc ToTextureDescription()
-    {
-        var usage = Type == RenderTargetType.Color ? TextureUsage.RenderTarget : TextureUsage.DepthStencil;
-        if (CreationFlags.HasFlag(RenderTargetCreationFlags.AllowUAV))
-        {
-            usage |= TextureUsage.UnorderedAccess;
-        }
-
-        return new TextureDesc
-        {
-            Width = Width,
-            Height = Height,
-            Slice = Slice,
-            Format = Format,
-            Dimension = Dimension,
-            MipLevels = MipLevels,
-            Usage = usage,
-        };
-    }
-}
-
-/// <summary>
 /// Texture description
 /// </summary>
 public record struct TextureDesc
@@ -959,6 +815,14 @@ public record struct TextureDesc
     /// Texture usage flags
     /// </summary>
     public TextureUsage Usage
+    {
+        get; set;
+    }
+}
+
+public ref struct AdditionalTextureDesc
+{
+    public ReadOnlySpan<TextureFormat> CastableFormat
     {
         get; set;
     }
@@ -1564,10 +1428,31 @@ public enum RenderTargetType
 public enum TextureFormat
 {
     Unknown,
+
+    R8_UNorm,
+    R8_SNorm,
+    R16_UNorm,
+    R16_SNorm,
+    R16_Float,
+    R32_UInt,
+    R32_SInt,
+
+    R8G8_UNorm,
+    R8G8_SNorm,
+    R16G16_UNorm,
+    R16G16_SNorm,
+    R16G16_Float,
+    R32G32_Float,
+
     R8G8B8A8_UNorm,
+    R8G8B8A8_SNorm,
     B8G8R8A8_UNorm,
+
+    R10G10B10A2_UNorm,
+
     R16G16B16A16_Float,
     R32G32B32A32_Float,
+
     D24_UNorm_S8_UInt,
     D32_Float,
 

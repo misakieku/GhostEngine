@@ -1,8 +1,24 @@
 using Misaki.HighPerformance.LowLevel;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace Ghost.Core;
+
+public enum Error
+{
+    None,
+    NotFound,
+    InvalidArgument,
+    InvalidState,
+    InternalError,
+    PermissionDenied,
+    NotSupported,
+    OutOfMemory,
+    Timeout,
+    Cancelled,
+    UnknownError,
+
+    Success = None,
+}
 
 public readonly struct Result
 {
@@ -126,25 +142,8 @@ public readonly struct Result<T>
     public static implicit operator bool(Result<T> result) => result.IsSuccess;
 }
 
-public enum Error : byte
-{
-    None,
-    NotFound,
-    InvalidArgument,
-    InvalidState,
-    InternalError,
-    PermissionDenied,
-    NotSupported,
-    OutOfMemory,
-    Timeout,
-    Cancelled,
-    UnknownError,
-
-    Success = None,
-}
-
 public readonly struct Result<T, E>
-    where E : struct, Enum
+    where E : struct
 {
     private readonly T _value;
     private readonly E _error;
@@ -203,7 +202,7 @@ public readonly struct Result<T, E>
 }
 
 public readonly ref struct RefResult<T, E>
-    where E : struct, Enum
+    where E : struct
 {
     private readonly ref T _value;
     private readonly E _error;
@@ -261,70 +260,30 @@ public readonly ref struct RefResult<T, E>
     public static implicit operator bool(RefResult<T, E> result) => result.IsSuccess;
 }
 
-[AsyncMethodBuilder(typeof(AsyncValueTaskMethodBuilder))]
-public readonly struct ResultTask
-{
-    private readonly ValueTask<Result> _task;
-
-    public ResultTask(ValueTask<Result> task)
-    {
-        _task = task;
-    }
-
-    public ValueTaskAwaiter<Result> GetAwaiter() => _task.GetAwaiter();
-
-    public ValueTask<Result> AsValueTask() => _task;
-    public Task<Result> AsTask() => _task.AsTask();
-
-    public static implicit operator ResultTask(ValueTask<Result> task) => new ResultTask(task);
-    public static implicit operator ValueTask<Result>(ResultTask resultTask) => resultTask._task;
-}
-
-[AsyncMethodBuilder(typeof(AsyncValueTaskMethodBuilder))]
-public readonly struct ResultTask<T>
-{
-    private readonly ValueTask<Result<T>> _task;
-
-    public ResultTask(ValueTask<Result<T>> task)
-    {
-        _task = task;
-    }
-
-    public ValueTaskAwaiter<Result<T>> GetAwaiter() => _task.GetAwaiter();
-
-    public ValueTask<Result<T>> AsValueTask() => _task;
-    public Task<Result<T>> AsTask() => _task.AsTask();
-
-    public static implicit operator ResultTask<T>(ValueTask<Result<T>> task) => new ResultTask<T>(task);
-    public static implicit operator ValueTask<Result<T>>(ResultTask<T> resultTask) => resultTask._task;
-}
-
-[AsyncMethodBuilder(typeof(AsyncValueTaskMethodBuilder))]
-public readonly struct ResultTask<T, E>
-    where E : struct, Enum
-{
-    private readonly ValueTask<Result<T, E>> _task;
-
-    public ResultTask(ValueTask<Result<T, E>> task)
-    {
-        _task = task;
-    }
-
-    public ValueTaskAwaiter<Result<T, E>> GetAwaiter() => _task.GetAwaiter();
-
-    public ValueTask<Result<T, E>> AsValueTask() => _task;
-    public Task<Result<T, E>> AsTask() => _task.AsTask();
-
-    public static implicit operator ResultTask<T, E>(ValueTask<Result<T, E>> task) => new ResultTask<T, E>(task);
-    public static implicit operator ValueTask<Result<T, E>>(ResultTask<T, E> resultTask) => resultTask._task;
-}
-
 public static class ResultExtensions
 {
     extension(Error error)
     {
         public bool IsSuccess => error == Error.None;
         public bool IsFailure => error != Error.None;
+
+        public static Error FromHResult(int hr)
+        {
+            return hr switch
+            {
+                0 => Error.None,
+                unchecked((int)0x80070002) => Error.NotFound,
+                unchecked((int)0x80070057) => Error.InvalidArgument,
+                unchecked((int)0x8007139F) => Error.InvalidState,
+                unchecked((int)0x80004005) => Error.InternalError,
+                unchecked((int)0x80070005) => Error.PermissionDenied,
+                unchecked((int)0x80004001) => Error.NotSupported,
+                unchecked((int)0x8007000E) => Error.OutOfMemory,
+                unchecked((int)0x800705B4) => Error.Timeout,
+                unchecked((int)0x800704C7) => Error.Cancelled,
+                _ => Error.UnknownError
+            };
+        }
     }
 
     public static void ThrowIfFailed(this Error result, [CallerArgumentExpression(nameof(result))] string? op = null)
@@ -354,7 +313,7 @@ public static class ResultExtensions
     }
 
     public static T GetValueOrThrow<T, E>(this Result<T, E> result, [CallerArgumentExpression(nameof(result))] string? op = null)
-        where E : struct, Enum
+        where E : struct
     {
         if (!result.IsSuccess)
         {
@@ -365,7 +324,7 @@ public static class ResultExtensions
     }
 
     public static ref T GetValueOrThrow<T, E>(this RefResult<T, E> result, [CallerArgumentExpression(nameof(result))] string? op = null)
-        where E : struct, Enum
+        where E : struct
     {
         if (!result.IsSuccess)
         {
@@ -381,13 +340,13 @@ public static class ResultExtensions
     }
 
     public static T? GetValueOrDefault<T, E>(this Result<T, E> result, T? defaultValue = default)
-        where E : struct, Enum
+        where E : struct
     {
         return result.IsSuccess ? result.Value : defaultValue;
     }
 
     public static ref T GetValueOrDefault<T, E>(this RefResult<T, E> result)
-        where E : struct, Enum
+        where E : struct
     {
         return ref result.IsSuccess ? ref result.Value : ref Unsafe.NullRef<T>();
     }
@@ -438,7 +397,7 @@ public static class ResultExtensions
     }
 
     public static Result<T, E> OnSuccess<T, E>(this Result<T, E> result, Action<T> action)
-        where E : struct, Enum
+        where E : struct
     {
         if (result.IsSuccess)
         {
@@ -469,7 +428,7 @@ public static class ResultExtensions
     }
 
     public static Result<T, E> OnFailed<T, E>(this Result<T, E> result, Action<E> action)
-        where E : struct, Enum
+        where E : struct
     {
         if (result.IsFailure)
         {
@@ -500,7 +459,7 @@ public static class ResultExtensions
     }
 
     public static Result<U, E> Then<T, U, E>(this Result<T, E> result, Func<T, Result<U, E>> func)
-        where E : struct, Enum
+        where E : struct
     {
         if (result.IsFailure)
         {
@@ -535,7 +494,7 @@ public static class ResultExtensions
     }
 
     public static U Match<T, U, E>(this Result<T, E> result, Func<T, U> onSuccess, Func<E, U> onFailure)
-        where E : struct, Enum
+        where E : struct
     {
         if (result.IsSuccess)
         {

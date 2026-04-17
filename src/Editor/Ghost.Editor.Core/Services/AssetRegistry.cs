@@ -1,8 +1,8 @@
-using System.Collections.Concurrent;
-using System.Reflection;
 using Ghost.Core;
 using Ghost.Editor.Core.AssetHandler;
 using Ghost.Editor.Core.Contracts;
+using Ghost.Engine.AssetLoader;
+using System.Collections.Concurrent;
 
 namespace Ghost.Editor.Core.Services;
 
@@ -157,7 +157,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
         var ext = Path.GetExtension(relativePath);
 
         var handler = _handlerRegistry.GetByExtension(ext);
-        var importable = handler as IImportableAssetHandler;
+        var importable = handler as IAssetHandler;
 
         var metaPath = AssetMetaIO.GetMetaPath(fullPath);
         if (File.Exists(metaPath))
@@ -169,7 +169,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
         var meta = new AssetMeta
         {
             Guid = Guid.NewGuid(),
-            HandlerTypeId = handlerTypeId is string str? Guid.Parse(str) : null,
+            HandlerTypeId = handlerTypeId is string str ? Guid.Parse(str) : null,
             HandlerVersion = 1,
             Settings = importable?.CreateDefaultSettings()
         };

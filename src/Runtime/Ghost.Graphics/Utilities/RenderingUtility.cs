@@ -1,34 +1,29 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
-using Misaki.HighPerformance.LowLevel.Utilities;
 using Ghost.Graphics.Services;
+using Misaki.HighPerformance.LowLevel.Utilities;
 
 namespace Ghost.Graphics.Utilities;
 
 public static unsafe class RenderingUtility
 {
-    public static void UploadBuffer<T>(ResourceManager resourceManager, IResourceDatabase resourceDatabase, ICommandBuffer cmd, Handle<GPUBuffer> buffer, params ReadOnlySpan<T> data)
-        where T : unmanaged
+    public static Error UploadBuffer(ResourceManager resourceManager, IResourceDatabase resourceDatabase, ICommandBuffer cmd, Handle<GPUBuffer> buffer, void* pData, nuint sizeInBytes)
     {
-        var r = resourceDatabase.GetResourceDescription(buffer.AsResource());
-        if (r.IsFailure)
+        var (desc, error) = resourceDatabase.GetResourceDescription(buffer.AsResource());
+        if (error.IsFailure)
         {
-            return;
+            return error;
         }
 
-        Logger.DebugAssert(r.Value.Type == ResourceType.Buffer);
+        Logger.DebugAssert(desc.Type == ResourceType.Buffer);
 
-        var sizeInBytes = (nuint)(data.Length * sizeof(T));
-        var memoryType = r.Value.BufferDescriptor.HeapType;
+        var memoryType = desc.BufferDescriptor.HeapType;
 
         if (memoryType == HeapType.Upload)
         {
-            fixed (T* pData = data)
-            {
-                var mappedData = resourceDatabase.MapResource(buffer.AsResource(), 0, null);
-                MemoryUtility.MemCpy(mappedData, pData, sizeInBytes);
-                resourceDatabase.UnmapResource(buffer.AsResource(), 0, null);
-            }
+            var mappedData = resourceDatabase.MapResource(buffer.AsResource(), 0, null);
+            MemoryUtility.MemCpy(mappedData, pData, sizeInBytes);
+            resourceDatabase.UnmapResource(buffer.AsResource(), 0, null);
         }
         else
         {
@@ -42,24 +37,66 @@ public static unsafe class RenderingUtility
             var uploadHandle = resourceManager.CreateTransientBuffer(in uploadDesc);
             if (uploadHandle.IsInvalid)
             {
-                throw new OutOfMemoryException("Failed to create upload buffer for buffer data.");
+                return Error.OutOfMemory;
             }
 
-            fixed (T* pData = data)
-            {
-                var mappedData = resourceDatabase.MapResource(uploadHandle.AsResource(), 0, null);
-                MemoryUtility.MemCpy(mappedData, pData, sizeInBytes);
-                resourceDatabase.UnmapResource(uploadHandle.AsResource(), 0, null);
-            }
+            var mappedData = resourceDatabase.MapResource(uploadHandle.AsResource(), 0, null);
+            MemoryUtility.MemCpy(mappedData, pData, sizeInBytes);
+            resourceDatabase.UnmapResource(uploadHandle.AsResource(), 0, null);
 
+            cmd.Barrier(BarrierDesc.Buffer(buffer.AsResource(), BarrierSync.Copy, BarrierAccess.CopyDest));
             cmd.CopyBuffer(buffer, uploadHandle, 0, 0, sizeInBytes);
+            cmd.Barrier(BarrierDesc.Buffer(buffer.AsResource(), BarrierSync.None, BarrierAccess.Common));
+        }
+
+        return Error.None;
+    }
+
+    public static Error UploadBuffer<T>(ResourceManager resourceManager, IResourceDatabase resourceDatabase, ICommandBuffer cmd, Handle<GPUBuffer> buffer, params ReadOnlySpan<T> data)
+        where T : unmanaged
+    {
+        fixed (T* pData = data)
+        {
+            return UploadBuffer(resourceManager, resourceDatabase, cmd, buffer, pData, (nuint)(data.Length * sizeof(T)));
         }
     }
 
-    public static void UploadTexture<T>(ResourceManager resourceManager, IResourceDatabase resourceDatabase, ICommandBuffer cmd, Handle<GPUTexture> texture, ReadOnlySpan<T> data)
+    public static Handle<GPUBuffer> CreateBuffer(ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator, ICommandBuffer cmd, void* pData, nuint sizeInBytes, ref readonly BufferDesc desc, string? name = null)
+    {
+        var error = Error.UnknownError;
+        var bufferHandle = resourceAllocator.CreateBuffer(in desc, name);
+        
+        if (!bufferHandle.IsInvalid)
+        {
+            error = UploadBuffer(resourceManager, resourceDatabase, cmd, bufferHandle, pData, sizeInBytes);
+        }
+
+        if (error.IsSuccess)
+        {
+            return bufferHandle;
+        }
+
+        Logger.DebugAssert(error.IsSuccess);
+        return Handle<GPUBuffer>.Invalid;
+    }
+
+    public static Handle<GPUBuffer> CreateBuffer<T>(ResourceManager resourceManager, IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase, ICommandBuffer cmd, ReadOnlySpan<T> data, ref readonly BufferDesc desc, string? name = null)
         where T : unmanaged
     {
-        var desc = resourceDatabase.GetResourceDescription(texture.AsResource()).GetValueOrThrow();
+        fixed (T* pData = data)
+        {
+            return CreateBuffer(resourceManager, resourceDatabase, resourceAllocator, cmd, pData, (nuint)(data.Length * sizeof(T)), in desc, name);
+        }
+    }
+
+    public static Error UploadTexture(ResourceManager resourceManager, IResourceDatabase resourceDatabase, ICommandBuffer cmd, Handle<GPUTexture> texture, void* pData)
+    {
+        var (desc, error) = resourceDatabase.GetResourceDescription(texture.AsResource());
+        if (error.IsFailure)
+        {
+            return error;
+        }
+
         desc.TextureDescriptor.Format.GetSurfaceInfo(desc.TextureDescriptor.Width, desc.TextureDescriptor.Height, out var rowPitch, out var slicePitch, out _);
 
         var requiredSize = resourceDatabase.GetIntermediateResourceSize(texture.AsResource(), 0, 1);
@@ -73,21 +110,58 @@ public static unsafe class RenderingUtility
         var uploadHandle = resourceManager.CreateTransientBuffer(in uploadDesc);
         if (uploadHandle.IsInvalid)
         {
-            throw new OutOfMemoryException("Failed to create upload buffer for texture data.");
+            return Error.OutOfMemory;
         }
 
         cmd.Barrier(BarrierDesc.Texture(texture.AsResource(), BarrierSync.Copy, BarrierAccess.CopyDest, BarrierLayout.CopyDest));
 
+        var subresourceData = new SubResourceData
+        {
+            pData = pData,
+            rowPitch = rowPitch,
+            slicePitch = slicePitch
+        };
+
+        cmd.UpdateSubResources(texture.AsResource(), uploadHandle.AsResource(), subresourceData);
+        cmd.Barrier(BarrierDesc.Texture(texture.AsResource(), BarrierSync.None, BarrierAccess.Common, BarrierLayout.Common));
+
+        return Error.None;
+    }
+
+    public static Error UploadTexture<T>(ResourceManager resourceManager, IResourceDatabase resourceDatabase, ICommandBuffer cmd, Handle<GPUTexture> texture, ReadOnlySpan<T> data)
+        where T : unmanaged
+    {
         fixed (T* pData = data)
         {
-            var subresourceData = new SubResourceData
-            {
-                pData = pData,
-                rowPitch = rowPitch,
-                slicePitch = slicePitch
-            };
+            return UploadTexture(resourceManager, resourceDatabase, cmd, texture, pData);
+        }
+    }
 
-            cmd.UpdateSubResources(texture.AsResource(), uploadHandle.AsResource(), subresourceData);
+    public static Handle<GPUTexture> CreateTexture(ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator, ICommandBuffer cmd, void* pData, ref readonly TextureDesc desc, string? name = null)
+    {
+        var error = Error.UnknownError;
+        
+        var textureHandle = resourceAllocator.CreateTexture(in desc, name);
+        if (!textureHandle.IsInvalid)
+        {
+            error = UploadTexture(resourceManager, resourceDatabase, cmd, textureHandle, pData);
+        }
+
+        if (error.IsSuccess)
+        {
+            return textureHandle;
+        }
+
+        Logger.DebugAssert(error.IsSuccess);
+        return Handle<GPUTexture>.Invalid;
+    }
+
+    public static Handle<GPUTexture> CreateTexture<T>(ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator, ICommandBuffer cmd, ReadOnlySpan<T> data, ref readonly TextureDesc desc, string? name = null)
+        where T : unmanaged
+    {
+        fixed (T* pData = data)
+        {
+            return CreateTexture(resourceManager, resourceDatabase, resourceAllocator, cmd, pData, in desc, name);
         }
     }
 }

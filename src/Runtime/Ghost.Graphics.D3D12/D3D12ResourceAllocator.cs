@@ -480,7 +480,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         Dispose();
     }
 
-    private HRESULT CreateResource(D3D12MA_ALLOCATION_DESC* pAllocationDesc, D3D12_RESOURCE_DESC* pResourceDesc, D3D12_RESOURCE_STATES initialState, CreationOptions options, Guid* riid, void** ppv)
+    private HRESULT CreateResource(D3D12MA_ALLOCATION_DESC* pAllocationDesc, D3D12_RESOURCE_DESC1* pResourceDesc, D3D12_BARRIER_LAYOUT initialLayout, CreationOptions options, uint numCapatableFormats, DXGI_FORMAT* pCastableFormats, Guid* riid, void** ppv)
     {
         HRESULT hr;
 
@@ -493,12 +493,14 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
                 return E.E_NOTFOUND;
             }
 
-            hr = _d3d12MA.Get()->CreateAliasingResource(result.Value.resource.allocation.Get(), options.Offset, pResourceDesc, initialState, null, riid, ppv);
+            hr = _d3d12MA.Get()->CreateAliasingResource2(result.Value.resource.allocation.Get(), options.Offset, pResourceDesc, initialLayout, null, numCapatableFormats, pCastableFormats, riid, ppv);
         }
         else
         {
+            Logger.DebugAssert(*riid == __uuidof<D3D12MA_Allocation>());
+
             var iid_null = IID.IID_NULL;
-            hr = _d3d12MA.Get()->CreateResource(pAllocationDesc, pResourceDesc, initialState, null, (D3D12MA_Allocation**)ppv, &iid_null, null);
+            hr = _d3d12MA.Get()->CreateResource3(pAllocationDesc, pResourceDesc, initialLayout, null, numCapatableFormats, pCastableFormats, (D3D12MA_Allocation**)ppv, &iid_null, null);
         }
 
         return hr;
@@ -506,21 +508,23 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
     public ResourceSizeInfo GetSizeInfo(ResourceDesc desc)
     {
-        D3D12_RESOURCE_DESC d3d12Desc;
+        D3D12_RESOURCE_DESC1 d3d12Desc;
         if (desc.Type == ResourceType.Texture)
         {
-            d3d12Desc = desc.TextureDescriptor.ToD3D12ResourceDesc();
+            d3d12Desc = desc.TextureDescriptor.ToD3D12ResourceDesc1();
         }
         else
         {
-            d3d12Desc = desc.BufferDescriptor.ToD3D12ResourceDesc();
+            d3d12Desc = desc.BufferDescriptor.ToD3D12ResourceDesc1();
         }
 
-        var info = _device.NativeObject.Get()->GetResourceAllocationInfo(0, 1, &d3d12Desc);
+        D3D12_RESOURCE_ALLOCATION_INFO1 info1;
+        var info = _device.NativeObject.Get()->GetResourceAllocationInfo2(0, 1, &d3d12Desc, &info1);
         return new ResourceSizeInfo
         {
             Size = info.SizeInBytes,
-            Alignment = info.Alignment
+            Alignment = info.Alignment,
+            Offset = info1.Offset,
         };
     }
 
@@ -556,13 +560,13 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         return _resourceDatabase.AddAllocation(alloc, barrierData, ResourceViewGroup.Invalid, default, name);
     }
 
-    public Handle<GPUTexture> CreateTexture(ref readonly TextureDesc desc, string? name = null, CreationOptions options = default)
+    public Handle<GPUTexture> CreateTexture(ref readonly TextureDesc desc, string? name = null, CreationOptions options = default, AdditionalTextureDesc additionalDesc = default)
     {
         Logger.DebugAssert(!_disposed);
 
         CheckTexture2DSize(desc.Width, desc.Height);
 
-        var resourceDesc = desc.ToD3D12ResourceDesc();
+        var resourceDesc = desc.ToD3D12ResourceDesc1();
         var allocationDesc = new D3D12MA_ALLOCATION_DESC
         {
             HeapType = D3D12_HEAP_TYPE_DEFAULT,
@@ -574,13 +578,19 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         ID3D12Resource* pResource = default;
         HRESULT hr;
 
+        var pCastableFormats = stackalloc DXGI_FORMAT[additionalDesc.CastableFormat.Length];
+        for ( var i = 0; i < additionalDesc.CastableFormat.Length; i++)
+        {
+            pCastableFormats[i] = additionalDesc.CastableFormat[i].ToDXGIFormat();
+        }
+
         if (isSubAllocation)
         {
-            hr = CreateResource(&allocationDesc, &resourceDesc, D3D12_RESOURCE_STATE_COMMON, options, __uuidof(pResource), (void**)&pResource);
+            hr = CreateResource(&allocationDesc, &resourceDesc, D3D12_BARRIER_LAYOUT_COMMON, options, (uint)additionalDesc.CastableFormat.Length, pCastableFormats,  __uuidof(pResource), (void**)&pResource);
         }
         else
         {
-            hr = CreateResource(&allocationDesc, &resourceDesc, D3D12_RESOURCE_STATE_COMMON, options, null, (void**)&pAllocation);
+            hr = CreateResource(&allocationDesc, &resourceDesc, D3D12_BARRIER_LAYOUT_COMMON, options, (uint)additionalDesc.CastableFormat.Length, pCastableFormats, __uuidof(pAllocation), (void**)&pAllocation);
             if (hr.SUCCEEDED)
             {
                 pResource = pAllocation->GetResource();
@@ -638,8 +648,8 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
         var barrierData = new ResourceBarrierData
         {
-            access = BarrierAccess.NoAccess,
             layout = BarrierLayout.Common,
+            access = BarrierAccess.Common,
             sync = BarrierSync.None
         };
 
@@ -656,20 +666,12 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         return resource.AsTexture();
     }
 
-    public Handle<GPUTexture> CreateRenderTarget(ref readonly RenderTargetDesc desc, string? name = null, CreationOptions options = default)
-    {
-        Logger.DebugAssert(!_disposed);
-
-        var textureDesc = desc.ToTextureDescription();
-        return CreateTexture(in textureDesc, name, options);
-    }
-
     public Handle<GPUBuffer> CreateBuffer(ref readonly BufferDesc desc, string? name = null, CreationOptions options = default)
     {
         Logger.DebugAssert(!_disposed);
         CheckBufferSize(desc.Size);
 
-        var resourceDesc = desc.ToD3D12ResourceDesc();
+        var resourceDesc = desc.ToD3D12ResourceDesc1();
         var isRaw = desc.Usage.HasFlag(BufferUsage.Raw);
 
         var allocationDesc = new D3D12MA_ALLOCATION_DESC
@@ -683,21 +685,13 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         ID3D12Resource* pResource = default;
         HRESULT hr;
 
-        var initialState = desc.HeapType switch
-        {
-            HeapType.Default => D3D12_RESOURCE_STATE_COMMON,
-            HeapType.Upload => D3D12_RESOURCE_STATE_GENERIC_READ,
-            HeapType.Readback => D3D12_RESOURCE_STATE_COPY_DEST,
-            _ => D3D12_RESOURCE_STATE_COMMON
-        };
-
         if (isSubAllocation)
         {
-            hr = CreateResource(&allocationDesc, &resourceDesc, initialState, options, __uuidof(pResource), (void**)&pResource);
+            hr = CreateResource(&allocationDesc, &resourceDesc, D3D12_BARRIER_LAYOUT_UNDEFINED, options, 0u, null, __uuidof(pResource), (void**)&pResource);
         }
         else
         {
-            hr = CreateResource(&allocationDesc, &resourceDesc, initialState, options, null, (void**)&pAllocation);
+            hr = CreateResource(&allocationDesc, &resourceDesc, D3D12_BARRIER_LAYOUT_UNDEFINED, options, 0u, null, __uuidof(pAllocation), (void**)&pAllocation);
             if (hr.SUCCEEDED)
             {
                 pResource = pAllocation->GetResource();
@@ -750,8 +744,8 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
         var barrierData = new ResourceBarrierData
         {
-            access = BarrierAccess.NoAccess,
             layout = BarrierLayout.Undefined,
+            access = BarrierAccess.Common,
             sync = BarrierSync.None
         };
 

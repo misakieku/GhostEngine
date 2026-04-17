@@ -1,4 +1,5 @@
 using Ghost.Editor.Core.Contracts;
+using Ghost.Engine.AssetLoader;
 
 namespace Ghost.Editor.Core.AssetHandler;
 

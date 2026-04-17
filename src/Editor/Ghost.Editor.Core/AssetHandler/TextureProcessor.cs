@@ -33,6 +33,8 @@ internal static class TextureProcessor
         private readonly TextureAssetSettings _settings;
         private readonly TaskCompletionSource _completionSource;
 
+        public int mipmapCount;
+
         public Task Task => _completionSource.Task;
 
         public NvttPipelineTask(string outputPath, byte[] image, uint width, uint height, uint depth, TextureAssetSettings settings)
@@ -119,7 +121,6 @@ internal static class TextureProcessor
 
             var nvttFilter = SelectMipmapFilter(_settings.Advanced.MipmapFilter);
 
-            int mipmapCount;
             if (!_settings.Advanced.GenerateMipmaps)
             {
                 mipmapCount = 1;
@@ -162,23 +163,19 @@ internal static class TextureProcessor
         }
     }
 
-    private const string _TEXTURE_CACHE_SUBFOLDER = "TextureCache";
-
-    public static async ValueTask<string> CompressToCacheAsync(string cachesFolderPath, Guid assetId, byte[] image, uint width, uint height, uint depth, TextureAssetSettings settings, CancellationToken cancellationToken)
+    public static async ValueTask<(string cachePath, int mipmapCount)> CompressToCacheAsync(string cachesFolderPath, Guid assetId, byte[] image, uint width, uint height, uint depth, TextureAssetSettings settings, CancellationToken cancellationToken)
     {
-        var cacheDir = Path.Combine(cachesFolderPath, _TEXTURE_CACHE_SUBFOLDER);
-        Directory.CreateDirectory(cacheDir);
-
         var settingsHash = ComputeSettingsHash(settings);
-        var cacheFileName = $"{assetId:N}_{settingsHash:X16}.dds";
-        var cachePath = Path.Combine(cacheDir, cacheFileName);
+        var cacheFileName = $"texturecache_{assetId:N}_{settingsHash:X16}.dds";
+        var cachePath = Path.Combine(cachesFolderPath, cacheFileName);
 
         if (File.Exists(cachePath))
         {
-            return cachePath;
+            // TODO: Implement mipmap count retrieval from existing cache file
+            return (cachePath, 0);
         }
 
-        foreach (var stale in Directory.EnumerateFiles(cacheDir, $"{assetId:N}_*.dds"))
+        foreach (var stale in Directory.EnumerateFiles(cachesFolderPath, $"texturecache_{assetId:N}_*.dds"))
         {
             File.Delete(stale);
         }
@@ -187,7 +184,7 @@ internal static class TextureProcessor
         ThreadPool.UnsafeQueueUserWorkItem(workItem, true);
         await workItem.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
 
-        return cachePath;
+        return (cachePath, workItem.mipmapCount);
     }
 
     private static NvttFormat SelectFormat(TextureAssetSettings settings)

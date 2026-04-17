@@ -1,5 +1,5 @@
 using Ghost.Core;
-using Ghost.Editor.Core.Contracts;
+using Ghost.Engine.AssetLoader;
 using Ghost.Graphics.RHI;
 using ImageMagick;
 using System.Runtime.InteropServices;
@@ -44,55 +44,6 @@ public enum MipmapFilter : uint
     Triangle,
     Kaiser,
     MitchellNetravali
-}
-
-public class TextureAsset : Asset
-{
-    internal const string _TYPE_ID = "0906F4EB-C3F0-431B-BCEA-132C88AB0C3F";
-    internal static readonly Guid s_typeGuid = Guid.Parse(_TYPE_ID);
-
-    private readonly byte[] _textureData;
-    private readonly uint _width;
-    private readonly uint _height;
-    private readonly uint _depth;
-    private readonly uint _colorComponents;
-
-    public override Guid TypeID => s_typeGuid;
-
-    /// <summary>
-    /// Gets the raw texture data in a compressed format.
-    /// </summary>
-    public ReadOnlyMemory<byte> TextureData => _textureData;
-
-    /// <summary>
-    /// Gets the width of the texture in pixels.
-    /// </summary>
-    public uint Width => _width;
-
-    /// <summary>
-    /// Gets the height of the texture in pixels.
-    /// </summary>
-    public uint Height => _height;
-
-    /// <summary>
-    /// Gets the bit depth of the texture.
-    /// </summary>
-    public uint Depth => _depth;
-
-    /// <summary>
-    /// Gets the number of color components in the texture.
-    /// </summary>
-    public uint ColorComponents => _colorComponents;
-
-    internal TextureAsset(byte[] data, ImageContentHeader header, Guid id)
-        : base(id)
-    {
-        _textureData = data;
-        _width = header.width;
-        _height = header.height;
-        _depth = header.depth;
-        _colorComponents = header.colorComponents;
-    }
 }
 
 public class TextureAssetSettings : IAssetSettings
@@ -242,63 +193,12 @@ public class TextureAssetSettings : IAssetSettings
     } = new SamplerSettings();
 }
 
-[StructLayout(LayoutKind.Sequential, Size = 64)] // Leave extra space for future expansion without breaking compatibility
-internal struct ImageContentHeader
-{
-    public uint width;
-    public uint height;
-    public uint depth;
-    public uint colorComponents;
-}
-
-[CustomAssetHandler(TextureAsset._TYPE_ID, [ ".png", ".jpg", ".jpeg", ".tga", ".bmp", ".hdr" ], 1)]
-internal class TextureAssetHandler : IImportableAssetHandler
+[CustomAssetHandler(TextureAsset.TYPE_ID, [".png", ".jpg", ".jpeg", ".tga", ".bmp", ".hdr"], 1)]
+internal class TextureAssetHandler : IAssetHandler
 {
     public IAssetSettings? CreateDefaultSettings()
     {
         return new TextureAssetSettings();
-    }
-
-    public async ValueTask<Result<Asset>> LoadAsync(Stream sourceStream, Guid id, IAssetRegistry assetRegistry, CancellationToken token = default)
-    {
-        try
-        {
-            // FIX: Should the sourceStream be the stream of the imported file or the raw asset file?
-            // Or should we change our paramemters to inlcude more information and let each handler decide how to load the asset?
-            // The problem of a single sourceStream is, for example, for texture assets, we don't even need to read the ".png" file at all,
-            // but for some other asset types, we may don't even have imported intermediate files at all.
-
-            // var path = assetRegistry.GetAssetPath(id);
-            // if (string.IsNullOrEmpty(path))
-            // {
-            //     return Result.Failure("Asset path not found in registry.");
-            // }
-            //
-            // var metadataPath = AssetMetaIO.GetMetaPath(path);
-            // var meta = await AssetMetaIO.ReadAsync(metadataPath, token).ConfigureAwait(false);
-            // Logger.DebugAssert(meta != null, $"Missing or invalid metadata for asset at {path}");
-
-
-
-            var header = new ImageContentHeader();
-            sourceStream.ReadExactly(MemoryMarshal.AsBytes(new Span<ImageContentHeader>(ref header)));
-
-            var imageDataSize = (int)(sourceStream.Length - sourceStream.Position);
-            var imageData = new byte[imageDataSize];
-            await sourceStream.ReadExactlyAsync(imageData, token).ConfigureAwait(false);
-
-            var asset = new TextureAsset(imageData, header, id);
-            return asset;
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure($"Failed to load texture asset: {ex.Message}");
-        }
-    }
-
-    public ValueTask<Result> SaveAsync(Asset asset, Stream targetStream, IAssetRegistry assetRegistry, CancellationToken token = default)
-    {
-        throw new NotImplementedException();
     }
 
     public async ValueTask<Result> ImportAsync(Stream sourceStream, Stream targetStream, Guid id, IAssetSettings? settings, CancellationToken token = default)
@@ -309,20 +209,22 @@ internal class TextureAssetHandler : IImportableAssetHandler
             using var image = new MagickImage(sourceStream);
             var bytes = image.ToByteArray();
 
-            await TextureProcessor.CompressToCacheAsync(EditorApplication.LibraryFolderPath, id, bytes, image.Width, image.Height, image.Depth, textureSettings, token)
+            var (path, mip) = await TextureProcessor.CompressToCacheAsync(EditorApplication.ImportsFolderPath, id, bytes, image.Width, image.Height, image.Depth, textureSettings, token)
                 .ConfigureAwait(false);
 
             targetStream.Seek(0, SeekOrigin.Begin);
 
-            var contentHeader = new ImageContentHeader
+            var contentHeader = new TextureContentHeader
             {
                 width = image.Width,
                 height = image.Height,
                 depth = image.Depth,
-                colorComponents = image.ChannelCount
+                colorComponents = image.ChannelCount,
+                mipLevels = (uint)mip,
+                dimension = (int)TextureDimension.Texture2D // TODO: Implement dimension calculation
             };
 
-            targetStream.Write(MemoryMarshal.AsBytes(new Span<ImageContentHeader>(ref contentHeader)));
+            targetStream.Write(MemoryMarshal.AsBytes(new Span<TextureContentHeader>(ref contentHeader)));
 
             await targetStream.WriteAsync(bytes, token).ConfigureAwait(false);
             await targetStream.FlushAsync(token).ConfigureAwait(false);
@@ -333,5 +235,10 @@ internal class TextureAssetHandler : IImportableAssetHandler
         {
             return Result.Failure($"Failed to import texture asset: {ex.Message}");
         }
+    }
+
+    public ValueTask<Result> ExportAsync(Stream assetStream, Stream targetStream, IAssetExportOptions? options, CancellationToken token = default)
+    {
+        return ValueTask.FromResult(Result.Failure("Exporting texture assets is not supported yet."));
     }
 }
