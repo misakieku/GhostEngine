@@ -7,7 +7,6 @@ using Misaki.HighPerformance.LowLevel.Collections;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -115,7 +114,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
     private UnsafeQueue<ReleaseEntry> _releaseQueue;
 
-    private int _writeLock;
+    private readonly Lock _writeLock;
 
     private ulong _cpuFrame;
     private bool _disposed;
@@ -133,6 +132,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 #endif
 
         _releaseQueue = new UnsafeQueue<ReleaseEntry>(32, AllocationHandle.Persistent);
+        _writeLock = new Lock();
     }
 
     ~D3D12ResourceDatabase()
@@ -152,13 +152,10 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
             return Handle<GPUResource>.Invalid;
         }
 
-        var spinner = new SpinWait();
-        while (Interlocked.CompareExchange(ref _writeLock, 1, 0) != 0)
-        {
-            spinner.SpinOnce();
-        }
-
-        try
+        // It's fine here to use lock. System.Threading.Lock use LowLevelSpinWaiter internally before it escalates to a kernel lock, so it should be very cheap in the uncontended case.
+        // And adding resources is not a very frequent operation, so we can afford the potential overhead here for the sake of simplicity and correctness.
+        // We do not choose a concurrent collection here because we want maximum access speed for read operations.
+        lock (_writeLock)
         {
             var id = _resources.Add(new ResourceRecord(pResource, initialBarrierData, viewGroup, desc), out var generation);
             var handle = new Handle<GPUResource>(id, generation);
@@ -172,10 +169,6 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 #endif
 
             return handle;
-        }
-        finally
-        {
-            Interlocked.Exchange(ref _writeLock, 0);
         }
     }
 
@@ -191,13 +184,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
             return Handle<GPUResource>.Invalid;
         }
 
-        var spinner = new SpinWait();
-        while (Interlocked.CompareExchange(ref _writeLock, 1, 0) != 0)
-        {
-            spinner.SpinOnce();
-        }
-
-        try
+        lock (_writeLock)
         {
             var id = _resources.Add(new ResourceRecord(allocation, initialBarrierData, resourceDescriptor, desc), out var generation);
             var handle = new Handle<GPUResource>(id, generation);
@@ -217,22 +204,6 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
             return handle;
         }
-        finally
-        {
-            Interlocked.Exchange(ref _writeLock, 0);
-        }
-    }
-
-    public void EnterParallelRead()
-    {
-        Logger.DebugAssert(!_disposed);
-        Interlocked.Exchange(ref _writeLock, 1);
-    }
-
-    public void ExitParallelRead()
-    {
-        Logger.DebugAssert(!_disposed);
-        Interlocked.Exchange(ref _writeLock, 0);
     }
 
     public bool HasResource(Handle<GPUResource> handle)
@@ -416,29 +387,19 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
             return Handle<GPUResource>.Invalid;
         }
 
-        var spinner = new SpinWait();
-        while (Interlocked.CompareExchange(ref _writeLock, 1, 0) != 0)
+        var (srcRecord, error) = GetResourceRecord(src);
+        if (error.IsFailure)
         {
-            spinner.SpinOnce();
+            return Handle<GPUResource>.Invalid;
         }
 
-        try
+        lock (_writeLock)
         {
-            var (srcRecord, error) = GetResourceRecord(src);
-            if (error.IsFailure)
-            {
-                return Handle<GPUResource>.Invalid;
-            }
-
             var newRecord = srcRecord.Get();
             newRecord.isShared = true;
 
             var id = _resources.Add(newRecord, out var generation);
             return new Handle<GPUResource>(id, generation);
-        }
-        finally
-        {
-            Interlocked.Exchange(ref _writeLock, 0);
         }
     }
 

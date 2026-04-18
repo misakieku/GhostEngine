@@ -33,8 +33,15 @@ public sealed partial class ResourceManager : IDisposable
 
     private readonly MaterialPaletteStore _materialPalettes;
 
+    // TODO: Any better way? System.Threading.Lock is very fast though, it use spin lock before entering kernel.
+    // rw lock slim is an option but it has more overhead on read, and for more than 90% of the time we are reading, it may not be a good option.
+    // Plus UnsafeSlotMap use jagged array internally, which means we can have concurrent read and write on different slots without any issue, so we only need to lock when writing to those slots.
+    private readonly Lock _meshWriteLock;
+    private readonly Lock _materialWriteLock;
+    private readonly Lock _shaderWriteLock;
+    private readonly Lock _computeShaderWriteLock;
+
     private ulong _submittedFrame;
-    private int _writeLock;
 
     private bool _disposed;
 
@@ -50,6 +57,11 @@ public sealed partial class ResourceManager : IDisposable
         _computeShaders = new UnsafeSlotMap<ComputeShader>(16, AllocationHandle.Persistent);
 
         _materialPalettes = new MaterialPaletteStore();
+
+        _meshWriteLock = new Lock();
+        _materialWriteLock = new Lock();
+        _shaderWriteLock = new Lock();
+        _computeShaderWriteLock = new Lock();
     }
 
     ~ResourceManager()
@@ -69,18 +81,6 @@ public sealed partial class ResourceManager : IDisposable
         EndFramePool(completedFrame);
     }
 
-    public void EnterParallelRead()
-    {
-        Logger.DebugAssert(!_disposed);
-        Volatile.Write(ref _writeLock, 1);
-    }
-
-    public void ExitParallelRead()
-    {
-        Logger.DebugAssert(!_disposed);
-        Volatile.Write(ref _writeLock, 0);
-    }
-
     /// <summary>
     /// Creates a new mesh from the specified vertex and index data.
     /// </summary>
@@ -91,13 +91,7 @@ public sealed partial class ResourceManager : IDisposable
     {
         Logger.DebugAssert(!_disposed);
 
-        var spinner = new SpinWait();
-        while (Interlocked.CompareExchange(ref _writeLock, 1, 0) != 0)
-        {
-            spinner.SpinOnce();
-        }
-
-        try
+        lock (_meshWriteLock)
         {
             var vertexBufferDesc = new BufferDesc
             {
@@ -139,10 +133,6 @@ public sealed partial class ResourceManager : IDisposable
             var id = _meshes.Add(mesh, out var generation);
             return new Handle<Mesh>(id, generation);
         }
-        finally
-        {
-            Volatile.Write(ref _writeLock, 0);
-        }
     }
 
     /// <summary>
@@ -154,15 +144,10 @@ public sealed partial class ResourceManager : IDisposable
     {
         Logger.DebugAssert(!_disposed);
 
-        var spinner = new SpinWait();
-        while (Interlocked.CompareExchange(ref _writeLock, 1, 0) != 0)
-        {
-            spinner.SpinOnce();
-        }
+        var material = new Material();
 
-        try
+        lock (_materialWriteLock)
         {
-            var material = new Material();
             if (material.SetShader(shader, this, _resourceDatabase, _resourceAllocator) != Error.None)
             {
                 return Handle<Material>.Invalid;
@@ -170,10 +155,6 @@ public sealed partial class ResourceManager : IDisposable
 
             var id = _materials.Add(material, out var generation);
             return new Handle<Material>(id, generation);
-        }
-        finally
-        {
-            Volatile.Write(ref _writeLock, 0);
         }
     }
 
@@ -186,43 +167,25 @@ public sealed partial class ResourceManager : IDisposable
     {
         Logger.DebugAssert(!_disposed);
 
-        var spinner = new SpinWait();
-        while (Interlocked.CompareExchange(ref _writeLock, 1, 0) != 0)
-        {
-            spinner.SpinOnce();
-        }
+        var shader = new Shader(descriptor);
 
-        try
+        lock (_shaderWriteLock)
         {
-            var shader = new Shader(descriptor);
-
             var id = _shaders.Add(shader, out var generation);
             return new Handle<Shader>(id, generation);
-        }
-        finally
-        {
-            Volatile.Write(ref _writeLock, 0);
         }
     }
 
     public Handle<ComputeShader> CreateComputeShader(ComputeShaderDescriptor descriptor)
     {
         Logger.DebugAssert(!_disposed);
-        var spinner = new SpinWait();
-        while (Interlocked.CompareExchange(ref _writeLock, 1, 0) != 0)
-        {
-            spinner.SpinOnce();
-        }
 
-        try
+        var computeShader = new ComputeShader(descriptor);
+
+        lock (_computeShaderWriteLock)
         {
-            var computeShader = new ComputeShader(descriptor);
             var id = _computeShaders.Add(computeShader, out var generation);
             return new Handle<ComputeShader>(id, generation);
-        }
-        finally
-        {
-            Volatile.Write(ref _writeLock, 0);
         }
     }
 
@@ -261,14 +224,17 @@ public sealed partial class ResourceManager : IDisposable
     {
         Logger.DebugAssert(!_disposed);
 
-        ref var mesh = ref _meshes.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
-        if (!exist)
+        lock (_meshWriteLock)
         {
-            return;
-        }
+            ref var mesh = ref _meshes.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
+            if (!exist)
+            {
+                return;
+            }
 
-        _meshes.Remove(handle.ID, handle.Generation);
-        mesh.ReleaseResource(_resourceDatabase);
+            _meshes.Remove(handle.ID, handle.Generation);
+            mesh.ReleaseResource(_resourceDatabase);
+        }
     }
 
     /// <summary>
@@ -306,14 +272,17 @@ public sealed partial class ResourceManager : IDisposable
     {
         Logger.DebugAssert(!_disposed);
 
-        ref var material = ref _materials.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
-        if (!exist)
+        lock (_materialWriteLock)
         {
-            return;
-        }
+            ref var material = ref _materials.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
+            if (!exist)
+            {
+                return;
+            }
 
-        _materials.Remove(handle.ID, handle.Generation);
-        material.ReleaseResource(_resourceDatabase);
+            _materials.Remove(handle.ID, handle.Generation);
+            material.ReleaseResource(_resourceDatabase);
+        }
     }
 
     /// <summary>
@@ -412,14 +381,17 @@ public sealed partial class ResourceManager : IDisposable
     {
         Logger.DebugAssert(!_disposed);
 
-        ref var shader = ref _shaders.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
-        if (!exist)
+        lock (_shaderWriteLock)
         {
-            return;
-        }
+            ref var shader = ref _shaders.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
+            if (!exist)
+            {
+                return;
+            }
 
-        _shaders.Remove(handle.ID, handle.Generation);
-        shader.ReleaseResource(_resourceDatabase);
+            _shaders.Remove(handle.ID, handle.Generation);
+            shader.ReleaseResource(_resourceDatabase);
+        }
     }
 
     /// <summary>
@@ -457,14 +429,17 @@ public sealed partial class ResourceManager : IDisposable
     {
         Logger.DebugAssert(!_disposed);
 
-        ref var computeShader = ref _computeShaders.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
-        if (!exist)
+        lock (_computeShaderWriteLock)
         {
-            return;
-        }
+            ref var computeShader = ref _computeShaders.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
+            if (!exist)
+            {
+                return;
+            }
 
-        _computeShaders.Remove(handle.ID, handle.Generation);
-        computeShader.ReleaseResource(_resourceDatabase);
+            _computeShaders.Remove(handle.ID, handle.Generation);
+            computeShader.ReleaseResource(_resourceDatabase);
+        }
     }
 
     public void Dispose()

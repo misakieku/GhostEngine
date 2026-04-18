@@ -92,6 +92,7 @@ public class RenderSystem : IDisposable
     private readonly SwapChainManager _swapChainManager;
     private readonly ShaderLibrary _shaderLibrary;
 
+    private readonly IFence _fence;
     private readonly FrameResource[] _frameResources;
     private readonly Thread _renderThread;
     private readonly AutoResetEvent _shutdownEvent;
@@ -181,6 +182,7 @@ public class RenderSystem : IDisposable
         _swapChainManager = new SwapChainManager(_graphicsEngine);
         _shaderLibrary = new ShaderLibrary(desc.ShaderCompilationBridge, desc.ShaderCacheDirectory);
 
+        _fence = _graphicsEngine.CreateFence(0);
         // Create frame resources for synchronization
         _frameResources = new FrameResource[desc.FrameBufferCount];
         for (var i = 0; i < desc.FrameBufferCount; i++)
@@ -259,7 +261,7 @@ public class RenderSystem : IDisposable
                     continue;
                 }
 
-                _graphicsEngine.Device.GraphicsQueue.WaitForValue(frameResource.FenceValue);
+                _fence.WaitForValue(frameResource.FenceValue);
 
                 if (!_resizeRequest.IsEmpty)
                 {
@@ -275,7 +277,7 @@ public class RenderSystem : IDisposable
                     }
                 }
 
-                var completedFrame = _graphicsEngine.Device.GraphicsQueue.GetCompletedValue();
+                var completedFrame = _fence.CompletedValue;
                 if (_submittedFenceValue < completedFrame)
                 {
                     _submittedFenceValue = completedFrame;
@@ -318,10 +320,10 @@ public class RenderSystem : IDisposable
                 }
 
                 _submittedFenceValue++;
-                frameResource.FenceValue = _graphicsEngine.Device.GraphicsQueue.Signal(_submittedFenceValue);
+                frameResource.FenceValue = _graphicsEngine.Device.GraphicsQueue.Signal(_fence, _submittedFenceValue);
                 frameResource.GpuReadyEvent.Set();
 
-                completedFrame = _graphicsEngine.Device.GraphicsQueue.GetCompletedValue();
+                completedFrame = _fence.CompletedValue;
 
                 // End the frame and retire resources based on the freshest observed GPU progress.
                 _resourceManager.EndFrame(completedFrame);
@@ -386,7 +388,7 @@ public class RenderSystem : IDisposable
 
         var requiredGpuFence = _cpuFenceValue < _config.FrameBufferCount ? 0 : _cpuFenceValue - _config.FrameBufferCount + 1;
 
-        if (requiredGpuFence > 0 && _graphicsEngine.Device.GraphicsQueue.GetCompletedValue() < requiredGpuFence)
+        if (requiredGpuFence > 0 && _fence.CompletedValue < requiredGpuFence)
         {
             return false;
         }
@@ -418,7 +420,7 @@ public class RenderSystem : IDisposable
         {
             if (frameResource.FenceValue > 0)
             {
-                _graphicsEngine.Device.GraphicsQueue.WaitForValue(frameResource.FenceValue);
+                _fence.WaitForValue(frameResource.FenceValue);
             }
         }
     }

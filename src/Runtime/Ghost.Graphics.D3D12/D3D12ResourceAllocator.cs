@@ -506,6 +506,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         return hr;
     }
 
+    // TODO: Should we move this to device?
     public ResourceSizeInfo GetSizeInfo(ResourceDesc desc)
     {
         D3D12_RESOURCE_DESC1 d3d12Desc;

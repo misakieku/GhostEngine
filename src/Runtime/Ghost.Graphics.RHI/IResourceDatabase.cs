@@ -34,16 +34,6 @@ public enum BindlessAccess
 public unsafe interface IResourceDatabase : IDisposable
 {
     /// <summary>
-    /// Enters a parallel read section, allowing multiple threads to read from the resource database concurrently and block any write operations until all readers have exited.
-    /// </summary>
-    void EnterParallelRead();
-
-    /// <summary>
-    /// Exits a parallel read section, allowing write operations to proceed once all readers have exited.
-    /// </summary>
-    void ExitParallelRead();
-
-    /// <summary>
     /// Checks if a resource with the specified handle exists in the database.
     /// </summary>
     /// <param name="handle">The handle of the resource to check for existence.</param>

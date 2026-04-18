@@ -1411,11 +1411,12 @@ public enum TextureDimension
 {
     Unknown = -1,
     None = 0,
-    Texture2D = 1,
-    Texture3D = 2,
-    TextureCube = 3,
-    Texture2DArray = 4,
-    TextureCubeArray = 5
+    Texture1D = 1,
+    Texture2D = 2,
+    Texture3D = 3,
+    TextureCube = 4,
+    Texture2DArray = 5,
+    TextureCubeArray = 6
 }
 
 public enum RenderTargetType

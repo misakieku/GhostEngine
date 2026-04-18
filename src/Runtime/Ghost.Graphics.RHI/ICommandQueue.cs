@@ -28,30 +28,18 @@ public interface ICommandQueue : IRHIObject
     /// <summary>
     /// Signals a fence with the specified Value
     /// </summary>
+    /// <param name="fence">Fence to signal</param>
     /// <param name="value">Value to signal</param>
     /// <returns>The fence Value that was signaled</returns>
-    ulong Signal(ulong value);
+    ulong Signal(IFence fence, ulong value);
 
     /// <summary>
-    /// Waits for the fence to reach the specified Value
+    /// Insert a GPU wait on the specified fence and value. The GPU will wait until the fence reaches the specified value before executing any further commands.
     /// </summary>
+    /// <remarks>
+    /// CPU will return immediately.
+    /// </remarks>
+    /// <param name="fence">Fence to wait on</param>
     /// <param name="value">Value to wait for</param>
-    void WaitForValue(ulong value);
-
-    /// <summary>
-    /// Gets the last completed fence Value
-    /// </summary>
-    /// <returns>Last completed fence Value</returns>
-    ulong GetCompletedValue();
-
-    /// <summary>
-    /// Waits until all submitted commands have finished executing
-    /// </summary>
-    void WaitIdle();
-
-    /// <summary>
-    /// Waits asynchronously until all submitted commands have finished executing
-    /// </summary>
-    /// <returns>Task that completes when the queue is idle</returns>
-    Task WaitAsync();
+    void Wait(IFence fence, ulong value);
 }

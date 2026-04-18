@@ -126,6 +126,12 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         return new DXGISwapChain(_resourceDatabase, _descriptorAllocator, _device, desc, _desc.FrameBufferCount);
     }
 
+    public IFence CreateFence(ulong initialValue = 0)
+    {
+        Logger.DebugAssert(!_disposed);
+        return new D3D12Fence(_device, initialValue);
+    }
+
     public ICommandSignature CreateCommandSignature(ref readonly CommandSignatureDesc desc, Key128<PipelineState> pipelineKey)
     {
         Logger.DebugAssert(!_disposed);

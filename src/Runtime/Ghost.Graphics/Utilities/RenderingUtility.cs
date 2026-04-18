@@ -89,7 +89,7 @@ public static unsafe class RenderingUtility
         }
     }
 
-    public static Error UploadTexture(ResourceManager resourceManager, IResourceDatabase resourceDatabase, ICommandBuffer cmd, Handle<GPUTexture> texture, void* pData)
+    public static Error UploadTexture(ResourceManager resourceManager, IResourceDatabase resourceDatabase, ICommandBuffer cmd, Handle<GPUTexture> texture, void* pData, nuint sizeInBytes)
     {
         var (desc, error) = resourceDatabase.GetResourceDescription(texture.AsResource());
         if (error.IsFailure)
@@ -100,6 +100,11 @@ public static unsafe class RenderingUtility
         desc.TextureDescriptor.Format.GetSurfaceInfo(desc.TextureDescriptor.Width, desc.TextureDescriptor.Height, out var rowPitch, out var slicePitch, out _);
 
         var requiredSize = resourceDatabase.GetIntermediateResourceSize(texture.AsResource(), 0, 1);
+        if (sizeInBytes < requiredSize)
+        {
+            return Error.InvalidArgument;
+        }
+
         var uploadDesc = new BufferDesc
         {
             Size = requiredSize,
@@ -133,18 +138,18 @@ public static unsafe class RenderingUtility
     {
         fixed (T* pData = data)
         {
-            return UploadTexture(resourceManager, resourceDatabase, cmd, texture, pData);
+            return UploadTexture(resourceManager, resourceDatabase, cmd, texture, pData, (nuint)(data.Length * sizeof(T)));
         }
     }
 
-    public static Handle<GPUTexture> CreateTexture(ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator, ICommandBuffer cmd, void* pData, ref readonly TextureDesc desc, string? name = null)
+    public static Handle<GPUTexture> CreateTexture(ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator, ICommandBuffer cmd, void* pData, nuint sizeInBytes, ref readonly TextureDesc desc, string? name = null)
     {
         var error = Error.UnknownError;
         
         var textureHandle = resourceAllocator.CreateTexture(in desc, name);
         if (!textureHandle.IsInvalid)
         {
-            error = UploadTexture(resourceManager, resourceDatabase, cmd, textureHandle, pData);
+            error = UploadTexture(resourceManager, resourceDatabase, cmd, textureHandle, pData, sizeInBytes);
         }
 
         if (error.IsSuccess)
@@ -161,7 +166,7 @@ public static unsafe class RenderingUtility
     {
         fixed (T* pData = data)
         {
-            return CreateTexture(resourceManager, resourceDatabase, resourceAllocator, cmd, pData, in desc, name);
+            return CreateTexture(resourceManager, resourceDatabase, resourceAllocator, cmd, pData, (nuint)(data.Length * sizeof(T)), in desc, name);
         }
     }
 }

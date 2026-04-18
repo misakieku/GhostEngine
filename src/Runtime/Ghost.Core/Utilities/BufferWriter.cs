@@ -103,49 +103,51 @@ public unsafe struct BufferReader
     private readonly byte* _buffer;
     private readonly nuint _size;
 
-    private byte* _position;
+    private byte* _address;
 
-    public readonly byte* Position => _position;
+    public readonly byte* CurrentAddress => _address;
 
-    public nuint Offset
+    public nuint Position
     {
-        readonly get => (nuint)(_buffer + (_position - _buffer));
-        set => _position = _buffer + value;
+        readonly get => (nuint)(_buffer + (_address - _buffer));
+        set => _address = _buffer + value;
     }
+
+    public readonly nuint RemainingBytes => (nuint)(_buffer + _size - _address);
 
     public BufferReader(byte* buffer, nuint size)
     {
         _buffer = buffer;
         _size = size;
-        _position = _buffer;
+        _address = _buffer;
     }
 
     public T Read<T>()
         where T : unmanaged
     {
-        var value = *(T*)_position;
-        _position += (nuint)sizeof(T);
+        var value = *(T*)_address;
+        _address += (nuint)sizeof(T);
         return value;
     }
 
     public ReadOnlySpan<T> ReadSpan<T>(int length)
         where T : unmanaged
     {
-        length = Math.Min(length, (int)((nuint)(_buffer + _size - _position) / (nuint)sizeof(T)));
+        length = Math.Min(length, (int)((nuint)(_buffer + _size - _address) / (nuint)sizeof(T)));
 
         var size = sizeof(T) * length;
-        var span = new ReadOnlySpan<T>(_position, length);
+        var span = new ReadOnlySpan<T>(_address, length);
 
-        _position += (nuint)size;
+        _address += (nuint)size;
         return span;
     }
 
     public ReadOnlySpan<T> ReadToEnd<T>()
         where T : unmanaged
     {
-        var span = new ReadOnlySpan<T>(_position, (int)(_buffer + _size - _position));
+        var span = new ReadOnlySpan<T>(_address, (int)(_buffer + _size - _address));
 
-        _position += (nuint)(span.Length * sizeof(T));
+        _address += (nuint)(span.Length * sizeof(T));
         return span;
     }
 }

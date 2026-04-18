@@ -305,6 +305,11 @@ public static class Logger
         {
             System.Diagnostics.Debug.Fail(message ?? "Assertion failed.");
         }
+#elif GHOST_EDITOR
+        if (!condition)
+        {
+            throw new InvalidOperationException(message ?? "Assertion failed.");
+        }
 #endif
     }
 }

@@ -67,6 +67,13 @@ public interface IGraphicsEngine : IDisposable
     ISwapChain CreateSwapChain(SwapChainDesc desc);
 
     /// <summary>
+    /// Creates a fence for GPU synchronization with an optional initial value.
+    /// </summary>
+    /// <param name="initialValue">The initial value for the fence</param>
+    /// <returns>The created fence instance</returns>
+    IFence CreateFence(ulong initialValue = 0);
+
+    /// <summary>
     /// Begin the current frame.
     /// </summary>
     /// <param name="submittedFrame">Submitted frame value for synchronization</param>

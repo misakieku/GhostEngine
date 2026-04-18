@@ -71,6 +71,25 @@ public readonly struct Result
         return Result<T>.Failure(status.ToString());
     }
 
+    public static Result Aggregate(params ReadOnlySpan<Result> results)
+    {
+        var sb = new System.Text.StringBuilder();
+        foreach (var result in results)
+        {
+            if (result.IsFailure)
+            {
+                sb.AppendLine(result.Message);
+            }
+        }
+        
+        if (sb.Length == 0)
+        {
+            return Success();
+        }
+
+        return Failure(sb.ToString());
+    }
+
     public void Deconstruct(out bool success, out string? message)
     {
         success = _isSuccess;

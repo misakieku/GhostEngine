@@ -1,8 +1,6 @@
-using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
-using Misaki.HighPerformance.LowLevel;
+using System.Diagnostics;
 using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -11,11 +9,6 @@ namespace Ghost.Graphics.D3D12;
 /// </summary>
 internal unsafe class D3D12CommandQueue : D3D12Object<ID3D12CommandQueue>, ICommandQueue
 {
-    private UniquePtr<ID3D12Fence> _fence;
-
-    private readonly AutoResetEvent _fenceEvent;
-    private ulong _fenceValue;
-
     public CommandQueueType Type
     {
         get;
@@ -39,13 +32,6 @@ internal unsafe class D3D12CommandQueue : D3D12Object<ID3D12CommandQueue>, IComm
         : base(CreateCommandQueue(device.NativeObject, type))
     {
         Type = type;
-        _fenceEvent = new AutoResetEvent(false);
-        _fenceValue = 0;
-
-        ID3D12Fence* pFence = default;
-        ThrowIfFailed(device.NativeObject.Get()->CreateFence(0, D3D12_FENCE_FLAGS.D3D12_FENCE_FLAG_NONE, __uuidof(pFence), (void**)&pFence));
-
-        _fence.Attach(pFence);
     }
 
     private static D3D12_COMMAND_LIST_TYPE ConvertCommandQueueType(CommandQueueType type)
@@ -123,83 +109,24 @@ internal unsafe class D3D12CommandQueue : D3D12Object<ID3D12CommandQueue>, IComm
         pNativeObject->ExecuteCommandLists((uint)currentIndex, ppCommandLists);
     }
 
-    public ulong Signal(ulong value)
+    public ulong Signal(IFence fence, ulong value)
     {
         AssertNotDisposed();
 
-        _fenceValue = value;
-        ThrowIfFailed(pNativeObject->Signal(_fence.Get(), _fenceValue));
-        return _fenceValue;
+        var d3d12Fence = fence as D3D12Fence;
+        Debug.Assert(d3d12Fence != null, "Fence must be a D3D12Fence");
+
+        ThrowIfFailed(pNativeObject->Signal(d3d12Fence.NativeObject, value));
+        return value;
     }
 
-    public void WaitForValue(ulong value)
+    public void Wait(IFence fence, ulong value)
     {
         AssertNotDisposed();
 
-        if (_fence.Get()->GetCompletedValue() < value)
-        {
-            var handle = new HANDLE((void*)_fenceEvent.SafeWaitHandle.DangerousGetHandle());
-            if (_fence.Get()->SetEventOnCompletion(value, handle).SUCCEEDED)
-            {
-                _fenceEvent.WaitOne();
-            }
-        }
-    }
+        var d3d12Fence = fence as D3D12Fence;
+        Debug.Assert(d3d12Fence != null, "Fence must be a D3D12Fence");
 
-    public ulong GetCompletedValue()
-    {
-        AssertNotDisposed();
-        return _fence.Get()->GetCompletedValue();
-    }
-
-    public void WaitIdle()
-    {
-        AssertNotDisposed();
-
-        var fenceValue = Signal(Interlocked.Increment(ref _fenceValue));
-        WaitForValue(fenceValue);
-    }
-
-    public Task WaitAsync()
-    {
-        AssertNotDisposed();
-
-        var fenceValue = Signal(Interlocked.Increment(ref _fenceValue));
-
-        if (_fence.Get()->GetCompletedValue() >= fenceValue)
-        {
-            return Task.CompletedTask;
-        }
-
-        var tcs = new TaskCompletionSource();
-        var handle = new HANDLE((void*)_fenceEvent.SafeWaitHandle.DangerousGetHandle());
-        
-        if (_fence.Get()->SetEventOnCompletion(fenceValue, handle).FAILED)
-        {
-            throw new InvalidOperationException("Failed to set event on completion.");
-        }
-
-        var registeredWait = ThreadPool.RegisterWaitForSingleObject(
-            _fenceEvent,
-            (state, timedOut) =>
-            {
-                var capturedTcs = (TaskCompletionSource)state!;
-                capturedTcs.SetResult();
-                _fenceEvent.Dispose();
-            },
-            tcs,
-            Timeout.Infinite,
-            executeOnlyOnce: true
-        );
-
-        tcs.Task.ContinueWith(_ => registeredWait.Unregister(null));
-
-        return tcs.Task;
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        _fence.Dispose();
-        _fenceEvent.Dispose();
+        pNativeObject->Wait(d3d12Fence.NativeObject, value);
     }
 }

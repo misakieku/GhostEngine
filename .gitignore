@@ -13,6 +13,7 @@
 AGENTS.md
 .opencode/
 .code-review-graph/
+.github/instructions/
 
 ref/
 docfx/
