@@ -193,9 +193,12 @@ public class TextureAssetSettings : IAssetSettings
     } = new SamplerSettings();
 }
 
-[CustomAssetHandler(TextureAsset.TYPE_ID, [".png", ".jpg", ".jpeg", ".tga", ".bmp", ".hdr"], 1)]
+[CustomAssetHandler(_GUID, [".png", ".jpg", ".jpeg", ".tga", ".bmp", ".hdr"], 1)]
+[Guid(_GUID)]
 internal class TextureAssetHandler : IAssetHandler
 {
+    private const string _GUID = "27965FFF-860C-40EF-9123-1874D7DE9CDC";
+
     public IAssetSettings? CreateDefaultSettings()
     {
         return new TextureAssetSettings();

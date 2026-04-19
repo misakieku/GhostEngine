@@ -17,7 +17,7 @@ public sealed class AssetHandlerRegistry
         _versionByTypeId = new Dictionary<Guid, int>();
     }
 
-    public void RegisterHandler(IAssetHandler handler, ReadOnlySpan<string> extensions, Guid typeId, int version)
+    public void RegisterHandler(IAssetHandler handler, Guid typeId, ReadOnlySpan<string> extensions, int version)
     {
         _byTypeId[typeId] = handler;
         _versionByTypeId[typeId] = version;

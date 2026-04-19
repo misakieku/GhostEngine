@@ -104,6 +104,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         }
     }
 
+    private readonly D3D12RenderDevice _device;
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
 
     private UnsafeSlotMap<ResourceRecord> _resources;
@@ -121,8 +122,9 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
     public ResourceBarrierData globalBarrier;
 
-    public D3D12ResourceDatabase(D3D12DescriptorAllocator descriptorAllocator)
+    public D3D12ResourceDatabase(D3D12RenderDevice device, D3D12DescriptorAllocator descriptorAllocator)
     {
+        _device = device;
         _descriptorAllocator = descriptorAllocator;
 
         _resources = new UnsafeSlotMap<ResourceRecord>(64, AllocationHandle.Persistent, AllocationOption.Clear);
@@ -367,17 +369,54 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
     {
         ref var recordA = ref _resources.GetElementReferenceAt(handleA.ID, handleA.Generation, out var existA);
         ref var recordB = ref _resources.GetElementReferenceAt(handleB.ID, handleB.Generation, out var existB);
-
         if (!existA || !existB)
         {
             return Error.NotFound;
         }
 
+        // ViewGroups are pinned to their slots — save before swap
+        var viewA = recordA.viewGroup;
+        var viewB = recordB.viewGroup;
+
         var temp = recordA;
         recordA = recordB;
         recordB = temp;
 
+        // Restore viewGroups to their original slots
+        recordA.viewGroup = viewA;
+        recordB.viewGroup = viewB;
+
+        D3D12Utility.CreateResourceDescriptor(_device, _descriptorAllocator, recordA.desc, recordA.ResourcePtr, viewA);
+        D3D12Utility.CreateResourceDescriptor(_device, _descriptorAllocator, recordB.desc, recordB.ResourcePtr, viewB);
+        
         return Error.None;
+    }
+
+    public Handle<GPUResource> Replace(Handle<GPUResource> dst, Handle<GPUResource> src)
+    {
+        ref var recordDst = ref _resources.GetElementReferenceAt(dst.ID, dst.Generation, out var existDst);
+        ref var recordSrc = ref _resources.GetElementReferenceAt(src.ID, src.Generation, out var existSrc);
+        if (!existDst || !existSrc)
+        {
+            return Handle<GPUResource>.Invalid;
+        }
+
+        var dstView = recordDst.viewGroup;
+        var srcView = recordSrc.viewGroup;
+
+        var temp = recordDst;
+        recordDst = recordSrc;
+        recordSrc = temp;
+
+        // Pin viewGroups back
+        recordDst.viewGroup = dstView;
+        recordSrc.viewGroup = srcView;
+
+        // Update dst's descriptor to point to the new resource
+        D3D12Utility.CreateResourceDescriptor(_device, _descriptorAllocator, recordDst.desc, recordDst.ResourcePtr, dstView);
+        ReleaseResource(src);
+        
+        return dst;
     }
 
     public Handle<GPUResource> CreateShared(Handle<GPUResource> src)

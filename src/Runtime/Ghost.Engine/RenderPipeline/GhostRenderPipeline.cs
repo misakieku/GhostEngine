@@ -2,28 +2,11 @@ using Ghost.Core;
 using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RenderGraphModule;
-using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Engine.RenderPipeline;
 
 internal partial class GhostRenderPipeline : IRenderPipeline
 {
-    private struct AddInstanceData
-    {
-        public float4x4 localToWorld;
-        public uint instanceID;
-        public uint meshBuffer;
-        public uint materialPalette;
-        public uint renderingLayerMask;
-        public uint shadowCastingMode;
-    }
-
-    private struct RemoveInstanceData
-    {
-        public uint instanceID;
-        public uint swapWithInstanceID;
-    }
-
     private readonly RenderSystem _renderSystem;
 
     private readonly RenderGraph _renderGraph;
@@ -39,7 +22,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         _gpuScene = new GPUScene(renderSystem.GraphicsEngine.ResourceAllocator, renderSystem.GraphicsEngine.ResourceDatabase, 102_400u); // 102.4k objects should be enough for now
     }
 
-    public void Render(RenderContext ctx, int frameIndex, IRenderPayload payload)
+    public void Render(RenderContext ctx, int frameIndex, IRenderPayload payload, ReadOnlySpan<byte> resourceUpdateCommands)
     {
         var ghostPayload = (GhostRenderPayload)payload;
 

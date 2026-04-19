@@ -31,6 +31,11 @@ internal readonly struct RenderSystemDesc
         get; init;
     }
 
+    public required IResourceStreamingProcessor ResourceStreamingProcessor
+    {
+        get; init;
+    }
+
     public required string ShaderCacheDirectory
     {
         get; init;
@@ -85,12 +90,16 @@ public class RenderSystem : IDisposable
         }
     }
 
-    private readonly RenderSystemDesc _config;
+    private readonly IResourceStreamingProcessor _streamingProcessor;
+
+    private IRenderPipelineSettings _renderPipelineSettings;
+    private IRenderPipeline _renderPipeline;
 
     private readonly IGraphicsEngine _graphicsEngine;
     private readonly ResourceManager _resourceManager;
     private readonly SwapChainManager _swapChainManager;
     private readonly ShaderLibrary _shaderLibrary;
+    private readonly AsyncCopyPipeline _asyncCopyPipeline;
 
     private readonly IFence _fence;
     private readonly FrameResource[] _frameResources;
@@ -98,9 +107,6 @@ public class RenderSystem : IDisposable
     private readonly AutoResetEvent _shutdownEvent;
 
     private readonly ConcurrentDictionary<ISwapChain, uint2> _resizeRequest;
-
-    private IRenderPipelineSettings _renderPipelineSettings;
-    private IRenderPipeline _renderPipeline;
 
     private ulong _cpuFenceValue;
     private ulong _submittedFenceValue;
@@ -113,13 +119,14 @@ public class RenderSystem : IDisposable
     public IGraphicsEngine GraphicsEngine => _graphicsEngine;
     public ResourceManager ResourceManager => _resourceManager;
     public SwapChainManager SwapChainManager => _swapChainManager;
+    public AsyncCopyPipeline AsyncCopyPipeline => _asyncCopyPipeline;
 
     public bool IsRunning => _isRunning;
 
     public ulong CPUFenceValue => _cpuFenceValue;
     public ulong SubmittedFenceValue => _submittedFenceValue;
 
-    public uint MaxFrameLatency => _config.FrameBufferCount;
+    public int MaxFrameLatency => _frameResources.Length;
 
     public IRenderPipelineSettings RenderPipelineSettings
     {
@@ -152,8 +159,6 @@ public class RenderSystem : IDisposable
 
     internal RenderSystem(RenderSystemDesc desc)
     {
-        _config = desc;
-
         var engineDesc = new GraphicsEngineDesc
         {
             FrameBufferCount = desc.FrameBufferCount
@@ -178,9 +183,8 @@ public class RenderSystem : IDisposable
                 throw new NotSupportedException($"The specified graphics API '{desc.GraphicsAPI}' is not supported.");
         }
 
-        _resourceManager = new ResourceManager(_graphicsEngine.Device, _graphicsEngine.ResourceAllocator, _graphicsEngine.ResourceDatabase);
-        _swapChainManager = new SwapChainManager(_graphicsEngine);
-        _shaderLibrary = new ShaderLibrary(desc.ShaderCompilationBridge, desc.ShaderCacheDirectory);
+        _streamingProcessor = desc.ResourceStreamingProcessor;
+        _renderPipelineSettings = desc.InitialRenderPipelineSettings;
 
         _fence = _graphicsEngine.CreateFence(0);
         // Create frame resources for synchronization
@@ -195,6 +199,17 @@ public class RenderSystem : IDisposable
             };
         }
 
+        _renderPipeline = _renderPipelineSettings.CreatePipeline(this);
+        for (var i = 0; i < _frameResources.Length; i++)
+        {
+            _frameResources[i].RenderPayload = _renderPipelineSettings.CreatePayload(this, _renderPipeline);
+        }
+
+        _resourceManager = new ResourceManager(_graphicsEngine.Device, _graphicsEngine.ResourceAllocator, _graphicsEngine.ResourceDatabase);
+        _swapChainManager = new SwapChainManager(_graphicsEngine);
+        _shaderLibrary = new ShaderLibrary(desc.ShaderCompilationBridge, desc.ShaderCacheDirectory);
+        _asyncCopyPipeline = new AsyncCopyPipeline(_graphicsEngine);
+
         _renderThread = new Thread(RenderLoop)
         {
             IsBackground = true,
@@ -204,14 +219,6 @@ public class RenderSystem : IDisposable
 
         _shutdownEvent = new AutoResetEvent(false);
         _resizeRequest = new ConcurrentDictionary<ISwapChain, uint2>();
-
-        _renderPipelineSettings = _config.InitialRenderPipelineSettings;
-
-        _renderPipeline = _renderPipelineSettings.CreatePipeline(this);
-        for (var i = 0; i < _frameResources.Length; i++)
-        {
-            _frameResources[i].RenderPayload = _renderPipelineSettings.CreatePayload(this, _renderPipeline);
-        }
 
         _isRunning = false;
         _disposed = false;
@@ -239,7 +246,7 @@ public class RenderSystem : IDisposable
 
         while (_isRunning)
         {
-            var frameIndex = (int)(_submittedFenceValue % _config.FrameBufferCount);
+            var frameIndex = (int)(_submittedFenceValue % (ulong)_frameResources.Length);
             ref var frameResource = ref _frameResources[frameIndex];
 
             try
@@ -297,10 +304,27 @@ public class RenderSystem : IDisposable
                 try
                 {
                     cmd.Begin(frameResource.CommandAllocator);
+                    
+                    var streamingContext = new ResourceStreamingContext
+                    {
+                        CopyPipeline = _asyncCopyPipeline,
+                        GraphicsCommandBuffer = cmd,
+                        ResourceAllocator = _graphicsEngine.ResourceAllocator,
+                        ResourceDatabase = _graphicsEngine.ResourceDatabase,
+                        ResourceManager = _resourceManager
+                    };
+                    _streamingProcessor.ProcessPendingUploads(streamingContext);
 
-                    var ctx = new RenderContext(_resourceManager, _shaderLibrary, _graphicsEngine, cmd);
-
-                    _renderPipeline.Render(ctx, frameIndex, frameResource.RenderPayload);
+                    var renderContext = new RenderContext
+                    {
+                        CommandBuffer = cmd,
+                        PipelineLibrary = _graphicsEngine.PipelineLibrary,
+                        ResourceAllocator = _graphicsEngine.ResourceAllocator,
+                        ResourceDatabase = _graphicsEngine.ResourceDatabase,
+                        ResourceManager = _resourceManager,
+                        ShaderLibrary = _shaderLibrary,
+                    };
+                    _renderPipeline.Render(renderContext, frameIndex, frameResource.RenderPayload);
                     _swapChainManager.TransitionToPresent(cmd);
 
                     // End recording commands and submit
@@ -369,7 +393,7 @@ public class RenderSystem : IDisposable
     {
         Logger.DebugAssert(!_disposed, "Cannot signal CPU ready on a disposed RenderSystem.");
 
-        var eventIndex = (int)(_cpuFenceValue % _config.FrameBufferCount);
+        var eventIndex = (int)(_cpuFenceValue % (ulong)_frameResources.Length);
         ref var frameResource = ref _frameResources[eventIndex];
 
         frameResource.CpuReadyEvent.Set();
@@ -386,14 +410,14 @@ public class RenderSystem : IDisposable
     {
         Logger.DebugAssert(!_disposed, "Cannot acquire CPU frame on a disposed RenderSystem.");
 
-        var requiredGpuFence = _cpuFenceValue < _config.FrameBufferCount ? 0 : _cpuFenceValue - _config.FrameBufferCount + 1;
+        var requiredGpuFence = _cpuFenceValue < (ulong)_frameResources.Length ? 0 : _cpuFenceValue - (ulong)_frameResources.Length + 1;
 
         if (requiredGpuFence > 0 && _fence.CompletedValue < requiredGpuFence)
         {
             return false;
         }
 
-        var eventIndex = (int)(_cpuFenceValue % _config.FrameBufferCount);
+        var eventIndex = (int)(_cpuFenceValue % (ulong)_frameResources.Length);
         ref var frameResource = ref _frameResources[eventIndex];
 
         return true;
@@ -409,7 +433,7 @@ public class RenderSystem : IDisposable
             return true;
         }
 
-        var eventIndex = (int)((submittedFenceValue - 1) % _config.FrameBufferCount);
+        var eventIndex = (int)((submittedFenceValue - 1) % (ulong)_frameResources.Length);
         return _frameResources[eventIndex].GpuReadyEvent.WaitOne(timeOut);
     }
 
@@ -429,7 +453,7 @@ public class RenderSystem : IDisposable
     {
         Logger.DebugAssert(!_disposed, "Cannot get current frame payload from a disposed RenderSystem.");
 
-        var eventIndex = (int)(_cpuFenceValue % _config.FrameBufferCount);
+        var eventIndex = (int)(_cpuFenceValue % (ulong)_frameResources.Length);
         ref var frameResource = ref _frameResources[eventIndex];
 
         return frameResource.RenderPayload;

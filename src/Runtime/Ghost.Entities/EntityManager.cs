@@ -291,14 +291,15 @@ public unsafe partial class EntityManager : IDisposable
 
         ref var archetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
 
-        if (archetype._cleanupEdge < 0)
+        // 0 means no cleanup component (since 0 is the empty archetype), -1 means haven't computed yet, positive value means the archetype id of the cleanup edge.
+        if (archetype._cleanupEdge == 0)
         {
             return DestroyEntity_Internal(entity, location);
         }
         else
         {
             Identifier<Archetype> newArcID = default;
-            if (archetype._cleanupEdge == 0)
+            if (archetype._cleanupEdge < 0)
             {
                 ref var signature = ref archetype._signature;
 

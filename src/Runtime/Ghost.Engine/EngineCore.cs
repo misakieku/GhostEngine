@@ -6,29 +6,42 @@ namespace Ghost.Engine;
 
 public sealed partial class EngineCore : IDisposable
 {
+    private readonly IContentProvider _contentProvider;
+
     private readonly JobScheduler _jobScheduler;
+    private readonly ResourceStreamingProcessor _streamingProcessor;
     private readonly RenderSystem _renderSystem;
+    private readonly AssetManager _assetManager;
 
-    public JobScheduler JobScheduler => _jobScheduler;
-    public RenderSystem RenderSystem => _renderSystem;
-
-    public EngineCore()
+    public EngineCore(IContentProvider contentProvider)
     {
-        _jobScheduler = new JobScheduler(Environment.ProcessorCount - 2); // We -2 here, one for main thread, one for render thread
+        _contentProvider = contentProvider;
 
-        var renderingConfig = new RenderSystemDesc
+        var desc = new JobSchedulerDesc
+        {
+            ThreadCount = Environment.ProcessorCount - 2, // We -2 here, one for main thread, one for render thread
+            ThreadPriority = ThreadPriority.Normal,
+        };
+
+        _jobScheduler = new JobScheduler(in desc);
+        _streamingProcessor = new ResourceStreamingProcessor();
+
+        var renderingDesc = new RenderSystemDesc
         {
             FrameBufferCount = 2,
             GraphicsAPI = GraphicsAPI.Direct3D12,
             InitialRenderPipelineSettings = new GhostRenderPipelineSettings(),
+            ResourceStreamingProcessor = _streamingProcessor,
             ShaderCacheDirectory = "ShaderCache",
         };
 
-        _renderSystem = new RenderSystem(renderingConfig);
+        _renderSystem = new RenderSystem(renderingDesc);
+        _assetManager = new AssetManager(_renderSystem.GraphicsEngine.ResourceDatabase, _contentProvider, _streamingProcessor, _jobScheduler);
     }
 
     public void Dispose()
     {
+        _assetManager.Dispose();
         _renderSystem.Dispose();
         _jobScheduler.Dispose();
     }

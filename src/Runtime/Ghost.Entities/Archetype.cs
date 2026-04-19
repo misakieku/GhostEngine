@@ -49,7 +49,7 @@ internal sealed unsafe class ChunkDebugView
 
     private static object[] GetItems(ref readonly Chunk chunk)
     {
-#if !(DEBUG || GHOST_EDITOR)
+#if !DEBUG
         return [];
 #else
         var pData = chunk.GetUnsafePtr();
@@ -185,7 +185,7 @@ internal unsafe struct Archetype : IDisposable
     private int _maxComponentID;
     private int _entityIdsOffset;
 
-    // -1 means no cleanup component, 0 means haven't computed yet (since 0 is the empty archetype), positive value means the archetype id of the cleanup edge.
+    // 0 means no cleanup component (since 0 is the empty archetype), -1 means haven't computed yet, positive value means the archetype id of the cleanup edge.
     internal int _cleanupEdge;
 
     public readonly Identifier<Archetype> ID => _id;
@@ -248,7 +248,7 @@ internal unsafe struct Archetype : IDisposable
             }
         }
 
-        if (cleanupCount == 0)
+        if (cleanupCount > 0)
         {
             _cleanupEdge = -1;
         }

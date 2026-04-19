@@ -12,24 +12,34 @@ namespace Ghost.Graphics.Core;
 // TODO: Temporary rendering context for heap creation and data upload. We will refactor it later when we have a better understanding of the engine architecture.
 public readonly unsafe ref struct RenderContext
 {
-    private readonly ResourceManager _resourceManager;
-    private readonly ShaderLibrary _shaderLibrary;
-    private readonly IGraphicsEngine _engine;
-    private readonly ICommandBuffer _commandBuffer;
-
-    public ICommandBuffer CommandBuffer => _commandBuffer;
-
-    public ResourceManager ResourceManager => _resourceManager;
-    public IResourceAllocator ResourceAllocator => _engine.ResourceAllocator;
-    public IResourceDatabase ResourceDatabase => _engine.ResourceDatabase;
-    public IPipelineLibrary PipelineLibrary => _engine.PipelineLibrary;
-
-    internal RenderContext(ResourceManager resourceManager, ShaderLibrary shaderLibrary, IGraphicsEngine engine, ICommandBuffer cmd)
+    public required ICommandBuffer CommandBuffer
     {
-        _resourceManager = resourceManager;
-        _shaderLibrary = shaderLibrary;
-        _engine = engine;
-        _commandBuffer = cmd;
+        get; init;
+    }
+
+    public required ResourceManager ResourceManager
+    {
+        get; init;
+    }
+
+    public required IResourceAllocator ResourceAllocator
+    {
+        get; init;
+    }
+
+    public required IResourceDatabase ResourceDatabase
+    {
+        get; init;
+    }
+
+    public required IPipelineLibrary PipelineLibrary
+    {
+        get; init;
+    }
+
+    internal ShaderLibrary ShaderLibrary
+    {
+        get; init;
     }
 
     private void TransitionBarrier(Handle<GPUResource> resource, bool isTexture, BarrierLayout newLayout, BarrierAccess newAccess, BarrierSync newSync)
@@ -44,13 +54,13 @@ public readonly unsafe ref struct RenderContext
             desc = BarrierDesc.Buffer(resource, newSync, newAccess);
         }
 
-        _commandBuffer.Barrier(desc);
+        CommandBuffer.Barrier(desc);
     }
 
     public void UploadBuffer<T>(Handle<GPUBuffer> buffer, params ReadOnlySpan<T> data)
         where T : unmanaged
     {
-        var r = _engine.ResourceDatabase.GetResourceDescription(buffer.AsResource());
+        var r = ResourceDatabase.GetResourceDescription(buffer.AsResource());
         if (r.IsFailure)
         {
             return;
@@ -65,9 +75,9 @@ public readonly unsafe ref struct RenderContext
         {
             fixed (T* pData = data)
             {
-                var mappedData = _engine.ResourceDatabase.MapResource(buffer.AsResource(), 0, null);
+                var mappedData = ResourceDatabase.MapResource(buffer.AsResource(), 0, null);
                 MemoryUtility.MemCpy(mappedData, pData, sizeInBytes);
-                _engine.ResourceDatabase.UnmapResource(buffer.AsResource(), 0, null);
+                ResourceDatabase.UnmapResource(buffer.AsResource(), 0, null);
             }
         }
         else
@@ -79,7 +89,7 @@ public readonly unsafe ref struct RenderContext
                 HeapType = HeapType.Upload,
             };
 
-            var uploadHandle = _resourceManager.CreateTransientBuffer(in uploadDesc);
+            var uploadHandle = ResourceManager.CreateTransientBuffer(in uploadDesc);
             if (uploadHandle.IsInvalid)
             {
                 throw new OutOfMemoryException("Failed to create upload buffer for buffer data.");
@@ -87,19 +97,19 @@ public readonly unsafe ref struct RenderContext
 
             fixed (T* pData = data)
             {
-                var mappedData = _engine.ResourceDatabase.MapResource(uploadHandle.AsResource(), 0, null);
+                var mappedData = ResourceDatabase.MapResource(uploadHandle.AsResource(), 0, null);
                 MemoryUtility.MemCpy(mappedData, pData, sizeInBytes);
-                _engine.ResourceDatabase.UnmapResource(uploadHandle.AsResource(), 0, null);
+                ResourceDatabase.UnmapResource(uploadHandle.AsResource(), 0, null);
             }
 
-            _commandBuffer.CopyBuffer(buffer, uploadHandle, 0, 0, sizeInBytes);
+            CommandBuffer.CopyBuffer(buffer, uploadHandle, 0, 0, sizeInBytes);
         }
     }
 
     public Handle<Mesh> CreateMesh(UnsafeList<Vertex> vertices, UnsafeList<uint> indices, bool staticMesh)
     {
-        var mesh = _resourceManager.CreateMesh(vertices, indices);
-        var r = _resourceManager.GetMeshReference(mesh);
+        var mesh = ResourceManager.CreateMesh(vertices, indices);
+        var r = ResourceManager.GetMeshReference(mesh);
         if (r.IsFailure)
         {
             return mesh;
@@ -146,7 +156,7 @@ public readonly unsafe ref struct RenderContext
     /// <param name="markMeshStatic">Whether to mark the mesh as static. If it's true, the cpu buffer of the mesh will not be avaliable any more</param>
     public void UploadMesh(Handle<Mesh> mesh, bool markMeshStatic)
     {
-        var r = _resourceManager.GetMeshReference(mesh);
+        var r = ResourceManager.GetMeshReference(mesh);
         if (r.IsFailure)
         {
             return;
@@ -173,7 +183,7 @@ public readonly unsafe ref struct RenderContext
 
     public void UploadMeshlets(Handle<Mesh> mesh)
     {
-        var r = _resourceManager.GetMeshReference(mesh);
+        var r = ResourceManager.GetMeshReference(mesh);
         if (r.IsFailure)
         {
             return;
@@ -208,9 +218,9 @@ public readonly unsafe ref struct RenderContext
             HeapType = HeapType.Default,
         };
 
-        meshRef.MeshLetBuffer = _engine.ResourceAllocator.CreateBuffer(in meshletDesc, "Meshlets");
-        meshRef.MeshletVerticesBuffer = _engine.ResourceAllocator.CreateBuffer(in verticesDesc, "MeshletVertices");
-        meshRef.MeshletTrianglesBuffer = _engine.ResourceAllocator.CreateBuffer(in trianglesDesc, "MeshletTriangles");
+        meshRef.MeshLetBuffer = ResourceAllocator.CreateBuffer(in meshletDesc, "Meshlets");
+        meshRef.MeshletVerticesBuffer = ResourceAllocator.CreateBuffer(in verticesDesc, "MeshletVertices");
+        meshRef.MeshletTrianglesBuffer = ResourceAllocator.CreateBuffer(in trianglesDesc, "MeshletTriangles");
 
         TransitionBarrier(meshRef.MeshLetBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
         TransitionBarrier(meshRef.MeshletVerticesBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
@@ -227,7 +237,7 @@ public readonly unsafe ref struct RenderContext
 
     public void UpdateObjectData(Handle<Mesh> mesh)
     {
-        var r = _resourceManager.GetMeshReference(mesh);
+        var r = ResourceManager.GetMeshReference(mesh);
         if (r.IsFailure)
         {
             return;
@@ -238,11 +248,11 @@ public readonly unsafe ref struct RenderContext
         {
             worldBoundsMin = meshData.BoundingBox.Min,
             worldBoundsMax = meshData.BoundingBox.Max,
-            vertexBuffer = _engine.ResourceDatabase.GetBindlessIndex(meshData.VertexBuffer.AsResource()),
-            indexBuffer = _engine.ResourceDatabase.GetBindlessIndex(meshData.IndexBuffer.AsResource()),
-            meshletBuffer = _engine.ResourceDatabase.GetBindlessIndex(meshData.MeshLetBuffer.AsResource()),
-            meshletVerticesBuffer = _engine.ResourceDatabase.GetBindlessIndex(meshData.MeshletVerticesBuffer.AsResource()),
-            meshletTrianglesBuffer = _engine.ResourceDatabase.GetBindlessIndex(meshData.MeshletTrianglesBuffer.AsResource()),
+            vertexBuffer = ResourceDatabase.GetBindlessIndex(meshData.VertexBuffer.AsResource()),
+            indexBuffer = ResourceDatabase.GetBindlessIndex(meshData.IndexBuffer.AsResource()),
+            meshletBuffer = ResourceDatabase.GetBindlessIndex(meshData.MeshLetBuffer.AsResource()),
+            meshletVerticesBuffer = ResourceDatabase.GetBindlessIndex(meshData.MeshletVerticesBuffer.AsResource()),
+            meshletTrianglesBuffer = ResourceDatabase.GetBindlessIndex(meshData.MeshletTrianglesBuffer.AsResource()),
         };
 
         var bufferHandle = meshData.MeshDataBuffer.AsResource();
@@ -275,7 +285,7 @@ public readonly unsafe ref struct RenderContext
             HeapType = HeapType.Upload,
         };
 
-        var uploadHandle = _resourceManager.CreateTransientBuffer(in uploadDesc);
+        var uploadHandle = ResourceManager.CreateTransientBuffer(in uploadDesc);
         if (uploadHandle.IsInvalid)
         {
             throw new OutOfMemoryException("Failed to create upload buffer for texture data.");
@@ -292,7 +302,7 @@ public readonly unsafe ref struct RenderContext
                 slicePitch = slicePitch
             };
 
-            _commandBuffer.UpdateSubResources(texture.AsResource(), uploadHandle.AsResource(), subresourceData);
+            CommandBuffer.UpdateSubResources(texture.AsResource(), uploadHandle.AsResource(), subresourceData);
         }
     }
 
@@ -305,7 +315,7 @@ public readonly unsafe ref struct RenderContext
         var variantKey = RHIUtility.CreateShaderVariantKey(entryHash, in keywordSet);
 
         // TODO: Refactor this into a helper method.
-        var (compiledHash, error) = _shaderLibrary.GetCompiledHash(variantKey);
+        var (compiledHash, error) = ShaderLibrary.GetCompiledHash(variantKey);
         if (error.IsFailure)
         {
             // TODO: Fallback to an error material.
@@ -318,7 +328,7 @@ public readonly unsafe ref struct RenderContext
         if (!PipelineLibrary.HasPipelineStateObject(pipelineKey))
         {
             using var scope = AllocationManager.CreateStackScope();
-            var compiledCacheResult = _shaderLibrary.GetCompiledCache(shader.UniqueID, entryIndex, scope.AllocationHandle);
+            var compiledCacheResult = ShaderLibrary.GetCompiledCache(shader.UniqueID, entryIndex, scope.AllocationHandle);
             if (compiledCacheResult.IsFailure)
             {
                 // TODO: Fallback to a checkerboard shader.
@@ -341,7 +351,7 @@ public readonly unsafe ref struct RenderContext
             PipelineLibrary.CreateComputePipeline(in psoDes).GetValueOrThrow();
         }
 
-        _commandBuffer.SetPipelineState(pipelineKey);
+        CommandBuffer.SetPipelineState(pipelineKey);
 
 
         var propertySpan = MemoryMarshal.AsBytes(new ReadOnlySpan<T>(in property));
@@ -374,7 +384,7 @@ public readonly unsafe ref struct RenderContext
             propertyBuffer = ResourceDatabase.GetBindlessIndex(properyBuffer.AsResource()),
         };
 
-        _commandBuffer.SetGraphicsRoot32Constants(0, pushConstant.AsUInts());
-        _commandBuffer.DispatchCompute(threadGroupCount.x, threadGroupCount.y, threadGroupCount.z);
+        CommandBuffer.SetGraphicsRoot32Constants(0, pushConstant.AsUInts());
+        CommandBuffer.DispatchCompute(threadGroupCount.x, threadGroupCount.y, threadGroupCount.z);
     }
 }

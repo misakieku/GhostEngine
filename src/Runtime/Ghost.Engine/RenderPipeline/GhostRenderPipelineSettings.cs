@@ -1,3 +1,4 @@
+using Ghost.Core;
 using Ghost.Engine.Components;
 using Ghost.Graphics;
 using Ghost.Graphics.Core;
@@ -26,16 +27,17 @@ internal sealed class GhostRenderPayload : IRenderPayload
 
     private UnsafeList<RenderRequest> _renderRequests;
 
-    // TODO: Consider using a more efficient data structure for these queues, such as a lock-free ring buffer or a custom concurrent queue implementation.
     private readonly ConcurrentQueue<AddInstanceRequest> _addRequest;
     private readonly ConcurrentQueue<RemoveInstanceRequest> _removeRequest;
 
+    private uint _instanceCountBefore;
     private uint _instanceCount;
 
     public ReadOnlySpan<RenderRequest> RenderRequests => _renderRequests;
 
     public ConcurrentQueue<AddInstanceRequest> AddRequest => _addRequest;
     public ConcurrentQueue<RemoveInstanceRequest> RemoveRequest => _removeRequest;
+    public uint InstanceCountBefore => _instanceCountBefore;
     public uint InstanceCount => _instanceCount;
 
     public GhostRenderPayload(GhostRenderPipeline renderPipeline)
@@ -70,10 +72,16 @@ internal sealed class GhostRenderPayload : IRenderPayload
         }
     }
 
+    public void BeginRecord()
+    {
+        _instanceCountBefore = _renderPipeline.GPUScene.InstanceCount;
+    }
+
     public void EndRecord()
     {
         // We capture the count here to prevent that main thread continues to add more requests for next frame while the render thread is still processing current frame's requests.
         _instanceCount = _renderPipeline.GPUScene.InstanceCount;
+        Logger.DebugAssert(_instanceCount == _instanceCountBefore + (uint)_addRequest.Count - (uint)_removeRequest.Count);
     }
 
     public void Reset()

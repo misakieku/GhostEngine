@@ -123,6 +123,14 @@ public unsafe interface IResourceDatabase : IDisposable
     Error Swap(Handle<GPUResource> handleA, Handle<GPUResource> handleB);
 
     /// <summary>
+    /// Replaces the GPU resource associated with the destination handle with the resource associated with the source handle, and release the original resource of the destination handle.
+    /// </summary>
+    /// <param name="dst">The handle to the destination resource.</param>
+    /// <param name="src">The handle to the source resource.</param>
+    /// <returns>The handle to the replaced resource.</returns>
+    Handle<GPUResource> Replace(Handle<GPUResource> dst, Handle<GPUResource> src);
+
+    /// <summary>
     /// Creates a new GPU resource that is a share of the specified source resource, including all its properties and data.
     /// The new resource will have the same description and content as the source resource, but will be a distinct entity in the resource database with its own handle.
     /// </summary>

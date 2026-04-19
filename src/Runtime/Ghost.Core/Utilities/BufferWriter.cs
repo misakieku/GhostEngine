@@ -67,6 +67,8 @@ public unsafe ref struct SpanWriter
         readonly get => _position;
         set => _position = value;
     }
+    
+    public readonly int RemainingBytes => _buffer.Length - _position;
 
     public SpanWriter(Span<byte> buffer)
     {
@@ -154,7 +156,7 @@ public unsafe struct BufferReader
 
 public unsafe ref struct SpanReader
 {
-    private readonly Span<byte> _buffer;
+    private readonly ReadOnlySpan<byte> _buffer;
     private int _position;
 
     public int Position
@@ -163,7 +165,9 @@ public unsafe ref struct SpanReader
         set => _position = value;
     }
 
-    public SpanReader(Span<byte> buffer)
+    public readonly int RemainingBytes => _buffer.Length - _position;
+
+    public SpanReader(ReadOnlySpan<byte> buffer)
     {
         _buffer = buffer;
         _position = 0;
@@ -172,7 +176,7 @@ public unsafe ref struct SpanReader
     public T Read<T>()
         where T : unmanaged
     {
-        var value = Unsafe.ReadUnaligned<T>(ref _buffer[_position]);
+        var value = Unsafe.ReadUnaligned<T>(in _buffer[_position]);
         _position += Unsafe.SizeOf<T>();
         return value;
     }

@@ -55,7 +55,6 @@ internal unsafe class GPUScene : IDisposable
         Dispose();
     }
 
-    // NOTE: This is not thread safe.
     public void ResizeIfNeeded(ICommandBuffer cmd)
     {
         if (_requiredResize == 0)
@@ -107,6 +106,8 @@ internal unsafe class GPUScene : IDisposable
 
         // Return the last index. We will swap the last instance data with the removed index on gpu to keep the buffer compact.
         var last = Interlocked.Decrement(ref _instanceCount);
+        Logger.DebugAssert(last >= 0);
+
         return last;
     }
 

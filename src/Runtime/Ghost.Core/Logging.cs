@@ -1,5 +1,3 @@
-using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -14,7 +12,7 @@ public enum LogLevel
     Debug
 }
 
-public class LogMessage
+public readonly struct LogMessage
 {
     public LogLevel Level
     {
@@ -55,33 +53,20 @@ public class LogMessage
     }
 }
 
-public sealed class LogCollection : ReadOnlyObservableCollection<LogMessage>
-{
-    public LogCollection(ObservableCollection<LogMessage> list)
-        : base(list)
-    {
-    }
-
-    public event NotifyCollectionChangedEventHandler? LogChanged;
-
-    protected override void OnCollectionChanged(NotifyCollectionChangedEventArgs args)
-    {
-        base.OnCollectionChanged(args);
-        LogChanged?.Invoke(this, args);
-    }
-}
-
 public interface ILogger
 {
-    LogCollection Logs
+    IReadOnlyCollection<LogMessage> Logs
     {
         get;
     }
 
-    public bool CaptureStackTrace
+    bool CaptureStackTrace
     {
         get; set;
     }
+
+    event Action<LogMessage> OnLogAdded;
+    event Action OnLogsCleared;
 
     void Log(string message, LogLevel level);
     void Log(Exception exception);
@@ -94,42 +79,48 @@ public static class Logger
     // TODO: Add file logging.
     private class LoggerImpl : ILogger
     {
-        private readonly ObservableCollection<LogMessage> _logs = new();
-        private readonly LogCollection _readOnly;
-        private readonly Lock _lock = new();
+        private readonly List<LogMessage> _logs = new List<LogMessage>();
+        private readonly Lock _lock = new Lock();
 
-        public LogCollection Logs => _readOnly;
+        public IReadOnlyCollection<LogMessage> Logs => _logs;
 
         public bool CaptureStackTrace
         {
             get; set;
         } = true;
 
-        public LoggerImpl()
-        {
-            _readOnly = new LogCollection(_logs);
-        }
+        public event Action<LogMessage>? OnLogAdded;
+        public event Action? OnLogsCleared;
 
         [StackTraceHidden]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Log(string message, LogLevel level)
         {
             lock (_lock)
             {
                 var stackTrace = CaptureStackTrace ? new StackTrace(true).ToString() : null;
-                _logs.Add(new LogMessage(level, message, stackTrace));
+                var logMessage = new LogMessage(level, message, stackTrace);
+                
+                _logs.Add(logMessage);
+                OnLogAdded?.Invoke(logMessage);
             }
         }
 
         [StackTraceHidden]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Log(Exception exception)
         {
             lock (_lock)
             {
-                _logs.Add(new LogMessage(LogLevel.Error, exception.Message, exception.StackTrace));
+                var logMessage = new LogMessage(LogLevel.Error, exception.Message, exception.StackTrace);
+                
+                _logs.Add(logMessage);
+                OnLogAdded?.Invoke(logMessage);
             }
         }
 
         [StackTraceHidden]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Assert(bool condition, string message)
         {
             if (!condition)
@@ -138,11 +129,13 @@ public static class Logger
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear(bool includeFile = false)
         {
             lock (_lock)
             {
                 _logs.Clear();
+                OnLogsCleared?.Invoke();
             }
         }
     }
@@ -150,7 +143,7 @@ public static class Logger
     private static readonly LoggerImpl s_logger = new LoggerImpl();
 
     public static ILogger Impl => s_logger;
-    public static LogCollection Logs => s_logger.Logs;
+    public static IReadOnlyCollection<LogMessage> Logs => s_logger.Logs;
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
+using Ghost.Core.Utilities;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
@@ -13,28 +14,47 @@ namespace Ghost.Engine.RenderPipeline;
 public partial struct UpdateGPUSceneShaderProperty
 {
     public uint gpuSceneBuffer;
-    public uint addBuffer;
-    public uint addCount;
+    public uint updateBuffer;
+    public uint updateCount;
     public uint removeBuffer;
     public uint removeCount;
 }
 
 internal partial class GhostRenderPipeline
 {
-    private static unsafe Handle<GPUBuffer> CreateAddInstanceBuffer(GhostRenderPayload ghostPayload, ResourceManager resourceManager, IResourceDatabase resourceDatabase, out int count)
+    private struct UpdateInstanceData
     {
+        public float4x4 localToWorld;
+        public uint instanceID;
+        public uint meshBuffer;
+        public uint materialPalette;
+        public uint renderingLayerMask;
+        public uint shadowCastingMode;
+    }
+
+    private struct RemoveInstanceData
+    {
+        public uint instanceID;
+        public uint swapWithInstanceID;
+    }
+
+    private static unsafe Handle<GPUBuffer> CreateUpdateInstanceBuffer(GhostRenderPayload ghostPayload, ResourceManager resourceManager, IResourceDatabase resourceDatabase, out int count)
+    {
+        // TODO: This should also include update requests like transform update, material update, etc.
+        var totalUpdateCount = ghostPayload.AddRequest.Count; // + ghostPayload.UpdateRequest.Count;
+
         if (!ghostPayload.AddRequest.IsEmpty)
         {
             var addDesc = new BufferDesc
             {
-                Size = (nuint)ghostPayload.AddRequest.Count * MemoryUtility.SizeOf<AddInstanceData>(),
-                Stride = (uint)MemoryUtility.SizeOf<AddInstanceData>(),
+                Size = (nuint)ghostPayload.AddRequest.Count * MemoryUtility.SizeOf<UpdateInstanceData>(),
+                Stride = (uint)MemoryUtility.SizeOf<UpdateInstanceData>(),
                 Usage = BufferUsage.Structured | BufferUsage.ShaderResource,
                 HeapType = HeapType.Upload
             };
 
             var addBuffer = resourceManager.CreateTransientBuffer(in addDesc, "Add Instance Buffer");
-            var pAddData = (AddInstanceData*)resourceDatabase.MapResource(addBuffer.AsResource(), 0, null);
+            var pAddData = (UpdateInstanceData*)resourceDatabase.MapResource(addBuffer.AsResource(), 0, null);
 
             var i = 0;
             while (ghostPayload.AddRequest.TryDequeue(out var addRequest))
@@ -46,7 +66,7 @@ internal partial class GhostRenderPipeline
                     continue;
                 }
 
-                pAddData[i] = new AddInstanceData
+                pAddData[i] = new UpdateInstanceData
                 {
                     localToWorld = addRequest.localToWorld,
                     instanceID = addRequest.instanceId,
@@ -106,14 +126,16 @@ internal partial class GhostRenderPipeline
         return default;
     }
 
-    public void UpdateGPUScene(RenderContext ctx, GhostRenderPayload payload)
+    private void UpdateGPUScene(RenderContext ctx, GhostRenderPayload payload)
     {
-        var addBuffer = CreateAddInstanceBuffer(payload, ctx.ResourceManager, ctx.ResourceDatabase, out var addCount);
+        _gpuScene.ResizeIfNeeded(ctx.CommandBuffer);
+
+        var updateBuffer = CreateUpdateInstanceBuffer(payload, ctx.ResourceManager, ctx.ResourceDatabase, out var updateCount);
         var removeBuffer = CreateRemoveInstanceBuffer(payload, ctx.ResourceManager, ctx.ResourceDatabase, out var removeCount);
 
-        if (addCount <= 0 && removeCount <= 0)
+        if (updateCount <= 0 && removeCount <= 0)
         {
-            Logger.DebugAssert(addBuffer.IsInvalid && removeBuffer.IsInvalid, "Buffers should be invalid when there are no updates.");
+            Logger.DebugAssert(updateBuffer.IsInvalid && removeBuffer.IsInvalid, "Buffers should be invalid when there are no updates.");
             return; // No updates needed
         }
 
@@ -126,8 +148,8 @@ internal partial class GhostRenderPipeline
         var property = new UpdateGPUSceneShaderProperty
         {
             gpuSceneBuffer = ctx.ResourceDatabase.GetBindlessIndex(_gpuScene.SceneBuffer.AsResource(), BindlessAccess.UnorderedAccess),
-            addBuffer = ctx.ResourceDatabase.GetBindlessIndex(addBuffer.AsResource()),
-            addCount = (uint)addCount,
+            updateBuffer = ctx.ResourceDatabase.GetBindlessIndex(updateBuffer.AsResource()),
+            updateCount = (uint)updateCount,
             removeBuffer = ctx.ResourceDatabase.GetBindlessIndex(removeBuffer.AsResource()),
             removeCount = (uint)removeCount
         };
