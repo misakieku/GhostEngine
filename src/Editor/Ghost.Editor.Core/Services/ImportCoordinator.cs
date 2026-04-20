@@ -27,7 +27,6 @@ internal sealed class ImportCoordinator : IDisposable
 {
     private readonly Channel<ImportJob> _importChannel;
     private readonly AssetCatalog _catalog;
-    private readonly AssetHandlerRegistry _handlers;
     private readonly string _assetsRoot;
     private readonly string _libraryRoot;
     private readonly CancellationTokenSource _cts;
@@ -37,10 +36,9 @@ internal sealed class ImportCoordinator : IDisposable
     // For now we just focus on the core logic
     // public event EventHandler<AssetChangedEventArgs>? OnAssetChanged;
 
-    public ImportCoordinator(AssetCatalog catalog, AssetHandlerRegistry handlers, string assetsRoot, string libraryRoot, int workerCount = 2)
+    public ImportCoordinator(AssetCatalog catalog, string assetsRoot, string libraryRoot, int workerCount = 2)
     {
         _catalog = catalog;
-        _handlers = handlers;
         _assetsRoot = assetsRoot;
         _libraryRoot = libraryRoot;
         _cts = new CancellationTokenSource();
@@ -98,8 +96,8 @@ internal sealed class ImportCoordinator : IDisposable
         }
 
         var handler = meta.HandlerTypeId.HasValue
-            ? _handlers.GetByTypeId(meta.HandlerTypeId.Value)
-            : _handlers.GetByExtension(Path.GetExtension(job.SourcePath));
+            ? AssetHandlerRegistry.GetByTypeId(meta.HandlerTypeId.Value)
+            : AssetHandlerRegistry.GetByExtension(Path.GetExtension(job.SourcePath));
 
         var contentHash = await ComputeFileHashAsync(fullSourcePath, token);
         var settingsHash = ComputeSettingsHash(meta.Settings);
@@ -108,7 +106,7 @@ internal sealed class ImportCoordinator : IDisposable
         if (job.Reason != ImportReason.ManualReimport &&
             meta.ContentHash == contentHash &&
             meta.SettingsHash == settingsHash &&
-            meta.HandlerVersion == _handlers.GetVersionByTypeId(meta.HandlerTypeId ?? Guid.Empty))
+            meta.HandlerVersion == AssetHandlerRegistry.GetVersionByTypeId(meta.HandlerTypeId ?? Guid.Empty))
         {
             _catalog.MarkImported(job.AssetGuid, contentHash, settingsHash);
             return;
@@ -132,7 +130,7 @@ internal sealed class ImportCoordinator : IDisposable
         {
             meta.ContentHash = contentHash;
             meta.SettingsHash = settingsHash;
-            meta.HandlerVersion = _handlers.GetVersionByTypeId(meta.HandlerTypeId ?? Guid.Empty);
+            meta.HandlerVersion = AssetHandlerRegistry.GetVersionByTypeId(meta.HandlerTypeId ?? Guid.Empty);
             meta.LastImportedUtc = DateTime.UtcNow;
 
             await AssetMetaIO.WriteAsync(job.MetaPath, meta, token);

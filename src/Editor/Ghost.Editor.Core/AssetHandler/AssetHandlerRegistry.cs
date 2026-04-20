@@ -4,32 +4,32 @@ namespace Ghost.Editor.Core.AssetHandler;
 /// One-time scan at editor startup → two dictionaries.
 /// All lookups are O(1) after construction.
 /// </summary>
-public sealed class AssetHandlerRegistry
+public static class AssetHandlerRegistry
 {
-    private readonly Dictionary<string, IAssetHandler> _byExtension;
-    private readonly Dictionary<Guid, IAssetHandler> _byTypeId;
-    private readonly Dictionary<Guid, int> _versionByTypeId;
+    private static readonly Dictionary<string, IAssetHandler> s_byExtension;
+    private static readonly Dictionary<Guid, IAssetHandler> s_byTypeId;
+    private static readonly Dictionary<Guid, int> s_versionByTypeId;
 
-    public AssetHandlerRegistry()
+    static AssetHandlerRegistry()
     {
-        _byExtension = new Dictionary<string, IAssetHandler>(StringComparer.OrdinalIgnoreCase);
-        _byTypeId = new Dictionary<Guid, IAssetHandler>();
-        _versionByTypeId = new Dictionary<Guid, int>();
+        s_byExtension = new Dictionary<string, IAssetHandler>(StringComparer.OrdinalIgnoreCase);
+        s_byTypeId = new Dictionary<Guid, IAssetHandler>();
+        s_versionByTypeId = new Dictionary<Guid, int>();
     }
 
-    public void RegisterHandler(IAssetHandler handler, Guid typeId, ReadOnlySpan<string> extensions, int version)
+    public static void RegisterHandler(IAssetHandler handler, Guid typeId, ReadOnlySpan<string> extensions, int version)
     {
-        _byTypeId[typeId] = handler;
-        _versionByTypeId[typeId] = version;
+        s_byTypeId[typeId] = handler;
+        s_versionByTypeId[typeId] = version;
 
         foreach (var ext in extensions)
         {
             var normalizedExt = ext.StartsWith('.') ? ext : "." + ext;
-            _byExtension[normalizedExt] = handler;
+            s_byExtension[normalizedExt] = handler;
         }
     }
 
-    public IAssetHandler? GetByExtension(string extension)
+    public static IAssetHandler? GetByExtension(string extension)
     {
         if (string.IsNullOrEmpty(extension))
         {
@@ -37,21 +37,24 @@ public sealed class AssetHandlerRegistry
         }
 
         var normalized = extension.StartsWith('.') ? extension : "." + extension;
-        _byExtension.TryGetValue(normalized, out var handler);
+        s_byExtension.TryGetValue(normalized, out var handler);
         return handler;
     }
 
-    public IAssetHandler? GetByTypeId(Guid typeId)
+    public static IAssetHandler? GetByTypeId(Guid typeId)
     {
-        _byTypeId.TryGetValue(typeId, out var handler);
+        s_byTypeId.TryGetValue(typeId, out var handler);
         return handler;
     }
 
-    public int GetVersionByTypeId(Guid typeId)
+    public static int GetVersionByTypeId(Guid typeId)
     {
-        _versionByTypeId.TryGetValue(typeId, out var version);
+        s_versionByTypeId.TryGetValue(typeId, out var version);
         return version;
     }
 
-    public IEnumerable<string> GetSupportedExtensions() => _byExtension.Keys;
+    public static IEnumerable<string> GetSupportedExtensions()
+    {
+        return s_byExtension.Keys;
+    }
 }

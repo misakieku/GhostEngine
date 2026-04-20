@@ -22,7 +22,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         _gpuScene = new GPUScene(renderSystem.GraphicsEngine.ResourceAllocator, renderSystem.GraphicsEngine.ResourceDatabase, 102_400u); // 102.4k objects should be enough for now
     }
 
-    public void Render(RenderContext ctx, int frameIndex, IRenderPayload payload, ReadOnlySpan<byte> resourceUpdateCommands)
+    public void Render(RenderContext ctx, int frameIndex, IRenderPayload payload)
     {
         var ghostPayload = (GhostRenderPayload)payload;
 

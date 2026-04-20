@@ -14,7 +14,6 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
     private readonly string _assetsRoot;
     private readonly string _libraryRoot;
     private readonly AssetCatalog _catalog;
-    private readonly AssetHandlerRegistry _handlerRegistry;
     private readonly ImportCoordinator _importCoordinator;
     private readonly FileSystemWatcher _watcher;
 
@@ -36,8 +35,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
         var dbPath = Path.Combine(_libraryRoot, "AssetDB.sqlite");
 
         _catalog = new AssetCatalog(dbPath);
-        _handlerRegistry = new AssetHandlerRegistry();
-        _importCoordinator = new ImportCoordinator(_catalog, _handlerRegistry, _assetsRoot, _libraryRoot);
+        _importCoordinator = new ImportCoordinator(_catalog, _assetsRoot, _libraryRoot);
 
         _loadedAssets = new ConcurrentDictionary<Guid, WeakReference<Asset>>();
 
@@ -156,8 +154,11 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
     {
         var ext = Path.GetExtension(relativePath);
 
-        var handler = _handlerRegistry.GetByExtension(ext);
-        var importable = handler as IAssetHandler;
+        var handler = AssetHandlerRegistry.GetByExtension(ext);
+        if (handler is null)
+        {
+            return;
+        }
 
         var metaPath = AssetMetaIO.GetMetaPath(fullPath);
         if (File.Exists(metaPath))
@@ -171,7 +172,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
             Guid = Guid.NewGuid(),
             HandlerTypeId = handlerTypeId is string str ? Guid.Parse(str) : null,
             HandlerVersion = 1,
-            Settings = importable?.CreateDefaultSettings()
+            Settings = handler?.CreateDefaultSettings()
         };
 
         _ignoreMetaWrites[metaPath] = true;

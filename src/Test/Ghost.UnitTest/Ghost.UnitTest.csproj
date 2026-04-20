@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Editor\Ghost.Editor.Core\Ghost.Editor.Core.csproj" />
+    <ProjectReference Include="..\..\Runtime\Ghost.Engine\Ghost.Engine.csproj" />
   </ItemGroup>
 
   <ItemGroup>

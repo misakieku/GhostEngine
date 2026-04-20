@@ -58,6 +58,8 @@ internal static class ActivationHandler
         {
             ArenaCapacity = 1024 * 1024 * 1024, // 1 GB. Arena using virtual memory, so this is just a reservation and won't actually consume physical memory until used.
             StackCapacity = 1024 * 1024 * 32, // 32 MB. Stack using virtual memory, so this is just a reservation and won't actually consume physical memory until used.
+            FreeListChunkSize = 64 * 1024 * 1024,
+            FreeListDefaultAlignment = 8,
             FreeListConcurrencyLevel = Environment.ProcessorCount
         };
 

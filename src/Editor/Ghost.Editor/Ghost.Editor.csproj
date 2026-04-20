@@ -12,8 +12,7 @@
     <langversion>preview</langversion>
   </PropertyGroup>
   <ItemGroup>
-    <None Remove="View\Controls\Hierarchy.xaml" />
-    <None Remove="View\Windows\BlankWindow1.xaml" />
+    <None Remove="Views\Controls\Hierarchy.xaml" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Assets\SplashScreen.scale-200.png" />
@@ -142,6 +141,9 @@
     <None Update="Assets\icon.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <Page Update="Views\Windows\EngineEditorWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Update="View\Windows\BlankWindow1.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>

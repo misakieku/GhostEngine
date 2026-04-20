@@ -7,7 +7,7 @@ namespace Ghost.Editor.ViewModels.Pages.EngineEditor;
 
 internal partial class ConsoleViewModel : ObservableObject
 {
-    public ReadOnlyObservableCollection<LogMessage> Logs => Logger.Logs;
+    public ReadOnlyObservableCollection<LogMessage> Logs;
 
     [ObservableProperty]
     public partial bool ShowInfo
