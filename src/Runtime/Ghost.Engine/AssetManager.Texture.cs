@@ -1,12 +1,22 @@
 using Ghost.Core;
 using Ghost.Core.Utilities;
-using Ghost.Engine.AssetLoader;
 using Ghost.Graphics;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Utilities;
-using TerraFX.Interop.Windows;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Engine;
+
+[StructLayout(LayoutKind.Sequential, Size = 64)] // Leave extra space for future expansion without breaking compatibility
+public struct TextureContentHeader
+{
+    public uint width;
+    public uint height;
+    public uint depth;
+    public uint mipLevels;
+    public uint dimension; // 1 for 1D, 2 for 2D, 3 for 3D
+    public uint colorComponents;
+}
 
 internal partial class AssetEntry
 {

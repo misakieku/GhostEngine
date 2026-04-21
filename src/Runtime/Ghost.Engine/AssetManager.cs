@@ -11,11 +11,24 @@ using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace Ghost.Engine;
 
-public enum AssetState : byte
+public enum AssetType
+{
+    Texture = 0,
+    Mesh = 1,
+    Material = 2,
+    Shaders = 3,
+    Scene = 4,
+    Audio = 5,
+    Video = 6,
+    Json = 7,
+
+    Unknown = 32, // We are unlikely to have more than 32 asset types.
+}
+
+public enum AssetState
 {
     Unloaded = 0,
     Scheduled = 1,
@@ -192,6 +205,11 @@ internal unsafe partial class AssetEntry
     public void OnReleaseResource()
     {
         s_onReleaseResource[(int)_assetType]?.Invoke(this);
+
+        if (_rawData.IsCreated)
+        {
+            _rawData.Dispose();
+        }
     }
 }
 
@@ -199,7 +217,7 @@ internal struct LoadAssetJob : IJob
 {
     public Guid assetID;
     public AssetType assetType;
-    public GCHandle assetManagerHandle;
+    public AssetManager assetManager;
 
     private static Result LoadRawData(IContentProvider contentProvider, AssetEntry entry)
     {
@@ -232,8 +250,6 @@ internal struct LoadAssetJob : IJob
 
     public readonly void Execute(ref readonly JobExecutionContext ctx)
     {
-        var assetManager = assetManagerHandle.Target as AssetManager;
-
         Logger.DebugAssert(assetManager is not null);
 
         if (!assetManager.TryGetEntry(assetID, out var entry))
@@ -279,8 +295,6 @@ internal partial class AssetManager : IDisposable
 
     private readonly ConcurrentDictionary<Guid, AssetEntry> _entries;
 
-    private GCHandle _selfHandle;
-
     // TODO
     private Handle<GPUTexture> _fallbackTexture;
     private Handle<GPUTexture> _fallbackNormalMap;
@@ -300,7 +314,6 @@ internal partial class AssetManager : IDisposable
         _jobScheduler = jobScheduler;
 
         _entries = new ConcurrentDictionary<Guid, AssetEntry>();
-        _selfHandle = GCHandle.Alloc(this, GCHandleType.Normal);
     }
 
     internal bool TryGetEntry(Guid guid, [NotNullWhen(true)] out AssetEntry? entry)
@@ -378,10 +391,10 @@ internal partial class AssetManager : IDisposable
         {
             assetID = entry.AssetId,
             assetType = entry.AssetType,
-            assetManagerHandle = _selfHandle,
+            assetManager = this,
         };
 
-        entry.SetLoadJobHandle(_jobScheduler.Schedule(ref job, dependency, JobPriority.Low)); // Use low priority to avoid blocking main thread critical tasks like rendering and physics.
+        entry.SetLoadJobHandle(_jobScheduler.Schedule(ref job, JobPriority.Low, dependency)); // Use low priority to avoid blocking main thread critical tasks like rendering and physics.
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -409,18 +422,18 @@ internal partial class AssetManager : IDisposable
             return;
         }
 
-        if (entry.State is AssetState.Loading or AssetState.Loaded or AssetState.Uploading)
+        if (Interlocked.CompareExchange(ref entry.StateValue, (int)AssetState.Scheduled, (int)AssetState.Ready) == (int)AssetState.Ready)
+        {
+            // Entry is in Ready state — the old texture is valid and will remain visible.
+            // Go directly to Scheduled → Loading → Loaded → Uploading → Ready again.
+            // The swap cycle in RecordTextureUpload/OnTextureUploadComplete handles the 
+            // v1 → v2 transition exactly like the fallback → v1 transition.
+            EnsureScheduled(entry);
+        }
+        else
         {
             entry.SetPendingReimport();
-            return;
         }
-
-        // Entry is in Ready state — the old texture is valid and will remain visible.
-        // Go directly to Scheduled → Loading → Loaded → Uploading → Ready again.
-        // The swap cycle in RecordTextureUpload/OnTextureUploadComplete handles the 
-        // v1 → v2 transition exactly like the fallback → v1 transition.
-        entry.State = AssetState.Scheduled;
-        EnsureScheduled(entry);
     }
 
     public void Dispose()
@@ -431,6 +444,5 @@ internal partial class AssetManager : IDisposable
         }
 
         _entries.Clear();
-        _selfHandle.Free();
     }
 }

@@ -25,10 +25,11 @@ internal readonly record struct ImportJob(
 
 internal sealed class ImportCoordinator : IDisposable
 {
+    public const string IMPORTED_EXTENSION_NAME = "Imported";
+    public const string IMPORTED_EXTENSION = ".imported";
+
     private readonly Channel<ImportJob> _importChannel;
     private readonly AssetCatalog _catalog;
-    private readonly string _assetsRoot;
-    private readonly string _libraryRoot;
     private readonly CancellationTokenSource _cts;
     private readonly Task[] _workers;
 
@@ -36,11 +37,9 @@ internal sealed class ImportCoordinator : IDisposable
     // For now we just focus on the core logic
     // public event EventHandler<AssetChangedEventArgs>? OnAssetChanged;
 
-    public ImportCoordinator(AssetCatalog catalog, string assetsRoot, string libraryRoot, int workerCount = 2)
+    public ImportCoordinator(AssetCatalog catalog, int workerCount = 2)
     {
         _catalog = catalog;
-        _assetsRoot = assetsRoot;
-        _libraryRoot = libraryRoot;
         _cts = new CancellationTokenSource();
 
         _importChannel = Channel.CreateBounded<ImportJob>(new BoundedChannelOptions(256)
@@ -61,15 +60,6 @@ internal sealed class ImportCoordinator : IDisposable
         return _importChannel.Writer.WriteAsync(job, token);
     }
 
-    public async ValueTask EnqueueDirtyAssetsAsync(CancellationToken token = default)
-    {
-        foreach (var (guid, sourcePath) in _catalog.GetDirtyAssets())
-        {
-            var metaPath = AssetMetaIO.GetMetaPath(Path.Combine(_assetsRoot, sourcePath));
-            await EnqueueAsync(new ImportJob(guid, sourcePath, metaPath, ImportReason.Startup), token);
-        }
-    }
-
     private async Task WorkerLoop(CancellationToken token)
     {
         await foreach (var job in _importChannel.Reader.ReadAllAsync(token))
@@ -80,18 +70,18 @@ internal sealed class ImportCoordinator : IDisposable
             }
             catch (Exception ex)
             {
-                _catalog.MarkFailed(job.AssetGuid, ex.Message);
+                Logger.Error(ex);
             }
         }
     }
 
     private async ValueTask ProcessImportAsync(ImportJob job, CancellationToken token)
     {
-        var fullSourcePath = Path.Combine(_assetsRoot, job.SourcePath);
+        var fullSourcePath = Path.Combine(EditorApplication.AssetsFolderPath, job.SourcePath);
         var meta = await AssetMetaIO.ReadAsync(job.MetaPath, token);
         if (meta is null)
         {
-            _catalog.MarkFailed(job.AssetGuid, "Missing .gmeta file");
+            Logger.Error("Missing .gmeta file");
             return;
         }
 
@@ -108,17 +98,13 @@ internal sealed class ImportCoordinator : IDisposable
             meta.SettingsHash == settingsHash &&
             meta.HandlerVersion == AssetHandlerRegistry.GetVersionByTypeId(meta.HandlerTypeId ?? Guid.Empty))
         {
-            _catalog.MarkImported(job.AssetGuid, contentHash, settingsHash);
             return;
         }
 
         var importResult = Result.Success();
         if (handler is IAssetHandler importable)
         {
-            // TODO: This should be handled by EditorApplication.
-            var importsDir = Path.Combine(_libraryRoot, "Imports");
-            Directory.CreateDirectory(importsDir);
-            var targetPath = Path.Combine(importsDir, $"{job.AssetGuid:N}.imported");
+            var targetPath = Path.Combine(EditorApplication.LibraryImportsFolderPath, $"{job.AssetGuid:N}{IMPORTED_EXTENSION}");
 
             await using var sourceStream = new FileStream(fullSourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             await using var targetStream = new FileStream(targetPath, FileMode.Create, FileAccess.Write, FileShare.None);
@@ -134,11 +120,10 @@ internal sealed class ImportCoordinator : IDisposable
             meta.LastImportedUtc = DateTime.UtcNow;
 
             await AssetMetaIO.WriteAsync(job.MetaPath, meta, token);
-            _catalog.MarkImported(job.AssetGuid, contentHash, settingsHash);
         }
         else
         {
-            _catalog.MarkFailed(job.AssetGuid, importResult.Message ?? "Unknown import error");
+            Logger.Error(importResult.Message ?? "Unknown import error");
         }
     }
 
@@ -146,7 +131,7 @@ internal sealed class ImportCoordinator : IDisposable
     {
         if (!File.Exists(filePath))
         {
-            return "";
+            return string.Empty;
         }
 
         using var sha = SHA256.Create();
@@ -159,7 +144,7 @@ internal sealed class ImportCoordinator : IDisposable
     {
         if (settings is null)
         {
-            return "";
+            return string.Empty;
         }
 
         var json = JsonSerializer.SerializeToUtf8Bytes(settings);

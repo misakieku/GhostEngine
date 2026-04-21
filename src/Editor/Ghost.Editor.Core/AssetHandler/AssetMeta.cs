@@ -1,3 +1,4 @@
+using Ghost.Engine;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -67,7 +68,8 @@ public sealed class AssetMeta
 
 internal static class AssetMetaIO
 {
-    private const string _META_EXTENSION = ".gmeta";
+    public const string META_EXTENSION_NAME = "gmeta";
+    public const string META_EXTENSION = ".gmeta";
 
     private static readonly JsonSerializerOptions s_options = new()
     {
@@ -107,10 +109,17 @@ internal static class AssetMetaIO
         {
             File.Delete(metaPath);
         }
+
         File.Move(tempPath, metaPath);
     }
 
-    public static string GetMetaPath(string sourceFilePath) => sourceFilePath + _META_EXTENSION;
+    public static string GetMetaPath(string sourceFilePath)
+    {
+        return sourceFilePath + META_EXTENSION;
+    }
 
-    public static string GetSourcePath(string metaPath) => metaPath[..^_META_EXTENSION.Length];
+    public static string GetSourcePath(string metaPath)
+    {
+        return metaPath[..^META_EXTENSION.Length];
+    }
 }

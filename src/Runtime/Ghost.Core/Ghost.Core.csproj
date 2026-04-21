@@ -20,7 +20,7 @@
 
   <ItemGroup>
     <PackageReference Include="Misaki.HighPerformance" Version="1.0.8" />
-    <PackageReference Include="Misaki.HighPerformance.Jobs" Version="2.0.0" />
+    <PackageReference Include="Misaki.HighPerformance.Jobs" Version="3.0.0" />
     <PackageReference Include="Misaki.HighPerformance.LowLevel" Version="1.6.14">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

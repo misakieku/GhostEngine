@@ -1,4 +1,3 @@
-using Ghost.Editor.Core.Utilities;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 
@@ -7,16 +6,25 @@ namespace Ghost.Editor.Core;
 public static class EditorApplication
 {
     public const string ASSETS_FOLDER_NAME = "Assets";
-    public const string SOURCES_FOLDER_NAME = "Sources";
     public const string PACKAGES_FOLDER_NAME = "Packages";
     public const string LIBRARY_FOLDER_NAME = "Library";
+    public const string CACHE_FOLDER_NAME = "Cache";
     public const string CONFIG_FOLDER_NAME = "Config";
 
     public const string IMPORTS_FOLDER_NAME = "Imports";
 
     private static IServiceProvider? s_serviceProvider;
+
     private static string s_currentProjectPath = string.Empty;
     private static string s_currentProjectName = string.Empty;
+
+    private static string s_assetsFolderPath = string.Empty;
+    private static string s_packagesFolderPath = string.Empty;
+    private static string s_libraryFolderPath = string.Empty;
+    private static string s_cacheFolderPath = string.Empty;
+    private static string s_configFolderPath = string.Empty;
+
+    private static string s_libraryImportsFolderPath = string.Empty;
 
     private static DispatcherQueue? s_dispatcherQueue;
 
@@ -25,13 +33,12 @@ public static class EditorApplication
     public static string ProjectPath => s_currentProjectPath;
     public static string ProjectName => s_currentProjectName;
 
-    public static readonly string AssetsFolderPath = Path.Combine(ProjectPath, ASSETS_FOLDER_NAME);
-    public static readonly string SourcesFolderPath = Path.Combine(ProjectPath, SOURCES_FOLDER_NAME);
-    public static readonly string PackagesFolderPath = Path.Combine(ProjectPath, PACKAGES_FOLDER_NAME);
-    public static readonly string LibraryFolderPath = Path.Combine(ProjectPath, LIBRARY_FOLDER_NAME);
-    public static readonly string ConfigFolderPath = Path.Combine(ProjectPath, CONFIG_FOLDER_NAME);
-
-    public static readonly string ImportsFolderPath = Path.Combine(LibraryFolderPath, IMPORTS_FOLDER_NAME);
+    public static string AssetsFolderPath => s_assetsFolderPath;
+    public static string PackagesFolderPath => s_packagesFolderPath;
+    public static string LibraryFolderPath => s_libraryFolderPath;
+    public static string ConfigFolderPath => s_configFolderPath;
+    public static string CacheFolderPath => s_cacheFolderPath;
+    public static string LibraryImportsFolderPath => s_libraryImportsFolderPath;
 
     public static DispatcherQueue DispatcherQueue
     {
@@ -51,6 +58,22 @@ public static class EditorApplication
         s_serviceProvider = serviceProvider;
         s_currentProjectPath = projectPath;
         s_currentProjectName = projectName;
+
+        s_assetsFolderPath = Path.Combine(projectPath, ASSETS_FOLDER_NAME);
+        s_packagesFolderPath = Path.Combine(projectPath, PACKAGES_FOLDER_NAME);
+        s_libraryFolderPath = Path.Combine(projectPath, LIBRARY_FOLDER_NAME);
+        s_configFolderPath = Path.Combine(projectPath, CONFIG_FOLDER_NAME);
+        s_cacheFolderPath = Path.Combine(projectPath, CACHE_FOLDER_NAME);
+
+        s_libraryImportsFolderPath = Path.Combine(s_libraryFolderPath, IMPORTS_FOLDER_NAME);
+
+        Directory.CreateDirectory(s_assetsFolderPath);
+        Directory.CreateDirectory(s_packagesFolderPath);
+        Directory.CreateDirectory(s_libraryFolderPath);
+        Directory.CreateDirectory(s_configFolderPath);
+        Directory.CreateDirectory(s_cacheFolderPath);
+
+        Directory.CreateDirectory(s_libraryImportsFolderPath);
     }
 
     internal static void SetDispatcherQueue(DispatcherQueue dispatcherQueue)

@@ -2,7 +2,7 @@ using Ghost.Editor.Core;
 
 namespace Ghost.Editor.Views.Controls;
 
-internal partial class ProjectBrowser
+internal partial class ContentBrowser
 {
     [ContextMenuItem("project-browser", "Show in Explorer")]
     private static void ShowInExplorer()

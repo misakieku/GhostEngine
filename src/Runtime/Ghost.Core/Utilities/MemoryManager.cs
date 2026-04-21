@@ -1,6 +1,8 @@
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections.Contracts;
 using System.Buffers;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using MemoryHandle = System.Buffers.MemoryHandle;
 
 namespace Ghost.Core.Utilities;
@@ -49,5 +51,49 @@ public unsafe class NativeMemoryManager<T> : MemoryManager<T>
 
     protected override void Dispose(bool disposing)
     {
+    }
+}
+
+public sealed class CastMemoryManager<TFrom, TTo> : MemoryManager<TTo>
+    where TFrom : struct
+    where TTo : struct
+{
+    private readonly Memory<TFrom> _from;
+    private MemoryHandle _innerHandle;
+
+    public CastMemoryManager(Memory<TFrom> from)
+    {
+        _from = from;
+    }
+
+    public override Span<TTo> GetSpan()
+    {
+        return MemoryMarshal.Cast<TFrom, TTo>(_from.Span);
+    }
+
+    public override MemoryHandle Pin(int elementIndex = 0)
+    {
+        _innerHandle = _from.Pin();
+
+        unsafe
+        {
+            int byteOffset = elementIndex * Unsafe.SizeOf<TTo>();
+            void* pointer = (byte*)_innerHandle.Pointer + byteOffset;
+
+            return new MemoryHandle(pointer, default, this);
+        }
+    }
+
+    public override void Unpin()
+    {
+        _innerHandle.Dispose();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _innerHandle.Dispose();
+        }
     }
 }

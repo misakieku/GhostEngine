@@ -1,4 +1,5 @@
 using Ghost.Editor.Core.AssetHandler;
+using Ghost.Engine;
 using Microsoft.Data.Sqlite;
 
 namespace Ghost.Editor.Core.Services;
@@ -10,21 +11,18 @@ namespace Ghost.Editor.Core.Services;
 internal sealed class AssetCatalog : IDisposable
 {
     private readonly SqliteConnection _connection;
-    private readonly object _writeLock = new();
+    private readonly Lock _writeLock = new();
 
     // Prepared statements
     private readonly SqliteCommand _cmdGetGuid;
     private readonly SqliteCommand _cmdGetPath;
     private readonly SqliteCommand _cmdUpsert;
     private readonly SqliteCommand _cmdDelete;
-    private readonly SqliteCommand _cmdMarkDirty;
-    private readonly SqliteCommand _cmdMarkImported;
-    private readonly SqliteCommand _cmdMarkFailed;
+    private readonly SqliteCommand _cmdGetHandlerTypeId;
     private readonly SqliteCommand _cmdGetReferencers;
     private readonly SqliteCommand _cmdGetDependencies;
     private readonly SqliteCommand _cmdInsertDep;
     private readonly SqliteCommand _cmdClearDeps;
-    private readonly SqliteCommand _cmdGetDirty;
     private readonly SqliteCommand _cmdEnumerate;
 
     public AssetCatalog(string dbPath)
@@ -50,6 +48,7 @@ internal sealed class AssetCatalog : IDisposable
 
         _cmdGetGuid = CreateCommand("SELECT guid FROM assets WHERE source_path = @path");
         _cmdGetPath = CreateCommand("SELECT source_path FROM assets WHERE guid = @guid");
+        _cmdGetHandlerTypeId = CreateCommand("SELECT handler_type_id FROM assets WHERE guid = @guid");
         _cmdUpsert = CreateCommand(@"
             INSERT INTO assets (guid, source_path, handler_type_id, handler_version, state)
             VALUES (@guid, @path, @handler_id, @version, 0)
@@ -59,21 +58,10 @@ internal sealed class AssetCatalog : IDisposable
                 handler_version = excluded.handler_version,
                 state = 0;");
         _cmdDelete = CreateCommand("DELETE FROM assets WHERE guid = @guid");
-        _cmdMarkDirty = CreateCommand("UPDATE assets SET state = 0 WHERE guid = @guid");
-        _cmdMarkImported = CreateCommand(@"
-            UPDATE assets SET 
-                content_hash = @content_hash, 
-                settings_hash = @settings_hash, 
-                imported_at_ms = @time, 
-                state = 1,
-                error_message = NULL
-            WHERE guid = @guid");
-        _cmdMarkFailed = CreateCommand("UPDATE assets SET state = 2, error_message = @msg WHERE guid = @guid");
         _cmdGetReferencers = CreateCommand("SELECT from_guid FROM dependencies WHERE to_guid = @guid");
         _cmdGetDependencies = CreateCommand("SELECT to_guid FROM dependencies WHERE from_guid = @guid");
         _cmdInsertDep = CreateCommand("INSERT INTO dependencies (from_guid, to_guid) VALUES (@from, @to)");
         _cmdClearDeps = CreateCommand("DELETE FROM dependencies WHERE from_guid = @guid");
-        _cmdGetDirty = CreateCommand("SELECT guid, source_path FROM assets WHERE state = 0");
         _cmdEnumerate = CreateCommand("SELECT guid, source_path FROM assets");
     }
 
@@ -96,8 +84,6 @@ internal sealed class AssetCatalog : IDisposable
                 content_hash    TEXT,
                 settings_hash   TEXT,
                 imported_at_ms  INTEGER,
-                state           INTEGER NOT NULL DEFAULT 0,
-                error_message   TEXT
             );
             CREATE UNIQUE INDEX IF NOT EXISTS idx_assets_path ON assets(source_path);
 
@@ -155,38 +141,12 @@ internal sealed class AssetCatalog : IDisposable
         }
     }
 
-    public void MarkDirty(Guid guid)
+    public Guid GetHandlerTypeId(Guid guid)
     {
-        lock (_writeLock)
-        {
-            _cmdMarkDirty.Parameters.Clear();
-            _cmdMarkDirty.Parameters.AddWithValue("@guid", guid.ToByteArray());
-            _cmdMarkDirty.ExecuteNonQuery();
-        }
-    }
-
-    public void MarkImported(Guid guid, string contentHash, string settingsHash)
-    {
-        lock (_writeLock)
-        {
-            _cmdMarkImported.Parameters.Clear();
-            _cmdMarkImported.Parameters.AddWithValue("@guid", guid.ToByteArray());
-            _cmdMarkImported.Parameters.AddWithValue("@content_hash", contentHash);
-            _cmdMarkImported.Parameters.AddWithValue("@settings_hash", settingsHash);
-            _cmdMarkImported.Parameters.AddWithValue("@time", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
-            _cmdMarkImported.ExecuteNonQuery();
-        }
-    }
-
-    public void MarkFailed(Guid guid, string error)
-    {
-        lock (_writeLock)
-        {
-            _cmdMarkFailed.Parameters.Clear();
-            _cmdMarkFailed.Parameters.AddWithValue("@guid", guid.ToByteArray());
-            _cmdMarkFailed.Parameters.AddWithValue("@msg", error);
-            _cmdMarkFailed.ExecuteNonQuery();
-        }
+        _cmdGetHandlerTypeId.Parameters.Clear();
+        _cmdGetHandlerTypeId.Parameters.AddWithValue("@guid", guid.ToByteArray());
+        var result = _cmdGetHandlerTypeId.ExecuteScalar();
+        return result is byte[] bytes ? new Guid(bytes) : Guid.Empty;
     }
 
     public void SetDependencies(Guid assetId, ReadOnlySpan<Guid> dependencies)
@@ -207,6 +167,7 @@ internal sealed class AssetCatalog : IDisposable
                 _cmdInsertDep.Parameters.AddWithValue("@to", dep.ToByteArray());
                 _cmdInsertDep.ExecuteNonQuery();
             }
+
             tx.Commit();
         }
     }
@@ -215,12 +176,14 @@ internal sealed class AssetCatalog : IDisposable
     {
         _cmdGetReferencers.Parameters.Clear();
         _cmdGetReferencers.Parameters.AddWithValue("@guid", guid.ToByteArray());
+
         using var reader = _cmdGetReferencers.ExecuteReader();
         var list = new List<Guid>();
         while (reader.Read())
         {
             list.Add(new Guid((byte[])reader[0]));
         }
+
         return list;
     }
 
@@ -228,23 +191,14 @@ internal sealed class AssetCatalog : IDisposable
     {
         _cmdGetDependencies.Parameters.Clear();
         _cmdGetDependencies.Parameters.AddWithValue("@guid", guid.ToByteArray());
+
         using var reader = _cmdGetDependencies.ExecuteReader();
         var list = new List<Guid>();
         while (reader.Read())
         {
             list.Add(new Guid((byte[])reader[0]));
         }
-        return list;
-    }
 
-    public List<(Guid guid, string sourcePath)> GetDirtyAssets()
-    {
-        using var reader = _cmdGetDirty.ExecuteReader();
-        var list = new List<(Guid guid, string sourcePath)>();
-        while (reader.Read())
-        {
-            list.Add((new Guid((byte[])reader[0]), reader.GetString(1)));
-        }
         return list;
     }
 
@@ -263,14 +217,11 @@ internal sealed class AssetCatalog : IDisposable
         _cmdGetPath.Dispose();
         _cmdUpsert.Dispose();
         _cmdDelete.Dispose();
-        _cmdMarkDirty.Dispose();
-        _cmdMarkImported.Dispose();
-        _cmdMarkFailed.Dispose();
+        _cmdGetHandlerTypeId.Dispose();
         _cmdGetReferencers.Dispose();
         _cmdGetDependencies.Dispose();
         _cmdInsertDep.Dispose();
         _cmdClearDeps.Dispose();
-        _cmdGetDirty.Dispose();
         _cmdEnumerate.Dispose();
         _connection.Dispose();
     }

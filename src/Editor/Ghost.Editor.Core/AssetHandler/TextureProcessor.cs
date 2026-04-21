@@ -1,3 +1,4 @@
+using Ghost.Graphics.RHI;
 using Ghost.Nvtt;
 using ImageMagick;
 using Misaki.HighPerformance.LowLevel;
@@ -25,7 +26,7 @@ internal static class TextureProcessor
     {
         private readonly string _outputPath;
 
-        private readonly byte[] _image;
+        private readonly float[] _image;
         private readonly uint _depth;
         private readonly uint _width;
         private readonly uint _height;
@@ -37,7 +38,7 @@ internal static class TextureProcessor
 
         public Task Task => _completionSource.Task;
 
-        public NvttPipelineTask(string outputPath, byte[] image, uint width, uint height, uint depth, TextureAssetSettings settings)
+        public NvttPipelineTask(string outputPath, float[] image, uint width, uint height, uint depth, TextureAssetSettings settings)
         {
             _outputPath = outputPath;
             _image = image;
@@ -163,11 +164,15 @@ internal static class TextureProcessor
         }
     }
 
-    public static async ValueTask<(string cachePath, int mipmapCount)> CompressToCacheAsync(string cachesFolderPath, Guid assetId, byte[] image, uint width, uint height, uint depth, TextureAssetSettings settings, CancellationToken cancellationToken)
+    public static async ValueTask<(string cachePath, int mipmapCount)> CompressToCacheAsync(string cachesFolderPath, Guid assetId, float[] image, uint width, uint height, uint depth, TextureAssetSettings settings, CancellationToken cancellationToken)
     {
         var settingsHash = ComputeSettingsHash(settings);
         var cacheFileName = $"texturecache_{assetId:N}_{settingsHash:X16}.dds";
-        var cachePath = Path.Combine(cachesFolderPath, cacheFileName);
+
+        var textureCachePath = Path.Combine(cachesFolderPath, "TextureCache");
+        var cachePath = Path.Combine(textureCachePath, cacheFileName);
+
+        Directory.CreateDirectory(textureCachePath);
 
         if (File.Exists(cachePath))
         {

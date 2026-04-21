@@ -1,3 +1,5 @@
+using Ghost.Engine;
+
 namespace Ghost.Editor.Core.AssetHandler;
 
 /// <summary>

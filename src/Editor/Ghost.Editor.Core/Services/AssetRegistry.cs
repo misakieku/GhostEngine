@@ -1,7 +1,7 @@
 using Ghost.Core;
+using Ghost.Core.Utilities;
 using Ghost.Editor.Core.AssetHandler;
 using Ghost.Editor.Core.Contracts;
-using Ghost.Engine.AssetLoader;
 using System.Collections.Concurrent;
 
 namespace Ghost.Editor.Core.Services;
@@ -11,37 +11,34 @@ namespace Ghost.Editor.Core.Services;
 /// </summary>
 internal sealed class AssetRegistry : IAssetRegistry, IDisposable
 {
-    private readonly string _assetsRoot;
-    private readonly string _libraryRoot;
     private readonly AssetCatalog _catalog;
     private readonly ImportCoordinator _importCoordinator;
     private readonly FileSystemWatcher _watcher;
 
-    private readonly ConcurrentDictionary<Guid, WeakReference<Asset>> _loadedAssets;
-    private readonly SemaphoreSlim _loadLock = new(1, 1);
-    private readonly ConcurrentDictionary<string, bool> _ignoreMetaWrites = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<Guid, WeakReference<IAsset>> _loadedAssets;
+    private readonly SemaphoreSlim _loadLock;
+
+    private readonly ConcurrentDictionary<string, bool> _ignoreMetaWrites;
+    private readonly ConcurrentHashSet<Guid> _dirtyAssets;
 
     public event EventHandler<IAssetRegistry, AssetChangedEventArgs>? OnAssetChanged;
 
-    public AssetRegistry(string assetsRoot)
+    public AssetRegistry()
     {
-        _assetsRoot = Path.GetFullPath(assetsRoot);
-        _libraryRoot = Path.Combine(Path.GetDirectoryName(_assetsRoot)!, EditorApplication.LIBRARY_FOLDER_NAME);
-
-        // TODO: This should be handled by EditorApplication.
-        Directory.CreateDirectory(_assetsRoot);
-        Directory.CreateDirectory(_libraryRoot);
-
-        var dbPath = Path.Combine(_libraryRoot, "AssetDB.sqlite");
+        var dbPath = Path.Combine(EditorApplication.LibraryFolderPath, "AssetDB.sqlite");
 
         _catalog = new AssetCatalog(dbPath);
-        _importCoordinator = new ImportCoordinator(_catalog, _assetsRoot, _libraryRoot);
+        _importCoordinator = new ImportCoordinator(_catalog);
 
-        _loadedAssets = new ConcurrentDictionary<Guid, WeakReference<Asset>>();
+        _loadedAssets = new ConcurrentDictionary<Guid, WeakReference<IAsset>>();
+        _loadLock = new SemaphoreSlim(1, 1);
+
+        _ignoreMetaWrites = new ConcurrentDictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+        _dirtyAssets = new ConcurrentHashSet<Guid>();
 
         SyncCatalogWithDisk();
 
-        _watcher = new FileSystemWatcher(_assetsRoot)
+        _watcher = new FileSystemWatcher(EditorApplication.AssetsFolderPath)
         {
             IncludeSubdirectories = true,
             EnableRaisingEvents = true,
@@ -52,18 +49,16 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
         _watcher.Deleted += OnFileSystemEvent;
         _watcher.Changed += OnFileSystemEvent;
         _watcher.Renamed += OnFileSystemRenameEvent;
-
-        _importCoordinator.EnqueueDirtyAssetsAsync().AsTask().Wait();
     }
 
     private void SyncCatalogWithDisk()
     {
-        if (!Directory.Exists(_assetsRoot))
+        if (!Directory.Exists(EditorApplication.AssetsFolderPath))
         {
             return;
         }
 
-        var metaFiles = Directory.EnumerateFiles(_assetsRoot, "*.gmeta", SearchOption.AllDirectories);
+        var metaFiles = Directory.EnumerateFiles(EditorApplication.AssetsFolderPath, "*.gmeta", SearchOption.AllDirectories);
         var foundGuids = new HashSet<Guid>();
 
         foreach (var metaPath in metaFiles)
@@ -71,8 +66,8 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
             var meta = AssetMetaIO.ReadAsync(metaPath).AsTask().Result;
             if (meta != null)
             {
-                var sourceRelative = AssetMetaIO.GetSourcePath(Path.GetRelativePath(_assetsRoot, metaPath));
-                _catalog.Upsert(meta, sourceRelative.Replace('\\', '/'));
+                var sourceRelative = AssetMetaIO.GetSourcePath(Path.GetRelativePath(EditorApplication.AssetsFolderPath, metaPath));
+                _catalog.Upsert(meta, sourceRelative.Replace(Path.DirectorySeparatorChar, '/'));
                 foundGuids.Add(meta.Guid);
             }
         }
@@ -89,7 +84,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
     private async void OnFileSystemEvent(object sender, FileSystemEventArgs e)
     {
         var ext = Path.GetExtension(e.FullPath);
-        var relativePath = Path.GetRelativePath(_assetsRoot, e.FullPath).Replace('\\', '/');
+        var relativePath = Path.GetRelativePath(EditorApplication.AssetsFolderPath, e.FullPath).Replace(Path.DirectorySeparatorChar, '/');
 
         if (_ignoreMetaWrites.TryRemove(e.FullPath, out _))
         {
@@ -101,7 +96,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
             return;
         }
 
-        if (ext == ".gmeta")
+        if (ext == AssetMetaIO.META_EXTENSION)
         {
             if (e.ChangeType == WatcherChangeTypes.Changed || e.ChangeType == WatcherChangeTypes.Created)
             {
@@ -131,8 +126,8 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
 
     private void OnFileSystemRenameEvent(object sender, RenamedEventArgs e)
     {
-        var oldRelative = Path.GetRelativePath(_assetsRoot, e.OldFullPath).Replace('\\', '/');
-        var newRelative = Path.GetRelativePath(_assetsRoot, e.FullPath).Replace('\\', '/');
+        var oldRelative = Path.GetRelativePath(EditorApplication.AssetsFolderPath, e.OldFullPath).Replace(Path.DirectorySeparatorChar, '/');
+        var newRelative = Path.GetRelativePath(EditorApplication.AssetsFolderPath, e.FullPath).Replace(Path.DirectorySeparatorChar, '/');
 
         var guid = _catalog.GetGuid(oldRelative);
         if (guid != Guid.Empty)
@@ -200,7 +195,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
 
         var ext = Path.GetExtension(sourceFilePath);
         var relativePath = targetAssetPath.Replace(Path.DirectorySeparatorChar, '/');
-        var fullPath = Path.Combine(_assetsRoot, relativePath);
+        var fullPath = Path.Combine(EditorApplication.AssetsFolderPath, relativePath);
 
         Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
         File.Copy(sourceFilePath, fullPath, true);
@@ -220,18 +215,18 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
             return Result.Failure("Asset not found");
         }
 
-        var fullPath = Path.Combine(_assetsRoot, path);
+        var fullPath = Path.Combine(EditorApplication.AssetsFolderPath, path);
         var metaPath = AssetMetaIO.GetMetaPath(fullPath);
 
         await _importCoordinator.EnqueueAsync(new ImportJob(assetId, path, metaPath, ImportReason.ManualReimport), token);
         return Result.Success();
     }
 
-    public async ValueTask<Result<Asset>> LoadAssetAsync(Guid id, CancellationToken token = default)
+    public async ValueTask<Result<IAsset>> LoadAssetAsync(Guid id, CancellationToken token = default)
     {
         if (_loadedAssets.TryGetValue(id, out var weakRef) && weakRef.TryGetTarget(out var asset))
         {
-            return asset;
+            return Result.Success(asset);
         }
 
         await _loadLock.WaitAsync(token);
@@ -239,24 +234,33 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
         {
             if (_loadedAssets.TryGetValue(id, out weakRef) && weakRef.TryGetTarget(out asset))
             {
-                return asset;
+                return Result.Success(asset);
             }
 
-            var importedPath = Path.Combine(_libraryRoot, "Imports", $"{id:N}.imported");
-            if (!File.Exists(importedPath))
+            var path = GetAssetPath(id);
+            if (!File.Exists(path))
             {
-                return Result.Failure<Asset>("Asset not imported");
+                return Result.Failure("Asset does not exist.");
             }
 
-            // For now, we use a basic LoadAsync implementation.
-            // In a better design, we'd read the handler ID from the header.
-            // Here we we assume the catalog is correct (it's synced with gmeta).
+            var handler = AssetHandlerRegistry.GetByExtension(Path.GetExtension(path));
+            if (handler is null)
+            {
+                return Result.Failure("No Available handler type.");
+            }
 
-            // Looking up TypeId from catalog isn't implemented in AssetCatalog yet. 
-            // We should add it or use the header.
-            // The existing Asset class might still be tied to the old binary format.
+            var meta = await AssetMetaIO.ReadAsync(AssetMetaIO.GetMetaPath(path), token);
+            if (meta is null)
+            {
+                return Result.Failure("Meta file does not exist.");
+            }
 
-            return Result.Failure<Asset>("Full asset loading would require updating all assets to the new format first.");
+            await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return await handler.LoadAssetAsync(stream, id, meta.Settings, token);
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure(ex.Message);
         }
         finally
         {
@@ -264,9 +268,88 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
         }
     }
 
-    public ValueTask<Result> SaveAssetAsync(Asset asset, CancellationToken token = default)
+    public async ValueTask<Result> SaveAssetAsync(IAsset asset, CancellationToken token = default)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var path = GetAssetPath(asset.ID);
+            if (!File.Exists(path))
+            {
+                return Result.Failure("Asset does not exist.");
+            }
+
+            var handler = AssetHandlerRegistry.GetByTypeId(asset.TypeID);
+            if (handler is null)
+            {
+                return Result.Failure("No Avaliable handler type.");
+            }
+
+            await using var stream = new FileStream(path, FileMode.Open, FileAccess.Write, FileShare.None);
+            return await handler.SaveAssetAsync(stream, asset, token);
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure(ex.Message);
+        }
+    }
+
+    public async ValueTask<Result> SaveAssetAsync(Guid id, CancellationToken token = default)
+    {
+        var result = await LoadAssetAsync(id, token);
+        if (result.IsFailure)
+        {
+            return result;
+        }
+
+        return await SaveAssetAsync(result.Value, token);
+    }
+
+    public void SetAssetDirty(Guid id)
+    {
+        _dirtyAssets.Add(id);
+    }
+
+    public async ValueTask<Result> SaveAssetIfDirtyAsync(IAsset asset, CancellationToken token = default)
+    {
+        if (_dirtyAssets.Contains(asset.ID))
+        {
+            var result = await SaveAssetAsync(asset, token);
+            _dirtyAssets.Remove(asset.ID);
+
+            return result;
+        }
+
+        return Result.Success();
+    }
+
+    public async ValueTask<Result> SaveAssetIfDirtyAsync(Guid id, CancellationToken token = default)
+    {
+        var result = await LoadAssetAsync(id, token);
+        if (result.IsFailure)
+        {
+            return result;
+        }
+
+        return await SaveAssetIfDirtyAsync(result.Value, token);
+    }
+
+    public async ValueTask<Result[]> SaveDirtyAssetsAsync()
+    {
+        if (_dirtyAssets.IsEmpty)
+        {
+            return Array.Empty<Result>();
+        }
+
+        var tasks = new Task<Result>[_dirtyAssets.Count];
+        
+        var i = 0;
+        foreach (var id in _dirtyAssets)
+        {
+            tasks[i++] = SaveAssetIfDirtyAsync(id).AsTask();
+        }
+
+        _dirtyAssets.Clear();
+        return await Task.WhenAll(tasks);
     }
 
     public void Dispose()

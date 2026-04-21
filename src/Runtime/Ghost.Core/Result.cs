@@ -81,7 +81,7 @@ public readonly struct Result
                 sb.AppendLine(result.Message);
             }
         }
-        
+
         if (sb.Length == 0)
         {
             return Success();
@@ -158,6 +158,7 @@ public readonly struct Result<T>
 
     public static implicit operator Result<T>(T? data) => data is not null ? Success(data) : Failure(null);
     public static implicit operator Result<T>(Result result) => result.IsSuccess ? Success(default!) : Failure(result.Message);
+    public static implicit operator Result(Result<T> result) => result.IsSuccess ? Result.Success() : Result.Failure(result.Message);
     public static implicit operator bool(Result<T> result) => result.IsSuccess;
 }
 

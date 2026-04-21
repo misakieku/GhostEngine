@@ -3,11 +3,9 @@ using Ghost.Editor.Core;
 using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.Services;
 using Ghost.Editor.Core.Utilities;
-using Ghost.Editor.Views.Pages.EngineEditor;
-using Ghost.Editor.Views.Windows;
 using Ghost.Editor.ViewModels.Controls;
-using Ghost.Editor.ViewModels.Pages.EngineEditor;
 using Ghost.Editor.ViewModels.Windows;
+using Ghost.Editor.Views.Windows;
 using Ghost.Engine;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -66,7 +64,7 @@ public partial class App : Application
                 services.AddSingleton<IProgressService, ProgressService>();
                 services.AddSingleton<IInspectorService, InspectorService>();
                 services.AddSingleton<IPreviewService, PreviewService>();
-                // services.AddSingleton<IAssetService, AssetService>();
+                services.AddSingleton<IAssetRegistry, AssetRegistry>();
 
                 services.AddSingleton<EngineEditorViewModel>();
 
@@ -97,22 +95,6 @@ public partial class App : Application
                             break;
                     }
                 }
-
-                #region Should be deleted
-                services.AddTransient<ScenePage>();
-
-                services.AddTransient<HierarchyPage>();
-                services.AddTransient<HierarchyViewModel>();
-
-                services.AddTransient<ProjectPage>();
-                services.AddTransient<ProjectViewModel>();
-
-                services.AddTransient<ConsolePage>();
-                services.AddTransient<ConsoleViewModel>();
-
-                services.AddTransient<InspectorPage>();
-                services.AddTransient<InspectorViewModel>();
-                #endregion
             })
             .Build();
 

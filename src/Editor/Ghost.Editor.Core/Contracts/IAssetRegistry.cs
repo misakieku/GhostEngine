@@ -1,5 +1,5 @@
 using Ghost.Core;
-using Ghost.Editor.Core.Services;
+using Ghost.Editor.Core.AssetHandler;
 using Ghost.Engine.AssetLoader;
 
 namespace Ghost.Editor.Core.Contracts;
@@ -38,7 +38,6 @@ public sealed class AssetChangedEventArgs : EventArgs
     }
 }
 
-[EditorInjection(EditorInjectionAttribute.ServiceLifetime.Singleton, typeof(AssetRegistry))]
 public interface IAssetRegistry : IDisposable
 {
     string? GetAssetPath(Guid id);
@@ -46,6 +45,12 @@ public interface IAssetRegistry : IDisposable
 
     ValueTask<Result<Guid>> ImportAssetAsync(string sourceFilePath, string targetAssetPath, CancellationToken token = default);
     ValueTask<Result> ReimportAssetAsync(Guid assetId, string sourceFilePath, CancellationToken token = default);
-    ValueTask<Result<Asset>> LoadAssetAsync(Guid id, CancellationToken token = default);
-    ValueTask<Result> SaveAssetAsync(Asset asset, CancellationToken token = default);
+    ValueTask<Result<IAsset>> LoadAssetAsync(Guid id, CancellationToken token = default);
+    ValueTask<Result> SaveAssetAsync(IAsset asset, CancellationToken token = default);
+    ValueTask<Result> SaveAssetAsync(Guid id, CancellationToken token = default);
+
+    void SetAssetDirty(Guid id);
+    ValueTask<Result> SaveAssetIfDirtyAsync(IAsset asset, CancellationToken token = default);
+    ValueTask<Result> SaveAssetIfDirtyAsync(Guid id, CancellationToken token = default);
+    ValueTask<Result[]> SaveDirtyAssetsAsync();
 }

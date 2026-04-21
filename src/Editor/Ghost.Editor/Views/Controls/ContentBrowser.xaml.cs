@@ -8,9 +8,9 @@ using Microsoft.UI.Xaml.Input;
 
 namespace Ghost.Editor.Views.Controls;
 
-internal sealed partial class ProjectBrowser : UserControl
+internal sealed partial class ContentBrowser : UserControl
 {
-    public static ProjectBrowser? LastFocused
+    public static ContentBrowser? LastFocused
     {
         get;
         private set;
@@ -24,7 +24,7 @@ internal sealed partial class ProjectBrowser : UserControl
         get;
     }
 
-    public ProjectBrowser()
+    public ContentBrowser()
     {
         _inspectorService = App.GetService<IInspectorService>();
         ViewModel = App.GetService<ProjectBrowserViewModel>();
