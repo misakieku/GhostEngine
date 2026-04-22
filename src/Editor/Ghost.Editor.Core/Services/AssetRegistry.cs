@@ -21,7 +21,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
     private readonly ConcurrentDictionary<string, bool> _ignoreMetaWrites;
     private readonly ConcurrentHashSet<Guid> _dirtyAssets;
 
-    public event EventHandler<IAssetRegistry, AssetChangedEventArgs>? OnAssetChanged;
+    public event EventHandler<AssetChangedEventArgs>? OnAssetChanged;
 
     public AssetRegistry()
     {
@@ -107,12 +107,15 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
                     await _importCoordinator.EnqueueAsync(new ImportJob(meta.Guid, AssetMetaIO.GetSourcePath(relativePath), e.FullPath, ImportReason.SettingsChanged));
                 }
             }
+
             return;
         }
 
+        var changeType = AssetChangeType.None;
         if (e.ChangeType == WatcherChangeTypes.Created)
         {
             await HandleNewSourceFileAsync(e.FullPath, relativePath);
+            changeType = AssetChangeType.Created;
         }
         else if (e.ChangeType == WatcherChangeTypes.Changed)
         {
@@ -120,7 +123,22 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
             if (guid != Guid.Empty)
             {
                 await _importCoordinator.EnqueueAsync(new ImportJob(guid, relativePath, AssetMetaIO.GetMetaPath(e.FullPath), ImportReason.SourceChanged));
+                changeType = AssetChangeType.Modified;
             }
+        }
+        else if (e.ChangeType == WatcherChangeTypes.Deleted)
+        {
+            var guid = _catalog.GetGuid(relativePath);
+            if (guid != Guid.Empty)
+            {
+                _catalog.Remove(guid);
+                changeType = AssetChangeType.Deleted;
+            }
+        }
+
+        if (changeType != AssetChangeType.None)
+        {
+            OnAssetChanged?.Invoke(this, new AssetChangedEventArgs(relativePath, null, changeType));
         }
     }
 
@@ -143,17 +161,14 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
                 }
             }
         }
+
+        OnAssetChanged?.Invoke(this, new AssetChangedEventArgs(newRelative, oldRelative, AssetChangeType.Renamed));
     }
 
     private async Task HandleNewSourceFileAsync(string fullPath, string relativePath)
     {
         var ext = Path.GetExtension(relativePath);
-
         var handler = AssetHandlerRegistry.GetByExtension(ext);
-        if (handler is null)
-        {
-            return;
-        }
 
         var metaPath = AssetMetaIO.GetMetaPath(fullPath);
         if (File.Exists(metaPath))
@@ -161,11 +176,11 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
             return;
         }
 
-        var handlerTypeId = handler?.GetType().GetCustomAttributesData().FirstOrDefault(d => d.AttributeType == typeof(CustomAssetHandlerAttribute))?.ConstructorArguments[0].Value;
+        var handlerTypeId = handler?.EditorAssetTypeID;
         var meta = new AssetMeta
         {
             Guid = Guid.NewGuid(),
-            HandlerTypeId = handlerTypeId is string str ? Guid.Parse(str) : null,
+            HandlerTypeId = handlerTypeId,
             HandlerVersion = 1,
             Settings = handler?.CreateDefaultSettings()
         };

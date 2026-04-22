@@ -1,27 +1,72 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+using Ghost.Core.Utilities;
+using Ghost.Engine;
 using System.Collections.ObjectModel;
 
 namespace Ghost.Editor.Models;
 
-internal class ExplorerItem(string name, string path, bool isDirectory)
+internal partial class ExplorerItem : ObservableObject
 {
     public string Name
     {
         get;
-    } = name;
+    }
 
-    public string FullName
+    public string Path
     {
         get;
-    } = path;
+    }
 
     public bool IsDirectory
     {
         get;
-    } = isDirectory;
+    }
 
-    public ObservableCollection<ExplorerItem>? Children
+
+    public AssetType AssetType
     {
         get;
-        set;
+    }
+
+    [ObservableProperty]
+    public partial ObservableCollection<ExplorerItem>? Children
+    {
+        get; set;
+    }
+
+    [ObservableProperty]
+    public partial string IconGlyph
+    {
+        get; set;
+    }
+
+    public ExplorerItem(string name, string path, bool isDirectory, AssetType assetType = AssetType.Unknown)
+    {
+        Name = name;
+        Path = PathUtility.Normalize(path);
+        IsDirectory = isDirectory;
+        AssetType = assetType;
+
+        if (IsDirectory)
+        {
+            IconGlyph = "\uE8B7"; // Folder icon
+        }
+        else
+        {
+            IconGlyph = GetIconGlyphForAssetType(assetType);
+        }
+    }
+
+    private string GetIconGlyphForAssetType(AssetType assetType)
+    {
+        return assetType switch
+        {
+            AssetType.Texture => "\uEB9F", // Image icon
+            AssetType.Material => "\uE943", // Document/Material
+            AssetType.Shader => "\uE9E9", // Code
+            AssetType.Mesh => "\uE8B3", // 3D icon
+            AssetType.Audio => "\uE8D6", // Audio
+            _ => "\uE7C3" // Default file icon
+        };
     }
 }

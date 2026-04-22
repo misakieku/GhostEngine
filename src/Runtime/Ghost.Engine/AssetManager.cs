@@ -19,7 +19,7 @@ public enum AssetType
     Texture = 0,
     Mesh = 1,
     Material = 2,
-    Shaders = 3,
+    Shader = 3,
     Scene = 4,
     Audio = 5,
     Video = 6,

@@ -1,3 +1,4 @@
+using FluentIcons.Common;
 using Ghost.Core;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
@@ -5,19 +6,18 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media;
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 
-namespace Ghost.Graphics.Test.Controls;
+namespace Ghost.Editor.Views.Controls;
 
-public sealed partial class DebugConsole : UserControl
+public sealed partial class LogViewer : UserControl
 {
     private readonly ObservableCollection<LogMessage> _filteredLogs = [];
 
-    public DebugConsole()
+    public LogViewer()
     {
         InitializeComponent();
 
-        LogItemsRepeater.ItemsSource = _filteredLogs;
+        LogItemsView.ItemsSource = _filteredLogs;
 
         Logger.Impl.OnLogAdded += OnLogAdded;
         Logger.Impl.OnLogsCleared += OnLogCleared;
@@ -45,7 +45,8 @@ public sealed partial class DebugConsole : UserControl
                 _filteredLogs.Add(message);
                 if (AutoScrollCheckBox.IsChecked == true)
                 {
-                    LogScrollViewer.ScrollToVerticalOffset(LogScrollViewer.ScrollableHeight);
+                    LogScrollView.UpdateLayout();
+                    LogScrollView.ScrollTo(0.0, LogScrollView.ScrollableHeight);
                 }
             });
         }
@@ -76,6 +77,7 @@ public sealed partial class DebugConsole : UserControl
     private void RefreshLogs()
     {
         _filteredLogs.Clear();
+        Logger.Info("Message");
 
         foreach (var log in Logger.Logs)
         {
@@ -87,7 +89,8 @@ public sealed partial class DebugConsole : UserControl
 
         if (AutoScrollCheckBox.IsChecked == true)
         {
-            LogScrollViewer.ScrollToVerticalOffset(LogScrollViewer.ScrollableHeight);
+            LogScrollView.UpdateLayout();
+            LogScrollView.ScrollTo(0.0, LogScrollView.ScrollableHeight);
         }
     }
 
@@ -105,21 +108,40 @@ public sealed partial class DebugConsole : UserControl
     {
         Logger.Impl.CaptureStackTrace = false;
     }
+
+    private void LogItemsView_SelectionChanged(ItemsView sender, ItemsViewSelectionChangedEventArgs args)
+    {
+        if (sender.SelectedItem is LogMessage selectedLog)
+        {
+            SelectedLogMessageTextBlock.Text = selectedLog.Message;
+            SelectedLogStackTraceTextBlock.Text = selectedLog.StackTrace ?? "Stack trace not available.";
+        }
+        else
+        {
+            SelectedLogMessageTextBlock.Text = string.Empty;
+            SelectedLogStackTraceTextBlock.Text = string.Empty;
+        }
+    }
 }
 
 // Converter for log level to color
-public class LogLevelToColorConverter : IValueConverter
+public partial class LogLevelToColorConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
     {
         if (value is LogLevel level)
         {
+            Application.Current.Resources.TryGetValue("SystemFillColorAttentionBrush", out var infoBrush);
+            Application.Current.Resources.TryGetValue("SystemFillColorCautionBrush", out var warningBrush);
+            Application.Current.Resources.TryGetValue("SystemFillColorCriticalBrush", out var errorBrush);
+            Application.Current.Resources.TryGetValue("SystemFillColorNeutralBrush", out var debugBrush);
+
             return level switch
             {
-                LogLevel.Info => new SolidColorBrush(Colors.DodgerBlue),
-                LogLevel.Warning => new SolidColorBrush(Colors.Orange),
-                LogLevel.Error => new SolidColorBrush(Colors.Red),
-                LogLevel.Debug => new SolidColorBrush(Colors.Gray),
+                LogLevel.Info => infoBrush,
+                LogLevel.Warning => warningBrush,
+                LogLevel.Error => errorBrush,
+                LogLevel.Debug => debugBrush,
                 _ => new SolidColorBrush(Colors.Black)
             };
         }
@@ -133,7 +155,7 @@ public class LogLevelToColorConverter : IValueConverter
 }
 
 // Converter for log level to symbol
-public class LogLevelToSymbolConverter : IValueConverter
+public partial class LogLevelToSymbolConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
     {
@@ -141,14 +163,14 @@ public class LogLevelToSymbolConverter : IValueConverter
         {
             return level switch
             {
-                LogLevel.Info => "ℹ",
-                LogLevel.Warning => "⚠",
-                LogLevel.Error => "✖",
-                LogLevel.Debug => "🐛",
-                _ => "•"
+                LogLevel.Info => Icon.Info,
+                LogLevel.Warning => Icon.Warning,
+                LogLevel.Error => Icon.ErrorCircle,
+                LogLevel.Debug => Icon.Bug,
+                _ => Icon.Info
             };
         }
-        return "•";
+        return Icon.Info;
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, string language)

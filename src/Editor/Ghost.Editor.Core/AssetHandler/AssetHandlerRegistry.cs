@@ -30,7 +30,7 @@ public static class AssetHandlerRegistry
         {
             var normalizedExt = ext.StartsWith('.') ? ext : "." + ext;
             s_byExtension[normalizedExt] = handler;
-            s_typeByExtension[normalizedExt] = handler.TargetAssetType;
+            s_typeByExtension[normalizedExt] = handler.RuntimeAssetType;
         }
     }
 

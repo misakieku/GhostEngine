@@ -34,7 +34,8 @@ public interface IAssetExportOptions;
 public interface IAssetHandler
 {
     bool CanExport => false;
-    AssetType TargetAssetType { get; }
+    AssetType RuntimeAssetType { get; }
+    Guid EditorAssetTypeID { get; }
 
     IAssetSettings? CreateDefaultSettings();
 

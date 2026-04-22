@@ -13,10 +13,6 @@
     xmlns:sys="using:System"
     mc:Ignorable="d">
 
-    <UserControl.Resources>
-        <converter:ExplorerItemToIconUriConverter x:Key="ExplorerItemToIconUriConverter" />
-    </UserControl.Resources>
-
     <Grid MinHeight="50">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -145,7 +141,7 @@
                     IsDoubleTapEnabled="True"
                     ItemsSource="{x:Bind ViewModel.Files}"
                     SelectionChanged="PART_FilesView_SelectionChanged"
-                    SelectionMode="Single">
+                    SelectionMode="Extended">
                     <GridView.ItemTemplate>
                         <DataTemplate x:DataType="model:ExplorerItem">
                             <ItemContainer>
@@ -171,11 +167,7 @@
                                     </Grid.ContextFlyout>
 
                                     <community:ConstrainedBox Grid.Row="0" AspectRatio="1:1">
-                                        <Image HorizontalAlignment="Center">
-                                            <Image.Source>
-                                                <BitmapImage DecodePixelWidth="48" UriSource="{x:Bind Converter={StaticResource ExplorerItemToIconUriConverter}}" />
-                                            </Image.Source>
-                                        </Image>
+                                        <FontIcon FontSize="36" Glyph="{x:Bind IconGlyph}" />
                                     </community:ConstrainedBox>
                                     <TextBlock
                                         Grid.Row="1"

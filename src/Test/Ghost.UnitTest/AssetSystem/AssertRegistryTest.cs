@@ -17,7 +17,7 @@ public class AssertRegistryTest
         Directory.CreateDirectory(testDir);
         
         _assetsRoot = Path.Combine(testDir, "Assets");
-        _registry = new AssetRegistry(_assetsRoot);
+        _registry = new AssetRegistry();
     }
 
     [TestCleanup]

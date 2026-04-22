@@ -65,10 +65,13 @@ public partial class App : Application
                 services.AddSingleton<IInspectorService, InspectorService>();
                 services.AddSingleton<IPreviewService, PreviewService>();
                 services.AddSingleton<IAssetRegistry, AssetRegistry>();
+                services.AddSingleton<IContentProvider, EditorContentProvider>();
+
+                services.AddSingleton<EngineCore>();
 
                 services.AddSingleton<EngineEditorViewModel>();
 
-                services.AddTransient<ProjectBrowserViewModel>();
+                services.AddTransient<ContentBrowserViewModel>();
 
                 // TODO: Use source generators to generate this code at compile time instead of using reflection at runtime.
                 foreach (var type in TypeCache.GetTypes())

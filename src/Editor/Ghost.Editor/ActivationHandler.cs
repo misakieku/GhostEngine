@@ -54,7 +54,7 @@ internal static class ActivationHandler
 
     public static ValueTask HandleAsync(LaunchArguments args)
     {
-        var opts = new AllocationManagerInitOpts
+        var opts = new AllocationManagerDesc
         {
             ArenaCapacity = 1024 * 1024 * 1024, // 1 GB. Arena using virtual memory, so this is just a reservation and won't actually consume physical memory until used.
             StackCapacity = 1024 * 1024 * 32, // 32 MB. Stack using virtual memory, so this is just a reservation and won't actually consume physical memory until used.
@@ -65,7 +65,7 @@ internal static class ActivationHandler
 
         AllocationManager.Initialize(opts);
         
-        //App.GetService<EngineCore>();
+        App.GetService<EngineCore>();
 
         return ValueTask.CompletedTask;
     }

@@ -12,7 +12,7 @@ public partial class ExplorerItemToIconUriConverter : IValueConverter
     {
         if (value is ExplorerItem item)
         {
-            var path = _previewService.GetIconPath(item.FullName, item.IsDirectory, IconSize.Small);
+            var path = _previewService.GetIconPath(item.Path, item.IsDirectory, IconSize.Small);
             return new Uri(path);
         }
 

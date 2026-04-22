@@ -38,6 +38,6 @@ internal class EditorContentProvider : IContentProvider
     {
         var handlerID = _catalog.GetHandlerTypeId(guid);
         var handler = AssetHandlerRegistry.GetByTypeId(handlerID);
-        return handler?.TargetAssetType ?? AssetType.Unknown;
+        return handler?.RuntimeAssetType ?? AssetType.Unknown;
     }
 }

@@ -1,6 +1,7 @@
 using Ghost.Core;
 using Ghost.Editor.Core.AssetHandler;
-using System.Security.Cryptography;
+using System.IO.Hashing;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading.Channels;
 
@@ -134,9 +135,13 @@ internal sealed class ImportCoordinator : IDisposable
             return string.Empty;
         }
 
-        using var sha = SHA256.Create();
+        var hasher = new XxHash128();
         await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        var hash = await sha.ComputeHashAsync(stream, token);
+        await hasher.AppendAsync(stream, token);
+
+        Span<byte> hash = stackalloc byte[16];
+        hasher.GetCurrentHash(hash);
+
         return Convert.ToHexString(hash);
     }
 
@@ -147,10 +152,11 @@ internal sealed class ImportCoordinator : IDisposable
             return string.Empty;
         }
 
-        var json = JsonSerializer.SerializeToUtf8Bytes(settings);
-        using var sha = SHA256.Create();
-        var hash = sha.ComputeHash(json);
-        return Convert.ToHexString(hash);
+        var hash = XxHash128.HashToUInt128(JsonSerializer.SerializeToUtf8Bytes(settings));
+        Span<byte> bytes = stackalloc byte[16];
+        Unsafe.WriteUnaligned(ref bytes[0], hash);
+
+        return Convert.ToHexString(bytes);
     }
 
     public void Dispose()

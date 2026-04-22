@@ -14,6 +14,7 @@
     <langversion>preview</langversion>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="FluentIcons.WinUI" Version="2.1.324" />
     <PackageReference Include="Magick.NET-Q16-HDRI-OpenMP-x64" Version="14.12.0" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.6" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.1721" />

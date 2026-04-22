@@ -68,25 +68,4 @@ public class AssetCatalogTests
         Assert.AreEqual(1, referencers.Count);
         Assert.AreEqual(asset1, referencers[0]);
     }
-
-    [TestMethod]
-    public void TestAssetCatalog_MarkDirtyAndImported()
-    {
-        using var catalog = new AssetCatalog(_dbPath);
-        var guid = Guid.NewGuid();
-        catalog.Upsert(new AssetMeta { Guid = guid }, "test.png");
-
-        var dirtyBefore = catalog.GetDirtyAssets();
-        Assert.IsTrue(dirtyBefore.Exists(x => x.guid == guid));
-
-        catalog.MarkImported(guid, "HASH1", "HASH2");
-
-        var dirtyAfter = catalog.GetDirtyAssets();
-        Assert.IsFalse(dirtyAfter.Exists(x => x.guid == guid));
-
-        catalog.MarkDirty(guid);
-
-        var dirtyReopened = catalog.GetDirtyAssets();
-        Assert.IsTrue(dirtyReopened.Exists(x => x.guid == guid));
-    }
 }

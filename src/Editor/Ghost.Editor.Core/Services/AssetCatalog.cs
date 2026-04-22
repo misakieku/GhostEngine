@@ -49,13 +49,12 @@ internal sealed class AssetCatalog : IDisposable
         _cmdGetPath = CreateCommand("SELECT source_path FROM assets WHERE guid = @guid");
         _cmdGetHandlerTypeId = CreateCommand("SELECT handler_type_id FROM assets WHERE guid = @guid");
         _cmdUpsert = CreateCommand(@"
-            INSERT INTO assets (guid, source_path, handler_type_id, handler_version, state)
-            VALUES (@guid, @path, @handler_id, @version, 0)
+            INSERT INTO assets (guid, source_path, handler_type_id, handler_version)
+            VALUES (@guid, @path, @handler_id, @version)
             ON CONFLICT(guid) DO UPDATE SET
                 source_path = excluded.source_path,
                 handler_type_id = excluded.handler_type_id,
-                handler_version = excluded.handler_version,
-                state = 0;");
+                handler_version = excluded.handler_version");
         _cmdDelete = CreateCommand("DELETE FROM assets WHERE guid = @guid");
         _cmdGetReferencers = CreateCommand("SELECT from_guid FROM dependencies WHERE to_guid = @guid");
         _cmdGetDependencies = CreateCommand("SELECT to_guid FROM dependencies WHERE from_guid = @guid");
@@ -82,7 +81,7 @@ internal sealed class AssetCatalog : IDisposable
                 handler_version INTEGER NOT NULL DEFAULT 0,
                 content_hash    TEXT,
                 settings_hash   TEXT,
-                imported_at_ms  INTEGER,
+                imported_at_ms  INTEGER
             );
             CREATE UNIQUE INDEX IF NOT EXISTS idx_assets_path ON assets(source_path);
 

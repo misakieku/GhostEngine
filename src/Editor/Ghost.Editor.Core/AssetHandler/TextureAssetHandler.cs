@@ -255,7 +255,8 @@ public class TextureAssetSettings : IAssetSettings
 [CustomAssetHandler(TextureAsset.GUID, [".png", ".jpg", ".jpeg", ".tga", ".bmp", ".hdr"], 1)]
 internal class TextureAssetHandler : IAssetHandler
 {
-    public AssetType TargetAssetType => AssetType.Texture;
+    public AssetType RuntimeAssetType => AssetType.Texture;
+    public Guid EditorAssetTypeID => typeof(TextureAsset).GUID;
 
     public IAssetSettings? CreateDefaultSettings()
     {

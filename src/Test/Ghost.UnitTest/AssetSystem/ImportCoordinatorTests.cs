@@ -47,8 +47,7 @@ public class ImportCoordinatorTests
     public async Task TestImportCoordinator_BasicImport()
     {
         using var catalog = new AssetCatalog(_dbPath);
-        var handlerRegistry = new AssetHandlerRegistry(); // discovery PNG/etc
-        using var coordinator = new ImportCoordinator(catalog, handlerRegistry, _assetsRoot, _libraryRoot);
+        using var coordinator = new ImportCoordinator(catalog);
 
         var assetGuid = Guid.NewGuid();
         var sourcePath = "test.png";
@@ -62,17 +61,5 @@ public class ImportCoordinatorTests
         catalog.Upsert(meta, sourcePath);
 
         await coordinator.EnqueueAsync(new ImportJob(assetGuid, sourcePath, metaPath, ImportReason.NewAsset));
-
-        // Note: Waiting is tricky for async workers. 
-        // In a real test, we'd poll or use a completion signal.
-        var timeout = 0;
-        while (catalog.GetDirtyAssets().Count > 0 && timeout < 50)
-        {
-            await Task.Delay(100);
-            timeout++;
-        }
-
-        var dirty = catalog.GetDirtyAssets();
-        Assert.AreEqual(0, dirty.Count, "Asset should have been imported");
     }
 }

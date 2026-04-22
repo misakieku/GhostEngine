@@ -35,7 +35,7 @@ public sealed partial class GraphicsTestWindow : Window
         Panel.SizeChanged += SwapChainPanel_SizeChanged;
         Panel.CompositionScaleChanged += SwapChainPanel_CompositionScaleChanged;
 
-        AllocationManager.Initialize(AllocationManagerInitOpts.Default);
+        AllocationManager.Initialize(AllocationManagerDesc.Default);
 
         //_jobScheduler = new JobScheduler(Environment.ProcessorCount - 1);
     }

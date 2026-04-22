@@ -67,6 +67,18 @@
         <Setter Property="Margin" Value="0,2" />
     </Style>
 
+    <Style x:Key="VerticalStrongDivider" TargetType="Border">
+        <Setter Property="BorderBrush" Value="{ThemeResource ControlElevationBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1,0,0,0" />
+        <Setter Property="Margin" Value="2,0" />
+    </Style>
+
+    <Style x:Key="HorizontalStrongDivider" TargetType="Border">
+        <Setter Property="BorderBrush" Value="{ThemeResource ControlElevationBorderBrush}" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+        <Setter Property="Margin" Value="0,2" />
+    </Style>
+
     <!--  Named Resource  -->
     <x:Double x:Key="ToolbarIconSize">12</x:Double>
 </ResourceDictionary>

@@ -19,7 +19,7 @@ internal sealed partial class ContentBrowser : UserControl
     private readonly IInspectorService _inspectorService;
     private bool _isUpdatingSelection = false;
 
-    public ProjectBrowserViewModel ViewModel
+    public ContentBrowserViewModel ViewModel
     {
         get;
     }
@@ -27,7 +27,7 @@ internal sealed partial class ContentBrowser : UserControl
     public ContentBrowser()
     {
         _inspectorService = App.GetService<IInspectorService>();
-        ViewModel = App.GetService<ProjectBrowserViewModel>();
+        ViewModel = App.GetService<ContentBrowserViewModel>();
 
         InitializeComponent();
 
@@ -64,7 +64,7 @@ internal sealed partial class ContentBrowser : UserControl
 
     private void _inspectorService_OnSelectionChanged(object? sender, InspectorSelectionChangedEventArgs e)
     {
-        if (e.Source is not ProjectBrowserViewModel)
+        if (e.Source is not ContentBrowserViewModel)
         {
             PART_FilesView.DeselectAll();
             PART_DirectoriesView.SelectedNodes.Clear();
@@ -84,7 +84,7 @@ internal sealed partial class ContentBrowser : UserControl
         if (args.AddedItems.Count > 0 && args.AddedItems[0] is ExplorerItem selectedItem)
         {
             ViewModel.SelectedItem = selectedItem;
-            ViewModel.NavigateToDirectory(selectedItem.FullName);
+            ViewModel.NavigateToDirectory(selectedItem.Path);
         }
 
         _isUpdatingSelection = false;

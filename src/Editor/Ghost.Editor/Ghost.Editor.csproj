@@ -141,6 +141,9 @@
     <None Update="Assets\icon.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <Page Update="Views\Controls\LogViewer.xaml">
+      <SubType>Designer</SubType>
+    </Page>
     <Page Update="Views\Windows\EngineEditorWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>

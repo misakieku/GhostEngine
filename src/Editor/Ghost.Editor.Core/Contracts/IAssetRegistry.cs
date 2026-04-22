@@ -43,6 +43,9 @@ public interface IAssetRegistry : IDisposable
     string? GetAssetPath(Guid id);
     Guid GetAssetGuid(string assetPath);
 
+    event EventHandler<AssetChangedEventArgs>? OnAssetChanged;
+
+
     ValueTask<Result<Guid>> ImportAssetAsync(string sourceFilePath, string targetAssetPath, CancellationToken token = default);
     ValueTask<Result> ReimportAssetAsync(Guid assetId, string sourceFilePath, CancellationToken token = default);
     ValueTask<Result<IAsset>> LoadAssetAsync(Guid id, CancellationToken token = default);

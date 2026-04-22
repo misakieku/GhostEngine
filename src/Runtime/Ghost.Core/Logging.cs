@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace Ghost.Core;
 
@@ -79,7 +80,7 @@ public static class Logger
     // TODO: Add file logging.
     private class LoggerImpl : ILogger
     {
-        private readonly List<LogMessage> _logs = new List<LogMessage>();
+        private readonly List<LogMessage> _logs = new List<LogMessage>(1024);
         private readonly Lock _lock = new Lock();
 
         public IReadOnlyCollection<LogMessage> Logs => _logs;
@@ -87,10 +88,11 @@ public static class Logger
         public bool CaptureStackTrace
         {
             get; set;
-        } = true;
+        }
 
         public event Action<LogMessage>? OnLogAdded;
         public event Action? OnLogsCleared;
+
 
         [StackTraceHidden]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
