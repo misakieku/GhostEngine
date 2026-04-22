@@ -18,7 +18,7 @@ internal class RemoveGPUInstanceSystem : SystemBase
     {
         _renderSystem = systemAPI.World.GetService<RenderSystem>();
 
-        _gpuInstanceQueryID = QueryBuilder.Create()
+        _gpuInstanceQueryID = QueryBuilder.New()
             .WithAll<GPUInstanceRef>()
             .WithAbsent<MeshInstance>()
             .Build(systemAPI.World, true);
@@ -29,6 +29,7 @@ internal class RemoveGPUInstanceSystem : SystemBase
     protected override void OnUpdate(ref readonly SystemAPI systemAPI)
     {
         var payload = (GhostRenderPayload)_renderSystem.GetCurrentFramePayload();
+        payload.BeginRecord();
 
         ref var gpuInstanceQuery = ref systemAPI.World.ComponentManager.GetEntityQueryReference(_gpuInstanceQueryID);
 

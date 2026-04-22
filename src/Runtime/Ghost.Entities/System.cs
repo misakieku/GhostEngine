@@ -28,11 +28,17 @@ public abstract class SystemBase : ISystem
 {
     private UnsafeList<int> _requiredQueries;
 
+    /// <summary>
+    /// Gets the world that the system is running on currently.
+    /// </summary>
     public World World
     {
         get; init;
     } = null!;
 
+    /// <summary>
+    /// Gets the last version that the system update.
+    /// </summary>
     public uint LastSystemVersion
     {
         get; internal set;

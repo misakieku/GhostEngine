@@ -41,13 +41,13 @@ internal partial class GhostRenderPipeline
     private static unsafe Handle<GPUBuffer> CreateUpdateInstanceBuffer(GhostRenderPayload ghostPayload, ResourceManager resourceManager, IResourceDatabase resourceDatabase, out int count)
     {
         // TODO: This should also include update requests like transform update, material update, etc.
-        var totalUpdateCount = ghostPayload.AddRequest.Count; // + ghostPayload.UpdateRequest.Count;
+        var totalUpdateCount = ghostPayload.UpdateRequest.Count; // + ghostPayload.UpdateRequest.Count;
 
-        if (!ghostPayload.AddRequest.IsEmpty)
+        if (!ghostPayload.UpdateRequest.IsEmpty)
         {
             var addDesc = new BufferDesc
             {
-                Size = (nuint)ghostPayload.AddRequest.Count * MemoryUtility.SizeOf<UpdateInstanceData>(),
+                Size = (nuint)ghostPayload.UpdateRequest.Count * MemoryUtility.SizeOf<UpdateInstanceData>(),
                 Stride = (uint)MemoryUtility.SizeOf<UpdateInstanceData>(),
                 Usage = BufferUsage.Structured | BufferUsage.ShaderResource,
                 HeapType = HeapType.Upload
@@ -57,7 +57,7 @@ internal partial class GhostRenderPipeline
             var pAddData = (UpdateInstanceData*)resourceDatabase.MapResource(addBuffer.AsResource(), 0, null);
 
             var i = 0;
-            while (ghostPayload.AddRequest.TryDequeue(out var addRequest))
+            while (ghostPayload.UpdateRequest.TryDequeue(out var addRequest))
             {
                 var (mesh, error) = resourceManager.GetMeshReference(addRequest.meshInstance.mesh);
                 if (error.IsFailure)
@@ -95,7 +95,7 @@ internal partial class GhostRenderPipeline
         {
             var addDesc = new BufferDesc
             {
-                Size = (nuint)ghostPayload.AddRequest.Count * MemoryUtility.SizeOf<RemoveInstanceData>(),
+                Size = (nuint)ghostPayload.UpdateRequest.Count * MemoryUtility.SizeOf<RemoveInstanceData>(),
                 Stride = (uint)MemoryUtility.SizeOf<RemoveInstanceData>(),
                 Usage = BufferUsage.Structured | BufferUsage.ShaderResource,
                 HeapType = HeapType.Upload

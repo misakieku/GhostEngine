@@ -341,7 +341,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
         }
 
         var tasks = new Task<Result>[_dirtyAssets.Count];
-        
+
         var i = 0;
         foreach (var id in _dirtyAssets)
         {

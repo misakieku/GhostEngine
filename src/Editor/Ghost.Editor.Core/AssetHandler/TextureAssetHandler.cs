@@ -1,10 +1,8 @@
 using Ghost.Core;
 using Ghost.Engine;
-using Ghost.Engine.AssetLoader;
 using Ghost.Graphics.RHI;
 using ImageMagick;
 using Misaki.HighPerformance.LowLevel;
-using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Editor.Core.AssetHandler;
@@ -339,8 +337,8 @@ internal class TextureAssetHandler : IAssetHandler
         try
         {
             using var image = new MagickImage(sourceStream);
-            var pixels = image.GetPixels().GetValues();
-            if (pixels == null)
+            var pixels = image.GetPixelsUnsafe().GetAreaPointer(0, 0, image.Width, image.Height);
+            if (pixels == 0)
             {
                 return Result.Failure("Failed to retrieve pixel data from the source image.");
             }

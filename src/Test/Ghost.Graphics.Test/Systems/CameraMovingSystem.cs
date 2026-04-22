@@ -15,7 +15,7 @@ internal class CameraMovingSystem : ISystem
 
     public void Initialize(ref readonly SystemAPI systemAPI)
     {
-        _cameraQueryID = QueryBuilder.Create()
+        _cameraQueryID = QueryBuilder.New()
             .WithAll<Camera, LocalToWorld>()
             .Build(systemAPI.World, true);
 

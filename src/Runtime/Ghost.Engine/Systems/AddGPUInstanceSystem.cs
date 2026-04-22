@@ -7,8 +7,8 @@ using Misaki.HighPerformance.Utilities;
 
 namespace Ghost.Engine.Systems;
 
-[UpdateAfter<RemoveGPUInstanceSystem>]
 [RenderPipelineSystem<GhostRenderPipelineSettings>]
+[UpdateAfter<UpdateGPUInstanceSystem>]
 internal class AddGPUInstanceSystem : SystemBase
 {
     private RenderSystem _renderSystem = null!;
@@ -19,7 +19,7 @@ internal class AddGPUInstanceSystem : SystemBase
     {
         _renderSystem = systemAPI.World.GetService<RenderSystem>();
 
-        _meshInstanceQueryID = QueryBuilder.Create()
+        _meshInstanceQueryID = QueryBuilder.New()
             .WithAll<MeshInstance, LocalToWorld>()
             .WithAbsent<GPUInstanceRef>()
             .Build(systemAPI.World, true);

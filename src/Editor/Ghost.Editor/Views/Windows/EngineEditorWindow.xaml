@@ -70,6 +70,7 @@
             x:Name="ContentFrame"
             Grid.Row="2"
             IsNavigationStackEnabled="False" />-->
+        <!--  Edit View  -->
         <Grid Grid.Row="1" Background="{ThemeResource LayerFillColorDefaultBrush}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -390,6 +391,7 @@
                             Margin="8,0"
                             PlaceholderText="Search components..." />
 
+                        <!--  Components List  -->
                         <ListView
                             Grid.Row="2"
                             Padding="4,2,0,2"
@@ -406,6 +408,7 @@
                             <TextBlock Text="Test" />
                         </ListView>
 
+                        <!--  Component Properties for Selected Component  -->
                         <ScrollView
                             Grid.Row="3"
                             BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"

@@ -130,7 +130,7 @@ public readonly unsafe ref struct ChunkView
     /// <param name="version">The version number to compare against the component's current version. Must be greater than or equal to zero.</param>
     /// <returns>true if the component's current version is less than or equal to the specified version; otherwise, false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool HasChanged(Identifier<IComponent> id, int version)
+    public bool HasChanged(Identifier<IComponent> id, uint version)
     {
         var layout = GetLayout(id);
         return version < _pVersion[layout.versionIndex];
@@ -144,7 +144,7 @@ public readonly unsafe ref struct ChunkView
     /// <param name="version">The version number to compare against the current version of the component.</param>
     /// <returns>true if the component of space T has changed since the specified version; otherwise, false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly bool HasChanged<T>(int version)
+    public readonly bool HasChanged<T>(uint version)
         where T : unmanaged, IComponent
     {
         var layout = GetLayout(ComponentTypeID<T>.Value);
@@ -157,7 +157,7 @@ public readonly unsafe ref struct ChunkView
     /// <param name="version">The version number to compare against the chunk's structural version.</param>
     /// <returns>true if the chunk's structure has changed since the specified version; otherwise, false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly bool HasStructuralChanged(int version)
+    public readonly bool HasStructuralChanged(uint version)
     {
         return version < _structuralVersion;
     }
@@ -502,7 +502,7 @@ public ref partial struct QueryBuilder : IDisposable
         _rw = new UnsafeList<Identifier<IComponent>>(4, _scope.AllocationHandle);
     }
 
-    public static QueryBuilder Create()
+    public static QueryBuilder New()
     {
         return new QueryBuilder();
     }

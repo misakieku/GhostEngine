@@ -21,6 +21,7 @@ public sealed partial class EngineCore : IDisposable
         {
             ThreadCount = Environment.ProcessorCount - 2, // We -2 here, one for main thread, one for render thread
             ThreadPriority = ThreadPriority.Normal,
+            DependencyChainCapacity = 8192,
         };
 
         _jobScheduler = new JobScheduler(in desc);
