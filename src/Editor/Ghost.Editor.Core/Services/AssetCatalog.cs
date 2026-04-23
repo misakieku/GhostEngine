@@ -7,7 +7,7 @@ namespace Ghost.Editor.Core.Services;
 /// Thread-safe SQLite-backed asset catalog.
 /// Replaces the in-memory dictionary approach with persistent storage.
 /// </summary>
-internal sealed class AssetCatalog : IDisposable
+public sealed partial class AssetCatalog : IDisposable
 {
     private readonly SqliteConnection _connection;
     private readonly Lock _writeLock = new();
@@ -101,10 +101,20 @@ internal sealed class AssetCatalog : IDisposable
         cmd.ExecuteNonQuery();
     }
 
+    private static string ToUniversalPath(string path)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return Path.GetFullPath(path).Replace('\\', '/');
+        }
+
+        return path;
+    }
+
     public Guid GetGuid(string sourcePath)
     {
         _cmdGetGuid.Parameters.Clear();
-        _cmdGetGuid.Parameters.AddWithValue("@path", sourcePath);
+        _cmdGetGuid.Parameters.AddWithValue("@path", ToUniversalPath(sourcePath));
         var result = _cmdGetGuid.ExecuteScalar();
         return result is byte[] bytes ? new Guid(bytes) : Guid.Empty;
     }
@@ -122,7 +132,7 @@ internal sealed class AssetCatalog : IDisposable
         {
             _cmdUpsert.Parameters.Clear();
             _cmdUpsert.Parameters.AddWithValue("@guid", meta.Guid.ToByteArray());
-            _cmdUpsert.Parameters.AddWithValue("@path", sourcePath);
+            _cmdUpsert.Parameters.AddWithValue("@path", ToUniversalPath(sourcePath));
             _cmdUpsert.Parameters.AddWithValue("@handler_id", meta.HandlerTypeId?.ToByteArray() ?? (object)DBNull.Value);
             _cmdUpsert.Parameters.AddWithValue("@version", meta.HandlerVersion);
             _cmdUpsert.ExecuteNonQuery();

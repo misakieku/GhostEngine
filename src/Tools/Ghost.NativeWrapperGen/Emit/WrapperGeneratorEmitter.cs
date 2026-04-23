@@ -484,10 +484,20 @@ public sealed class WrapperGeneratorEmitter
                 continue;
             }
 
-            var expectedSiblingName = remap.DerivesFrom.ParamPrefix + param.Name + remap.DerivesFrom.ParamSuffix;
+
+            var isExactName = !string.IsNullOrWhiteSpace(remap.DerivesFrom.RegexName);
+            var expectedSiblingName = isExactName
+                ? remap.DerivesFrom.RegexName
+                : remap.DerivesFrom.ParamPrefix + param.Name + remap.DerivesFrom.ParamSuffix;
+
             for (var j = i + 1; j < func.Parameters.Count; j++)
             {
-                if (string.Equals(func.Parameters[j].Name, expectedSiblingName, StringComparison.Ordinal))
+                var match = isExactName
+
+                    ? Regex.IsMatch(func.Parameters[j].Name, expectedSiblingName)
+                    : string.Equals(func.Parameters[j].Name, expectedSiblingName, StringComparison.Ordinal);
+
+                if (match)
                 {
                     consumedByDerivesFrom.Add(j);
                     derivedExprs[j] = remap.DerivesFrom.Expr.Replace("$arg", param.Name, StringComparison.Ordinal);

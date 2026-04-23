@@ -130,7 +130,7 @@ internal static class ShaderCompilerUtility
 
     public static Result<UnsafeArray<UnsafeArray<byte>>> CompileComputeShader(this IShaderCompiler shaderCompiler, ComputeShaderDescriptor descriptor, ref readonly ShaderCompilationConfig additionalConfig, AllocationHandle allocationHandle)
     {
-        var fullDefines = CombineDefines(descriptor.defines, additionalConfig.defines);
+        var fullDefines = CombineDefines(descriptor.Defines, additionalConfig.defines);
 
         var config = new ShaderCompilationConfig
         {
@@ -141,11 +141,11 @@ internal static class ShaderCompilerUtility
             stage = ShaderStage.ComputeShader,
         };
         
-        var compiled = new UnsafeArray<UnsafeArray<byte>>(descriptor.shaderCodes.Length, allocationHandle);
-        for (int i = 0; i < descriptor.shaderCodes.Length; i++)
+        var compiled = new UnsafeArray<UnsafeArray<byte>>(descriptor.ShaderCodes.Length, allocationHandle);
+        for (int i = 0; i < descriptor.ShaderCodes.Length; i++)
         {
-            config.shaderCode = descriptor.shaderCodes[i].code;
-            config.entryPoint = descriptor.shaderCodes[i].entryPoint;
+            config.shaderCode = descriptor.ShaderCodes[i].code;
+            config.entryPoint = descriptor.ShaderCodes[i].entryPoint;
 
             var result = shaderCompiler.Compile(ref config, allocationHandle);
             if (result.IsFailure)

@@ -15,7 +15,6 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="FluentIcons.WinUI" Version="2.1.324" />
-    <PackageReference Include="Magick.NET-Q16-HDRI-OpenMP-x64" Version="14.12.0" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.6" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.1721" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260317003" />
@@ -29,6 +28,8 @@
     <ProjectReference Include="..\..\Runtime\Ghost.Generator\Ghost.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\..\ThridParty\Ghost.DXC\Ghost.DXC.csproj" />
     <ProjectReference Include="..\..\ThridParty\Ghost.Nvtt\Ghost.Nvtt.csproj" />
+    <ProjectReference Include="..\..\ThridParty\Ghost.Ufbx\Ghost.Ufbx.csproj" />
+    <ProjectReference Include="..\..\ThridParty\Ghost.StbI\Ghost.StbI.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -55,6 +55,8 @@ public static class EditorApplication
 
     internal static void Initialize(IServiceProvider serviceProvider, string projectPath, string projectName)
     {
+        Environment.CurrentDirectory = projectPath;
+
         s_serviceProvider = serviceProvider;
         s_currentProjectPath = projectPath;
         s_currentProjectName = projectName;

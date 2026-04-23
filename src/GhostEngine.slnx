@@ -21,6 +21,7 @@
     <Project Path="ThridParty/Ghost.FMOD/Ghost.FMOD.csproj" />
     <Project Path="ThridParty/Ghost.MeshOptimizer/Ghost.MeshOptimizer.csproj" />
     <Project Path="ThridParty/Ghost.Nvtt/Ghost.Nvtt.csproj" />
+    <Project Path="ThridParty/Ghost.StbI/Ghost.StbI.csproj" Id="969a1d70-31ee-49e9-9449-ab96a47cb925" />
     <Project Path="ThridParty/Ghost.Ufbx/Ghost.Ufbx.csproj" Id="c4bd647c-6d77-49d8-ba81-6ed4946474d1" />
   </Folder>
   <Folder Name="/Runtime/">

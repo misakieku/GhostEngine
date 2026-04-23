@@ -1,3 +1,4 @@
+using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.Utilities;
 using Ghost.Editor.Models;
 using Ghost.Engine;
@@ -64,8 +65,14 @@ internal static class ActivationHandler
         };
 
         AllocationManager.Initialize(opts);
-        
-        App.GetService<EngineCore>();
+
+        var assetRegistry = App.GetService<IAssetRegistry>();
+        var engineCore = App.GetService<EngineCore>();
+
+        assetRegistry.OnAssetImported += (sender, e) =>
+        {
+            engineCore.AssetManager.ReimportAsset(e);
+        };
 
         return ValueTask.CompletedTask;
     }

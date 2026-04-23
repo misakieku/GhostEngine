@@ -2,7 +2,7 @@
   "profiles": {
     "Ghost.NativeWrapperGen": {
       "commandName": "Project",
-      "commandLineArgs": "--config \"F:/csharp/GhostEngine/src/Tools/Ghost.NativeWrapperGen/configs/ufbx.json\" --input \"F:/csharp/GhostEngine/src/ThridParty/Ghost.Ufbx/Generated\" --output \"F:/csharp/GhostEngine/src/ThridParty/Ghost.Ufbx/Wrapper\""
+      "commandLineArgs": "--config \"F:/csharp/GhostEngine/src/Tools/Ghost.NativeWrapperGen/configs/stbi.json\" --input \"F:/csharp/GhostEngine/src/ThridParty/Ghost.StbI/Generated\" --output \"F:/csharp/GhostEngine/src/ThridParty/Ghost.StbI/Wrapper\""
     }
   }
 }

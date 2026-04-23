@@ -2,10 +2,6 @@ using Ghost.Engine;
 
 namespace Ghost.Editor.Core.AssetHandler;
 
-/// <summary>
-/// One-time scan at editor startup → two dictionaries.
-/// All lookups are O(1) after construction.
-/// </summary>
 public static class AssetHandlerRegistry
 {
     private static readonly Dictionary<string, IAssetHandler> s_byExtension;
@@ -21,10 +17,10 @@ public static class AssetHandlerRegistry
         s_versionByTypeId = new Dictionary<Guid, int>();
     }
 
-    public static void RegisterHandler(IAssetHandler handler, Guid typeId, ReadOnlySpan<string> extensions, int version)
+    public static void RegisterHandler(IAssetHandler handler, Guid assetTypeId, ReadOnlySpan<string> extensions, int version)
     {
-        s_byTypeId[typeId] = handler;
-        s_versionByTypeId[typeId] = version;
+        s_byTypeId[assetTypeId] = handler;
+        s_versionByTypeId[assetTypeId] = version;
 
         foreach (var ext in extensions)
         {
@@ -46,13 +42,13 @@ public static class AssetHandlerRegistry
         return handler;
     }
 
-    public static IAssetHandler? GetByTypeId(Guid typeId)
+    public static IAssetHandler? GetByAssetTypeId(Guid typeId)
     {
         s_byTypeId.TryGetValue(typeId, out var handler);
         return handler;
     }
 
-    public static int GetVersionByTypeId(Guid typeId)
+    public static int GetVersionByAssetTypeId(Guid typeId)
     {
         s_versionByTypeId.TryGetValue(typeId, out var version);
         return version;
@@ -63,7 +59,7 @@ public static class AssetHandlerRegistry
         return s_byExtension.Keys;
     }
 
-    public static AssetType GetAssetTypeByExtension(string extension)
+    public static AssetType GetRuntimeAssetTypeByExtension(string extension)
     {
         if (string.IsNullOrEmpty(extension))
         {

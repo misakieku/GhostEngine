@@ -251,7 +251,6 @@ public class RenderSystem : IDisposable
 
             try
             {
-
                 // Wait for either CPU ready signal or shutdown signal
                 waitHandles[0] = frameResource.CpuReadyEvent;
                 var waitResult = WaitHandle.WaitAny(waitHandles);

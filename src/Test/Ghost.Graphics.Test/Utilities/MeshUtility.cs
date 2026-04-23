@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
+using Ghost.Graphics.Utilities;
 using Ghost.MeshOptimizer;
 using Ghost.Ufbx;
 using Misaki.HighPerformance.LowLevel;
@@ -170,11 +171,11 @@ internal static class MeshUtility
         MemoryUtility.MemCpy(indices.GetUnsafePtr(), cachedIndices.GetUnsafePtr(), numIndices * sizeof(uint));
         indices.UnsafeSetCount((int)numIndices);
 
-        //if (needComputeNormals)
-        //{
-        //    MeshBuilder.ComputeNormal(vertices, indices);
-        //    MeshBuilder.ComputeTangents(vertices, indices);
-        //}
+        if (needComputeNormals)
+        {
+            MeshBuilder.ComputeNormal(vertices, indices);
+            MeshBuilder.ComputeTangents(vertices, indices);
+        }
 
         return Result.Success();
     }

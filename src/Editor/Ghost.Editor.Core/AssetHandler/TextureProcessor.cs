@@ -1,3 +1,4 @@
+using Ghost.Core;
 using Ghost.Nvtt;
 using Misaki.HighPerformance.LowLevel;
 using System.IO.Hashing;
@@ -24,27 +25,19 @@ internal static class TextureProcessor
     {
         private readonly string _outputPath;
 
-        private readonly nint _image;
-        private readonly uint _depth;
-        private readonly uint _width;
-        private readonly uint _height;
+        private readonly TextureAssetHandler.TextureInfo _textureInfo;
 
         private readonly TextureAssetSettings _settings;
-        private readonly TaskCompletionSource _completionSource;
+        private readonly TaskCompletionSource<Result<int>> _completionSource;
 
-        public int mipmapCount;
+        public Task<Result<int>> Task => _completionSource.Task;
 
-        public Task Task => _completionSource.Task;
-
-        public NvttPipelineTask(string outputPath, nint image, uint width, uint height, uint depth, TextureAssetSettings settings)
+        public NvttPipelineTask(string outputPath, TextureAssetHandler.TextureInfo textureInfo, TextureAssetSettings settings)
         {
             _outputPath = outputPath;
-            _image = image;
-            _width = width;
-            _height = height;
-            _depth = depth;
+            _textureInfo = textureInfo;
             _settings = settings;
-            _completionSource = new TaskCompletionSource();
+            _completionSource = new TaskCompletionSource<Result<int>>();
         }
 
         public unsafe void Execute()
@@ -54,15 +47,22 @@ internal static class TextureProcessor
             using var pOutOpts = new DisposablePtr<NvttOutputOptions>(NvttOutputOptions.Create());
             using var pCtx = new DisposablePtr<NvttContext>(NvttContext.Create());
 
-            var inputFormat = _depth > 8
-                ? NvttInputFormat.NVTT_InputFormat_RGBA_32F
-                : NvttInputFormat.NVTT_InputFormat_BGRA_8UB; // we'll swizzle RB below
+            var inputFormat = _textureInfo.colorComponents == 1
+                ? NvttInputFormat.NVTT_InputFormat_R_32F
+                : _textureInfo.depth > 8
+                    ? NvttInputFormat.NVTT_InputFormat_RGBA_32F
+                    : NvttInputFormat.NVTT_InputFormat_BGRA_8UB; // we'll swizzle RB below
 
-            pSurface.Get()->SetImageData(inputFormat, (int)_width, (int)_height, 1, (void*)_image, NvttBoolean.NVTT_True, null);
+            var needUnsigned = _settings.Basic.TextureType == TextureType.Normal ? NvttBoolean.NVTT_True : NvttBoolean.NVTT_False;
+            if (pSurface.Get()->SetImageData(inputFormat, _textureInfo.width, _textureInfo.height, _textureInfo.depth, (void*)_textureInfo.pixelData, needUnsigned, null))
+            {
+                _completionSource.SetResult(Result.Failure("Failed to set image data for NVTT compression."));
+                return;
+            }
 
             // stb gives us RGBA byte order; NVTT BGRA_8UB reads it as BGRA,
             // so channels R and B are swapped — fix with swizzle(2,1,0,3).
-            if (_depth <= 8)
+            if (_textureInfo.colorComponents > 1 && _textureInfo.depth <= 8)
             {
                 pSurface.Get()->Swizzle(2, 1, 0, 3, null);
             }
@@ -101,7 +101,7 @@ internal static class TextureProcessor
                 pSurface.Get()->PremultiplyAlpha(null);
             }
 
-            pCompOpts.Get()->SetFormat(SelectFormat(_settings));
+            pCompOpts.Get()->SetFormat(SelectFormat(_settings, _textureInfo.isHDR));
             pCompOpts.Get()->SetQuality(SelectQuality(_settings.Advanced.CompressionLevel));
 
             if (_settings.Advanced.CutoutAlpha)
@@ -117,6 +117,7 @@ internal static class TextureProcessor
 
             var nvttFilter = SelectMipmapFilter(_settings.Advanced.MipmapFilter);
 
+            int mipmapCount;
             if (!_settings.Advanced.GenerateMipmaps)
             {
                 mipmapCount = 1;
@@ -155,11 +156,13 @@ internal static class TextureProcessor
                 }
             }
 
-            _completionSource.SetResult();
+            _completionSource.SetResult(Result.Success(mipmapCount));
         }
     }
 
-    public static async ValueTask<(string cachePath, int mipmapCount)> CompressToCacheAsync(string cachesFolderPath, Guid assetId, nint image, uint width, uint height, uint depth, TextureAssetSettings settings, CancellationToken cancellationToken)
+    public static async ValueTask<Result<(string cachePath, int mipmapCount)>> CompressToCacheAsync(string cachesFolderPath, Guid assetId,
+        TextureAssetHandler.TextureInfo textureInfo,
+        TextureAssetSettings settings, CancellationToken cancellationToken)
     {
         var settingsHash = ComputeSettingsHash(settings);
         var cacheFileName = $"texturecache_{assetId:N}_{settingsHash:X16}.dds";
@@ -202,21 +205,27 @@ internal static class TextureProcessor
         }
 
     ScheduleWork:
-        var workItem = new NvttPipelineTask(cachePath, image, width, height, depth, settings);
+        var workItem = new NvttPipelineTask(cachePath, textureInfo, settings);
         ThreadPool.UnsafeQueueUserWorkItem(workItem, true);
-        await workItem.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        var result = await workItem.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        if (result.IsFailure)
+        {
+            return Result.Failure(result.Message);
+        }
 
-        return (cachePath, workItem.mipmapCount);
+        return (cachePath, result.Value);
     }
 
-    private static NvttFormat SelectFormat(TextureAssetSettings settings)
-        => settings.Basic.TextureType switch
-        {
-            TextureType.Normal => NvttFormat.NVTT_Format_BC5,  // RG normal map
-            TextureType.SingleChannel => NvttFormat.NVTT_Format_BC4,  // single channel
-            TextureType.Lightmap => NvttFormat.NVTT_Format_BC6U, // HDR lightmap (unsigned)
-            _ => NvttFormat.NVTT_Format_BC7,  // default color
-        };
+    private static NvttFormat SelectFormat(TextureAssetSettings settings, bool isHDR)
+        => isHDR
+            ? NvttFormat.NVTT_Format_BC6U
+            : settings.Basic.TextureType switch
+            {
+                TextureType.Normal => NvttFormat.NVTT_Format_BC5,  // RG normal map
+                TextureType.SingleChannel => NvttFormat.NVTT_Format_BC4,  // single channel
+                TextureType.Lightmap => NvttFormat.NVTT_Format_BC6U, // HDR lightmap (unsigned)
+                _ => NvttFormat.NVTT_Format_BC7,  // default color
+            };
 
     private static NvttQuality SelectQuality(TextureCompressionLevel level)
         => level switch

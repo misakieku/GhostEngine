@@ -3,6 +3,7 @@ using Ghost.Core.Utilities;
 using Ghost.Editor.Core.AssetHandler;
 using Ghost.Editor.Core.Contracts;
 using System.Collections.Concurrent;
+using System.IO.MemoryMappedFiles;
 
 namespace Ghost.Editor.Core.Services;
 
@@ -22,6 +23,11 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
     private readonly ConcurrentHashSet<Guid> _dirtyAssets;
 
     public event EventHandler<AssetChangedEventArgs>? OnAssetChanged;
+    public event EventHandler<Guid>? OnAssetImported
+    {
+        add => _importCoordinator.OnImportCompleted += value;
+        remove => _importCoordinator.OnImportCompleted -= value;
+    }
 
     public AssetRegistry()
     {
@@ -67,7 +73,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
             if (meta != null)
             {
                 var sourceRelative = AssetMetaIO.GetSourcePath(Path.GetRelativePath(EditorApplication.AssetsFolderPath, metaPath));
-                _catalog.Upsert(meta, sourceRelative.Replace(Path.DirectorySeparatorChar, '/'));
+                _catalog.Upsert(meta, sourceRelative);
                 foundGuids.Add(meta.Guid);
             }
         }
@@ -84,7 +90,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
     private async void OnFileSystemEvent(object sender, FileSystemEventArgs e)
     {
         var ext = Path.GetExtension(e.FullPath);
-        var relativePath = Path.GetRelativePath(EditorApplication.AssetsFolderPath, e.FullPath).Replace(Path.DirectorySeparatorChar, '/');
+        var relativePath = Path.GetRelativePath(EditorApplication.AssetsFolderPath, e.FullPath);
 
         if (_ignoreMetaWrites.TryRemove(e.FullPath, out _))
         {
@@ -114,7 +120,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
         var changeType = AssetChangeType.None;
         if (e.ChangeType == WatcherChangeTypes.Created)
         {
-            await HandleNewSourceFileAsync(e.FullPath, relativePath);
+            await HandleNewSourceFileAsync(relativePath);
             changeType = AssetChangeType.Created;
         }
         else if (e.ChangeType == WatcherChangeTypes.Changed)
@@ -144,14 +150,14 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
 
     private void OnFileSystemRenameEvent(object sender, RenamedEventArgs e)
     {
-        var oldRelative = Path.GetRelativePath(EditorApplication.AssetsFolderPath, e.OldFullPath).Replace(Path.DirectorySeparatorChar, '/');
-        var newRelative = Path.GetRelativePath(EditorApplication.AssetsFolderPath, e.FullPath).Replace(Path.DirectorySeparatorChar, '/');
+        var oldRelative = Path.GetRelativePath(EditorApplication.AssetsFolderPath, e.OldFullPath);
+        var newRelative = Path.GetRelativePath(EditorApplication.AssetsFolderPath, e.FullPath);
 
         var guid = _catalog.GetGuid(oldRelative);
         if (guid != Guid.Empty)
         {
             _catalog.Remove(guid);
-            var metaFile = AssetMetaIO.GetMetaPath(e.FullPath);
+            var metaFile = AssetMetaIO.GetMetaPath(newRelative);
             if (File.Exists(metaFile))
             {
                 var meta = AssetMetaIO.ReadAsync(metaFile).AsTask().Result;
@@ -165,12 +171,12 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
         OnAssetChanged?.Invoke(this, new AssetChangedEventArgs(newRelative, oldRelative, AssetChangeType.Renamed));
     }
 
-    private async Task HandleNewSourceFileAsync(string fullPath, string relativePath)
+    private async Task HandleNewSourceFileAsync(string relativePath)
     {
         var ext = Path.GetExtension(relativePath);
         var handler = AssetHandlerRegistry.GetByExtension(ext);
 
-        var metaPath = AssetMetaIO.GetMetaPath(fullPath);
+        var metaPath = AssetMetaIO.GetMetaPath(relativePath);
         if (File.Exists(metaPath))
         {
             return;
@@ -193,6 +199,11 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
         await _importCoordinator.EnqueueAsync(new ImportJob(meta.Guid, relativePath, metaPath, ImportReason.NewAsset));
     }
 
+    public AssetCatalog GetAssetCatalog()
+    {
+        return _catalog;
+    }
+
     public string? GetAssetPath(Guid id)
     {
         return _catalog.GetSourcePath(id);
@@ -200,7 +211,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
 
     public Guid GetAssetGuid(string path)
     {
-        return _catalog.GetGuid(path.Replace(Path.DirectorySeparatorChar, '/'));
+        return _catalog.GetGuid(path);
     }
 
     public async ValueTask<Result<Guid>> ImportAssetAsync(string sourceFilePath, string targetAssetPath, CancellationToken token = default)
@@ -208,17 +219,13 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
         // Simple copy + wait for FSW or manually trigger?
         // Current requirement: "returns the new GUID immediately (import happens in background)"
 
-        var ext = Path.GetExtension(sourceFilePath);
-        var relativePath = targetAssetPath.Replace(Path.DirectorySeparatorChar, '/');
-        var fullPath = Path.Combine(EditorApplication.AssetsFolderPath, relativePath);
-
-        Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
-        File.Copy(sourceFilePath, fullPath, true);
+        Directory.CreateDirectory(Path.GetDirectoryName(targetAssetPath)!);
+        File.Copy(sourceFilePath, targetAssetPath, true);
 
         // FSW will trigger but we can speed it up
-        await HandleNewSourceFileAsync(fullPath, relativePath);
+        await HandleNewSourceFileAsync(targetAssetPath);
 
-        var guid = _catalog.GetGuid(relativePath);
+        var guid = _catalog.GetGuid(targetAssetPath);
         return Result.Success(guid);
     }
 
@@ -230,8 +237,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
             return Result.Failure("Asset not found");
         }
 
-        var fullPath = Path.Combine(EditorApplication.AssetsFolderPath, path);
-        var metaPath = AssetMetaIO.GetMetaPath(fullPath);
+        var metaPath = AssetMetaIO.GetMetaPath(path);
 
         await _importCoordinator.EnqueueAsync(new ImportJob(assetId, path, metaPath, ImportReason.ManualReimport), token);
         return Result.Success();
@@ -293,13 +299,14 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
                 return Result.Failure("Asset does not exist.");
             }
 
-            var handler = AssetHandlerRegistry.GetByTypeId(asset.TypeID);
+            var handler = AssetHandlerRegistry.GetByAssetTypeId(asset.TypeID);
             if (handler is null)
             {
                 return Result.Failure("No Avaliable handler type.");
             }
 
             await using var stream = new FileStream(path, FileMode.Open, FileAccess.Write, FileShare.None);
+            // This will trigger the fsw and reimport automatically.
             return await handler.SaveAssetAsync(stream, asset, token);
         }
         catch (Exception ex)

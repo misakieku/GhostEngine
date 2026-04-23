@@ -6,6 +6,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Background="{ThemeResource LayerFillColorDefaultBrush}"
+    NavigationCacheMode="Enabled"
     mc:Ignorable="d">
 
     <Grid>
@@ -15,49 +16,77 @@
         </Grid.RowDefinitions>
 
         <!--  Toolbar  -->
-        <StackPanel
+        <Grid
             Grid.Row="0"
             Padding="8,0"
             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
             BorderBrush="{ThemeResource ControlElevationBorderBrush}"
-            BorderThickness="0,0,0,1"
-            Orientation="Horizontal">
-            <ComboBox
-                Width="200"
+            BorderThickness="0,0,0,1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel
+                Grid.Column="0"
                 VerticalAlignment="Center"
-                SelectedIndex="0">
-                <StackPanel Orientation="Horizontal" Spacing="4">
-                    <FontIcon FontSize="{StaticResource ToolbarFontIconFontSize}" Glyph="&#xE8B0;" />
-                    <TextBlock Text="Selection Mode" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Spacing="4">
-                    <FontIcon FontSize="{StaticResource ToolbarFontIconFontSize}" Glyph="&#xEC26;" />
-                    <TextBlock Text="Placement Mode" />
-                </StackPanel>
-            </ComboBox>
+                Orientation="Horizontal">
+                <ComboBox
+                    Width="200"
+                    VerticalAlignment="Center"
+                    SelectedIndex="0">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <FontIcon FontSize="{StaticResource ToolbarFontIconFontSize}" Glyph="&#xE71D;" />
+                        <TextBlock Text="Hierarchy Mode" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <FontIcon FontSize="{StaticResource ToolbarFontIconFontSize}" Glyph="&#xEC26;" />
+                        <TextBlock Text="Scatter Mode" />
+                    </StackPanel>
+                </ComboBox>
 
-            <Border Height="12" Style="{StaticResource VerticalDivider}" />
+                <Border Height="12" Style="{StaticResource VerticalDivider}" />
 
-            <MenuBar>
-                <MenuBarItem Title="File">
-                    <MenuFlyoutItem Text="New" />
-                    <MenuFlyoutItem Text="Open..." />
-                    <MenuFlyoutItem Text="Save" />
-                    <MenuFlyoutItem Text="Exit" />
-                </MenuBarItem>
+                <MenuBar>
+                    <MenuBarItem Title="File">
+                        <MenuFlyoutItem Text="New" />
+                        <MenuFlyoutItem Text="Open..." />
+                        <MenuFlyoutItem Text="Save" />
+                        <MenuFlyoutItem Text="Exit" />
+                    </MenuBarItem>
 
-                <MenuBarItem Title="Edit">
-                    <MenuFlyoutItem Text="Undo" />
-                    <MenuFlyoutItem Text="Cut" />
-                    <MenuFlyoutItem Text="Copy" />
-                    <MenuFlyoutItem Text="Paste" />
-                </MenuBarItem>
+                    <MenuBarItem Title="Edit">
+                        <MenuFlyoutItem Text="Undo" />
+                        <MenuFlyoutItem Text="Cut" />
+                        <MenuFlyoutItem Text="Copy" />
+                        <MenuFlyoutItem Text="Paste" />
+                    </MenuBarItem>
 
-                <MenuBarItem Title="Help">
-                    <MenuFlyoutItem Text="About" />
-                </MenuBarItem>
-            </MenuBar>
-        </StackPanel>
+                    <MenuBarItem Title="Help">
+                        <MenuFlyoutItem Text="About" />
+                    </MenuBarItem>
+                </MenuBar>
+            </StackPanel>
+
+            <StackPanel
+                Grid.Column="0"
+                Grid.ColumnSpan="2"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Orientation="Horizontal"
+                Spacing="4">
+                <Button Style="{ThemeResource AccentToolbarButton}">
+                    <FontIcon FontSize="{StaticResource ToolbarFontIconFontSize}" Glyph="&#xF5B0;" />
+                </Button>
+                <Button Style="{ThemeResource AccentToolbarButton}">
+                    <FontIcon FontSize="{StaticResource ToolbarFontIconFontSize}" Glyph="&#xF8AE;" />
+                </Button>
+                <Button IsEnabled="False" Style="{ThemeResource AccentToolbarButton}">
+                    <FontIcon FontSize="{StaticResource ToolbarFontIconFontSize}" Glyph="&#xEE95;" />
+                </Button>
+            </StackPanel>
+        </Grid>
 
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>

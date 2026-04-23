@@ -33,8 +33,6 @@ internal sealed partial class ContentBrowser : UserControl
 
         Loaded += ProjectBrowser_Loaded;
         Unloaded += ProjectBrowser_Unloaded;
-
-        GettingFocus += ProjectBrowser_GettingFocus;
     }
 
     private void ProjectBrowser_GettingFocus(UIElement sender, GettingFocusEventArgs args)
@@ -50,11 +48,13 @@ internal sealed partial class ContentBrowser : UserControl
     private void ProjectBrowser_Loaded(object sender, RoutedEventArgs e)
     {
         _inspectorService.OnSelectionChanged += _inspectorService_OnSelectionChanged;
+        GettingFocus += ProjectBrowser_GettingFocus;
     }
 
     private void ProjectBrowser_Unloaded(object sender, RoutedEventArgs e)
     {
         _inspectorService.OnSelectionChanged -= _inspectorService_OnSelectionChanged;
+        GettingFocus -= ProjectBrowser_GettingFocus;
 
         if (LastFocused == this)
         {

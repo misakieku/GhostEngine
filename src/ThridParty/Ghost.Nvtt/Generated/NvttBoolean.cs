@@ -15,6 +15,9 @@ namespace Ghost.Nvtt
 
         private readonly int _value;
 
+        public readonly bool IsTrue => _value != 0;
+        public readonly bool IsFalse => _value == 0;
+
         public NvttBoolean(int value)
         {
             _value = value;

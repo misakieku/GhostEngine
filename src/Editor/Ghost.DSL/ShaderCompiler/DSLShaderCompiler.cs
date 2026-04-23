@@ -18,7 +18,7 @@ public struct DSLShaderError
     }
 }
 
-internal static class DSLShaderCompiler
+public static class DSLShaderCompiler
 {
     private static PipelineState MeragePipeline(PipelineSemantic? semantic, PipelineState parent)
     {
@@ -141,19 +141,25 @@ internal static class DSLShaderCompiler
 
         var descriptor = new GraphicsShaderDescriptor
         {
-            name = semantics.name,
-            propertyBufferSize = propertyInfo.size,
+            Name = semantics.name,
+            PropertyBufferSize = propertyInfo.size,
 
-            shaderModel = semantics.shaderModel,
-            passes = passes
+            ShaderModel = semantics.shaderModel,
+            Passes = passes
         };
 
-        for (var i = 0; i < descriptor.passes.Length; i++)
+        for (var i = 0; i < descriptor.Passes.Length; i++)
         {
-            descriptor.passes[i].shader = descriptor;
+            descriptor.Passes[i].shader = descriptor;
         }
 
         return descriptor;
+    }
+
+    public static Result<GraphicsShaderDescriptor> CompileGraphicsShader(Stream stream)
+    {
+        using var reader = new StreamReader(stream);
+        return CompileGraphicsShader(reader.ReadToEnd());
     }
 
     public static Result<GraphicsShaderDescriptor> CompileGraphicsShader(string shaderPath)
@@ -163,7 +169,8 @@ internal static class DSLShaderCompiler
             var source = File.ReadAllText(shaderPath);
 
             // Use ANTLR4 parser
-            var shaderModels = AntlrShaderCompiler.ParseShaders(source, out var parseErrors);
+            var parseErrors = new List<DSLShaderError>();
+            var shaderModels = AntlrShaderCompiler.ParseShaders(source, parseErrors);
 
             if (parseErrors.Count != 0)
             {
@@ -209,13 +216,20 @@ internal static class DSLShaderCompiler
         }
     }
 
+    public static Result<ComputeShaderDescriptor> CompileComputeShader(Stream stream)
+    {
+        using var reader = new StreamReader(stream);
+        return CompileComputeShader(reader.ReadToEnd());
+    }
+
     public static Result<ComputeShaderDescriptor> CompileComputeShader(string shaderPath)
     {
         try
         {
             var source = File.ReadAllText(shaderPath);
 
-            var shaderModels = AntlrShaderCompiler.ParseComputeShaders(source, out var parseErrors);
+            var parseErrors = new List<DSLShaderError>();
+            var shaderModels = AntlrShaderCompiler.ParseComputeShaders(source, parseErrors);
 
             if (parseErrors.Count != 0)
             {
@@ -281,12 +295,12 @@ internal static class DSLShaderCompiler
 
         return new ComputeShaderDescriptor
         {
-            name = semantics.name,
-            propertyBufferSize = propertyInfo.size,
-            shaderModel = semantics.shaderModel,
-            shaderCodes = shaderCodes,
-            defines = semantics.defines?.ToArray() ?? Array.Empty<string>(),
-            keywords = semantics.keywords?.ToArray() ?? Array.Empty<KeywordsGroup>()
+            Name = semantics.name,
+            PropertyBufferSize = propertyInfo.size,
+            ShaderModel = semantics.shaderModel,
+            ShaderCodes = shaderCodes,
+            Defines = semantics.defines?.ToArray() ?? Array.Empty<string>(),
+            Keywords = semantics.keywords?.ToArray() ?? Array.Empty<KeywordsGroup>()
         };
     }
 }

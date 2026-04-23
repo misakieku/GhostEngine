@@ -4,6 +4,12 @@ using Misaki.HighPerformance.Jobs;
 
 namespace Ghost.Engine;
 
+public interface IRuntimeInitializeCallback
+{
+    void Initialize();
+    void Shutdown();
+}
+
 public sealed partial class EngineCore : IDisposable
 {
     private readonly IContentProvider _contentProvider;
@@ -12,6 +18,10 @@ public sealed partial class EngineCore : IDisposable
     private readonly ResourceStreamingProcessor _streamingProcessor;
     private readonly RenderSystem _renderSystem;
     private readonly AssetManager _assetManager;
+
+    internal JobScheduler JobScheduler => _jobScheduler;
+    internal RenderSystem RenderSystem => _renderSystem;
+    internal AssetManager AssetManager => _assetManager;
 
     public EngineCore(IContentProvider contentProvider)
     {

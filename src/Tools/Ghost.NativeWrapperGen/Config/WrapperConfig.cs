@@ -44,6 +44,7 @@ public sealed class DerivesFromConfig
     public string ParamPrefix { get; init; } = string.Empty;
     /// <summary>The suffix of the sibling parameter name to consume (e.g. "_len").</summary>
     public string ParamSuffix { get; init; } = string.Empty;
+    public string RegexName { get; init; } = string.Empty;
     /// <summary>Expression to pass in place of the consumed parameter. $arg is replaced with the source param name.</summary>
     public required string Expr { get; init; }
 }

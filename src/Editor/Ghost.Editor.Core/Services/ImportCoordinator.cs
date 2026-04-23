@@ -24,7 +24,7 @@ internal readonly record struct ImportJob(
     ImportReason Reason
 );
 
-internal sealed class ImportCoordinator : IDisposable
+internal sealed partial class ImportCoordinator : IDisposable
 {
     public const string IMPORTED_EXTENSION_NAME = "Imported";
     public const string IMPORTED_EXTENSION = ".imported";
@@ -34,9 +34,7 @@ internal sealed class ImportCoordinator : IDisposable
     private readonly CancellationTokenSource _cts;
     private readonly Task[] _workers;
 
-    // In a real implementation, this event would be used to notify the UI/Rest of engine
-    // For now we just focus on the core logic
-    // public event EventHandler<AssetChangedEventArgs>? OnAssetChanged;
+    public event EventHandler<Guid>? OnImportCompleted;
 
     public ImportCoordinator(AssetCatalog catalog, int workerCount = 2)
     {
@@ -76,9 +74,19 @@ internal sealed class ImportCoordinator : IDisposable
         }
     }
 
-    private async ValueTask ProcessImportAsync(ImportJob job, CancellationToken token)
+    public static string GetImportedAssetPath(Guid assetGuid)
     {
-        var fullSourcePath = Path.Combine(EditorApplication.AssetsFolderPath, job.SourcePath);
+        var fileName = $"{assetGuid:N}{IMPORTED_EXTENSION}";
+        var folderName = fileName.Substring(0, 2);
+
+        var finalPath = Path.Combine(EditorApplication.LibraryImportsFolderPath, folderName, fileName);
+        Directory.CreateDirectory(finalPath);
+
+        return finalPath;
+    }
+
+    private static async ValueTask ProcessImportAsync(ImportJob job, CancellationToken token)
+    {
         var meta = await AssetMetaIO.ReadAsync(job.MetaPath, token);
         if (meta is null)
         {
@@ -87,27 +95,27 @@ internal sealed class ImportCoordinator : IDisposable
         }
 
         var handler = meta.HandlerTypeId.HasValue
-            ? AssetHandlerRegistry.GetByTypeId(meta.HandlerTypeId.Value)
+            ? AssetHandlerRegistry.GetByAssetTypeId(meta.HandlerTypeId.Value)
             : AssetHandlerRegistry.GetByExtension(Path.GetExtension(job.SourcePath));
 
-        var contentHash = await ComputeFileHashAsync(fullSourcePath, token);
+        var contentHash = await ComputeFileHashAsync(job.SourcePath, token);
         var settingsHash = ComputeSettingsHash(meta.Settings);
 
         // Check if we can skip (if not a manual reimport)
         if (job.Reason != ImportReason.ManualReimport &&
             meta.ContentHash == contentHash &&
             meta.SettingsHash == settingsHash &&
-            meta.HandlerVersion == AssetHandlerRegistry.GetVersionByTypeId(meta.HandlerTypeId ?? Guid.Empty))
+            meta.HandlerVersion == AssetHandlerRegistry.GetVersionByAssetTypeId(meta.HandlerTypeId ?? Guid.Empty))
         {
             return;
         }
 
         var importResult = Result.Success();
-        if (handler is IAssetHandler importable)
+        if (handler is IImportableAssetHandler importable)
         {
-            var targetPath = Path.Combine(EditorApplication.LibraryImportsFolderPath, $"{job.AssetGuid:N}{IMPORTED_EXTENSION}");
+            var targetPath = GetImportedAssetPath(job.AssetGuid);
 
-            await using var sourceStream = new FileStream(fullSourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            await using var sourceStream = new FileStream(job.SourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             await using var targetStream = new FileStream(targetPath, FileMode.Create, FileAccess.Write, FileShare.None);
 
             importResult = await importable.ImportAsync(sourceStream, targetStream, job.AssetGuid, meta.Settings, token);
@@ -117,7 +125,7 @@ internal sealed class ImportCoordinator : IDisposable
         {
             meta.ContentHash = contentHash;
             meta.SettingsHash = settingsHash;
-            meta.HandlerVersion = AssetHandlerRegistry.GetVersionByTypeId(meta.HandlerTypeId ?? Guid.Empty);
+            meta.HandlerVersion = AssetHandlerRegistry.GetVersionByAssetTypeId(meta.HandlerTypeId ?? Guid.Empty);
             meta.LastImportedUtc = DateTime.UtcNow;
 
             await AssetMetaIO.WriteAsync(job.MetaPath, meta, token);

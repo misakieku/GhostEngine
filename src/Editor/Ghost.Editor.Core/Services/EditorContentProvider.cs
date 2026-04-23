@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Editor.Core.AssetHandler;
+using Ghost.Editor.Core.Contracts;
 using Ghost.Engine;
 
 namespace Ghost.Editor.Core.Services;
@@ -8,9 +9,9 @@ internal class EditorContentProvider : IContentProvider
 {
     private readonly AssetCatalog _catalog;
 
-    public EditorContentProvider(AssetCatalog catalog)
+    public EditorContentProvider(IAssetRegistry assetRegistry)
     {
-        _catalog = catalog;
+        _catalog = assetRegistry.GetAssetCatalog();
     }
 
     public bool HasAsset(Guid guid)
@@ -20,7 +21,7 @@ internal class EditorContentProvider : IContentProvider
 
     public Result<Stream> OpenRead(Guid guid, CancellationToken token = default)
     {
-        var importedPath = Path.Combine(EditorApplication.LibraryImportsFolderPath, $"{guid:N}{ImportCoordinator.IMPORTED_EXTENSION}");
+        var importedPath = ImportCoordinator.GetImportedAssetPath(guid);
         if (!File.Exists(importedPath))
         {
             return Result.Failure($"Imported asset not found for GUID: {guid}");
@@ -37,7 +38,7 @@ internal class EditorContentProvider : IContentProvider
     public AssetType GetAssetType(Guid guid)
     {
         var handlerID = _catalog.GetHandlerTypeId(guid);
-        var handler = AssetHandlerRegistry.GetByTypeId(handlerID);
+        var handler = AssetHandlerRegistry.GetByAssetTypeId(handlerID);
         return handler?.RuntimeAssetType ?? AssetType.Unknown;
     }
 }

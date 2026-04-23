@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Editor.Core.AssetHandler;
+using Ghost.Editor.Core.Services;
 using Ghost.Engine.AssetLoader;
 
 namespace Ghost.Editor.Core.Contracts;
@@ -40,11 +41,13 @@ public sealed class AssetChangedEventArgs : EventArgs
 
 public interface IAssetRegistry : IDisposable
 {
+    event EventHandler<AssetChangedEventArgs>? OnAssetChanged;
+    event EventHandler<Guid>? OnAssetImported;
+
+    AssetCatalog GetAssetCatalog();
+
     string? GetAssetPath(Guid id);
     Guid GetAssetGuid(string assetPath);
-
-    event EventHandler<AssetChangedEventArgs>? OnAssetChanged;
-
 
     ValueTask<Result<Guid>> ImportAssetAsync(string sourceFilePath, string targetAssetPath, CancellationToken token = default);
     ValueTask<Result> ReimportAssetAsync(Guid assetId, string sourceFilePath, CancellationToken token = default);

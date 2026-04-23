@@ -197,7 +197,7 @@ internal unsafe partial class AssetEntry
 
         if (Interlocked.CompareExchange(ref _pendingReimport, false, true))
         {
-            _assetManager.InvalidateAsset(_assetId);  // re-queue
+            _assetManager.ReimportAsset(_assetId);  // re-queue
         }
     }
 
@@ -415,7 +415,7 @@ internal partial class AssetManager : IDisposable
         return entry;
     }
 
-    public void InvalidateAsset(Guid guid)
+    public void ReimportAsset(Guid guid)
     {
         if (!_entries.TryGetValue(guid, out var entry))
         {

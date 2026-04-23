@@ -188,11 +188,16 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
         if (isSubAllocation)
         {
-            hr = CreateResource(&allocationDesc, &resourceDesc, D3D12_BARRIER_LAYOUT_COMMON, options, (uint)additionalDesc.CastableFormat.Length, pCastableFormats,  __uuidof(pResource), (void**)&pResource);
+            hr = CreateResource(&allocationDesc, &resourceDesc, D3D12_BARRIER_LAYOUT_COMMON, options,
+                (uint)additionalDesc.CastableFormat.Length, pCastableFormats, 
+                __uuidof(pResource), (void**)&pResource);
         }
         else
         {
-            hr = CreateResource(&allocationDesc, &resourceDesc, D3D12_BARRIER_LAYOUT_COMMON, options, (uint)additionalDesc.CastableFormat.Length, pCastableFormats, __uuidof(pAllocation), (void**)&pAllocation);
+            hr = CreateResource(&allocationDesc, &resourceDesc, D3D12_BARRIER_LAYOUT_COMMON, options,
+                (uint)additionalDesc.CastableFormat.Length, pCastableFormats,
+                __uuidof(pAllocation), (void**)&pAllocation);
+
             if (hr.SUCCEEDED)
             {
                 pResource = pAllocation->GetResource();
@@ -249,11 +254,16 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
         if (isSubAllocation)
         {
-            hr = CreateResource(&allocationDesc, &resourceDesc, D3D12_BARRIER_LAYOUT_UNDEFINED, options, 0u, null, __uuidof(pResource), (void**)&pResource);
+            hr = CreateResource(&allocationDesc, &resourceDesc, D3D12_BARRIER_LAYOUT_UNDEFINED, options,
+                0u, null,
+                __uuidof(pResource), (void**)&pResource);
         }
         else
         {
-            hr = CreateResource(&allocationDesc, &resourceDesc, D3D12_BARRIER_LAYOUT_UNDEFINED, options, 0u, null, __uuidof(pAllocation), (void**)&pAllocation);
+            hr = CreateResource(&allocationDesc, &resourceDesc, D3D12_BARRIER_LAYOUT_UNDEFINED, options,
+                0u, null,
+                __uuidof(pAllocation), (void**)&pAllocation);
+
             if (hr.SUCCEEDED)
             {
                 pResource = pAllocation->GetResource();

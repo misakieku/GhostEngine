@@ -60,18 +60,56 @@ public struct PassDescriptor
 
 public class GraphicsShaderDescriptor
 {
-    public required string name = string.Empty;
-    public required uint propertyBufferSize;
-    public required ShaderModel shaderModel;
-    public required PassDescriptor[] passes = Array.Empty<PassDescriptor>();
+    public required string Name
+    {
+        get; init;
+    }
+
+    public required uint PropertyBufferSize
+    {
+        get; init;
+    }
+
+    public required ShaderModel ShaderModel
+    {
+        get; init;
+    }
+
+    public required PassDescriptor[] Passes
+    {
+        get; init;
+    }
 }
 
 public class ComputeShaderDescriptor
 {
-    public required string name = string.Empty;
-    public required uint propertyBufferSize;
-    public required ShaderModel shaderModel;
-    public required ShaderCode[] shaderCodes;
-    public required string[] defines;
-    public required KeywordsGroup[] keywords;
+    public required string Name
+    {
+        get; init;
+    }
+
+    public required uint PropertyBufferSize
+    {
+        get; init;
+    }
+
+    public required ShaderModel ShaderModel
+    {
+        get; init;
+    }
+
+    public required ShaderCode[] ShaderCodes
+    {
+        get; init;
+    }
+
+    public required string[] Defines
+    {
+        get; init;
+    }
+
+    public required KeywordsGroup[] Keywords
+    {
+        get; init;
+    }
 }

@@ -5,17 +5,24 @@ namespace Ghost.Editor.Views.Pages;
 
 public sealed partial class EditPage : Page
 {
-    private readonly ContentBrowser _contentBrowser;
-    private readonly LogViewer _logViewer;
+    private ContentBrowser? _contentBrowser;
+    private LogViewer? _logViewer;
 
     public EditPage()
     {
         InitializeComponent();
 
-        _contentBrowser = new ContentBrowser();
-        _logViewer = new LogViewer();
+        ContentBrowserPresenter.Content = GetContentBrowser();
+    }
 
-        ContentBrowserPresenter.Content = _contentBrowser;
+    private ContentBrowser GetContentBrowser()
+    {
+        return _contentBrowser ??= new ContentBrowser();
+    }
+
+    private LogViewer GetLogViewer()
+    {
+        return _logViewer ??= new LogViewer();
     }
 
     private void SelectorBar_SelectionChanged(SelectorBar sender, SelectorBarSelectionChangedEventArgs args)
@@ -25,10 +32,10 @@ public sealed partial class EditPage : Page
         switch (currentSelectedIndex)
         {
             case 0:
-                ContentBrowserPresenter.Content = _contentBrowser;
+                ContentBrowserPresenter.Content = GetContentBrowser();
                 break;
             case 2:
-                ContentBrowserPresenter.Content = _logViewer;
+                ContentBrowserPresenter.Content = GetLogViewer();
                 break;
             default:
                 break;

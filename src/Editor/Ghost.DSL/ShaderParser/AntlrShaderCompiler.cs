@@ -7,10 +7,8 @@ namespace Ghost.DSL.ShaderParser;
 
 public class AntlrShaderCompiler
 {
-    public static List<GraphicsShaderModel> ParseShaders(string source, out List<DSLShaderError> errors)
+    public static List<GraphicsShaderModel> ParseShaders(string source, List<DSLShaderError> errors)
     {
-        errors = new List<DSLShaderError>();
-
         try
         {
             var inputStream = new AntlrInputStream(source);
@@ -53,7 +51,7 @@ public class AntlrShaderCompiler
         }
     }
 
-    public static List<ComputeShaderModel> ParseComputeShaders(string source, out List<DSLShaderError> errors)
+    public static List<ComputeShaderModel> ParseComputeShaders(string source, List<DSLShaderError> errors)
     {
         errors = new List<DSLShaderError>();
 

@@ -1,0 +1,48 @@
+{
+  "libraryName": "stbi",
+  "nativeNamespace": "Ghost.StbImage",
+  "outputNamespace": "Ghost.StbImage",
+  "nativeTypePrefix": "stbi_",
+  "skipTypes": [
+    "NativeAnnotationAttribute",
+    "NativeTypeNameAttribute"
+  ],
+  "skipFunctions": [],
+
+  "remaps": [
+    {
+      "src": "$TYPE*",
+      "dst": "ReadOnlySpan<$TYPE>",
+      "scope": [ "parameter" ],
+      "filter": [ ".*buffer" ],
+      "derivesFrom": {
+        "regexName": ".*len",
+        "expr": "$arg.Length"
+      },
+      "adapter": {
+        "convertBack": {
+          "wrapCall": "fixed ($TYPE* p$arg = $arg) { $CALL }",
+          "passAs": "($TYPE*)p$arg"
+        }
+      }
+    }
+  ],
+
+  "actions": [
+    {
+      "filter": "EXTERN_API",
+      "targetType": "StbIApi",
+      "apply": {
+        "type": "STATIC_METHOD",
+        "opts": {
+          "name": {
+            "remove": [
+              "PREFIX"
+            ],
+            "style": "PascalCase"
+          }
+        }
+      }
+    }
+  ]
+}
