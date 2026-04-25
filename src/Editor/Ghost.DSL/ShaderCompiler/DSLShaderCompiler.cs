@@ -159,18 +159,27 @@ public static class DSLShaderCompiler
     public static Result<GraphicsShaderDescriptor> CompileGraphicsShader(Stream stream)
     {
         using var reader = new StreamReader(stream);
-        return CompileGraphicsShader(reader.ReadToEnd());
+        return CompileGraphicsShaderCode(reader.ReadToEnd());
     }
 
     public static Result<GraphicsShaderDescriptor> CompileGraphicsShader(string shaderPath)
     {
+        if (!File.Exists(shaderPath))
+        {
+            return Result.Failure("Shader file not found: " + shaderPath);
+        }
+
+        var code = File.ReadAllText(shaderPath);
+        return CompileGraphicsShaderCode(code);
+    }
+
+    public static Result<GraphicsShaderDescriptor> CompileGraphicsShaderCode(string shaderCode)
+    {
         try
         {
-            var source = File.ReadAllText(shaderPath);
-
             // Use ANTLR4 parser
             var parseErrors = new List<DSLShaderError>();
-            var shaderModels = AntlrShaderCompiler.ParseShaders(source, parseErrors);
+            var shaderModels = AntlrShaderCompiler.ParseShaders(shaderCode, parseErrors);
 
             if (parseErrors.Count != 0)
             {
@@ -219,17 +228,26 @@ public static class DSLShaderCompiler
     public static Result<ComputeShaderDescriptor> CompileComputeShader(Stream stream)
     {
         using var reader = new StreamReader(stream);
-        return CompileComputeShader(reader.ReadToEnd());
+        return CompileComputeShaderCode(reader.ReadToEnd());
     }
 
     public static Result<ComputeShaderDescriptor> CompileComputeShader(string shaderPath)
     {
+        if (!File.Exists(shaderPath))
+        {
+            return Result.Failure("Shader file not found: " + shaderPath);
+        }
+
+        var code = File.ReadAllText(shaderPath);
+        return CompileComputeShaderCode(code);
+    }
+
+    public static Result<ComputeShaderDescriptor> CompileComputeShaderCode(string shaderCode)
+    {
         try
         {
-            var source = File.ReadAllText(shaderPath);
-
             var parseErrors = new List<DSLShaderError>();
-            var shaderModels = AntlrShaderCompiler.ParseComputeShaders(source, parseErrors);
+            var shaderModels = AntlrShaderCompiler.ParseComputeShaders(shaderCode, parseErrors);
 
             if (parseErrors.Count != 0)
             {

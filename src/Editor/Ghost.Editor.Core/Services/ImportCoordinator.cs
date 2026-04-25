@@ -1,5 +1,5 @@
 using Ghost.Core;
-using Ghost.Editor.Core.AssetHandler;
+using Ghost.Editor.Core.Assets;
 using System.IO.Hashing;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -79,13 +79,14 @@ internal sealed partial class ImportCoordinator : IDisposable
         var fileName = $"{assetGuid:N}{IMPORTED_EXTENSION}";
         var folderName = fileName.Substring(0, 2);
 
-        var finalPath = Path.Combine(EditorApplication.LibraryImportsFolderPath, folderName, fileName);
-        Directory.CreateDirectory(finalPath);
+        var importsFolder = Path.Combine(EditorApplication.LibraryImportsFolderPath, folderName);
+        var finalPath = Path.Combine(importsFolder, fileName);
+        Directory.CreateDirectory(importsFolder);
 
         return finalPath;
     }
 
-    private static async ValueTask ProcessImportAsync(ImportJob job, CancellationToken token)
+    private async ValueTask ProcessImportAsync(ImportJob job, CancellationToken token)
     {
         var meta = await AssetMetaIO.ReadAsync(job.MetaPath, token);
         if (meta is null)
@@ -114,11 +115,7 @@ internal sealed partial class ImportCoordinator : IDisposable
         if (handler is IImportableAssetHandler importable)
         {
             var targetPath = GetImportedAssetPath(job.AssetGuid);
-
-            await using var sourceStream = new FileStream(job.SourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            await using var targetStream = new FileStream(targetPath, FileMode.Create, FileAccess.Write, FileShare.None);
-
-            importResult = await importable.ImportAsync(sourceStream, targetStream, job.AssetGuid, meta.Settings, token);
+            importResult = await importable.ImportAsync(job.SourcePath, targetPath, job.AssetGuid, meta.Settings, token);
         }
 
         if (importResult.IsSuccess)
@@ -129,6 +126,8 @@ internal sealed partial class ImportCoordinator : IDisposable
             meta.LastImportedUtc = DateTime.UtcNow;
 
             await AssetMetaIO.WriteAsync(job.MetaPath, meta, token);
+
+            OnImportCompleted?.Invoke(null, job.AssetGuid);
         }
         else
         {

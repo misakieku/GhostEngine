@@ -43,7 +43,7 @@ internal partial class ExplorerItem : ObservableObject
     public ExplorerItem(string name, string path, bool isDirectory, AssetType assetType = AssetType.Unknown)
     {
         Name = name;
-        Path = PathUtility.Normalize(path);
+        Path = path;
         IsDirectory = isDirectory;
         AssetType = assetType;
 

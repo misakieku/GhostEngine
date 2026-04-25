@@ -1,7 +1,7 @@
 using Ghost.Core;
 using Ghost.Engine;
 
-namespace Ghost.Editor.Core.AssetHandler;
+namespace Ghost.Editor.Core.Assets;
 
 [AttributeUsage(AttributeTargets.Class)]
 public sealed class CustomAssetHandlerAttribute : Attribute
@@ -23,7 +23,7 @@ public interface IAsset : IDisposable
         get;
     }
 
-    public IAssetSettings Settings
+    public IAssetSettings? Settings
     {
         get;
     }
@@ -38,18 +38,18 @@ public interface IAssetHandler
 
     IAssetSettings? CreateDefaultSettings();
 
-    ValueTask<Result<IAsset>> LoadAssetAsync(FileStream assetStream, Guid id, IAssetSettings? settings, CancellationToken token = default);
-    ValueTask<Result> SaveAssetAsync(FileStream targetStream, IAsset asset, CancellationToken token = default);
+    ValueTask<Result<IAsset>> LoadAssetAsync(string assetPath, Guid id, IAssetSettings? settings, CancellationToken token = default);
+    ValueTask<Result> SaveAssetAsync(string targetPath, IAsset asset, CancellationToken token = default);
 }
 
 public interface IImportableAssetHandler : IAssetHandler
 {
     bool CanExport { get; }
-    ValueTask<Result> ImportAsync(FileStream sourceStream, FileStream targetStream, Guid id, IAssetSettings? settings, CancellationToken token = default);
-    ValueTask<Result> ExportAsync(FileStream assetStream, FileStream targetStream, IAssetExportOptions? options, CancellationToken token = default);
+    ValueTask<Result> ImportAsync(string sourcePath, string targetPath, Guid id, IAssetSettings? settings, CancellationToken token = default);
+    ValueTask<Result> ExportAsync(string assetPath, string targetPath, IAssetExportOptions? options, CancellationToken token = default);
 }
 
 public interface IPackableAssetHandler : IAssetHandler
 {
-    ValueTask<Result> PackAsync(FileStream assetStream, Stream targetStream, CancellationToken token = default);
+    ValueTask<Result> PackAsync(string assetPath, MemoryStream targetStream, CancellationToken token = default);
 }

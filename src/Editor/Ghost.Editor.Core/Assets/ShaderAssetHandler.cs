@@ -4,7 +4,7 @@ using Ghost.DSL.ShaderCompiler;
 using Ghost.Engine;
 using System.Runtime.InteropServices;
 
-namespace Ghost.Editor.Core.AssetHandler;
+namespace Ghost.Editor.Core.Assets;
 
 [Guid(GUID)]
 public sealed partial class GraphicsShaderAsset : IAsset
@@ -16,7 +16,7 @@ public sealed partial class GraphicsShaderAsset : IAsset
         get;
     }
 
-    public IAssetSettings Settings
+    public IAssetSettings? Settings
     {
         get;
     }
@@ -49,7 +49,7 @@ public sealed partial class ComputeShaderAsset : IAsset
         get;
     }
 
-    public IAssetSettings Settings
+    public IAssetSettings? Settings
     {
         get;
     }
@@ -84,13 +84,11 @@ internal class GraphicsShaderAssetHandler : IPackableAssetHandler
         return null;
     }
 
-    public async ValueTask<Result<IAsset>> LoadAssetAsync(FileStream assetStream, Guid id, IAssetSettings? settings, CancellationToken token = default)
+    public async ValueTask<Result<IAsset>> LoadAssetAsync(string assetPath, Guid id, IAssetSettings? settings, CancellationToken token = default)
     {
         try
         {
-            using var reader = new StreamReader(assetStream);
-            var shaderCode = await reader.ReadToEndAsync(token);
-            var result = DSLShaderCompiler.CompileGraphicsShader(shaderCode);
+            var result = DSLShaderCompiler.CompileGraphicsShader(assetPath);
             if (result.IsFailure)
             {
                 return Result.Failure(result.Message);
@@ -104,12 +102,12 @@ internal class GraphicsShaderAssetHandler : IPackableAssetHandler
         }
     }
 
-    public ValueTask<Result> SaveAssetAsync(FileStream targetStream, IAsset asset, CancellationToken token = default)
+    public ValueTask<Result> SaveAssetAsync(string targetPath, IAsset asset, CancellationToken token = default)
     {
         return new ValueTask<Result>(Result.Failure("Saving shader assets is not supported yet as it's read-only. Please edit the shader source file directly if you need to modify it."));
     }
 
-    public ValueTask<Result> PackAsync(FileStream assetStream, Stream targetStream, CancellationToken token = default)
+    public ValueTask<Result> PackAsync(string assetPath, MemoryStream targetStream, CancellationToken token = default)
     {
         throw new NotImplementedException();
     }
@@ -126,13 +124,11 @@ internal class ComputeShaderAssetHandler : IPackableAssetHandler
         return null;
     }
 
-    public async ValueTask<Result<IAsset>> LoadAssetAsync(FileStream assetStream, Guid id, IAssetSettings? settings, CancellationToken token = default)
+    public async ValueTask<Result<IAsset>> LoadAssetAsync(string assetPath, Guid id, IAssetSettings? settings, CancellationToken token = default)
     {
         try
         {
-            using var reader = new StreamReader(assetStream);
-            var shaderCode = await reader.ReadToEndAsync(token);
-            var result = DSLShaderCompiler.CompileComputeShader(shaderCode);
+            var result = DSLShaderCompiler.CompileComputeShaderCode(assetPath);
             if (result.IsFailure)
             {
                 return Result.Failure(result.Message);
@@ -146,12 +142,12 @@ internal class ComputeShaderAssetHandler : IPackableAssetHandler
         }
     }
 
-    public ValueTask<Result> SaveAssetAsync(FileStream targetStream, IAsset asset, CancellationToken token = default)
+    public ValueTask<Result> SaveAssetAsync(string targetPath, IAsset asset, CancellationToken token = default)
     {
         return new ValueTask<Result>(Result.Failure("Saving shader assets is not supported yet as it's read-only. Please edit the shader source file directly if you need to modify it."));
     }
 
-    public ValueTask<Result> PackAsync(FileStream assetStream, Stream targetStream, CancellationToken token = default)
+    public ValueTask<Result> PackAsync(string assetPath, MemoryStream targetStream, CancellationToken token = default)
     {
         throw new NotImplementedException();
     }

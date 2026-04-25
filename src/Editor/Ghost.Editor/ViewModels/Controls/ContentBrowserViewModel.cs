@@ -62,13 +62,13 @@ internal partial class ContentBrowserViewModel : ObservableObject
 
     private void OnAssetChanged(object? sender, AssetChangedEventArgs e)
     {
-        if (Path.GetExtension(e.AssetPath) == FileExtensions.META_FILE_EXTENSION)
+        if (e.AssetPath.EndsWith(FileExtensions.META_FILE_EXTENSION))
         {
             return;
         }
 
-        var fullPath = PathUtility.Normalize(Path.Combine(EditorApplication.AssetsFolderPath, e.AssetPath));
-        var dirPath = PathUtility.Normalize(Path.GetDirectoryName(fullPath));
+        var fullPath = PathUtility.Normalize(e.AssetPath);
+        var dirPath = Path.GetDirectoryName(fullPath);
         
         if (string.Equals(dirPath, CurrentDirectoryPath, StringComparison.OrdinalIgnoreCase))
         {
@@ -78,7 +78,7 @@ internal partial class ContentBrowserViewModel : ObservableObject
                 {
                     if (e.ChangeType == AssetChangeType.Renamed && e.OldAssetPath != null)
                     {
-                        var oldFullPath = PathUtility.Normalize(Path.Combine(EditorApplication.AssetsFolderPath, e.OldAssetPath));
+                        var oldFullPath = PathUtility.Normalize(e.OldAssetPath);
                         var oldItem = Files.FirstOrDefault(f => string.Equals(f.Path, oldFullPath, StringComparison.OrdinalIgnoreCase));
                         if (oldItem != null) Files.Remove(oldItem);
                     }
@@ -138,7 +138,7 @@ internal partial class ContentBrowserViewModel : ObservableObject
 
         foreach (var file in Directory.EnumerateFiles(path))
         {
-            if (Path.GetExtension(file) == FileExtensions.META_FILE_EXTENSION)
+            if (file.EndsWith(FileExtensions.META_FILE_EXTENSION))
             {
                 continue;
             }

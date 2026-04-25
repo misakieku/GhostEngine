@@ -4,13 +4,16 @@
 // TODO: This file should be moved to editor project since there is no reason we need to build meshlets and LOD at runtime.
 
 using Ghost.Core;
+using Ghost.Graphics.Core;
+using Ghost.Graphics.RHI;
 using Ghost.MeshOptimizer;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
-using System.Diagnostics;
+using Misaki.HighPerformance.Mathematics.Geometry;
+using System.Runtime.CompilerServices;
 
-namespace Ghost.Graphics.Utilities;
+namespace Ghost.Editor.Core.Assets;
 
 internal struct Cluster : IDisposable
 {
@@ -164,7 +167,7 @@ public unsafe delegate int ClodOutputDelegate(void* context, ClodGroup group, Re
 
 // FIX: UnsafeList and UnsafeArray are not same as std::vector.
 
-public static unsafe class MeshletUtility
+public static unsafe partial class MeshProcessor
 {
     private static ClodBounds ComputeBounds(ref readonly ClodMesh mesh, UnsafeList<uint> indices, float error)
     {
@@ -651,7 +654,7 @@ public static unsafe class MeshletUtility
                 bounds.error = Math.Max(bounds.error * config.simplifyErrorMergePrevious, error) + error * config.simplifyErrorMergeAdditive;
 
                 var refined = OutputGroup(in config, in mesh, clusters, groups[i], bounds, depth, outputContext, outputCallback);
-                
+
                 for (var j = 0; j < groups[i].Count; j++)
                 {
                     clusters[groups[i][j]].Dispose();
@@ -690,5 +693,130 @@ public static unsafe class MeshletUtility
         }
 
         return finalClusterCount;
+    }
+
+    public static void BuildMeshlets(MeshletMeshData* pMeshletData, ReadOnlyUnsafeCollection<Vertex> vertices, ReadOnlyUnsafeCollection<uint> indices)
+    {
+        Logger.DebugAssert(pMeshletData->meshletCount > 0, "Mesh must have vertices to build meshlets.");
+
+        var config = new ClodConfig
+        {
+            maxVertices = 64,
+            minTriangles = 32,
+            maxTriangles = 124,
+
+            partitionSpatial = true,
+            partitionSize = 16,
+
+            clusterSpatial = false,
+            clusterSplitFactor = 2.0f,
+
+            optimizeClusters = true,
+            optimizeClustersLevel = 1,
+
+            simplifyRatio = 0.5f,
+            simplifyThreshold = 0.85f,
+            simplifyErrorMergePrevious = 1.0f,
+            simplifyErrorFactorSloppy = 2.0f,
+            simplifyPermissive = true,
+            simplifyFallbackPermissive = false,
+            simplifyFallbackSloppy = true,
+        };
+
+        var clodMesh = new ClodMesh
+        {
+            vertexPositions = (float*)Unsafe.AsPointer(in vertices[0].position),
+            vertexCount = (nuint)vertices.Count,
+            vertexPositionsStride = (nuint)sizeof(Vertex),
+            vertexAttributes = (float*)Unsafe.AsPointer(in vertices[0].normal),
+            vertexAttributesStride = (nuint)sizeof(Vertex),
+            indices = (uint*)indices.GetUnsafePtr(),
+            indexCount = (nuint)indices.Count,
+            attributeProtectMask = 0, // TODO: We need to protect UVs and other vertex attributes to ensure they are not altered during simplification.
+        };
+
+        Build(in config, in clodMesh, pMeshletData, MeshletOutputCallback);
+
+        pMeshletData->meshletCount = pMeshletData->meshlets.IsCreated ? pMeshletData->meshlets.Count : 0;
+
+        if (pMeshletData->groups.IsCreated && pMeshletData->groups.Count > 0)
+        {
+            var maxLodLevel = 0u;
+            for (var i = 0; i < pMeshletData->groups.Count; i++)
+            {
+                maxLodLevel = Math.Max(maxLodLevel, pMeshletData->groups[i].lodLevel);
+            }
+
+            pMeshletData->lodLevelCount = (int)maxLodLevel + 1;
+        }
+
+        pMeshletData->materialSlotCount = 1;
+    }
+
+    private static int MeshletOutputCallback(void* context, ClodGroup group, ReadOnlyUnsafeCollection<ClodCluster> clusters)
+    {
+        var pMeshletData = (MeshletMeshData*)context;
+
+        // Ensure lists are initialized
+        if (!pMeshletData->groups.IsCreated) pMeshletData->groups = new UnsafeList<MeshletGroup>(16, AllocationHandle.Persistent);
+        if (!pMeshletData->meshlets.IsCreated) pMeshletData->meshlets = new UnsafeList<Meshlet>(64, AllocationHandle.Persistent);
+        if (!pMeshletData->meshletVertices.IsCreated) pMeshletData->meshletVertices = new UnsafeList<uint>(128, AllocationHandle.Persistent);
+        if (!pMeshletData->meshletTriangles.IsCreated) pMeshletData->meshletTriangles = new UnsafeList<uint>(128, AllocationHandle.Persistent);
+
+        var meshletGroup = new MeshletGroup
+        {
+            boundingSphere = new SphereBounds(group.simplified.center, group.simplified.radius),
+            boundingBox = new AABB(group.simplified.center - group.simplified.radius, group.simplified.center + group.simplified.radius),
+            parentError = group.simplified.error,
+            meshletStartIndex = (uint)pMeshletData->meshlets.Count,
+            meshletCount = (uint)clusters.Count,
+            lodLevel = (uint)group.depth
+        };
+        pMeshletData->groups.Add(meshletGroup);
+
+        for (var i = 0; i < clusters.Count; i++)
+        {
+            var cluster = clusters[i];
+
+            var meshlet = new Meshlet
+            {
+                boundingSphere = new SphereBounds(cluster.bounds.center, cluster.bounds.radius),
+                parentBoundingSphere = new SphereBounds(group.simplified.center, group.simplified.radius),
+                boundingBox = new AABB(cluster.bounds.center - cluster.bounds.radius, cluster.bounds.center + cluster.bounds.radius),
+                vertexCount = (byte)cluster.vertexCount,
+                triangleCount = (byte)(cluster.localIndexCount / 3),
+                vertexOffset = (uint)pMeshletData->meshletVertices.Count,
+                triangleOffset = (uint)pMeshletData->meshletTriangles.Count,
+                groupIndex = (uint)pMeshletData->groups.Count - 1,
+                clusterError = cluster.bounds.error,
+                parentError = group.simplified.error,
+                localMaterialIndex = 0, // TODO: support multiple materials
+                lodLevel = (byte)group.depth,
+            };
+            pMeshletData->meshlets.Add(meshlet);
+
+            // Add unique vertices
+            for (nuint j = 0; j < cluster.vertexCount; j++)
+            {
+                pMeshletData->meshletVertices.Add(cluster.uniqueVertices[j]);
+            }
+            // Add local triangles (packed into uints)
+            var triangleCount = cluster.localIndexCount / 3;
+            for (nuint j = 0; j < triangleCount; j++)
+            {
+                uint i0 = cluster.localIndices[j * 3 + 0];
+                uint i1 = cluster.localIndices[j * 3 + 1];
+                uint i2 = cluster.localIndices[j * 3 + 2];
+                var packedTriangle = i0 | (i1 << 8) | (i2 << 16);
+                pMeshletData->meshletTriangles.Add(packedTriangle);
+            }
+        }
+
+        return 0;
+    }
+
+    public static void BuildClusterLodHierarchy()
+    {
+        // TODO: Implement a function that builds a cluster LOD hierarchy for a mesh, which can be used for efficient rendering of large meshes with varying levels of detail.
     }
 }

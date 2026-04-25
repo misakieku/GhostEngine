@@ -1,9 +1,8 @@
 using Ghost.Core;
 using Ghost.Core.Utilities;
-using Ghost.Editor.Core.AssetHandler;
+using Ghost.Editor.Core.Assets;
 using Ghost.Editor.Core.Contracts;
 using System.Collections.Concurrent;
-using System.IO.MemoryMappedFiles;
 
 namespace Ghost.Editor.Core.Services;
 
@@ -21,6 +20,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
 
     private readonly ConcurrentDictionary<string, bool> _ignoreMetaWrites;
     private readonly ConcurrentHashSet<Guid> _dirtyAssets;
+    private readonly ConcurrentDictionary<string, CancellationTokenSource> _eventDebouncers;
 
     public event EventHandler<AssetChangedEventArgs>? OnAssetChanged;
     public event EventHandler<Guid>? OnAssetImported
@@ -41,6 +41,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
 
         _ignoreMetaWrites = new ConcurrentDictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
         _dirtyAssets = new ConcurrentHashSet<Guid>();
+        _eventDebouncers = new ConcurrentDictionary<string, CancellationTokenSource>();
 
         SyncCatalogWithDisk();
 
@@ -48,7 +49,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
         {
             IncludeSubdirectories = true,
             EnableRaisingEvents = true,
-            NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.DirectoryName
+            NotifyFilter = NotifyFilters.LastWrite
         };
 
         _watcher.Created += OnFileSystemEvent;
@@ -72,7 +73,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
             var meta = AssetMetaIO.ReadAsync(metaPath).AsTask().Result;
             if (meta != null)
             {
-                var sourceRelative = AssetMetaIO.GetSourcePath(Path.GetRelativePath(EditorApplication.AssetsFolderPath, metaPath));
+                var sourceRelative = AssetMetaIO.GetSourcePath(Path.GetRelativePath(EditorApplication.ProjectPath, metaPath));
                 _catalog.Upsert(meta, sourceRelative);
                 foundGuids.Add(meta.Guid);
             }
@@ -90,56 +91,85 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
     private async void OnFileSystemEvent(object sender, FileSystemEventArgs e)
     {
         var ext = Path.GetExtension(e.FullPath);
-        var relativePath = Path.GetRelativePath(EditorApplication.AssetsFolderPath, e.FullPath);
-
-        if (_ignoreMetaWrites.TryRemove(e.FullPath, out _))
-        {
-            return;
-        }
 
         if (ext is ".tmp" or ".gtemp")
         {
             return;
         }
 
+        if (_eventDebouncers.TryGetValue(e.FullPath, out var existingCts))
+        {
+            existingCts.Cancel();
+            existingCts.Dispose();
+        }
+
+        var cts = new CancellationTokenSource();
+        _eventDebouncers[e.FullPath] = cts;
+
+        try
+        {
+            // Add a small delay to group rapid sequential triggers together (250ms is usually sufficient)
+            await Task.Delay(250, cts.Token);
+        }
+        catch (TaskCanceledException)
+        {
+            // A newer event for this file interrupted us; abort this duplicate handling
+            return;
+        }
+        finally
+        {
+            if (_eventDebouncers.TryGetValue(e.FullPath, out var currentCts) && currentCts == cts)
+            {
+                _eventDebouncers.TryRemove(e.FullPath, out _);
+                cts.Dispose();
+            }
+        }
+
+        if (_ignoreMetaWrites.TryRemove(e.FullPath, out _))
+        {
+            return;
+        }
+
+        var relativePath = Path.GetRelativePath(EditorApplication.ProjectPath, e.FullPath);
+        var fileExists = File.Exists(e.FullPath);
+
         if (ext == AssetMetaIO.META_EXTENSION)
         {
-            if (e.ChangeType == WatcherChangeTypes.Changed || e.ChangeType == WatcherChangeTypes.Created)
+            if (fileExists)
             {
-                var meta = AssetMetaIO.ReadAsync(e.FullPath).AsTask().Result;
+                var meta = await AssetMetaIO.ReadAsync(e.FullPath);
                 if (meta != null)
                 {
                     _catalog.Upsert(meta, AssetMetaIO.GetSourcePath(relativePath));
-                    await _importCoordinator.EnqueueAsync(new ImportJob(meta.Guid, AssetMetaIO.GetSourcePath(relativePath), e.FullPath, ImportReason.SettingsChanged));
+                    await _importCoordinator.EnqueueAsync(new ImportJob(meta.Guid, AssetMetaIO.GetSourcePath(relativePath), relativePath, ImportReason.SettingsChanged));
                 }
             }
-
             return;
         }
 
         var changeType = AssetChangeType.None;
-        if (e.ChangeType == WatcherChangeTypes.Created)
+        var guid = _catalog.GetGuid(relativePath);
+
+        if (!fileExists)
         {
-            await HandleNewSourceFileAsync(relativePath);
-            changeType = AssetChangeType.Created;
-        }
-        else if (e.ChangeType == WatcherChangeTypes.Changed)
-        {
-            var guid = _catalog.GetGuid(relativePath);
-            if (guid != Guid.Empty)
-            {
-                await _importCoordinator.EnqueueAsync(new ImportJob(guid, relativePath, AssetMetaIO.GetMetaPath(e.FullPath), ImportReason.SourceChanged));
-                changeType = AssetChangeType.Modified;
-            }
-        }
-        else if (e.ChangeType == WatcherChangeTypes.Deleted)
-        {
-            var guid = _catalog.GetGuid(relativePath);
+            // The file is no longer on disk. Wait safely completed.
             if (guid != Guid.Empty)
             {
                 _catalog.Remove(guid);
                 changeType = AssetChangeType.Deleted;
             }
+        }
+        else if (guid == Guid.Empty)
+        {
+            // The file exists but isn't located inside our catalog yet -> Essentially a Creation
+            await HandleNewSourceFileAsync(relativePath);
+            changeType = AssetChangeType.Created;
+        }
+        else
+        {
+            // The file exists and is tracked in the catalog, but triggered an event -> Modification
+            await _importCoordinator.EnqueueAsync(new ImportJob(guid, relativePath, AssetMetaIO.GetMetaPath(relativePath), ImportReason.SourceChanged));
+            changeType = AssetChangeType.Modified;
         }
 
         if (changeType != AssetChangeType.None)
@@ -150,8 +180,8 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
 
     private void OnFileSystemRenameEvent(object sender, RenamedEventArgs e)
     {
-        var oldRelative = Path.GetRelativePath(EditorApplication.AssetsFolderPath, e.OldFullPath);
-        var newRelative = Path.GetRelativePath(EditorApplication.AssetsFolderPath, e.FullPath);
+        var oldRelative = Path.GetRelativePath(EditorApplication.ProjectPath, e.OldFullPath);
+        var newRelative = Path.GetRelativePath(EditorApplication.ProjectPath, e.FullPath);
 
         var guid = _catalog.GetGuid(oldRelative);
         if (guid != Guid.Empty)
@@ -276,8 +306,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
                 return Result.Failure("Meta file does not exist.");
             }
 
-            await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-            return await handler.LoadAssetAsync(stream, id, meta.Settings, token);
+            return await handler.LoadAssetAsync(path, id, meta.Settings, token);
         }
         catch (Exception ex)
         {
@@ -305,9 +334,8 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
                 return Result.Failure("No Avaliable handler type.");
             }
 
-            await using var stream = new FileStream(path, FileMode.Open, FileAccess.Write, FileShare.None);
             // This will trigger the fsw and reimport automatically.
-            return await handler.SaveAssetAsync(stream, asset, token);
+            return await handler.SaveAssetAsync(path, asset, token);
         }
         catch (Exception ex)
         {

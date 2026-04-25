@@ -1,4 +1,4 @@
-using Ghost.Editor.Core.AssetHandler;
+using Ghost.Editor.Core.Assets;
 using Microsoft.Data.Sqlite;
 
 namespace Ghost.Editor.Core.Services;
@@ -17,9 +17,12 @@ public sealed partial class AssetCatalog : IDisposable
     private readonly SqliteCommand _cmdGetPath;
     private readonly SqliteCommand _cmdUpsert;
     private readonly SqliteCommand _cmdDelete;
+
     private readonly SqliteCommand _cmdGetHandlerTypeId;
     private readonly SqliteCommand _cmdGetReferencers;
     private readonly SqliteCommand _cmdGetDependencies;
+    private readonly SqliteCommand _cmdGetImportedAt;
+
     private readonly SqliteCommand _cmdInsertDep;
     private readonly SqliteCommand _cmdClearDeps;
     private readonly SqliteCommand _cmdEnumerate;
@@ -48,16 +51,22 @@ public sealed partial class AssetCatalog : IDisposable
         _cmdGetGuid = CreateCommand("SELECT guid FROM assets WHERE source_path = @path");
         _cmdGetPath = CreateCommand("SELECT source_path FROM assets WHERE guid = @guid");
         _cmdGetHandlerTypeId = CreateCommand("SELECT handler_type_id FROM assets WHERE guid = @guid");
+        _cmdGetImportedAt = CreateCommand("SELECT imported_at_ms FROM assets WHERE guid = @guid");
+
         _cmdUpsert = CreateCommand(@"
-            INSERT INTO assets (guid, source_path, handler_type_id, handler_version)
-            VALUES (@guid, @path, @handler_id, @version)
+            INSERT INTO assets (guid, source_path, handler_type_id, handler_version, content_hash, settings_hash, imported_at_ms)
+            VALUES (@guid, @path, @handler_id, @version, @content_hash, @settings_hash, @imported_at_ms)
             ON CONFLICT(guid) DO UPDATE SET
                 source_path = excluded.source_path,
                 handler_type_id = excluded.handler_type_id,
-                handler_version = excluded.handler_version");
+                handler_version = excluded.handler_version,
+                content_hash = excluded.content_hash,
+                settings_hash = excluded.settings_hash,
+                imported_at_ms = excluded.imported_at_ms");
         _cmdDelete = CreateCommand("DELETE FROM assets WHERE guid = @guid");
         _cmdGetReferencers = CreateCommand("SELECT from_guid FROM dependencies WHERE to_guid = @guid");
         _cmdGetDependencies = CreateCommand("SELECT to_guid FROM dependencies WHERE from_guid = @guid");
+        
         _cmdInsertDep = CreateCommand("INSERT INTO dependencies (from_guid, to_guid) VALUES (@from, @to)");
         _cmdClearDeps = CreateCommand("DELETE FROM dependencies WHERE from_guid = @guid");
         _cmdEnumerate = CreateCommand("SELECT guid, source_path FROM assets");
@@ -135,6 +144,9 @@ public sealed partial class AssetCatalog : IDisposable
             _cmdUpsert.Parameters.AddWithValue("@path", ToUniversalPath(sourcePath));
             _cmdUpsert.Parameters.AddWithValue("@handler_id", meta.HandlerTypeId?.ToByteArray() ?? (object)DBNull.Value);
             _cmdUpsert.Parameters.AddWithValue("@version", meta.HandlerVersion);
+            _cmdUpsert.Parameters.AddWithValue("@content_hash", meta.ContentHash ?? (object)DBNull.Value);
+            _cmdUpsert.Parameters.AddWithValue("@settings_hash", meta.SettingsHash ?? (object)DBNull.Value);
+            _cmdUpsert.Parameters.AddWithValue("@imported_at_ms", meta.LastImportedUtc?.Ticks ?? (object)DBNull.Value);
             _cmdUpsert.ExecuteNonQuery();
         }
     }
@@ -155,6 +167,20 @@ public sealed partial class AssetCatalog : IDisposable
         _cmdGetHandlerTypeId.Parameters.AddWithValue("@guid", guid.ToByteArray());
         var result = _cmdGetHandlerTypeId.ExecuteScalar();
         return result is byte[] bytes ? new Guid(bytes) : Guid.Empty;
+    }
+
+    public DateTime? GetImportedAt(Guid guid)
+    {
+        _cmdGetImportedAt.Parameters.Clear();
+        _cmdGetImportedAt.Parameters.AddWithValue("@guid", guid.ToByteArray());
+        var result = _cmdGetImportedAt.ExecuteScalar();
+
+        if (result is long ticks)
+        {
+            return new DateTime(ticks, DateTimeKind.Utc);
+        }
+
+        return null;
     }
 
     public void SetDependencies(Guid assetId, ReadOnlySpan<Guid> dependencies)

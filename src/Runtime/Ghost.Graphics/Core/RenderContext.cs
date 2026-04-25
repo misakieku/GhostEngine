@@ -130,7 +130,7 @@ public readonly unsafe ref struct RenderContext
 
         if (staticMesh)
         {
-            meshData.CookMeshlets();
+            //meshData.CookMeshlets();
             UploadMeshlets(mesh);
             meshData.ReleaseCpuResources();
         }

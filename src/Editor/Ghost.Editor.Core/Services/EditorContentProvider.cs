@@ -1,5 +1,5 @@
 using Ghost.Core;
-using Ghost.Editor.Core.AssetHandler;
+using Ghost.Editor.Core.Assets;
 using Ghost.Editor.Core.Contracts;
 using Ghost.Engine;
 

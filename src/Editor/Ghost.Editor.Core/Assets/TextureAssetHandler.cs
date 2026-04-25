@@ -6,9 +6,8 @@ using Misaki.HighPerformance.LowLevel;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using TerraFX.Interop.Windows;
 
-namespace Ghost.Editor.Core.AssetHandler;
+namespace Ghost.Editor.Core.Assets;
 
 public enum TextureType : uint
 {
@@ -86,7 +85,7 @@ public unsafe class TextureAsset : IAsset
         _textureData = data;
         _width = header.width;
         _height = header.height;
-        _depth = header.depth;
+        _depth = header.bpc;
         _dimension = header.dimension;
         _colorComponents = header.colorComponents;
     }
@@ -159,11 +158,6 @@ public class TextureAssetSettings : IAssetSettings
         {
             get; set;
         } = 0; // 0 means generate full mipmap levels.
-
-        public bool GammaCorrection
-        {
-            get; set;
-        } = true;
 
         public bool PremultiplyAlpha
         {
@@ -264,6 +258,7 @@ internal class TextureAssetHandler : IImportableAssetHandler, IPackableAssetHand
         public int width;
         public int height;
         public int depth;
+        public int bitsPerChannel;
         public int colorComponents;
         public bool isHDR;
     }
@@ -305,33 +300,27 @@ internal class TextureAssetHandler : IImportableAssetHandler, IPackableAssetHand
         return TextureDimension.Texture2D;
     }
 
-    private static unsafe Result<TextureInfo> GetImageInfo(FileStream sourceStream)
+    private static unsafe Result<TextureInfo> GetImageInfo(string sourcePath, TextureAssetSettings settings)
     {
-        using var mmf = MemoryMappedFile.CreateFromFile(sourceStream, null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, true);
+        using var mmf = MemoryMappedFile.CreateFromFile(sourcePath, FileMode.Open);
         using var accessor = mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
 
         byte* ptr = null;
 
         try
         {
-            var ext = Path.GetExtension(sourceStream.Name);
-            var isHDR = ext.Equals(".hdr", StringComparison.OrdinalIgnoreCase);
+            var ext = Path.GetExtension(sourcePath);
+            var isHDR = ext.Equals(".hdr", StringComparison.OrdinalIgnoreCase) || settings.Basic.TextureShape == TextureShape.TextureCube;
 
             accessor.SafeMemoryMappedViewHandle.AcquirePointer(ref ptr);
 
             int imageWidth, imageHeight, bitsPerChannel, colorComponents;
 
-            var bufferSpan = new ReadOnlySpan<byte>(ptr, (int)sourceStream.Length);
-            var code = StbIApi.InfoFromMemory(bufferSpan, &imageWidth, &imageHeight, &colorComponents);
-            if (code == 0)
-            {
-                return Result.Failure("Failed to read image info from memory.");
-            }
-
+            var bufferSpan = new ReadOnlySpan<byte>(ptr, (int)accessor.Capacity);
             bitsPerChannel = StbIApi.Is16BitFromMemory(bufferSpan) > 0 ? 16 : 8;
 
             void* pPixels;
-            if (bitsPerChannel > 8)
+            if (isHDR || bitsPerChannel > 8)
             {
                 pPixels = StbIApi.LoadfFromMemory(bufferSpan, &imageWidth, &imageHeight, &colorComponents, 4);
             }
@@ -345,8 +334,9 @@ internal class TextureAssetHandler : IImportableAssetHandler, IPackableAssetHand
                 pixelData = (IntPtr)pPixels,
                 width = imageWidth,
                 height = imageHeight,
-                depth = bitsPerChannel,
-                colorComponents = colorComponents,
+                depth = 1,
+                bitsPerChannel = bitsPerChannel,
+                colorComponents = 4, // We forced req_comp to 4
                 isHDR = isHDR,
             };
         }
@@ -363,25 +353,25 @@ internal class TextureAssetHandler : IImportableAssetHandler, IPackableAssetHand
         }
     }
 
-    public ValueTask<Result<IAsset>> LoadAssetAsync(FileStream assetStream, Guid id, IAssetSettings? settings, CancellationToken token = default)
+    public ValueTask<Result<IAsset>> LoadAssetAsync(string assetPath, Guid id, IAssetSettings? settings, CancellationToken token = default)
     {
         try
         {
-            var infoResult = GetImageInfo(assetStream);
+            var textureSettings = settings as TextureAssetSettings ?? new TextureAssetSettings();
+            var infoResult = GetImageInfo(assetPath, textureSettings);
             if (infoResult.IsFailure)
             {
                 return ValueTask.FromResult(Result<IAsset>.Failure(infoResult.Message));
             }
 
             var info = infoResult.Value;
-            var textureSettings = settings as TextureAssetSettings ?? new TextureAssetSettings();
             var contentHeader = new TextureContentHeader
             {
                 width = (uint)info.width,
                 height = (uint)info.height,
-                depth = (uint)info.depth,
+                bpc = (uint)info.bitsPerChannel,
                 colorComponents = (uint)info.colorComponents,
-                dimension = (uint)GetTextureDimension(textureSettings)
+                dimension = (uint)GetTextureDimension(textureSettings),
             };
 
             return ValueTask.FromResult(Result.Success<IAsset>(new TextureAsset(info.pixelData, contentHeader, id, textureSettings)));
@@ -393,22 +383,24 @@ internal class TextureAssetHandler : IImportableAssetHandler, IPackableAssetHand
     }
 
     [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
-    private unsafe static void WriteCallback(void* context, void* data, int size)
+    private static unsafe void WriteCallback(void* context, void* data, int size)
     {
         var stream = (Stream)GCHandle.FromIntPtr((IntPtr)context).Target!;
         var buffer = new ReadOnlySpan<byte>(data, size);
         stream.Write(buffer);
     }
 
-    public async ValueTask<Result> SaveAssetAsync(FileStream targetStream, IAsset asset, CancellationToken token = default)
+    public async ValueTask<Result> SaveAssetAsync(string targetPath, IAsset asset, CancellationToken token = default)
     {
         if (asset is not TextureAsset textureAsset)
         {
             return Result.Failure("Asset type is not TextureAsset");
         }
 
+        await using var targetStream = new FileStream(targetPath, FileMode.Create, FileAccess.Write, FileShare.None);
         return await Task.Run(() =>
         {
+            // It will be safe here to pass the gc handle to c because c will not use it, c will only pass it back to c# in the callback, and we will free the handle after the write operation is done.
             var gcHandle = GCHandle.Alloc(targetStream, GCHandleType.Normal);
 
             try
@@ -447,28 +439,24 @@ internal class TextureAssetHandler : IImportableAssetHandler, IPackableAssetHand
         }, token).ConfigureAwait(false);
     }
 
-    public async ValueTask<Result> ImportAsync(FileStream sourceStream, FileStream targetStream, Guid id, IAssetSettings? settings, CancellationToken token = default)
+    public async ValueTask<Result> ImportAsync(string sourcePath, string targetPath, Guid id, IAssetSettings? settings, CancellationToken token = default)
     {
-        if (sourceStream.Length > int.MaxValue)
+        if (!File.Exists(sourcePath))
         {
-            return Result.Failure("Source stream is too large.");
+            return Result.Failure("Source file does not exist.");
         }
 
         try
         {
             var textureSettings = settings as TextureAssetSettings ?? new TextureAssetSettings();
-
-            using var mmf = MemoryMappedFile.CreateFromFile(sourceStream, null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, true);
-            using var accessor = mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
-
-            var infoResult = GetImageInfo(sourceStream);
+            var infoResult = GetImageInfo(sourcePath, textureSettings);
             if (!infoResult.IsSuccess)
             {
                 return Result.Failure(infoResult.Message);
             }
 
             var info = infoResult.Value;
-            var result = await TextureProcessor.CompressToCacheAsync(EditorApplication.CacheFolderPath, id,
+            var result = await TextureProcessor.GenerateMipAndCompressAsync(EditorApplication.CacheFolderPath, id,
                 info,
                 textureSettings, token)
             .ConfigureAwait(false);
@@ -480,13 +468,12 @@ internal class TextureAssetHandler : IImportableAssetHandler, IPackableAssetHand
 
             var (cachePath, mip) = result.Value;
 
-            targetStream.Seek(0, SeekOrigin.Begin);
-
+            await using var targetStream = new FileStream(targetPath, FileMode.Create, FileAccess.Write, FileShare.None);
             var header = new TextureContentHeader
             {
                 width = (uint)info.width,
                 height = (uint)info.height,
-                depth = (uint)info.depth,
+                bpc = (uint)info.bitsPerChannel,
                 colorComponents = (uint)info.colorComponents,
                 mipLevels = (uint)mip,
                 dimension = (uint)GetTextureDimension(textureSettings)
@@ -506,12 +493,12 @@ internal class TextureAssetHandler : IImportableAssetHandler, IPackableAssetHand
         }
     }
 
-    public ValueTask<Result> ExportAsync(FileStream assetStream, FileStream targetStream, IAssetExportOptions? options, CancellationToken token = default)
+    public ValueTask<Result> ExportAsync(string assetPath, string targetPath, IAssetExportOptions? options, CancellationToken token = default)
     {
         return ValueTask.FromResult(Result.Failure("Exporting texture assets is not supported yet."));
     }
 
-    public ValueTask<Result> PackAsync(FileStream assetStream, Stream targetStream, CancellationToken token = default)
+    public ValueTask<Result> PackAsync(string assetPath, MemoryStream targetStream, CancellationToken token = default)
     {
         throw new NotImplementedException();
     }

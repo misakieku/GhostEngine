@@ -12,7 +12,7 @@ public struct TextureContentHeader
 {
     public uint width;
     public uint height;
-    public uint depth;
+    public uint bpc;
     public uint mipLevels;
     public uint dimension; // 1 for 1D, 2 for 2D, 3 for 3D
     public uint colorComponents;
@@ -48,25 +48,25 @@ internal partial class AssetEntry
         };
     }
 
-    private static TextureFormat GetTextureFormat(uint depth, uint colorComponents)
+    private static TextureFormat GetTextureFormat(uint bpc, uint colorComponents)
     {
         return colorComponents switch
         {
-            1 => depth switch
+            1 => bpc switch
             {
                 8 => TextureFormat.R8_UNorm,
                 16 => TextureFormat.R16_UNorm,
                 32 => TextureFormat.R32_UInt,
                 _ => TextureFormat.Unknown,
             },
-            2 => depth switch
+            2 => bpc switch
             {
                 8 => TextureFormat.R8G8_UNorm,
                 16 => TextureFormat.R16G16_UNorm,
                 32 => TextureFormat.R32G32_Float,
                 _ => TextureFormat.Unknown,
             },
-            3 or 4 => depth switch
+            3 or 4 => bpc switch
             {
                 8 => TextureFormat.R8G8B8A8_UNorm,
                 16 => TextureFormat.R16G16B16A16_Float,
@@ -91,7 +91,7 @@ internal partial class AssetEntry
             Height = header.height,
             MipLevels = header.mipLevels,
             Slice = 1,
-            Format = GetTextureFormat(header.depth, header.colorComponents),
+            Format = GetTextureFormat(header.bpc, header.colorComponents),
             Dimension = (TextureDimension)header.dimension,
             Usage = TextureUsage.ShaderResource,
         };

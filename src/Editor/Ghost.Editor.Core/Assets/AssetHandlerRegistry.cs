@@ -1,6 +1,6 @@
 using Ghost.Engine;
 
-namespace Ghost.Editor.Core.AssetHandler;
+namespace Ghost.Editor.Core.Assets;
 
 public static class AssetHandlerRegistry
 {
@@ -9,12 +9,16 @@ public static class AssetHandlerRegistry
     private static readonly Dictionary<Guid, IAssetHandler> s_byTypeId;
     private static readonly Dictionary<Guid, int> s_versionByTypeId;
 
+    private static readonly List<(Type Type, string Name)> s_iAssetSettingsTypes;
+
     static AssetHandlerRegistry()
     {
         s_byExtension = new Dictionary<string, IAssetHandler>(StringComparer.OrdinalIgnoreCase);
         s_typeByExtension = new Dictionary<string, AssetType>(StringComparer.OrdinalIgnoreCase);
         s_byTypeId = new Dictionary<Guid, IAssetHandler>();
         s_versionByTypeId = new Dictionary<Guid, int>();
+
+        s_iAssetSettingsTypes = new List<(Type Type, string Name)>();
     }
 
     public static void RegisterHandler(IAssetHandler handler, Guid assetTypeId, ReadOnlySpan<string> extensions, int version)
@@ -28,6 +32,11 @@ public static class AssetHandlerRegistry
             s_byExtension[normalizedExt] = handler;
             s_typeByExtension[normalizedExt] = handler.RuntimeAssetType;
         }
+    }
+
+    public static void RegisterIAssetSettingsType(Type type, string name)
+    {
+        s_iAssetSettingsTypes.Add((type, name));
     }
 
     public static IAssetHandler? GetByExtension(string extension)
@@ -68,5 +77,10 @@ public static class AssetHandlerRegistry
 
         var normalized = extension.StartsWith('.') ? extension : "." + extension;
         return s_typeByExtension.GetValueOrDefault(normalized, AssetType.Unknown);
+    }
+
+    public static IReadOnlyCollection<(Type Type, string Name)> GetIAssetSettingsTypes()
+    {
+        return s_iAssetSettingsTypes;
     }
 }

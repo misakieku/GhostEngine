@@ -1,18 +1,16 @@
-using Ghost.Engine;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
-namespace Ghost.Editor.Core.AssetHandler;
+namespace Ghost.Editor.Core.Assets;
 
 /// <summary>
 /// Mark IAssetSettings for polymorphic serialization.
 /// Each handler type will register its own derived type.
 /// </summary>
-[JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]
-[JsonDerivedType(typeof(DefaultAssetSettings), "Default")]
 public interface IAssetSettings;
 
-public sealed class DefaultAssetSettings : IAssetSettings;
+internal sealed class DefaultAssetSettings : IAssetSettings;
 
 /// <summary>
 /// Persisted as a JSON sidecar (.gmeta) next to every source asset.
@@ -76,8 +74,35 @@ internal static class AssetMetaIO
         WriteIndented = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
+        TypeInfoResolver = new DefaultJsonTypeInfoResolver
+        {
+            Modifiers = { ConfigureAssetSettingsPolymorphism }
+        },
+        Converters =
+        {
+            new JsonStringEnumConverter(JsonNamingPolicy.CamelCase),
+        }
     };
+
+    private static void ConfigureAssetSettingsPolymorphism(JsonTypeInfo typeInfo)
+    {
+        if (typeInfo.Type != typeof(IAssetSettings))
+        {
+            return;
+        }
+
+        typeInfo.PolymorphismOptions = new JsonPolymorphismOptions
+        {
+            TypeDiscriminatorPropertyName = "$type",
+            IgnoreUnrecognizedTypeDiscriminators = true,
+            UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FallBackToNearestAncestor
+        };
+
+        foreach (var setting in AssetHandlerRegistry.GetIAssetSettingsTypes())
+        {
+            typeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(setting.Type, setting.Name));
+        }
+    }
 
     public static async ValueTask<AssetMeta?> ReadAsync(string metaPath, CancellationToken token = default)
     {

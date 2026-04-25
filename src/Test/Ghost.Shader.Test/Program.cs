@@ -7,7 +7,7 @@ using System.Numerics;
 
 //return;
 #if true
-var result =  DSLShaderCompiler.CompileComputeShader("F:\\csharp\\GhostEngine\\src\\Runtime\\Ghost.Graphics\\TestCompute.gcomp");
+var result =  DSLShaderCompiler.CompileComputeShaderCode("F:\\csharp\\GhostEngine\\src\\Runtime\\Ghost.Graphics\\TestCompute.gcomp");
 if (result.IsFailure)
 {
     Console.WriteLine(result.Message);
