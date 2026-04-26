@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Engine.Utilities;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Utilities;
 using Ghost.MeshOptimizer;
@@ -59,23 +60,60 @@ internal unsafe class MeshParsingWorkItem : IJob
         };
     }
 
-    private GeometryMeshNode ParseGeometry(ufbx_mesh* pMesh)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static float4x4 ToFloat4x4(ufbx_vec3 t, ufbx_quat q, ufbx_vec3 s)
     {
-        var meshNode = new GeometryMeshNode
+        return float4x4.TRS(
+            new float3(t.x, t.y, t.z),
+            new quaternion(q.x, q.y, q.z, q.w),
+            new float3(s.x, s.y, s.z)
+        );
+    }
+
+    private MeshNode ParseHierarchy(ufbx_node* node)
+    {
+        var children = new List<MeshNode>();
+        var meshNode = new MeshNode
         {
-            Name = pMesh->name.ToString(),
-            Children = Array.Empty<MeshNode>(),
+            Name = node->name.ToString(),
+            LocalTransform = ToFloat4x4(node->local_transform.translation, node->local_transform.rotation, node->local_transform.scale),
+            Children = children
         };
+
+        if (node->mesh != null)
+        {
+            var geoNodes = ParseGeometry(node->mesh);
+            children.AddRange(geoNodes);
+        }
+
+        // TODO: Handle lights, cameras, and other node types.
+
+        for (var i = 0u; i < node->children.count; i++)
+        {
+            children.Add(ParseHierarchy(node->children.data[i]));
+        }
+
+        return meshNode;
+    }
+
+    private IReadOnlyCollection<GeometryMeshNode> ParseGeometry(ufbx_mesh* pMesh)
+    {
+        var resultNodes = new List<GeometryMeshNode>();
 
         if (pMesh->num_faces == 0)
         {
-            return meshNode;
+            return resultNodes;
         }
 
-        var missingNormals = false;
-        var missingTangents = false;
+        var numMaterials = pMesh->materials.count > 0 ? (int)pMesh->materials.count : 1;
+        var materialBuckets = new UnsafeList<Vertex>[numMaterials];
+        var missingNormalsBucket = new bool[numMaterials];
+        var missingTangentsBucket = new bool[numMaterials];
 
-        using var flatVertices = new UnsafeList<Vertex>(1024, AllocationHandle.FreeList);
+        for (int i = 0; i < numMaterials; i++)
+        {
+            materialBuckets[i] = new UnsafeList<Vertex>(1024, AllocationHandle.FreeList);
+        }
 
         var maxScratchIndices = (int)(pMesh->max_face_triangles * 3u);
 
@@ -84,9 +122,10 @@ internal unsafe class MeshParsingWorkItem : IJob
         for (var j = 0u; j < pMesh->num_faces; j++)
         {
             var face = pMesh->faces.data[j];
+            var materialIdx = pMesh->face_material.count > j ? pMesh->face_material.data[j] : 0;
 
             var numTris = UfbxApi.TriangulateFace(triIndicesArray.AsSpan(0, maxScratchIndices), pMesh, face);
-            
+
             var totalIndices = numTris * 3;
             for (var k = 0; k < totalIndices; k++)
             {
@@ -123,62 +162,88 @@ internal unsafe class MeshParsingWorkItem : IJob
                     vertex.tangent = ComputeTangent(t, n, b);
                 }
 
-                var newIndex = (uint)flatVertices.Count;
+                materialBuckets[materialIdx].Add(vertex);
 
-                flatVertices.Add(vertex);
-
-                if (!missingNormals)
+                if (!missingNormalsBucket[materialIdx])
                 {
-                    missingNormals = normIdx == uint.MaxValue;
+                    missingNormalsBucket[materialIdx] = normIdx == uint.MaxValue;
                 }
 
-                if (!missingTangents)
+                if (!missingTangentsBucket[materialIdx])
                 {
-                    missingTangents = tanIdx == uint.MaxValue || btanIdx == uint.MaxValue;
+                    missingTangentsBucket[materialIdx] = tanIdx == uint.MaxValue || btanIdx == uint.MaxValue;
                 }
             }
         }
 
-        var numIndices = (uint)flatVertices.Count;
-
-        using var weldedIndices = new UnsafeArray<uint>((int)numIndices, AllocationHandle.FreeList);
-        using var cachedIndices = new UnsafeArray<uint>((int)numIndices, AllocationHandle.FreeList);
-
-        var stream = new ufbx_vertex_stream
+        for (int m = 0; m < numMaterials; m++)
         {
-            data = flatVertices.GetUnsafePtr(),
-            vertex_count = numIndices,
-            vertex_size = (nuint)sizeof(Vertex)
-        };
+            var flatVertices = materialBuckets[m];
+            if (flatVertices.Count == 0)
+            {
+                flatVertices.Dispose();
+                continue;
+            }
 
-        var error = new ufbx_error();
-        var numUniqueVertices = UfbxApi.GenerateIndices([stream], weldedIndices, null, &error);
-        if (numUniqueVertices == 0 && error.type != ufbx_error_type.UFBX_ERROR_NONE)
-        {
-            return;
+            var numIndices = (uint)flatVertices.Count;
+
+            using var weldedIndices = new UnsafeArray<uint>((int)numIndices, AllocationHandle.FreeList);
+            using var cachedIndices = new UnsafeArray<uint>((int)numIndices, AllocationHandle.FreeList);
+
+            var stream = new ufbx_vertex_stream
+            {
+                data = flatVertices.GetUnsafePtr(),
+                vertex_count = numIndices,
+                vertex_size = (nuint)sizeof(Vertex)
+            };
+
+            var error = new ufbx_error();
+            var numUniqueVertices = UfbxApi.GenerateIndices([stream], weldedIndices, null, &error);
+            if (numUniqueVertices == 0 && error.type != ufbx_error_type.UFBX_ERROR_NONE)
+            {
+                flatVertices.Dispose();
+                continue;
+            }
+
+            MeshOptApi.OptimizeVertexCache((uint*)cachedIndices.GetUnsafePtr(), (uint*)weldedIndices.GetUnsafePtr(), numIndices, numUniqueVertices);
+
+            var nodeVertices = new UnsafeList<Vertex>((int)numUniqueVertices, _allocationHandle);
+            var nodeIndices = new UnsafeList<uint>((int)numIndices, _allocationHandle);
+
+            var finalVertexCount = MeshOptApi.OptimizeVertexFetch(nodeVertices.GetUnsafePtr(), (uint*)cachedIndices.GetUnsafePtr(), numIndices, flatVertices.GetUnsafePtr(), numIndices, (nuint)sizeof(Vertex));
+
+            nodeVertices.UnsafeSetCount((int)finalVertexCount);
+
+            MemoryUtility.MemCpy(nodeIndices.GetUnsafePtr(), cachedIndices.GetUnsafePtr(), numIndices * sizeof(uint));
+            nodeIndices.UnsafeSetCount((int)numIndices);
+
+            if (_settings.NormalDataSource == VertexDataSource.Computed || (_settings.NormalDataSource == VertexDataSource.ComputedIfMissing && missingNormalsBucket[m]))
+            {
+                MeshBuilder.ComputeNormal(nodeVertices, nodeIndices);
+            }
+
+            if (_settings.TangentDataSource == VertexDataSource.Computed || (_settings.TangentDataSource == VertexDataSource.ComputedIfMissing && missingTangentsBucket[m]))
+            {
+                MeshBuilder.ComputeTangents(nodeVertices, nodeIndices);
+            }
+
+            var meshNodeName = numMaterials > 1 ? $"{pMesh->name.ToString()}_mat{m}" : pMesh->name.ToString();
+
+            var meshNode = new GeometryMeshNode
+            {
+                Name = meshNodeName,
+                LocalTransform = new float4x4(new float4(1, 0, 0, 0), new float4(0, 1, 0, 0), new float4(0, 0, 1, 0), new float4(0, 0, 0, 1)),
+                Children = Array.Empty<MeshNode>(),
+                Vertices = nodeVertices,
+                Indices = nodeIndices,
+                MaterialIndex = m
+            };
+
+            resultNodes.Add(meshNode);
+            flatVertices.Dispose();
         }
 
-        MeshOptApi.OptimizeVertexCache((uint*)cachedIndices.GetUnsafePtr(), (uint*)weldedIndices.GetUnsafePtr(), numIndices, numUniqueVertices);
-
-        vertices = new UnsafeList<Vertex>((int)numUniqueVertices, _allocationHandle);
-        indices = new UnsafeList<uint>((int)numIndices, _allocationHandle);
-
-        var finalVertexCount = MeshOptApi.OptimizeVertexFetch(vertices.GetUnsafePtr(), (uint*)cachedIndices.GetUnsafePtr(), numIndices, flatVertices.GetUnsafePtr(), numIndices, (nuint)sizeof(Vertex));
-
-        vertices.UnsafeSetCount((int)finalVertexCount);
-
-        MemoryUtility.MemCpy(indices.GetUnsafePtr(), cachedIndices.GetUnsafePtr(), numIndices * sizeof(uint));
-        indices.UnsafeSetCount((int)numIndices);
-
-        if (_settings.NormalDataSource == VertexDataSource.Computed || (_settings.NormalDataSource == VertexDataSource.ComputedIfMissing && missingNormals))
-        {
-            MeshBuilder.ComputeNormal(vertices, indices);
-        }
-
-        if (_settings.TangentDataSource == VertexDataSource.Computed || (_settings.TangentDataSource == VertexDataSource.ComputedIfMissing && missingTangents))
-        {
-            MeshBuilder.ComputeTangents(vertices, indices);
-        }
+        return resultNodes;
     }
 
     public void Execute(ref readonly JobExecutionContext context)
@@ -231,68 +296,10 @@ internal unsafe class MeshParsingWorkItem : IJob
             return;
         }
 
-        using var flatVertices = new UnsafeList<Vertex>(1024, AllocationHandle.FreeList);
+        var rootNode = ParseHierarchy(scene.Get()->root_node);
+        rootNode.Name = Path.GetFileNameWithoutExtension(_filePath);
 
-        var missingNormals = false;
-        var missingTangents = false;
-
-        for (var i = 0u; i < scene.Get()->nodes.count; i++)
-        {
-            var data = scene.Get()->nodes.data;
-            var node = scene.Get()->nodes.data[i];
-            if (node->is_root)
-            {
-                continue;
-            }
-
-            if (node->mesh != null)
-            {
-
-            }
-        }
-
-        var numIndices = (uint)flatVertices.Count;
-
-        using var weldedIndices = new UnsafeArray<uint>((int)numIndices, AllocationHandle.FreeList);
-        using var cachedIndices = new UnsafeArray<uint>((int)numIndices, AllocationHandle.FreeList);
-
-        var stream = new ufbx_vertex_stream
-        {
-            data = flatVertices.GetUnsafePtr(),
-            vertex_count = numIndices,
-            vertex_size = (nuint)sizeof(Vertex)
-        };
-
-        var numUniqueVertices = UfbxApi.GenerateIndices([stream], weldedIndices, null, &error);
-        if (numUniqueVertices == 0 && error.type != ufbx_error_type.UFBX_ERROR_NONE)
-        {
-            _taskCompletionSource.SetResult(Result.Failure($"Welding failed: {error.description}"));
-            return;
-        }
-
-        MeshOptApi.OptimizeVertexCache((uint*)cachedIndices.GetUnsafePtr(), (uint*)weldedIndices.GetUnsafePtr(), numIndices, numUniqueVertices);
-
-        vertices = new UnsafeList<Vertex>((int)numUniqueVertices, _allocationHandle);
-        indices = new UnsafeList<uint>((int)numIndices, _allocationHandle);
-
-        var finalVertexCount = MeshOptApi.OptimizeVertexFetch(vertices.GetUnsafePtr(), (uint*)cachedIndices.GetUnsafePtr(), numIndices, flatVertices.GetUnsafePtr(), numIndices, (nuint)sizeof(Vertex));
-
-        vertices.UnsafeSetCount((int)finalVertexCount);
-
-        MemoryUtility.MemCpy(indices.GetUnsafePtr(), cachedIndices.GetUnsafePtr(), numIndices * sizeof(uint));
-        indices.UnsafeSetCount((int)numIndices);
-
-        if (_settings.NormalDataSource == VertexDataSource.Computed || (_settings.NormalDataSource == VertexDataSource.ComputedIfMissing && missingNormals))
-        {
-            MeshBuilder.ComputeNormal(vertices, indices);
-        }
-
-        if (_settings.TangentDataSource == VertexDataSource.Computed || (_settings.TangentDataSource == VertexDataSource.ComputedIfMissing && missingTangents))
-        {
-            MeshBuilder.ComputeTangents(vertices, indices);
-        }
-
-        _taskCompletionSource.SetResult(Result.Success());
+        _taskCompletionSource.SetResult(Result<MeshNode>.Success(rootNode));
     }
 }
 

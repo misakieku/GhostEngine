@@ -695,7 +695,13 @@ public static unsafe partial class MeshProcessor
         return finalClusterCount;
     }
 
-    public static void BuildMeshlets(MeshletMeshData* pMeshletData, ReadOnlyUnsafeCollection<Vertex> vertices, ReadOnlyUnsafeCollection<uint> indices)
+    private struct MeshletContext
+    {
+        public MeshletMeshData* data;
+        public int materialIndex;
+    }
+
+    public static void BuildMeshlets(MeshletMeshData* pMeshletData, ReadOnlyUnsafeCollection<Vertex> vertices, ReadOnlyUnsafeCollection<uint> indices, int materialIndex = 0)
     {
         Logger.DebugAssert(pMeshletData->meshletCount > 0, "Mesh must have vertices to build meshlets.");
 
@@ -735,7 +741,13 @@ public static unsafe partial class MeshProcessor
             attributeProtectMask = 0, // TODO: We need to protect UVs and other vertex attributes to ensure they are not altered during simplification.
         };
 
-        Build(in config, in clodMesh, pMeshletData, MeshletOutputCallback);
+        var context = new MeshletContext
+        {
+            data = pMeshletData,
+            materialIndex = materialIndex
+        };
+
+        Build(in config, in clodMesh, &context, MeshletOutputCallback);
 
         pMeshletData->meshletCount = pMeshletData->meshlets.IsCreated ? pMeshletData->meshlets.Count : 0;
 
@@ -750,12 +762,14 @@ public static unsafe partial class MeshProcessor
             pMeshletData->lodLevelCount = (int)maxLodLevel + 1;
         }
 
-        pMeshletData->materialSlotCount = 1;
+        pMeshletData->materialSlotCount = Math.Max(pMeshletData->materialSlotCount, materialIndex + 1);
     }
 
-    private static int MeshletOutputCallback(void* context, ClodGroup group, ReadOnlyUnsafeCollection<ClodCluster> clusters)
+    private static int MeshletOutputCallback(void* contextPtr, ClodGroup group, ReadOnlyUnsafeCollection<ClodCluster> clusters)
     {
-        var pMeshletData = (MeshletMeshData*)context;
+        var context = (MeshletContext*)contextPtr;
+        var pMeshletData = context->data;
+        var materialIndex = context->materialIndex;
 
         // Ensure lists are initialized
         if (!pMeshletData->groups.IsCreated) pMeshletData->groups = new UnsafeList<MeshletGroup>(16, AllocationHandle.Persistent);
@@ -790,7 +804,7 @@ public static unsafe partial class MeshProcessor
                 groupIndex = (uint)pMeshletData->groups.Count - 1,
                 clusterError = cluster.bounds.error,
                 parentError = group.simplified.error,
-                localMaterialIndex = 0, // TODO: support multiple materials
+                localMaterialIndex = (byte)materialIndex,
                 lodLevel = (byte)group.depth,
             };
             pMeshletData->meshlets.Add(meshlet);

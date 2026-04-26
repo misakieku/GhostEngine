@@ -1,11 +1,8 @@
 using Ghost.Core;
 using Ghost.Engine;
 using Ghost.Nvtt;
-using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel;
-using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
-using Misaki.HighPerformance.Mathematics.SPMD;
 using System.IO.Hashing;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -191,45 +188,63 @@ internal static partial class TextureProcessor
 
             pCtx.Get()->SetCudaAcceleration(NvttApi.IsCudaSupported());
 
-            int edgeLength;
-            using (var cubeSurface0 = new DisposablePtr<NvttCubeSurface>(NvttCubeSurface.Create()))
-            using (var mip0Surf = new DisposablePtr<NvttSurface>(NvttSurface.Create()))
+            int maxCubeMips = _mipLevels.Length;
+            var cubeSurfaces = new IntPtr[maxCubeMips];
+            
+            try
             {
-                if (!mip0Surf.Get()->SetImageData(NvttInputFormat.NVTT_InputFormat_RGBA_32F, _mipLevels[0].width, _mipLevels[0].height, 1, _mipLevels[0].data.GetUnsafePtr(), false, null))
+                for (var level = 0; level < maxCubeMips; level++)
                 {
-                    return Result.Failure<int>("Failed to set image data for NVTT compression.");
+                    var cubeSurf = NvttCubeSurface.Create();
+                    cubeSurfaces[level] = (IntPtr)cubeSurf;
+
+                    using var mipSurf = new DisposablePtr<NvttSurface>(NvttSurface.Create());
+                    if (!mipSurf.Get()->SetImageData(NvttInputFormat.NVTT_InputFormat_RGBA_32F, _mipLevels[level].width, _mipLevels[level].height, 1, _mipLevels[level].data.GetUnsafePtr(), false, null))
+                    {
+                        return Result.Failure("Failed to set image data for NVTT compression.");
+                    }
+
+                    if (_settings.Basic.IsSRGB)
+                    {
+                        mipSurf.Get()->ToSrgb(null);
+                    }
+
+                    cubeSurf->Fold(mipSurf.Get(), NvttCubeLayout.NVTT_CubeLayout_LatitudeLongitude);
                 }
 
-                cubeSurface0.Get()->Fold(mip0Surf.Get(), NvttCubeLayout.NVTT_CubeLayout_LatitudeLongitude);
-                edgeLength = cubeSurface0.Get()->EdgeLength();
-            }
-
-            pCtx.Get()->OutputHeaderData(NvttTextureType.NVTT_TextureType_Cube, edgeLength, edgeLength, 1, _mipLevels.Length, false, pCompOpts.Get(), pOutOpts.Get());
-
-            for (var level = 0; level < _mipLevels.Length; level++)
-            {
-                using var cubeSurface = new DisposablePtr<NvttCubeSurface>(NvttCubeSurface.Create());
-                using var mipSurf = new DisposablePtr<NvttSurface>(NvttSurface.Create());
-                
-                mipSurf.Get()->SetImageData(NvttInputFormat.NVTT_InputFormat_RGBA_32F, _mipLevels[level].width, _mipLevels[level].height, 1, _mipLevels[level].data.GetUnsafePtr(), false, null);
-                cubeSurface.Get()->Fold(mipSurf.Get(), NvttCubeLayout.NVTT_CubeLayout_LatitudeLongitude);
+                var firstCube = (NvttCubeSurface*)cubeSurfaces[0];
+                if (!pCtx.Get()->OutputHeaderCube(firstCube, maxCubeMips, pCompOpts.Get(), pOutOpts.Get()))
+                {
+                    return Result.Failure("Failed to output header for cube map.");
+                }
 
                 for (var face = 0; face < 6; face++)
                 {
-                    var faceSurf = cubeSurface.Get()->Face(face);
-                    if (_settings.Basic.IsSRGB)
+                    for (var level = 0; level < maxCubeMips; level++)
                     {
-                        faceSurf->ToSrgb(null);
+                        var cubeSurf = (NvttCubeSurface*)cubeSurfaces[level];
+                        using var faceSurf = new DisposablePtr<NvttSurface>(cubeSurf->Face(face));
+                        
+                        if (!pCtx.Get()->Compress(faceSurf.Get(), face, level, pCompOpts.Get(), pOutOpts.Get()))
+                        {
+                            return Result.Failure("Failed to compress cube map face.");
+                        }
                     }
-
-                    if (!pCtx.Get()->Compress(faceSurf, face, level, pCompOpts.Get(), pOutOpts.Get()))
+                }
+            }
+            finally
+            {
+                for (var level = 0; level < maxCubeMips; level++)
+                {
+                    if (cubeSurfaces[level] != IntPtr.Zero)
                     {
-                        return Result.Failure("Failed to compress mipmap.");
+                        var cubeSurf = (NvttCubeSurface*)cubeSurfaces[level];
+                        cubeSurf->Dispose();
                     }
                 }
             }
 
-            return Result.Success(_mipLevels.Length);
+            return Result.Success(maxCubeMips);
         }
 
         public void Execute()
@@ -316,7 +331,17 @@ internal static partial class TextureProcessor
         {
             if (settings.Basic.TextureShape == TextureShape.TextureCube)
             {
-                var handle = GenerateMipHDRI(scheduler, textureInfo, out mipLevels);
+                int maxCubeMips;
+                unsafe
+                {
+                    using var cubeSurface0 = new DisposablePtr<NvttCubeSurface>(NvttCubeSurface.Create());
+                    using var mip0Surf = new DisposablePtr<NvttSurface>(NvttSurface.Create());
+                    mip0Surf.Get()->SetImageData(NvttInputFormat.NVTT_InputFormat_RGBA_32F, textureInfo.width, textureInfo.height, 1, (void*)textureInfo.pixelData, false, null);
+                    cubeSurface0.Get()->Fold(mip0Surf.Get(), NvttCubeLayout.NVTT_CubeLayout_LatitudeLongitude);
+                    maxCubeMips = (int)Math.Floor(Math.Log2(cubeSurface0.Get()->EdgeLength())) + 1;
+                }
+
+                var handle = GenerateMipHDRI(scheduler, textureInfo, maxCubeMips, out mipLevels);
                 await scheduler.WaitAsync(handle, cancellationToken);
             }
 

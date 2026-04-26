@@ -1,13 +1,13 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using Ghost.Core.Utilities;
 using Ghost.Editor.Core;
+using Ghost.Editor.Core.Assets;
 using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.Utilities;
 using Ghost.Editor.Models;
-using Ghost.Editor.Core.AssetHandler;
-using System.Collections.ObjectModel;
-using Microsoft.UI.Dispatching;
 using Ghost.Engine;
-using Ghost.Core.Utilities;
+using Microsoft.UI.Dispatching;
+using System.Collections.ObjectModel;
 
 namespace Ghost.Editor.ViewModels.Controls;
 
@@ -69,7 +69,7 @@ internal partial class ContentBrowserViewModel : ObservableObject
 
         var fullPath = PathUtility.Normalize(e.AssetPath);
         var dirPath = Path.GetDirectoryName(fullPath);
-        
+
         if (string.Equals(dirPath, CurrentDirectoryPath, StringComparison.OrdinalIgnoreCase))
         {
             _dispatcherQueue.TryEnqueue(() =>
@@ -86,7 +86,7 @@ internal partial class ContentBrowserViewModel : ObservableObject
                     if (!Files.Any(f => string.Equals(f.Path, fullPath, StringComparison.OrdinalIgnoreCase)))
                     {
                         var isDir = Directory.Exists(fullPath);
-                        AssetType assetType = AssetType.Unknown;
+                        var assetType = AssetType.Unknown;
                         if (!isDir)
                         {
                             var ext = Path.GetExtension(fullPath);

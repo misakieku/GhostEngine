@@ -66,13 +66,13 @@ internal static class ActivationHandler
 
         AllocationManager.Initialize(opts);
 
-        //var assetRegistry = App.GetService<IAssetRegistry>();
-        //var engineCore = App.GetService<EngineCore>();
+        var assetRegistry = App.GetService<IAssetRegistry>();
+        var engineCore = App.GetService<EngineCore>();
 
-        //assetRegistry.OnAssetImported += (sender, e) =>
-        //{
-        //    engineCore.AssetManager.ReimportAsset(e);
-        //};
+        assetRegistry.OnAssetImported += (sender, e) =>
+        {
+            engineCore.AssetManager.ReimportAsset(e);
+        };
 
         return ValueTask.CompletedTask;
     }

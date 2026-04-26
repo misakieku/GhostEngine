@@ -212,6 +212,10 @@ internal static partial class TextureProcessor
             pData[out_idx] = prefilteredColor.x;
             pData[out_idx + 1] = prefilteredColor.y;
             pData[out_idx + 2] = prefilteredColor.z;
+            if (channelCount == 4)
+            {
+                pData[out_idx + 3] = 1.0f;
+            }
         }
     }
 
@@ -251,11 +255,10 @@ internal static partial class TextureProcessor
         return bits * 2.3283064365386963e-10f; // bits / 0x100000000
     }
 
-    private static JobHandle GenerateMipHDRI(JobScheduler scheduler, TextureAssetHandler.TextureInfo textureInfo, out UnsafeArray<MipLevel> mipLevels)
+    private static JobHandle GenerateMipHDRI(JobScheduler scheduler, TextureAssetHandler.TextureInfo textureInfo, int totalMipLevels, out UnsafeArray<MipLevel> mipLevels)
     {
         Logger.DebugAssert(textureInfo.isHDR, "GenerateMipHDRI should only be called for HDR textures.");
-
-        var totalMipLevels = (int)Math.Floor(Math.Log2(Math.Max(textureInfo.width, textureInfo.height))) + 1;
+        Logger.DebugAssert(textureInfo.colorComponents >= 3, "Texture must have at least 3 color components for RGB.");
 
         mipLevels = new UnsafeArray<MipLevel>(totalMipLevels, AllocationHandle.FreeList);
         var radicalInverse_VdCLut = new UnsafeArray<float>(_SAMPLE_COUNT, AllocationHandle.FreeList);

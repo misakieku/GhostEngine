@@ -33,7 +33,7 @@ internal class AssetHandlerRegistrationGenerator : IIncrementalGenerator
 
         foreach (var symbol in array)
         {
-            var attribute = symbol.GetAttributes().FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "Ghost.Editor.Core.AssetHandler.CustomAssetHandlerAttribute");
+            var attribute = symbol.GetAttributes().FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "Ghost.Editor.Core.Assets.CustomAssetHandlerAttribute");
             if (attribute == null)
             {
                 continue;
@@ -44,7 +44,7 @@ internal class AssetHandlerRegistrationGenerator : IIncrementalGenerator
             var extensions = $"new string[] {{ {string.Join(", ", extensionsTypesConstants.Select(v => v.ToCSharpString()))} }}";
             var version = (int)attribute.ConstructorArguments[2].Value;
 
-            sb.Append($"        global::Ghost.Editor.Core.AssetHandler.AssetHandlerRegistry.RegisterHandler(new {symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}(), Guid.Parse(\"{id}\"), {extensions}, {version});");
+            sb.AppendLine($"        global::Ghost.Editor.Core.Assets.AssetHandlerRegistry.RegisterHandler(new {symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}(), Guid.Parse(\"{id}\"), {extensions}, {version});");
         }
 
         var registerTypeName = "g_assethandler_registeration";
@@ -71,7 +71,7 @@ internal static partial class {registerTypeName}
             return null;
         }
 
-        var iHandlerSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("Ghost.Editor.Core.AssetHandler.IAssetHandler");
+        var iHandlerSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("Ghost.Editor.Core.Assets.IAssetHandler");
         if (iHandlerSymbol == null)
         {
             return null;
@@ -114,7 +114,7 @@ internal class IAssetSettingsRegistrationGenerator : IIncrementalGenerator
 
         foreach (var iface in array)
         {
-            sb.AppendLine($"        global::Ghost.Editor.Core.AssetHandler.AssetHandlerRegistry.RegisterIAssetSettingsType(typeof({iface.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}), \"{iface.Name}\");");
+            sb.AppendLine($"        global::Ghost.Editor.Core.Assets.AssetHandlerRegistry.RegisterIAssetSettingsType(typeof({iface.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}), \"{iface.Name}\");");
         }
 
         var registerTypeName = "g_iassetsettings_registeration";
@@ -141,7 +141,7 @@ internal static partial class {registerTypeName}
             return null;
         }
 
-        var iSettingsSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("Ghost.Editor.Core.AssetHandler.IAssetSettings");
+        var iSettingsSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("Ghost.Editor.Core.Assets.IAssetSettings");
         if (iSettingsSymbol == null)
         {
             return null;

@@ -159,7 +159,7 @@ internal sealed partial class ImportCoordinator : IDisposable
             return string.Empty;
         }
 
-        var hash = XxHash128.HashToUInt128(JsonSerializer.SerializeToUtf8Bytes(settings));
+        var hash = XxHash128.HashToUInt128(JsonSerializer.SerializeToUtf8Bytes(settings, settings.GetType()));
         Span<byte> bytes = stackalloc byte[16];
         Unsafe.WriteUnaligned(ref bytes[0], hash);
 
