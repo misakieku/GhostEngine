@@ -12,21 +12,32 @@ using Misaki.HighPerformance.LowLevel.Utilities;
 using Misaki.HighPerformance.Mathematics;
 using System.Runtime.CompilerServices;
 using System.Text;
-using System.Xml.Linq;
 
 namespace Ghost.Editor.Core.Assets;
 
-internal unsafe class MeshParsingWorkItem : IJob
+internal readonly unsafe struct MeshParsingWorkItem : IJob
 {
+    private struct GeometryPart : IDisposable
+    {
+        public UnsafeList<Vertex> vertices;
+        public UnsafeList<uint> indices;
+        public int materialIndex;
+        public bool missingNormals;
+        public bool missingTangents;
+
+        public void Dispose()
+        {
+            vertices.Dispose();
+            indices.Dispose();
+        }
+    }
+
     private readonly string _filePath;
     private readonly AllocationHandle _allocationHandle;
     private readonly MeshAssetSettings _settings;
     private readonly TaskCompletionSource<Result<MeshNode>> _taskCompletionSource;
 
-    public UnsafeList<Vertex> vertices;
-    public UnsafeList<uint> indices;
-
-    public Task<Result<MeshNode>> Task => _taskCompletionSource.Task;
+    public readonly Task<Result<MeshNode>> Task => _taskCompletionSource.Task;
 
     public MeshParsingWorkItem(string filePath, AllocationHandle allocationHandle, MeshAssetSettings settings)
     {
@@ -82,8 +93,11 @@ internal unsafe class MeshParsingWorkItem : IJob
 
         if (node->mesh != null)
         {
-            var geoNodes = ParseGeometry(node->mesh);
-            children.AddRange(geoNodes);
+            var geoNode = ParseGeometry(node->mesh);
+            if (geoNode != null)
+            {
+                children.Add(geoNode);
+            }
         }
 
         // TODO: Handle lights, cameras, and other node types.
@@ -96,21 +110,22 @@ internal unsafe class MeshParsingWorkItem : IJob
         return meshNode;
     }
 
-    private IReadOnlyCollection<GeometryMeshNode> ParseGeometry(ufbx_mesh* pMesh)
+    private GeometryMeshNode? ParseGeometry(ufbx_mesh* pMesh)
     {
-        var resultNodes = new List<GeometryMeshNode>();
-
         if (pMesh->num_faces == 0)
         {
-            return resultNodes;
+            return null;
         }
 
         var numMaterials = pMesh->materials.count > 0 ? (int)pMesh->materials.count : 1;
-        var materialBuckets = new UnsafeList<Vertex>[numMaterials];
-        var missingNormalsBucket = new bool[numMaterials];
-        var missingTangentsBucket = new bool[numMaterials];
 
-        for (int i = 0; i < numMaterials; i++)
+        // Bucket faces by material
+
+        using var materialBuckets = new UnsafeArray<UnsafeList<Vertex>>(numMaterials, AllocationHandle.FreeList);
+        using var missingNormalsBucket = new UnsafeArray<bool>(numMaterials, AllocationHandle.FreeList);
+        using var missingTangentsBucket = new UnsafeArray<bool>(numMaterials, AllocationHandle.FreeList);
+
+        for (var i = 0; i < numMaterials; i++)
         {
             materialBuckets[i] = new UnsafeList<Vertex>(1024, AllocationHandle.FreeList);
         }
@@ -176,9 +191,13 @@ internal unsafe class MeshParsingWorkItem : IJob
             }
         }
 
-        for (int m = 0; m < numMaterials; m++)
+        // Per-material weld + optimize, collect intermediate results
+
+        using var partResults = new UnsafeList<GeometryPart>(numMaterials, AllocationHandle.FreeList);
+
+        for (var m = 0; m < numMaterials; m++)
         {
-            var flatVertices = materialBuckets[m];
+            ref var flatVertices = ref materialBuckets[m];
             if (flatVertices.Count == 0)
             {
                 flatVertices.Dispose();
@@ -207,60 +226,102 @@ internal unsafe class MeshParsingWorkItem : IJob
 
             MeshOptApi.OptimizeVertexCache((uint*)cachedIndices.GetUnsafePtr(), (uint*)weldedIndices.GetUnsafePtr(), numIndices, numUniqueVertices);
 
-            var nodeVertices = new UnsafeList<Vertex>((int)numUniqueVertices, _allocationHandle);
-            var nodeIndices = new UnsafeList<uint>((int)numIndices, _allocationHandle);
+            // Allocate temporary per-part buffers (will be merged then disposed)
+            var partVertices = new UnsafeList<Vertex>((int)numUniqueVertices, AllocationHandle.FreeList);
+            var partIndices = new UnsafeList<uint>((int)numIndices, AllocationHandle.FreeList);
 
-            var finalVertexCount = MeshOptApi.OptimizeVertexFetch(nodeVertices.GetUnsafePtr(), (uint*)cachedIndices.GetUnsafePtr(), numIndices, flatVertices.GetUnsafePtr(), numIndices, (nuint)sizeof(Vertex));
+            var finalVertexCount = MeshOptApi.OptimizeVertexFetch(partVertices.GetUnsafePtr(), (uint*)cachedIndices.GetUnsafePtr(), numIndices, flatVertices.GetUnsafePtr(), numIndices, (nuint)sizeof(Vertex));
 
-            nodeVertices.UnsafeSetCount((int)finalVertexCount);
+            partVertices.UnsafeSetCount((int)finalVertexCount);
 
-            MemoryUtility.MemCpy(nodeIndices.GetUnsafePtr(), cachedIndices.GetUnsafePtr(), numIndices * sizeof(uint));
-            nodeIndices.UnsafeSetCount((int)numIndices);
+            MemoryUtility.MemCpy(partIndices.GetUnsafePtr(), cachedIndices.GetUnsafePtr(), numIndices * sizeof(uint));
+            partIndices.UnsafeSetCount((int)numIndices);
 
-            if (_settings.NormalDataSource == VertexDataSource.Computed || (_settings.NormalDataSource == VertexDataSource.ComputedIfMissing && missingNormalsBucket[m]))
+            var part = new GeometryPart
             {
-                MeshBuilder.ComputeNormal(nodeVertices, nodeIndices);
-            }
-
-            if (_settings.TangentDataSource == VertexDataSource.Computed || (_settings.TangentDataSource == VertexDataSource.ComputedIfMissing && missingTangentsBucket[m]))
-            {
-                MeshBuilder.ComputeTangents(nodeVertices, nodeIndices);
-            }
-
-            var meshNodeName = numMaterials > 1 ? $"{pMesh->name.ToString()}_mat{m}" : pMesh->name.ToString();
-
-            var meshNode = new GeometryMeshNode
-            {
-                Name = meshNodeName,
-                LocalTransform = new float4x4(new float4(1, 0, 0, 0), new float4(0, 1, 0, 0), new float4(0, 0, 1, 0), new float4(0, 0, 0, 1)),
-                Children = Array.Empty<MeshNode>(),
-                Vertices = nodeVertices,
-                Indices = nodeIndices,
-                MaterialIndex = m
+                vertices = partVertices,
+                indices = partIndices,
+                materialIndex = m,
+                missingNormals = missingNormalsBucket[m],
+                missingTangents = missingTangentsBucket[m]
             };
 
-            resultNodes.Add(meshNode);
+            partResults.Add(part);
             flatVertices.Dispose();
         }
 
-        return resultNodes;
+        if (partResults.Count == 0)
+        {
+            return null;
+        }
+
+        // Merge all material parts into one unified vertex/index buffer
+
+        var totalVertexCount = 0;
+        var totalIndexCount = 0;
+        for (var i = 0; i < partResults.Count; i++)
+        {
+            totalVertexCount += partResults[i].vertices.Count;
+            totalIndexCount += partResults[i].indices.Count;
+        }
+
+        var mergedVertices = new UnsafeList<Vertex>(totalVertexCount, _allocationHandle);
+        var mergedIndices = new UnsafeList<uint>(totalIndexCount, _allocationHandle);
+        var materialParts = new UnsafeArray<MaterialPartInfo>(partResults.Count, _allocationHandle);
+
+        var vertexOffset = 0;
+        var indexOffset = 0;
+
+        for (var i = 0; i < partResults.Count; i++)
+        {
+            ref var part = ref partResults[i];
+
+            // Compute normals/tangents per-part before merge (requires local indices)
+            if (_settings.NormalDataSource == VertexDataSource.Computed || (_settings.NormalDataSource == VertexDataSource.ComputedIfMissing && part.missingNormals))
+            {
+                MeshBuilder.ComputeNormal(part.vertices, part.indices);
+            }
+
+            if (_settings.TangentDataSource == VertexDataSource.Computed || (_settings.TangentDataSource == VertexDataSource.ComputedIfMissing && part.missingTangents))
+            {
+                MeshBuilder.ComputeTangents(part.vertices, part.indices);
+            }
+
+            materialParts[i] = new MaterialPartInfo
+            {
+                materialIndex = part.materialIndex,
+                vertexStart = vertexOffset,
+                vertexCount = part.vertices.Count,
+                indexStart = indexOffset,
+                indexCount = part.indices.Count,
+            };
+
+            mergedVertices.AddRange(part.vertices.AsSpan());
+
+            // Rebase indices to global vertex space
+            for (var j = 0; j < part.indices.Count; j++)
+            {
+                mergedIndices.Add(part.indices[j] + (uint)vertexOffset);
+            }
+
+            vertexOffset += part.vertices.Count;
+            indexOffset += part.indices.Count;
+
+            part.Dispose();
+        }
+
+        return new GeometryMeshNode
+        {
+            Name = pMesh->name.ToString(),
+            LocalTransform = float4x4.identity,
+            Vertices = mergedVertices,
+            Indices = mergedIndices,
+            MaterialParts = materialParts,
+        };
     }
 
     public void Execute(ref readonly JobExecutionContext context)
     {
-        if (!File.Exists(_filePath))
-        {
-            _taskCompletionSource.SetResult(Result.Failure("Invalid file path."));
-            return;
-        }
-
-        if (!Path.GetExtension(_filePath).Equals(".obj", StringComparison.OrdinalIgnoreCase)
-            && !Path.GetExtension(_filePath).Equals(".fbx", StringComparison.OrdinalIgnoreCase))
-        {
-            _taskCompletionSource.SetResult(Result.Failure("Unsupported file format. Only .obj and .fbx are supported."));
-            return;
-        }
-
         var error = new ufbx_error();
         var load_Opts = new ufbx_load_opts
         {
@@ -299,7 +360,7 @@ internal unsafe class MeshParsingWorkItem : IJob
         var rootNode = ParseHierarchy(scene.Get()->root_node);
         rootNode.Name = Path.GetFileNameWithoutExtension(_filePath);
 
-        _taskCompletionSource.SetResult(Result<MeshNode>.Success(rootNode));
+        _taskCompletionSource.SetResult(Result.Success(rootNode));
     }
 }
 

@@ -1,6 +1,7 @@
 using Ghost.Core;
 using Ghost.Engine;
 using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
 using System.Runtime.InteropServices;
@@ -21,13 +22,13 @@ public class MeshNode : IDisposable
 
     public MeshNode? Parent
     {
-        get; init;
-    }
-
-    public required IReadOnlyCollection<MeshNode> Children
-    {
         get; set;
     }
+
+    public IReadOnlyCollection<MeshNode> Children
+    {
+        get; set;
+    } = Array.Empty<MeshNode>();
 
     ~MeshNode()
     {
@@ -45,15 +46,36 @@ public class MeshNode : IDisposable
             child.Dispose();
         }
 
+        Parent = null;
+        Children = Array.Empty<MeshNode>();
+
         Dispose(true);
         GC.SuppressFinalize(this);
     }
+}
+
+/// <summary>
+/// Describes one material partition within a unified vertex/index buffer.
+/// </summary>
+public struct MaterialPartInfo
+{
+    /// <summary> The material slot index (from ufbx face_material). </summary>
+    public int materialIndex;
+    /// <summary> Byte offset into the unified index buffer. </summary>
+    public int indexStart;
+    /// <summary> Number of indices belonging to this part. </summary>
+    public int indexCount;
+    /// <summary> Byte offset into the unified vertex buffer. </summary>
+    public int vertexStart;
+    /// <summary> Number of unique vertices belonging to this part. </summary>
+    public int vertexCount;
 }
 
 public class GeometryMeshNode : MeshNode
 {
     private UnsafeList<Vertex> _vertices;
     private UnsafeList<uint> _indices;
+    private UnsafeArray<MaterialPartInfo> _materialParts;
 
     public UnsafeList<Vertex> Vertices
     {
@@ -75,15 +97,21 @@ public class GeometryMeshNode : MeshNode
         }
     }
 
-    public int MaterialIndex
+    public UnsafeArray<MaterialPartInfo> MaterialParts
     {
-        get; set;
+        get => _materialParts;
+        set
+        {
+            _materialParts.Dispose();
+            _materialParts = value;
+        }
     }
 
     protected override void Dispose(bool disposing)
     {
         _vertices.Dispose();
         _indices.Dispose();
+        _materialParts.Dispose();
     }
 }
 

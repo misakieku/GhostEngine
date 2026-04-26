@@ -701,70 +701,6 @@ public static unsafe partial class MeshProcessor
         public int materialIndex;
     }
 
-    public static void BuildMeshlets(MeshletMeshData* pMeshletData, ReadOnlyUnsafeCollection<Vertex> vertices, ReadOnlyUnsafeCollection<uint> indices, int materialIndex = 0)
-    {
-        Logger.DebugAssert(pMeshletData->meshletCount > 0, "Mesh must have vertices to build meshlets.");
-
-        var config = new ClodConfig
-        {
-            maxVertices = 64,
-            minTriangles = 32,
-            maxTriangles = 124,
-
-            partitionSpatial = true,
-            partitionSize = 16,
-
-            clusterSpatial = false,
-            clusterSplitFactor = 2.0f,
-
-            optimizeClusters = true,
-            optimizeClustersLevel = 1,
-
-            simplifyRatio = 0.5f,
-            simplifyThreshold = 0.85f,
-            simplifyErrorMergePrevious = 1.0f,
-            simplifyErrorFactorSloppy = 2.0f,
-            simplifyPermissive = true,
-            simplifyFallbackPermissive = false,
-            simplifyFallbackSloppy = true,
-        };
-
-        var clodMesh = new ClodMesh
-        {
-            vertexPositions = (float*)Unsafe.AsPointer(in vertices[0].position),
-            vertexCount = (nuint)vertices.Count,
-            vertexPositionsStride = (nuint)sizeof(Vertex),
-            vertexAttributes = (float*)Unsafe.AsPointer(in vertices[0].normal),
-            vertexAttributesStride = (nuint)sizeof(Vertex),
-            indices = (uint*)indices.GetUnsafePtr(),
-            indexCount = (nuint)indices.Count,
-            attributeProtectMask = 0, // TODO: We need to protect UVs and other vertex attributes to ensure they are not altered during simplification.
-        };
-
-        var context = new MeshletContext
-        {
-            data = pMeshletData,
-            materialIndex = materialIndex
-        };
-
-        Build(in config, in clodMesh, &context, MeshletOutputCallback);
-
-        pMeshletData->meshletCount = pMeshletData->meshlets.IsCreated ? pMeshletData->meshlets.Count : 0;
-
-        if (pMeshletData->groups.IsCreated && pMeshletData->groups.Count > 0)
-        {
-            var maxLodLevel = 0u;
-            for (var i = 0; i < pMeshletData->groups.Count; i++)
-            {
-                maxLodLevel = Math.Max(maxLodLevel, pMeshletData->groups[i].lodLevel);
-            }
-
-            pMeshletData->lodLevelCount = (int)maxLodLevel + 1;
-        }
-
-        pMeshletData->materialSlotCount = Math.Max(pMeshletData->materialSlotCount, materialIndex + 1);
-    }
-
     private static int MeshletOutputCallback(void* contextPtr, ClodGroup group, ReadOnlyUnsafeCollection<ClodCluster> clusters)
     {
         var context = (MeshletContext*)contextPtr;
@@ -827,6 +763,91 @@ public static unsafe partial class MeshProcessor
         }
 
         return 0;
+    }
+
+    /// <summary>
+    /// Builds meshlets for a unified multi-material mesh.
+    /// Each <see cref="MaterialPartInfo"/> describes a material partition's index range within the unified buffer.
+    /// Meshlets are built per-part and tagged with the corresponding <c>localMaterialIndex</c>.
+    /// </summary>
+    public static void BuildMeshlets(MeshletMeshData* pMeshletData, ReadOnlyUnsafeCollection<Vertex> vertices, ReadOnlyUnsafeCollection<uint> indices, ReadOnlySpan<MaterialPartInfo> parts)
+    {
+        Logger.DebugAssert(pMeshletData->meshletCount == 0, "Meshlet data is not empty.");
+        Logger.DebugAssert(vertices.Count > 0, "Mesh must have vertices to build meshlets.");
+        Logger.DebugAssert(indices.Count > 0, "Mesh must have indices to build meshlets.");
+        Logger.DebugAssert(parts.Length > 0, "Must have at least one material part.");
+
+        var config = new ClodConfig
+        {
+            maxVertices = 64,
+            minTriangles = 32,
+            maxTriangles = 124,
+
+            partitionSpatial = true,
+            partitionSize = 16,
+
+            clusterSpatial = false,
+            clusterSplitFactor = 2.0f,
+
+            optimizeClusters = true,
+            optimizeClustersLevel = 1,
+
+            simplifyRatio = 0.5f,
+            simplifyThreshold = 0.85f,
+            simplifyErrorMergePrevious = 1.0f,
+            simplifyErrorFactorSloppy = 2.0f,
+            simplifyPermissive = true,
+            simplifyFallbackPermissive = false,
+            simplifyFallbackSloppy = true,
+        };
+
+        for (var i = 0; i < parts.Length; i++)
+        {
+            ref readonly var part = ref parts[i];
+
+            // Each part references a slice of the global index buffer,
+            // but vertex positions are the full unified buffer so global indices remain valid.
+            var clodMesh = new ClodMesh
+            {
+                vertexPositions = (float*)Unsafe.AsPointer(in vertices[0].position),
+                vertexCount = (nuint)vertices.Count,
+                vertexPositionsStride = (nuint)sizeof(Vertex),
+                vertexAttributes = (float*)Unsafe.AsPointer(in vertices[0].normal),
+                vertexAttributesStride = (nuint)sizeof(Vertex),
+                indices = (uint*)indices.GetUnsafePtr() + part.indexStart,
+                indexCount = (nuint)part.indexCount,
+                attributeProtectMask = 0, // TODO: Protect UVs at material boundaries.
+            };
+
+            var context = new MeshletContext
+            {
+                data = pMeshletData,
+                materialIndex = part.materialIndex
+            };
+
+            Build(in config, in clodMesh, &context, MeshletOutputCallback);
+        }
+
+        pMeshletData->meshletCount = pMeshletData->meshlets.IsCreated ? pMeshletData->meshlets.Count : 0;
+
+        if (pMeshletData->groups.IsCreated && pMeshletData->groups.Count > 0)
+        {
+            var maxLodLevel = 0u;
+            for (var j = 0; j < pMeshletData->groups.Count; j++)
+            {
+                maxLodLevel = Math.Max(maxLodLevel, pMeshletData->groups[j].lodLevel);
+            }
+
+            pMeshletData->lodLevelCount = (int)maxLodLevel + 1;
+        }
+
+        var maxMaterialSlot = 0;
+        for (var j = 0; j < parts.Length; j++)
+        {
+            maxMaterialSlot = Math.Max(maxMaterialSlot, parts[j].materialIndex);
+        }
+
+        pMeshletData->materialSlotCount = maxMaterialSlot + 1;
     }
 
     public static void BuildClusterLodHierarchy()

@@ -8,12 +8,13 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DefineConstants>$(DefineConstants);MHP_ENABLE_SAFETY_CHECKS</DefineConstants>
+    <DefineConstants>$(DefineConstants);MHP_ENABLE_SAFETY_CHECKS;MHP_ENABLE_MIMALLOC</DefineConstants>
     <IsAotCompatible>True</IsAotCompatible>
     <IsTrimmable>True</IsTrimmable>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DefineConstants>$(DefineConstants);MHP_ENABLE_MIMALLOC</DefineConstants>
     <IsAotCompatible>True</IsAotCompatible>
     <IsTrimmable>True</IsTrimmable>
   </PropertyGroup>
@@ -28,6 +29,7 @@
     <PackageReference Include="Misaki.HighPerformance.Mathematics" Version="1.3.3" />
     <PackageReference Include="Misaki.HighPerformance.Mathematics.SPMD" Version="1.3.0" />
     <PackageReference Include="System.IO.Hashing" Version="10.0.7" />
+    <PackageReference Include="TerraFX.Interop.Mimalloc" Version="1.6.7.2" />
     <PackageReference Include="TerraFX.Interop.Windows" Version="10.0.26100.6" />
   </ItemGroup>
 

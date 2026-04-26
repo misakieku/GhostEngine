@@ -190,19 +190,18 @@ public static unsafe class MeshBuilder
     /// </summary>
     /// <param name="vertices">The vertex list.</param>
     /// <param name="indices">The index list.</param>
-    public static void ComputeNormal(UnsafeList<Vertex> vertices, UnsafeList<uint> indices)
+    public static void ComputeNormal(Span<Vertex> vertices, Span<uint> indices)
     {
-        if (!vertices.IsCreated || vertices.Count < 3
-            || !indices.IsCreated || indices.Count < 3)
+        if (vertices.Length < 3 || indices.Length < 3)
         {
             return;
         }
 
-        for (var i = 0; i < indices.Count; i += 3)
+        for (var i = 0; i < indices.Length; i += 3)
         {
-            var i0 = indices[i];
-            var i1 = indices[i + 1];
-            var i2 = indices[i + 2];
+            var i0 = (int)indices[i];
+            var i1 = (int)indices[i + 1];
+            var i2 = (int)indices[i + 2];
 
             var v0 = vertices[i0];
             var v1 = vertices[i1];
@@ -217,7 +216,7 @@ public static unsafe class MeshBuilder
             vertices[i2].normal.xyz += faceNormal;
         }
 
-        for (var i = 0; i < vertices.Count; i++)
+        for (var i = 0; i < vertices.Length; i++)
         {
             vertices[i].normal = math.normalize(vertices[i].normal);
         }
@@ -228,16 +227,16 @@ public static unsafe class MeshBuilder
     /// </summary>
     /// <param name="vertices">The vertex list.</param>
     /// <param name="indices">The index list.</param>
-    public static void ComputeTangents(UnsafeList<Vertex> vertices, UnsafeList<uint> indices)
+    public static void ComputeTangents(Span<Vertex> vertices, Span<uint> indices)
     {
         using var scope = AllocationManager.CreateStackScope();
-        var bitangents = new UnsafeArray<float3>(vertices.Count, scope.AllocationHandle, AllocationOption.Clear);
+        var bitangents = new UnsafeArray<float3>(vertices.Length, scope.AllocationHandle, AllocationOption.Clear);
 
-        for (var i = 0; i < indices.Count; i += 3)
+        for (var i = 0; i < indices.Length; i += 3)
         {
-            var i0 = indices[i];
-            var i1 = indices[i + 1];
-            var i2 = indices[i + 2];
+            var i0 = (int)indices[i];
+            var i1 = (int)indices[i + 1];
+            var i2 = (int)indices[i + 2];
 
             var v0 = vertices[i0];
             var v1 = vertices[i1];
@@ -258,7 +257,7 @@ public static unsafe class MeshBuilder
 
             for (var j = 0; j < 3; j++)
             {
-                var idx = indices[i + j];
+                var idx = (int)indices[i + j];
                 var t = vertices[idx].tangent;
                 vertices[idx].tangent.xyz = t.xyz + tangent.xyz;
 
@@ -266,7 +265,7 @@ public static unsafe class MeshBuilder
             }
         }
 
-        for (var i = 0; i < vertices.Count; i++)
+        for (var i = 0; i < vertices.Length; i++)
         {
             var n = vertices[i].normal;
             var t = vertices[i].tangent.xyz;

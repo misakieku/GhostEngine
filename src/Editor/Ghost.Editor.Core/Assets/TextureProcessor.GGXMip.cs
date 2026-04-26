@@ -2,6 +2,7 @@ using Ghost.Core;
 using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using Misaki.HighPerformance.Mathematics;
 using Misaki.HighPerformance.Mathematics.SPMD;
 using System.Runtime.CompilerServices;
 using static Misaki.HighPerformance.Mathematics.math;
@@ -72,34 +73,70 @@ internal static partial class TextureProcessor
             return MathV.Normalize(sampleVec);
         }
 
-        // Maps a 3D direction vector to 2D equirectangular UVs
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector2<TFloat, float> DirToEquirectangularUV(Vector3<TFloat, float> dir)
+        private static float3 CubemapUVToDir(int face, float u, float v)
         {
-            var u = TFloat.Atan2(dir.z, dir.x);
-            var v = TFloat.Asin(dir.y);
+            var sc = 2.0f * u - 1.0f;
+            var tc = 1.0f - 2.0f * v;
 
-            u = u / (2.0f * PI) + 0.5f;
-            v = v / PI + 0.5f;
-            return MathV.Create<TFloat, float>(u, v);
+            float x = 0, y = 0, z = 0;
+            switch (face)
+            {
+                case 0: x = 1.0f; y = tc; z = -sc; break;
+                case 1: x = -1.0f; y = tc; z = sc; break;
+                case 2: x = sc; y = 1.0f; z = -tc; break;
+                case 3: x = sc; y = -1.0f; z = tc; break;
+                case 4: x = sc; y = tc; z = 1.0f; break;
+                case 5: x = -sc; y = tc; z = -1.0f; break;
+            }
+
+            return normalize(float3(x, y, z));
         }
 
-        // Samples the source HDR image using bilinear interpolation (simplified to nearest neighbor for brevity here)
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector3<TFloat, float> SampleEquirectangularMap(float* img, int w, int h, int c, Vector3<TFloat, float> dir)
+        private static Vector3<TFloat, float> SampleCubemap(float* img, int edge, int c, Vector3<TFloat, float> dir)
         {
-            var uv = DirToEquirectangularUV(dir);
+            var absX = TFloat.Abs(dir.x);
+            var absY = TFloat.Abs(dir.y);
+            var absZ = TFloat.Abs(dir.z);
 
-            // Nearest neighbor pixel coordinates
-            var px = (uv.x * (w - 1.0f)).Cast<TInt, int>();
-            var py = (uv.y * (h - 1.0f)).Cast<TInt, int>();
+            var isXPos = dir.x >= TFloat.Zero;
+            var isYPos = dir.y >= TFloat.Zero;
+            var isZPos = dir.z >= TFloat.Zero;
 
-            // Clamp
-            px = TInt.Clamp(px, TInt.Zero, w - 1);
-            py = TInt.Clamp(py, TInt.Zero, h - 1);
+            var maxAxis = TFloat.Max(TFloat.Max(absX, absY), absZ);
 
-            // Assuming float RGB array format
-            var idx = (py * w + px) * c;
+            var faceIndexF = TFloat.Select(maxAxis == absX,
+                TFloat.Select(isXPos, 0.0f, 1.0f),
+                TFloat.Select(maxAxis == absY,
+                    TFloat.Select(isYPos, 2.0f, 3.0f),
+                    TFloat.Select(isZPos, 4.0f, 5.0f)));
+
+            var faceIndex = faceIndexF.Cast<TInt, int>();
+
+            var sc = TFloat.Select(maxAxis == absX,
+                TFloat.Select(isXPos, -dir.z, dir.z),
+                TFloat.Select(maxAxis == absY,
+                    dir.x,
+                    TFloat.Select(isZPos, dir.x, -dir.x)));
+
+            var tc = TFloat.Select(maxAxis == absX,
+                dir.y,
+                TFloat.Select(maxAxis == absY,
+                    TFloat.Select(isYPos, -dir.z, dir.z),
+                    dir.y));
+
+            var u = 0.5f * (sc / maxAxis + 1.0f);
+            var v = 0.5f * (1.0f - tc / maxAxis);
+
+            var px = (u * (edge - 1.0f)).Cast<TInt, int>();
+            var py = (v * (edge - 1.0f)).Cast<TInt, int>();
+
+            px = TInt.Clamp(px, TInt.Zero, edge - 1);
+            py = TInt.Clamp(py, TInt.Zero, edge - 1);
+
+            var faceOffset = faceIndex * (edge * edge);
+            var idx = (faceOffset + py * edge + px) * c;
             return MathV.GatherVector3<TFloat, float>(img, idx.GetUnsafePtr(), 1);
         }
 
@@ -115,22 +152,20 @@ internal static partial class TextureProcessor
             var pLevel = &pMipLevels[m];
 
             var w = pLevel->width;
-            var h = pLevel->height;
-            var pData = pLevel->data;
+            var data = pLevel->data;
 
             var local_i = loopIndex - pLevel->offset;
-            var x = local_i % w;
-            var y = local_i / w;
-            var u = (float)x / (w - 1);
-            var v = (float)y / (h - 1);
 
-            var phi = (u - 0.5f) * 2.0f * PI;
-            var theta = (v - 0.5f) * PI;
+            var faceArea = w * w;
+            var face = local_i / faceArea;
+            var face_local_i = local_i % faceArea;
+            var x = face_local_i % w;
+            var y = face_local_i / w;
 
-            sincos(theta, out var sinTheta, out var cosTheta);
-            sincos(phi, out var sinPhi, out var cosPhi);
-            var N = float3(cosTheta * cosPhi, sinTheta, cosTheta * sinPhi);
-            N = normalize(N);
+            var u = (x + 0.5f) / w;
+            var v = (y + 0.5f) / w;
+
+            var N = CubemapUVToDir(face, u, v);
 
             // For split-sum, we assume View and Reflection directions equal the Normal
             var V = N;
@@ -173,7 +208,7 @@ internal static partial class TextureProcessor
                 L = MathV.Normalize(L);
 
                 var NdotL = TFloat.Max(MathV.Dot(vN, L), TFloat.Zero);
-                var sampleColor = SampleEquirectangularMap(pImage, imageWidth, imageHeight, channelCount, L);
+                var sampleColor = SampleCubemap(pImage, imageWidth, channelCount, L);
 
                 NdotL &= validLaneMask;
 
@@ -208,13 +243,13 @@ internal static partial class TextureProcessor
             }
 
             // Write to output mip array
-            var out_idx = (y * w + x) * channelCount;
-            pData[out_idx] = prefilteredColor.x;
-            pData[out_idx + 1] = prefilteredColor.y;
-            pData[out_idx + 2] = prefilteredColor.z;
+            var out_idx = (face * (w * w) + y * w + x) * channelCount;
+            data[out_idx] = prefilteredColor.x;
+            data[out_idx + 1] = prefilteredColor.y;
+            data[out_idx + 2] = prefilteredColor.z;
             if (channelCount == 4)
             {
-                pData[out_idx + 3] = 1.0f;
+                data[out_idx + 3] = 1.0f;
             }
         }
     }
@@ -255,7 +290,7 @@ internal static partial class TextureProcessor
         return bits * 2.3283064365386963e-10f; // bits / 0x100000000
     }
 
-    private static JobHandle GenerateMipHDRI(JobScheduler scheduler, TextureAssetHandler.TextureInfo textureInfo, int totalMipLevels, out UnsafeArray<MipLevel> mipLevels)
+    private static JobHandle GenerateMipHDRI(JobScheduler scheduler, TextureAssetHandler.TextureInfo textureInfo, UnsafeArray<float> baseCubeData, int edge, int totalMipLevels, out UnsafeArray<MipLevel> mipLevels)
     {
         Logger.DebugAssert(textureInfo.isHDR, "GenerateMipHDRI should only be called for HDR textures.");
         Logger.DebugAssert(textureInfo.colorComponents >= 3, "Texture must have at least 3 color components for RGB.");
@@ -268,24 +303,23 @@ internal static partial class TextureProcessor
             radicalInverse_VdCLut[i] = RadicalInverse_VdC(i);
         }
 
-        int w, h;
+        int w;
         var totalPixel = 0;
 
         for (var i = 0; i < totalMipLevels; i++)
         {
-            w = Math.Max(1, textureInfo.width >> i);
-            h = Math.Max(1, textureInfo.height >> i);
+            w = Math.Max(1, edge >> i);
 
             mipLevels[i] = new MipLevel
             {
-                data = new UnsafeArray<float>(w * h * textureInfo.colorComponents, AllocationHandle.FreeList),
+                data = new UnsafeArray<float>(w * w * 6 * textureInfo.colorComponents, AllocationHandle.FreeList),
                 width = w,
-                height = h,
+                height = w,
                 offset = totalPixel,
                 roughness = (float)i / (totalMipLevels - 1) // Linear roughness from 0 to 1 across mip levels
             };
 
-            totalPixel += w * h;
+            totalPixel += w * w * 6;
         }
 
         JobHandle handle;
@@ -295,11 +329,11 @@ internal static partial class TextureProcessor
             {
                 var job = new GGXMipGenerationJobSPMD<WideLane<float>, WideLane<int>>
                 {
-                    pImage = (float*)textureInfo.pixelData,
+                    pImage = (float*)baseCubeData.GetUnsafePtr(),
                     pMipLevels = (MipLevel*)mipLevels.GetUnsafePtr(),
                     pRadicalInverse_VdCLut = (float*)radicalInverse_VdCLut.GetUnsafePtr(),
-                    imageWidth = textureInfo.width,
-                    imageHeight = textureInfo.height,
+                    imageWidth = edge,
+                    imageHeight = edge,
                     numMipLevels = totalMipLevels,
                     channelCount = textureInfo.colorComponents,
                 };
@@ -310,11 +344,11 @@ internal static partial class TextureProcessor
             {
                 var job = new GGXMipGenerationJobSPMD<ScalarLane<float>, ScalarLane<int>>
                 {
-                    pImage = (float*)textureInfo.pixelData,
+                    pImage = (float*)baseCubeData.GetUnsafePtr(),
                     pMipLevels = (MipLevel*)mipLevels.GetUnsafePtr(),
                     pRadicalInverse_VdCLut = (float*)radicalInverse_VdCLut.GetUnsafePtr(),
-                    imageWidth = textureInfo.width,
-                    imageHeight = textureInfo.height,
+                    imageWidth = edge,
+                    imageHeight = edge,
                     numMipLevels = totalMipLevels,
                     channelCount = textureInfo.colorComponents,
                 };
