@@ -7,7 +7,7 @@ using System.Diagnostics;
 namespace Ghost.Entities;
 
 public interface ISharedComponent;
-public interface ISharedWarper
+public interface ISharedWrapper
 {
     int Index
     {
@@ -15,7 +15,7 @@ public interface ISharedWarper
     }
 }
 
-public struct Shared<T> : IComponent, ISharedWarper
+public struct Shared<T> : IComponent, ISharedWrapper
     where T : unmanaged, ISharedComponent
 {
     public int Index

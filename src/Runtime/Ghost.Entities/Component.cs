@@ -75,7 +75,7 @@ internal static class ComponentRegistry
                 size = sizeof(T),
                 alignment = (int)MemoryUtility.AlignOf<T>(),
                 isEnableable = typeof(IEnableableComponent).IsAssignableFrom(type),
-                isSharedWarper = typeof(ISharedWarper).IsAssignableFrom(type),
+                isSharedWarper = typeof(ISharedWrapper).IsAssignableFrom(type),
                 isCleanup = typeof(ICleanupComponent).IsAssignableFrom(type),
             };
 

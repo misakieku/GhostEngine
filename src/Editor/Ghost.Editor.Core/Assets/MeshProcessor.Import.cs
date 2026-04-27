@@ -15,7 +15,7 @@ using System.Text;
 
 namespace Ghost.Editor.Core.Assets;
 
-internal readonly unsafe struct MeshParsingWorkItem : IJob
+internal readonly unsafe struct MeshParsingJob : IJob
 {
     private struct GeometryPart : IDisposable
     {
@@ -32,19 +32,18 @@ internal readonly unsafe struct MeshParsingWorkItem : IJob
         }
     }
 
+    private readonly MeshNode _rootNode;
+
     private readonly string _filePath;
     private readonly AllocationHandle _allocationHandle;
     private readonly MeshAssetSettings _settings;
-    private readonly TaskCompletionSource<Result<MeshNode>> _taskCompletionSource;
 
-    public readonly Task<Result<MeshNode>> Task => _taskCompletionSource.Task;
-
-    public MeshParsingWorkItem(string filePath, AllocationHandle allocationHandle, MeshAssetSettings settings)
+    public MeshParsingJob(MeshNode rootNode, string filePath, AllocationHandle allocationHandle, MeshAssetSettings settings)
     {
+        _rootNode = rootNode;
         _filePath = filePath;
         _allocationHandle = allocationHandle;
         _settings = settings;
-        _taskCompletionSource = new TaskCompletionSource<Result<MeshNode>>();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -81,15 +80,13 @@ internal readonly unsafe struct MeshParsingWorkItem : IJob
         );
     }
 
-    private MeshNode ParseHierarchy(ufbx_node* node)
+    private void ParseHierarchy(ufbx_node* node, MeshNode self)
     {
         var children = new List<MeshNode>();
-        var meshNode = new MeshNode
-        {
-            Name = node->name.ToString(),
-            LocalTransform = ToFloat4x4(node->local_transform.translation, node->local_transform.rotation, node->local_transform.scale),
-            Children = children
-        };
+
+        self.Name = node->name.ToString();
+        self.LocalTransform = ToFloat4x4(node->local_transform.translation, node->local_transform.rotation, node->local_transform.scale);
+        self.Children = children;
 
         if (node->mesh != null)
         {
@@ -104,10 +101,12 @@ internal readonly unsafe struct MeshParsingWorkItem : IJob
 
         for (var i = 0u; i < node->children.count; i++)
         {
-            children.Add(ParseHierarchy(node->children.data[i]));
-        }
+            var childNode = new MeshNode();
+            ParseHierarchy(node->children.data[i], childNode);
+            childNode.Parent = self;
 
-        return meshNode;
+            children.Add(childNode);
+        }
     }
 
     private GeometryMeshNode? ParseGeometry(ufbx_mesh* pMesh)
@@ -353,14 +352,11 @@ internal readonly unsafe struct MeshParsingWorkItem : IJob
         using var scene = new DisposablePtr<ufbx_scene>(ufbx_scene.LoadFile((sbyte*)str.GetUnsafePtr(), &load_Opts, &error));
         if (scene.Get() == null)
         {
-            _taskCompletionSource.SetResult(Result.Failure(error.description.ToString()));
+            Logger.Error(error.description.ToString());
             return;
         }
 
-        var rootNode = ParseHierarchy(scene.Get()->root_node);
-        rootNode.Name = Path.GetFileNameWithoutExtension(_filePath);
-
-        _taskCompletionSource.SetResult(Result.Success(rootNode));
+        ParseHierarchy(scene.Get()->root_node, _rootNode);
     }
 }
 

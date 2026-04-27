@@ -1,9 +1,10 @@
 using Ghost.Core;
+using Ghost.Graphics.Core;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.CompilerServices;
 
-namespace Ghost.Graphics.Core;
+namespace Ghost.Graphics.Services;
 
 public readonly struct MaterialPalette
 {

@@ -1,7 +1,6 @@
 using Ghost.Core;
 using Ghost.Engine;
 using Ghost.Graphics.RHI;
-using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
 using System.Runtime.InteropServices;
@@ -10,10 +9,10 @@ namespace Ghost.Editor.Core.Assets;
 
 public class MeshNode : IDisposable
 {
-    public required string Name
+    public string Name
     {
         get; set;
-    }
+    } = string.Empty;
 
     public float4x4 LocalTransform
     {
@@ -33,6 +32,11 @@ public class MeshNode : IDisposable
     ~MeshNode()
     {
         Dispose(false);
+    }
+
+    public MeshNode Clone()
+    {
+        return (MeshNode)MemberwiseClone();
     }
 
     protected virtual void Dispose(bool disposing)
@@ -241,7 +245,7 @@ internal class FbxAssetSettings : MeshAssetSettings
 {
 }
 
-internal class FBXAssetHandler : IImportableAssetHandler
+internal class FBXAssetHandler : IImportableAssetHandler, IPackableAssetHandler
 {
     public AssetType RuntimeAssetType => AssetType.Mesh;
 
@@ -270,6 +274,11 @@ internal class FBXAssetHandler : IImportableAssetHandler
     }
 
     public ValueTask<Result> ExportAsync(string assetPath, string targetPath, IAssetExportOptions? options, CancellationToken token = default)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask<Result> PackAsync(string assetPath, MemoryStream targetStream, CancellationToken token = default)
     {
         throw new NotImplementedException();
     }

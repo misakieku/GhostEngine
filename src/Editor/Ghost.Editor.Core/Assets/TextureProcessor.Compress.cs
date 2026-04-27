@@ -1,6 +1,7 @@
 using Ghost.Core;
 using Ghost.Engine;
 using Ghost.Nvtt;
+using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
@@ -13,25 +14,23 @@ namespace Ghost.Editor.Core.Assets;
 
 internal static partial class TextureProcessor
 {
-    private class NvttPipelineTask : IThreadPoolWorkItem
+    private struct NvttPipelineJob : IJob
     {
-        private readonly string _outputPath;
+        private readonly Wrapper<Result<int>> _result;
 
+        private readonly string _outputPath;
         private readonly TextureAssetHandler.TextureInfo _textureInfo;
         private readonly TextureAssetSettings _settings;
         private UnsafeArray<MipLevel> _mipLevels;
 
-        private readonly TaskCompletionSource<Result<int>> _completionSource;
-
-        public Task<Result<int>> Task => _completionSource.Task;
-
-        public NvttPipelineTask(string outputPath, TextureAssetHandler.TextureInfo textureInfo, TextureAssetSettings settings, UnsafeArray<MipLevel> mipLevels)
+        public NvttPipelineJob(Wrapper<Result<int>> result, string outputPath, TextureAssetHandler.TextureInfo textureInfo, TextureAssetSettings settings, UnsafeArray<MipLevel> mipLevels)
         {
+            _result = result;
+
             _outputPath = outputPath;
             _textureInfo = textureInfo;
             _settings = settings;
             _mipLevels = mipLevels;
-            _completionSource = new TaskCompletionSource<Result<int>>();
         }
 
         private unsafe Result<int> RunMipGenCompressionPipeline()
@@ -226,11 +225,12 @@ internal static partial class TextureProcessor
             return Result.Success(maxCubeMips);
         }
 
-        public void Execute()
+        public void Execute(ref readonly JobExecutionContext context)
         {
-            Result<int> finalResult;
             try
             {
+                Result<int> finalResult;
+
                 if (_settings.Basic.TextureShape == TextureShape.TextureCube)
                 {
                     finalResult = RunCubeMapCompressionPipeline();
@@ -239,13 +239,13 @@ internal static partial class TextureProcessor
                 {
                     finalResult = RunMipGenCompressionPipeline();
                 }
+
+                _result.Value = finalResult;
             }
             catch (Exception ex)
             {
-                finalResult = Result.Failure($"Compression threw an exception: {ex.Message}");
+                Logger.Error($"Exception during NVTT compression: {ex}");
             }
-
-            _completionSource.SetResult(finalResult);
         }
     }
 
@@ -360,15 +360,17 @@ internal static partial class TextureProcessor
                 baseCubeData.Dispose();
             }
 
-            var workItem = new NvttPipelineTask(cachePath, textureInfo, settings, mipLevels);
-            ThreadPool.UnsafeQueueUserWorkItem(workItem, true);
-            var result = await workItem.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-            if (result.IsFailure)
+            var result = new Wrapper<Result<int>>();
+            var nvttJob = new NvttPipelineJob(result, cachePath, textureInfo, settings, mipLevels);
+            var nvttJobHandle = scheduler.Schedule(in nvttJob);
+            await scheduler.WaitAsync(nvttJobHandle, cancellationToken);
+
+            if (result.Value.IsFailure)
             {
-                return Result.Failure(result.Message);
+                return Result.Failure(result.Value.Message);
             }
 
-            return (cachePath, result.Value);
+            return (cachePath, result.Value.Value);
         }
         finally
         {
