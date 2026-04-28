@@ -49,7 +49,7 @@ internal class UpdateGPUInstanceSystem : SystemBase
                 ref readonly var mesh = ref meshs.GetElementUnsafe(i);
                 ref readonly var instance = ref gpuInstances.GetElementUnsafe(i);
 
-                playload.UpdateInstance(instance.gpuSceneIndex, ltw.matrix, in mesh);
+                playload.UpdateInstance(instance.gpuInstanceIndex, ltw.matrix, in mesh);
             }
         }
     }

@@ -1,8 +1,6 @@
 // Source: https://github.com/zeux/meshoptimizer/blob/master/demo/clusterlod.h
 // Translated from C++ to C#.
 
-// TODO: This file should be moved to editor project since there is no reason we need to build meshlets and LOD at runtime.
-
 using Ghost.Core;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
@@ -164,8 +162,6 @@ public unsafe struct ClodCluster
 /// Delegate type for processing generated LOD groups.
 /// </summary>
 public unsafe delegate int ClodOutputDelegate(void* context, ClodGroup group, ReadOnlyUnsafeCollection<ClodCluster> clusters);
-
-// FIX: UnsafeList and UnsafeArray are not same as std::vector.
 
 public static unsafe partial class MeshProcessor
 {

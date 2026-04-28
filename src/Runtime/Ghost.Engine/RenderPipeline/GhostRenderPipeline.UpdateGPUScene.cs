@@ -27,7 +27,7 @@ internal partial class GhostRenderPipeline
         public float4x4 localToWorld;
         public uint instanceID;
         public uint meshBuffer;
-        public uint materialPalette;
+        public uint materialPaletteIndex;
         public uint renderingLayerMask;
         public uint shadowCastingMode;
     }
@@ -71,7 +71,7 @@ internal partial class GhostRenderPipeline
                     localToWorld = addRequest.localToWorld,
                     instanceID = addRequest.instanceId,
                     meshBuffer = resourceDatabase.GetBindlessIndex(mesh.Get().MeshDataBuffer.AsResource()),
-                    materialPalette = (uint)addRequest.meshInstance.materialPalette.Value,
+                    materialPaletteIndex = (uint)addRequest.meshInstance.materialPalette.Value,
                     renderingLayerMask = addRequest.meshInstance.renderingLayerMask,
                     shadowCastingMode = (uint)addRequest.meshInstance.shadowCastingMode
                 };

@@ -211,11 +211,6 @@ public class MeshAssetSettings : IAssetSettings
     {
         get; set;
     } = VertexDataSource.ComputedIfMissing;
-
-    public bool BuildMeshlets
-    {
-        get; set;
-    } = true;
 }
 
 internal class ObjAssetSettings : MeshAssetSettings

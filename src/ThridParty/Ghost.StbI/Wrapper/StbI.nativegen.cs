@@ -561,7 +561,7 @@ public unsafe partial struct StbIApi
     }
 
     /// <summary>
-    /// From: <see cref="Api.stbi_write_png_to_func(delegate* unmanaged[Cdecl]<void*, void*, int, void>, void*, int, int, int, void*, int)" />
+    /// From: <see cref="Api.stbi_write_png_to_func(delegate* unmanaged[Cdecl]{void*, void*, int, void}, void*, int, int, int, void*, int)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static int WritePngToFunc(delegate* unmanaged[Cdecl]<void*, void*, int, void> func, void* context, int w, int h, int comp, void* data, int stride_in_bytes)
@@ -577,7 +577,7 @@ public unsafe partial struct StbIApi
     }
 
     /// <summary>
-    /// From: <see cref="Api.stbi_write_bmp_to_func(delegate* unmanaged[Cdecl]<void*, void*, int, void>, void*, int, int, int, void*)" />
+    /// From: <see cref="Api.stbi_write_bmp_to_func(delegate* unmanaged[Cdecl]{void*, void*, int, void}, void*, int, int, int, void*)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static int WriteBmpToFunc(delegate* unmanaged[Cdecl]<void*, void*, int, void> func, void* context, int w, int h, int comp, void* data)

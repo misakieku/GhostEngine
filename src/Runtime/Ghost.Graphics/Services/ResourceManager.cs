@@ -9,6 +9,8 @@ namespace Ghost.Graphics.Services;
 
 public sealed partial class ResourceManager : IDisposable
 {
+    private const uint _PALETTE_BUFFER_INITIAL_CAPACITY = 64;
+
     private readonly struct ResourceReturnEntry
     {
         public readonly Handle<GPUResource> handle;
@@ -32,6 +34,12 @@ public sealed partial class ResourceManager : IDisposable
 
     private readonly MaterialPaletteStore _materialPalettes;
 
+    // Persistent GPU buffers for the two-buffer material palette indirection.
+    private Handle<GPUBuffer> _paletteOffsetBuffer;
+    private Handle<GPUBuffer> _materialIndexBuffer;
+    private uint _paletteOffsetCapacity;
+    private uint _materialIndexCapacity;
+
     // TODO: Any better way? System.Threading.Lock is very fast though, it use spin lock before entering kernel.
     // rw lock slim is an option but it has more overhead on read. Because more than 90% of the time we are reading, it may not be a good option.
     // Plus UnsafeSlotMap use jagged array internally, which means we can have concurrent read and write, but not add and remove, on different slots without any issue, so we only need to lock when writing to those slots.
@@ -43,6 +51,18 @@ public sealed partial class ResourceManager : IDisposable
     private ulong _submittedFrame;
 
     private bool _disposed;
+
+    /// <summary>
+    /// Returns the bindless descriptor heap index for the palette offset GPU buffer.
+    /// Valid after the first <see cref="UploadMaterialPaletteData"/> call.
+    /// </summary>
+    public uint PaletteOffsetBufferBindlessIndex => _resourceDatabase.GetBindlessIndex(_paletteOffsetBuffer.AsResource());
+
+    /// <summary>
+    /// Returns the bindless descriptor heap index for the material index GPU buffer.
+    /// Valid after the first <see cref="UploadMaterialPaletteData"/> call.
+    /// </summary>
+    public uint MaterialIndexBufferBindlessIndex => _resourceDatabase.GetBindlessIndex(_materialIndexBuffer.AsResource());
 
     public ResourceManager(IRenderDevice renderDevice, IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase)
     {
@@ -61,6 +81,12 @@ public sealed partial class ResourceManager : IDisposable
         _materialWriteLock = new Lock();
         _shaderWriteLock = new Lock();
         _computeShaderWriteLock = new Lock();
+
+        // Create initial GPU palette buffers. These grow on demand in UploadMaterialPaletteData.
+        _paletteOffsetCapacity = _PALETTE_BUFFER_INITIAL_CAPACITY;
+        _materialIndexCapacity = _PALETTE_BUFFER_INITIAL_CAPACITY * 4;
+        _paletteOffsetBuffer = CreatePaletteBuffer(_paletteOffsetCapacity, "PaletteOffsetBuffer");
+        _materialIndexBuffer = CreatePaletteBuffer(_materialIndexCapacity, "MaterialIndexBuffer");
     }
 
     ~ResourceManager()
@@ -77,6 +103,7 @@ public sealed partial class ResourceManager : IDisposable
     internal void EndFrame(ulong completedFrame)
     {
         Logger.DebugAssert(!_disposed);
+        _materialPalettes.EndFrame(_submittedFrame, completedFrame);
         EndFramePool(completedFrame);
     }
 
@@ -336,7 +363,102 @@ public sealed partial class ResourceManager : IDisposable
     }
 
     /// <summary>
-    /// Releases a material palette reference previously returned by <see cref="GetOrCreateMaterialPalette(ReadOnlySpan{Handle{Material}})"/>.
+    /// Resolves dirty material palette data and uploads it to the GPU.
+    /// Must be called once per frame on the render thread, before any draw calls.
+    /// Handles buffer growth with copy-on-resize semantics (same pattern as GPUScene).
+    /// </summary>
+    public void UploadMaterialPaletteData(RenderContext ctx)
+    {
+        Logger.DebugAssert(!_disposed);
+
+        if (!_materialPalettes.IsGpuDirty)
+        {
+            return;
+        }
+
+        // Resolve material handles → bindless CBuffer indices.
+        _materialPalettes.ResolveMaterialIndices(static (materialHandle, state) =>
+        {
+            var self = (ResourceManager)state!;
+            var r = self.GetMaterialReference(materialHandle);
+            if (r.IsFailure || !r.Value._cBufferCache.IsCreated)
+            {
+                return 0u;
+            }
+
+            return self._resourceDatabase.GetBindlessIndex(r.Value._cBufferCache.GpuResource.AsResource());
+        }, this);
+
+        var offsets = _materialPalettes.PaletteOffsets;
+        var indices = _materialPalettes.MaterialIndices;
+
+        _materialPalettes.GetDirtyRanges(
+            out var offsetStart, out var offsetEnd,
+            out var indicesStart, out var indicesEnd);
+
+        // ── Resize PaletteOffsetBuffer if needed ──
+        if ((uint)offsets.Length > _paletteOffsetCapacity)
+        {
+            var newCapacity = Math.Max(_paletteOffsetCapacity * 2, (uint)offsets.Length);
+            var newBuffer = CreatePaletteBuffer(newCapacity, "PaletteOffsetBuffer_Resized");
+
+            ctx.CommandBuffer.CopyBuffer(newBuffer, _paletteOffsetBuffer, 0, 0, _paletteOffsetCapacity * sizeof(uint));
+
+            _resourceDatabase.ReleaseResource(_paletteOffsetBuffer.AsResource());
+            _paletteOffsetBuffer = newBuffer;
+            _paletteOffsetCapacity = newCapacity;
+
+            // Full upload needed after resize.
+            offsetStart = 0;
+            offsetEnd = offsets.Length;
+        }
+
+        // ── Resize MaterialIndexBuffer if needed ──
+        if ((uint)indices.Length > _materialIndexCapacity)
+        {
+            var newCapacity = Math.Max(_materialIndexCapacity * 2, (uint)indices.Length);
+            var newBuffer = CreatePaletteBuffer(newCapacity, "MaterialIndexBuffer_Resized");
+
+            ctx.CommandBuffer.CopyBuffer(newBuffer, _materialIndexBuffer, 0, 0, _materialIndexCapacity * sizeof(uint));
+
+            _resourceDatabase.ReleaseResource(_materialIndexBuffer.AsResource());
+            _materialIndexBuffer = newBuffer;
+            _materialIndexCapacity = newCapacity;
+
+            indicesStart = 0;
+            indicesEnd = indices.Length;
+        }
+
+        // ── Upload dirty ranges ──
+        if (offsetEnd > offsetStart)
+        {
+            var dirtyOffsets = offsets.Slice(offsetStart, offsetEnd - offsetStart);
+            ctx.UploadBufferRange(_paletteOffsetBuffer, dirtyOffsets, (uint)(offsetStart * sizeof(uint)));
+        }
+
+        if (indicesEnd > indicesStart)
+        {
+            var dirtyIndices = indices.Slice(indicesStart, indicesEnd - indicesStart);
+            ctx.UploadBufferRange(_materialIndexBuffer, dirtyIndices, (uint)(indicesStart * sizeof(uint)));
+        }
+
+        _materialPalettes.ClearDirty();
+    }
+
+    private Handle<GPUBuffer> CreatePaletteBuffer(uint capacity, string name)
+    {
+        var desc = new BufferDesc
+        {
+            Size = capacity * sizeof(uint),
+            Stride = sizeof(uint),
+            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
+            HeapType = HeapType.Default,
+        };
+        return _resourceAllocator.CreateBuffer(in desc, name);
+    }
+
+    /// <summary>
+    /// Releases the material palette associated with the specified palette ID.
     /// </summary>
     /// <param name="paletteID">The palette index to release.</param>
     public void ReleaseMaterialPalette(Identifier<MaterialPalette> paletteID)
@@ -467,6 +589,9 @@ public sealed partial class ResourceManager : IDisposable
         _materials.Dispose();
         _shaders.Dispose();
         _materialPalettes.Dispose();
+
+        _resourceDatabase.ReleaseResource(_paletteOffsetBuffer.AsResource());
+        _resourceDatabase.ReleaseResource(_materialIndexBuffer.AsResource());
 
         DisposePool();
 

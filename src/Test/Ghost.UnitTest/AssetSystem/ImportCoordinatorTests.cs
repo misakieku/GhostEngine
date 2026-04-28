@@ -1,4 +1,4 @@
-using Ghost.Editor.Core.AssetHandler;
+using Ghost.Editor.Core.Assets;
 using Ghost.Editor.Core.Services;
 using Microsoft.Data.Sqlite;
 

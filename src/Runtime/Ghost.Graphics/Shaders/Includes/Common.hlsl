@@ -106,4 +106,22 @@ static inline T LoadData(BYTE_ADDRESS_BUFFER buffer, uint index)
     return buf.Load<T>(index * sizeof(T));
 }
 
+/// Resolves a meshlet's local material index to a global bindless CBuffer descriptor index.
+/// Uses the two-buffer indirection: PaletteOffsetBuffer → MaterialIndexBuffer → CBuffer.
+///   paletteOffsetBuffer  : from FrameData — one uint per palette, base offset into materialIndexBuffer
+///   materialIndexBuffer  : from FrameData — packed bindless CBuffer indices for all palettes
+///   paletteIndex         : per-instance value from InstanceData.materialPaletteIndex
+///   localMaterialIndex   : per-meshlet value from Meshlet.packedCounts byte 2
+static inline uint LoadMaterialBindlessIndex(
+    BYTE_ADDRESS_BUFFER paletteOffsetBuffer,
+    BYTE_ADDRESS_BUFFER materialIndexBuffer,
+    uint paletteIndex,
+    uint localMaterialIndex)
+{
+    ByteAddressBuffer offsets = GET_BUFFER(paletteOffsetBuffer);
+    ByteAddressBuffer indices = GET_BUFFER(materialIndexBuffer);
+    uint base = offsets.Load(paletteIndex * 4);
+    return indices.Load((base + localMaterialIndex) * 4);
+}
+
 #endif // GHOST_COMMON_HLSL

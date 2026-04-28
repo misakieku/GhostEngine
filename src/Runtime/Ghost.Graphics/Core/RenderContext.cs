@@ -106,6 +106,43 @@ public readonly unsafe ref struct RenderContext
         }
     }
 
+    /// <summary>
+    /// Uploads a sub-range of data into an existing GPU buffer at the specified byte offset.
+    /// Used for incremental uploads (e.g. dirty palette ranges).
+    /// </summary>
+    public void UploadBufferRange<T>(Handle<GPUBuffer> buffer, ReadOnlySpan<T> data, uint byteOffset)
+        where T : unmanaged
+    {
+        if (data.IsEmpty)
+        {
+            return;
+        }
+
+        var sizeInBytes = (nuint)(data.Length * sizeof(T));
+
+        var uploadDesc = new BufferDesc
+        {
+            Size = sizeInBytes,
+            Usage = BufferUsage.Upload,
+            HeapType = HeapType.Upload,
+        };
+
+        var uploadHandle = ResourceManager.CreateTransientBuffer(in uploadDesc);
+        if (uploadHandle.IsInvalid)
+        {
+            throw new OutOfMemoryException("Failed to create upload buffer for range upload.");
+        }
+
+        fixed (T* pData = data)
+        {
+            var mappedData = ResourceDatabase.MapResource(uploadHandle.AsResource(), 0, null);
+            MemoryUtility.MemCpy(mappedData, pData, sizeInBytes);
+            ResourceDatabase.UnmapResource(uploadHandle.AsResource(), 0, null);
+        }
+
+        CommandBuffer.CopyBuffer(buffer, uploadHandle, byteOffset, 0, sizeInBytes);
+    }
+
     public Handle<Mesh> CreateMesh(UnsafeList<Vertex> vertices, UnsafeList<uint> indices, bool staticMesh)
     {
         var mesh = ResourceManager.CreateMesh(vertices, indices);
@@ -253,6 +290,7 @@ public readonly unsafe ref struct RenderContext
             meshletBuffer = ResourceDatabase.GetBindlessIndex(meshData.MeshLetBuffer.AsResource()),
             meshletVerticesBuffer = ResourceDatabase.GetBindlessIndex(meshData.MeshletVerticesBuffer.AsResource()),
             meshletTrianglesBuffer = ResourceDatabase.GetBindlessIndex(meshData.MeshletTrianglesBuffer.AsResource()),
+            materialSlotCount = (uint)meshData.MeshletData.materialSlotCount,
         };
 
         var bufferHandle = meshData.MeshDataBuffer.AsResource();

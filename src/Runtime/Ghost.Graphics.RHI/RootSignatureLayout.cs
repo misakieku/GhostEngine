@@ -35,6 +35,8 @@ public struct FrameData
 {
     public uint instanceBuffer;
     public uint userBuffer;
+    public uint paletteOffsetBuffer;   // bindless index into PaletteOffsetBuffer
+    public uint materialIndexBuffer;   // bindless index into MaterialIndexBuffer
 }
 
 [StructLayout(LayoutKind.Sequential, Pack = 4)]
@@ -42,7 +44,7 @@ public struct InstanceData
 {
     public float4x4 localToWorld;
     public uint meshBuffer;
-    public uint materialBuffer;
+    public uint materialPaletteIndex;  // index into PaletteOffsetBuffer (from MaterialPaletteStore)
 }
 
 [StructLayout(LayoutKind.Sequential, Pack = 4)]
@@ -68,4 +70,5 @@ public struct MeshData
     public uint meshletBuffer;
     public uint meshletVerticesBuffer;
     public uint meshletTrianglesBuffer;
+    public uint materialSlotCount;     // number of material slots baked into this mesh's meshlets
 };

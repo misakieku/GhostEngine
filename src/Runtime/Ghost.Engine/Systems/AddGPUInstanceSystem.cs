@@ -46,7 +46,9 @@ internal class AddGPUInstanceSystem : SystemBase
                 var entity = entities.GetElementUnsafe(i);
 
                 var index = payload.AddInstance(localToWorld.matrix, in meshInstance);
-                systemAPI.World.EntityCommandBuffer.AddComponent(entity, new GPUInstanceRef { gpuSceneIndex = index });
+                var materialPalette = meshInstance.materialPalette;
+
+                systemAPI.World.EntityCommandBuffer.AddComponent(entity, new GPUInstanceRef { gpuInstanceIndex = index, materialPalette = materialPalette });
             }
         }
 

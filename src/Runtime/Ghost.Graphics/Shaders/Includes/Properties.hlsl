@@ -29,6 +29,8 @@ struct FrameData
 {
     BYTE_ADDRESS_BUFFER instanceBuffer;
     BYTE_ADDRESS_BUFFER userBuffer;
+    BYTE_ADDRESS_BUFFER paletteOffsetBuffer;   // global PaletteOffsetBuffer
+    BYTE_ADDRESS_BUFFER materialIndexBuffer;   // global MaterialIndexBuffer
 };
 
 struct ViewData
@@ -46,7 +48,7 @@ struct InstanceData
 {
     float4x4 localToWorld;
     BYTE_ADDRESS_BUFFER meshBuffer;
-    BYTE_ADDRESS_BUFFER materialBuffer;
+    uint materialPaletteIndex;  // index into PaletteOffsetBuffer
 };
 
 struct MeshData
@@ -59,6 +61,7 @@ struct MeshData
     BYTE_ADDRESS_BUFFER meshletBuffer;
     BYTE_ADDRESS_BUFFER meshletVerticesBuffer;
     BYTE_ADDRESS_BUFFER meshletTrianglesBuffer;
+    uint materialSlotCount;
 };
 
 #if defined(__GRAPHICS__)

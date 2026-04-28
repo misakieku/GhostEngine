@@ -406,17 +406,18 @@ internal class TextureAssetHandler : IImportableAssetHandler, IPackableAssetHand
             try
             {
                 var ext = Path.GetExtension(targetStream.Name);
+                var result = 0;
 
                 unsafe
                 {
                     switch (ext)
                     {
                         case ".png":
-                            StbIApi.WritePngToFunc(&WriteCallback, (void*)GCHandle.ToIntPtr(gcHandle), (int)textureAsset.Width, (int)textureAsset.Height, (int)textureAsset.ColorComponents, (void*)textureAsset.TextureData, 0);
+                            result = StbIApi.WritePngToFunc(&WriteCallback, (void*)GCHandle.ToIntPtr(gcHandle), (int)textureAsset.Width, (int)textureAsset.Height, (int)textureAsset.ColorComponents, (void*)textureAsset.TextureData, 0);
                             break;
 
                         case ".jpg":
-                            StbIApi.WriteJpgToFunc(&WriteCallback, (void*)GCHandle.ToIntPtr(gcHandle), (int)textureAsset.Width, (int)textureAsset.Height, (int)textureAsset.ColorComponents, (void*)textureAsset.TextureData, 90);
+                            result = StbIApi.WriteJpgToFunc(&WriteCallback, (void*)GCHandle.ToIntPtr(gcHandle), (int)textureAsset.Width, (int)textureAsset.Height, (int)textureAsset.ColorComponents, (void*)textureAsset.TextureData, 90);
                             break;
 
                         // TODO: Add support for other image formats
@@ -426,7 +427,7 @@ internal class TextureAssetHandler : IImportableAssetHandler, IPackableAssetHand
                     }
                 }
 
-                return Result.Success();
+                return result != 0 ? Result.Success() : Result.Failure("Failed to write image data.");
             }
             catch (Exception ex)
             {
