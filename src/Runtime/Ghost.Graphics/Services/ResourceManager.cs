@@ -110,51 +110,55 @@ public sealed partial class ResourceManager : IDisposable
     /// <summary>
     /// Creates a new mesh from the specified vertex and index data.
     /// </summary>
-    /// <param name="vertices">A UnsafeList containing the vertices that define the geometry of the mesh. Must contain at least one vertex.</param>
-    /// <param name="indices">A UnsafeList containing the indices that specify how vertices are connected to form primitives. Must contain at least one index.</param>
+    /// <param name="vertices">A UnsafeList containing the vertices that define the geometry of the mesh.</param>
+    /// <param name="indices">A UnsafeList containing the indices that specify how vertices are connected to form primitives.</param>
+    /// <param name="dynamic">Indicates whether the mesh is expected to be updated frequently. If true, the underlying GPU buffers will be created with upload heap type for better CPU write performance.</param>
+    /// <param name="name">The name of the mesh.</param>
     /// <returns>An <see cref="Identifier{Mesh}"/> representing the newly created mesh.</returns>
-    public unsafe Handle<Mesh> CreateMesh(UnsafeList<Vertex> vertices, UnsafeList<uint> indices)
+    public unsafe Handle<Mesh> CreateMesh(UnsafeList<Vertex> vertices, UnsafeList<uint> indices, bool dynamic = false, string? name = null)
     {
         Logger.DebugAssert(!_disposed);
 
+        var vertexBufferDesc = new BufferDesc
+        {
+            Size = (uint)(vertices.Count * sizeof(Vertex)),
+            Stride = (uint)sizeof(Vertex),
+            Usage = BufferUsage.Vertex | BufferUsage.ShaderResource | BufferUsage.Raw,
+            HeapType = dynamic ? HeapType.Upload : HeapType.Default,
+        };
+
+        var indexBufferDesc = new BufferDesc
+        {
+            Size = (uint)(indices.Count * sizeof(uint)),
+            Stride = sizeof(uint),
+            Usage = BufferUsage.Index | BufferUsage.ShaderResource | BufferUsage.Raw,
+            HeapType = dynamic ? HeapType.Upload : HeapType.Default,
+        };
+
+        var meshDataBufferDesc = new BufferDesc
+        {
+            Size = (uint)sizeof(MeshData),
+            Stride = (uint)sizeof(MeshData),
+            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
+            HeapType = dynamic ? HeapType.Upload : HeapType.Default,
+        };
+
+        var hasName = name != null;
+        var vertexBuffer = _resourceAllocator.CreateBuffer(in vertexBufferDesc, hasName ? $"{name}_VertexBuffer" : "VertexBuffer");
+        var indexBuffer = _resourceAllocator.CreateBuffer(in indexBufferDesc, hasName ? $"{name}_IndexBuffer" : "IndexBuffer");
+        var meshDataBuffer = _resourceAllocator.CreateBuffer(in meshDataBufferDesc, hasName ? $"{name}_MeshDataBuffer" : "MeshDataBuffer");
+
+        var mesh = new Mesh
+        {
+            Vertices = vertices,
+            Indices = indices,
+            VertexBuffer = vertexBuffer,
+            IndexBuffer = indexBuffer,
+            MeshDataBuffer = meshDataBuffer,
+        };
+
         lock (_meshWriteLock)
         {
-            var vertexBufferDesc = new BufferDesc
-            {
-                Size = (uint)(vertices.Count * sizeof(Vertex)),
-                Stride = (uint)sizeof(Vertex),
-                Usage = BufferUsage.Vertex | BufferUsage.ShaderResource | BufferUsage.Raw,
-                HeapType = HeapType.Default,
-            };
-
-            var indexBufferDesc = new BufferDesc
-            {
-                Size = (uint)(indices.Count * sizeof(uint)),
-                Stride = sizeof(uint),
-                Usage = BufferUsage.Index | BufferUsage.ShaderResource | BufferUsage.Raw,
-                HeapType = HeapType.Default,
-            };
-
-            var objectBufferDesc = new BufferDesc
-            {
-                Size = (uint)sizeof(MeshData),
-                Stride = (uint)sizeof(MeshData),
-                Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
-                HeapType = HeapType.Default,
-            };
-
-            var vertexBuffer = _resourceAllocator.CreateBuffer(in vertexBufferDesc, "VertexBuffer");
-            var indexBuffer = _resourceAllocator.CreateBuffer(in indexBufferDesc, "IndexBuffer");
-            var objectBuffer = _resourceAllocator.CreateBuffer(in objectBufferDesc, "ObjectBuffer");
-
-            var mesh = new Mesh
-            {
-                Vertices = vertices,
-                Indices = indices,
-                VertexBuffer = vertexBuffer,
-                IndexBuffer = indexBuffer,
-                MeshDataBuffer = objectBuffer,
-            };
 
             var id = _meshes.Add(mesh, out var generation);
             return new Handle<Mesh>(id, generation);
@@ -165,20 +169,20 @@ public sealed partial class ResourceManager : IDisposable
     /// Creates a new material instance using the specified shader.
     /// </summary>
     /// <param name="shader">The identifier of the shader to associate with the new material.</param>
+    /// <param name="name">The name of the material.</param>
     /// <returns>An <see cref="Handle{Material}"/> representing the newly created material.</returns>
-    public Handle<Material> CreateMaterial(Handle<Shader> shader)
+    public Handle<Material> CreateMaterial(Handle<Shader> shader, string? name = null)
     {
         Logger.DebugAssert(!_disposed);
 
         var material = new Material();
+        if (material.SetShader(shader, this, _resourceDatabase, _resourceAllocator) != Error.None)
+        {
+            return Handle<Material>.Invalid;
+        }
 
         lock (_materialWriteLock)
         {
-            if (material.SetShader(shader, this, _resourceDatabase, _resourceAllocator) != Error.None)
-            {
-                return Handle<Material>.Invalid;
-            }
-
             var id = _materials.Add(material, out var generation);
             return new Handle<Material>(id, generation);
         }

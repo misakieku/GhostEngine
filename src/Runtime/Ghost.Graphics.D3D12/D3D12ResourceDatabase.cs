@@ -317,7 +317,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         _resources.Remove(handle.ID, handle.Generation);
 
 #if DEBUG || GHOST_EDITOR
-        _resourceName.Remove(handle, out var name);
+        _resourceName.Remove(handle, out _);
 #endif
     }
 

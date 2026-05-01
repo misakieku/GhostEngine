@@ -34,7 +34,7 @@ internal static partial class TextureProcessor
         public int numMipLevels;
         public int channelCount;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         private static Vector2<TFloat, float> Hammersley(TFloat i, int N, float* lut)
         {
             var x = i / N;
@@ -43,23 +43,18 @@ internal static partial class TextureProcessor
         }
 
         // GGX Importance Sampling
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         private static Vector3<TFloat, float> ImportanceSampleGGX(Vector2<TFloat, float> Xi, Vector3<TFloat, float> N, float roughness)
         {
             var a = roughness * roughness; // Disney remap roughness for better visual linearity
 
             var phi = 2.0f * PI * Xi.x;
 
-            // Clamp the inside of the cosTheta Sqrt to prevent NaN on division precision edges
-            var cosThetaInner = TFloat.Max((1.0f - Xi.y) / (1.0f + (a * a - 1.0f) * Xi.y), TFloat.Zero);
-            var cosTheta = TFloat.Sqrt(cosThetaInner);
-
-            // Clamp the inside of sinTheta to prevent sqrt of negative floating-point errors
-            var sinThetaInner = TFloat.Max(1.0f - cosTheta * cosTheta, TFloat.Zero);
-            var sinTheta = TFloat.Sqrt(sinThetaInner);
+            var cosTheta = TFloat.Sqrt((1.0f - Xi.y) / (1.0f + (a * a - 1.0f) * Xi.y));
+            var sinTheta = TFloat.Sqrt(1.0f - cosTheta * cosTheta);
 
             // Spherical to Cartesian coordinates (Halfway vector)
-            var (sinPhi, cosPhi) = TFloat.SinCos(phi);
+            TFloat.SinCos(phi, out var sinPhi, out var cosPhi);
             var H = MathV.Create<TFloat, float>(cosPhi * sinTheta, sinPhi * sinTheta, cosTheta);
 
             // Tangent space to World space
@@ -73,13 +68,13 @@ internal static partial class TextureProcessor
             return MathV.Normalize(sampleVec);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         private static float3 CubemapUVToDir(int face, float u, float v)
         {
             var sc = 2.0f * u - 1.0f;
             var tc = 1.0f - 2.0f * v;
 
-            float x = 0, y = 0, z = 0;
+            float x = 0.0f, y = 0.0f, z = 0.0f;
             switch (face)
             {
                 case 0: x = 1.0f; y = tc; z = -sc; break;
@@ -93,7 +88,7 @@ internal static partial class TextureProcessor
             return normalize(float3(x, y, z));
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
         private static Vector3<TFloat, float> SampleCubemap(float* img, int edge, int c, Vector3<TFloat, float> dir)
         {
             var absX = TFloat.Abs(dir.x);
@@ -140,6 +135,7 @@ internal static partial class TextureProcessor
             return MathV.GatherVector3<TFloat, float>(img, idx.GetUnsafePtr(), 1);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
         {
             var m = 0;
@@ -226,7 +222,7 @@ internal static partial class TextureProcessor
             }
 
             var totalWeight = 0.0f;
-            var prefilteredColor = float3(0, 0, 0);
+            var prefilteredColor = float3(0.0f, 0.0f, 0.0f);
 
             for (var i = 0; i < TFloat.LaneWidth; i++)
             {

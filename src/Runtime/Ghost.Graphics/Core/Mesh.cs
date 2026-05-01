@@ -41,10 +41,20 @@ public struct MeshletGroup
 [StructLayout(LayoutKind.Sequential)]
 public struct MeshletHierarchyNode
 {
-    public SphereBounds boundingSphere;   // 16 bytes
-    public AABB boundingBox;              // 24 bytes
-    public float maxParentError;          // maximum error in this subtree
-    public uint nodeData;                 // packed leaf/internal metadata
+    public float4 minX;
+    public float4 minY;
+    public float4 minZ;
+    public float4 maxX;
+    public float4 maxY;
+    public float4 maxZ;
+    public float4 maxParentError;
+    
+    // x,y,z,w correspond to children 0,1,2,3.
+    // MSB (1 << 31) indicates it's an Internal Node.
+    // If MSB is 0, the remaining 31 bits are the MeshletIndex.
+    // If MSB is 1, the remaining 31 bits are the child MeshletHierarchyNode index.
+    // 0xFFFFFFFF means invalid/empty slot.
+    public uint4 nodeData;
 }
 
 [StructLayout(LayoutKind.Sequential)]
@@ -181,18 +191,6 @@ public struct Mesh : IResourceReleasable
     public Handle<GPUBuffer> MeshDataBuffer
     {
         get; internal set;
-    }
-
-    internal Mesh(ReadOnlySpan<Vertex> vertices, ReadOnlySpan<uint> indices, Handle<GPUBuffer> vertexBuffer, Handle<GPUBuffer> indexBuffer)
-    {
-        Vertices = new UnsafeList<Vertex>(vertices.Length, AllocationHandle.Persistent);
-        Indices = new UnsafeList<uint>(indices.Length, AllocationHandle.Persistent);
-        Vertices.CopyFrom(vertices);
-        Indices.CopyFrom(indices);
-        VertexBuffer = vertexBuffer;
-        IndexBuffer = indexBuffer;
-
-        this.ComputeBounds();
     }
 
     public void ReleaseCpuResources()
