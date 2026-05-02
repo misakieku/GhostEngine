@@ -1,6 +1,5 @@
 using Ghost.Core;
 using Ghost.Graphics;
-using SharpCompress.Common;
 using System.Collections.Concurrent;
 
 namespace Ghost.Engine;

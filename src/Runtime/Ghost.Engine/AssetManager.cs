@@ -295,16 +295,8 @@ internal partial class AssetManager : IDisposable
 
     private readonly ConcurrentDictionary<Guid, AssetEntry> _entries;
 
-    // TODO
-    private Handle<GPUTexture> _fallbackTexture;
-    private Handle<GPUTexture> _fallbackNormalMap;
-    private Handle<Mesh> _fallbackMesh;
-    private Handle<Material> _fallbackMaterial;
-
     public IContentProvider ContentProvider => _contentProvider;
     public ResourceStreamingProcessor StreamingProcessor => _streamingProcessor;
-
-    public Handle<GPUTexture> FallbackTexture => _fallbackTexture;
 
     internal AssetManager(IResourceDatabase resourceDatabase, IContentProvider contentProvider, ResourceStreamingProcessor streamingProcessor, JobScheduler jobScheduler)
     {
@@ -378,10 +370,10 @@ internal partial class AssetManager : IDisposable
             for (var i = list.Count - 1; i >= 0; i--)
             {
                 // This should create the entry and schedule the job on those assets does not have any dependency first.
-                var handle = GetOrCreateEntry(list[i]).LoadJobHandle;
-                Logger.DebugAssert(handle.IsValid);
+                var depHandle = GetOrCreateEntry(list[i]).LoadJobHandle;
+                Logger.DebugAssert(depHandle.IsValid);
 
-                depHandles.Add(handle);
+                depHandles.Add(depHandle);
             }
 
             dependency = _jobScheduler.CombineDependencies(depHandles);
@@ -394,7 +386,8 @@ internal partial class AssetManager : IDisposable
             assetManager = this,
         };
 
-        entry.SetLoadJobHandle(_jobScheduler.Schedule(ref job, JobPriority.Low, dependency)); // Use low priority to avoid blocking main thread critical tasks like rendering and physics.
+        var handle = _jobScheduler.Schedule(ref job, JobPriority.Low, dependency);
+        entry.SetLoadJobHandle(handle); // Use low priority to avoid blocking main thread critical tasks like rendering and physics.
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

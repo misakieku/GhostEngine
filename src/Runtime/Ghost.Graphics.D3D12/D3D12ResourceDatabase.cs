@@ -442,6 +442,15 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         }
     }
 
+    public Handle<GPUResource> CreateEmpty()
+    {
+        lock (_writeLock)
+        {
+            var id = _resources.Add(default, out var generation);
+            return new Handle<GPUResource>(id, generation);
+        }
+    }
+
     public void* MapResource(Handle<GPUResource> handle, uint subResource, ResourceRange? readRange)
     {
         var r = GetResourceRecord(handle);

@@ -34,7 +34,7 @@ internal partial class AssetEntry
         {
             // This will create a new slot in the database, but not allocation any GPU resource.
             // Everything in the slot will have the same value as the fallback texture, expect the slot will be marked as shared.
-            var handle = e._resourceDatabase.CreateShared(e._assetManager.FallbackTexture.AsResource()).AsTexture();
+            var handle = e._resourceDatabase.CreateEmpty().AsTexture();
             e.SetStorage(handle);
         };
 
@@ -155,7 +155,7 @@ internal partial class AssetManager
     {
         if (assetID == Guid.Empty)
         {
-            return _fallbackTexture;
+            return Handle<GPUTexture>.Invalid;
         }
 
         var entry = GetOrCreateEntry(assetID);

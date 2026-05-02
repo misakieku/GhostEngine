@@ -143,6 +143,12 @@ public unsafe interface IResourceDatabase : IDisposable
     Handle<GPUResource> CreateShared(Handle<GPUResource> src);
 
     /// <summary>
+    /// Creates a slot in the resource database that contains no GPU resource, and returns a handle to that slot. This can be used as a placeholder for a resource that will be created or assigned later, allowing for deferred resource creation and management.
+    /// </summary>
+    /// <returns>The handle to the newly created empty resource slot.</returns>
+    Handle<GPUResource> CreateEmpty();
+
+    /// <summary>
     /// Maps a subresource of a GPU resource for CPU access, specifying read and write ranges.
     /// </summary>
     /// <param name="handle">A handle to the GPU resource to be mapped.</param>
