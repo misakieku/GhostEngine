@@ -592,6 +592,7 @@ public sealed partial class ResourceManager : IDisposable
         _meshes.Dispose();
         _materials.Dispose();
         _shaders.Dispose();
+        _computeShaders.Dispose();
         _materialPalettes.Dispose();
 
         _resourceDatabase.ReleaseResource(_paletteOffsetBuffer.AsResource());

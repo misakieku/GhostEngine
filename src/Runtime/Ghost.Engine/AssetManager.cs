@@ -1,7 +1,6 @@
 using Ghost.Core;
 using Ghost.Core.Utilities;
 using Ghost.Graphics;
-using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel;
@@ -54,7 +53,7 @@ internal partial class AssetEntry
 {
     private static readonly Action<AssetEntry>[] s_onCreation = new Action<AssetEntry>[(int)AssetType.Unknown + 1];
     private static readonly Func<AssetEntry, Result>[] s_onParseRawData = new Func<AssetEntry, Result>[(int)AssetType.Unknown + 1];
-    private static readonly Action<AssetEntry, ResourceStreamingContext>[] s_onRecordUpload = new Action<AssetEntry, ResourceStreamingContext>[(int)AssetType.Unknown + 1];
+    private static readonly Func<AssetEntry, ResourceStreamingContext, Result>[] s_onRecordUpload = new Func<AssetEntry, ResourceStreamingContext, Result>[(int)AssetType.Unknown + 1];
     private static readonly Action<AssetEntry, ResourceStreamingContext>[] s_onUploadComplete = new Action<AssetEntry, ResourceStreamingContext>[(int)AssetType.Unknown + 1];
     private static readonly Action<AssetEntry>[] s_onReleaseResource = new Action<AssetEntry>[(int)AssetType.Unknown + 1];
 
@@ -184,9 +183,9 @@ internal unsafe partial class AssetEntry
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void OnRecordUploadCommands(ResourceStreamingContext context)
+    public Result OnRecordUploadCommands(ResourceStreamingContext context)
     {
-        s_onRecordUpload[(int)_assetType]?.Invoke(this, context);
+        return s_onRecordUpload[(int)_assetType]?.Invoke(this, context) ?? Result.Failure("Unsupported asset type.");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -417,10 +416,10 @@ internal partial class AssetManager : IDisposable
 
         if (Interlocked.CompareExchange(ref entry.StateValue, (int)AssetState.Scheduled, (int)AssetState.Ready) == (int)AssetState.Ready)
         {
-            // Entry is in Ready state — the old texture is valid and will remain visible.
-            // Go directly to Scheduled → Loading → Loaded → Uploading → Ready again.
+            // Entry is in Ready state - the old texture is valid and will remain visible.
+            // Go directly to Scheduled -> Loading -> Loaded -> Uploading -> Ready again.
             // The swap cycle in RecordTextureUpload/OnTextureUploadComplete handles the 
-            // v1 → v2 transition exactly like the fallback → v1 transition.
+            // v1 to v2 transition exactly like the fallback to v1 transition.
             EnsureScheduled(entry);
         }
         else

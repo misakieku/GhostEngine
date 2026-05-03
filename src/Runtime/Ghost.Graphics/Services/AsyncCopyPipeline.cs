@@ -3,7 +3,7 @@ using Ghost.Graphics.RHI;
 
 namespace Ghost.Graphics.Services;
 
-public class AsyncCopyPipeline
+public class AsyncCopyPipeline : IDisposable
 {
     private readonly IRenderDevice _device;
 
@@ -24,6 +24,11 @@ public class AsyncCopyPipeline
         _commandAllocator.Name = $"AsyncCopyPipeline_CommandAllocator";
         _commandBuffer.Name = $"AsyncCopyPipeline_CommandBuffer";
         _fence.Name = "AsyncCopyPipeline_Fence";
+    }
+
+    ~AsyncCopyPipeline()
+    {
+        Dispose();
     }
 
     internal void Begin()
@@ -73,5 +78,14 @@ public class AsyncCopyPipeline
     public Task WaitAsync()
     {
         return _fence.WaitForValueAsync(_fenceValue);
+    }
+
+    public void Dispose()
+    {
+        _commandAllocator.Dispose();
+        _commandBuffer.Dispose();
+        _fence.Dispose();
+
+        GC.SuppressFinalize(this);
     }
 }

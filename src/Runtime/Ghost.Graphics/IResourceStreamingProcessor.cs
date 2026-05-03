@@ -3,7 +3,7 @@ using Ghost.Graphics.Services;
 
 namespace Ghost.Graphics;
 
-internal ref struct ResourceStreamingContext
+internal readonly struct ResourceStreamingContext
 {
     public required AsyncCopyPipeline CopyPipeline
     {

@@ -475,8 +475,12 @@ public class RenderSystem : IDisposable
 
         _renderPipeline.Dispose();
 
+        _fence.Dispose();
+
+        _shaderLibrary.Dispose();
         _resourceManager.Dispose();
         _swapChainManager.Dispose();
+        _asyncCopyPipeline.Dispose();
 
         _graphicsEngine.Dispose();
 

@@ -62,17 +62,26 @@ internal class ResourceStreamingProcessor : IResourceStreamingProcessor
             }
 
             // Record copy commands into cmdCopy
-            entry.OnRecordUploadCommands(context);
+            if (entry.OnRecordUploadCommands(context).IsFailure)
+            {
+                Logger.Error($"Failed to record upload commands for asset {entry.AssetId}. Skipping upload.");
+                continue;
+            }
+
             entry.State = AssetState.Uploading;
 
             _pendingFinalize.Enqueue(entry);
             uploadCount++;
         }
 
-        var result = context.CopyPipeline.End();
-
         // 3. Submit the batch
-        if (uploadCount > 0 && result.IsSuccess)
+        if (context.CopyPipeline.End().IsFailure)
+        {
+            Logger.Error("Failed to submit copy command list for resource streaming.");
+            return;
+        }
+
+        if (uploadCount > 0)
         {
             _pendingCopyFenceValue = context.CopyPipeline.SignaledFenceValue();
         }

@@ -5,6 +5,6 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("Ghost.Editor")]
 [assembly: InternalsVisibleTo("Ghost.Editor.Core")]
 [assembly: InternalsVisibleTo("Ghost.Graphics.Test")]
-[assembly: InternalsVisibleTo("Ghost.Graphics.Test-Winui")]
+[assembly: InternalsVisibleTo("Ghost.UnitTest")]
 
 [assembly: EngineAssembly]

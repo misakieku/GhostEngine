@@ -21,7 +21,6 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
     private int _samplerToken = 0;
 
     private static ulong GetKey(Handle<GPUResource> handle) => ((ulong)handle.Generation << 32) | (uint)handle.ID;
-    private static ulong GetKey<T>(Handle<T> handle) where T : unmanaged => ((ulong)handle.Generation << 32) | (uint)handle.ID;
 
     public Handle<GPUResource> AddMockResource(ResourceDesc desc, ResourceBarrierData barrierData, string? name)
     {
@@ -88,7 +87,7 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
 
     public ulong GetIntermediateResourceSize(Handle<GPUResource> resource, uint firstSubResource, uint numSubResources)
     {
-        return 1024 * 1024; // Mock size 1MB
+        return 0; // For testing, we can return 0 because we don't actually allocate memory.
     }
 
     public Result<ResourceBarrierData, Error> GetResourceBarrierData(Handle<GPUResource> handle)
@@ -151,9 +150,15 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
 
     public Handle<GPUResource> Replace(Handle<GPUResource> dst, Handle<GPUResource> src)
     {
-        // For tests, replacing means taking the new handle (src) and disposing the old (dst)
-        ReleaseResource(dst);
-        return src;
+        if (_resources.TryGetValue(GetKey(dst), out var recordDst) &&
+            _resources.TryGetValue(GetKey(src), out var recordSrc))
+        {
+            _resources[GetKey(dst)] = recordSrc;
+            _resources[GetKey(src)] = recordDst;
+        }
+
+        ReleaseResource(src);
+        return dst;
     }
 
     public Error SetResourceBarrierData(Handle<GPUResource> handle, ResourceBarrierData data)
@@ -164,8 +169,10 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
             {
                 record.barrierData = data;
             }
+
             return Error.None;
         }
+
         return Error.NotFound;
     }
 

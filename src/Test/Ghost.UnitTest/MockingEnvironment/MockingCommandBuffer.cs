@@ -8,7 +8,6 @@ internal class MockingCommandBuffer : ICommandBuffer
 {
     private readonly IResourceDatabase _resourceDatabase;
 
-    private string _name = "MockCommandBuffer";
     private bool _isEmpty = true;
 
     // Tracking properties for test assertions
@@ -16,19 +15,22 @@ internal class MockingCommandBuffer : ICommandBuffer
     public int CopyCallCount { get; private set; }
     public int UpdateSubResourcesCount { get; private set; }
 
-    public CommandBufferType Type => default;
-
     public bool IsEmpty => _isEmpty;
+
+    public CommandBufferType Type
+    {
+        get;
+    }
 
     public string Name
     {
-        get => _name;
-        set => _name = value;
-    }
+        get; set;
+    } = "MockingCommandBuffer";
 
-    public MockingCommandBuffer(IResourceDatabase resourceDatabase)
+    public MockingCommandBuffer(IResourceDatabase resourceDatabase, CommandBufferType type)
     {
         _resourceDatabase = resourceDatabase;
+        Type = type;
     }
 
     public void Barrier(params scoped ReadOnlySpan<BarrierDesc> barrierDescs)
