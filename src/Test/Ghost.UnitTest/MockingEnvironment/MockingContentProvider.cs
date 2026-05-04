@@ -1,6 +1,11 @@
 using Ghost.Core;
 using Ghost.Engine;
+using Ghost.Graphics.Core;
+using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.Mathematics;
+using Misaki.HighPerformance.Mathematics.Geometry;
 using System.Collections.Concurrent;
+using System.Runtime.InteropServices;
 
 namespace Ghost.UnitTest.MockingEnvironment;
 
@@ -57,6 +62,118 @@ internal class MockingContentProvider : IContentProvider
             data = buffer,
             readDelayMs = readDelayMs
         });
+    }
+
+    public void AddMockMesh(Guid guid, int readDelayMs = 0)
+    {
+        var vertices = new[]
+        {
+            new Vertex { position = new float3(0, 0, 0), normal = new float3(0, 1, 0), tangent = new float4(1, 0, 0, 1), uv = new float2(0, 0), color = new Color128(1, 1, 1, 1) },
+            new Vertex { position = new float3(1, 0, 0), normal = new float3(0, 1, 0), tangent = new float4(1, 0, 0, 1), uv = new float2(1, 0), color = new Color128(1, 1, 1, 1) },
+            new Vertex { position = new float3(0, 1, 0), normal = new float3(0, 1, 0), tangent = new float4(1, 0, 0, 1), uv = new float2(0, 1), color = new Color128(1, 1, 1, 1) },
+        };
+        var indices = new uint[] { 0, 1, 2 };
+        var materialParts = new[]
+        {
+            new MeshContentMaterialPart { materialIndex = 0, indexStart = 0, indexCount = 3, vertexStart = 0, vertexCount = 3 }
+        };
+        var meshlets = new[]
+        {
+            new Meshlet
+            {
+                boundingSphere = new SphereBounds(new float3(0.5f, 0.5f, 0), 1.0f),
+                parentBoundingSphere = new SphereBounds(new float3(0.5f, 0.5f, 0), 1.0f),
+                boundingBox = new AABB(new float3(0, 0, 0), new float3(1, 1, 0)),
+                vertexOffset = 0,
+                triangleOffset = 0,
+                groupIndex = 0,
+                clusterError = 0,
+                parentError = 0,
+                vertexCount = 3,
+                triangleCount = 1,
+                localMaterialIndex = 0,
+                lodLevel = 0,
+            }
+        };
+        var groups = new[]
+        {
+            new MeshletGroup
+            {
+                boundingSphere = new SphereBounds(new float3(0.5f, 0.5f, 0), 1.0f),
+                boundingBox = new AABB(new float3(0, 0, 0), new float3(1, 1, 0)),
+                parentError = 0,
+                meshletStartIndex = 0,
+                meshletCount = 1,
+                lodLevel = 0,
+            }
+        };
+        var hierarchy = new[]
+        {
+            new MeshletHierarchyNode
+            {
+                minX = new float4(0, float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity),
+                minY = new float4(0, float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity),
+                minZ = new float4(0, float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity),
+                maxX = new float4(1, float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity),
+                maxY = new float4(1, float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity),
+                maxZ = new float4(0, float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity),
+                maxParentError = new float4(0),
+                nodeData = new uint4(0, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF),
+            }
+        };
+        var meshletVertices = new uint[] { 0, 1, 2 };
+        var meshletTriangles = new uint[] { 0 | (1u << 8) | (2u << 16) };
+
+        using var stream = new MemoryStream();
+        var header = new MeshContentHeader
+        {
+            magic = MeshContentHeader.MAGIC,
+            version = MeshContentHeader.VERSION,
+            vertexCount = (uint)vertices.Length,
+            indexCount = (uint)indices.Length,
+            materialPartCount = (uint)materialParts.Length,
+            meshletCount = (uint)meshlets.Length,
+            meshletGroupCount = (uint)groups.Length,
+            meshletHierarchyNodeCount = (uint)hierarchy.Length,
+            meshletVertexCount = (uint)meshletVertices.Length,
+            meshletTriangleCount = (uint)meshletTriangles.Length,
+            materialSlotCount = 1,
+            lodLevelCount = 1,
+            boundsMin = new float3(0, 0, 0),
+            boundsMax = new float3(1, 1, 0),
+        };
+
+        WriteStruct(stream, in header);
+        header.vertexOffset = (ulong)stream.Position; WriteSpan(stream, vertices);
+        header.indexOffset = (ulong)stream.Position; WriteSpan(stream, indices);
+        header.materialPartOffset = (ulong)stream.Position; WriteSpan(stream, materialParts);
+        header.meshletOffset = (ulong)stream.Position; WriteSpan(stream, meshlets);
+        header.meshletGroupOffset = (ulong)stream.Position; WriteSpan(stream, groups);
+        header.meshletHierarchyNodeOffset = (ulong)stream.Position; WriteSpan(stream, hierarchy);
+        header.meshletVertexOffset = (ulong)stream.Position; WriteSpan(stream, meshletVertices);
+        header.meshletTriangleOffset = (ulong)stream.Position; WriteSpan(stream, meshletTriangles);
+
+        stream.Position = 0;
+        WriteStruct(stream, in header);
+
+        AddMockAsset(guid, new MockAssetData
+        {
+            type = AssetType.Mesh,
+            data = stream.ToArray(),
+            readDelayMs = readDelayMs
+        });
+    }
+
+    private static void WriteStruct<T>(Stream stream, ref readonly T value)
+        where T : unmanaged
+    {
+        stream.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(in value, 1)));
+    }
+
+    private static void WriteSpan<T>(Stream stream, ReadOnlySpan<T> value)
+        where T : unmanaged
+    {
+        stream.Write(MemoryMarshal.AsBytes(value));
     }
 
     public AssetType GetAssetType(Guid guid)

@@ -230,7 +230,7 @@ public static unsafe class MeshBuilder
     public static void ComputeTangents(Span<Vertex> vertices, Span<uint> indices)
     {
         using var scope = AllocationManager.CreateStackScope();
-        var bitangents = new UnsafeArray<float3>(vertices.Length, scope.AllocationHandle, AllocationOption.Clear);
+        using var bitangents = new UnsafeArray<float3>(vertices.Length, scope.AllocationHandle, AllocationOption.Clear);
 
         for (var i = 0; i < indices.Length; i += 3)
         {

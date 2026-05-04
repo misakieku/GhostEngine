@@ -141,6 +141,11 @@ internal static partial class {registerTypeName}
             return null;
         }
 
+        if (symbol.IsAbstract)
+        {
+            return null;
+        }
+
         var iSettingsSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("Ghost.Editor.Core.Assets.IAssetSettings");
         if (iSettingsSymbol == null)
         {

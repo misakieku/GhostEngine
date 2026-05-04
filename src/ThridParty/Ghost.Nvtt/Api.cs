@@ -17,7 +17,7 @@ public partial class Api
                         OperatingSystem.IsMacOS() ? ".dylib" : "";
 
             var arch = Environment.Is64BitProcess ? "x64" : "x86";
-            var nativeDllDir = Path.Combine("./runtimes", platform + "-" + arch, "native");
+            var nativeDllDir = Path.Combine(AppContext.BaseDirectory, "runtimes", platform + "-" + arch, "native");
 
             return NativeLibrary.Load(Path.Combine(nativeDllDir, libraryName + ext));
         });

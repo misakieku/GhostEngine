@@ -70,5 +70,9 @@ public struct MeshData
     public uint meshletBuffer;
     public uint meshletVerticesBuffer;
     public uint meshletTrianglesBuffer;
+    public uint meshletGroupBuffer;
+    public uint meshletHierarchyBuffer;
+    public uint meshletCount;
+    public uint lodLevelCount;
     public uint materialSlotCount;     // number of material slots baked into this mesh's meshlets
 };

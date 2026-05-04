@@ -1,3 +1,4 @@
+using Ghost.Editor.Core;
 using Ghost.Editor.Core.Assets;
 using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.Services;
@@ -7,16 +8,21 @@ namespace Ghost.UnitTest.AssetSystem;
 [TestClass]
 public class AssertRegistryTest
 {
-    private string _assetsRoot = null!;
     private IAssetRegistry _registry = null!;
+
+    public TestContext TestContext
+    {
+        get; set;
+    }
 
     [TestInitialize]
     public void Setup()
     {
         var testDir = Path.Combine(Path.GetTempPath(), "GhostEngineTests", Guid.NewGuid().ToString());
         Directory.CreateDirectory(testDir);
-        
-        _assetsRoot = Path.Combine(testDir, "Assets");
+
+        EditorApplication.Initialize(null!, testDir, "Test");
+
         _registry = new AssetRegistry();
     }
 
@@ -29,16 +35,20 @@ public class AssertRegistryTest
     [TestMethod]
     public async Task TestAssetRegistry_AutoImport()
     {
-        var sourcePath = "test.text";
-        var fullSourcePath = Path.Combine(_assetsRoot, sourcePath);
-        await File.WriteAllBytesAsync(fullSourcePath, [1, 2, 3]);
-
-        await Task.Delay(1000); // Wait for FSW to trigger
+        var sourcePath = "Assets/test.text";
+        await File.WriteAllBytesAsync(sourcePath, [1, 2, 3], TestContext.CancellationToken);
         
-        var metaPath = AssetMetaIO.GetMetaPath(fullSourcePath);
+        var metaPath = AssetMetaIO.GetMetaPath(sourcePath);
+
+        using var cts = new CancellationTokenSource(5000);
+        while (!File.Exists(metaPath) && !cts.IsCancellationRequested)
+        {
+            await Task.Delay(50, cts.Token);
+        }
+
         Assert.IsTrue(File.Exists(metaPath));
         
-        var meta = await AssetMetaIO.ReadAsync(metaPath);
+        var meta = await AssetMetaIO.ReadAsync(metaPath, TestContext.CancellationToken);
         Assert.IsNotNull(meta);
 
         var guid = _registry.GetAssetGuid(sourcePath);

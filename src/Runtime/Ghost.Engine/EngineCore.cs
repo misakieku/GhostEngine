@@ -47,7 +47,7 @@ public sealed partial class EngineCore : IDisposable
         };
 
         _renderSystem = new RenderSystem(renderingDesc);
-        _assetManager = new AssetManager(_renderSystem.GraphicsEngine.ResourceDatabase, _contentProvider, _streamingProcessor, _jobScheduler);
+        _assetManager = new AssetManager(_renderSystem.GraphicsEngine.ResourceDatabase, _renderSystem.ResourceManager, _contentProvider, _streamingProcessor, _jobScheduler);
     }
 
     public void Dispose()

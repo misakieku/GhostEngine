@@ -9,6 +9,8 @@ namespace Ghost.Editor.Core.Services;
 /// </summary>
 public sealed partial class AssetCatalog : IDisposable
 {
+    public readonly record struct SubAssetInfo(Guid Guid, Guid ParentGuid, string Kind, string DisplayName, string StablePath, string SourcePath, Guid HandlerTypeId);
+
     private readonly SqliteConnection _connection;
     private readonly Lock _writeLock = new();
 
@@ -26,6 +28,8 @@ public sealed partial class AssetCatalog : IDisposable
     private readonly SqliteCommand _cmdInsertDep;
     private readonly SqliteCommand _cmdClearDeps;
     private readonly SqliteCommand _cmdEnumerate;
+    private readonly SqliteCommand _cmdEnumerateSubAssets;
+    private readonly SqliteCommand _cmdDeleteSubAssetsForParent;
 
     public AssetCatalog(string dbPath)
     {
@@ -54,15 +58,19 @@ public sealed partial class AssetCatalog : IDisposable
         _cmdGetImportedAt = CreateCommand("SELECT imported_at_ms FROM assets WHERE guid = @guid");
 
         _cmdUpsert = CreateCommand(@"
-            INSERT INTO assets (guid, source_path, handler_type_id, handler_version, content_hash, settings_hash, imported_at_ms)
-            VALUES (@guid, @path, @handler_id, @version, @content_hash, @settings_hash, @imported_at_ms)
+            INSERT INTO assets (guid, source_path, handler_type_id, handler_version, content_hash, settings_hash, imported_at_ms, parent_guid, subasset_kind, display_name, stable_path)
+            VALUES (@guid, @path, @handler_id, @version, @content_hash, @settings_hash, @imported_at_ms, @parent_guid, @subasset_kind, @display_name, @stable_path)
             ON CONFLICT(guid) DO UPDATE SET
                 source_path = excluded.source_path,
                 handler_type_id = excluded.handler_type_id,
                 handler_version = excluded.handler_version,
                 content_hash = excluded.content_hash,
                 settings_hash = excluded.settings_hash,
-                imported_at_ms = excluded.imported_at_ms");
+                imported_at_ms = excluded.imported_at_ms,
+                parent_guid = excluded.parent_guid,
+                subasset_kind = excluded.subasset_kind,
+                display_name = excluded.display_name,
+                stable_path = excluded.stable_path");
         _cmdDelete = CreateCommand("DELETE FROM assets WHERE guid = @guid");
         _cmdGetReferencers = CreateCommand("SELECT from_guid FROM dependencies WHERE to_guid = @guid");
         _cmdGetDependencies = CreateCommand("SELECT to_guid FROM dependencies WHERE from_guid = @guid");
@@ -70,6 +78,8 @@ public sealed partial class AssetCatalog : IDisposable
         _cmdInsertDep = CreateCommand("INSERT INTO dependencies (from_guid, to_guid) VALUES (@from, @to)");
         _cmdClearDeps = CreateCommand("DELETE FROM dependencies WHERE from_guid = @guid");
         _cmdEnumerate = CreateCommand("SELECT guid, source_path FROM assets");
+        _cmdEnumerateSubAssets = CreateCommand("SELECT guid, parent_guid, subasset_kind, display_name, stable_path, source_path, handler_type_id FROM assets WHERE parent_guid = @parent_guid ORDER BY stable_path");
+        _cmdDeleteSubAssetsForParent = CreateCommand("DELETE FROM assets WHERE parent_guid = @parent_guid");
     }
 
     private SqliteCommand CreateCommand(string sql)
@@ -90,9 +100,14 @@ public sealed partial class AssetCatalog : IDisposable
                 handler_version INTEGER NOT NULL DEFAULT 0,
                 content_hash    TEXT,
                 settings_hash   TEXT,
-                imported_at_ms  INTEGER
+                imported_at_ms  INTEGER,
+                parent_guid     BLOB(16),
+                subasset_kind   TEXT,
+                display_name    TEXT,
+                stable_path     TEXT
             );
             CREATE UNIQUE INDEX IF NOT EXISTS idx_assets_path ON assets(source_path);
+            CREATE INDEX IF NOT EXISTS idx_assets_parent ON assets(parent_guid);
 
             CREATE TABLE IF NOT EXISTS dependencies (
                 from_guid   BLOB(16) NOT NULL REFERENCES assets(guid) ON DELETE CASCADE,
@@ -108,6 +123,28 @@ public sealed partial class AssetCatalog : IDisposable
             );
             CREATE INDEX IF NOT EXISTS idx_labels_label ON labels(label);";
         cmd.ExecuteNonQuery();
+
+        TryAddColumn("assets", "parent_guid", "BLOB(16)");
+        TryAddColumn("assets", "subasset_kind", "TEXT");
+        TryAddColumn("assets", "display_name", "TEXT");
+        TryAddColumn("assets", "stable_path", "TEXT");
+
+        using var indexCmd = _connection.CreateCommand();
+        indexCmd.CommandText = "CREATE INDEX IF NOT EXISTS idx_assets_parent ON assets(parent_guid);";
+        indexCmd.ExecuteNonQuery();
+    }
+
+    private void TryAddColumn(string tableName, string columnName, string columnType)
+    {
+        try
+        {
+            using var cmd = _connection.CreateCommand();
+            cmd.CommandText = $"ALTER TABLE {tableName} ADD COLUMN {columnName} {columnType};";
+            cmd.ExecuteNonQuery();
+        }
+        catch (SqliteException)
+        {
+        }
     }
 
     private static string ToUniversalPath(string path)
@@ -147,6 +184,30 @@ public sealed partial class AssetCatalog : IDisposable
             _cmdUpsert.Parameters.AddWithValue("@content_hash", meta.ContentHash ?? (object)DBNull.Value);
             _cmdUpsert.Parameters.AddWithValue("@settings_hash", meta.SettingsHash ?? (object)DBNull.Value);
             _cmdUpsert.Parameters.AddWithValue("@imported_at_ms", meta.LastImportedUtc?.Ticks ?? (object)DBNull.Value);
+            _cmdUpsert.Parameters.AddWithValue("@parent_guid", DBNull.Value);
+            _cmdUpsert.Parameters.AddWithValue("@subasset_kind", DBNull.Value);
+            _cmdUpsert.Parameters.AddWithValue("@display_name", DBNull.Value);
+            _cmdUpsert.Parameters.AddWithValue("@stable_path", DBNull.Value);
+            _cmdUpsert.ExecuteNonQuery();
+        }
+    }
+
+    public void UpsertSubAsset(Guid parentGuid, AssetMeta meta, string sourcePath, string kind, string displayName, string stablePath)
+    {
+        lock (_writeLock)
+        {
+            _cmdUpsert.Parameters.Clear();
+            _cmdUpsert.Parameters.AddWithValue("@guid", meta.Guid.ToByteArray());
+            _cmdUpsert.Parameters.AddWithValue("@path", ToUniversalPath(sourcePath));
+            _cmdUpsert.Parameters.AddWithValue("@handler_id", meta.HandlerTypeId?.ToByteArray() ?? (object)DBNull.Value);
+            _cmdUpsert.Parameters.AddWithValue("@version", meta.HandlerVersion);
+            _cmdUpsert.Parameters.AddWithValue("@content_hash", meta.ContentHash ?? (object)DBNull.Value);
+            _cmdUpsert.Parameters.AddWithValue("@settings_hash", meta.SettingsHash ?? (object)DBNull.Value);
+            _cmdUpsert.Parameters.AddWithValue("@imported_at_ms", meta.LastImportedUtc?.Ticks ?? (object)DBNull.Value);
+            _cmdUpsert.Parameters.AddWithValue("@parent_guid", parentGuid.ToByteArray());
+            _cmdUpsert.Parameters.AddWithValue("@subasset_kind", kind);
+            _cmdUpsert.Parameters.AddWithValue("@display_name", displayName);
+            _cmdUpsert.Parameters.AddWithValue("@stable_path", stablePath);
             _cmdUpsert.ExecuteNonQuery();
         }
     }
@@ -245,6 +306,58 @@ public sealed partial class AssetCatalog : IDisposable
         }
     }
 
+    public List<SubAssetInfo> GetSubAssets(Guid parentGuid)
+    {
+        _cmdEnumerateSubAssets.Parameters.Clear();
+        _cmdEnumerateSubAssets.Parameters.AddWithValue("@parent_guid", parentGuid.ToByteArray());
+
+        using var reader = _cmdEnumerateSubAssets.ExecuteReader();
+        var list = new List<SubAssetInfo>();
+        while (reader.Read())
+        {
+            list.Add(new SubAssetInfo(
+                new Guid((byte[])reader[0]),
+                new Guid((byte[])reader[1]),
+                reader.GetString(2),
+                reader.GetString(3),
+                reader.GetString(4),
+                reader.GetString(5),
+                new Guid((byte[])reader[6])));
+        }
+
+        return list;
+    }
+
+    public void RemoveSubAssetsExcept(Guid parentGuid, ReadOnlySpan<Guid> keepGuids)
+    {
+        lock (_writeLock)
+        {
+            if (keepGuids.Length == 0)
+            {
+                _cmdDeleteSubAssetsForParent.Parameters.Clear();
+                _cmdDeleteSubAssetsForParent.Parameters.AddWithValue("@parent_guid", parentGuid.ToByteArray());
+                _cmdDeleteSubAssetsForParent.ExecuteNonQuery();
+                return;
+            }
+
+            var keep = new HashSet<Guid>();
+            for (var i = 0; i < keepGuids.Length; i++)
+            {
+                keep.Add(keepGuids[i]);
+            }
+
+            foreach (var subAsset in GetSubAssets(parentGuid))
+            {
+                if (!keep.Contains(subAsset.Guid))
+                {
+                    _cmdDelete.Parameters.Clear();
+                    _cmdDelete.Parameters.AddWithValue("@guid", subAsset.Guid.ToByteArray());
+                    _cmdDelete.ExecuteNonQuery();
+                }
+            }
+        }
+    }
+
     public void Dispose()
     {
         _cmdGetGuid.Dispose();
@@ -257,6 +370,8 @@ public sealed partial class AssetCatalog : IDisposable
         _cmdInsertDep.Dispose();
         _cmdClearDeps.Dispose();
         _cmdEnumerate.Dispose();
+        _cmdEnumerateSubAssets.Dispose();
+        _cmdDeleteSubAssetsForParent.Dispose();
         _connection.Dispose();
     }
 }

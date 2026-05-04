@@ -50,7 +50,7 @@ public class AssetManagerTest
         };
         _jobScheduler = new JobScheduler(in schedulerDesc);
 
-        _assetManager = new AssetManager(_graphicsEngine.ResourceDatabase, _provider, _processor, _jobScheduler);
+        _assetManager = new AssetManager(_graphicsEngine.ResourceDatabase, _resourceManager, _provider, _processor, _jobScheduler);
     }
 
     [TestCleanup]
@@ -108,5 +108,90 @@ public class AssetManagerTest
         Assert.AreEqual(BarrierAccess.ShaderResource, data.access);
         Assert.AreEqual(BarrierLayout.ShaderResource, data.layout);
         Assert.AreEqual(BarrierSync.AllShading, data.sync);
+    }
+
+    [TestMethod]
+    public async Task AssetManager_ResolveMeshThenBackgroundUpload()
+    {
+        var assetID = Guid.NewGuid();
+        _provider.AddMockMesh(assetID, readDelayMs: Random.Shared.Next(10, 50));
+
+        var handle = _assetManager.ResolveMesh(assetID);
+        Assert.IsTrue(handle.IsValid);
+
+        Assert.IsTrue(_assetManager.TryGetEntry(assetID, out var entry));
+        Assert.IsGreaterThanOrEqualTo((int)AssetState.Scheduled, entry.StateValue);
+
+        await Task.Delay(1000, TestContext.CancellationToken);
+
+        Assert.IsGreaterThanOrEqualTo((int)AssetState.Loaded, entry.StateValue);
+
+        var ctx = new ResourceStreamingContext
+        {
+            ResourceManager = _resourceManager,
+            ResourceDatabase = _graphicsEngine.ResourceDatabase,
+            ResourceAllocator = _graphicsEngine.ResourceAllocator,
+            CopyPipeline = _copyPipeline,
+            GraphicsCommandBuffer = _commandBuffer,
+        };
+
+        _processor.ProcessPendingUploads(ctx);
+
+        await Task.Delay(1000, TestContext.CancellationToken);
+
+        Assert.IsGreaterThanOrEqualTo((int)AssetState.Uploading, entry.StateValue);
+
+        _processor.ProcessPendingUploads(ctx);
+
+        Assert.IsGreaterThanOrEqualTo((int)AssetState.Ready, entry.StateValue);
+        Assert.IsTrue(_resourceManager.HasMesh(handle));
+
+        ref readonly var mesh = ref _resourceManager.GetMeshReference(handle).GetValueOrThrow();
+        var (vertexBarrier, vertexError) = _graphicsEngine.ResourceDatabase.GetResourceBarrierData(mesh.VertexBuffer.AsResource());
+        var (indexBarrier, indexError) = _graphicsEngine.ResourceDatabase.GetResourceBarrierData(mesh.IndexBuffer.AsResource());
+        var (meshDataBarrier, meshDataError) = _graphicsEngine.ResourceDatabase.GetResourceBarrierData(mesh.MeshDataBuffer.AsResource());
+
+        Assert.AreEqual(Error.None, vertexError);
+        Assert.AreEqual(Error.None, indexError);
+        Assert.AreEqual(Error.None, meshDataError);
+        Assert.IsTrue(vertexBarrier.access.HasFlag(BarrierAccess.VertexBuffer));
+        Assert.IsTrue(indexBarrier.access.HasFlag(BarrierAccess.IndexBuffer));
+        Assert.AreEqual(BarrierAccess.ShaderResource, meshDataBarrier.access);
+    }
+
+    [TestMethod]
+    public async Task AssetManager_ReimportMeshKeepsStableHandle()
+    {
+        var assetID = Guid.NewGuid();
+        _provider.AddMockMesh(assetID);
+
+        var handle = _assetManager.ResolveMesh(assetID);
+        await Task.Delay(1000, TestContext.CancellationToken);
+
+        var ctx = new ResourceStreamingContext
+        {
+            ResourceManager = _resourceManager,
+            ResourceDatabase = _graphicsEngine.ResourceDatabase,
+            ResourceAllocator = _graphicsEngine.ResourceAllocator,
+            CopyPipeline = _copyPipeline,
+            GraphicsCommandBuffer = _commandBuffer,
+        };
+
+        _processor.ProcessPendingUploads(ctx);
+        _processor.ProcessPendingUploads(ctx);
+
+        Assert.IsTrue(_assetManager.TryGetEntry(assetID, out var entry));
+        Assert.AreEqual(AssetState.Ready, entry.State);
+
+        _provider.AddMockMesh(assetID);
+        _assetManager.ReimportAsset(assetID);
+        await Task.Delay(1000, TestContext.CancellationToken);
+
+        _processor.ProcessPendingUploads(ctx);
+        _processor.ProcessPendingUploads(ctx);
+
+        var reimportedHandle = _assetManager.ResolveMesh(assetID);
+        Assert.AreEqual(handle, reimportedHandle);
+        Assert.AreEqual(AssetState.Ready, entry.State);
     }
 }

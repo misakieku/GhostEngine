@@ -15,9 +15,9 @@ public partial class Api
         // NOTE: Currently only support Windows.
         if (libraryName == "dxcompiler")
         {
-            NativeLibrary.TryLoad("runtimes/win-x64/native/dxil.dll", out _);
+            NativeLibrary.TryLoad(Path.Combine(AppContext.BaseDirectory, "runtimes", "win-x64", "native", "dxil.dll"), out _);
 
-            if (NativeLibrary.TryLoad("runtimes/win-x64/native/dxcompiler.dll", out var dxcHandle))
+            if (NativeLibrary.TryLoad(Path.Combine(AppContext.BaseDirectory, "runtimes", "win-x64", "native", "dxcompiler.dll"), out var dxcHandle))
             {
                 return dxcHandle;
             }

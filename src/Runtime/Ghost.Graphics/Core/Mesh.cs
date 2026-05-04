@@ -186,11 +186,40 @@ public struct Mesh : IResourceReleasable
     }
 
     /// <summary>
+    /// Gets the handle to the meshlet group buffer on the GPU.
+    /// </summary>
+    public Handle<GPUBuffer> MeshletGroupBuffer
+    {
+        get; internal set;
+    }
+
+    /// <summary>
+    /// Gets the handle to the meshlet hierarchy buffer on the GPU.
+    /// </summary>
+    public Handle<GPUBuffer> MeshletHierarchyBuffer
+    {
+        get; internal set;
+    }
+
+    /// <summary>
     /// Gets the handle to the mesh data buffer on the GPU.
     /// </summary>
     public Handle<GPUBuffer> MeshDataBuffer
     {
         get; internal set;
+    }
+
+    internal void SetMeshletSummary(int meshletCount, int lodLevelCount, int materialSlotCount)
+    {
+        _meshletData.meshletCount = meshletCount;
+        _meshletData.lodLevelCount = lodLevelCount;
+        _meshletData.materialSlotCount = materialSlotCount;
+    }
+
+    internal void SetCounts(int vertexCount, int indexCount)
+    {
+        VertexCount = vertexCount;
+        IndexCount = indexCount;
     }
 
     public void ReleaseCpuResources()
@@ -209,6 +238,8 @@ public struct Mesh : IResourceReleasable
         database.ReleaseResource(MeshLetBuffer.AsResource());
         database.ReleaseResource(MeshletVerticesBuffer.AsResource());
         database.ReleaseResource(MeshletTrianglesBuffer.AsResource());
+        database.ReleaseResource(MeshletGroupBuffer.AsResource());
+        database.ReleaseResource(MeshletHierarchyBuffer.AsResource());
         database.ReleaseResource(MeshDataBuffer.AsResource());
     }
 }

@@ -81,6 +81,11 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
 
         foreach (var (guid, path) in _catalog.EnumerateAll())
         {
+            if (path.Contains('#', StringComparison.Ordinal))
+            {
+                continue;
+            }
+
             if (!foundGuids.Contains(guid))
             {
                 _catalog.Remove(guid);
@@ -130,51 +135,58 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
             return;
         }
 
-        var relativePath = Path.GetRelativePath(EditorApplication.ProjectPath, e.FullPath);
-        var fileExists = File.Exists(e.FullPath);
-
-        if (ext == AssetMetaIO.META_EXTENSION)
+        try
         {
-            if (fileExists)
+            var relativePath = Path.GetRelativePath(EditorApplication.ProjectPath, e.FullPath);
+            var fileExists = File.Exists(e.FullPath);
+
+            if (ext == AssetMetaIO.META_EXTENSION)
             {
-                var meta = await AssetMetaIO.ReadAsync(e.FullPath);
-                if (meta != null)
+                if (fileExists)
                 {
-                    _catalog.Upsert(meta, AssetMetaIO.GetSourcePath(relativePath));
-                    await _importCoordinator.EnqueueAsync(new ImportJob(meta.Guid, AssetMetaIO.GetSourcePath(relativePath), relativePath, ImportReason.SettingsChanged));
+                    var meta = await AssetMetaIO.ReadAsync(e.FullPath);
+                    if (meta != null)
+                    {
+                        _catalog.Upsert(meta, AssetMetaIO.GetSourcePath(relativePath));
+                        await _importCoordinator.EnqueueAsync(new ImportJob(meta.Guid, AssetMetaIO.GetSourcePath(relativePath), relativePath, ImportReason.SettingsChanged));
+                    }
+                }
+                return;
+            }
+
+            var changeType = AssetChangeType.None;
+            var guid = _catalog.GetGuid(relativePath);
+
+            if (!fileExists)
+            {
+                // The file is no longer on disk. Wait safely completed.
+                if (guid != Guid.Empty)
+                {
+                    _catalog.Remove(guid);
+                    changeType = AssetChangeType.Deleted;
                 }
             }
-            return;
-        }
-
-        var changeType = AssetChangeType.None;
-        var guid = _catalog.GetGuid(relativePath);
-
-        if (!fileExists)
-        {
-            // The file is no longer on disk. Wait safely completed.
-            if (guid != Guid.Empty)
+            else if (guid == Guid.Empty)
             {
-                _catalog.Remove(guid);
-                changeType = AssetChangeType.Deleted;
+                // The file exists but isn't located inside our catalog yet -> Essentially a Creation
+                await HandleNewSourceFileAsync(relativePath);
+                changeType = AssetChangeType.Created;
+            }
+            else
+            {
+                // The file exists and is tracked in the catalog, but triggered an event -> Modification
+                await _importCoordinator.EnqueueAsync(new ImportJob(guid, relativePath, AssetMetaIO.GetMetaPath(relativePath), ImportReason.SourceChanged));
+                changeType = AssetChangeType.Modified;
+            }
+
+            if (changeType != AssetChangeType.None)
+            {
+                OnAssetChanged?.Invoke(this, new AssetChangedEventArgs(relativePath, null, changeType));
             }
         }
-        else if (guid == Guid.Empty)
+        catch (Exception ex)
         {
-            // The file exists but isn't located inside our catalog yet -> Essentially a Creation
-            await HandleNewSourceFileAsync(relativePath);
-            changeType = AssetChangeType.Created;
-        }
-        else
-        {
-            // The file exists and is tracked in the catalog, but triggered an event -> Modification
-            await _importCoordinator.EnqueueAsync(new ImportJob(guid, relativePath, AssetMetaIO.GetMetaPath(relativePath), ImportReason.SourceChanged));
-            changeType = AssetChangeType.Modified;
-        }
-
-        if (changeType != AssetChangeType.None)
-        {
-            OnAssetChanged?.Invoke(this, new AssetChangedEventArgs(relativePath, null, changeType));
+            Logger.Error(ex);
         }
     }
 

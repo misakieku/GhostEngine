@@ -254,22 +254,44 @@ public readonly unsafe ref struct RenderContext
             Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
             HeapType = HeapType.Default,
         };
+        var groupsDesc = new BufferDesc
+        {
+            Size = (uint)(meshletData.groups.Count * sizeof(MeshletGroup)),
+            Stride = (uint)sizeof(MeshletGroup),
+            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
+            HeapType = HeapType.Default,
+        };
+        var hierarchyDesc = new BufferDesc
+        {
+            Size = (uint)(meshletData.hierarchyNodes.Count * sizeof(MeshletHierarchyNode)),
+            Stride = (uint)sizeof(MeshletHierarchyNode),
+            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
+            HeapType = HeapType.Default,
+        };
 
         meshRef.MeshLetBuffer = ResourceAllocator.CreateBuffer(in meshletDesc, "Meshlets");
         meshRef.MeshletVerticesBuffer = ResourceAllocator.CreateBuffer(in verticesDesc, "MeshletVertices");
         meshRef.MeshletTrianglesBuffer = ResourceAllocator.CreateBuffer(in trianglesDesc, "MeshletTriangles");
+        meshRef.MeshletGroupBuffer = ResourceAllocator.CreateBuffer(in groupsDesc, "MeshletGroups");
+        meshRef.MeshletHierarchyBuffer = ResourceAllocator.CreateBuffer(in hierarchyDesc, "MeshletHierarchy");
 
         TransitionBarrier(meshRef.MeshLetBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
         TransitionBarrier(meshRef.MeshletVerticesBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
         TransitionBarrier(meshRef.MeshletTrianglesBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
+        TransitionBarrier(meshRef.MeshletGroupBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
+        TransitionBarrier(meshRef.MeshletHierarchyBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
 
         UploadBuffer(meshRef.MeshLetBuffer, meshletData.meshlets.AsSpan());
         UploadBuffer(meshRef.MeshletVerticesBuffer, meshletData.meshletVertices.AsSpan());
         UploadBuffer(meshRef.MeshletTrianglesBuffer, meshletData.meshletTriangles.AsSpan());
+        UploadBuffer(meshRef.MeshletGroupBuffer, meshletData.groups.AsSpan());
+        UploadBuffer(meshRef.MeshletHierarchyBuffer, meshletData.hierarchyNodes.AsSpan());
 
         TransitionBarrier(meshRef.MeshLetBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
         TransitionBarrier(meshRef.MeshletVerticesBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
         TransitionBarrier(meshRef.MeshletTrianglesBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
+        TransitionBarrier(meshRef.MeshletGroupBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
+        TransitionBarrier(meshRef.MeshletHierarchyBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
     }
 
     public void UpdateObjectData(Handle<Mesh> mesh)
@@ -290,6 +312,10 @@ public readonly unsafe ref struct RenderContext
             meshletBuffer = ResourceDatabase.GetBindlessIndex(meshData.MeshLetBuffer.AsResource()),
             meshletVerticesBuffer = ResourceDatabase.GetBindlessIndex(meshData.MeshletVerticesBuffer.AsResource()),
             meshletTrianglesBuffer = ResourceDatabase.GetBindlessIndex(meshData.MeshletTrianglesBuffer.AsResource()),
+            meshletGroupBuffer = ResourceDatabase.GetBindlessIndex(meshData.MeshletGroupBuffer.AsResource()),
+            meshletHierarchyBuffer = ResourceDatabase.GetBindlessIndex(meshData.MeshletHierarchyBuffer.AsResource()),
+            meshletCount = (uint)meshData.MeshletData.meshletCount,
+            lodLevelCount = (uint)meshData.MeshletData.lodLevelCount,
             materialSlotCount = (uint)meshData.MeshletData.materialSlotCount,
         };
 

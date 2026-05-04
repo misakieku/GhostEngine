@@ -69,7 +69,7 @@ internal static class AssetMetaIO
     public const string META_EXTENSION_NAME = "gmeta";
     public const string META_EXTENSION = ".gmeta";
 
-    private static readonly JsonSerializerOptions s_options = new()
+    internal static readonly JsonSerializerOptions s_options = new()
     {
         WriteIndented = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -136,6 +136,7 @@ internal static class AssetMetaIO
         }
 
         File.Move(tempPath, metaPath);
+
     }
 
     public static string GetMetaPath(string sourceFilePath)

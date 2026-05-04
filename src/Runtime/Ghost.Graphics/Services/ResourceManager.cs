@@ -4,6 +4,7 @@ using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using Misaki.HighPerformance.Mathematics.Geometry;
 
 namespace Ghost.Graphics.Services;
 
@@ -162,6 +163,79 @@ public sealed partial class ResourceManager : IDisposable
 
             var id = _meshes.Add(mesh, out var generation);
             return new Handle<Mesh>(id, generation);
+        }
+    }
+
+    public Handle<Mesh> CreateEmptyMesh(string? name = null)
+    {
+        Logger.DebugAssert(!_disposed);
+
+        lock (_meshWriteLock)
+        {
+            var id = _meshes.Add(new Mesh(), out var generation);
+            return new Handle<Mesh>(id, generation);
+        }
+    }
+
+    public Handle<Mesh> CreateUploadedMesh(
+        Handle<GPUBuffer> vertexBuffer,
+        Handle<GPUBuffer> indexBuffer,
+        Handle<GPUBuffer> meshletBuffer,
+        Handle<GPUBuffer> meshletVerticesBuffer,
+        Handle<GPUBuffer> meshletTrianglesBuffer,
+        Handle<GPUBuffer> meshletGroupBuffer,
+        Handle<GPUBuffer> meshletHierarchyBuffer,
+        Handle<GPUBuffer> meshDataBuffer,
+        int vertexCount,
+        int indexCount,
+        int meshletCount,
+        int lodLevelCount,
+        int materialSlotCount,
+        AABB boundingBox)
+    {
+        Logger.DebugAssert(!_disposed);
+
+        var mesh = new Mesh
+        {
+            VertexBuffer = vertexBuffer,
+            IndexBuffer = indexBuffer,
+            MeshLetBuffer = meshletBuffer,
+            MeshletVerticesBuffer = meshletVerticesBuffer,
+            MeshletTrianglesBuffer = meshletTrianglesBuffer,
+            MeshletGroupBuffer = meshletGroupBuffer,
+            MeshletHierarchyBuffer = meshletHierarchyBuffer,
+            MeshDataBuffer = meshDataBuffer,
+            BoundingBox = boundingBox,
+        };
+        mesh.SetCounts(vertexCount, indexCount);
+        mesh.SetMeshletSummary(meshletCount, lodLevelCount, materialSlotCount);
+
+        lock (_meshWriteLock)
+        {
+            var id = _meshes.Add(mesh, out var generation);
+            return new Handle<Mesh>(id, generation);
+        }
+    }
+
+    public Handle<Mesh> ReplaceMesh(Handle<Mesh> dst, Handle<Mesh> src)
+    {
+        Logger.DebugAssert(!_disposed);
+
+        lock (_meshWriteLock)
+        {
+            ref var dstMesh = ref _meshes.GetElementReferenceAt(dst.ID, dst.Generation, out var dstExists);
+            ref var srcMesh = ref _meshes.GetElementReferenceAt(src.ID, src.Generation, out var srcExists);
+            if (!dstExists || !srcExists)
+            {
+                return Handle<Mesh>.Invalid;
+            }
+
+            var oldMesh = dstMesh;
+            dstMesh = srcMesh;
+            _meshes.Remove(src.ID, src.Generation);
+
+            oldMesh.ReleaseResource(_resourceDatabase);
+            return dst;
         }
     }
 

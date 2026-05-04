@@ -1,6 +1,7 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
 using System.Collections.Concurrent;
+using System.Runtime.InteropServices;
 
 namespace Ghost.UnitTest.MockingEnvironment;
 
@@ -13,6 +14,7 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
         public string? name;
         public int refCount = 1;
         public bool isShared;
+        public unsafe void* mappedData;
     }
 
     private readonly ConcurrentDictionary<ulong, MockResourceRecord> _resources = new();
@@ -118,9 +120,21 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
 
     public void* MapResource(Handle<GPUResource> handle, uint subResource, ResourceRange? readRange)
     {
-        // Real pointers are tricky in mocks unless native mem is allocated.
-        // Usually unit tests don't do CPU readbacks directly on the raw pointer unless necessary.
-        throw new NotSupportedException("MapResource is not supported in MockingResourceDatabase. Use a custom mechanism for tests.");
+        if (!_resources.TryGetValue(GetKey(handle), out var record))
+        {
+            return null;
+        }
+
+        lock (record)
+        {
+            if (record.mappedData == null)
+            {
+                var size = record.desc.Type == ResourceType.Buffer ? Math.Max(1UL, record.desc.BufferDescriptor.Size) : 1UL;
+                record.mappedData = NativeMemory.Alloc((nuint)size);
+            }
+
+            return record.mappedData;
+        }
     }
 
     public void ReleaseResource(Handle<GPUResource> handle)
@@ -137,6 +151,12 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
                 record.refCount--;
                 if (record.refCount <= 0)
                 {
+                    if (record.mappedData != null)
+                    {
+                        NativeMemory.Free(record.mappedData);
+                        record.mappedData = null;
+                    }
+
                     _resources.TryRemove(GetKey(handle), out _);
                 }
             }
@@ -207,6 +227,15 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
 
     public void Dispose()
     {
+        foreach (var record in _resources.Values)
+        {
+            if (record.mappedData != null)
+            {
+                NativeMemory.Free(record.mappedData);
+                record.mappedData = null;
+            }
+        }
+
         _resources.Clear();
         _samplers.Clear();
     }

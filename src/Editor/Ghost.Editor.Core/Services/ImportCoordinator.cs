@@ -112,10 +112,23 @@ internal sealed partial class ImportCoordinator : IDisposable
         }
 
         var importResult = Result.Success();
+        ImportedSubAsset[] subAssets = Array.Empty<ImportedSubAsset>();
         if (handler is IImportableAssetHandler importable)
         {
             var targetPath = GetImportedAssetPath(job.AssetGuid);
-            importResult = await importable.ImportAsync(job.SourcePath, targetPath, job.AssetGuid, meta.Settings, token);
+            if (importable is ISubAssetImportableAssetHandler subAssetImportable)
+            {
+                var subAssetResult = await subAssetImportable.ImportWithSubAssetsAsync(job.SourcePath, targetPath, job.AssetGuid, meta.Settings, token);
+                importResult = subAssetResult;
+                if (subAssetResult.IsSuccess)
+                {
+                    subAssets = subAssetResult.Value;
+                }
+            }
+            else
+            {
+                importResult = await importable.ImportAsync(job.SourcePath, targetPath, job.AssetGuid, meta.Settings, token);
+            }
         }
 
         if (importResult.IsSuccess)
@@ -126,6 +139,36 @@ internal sealed partial class ImportCoordinator : IDisposable
             meta.LastImportedUtc = DateTime.UtcNow;
 
             await AssetMetaIO.WriteAsync(job.MetaPath, meta, token);
+
+            if (subAssets.Length > 0)
+            {
+                var dependencies = new Guid[subAssets.Length];
+                for (var i = 0; i < subAssets.Length; i++)
+                {
+                    var subAsset = subAssets[i];
+                    dependencies[i] = subAsset.Guid;
+
+                    var subMeta = new AssetMeta
+                    {
+                        Guid = subAsset.Guid,
+                        HandlerTypeId = subAsset.HandlerTypeId,
+                        HandlerVersion = meta.HandlerVersion,
+                        ContentHash = contentHash,
+                        SettingsHash = settingsHash,
+                        LastImportedUtc = meta.LastImportedUtc,
+                    };
+
+                    _catalog.UpsertSubAsset(job.AssetGuid, subMeta, subAsset.VirtualSourcePath, subAsset.Kind, subAsset.DisplayName, subAsset.StablePath);
+                }
+
+                _catalog.RemoveSubAssetsExcept(job.AssetGuid, dependencies);
+                _catalog.SetDependencies(job.AssetGuid, dependencies);
+            }
+            else if (handler is ISubAssetImportableAssetHandler)
+            {
+                _catalog.RemoveSubAssetsExcept(job.AssetGuid, ReadOnlySpan<Guid>.Empty);
+                _catalog.SetDependencies(job.AssetGuid, ReadOnlySpan<Guid>.Empty);
+            }
 
             OnImportCompleted?.Invoke(null, job.AssetGuid);
         }

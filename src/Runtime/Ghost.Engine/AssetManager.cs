@@ -1,6 +1,7 @@
 using Ghost.Core;
 using Ghost.Core.Utilities;
 using Ghost.Graphics;
+using Ghost.Graphics.Services;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel;
@@ -60,6 +61,7 @@ internal partial class AssetEntry
     static AssetEntry()
     {
         RegisterTextureCallback();
+        RegisterMeshCallback();
     }
 }
 
@@ -72,6 +74,7 @@ internal unsafe partial class AssetEntry
 
     private readonly AssetManager _assetManager;
     private readonly IResourceDatabase _resourceDatabase;
+    private readonly ResourceManager _resourceManager;
 
     private readonly Guid _assetId;
     private readonly AssetType _assetType;
@@ -101,10 +104,11 @@ internal unsafe partial class AssetEntry
         set => Volatile.Write(ref _state, (int)value);
     }
 
-    public AssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, Guid assetId, AssetType assetType, Guid[] dependencies)
+    public AssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, AssetType assetType, Guid[] dependencies)
     {
         _assetManager = manager;
         _resourceDatabase = resourceDatabase;
+        _resourceManager = resourceManager;
 
         _assetId = assetId;
         _assetType = assetType;
@@ -288,6 +292,7 @@ internal struct LoadAssetJob : IJob
 internal partial class AssetManager : IDisposable
 {
     private readonly IResourceDatabase _resourceDatabase;
+    private readonly ResourceManager _resourceManager;
     private readonly IContentProvider _contentProvider;
     private readonly ResourceStreamingProcessor _streamingProcessor;
     private readonly JobScheduler _jobScheduler;
@@ -297,9 +302,10 @@ internal partial class AssetManager : IDisposable
     public IContentProvider ContentProvider => _contentProvider;
     public ResourceStreamingProcessor StreamingProcessor => _streamingProcessor;
 
-    internal AssetManager(IResourceDatabase resourceDatabase, IContentProvider contentProvider, ResourceStreamingProcessor streamingProcessor, JobScheduler jobScheduler)
+    internal AssetManager(IResourceDatabase resourceDatabase, ResourceManager resourceManager, IContentProvider contentProvider, ResourceStreamingProcessor streamingProcessor, JobScheduler jobScheduler)
     {
         _resourceDatabase = resourceDatabase;
+        _resourceManager = resourceManager;
         _contentProvider = contentProvider;
         _streamingProcessor = streamingProcessor;
         _jobScheduler = jobScheduler;
@@ -320,9 +326,13 @@ internal partial class AssetManager : IDisposable
 
     private void EnsureScheduled(AssetEntry entry)
     {
-        if (Interlocked.CompareExchange(ref entry.StateValue, (int)AssetState.Scheduled, (int)AssetState.Unloaded) != (int)AssetState.Unloaded)
+        var previousState = Interlocked.CompareExchange(ref entry.StateValue, (int)AssetState.Scheduled, (int)AssetState.Unloaded);
+        if (previousState != (int)AssetState.Unloaded)
         {
-            return;
+            if (previousState != (int)AssetState.Scheduled || entry.LoadJobHandle.IsValid)
+            {
+                return;
+            }
         }
 
         // TODO: Can this be jobified? If the dependency tree is not deep, it should be fine to do it in main thread, otherwise we might need to schedule a job to do it.
@@ -397,7 +407,7 @@ internal partial class AssetManager : IDisposable
             var type = self._contentProvider.GetAssetType(id);
             var deps = self._contentProvider.GetDependencies(id);
 
-            var entry = new AssetEntry(self, self._resourceDatabase, id, type, deps);
+            var entry = new AssetEntry(self, self._resourceDatabase, self._resourceManager, id, type, deps);
 
             self.EnsureScheduled(entry);
             return entry;
@@ -420,6 +430,7 @@ internal partial class AssetManager : IDisposable
             // Go directly to Scheduled -> Loading -> Loaded -> Uploading -> Ready again.
             // The swap cycle in RecordTextureUpload/OnTextureUploadComplete handles the 
             // v1 to v2 transition exactly like the fallback to v1 transition.
+            entry.SetLoadJobHandle(JobHandle.Invalid);
             EnsureScheduled(entry);
         }
         else
