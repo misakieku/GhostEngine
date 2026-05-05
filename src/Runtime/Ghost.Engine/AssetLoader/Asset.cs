@@ -19,6 +19,16 @@ public readonly struct AssetReference : IEquatable<AssetReference>
     public readonly bool IsInternal => _value >= 0;
     public readonly bool IsExternal => _value < 0;
 
+    public AssetReference(int index, bool isInternal)
+    {
+        if (index < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(index), "Index must be non-negative");
+        }
+
+        _value = isInternal ? index + 1 : -(index + 1);
+    }
+
     public bool Equals(AssetReference other)
     {
         return _value == other._value;

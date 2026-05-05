@@ -79,7 +79,7 @@ internal class GraphicsShaderAssetHandler : IPackableAssetHandler
     public AssetType RuntimeAssetType => AssetType.Shader;
     public Guid EditorAssetTypeID => typeof(GraphicsShaderAsset).GUID;
 
-    public IAssetSettings? CreateDefaultSettings()
+    public IAssetSettings? CreateDefaultSettings(string ext)
     {
         return null;
     }
@@ -109,7 +109,7 @@ internal class GraphicsShaderAssetHandler : IPackableAssetHandler
 
     public ValueTask<Result> PackAsync(string assetPath, MemoryStream targetStream, CancellationToken token = default)
     {
-        throw new NotImplementedException();
+        return new ValueTask<Result>(Result.Failure("Packing shader assets is not supported yet."));
     }
 }
 
@@ -119,7 +119,7 @@ internal class ComputeShaderAssetHandler : IPackableAssetHandler
     public AssetType RuntimeAssetType => AssetType.Shader;
     public Guid EditorAssetTypeID => typeof(ComputeShaderAsset).GUID;
 
-    public IAssetSettings? CreateDefaultSettings()
+    public IAssetSettings? CreateDefaultSettings(string ext)
     {
         return null;
     }
@@ -149,6 +149,6 @@ internal class ComputeShaderAssetHandler : IPackableAssetHandler
 
     public ValueTask<Result> PackAsync(string assetPath, MemoryStream targetStream, CancellationToken token = default)
     {
-        throw new NotImplementedException();
+        return new ValueTask<Result>(Result.Failure("Packing shader assets is not supported yet."));
     }
 }

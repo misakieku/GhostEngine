@@ -232,7 +232,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
             Guid = Guid.NewGuid(),
             HandlerTypeId = handlerTypeId,
             HandlerVersion = 1,
-            Settings = handler?.CreateDefaultSettings()
+            Settings = handler?.CreateDefaultSettings(ext)
         };
 
         _ignoreMetaWrites[metaPath] = true;

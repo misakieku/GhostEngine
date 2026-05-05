@@ -16,182 +16,6 @@ using System.Text.Json;
 
 namespace Ghost.Editor.Core.Assets;
 
-public class MeshNode : IDisposable
-{
-    public string Name
-    {
-        get; set;
-    } = string.Empty;
-
-    public float4x4 LocalTransform
-    {
-        get; set;
-    }
-
-    public MeshNode? Parent
-    {
-        get; set;
-    }
-
-    public IReadOnlyCollection<MeshNode> Children
-    {
-        get; set;
-    } = Array.Empty<MeshNode>();
-
-    ~MeshNode()
-    {
-        Dispose(false);
-    }
-
-    public MeshNode Clone()
-    {
-        return (MeshNode)MemberwiseClone();
-    }
-
-    protected virtual void Dispose(bool disposing)
-    {
-    }
-
-    public void Dispose()
-    {
-        foreach (var child in Children)
-        {
-            child.Dispose();
-        }
-
-        Parent = null;
-        Children = Array.Empty<MeshNode>();
-
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-}
-
-/// <summary>
-/// Describes one material partition within a unified vertex/index buffer.
-/// </summary>
-public struct MaterialPartInfo
-{
-    /// <summary> The material slot index (from ufbx face_material). </summary>
-    public int materialIndex;
-    /// <summary> Byte offset into the unified index buffer. </summary>
-    public int indexStart;
-    /// <summary> Number of indices belonging to this part. </summary>
-    public int indexCount;
-    /// <summary> Byte offset into the unified vertex buffer. </summary>
-    public int vertexStart;
-    /// <summary> Number of unique vertices belonging to this part. </summary>
-    public int vertexCount;
-}
-
-public class GeometryMeshNode : MeshNode
-{
-    private UnsafeList<Vertex> _vertices;
-    private UnsafeList<uint> _indices;
-    private UnsafeArray<MaterialPartInfo> _materialParts;
-
-    public UnsafeList<Vertex> Vertices
-    {
-        get => _vertices;
-        set
-        {
-            _vertices.Dispose();
-            _vertices = value;
-        }
-    }
-
-    public UnsafeList<uint> Indices
-    {
-        get => _indices;
-        set
-        {
-            _indices.Dispose();
-            _indices = value;
-        }
-    }
-
-    public UnsafeArray<MaterialPartInfo> MaterialParts
-    {
-        get => _materialParts;
-        set
-        {
-            _materialParts.Dispose();
-            _materialParts = value;
-        }
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        _vertices.Dispose();
-        _indices.Dispose();
-        _materialParts.Dispose();
-    }
-}
-
-public class LightMeshNode : MeshNode
-{
-    public float3 Color
-    {
-        get; set;
-    }
-
-    public float Intensity
-    {
-        get; set;
-    }
-}
-
-public sealed class ModelManifest
-{
-    public Guid AssetId
-    {
-        get; set;
-    }
-
-    public ModelManifestNode Root
-    {
-        get; set;
-    } = new ModelManifestNode();
-
-    public List<ModelManifestSubAsset> Meshes
-    {
-        get; set;
-    } = new List<ModelManifestSubAsset>();
-
-    public List<ModelManifestMetadata> Metadata
-    {
-        get; set;
-    } = new List<ModelManifestMetadata>();
-}
-
-public sealed class ModelManifestNode
-{
-    public string Name
-    {
-        get; set;
-    } = string.Empty;
-
-    public string StablePath
-    {
-        get; set;
-    } = string.Empty;
-
-    public float4x4 LocalTransform
-    {
-        get; set;
-    }
-
-    public Guid MeshGuid
-    {
-        get; set;
-    }
-
-    public List<ModelManifestNode> Children
-    {
-        get; set;
-    } = new List<ModelManifestNode>();
-}
-
 public sealed class ModelManifestSubAsset
 {
     public Guid Guid
@@ -250,7 +74,7 @@ internal sealed class ImportedModelAsset : IAsset
         get;
     }
 
-    public Guid TypeID => typeof(FBXAsset).GUID;
+    public Guid TypeID => typeof(MeshAsset).GUID;
 
     public IAssetSettings? Settings
     {
@@ -274,8 +98,11 @@ internal sealed class ImportedModelAsset : IAsset
     }
 }
 
+[Guid(GUID)]
 public abstract class MeshAsset : IAsset
 {
+    public const string GUID = "B99CA68E-EE7A-4822-BF1C-AA0A5120C36A";
+
     private MeshNode _root;
 
     public Guid ID
@@ -311,17 +138,6 @@ public abstract class MeshAsset : IAsset
     public void Dispose()
     {
         _root?.Dispose();
-    }
-}
-
-[Guid(GUID)]
-public partial class FBXAsset : MeshAsset
-{
-    public const string GUID = "B99CA68E-EE7A-4822-BF1C-AA0A5120C36A";
-
-    internal FBXAsset(MeshNode root, Guid id, FbxAssetSettings settings)
-        : base(root, id, settings)
-    {
     }
 }
 
@@ -382,18 +198,33 @@ internal class FbxAssetSettings : MeshAssetSettings
 {
 }
 
-[CustomAssetHandler(FBXAsset.GUID, [".fbx", ".obj"], 1)]
-internal class FBXAssetHandler : IImportableAssetHandler, IPackableAssetHandler
+[CustomAssetHandler(MeshAsset.GUID, [".fbx", ".obj"], 1)]
+internal class MeshAssetHandler : IImportableAssetHandler, IPackableAssetHandler
 {
+    private static readonly JsonSerializerOptions s_jsonOptions = new JsonSerializerOptions
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
+
     public AssetType RuntimeAssetType => AssetType.Mesh;
 
-    public Guid EditorAssetTypeID => typeof(FBXAsset).GUID;
+    public Guid EditorAssetTypeID => typeof(MeshAsset).GUID;
 
     public bool CanExport => false;
 
-    public IAssetSettings? CreateDefaultSettings()
+    public IAssetSettings? CreateDefaultSettings(string ext)
     {
-        return new FbxAssetSettings();
+        if (string.Equals(ext, ".obj", StringComparison.OrdinalIgnoreCase))
+        {
+            return new ObjAssetSettings();
+        }
+        else if (string.Equals(ext, ".fbx", StringComparison.OrdinalIgnoreCase))
+        {
+            return new FbxAssetSettings();
+        }
+
+        return null;
     }
 
     public async ValueTask<Result<IAsset>> LoadAssetAsync(string assetPath, Guid id, IAssetSettings? settings, CancellationToken token = default)
@@ -407,7 +238,7 @@ internal class FBXAssetHandler : IImportableAssetHandler, IPackableAssetHandler
         try
         {
             await using var stream = new FileStream(importedPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            var manifest = await JsonSerializer.DeserializeAsync<ModelManifest>(stream, cancellationToken: token).ConfigureAwait(false);
+            var manifest = await JsonSerializer.DeserializeAsync<ModelManifest>(stream, s_jsonOptions, token).ConfigureAwait(false);
             return manifest != null
                 ? Result.Success<IAsset>(new ImportedModelAsset(id, settings, manifest))
                 : Result.Failure<IAsset>("Failed to deserialize model manifest.");
@@ -434,9 +265,12 @@ internal class FBXAssetHandler : IImportableAssetHandler, IPackableAssetHandler
         var root = new MeshNode();
         try
         {
+            var heapSize1 = AllocationManager.TotalAllocatedMemory;
             var parseJob = new MeshParsingJob(root, sourcePath, AllocationHandle.Persistent, meshSettings);
             var context = default(Misaki.HighPerformance.Jobs.JobExecutionContext);
             parseJob.Execute(in context);
+
+            var heapSize2 = AllocationManager.TotalAllocatedMemory;
 
             var manifest = new ModelManifest
             {
@@ -447,10 +281,9 @@ internal class FBXAssetHandler : IImportableAssetHandler, IPackableAssetHandler
             manifest.Root = await WriteNodeAsync(id, sourcePath, root, string.Empty, manifest, importedSubAssets, token).ConfigureAwait(false);
 
             Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
-            await using (var stream = new FileStream(targetPath, FileMode.Create, FileAccess.Write, FileShare.None))
-            {
-                await JsonSerializer.SerializeAsync(stream, manifest, cancellationToken: token).ConfigureAwait(false);
-            }
+
+            await using var stream = new FileStream(targetPath, FileMode.Create, FileAccess.Write, FileShare.None);
+            await JsonSerializer.SerializeAsync(stream, manifest, s_jsonOptions, token).ConfigureAwait(false);
 
             return importedSubAssets.ToArray();
         }
@@ -514,7 +347,7 @@ internal class FBXAssetHandler : IImportableAssetHandler, IPackableAssetHandler
             var meshPath = ImportCoordinator.GetImportedAssetPath(meshGuid);
             Directory.CreateDirectory(Path.GetDirectoryName(meshPath)!);
 
-            var meshInfo = await WriteMeshContentAsync(meshPath, geometry, token).ConfigureAwait(false);
+            var (materialSlotCount, lodLevelCount) = await WriteMeshContentAsync(meshPath, geometry, token).ConfigureAwait(false);
             manifestNode.MeshGuid = meshGuid;
 
             manifest.Meshes.Add(new ModelManifestSubAsset
@@ -522,7 +355,7 @@ internal class FBXAssetHandler : IImportableAssetHandler, IPackableAssetHandler
                 Guid = meshGuid,
                 Name = node.Name,
                 StablePath = stablePath,
-                MaterialSlotCount = meshInfo.materialSlotCount,
+                MaterialSlotCount = materialSlotCount,
                 VertexCount = geometry.Vertices.Count,
                 IndexCount = geometry.Indices.Count,
             });
@@ -533,7 +366,7 @@ internal class FBXAssetHandler : IImportableAssetHandler, IPackableAssetHandler
                 node.Name,
                 stablePath,
                 $"{sourcePath}#Mesh/{stablePath}",
-                typeof(FBXAsset).GUID));
+                typeof(MeshAsset).GUID));
         }
         else if (node is LightMeshNode)
         {
@@ -559,7 +392,7 @@ internal class FBXAssetHandler : IImportableAssetHandler, IPackableAssetHandler
         try
         {
             MeshProcessor.BuildMeshlets(ref meshletData, geometry.Vertices.AsReadOnly(), geometry.Indices.AsReadOnly(), geometry.MaterialParts.AsSpan());
-            MeshProcessor.BuildClusterLodHierarchy(ref meshletData);
+            MeshProcessor.BuildClusterLodHierarchy(ref meshletData, AllocationHandle.Persistent);
 
             var bounds = ComputeBounds(geometry.Vertices);
             var header = new MeshContentHeader

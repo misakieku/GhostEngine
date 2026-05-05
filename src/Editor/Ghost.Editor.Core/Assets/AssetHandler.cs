@@ -36,7 +36,7 @@ public interface IAssetHandler
     AssetType RuntimeAssetType { get; }
     Guid EditorAssetTypeID { get; }
 
-    IAssetSettings? CreateDefaultSettings();
+    IAssetSettings? CreateDefaultSettings(string ext);
 
     ValueTask<Result<IAsset>> LoadAssetAsync(string assetPath, Guid id, IAssetSettings? settings, CancellationToken token = default);
     ValueTask<Result> SaveAssetAsync(string targetPath, IAsset asset, CancellationToken token = default);

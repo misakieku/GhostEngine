@@ -267,7 +267,7 @@ internal class TextureAssetHandler : IImportableAssetHandler, IPackableAssetHand
     public AssetType RuntimeAssetType => AssetType.Texture;
     public Guid EditorAssetTypeID => typeof(TextureAsset).GUID;
 
-    public IAssetSettings? CreateDefaultSettings()
+    public IAssetSettings? CreateDefaultSettings(string ext)
     {
         return new TextureAssetSettings();
     }
@@ -501,6 +501,6 @@ internal class TextureAssetHandler : IImportableAssetHandler, IPackableAssetHand
 
     public ValueTask<Result> PackAsync(string assetPath, MemoryStream targetStream, CancellationToken token = default)
     {
-        throw new NotImplementedException();
+        return ValueTask.FromResult(Result.Failure("Packing texture assets is not supported yet."));
     }
 }

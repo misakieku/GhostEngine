@@ -65,9 +65,9 @@ public class MeshAssetHandlerTests
 
         var parentGuid = Guid.NewGuid();
         var targetPath = ImportCoordinator.GetImportedAssetPath(parentGuid);
-        var handler = new FBXAssetHandler();
+        var handler = new MeshAssetHandler();
 
-        var result = await handler.ImportWithSubAssetsAsync(sourcePath, targetPath, parentGuid, new ObjAssetSettings(), TestContext.CancellationToken);
+        var result = await handler.ImportAsync(sourcePath, targetPath, parentGuid, new ObjAssetSettings(), TestContext.CancellationToken);
 
         if (result.IsFailure && result.Message?.Contains("Unable to load DLL", StringComparison.OrdinalIgnoreCase) == true)
         {
