@@ -188,6 +188,9 @@ internal unsafe class ShaderLibrary : IDisposable
             kvp.Value.Dispose();
         }
 
+        _inMemoryCache.Dispose();
+        _variantToCompiledHash.Dispose();
+
         GC.SuppressFinalize(this);
     }
 }

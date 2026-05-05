@@ -10,6 +10,7 @@ using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using Misaki.HighPerformance.Mathematics;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -126,7 +127,7 @@ internal readonly unsafe struct MeshParsingJob : IJob
 
         for (var i = 0; i < numMaterials; i++)
         {
-            materialBuckets[i] = new UnsafeList<Vertex>(1024, AllocationHandle.FreeList);
+            materialBuckets[i] = new UnsafeList<Vertex>(40960, AllocationHandle.FreeList);
         }
 
         var maxScratchIndices = (int)(pMesh->max_face_triangles * 3u);

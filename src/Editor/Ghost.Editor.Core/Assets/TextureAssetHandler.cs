@@ -440,7 +440,7 @@ internal class TextureAssetHandler : IImportableAssetHandler, IPackableAssetHand
         }, token).ConfigureAwait(false);
     }
 
-    public async ValueTask<Result> ImportAsync(string sourcePath, string targetPath, Guid id, IAssetSettings? settings, CancellationToken token = default)
+    public async ValueTask<Result<ImportedSubAsset[]>> ImportAsync(string sourcePath, string targetPath, Guid id, IAssetSettings? settings, CancellationToken token = default)
     {
         if (!File.Exists(sourcePath))
         {
@@ -464,7 +464,7 @@ internal class TextureAssetHandler : IImportableAssetHandler, IPackableAssetHand
 
             if (result.IsFailure)
             {
-                return result;
+                return Result.Failure(result.Message);
             }
 
             var (cachePath, mip) = result.Value;
@@ -486,7 +486,7 @@ internal class TextureAssetHandler : IImportableAssetHandler, IPackableAssetHand
             await ddsStream.CopyToAsync(targetStream, token).ConfigureAwait(false);
             await targetStream.FlushAsync(token).ConfigureAwait(false);
 
-            return Result.Success();
+            return Result.Success(Array.Empty<ImportedSubAsset>());
         }
         catch (Exception ex)
         {

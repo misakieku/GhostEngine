@@ -153,6 +153,7 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
+            Logger.Error(ex);
             Environment.Exit(ex.HResult);
         }
     }
@@ -169,7 +170,7 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
-            Debugger.BreakForUserUnhandledException(ex);
+            Logger.Error(ex);
         }
         finally
         {

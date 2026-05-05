@@ -49,7 +49,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
         {
             IncludeSubdirectories = true,
             EnableRaisingEvents = true,
-            NotifyFilter = NotifyFilters.LastWrite
+            NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName,
         };
 
         _watcher.Created += OnFileSystemEvent;
@@ -165,6 +165,8 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
                     _catalog.Remove(guid);
                     changeType = AssetChangeType.Deleted;
                 }
+
+                Logger.DebugAssert(e.ChangeType == WatcherChangeTypes.Deleted);
             }
             else if (guid == Guid.Empty)
             {

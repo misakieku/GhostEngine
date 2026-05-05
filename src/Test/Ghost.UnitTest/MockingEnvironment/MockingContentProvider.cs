@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Core.Utilities;
 using Ghost.Engine;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
@@ -143,18 +144,18 @@ internal class MockingContentProvider : IContentProvider
             boundsMax = new float3(1, 1, 0),
         };
 
-        WriteStruct(stream, in header);
-        header.vertexOffset = (ulong)stream.Position; WriteSpan(stream, vertices);
-        header.indexOffset = (ulong)stream.Position; WriteSpan(stream, indices);
-        header.materialPartOffset = (ulong)stream.Position; WriteSpan(stream, materialParts);
-        header.meshletOffset = (ulong)stream.Position; WriteSpan(stream, meshlets);
-        header.meshletGroupOffset = (ulong)stream.Position; WriteSpan(stream, groups);
-        header.meshletHierarchyNodeOffset = (ulong)stream.Position; WriteSpan(stream, hierarchy);
-        header.meshletVertexOffset = (ulong)stream.Position; WriteSpan(stream, meshletVertices);
-        header.meshletTriangleOffset = (ulong)stream.Position; WriteSpan(stream, meshletTriangles);
+        stream.Write(header);
+        header.vertexOffset = (ulong)stream.Position; stream.Write(vertices);
+        header.indexOffset = (ulong)stream.Position; stream.Write(indices);
+        header.materialPartOffset = (ulong)stream.Position; stream.Write(materialParts);
+        header.meshletOffset = (ulong)stream.Position; stream.Write(meshlets);
+        header.meshletGroupOffset = (ulong)stream.Position; stream.Write(groups);
+        header.meshletHierarchyNodeOffset = (ulong)stream.Position; stream.Write(hierarchy);
+        header.meshletVertexOffset = (ulong)stream.Position; stream.Write(meshletVertices);
+        header.meshletTriangleOffset = (ulong)stream.Position; stream.Write(meshletTriangles);
 
         stream.Position = 0;
-        WriteStruct(stream, in header);
+        stream.Write(header);
 
         AddMockAsset(guid, new MockAssetData
         {
@@ -162,18 +163,6 @@ internal class MockingContentProvider : IContentProvider
             data = stream.ToArray(),
             readDelayMs = readDelayMs
         });
-    }
-
-    private static void WriteStruct<T>(Stream stream, ref readonly T value)
-        where T : unmanaged
-    {
-        stream.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(in value, 1)));
-    }
-
-    private static void WriteSpan<T>(Stream stream, ReadOnlySpan<T> value)
-        where T : unmanaged
-    {
-        stream.Write(MemoryMarshal.AsBytes(value));
     }
 
     public AssetType GetAssetType(Guid guid)

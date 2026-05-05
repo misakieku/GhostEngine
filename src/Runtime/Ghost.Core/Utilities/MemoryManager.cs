@@ -20,7 +20,7 @@ public unsafe class NativeMemoryManager<T> : MemoryManager<T>
     }
 
     public static NativeMemoryManager<T> FromUnsafeCollection<C>(ref readonly C collection)
-        where C : unmanaged, IUnsafeCollection<T>
+        where C : IUnsafeCollection<T>
     {
         if (!collection.IsCreated)
         {
@@ -28,6 +28,19 @@ public unsafe class NativeMemoryManager<T> : MemoryManager<T>
         }
 
         return new NativeMemoryManager<T>((T*)collection.GetUnsafePtr(), collection.Count);
+    }
+
+    public static NativeMemoryManager<T> FromUnsafeCollectionInterpolated<C, U>(ref readonly C collection)
+        where U : unmanaged
+        where C : IUnsafeCollection<U>
+    {
+        if (!collection.IsCreated)
+        {
+            throw new InvalidOperationException("The collection is not created.");
+        }
+
+        var length = collection.Count * Unsafe.SizeOf<U>() / Unsafe.SizeOf<T>();
+        return new NativeMemoryManager<T>((T*)collection.GetUnsafePtr(), length);
     }
 
     public static NativeMemoryManager<T> FromMemoryBlock(MemoryBlock memoryBlock, int start, int length)

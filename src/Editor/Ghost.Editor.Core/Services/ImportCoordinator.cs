@@ -112,22 +112,15 @@ internal sealed partial class ImportCoordinator : IDisposable
         }
 
         var importResult = Result.Success();
-        ImportedSubAsset[] subAssets = Array.Empty<ImportedSubAsset>();
+        var subAssets = Array.Empty<ImportedSubAsset>();
         if (handler is IImportableAssetHandler importable)
         {
             var targetPath = GetImportedAssetPath(job.AssetGuid);
-            if (importable is ISubAssetImportableAssetHandler subAssetImportable)
+            var subAssetResult = await importable.ImportAsync(job.SourcePath, targetPath, job.AssetGuid, meta.Settings, token);
+            importResult = subAssetResult;
+            if (subAssetResult.IsSuccess)
             {
-                var subAssetResult = await subAssetImportable.ImportWithSubAssetsAsync(job.SourcePath, targetPath, job.AssetGuid, meta.Settings, token);
-                importResult = subAssetResult;
-                if (subAssetResult.IsSuccess)
-                {
-                    subAssets = subAssetResult.Value;
-                }
-            }
-            else
-            {
-                importResult = await importable.ImportAsync(job.SourcePath, targetPath, job.AssetGuid, meta.Settings, token);
+                subAssets = subAssetResult.Value;
             }
         }
 
@@ -164,7 +157,7 @@ internal sealed partial class ImportCoordinator : IDisposable
                 _catalog.RemoveSubAssetsExcept(job.AssetGuid, dependencies);
                 _catalog.SetDependencies(job.AssetGuid, dependencies);
             }
-            else if (handler is ISubAssetImportableAssetHandler)
+            else
             {
                 _catalog.RemoveSubAssetsExcept(job.AssetGuid, ReadOnlySpan<Guid>.Empty);
                 _catalog.SetDependencies(job.AssetGuid, ReadOnlySpan<Guid>.Empty);

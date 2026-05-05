@@ -45,16 +45,11 @@ public interface IAssetHandler
 public interface IImportableAssetHandler : IAssetHandler
 {
     bool CanExport { get; }
-    ValueTask<Result> ImportAsync(string sourcePath, string targetPath, Guid id, IAssetSettings? settings, CancellationToken token = default);
+    ValueTask<Result<ImportedSubAsset[]>> ImportAsync(string sourcePath, string targetPath, Guid id, IAssetSettings? settings, CancellationToken token = default);
     ValueTask<Result> ExportAsync(string assetPath, string targetPath, IAssetExportOptions? options, CancellationToken token = default);
 }
 
 public readonly record struct ImportedSubAsset(Guid Guid, string Kind, string DisplayName, string StablePath, string VirtualSourcePath, Guid HandlerTypeId);
-
-public interface ISubAssetImportableAssetHandler : IImportableAssetHandler
-{
-    ValueTask<Result<ImportedSubAsset[]>> ImportWithSubAssetsAsync(string sourcePath, string targetPath, Guid id, IAssetSettings? settings, CancellationToken token = default);
-}
 
 public interface IPackableAssetHandler : IAssetHandler
 {

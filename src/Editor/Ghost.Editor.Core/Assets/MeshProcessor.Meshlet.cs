@@ -158,13 +158,10 @@ public unsafe struct ClodCluster
     public nuint localIndexCount;
 }
 
-/// <summary>
-/// Delegate type for processing generated LOD groups.
-/// </summary>
-public unsafe delegate int ClodOutputDelegate(void* context, ClodGroup group, ReadOnlyUnsafeCollection<ClodCluster> clusters);
-
 public static unsafe partial class MeshProcessor
 {
+    private delegate int ClodOutputDelegate(ref MeshletContext context, ClodGroup group, ReadOnlyUnsafeCollection<ClodCluster> clusters);
+
     private static ClodBounds ComputeBounds(ref readonly ClodMesh mesh, UnsafeList<uint> indices, float error)
     {
         var bounds = MeshOptApi.ComputeClusterBounds((uint*)indices.GetUnsafePtr(), (nuint)indices.Count, mesh.vertexPositions, mesh.vertexCount, mesh.vertexPositionsStride);
@@ -391,7 +388,7 @@ public static unsafe partial class MeshProcessor
         return partitions;
     }
 
-    private static int OutputGroup(ref readonly ClodConfig config, ref readonly ClodMesh mesh, UnsafeList<Cluster> clusters, UnsafeList<int> group, ClodBounds simplified, int depth, void* outputContext, ClodOutputDelegate? outputCallback)
+    private static int OutputGroup(ref readonly ClodConfig config, ref readonly ClodMesh mesh, UnsafeList<Cluster> clusters, UnsafeList<int> group, ClodBounds simplified, int depth, ref MeshletContext outputContext, ClodOutputDelegate? outputCallback)
     {
         using var groupClusters = new UnsafeList<ClodCluster>(group.Count, AllocationHandle.FreeList);
 
@@ -415,7 +412,7 @@ public static unsafe partial class MeshProcessor
 
         var clodGroup = new ClodGroup { depth = depth, simplified = simplified };
         var result = outputCallback != null
-            ? outputCallback(outputContext, clodGroup, groupClusters.AsReadOnly())
+            ? outputCallback(ref outputContext, clodGroup, groupClusters.AsReadOnly())
             : -1;
 
         return result;
@@ -575,7 +572,7 @@ public static unsafe partial class MeshProcessor
     /// <param name="outputContext">Optional context pointer passed to the output callback.</param>
     /// <param name="outputCallback">Delegate invoked for each generated LOD group.</param>
     /// <returns>The total count of generated clusters.</returns>
-    public static nuint Build(ref readonly ClodConfig config, ref readonly ClodMesh mesh, void* outputContext, ClodOutputDelegate? outputCallback)
+    private static nuint Build(ref readonly ClodConfig config, ref readonly ClodMesh mesh, ref MeshletContext outputContext, ClodOutputDelegate? outputCallback)
     {
         Logger.DebugAssert(mesh.vertexAttributesStride % sizeof(float) == 0, "vertexAttributesStride must be a multiple of sizeof(float)");
 
@@ -643,13 +640,13 @@ public static unsafe partial class MeshProcessor
                 if ((nuint)simplified.Length > (nuint)(merged.Count * config.simplifyThreshold))
                 {
                     bounds.error = float.MaxValue;
-                    OutputGroup(in config, in mesh, clusters, groups[i], bounds, depth, outputContext, outputCallback);
+                    OutputGroup(in config, in mesh, clusters, groups[i], bounds, depth, ref outputContext, outputCallback);
                     continue;
                 }
 
                 bounds.error = Math.Max(bounds.error * config.simplifyErrorMergePrevious, error) + error * config.simplifyErrorMergeAdditive;
 
-                var refined = OutputGroup(in config, in mesh, clusters, groups[i], bounds, depth, outputContext, outputCallback);
+                var refined = OutputGroup(in config, in mesh, clusters, groups[i], bounds, depth, ref outputContext, outputCallback);
 
                 for (var j = 0; j < groups[i].Count; j++)
                 {
@@ -678,7 +675,7 @@ public static unsafe partial class MeshProcessor
         {
             var bounds = clusters[pending[0]].bounds;
             bounds.error = float.MaxValue;
-            OutputGroup(in config, in mesh, clusters, pending, bounds, depth, outputContext, outputCallback);
+            OutputGroup(in config, in mesh, clusters, pending, bounds, depth, ref outputContext, outputCallback);
         }
 
         var finalClusterCount = (nuint)clusters.Count;
@@ -691,34 +688,33 @@ public static unsafe partial class MeshProcessor
         return finalClusterCount;
     }
 
-    private struct MeshletContext
+    private ref struct MeshletContext
     {
-        public MeshletMeshData* data;
+        public ref MeshletMeshData data;
         public int materialIndex;
     }
 
-    private static int MeshletOutputCallback(void* contextPtr, ClodGroup group, ReadOnlyUnsafeCollection<ClodCluster> clusters)
+    private static int MeshletOutputCallback(ref MeshletContext context, ClodGroup group, ReadOnlyUnsafeCollection<ClodCluster> clusters)
     {
-        var context = (MeshletContext*)contextPtr;
-        var pMeshletData = context->data;
-        var materialIndex = context->materialIndex;
+        ref var meshletData = ref context.data;
+        var materialIndex = context.materialIndex;
 
         // Ensure lists are initialized
-        if (!pMeshletData->groups.IsCreated) pMeshletData->groups = new UnsafeList<MeshletGroup>(16, AllocationHandle.Persistent);
-        if (!pMeshletData->meshlets.IsCreated) pMeshletData->meshlets = new UnsafeList<Meshlet>(64, AllocationHandle.Persistent);
-        if (!pMeshletData->meshletVertices.IsCreated) pMeshletData->meshletVertices = new UnsafeList<uint>(128, AllocationHandle.Persistent);
-        if (!pMeshletData->meshletTriangles.IsCreated) pMeshletData->meshletTriangles = new UnsafeList<uint>(128, AllocationHandle.Persistent);
+        if (!meshletData.groups.IsCreated) meshletData.groups = new UnsafeList<MeshletGroup>(16, AllocationHandle.Persistent);
+        if (!meshletData.meshlets.IsCreated) meshletData.meshlets = new UnsafeList<Meshlet>(64, AllocationHandle.Persistent);
+        if (!meshletData.meshletVertices.IsCreated) meshletData.meshletVertices = new UnsafeList<uint>(128, AllocationHandle.Persistent);
+        if (!meshletData.meshletTriangles.IsCreated) meshletData.meshletTriangles = new UnsafeList<uint>(128, AllocationHandle.Persistent);
 
         var meshletGroup = new MeshletGroup
         {
             boundingSphere = new SphereBounds(group.simplified.center, group.simplified.radius),
             boundingBox = new AABB(group.simplified.center - group.simplified.radius, group.simplified.center + group.simplified.radius),
             parentError = group.simplified.error,
-            meshletStartIndex = (uint)pMeshletData->meshlets.Count,
+            meshletStartIndex = (uint)meshletData.meshlets.Count,
             meshletCount = (uint)clusters.Count,
             lodLevel = (uint)group.depth
         };
-        pMeshletData->groups.Add(meshletGroup);
+        meshletData.groups.Add(meshletGroup);
 
         for (var i = 0; i < clusters.Count; i++)
         {
@@ -731,20 +727,20 @@ public static unsafe partial class MeshProcessor
                 boundingBox = new AABB(cluster.bounds.center - cluster.bounds.radius, cluster.bounds.center + cluster.bounds.radius),
                 vertexCount = (byte)cluster.vertexCount,
                 triangleCount = (byte)(cluster.localIndexCount / 3),
-                vertexOffset = (uint)pMeshletData->meshletVertices.Count,
-                triangleOffset = (uint)pMeshletData->meshletTriangles.Count,
-                groupIndex = (uint)pMeshletData->groups.Count - 1,
+                vertexOffset = (uint)meshletData.meshletVertices.Count,
+                triangleOffset = (uint)meshletData.meshletTriangles.Count,
+                groupIndex = (uint)meshletData.groups.Count - 1,
                 clusterError = cluster.bounds.error,
                 parentError = group.simplified.error,
                 localMaterialIndex = (byte)materialIndex,
                 lodLevel = (byte)group.depth,
             };
-            pMeshletData->meshlets.Add(meshlet);
+            meshletData.meshlets.Add(meshlet);
 
             // Add unique vertices
             for (nuint j = 0; j < cluster.vertexCount; j++)
             {
-                pMeshletData->meshletVertices.Add(cluster.uniqueVertices[j]);
+                meshletData.meshletVertices.Add(cluster.uniqueVertices[j]);
             }
             // Add local triangles (packed into uints)
             var triangleCount = cluster.localIndexCount / 3;
@@ -754,11 +750,11 @@ public static unsafe partial class MeshProcessor
                 uint i1 = cluster.localIndices[j * 3 + 1];
                 uint i2 = cluster.localIndices[j * 3 + 2];
                 var packedTriangle = i0 | (i1 << 8) | (i2 << 16);
-                pMeshletData->meshletTriangles.Add(packedTriangle);
+                meshletData.meshletTriangles.Add(packedTriangle);
             }
         }
 
-        return pMeshletData->groups.Count - 1;
+        return meshletData.groups.Count - 1;
     }
 
     /// <summary>
@@ -766,9 +762,9 @@ public static unsafe partial class MeshProcessor
     /// Each <see cref="MaterialPartInfo"/> describes a material partition's index range within the unified buffer.
     /// Meshlets are built per-part and tagged with the corresponding <c>localMaterialIndex</c>.
     /// </summary>
-    public static void BuildMeshlets(MeshletMeshData* pMeshletData, ReadOnlyUnsafeCollection<Vertex> vertices, ReadOnlyUnsafeCollection<uint> indices, ReadOnlySpan<MaterialPartInfo> parts)
+    public static void BuildMeshlets(ref MeshletMeshData meshletData, ReadOnlyUnsafeCollection<Vertex> vertices, ReadOnlyUnsafeCollection<uint> indices, ReadOnlySpan<MaterialPartInfo> parts)
     {
-        Logger.DebugAssert(pMeshletData->meshletCount == 0, "Meshlet data is not empty.");
+        Logger.DebugAssert(meshletData.meshletCount == 0, "Meshlet data is not empty.");
         Logger.DebugAssert(vertices.Count > 0, "Mesh must have vertices to build meshlets.");
         Logger.DebugAssert(indices.Count > 0, "Mesh must have indices to build meshlets.");
         Logger.DebugAssert(parts.Length > 0, "Must have at least one material part.");
@@ -817,24 +813,24 @@ public static unsafe partial class MeshProcessor
 
             var context = new MeshletContext
             {
-                data = pMeshletData,
+                data = ref meshletData,
                 materialIndex = part.materialIndex
             };
 
-            Build(in config, in clodMesh, &context, MeshletOutputCallback);
+            Build(in config, in clodMesh, ref context, MeshletOutputCallback);
         }
 
-        pMeshletData->meshletCount = pMeshletData->meshlets.IsCreated ? pMeshletData->meshlets.Count : 0;
+        meshletData.meshletCount = meshletData.meshlets.IsCreated ? meshletData.meshlets.Count : 0;
 
-        if (pMeshletData->groups.IsCreated && pMeshletData->groups.Count > 0)
+        if (meshletData.groups.IsCreated && meshletData.groups.Count > 0)
         {
             var maxLodLevel = 0u;
-            for (var j = 0; j < pMeshletData->groups.Count; j++)
+            for (var j = 0; j < meshletData.groups.Count; j++)
             {
-                maxLodLevel = Math.Max(maxLodLevel, pMeshletData->groups[j].lodLevel);
+                maxLodLevel = Math.Max(maxLodLevel, meshletData.groups[j].lodLevel);
             }
 
-            pMeshletData->lodLevelCount = (int)maxLodLevel + 1;
+            meshletData.lodLevelCount = (int)maxLodLevel + 1;
         }
 
         var maxMaterialSlot = 0;
@@ -843,7 +839,7 @@ public static unsafe partial class MeshProcessor
             maxMaterialSlot = Math.Max(maxMaterialSlot, parts[j].materialIndex);
         }
 
-        pMeshletData->materialSlotCount = maxMaterialSlot + 1;
+        meshletData.materialSlotCount = maxMaterialSlot + 1;
     }
 
     private struct TempBinaryNode
@@ -1059,24 +1055,28 @@ public static unsafe partial class MeshProcessor
         return outNodeIndex;
     }
 
-    public static void BuildClusterLodHierarchy(MeshletMeshData* pMeshletData)
+    /// <summary>
+    /// Builds a cluster LOD hierarchy from the input meshlet data.
+    /// </summary>
+    /// <param name="meshletData">The meshlet data.</param>
+    public static void BuildClusterLodHierarchy(ref MeshletMeshData meshletData)
     {
-        if (pMeshletData->meshletCount == 0) return;
+        if (meshletData.meshletCount == 0) return;
 
-        using var meshletIndices = new UnsafeArray<int>(pMeshletData->meshletCount, AllocationHandle.FreeList);
-        for (var i = 0; i < pMeshletData->meshletCount; i++)
+        using var meshletIndices = new UnsafeArray<int>(meshletData.meshletCount, AllocationHandle.FreeList);
+        for (var i = 0; i < meshletData.meshletCount; i++)
         {
             meshletIndices[i] = i;
         }
 
-        var meshletsSpan = new ReadOnlySpan<Meshlet>(pMeshletData->meshlets.GetUnsafePtr(), pMeshletData->meshlets.Count);
+        var meshletsSpan = new ReadOnlySpan<Meshlet>(meshletData.meshlets.GetUnsafePtr(), meshletData.meshlets.Count);
 
-        using var binaryNodes = new UnsafeList<TempBinaryNode>(pMeshletData->meshletCount * 2, AllocationHandle.FreeList);
+        using var binaryNodes = new UnsafeList<TempBinaryNode>(meshletData.meshletCount * 2, AllocationHandle.FreeList);
         var rootIndex = BuildBinaryTree(binaryNodes, meshletIndices, 0, meshletIndices.Length, meshletsSpan);
 
-        if (!pMeshletData->hierarchyNodes.IsCreated)
+        if (!meshletData.hierarchyNodes.IsCreated)
         {
-            pMeshletData->hierarchyNodes = new UnsafeList<MeshletHierarchyNode>(pMeshletData->meshletCount, AllocationHandle.Persistent);
+            meshletData.hierarchyNodes = new UnsafeList<MeshletHierarchyNode>(meshletData.meshletCount, AllocationHandle.Persistent);
         }
 
         if (binaryNodes[rootIndex].leftChild == -1)
@@ -1101,11 +1101,11 @@ public static unsafe partial class MeshProcessor
             bvhNode.maxParentError.x = childNode.maxParentError;
             bvhNode.nodeData.x = (uint)childNode.meshletIndex;
 
-            pMeshletData->hierarchyNodes.Add(bvhNode);
+            meshletData.hierarchyNodes.Add(bvhNode);
         }
         else
         {
-            CollapseTo4Ary(binaryNodes, rootIndex, pMeshletData->hierarchyNodes);
+            CollapseTo4Ary(binaryNodes, rootIndex, meshletData.hierarchyNodes);
         }
     }
 }

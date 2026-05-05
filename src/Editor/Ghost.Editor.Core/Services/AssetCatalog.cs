@@ -214,6 +214,12 @@ public sealed partial class AssetCatalog : IDisposable
 
     public bool Remove(Guid guid)
     {
+        var subAssets = GetSubAssets(guid);
+        foreach (var sub in subAssets)
+        {
+            Remove(sub.Guid);
+        }
+
         lock (_writeLock)
         {
             _cmdDelete.Parameters.Clear();
