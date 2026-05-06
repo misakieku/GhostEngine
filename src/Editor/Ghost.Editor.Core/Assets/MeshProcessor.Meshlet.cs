@@ -864,7 +864,7 @@ internal static unsafe partial class MeshProcessor
         public int meshletIndex;
     }
 
-    private static int BuildBinaryTree(UnsafeList<TempBinaryNode> nodes, UnsafeArray<int> meshletIndices, int start, int end, ReadOnlySpan<Meshlet> meshlets)
+    private static int BuildBinaryTree(ref UnsafeList<TempBinaryNode> nodes, UnsafeArray<int> meshletIndices, int start, int end, ReadOnlySpan<Meshlet> meshlets)
     {
         if (start == end - 1)
         {
@@ -921,8 +921,8 @@ internal static unsafe partial class MeshProcessor
             mid = start + (end - start) / 2;
         }
 
-        var left = BuildBinaryTree(nodes, meshletIndices, start, mid, meshlets);
-        var right = BuildBinaryTree(nodes, meshletIndices, mid, end, meshlets);
+        var left = BuildBinaryTree(ref nodes, meshletIndices, start, mid, meshlets);
+        var right = BuildBinaryTree(ref nodes, meshletIndices, mid, end, meshlets);
 
         var leftNode = nodes[left];
         var rightNode = nodes[right];
@@ -945,7 +945,7 @@ internal static unsafe partial class MeshProcessor
         return internalNodeIndex;
     }
 
-    private static void GatherChildren(UnsafeList<TempBinaryNode> binaryNodes, int nodeIndex, UnsafeList<int> gathered)
+    private static void GatherChildren(UnsafeList<TempBinaryNode> binaryNodes, int nodeIndex, ref UnsafeList<int> gathered)
     {
         gathered.Clear();
         var node = binaryNodes[nodeIndex];
@@ -992,80 +992,88 @@ internal static unsafe partial class MeshProcessor
             return -1;
         }
 
-        using var gathered = new UnsafeList<int>(4, AllocationHandle.Persistent);
-        GatherChildren(binaryNodes, binaryNodeIndex, gathered);
+        var gathered = new UnsafeList<int>(4, AllocationHandle.Persistent);
 
-        var bvhNode = new MeshletHierarchyNode();
-
-        var minX = new float4(float.PositiveInfinity);
-        var minY = new float4(float.PositiveInfinity);
-        var minZ = new float4(float.PositiveInfinity);
-        var maxX = new float4(float.NegativeInfinity);
-        var maxY = new float4(float.NegativeInfinity);
-        var maxZ = new float4(float.NegativeInfinity);
-        var maxParentError = new float4(0);
-        var nodeData = new uint4(0xFFFFFFFF);
-
-        var outNodeIndex = hierarchyNodes.Count;
-        hierarchyNodes.Add(bvhNode); // Reserve slot
-
-        for (var i = 0; i < gathered.Count; i++)
+        try
         {
-            var childIdx = gathered[i];
-            var childNode = binaryNodes[childIdx];
+            GatherChildren(binaryNodes, binaryNodeIndex, ref gathered);
 
-            uint data = 0;
-            if (childNode.leftChild == -1)
+            var bvhNode = new MeshletHierarchyNode();
+
+            var minX = new float4(float.PositiveInfinity);
+            var minY = new float4(float.PositiveInfinity);
+            var minZ = new float4(float.PositiveInfinity);
+            var maxX = new float4(float.NegativeInfinity);
+            var maxY = new float4(float.NegativeInfinity);
+            var maxZ = new float4(float.NegativeInfinity);
+            var maxParentError = new float4(0);
+            var nodeData = new uint4(0xFFFFFFFF);
+
+            var outNodeIndex = hierarchyNodes.Count;
+            hierarchyNodes.Add(bvhNode); // Reserve slot
+
+            for (var i = 0; i < gathered.Count; i++)
             {
-                data = (uint)childNode.meshletIndex;
-            }
-            else
-            {
-                var child4AryIndex = CollapseTo4Ary(binaryNodes, childIdx, hierarchyNodes);
-                data = (1u << 31) | (uint)child4AryIndex;
+                var childIdx = gathered[i];
+                var childNode = binaryNodes[childIdx];
+
+                uint data = 0;
+                if (childNode.leftChild == -1)
+                {
+                    data = (uint)childNode.meshletIndex;
+                }
+                else
+                {
+                    var child4AryIndex = CollapseTo4Ary(binaryNodes, childIdx, hierarchyNodes);
+                    data = (1u << 31) | (uint)child4AryIndex;
+                }
+
+                if (i == 0)
+                {
+                    minX.x = childNode.bounds.Min.x; minY.x = childNode.bounds.Min.y; minZ.x = childNode.bounds.Min.z;
+                    maxX.x = childNode.bounds.Max.x; maxY.x = childNode.bounds.Max.y; maxZ.x = childNode.bounds.Max.z;
+                    maxParentError.x = childNode.maxParentError;
+                    nodeData.x = data;
+                }
+                else if (i == 1)
+                {
+                    minX.y = childNode.bounds.Min.x; minY.y = childNode.bounds.Min.y; minZ.y = childNode.bounds.Min.z;
+                    maxX.y = childNode.bounds.Max.x; maxY.y = childNode.bounds.Max.y; maxZ.y = childNode.bounds.Max.z;
+                    maxParentError.y = childNode.maxParentError;
+                    nodeData.y = data;
+                }
+                else if (i == 2)
+                {
+                    minX.z = childNode.bounds.Min.x; minY.z = childNode.bounds.Min.y; minZ.z = childNode.bounds.Min.z;
+                    maxX.z = childNode.bounds.Max.x; maxY.z = childNode.bounds.Max.y; maxZ.z = childNode.bounds.Max.z;
+                    maxParentError.z = childNode.maxParentError;
+                    nodeData.z = data;
+                }
+                else if (i == 3)
+                {
+                    minX.w = childNode.bounds.Min.x; minY.w = childNode.bounds.Min.y; minZ.w = childNode.bounds.Min.z;
+                    maxX.w = childNode.bounds.Max.x; maxY.w = childNode.bounds.Max.y; maxZ.w = childNode.bounds.Max.z;
+                    maxParentError.w = childNode.maxParentError;
+                    nodeData.w = data;
+                }
             }
 
-            if (i == 0)
-            {
-                minX.x = childNode.bounds.Min.x; minY.x = childNode.bounds.Min.y; minZ.x = childNode.bounds.Min.z;
-                maxX.x = childNode.bounds.Max.x; maxY.x = childNode.bounds.Max.y; maxZ.x = childNode.bounds.Max.z;
-                maxParentError.x = childNode.maxParentError;
-                nodeData.x = data;
-            }
-            else if (i == 1)
-            {
-                minX.y = childNode.bounds.Min.x; minY.y = childNode.bounds.Min.y; minZ.y = childNode.bounds.Min.z;
-                maxX.y = childNode.bounds.Max.x; maxY.y = childNode.bounds.Max.y; maxZ.y = childNode.bounds.Max.z;
-                maxParentError.y = childNode.maxParentError;
-                nodeData.y = data;
-            }
-            else if (i == 2)
-            {
-                minX.z = childNode.bounds.Min.x; minY.z = childNode.bounds.Min.y; minZ.z = childNode.bounds.Min.z;
-                maxX.z = childNode.bounds.Max.x; maxY.z = childNode.bounds.Max.y; maxZ.z = childNode.bounds.Max.z;
-                maxParentError.z = childNode.maxParentError;
-                nodeData.z = data;
-            }
-            else if (i == 3)
-            {
-                minX.w = childNode.bounds.Min.x; minY.w = childNode.bounds.Min.y; minZ.w = childNode.bounds.Min.z;
-                maxX.w = childNode.bounds.Max.x; maxY.w = childNode.bounds.Max.y; maxZ.w = childNode.bounds.Max.z;
-                maxParentError.w = childNode.maxParentError;
-                nodeData.w = data;
-            }
+            bvhNode.minX = minX;
+            bvhNode.minY = minY;
+            bvhNode.minZ = minZ;
+            bvhNode.maxX = maxX;
+            bvhNode.maxY = maxY;
+            bvhNode.maxZ = maxZ;
+            bvhNode.maxParentError = maxParentError;
+            bvhNode.nodeData = nodeData;
+
+            hierarchyNodes[outNodeIndex] = bvhNode;
+            return outNodeIndex;
         }
-
-        bvhNode.minX = minX;
-        bvhNode.minY = minY;
-        bvhNode.minZ = minZ;
-        bvhNode.maxX = maxX;
-        bvhNode.maxY = maxY;
-        bvhNode.maxZ = maxZ;
-        bvhNode.maxParentError = maxParentError;
-        bvhNode.nodeData = nodeData;
-
-        hierarchyNodes[outNodeIndex] = bvhNode;
-        return outNodeIndex;
+        finally
+        {
+            gathered.Dispose();
+        }
     }
 
     /// <summary>
@@ -1082,43 +1090,49 @@ internal static unsafe partial class MeshProcessor
             meshletIndices[i] = i;
         }
 
-        var meshletsSpan = new ReadOnlySpan<Meshlet>(meshletData.meshlets.GetUnsafePtr(), meshletData.meshlets.Count);
+        var binaryNodes = new UnsafeList<TempBinaryNode>(meshletData.meshletCount * 2, AllocationHandle.Persistent);
 
-        using var binaryNodes = new UnsafeList<TempBinaryNode>(meshletData.meshletCount * 2, AllocationHandle.Persistent);
-        var rootIndex = BuildBinaryTree(binaryNodes, meshletIndices, 0, meshletIndices.Length, meshletsSpan);
-
-        if (!meshletData.hierarchyNodes.IsCreated)
+        try
         {
-            meshletData.hierarchyNodes = new UnsafeList<MeshletHierarchyNode>(meshletData.meshletCount, allocationHandle);
+            var rootIndex = BuildBinaryTree(ref binaryNodes, meshletIndices, 0, meshletIndices.Length, meshletData.meshlets);
+
+            if (!meshletData.hierarchyNodes.IsCreated)
+            {
+                meshletData.hierarchyNodes = new UnsafeList<MeshletHierarchyNode>(meshletData.meshletCount, allocationHandle);
+            }
+
+            if (binaryNodes[rootIndex].leftChild == -1)
+            {
+                var bvhNode = new MeshletHierarchyNode();
+                bvhNode.minX = new float4(float.PositiveInfinity);
+                bvhNode.minY = new float4(float.PositiveInfinity);
+                bvhNode.minZ = new float4(float.PositiveInfinity);
+                bvhNode.maxX = new float4(float.NegativeInfinity);
+                bvhNode.maxY = new float4(float.NegativeInfinity);
+                bvhNode.maxZ = new float4(float.NegativeInfinity);
+                bvhNode.maxParentError = new float4(0);
+                bvhNode.nodeData = new uint4(0xFFFFFFFF);
+
+                var childNode = binaryNodes[rootIndex];
+                bvhNode.minX.x = childNode.bounds.Min.x;
+                bvhNode.minY.x = childNode.bounds.Min.y;
+                bvhNode.minZ.x = childNode.bounds.Min.z;
+                bvhNode.maxX.x = childNode.bounds.Max.x;
+                bvhNode.maxY.x = childNode.bounds.Max.y;
+                bvhNode.maxZ.x = childNode.bounds.Max.z;
+                bvhNode.maxParentError.x = childNode.maxParentError;
+                bvhNode.nodeData.x = (uint)childNode.meshletIndex;
+
+                meshletData.hierarchyNodes.Add(bvhNode);
+            }
+            else
+            {
+                CollapseTo4Ary(binaryNodes, rootIndex, meshletData.hierarchyNodes);
+            }
         }
-
-        if (binaryNodes[rootIndex].leftChild == -1)
+        finally
         {
-            var bvhNode = new MeshletHierarchyNode();
-            bvhNode.minX = new float4(float.PositiveInfinity);
-            bvhNode.minY = new float4(float.PositiveInfinity);
-            bvhNode.minZ = new float4(float.PositiveInfinity);
-            bvhNode.maxX = new float4(float.NegativeInfinity);
-            bvhNode.maxY = new float4(float.NegativeInfinity);
-            bvhNode.maxZ = new float4(float.NegativeInfinity);
-            bvhNode.maxParentError = new float4(0);
-            bvhNode.nodeData = new uint4(0xFFFFFFFF);
-
-            var childNode = binaryNodes[rootIndex];
-            bvhNode.minX.x = childNode.bounds.Min.x;
-            bvhNode.minY.x = childNode.bounds.Min.y;
-            bvhNode.minZ.x = childNode.bounds.Min.z;
-            bvhNode.maxX.x = childNode.bounds.Max.x;
-            bvhNode.maxY.x = childNode.bounds.Max.y;
-            bvhNode.maxZ.x = childNode.bounds.Max.z;
-            bvhNode.maxParentError.x = childNode.maxParentError;
-            bvhNode.nodeData.x = (uint)childNode.meshletIndex;
-
-            meshletData.hierarchyNodes.Add(bvhNode);
-        }
-        else
-        {
-            CollapseTo4Ary(binaryNodes, rootIndex, meshletData.hierarchyNodes);
+            binaryNodes.Dispose();
         }
     }
 }

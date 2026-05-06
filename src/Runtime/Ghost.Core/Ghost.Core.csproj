@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DefineConstants>$(DefineConstants);MHP_ENABLE_SAFETY_CHECKS;MHP_ENABLE_MIMALLOC;MHP_FASTMATH</DefineConstants>
+    <DefineConstants>$(DefineConstants);MHP_ENABLE_MIMALLOC;MHP_FASTMATH</DefineConstants>
     <IsAotCompatible>True</IsAotCompatible>
     <IsTrimmable>True</IsTrimmable>
   </PropertyGroup>

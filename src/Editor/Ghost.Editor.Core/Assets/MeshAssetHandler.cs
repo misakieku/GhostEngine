@@ -261,16 +261,15 @@ internal class MeshAssetHandler : IImportableAssetHandler, IPackableAssetHandler
             return Result.Failure<ImportedSubAsset[]>("Source file does not exist.");
         }
 
-        var meshSettings = ResolveSettings(sourcePath, settings);
-        var root = new MeshNode();
         try
         {
-            var heapSize1 = AllocationManager.TotalAllocatedMemory;
+            var meshSettings = ResolveSettings(sourcePath, settings);
+            
+            using var root = new MeshNode();
+            
             var parseJob = new MeshParsingJob(root, sourcePath, AllocationHandle.Persistent, meshSettings);
             var context = default(Misaki.HighPerformance.Jobs.JobExecutionContext);
             parseJob.Execute(in context);
-
-            var heapSize2 = AllocationManager.TotalAllocatedMemory;
 
             var manifest = new ModelManifest
             {
@@ -290,10 +289,6 @@ internal class MeshAssetHandler : IImportableAssetHandler, IPackableAssetHandler
         catch (Exception ex)
         {
             return Result.Failure<ImportedSubAsset[]>($"Failed to import mesh asset: {ex.Message}");
-        }
-        finally
-        {
-            root.Dispose();
         }
     }
 

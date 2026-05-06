@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Ghost.Editor.Core": {
+      "commandName": "Project",
+      "debugEngines": "managed"
+    }
+  }
+}
