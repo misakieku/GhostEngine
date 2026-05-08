@@ -1,6 +1,8 @@
+using Ghost.Core.Graphics;
 using Ghost.Engine.RenderPipeline;
 using Ghost.Graphics;
 using Misaki.HighPerformance.Jobs;
+using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Engine;
 
@@ -56,4 +58,12 @@ public sealed partial class EngineCore : IDisposable
         _renderSystem.Dispose();
         _jobScheduler.Dispose();
     }
+}
+
+[GenerateShaderProperty("TestShader")]
+public partial struct TestShaderProperty
+{
+    public Texture2DHandle texture;
+    public uint someValue;
+    public float3 otherValue;
 }

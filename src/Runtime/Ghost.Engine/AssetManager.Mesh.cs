@@ -3,10 +3,55 @@ using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Utilities;
+using Misaki.HighPerformance.Mathematics;
 using Misaki.HighPerformance.Mathematics.Geometry;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Engine;
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct MeshContentHeader
+{
+    public const uint MAGIC = 0x48534D47; // GMSH
+    public const uint VERSION = 1;
+
+    public uint magic;
+    public uint version;
+
+    public uint vertexCount;
+    public uint indexCount;
+    public uint materialPartCount;
+    public uint meshletCount;
+    public uint meshletGroupCount;
+    public uint meshletHierarchyNodeCount;
+    public uint meshletVertexCount;
+    public uint meshletTriangleCount;
+    public uint materialSlotCount;
+    public uint lodLevelCount;
+
+    public float3 boundsMin;
+    public float3 boundsMax;
+
+    public ulong vertexOffset;
+    public ulong indexOffset;
+    public ulong materialPartOffset;
+    public ulong meshletOffset;
+    public ulong meshletGroupOffset;
+    public ulong meshletHierarchyNodeOffset;
+    public ulong meshletVertexOffset;
+    public ulong meshletTriangleOffset;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct MeshContentMaterialPart
+{
+    public int materialIndex;
+    public int indexStart;
+    public int indexCount;
+    public int vertexStart;
+    public int vertexCount;
+}
 
 internal unsafe partial class AssetEntry
 {
@@ -225,6 +270,7 @@ internal unsafe partial class AssetEntry
     private void OnMeshUploadComplete(ResourceStreamingContext context)
     {
         var (oldHandle, newHandle) = GetStorage<(Handle<Mesh>, Handle<Mesh>)>();
+        // FIX: Do not reaplce the mesh, replace the underlying buffers and data instead because we are using persistent gpu scene. Replacing the mesh does not update the gpu scene at all.
         var actualHandle = context.ResourceManager.ReplaceMesh(oldHandle, newHandle);
         if (actualHandle.IsInvalid)
         {

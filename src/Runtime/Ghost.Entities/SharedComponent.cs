@@ -2,7 +2,6 @@ using Ghost.Core;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
-using System.Diagnostics;
 
 namespace Ghost.Entities;
 

@@ -93,6 +93,10 @@ namespace Ghost.Generator
                 
                 var definedSymbol = $"__{info.Name.ToUpper()}_G_HLSL";
 
+                var fieldsBuilder = new StringBuilder();
+                fieldsBuilder.AppendLine($"        public static readonly global::Ghost.Core.Graphics.ShaderPropertyFieldInfo[] ReflectionData = new global::Ghost.Core.Graphics.ShaderPropertyFieldInfo[]");
+                fieldsBuilder.AppendLine("        {");
+
                 var fields = info.TypeSymbol.GetMembers().OfType<IFieldSymbol>();
                 foreach (var field in fields)
                 {
@@ -103,6 +107,7 @@ namespace Ghost.Generator
 
                     var hlslTypeAttribute = field.GetAttributes().FirstOrDefault(ad => ad.AttributeClass?.ToDisplayString() == "Ghost.Engine.Utilities.GenerateAsHLSLTypeAttribute");
                     var hlslType = string.Empty;
+                    var shaderPropType = "global::Ghost.Core.Graphics.ShaderPropertyType.Unknown";
 
                     if (hlslTypeAttribute == null)
                     {
@@ -110,34 +115,51 @@ namespace Ghost.Generator
                         {
                             case SpecialType.System_Single:
                                 hlslType = "float";
+                                shaderPropType = "global::Ghost.Core.Graphics.ShaderPropertyType.Float";
                                 break;
                             case SpecialType.System_Int32:
                                 hlslType = "int";
+                                shaderPropType = "global::Ghost.Core.Graphics.ShaderPropertyType.Int";
                                 break;
                             case SpecialType.System_UInt32:
                                 hlslType = "uint";
+                                shaderPropType = "global::Ghost.Core.Graphics.ShaderPropertyType.UInt";
                                 break;
                             default:
                                 var typeName = field.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
                                 switch (typeName)
                                 {
-                                    case "global::System.Numerics.Vector2":
+                                    case "global::System.Numerics.Vector2" or "global::Misaki.HighPerformance.Mathematics.float2":
                                         hlslType = "float2";
+                                        shaderPropType = "global::Ghost.Core.Graphics.ShaderPropertyType.Float2";
                                         break;
-                                    case "global::System.Numerics.Vector3":
+                                    case "global::System.Numerics.Vector3" or "global::Misaki.HighPerformance.Mathematics.float3":
                                         hlslType = "float3";
+                                        shaderPropType = "global::Ghost.Core.Graphics.ShaderPropertyType.Float3";
                                         break;
-                                    case "global::System.Numerics.Vector4":
+                                    case "global::System.Numerics.Vector4" or "global::Misaki.HighPerformance.Mathematics.float4":
                                         hlslType = "float4";
+                                        shaderPropType = "global::Ghost.Core.Graphics.ShaderPropertyType.Float4";
                                         break;
-                                    case "global::System.Numerics.Matrix3x3":
-                                        hlslType = "float3x3";
-                                        break;
-                                    case "global::System.Numerics.Matrix4x4":
+                                    case "global::System.Numerics.Matrix4x4" or "global::Misaki.HighPerformance.Mathematics.float4x4":
                                         hlslType = "float4x4";
+                                        shaderPropType = "global::Ghost.Core.Graphics.ShaderPropertyType.Float4x4";
                                         break;
                                     case "global::System.Numerics.Quaternion" or "global::Misaki.HighPerformance.Mathematics.quaternion":
                                         hlslType = "float4";
+                                        shaderPropType = "global::Ghost.Core.Graphics.ShaderPropertyType.Float4";
+                                        break;
+                                    case "global::Ghost.Core.Graphics.Texture2DHandle":
+                                        hlslType = "uint";
+                                        shaderPropType = "global::Ghost.Core.Graphics.ShaderPropertyType.Texture2D";
+                                        break;
+                                    case "global::Ghost.Core.Graphics.Texture3DHandle":
+                                        hlslType = "uint";
+                                        shaderPropType = "global::Ghost.Core.Graphics.ShaderPropertyType.Texture3D";
+                                        break;
+                                    case "global::Ghost.Core.Graphics.BufferHandle":
+                                        hlslType = "uint";
+                                        shaderPropType = "global::Ghost.Core.Graphics.ShaderPropertyType.Buffer";
                                         break;
                                     case var _ when typeName.StartsWith("global::Misaki.HighPerformance.Mathematics."):
                                         hlslType = typeName.Substring("global::Misaki.HighPerformance.Mathematics.".Length);
@@ -167,7 +189,11 @@ namespace Ghost.Generator
                     }
 
                     codeBuilder.AppendLine($"    {hlslType} {field.Name};");
+
+                    fieldsBuilder.AppendLine($"            new global::Ghost.Core.Graphics.ShaderPropertyFieldInfo {{ Name = \"{field.Name}\", Type = {shaderPropType}, Offset = (int)global::System.Runtime.InteropServices.Marshal.OffsetOf<{info.TypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}>(\"{field.Name}\") }},");
                 }
+
+                fieldsBuilder.AppendLine("        };");
 
                 var code = $@"// <auto-generated/>
 
@@ -185,15 +211,17 @@ struct {info.Name}
 {codeBuilder}
 }};
 # endif // {definedSymbol}"";
-    }}
+
+{fieldsBuilder}
 #endif
+    }}
 }}";
 
                 context.AddSource($"{info.TypeSymbol.Name}_HLSL.gen.cs", code);
                 codeBuilder.Clear();
 
                 var typeFullName = info.TypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                registerBuilder.AppendLine($@"        global::Ghost.Core.Graphics.ShaderPropertiesRegistry.Register(""{info.ShaderName}"", {typeFullName}.HLSL_SOURCE, (uint)sizeof({typeFullName}));");
+                registerBuilder.AppendLine($@"        global::Ghost.Core.Graphics.ShaderPropertiesRegistry.Register(""{info.ShaderName}"", {typeFullName}.HLSL_SOURCE, (uint)sizeof({typeFullName}), {typeFullName}.ReflectionData);");
             }
 
             var registerTypeName = "g_shaderproperty_registeration";

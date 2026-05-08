@@ -101,7 +101,7 @@ public static class DSLShaderCompiler
             var pass = semantics.passes![i];
             var localPipeline = MeragePipeline(pass.localPipeline, PipelineState.Default);
 
-            var result = BuildFinalShaderCode(pass.amplificationShader.shaderPath, pass.includes.AsSpan(), pass.hlsl, propertyInfo.code);
+            var result = BuildFinalShaderCode(pass.amplificationShader.shaderPath, pass.includes.AsSpan(), pass.hlsl, propertyInfo.Code);
             if (result.IsFailure)
             {
                 return Result.Failure($"Failed to build shader code for pass '{pass.name}': {result.Message}");
@@ -109,7 +109,7 @@ public static class DSLShaderCompiler
 
             var amplificationShaderCode = new ShaderCode { code = result.Value, entryPoint = pass.amplificationShader.entry };
 
-            result = BuildFinalShaderCode(pass.meshShader.shaderPath, pass.includes.AsSpan(), pass.hlsl, propertyInfo.code);
+            result = BuildFinalShaderCode(pass.meshShader.shaderPath, pass.includes.AsSpan(), pass.hlsl, propertyInfo.Code);
             if (result.IsFailure)
             {
                 return Result.Failure($"Failed to build shader code for pass '{pass.name}': {result.Message}");
@@ -117,7 +117,7 @@ public static class DSLShaderCompiler
 
             var meshShaderCode = new ShaderCode { code = result.Value, entryPoint = pass.meshShader.entry };
 
-            result = BuildFinalShaderCode(pass.pixelShader.shaderPath, pass.includes.AsSpan(), pass.hlsl, propertyInfo.code);
+            result = BuildFinalShaderCode(pass.pixelShader.shaderPath, pass.includes.AsSpan(), pass.hlsl, propertyInfo.Code);
             if (result.IsFailure)
             {
                 return Result.Failure($"Failed to build shader code for pass '{pass.name}': {result.Message}");
@@ -142,7 +142,7 @@ public static class DSLShaderCompiler
         var descriptor = new GraphicsShaderDescriptor
         {
             Name = semantics.name,
-            PropertyBufferSize = propertyInfo.size,
+            PropertyBufferSize = propertyInfo.Size,
 
             ShaderModel = semantics.shaderModel,
             Passes = passes
@@ -302,7 +302,7 @@ public static class DSLShaderCompiler
         var shaderCodes = new ShaderCode[semantics.entryPoints.Count];
         for (var i = 0; i < shaderCodes.Length; i++)
         {
-            var result = BuildFinalShaderCode(semantics.entryPoints[i].shaderPath, semantics.includes.AsSpan(), semantics.hlsl, propertyInfo.code);
+            var result = BuildFinalShaderCode(semantics.entryPoints[i].shaderPath, semantics.includes.AsSpan(), semantics.hlsl, propertyInfo.Code);
             if (result.IsFailure)
             {
                 return Result.Failure($"Failed to build shader code for entry point '{semantics.entryPoints[i].entry}': {result.Message}");
@@ -314,7 +314,7 @@ public static class DSLShaderCompiler
         return new ComputeShaderDescriptor
         {
             Name = semantics.name,
-            PropertyBufferSize = propertyInfo.size,
+            PropertyBufferSize = propertyInfo.Size,
             ShaderModel = semantics.shaderModel,
             ShaderCodes = shaderCodes,
             Defines = semantics.defines?.ToArray() ?? Array.Empty<string>(),
