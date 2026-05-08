@@ -249,7 +249,7 @@ public class TextureAssetSettings : IAssetSettings
     } = new SamplerSettings();
 }
 
-[CustomAssetHandler(TextureAsset.GUID, [".png", ".jpg", ".jpeg", ".tga", ".bmp", ".hdr"], 1)]
+[CustomAssetHandler(AssetTypeId = TextureAsset.GUID, RuntimeAssetType = AssetType.Texture, Extensions = new[] { ".png", ".jpg", ".jpeg", ".tga", ".bmp", ".hdr" })]
 internal class TextureAssetHandler : IImportableAssetHandler, IPackableAssetHandler
 {
     internal struct TextureInfo
@@ -262,10 +262,6 @@ internal class TextureAssetHandler : IImportableAssetHandler, IPackableAssetHand
         public int colorComponents;
         public bool isHDR;
     }
-
-    public bool CanExport => false;
-    public AssetType RuntimeAssetType => AssetType.Texture;
-    public Guid EditorAssetTypeID => typeof(TextureAsset).GUID;
 
     public IAssetSettings? CreateDefaultSettings(string ext)
     {
@@ -492,11 +488,6 @@ internal class TextureAssetHandler : IImportableAssetHandler, IPackableAssetHand
         {
             return Result.Failure($"Failed to import texture asset: {ex.Message}");
         }
-    }
-
-    public ValueTask<Result> ExportAsync(string assetPath, string targetPath, IAssetExportOptions? options, CancellationToken token = default)
-    {
-        return ValueTask.FromResult(Result.Failure("Exporting texture assets is not supported yet."));
     }
 
     public ValueTask<Result> PackAsync(string assetPath, MemoryStream targetStream, CancellationToken token = default)

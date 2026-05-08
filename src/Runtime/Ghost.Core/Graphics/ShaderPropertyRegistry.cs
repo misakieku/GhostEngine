@@ -1,5 +1,6 @@
-namespace Ghost.DSL;
+namespace Ghost.Core.Graphics;
 
+#if DEBUG || GHOST_EDITOR
 public struct ShaderPropertyInfo
 {
     public string shaderName;
@@ -21,3 +22,4 @@ public static class ShaderPropertiesRegistry
         return s_nameToCode.TryGetValue(name, out info);
     }
 }
+#endif

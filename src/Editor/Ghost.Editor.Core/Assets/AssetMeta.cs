@@ -24,9 +24,9 @@ public sealed class AssetMeta
     public required Guid Guid { get; init; }
 
     /// <summary>
-    /// The Guid that identifies which IAssetHandler processes this asset.
+    /// The Guid that identifies type id of asset.
     /// </summary>
-    public Guid? HandlerTypeId { get; set; }
+    public Guid? AssetTypeId { get; set; }
 
     /// <summary>
     /// Version of the handler that last imported this asset.

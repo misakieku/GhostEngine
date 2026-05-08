@@ -226,11 +226,16 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
             return;
         }
 
-        var handlerTypeId = handler?.EditorAssetTypeID;
+        var assetTypeId = Guid.Empty;
+        if (AssetHandlerRegistry.TryGetHandlerInfoByExtension(ext, out var handlerInfo))
+        {
+            assetTypeId = handlerInfo.EditorAssetTypeID;
+        }
+
         var meta = new AssetMeta
         {
             Guid = Guid.NewGuid(),
-            HandlerTypeId = handlerTypeId,
+            AssetTypeId = assetTypeId,
             HandlerVersion = 1,
             Settings = handler?.CreateDefaultSettings(ext)
         };
@@ -420,7 +425,6 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
     {
         _watcher.Dispose();
         _importCoordinator.Dispose();
-        _catalog.Dispose();
         _loadLock.Dispose();
     }
 }

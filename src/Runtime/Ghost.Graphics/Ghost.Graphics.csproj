@@ -26,7 +26,6 @@
 
   <ItemGroup>
         <ProjectReference Include="..\..\Runtime\Ghost.Core\Ghost.Core.csproj" />
-        <ProjectReference Include="..\..\Editor\Ghost.DSL\Ghost.DSL.csproj" />
         <ProjectReference Include="..\Ghost.Graphics.D3D12\Ghost.Graphics.D3D12.csproj" />
         <ProjectReference Include="..\Ghost.Graphics.RHI\Ghost.Graphics.RHI.csproj" />
         <ProjectReference Include="..\..\ThridParty\Ghost.MeshOptimizer\Ghost.MeshOptimizer.csproj" />

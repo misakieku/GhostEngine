@@ -37,8 +37,12 @@ internal class EditorContentProvider : IContentProvider
 
     public AssetType GetAssetType(Guid guid)
     {
-        var handlerID = _catalog.GetHandlerTypeId(guid);
-        var handler = AssetHandlerRegistry.GetByAssetTypeId(handlerID);
-        return handler?.RuntimeAssetType ?? AssetType.Unknown;
+        var assetTypeID = _catalog.GetAssetTypeId(guid);
+        if (AssetHandlerRegistry.TryGetHandlerInfoByAssetTypeId(assetTypeID, out var info))
+        {
+            return info.RuntimeAssetType;
+        }
+
+        return AssetType.Unknown;
     }
 }

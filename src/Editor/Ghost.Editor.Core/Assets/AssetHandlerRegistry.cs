@@ -1,36 +1,54 @@
 using Ghost.Engine;
+using System.Collections.Concurrent;
 
 namespace Ghost.Editor.Core.Assets;
 
+public readonly struct AssetHandlerInfo
+{
+    public Type HandlerType { get; init; }
+    public AssetType RuntimeAssetType { get; init; }
+    public Guid EditorAssetTypeID { get; init; }
+    public int Version { get; init; }
+}
+
 public static class AssetHandlerRegistry
 {
-    private static readonly Dictionary<string, IAssetHandler> s_byExtension;
-    private static readonly Dictionary<string, AssetType> s_typeByExtension;
-    private static readonly Dictionary<Guid, IAssetHandler> s_byTypeId;
-    private static readonly Dictionary<Guid, int> s_versionByTypeId;
-
+    private static readonly Dictionary<string, AssetHandlerInfo> s_byExtension;
+    private static readonly Dictionary<Guid, AssetHandlerInfo> s_byTypeId;
     private static readonly List<(Type Type, string Name)> s_iAssetSettingsTypes;
+
+    private static readonly ConcurrentDictionary<Type, IAssetHandler?> s_handlerCache;
 
     static AssetHandlerRegistry()
     {
-        s_byExtension = new Dictionary<string, IAssetHandler>(StringComparer.OrdinalIgnoreCase);
-        s_typeByExtension = new Dictionary<string, AssetType>(StringComparer.OrdinalIgnoreCase);
-        s_byTypeId = new Dictionary<Guid, IAssetHandler>();
-        s_versionByTypeId = new Dictionary<Guid, int>();
+        s_byExtension = new Dictionary<string, AssetHandlerInfo>(StringComparer.OrdinalIgnoreCase);
+        s_byTypeId = new Dictionary<Guid, AssetHandlerInfo>();
 
         s_iAssetSettingsTypes = new List<(Type Type, string Name)>();
+        s_handlerCache = new ConcurrentDictionary<Type, IAssetHandler?>();
     }
 
-    public static void RegisterHandler(IAssetHandler handler, Guid assetTypeId, ReadOnlySpan<string> extensions, int version)
+    public static void RegisterHandler(Type handlerType, Guid assetTypeId, AssetType runtimeAssetType, int version, bool allowCaching, params ReadOnlySpan<string> extensions)
     {
-        s_byTypeId[assetTypeId] = handler;
-        s_versionByTypeId[assetTypeId] = version;
+        var info = new AssetHandlerInfo
+        {
+            HandlerType = handlerType,
+            RuntimeAssetType = runtimeAssetType,
+            EditorAssetTypeID = assetTypeId,
+            Version = version
+        };
+
+        s_byTypeId[assetTypeId] = info;
 
         foreach (var ext in extensions)
         {
             var normalizedExt = ext.StartsWith('.') ? ext : "." + ext;
-            s_byExtension[normalizedExt] = handler;
-            s_typeByExtension[normalizedExt] = handler.RuntimeAssetType;
+            s_byExtension[normalizedExt] = info;
+        }
+
+        if (allowCaching)
+        {
+            s_handlerCache[handlerType] = null;
         }
     }
 
@@ -47,36 +65,59 @@ public static class AssetHandlerRegistry
         }
 
         var normalized = extension.StartsWith('.') ? extension : "." + extension;
-        s_byExtension.TryGetValue(normalized, out var handler);
-        return handler;
+        if (!s_byExtension.TryGetValue(normalized, out var info))
+        {
+            return null;
+        }
+
+        return s_handlerCache.GetOrAdd(info.HandlerType, t =>
+        {
+            try
+            {
+                return (IAssetHandler?)Activator.CreateInstance(t);
+            }
+            catch
+            {
+                return null;
+            }
+        });
     }
 
     public static IAssetHandler? GetByAssetTypeId(Guid typeId)
     {
-        s_byTypeId.TryGetValue(typeId, out var handler);
-        return handler;
+        if (!s_byTypeId.TryGetValue(typeId, out var info))
+        {
+            return null;
+        }
+
+        return s_handlerCache.GetOrAdd(info.HandlerType, t =>
+        {
+            try
+            {
+                return (IAssetHandler?)Activator.CreateInstance(t);
+            }
+            catch
+            {
+                return null;
+            }
+        });
     }
 
-    public static int GetVersionByAssetTypeId(Guid typeId)
+    public static bool TryGetHandlerInfoByAssetTypeId(Guid typeId, out AssetHandlerInfo info)
     {
-        s_versionByTypeId.TryGetValue(typeId, out var version);
-        return version;
+        return s_byTypeId.TryGetValue(typeId, out info);
     }
 
-    public static IEnumerable<string> GetSupportedExtensions()
-    {
-        return s_byExtension.Keys;
-    }
-
-    public static AssetType GetRuntimeAssetTypeByExtension(string extension)
+    public static bool TryGetHandlerInfoByExtension(string extension, out AssetHandlerInfo info)
     {
         if (string.IsNullOrEmpty(extension))
         {
-            return AssetType.Unknown;
+            info = default;
+            return false;
         }
 
         var normalized = extension.StartsWith('.') ? extension : "." + extension;
-        return s_typeByExtension.GetValueOrDefault(normalized, AssetType.Unknown);
+        return s_byExtension.TryGetValue(normalized, out info);
     }
 
     public static IReadOnlyCollection<(Type Type, string Name)> GetIAssetSettingsTypes()

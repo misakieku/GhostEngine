@@ -6,9 +6,30 @@ namespace Ghost.Editor.Core.Assets;
 [AttributeUsage(AttributeTargets.Class)]
 public sealed class CustomAssetHandlerAttribute : Attribute
 {
-    public CustomAssetHandlerAttribute(string assetTypeID, string[] supportedExtensions, int version = 1)
+    public required string AssetTypeId
     {
+        get; set;
     }
+
+    public required AssetType RuntimeAssetType
+    {
+        get; set;
+    }
+
+    public required string[] Extensions
+    {
+        get; set;
+    }
+
+    public int Version
+    {
+        get; set;
+    } = 1;
+
+    public bool AllowCaching
+    {
+        get; set;
+    } = true;
 }
 
 public interface IAsset : IDisposable
@@ -33,9 +54,6 @@ public interface IAssetExportOptions;
 
 public interface IAssetHandler
 {
-    AssetType RuntimeAssetType { get; }
-    Guid EditorAssetTypeID { get; }
-
     IAssetSettings? CreateDefaultSettings(string ext);
 
     ValueTask<Result<IAsset>> LoadAssetAsync(string assetPath, Guid id, IAssetSettings? settings, CancellationToken token = default);
@@ -44,12 +62,10 @@ public interface IAssetHandler
 
 public interface IImportableAssetHandler : IAssetHandler
 {
-    bool CanExport { get; }
     ValueTask<Result<ImportedSubAsset[]>> ImportAsync(string sourcePath, string targetPath, Guid id, IAssetSettings? settings, CancellationToken token = default);
-    ValueTask<Result> ExportAsync(string assetPath, string targetPath, IAssetExportOptions? options, CancellationToken token = default);
 }
 
-public readonly record struct ImportedSubAsset(Guid Guid, string Kind, string DisplayName, string StablePath, string VirtualSourcePath, Guid HandlerTypeId);
+public readonly record struct ImportedSubAsset(Guid Guid, string Kind, string DisplayName, string StablePath, string VirtualSourcePath, Guid AssetTypeId);
 
 public interface IPackableAssetHandler : IAssetHandler
 {

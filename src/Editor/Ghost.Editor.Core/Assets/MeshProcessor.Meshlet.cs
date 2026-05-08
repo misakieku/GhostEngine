@@ -5,13 +5,15 @@ using Ghost.Core;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Ghost.MeshOptimizer;
+using Misaki.HighPerformance.Jobs;
+using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using Misaki.HighPerformance.LowLevel.Utilities;
 using Misaki.HighPerformance.Mathematics;
 using Misaki.HighPerformance.Mathematics.Geometry;
 using System.Runtime.CompilerServices;
-
-using TLSFPool = Misaki.HighPerformance.LowLevel.Buffer.MemoryPool<Misaki.HighPerformance.LowLevel.Buffer.TLSF, Misaki.HighPerformance.LowLevel.Buffer.TLSF.CreationOptions>;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Editor.Core.Assets;
 
@@ -162,7 +164,7 @@ public unsafe struct ClodCluster
 
 internal static unsafe partial class MeshProcessor
 {
-    private delegate int ClodOutputDelegate(ref MeshletContext context, ClodGroup group, ReadOnlyUnsafeCollection<ClodCluster> clusters);
+    private delegate int ClodOutputDelegate(MeshletContext context, ClodGroup group, ReadOnlyUnsafeCollection<ClodCluster> clusters);
 
     private static ClodBounds ComputeBounds(ref readonly ClodMesh mesh, UnsafeList<uint> indices, float error)
     {
@@ -392,7 +394,7 @@ internal static unsafe partial class MeshProcessor
 
     private static int OutputGroup(ref readonly ClodConfig config, ref readonly ClodMesh mesh,
         UnsafeList<Cluster> clusters, UnsafeList<int> group, ClodBounds simplified, int depth,
-        ref MeshletContext outputContext, ClodOutputDelegate? outputCallback,
+        MeshletContext outputContext, ClodOutputDelegate? outputCallback,
         AllocationHandle allocationHandle)
     {
         using var groupClusters = new UnsafeList<ClodCluster>(group.Count, allocationHandle);
@@ -417,7 +419,7 @@ internal static unsafe partial class MeshProcessor
 
         var clodGroup = new ClodGroup { depth = depth, simplified = simplified };
         var result = outputCallback != null
-            ? outputCallback(ref outputContext, clodGroup, groupClusters.AsReadOnly())
+            ? outputCallback(outputContext, clodGroup, groupClusters.AsReadOnly())
             : -1;
 
         return result;
@@ -579,18 +581,12 @@ internal static unsafe partial class MeshProcessor
     /// <param name="outputContext">Optional context pointer passed to the output callback.</param>
     /// <param name="outputCallback">Delegate invoked for each generated LOD group.</param>
     /// <returns>The total count of generated clusters.</returns>
-    private static nuint Build(ref readonly ClodConfig config, ref readonly ClodMesh mesh, ref MeshletContext outputContext, ClodOutputDelegate? outputCallback)
+    private static nuint Build(ref readonly ClodConfig config, ref readonly ClodMesh mesh, MeshletContext outputContext, ClodOutputDelegate? outputCallback)
     {
         Logger.DebugAssert(mesh.vertexAttributesStride % sizeof(float) == 0, "vertexAttributesStride must be a multiple of sizeof(float)");
 
-        using var pool = new TLSFPool(new TLSF.CreationOptions
-        {
-            alignment = 8,
-            initialChunkSize = 64 * 1024,
-        });
-
-        using var locks = new UnsafeArray<byte>((int)mesh.vertexCount, pool.AllocationHandle, AllocationOption.Clear); ;
-        using var remap = new UnsafeArray<uint>((int)mesh.vertexCount, pool.AllocationHandle);
+        using var locks = new UnsafeArray<byte>((int)mesh.vertexCount, AllocationHandle.TLSF, AllocationOption.Clear); ;
+        using var remap = new UnsafeArray<uint>((int)mesh.vertexCount, AllocationHandle.TLSF);
 
         MeshOptApi.GeneratePositionRemap((uint*)remap.GetUnsafePtr(), mesh.vertexPositions, mesh.vertexCount, mesh.vertexPositionsStride);
 
@@ -613,14 +609,14 @@ internal static unsafe partial class MeshProcessor
             }
         }
 
-        using var clusters = Clusterize(in config, in mesh, mesh.indices, mesh.indexCount, pool.AllocationHandle);
+        using var clusters = Clusterize(in config, in mesh, mesh.indices, mesh.indexCount, AllocationHandle.TLSF);
 
         for (var i = 0; i < clusters.Count; i++)
         {
             clusters[i].bounds = ComputeBounds(in mesh, clusters[i].indices, 0.0f);
         }
 
-        using var pending = new UnsafeList<int>(clusters.Count, pool.AllocationHandle);
+        using var pending = new UnsafeList<int>(clusters.Count, AllocationHandle.TLSF);
         for (var i = 0; i < clusters.Count; i++)
         {
             pending.Add(i);
@@ -630,14 +626,14 @@ internal static unsafe partial class MeshProcessor
 
         while (pending.Count > 1)
         {
-            using var groups = Partition(in config, in mesh, clusters, pending, remap, pool.AllocationHandle);
+            using var groups = Partition(in config, in mesh, clusters, pending, remap, AllocationHandle.TLSF);
             pending.Clear();
 
             LockBoundary(locks, groups, clusters, remap, mesh.vertexLock);
 
             for (var i = 0; i < groups.Count; i++)
             {
-                using var merged = new UnsafeList<uint>(groups[i].Count * (int)config.maxTriangles * 3, pool.AllocationHandle);
+                using var merged = new UnsafeList<uint>(groups[i].Count * (int)config.maxTriangles * 3, AllocationHandle.TLSF);
                 for (var j = 0; j < groups[i].Count; j++)
                 {
                     var clusterIndices = clusters[groups[i][j]].indices;
@@ -645,28 +641,28 @@ internal static unsafe partial class MeshProcessor
                 }
 
                 var targetSize = (nuint)(merged.Count / 3 * config.simplifyRatio * 3.0f);
-                var bounds = MergeBounds(clusters, groups[i], pool.AllocationHandle);
+                var bounds = MergeBounds(clusters, groups[i], AllocationHandle.TLSF);
 
                 var error = 0.0f;
-                using var simplified = Simplify(in config, in mesh, merged.AsReadOnly(), locks.AsReadOnly(), targetSize, &error, pool.AllocationHandle);
+                using var simplified = Simplify(in config, in mesh, merged.AsReadOnly(), locks.AsReadOnly(), targetSize, &error, AllocationHandle.TLSF);
 
                 if ((nuint)simplified.Length > (nuint)(merged.Count * config.simplifyThreshold))
                 {
                     bounds.error = float.MaxValue;
-                    OutputGroup(in config, in mesh, clusters, groups[i], bounds, depth, ref outputContext, outputCallback, pool.AllocationHandle);
+                    OutputGroup(in config, in mesh, clusters, groups[i], bounds, depth, outputContext, outputCallback, AllocationHandle.TLSF);
                     continue;
                 }
 
                 bounds.error = Math.Max(bounds.error * config.simplifyErrorMergePrevious, error) + error * config.simplifyErrorMergeAdditive;
 
-                var refined = OutputGroup(in config, in mesh, clusters, groups[i], bounds, depth, ref outputContext, outputCallback, pool.AllocationHandle);
+                var refined = OutputGroup(in config, in mesh, clusters, groups[i], bounds, depth, outputContext, outputCallback, AllocationHandle.TLSF);
 
                 for (var j = 0; j < groups[i].Count; j++)
                 {
                     clusters[groups[i][j]].Dispose();
                 }
 
-                using var split = Clusterize(in config, in mesh, (uint*)simplified.GetUnsafePtr(), (nuint)simplified.Length, pool.AllocationHandle);
+                using var split = Clusterize(in config, in mesh, (uint*)simplified.GetUnsafePtr(), (nuint)simplified.Length, AllocationHandle.TLSF);
                 for (var j = 0; j < split.Count; j++)
                 {
                     split[j].refined = refined;
@@ -688,7 +684,7 @@ internal static unsafe partial class MeshProcessor
         {
             var bounds = clusters[pending[0]].bounds;
             bounds.error = float.MaxValue;
-            OutputGroup(in config, in mesh, clusters, pending, bounds, depth, ref outputContext, outputCallback, pool.AllocationHandle);
+            OutputGroup(in config, in mesh, clusters, pending, bounds, depth, outputContext, outputCallback, AllocationHandle.TLSF);
         }
 
         var finalClusterCount = (nuint)clusters.Count;
@@ -701,33 +697,33 @@ internal static unsafe partial class MeshProcessor
         return finalClusterCount;
     }
 
-    private ref struct MeshletContext
+    private struct MeshletContext
     {
-        public ref MeshletMeshData data;
+        public MeshletMeshData* data;
         public int materialIndex;
     }
 
-    private static int MeshletOutputCallback(ref MeshletContext context, ClodGroup group, ReadOnlyUnsafeCollection<ClodCluster> clusters)
+    private static int MeshletOutputCallback(MeshletContext context, ClodGroup group, ReadOnlyUnsafeCollection<ClodCluster> clusters)
     {
-        ref var meshletData = ref context.data;
+        var meshletData = context.data;
         var materialIndex = context.materialIndex;
 
         // Ensure lists are initialized
-        if (!meshletData.groups.IsCreated) meshletData.groups = new UnsafeList<MeshletGroup>(16, AllocationHandle.Persistent);
-        if (!meshletData.meshlets.IsCreated) meshletData.meshlets = new UnsafeList<Meshlet>(64, AllocationHandle.Persistent);
-        if (!meshletData.meshletVertices.IsCreated) meshletData.meshletVertices = new UnsafeList<uint>(128, AllocationHandle.Persistent);
-        if (!meshletData.meshletTriangles.IsCreated) meshletData.meshletTriangles = new UnsafeList<uint>(128, AllocationHandle.Persistent);
+        if (!meshletData->groups.IsCreated) meshletData->groups = new UnsafeList<MeshletGroup>(16, AllocationHandle.TLSF);
+        if (!meshletData->meshlets.IsCreated) meshletData->meshlets = new UnsafeList<Meshlet>(64, AllocationHandle.TLSF);
+        if (!meshletData->meshletVertices.IsCreated) meshletData->meshletVertices = new UnsafeList<uint>(128, AllocationHandle.TLSF);
+        if (!meshletData->meshletTriangles.IsCreated) meshletData->meshletTriangles = new UnsafeList<uint>(128, AllocationHandle.TLSF);
 
         var meshletGroup = new MeshletGroup
         {
             boundingSphere = new SphereBounds(group.simplified.center, group.simplified.radius),
             boundingBox = new AABB(group.simplified.center - group.simplified.radius, group.simplified.center + group.simplified.radius),
             parentError = group.simplified.error,
-            meshletStartIndex = (uint)meshletData.meshlets.Count,
+            meshletStartIndex = (uint)meshletData->meshlets.Count,
             meshletCount = (uint)clusters.Count,
             lodLevel = (uint)group.depth
         };
-        meshletData.groups.Add(meshletGroup);
+        meshletData->groups.Add(meshletGroup);
 
         for (var i = 0; i < clusters.Count; i++)
         {
@@ -740,20 +736,20 @@ internal static unsafe partial class MeshProcessor
                 boundingBox = new AABB(cluster.bounds.center - cluster.bounds.radius, cluster.bounds.center + cluster.bounds.radius),
                 vertexCount = (byte)cluster.vertexCount,
                 triangleCount = (byte)(cluster.localIndexCount / 3),
-                vertexOffset = (uint)meshletData.meshletVertices.Count,
-                triangleOffset = (uint)meshletData.meshletTriangles.Count,
-                groupIndex = (uint)meshletData.groups.Count - 1,
+                vertexOffset = (uint)meshletData->meshletVertices.Count,
+                triangleOffset = (uint)meshletData->meshletTriangles.Count,
+                groupIndex = (uint)meshletData->groups.Count - 1,
                 clusterError = cluster.bounds.error,
                 parentError = group.simplified.error,
                 localMaterialIndex = (byte)materialIndex,
                 lodLevel = (byte)group.depth,
             };
-            meshletData.meshlets.Add(meshlet);
+            meshletData->meshlets.Add(meshlet);
 
             // Add unique vertices
             for (nuint j = 0; j < cluster.vertexCount; j++)
             {
-                meshletData.meshletVertices.Add(cluster.uniqueVertices[j]);
+                meshletData->meshletVertices.Add(cluster.uniqueVertices[j]);
             }
             // Add local triangles (packed into uints)
             var triangleCount = cluster.localIndexCount / 3;
@@ -763,11 +759,29 @@ internal static unsafe partial class MeshProcessor
                 uint i1 = cluster.localIndices[j * 3 + 1];
                 uint i2 = cluster.localIndices[j * 3 + 2];
                 var packedTriangle = i0 | (i1 << 8) | (i2 << 16);
-                meshletData.meshletTriangles.Add(packedTriangle);
+                meshletData->meshletTriangles.Add(packedTriangle);
             }
         }
 
-        return meshletData.groups.Count - 1;
+        return meshletData->groups.Count - 1;
+    }
+}
+
+
+internal static partial class MeshProcessor
+{
+
+    private struct MeshletBuildJob : IJob
+    {
+        public ClodConfig clodConfig;
+        public ClodMesh clodMesh;
+
+        public MeshletContext context;
+
+        public readonly void Execute(ref readonly JobExecutionContext ctx)
+        {
+            Build(in clodConfig, in clodMesh, context, MeshletOutputCallback);
+        }
     }
 
     /// <summary>
@@ -775,9 +789,10 @@ internal static unsafe partial class MeshProcessor
     /// Each <see cref="MaterialPartInfo"/> describes a material partition's index range within the unified buffer.
     /// Meshlets are built per-part and tagged with the corresponding <c>localMaterialIndex</c>.
     /// </summary>
-    public static void BuildMeshlets(ref MeshletMeshData meshletData, ReadOnlyUnsafeCollection<Vertex> vertices, ReadOnlyUnsafeCollection<uint> indices, ReadOnlySpan<MaterialPartInfo> parts)
+    public static async Task<DisposablePtr<MeshletMeshData>> BuildMeshletsAsync(JobScheduler jobScheduler,
+        ReadOnlyUnsafeCollection<Vertex> vertices, ReadOnlyUnsafeCollection<uint> indices, ReadOnlyUnsafeCollection<MaterialPartInfo> parts,
+        CancellationToken token)
     {
-        Logger.DebugAssert(meshletData.meshletCount == 0, "Meshlet data is not empty.");
         Logger.DebugAssert(vertices.Count > 0, "Mesh must have vertices to build meshlets.");
         Logger.DebugAssert(indices.Count > 0, "Mesh must have indices to build meshlets.");
         Logger.DebugAssert(parts.Length > 0, "Must have at least one material part.");
@@ -806,53 +821,97 @@ internal static unsafe partial class MeshProcessor
             simplifyFallbackSloppy = true,
         };
 
-        for (var i = 0; i < parts.Length; i++)
+        var jobs = new MeshletBuildJob[parts.Length];
+
+        IntPtr meshletData;
+        unsafe
         {
-            ref readonly var part = ref parts[i];
-
-            // Each part references a slice of the global index buffer,
-            // but vertex positions are the full unified buffer so global indices remain valid.
-            var clodMesh = new ClodMesh
-            {
-                vertexPositions = (float*)Unsafe.AsPointer(in vertices[0].position),
-                vertexCount = (nuint)vertices.Count,
-                vertexPositionsStride = (nuint)sizeof(Vertex),
-                vertexAttributes = (float*)Unsafe.AsPointer(in vertices[0].normal),
-                vertexAttributesStride = (nuint)sizeof(Vertex),
-                indices = (uint*)indices.GetUnsafePtr() + part.indexStart,
-                indexCount = (nuint)part.indexCount,
-                attributeProtectMask = 0, // TODO: Protect UVs at material boundaries.
-            };
-
-            var context = new MeshletContext
-            {
-                data = ref meshletData,
-                materialIndex = part.materialIndex
-            };
-
-            Build(in config, in clodMesh, ref context, MeshletOutputCallback);
+            // NOTE: We use NativeMemory here instead of MemoryUtility (use mimalloc internally) because this is a async method and may run a random thread pool thread which never dies.
+            // This will case mimalloc to allocate new heaps that hardly ever get freed, leading to memory bloat. Using NativeMemory ensures that we use the shared heap which doesn't have this issue.
+            meshletData = (IntPtr)NativeMemory.AllocZeroed(MemoryUtility.SizeOf<MeshletMeshData>());
         }
 
-        meshletData.meshletCount = meshletData.meshlets.IsCreated ? meshletData.meshlets.Count : 0;
-
-        if (meshletData.groups.IsCreated && meshletData.groups.Count > 0)
+        try
         {
-            var maxLodLevel = 0u;
-            for (var j = 0; j < meshletData.groups.Count; j++)
+            for (var i = 0; i < parts.Length; i++)
             {
-                maxLodLevel = Math.Max(maxLodLevel, meshletData.groups[j].lodLevel);
+                ref readonly var part = ref parts[i];
+
+                unsafe
+                {
+                    // Each part references a slice of the global index buffer,
+                    // but vertex positions are the full unified buffer so global indices remain valid.
+                    var clodMesh = new ClodMesh
+                    {
+                        vertexPositions = (float*)Unsafe.AsPointer(in vertices[0].position),
+                        vertexCount = (nuint)vertices.Count,
+                        vertexPositionsStride = (nuint)sizeof(Vertex),
+                        vertexAttributes = (float*)Unsafe.AsPointer(in vertices[0].normal),
+                        vertexAttributesStride = (nuint)sizeof(Vertex),
+                        indices = (uint*)indices.GetUnsafePtr() + part.indexStart,
+                        indexCount = (nuint)part.indexCount,
+                        attributeProtectMask = 0, // TODO: Protect UVs at material boundaries.
+                    };
+
+                    var context = new MeshletContext
+                    {
+                        data = (MeshletMeshData*)meshletData,
+                        materialIndex = part.materialIndex
+                    };
+
+                    var job = new MeshletBuildJob
+                    {
+                        clodConfig = config,
+                        clodMesh = clodMesh,
+                        context = context
+                    };
+
+                    jobs[i] = job;
+                }
             }
 
-            meshletData.lodLevelCount = (int)maxLodLevel + 1;
-        }
+            foreach (var job in jobs)
+            {
+                var handle = jobScheduler.Schedule(in job);
+                await jobScheduler.WaitAsync(handle, token);
+            }
 
-        var maxMaterialSlot = 0;
-        for (var j = 0; j < parts.Length; j++)
+            unsafe
+            {
+                var pMeshletData = (MeshletMeshData*)meshletData;
+                pMeshletData->meshletCount = pMeshletData->meshlets.IsCreated ? pMeshletData->meshlets.Count : 0;
+
+                if (pMeshletData->groups.IsCreated && pMeshletData->groups.Count > 0)
+                {
+                    var maxLodLevel = 0u;
+                    for (var j = 0; j < pMeshletData->groups.Count; j++)
+                    {
+                        maxLodLevel = Math.Max(maxLodLevel, pMeshletData->groups[j].lodLevel);
+                    }
+
+                    pMeshletData->lodLevelCount = (int)maxLodLevel + 1;
+                }
+
+                var maxMaterialSlot = 0;
+                for (var j = 0; j < parts.Length; j++)
+                {
+                    maxMaterialSlot = Math.Max(maxMaterialSlot, parts[j].materialIndex);
+                }
+
+                pMeshletData->materialSlotCount = maxMaterialSlot + 1;
+
+                return new DisposablePtr<MeshletMeshData>(pMeshletData);
+            }
+        }
+        catch
         {
-            maxMaterialSlot = Math.Max(maxMaterialSlot, parts[j].materialIndex);
-        }
+            unsafe
+            {
+                NativeMemory.Free((void*)meshletData);
+            }
 
-        meshletData.materialSlotCount = maxMaterialSlot + 1;
+            throw;
+        }
     }
 
     private struct TempBinaryNode
@@ -992,7 +1051,8 @@ internal static unsafe partial class MeshProcessor
             return -1;
         }
 
-        var gathered = new UnsafeList<int>(4, AllocationHandle.Persistent);
+        var scope = AllocationManager.CreateStackScope();
+        var gathered = new UnsafeList<int>(4, scope.AllocationHandle);
 
         try
         {
@@ -1073,6 +1133,67 @@ internal static unsafe partial class MeshProcessor
         finally
         {
             gathered.Dispose();
+            scope.Dispose();
+        }
+    }
+
+    private unsafe struct BuildClusterLodHierarchyJob : IJob
+    {
+        public MeshletMeshData* meshletData;
+
+        public readonly void Execute(ref readonly JobExecutionContext ctx)
+        {
+            using var scope = AllocationManager.CreateStackScope();
+            using var meshletIndices = new UnsafeArray<int>(meshletData->meshletCount, scope.AllocationHandle);
+            for (var i = 0; i < meshletData->meshletCount; i++)
+            {
+                meshletIndices[i] = i;
+            }
+
+            var binaryNodes = new UnsafeList<TempBinaryNode>(meshletData->meshletCount * 2, scope.AllocationHandle);
+
+            try
+            {
+                var rootIndex = BuildBinaryTree(ref binaryNodes, meshletIndices, 0, meshletIndices.Length, meshletData->meshlets);
+
+                if (!meshletData->hierarchyNodes.IsCreated)
+                {
+                    meshletData->hierarchyNodes = new UnsafeList<MeshletHierarchyNode>(meshletData->meshletCount, AllocationHandle.TLSF);
+                }
+
+                if (binaryNodes[rootIndex].leftChild == -1)
+                {
+                    var bvhNode = new MeshletHierarchyNode();
+                    bvhNode.minX = new float4(float.PositiveInfinity);
+                    bvhNode.minY = new float4(float.PositiveInfinity);
+                    bvhNode.minZ = new float4(float.PositiveInfinity);
+                    bvhNode.maxX = new float4(float.NegativeInfinity);
+                    bvhNode.maxY = new float4(float.NegativeInfinity);
+                    bvhNode.maxZ = new float4(float.NegativeInfinity);
+                    bvhNode.maxParentError = new float4(0);
+                    bvhNode.nodeData = new uint4(0xFFFFFFFF);
+
+                    var childNode = binaryNodes[rootIndex];
+                    bvhNode.minX.x = childNode.bounds.Min.x;
+                    bvhNode.minY.x = childNode.bounds.Min.y;
+                    bvhNode.minZ.x = childNode.bounds.Min.z;
+                    bvhNode.maxX.x = childNode.bounds.Max.x;
+                    bvhNode.maxY.x = childNode.bounds.Max.y;
+                    bvhNode.maxZ.x = childNode.bounds.Max.z;
+                    bvhNode.maxParentError.x = childNode.maxParentError;
+                    bvhNode.nodeData.x = (uint)childNode.meshletIndex;
+
+                    meshletData->hierarchyNodes.Add(bvhNode);
+                }
+                else
+                {
+                    CollapseTo4Ary(binaryNodes, rootIndex, meshletData->hierarchyNodes);
+                }
+            }
+            finally
+            {
+                binaryNodes.Dispose();
+            }
         }
     }
 
@@ -1080,59 +1201,24 @@ internal static unsafe partial class MeshProcessor
     /// Builds a cluster LOD hierarchy from the input meshlet data.
     /// </summary>
     /// <param name="meshletData">The meshlet data.</param>
-    public static void BuildClusterLodHierarchy(ref MeshletMeshData meshletData, AllocationHandle allocationHandle)
+    public static async Task BuildClusterLodHierarchyAsync(JobScheduler jobScheduler, SharedPtr<MeshletMeshData> meshletData, CancellationToken token)
     {
-        if (meshletData.meshletCount == 0) return;
-
-        using var meshletIndices = new UnsafeArray<int>(meshletData.meshletCount, AllocationHandle.Persistent);
-        for (var i = 0; i < meshletData.meshletCount; i++)
+        if (meshletData.GetRef().meshletCount == 0)
         {
-            meshletIndices[i] = i;
+            return;
         }
 
-        var binaryNodes = new UnsafeList<TempBinaryNode>(meshletData.meshletCount * 2, AllocationHandle.Persistent);
-
-        try
+        JobHandle handle;
+        unsafe
         {
-            var rootIndex = BuildBinaryTree(ref binaryNodes, meshletIndices, 0, meshletIndices.Length, meshletData.meshlets);
-
-            if (!meshletData.hierarchyNodes.IsCreated)
+            var job = new BuildClusterLodHierarchyJob
             {
-                meshletData.hierarchyNodes = new UnsafeList<MeshletHierarchyNode>(meshletData.meshletCount, allocationHandle);
-            }
+                meshletData = meshletData.Get()
+            };
 
-            if (binaryNodes[rootIndex].leftChild == -1)
-            {
-                var bvhNode = new MeshletHierarchyNode();
-                bvhNode.minX = new float4(float.PositiveInfinity);
-                bvhNode.minY = new float4(float.PositiveInfinity);
-                bvhNode.minZ = new float4(float.PositiveInfinity);
-                bvhNode.maxX = new float4(float.NegativeInfinity);
-                bvhNode.maxY = new float4(float.NegativeInfinity);
-                bvhNode.maxZ = new float4(float.NegativeInfinity);
-                bvhNode.maxParentError = new float4(0);
-                bvhNode.nodeData = new uint4(0xFFFFFFFF);
-
-                var childNode = binaryNodes[rootIndex];
-                bvhNode.minX.x = childNode.bounds.Min.x;
-                bvhNode.minY.x = childNode.bounds.Min.y;
-                bvhNode.minZ.x = childNode.bounds.Min.z;
-                bvhNode.maxX.x = childNode.bounds.Max.x;
-                bvhNode.maxY.x = childNode.bounds.Max.y;
-                bvhNode.maxZ.x = childNode.bounds.Max.z;
-                bvhNode.maxParentError.x = childNode.maxParentError;
-                bvhNode.nodeData.x = (uint)childNode.meshletIndex;
-
-                meshletData.hierarchyNodes.Add(bvhNode);
-            }
-            else
-            {
-                CollapseTo4Ary(binaryNodes, rootIndex, meshletData.hierarchyNodes);
-            }
+            handle = jobScheduler.Schedule(in job);
         }
-        finally
-        {
-            binaryNodes.Dispose();
-        }
+
+        await jobScheduler.WaitAsync(handle, token);
     }
 }

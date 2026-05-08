@@ -176,6 +176,7 @@ namespace {info.TypeSymbol.ContainingNamespace.ToDisplayString()}
     [global::System.Runtime.InteropServices.StructLayout(global::System.Runtime.InteropServices.LayoutKind.Sequential, Pack = 4)]
     {info.TypeSymbol.DeclaredAccessibility.ToString().ToLower()} partial struct {info.TypeSymbol.Name}
     {{
+#if DEBUG || GHOST_EDITOR
         public const string HLSL_SOURCE = @""
 # ifndef {definedSymbol}
 # define {definedSymbol}
@@ -185,13 +186,14 @@ struct {info.Name}
 }};
 # endif // {definedSymbol}"";
     }}
+#endif
 }}";
 
                 context.AddSource($"{info.TypeSymbol.Name}_HLSL.gen.cs", code);
                 codeBuilder.Clear();
 
                 var typeFullName = info.TypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                registerBuilder.AppendLine($@"        global::Ghost.DSL.ShaderPropertiesRegistry.Register(""{info.ShaderName}"", {typeFullName}.HLSL_SOURCE, (uint)sizeof({typeFullName}));");
+                registerBuilder.AppendLine($@"        global::Ghost.Core.Graphics.ShaderPropertiesRegistry.Register(""{info.ShaderName}"", {typeFullName}.HLSL_SOURCE, (uint)sizeof({typeFullName}));");
             }
 
             var registerTypeName = "g_shaderproperty_registeration";

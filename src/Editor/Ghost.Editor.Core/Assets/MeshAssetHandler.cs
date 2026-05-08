@@ -4,6 +4,7 @@ using Ghost.Editor.Core.Services;
 using Ghost.Engine;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
@@ -13,6 +14,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using TerraFX.Interop.Mimalloc;
 
 namespace Ghost.Editor.Core.Assets;
 
@@ -198,7 +200,7 @@ internal class FbxAssetSettings : MeshAssetSettings
 {
 }
 
-[CustomAssetHandler(MeshAsset.GUID, [".fbx", ".obj"], 1)]
+[CustomAssetHandler(AssetTypeId = MeshAsset.GUID, RuntimeAssetType = AssetType.Mesh, Extensions = new[] { ".fbx", ".obj" })]
 internal class MeshAssetHandler : IImportableAssetHandler, IPackableAssetHandler
 {
     private static readonly JsonSerializerOptions s_jsonOptions = new JsonSerializerOptions
@@ -207,11 +209,7 @@ internal class MeshAssetHandler : IImportableAssetHandler, IPackableAssetHandler
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
 
-    public AssetType RuntimeAssetType => AssetType.Mesh;
-
-    public Guid EditorAssetTypeID => typeof(MeshAsset).GUID;
-
-    public bool CanExport => false;
+    private readonly JobScheduler _jobScheduler = EditorApplication.GetService<EngineCore>().JobScheduler;
 
     public IAssetSettings? CreateDefaultSettings(string ext)
     {
@@ -264,12 +262,12 @@ internal class MeshAssetHandler : IImportableAssetHandler, IPackableAssetHandler
         try
         {
             var meshSettings = ResolveSettings(sourcePath, settings);
-            
+
             using var root = new MeshNode();
-            
+
             var parseJob = new MeshParsingJob(root, sourcePath, AllocationHandle.Persistent, meshSettings);
-            var context = default(Misaki.HighPerformance.Jobs.JobExecutionContext);
-            parseJob.Execute(in context);
+            var handle = _jobScheduler.Schedule(in parseJob);
+            await _jobScheduler.WaitAsync(handle, token);
 
             var manifest = new ModelManifest
             {
@@ -292,11 +290,6 @@ internal class MeshAssetHandler : IImportableAssetHandler, IPackableAssetHandler
         }
     }
 
-    public ValueTask<Result> ExportAsync(string assetPath, string targetPath, IAssetExportOptions? options, CancellationToken token = default)
-    {
-        return ValueTask.FromResult(Result.Failure("Exporting model assets is not supported yet."));
-    }
-
     public ValueTask<Result> PackAsync(string assetPath, MemoryStream targetStream, CancellationToken token = default)
     {
         return ValueTask.FromResult(Result.Failure("Packing model assets is not supported yet."));
@@ -314,7 +307,7 @@ internal class MeshAssetHandler : IImportableAssetHandler, IPackableAssetHandler
             : new FbxAssetSettings();
     }
 
-    private static async ValueTask<ModelManifestNode> WriteNodeAsync(
+    private async ValueTask<ModelManifestNode> WriteNodeAsync(
         Guid parentGuid,
         string sourcePath,
         MeshNode node,
@@ -381,70 +374,62 @@ internal class MeshAssetHandler : IImportableAssetHandler, IPackableAssetHandler
         return manifestNode;
     }
 
-    private static async ValueTask<(int materialSlotCount, int lodLevelCount)> WriteMeshContentAsync(string targetPath, GeometryMeshNode geometry, CancellationToken token)
+    private async ValueTask<(int materialSlotCount, int lodLevelCount)> WriteMeshContentAsync(string targetPath, GeometryMeshNode geometry, CancellationToken token)
     {
-        var meshletData = new MeshletMeshData();
-        try
+        using var meshletData = await MeshProcessor.BuildMeshletsAsync(_jobScheduler, geometry.Vertices, geometry.Indices, geometry.MaterialParts, token).ConfigureAwait(false);
+        await MeshProcessor.BuildClusterLodHierarchyAsync(_jobScheduler, meshletData.Share(), token).ConfigureAwait(false);
+
+        var bounds = ComputeBounds(geometry.Vertices);
+        var header = new MeshContentHeader
         {
-            MeshProcessor.BuildMeshlets(ref meshletData, geometry.Vertices.AsReadOnly(), geometry.Indices.AsReadOnly(), geometry.MaterialParts.AsSpan());
-            MeshProcessor.BuildClusterLodHierarchy(ref meshletData, AllocationHandle.Persistent);
+            magic = MeshContentHeader.MAGIC,
+            version = MeshContentHeader.VERSION,
+            vertexCount = (uint)geometry.Vertices.Count,
+            indexCount = (uint)geometry.Indices.Count,
+            materialPartCount = (uint)geometry.MaterialParts.Length,
+            meshletCount = (uint)meshletData.GetRef().meshlets.Count,
+            meshletGroupCount = (uint)meshletData.GetRef().groups.Count,
+            meshletHierarchyNodeCount = (uint)meshletData.GetRef().hierarchyNodes.Count,
+            meshletVertexCount = (uint)meshletData.GetRef().meshletVertices.Count,
+            meshletTriangleCount = (uint)meshletData.GetRef().meshletTriangles.Count,
+            materialSlotCount = (uint)meshletData.GetRef().materialSlotCount,
+            lodLevelCount = (uint)meshletData.GetRef().lodLevelCount,
+            boundsMin = bounds.Min,
+            boundsMax = bounds.Max,
+        };
 
-            var bounds = ComputeBounds(geometry.Vertices);
-            var header = new MeshContentHeader
-            {
-                magic = MeshContentHeader.MAGIC,
-                version = MeshContentHeader.VERSION,
-                vertexCount = (uint)geometry.Vertices.Count,
-                indexCount = (uint)geometry.Indices.Count,
-                materialPartCount = (uint)geometry.MaterialParts.Length,
-                meshletCount = (uint)meshletData.meshlets.Count,
-                meshletGroupCount = (uint)meshletData.groups.Count,
-                meshletHierarchyNodeCount = (uint)meshletData.hierarchyNodes.Count,
-                meshletVertexCount = (uint)meshletData.meshletVertices.Count,
-                meshletTriangleCount = (uint)meshletData.meshletTriangles.Count,
-                materialSlotCount = (uint)meshletData.materialSlotCount,
-                lodLevelCount = (uint)meshletData.lodLevelCount,
-                boundsMin = bounds.Min,
-                boundsMax = bounds.Max,
-            };
+        using var stream = new FileStream(targetPath, FileMode.Create, FileAccess.Write, FileShare.None);
+        stream.Write(header);
 
-            using var stream = new FileStream(targetPath, FileMode.Create, FileAccess.Write, FileShare.None);
-            stream.Write(header);
+        header.vertexOffset = (ulong)stream.Position;
+        await stream.WriteAsync<Vertex, UnsafeList<Vertex>>(geometry.Vertices, token);
 
-            header.vertexOffset = (ulong)stream.Position;
-            await stream.WriteAsync<Vertex, UnsafeList<Vertex>>(geometry.Vertices, token);
+        header.indexOffset = (ulong)stream.Position;
+        await stream.WriteAsync<uint, UnsafeList<uint>>(geometry.Indices, token);
 
-            header.indexOffset = (ulong)stream.Position;
-            await stream.WriteAsync<uint, UnsafeList<uint>>(geometry.Indices, token);
+        header.materialPartOffset = (ulong)stream.Position;
+        WriteMaterialParts(stream, geometry.MaterialParts.AsSpan());
 
-            header.materialPartOffset = (ulong)stream.Position;
-            WriteMaterialParts(stream, geometry.MaterialParts.AsSpan());
+        header.meshletOffset = (ulong)stream.Position;
+        await stream.WriteAsync<Meshlet, UnsafeList<Meshlet>>(meshletData.GetRef().meshlets, token);
 
-            header.meshletOffset = (ulong)stream.Position;
-            await stream.WriteAsync<Meshlet, UnsafeList<Meshlet>>(meshletData.meshlets, token);
+        header.meshletGroupOffset = (ulong)stream.Position;
+        await stream.WriteAsync<MeshletGroup, UnsafeList<MeshletGroup>>(meshletData.GetRef().groups, token);
 
-            header.meshletGroupOffset = (ulong)stream.Position;
-            await stream.WriteAsync<MeshletGroup, UnsafeList<MeshletGroup>>(meshletData.groups, token);
+        header.meshletHierarchyNodeOffset = (ulong)stream.Position;
+        await stream.WriteAsync<MeshletHierarchyNode, UnsafeList<MeshletHierarchyNode>>(meshletData.GetRef().hierarchyNodes, token);
 
-            header.meshletHierarchyNodeOffset = (ulong)stream.Position;
-            await stream.WriteAsync<MeshletHierarchyNode, UnsafeList<MeshletHierarchyNode>>(meshletData.hierarchyNodes, token);
+        header.meshletVertexOffset = (ulong)stream.Position;
+        await stream.WriteAsync<uint, UnsafeList<uint>>(meshletData.GetRef().meshletVertices, token);
 
-            header.meshletVertexOffset = (ulong)stream.Position;
-            await stream.WriteAsync<uint, UnsafeList<uint>>(meshletData.meshletVertices, token);
+        header.meshletTriangleOffset = (ulong)stream.Position;
+        await stream.WriteAsync<uint, UnsafeList<uint>>(meshletData.GetRef().meshletTriangles, token);
 
-            header.meshletTriangleOffset = (ulong)stream.Position;
-            await stream.WriteAsync<uint, UnsafeList<uint>>(meshletData.meshletTriangles, token);
+        stream.Position = 0;
+        stream.Write(header);
+        stream.Flush();
 
-            stream.Position = 0;
-            stream.Write(header);
-            stream.Flush();
-
-            return (meshletData.materialSlotCount, meshletData.lodLevelCount);
-        }
-        finally
-        {
-            meshletData.Dispose();
-        }
+        return (meshletData.GetRef().materialSlotCount, meshletData.GetRef().lodLevelCount);
     }
 
     private static AABB ComputeBounds(UnsafeList<Vertex> vertices)

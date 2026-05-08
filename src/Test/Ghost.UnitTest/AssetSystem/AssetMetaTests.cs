@@ -30,7 +30,7 @@ public class AssetMetaTests
         var originalMeta = new AssetMeta
         {
             Guid = Guid.NewGuid(),
-            HandlerTypeId = Guid.NewGuid(),
+            AssetTypeId = Guid.NewGuid(),
             HandlerVersion = 1,
             Labels = ["test", "hero"]
         };
@@ -41,7 +41,7 @@ public class AssetMetaTests
         var loadedMeta = await AssetMetaIO.ReadAsync(metaPath);
         Assert.IsNotNull(loadedMeta);
         Assert.AreEqual(originalMeta.Guid, loadedMeta.Guid);
-        Assert.AreEqual(originalMeta.HandlerTypeId, loadedMeta.HandlerTypeId);
+        Assert.AreEqual(originalMeta.AssetTypeId, loadedMeta.AssetTypeId);
         Assert.AreEqual(originalMeta.HandlerVersion, loadedMeta.HandlerVersion);
         CollectionAssert.AreEqual(originalMeta.Labels, loadedMeta.Labels);
     }

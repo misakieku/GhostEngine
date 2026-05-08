@@ -41,7 +41,7 @@ public class AssetCatalogTests
     [TestMethod]
     public void TestAssetCatalog_UpsertLookup()
     {
-        using var catalog = new AssetCatalog(_dbPath);
+        var catalog = new AssetCatalog(_dbPath);
         var guid = Guid.NewGuid();
         var meta = new AssetMeta { Guid = guid, HandlerVersion = 1 };
         var path = "Textures/hero.png";
@@ -55,7 +55,7 @@ public class AssetCatalogTests
     [TestMethod]
     public void TestAssetCatalog_Dependencies()
     {
-        using var catalog = new AssetCatalog(_dbPath);
+        var catalog = new AssetCatalog(_dbPath);
         var asset1 = Guid.NewGuid();
         var asset2 = Guid.NewGuid();
 
@@ -72,14 +72,14 @@ public class AssetCatalogTests
     [TestMethod]
     public void TestAssetCatalog_VirtualSubAssets()
     {
-        using var catalog = new AssetCatalog(_dbPath);
+        var catalog = new AssetCatalog(_dbPath);
         var parent = Guid.NewGuid();
         var subMesh = Guid.NewGuid();
         var handlerTypeId = Guid.NewGuid();
 
-        catalog.Upsert(new AssetMeta { Guid = parent, HandlerTypeId = handlerTypeId, HandlerVersion = 1 }, "Props/kit.fbx");
+        catalog.Upsert(new AssetMeta { Guid = parent, AssetTypeId = handlerTypeId, HandlerVersion = 1 }, "Props/kit.fbx");
         catalog.UpsertSubAsset(parent,
-            new AssetMeta { Guid = subMesh, HandlerTypeId = handlerTypeId, HandlerVersion = 1 },
+            new AssetMeta { Guid = subMesh, AssetTypeId = handlerTypeId, HandlerVersion = 1 },
             "Props/kit.fbx#Mesh/Root/Crate",
             "Mesh",
             "Crate",

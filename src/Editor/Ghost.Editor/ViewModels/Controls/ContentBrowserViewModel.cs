@@ -90,8 +90,12 @@ internal partial class ContentBrowserViewModel : ObservableObject
                         if (!isDir)
                         {
                             var ext = Path.GetExtension(fullPath);
-                            assetType = AssetHandlerRegistry.GetRuntimeAssetTypeByExtension(ext);
+                            if (AssetHandlerRegistry.TryGetHandlerInfoByExtension(ext, out var info))
+                            {
+                                assetType = info.RuntimeAssetType;
+                            }
                         }
+
                         Files.Add(new ExplorerItem(Path.GetFileName(fullPath), fullPath, isDir, assetType));
                     }
                 }
@@ -144,7 +148,7 @@ internal partial class ContentBrowserViewModel : ObservableObject
             }
 
             var ext = Path.GetExtension(file);
-            var assetType = AssetHandlerRegistry.GetRuntimeAssetTypeByExtension(ext);
+            var assetType = AssetHandlerRegistry.TryGetHandlerInfoByExtension(ext, out var handlerInfo) ? handlerInfo.RuntimeAssetType : AssetType.Unknown;
 
             var fileItem = new ExplorerItem(Path.GetFileName(file), file, false, assetType);
             Files.Add(fileItem);

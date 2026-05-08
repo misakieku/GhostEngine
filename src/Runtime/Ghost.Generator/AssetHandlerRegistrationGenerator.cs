@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
@@ -22,6 +23,29 @@ internal class AssetHandlerRegistrationGenerator : IIncrementalGenerator
         context.RegisterSourceOutput(handerCandidates, GenerateRegistrationCode);
     }
 
+    private static T GetValueOrDefault<T>(IDictionary<string, TypedConstant> dictionary, string key, T defaultValue = default)
+    {
+        if (dictionary.TryGetValue(key, out var value))
+        {
+            if (value.Value is T typedValue)
+            {
+                return typedValue;
+            }
+        }
+
+        return defaultValue;
+    }
+
+    private static ImmutableArray<TypedConstant> GetValuesOrDefault(IDictionary<string, TypedConstant> dictionary, string key)
+    {
+        if (dictionary.TryGetValue(key, out var value))
+        {
+            return value.Values;
+        }
+
+        return default;
+    }
+
     private void GenerateRegistrationCode(SourceProductionContext context, ImmutableArray<INamedTypeSymbol> array)
     {
         if (array.IsDefaultOrEmpty)
@@ -39,12 +63,24 @@ internal class AssetHandlerRegistrationGenerator : IIncrementalGenerator
                 continue;
             }
 
-            var id = attribute.ConstructorArguments[0].Value as string;
-            var extensionsTypesConstants = attribute.ConstructorArguments[1].Values;
-            var extensions = $"new string[] {{ {string.Join(", ", extensionsTypesConstants.Select(v => v.ToCSharpString()))} }}";
-            var version = (int)attribute.ConstructorArguments[2].Value;
+            var properties = attribute.NamedArguments.ToDictionary(kv => kv.Key, kv => kv.Value);
 
-            sb.AppendLine($"        global::Ghost.Editor.Core.Assets.AssetHandlerRegistry.RegisterHandler(new {symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}(), Guid.Parse(\"{id}\"), {extensions}, {version});");
+            var id = GetValueOrDefault(properties, "AssetTypeId", string.Empty);
+            var runtimeType = GetValueOrDefault(properties, "RuntimeAssetType", 0);
+            var version = GetValueOrDefault(properties, "Version", 1);
+            var allowCaching = GetValueOrDefault(properties, "AllowCaching", false) ? "true" : "false";
+
+            var extensionsTypesConstants = GetValuesOrDefault(properties, "Extensions");
+            var extensions = string.Join(", ", extensionsTypesConstants.Select(v => v.ToCSharpString()));
+
+            sb.AppendLine("        global::Ghost.Editor.Core.Assets.AssetHandlerRegistry.RegisterHandler(");
+            sb.AppendLine($"            typeof({symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}),");
+            sb.AppendLine($"            System.Guid.Parse(\"{id}\"),");
+            sb.AppendLine($"            (Ghost.Engine.AssetType){runtimeType},");
+            sb.AppendLine($"            {version},");
+            sb.AppendLine($"            {allowCaching},");
+            sb.AppendLine($"            new string[] {{ {extensions} }});");
+            sb.AppendLine();
         }
 
         var registerTypeName = "g_assethandler_registeration";

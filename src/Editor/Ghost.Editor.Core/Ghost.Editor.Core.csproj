@@ -33,6 +33,7 @@
     <ProjectReference Include="..\..\ThridParty\Ghost.Nvtt\Ghost.Nvtt.csproj" />
     <ProjectReference Include="..\..\ThridParty\Ghost.Ufbx\Ghost.Ufbx.csproj" />
     <ProjectReference Include="..\..\ThridParty\Ghost.StbI\Ghost.StbI.csproj" />
+    <ProjectReference Include="..\Ghost.DSL\Ghost.DSL.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -13,7 +13,7 @@ using Misaki.HighPerformance.Mathematics;
 using System.Runtime.CompilerServices;
 using System.Text;
 
-using StackPool = Misaki.HighPerformance.LowLevel.Buffer.MemoryPool<Misaki.HighPerformance.LowLevel.Buffer.VirtualStack, Misaki.HighPerformance.LowLevel.Buffer.VirtualStack.CreationOptions>;
+using TLSFPool = Misaki.HighPerformance.LowLevel.Buffer.MemoryPool<Misaki.HighPerformance.LowLevel.Buffer.TLSF, Misaki.HighPerformance.LowLevel.Buffer.TLSF.CreationOptions>;
 
 namespace Ghost.Editor.Core.Assets;
 
@@ -82,7 +82,7 @@ internal readonly unsafe struct MeshParsingJob : IJob
         );
     }
 
-    private void ParseHierarchy(ufbx_node* node, MeshNode self, ref StackPool pool)
+    private void ParseHierarchy(ufbx_node* node, MeshNode self, AllocationHandle allocationHandle)
     {
         var children = new List<MeshNode>();
 
@@ -92,7 +92,7 @@ internal readonly unsafe struct MeshParsingJob : IJob
 
         if (node->mesh != null)
         {
-            var geoNode = ParseGeometry(node->mesh, ref pool);
+            var geoNode = ParseGeometry(node->mesh, allocationHandle);
             if (geoNode != null)
             {
                 children.Add(geoNode);
@@ -104,14 +104,14 @@ internal readonly unsafe struct MeshParsingJob : IJob
         for (var i = 0u; i < node->children.count; i++)
         {
             var childNode = new MeshNode();
-            ParseHierarchy(node->children.data[i], childNode, ref pool);
+            ParseHierarchy(node->children.data[i], childNode, allocationHandle);
             childNode.Parent = self;
 
             children.Add(childNode);
         }
     }
 
-    private GeometryMeshNode? ParseGeometry(ufbx_mesh* pMesh, ref StackPool pool)
+    private GeometryMeshNode? ParseGeometry(ufbx_mesh* pMesh, AllocationHandle allocationHandle)
     {
         if (pMesh->num_faces == 0)
         {
@@ -122,20 +122,18 @@ internal readonly unsafe struct MeshParsingJob : IJob
 
         // Bucket faces by material
 
-        using var scope = pool.Allocator.CreateScope(pool.AllocationHandle);
-
-        using var materialBuckets = new UnsafeArray<UnsafeList<Vertex>>(numMaterials, scope.AllocationHandle);
-        using var missingNormalsBucket = new UnsafeArray<bool>(numMaterials, scope.AllocationHandle);
-        using var missingTangentsBucket = new UnsafeArray<bool>(numMaterials, scope.AllocationHandle);
+        using var materialBuckets = new UnsafeArray<UnsafeList<Vertex>>(numMaterials, allocationHandle);
+        using var missingNormalsBucket = new UnsafeArray<bool>(numMaterials, allocationHandle);
+        using var missingTangentsBucket = new UnsafeArray<bool>(numMaterials, allocationHandle);
 
         for (var i = 0; i < numMaterials; i++)
         {
-            materialBuckets[i] = new UnsafeList<Vertex>(10240, scope.AllocationHandle);
+            materialBuckets[i] = new UnsafeList<Vertex>(10240, allocationHandle);
         }
 
         var maxScratchIndices = (int)(pMesh->max_face_triangles * 3u);
 
-        using var triIndicesArray = new UnsafeArray<uint>(maxScratchIndices, scope.AllocationHandle);
+        using var triIndicesArray = new UnsafeArray<uint>(maxScratchIndices, allocationHandle);
 
         for (var j = 0u; j < pMesh->num_faces; j++)
         {
@@ -196,7 +194,7 @@ internal readonly unsafe struct MeshParsingJob : IJob
 
         // Per-material weld + optimize, collect intermediate results
 
-        using var partResults = new UnsafeList<GeometryPart>(numMaterials, scope.AllocationHandle);
+        using var partResults = new UnsafeList<GeometryPart>(numMaterials, allocationHandle);
 
         for (var m = 0; m < numMaterials; m++)
         {
@@ -209,8 +207,8 @@ internal readonly unsafe struct MeshParsingJob : IJob
 
             var numIndices = (uint)flatVertices.Count;
 
-            using var weldedIndices = new UnsafeArray<uint>((int)numIndices, scope.AllocationHandle);
-            using var cachedIndices = new UnsafeArray<uint>((int)numIndices, scope.AllocationHandle);
+            using var weldedIndices = new UnsafeArray<uint>((int)numIndices, allocationHandle);
+            using var cachedIndices = new UnsafeArray<uint>((int)numIndices, allocationHandle);
 
             var stream = new ufbx_vertex_stream
             {
@@ -230,8 +228,8 @@ internal readonly unsafe struct MeshParsingJob : IJob
             MeshOptApi.OptimizeVertexCache((uint*)cachedIndices.GetUnsafePtr(), (uint*)weldedIndices.GetUnsafePtr(), numIndices, numUniqueVertices);
 
             // Allocate temporary per-part buffers (will be merged then disposed)
-            var partVertices = new UnsafeList<Vertex>((int)numUniqueVertices, scope.AllocationHandle);
-            var partIndices = new UnsafeList<uint>((int)numIndices, scope.AllocationHandle);
+            var partVertices = new UnsafeList<Vertex>((int)numUniqueVertices, allocationHandle);
+            var partIndices = new UnsafeList<uint>((int)numIndices, allocationHandle);
 
             var finalVertexCount = MeshOptApi.OptimizeVertexFetch(partVertices.GetUnsafePtr(), (uint*)cachedIndices.GetUnsafePtr(), numIndices, flatVertices.GetUnsafePtr(), numIndices, (nuint)sizeof(Vertex));
 
@@ -349,32 +347,18 @@ internal readonly unsafe struct MeshParsingJob : IJob
             load_Opts.obj_search_mtl_by_filename = true;
         }
 
-        var stack = new StackPool(new VirtualStack.CreationOptions
+        using var str = new UnsafeArray<byte>(Encoding.UTF8.GetByteCount(_filePath) + 1, AllocationHandle.TLSF);
+        var count = Encoding.UTF8.GetBytes(_filePath, str.AsSpan());
+        str[count] = 0;
+
+        using var scene = new DisposablePtr<ufbx_scene>(ufbx_scene.LoadFile((sbyte*)str.GetUnsafePtr(), &load_Opts, &error));
+        if (scene.Get() == null)
         {
-            reserveCapacity = 256 * 1024 * 1024 // 256 MB should be enough for most meshes, adjust as needed.
-        });
-
-        try
-        {
-            using var scope = stack.Allocator.CreateScope(stack.AllocationHandle);
-
-            using var str = new UnsafeArray<byte>(Encoding.UTF8.GetByteCount(_filePath) + 1, scope.AllocationHandle);
-            var count = Encoding.UTF8.GetBytes(_filePath, str.AsSpan());
-            str[count] = 0;
-
-            using var scene = new DisposablePtr<ufbx_scene>(ufbx_scene.LoadFile((sbyte*)str.GetUnsafePtr(), &load_Opts, &error));
-            if (scene.Get() == null)
-            {
-                Logger.Error(error.description.ToString());
-                return;
-            }
-
-            ParseHierarchy(scene.Get()->root_node, _rootNode, ref stack);
+            Logger.Error(error.description.ToString());
+            return;
         }
-        finally
-        {
-            stack.Dispose();
-        }
+
+        ParseHierarchy(scene.Get()->root_node, _rootNode, AllocationHandle.TLSF);
     }
 }
 

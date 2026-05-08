@@ -95,18 +95,21 @@ internal sealed partial class ImportCoordinator : IDisposable
             return;
         }
 
-        var handler = meta.HandlerTypeId.HasValue
-            ? AssetHandlerRegistry.GetByAssetTypeId(meta.HandlerTypeId.Value)
+        var handler = meta.AssetTypeId.HasValue
+            ? AssetHandlerRegistry.GetByAssetTypeId(meta.AssetTypeId.Value)
             : AssetHandlerRegistry.GetByExtension(Path.GetExtension(job.SourcePath));
 
         var contentHash = await ComputeFileHashAsync(job.SourcePath, token);
         var settingsHash = ComputeSettingsHash(meta.Settings);
+        var handlerVersion = AssetHandlerRegistry.TryGetHandlerInfoByAssetTypeId(meta.AssetTypeId ?? Guid.Empty, out var info)
+            ? info.Version
+            : 0;
 
         // Check if we can skip (if not a manual reimport)
         if (job.Reason != ImportReason.ManualReimport &&
             meta.ContentHash == contentHash &&
             meta.SettingsHash == settingsHash &&
-            meta.HandlerVersion == AssetHandlerRegistry.GetVersionByAssetTypeId(meta.HandlerTypeId ?? Guid.Empty))
+            meta.HandlerVersion == handlerVersion)
         {
             return;
         }
@@ -128,7 +131,7 @@ internal sealed partial class ImportCoordinator : IDisposable
         {
             meta.ContentHash = contentHash;
             meta.SettingsHash = settingsHash;
-            meta.HandlerVersion = AssetHandlerRegistry.GetVersionByAssetTypeId(meta.HandlerTypeId ?? Guid.Empty);
+            meta.HandlerVersion = handlerVersion;
             meta.LastImportedUtc = DateTime.UtcNow;
 
             await AssetMetaIO.WriteAsync(job.MetaPath, meta, token);
@@ -144,7 +147,7 @@ internal sealed partial class ImportCoordinator : IDisposable
                     var subMeta = new AssetMeta
                     {
                         Guid = subAsset.Guid,
-                        HandlerTypeId = subAsset.HandlerTypeId,
+                        AssetTypeId = subAsset.AssetTypeId,
                         HandlerVersion = meta.HandlerVersion,
                         ContentHash = contentHash,
                         SettingsHash = settingsHash,

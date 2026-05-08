@@ -73,12 +73,9 @@ public sealed partial class ComputeShaderAsset : IAsset
 }
 
 // Shader does not handle import/export via asset registry, it will handled by the hot reload system.
-[CustomAssetHandler(GraphicsShaderAsset.GUID, [".gshdr"], 1)]
+[CustomAssetHandler(AssetTypeId = GraphicsShaderAsset.GUID, RuntimeAssetType = AssetType.Shader, Extensions = new[] { ".gshdr" })]
 internal class GraphicsShaderAssetHandler : IPackableAssetHandler
 {
-    public AssetType RuntimeAssetType => AssetType.Shader;
-    public Guid EditorAssetTypeID => typeof(GraphicsShaderAsset).GUID;
-
     public IAssetSettings? CreateDefaultSettings(string ext)
     {
         return null;
@@ -113,12 +110,9 @@ internal class GraphicsShaderAssetHandler : IPackableAssetHandler
     }
 }
 
-[CustomAssetHandler(ComputeShaderAsset.GUID, [".gcomp"], 1)]
+[CustomAssetHandler(AssetTypeId = ComputeShaderAsset.GUID, RuntimeAssetType = AssetType.Shader, Extensions = new[] { ".gcomp" })]
 internal class ComputeShaderAssetHandler : IPackableAssetHandler
 {
-    public AssetType RuntimeAssetType => AssetType.Shader;
-    public Guid EditorAssetTypeID => typeof(ComputeShaderAsset).GUID;
-
     public IAssetSettings? CreateDefaultSettings(string ext)
     {
         return null;

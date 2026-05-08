@@ -58,9 +58,11 @@ internal static class ActivationHandler
         var opts = new AllocationManagerDesc
         {
             ArenaCapacity = 1024 * 1024 * 1024, // 1 GB. Arena using virtual memory, so this is just a reservation and won't actually consume physical memory until used.
-            StackCapacity = 1024 * 1024 * 32, // 32 MB. Stack using virtual memory, so this is just a reservation and won't actually consume physical memory until used.
-            FreeListChunkSize = 64 * 1024 * 1024,
+            StackCapacity = 1024 * 1024 * 64, // 64 MB. Stack using virtual memory, so this is just a reservation and won't actually consume physical memory until used.
+            FreeListChunkSize = 64 * 1024,
             FreeListDefaultAlignment = 8,
+            TLSFInitialChunkSize = 64 * 1024,
+            TLSFAlignment = 8,
         };
 
         AllocationManager.Initialize(opts);
