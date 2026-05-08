@@ -1,5 +1,9 @@
 <Solution>
   <Configurations>
+    <BuildType Name="Debug" />
+    <BuildType Name="Debug_Editor" />
+    <BuildType Name="Release" />
+    <BuildType Name="Release_Editor" />
     <Platform Name="ARM64" />
     <Platform Name="x64" />
     <Platform Name="x86" />
@@ -9,12 +13,18 @@
     <Project Path="Editor/Ghost.Editor.Core/Ghost.Editor.Core.csproj">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
-      <Platform Solution="*|x86" Project="x86" />
+      <Platform Solution="Debug_Editor|x86" Project="x64" />
+      <Platform Solution="Debug|x86" Project="x86" />
+      <Platform Solution="Release_Editor|x86" Project="x64" />
+      <Platform Solution="Release|x86" Project="x86" />
     </Project>
     <Project Path="Editor/Ghost.Editor/Ghost.Editor.csproj">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
-      <Platform Solution="*|x86" Project="x86" />
+      <Platform Solution="Debug_Editor|x86" Project="x64" />
+      <Platform Solution="Debug|x86" Project="x86" />
+      <Platform Solution="Release_Editor|x86" Project="x64" />
+      <Platform Solution="Release|x86" Project="x86" />
       <Deploy />
     </Project>
   </Folder>
@@ -45,12 +55,13 @@
     </Project>
     <Project Path="Test/Ghost.MicroTest/Ghost.MicroTest.csproj" Id="8c8ffa4b-e1e4-46a1-9221-7b508a109edd" />
     <Project Path="Test/Ghost.Shader.Test/Ghost.Shader.Test.csproj" />
-    <Project Path="Test/Ghost.Test.Core/Ghost.Test.Core.csproj" />
+    <Project Path="Test/Ghost.TestCore/Ghost.TestCore.csproj" />
     <Project Path="Test/Ghost.UnitTest/Ghost.UnitTest.csproj" Id="4da45668-456b-4dcc-acd8-6bfe154e6837">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
       <Platform Solution="*|x86" Project="x86" />
-      <Deploy />
+      <Deploy Solution="Debug|*" />
+      <Deploy Solution="Release|*" />
     </Project>
   </Folder>
   <Folder Name="/Tools/">

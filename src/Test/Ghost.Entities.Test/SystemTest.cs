@@ -1,4 +1,4 @@
-using Ghost.Test.Core;
+using Ghost.TestCore;
 
 namespace Ghost.Entities.Test;
 

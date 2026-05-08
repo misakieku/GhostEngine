@@ -46,7 +46,7 @@ public class ImportCoordinatorTests
     [TestMethod]
     public async Task TestImportCoordinator_BasicImport()
     {
-        using var catalog = new AssetCatalog(_dbPath);
+        var catalog = new AssetCatalog(_dbPath);
         using var coordinator = new ImportCoordinator(catalog);
 
         var assetGuid = Guid.NewGuid();

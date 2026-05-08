@@ -8,8 +8,7 @@
     <PublishProfile>win-$(Platform).pubxml</PublishProfile>
     <UseWinUI>true</UseWinUI>
     <EnableMsixTooling>true</EnableMsixTooling>
-    <!-- in .net 10, field keyword is not preview anymore, but we are still waiting roslyn team to update their code analyzer packages -->
-    <langversion>preview</langversion>
+    <Configurations>Debug;Release;Debug_Editor;Release_Editor</Configurations>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="Views\Controls\Hierarchy.xaml" />
@@ -217,15 +216,18 @@
 
   <!-- Publish Properties -->
   <PropertyGroup>
-    <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
+    <PublishReadyToRun Condition="'$(Configuration)'=='Debug_Editor'">False</PublishReadyToRun>
     <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
-    <PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
     <Nullable>enable</Nullable>
     <SupportedOSPlatformVersion>10.0.20348.0</SupportedOSPlatformVersion>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <PublishAot>False</PublishAot>
-    <PublishTrimmed>False</PublishTrimmed>
     <RootNamespace>Ghost.Editor</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Editor|x64'">
+    <Optimize>True</Optimize>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Editor|ARM64'">
+    <Optimize>True</Optimize>
   </PropertyGroup>
 </Project>

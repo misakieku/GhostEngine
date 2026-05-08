@@ -1,4 +1,4 @@
-using Ghost.Test.Core;
+using Ghost.TestCore;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
 using System.Runtime.InteropServices;

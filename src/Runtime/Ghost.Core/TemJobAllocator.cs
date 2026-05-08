@@ -123,22 +123,19 @@ public unsafe partial struct TempJobAllocator : IAllocator
 #endif
     }
 
-    public int AdvanceFrame()
+    public void AdvanceFrame()
     {
-        var allocations = Interlocked.Exchange(ref _allocationsPerFrame[_currentFrameIndex], 0);
-
         _currentFrameCount++;
         _currentFrameIndex = _currentFrameCount % _FRAME_LATENCY;
 
         (_pArena + _currentFrameIndex)->Reset();
 
 #if MHP_ENABLE_SAFETY_CHECKS
-        if (_allocationsPerFrame[_currentFrameIndex] != 0)
+        var allocations = Interlocked.Exchange(ref _allocationsPerFrame[_currentFrameIndex], 0);
+        if (allocations != 0)
         {
-            Logger.Error($"TempJobAllocator: Detected {_allocationsPerFrame[_currentFrameIndex]} leaked allocations from frame {_currentFrameCount - _FRAME_LATENCY}.");
+            Logger.Error($"TempJobAllocator: Detected {allocations} leaked allocations from frame {_currentFrameCount - _FRAME_LATENCY}.");
         }
 #endif
-
-        return allocations;
     }
 }

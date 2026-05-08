@@ -10,8 +10,7 @@
     <SupportedOSPlatformVersion>10.0.20348.0</SupportedOSPlatformVersion>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <!-- in .net 10, field keyword is not preview anymore, but we are still waiting roslyn team to update their code analyzer packages -->
-    <langversion>preview</langversion>
+    <Configurations>Debug;Release;Debug_Editor;Release_Editor</Configurations>
   </PropertyGroup>
   <ItemGroup>
     <Content Remove="Assets\MeshNode.cs" />

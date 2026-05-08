@@ -1,4 +1,4 @@
-namespace Ghost.Test.Core;
+namespace Ghost.TestCore;
 
 public interface ITest
 {

@@ -1,5 +1,5 @@
 using Ghost.StbI;
-using Ghost.Test.Core;
+using Ghost.TestCore;
 
 namespace Ghost.MicroTest;
 
