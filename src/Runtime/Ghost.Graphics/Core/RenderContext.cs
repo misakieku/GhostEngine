@@ -379,7 +379,7 @@ public readonly unsafe ref struct RenderContext
         var variantKey = RHIUtility.CreateShaderVariantKey(entryHash, in keywordSet);
 
         // TODO: Refactor this into a helper method.
-        var (compiledHash, error) = ShaderLibrary.GetCompiledHash(shader.UniqueID, entryIndex, variantKey);
+        var (compiledHash, error) = ShaderLibrary.GetCompiledHash(shader.UniqueID, entryIndex, variantKey, keywordSet);
         if (error.IsFailure)
         {
             // TODO: Fallback to an error material.

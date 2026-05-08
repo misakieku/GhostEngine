@@ -3,24 +3,26 @@ using Ghost.Core.Graphics;
 using Ghost.Editor.Core.Assets;
 using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.Utilities;
+using Ghost.Engine;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
-using Ghost.Engine;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Collections.Concurrent;
-using Misaki.HighPerformance.LowLevel.Collections;
+using System.Runtime.CompilerServices;
 
 namespace Ghost.Editor.Core.Services;
 
-[EditorInjection(EditorInjectionAttribute.ServiceLifetime.Singleton, typeof(IShaderCompilationBridge))]
-internal sealed class EditorShaderCompilerBridge : IShaderCompilationBridge, IDisposable
+internal sealed class EditorShaderCompilerBridge : IShaderCompilationBridge
 {
     private readonly IAssetRegistry _assetRegistry;
-    private readonly IShaderCompiler _compiler;
-    private readonly ConcurrentDictionary<ulong, Guid> _shaderIdToAssetId = new();
     private readonly IServiceProvider _serviceProvider;
+    private readonly IShaderCompiler _compiler;
+
+    private readonly ConcurrentDictionary<ulong, Guid> _shaderIdToAssetId = new();
+    private readonly ConcurrentDictionary<Guid, Dictionary<int, string>[]> _assetKeywordMappings = new();
+    private Task? _shaderDictionaryPopulated;
 
     public event Action<Key64<ShaderVariant>, ulong>? OnShaderVariantCompiled;
 
@@ -29,7 +31,7 @@ internal sealed class EditorShaderCompilerBridge : IShaderCompilationBridge, IDi
         _assetRegistry = assetRegistry;
         _serviceProvider = serviceProvider;
         _compiler = new DXCShaderCompiler();
-        
+
         _assetRegistry.OnAssetImported += OnAssetImported;
     }
 
@@ -41,20 +43,12 @@ internal sealed class EditorShaderCompilerBridge : IShaderCompilationBridge, IDi
             var result = _assetRegistry.LoadAssetAsync(guid).AsTask().Result;
             if (result.IsSuccess)
             {
-                ulong nameHash = 0;
-                if (result.Value is GraphicsShaderAsset graphicsAsset)
-                {
-                    nameHash = RHIUtility.GetShaderID(graphicsAsset.Descriptor.Name);
-                }
-                else if (result.Value is ComputeShaderAsset computeAsset)
-                {
-                    nameHash = RHIUtility.GetShaderID(computeAsset.Descriptor.Name);
-                }
-
+                var nameHash = ExtractNameHash(result.Value);
                 if (nameHash != 0)
                 {
                     _shaderIdToAssetId[nameHash] = guid;
-                    
+                    BuildKeywordMappings(result.Value, guid);
+
                     var engineCore = _serviceProvider.GetService<EngineCore>();
                     if (engineCore != null)
                     {
@@ -67,142 +61,295 @@ internal sealed class EditorShaderCompilerBridge : IShaderCompilationBridge, IDi
         }
     }
 
-    public void RequestCompilation(ulong shaderId, int passIndex, Key64<ShaderVariant> variantKey)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ulong ExtractNameHash(IAsset asset)
     {
+        if (asset is GraphicsShaderAsset graphicsAsset)
+        {
+            return RHIUtility.GetShaderID(graphicsAsset.Descriptor.Name);
+        }
+
+        if (asset is ComputeShaderAsset computeAsset)
+        {
+            return RHIUtility.GetShaderID(computeAsset.Descriptor.Name);
+        }
+
+        return 0;
+    }
+
+    private Task EnsureShaderDictionaryPopulatedAsync()
+    {
+        var existing = Volatile.Read(ref _shaderDictionaryPopulated);
+        if (existing != null)
+        {
+            return existing;
+        }
+
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var original = Interlocked.CompareExchange(ref _shaderDictionaryPopulated, tcs.Task, null);
+        if (original != null)
+        {
+            return original;
+        }
+
         Task.Run(async () =>
         {
-            if (!_shaderIdToAssetId.TryGetValue(shaderId, out var guid))
+            try
             {
                 var catalog = _assetRegistry.GetAssetCatalog();
-                foreach (var (assetGuid, path) in catalog.EnumerateAll())
+                var assetGuids = catalog.EnumerateByTypes(typeof(GraphicsShaderAsset).GUID, typeof(ComputeShaderAsset).GUID);
+
+                foreach (var assetGuid in assetGuids)
                 {
-                    if (path.EndsWith(".gshdr") || path.EndsWith(".gcomp"))
+                    var result = await _assetRegistry.LoadAssetAsync(assetGuid);
+                    if (result.IsSuccess)
                     {
-                        var result = await _assetRegistry.LoadAssetAsync(assetGuid);
-                        if (result.IsSuccess)
+                        var nameHash = ExtractNameHash(result.Value);
+                        if (nameHash != 0)
                         {
-                            ulong nameHash = 0;
-                            if (result.Value is GraphicsShaderAsset graphicsAsset)
-                            {
-                                nameHash = RHIUtility.GetShaderID(graphicsAsset.Descriptor.Name);
-                            }
-                            else if (result.Value is ComputeShaderAsset computeAsset)
-                            {
-                                nameHash = RHIUtility.GetShaderID(computeAsset.Descriptor.Name);
-                            }
-                            if (nameHash != 0)
-                            {
-                                _shaderIdToAssetId[nameHash] = assetGuid;
-                            }
+                            _shaderIdToAssetId[nameHash] = assetGuid;
+                            BuildKeywordMappings(result.Value, assetGuid);
                         }
                     }
                 }
+
+                tcs.SetResult();
+            }
+            catch (Exception ex)
+            {
+                tcs.SetException(ex);
+            }
+        });
+
+        return tcs.Task;
+    }
+
+    private void BuildKeywordMappings(IAsset asset, Guid assetId)
+    {
+        if (asset is GraphicsShaderAsset graphicsAsset)
+        {
+            var passes = graphicsAsset.Descriptor.Passes;
+            var mappings = new Dictionary<int, string>[passes.Length];
+            for (var i = 0; i < passes.Length; i++)
+            {
+                mappings[i] = BuildKeywordMappingFromGroups(passes[i].keywords);
             }
 
-            if (_shaderIdToAssetId.TryGetValue(shaderId, out var assetId))
+            _assetKeywordMappings[assetId] = mappings;
+        }
+        else if (asset is ComputeShaderAsset computeAsset)
+        {
+            var entryCount = computeAsset.Descriptor.ShaderCodes.Length;
+            var mappings = new Dictionary<int, string>[entryCount];
+            var sharedMapping = BuildKeywordMappingFromGroups(computeAsset.Descriptor.Keywords);
+            for (var i = 0; i < entryCount; i++)
             {
-                var assetResult = await _assetRegistry.LoadAssetAsync(assetId);
-                if (assetResult.IsSuccess)
-                {
-                    if (assetResult.Value is GraphicsShaderAsset graphicsAsset)
-                    {
-                        var pass = graphicsAsset.Descriptor.Passes[passIndex];
-                        await CompileGraphicsPassAsync(shaderId, passIndex, variantKey, pass);
-                    }
-                    else if (assetResult.Value is ComputeShaderAsset computeAsset)
-                    {
-                        var code = computeAsset.Descriptor.ShaderCodes[passIndex];
-                        await CompileComputePassAsync(shaderId, passIndex, variantKey, code);
-                    }
-                }
+                mappings[i] = sharedMapping;
+            }
+
+            _assetKeywordMappings[assetId] = mappings;
+        }
+    }
+
+    private static Dictionary<int, string> BuildKeywordMappingFromGroups(KeywordsGroup[] groups)
+    {
+        var mapping = new Dictionary<int, string>();
+        var localIndex = 0;
+
+        foreach (var group in groups)
+        {
+            if (group.keywords == null)
+            {
+                continue;
+            }
+
+            if (group.space != KeywordSpace.Local)
+            {
+                continue;
+            }
+
+            foreach (var kw in group.keywords)
+            {
+                mapping[localIndex++] = kw;
+            }
+        }
+
+        return mapping;
+    }
+
+    private static string[] BuildVariantDefines(LocalKeywordSet keywordMask, Dictionary<int, string>? keywordMapping)
+    {
+        if (keywordMapping == null || keywordMapping.Count == 0)
+        {
+            return Array.Empty<string>();
+        }
+
+        var defines = new List<string>(keywordMapping.Count);
+        foreach (var (localIndex, keywordName) in keywordMapping)
+        {
+            if (keywordMask.IsKeywordEnabled(localIndex))
+            {
+                defines.Add(keywordName);
+            }
+        }
+
+        return defines.ToArray();
+    }
+
+    private static ReadOnlySpan<string> CombineDefines(ReadOnlySpan<string> staticDefines, ReadOnlySpan<string> variantDefines)
+    {
+        if (variantDefines.Length == 0)
+        {
+            return staticDefines;
+        }
+
+        if (staticDefines.Length == 0)
+        {
+            return variantDefines;
+        }
+
+        var combined = new string[staticDefines.Length + variantDefines.Length];
+        staticDefines.CopyTo(combined);
+        variantDefines.CopyTo(combined.AsSpan(staticDefines.Length));
+        return combined;
+    }
+
+    public void RequestCompilation(ulong shaderId, int passIndex, Key64<ShaderVariant> variantKey, LocalKeywordSet keywordMask)
+    {
+        Task.Run(async () =>
+        {
+            await EnsureShaderDictionaryPopulatedAsync();
+
+            if (!_shaderIdToAssetId.TryGetValue(shaderId, out var assetId))
+            {
+                return;
+            }
+
+            var assetResult = await _assetRegistry.LoadAssetAsync(assetId);
+            if (assetResult.IsFailure)
+            {
+                return;
+            }
+
+            Dictionary<int, string>? keywordMapping = null;
+            if (_assetKeywordMappings.TryGetValue(assetId, out var mappings) && passIndex < mappings.Length)
+            {
+                keywordMapping = mappings[passIndex];
+            }
+
+            if (assetResult.Value is GraphicsShaderAsset graphicsAsset)
+            {
+                var pass = graphicsAsset.Descriptor.Passes[passIndex];
+                await CompileGraphicsPassAsync(shaderId, passIndex, variantKey, keywordMask, pass, graphicsAsset.Descriptor.ShaderModel, keywordMapping);
+            }
+            else if (assetResult.Value is ComputeShaderAsset computeAsset)
+            {
+                await CompileComputePassAsync(shaderId, passIndex, variantKey, keywordMask, computeAsset.Descriptor, passIndex, keywordMapping);
             }
         });
     }
 
-    private unsafe Task CompileGraphicsPassAsync(ulong shaderId, int passIndex, Key64<ShaderVariant> variantKey, PassDescriptor pass)
+    private unsafe Task CompileGraphicsPassAsync(ulong shaderId, int passIndex, Key64<ShaderVariant> variantKey, LocalKeywordSet keywordMask, PassDescriptor descriptor, ShaderModel shaderModel, Dictionary<int, string>? keywordMapping)
     {
-        // For simplicity, just compile the pixel shader. A real implementation would compile
-        // all stages (Mesh/Amp/Vertex/Pixel) defined in the pass descriptor.
-        var config = new ShaderCompilationConfig
+        var variantDefines = BuildVariantDefines(keywordMask, keywordMapping);
+
+        var additionalConfig = new ShaderCompilationConfig
         {
-            shaderCode = pass.pixelShaderCode.code,
-            entryPoint = pass.pixelShaderCode.entryPoint,
-            stage = ShaderStage.PixelShader,
-            defines = pass.defines,
-            model = ShaderModel.SM_6_6
+            defines = variantDefines,
+            model = shaderModel,
+            optimizeLevel = CompilerOptimizeLevel.O3,
+            options = CompilerOption.None
         };
 
-        var compileResult = _compiler.Compile(in config, Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle.Persistent);
-        if (compileResult.IsSuccess)
-        {
-            var engineCore = _serviceProvider.GetService<EngineCore>();
-            if (engineCore != null)
-            {
-                using var bytecodeArray = compileResult.Value;
-                
-                var byteCode = new ShaderByteCode
-                {
-                    pCode = (byte*)bytecodeArray.GetUnsafePtr(),
-                    size = (ulong)bytecodeArray.Length
-                };
-
-                // Assume 1 stage for now. In reality, we'd pass an array of ShaderByteCode for all stages.
-                var byteCodes = new Span<ShaderByteCode>(ref byteCode);
-
-                engineCore.RenderSystem.ShaderLibrary.CacheCompiledResult(shaderId, passIndex, variantKey, byteCodes);
-                
-                // Get the generated hash to fire the event
-                var dataSpan = new ReadOnlySpan<byte>(byteCode.pCode, (int)byteCode.size);
-                var hash = System.IO.Hashing.XxHash64.HashToUInt64(dataSpan);
-                OnShaderVariantCompiled?.Invoke(variantKey, hash);
-            }
-        }
-        else
+        var compileResult = _compiler.CompileShaderPass(ref descriptor, ref additionalConfig, AllocationHandle.Persistent);
+        if (compileResult.IsFailure)
         {
             Ghost.Core.Logger.Error($"Failed to compile graphics shader {shaderId}: {compileResult.Message}");
+            return Task.CompletedTask;
         }
+
+        var engineCore = _serviceProvider.GetService<EngineCore>();
+        if (engineCore == null)
+        {
+            return Task.CompletedTask;
+        }
+
+        using var compiled = compileResult.Value;
+
+        var stageCount = 0;
+        if (compiled.asResult.IsCreated) stageCount++;
+        if (compiled.msResult.IsCreated) stageCount++;
+        if (compiled.psResult.IsCreated) stageCount++;
+
+        var byteCodes = stackalloc ShaderByteCode[stageCount];
+        var idx = 0;
+        if (compiled.asResult.IsCreated)
+        {
+            byteCodes[idx++] = new ShaderByteCode { pCode = (byte*)compiled.asResult.GetUnsafePtr(), size = (ulong)compiled.asResult.Length };
+        }
+
+        if (compiled.msResult.IsCreated)
+        {
+            byteCodes[idx++] = new ShaderByteCode { pCode = (byte*)compiled.msResult.GetUnsafePtr(), size = (ulong)compiled.msResult.Length };
+        }
+
+        if (compiled.psResult.IsCreated)
+        {
+            byteCodes[idx++] = new ShaderByteCode { pCode = (byte*)compiled.psResult.GetUnsafePtr(), size = (ulong)compiled.psResult.Length };
+        }
+
+        var shaderLibrary = engineCore.RenderSystem.ShaderLibrary;
+        shaderLibrary.CacheCompiledResult(shaderId, passIndex, variantKey, new ReadOnlySpan<ShaderByteCode>(byteCodes, stageCount));
+
+        var (compiledHash, _) = shaderLibrary.GetCompiledHash(shaderId, passIndex, variantKey);
+        OnShaderVariantCompiled?.Invoke(variantKey, compiledHash);
 
         return Task.CompletedTask;
     }
 
-    private unsafe Task CompileComputePassAsync(ulong shaderId, int passIndex, Key64<ShaderVariant> variantKey, ShaderCode code)
+    private unsafe Task CompileComputePassAsync(ulong shaderId, int passIndex, Key64<ShaderVariant> variantKey, LocalKeywordSet keywordMask, ComputeShaderDescriptor descriptor, int entryIndex, Dictionary<int, string>? keywordMapping)
     {
+        var variantDefines = BuildVariantDefines(keywordMask, keywordMapping);
+        var fullDefines = CombineDefines(descriptor.Defines, variantDefines);
+
+        var code = descriptor.ShaderCodes[entryIndex];
         var config = new ShaderCompilationConfig
         {
             shaderCode = code.code,
             entryPoint = code.entryPoint,
             stage = ShaderStage.ComputeShader,
-            defines = Array.Empty<string>(),
-            model = ShaderModel.SM_6_6
+            defines = fullDefines,
+            model = descriptor.ShaderModel,
+            optimizeLevel = CompilerOptimizeLevel.O3,
+            options = CompilerOption.None
         };
 
-        var compileResult = _compiler.Compile(in config, Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle.Persistent);
-        if (compileResult.IsSuccess)
-        {
-            var engineCore = _serviceProvider.GetService<EngineCore>();
-            if (engineCore != null)
-            {
-                using var bytecodeArray = compileResult.Value;
-                
-                var byteCode = new ShaderByteCode
-                {
-                    pCode = (byte*)bytecodeArray.GetUnsafePtr(),
-                    size = (ulong)bytecodeArray.Length
-                };
-
-                var byteCodes = new Span<ShaderByteCode>(ref byteCode);
-
-                engineCore.RenderSystem.ShaderLibrary.CacheCompiledResult(shaderId, passIndex, variantKey, byteCodes);
-                
-                var dataSpan = new ReadOnlySpan<byte>(byteCode.pCode, (int)byteCode.size);
-                var hash = System.IO.Hashing.XxHash64.HashToUInt64(dataSpan);
-                OnShaderVariantCompiled?.Invoke(variantKey, hash);
-            }
-        }
-        else
+        var compileResult = _compiler.Compile(ref config, AllocationHandle.Persistent);
+        if (compileResult.IsFailure)
         {
             Ghost.Core.Logger.Error($"Failed to compile compute shader {shaderId}: {compileResult.Message}");
+            return Task.CompletedTask;
         }
+
+        var engineCore = _serviceProvider.GetService<EngineCore>();
+        if (engineCore == null)
+        {
+            return Task.CompletedTask;
+        }
+
+        using var bytecodeArray = compileResult.Value;
+
+        var byteCode = new ShaderByteCode
+        {
+            pCode = (byte*)bytecodeArray.GetUnsafePtr(),
+            size = (ulong)bytecodeArray.Length
+        };
+
+        var shaderLibrary = engineCore.RenderSystem.ShaderLibrary;
+        shaderLibrary.CacheCompiledResult(shaderId, passIndex, variantKey, new ReadOnlySpan<ShaderByteCode>(ref byteCode));
+
+        var (compiledHash, _) = shaderLibrary.GetCompiledHash(shaderId, passIndex, variantKey);
+        OnShaderVariantCompiled?.Invoke(variantKey, compiledHash);
 
         return Task.CompletedTask;
     }

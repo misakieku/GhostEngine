@@ -7,6 +7,7 @@ using Ghost.Editor.ViewModels.Controls;
 using Ghost.Editor.ViewModels.Windows;
 using Ghost.Editor.Views.Windows;
 using Ghost.Engine;
+using Ghost.Graphics.RHI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Dispatching;
@@ -66,6 +67,7 @@ public partial class App : Application
                 services.AddSingleton<IPreviewService, PreviewService>();
                 services.AddSingleton<IAssetRegistry, AssetRegistry>();
                 services.AddSingleton<IContentProvider, EditorContentProvider>();
+                services.AddSingleton<IShaderCompilationBridge, EditorShaderCompilerBridge>();
 
                 services.AddSingleton<EngineCore>();
 

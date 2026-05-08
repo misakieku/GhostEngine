@@ -195,14 +195,14 @@ internal unsafe class ShaderLibrary : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Result<ulong, Error> GetCompiledHash(ulong id, int passIndex, Key64<ShaderVariant> variantKey)
+    public Result<ulong, Error> GetCompiledHash(ulong id, int passIndex, Key64<ShaderVariant> variantKey, LocalKeywordSet keywordMask = default)
     {
         if (_variantToCompiledHash.TryGetValue(variantKey, out var compiledHash))
         {
             return compiledHash;
         }
 
-        _shaderCompilationBridge?.RequestCompilation(id, passIndex, variantKey);
+        _shaderCompilationBridge?.RequestCompilation(id, passIndex, variantKey, keywordMask);
         return Error.NotFound;
     }
 

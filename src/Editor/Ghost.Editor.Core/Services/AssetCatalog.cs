@@ -89,6 +89,7 @@ public sealed partial class AssetCatalog
             );
             CREATE UNIQUE INDEX IF NOT EXISTS idx_assets_path ON assets(source_path);
             CREATE INDEX IF NOT EXISTS idx_assets_parent ON assets(parent_guid);
+            CREATE INDEX IF NOT EXISTS idx_assets_type_id ON assets(asset_type_id);
 
             CREATE TABLE IF NOT EXISTS dependencies (
                 from_guid   BLOB(16) NOT NULL REFERENCES assets(guid) ON DELETE CASCADE,
@@ -272,12 +273,39 @@ public sealed partial class AssetCatalog
     {
         using var connection = OpenConnection();
         using var cmd = connection.CreateCommand();
-        
+
         cmd.CommandText = SqlEnumerate;
         using var reader = cmd.ExecuteReader();
         while (reader.Read())
         {
             yield return (new Guid((byte[])reader[0]), reader.GetString(1));
+        }
+    }
+
+    public IEnumerable<Guid> EnumerateByTypes(params Guid[] assetTypeIds)
+    {
+        if (assetTypeIds.Length == 0)
+        {
+            yield break;
+        }
+
+        using var connection = OpenConnection();
+        using var cmd = connection.CreateCommand();
+
+        var parameterNames = new List<string>(assetTypeIds.Length);
+        for (int i = 0; i < assetTypeIds.Length; i++)
+        {
+            string paramName = $"@typeId{i}";
+            parameterNames.Add(paramName);
+            cmd.Parameters.AddWithValue(paramName, assetTypeIds[i].ToByteArray());
+        }
+
+        cmd.CommandText = $"SELECT guid FROM assets WHERE asset_type_id IN ({string.Join(", ", parameterNames)})";
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            yield return new Guid((byte[])reader[0]);
         }
     }
 

@@ -179,7 +179,7 @@ public readonly struct ShaderPass
         get; init;
     }
 
-    public LocalKeywordSet KeywordIDs
+    public LocalKeywordSet DefinedKeywords
     {
         get; init;
     }

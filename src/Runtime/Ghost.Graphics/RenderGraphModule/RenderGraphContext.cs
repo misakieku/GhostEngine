@@ -169,10 +169,10 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         var materialPipeline = material.GetPassPipelineOverride(material.ActivePassIndex);
 
         // Mask out the keywords that are not used in this pass.
-        var variantMask = material._keywordMask & pass.KeywordIDs;
+        var variantMask = material._keywordMask & pass.DefinedKeywords;
         var variantKey = RHIUtility.CreateShaderVariantKey(pass.Key, in variantMask);
 
-        var (compiledHash, error) = _shaderLibrary.GetCompiledHash(shader.UniqueID, material.ActivePassIndex, variantKey);
+        var (compiledHash, error) = _shaderLibrary.GetCompiledHash(shader.UniqueID, material.ActivePassIndex, variantKey, variantMask);
         if (error.IsFailure)
         {
             // TODO: Fallback to a default shader or show an error material.
@@ -277,7 +277,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         var keywordSet = new LocalKeywordSet(); // TODO: Support keywords in compute shader.
         var variantKey = RHIUtility.CreateShaderVariantKey(entryHash, in keywordSet);
 
-        var (compiledHash, error) = _shaderLibrary.GetCompiledHash(shader.UniqueID, entryIndex, variantKey);
+        var (compiledHash, error) = _shaderLibrary.GetCompiledHash(shader.UniqueID, entryIndex, variantKey, keywordSet);
         if (error.IsFailure)
         {
             // TODO: Fallback to a default shader or show an error material.

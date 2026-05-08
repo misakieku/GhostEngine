@@ -30,12 +30,12 @@ public class ShaderLibraryTest
 
     private class MockShaderCompilationBridge : IShaderCompilationBridge
     {
-        public List<(ulong id, int passIndex, Key64<ShaderVariant> variantKey)> Requests { get; } = new();
+        public List<(ulong id, int passIndex, Key64<ShaderVariant> variantKey, LocalKeywordSet keywordMask)> Requests { get; } = new();
         public event Action<Key64<ShaderVariant>, ulong>? OnShaderVariantCompiled;
 
-        public void RequestCompilation(ulong shaderId, int passIndex, Key64<ShaderVariant> variantKey)
+        public void RequestCompilation(ulong shaderId, int passIndex, Key64<ShaderVariant> variantKey, LocalKeywordSet keywordMask)
         {
-            Requests.Add((shaderId, passIndex, variantKey));
+            Requests.Add((shaderId, passIndex, variantKey, keywordMask));
         }
 
         public void TriggerCompiled(Key64<ShaderVariant> variantKey, ulong newHash)

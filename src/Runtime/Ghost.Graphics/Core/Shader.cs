@@ -119,7 +119,7 @@ public partial struct Shader : IResourceReleasable
             {
                 Key = RHIUtility.GetPassID(_nameHash, i),
                 DefaultState = pass.localPipeline,
-                KeywordIDs = keywords,
+                DefinedKeywords = keywords,
             };
 
             _passIDToLocal[GetPassID(pass.name)] = (ushort)i;
