@@ -1,6 +1,7 @@
 using Ghost.Core.Graphics;
 using Ghost.Engine.RenderPipeline;
 using Ghost.Graphics;
+using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.Mathematics;
 
@@ -25,7 +26,7 @@ public sealed partial class EngineCore : IDisposable
     internal RenderSystem RenderSystem => _renderSystem;
     internal AssetManager AssetManager => _assetManager;
 
-    public EngineCore(IContentProvider contentProvider)
+    public EngineCore(IContentProvider contentProvider, IShaderCompilationBridge? shaderCompilationBridge = null)
     {
         _contentProvider = contentProvider;
 
@@ -46,6 +47,7 @@ public sealed partial class EngineCore : IDisposable
             InitialRenderPipelineSettings = new GhostRenderPipelineSettings(),
             ResourceStreamingProcessor = _streamingProcessor,
             ShaderCacheDirectory = "ShaderCache",
+            ShaderCompilationBridge = shaderCompilationBridge,
         };
 
         _renderSystem = new RenderSystem(renderingDesc);

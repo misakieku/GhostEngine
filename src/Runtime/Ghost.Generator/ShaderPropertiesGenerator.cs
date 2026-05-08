@@ -90,7 +90,7 @@ namespace Ghost.Generator
                         isEnabledByDefault: true), info.TypeSymbol.Locations.FirstOrDefault()));
                     continue;
                 }
-                
+
                 var definedSymbol = $"__{info.Name.ToUpper()}_G_HLSL";
 
                 var fieldsBuilder = new StringBuilder();

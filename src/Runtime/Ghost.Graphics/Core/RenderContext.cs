@@ -379,7 +379,7 @@ public readonly unsafe ref struct RenderContext
         var variantKey = RHIUtility.CreateShaderVariantKey(entryHash, in keywordSet);
 
         // TODO: Refactor this into a helper method.
-        var (compiledHash, error) = ShaderLibrary.GetCompiledHash(variantKey);
+        var (compiledHash, error) = ShaderLibrary.GetCompiledHash(shader.UniqueID, entryIndex, variantKey);
         if (error.IsFailure)
         {
             // TODO: Fallback to an error material.
@@ -391,12 +391,11 @@ public readonly unsafe ref struct RenderContext
 
         if (!PipelineLibrary.HasPipelineStateObject(pipelineKey))
         {
-            using var scope = AllocationManager.CreateStackScope();
-            var compiledCacheResult = ShaderLibrary.GetCompiledCache(shader.UniqueID, entryIndex, scope.AllocationHandle);
+            var compiledCacheResult = ShaderLibrary.GetCompiledCache(shader.UniqueID, entryIndex);
             if (compiledCacheResult.IsFailure)
             {
-                // TODO: Fallback to a checkerboard shader.
-                throw new InvalidOperationException("Failed to load compiled shader cache for pipeline state object creation.");
+                Logger.Warning($"Failed to load compiled shader cache for compute pipeline {pipelineKey}. Skipping compute dispatch.");
+                return;
             }
 
             var cache = compiledCacheResult.Value;

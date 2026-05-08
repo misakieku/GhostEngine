@@ -9,4 +9,8 @@ public interface IPipelineLibrary : IDisposable
     bool HasPipelineStateObject(UInt128 key);
     Result<Key128<PipelineState>> CreateGraphicsPipeline(ref readonly GraphicsPSODesc desc);
     Result<Key128<PipelineState>> CreateComputePipeline(ref readonly ComputePSODesc desc);
+
+    void BeginFrame(ulong cpuFrame);
+    void EndFrame(ulong gpuFrame);
+    void EvictStalePipelines(ulong oldContentHash);
 }

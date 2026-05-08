@@ -219,7 +219,7 @@ public readonly struct PassAttachmentHash : IEquatable<PassAttachmentHash>
 
 public ref struct GraphicsPSODesc
 {
-    public UInt128 CompiledHash
+    public ulong CompiledHash
     {
         get; set;
     }
@@ -262,7 +262,7 @@ public ref struct GraphicsPSODesc
 
 public ref struct ComputePSODesc
 {
-    public UInt128 CompiledHash
+    public ulong CompiledHash
     {
         get; set;
     }

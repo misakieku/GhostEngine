@@ -144,6 +144,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
 
         _cpuFrame = cpuFrame;
         _resourceDatabase.BeginFrame(cpuFrame);
+        _pipelineLibrary.BeginFrame(cpuFrame);
     }
 
     public void EndFrame(ulong gpuFrame)
@@ -151,6 +152,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         Logger.DebugAssert(!_disposed);
 
         _resourceDatabase.EndFrame(gpuFrame);
+        _pipelineLibrary.EndFrame(gpuFrame);
 
         while (_commandBufferReturnQueue.TryPeek(out var entry) && entry.returnFrame < gpuFrame)
         {

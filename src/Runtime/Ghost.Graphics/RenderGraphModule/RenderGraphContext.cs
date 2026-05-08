@@ -172,7 +172,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         var variantMask = material._keywordMask & pass.KeywordIDs;
         var variantKey = RHIUtility.CreateShaderVariantKey(pass.Key, in variantMask);
 
-        var (compiledHash, error) = _shaderLibrary.GetCompiledHash(variantKey);
+        var (compiledHash, error) = _shaderLibrary.GetCompiledHash(shader.UniqueID, material.ActivePassIndex, variantKey);
         if (error.IsFailure)
         {
             // TODO: Fallback to a default shader or show an error material.
@@ -183,11 +183,11 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
 
         if (!_pipelineLibrary.HasPipelineStateObject(pipelineKey))
         {
-            using var scope = AllocationManager.CreateStackScope();
-            var compiledCacheResult = _shaderLibrary.GetCompiledCache(shader.UniqueID, material.ActivePassIndex, scope.AllocationHandle);
+            var compiledCacheResult = _shaderLibrary.GetCompiledCache(shader.UniqueID, material.ActivePassIndex);
             if (compiledCacheResult.IsFailure)
             {
-                throw new InvalidOperationException("Failed to load compiled shader cache for pipeline state object creation.");
+                Logger.Warning($"Failed to load compiled shader cache for graphics pipeline {pipelineKey}. Skipping draw call.");
+                return;
             }
 
             var cache = compiledCacheResult.Value;
@@ -277,7 +277,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         var keywordSet = new LocalKeywordSet(); // TODO: Support keywords in compute shader.
         var variantKey = RHIUtility.CreateShaderVariantKey(entryHash, in keywordSet);
 
-        var (compiledHash, error) = _shaderLibrary.GetCompiledHash(variantKey);
+        var (compiledHash, error) = _shaderLibrary.GetCompiledHash(shader.UniqueID, entryIndex, variantKey);
         if (error.IsFailure)
         {
             // TODO: Fallback to a default shader or show an error material.
@@ -288,11 +288,11 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
 
         if (!_pipelineLibrary.HasPipelineStateObject(pipelineKey))
         {
-            using var scope = AllocationManager.CreateStackScope();
-            var compiledCacheResult = _shaderLibrary.GetCompiledCache(shader.UniqueID, entryIndex, scope.AllocationHandle);
+            var compiledCacheResult = _shaderLibrary.GetCompiledCache(shader.UniqueID, entryIndex);
             if (compiledCacheResult.IsFailure)
             {
-                throw new InvalidOperationException("Failed to load compiled shader cache for pipeline state object creation.");
+                Logger.Warning($"Failed to load compiled shader cache for compute pipeline {pipelineKey}. Skipping compute dispatch.");
+                return;
             }
 
             var cache = compiledCacheResult.Value;
