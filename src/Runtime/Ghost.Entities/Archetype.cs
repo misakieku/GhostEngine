@@ -125,11 +125,15 @@ internal unsafe struct Chunk : IDisposable
     public Chunk(int bufferSize, int capacity, int componentCount, uint globalVersion)
     {
         _data = new UnsafeArray<byte>(bufferSize, AllocationHandle.Persistent, AllocationOption.Clear);
-        _versions = new UnsafeArray<uint>(componentCount, AllocationHandle.Persistent);
         _capacity = capacity;
         _count = 0;
 
-        _versions.AsSpan().Fill(globalVersion);
+        if (componentCount > 0)
+        {
+            _versions = new UnsafeArray<uint>(componentCount, AllocationHandle.Persistent);
+            _versions.AsSpan().Fill(globalVersion);
+        }
+
         _structuralVersion = globalVersion;
     }
 

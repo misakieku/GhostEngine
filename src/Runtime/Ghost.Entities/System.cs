@@ -332,6 +332,11 @@ public abstract class SystemGroup : ISystem
 
     public void Initialize(ref readonly SystemAPI systemAPI)
     {
+        if (_systems.Count == 0)
+        {
+            return;
+        }
+
         ThrowIfNotSorted();
 
         foreach (var system in _sortedSystems!)
@@ -342,6 +347,11 @@ public abstract class SystemGroup : ISystem
 
     public void Update(ref readonly SystemAPI systemAPI)
     {
+        if (_systems.Count == 0)
+        {
+            return;
+        }
+
         ThrowIfNotSorted();
 
         foreach (var system in _sortedSystems!)
@@ -352,6 +362,11 @@ public abstract class SystemGroup : ISystem
 
     public void Cleanup(ref readonly SystemAPI systemAPI)
     {
+        if (_systems.Count == 0)
+        {
+            return;
+        }
+
         ThrowIfNotSorted();
 
         foreach (var system in _sortedSystems!)
@@ -399,6 +414,11 @@ public sealed class SystemManager : IDisposable
 
     internal void InitializeAll(TimeData timeData)
     {
+        if (_systems.Count == 0)
+        {
+            return;
+        }
+
         var systemAPI = new SystemAPI
         {
             Time = timeData,
@@ -413,6 +433,11 @@ public sealed class SystemManager : IDisposable
 
     internal void UpdateAll(TimeData timeData)
     {
+        if (_systems.Count == 0)
+        {
+            return;
+        }
+
         var systemAPI = new SystemAPI
         {
             Time = timeData,
@@ -427,6 +452,11 @@ public sealed class SystemManager : IDisposable
 
     internal void CleanupAll(TimeData timeData)
     {
+        if (_systems.Count == 0)
+        {
+            return;
+        }
+
         var systemAPI = new SystemAPI
         {
             Time = timeData,

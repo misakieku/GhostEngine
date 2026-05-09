@@ -5,8 +5,39 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="using:Ghost.Editor.Views.Controls"
+    xmlns:sg="using:Ghost.Editor.Core.SceneGraph"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <local:SceneGraphTemplateSelector
+            x:Key="SceneGraphTemplateSelector"
+            SceneNodeTemplate="{StaticResource SceneNodeTemplate}"
+            EntityNodeTemplate="{StaticResource EntityNodeTemplate}" />
+
+        <DataTemplate x:Key="SceneNodeTemplate" x:DataType="sg:SceneNode">
+            <TreeViewItem
+                AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"
+                IsExpanded="True"
+                ItemsSource="{x:Bind Children, Mode=OneWay}">
+                <StackPanel Orientation="Horizontal">
+                    <FontIcon FontSize="14" Glyph="&#xF156;" />
+                    <TextBlock Margin="10,0,0,0" Text="{x:Bind Name, Mode=OneWay}" />
+                </StackPanel>
+            </TreeViewItem>
+        </DataTemplate>
+
+        <DataTemplate x:Key="EntityNodeTemplate" x:DataType="sg:EntityNode">
+            <TreeViewItem
+                AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"
+                ItemsSource="{x:Bind Children, Mode=OneWay}">
+                <StackPanel Orientation="Horizontal">
+                    <FontIcon FontSize="14" Glyph="&#xF158;" />
+                    <TextBlock Margin="5,0,0,0" Text="{x:Bind Name, Mode=OneWay}" />
+                </StackPanel>
+            </TreeViewItem>
+        </DataTemplate>
+    </UserControl.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
@@ -50,19 +81,17 @@
                     Margin="0,0,4,0"
                     FontSize="{StaticResource ToolbarFontIconFontSize}"
                     Glyph="&#xE721;" />
-                <TextBox Grid.Column="1" PlaceholderText="Sreach item..." />
+                <TextBox Grid.Column="1" PlaceholderText="Search item..." />
             </Grid>
 
             <Border Margin="-8,8,-4,-4" Style="{StaticResource HorizontalStrongDivider}" />
         </StackPanel>
 
-        <ListView Grid.Row="1" Padding="4,2,0,2">
-            <ListViewItem Content="Test" />
-            <ListViewItem Content="Test" />
-            <ListViewItem Content="Test" />
-            <ListViewItem Content="Test" />
-            <ListViewItem Content="Test" />
-            <ListViewItem Content="Test" />
-        </ListView>
+        <TreeView
+            x:Name="SceneTreeView"
+            Grid.Row="1"
+            Padding="4,2,0,2"
+            ItemTemplateSelector="{StaticResource SceneGraphTemplateSelector}"
+            SelectionMode="Single" />
     </Grid>
 </UserControl>
