@@ -19,6 +19,7 @@ internal sealed class EditorShaderCompilerBridge : IShaderCompilationBridge
     private readonly IAssetRegistry _assetRegistry;
     private readonly IServiceProvider _serviceProvider;
     private readonly IShaderCompiler _compiler;
+    private EngineCore? _engineCore;
 
     private readonly ConcurrentDictionary<ulong, Guid> _shaderIdToAssetId = new();
     private readonly ConcurrentDictionary<Guid, Dictionary<int, string>[]> _assetKeywordMappings = new();
@@ -49,11 +50,11 @@ internal sealed class EditorShaderCompilerBridge : IShaderCompilationBridge
                     _shaderIdToAssetId[nameHash] = guid;
                     BuildKeywordMappings(result.Value, guid);
 
-                    var engineCore = _serviceProvider.GetService<EngineCore>();
-                    if (engineCore != null)
+                    _engineCore ??= _serviceProvider.GetService<EngineCore>();
+                    if (_engineCore != null)
                     {
-                        var shaderLibrary = engineCore.RenderSystem.ShaderLibrary;
-                        var pipelineLibrary = engineCore.RenderSystem.GraphicsEngine.PipelineLibrary;
+                        var shaderLibrary = _engineCore.RenderSystem.ShaderLibrary;
+                        var pipelineLibrary = _engineCore.RenderSystem.GraphicsEngine.PipelineLibrary;
                         shaderLibrary.InvalidateShaderCache(nameHash, pipelineLibrary);
                     }
                 }
@@ -264,12 +265,11 @@ internal sealed class EditorShaderCompilerBridge : IShaderCompilationBridge
         var compileResult = _compiler.CompileShaderPass(ref descriptor, ref additionalConfig, AllocationHandle.Persistent);
         if (compileResult.IsFailure)
         {
-            Ghost.Core.Logger.Error($"Failed to compile graphics shader {shaderId}: {compileResult.Message}");
+            Logger.Error($"Failed to compile graphics shader {shaderId}: {compileResult.Message}");
             return Task.CompletedTask;
         }
 
-        var engineCore = _serviceProvider.GetService<EngineCore>();
-        if (engineCore == null)
+        if (_engineCore == null)
         {
             return Task.CompletedTask;
         }
@@ -298,7 +298,7 @@ internal sealed class EditorShaderCompilerBridge : IShaderCompilationBridge
             byteCodes[idx++] = new ShaderByteCode { pCode = (byte*)compiled.psResult.GetUnsafePtr(), size = (ulong)compiled.psResult.Length };
         }
 
-        var shaderLibrary = engineCore.RenderSystem.ShaderLibrary;
+        var shaderLibrary = _engineCore.RenderSystem.ShaderLibrary;
         shaderLibrary.CacheCompiledResult(shaderId, passIndex, variantKey, new ReadOnlySpan<ShaderByteCode>(byteCodes, stageCount));
 
         var (compiledHash, _) = shaderLibrary.GetCompiledHash(shaderId, passIndex, variantKey);
@@ -327,12 +327,11 @@ internal sealed class EditorShaderCompilerBridge : IShaderCompilationBridge
         var compileResult = _compiler.Compile(ref config, AllocationHandle.Persistent);
         if (compileResult.IsFailure)
         {
-            Ghost.Core.Logger.Error($"Failed to compile compute shader {shaderId}: {compileResult.Message}");
+            Logger.Error($"Failed to compile compute shader {shaderId}: {compileResult.Message}");
             return Task.CompletedTask;
         }
 
-        var engineCore = _serviceProvider.GetService<EngineCore>();
-        if (engineCore == null)
+        if (_engineCore == null)
         {
             return Task.CompletedTask;
         }
@@ -345,7 +344,7 @@ internal sealed class EditorShaderCompilerBridge : IShaderCompilationBridge
             size = (ulong)bytecodeArray.Length
         };
 
-        var shaderLibrary = engineCore.RenderSystem.ShaderLibrary;
+        var shaderLibrary = _engineCore.RenderSystem.ShaderLibrary;
         shaderLibrary.CacheCompiledResult(shaderId, passIndex, variantKey, new ReadOnlySpan<ShaderByteCode>(ref byteCode));
 
         var (compiledHash, _) = shaderLibrary.GetCompiledHash(shaderId, passIndex, variantKey);

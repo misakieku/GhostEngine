@@ -42,6 +42,10 @@ public class ShaderLibraryTest
         {
             OnShaderVariantCompiled?.Invoke(variantKey, newHash);
         }
+
+        public void Dispose()
+        {
+        }
     }
 
     [TestInitialize]
@@ -151,8 +155,7 @@ public class ShaderLibraryTest
     {
         // Arrange
         using var shaderLibrary = new ShaderLibrary(null, "TestShaderCache");
-        ulong testShaderId = 111;
-        var scope = AllocationManager.CreateStackScope();
+        var testShaderId = 111UL;
 
         // Act
         var result = shaderLibrary.GetCompiledCache(testShaderId, 99);
@@ -160,7 +163,5 @@ public class ShaderLibraryTest
         // Assert
         Assert.IsFalse(result.IsSuccess);
         Assert.AreEqual(Error.NotFound, result.Error);
-
-        scope.Dispose();
     }
 }

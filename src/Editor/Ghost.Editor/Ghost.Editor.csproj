@@ -12,6 +12,7 @@
   </PropertyGroup>
   <ItemGroup>
     <None Remove="Views\Controls\Hierarchy.xaml" />
+    <None Remove="Views\Controls\Inspector.xaml" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Assets\SplashScreen.scale-200.png" />
@@ -140,6 +141,9 @@
     <None Update="Assets\icon.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <Page Update="Views\Controls\Inspector.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Update="Views\Controls\LogViewer.xaml">
       <SubType>Designer</SubType>
     </Page>
@@ -212,6 +216,11 @@
   -->
   <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
     <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)'=='Debug_Editor'">
+    <XamlDebuggingInformation>True</XamlDebuggingInformation>
+    <DisableXbfLineInfo>False</DisableXbfLineInfo>
   </PropertyGroup>
 
   <!-- Publish Properties -->

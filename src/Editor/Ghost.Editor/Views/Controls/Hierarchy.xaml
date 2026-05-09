@@ -14,49 +14,55 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Grid
+        <StackPanel
             Grid.Row="0"
-            Height="40"
-            Padding="8,8,8,4"
-            Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
-            BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
-            BorderThickness="0,0,0,1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
+            Padding="8,2,4,4"
+            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
-            <AutoSuggestBox
-                Grid.Column="0"
-                PlaceholderText="Search"
-                QueryIcon="Find" />
-            <StackPanel Grid.Column="1" Orientation="Horizontal">
-                <AppBarSeparator />
-                <Button Style="{ThemeResource ToolbarButton}">
-                    <FontIcon FontSize="{StaticResource ToolbarIconSize}" Glyph="&#xE8F4;" />
+                <TextBlock
+                    Grid.Column="0"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                    Style="{StaticResource BodyLargeStrongTextBlockStyle}"
+                    Text="Hierarchy" />
+                <Button
+                    Grid.Column="1"
+                    HorizontalAlignment="Right"
+                    Style="{ThemeResource ToolbarButton}">
+                    <FontIcon Glyph="&#xE712;" />
                 </Button>
-            </StackPanel>
-        </Grid>
+            </Grid>
 
-        <Border Grid.Row="1" Padding="4">
-            <ListView>
-                <StackPanel Orientation="Horizontal" Spacing="4">
-                    <FontIcon FontSize="{StaticResource ToolbarIconSize}" Glyph="&#xF159;" />
-                    <TextBlock Text="Test" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Spacing="4">
-                    <FontIcon FontSize="{StaticResource ToolbarIconSize}" Glyph="&#xF159;" />
-                    <TextBlock Text="Test" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Spacing="4">
-                    <FontIcon FontSize="{StaticResource ToolbarIconSize}" Glyph="&#xF159;" />
-                    <TextBlock Text="Test" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Spacing="4">
-                    <FontIcon FontSize="{StaticResource ToolbarIconSize}" Glyph="&#xF159;" />
-                    <TextBlock Text="Test" />
-                </StackPanel>
-            </ListView>
-        </Border>
+            <Grid Margin="0,2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <FontIcon
+                    Grid.Column="0"
+                    Margin="0,0,4,0"
+                    FontSize="{StaticResource ToolbarFontIconFontSize}"
+                    Glyph="&#xE721;" />
+                <TextBox Grid.Column="1" PlaceholderText="Sreach item..." />
+            </Grid>
+
+            <Border Margin="-8,8,-4,-4" Style="{StaticResource HorizontalStrongDivider}" />
+        </StackPanel>
+
+        <ListView Grid.Row="1" Padding="4,2,0,2">
+            <ListViewItem Content="Test" />
+            <ListViewItem Content="Test" />
+            <ListViewItem Content="Test" />
+            <ListViewItem Content="Test" />
+            <ListViewItem Content="Test" />
+            <ListViewItem Content="Test" />
+        </ListView>
     </Grid>
 </UserControl>

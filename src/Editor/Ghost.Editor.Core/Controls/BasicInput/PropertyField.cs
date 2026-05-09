@@ -9,7 +9,7 @@ namespace Ghost.Editor.Core.Controls;
 
 public sealed partial class PropertyField : ContentControl
 {
-    private static readonly Dictionary<Type, DependencyProperty> _valueProperties = new()
+    private static readonly Dictionary<Type, DependencyProperty> s_valueProperties = new()
     {
         { typeof(TextBox), TextBox.TextProperty },
         { typeof(NumberBox), NumberBox.ValueProperty },
@@ -48,7 +48,7 @@ public sealed partial class PropertyField : ContentControl
     {
         while (fieldType != null)
         {
-            if (_valueProperties.TryGetValue(fieldType, out var dp))
+            if (s_valueProperties.TryGetValue(fieldType, out var dp))
             {
                 return dp;
             }

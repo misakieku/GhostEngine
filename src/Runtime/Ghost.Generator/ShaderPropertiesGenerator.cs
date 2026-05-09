@@ -91,8 +91,6 @@ namespace Ghost.Generator
                     continue;
                 }
 
-                var definedSymbol = $"__{info.Name.ToUpper()}_G_HLSL";
-
                 var fieldsBuilder = new StringBuilder();
                 fieldsBuilder.AppendLine($"        public static readonly global::Ghost.Core.Graphics.ShaderPropertyFieldInfo[] ReflectionData = new global::Ghost.Core.Graphics.ShaderPropertyFieldInfo[]");
                 fieldsBuilder.AppendLine("        {");
@@ -204,13 +202,10 @@ namespace {info.TypeSymbol.ContainingNamespace.ToDisplayString()}
     {{
 #if GHOST_EDITOR
         public const string HLSL_SOURCE = @""
-# ifndef {definedSymbol}
-# define {definedSymbol}
 struct {info.Name}
 {{
 {codeBuilder}
-}};
-# endif // {definedSymbol}"";
+}};"";
 
 {fieldsBuilder}
 #endif

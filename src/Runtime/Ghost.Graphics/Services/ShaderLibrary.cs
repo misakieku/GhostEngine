@@ -128,7 +128,8 @@ internal unsafe class ShaderLibrary : IDisposable
         };
 
         var offsets = stackalloc ulong[byteCodes.Length];
-        var offset = (nuint)(sizeof(CacheHeader) + (sizeof(ulong) * byteCodes.Length));
+        var headerSize = (nuint)(sizeof(CacheHeader) + (sizeof(ulong) * byteCodes.Length));
+        var offset = headerSize;
         for (var i = 0; i < byteCodes.Length; i++)
         {
             offsets[i] = offset;
@@ -136,9 +137,9 @@ internal unsafe class ShaderLibrary : IDisposable
         }
 
         var alignment = Math.Max(Math.Max(MemoryUtility.AlignOf<CacheHeader>(), MemoryUtility.AlignOf<ulong>()), 8);
-        offset = MemoryUtility.AlignUp(offset, alignment);
+        var alignedOffset = MemoryUtility.AlignUp(offset, alignment);
 
-        var data = new MemoryBlock(offset, alignment, AllocationHandle.Persistent);
+        var data = new MemoryBlock(alignedOffset, alignment, AllocationHandle.Persistent);
         var writer = new SpanWriter(data.AsSpan<byte>());
 
         writer.Write(header);
@@ -159,11 +160,7 @@ internal unsafe class ShaderLibrary : IDisposable
         var codeHash = 0UL;
         if (byteCodes.Length > 0)
         {
-            ulong totalBytecodeSize = 0;
-            for (int i = 0; i < byteCodes.Length; i++) totalBytecodeSize += byteCodes[i].size;
-
-            // We skip the header and offsets at the beginning of the MemoryBlock
-            var bytecodeSpan = data.AsSpan<byte>().Slice((int)(sizeof(CacheHeader) + (sizeof(ulong) * byteCodes.Length)), (int)totalBytecodeSize);
+            var bytecodeSpan = data.AsSpan<byte>().Slice((int)headerSize, (int)(offset - headerSize));
             codeHash = XxHash64.HashToUInt64(bytecodeSpan);
         }
 
