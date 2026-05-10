@@ -55,7 +55,7 @@ public class SceneGraphSyncService
             }
         }
 
-        var sceneName = $"NewScene ({scene.ID})";
+        var sceneName = $"NewScene ({scene.id})";
         var newSceneNode = new SceneNode(world, scene, sceneName);
         rootNodes.Add(newSceneNode);
         return newSceneNode;

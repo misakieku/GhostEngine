@@ -67,7 +67,7 @@ public unsafe ref struct SpanWriter
         readonly get => _position;
         set => _position = value;
     }
-    
+
     public readonly int RemainingBytes => _buffer.Length - _position;
 
     public SpanWriter(Span<byte> buffer)

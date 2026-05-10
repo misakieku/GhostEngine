@@ -125,7 +125,7 @@ public unsafe partial class EntityManager : IDisposable
     /// </summary>
     /// <param name="set">A set of component space IDs to add to the entities.</param>
     /// <returns>The created entity.</returns>
-    public Entity CreateEntity(ComponentSet set)
+    public Entity CreateEntity(ComponentSetView set)
     {
         var entities = (Span<Entity>)stackalloc Entity[1];
         CreateEntities(entities, set);
@@ -187,7 +187,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="entities">The span to store the created entities.</param>
     /// <param name="set">A set of component space IDs to add to the entities.</param>
     /// <returns>An array of the created entities.</returns>
-    public void CreateEntities(Span<Entity> entities, ComponentSet set)
+    public void CreateEntities(Span<Entity> entities, ComponentSetView set)
     {
         var hash = set.GetHashCode();
         var arcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(hash);
@@ -222,7 +222,7 @@ public unsafe partial class EntityManager : IDisposable
     /// </summary>
     /// <param name="count">The number of entities to create.</param>
     /// <param name="set">A set of component space IDs to add to the entities.</param>
-    public void CreateEntities(int count, ComponentSet set)
+    public void CreateEntities(int count, ComponentSetView set)
     {
         var hash = set.GetHashCode();
         var arcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(hash);

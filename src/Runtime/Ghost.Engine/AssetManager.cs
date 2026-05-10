@@ -52,11 +52,11 @@ public interface IContentProvider
 
 internal partial class AssetEntry
 {
-    private static readonly Action<AssetEntry>[] s_onCreation = new Action<AssetEntry>[(int)AssetType.Unknown + 1];
-    private static readonly Func<AssetEntry, Result>[] s_onParseRawData = new Func<AssetEntry, Result>[(int)AssetType.Unknown + 1];
-    private static readonly Func<AssetEntry, ResourceStreamingContext, Result>[] s_onRecordUpload = new Func<AssetEntry, ResourceStreamingContext, Result>[(int)AssetType.Unknown + 1];
-    private static readonly Action<AssetEntry, ResourceStreamingContext>[] s_onUploadComplete = new Action<AssetEntry, ResourceStreamingContext>[(int)AssetType.Unknown + 1];
-    private static readonly Action<AssetEntry>[] s_onReleaseResource = new Action<AssetEntry>[(int)AssetType.Unknown + 1];
+    private static readonly Action<AssetEntry>?[] s_onCreation = new Action<AssetEntry>[(int)AssetType.Unknown + 1];
+    private static readonly Func<AssetEntry, Result>?[] s_onParseRawData = new Func<AssetEntry, Result>[(int)AssetType.Unknown + 1];
+    private static readonly Func<AssetEntry, ResourceStreamingContext, Result>?[] s_onRecordUpload = new Func<AssetEntry, ResourceStreamingContext, Result>[(int)AssetType.Unknown + 1];
+    private static readonly Action<AssetEntry, ResourceStreamingContext>?[] s_onUploadComplete = new Action<AssetEntry, ResourceStreamingContext>[(int)AssetType.Unknown + 1];
+    private static readonly Action<AssetEntry>?[] s_onReleaseResource = new Action<AssetEntry>[(int)AssetType.Unknown + 1];
 
     static AssetEntry()
     {
@@ -321,7 +321,7 @@ internal partial class AssetManager : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal bool RemoveEntry(Guid guid)
     {
-        return _entries.TryRemove(guid, out var entry);
+        return _entries.TryRemove(guid, out var _);
     }
 
     private void EnsureScheduled(AssetEntry entry)

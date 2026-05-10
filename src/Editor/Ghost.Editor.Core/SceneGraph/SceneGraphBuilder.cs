@@ -151,6 +151,6 @@ public static class SceneGraphBuilder
 
     private static string GetDefaultSceneName(Scene scene)
     {
-        return $"NewScene ({scene.ID})";
+        return $"NewScene ({scene.id})";
     }
 }

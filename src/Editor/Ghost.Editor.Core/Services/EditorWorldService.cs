@@ -23,15 +23,15 @@ public class EditorWorldService : IDisposable
     public EditorWorldService()
     {
         EditorWorld = World.Create(entityCapacity: DEFAULT_ENTITY_CAPACITY);
-        CreateDefaultScene();
-        RebuildSceneGraph();
+        // CreateDefaultScene();
+        // RebuildSceneGraph();
     }
 
     public void CreateDefaultScene()
     {
         var scene = SceneManager.CreateScene();
         var entity = EditorWorld.EntityManager.CreateEntity();
-        EditorWorld.EntityManager.AddComponent(entity, new Ghost.Engine.Components.SceneID
+        EditorWorld.EntityManager.AddComponent(entity, new Engine.Components.SceneID
         {
             scene = scene
         });

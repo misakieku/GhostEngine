@@ -103,6 +103,11 @@ public static class TypeCache
         return s_types;
     }
 
+    public static TypeInfo? GetTypes(string typeFullName)
+    {
+        return s_types.FirstOrDefault(t => t.FullName == typeFullName);
+    }
+
     public static IEnumerable<MethodInfo>? GetMethodsWithAttribute<T>()
         where T : DiscoverableAttributeBase
     {

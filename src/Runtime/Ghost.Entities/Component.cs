@@ -331,6 +331,11 @@ public struct ComponentSet : IDisposable, IEquatable<ComponentSet>
         return _hashCode;
     }
 
+    public void Dispose()
+    {
+        _components.Dispose();
+    }
+
     public override readonly bool Equals(object? obj)
     {
         return obj is ComponentSet set && Equals(set);
@@ -346,8 +351,53 @@ public struct ComponentSet : IDisposable, IEquatable<ComponentSet>
         return !(left == right);
     }
 
-    public void Dispose()
+    public static implicit operator ComponentSetView(in ComponentSet set)
     {
-        _components.Dispose();
+        return new ComponentSetView(set.Components);
+    }
+}
+
+
+public ref struct ComponentSetView : IEquatable<ComponentSetView>
+{
+    private readonly ReadOnlySpan<Identifier<IComponent>> _components;
+    private int _hashCode;
+
+    public readonly ReadOnlySpan<Identifier<IComponent>> Components => _components;
+
+    public ComponentSetView(ReadOnlySpan<Identifier<IComponent>> components)
+    {
+        _components = components;
+        _hashCode = -1;
+    }
+
+    public readonly bool Equals(ComponentSetView other)
+    {
+        return _hashCode == other._hashCode;
+    }
+
+    public override int GetHashCode()
+    {
+        if (_hashCode == -1)
+        {
+            _hashCode = ComponentRegistry.GetHashCode(_components);
+        }
+
+        return _hashCode;
+    }
+
+    public override readonly bool Equals(object? obj)
+    {
+        return false;
+    }
+
+    public static bool operator ==(ComponentSetView left, ComponentSetView right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(ComponentSetView left, ComponentSetView right)
+    {
+        return !(left == right);
     }
 }

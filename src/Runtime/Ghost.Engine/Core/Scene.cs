@@ -8,35 +8,24 @@ namespace Ghost.Engine.Core;
 /// <summary>
 /// Represents a runtime scene - a collection of entities with the same SceneID.
 /// </summary>
-public readonly struct Scene : IEquatable<Scene>
+public struct Scene : IEquatable<Scene>
 {
-    private readonly short _id;
-
-    /// <summary>
-    /// Gets the unique identifier of this scene.
-    /// </summary>
-    public short ID => _id;
+    public byte id;
 
     /// <summary>
     /// Gets whether this scene is valid.
     /// </summary>
     [JsonIgnore]
-    public bool IsValid => _id >= 0;
+    public readonly bool IsValid => id != 255;
 
     /// <summary>
     /// Gets an invalid scene instance.
     /// </summary>
-    public static Scene Invalid => new(-1);
+    public static Scene Invalid => new Scene { id = 255 };
 
-    [JsonConstructor]
-    public Scene(short id)
+    public readonly bool Equals(Scene other)
     {
-        _id = id;
-    }
-
-    public bool Equals(Scene other)
-    {
-        return _id == other._id;
+        return id == other.id;
     }
 
     public override bool Equals(object? obj)
@@ -44,9 +33,9 @@ public readonly struct Scene : IEquatable<Scene>
         return obj is Scene other && Equals(other);
     }
 
-    public override int GetHashCode()
+    public readonly override int GetHashCode()
     {
-        return _id.GetHashCode();
+        return id.GetHashCode();
     }
 
     public static bool operator ==(Scene left, Scene right)
@@ -59,9 +48,9 @@ public readonly struct Scene : IEquatable<Scene>
         return !left.Equals(right);
     }
 
-    public override string ToString()
+    public readonly override string ToString()
     {
-        return $"Scene(ID: {_id})";
+        return $"Scene(ID: {id})";
     }
 }
 
@@ -74,8 +63,8 @@ public readonly struct Scene : IEquatable<Scene>
 /// </remarks>
 public static class SceneManager
 {
-    private static short s_nextSceneID;
-    private static readonly Queue<short> s_recycledSceneIDs = new();
+    private static byte s_nextSceneID;
+    private static readonly Queue<byte> s_recycledSceneIDs = new();
 
     /// <summary>
     /// Creates a new scene in the world.
@@ -88,7 +77,7 @@ public static class SceneManager
             id = s_nextSceneID++;
         }
 
-        return new Scene(id);
+        return new Scene { id = id };
     }
 
     /// <summary>
@@ -112,7 +101,7 @@ public static class SceneManager
 
             for (var i = 0; i < chunk.EntityCount; i++)
             {
-                if (sceneIDs[i].scene.ID == scene.ID)
+                if (sceneIDs[i].scene.id == scene.id)
                 {
                     entitiesToDestroy.Add(entities[i]);
                 }
@@ -120,7 +109,7 @@ public static class SceneManager
         }
 
         world.EntityManager.DestroyEntities(entitiesToDestroy.AsSpan());
-        s_recycledSceneIDs.Enqueue(scene.ID);
+        s_recycledSceneIDs.Enqueue(scene.id);
     }
 
     /// <summary>
@@ -145,7 +134,7 @@ public static class SceneManager
 
             for (var i = 0; i < chunk.EntityCount; i++)
             {
-                if (sceneIDs[i].scene.ID == scene.ID)
+                if (sceneIDs[i].scene.id == scene.id)
                 {
                     entities.Add(chunkEntities[i]);
                 }

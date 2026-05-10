@@ -136,29 +136,6 @@ public class SceneSerializationService : IDisposable
         return hash;
     }
 
-    private static int[] GetEntityFieldOffsetsFromJson(string typeName, string componentJson)
-    {
-        var type = Type.GetType(typeName);
-        if (type == null)
-        {
-            return Array.Empty<int>();
-        }
-
-        var entityFields = GetEntityFields(type);
-        if (entityFields.Length == 0)
-        {
-            return Array.Empty<int>();
-        }
-
-        var offsets = new int[entityFields.Length];
-        for (var i = 0; i < entityFields.Length; i++)
-        {
-            offsets[i] = (int)Marshal.OffsetOf(type, entityFields[i].Name);
-        }
-
-        return offsets;
-    }
-
     public static unsafe void SerializeToBinary(SceneSaveData data, Stream targetStream)
     {
         using var writer = new BinaryWriter(targetStream, Encoding.UTF8, true);
@@ -185,7 +162,11 @@ public class SceneSerializationService : IDisposable
             foreach (var (typeName, componentElement) in entity.Components)
             {
                 var typeHash = GetTypeNameHash(typeName);
-                var componentType = Type.GetType(typeName);
+                var componentType = TypeCache.GetTypes(typeName);
+                if (componentType == typeof(SceneID))
+                {
+                    continue;
+                }
 
                 if (componentType == null)
                 {
@@ -276,7 +257,7 @@ public class SceneSerializationService : IDisposable
 
     #region Load Scene into Editor World
 
-    public unsafe Result LoadSceneIntoEditorWorld(SceneSaveData data, SceneLoadingType loadingType = SceneLoadingType.Single)
+    public unsafe Result<Scene> LoadSceneIntoEditorWorld(SceneSaveData data, SceneLoadingType loadingType = SceneLoadingType.Single)
     {
         if (loadingType == SceneLoadingType.Single)
         {
@@ -284,6 +265,7 @@ public class SceneSerializationService : IDisposable
         }
 
         var world = _worldService.EditorWorld;
+        var activeScene = SceneManager.CreateScene();
 
         var entityCount = data.Entities.Count;
         if (entityCount == 0)
@@ -307,6 +289,8 @@ public class SceneSerializationService : IDisposable
                 var entityData = data.Entities[fileIndex];
                 ref var list = ref typeIds[fileIndex];
 
+                list.Add(ComponentRegistry.GetOrRegisterComponentID<SceneID>());
+
                 foreach (var (typeName, _) in entityData.Components)
                 {
                     var compId = ComponentRegistry.GetComponentIDByName(typeName);
@@ -324,12 +308,7 @@ public class SceneSerializationService : IDisposable
                     list.Add(compId);
                 }
 
-                if (list.Count == 0)
-                {
-                    continue;
-                }
-
-                using var componentSet = new ComponentSet(scope.AllocationHandle, list);
+                var componentSet = new ComponentSetView(list);
                 var entity = world.EntityManager.CreateEntity(componentSet);
                 forwardMap[fileIndex] = entity;
             }
@@ -342,9 +321,11 @@ public class SceneSerializationService : IDisposable
                     continue;
                 }
 
+                world.EntityManager.SetComponent(entity, new SceneID { scene = activeScene });
+
                 var entityData = data.Entities[fileIndex];
                 ref var list = ref typeIds[fileIndex];
-                var idx = 0;
+                var idx = 1;
 
                 foreach (var (typeName, componentElement) in entityData.Components)
                 {
@@ -384,7 +365,7 @@ public class SceneSerializationService : IDisposable
 
     RebuildAndReturn:
         _worldService.RebuildSceneGraph();
-        return Result.Success();
+        return activeScene;
     }
 
     private static Identifier<IComponent> RegisterComponentByType(Type type)
@@ -489,7 +470,12 @@ public class SceneSerializationService : IDisposable
 			foreach (var layout in archetype._layouts)
 			{
 				var type = ComponentRegistry.s_runtimeIDToType[layout.componentID];
-				var fullName = type.FullName ?? type.Name;
+                if (type == typeof(SceneID))
+                {
+                    continue;
+                }
+                
+                var fullName = type.FullName ?? type.Name;
 				var compInfo = ComponentRegistry.GetComponentInfo(layout.componentID);
 
 				var pData = archetype.GetComponentData(location.chunkIndex, location.rowIndex, layout.componentID);

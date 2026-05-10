@@ -99,7 +99,7 @@ Used for the **initial full build** of the scene graph from an ECS `World`. Afte
 **Algorithm:**
 
 1. Query all entities with `SceneID` component.
-2. Group entities by `SceneID.scene.ID`.
+2. Group entities by `SceneID.scene.id`.
 3. For each scene group:
    - Create a `SceneNode` (name comes from editor metadata, not from runtime).
    - Walk the `Hierarchy` component linked-list to build the tree:
@@ -238,7 +238,7 @@ public class EditorWorldService : IDisposable
 
 1. Check `EditorWorld.Version` — if unchanged, skip.
 2. Query all entities with `SceneID` component from the editor world.
-3. Group by `SceneID.scene.ID`.
+3. Group by `SceneID.scene.id`.
 4. **For each scene group:**
    - Find or create the `SceneNode` in `RootNodes` (match by `Scene.ID`).
    - Walk the `Hierarchy` linked-list of roots.
