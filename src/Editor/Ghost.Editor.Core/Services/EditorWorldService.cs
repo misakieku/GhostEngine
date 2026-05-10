@@ -50,5 +50,6 @@ public class EditorWorldService : IDisposable
     public void Dispose()
     {
         World.Destroy(EditorWorld.ID);
+        GC.SuppressFinalize(this);
     }
 }

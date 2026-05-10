@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text.Json.Serialization;
 
 namespace Ghost.Entities;
 
@@ -17,12 +18,14 @@ public readonly record struct Entity
         get => _id;
     }
 
+    [JsonIgnore]
     public GenerationID Generation
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _generation;
     }
 
+    [JsonIgnore]
     public bool IsValid
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

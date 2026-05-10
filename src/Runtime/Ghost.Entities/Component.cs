@@ -44,7 +44,7 @@ internal static class ComponentRegistry
     private static readonly Dictionary<IntPtr, int> s_typeHandleToID = new();
     private static readonly Dictionary<string, int> s_nameToRuntimeID = new();
 
-#if GHOST_EDITOR
+#if DEBUG || GHOST_EDITOR
     internal static readonly Dictionary<int, Type> s_runtimeIDToType = new();
 #endif
 
@@ -83,7 +83,7 @@ internal static class ComponentRegistry
 
             s_typeHandleToID[typeHandle] = newID;
             s_nameToRuntimeID[stableName] = newID;
-#if GHOST_EDITOR
+#if DEBUG || GHOST_EDITOR
             s_runtimeIDToType[newID.Value] = typeof(T);
 #endif
 
@@ -106,8 +106,22 @@ internal static class ComponentRegistry
         return Identifier<IComponent>.Invalid;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ComponentInfo GetComponentInfo(Identifier<IComponent> typeId)
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Identifier<IComponent> GetComponentIDByName(string fullName)
+	{
+		lock (s_registeredComponents)
+		{
+			if (s_nameToRuntimeID.TryGetValue(fullName, out var id))
+			{
+				return id;
+			}
+		}
+
+		return Identifier<IComponent>.Invalid;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static ComponentInfo GetComponentInfo(Identifier<IComponent> typeId)
     {
         lock (s_registeredComponents)
         {

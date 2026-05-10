@@ -116,7 +116,7 @@ internal unsafe struct Chunk : IDisposable
     internal int _count;
     internal readonly int _capacity;
 
-#if GHOST_EDITOR
+#if DEBUG
     // For debugging purpose
     internal int _worldID;
     internal int _archetypeID;

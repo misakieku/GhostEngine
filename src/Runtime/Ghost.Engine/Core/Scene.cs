@@ -1,6 +1,7 @@
 using Ghost.Entities;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using System.Text.Json.Serialization;
 
 namespace Ghost.Engine.Core;
 
@@ -19,6 +20,7 @@ public readonly struct Scene : IEquatable<Scene>
     /// <summary>
     /// Gets whether this scene is valid.
     /// </summary>
+    [JsonIgnore]
     public bool IsValid => _id >= 0;
 
     /// <summary>
@@ -26,7 +28,8 @@ public readonly struct Scene : IEquatable<Scene>
     /// </summary>
     public static Scene Invalid => new(-1);
 
-    internal Scene(short id)
+    [JsonConstructor]
+    public Scene(short id)
     {
         _id = id;
     }
