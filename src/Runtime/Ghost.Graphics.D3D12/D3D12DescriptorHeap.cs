@@ -147,10 +147,10 @@ internal unsafe class D3D12DescriptorHeap : IDisposable
         {
             for (var index = baseIndex; index < baseIndex + count; index++)
             {
-#if DEBUG || GHOST_EDITOR
+#if GHOST_EDITOR
                 if (!_allocatedDescriptors.IsSet(index))
                 {
-                    Debug.WriteLine("Error: Attempted to release an un-allocated descriptor");
+                    Logger.Debug("Error: Attempted to release an un-allocated descriptor");
                 }
 #endif
 

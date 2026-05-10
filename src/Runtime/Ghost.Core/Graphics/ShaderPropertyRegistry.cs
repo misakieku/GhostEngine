@@ -33,7 +33,7 @@ public readonly struct ShaderPropertyFieldInfo
     }
 }
 
-#if DEBUG || GHOST_EDITOR
+#if GHOST_EDITOR
 public struct ShaderPropertyInfo
 {
     public string ShaderName

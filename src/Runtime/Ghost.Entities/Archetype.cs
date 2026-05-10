@@ -116,7 +116,7 @@ internal unsafe struct Chunk : IDisposable
     internal int _count;
     internal readonly int _capacity;
 
-#if DEBUG || GHOST_EDITOR
+#if GHOST_EDITOR
     // For debugging purpose
     internal int _worldID;
     internal int _archetypeID;
@@ -363,7 +363,7 @@ internal unsafe struct Archetype : IDisposable
 
         // Need to allocate a new chunk
         var newChunk = new Chunk(Chunk.CHUNK_BUFFER_SIZE, _entityCapacity, _layouts.Count, world.Version);
-#if DEBUG || GHOST_EDITOR
+#if GHOST_EDITOR
         newChunk._worldID = _worldID;
         newChunk._archetypeID = _id;
 #endif

@@ -44,7 +44,7 @@ internal static class ComponentRegistry
     private static readonly Dictionary<IntPtr, int> s_typeHandleToID = new();
     private static readonly Dictionary<string, int> s_nameToRuntimeID = new();
 
-#if DEBUG || GHOST_EDITOR
+#if GHOST_EDITOR
     internal static readonly Dictionary<int, Type> s_runtimeIDToType = new();
 #endif
 
@@ -83,7 +83,7 @@ internal static class ComponentRegistry
 
             s_typeHandleToID[typeHandle] = newID;
             s_nameToRuntimeID[stableName] = newID;
-#if DEBUG || GHOST_EDITOR
+#if GHOST_EDITOR
             s_runtimeIDToType[newID.Value] = typeof(T);
 #endif
 

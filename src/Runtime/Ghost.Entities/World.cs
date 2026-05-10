@@ -49,7 +49,7 @@ public partial class World
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static World GetWorldUncheck(Identifier<World> id)
     {
-#if DEBUG || GHOST_EDITOR
+#if GHOST_EDITOR
         if (id.Value < 0 || id.Value >= s_worlds.Count)
         {
             throw new ArgumentOutOfRangeException(nameof(id), "World ID is out of range.");

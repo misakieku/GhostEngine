@@ -109,7 +109,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
     private UnsafeSlotMap<ResourceRecord> _resources;
     private UnsafeHashMap<SamplerDesc, Identifier<Sampler>> _samplers;
-#if DEBUG || GHOST_EDITOR
+#if GHOST_EDITOR
     private readonly Dictionary<Handle<GPUResource>, string> _resourceName;
 #endif
 
@@ -129,7 +129,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
         _resources = new UnsafeSlotMap<ResourceRecord>(64, AllocationHandle.Persistent, AllocationOption.Clear);
         _samplers = new UnsafeHashMap<SamplerDesc, Identifier<Sampler>>(32, AllocationHandle.Persistent);
-#if DEBUG || GHOST_EDITOR
+#if GHOST_EDITOR
         _resourceName = new Dictionary<Handle<GPUResource>, string>(64);
 #endif
 
@@ -162,7 +162,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
             var id = _resources.Add(new ResourceRecord(pResource, initialBarrierData, viewGroup, desc), out var generation);
             var handle = new Handle<GPUResource>(id, generation);
 
-#if DEBUG || GHOST_EDITOR
+#if GHOST_EDITOR
             if (!string.IsNullOrEmpty(name))
             {
                 pResource->SetName(name);
@@ -191,7 +191,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
             var id = _resources.Add(new ResourceRecord(allocation, initialBarrierData, resourceDescriptor, desc), out var generation);
             var handle = new Handle<GPUResource>(id, generation);
 
-#if DEBUG || GHOST_EDITOR
+#if GHOST_EDITOR
             if (!string.IsNullOrEmpty(name))
             {
                 allocation->SetName(name);
@@ -293,7 +293,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
     {
         Logger.DebugAssert(!_disposed);
 
-#if DEBUG || GHOST_EDITOR
+#if GHOST_EDITOR
         if (_resourceName.TryGetValue(handle, out var name))
         {
             return name;
@@ -316,7 +316,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         _releaseQueue.Enqueue(entry);
         _resources.Remove(handle.ID, handle.Generation);
 
-#if DEBUG || GHOST_EDITOR
+#if GHOST_EDITOR
         _resourceName.Remove(handle, out _);
 #endif
     }

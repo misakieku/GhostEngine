@@ -114,7 +114,7 @@ public readonly struct Result<T>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-#if DEBUG || GHOST_EDITOR
+#if GHOST_EDITOR
             if (IsFailure)
             {
                 throw new InvalidOperationException($"Cannot access Value when Result is a failure. {_message}");
@@ -176,7 +176,7 @@ public readonly struct Result<T, E>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-#if DEBUG || GHOST_EDITOR
+#if GHOST_EDITOR
             if (IsFailure)
             {
                 throw new InvalidOperationException($"Cannot access Value when Result is a failure. Error: {_error}");
@@ -235,7 +235,7 @@ public readonly ref struct RefResult<T, E>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-#if DEBUG || GHOST_EDITOR
+#if GHOST_EDITOR
             if (IsFailure)
             {
                 throw new InvalidOperationException($"Cannot access Value when Result is a failure. Error: {_error}");
