@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Misaki.HighPerformance.LowLevel.Collections;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Entities;
@@ -392,12 +393,14 @@ public sealed class SystemManager : IDisposable
         AddSystem<DefaultSystemGroup>();
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AddSystem<T>()
         where T : ISystem, new()
     {
         _systems.Add(new T());
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public T GetSystem<T>()
         where T : ISystem
     {
@@ -412,6 +415,7 @@ public sealed class SystemManager : IDisposable
         throw new InvalidOperationException($"System of type {typeof(T).FullName} not found in SystemManager.");
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void InitializeAll(TimeData timeData)
     {
         if (_systems.Count == 0)
@@ -431,6 +435,7 @@ public sealed class SystemManager : IDisposable
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void UpdateAll(TimeData timeData)
     {
         if (_systems.Count == 0)
@@ -467,6 +472,12 @@ public sealed class SystemManager : IDisposable
         {
             system.Cleanup(in systemAPI);
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void Clear()
+    {
+        _systems.Clear();
     }
 
     public void Dispose()

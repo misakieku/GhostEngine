@@ -3,31 +3,39 @@ using Ghost.Graphics.Services;
 
 namespace Ghost.Graphics;
 
-internal readonly struct ResourceStreamingContext
+internal struct ResourceStreamingContext
 {
-    public required AsyncCopyPipeline CopyPipeline
+    public AsyncCopyPipeline CopyPipeline
     {
-        get; init;
+        get;
     }
 
-    public required ResourceManager ResourceManager
+    public ResourceManager ResourceManager
     {
-        get; init;
+        get;
     }
 
-    public required IResourceDatabase ResourceDatabase
+    public IResourceDatabase ResourceDatabase
     {
-        get; init;
+        get;
     }
 
-    public required IResourceAllocator ResourceAllocator
+    public IResourceAllocator ResourceAllocator
     {
-        get; init;
+        get;
     }
 
-    public required ICommandBuffer GraphicsCommandBuffer
+    public ICommandBuffer CommandBuffer
     {
-        get; init;
+        get; set;
+    } = null!;
+
+    internal ResourceStreamingContext(AsyncCopyPipeline copyPipeline, ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator)
+    {
+        CopyPipeline = copyPipeline;
+        ResourceManager = resourceManager;
+        ResourceDatabase = resourceDatabase;
+        ResourceAllocator = resourceAllocator;
     }
 }
 

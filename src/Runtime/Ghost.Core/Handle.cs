@@ -6,18 +6,18 @@ public readonly struct Handle<T> : IEquatable<Handle<T>>
 {
     public int ID
     {
-        get => field - 1;
+        get;
     }
 
     public int Generation
     {
-        get => field - 1;
+        get;
     }
 
     public Handle(int id, int generation)
     {
-        ID = id + 1;
-        Generation = generation + 1;
+        ID = id;
+        Generation = generation;
     }
 
     public static Handle<T> Invalid => default;

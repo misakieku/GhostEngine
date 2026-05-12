@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Core.Utilities;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Utilities;
 using Misaki.HighPerformance.LowLevel.Buffer;
@@ -48,7 +49,7 @@ public struct MeshletHierarchyNode
     public float4 maxY;
     public float4 maxZ;
     public float4 maxParentError;
-    
+
     // x,y,z,w correspond to children 0,1,2,3.
     // MSB (1 << 31) indicates it's an Internal Node.
     // If MSB is 0, the remaining 31 bits are the MeshletIndex.
@@ -69,6 +70,19 @@ public struct MeshletMeshData : IDisposable
     public int lodLevelCount;
     public int materialSlotCount;
 
+    public readonly MeshletMeshData Clone()
+    {
+        var newData = this;
+
+        newData.meshlets = meshlets.Clone(AllocationHandle.Persistent);
+        newData.groups = groups.Clone(AllocationHandle.Persistent);
+        newData.hierarchyNodes = hierarchyNodes.Clone(AllocationHandle.Persistent);
+        newData.meshletVertices = meshletVertices.Clone(AllocationHandle.Persistent);
+        newData.meshletTriangles = meshletTriangles.Clone(AllocationHandle.Persistent);
+
+        return newData;
+    }
+
     public void Dispose()
     {
         meshlets.Dispose();
@@ -86,11 +100,11 @@ public struct Mesh : IResourceReleasable
     private MeshletMeshData _meshletData;
 
     [UnscopedRef]
-    public readonly ref readonly MeshletMeshData MeshletData => ref _meshletData;
+    public ref MeshletMeshData MeshletData => ref _meshletData;
 
     internal bool IsMeshDataDirty
     {
-        get; private set;
+        get; set;
     }
 
     /// <summary>
@@ -101,6 +115,7 @@ public struct Mesh : IResourceReleasable
         readonly get => _vertices;
         set
         {
+            _vertices.Dispose();
             _vertices = value;
             VertexCount = value.Count;
             IsMeshDataDirty = true;
@@ -115,6 +130,7 @@ public struct Mesh : IResourceReleasable
         readonly get => _indices;
         set
         {
+            _indices.Dispose();
             _indices = value;
             IndexCount = value.Count;
             IsMeshDataDirty = true;
@@ -126,7 +142,7 @@ public struct Mesh : IResourceReleasable
     /// </summary>
     public int VertexCount
     {
-        get; private set;
+        get; internal set;
     }
 
     /// <summary>
@@ -134,7 +150,7 @@ public struct Mesh : IResourceReleasable
     /// </summary>
     public int IndexCount
     {
-        get; private set;
+        get; internal set;
     }
 
     /// <summary>
@@ -164,7 +180,7 @@ public struct Mesh : IResourceReleasable
     /// <summary>
     /// Gets the handle to the meshlet buffer on the GPU.
     /// </summary>
-    public Handle<GPUBuffer> MeshLetBuffer
+    public Handle<GPUBuffer> MeshletBuffer
     {
         get; internal set;
     }
@@ -209,17 +225,15 @@ public struct Mesh : IResourceReleasable
         get; internal set;
     }
 
-    internal void SetMeshletSummary(int meshletCount, int lodLevelCount, int materialSlotCount)
+    public readonly Mesh Clone()
     {
-        _meshletData.meshletCount = meshletCount;
-        _meshletData.lodLevelCount = lodLevelCount;
-        _meshletData.materialSlotCount = materialSlotCount;
-    }
+        var newData = this;
 
-    internal void SetCounts(int vertexCount, int indexCount)
-    {
-        VertexCount = vertexCount;
-        IndexCount = indexCount;
+        newData._vertices = _vertices.Clone(AllocationHandle.Persistent);
+        newData._indices = _indices.Clone(AllocationHandle.Persistent);
+        newData._meshletData = _meshletData.Clone();
+
+        return newData;
     }
 
     public void ReleaseCpuResources()
@@ -235,7 +249,7 @@ public struct Mesh : IResourceReleasable
 
         database.ReleaseResource(VertexBuffer.AsResource());
         database.ReleaseResource(IndexBuffer.AsResource());
-        database.ReleaseResource(MeshLetBuffer.AsResource());
+        database.ReleaseResource(MeshletBuffer.AsResource());
         database.ReleaseResource(MeshletVerticesBuffer.AsResource());
         database.ReleaseResource(MeshletTrianglesBuffer.AsResource());
         database.ReleaseResource(MeshletGroupBuffer.AsResource());

@@ -7,6 +7,7 @@ using Ghost.Editor.ViewModels.Controls;
 using Ghost.Editor.ViewModels.Windows;
 using Ghost.Editor.Views.Windows;
 using Ghost.Engine;
+using Ghost.Engine.Streaming;
 using Ghost.Graphics.RHI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

@@ -33,11 +33,13 @@ public unsafe class EntityCommandBuffer : IDisposable
         Dispose();
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void WriteHeader(ECBOpCode op)
     {
         _buffer.Add((byte)op);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void Write<T>(T value)
         where T : unmanaged
     {
@@ -52,6 +54,7 @@ public unsafe class EntityCommandBuffer : IDisposable
         MemoryUtility.MemCpy((byte*)_buffer.GetUnsafePtr() + idx, &value, (nuint)size);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void WriteSpan<T>(ReadOnlySpan<T> span)
         where T : unmanaged
     {
@@ -69,6 +72,7 @@ public unsafe class EntityCommandBuffer : IDisposable
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private T Read<T>(ref int cursor)
         where T : unmanaged
     {
@@ -81,6 +85,7 @@ public unsafe class EntityCommandBuffer : IDisposable
         return value;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Span<T> ReadSpan<T>(ref int cursor, int length)
         where T : unmanaged
     {
@@ -93,6 +98,7 @@ public unsafe class EntityCommandBuffer : IDisposable
         return span;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void* ReadBuffer(ref int cursor, int size)
     {
         var ptr = (byte*)_buffer.GetUnsafePtr();
@@ -102,12 +108,14 @@ public unsafe class EntityCommandBuffer : IDisposable
         return bufferPtr;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void CreateEntity(int count = 1)
     {
         WriteHeader(ECBOpCode.CreateEntity);
         Write(count);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void CreateEntity(int count, ComponentSet set)
     {
         WriteHeader(ECBOpCode.CreateEntityWithComponents);
@@ -116,12 +124,14 @@ public unsafe class EntityCommandBuffer : IDisposable
         WriteSpan(set.Components);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void DestroyEntity(Entity entity)
     {
         WriteHeader(ECBOpCode.DestroyEntity);
         Write(entity);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AddComponent<T>(Entity entity, T component = default)
         where T : unmanaged, IComponent
     {
@@ -131,6 +141,7 @@ public unsafe class EntityCommandBuffer : IDisposable
         Write(component);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void RemoveComponent<T>(Entity entity)
         where T : unmanaged, IComponent
     {
@@ -139,6 +150,7 @@ public unsafe class EntityCommandBuffer : IDisposable
         Write(ComponentTypeID<T>.Value);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void SetComponent<T>(Entity entity, T component)
         where T : unmanaged, IComponent
     {

@@ -10,36 +10,45 @@ using System.Runtime.InteropServices;
 namespace Ghost.Graphics.Core;
 
 // TODO: Temporary rendering context for heap creation and data upload. We will refactor it later when we have a better understanding of the engine architecture.
-public readonly unsafe ref struct RenderContext
+public unsafe class RenderContext
 {
-    public required ICommandBuffer CommandBuffer
+    public ICommandBuffer CommandBuffer
     {
-        get; init;
+        get; internal set;
+    } = null!;
+
+    public ResourceManager ResourceManager
+    {
+        get;
     }
 
-    public required ResourceManager ResourceManager
+    public IResourceAllocator ResourceAllocator
     {
-        get; init;
+        get;
     }
 
-    public required IResourceAllocator ResourceAllocator
+    public IResourceDatabase ResourceDatabase
     {
-        get; init;
+        get;
     }
 
-    public required IResourceDatabase ResourceDatabase
+    public IPipelineLibrary PipelineLibrary
     {
-        get; init;
-    }
-
-    public required IPipelineLibrary PipelineLibrary
-    {
-        get; init;
+        get;
     }
 
     internal ShaderLibrary ShaderLibrary
     {
-        get; init;
+        get;
+    }
+
+    internal RenderContext(ResourceManager resourceManager, IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase, IPipelineLibrary pipelineLibrary, ShaderLibrary shaderLibrary)
+    {
+        ResourceManager = resourceManager;
+        ResourceAllocator = resourceAllocator;
+        ResourceDatabase = resourceDatabase;
+        PipelineLibrary = pipelineLibrary;
+        ShaderLibrary = shaderLibrary;
     }
 
     private void TransitionBarrier(Handle<GPUResource> resource, bool isTexture, BarrierLayout newLayout, BarrierAccess newAccess, BarrierSync newSync)
@@ -269,25 +278,25 @@ public readonly unsafe ref struct RenderContext
             HeapType = HeapType.Default,
         };
 
-        meshRef.MeshLetBuffer = ResourceAllocator.CreateBuffer(in meshletDesc, "Meshlets");
+        meshRef.MeshletBuffer = ResourceAllocator.CreateBuffer(in meshletDesc, "Meshlets");
         meshRef.MeshletVerticesBuffer = ResourceAllocator.CreateBuffer(in verticesDesc, "MeshletVertices");
         meshRef.MeshletTrianglesBuffer = ResourceAllocator.CreateBuffer(in trianglesDesc, "MeshletTriangles");
         meshRef.MeshletGroupBuffer = ResourceAllocator.CreateBuffer(in groupsDesc, "MeshletGroups");
         meshRef.MeshletHierarchyBuffer = ResourceAllocator.CreateBuffer(in hierarchyDesc, "MeshletHierarchy");
 
-        TransitionBarrier(meshRef.MeshLetBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
+        TransitionBarrier(meshRef.MeshletBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
         TransitionBarrier(meshRef.MeshletVerticesBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
         TransitionBarrier(meshRef.MeshletTrianglesBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
         TransitionBarrier(meshRef.MeshletGroupBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
         TransitionBarrier(meshRef.MeshletHierarchyBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
 
-        UploadBuffer(meshRef.MeshLetBuffer, meshletData.meshlets.AsSpan());
+        UploadBuffer(meshRef.MeshletBuffer, meshletData.meshlets.AsSpan());
         UploadBuffer(meshRef.MeshletVerticesBuffer, meshletData.meshletVertices.AsSpan());
         UploadBuffer(meshRef.MeshletTrianglesBuffer, meshletData.meshletTriangles.AsSpan());
         UploadBuffer(meshRef.MeshletGroupBuffer, meshletData.groups.AsSpan());
         UploadBuffer(meshRef.MeshletHierarchyBuffer, meshletData.hierarchyNodes.AsSpan());
 
-        TransitionBarrier(meshRef.MeshLetBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
+        TransitionBarrier(meshRef.MeshletBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
         TransitionBarrier(meshRef.MeshletVerticesBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
         TransitionBarrier(meshRef.MeshletTrianglesBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
         TransitionBarrier(meshRef.MeshletGroupBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
@@ -309,7 +318,7 @@ public readonly unsafe ref struct RenderContext
             worldBoundsMax = meshData.BoundingBox.Max,
             vertexBuffer = ResourceDatabase.GetBindlessIndex(meshData.VertexBuffer.AsResource()),
             indexBuffer = ResourceDatabase.GetBindlessIndex(meshData.IndexBuffer.AsResource()),
-            meshletBuffer = ResourceDatabase.GetBindlessIndex(meshData.MeshLetBuffer.AsResource()),
+            meshletBuffer = ResourceDatabase.GetBindlessIndex(meshData.MeshletBuffer.AsResource()),
             meshletVerticesBuffer = ResourceDatabase.GetBindlessIndex(meshData.MeshletVerticesBuffer.AsResource()),
             meshletTrianglesBuffer = ResourceDatabase.GetBindlessIndex(meshData.MeshletTrianglesBuffer.AsResource()),
             meshletGroupBuffer = ResourceDatabase.GetBindlessIndex(meshData.MeshletGroupBuffer.AsResource()),

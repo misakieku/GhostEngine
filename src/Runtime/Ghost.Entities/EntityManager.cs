@@ -4,6 +4,7 @@ using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities;
 
@@ -60,6 +61,7 @@ public unsafe partial class EntityManager : IDisposable
         Dispose();
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal Error UpdateEntityLocation(Entity entity, Identifier<Archetype> newArchetypeID, int newChunkIndex, int newRowIndex)
     {
         ref var location = ref _entityLocations.GetElementReferenceAt(entity.ID, entity.Generation, out var exist);
@@ -75,6 +77,7 @@ public unsafe partial class EntityManager : IDisposable
         return Error.None;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal Result<EntityLocation, Error> GetEntityLocation(Entity entity)
     {
         if (_entityLocations.TryGetElementAt(entity.ID, entity.Generation, out var location))
@@ -83,6 +86,12 @@ public unsafe partial class EntityManager : IDisposable
         }
 
         return Error.NotFound;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void Clear()
+    {
+        _entityLocations.Clear();
     }
 
     private static void CopyData(ref Archetype oldArch, int oldChunk, int oldRow,
@@ -112,6 +121,7 @@ public unsafe partial class EntityManager : IDisposable
     /// Create an entity with no components.
     /// </summary>
     /// <returns>The created entity.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Entity CreateEntity()
     {
         var entities = (Span<Entity>)stackalloc Entity[1];
@@ -125,6 +135,7 @@ public unsafe partial class EntityManager : IDisposable
     /// </summary>
     /// <param name="set">A set of component space IDs to add to the entities.</param>
     /// <returns>The created entity.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Entity CreateEntity(ComponentSetView set)
     {
         var entities = (Span<Entity>)stackalloc Entity[1];
@@ -162,6 +173,7 @@ public unsafe partial class EntityManager : IDisposable
     /// Create multiple entities with no components.
     /// </summary>
     /// <param name="count">The number of entities to create.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void CreateEntities(int count)
     {
         ref var emptyArchetype = ref _world.ComponentManager.GetArchetypeReference(World.EmptyArchetypeID);
@@ -462,6 +474,7 @@ public unsafe partial class EntityManager : IDisposable
     /// </summary>
     /// <param name="entity">The entity to check.</param>
     /// <returns>True if the entity exists, false otherwise.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Exists(Entity entity)
     {
         return _entityLocations.Contains(entity.ID, entity.Generation);
@@ -514,6 +527,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <typeparam name="T">The component space.</typeparam>
     /// <param name="component">The component data.</param>
     /// <returns>The result status of the operation.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Error CreateSingleton<T>(T component = default)
         where T : unmanaged, IComponent
     {
@@ -553,6 +567,7 @@ public unsafe partial class EntityManager : IDisposable
     /// </summary>
     /// <typeparam name="T">The component space.</typeparam>
     /// <returns>Reference to the component data. null ref if not found.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ref T GetSingleton<T>()
         where T : unmanaged, IComponent
     {
@@ -660,6 +675,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="entity">The entity to add the component to.</param>
     /// <param name="component">The component data.</param>
     /// <returns>The result status of the operation.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Error AddComponent<T>(Entity entity, T component = default)
         where T : unmanaged, IComponent
     {
@@ -769,6 +785,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <typeparam name="T">The component space.</typeparam>
     /// <param name="entity">The entity to remove the component from.</param>
     /// <returns>The result status of the operation.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Error RemoveComponent<T>(Entity entity)
         where T : unmanaged, IComponent
     {
@@ -782,6 +799,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="componentID">The component space ID to set.</param>
     /// <param name="pComponent">Pointer to the component data.</param>
     /// <returns>The result status of the operation.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Error SetComponent(Entity entity, Identifier<IComponent> componentID, void* pComponent)
     {
         if (!_entityLocations.TryGetElementAt(entity.ID, entity.Generation, out var location))
@@ -801,6 +819,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <typeparam name="T">The component space.</typeparam>
     /// <param name="entity">The entity to set the component data for.</param>
     /// <param name="component">The component data.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Error SetComponent<T>(Entity entity, T component)
         where T : unmanaged, IComponent
     {
@@ -813,6 +832,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="entity">The entity to get the component data for.</param>
     /// <param name="componentID">The component space ID to get.</param>
     /// <returns>Pointer to the component data, or null if not found.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void* GetComponent(Entity entity, Identifier<IComponent> componentID)
     {
         if (!_entityLocations.TryGetElementAt(entity.ID, entity.Generation, out var location))
@@ -830,6 +850,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <typeparam name="T">The component space.</typeparam>
     /// <param name="entity">The entity to get the component data for.</param>
     /// <returns>Reference to the component data. null ref if not found.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ref T GetComponent<T>(Entity entity)
         where T : unmanaged, IComponent
     {
@@ -843,6 +864,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="entity">The entity to check.</param>
     /// <param name="componentID">The component space ID to check.</param>
     /// <returns>True if the entity has the component, false otherwise.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool HasComponent(Entity entity, Identifier<IComponent> componentID)
     {
         if (!_entityLocations.TryGetElementAt(entity.ID, entity.Generation, out var location))
@@ -860,6 +882,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <typeparam name="T">The component space.</typeparam>
     /// <param name="entity">The entity to check.</param>
     /// <returns>True if the entity has the component, false otherwise.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool HasComponent<T>(Entity entity)
         where T : unmanaged, IComponent
     {
@@ -918,6 +941,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="entity">The entity to set the enabled state for.</param>
     /// <param name="enabled">True to enable the component, false to disable it.</
     /// <returns>The result status of the operation.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Error SetEnabled<T>(Entity entity, bool enabled)
         where T : unmanaged, IEnableableComponent
     {

@@ -1,7 +1,7 @@
 using Ghost.Core;
 using Ghost.Editor.Core.Assets;
 using Ghost.Editor.Core.Contracts;
-using Ghost.Engine;
+using Ghost.Engine.Streaming;
 
 namespace Ghost.Editor.Core.Services;
 

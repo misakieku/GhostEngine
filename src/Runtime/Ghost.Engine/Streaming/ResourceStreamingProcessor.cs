@@ -1,28 +1,70 @@
 using Ghost.Core;
 using Ghost.Graphics;
+using Misaki.HighPerformance.Jobs;
+using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.LowLevel.Collections;
 using System.Collections.Concurrent;
 
-namespace Ghost.Engine;
+namespace Ghost.Engine.Streaming;
 
 internal class ResourceStreamingProcessor : IResourceStreamingProcessor
 {
     private const int _MAX_UPLOADS_PER_FRAME = 8;
 
-    private readonly ConcurrentQueue<AssetEntry> _pendingUpload;
-    private readonly ConcurrentQueue<AssetEntry> _pendingFinalize;
+    private readonly ConcurrentQueue<ProcessableAssetEntry> _pendingProcess;
+    private readonly ConcurrentQueue<UploadableAssetEntry> _pendingUpload;
+    private readonly ConcurrentQueue<UploadableAssetEntry> _pendingFinalize;
 
     private ulong _pendingCopyFenceValue;
 
     public ResourceStreamingProcessor()
     {
-        _pendingUpload = new ConcurrentQueue<AssetEntry>();
-        _pendingFinalize = new ConcurrentQueue<AssetEntry>();
+        _pendingProcess = new ConcurrentQueue<ProcessableAssetEntry>();
+        _pendingUpload = new ConcurrentQueue<UploadableAssetEntry>();
+        _pendingFinalize = new ConcurrentQueue<UploadableAssetEntry>();
         _pendingCopyFenceValue = 0;
     }
 
-    public void EnqueueForUpload(AssetEntry entry)
+    public bool EnqueueForProcess(AssetEntry entry)
     {
-        _pendingUpload.Enqueue(entry);
+        if (entry is UploadableAssetEntry uploadable)
+        {
+            _pendingUpload.Enqueue(uploadable);
+            return true;
+        }
+        else if (entry is ProcessableAssetEntry processable)
+        {
+            _pendingProcess.Enqueue(processable);
+            return true;
+        }
+
+        return false;
+    }
+
+    public void ProcessPendingResource(JobScheduler jobScheduler, object? context)
+    {
+        using var scope = AllocationManager.CreateStackScope();
+        using var handles = new UnsafeList<JobHandle>(_pendingProcess.Count, scope.AllocationHandle);
+
+        while (_pendingProcess.TryDequeue(out var entry))
+        {
+            var result = entry.OnProcessing(context);
+            if (result.IsFailure)
+            {
+                Logger.Error(result.Message);
+                continue;
+            }
+
+            var handle = result.Value;
+            if (!handle.IsValid)
+            {
+                continue;
+            }
+
+            handles.Add(handle);
+        }
+
+        jobScheduler.WaitAll(handles);
     }
 
     public void ProcessPendingUploads(ResourceStreamingContext context)
@@ -32,6 +74,12 @@ internal class ResourceStreamingProcessor : IResourceStreamingProcessor
         {
             while (_pendingFinalize.TryDequeue(out var item))
             {
+                Volatile.Write(ref item.StateValue, (int)AssetState.Ready);
+                if (Interlocked.CompareExchange(ref item.PendingReimport, false, true))
+                {
+                    item.AssetManager.ReimportAsset(item.AssetId);  // re-queue
+                }
+
                 item.OnUploadComplete(context);
             }
 
@@ -68,7 +116,7 @@ internal class ResourceStreamingProcessor : IResourceStreamingProcessor
                 continue;
             }
 
-            entry.State = AssetState.Uploading;
+            entry.State = AssetState.Processing;
 
             _pendingFinalize.Enqueue(entry);
             uploadCount++;

@@ -2,8 +2,10 @@ using Ghost.Core;
 using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.SceneGraph;
 using Ghost.Editor.Core.Utilities;
+using Ghost.Engine;
 using Ghost.Engine.Components;
 using Ghost.Engine.Core;
+using Ghost.Engine.Streaming;
 using Ghost.Entities;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
@@ -16,11 +18,30 @@ using System.Text.Json.Serialization;
 
 namespace Ghost.Editor.Core.Services;
 
-[EditorInjection(EditorInjectionAttribute.ServiceLifetime.Singleton, typeof(SceneSerializationService))]
-public class SceneSerializationService : IDisposable
+internal sealed class SceneSaveData
 {
-    private const int SCENE_FORMAT_VERSION = 1;
+    public uint FormatVersion
+    {
+        get; set;
+    } = 1;
 
+    public List<EntitySaveData> Entities
+    {
+        get; set;
+    } = new();
+}
+
+internal sealed class EntitySaveData
+{
+    public Dictionary<string, JsonElement> Components
+    {
+        get; set;
+    } = new();
+}
+
+[EditorInjection(EditorInjectionAttribute.ServiceLifetime.Singleton, typeof(SceneSerializationService))]
+internal class SceneSerializationService : IDisposable
+{
     private static readonly Dictionary<Type, FieldInfo[]> s_entityFieldsCache = new();
     private static readonly JsonSerializerOptions s_jsonOptions = new()
     {
@@ -35,7 +56,7 @@ public class SceneSerializationService : IDisposable
         public override Entity Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
             var localId = reader.GetInt32();
-            return new Entity(localId, localId >= 0 ? 0 : -1);
+            return new Entity(localId, localId >= 0 ? 1 : 0);
         }
 
         public override void Write(Utf8JsonWriter writer, Entity value, JsonSerializerOptions options)
@@ -122,13 +143,12 @@ public class SceneSerializationService : IDisposable
 
     #region Binary Serialization
 
-    private static readonly byte[] SCENE_MAGIC = Encoding.UTF8.GetBytes("GSCN");
-
     private static uint GetTypeNameHash(string typeName)
     {
         var hash = 2166136261u;
-        foreach (var c in typeName)
+        for (var i = 0; i < typeName.Length; i++)
         {
+            var c = typeName[i];
             hash ^= c;
             hash *= 16777619u;
         }
@@ -140,9 +160,14 @@ public class SceneSerializationService : IDisposable
     {
         using var writer = new BinaryWriter(targetStream, Encoding.UTF8, true);
 
-        writer.Write(SCENE_MAGIC);
-        writer.Write(SCENE_FORMAT_VERSION);
-        writer.Write(data.Entities?.Count ?? 0);
+        var header = new SceneContentHeader
+        {
+            magic = SceneContentHeader.MAGIC,
+            version = SceneContentHeader.VERSION,
+            entityCount = data.Entities.Count,
+        };
+
+        writer.Write(MemoryMarshal.AsBytes(new ReadOnlySpan<SceneContentHeader>(ref header)));
 
         if (data.Entities == null)
         {
@@ -171,9 +196,11 @@ public class SceneSerializationService : IDisposable
                 if (componentType == null)
                 {
                     writer.Write(typeHash);
+
                     var nameBytes = Encoding.UTF8.GetBytes(typeName);
                     writer.Write(nameBytes.Length);
                     writer.Write(nameBytes);
+
                     var jsonBytes = Encoding.UTF8.GetBytes(componentElement.GetRawText());
                     writer.Write(jsonBytes.Length);
                     writer.Write(jsonBytes);
@@ -189,11 +216,10 @@ public class SceneSerializationService : IDisposable
 
                 var compInfo = ComponentRegistry.GetComponentInfo(componentType);
 
-                var rawBytes = new byte[compInfo.size];
-                fixed (byte* pDest = rawBytes)
-                {
-                    Marshal.StructureToPtr(boxed, (nint)pDest, false);
-                }
+                using var scope = AllocationManager.CreateStackScope();
+                using var buffer = new MemoryBlock((nuint)compInfo.size, (nuint)compInfo.alignment, scope.AllocationHandle);
+
+                Marshal.StructureToPtr(boxed, (nint)buffer.GetUnsafePtr(), false);
 
                 var entityFieldOffsets = GetEntityFields(componentType);
                 var offsets = new int[entityFieldOffsets.Length];
@@ -203,12 +229,15 @@ public class SceneSerializationService : IDisposable
                 }
 
                 writer.Write(typeHash);
+
                 var nameBytes2 = Encoding.UTF8.GetBytes(typeName);
                 writer.Write(nameBytes2.Length);
                 writer.Write(nameBytes2);
-                writer.Write(rawBytes.Length);
-                writer.Write(rawBytes);
+
+                writer.Write((int)buffer.Size);
+                writer.Write(buffer.AsSpan<byte>());
                 writer.Write(offsets.Length);
+
                 foreach (var off in offsets)
                 {
                     writer.Write(off);
@@ -229,7 +258,7 @@ public class SceneSerializationService : IDisposable
         var root = document.RootElement;
         var data = new SceneSaveData
         {
-            FormatVersion = root.TryGetProperty("formatVersion", out var v) ? v.GetInt32() : 1,
+            FormatVersion = root.TryGetProperty("formatVersion", out var v) ? v.GetUInt32() : 1,
         };
 
         if (root.TryGetProperty("entities", out var entitiesElement))
@@ -238,12 +267,12 @@ public class SceneSerializationService : IDisposable
             {
                 var entityData = new EntitySaveData();
 
-			if (entityElement.TryGetProperty("components", out var componentsElement))
-			{
-				foreach (var componentProperty in componentsElement.EnumerateObject())
-				{
-					entityData.Components[componentProperty.Name] = componentProperty.Value.Clone();
-				}
+                if (entityElement.TryGetProperty("components", out var componentsElement))
+                {
+                    foreach (var componentProperty in componentsElement.EnumerateObject())
+                    {
+                        entityData.Components[componentProperty.Name] = componentProperty.Value.Clone();
+                    }
                 }
 
                 data.Entities.Add(entityData);
@@ -261,7 +290,8 @@ public class SceneSerializationService : IDisposable
     {
         if (loadingType == SceneLoadingType.Single)
         {
-            ClearEditorWorld();
+            // TODO: Support TimeData
+            _worldService.EditorWorld.Clear(default);
         }
 
         var world = _worldService.EditorWorld;
@@ -388,29 +418,6 @@ public class SceneSerializationService : IDisposable
         var genericMethod = getOrRegisterMethod.MakeGenericMethod(type);
         return (Identifier<IComponent>)genericMethod.Invoke(null, null)!;
     }
-
-    private unsafe void ClearEditorWorld()
-    {
-        var world = _worldService.EditorWorld;
-
-        using var scope = AllocationManager.CreateStackScope();
-        using var entitiesToDestroy = new UnsafeList<Entity>(128, scope.AllocationHandle);
-
-        for (var archIdx = 0; archIdx < world.ComponentManager.ArchetypeCount; archIdx++)
-        {
-            ref var archetype = ref world.ComponentManager.GetArchetypeReference(archIdx);
-
-            for (var chunkIdx = 0; chunkIdx < archetype.ChunkCount; chunkIdx++)
-            {
-                ref var chunk = ref archetype.GetChunkReference(chunkIdx);
-                var entitySpan = new Span<Entity>((byte*)chunk.GetUnsafePtr() + archetype.EntityIDsOffset, chunk._count);
-                entitiesToDestroy.AddRange(entitySpan);
-            }
-        }
-
-        world.EntityManager.DestroyEntities(entitiesToDestroy.AsSpan());
-    }
-
     #endregion
 
     #region Save Scene from Editor World
@@ -441,72 +448,72 @@ public class SceneSerializationService : IDisposable
             reverseMap[sorted[i]] = i;
         }
 
-		var data = new SceneSaveData
-		{
-			FormatVersion = SCENE_FORMAT_VERSION,
-		};
+        var data = new SceneSaveData
+        {
+            FormatVersion = SceneContentHeader.VERSION,
+        };
 
-		using var stream = new MemoryStream();
-		using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
+        using var stream = new MemoryStream();
+        using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
 
-		writer.WriteStartObject();
-		writer.WriteNumber("formatVersion", SCENE_FORMAT_VERSION);
-		writer.WriteStartArray("entities");
+        writer.WriteStartObject();
+        writer.WriteNumber("formatVersion", SceneContentHeader.VERSION);
+        writer.WriteStartArray("entities");
 
-		foreach (var entity in sorted)
-		{
-			var locationResult = world.EntityManager.GetEntityLocation(entity);
-			if (!locationResult.IsSuccess)
-			{
-				continue;
-			}
+        foreach (var entity in sorted)
+        {
+            var locationResult = world.EntityManager.GetEntityLocation(entity);
+            if (!locationResult.IsSuccess)
+            {
+                continue;
+            }
 
-			var location = locationResult.Value;
-			ref var archetype = ref world.ComponentManager.GetArchetypeReference(location.archetypeID);
+            var location = locationResult.Value;
+            ref var archetype = ref world.ComponentManager.GetArchetypeReference(location.archetypeID);
 
-			writer.WriteStartObject();
-			writer.WriteStartObject("components");
+            writer.WriteStartObject();
+            writer.WriteStartObject("components");
 
-			foreach (var layout in archetype._layouts)
-			{
-				var type = ComponentRegistry.s_runtimeIDToType[layout.componentID];
+            foreach (var layout in archetype._layouts)
+            {
+                var type = ComponentRegistry.s_runtimeIDToType[layout.componentID];
                 if (type == typeof(SceneID))
                 {
                     continue;
                 }
-                
+
                 var fullName = type.FullName ?? type.Name;
-				var compInfo = ComponentRegistry.GetComponentInfo(layout.componentID);
+                var compInfo = ComponentRegistry.GetComponentInfo(layout.componentID);
 
-				var pData = archetype.GetComponentData(location.chunkIndex, location.rowIndex, layout.componentID);
-				if (pData == null)
-				{
-					continue;
-				}
+                var pData = archetype.GetComponentData(location.chunkIndex, location.rowIndex, layout.componentID);
+                if (pData == null)
+                {
+                    continue;
+                }
 
-				var boxed = Marshal.PtrToStructure((nint)pData, type);
-				if (boxed == null)
-				{
-					continue;
-				}
+                var boxed = Marshal.PtrToStructure((nint)pData, type);
+                if (boxed == null)
+                {
+                    continue;
+                }
 
-				boxed = RemapEntityFieldsToLocal(boxed, type, reverseMap);
+                boxed = RemapEntityFieldsToLocal(boxed, type, reverseMap);
 
-				writer.WritePropertyName(fullName);
-				JsonSerializer.Serialize(writer, boxed, type, s_jsonOptions);
-			}
+                writer.WritePropertyName(fullName);
+                JsonSerializer.Serialize(writer, boxed, type, s_jsonOptions);
+            }
 
-			writer.WriteEndObject();
-			writer.WriteEndObject();
-		}
+            writer.WriteEndObject();
+            writer.WriteEndObject();
+        }
 
-		writer.WriteEndArray();
-		writer.WriteEndObject();
-		writer.Flush();
+        writer.WriteEndArray();
+        writer.WriteEndObject();
+        writer.Flush();
 
-		File.WriteAllBytes(filePath, stream.ToArray());
+        File.WriteAllBytes(filePath, stream.ToArray());
 
-		return Result.Success();
+        return Result.Success();
     }
 
     private static List<Entity> SortEntitiesByHierarchy(World world, List<Entity> entities)
@@ -567,28 +574,3 @@ public class SceneSerializationService : IDisposable
     {
     }
 }
-
-#region Data Model
-
-public sealed class SceneSaveData
-{
-    public int FormatVersion
-    {
-        get; set;
-    } = 1;
-
-    public List<EntitySaveData> Entities
-    {
-        get; set;
-    } = new();
-}
-
-public sealed class EntitySaveData
-{
-	public Dictionary<string, JsonElement> Components
-	{
-		get; set;
-	} = new();
-}
-
-#endregion

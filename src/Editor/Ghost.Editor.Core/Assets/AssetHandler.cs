@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Engine;
+using Ghost.Engine.Streaming;
 
 namespace Ghost.Editor.Core.Assets;
 

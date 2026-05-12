@@ -649,6 +649,18 @@ public struct BarrierDesc
         };
     }
 
+    public static BarrierDesc Buffer(Handle<GPUBuffer> resource, BarrierSync syncAfter, BarrierAccess accessAfter, bool isAliasing = false)
+    {
+        return new BarrierDesc
+        {
+            Type = BarrierType.Buffer,
+            Resource = resource.AsResource(),
+            SyncAfter = syncAfter,
+            AccessAfter = accessAfter,
+            IsAliasing = isAliasing
+        };
+    }
+
     public static BarrierDesc Texture(Handle<GPUResource> resource, BarrierSync syncAfter, BarrierAccess accessAfter, BarrierLayout layoutAfter, BarrierSubresourceRange subresources = default, bool discard = false, bool isAliasing = false)
     {
         return new BarrierDesc
@@ -663,6 +675,22 @@ public struct BarrierDesc
             IsAliasing = isAliasing
         };
     }
+
+    public static BarrierDesc Texture(Handle<GPUTexture> resource, BarrierSync syncAfter, BarrierAccess accessAfter, BarrierLayout layoutAfter, BarrierSubresourceRange subresources = default, bool discard = false, bool isAliasing = false)
+    {
+        return new BarrierDesc
+        {
+            Type = BarrierType.Texture,
+            Resource = resource.AsResource(),
+            SyncAfter = syncAfter,
+            AccessAfter = accessAfter,
+            LayoutAfter = layoutAfter,
+            Subresources = subresources,
+            Discard = discard,
+            IsAliasing = isAliasing
+        };
+    }
+
 }
 
 public record struct ResourceDesc

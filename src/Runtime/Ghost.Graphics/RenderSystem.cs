@@ -244,6 +244,23 @@ public class RenderSystem : IDisposable
 
         var waitHandles = new WaitHandle[] { null!, _shutdownEvent };
 
+        var streamingContext = new ResourceStreamingContext
+        (
+            _asyncCopyPipeline,
+            _resourceManager,
+            _graphicsEngine.ResourceDatabase,
+            _graphicsEngine.ResourceAllocator
+        );
+
+        var renderContext = new RenderContext
+        (
+            _resourceManager,
+            _graphicsEngine.ResourceAllocator,
+            _graphicsEngine.ResourceDatabase,
+            _graphicsEngine.PipelineLibrary,
+            _shaderLibrary
+        );
+
         while (_isRunning)
         {
             var frameIndex = (int)(_submittedFenceValue % (ulong)_frameResources.Length);
@@ -303,26 +320,12 @@ public class RenderSystem : IDisposable
                 try
                 {
                     cmd.Begin(frameResource.CommandAllocator);
-                    
-                    var streamingContext = new ResourceStreamingContext
-                    {
-                        CopyPipeline = _asyncCopyPipeline,
-                        GraphicsCommandBuffer = cmd,
-                        ResourceAllocator = _graphicsEngine.ResourceAllocator,
-                        ResourceDatabase = _graphicsEngine.ResourceDatabase,
-                        ResourceManager = _resourceManager
-                    };
+
+                    streamingContext.CommandBuffer = cmd;
+                    renderContext.CommandBuffer = cmd;
+
                     _streamingProcessor.ProcessPendingUploads(streamingContext);
 
-                    var renderContext = new RenderContext
-                    {
-                        CommandBuffer = cmd,
-                        PipelineLibrary = _graphicsEngine.PipelineLibrary,
-                        ResourceAllocator = _graphicsEngine.ResourceAllocator,
-                        ResourceDatabase = _graphicsEngine.ResourceDatabase,
-                        ResourceManager = _resourceManager,
-                        ShaderLibrary = _shaderLibrary,
-                    };
                     _renderPipeline.Render(renderContext, frameIndex, frameResource.RenderPayload);
                     _swapChainManager.TransitionToPresent(cmd);
 

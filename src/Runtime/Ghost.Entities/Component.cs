@@ -262,6 +262,16 @@ public partial class ComponentManager : IDisposable
         return Identifier<EntityQuery>.Invalid;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void Clear()
+    {
+        _archetypes.Clear();
+        _entityQueries.Clear();
+
+        _archetypeLookup.Clear();
+        _querieLookup.Clear();
+    }
+
     /// <summary>
     /// Gets a reference to the entity query with the specified identifier.
     /// </summary>

@@ -29,13 +29,13 @@ public readonly record struct Entity
     public bool IsValid
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => ID != INVALID_ID;
+        get => Generation > 0;
     }
 
     public static Entity Invalid
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => new(INVALID_ID, INVALID_ID);
+        get => default;
     }
 
     internal Entity(EntityID id, GenerationID generation)

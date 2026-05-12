@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Engine;
+using Ghost.Engine.Streaming;
 using Ghost.Graphics;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
@@ -88,14 +89,14 @@ public class AssetManagerTest
             ResourceDatabase = _graphicsEngine.ResourceDatabase,
             ResourceAllocator = _graphicsEngine.ResourceAllocator,
             CopyPipeline = _copyPipeline,
-            GraphicsCommandBuffer = _commandBuffer,
+            CommandBuffer = _commandBuffer,
         };
 
         _processor.ProcessPendingUploads(ctx);
 
         await Task.Delay(1000, TestContext.CancellationToken);
 
-        Assert.IsGreaterThanOrEqualTo((int)AssetState.Uploading, entry.StateValue);
+        Assert.IsGreaterThanOrEqualTo((int)AssetState.Processing, entry.StateValue);
 
         // Trigger the completion of the upload and the transition to shader resource state.
         _processor.ProcessPendingUploads(ctx);
@@ -132,14 +133,14 @@ public class AssetManagerTest
             ResourceDatabase = _graphicsEngine.ResourceDatabase,
             ResourceAllocator = _graphicsEngine.ResourceAllocator,
             CopyPipeline = _copyPipeline,
-            GraphicsCommandBuffer = _commandBuffer,
+            CommandBuffer = _commandBuffer,
         };
 
         _processor.ProcessPendingUploads(ctx);
 
         await Task.Delay(1000, TestContext.CancellationToken);
 
-        Assert.IsGreaterThanOrEqualTo((int)AssetState.Uploading, entry.StateValue);
+        Assert.IsGreaterThanOrEqualTo((int)AssetState.Processing, entry.StateValue);
 
         _processor.ProcessPendingUploads(ctx);
 
@@ -174,7 +175,7 @@ public class AssetManagerTest
             ResourceDatabase = _graphicsEngine.ResourceDatabase,
             ResourceAllocator = _graphicsEngine.ResourceAllocator,
             CopyPipeline = _copyPipeline,
-            GraphicsCommandBuffer = _commandBuffer,
+            CommandBuffer = _commandBuffer,
         };
 
         _processor.ProcessPendingUploads(ctx);

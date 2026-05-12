@@ -1,7 +1,7 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.DSL.ShaderCompiler;
-using Ghost.Engine;
+using Ghost.Engine.Streaming;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Editor.Core.Assets;

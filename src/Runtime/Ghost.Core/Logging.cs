@@ -96,13 +96,13 @@ public static class Logger
 
         [StackTraceHidden]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Log(string message, LogLevel level)
+        public void Log(string? message, LogLevel level)
         {
             lock (_lock)
             {
                 var stackTrace = CaptureStackTrace ? new StackTrace(true).ToString() : null;
-                var logMessage = new LogMessage(level, message, stackTrace);
-                
+                var logMessage = new LogMessage(level, message ?? string.Empty, stackTrace);
+
                 _logs.Add(logMessage);
                 OnLogAdded?.Invoke(logMessage);
             }
@@ -115,7 +115,7 @@ public static class Logger
             lock (_lock)
             {
                 var logMessage = new LogMessage(LogLevel.Error, exception.Message, exception.StackTrace);
-                
+
                 _logs.Add(logMessage);
                 OnLogAdded?.Invoke(logMessage);
             }
@@ -156,7 +156,7 @@ public static class Logger
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Log(LogLevel level, string message)
+    public static void Log(LogLevel level, string? message)
     {
         s_logger.Log(message, level);
     }
@@ -177,7 +177,7 @@ public static class Logger
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Info(string message)
+    public static void Info(string? message)
     {
         s_logger.Log(message, LogLevel.Info);
     }
@@ -198,7 +198,7 @@ public static class Logger
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Warning(string message)
+    public static void Warning(string? message)
     {
         s_logger.Log(message, LogLevel.Warning);
     }
@@ -223,7 +223,7 @@ public static class Logger
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Error(string message)
+    public static void Error(string? message)
     {
         s_logger.Log(message, LogLevel.Error);
 #if DEBUG
@@ -274,7 +274,7 @@ public static class Logger
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [Conditional("DEBUG")]
     [Conditional("GHOST_EDITOR")]
-    public static void Debug(string message)
+    public static void Debug(string? message)
     {
         s_logger.Log(message, LogLevel.Debug);
     }

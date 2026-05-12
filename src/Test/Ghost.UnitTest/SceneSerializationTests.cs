@@ -5,6 +5,7 @@ using Ghost.Editor.Core.Services;
 using Ghost.Engine;
 using Ghost.Engine.Components;
 using Ghost.Engine.Core;
+using Ghost.Engine.Streaming;
 using Ghost.Entities;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Runtime.InteropServices;
@@ -136,6 +137,7 @@ public class SceneSerializationTests
     {
         var scene = SceneManager.CreateScene();
         CreateSceneEntity(scene);
+
         var parent = CreateEntityWithHierarchy(scene, Entity.Invalid);
         var child = CreateEntityWithHierarchy(scene, parent);
 
@@ -366,7 +368,7 @@ public class SceneSerializationTests
 
         var data = await SceneSerializationService.DeserializeSceneFileAsync(filePath, TestContext.CancellationToken);
         Assert.IsNotNull(data);
-        Assert.AreEqual(999, data!.FormatVersion);
+        Assert.AreEqual(999u, data!.FormatVersion);
 
         var loadResult = _serializationService.LoadSceneIntoEditorWorld(data);
         Assert.IsTrue(loadResult.IsSuccess, loadResult.Message);
@@ -395,7 +397,7 @@ public class SceneSerializationTests
         {
             fixed (byte* pBinary = binary)
             {
-                var result = SceneLoader.LoadSceneIntoWorld(world, pBinary, binary.Length);
+                var result = SceneLoader.LoadSceneIntoWorld(world, *(SceneContentHeader*)pBinary, pBinary + sizeof(SceneContentHeader), (nuint)(binary.Length + sizeof(SceneContentHeader)));
                 Assert.IsTrue(result.IsSuccess, result.Message);
                 Assert.AreEqual(3, result.Value);
             }

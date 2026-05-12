@@ -3,6 +3,7 @@ using Ghost.Editor.Core;
 using Ghost.Editor.Core.Assets;
 using Ghost.Editor.Core.Services;
 using Ghost.Engine;
+using Ghost.Engine.Streaming;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -93,11 +94,11 @@ public class MeshAssetHandlerTests
             var header = MemoryMarshal.Read<MeshContentHeader>(headerBytes);
             Assert.AreEqual(MeshContentHeader.MAGIC, header.magic);
             Assert.AreEqual(MeshContentHeader.VERSION, header.version);
-            Assert.IsGreaterThan(0u, header.vertexCount);
-            Assert.IsGreaterThan(0u, header.indexCount);
-            Assert.IsGreaterThan(0u, header.meshletCount);
-            Assert.IsGreaterThan(0u, header.meshletGroupCount);
-            Assert.IsGreaterThan(0u, header.meshletHierarchyNodeCount);
+            Assert.IsGreaterThan(0, header.vertexCount);
+            Assert.IsGreaterThan(0, header.indexCount);
+            Assert.IsGreaterThan(0, header.meshletCount);
+            Assert.IsGreaterThan(0, header.meshletGroupCount);
+            Assert.IsGreaterThan(0, header.meshletHierarchyNodeCount);
         }
     }
 

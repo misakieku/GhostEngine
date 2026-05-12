@@ -144,8 +144,8 @@ public partial class World : IDisposable, IEquatable<World>
 
         if (jobScheduler != null)
         {
-            _threadLocalECBs = new EntityCommandBuffer[jobScheduler.WorkerCount];
-            for (var i = 0; i < jobScheduler.WorkerCount; i++)
+            _threadLocalECBs = new EntityCommandBuffer[jobScheduler.ThreadLocalCount];
+            for (var i = 0; i < _threadLocalECBs.Length; i++)
             {
                 _threadLocalECBs[i] = new EntityCommandBuffer(_entityManager);
             }
@@ -237,6 +237,26 @@ public partial class World : IDisposable, IEquatable<World>
         where T : class
     {
         return _services.ContainsKey(typeof(T));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Clear(TimeData timeData)
+    {
+        _entityManager.Clear();
+        _entityCommandBuffer.Reset();
+
+        if (_threadLocalECBs != null)
+        {
+            for (var i = 0; i < _threadLocalECBs.Length; i ++)
+            {
+                _threadLocalECBs[i].Reset();
+            }
+        }
+
+        _componentManager.Clear();
+
+        _systemManager.CleanupAll(timeData);
+        _systemManager.InitializeAll(timeData);
     }
 
     public bool Equals(World? other)

@@ -1,4 +1,5 @@
 using Ghost.Engine;
+using Ghost.Engine.Streaming;
 using System.Collections.Concurrent;
 
 namespace Ghost.Editor.Core.Assets;

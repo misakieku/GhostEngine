@@ -1,10 +1,8 @@
 using Ghost.Core;
 using Ghost.Core.Utilities;
-using Ghost.Graphics;
 using Ghost.Graphics.Services;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Jobs;
-using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
@@ -12,7 +10,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
-namespace Ghost.Engine;
+namespace Ghost.Engine.Streaming;
 
 public enum AssetType
 {
@@ -25,7 +23,7 @@ public enum AssetType
     Video = 6,
     Json = 7,
 
-    Unknown = 32, // We are unlikely to have more than 32 asset types.
+    Unknown = 64,
 }
 
 public enum AssetState
@@ -34,7 +32,7 @@ public enum AssetState
     Scheduled = 1,
     Loading = 2,
     Loaded = 3,
-    Uploading = 4,
+    Processing = 4,
     Ready = 5,
     Failed = 6,
 }
@@ -50,206 +48,11 @@ public interface IContentProvider
     AssetType GetAssetType(Guid guid);
 }
 
-internal partial class AssetEntry
-{
-    private static readonly Action<AssetEntry>?[] s_onCreation = new Action<AssetEntry>[(int)AssetType.Unknown + 1];
-    private static readonly Func<AssetEntry, Result>?[] s_onParseRawData = new Func<AssetEntry, Result>[(int)AssetType.Unknown + 1];
-    private static readonly Func<AssetEntry, ResourceStreamingContext, Result>?[] s_onRecordUpload = new Func<AssetEntry, ResourceStreamingContext, Result>[(int)AssetType.Unknown + 1];
-    private static readonly Action<AssetEntry, ResourceStreamingContext>?[] s_onUploadComplete = new Action<AssetEntry, ResourceStreamingContext>[(int)AssetType.Unknown + 1];
-    private static readonly Action<AssetEntry>?[] s_onReleaseResource = new Action<AssetEntry>[(int)AssetType.Unknown + 1];
-
-    static AssetEntry()
-    {
-        RegisterTextureCallback();
-        RegisterMeshCallback();
-    }
-}
-
-internal unsafe partial class AssetEntry
-{
-    private struct Storage
-    {
-        public fixed byte data[64];
-    }
-
-    private readonly AssetManager _assetManager;
-    private readonly IResourceDatabase _resourceDatabase;
-    private readonly ResourceManager _resourceManager;
-
-    private readonly Guid _assetId;
-    private readonly AssetType _assetType;
-    private readonly Guid[] _dependencies;
-
-    private Storage _storage;
-    private MemoryBlock _rawData;
-    private object? _parsedObject;
-
-    private JobHandle _loadJobHandle;
-    private int _refCount;
-    private int _state;
-
-    private bool _pendingReimport;
-
-    public Guid AssetId => _assetId;
-    public MemoryBlock RawData => _rawData;
-    public JobHandle LoadJobHandle => _loadJobHandle;
-    public AssetType AssetType => _assetType;
-    public ReadOnlySpan<Guid> Dependencies => _dependencies;
-    public int RefCount => Volatile.Read(ref _refCount);
-
-    public ref int StateValue => ref _state;
-    public AssetState State
-    {
-        get => (AssetState)Volatile.Read(ref _state);
-        set => Volatile.Write(ref _state, (int)value);
-    }
-
-    public AssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, AssetType assetType, Guid[] dependencies)
-    {
-        _assetManager = manager;
-        _resourceDatabase = resourceDatabase;
-        _resourceManager = resourceManager;
-
-        _assetId = assetId;
-        _assetType = assetType;
-        _dependencies = dependencies;
-
-        s_onCreation[(int)_assetType]?.Invoke(this);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetStorage<T>(T asset)
-        where T : unmanaged
-    {
-        Unsafe.WriteUnaligned(ref _storage.data[0], asset);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public T GetStorage<T>()
-        where T : unmanaged
-    {
-        return Unsafe.ReadUnaligned<T>(ref _storage.data[0]);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetRawData([OwnershipTransfer] ref MemoryBlock data)
-    {
-        _rawData = data;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetLoadJobHandle(JobHandle handle)
-    {
-        _loadJobHandle = handle;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetPendingReimport()
-    {
-        Volatile.Write(ref _pendingReimport, true);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AddRef()
-    {
-        Interlocked.Increment(ref _refCount);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int Release()
-    {
-        Logger.DebugAssert(State == AssetState.Ready);
-
-        var newRefCount = Interlocked.Decrement(ref _refCount);
-        Logger.DebugAssert(newRefCount >= 0, "Reference count should not be negative");
-
-        if (newRefCount == 0)
-        {
-            _assetManager.RemoveEntry(_assetId);
-            OnReleaseResource();
-
-            foreach (var dep in _dependencies)
-            {
-                if (_assetManager.TryGetEntry(dep, out var entry))
-                {
-                    entry.Release();
-                }
-            }
-        }
-
-        return newRefCount;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Result OnParseRawData()
-    {
-        return s_onParseRawData[(int)_assetType]?.Invoke(this) ?? Result.Failure("Unsupported asset type.");
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Result OnRecordUploadCommands(ResourceStreamingContext context)
-    {
-        return s_onRecordUpload[(int)_assetType]?.Invoke(this, context) ?? Result.Failure("Unsupported asset type.");
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void OnUploadComplete(ResourceStreamingContext context)
-    {
-        s_onUploadComplete[(int)_assetType]?.Invoke(this, context);
-        Volatile.Write(ref _state, (int)AssetState.Ready);
-
-        if (Interlocked.CompareExchange(ref _pendingReimport, false, true))
-        {
-            _assetManager.ReimportAsset(_assetId);  // re-queue
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void OnReleaseResource()
-    {
-        s_onReleaseResource[(int)_assetType]?.Invoke(this);
-
-        if (_rawData.IsCreated)
-        {
-            _rawData.Dispose();
-        }
-    }
-}
-
 internal struct LoadAssetJob : IJob
 {
     public Guid assetID;
     public AssetType assetType;
     public AssetManager assetManager;
-
-    private static Result LoadRawData(IContentProvider contentProvider, AssetEntry entry)
-    {
-        try
-        {
-            using var stream = contentProvider.OpenRead(entry.AssetId).GetValueOrThrow();
-
-            var data = new MemoryBlock((nuint)stream.Length, MemoryUtility.AlignOf<IntPtr>(), AllocationHandle.Persistent);
-
-            // C# built-in collections use int for indexing, so we need to ensure that the buffer size does not exceed int.MaxValue
-            var maxChunkSize = (int)Math.Min(0x7fffffffu, data.Size);
-            var offset = 0u;
-
-            while (offset < data.Size)
-            {
-                using var mem = NativeMemoryManager<byte>.FromMemoryBlock(data, (int)offset, maxChunkSize);
-                stream.ReadExactly(mem.Memory.Span);
-                offset += (uint)mem.Memory.Length;
-            }
-
-            entry.SetRawData(ref data);
-
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.Message);
-        }
-    }
 
     public readonly void Execute(ref readonly JobExecutionContext ctx)
     {
@@ -266,25 +69,44 @@ internal struct LoadAssetJob : IJob
 
         entry.State = AssetState.Loading;
 
-        var result = LoadRawData(assetManager.ContentProvider, entry);
-        if (result.IsFailure)
+        try
         {
-            entry.State = AssetState.Failed;
-            Logger.Error($"Failed to load asset {assetID}: {result.Message}");
-            return;
-        }
+            using var stream = assetManager.ContentProvider.OpenRead(entry.AssetId).GetValueOrThrow();
 
-        result = entry.OnParseRawData();
-        if (result.IsFailure)
+            var data = new MemoryBlock((nuint)stream.Length, MemoryUtility.AlignOf<IntPtr>(), AllocationHandle.Persistent);
+
+            // C# built-in collections use int for indexing, so we need to ensure that the buffer size does not exceed int.MaxValue
+            var maxChunkSize = (int)Math.Min(0x7fffffffu, data.Size);
+            var offset = 0u;
+
+            while (offset < data.Size)
+            {
+                using var mem = NativeMemoryManager<byte>.FromMemoryBlock(data, (int)offset, maxChunkSize);
+                stream.ReadExactly(mem.Memory.Span);
+                offset += (uint)mem.Memory.Length;
+            }
+
+            var result = entry.OnLoadRawData(ref data);
+            if (result.IsFailure)
+            {
+                entry.State = AssetState.Failed;
+                Logger.Error($"Failed to load asset {assetID}: {result.Message}");
+                return;
+            }
+        }
+        catch (Exception ex)
         {
             entry.State = AssetState.Failed;
-            Logger.Error($"Failed to parse asset {assetID}: {result.Message}");
+            Logger.Error($"Failed to load asset {assetID}: {ex.Message}");
             return;
         }
 
         entry.State = AssetState.Loaded;
-
-        assetManager.StreamingProcessor.EnqueueForUpload(entry);
+        if (!assetManager.StreamingProcessor.EnqueueForProcess(entry))
+        {
+            // This mean the asset don't need any further processing anymore.
+            entry.State = AssetState.Ready;
+        }
     }
 }
 
@@ -292,8 +114,8 @@ internal struct LoadAssetJob : IJob
 internal partial class AssetManager : IDisposable
 {
     private readonly IResourceDatabase _resourceDatabase;
-    private readonly ResourceManager _resourceManager;
     private readonly IContentProvider _contentProvider;
+    private readonly ResourceManager _resourceManager;
     private readonly ResourceStreamingProcessor _streamingProcessor;
     private readonly JobScheduler _jobScheduler;
 
@@ -407,7 +229,7 @@ internal partial class AssetManager : IDisposable
             var type = self._contentProvider.GetAssetType(id);
             var deps = self._contentProvider.GetDependencies(id);
 
-            var entry = new AssetEntry(self, self._resourceDatabase, self._resourceManager, id, type, deps);
+            var entry = AssetEntryFactory.CreateNewEntry(self, self._resourceDatabase, self._resourceManager, id, type, deps);
 
             self.EnsureScheduled(entry);
             return entry;

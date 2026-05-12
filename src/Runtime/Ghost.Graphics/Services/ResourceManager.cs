@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics.Geometry;
@@ -158,84 +159,17 @@ public sealed partial class ResourceManager : IDisposable
             MeshDataBuffer = meshDataBuffer,
         };
 
-        lock (_meshWriteLock)
-        {
-
-            var id = _meshes.Add(mesh, out var generation);
-            return new Handle<Mesh>(id, generation);
-        }
+        return RegisterMesh(ref mesh);
     }
 
-    public Handle<Mesh> CreateEmptyMesh(string? name = null)
+    public Handle<Mesh> RegisterMesh([OwnershipTransfer] ref Mesh mesh)
     {
         Logger.DebugAssert(!_disposed);
 
-        lock (_meshWriteLock)
-        {
-            var id = _meshes.Add(new Mesh(), out var generation);
-            return new Handle<Mesh>(id, generation);
-        }
-    }
-
-    public Handle<Mesh> CreateUploadedMesh(
-        Handle<GPUBuffer> vertexBuffer,
-        Handle<GPUBuffer> indexBuffer,
-        Handle<GPUBuffer> meshletBuffer,
-        Handle<GPUBuffer> meshletVerticesBuffer,
-        Handle<GPUBuffer> meshletTrianglesBuffer,
-        Handle<GPUBuffer> meshletGroupBuffer,
-        Handle<GPUBuffer> meshletHierarchyBuffer,
-        Handle<GPUBuffer> meshDataBuffer,
-        int vertexCount,
-        int indexCount,
-        int meshletCount,
-        int lodLevelCount,
-        int materialSlotCount,
-        AABB boundingBox)
-    {
-        Logger.DebugAssert(!_disposed);
-
-        var mesh = new Mesh
-        {
-            VertexBuffer = vertexBuffer,
-            IndexBuffer = indexBuffer,
-            MeshLetBuffer = meshletBuffer,
-            MeshletVerticesBuffer = meshletVerticesBuffer,
-            MeshletTrianglesBuffer = meshletTrianglesBuffer,
-            MeshletGroupBuffer = meshletGroupBuffer,
-            MeshletHierarchyBuffer = meshletHierarchyBuffer,
-            MeshDataBuffer = meshDataBuffer,
-            BoundingBox = boundingBox,
-        };
-        mesh.SetCounts(vertexCount, indexCount);
-        mesh.SetMeshletSummary(meshletCount, lodLevelCount, materialSlotCount);
-
-        lock (_meshWriteLock)
+        lock(_meshWriteLock)
         {
             var id = _meshes.Add(mesh, out var generation);
             return new Handle<Mesh>(id, generation);
-        }
-    }
-
-    public Handle<Mesh> ReplaceMesh(Handle<Mesh> dst, Handle<Mesh> src)
-    {
-        Logger.DebugAssert(!_disposed);
-
-        lock (_meshWriteLock)
-        {
-            ref var dstMesh = ref _meshes.GetElementReferenceAt(dst.ID, dst.Generation, out var dstExists);
-            ref var srcMesh = ref _meshes.GetElementReferenceAt(src.ID, src.Generation, out var srcExists);
-            if (!dstExists || !srcExists)
-            {
-                return Handle<Mesh>.Invalid;
-            }
-
-            var oldMesh = dstMesh;
-            dstMesh = srcMesh;
-            _meshes.Remove(src.ID, src.Generation);
-
-            oldMesh.ReleaseResource(_resourceDatabase);
-            return dst;
         }
     }
 
@@ -330,14 +264,10 @@ public sealed partial class ResourceManager : IDisposable
 
         lock (_meshWriteLock)
         {
-            ref var mesh = ref _meshes.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
-            if (!exist)
+            if (_meshes.Remove(handle.ID, handle.Generation, out var mesh))
             {
-                return;
+                mesh.ReleaseResource(_resourceDatabase);
             }
-
-            _meshes.Remove(handle.ID, handle.Generation);
-            mesh.ReleaseResource(_resourceDatabase);
         }
     }
 
@@ -378,14 +308,10 @@ public sealed partial class ResourceManager : IDisposable
 
         lock (_materialWriteLock)
         {
-            ref var material = ref _materials.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
-            if (!exist)
+            if (_materials.Remove(handle.ID, handle.Generation, out var material))
             {
-                return;
+                material.ReleaseResource(_resourceDatabase);
             }
-
-            _materials.Remove(handle.ID, handle.Generation);
-            material.ReleaseResource(_resourceDatabase);
         }
     }
 
@@ -582,14 +508,10 @@ public sealed partial class ResourceManager : IDisposable
 
         lock (_shaderWriteLock)
         {
-            ref var shader = ref _shaders.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
-            if (!exist)
+            if (_shaders.Remove(handle.ID, handle.Generation, out var shader))
             {
-                return;
+                shader.ReleaseResource(_resourceDatabase);
             }
-
-            _shaders.Remove(handle.ID, handle.Generation);
-            shader.ReleaseResource(_resourceDatabase);
         }
     }
 
@@ -630,14 +552,10 @@ public sealed partial class ResourceManager : IDisposable
 
         lock (_computeShaderWriteLock)
         {
-            ref var computeShader = ref _computeShaders.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
-            if (!exist)
+            if (_computeShaders.Remove(handle.ID, handle.Generation, out var computeShader))
             {
-                return;
+                computeShader.ReleaseResource(_resourceDatabase);
             }
-
-            _computeShaders.Remove(handle.ID, handle.Generation);
-            computeShader.ReleaseResource(_resourceDatabase);
         }
     }
 
