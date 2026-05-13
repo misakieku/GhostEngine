@@ -30,14 +30,14 @@ public class SceneGraphBuilderTests
     private Entity CreateEntityWithScene(Scene scene)
     {
         var entity = _world.EntityManager.CreateEntity();
-        _world.EntityManager.AddComponent(entity, new SceneID { scene = scene });
+        _world.EntityManager.AddComponent(entity, new SceneID { value = scene });
         return entity;
     }
 
     private Entity CreateEntityWithSceneAndHierarchy(Scene scene, Entity parent)
     {
         var entity = _world.EntityManager.CreateEntity();
-        _world.EntityManager.AddComponent(entity, new SceneID { scene = scene });
+        _world.EntityManager.AddComponent(entity, new SceneID { value = scene });
         _world.EntityManager.AddComponent(entity, new Hierarchy
         {
             parent = Entity.Invalid,
@@ -165,7 +165,7 @@ public class SceneGraphBuilderTests
     public void Build_InvalidSceneEntitiesAreExcluded()
     {
         var entity = _world.EntityManager.CreateEntity();
-        _world.EntityManager.AddComponent(entity, new SceneID { scene = Scene.Invalid });
+        _world.EntityManager.AddComponent(entity, new SceneID { value = Scene.Invalid });
 
         var nodes = SceneGraphBuilder.Build(_world);
 

@@ -55,7 +55,7 @@ public class SceneGraphSyncService
             }
         }
 
-        var sceneName = $"NewScene ({scene.id})";
+        var sceneName = $"NewScene ({scene.ID})";
         var newSceneNode = new SceneNode(world, scene, sceneName);
         rootNodes.Add(newSceneNode);
         return newSceneNode;
@@ -183,7 +183,7 @@ public class SceneGraphSyncService
 
             for (var i = 0; i < chunk.EntityCount; i++)
             {
-                var s = sceneIDs[i].scene;
+                var s = sceneIDs[i].value;
                 if (!s.IsValid)
                 {
                     continue;

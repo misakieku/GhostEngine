@@ -35,7 +35,7 @@ public static class SceneGraphBuilder
 
             for (var i = 0; i < chunk.EntityCount; i++)
             {
-                var s = sceneIDs[i].scene;
+                var s = sceneIDs[i].value;
                 if (!s.IsValid)
                 {
                     continue;
@@ -151,6 +151,6 @@ public static class SceneGraphBuilder
 
     private static string GetDefaultSceneName(Scene scene)
     {
-        return $"NewScene ({scene.id})";
+        return $"NewScene ({scene.ID})";
     }
 }

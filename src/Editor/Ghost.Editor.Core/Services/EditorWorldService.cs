@@ -31,7 +31,7 @@ public class EditorWorldService : IDisposable
         var entity = EditorWorld.EntityManager.CreateEntity();
         EditorWorld.EntityManager.AddComponent(entity, new Engine.Components.SceneID
         {
-            scene = scene
+            value = scene
         });
     }
 

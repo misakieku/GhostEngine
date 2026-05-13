@@ -74,7 +74,7 @@ public class SceneSerializationTests
     {
         var world = _worldService.EditorWorld;
         var entity = world.EntityManager.CreateEntity();
-        world.EntityManager.AddComponent(entity, new SceneID { scene = scene });
+        world.EntityManager.AddComponent(entity, new SceneID { value = scene });
         return entity;
     }
 
@@ -82,7 +82,7 @@ public class SceneSerializationTests
     {
         var world = _worldService.EditorWorld;
         var entity = world.EntityManager.CreateEntity();
-        world.EntityManager.AddComponent(entity, new SceneID { scene = scene });
+        world.EntityManager.AddComponent(entity, new SceneID { value = scene });
         world.EntityManager.AddComponent(entity, Hierarchy.Root);
         world.EntityManager.AddComponent(entity, new LocalToWorld());
 
@@ -129,7 +129,7 @@ public class SceneSerializationTests
 
         using var scope = AllocationManager.CreateStackScope();
 		using var entities = SceneManager.GetSceneEntities(scene, world, scope.AllocationHandle);
-		Assert.AreEqual(3, entities.Count, $"Expected 3 entities for scene {scene.id} but found {entities.Count}");
+		Assert.AreEqual(3, entities.Count, $"Expected 3 entities for scene {scene.ID} but found {entities.Count}");
 	}
 
     [TestMethod]
