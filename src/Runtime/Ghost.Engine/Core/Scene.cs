@@ -10,25 +10,25 @@ namespace Ghost.Engine.Core;
 /// </summary>
 public struct Scene : IEquatable<Scene>
 {
-    public byte id;
+    public ushort id;
 
     /// <summary>
     /// Gets whether this scene is valid.
     /// </summary>
     [JsonIgnore]
-    public readonly bool IsValid => id != 255;
+    public readonly bool IsValid => id != 65535;
 
     /// <summary>
     /// Gets an invalid scene instance.
     /// </summary>
-    public static Scene Invalid => new Scene { id = 255 };
+    public static Scene Invalid => new Scene { id = 65535 };
 
     public readonly bool Equals(Scene other)
     {
         return id == other.id;
     }
 
-    public override bool Equals(object? obj)
+    public readonly override bool Equals(object? obj)
     {
         return obj is Scene other && Equals(other);
     }
@@ -63,8 +63,10 @@ public struct Scene : IEquatable<Scene>
 /// </remarks>
 public static class SceneManager
 {
-    private static byte s_nextSceneID;
-    private static readonly Queue<byte> s_recycledSceneIDs = new();
+    private static ushort s_nextSceneID;
+    private static readonly Queue<ushort> s_recycledSceneIDs = new();
+
+    private static readonly Lock s_creationLock = new();
 
     /// <summary>
     /// Creates a new scene in the world.
@@ -72,12 +74,15 @@ public static class SceneManager
     /// <returns>The created scene.</returns>
     public static Scene CreateScene()
     {
-        if (!s_recycledSceneIDs.TryDequeue(out var id))
+        lock (s_creationLock)
         {
-            id = s_nextSceneID++;
-        }
+            if (!s_recycledSceneIDs.TryDequeue(out var id))
+            {
+                id = s_nextSceneID++;
+            }
 
-        return new Scene { id = id };
+            return new Scene { id = id };
+        }
     }
 
     /// <summary>

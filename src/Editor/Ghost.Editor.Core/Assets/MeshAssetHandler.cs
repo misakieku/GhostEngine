@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Core.Utilities;
 using Ghost.Editor.Core.Services;
 using Ghost.Engine;
+using Ghost.Engine.Streaming;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Jobs;
@@ -384,16 +385,16 @@ internal class MeshAssetHandler : IImportableAssetHandler, IPackableAssetHandler
         {
             magic = MeshContentHeader.MAGIC,
             version = MeshContentHeader.VERSION,
-            vertexCount = (uint)geometry.Vertices.Count,
-            indexCount = (uint)geometry.Indices.Count,
-            materialPartCount = (uint)geometry.MaterialParts.Length,
-            meshletCount = (uint)meshletData.GetRef().meshlets.Count,
-            meshletGroupCount = (uint)meshletData.GetRef().groups.Count,
-            meshletHierarchyNodeCount = (uint)meshletData.GetRef().hierarchyNodes.Count,
-            meshletVertexCount = (uint)meshletData.GetRef().meshletVertices.Count,
-            meshletTriangleCount = (uint)meshletData.GetRef().meshletTriangles.Count,
-            materialSlotCount = (uint)meshletData.GetRef().materialSlotCount,
-            lodLevelCount = (uint)meshletData.GetRef().lodLevelCount,
+            vertexCount = geometry.Vertices.Count,
+            indexCount = geometry.Indices.Count,
+            materialPartCount = geometry.MaterialParts.Length,
+            meshletCount = meshletData.GetRef().meshlets.Count,
+            meshletGroupCount = meshletData.GetRef().groups.Count,
+            meshletHierarchyNodeCount = meshletData.GetRef().hierarchyNodes.Count,
+            meshletVertexCount = meshletData.GetRef().meshletVertices.Count,
+            meshletTriangleCount = meshletData.GetRef().meshletTriangles.Count,
+            materialSlotCount = meshletData.GetRef().materialSlotCount,
+            lodLevelCount = meshletData.GetRef().lodLevelCount,
             boundsMin = bounds.Min,
             boundsMax = bounds.Max,
         };

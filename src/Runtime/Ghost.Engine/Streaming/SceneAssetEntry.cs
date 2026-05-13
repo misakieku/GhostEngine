@@ -244,6 +244,12 @@ internal unsafe class SceneAssetEntry : ProcessableAssetEntry
     {
         // TODO: How can I get this? Ideally the public api will be something like SceneManager.LoadScene(World, Scene, SceneLoadingType).
         // Should we handle the scene loading explicitly instead of auto loading on the first resolve?
+        // For example if we have a component called SceneStreamer{ Scene a; Scene b; }
+        // In save data, we convert the Scene(int) to a asset gui, and convert it back during load. So at ResolveScene stage (before the file even been loaded), we need to call the SceneManager.CreateScene().
+        // Currently we store the world and loading type directly inside the asset entry, but actually that should not be bound with the asset itself, because we may load scene A along at the first time, then we load it additively at the second time.
+        // So, maybe the scene asset entry should only create a unique id from SceneManager.CreateScene() then resolve the scene file without loading it into world.
+        // Then we can load the scene into world using our job system, and user can decide to wait it immediatly (sync) or fire-and-forget (async).
+
         _targetWorld = World.GetWorld(0)!;
         _loadingType = SceneLoadingType.Single;
     }

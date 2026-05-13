@@ -3,7 +3,6 @@ using Misaki.HighPerformance.Collections;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities;
@@ -47,6 +46,7 @@ public unsafe partial class EntityManager : IDisposable
     private bool _disposed;
 
     public World World => _world;
+    public int EntityCount => _entityLocations.Count;
 
     internal EntityManager(World world, int initialCapacity)
     {

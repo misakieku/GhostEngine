@@ -244,14 +244,6 @@ public class RenderSystem : IDisposable
 
         var waitHandles = new WaitHandle[] { null!, _shutdownEvent };
 
-        var streamingContext = new ResourceStreamingContext
-        (
-            _asyncCopyPipeline,
-            _resourceManager,
-            _graphicsEngine.ResourceDatabase,
-            _graphicsEngine.ResourceAllocator
-        );
-
         var renderContext = new RenderContext
         (
             _resourceManager,
@@ -321,10 +313,18 @@ public class RenderSystem : IDisposable
                 {
                     cmd.Begin(frameResource.CommandAllocator);
 
-                    streamingContext.CommandBuffer = cmd;
-                    renderContext.CommandBuffer = cmd;
+                    var streamingContext = new ResourceStreamingContext
+                    {
+                        ResourceManager = _resourceManager,
+                        ResourceDatabase = _graphicsEngine.ResourceDatabase,
+                        ResourceAllocator = _graphicsEngine.ResourceAllocator,
+                        CopyPipeline = _asyncCopyPipeline,
+                        CommandBuffer = cmd,
+                    };
 
                     _streamingProcessor.ProcessPendingUploads(streamingContext);
+
+                    renderContext.CommandBuffer = cmd;
 
                     _renderPipeline.Render(renderContext, frameIndex, frameResource.RenderPayload);
                     _swapChainManager.TransitionToPresent(cmd);

@@ -1,12 +1,11 @@
 using Ghost.Core;
 using Ghost.Core.Utilities;
-using Ghost.Engine;
+using Ghost.Engine.Streaming;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Mathematics;
 using Misaki.HighPerformance.Mathematics.Geometry;
 using System.Collections.Concurrent;
-using System.Runtime.InteropServices;
 
 namespace Ghost.UnitTest.MockingEnvironment;
 
@@ -130,14 +129,14 @@ internal class MockingContentProvider : IContentProvider
         {
             magic = MeshContentHeader.MAGIC,
             version = MeshContentHeader.VERSION,
-            vertexCount = (uint)vertices.Length,
-            indexCount = (uint)indices.Length,
-            materialPartCount = (uint)materialParts.Length,
-            meshletCount = (uint)meshlets.Length,
-            meshletGroupCount = (uint)groups.Length,
-            meshletHierarchyNodeCount = (uint)hierarchy.Length,
-            meshletVertexCount = (uint)meshletVertices.Length,
-            meshletTriangleCount = (uint)meshletTriangles.Length,
+            vertexCount = vertices.Length,
+            indexCount = indices.Length,
+            materialPartCount = materialParts.Length,
+            meshletCount = meshlets.Length,
+            meshletGroupCount = groups.Length,
+            meshletHierarchyNodeCount = hierarchy.Length,
+            meshletVertexCount = meshletVertices.Length,
+            meshletTriangleCount = meshletTriangles.Length,
             materialSlotCount = 1,
             lodLevelCount = 1,
             boundsMin = new float3(0, 0, 0),

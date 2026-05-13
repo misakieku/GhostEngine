@@ -104,7 +104,7 @@ public class AssetManagerTest
         Assert.IsGreaterThanOrEqualTo((int)AssetState.Ready, entry.StateValue);
 
         var (data, error) = _graphicsEngine.ResourceDatabase.GetResourceBarrierData(handle.AsResource());
-        
+
         Assert.AreEqual(Error.None, error);
         Assert.AreEqual(BarrierAccess.ShaderResource, data.access);
         Assert.AreEqual(BarrierLayout.ShaderResource, data.layout);

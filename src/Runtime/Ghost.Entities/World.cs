@@ -16,34 +16,33 @@ public partial class World
 
     public static World Create(JobScheduler? jobScheduler = null, int entityCapacity = 16)
     {
-        lock (s_worlds)
+        if (s_freeWorldSlots.TryDequeue(out var index))
         {
-            if (s_freeWorldSlots.TryDequeue(out var index))
-            {
-                s_worlds[index.Value] = new World(index, entityCapacity, jobScheduler);
-            }
-            else
-            {
-                index = new Identifier<World>(s_worlds.Count);
-                s_worlds.Add(new World(index, entityCapacity, jobScheduler));
-            }
-
-            return s_worlds[index.Value]!;
+            s_worlds[index.Value] = new World(index, entityCapacity, jobScheduler);
         }
+        else
+        {
+            index = new Identifier<World>(s_worlds.Count);
+            s_worlds.Add(new World(index, entityCapacity, jobScheduler));
+        }
+
+        return s_worlds[index.Value]!;
     }
 
     public static void Destroy(Identifier<World> id)
     {
-        lock (s_worlds)
+        if (id.Value < 0 || id.Value >= s_worlds.Count)
         {
-            if (id.Value < 0 || id.Value >= s_worlds.Count)
-            {
-                return;
-            }
-
-            var world = s_worlds[id.Value];
-            world?.Dispose();
+            return;
         }
+
+        var world = s_worlds[id.Value];
+        world?.Dispose();
+    }
+
+    public static void Destroy(World world)
+    {
+        world.Dispose();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -119,7 +118,7 @@ public partial class World : IDisposable, IEquatable<World>
     /// <summary>
     /// Gets the current version number of the world.
     /// </summary>
-    public uint Version => Interlocked.CompareExchange(ref _version, 0, 0);
+    public uint Version => Volatile.Read(ref _version);
 
     /// <summary>
     /// Gets the main entity command buffer for this world.
@@ -174,7 +173,7 @@ public partial class World : IDisposable, IEquatable<World>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal uint AdvanceVersion()
     {
-        return Interlocked.Increment(ref _version);
+        return _version++;
     }
 
     /// <summary>
@@ -216,7 +215,7 @@ public partial class World : IDisposable, IEquatable<World>
         throw new InvalidOperationException($"Resource of type {typeof(T).FullName} has not been registered in the World.");
     }
 
-    public bool TryGetService<T>([MaybeNullWhen(false)]out T resource)
+    public bool TryGetService<T>([MaybeNullWhen(false)] out T resource)
         where T : class
     {
         if (_services.TryGetValue(typeof(T), out var obj))
@@ -247,7 +246,7 @@ public partial class World : IDisposable, IEquatable<World>
 
         if (_threadLocalECBs != null)
         {
-            for (var i = 0; i < _threadLocalECBs.Length; i ++)
+            for (var i = 0; i < _threadLocalECBs.Length; i++)
             {
                 _threadLocalECBs[i].Reset();
             }
@@ -305,11 +304,10 @@ public partial class World : IDisposable, IEquatable<World>
         _componentManager.Dispose();
         _systemManager.Dispose();
 
-        s_freeWorldSlots.Enqueue(_id);
         s_worlds[_id] = null;
+        s_freeWorldSlots.Enqueue(_id);
 
         _disposed = true;
-
         GC.SuppressFinalize(this);
     }
 }

@@ -1,8 +1,8 @@
 <Project>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug_Editor'">
-    <DefineConstants>$(DefineConstants);DEBUG;GHOST_EDITOR;</DefineConstants>
+    <DefineConstants>$(DefineConstants);DEBUG;GHOST_EDITOR;GHOST_ZERO_INIT_COMPONENT;</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Release_Editor'">
-    <DefineConstants>$(DefineConstants);GHOST_EDITOR;MHP_ENABLE_SAFETY_CHECKS;</DefineConstants>
+    <DefineConstants>$(DefineConstants);GHOST_EDITOR;GHOST_ZERO_INIT_COMPONENT;</DefineConstants>
   </PropertyGroup>
 </Project>

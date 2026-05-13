@@ -7,35 +7,27 @@ internal struct ResourceStreamingContext
 {
     public AsyncCopyPipeline CopyPipeline
     {
-        get;
+        get; init;
     }
 
     public ResourceManager ResourceManager
     {
-        get;
+        get; init;
     }
 
     public IResourceDatabase ResourceDatabase
     {
-        get;
+        get; init;
     }
 
     public IResourceAllocator ResourceAllocator
     {
-        get;
+        get; init;
     }
 
     public ICommandBuffer CommandBuffer
     {
-        get; set;
-    } = null!;
-
-    internal ResourceStreamingContext(AsyncCopyPipeline copyPipeline, ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator)
-    {
-        CopyPipeline = copyPipeline;
-        ResourceManager = resourceManager;
-        ResourceDatabase = resourceDatabase;
-        ResourceAllocator = resourceAllocator;
+        get; init;
     }
 }
 

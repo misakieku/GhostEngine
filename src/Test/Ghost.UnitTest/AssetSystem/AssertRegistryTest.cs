@@ -37,7 +37,7 @@ public class AssertRegistryTest
     {
         var sourcePath = "Assets/test.text";
         await File.WriteAllBytesAsync(sourcePath, [1, 2, 3], TestContext.CancellationToken);
-        
+
         var metaPath = AssetMetaIO.GetMetaPath(sourcePath);
 
         using var cts = new CancellationTokenSource(5000);
@@ -47,7 +47,7 @@ public class AssertRegistryTest
         }
 
         Assert.IsTrue(File.Exists(metaPath));
-        
+
         var meta = await AssetMetaIO.ReadAsync(metaPath, TestContext.CancellationToken);
         Assert.IsNotNull(meta);
 

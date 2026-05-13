@@ -703,6 +703,18 @@ internal unsafe struct Archetype : IDisposable
         return Identifier<Archetype>.Invalid;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly void Collect()
+    {
+        for (var i = 0; i < _chunks.Count; i++)
+        {
+            if (_chunks[i]._count == 0)
+            {
+                _chunks[i].Dispose();
+            }
+        }
+    }
+
     public override readonly int GetHashCode()
     {
         return _hash;

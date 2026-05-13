@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Core.Utilities;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
@@ -43,6 +44,7 @@ internal static class ComponentRegistry
     private static readonly List<ComponentInfo> s_registeredComponents = new();
     private static readonly Dictionary<IntPtr, int> s_typeHandleToID = new();
     private static readonly Dictionary<string, int> s_nameToRuntimeID = new();
+    private static readonly Lock s_registerLock = new();
 
 #if DEBUG || GHOST_EDITOR
     internal static readonly Dictionary<int, Type> s_runtimeIDToType = new();
@@ -59,7 +61,7 @@ internal static class ComponentRegistry
         var type = typeof(T);
         var typeHandle = type.TypeHandle.Value;
 
-        lock (s_registeredComponents)
+        lock (s_registerLock)
         {
             if (s_typeHandleToID.TryGetValue(typeHandle, out var existingID))
             {
@@ -95,7 +97,7 @@ internal static class ComponentRegistry
     public static Identifier<IComponent> GetComponentID(Type type)
     {
         var typeHandle = type.TypeHandle.Value;
-        lock (s_registeredComponents)
+        lock (s_registerLock)
         {
             if (s_typeHandleToID.TryGetValue(typeHandle, out var existingID))
             {
@@ -106,24 +108,24 @@ internal static class ComponentRegistry
         return Identifier<IComponent>.Invalid;
     }
 
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public static Identifier<IComponent> GetComponentIDByName(string fullName)
-	{
-		lock (s_registeredComponents)
-		{
-			if (s_nameToRuntimeID.TryGetValue(fullName, out var id))
-			{
-				return id;
-			}
-		}
-
-		return Identifier<IComponent>.Invalid;
-	}
-
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public static ComponentInfo GetComponentInfo(Identifier<IComponent> typeId)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Identifier<IComponent> GetComponentIDByName(string fullName)
     {
-        lock (s_registeredComponents)
+        lock (s_registerLock)
+        {
+            if (s_nameToRuntimeID.TryGetValue(fullName, out var id))
+            {
+                return id;
+            }
+        }
+
+        return Identifier<IComponent>.Invalid;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ComponentInfo GetComponentInfo(Identifier<IComponent> typeId)
+    {
+        lock (s_registerLock)
         {
             return s_registeredComponents[typeId];
         }
@@ -132,7 +134,7 @@ internal static class ComponentRegistry
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ComponentInfo GetComponentInfo(Type type)
     {
-        lock (s_registeredComponents)
+        lock (s_registerLock)
         {
             var typeId = GetComponentID(type);
             if (typeId.IsInvalid)
@@ -265,11 +267,30 @@ public partial class ComponentManager : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void Clear()
     {
+        for (int i = 0; i < _archetypes.Count; i++)
+        {
+            _archetypes[i].Dispose();
+        }
+
+        for (int i = 0; i < _entityQueries.Count; i++)
+        {
+            _entityQueries[i].Dispose();
+        }
+
         _archetypes.Clear();
         _entityQueries.Clear();
 
         _archetypeLookup.Clear();
         _querieLookup.Clear();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void Collect()
+    {
+        for (int i = 0; i < _archetypes.Count; i++)
+        {
+            _archetypes[i].Collect();
+        }
     }
 
     /// <summary>
@@ -326,6 +347,70 @@ public struct ComponentSet : IDisposable, IEquatable<ComponentSet>
         _hashCode = -1;
     }
 
+    public ComponentSet With(AllocationHandle allocationHandle, params ReadOnlySpan<Identifier<IComponent>> components)
+    {
+        if (_components.AsSpan().SequenceEqual(components))
+        {
+            return new ComponentSet { _components = _components.Clone(allocationHandle), _hashCode = _hashCode };
+        }
+
+        var newComponents = new UnsafeArray<Identifier<IComponent>>(_components.Length + components.Length, allocationHandle);
+
+        newComponents.CopyFrom(_components);
+
+        var i = _components.Length;
+        for (int j = 0; j < components.Length; j++)
+        {
+            for (int k = 0; k < i; k++)
+            {
+                if (newComponents[k] != components[j])
+                {
+                    newComponents[i++] = components[j];
+                }
+            }
+        }
+
+        _components.Resize(i);
+        return new ComponentSet { _components = newComponents, _hashCode = -1 };
+    }
+
+    public ComponentSet Without(AllocationHandle allocationHandle, params ReadOnlySpan<Identifier<IComponent>> components)
+    {
+        if (_components.AsSpan().SequenceEqual(components))
+        {
+            return default;
+        }
+
+        var newComponents = new UnsafeArray<Identifier<IComponent>>(_components.Length, allocationHandle);
+
+        var i = 0;
+        for (int j = 0; j < _components.Length; j++)
+        {
+            var found = false;
+            for (var k = 0; k < components.Length; k++)
+            {
+                if (components[k] == _components[j])
+                {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                newComponents[i++] = _components[j];
+            }
+        }
+
+        newComponents.Resize(i);
+        return new ComponentSet { _components = newComponents, _hashCode = -1 };
+    }
+
+    public readonly ComponentSetView AsView()
+    {
+        return new ComponentSetView(_components);
+    }
+
     public readonly bool Equals(ComponentSet other)
     {
         return _hashCode == other._hashCode;
@@ -363,7 +448,7 @@ public struct ComponentSet : IDisposable, IEquatable<ComponentSet>
 
     public static implicit operator ComponentSetView(in ComponentSet set)
     {
-        return new ComponentSetView(set.Components);
+        return new ComponentSetView(set._components);
     }
 }
 
