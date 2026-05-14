@@ -290,8 +290,7 @@ internal class SceneSerializationService : IDisposable
     {
         if (loadingType == SceneLoadingType.Single)
         {
-            // TODO: Support TimeData
-            _worldService.EditorWorld.Clear(default);
+            _worldService.EditorWorld.Reset();
         }
 
         var world = _worldService.EditorWorld;
@@ -351,7 +350,7 @@ internal class SceneSerializationService : IDisposable
                     continue;
                 }
 
-                world.EntityManager.SetComponent(entity, new SceneID { value = activeScene });
+                world.EntityManager.SetComponent(entity, new SceneID { value = activeScene.ID });
 
                 var entityData = data.Entities[fileIndex];
                 ref var list = ref typeIds[fileIndex];

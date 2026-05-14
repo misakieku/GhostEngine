@@ -239,7 +239,7 @@ public partial class World : IDisposable, IEquatable<World>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Clear(TimeData timeData)
+    public void Reset()
     {
         _entityManager.Clear();
         _entityCommandBuffer.Reset();
@@ -254,8 +254,8 @@ public partial class World : IDisposable, IEquatable<World>
 
         _componentManager.Clear();
 
-        _systemManager.CleanupAll(timeData);
-        _systemManager.InitializeAll(timeData);
+        _systemManager.CleanupAll();
+        _systemManager.InitializeAll();
     }
 
     public bool Equals(World? other)

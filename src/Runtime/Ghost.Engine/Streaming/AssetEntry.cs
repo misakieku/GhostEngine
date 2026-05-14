@@ -118,7 +118,7 @@ internal abstract class AssetEntry
         return newRefCount;
     }
 
-    public abstract Result OnLoadRawData([OwnershipTransfer] ref MemoryBlock memory);
+    public abstract Result OnLoadContent(Stream contentStream);
     public abstract void OnReleaseResource();
 }
 

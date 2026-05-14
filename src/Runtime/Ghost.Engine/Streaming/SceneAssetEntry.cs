@@ -1,17 +1,13 @@
 using Ghost.Core;
+using Ghost.Core.Utilities;
+using Ghost.Engine.Core;
 using Ghost.Entities;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.Jobs;
-using Misaki.HighPerformance.LowLevel;
-using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Engine.Streaming;
-
-internal static class SceneLoader
-{
-}
 
 [StructLayout(LayoutKind.Sequential, Size = 64)]
 internal struct SceneContentHeader
@@ -25,20 +21,58 @@ internal struct SceneContentHeader
     public int entityCount;
 }
 
-internal unsafe class SceneAssetEntry : AssetEntry
+public partial class AssetManager
 {
-    public class AdditionalData
+    public Result<JobHandle> LoadScene(World world, AssetRef<Scene> sceneAsset, SceneLoadingType loadingType)
     {
-        public required World world;
-        public SceneLoadingType loadingType;
+        if (!sceneAsset.IsValid)
+        {
+            return Result.Failure("Invalid scene asset.");
+        }
+
+        var openResult = _contentProvider.OpenRead(sceneAsset.ID);
+        if (openResult.IsFailure)
+        {
+            return Result.Failure($"Failed to open scene {sceneAsset.ID}: {openResult.Message}.");
+        }
+
+        try
+        {
+            using var stream = openResult.Value;
+
+            var header = stream.Read<SceneContentHeader>();
+            if (header.magic != SceneContentHeader.MAGIC)
+            {
+                return Result.Failure("Unexpected header format.");
+            }
+
+            if (header.version != SceneContentHeader.VERSION)
+            {
+                return Result.Failure($"Not supported scene header version {header.version}.");
+            }
+
+            if (loadingType == SceneLoadingType.Single)
+            {
+                world.Reset();
+            }
+
+            var loadResult = SceneManager.LoadBinarySceneIntoWorld(world, header, stream);
+            if (loadResult.IsFailure)
+            {
+                return Result.Failure(loadResult.Message);
+            }
+
+            return JobHandle.Invalid;
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure(ex.Message);
+        }
     }
+}
 
-    private readonly World _targetWorld;
-    private readonly SceneLoadingType _loadingType;
-
-    private MemoryBlock _memory;
-    private SceneContentHeader _header;
-
+internal class SceneAssetEntry : AssetEntry
+{
     public SceneAssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, Guid[] dependencies)
         : base(manager, resourceDatabase, resourceManager, assetId, AssetType.Scene, dependencies)
     {
@@ -56,50 +90,11 @@ internal unsafe class SceneAssetEntry : AssetEntry
         // 3. The streamer called SceneManager.LoadScene(World, SceneID, SceneLoadingType) (example api, may not be this exactly). (Mybe we load the data into memory here every time when LoadScene is
         //    called? It will be fine right since load scene itself is a heavy opeartion and it's not am opeartion that will be performed per frame)
         // 4. Background job load the scene into world by creating entities and setup components for those entities.
-
-        _targetWorld = World.GetWorld(0)!;
-        _loadingType = SceneLoadingType.Single;
     }
 
-    public override Result OnLoadRawData([OwnershipTransfer] ref MemoryBlock memory)
+    public override Result OnLoadContent(Stream contentStream)
     {
-        _memory = memory;
-        if (_memory.Size < (nuint)sizeof(SceneContentHeader))
-        {
-            return Result.Failure("The size of scene is too small.");
-        }
-
-        var header = _memory.GetElementAt<SceneContentHeader>(0);
-        if (header.magic != SceneContentHeader.MAGIC)
-        {
-            return Result.Failure($"Unexpected scene header. Expect {SceneContentHeader.MAGIC}, got {header.magic}");
-        }
-
-        // TODO: Support version update.
-        if (header.version != SceneContentHeader.VERSION)
-        {
-            return Result.Failure($"Unexpected scene version. Expect {SceneContentHeader.VERSION}, got {header.version}");
-        }
-
-        _header = header;
-
         return Result.Success();
-    }
-
-    public Result<JobHandle> OnProcessing(object? context)
-    {
-        var pData = (byte*)_memory.GetUnsafePtr() + sizeof(SceneContentHeader);
-
-        if (_loadingType == SceneLoadingType.Single)
-        {
-            // TODO: Support TimeData.
-            _targetWorld.Clear(default);
-        }
-
-        // TODO: Parallelize.
-        SceneLoader.LoadSceneIntoWorld(_targetWorld, _header, pData, _memory.Size - (nuint)sizeof(SceneContentHeader));
-
-        return JobHandle.Invalid;
     }
 
     public override void OnReleaseResource()

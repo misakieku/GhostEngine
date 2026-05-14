@@ -7,11 +7,20 @@ namespace Ghost.Entities;
 
 public readonly ref struct SystemAPI
 {
+    /// <summary>
+    /// Gets the tIme data of current frame.
+    /// </summary>
+    /// <remarks>
+    /// The data will always be <see langword="default"/> in <see cref="ISystem.Initialize(ref readonly SystemAPI)"/> and <see cref="ISystem.Cleanup(ref readonly SystemAPI)"/>
+    /// </remarks>
     public TimeData Time
     {
         get; init;
     }
 
+    /// <summary>
+    /// Gets the world current system is running on.
+    /// </summary>
     public World World
     {
         get; init;
@@ -416,7 +425,7 @@ public sealed class SystemManager : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void InitializeAll(TimeData timeData)
+    internal void InitializeAll()
     {
         if (_systems.Count == 0)
         {
@@ -425,7 +434,6 @@ public sealed class SystemManager : IDisposable
 
         var systemAPI = new SystemAPI
         {
-            Time = timeData,
             World = _world
         };
 
@@ -455,7 +463,7 @@ public sealed class SystemManager : IDisposable
         }
     }
 
-    internal void CleanupAll(TimeData timeData)
+    internal void CleanupAll()
     {
         if (_systems.Count == 0)
         {
@@ -464,7 +472,6 @@ public sealed class SystemManager : IDisposable
 
         var systemAPI = new SystemAPI
         {
-            Time = timeData,
             World = _world
         };
 
@@ -482,6 +489,6 @@ public sealed class SystemManager : IDisposable
 
     public void Dispose()
     {
-        CleanupAll(default);
+        CleanupAll();
     }
 }

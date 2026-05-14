@@ -1,19 +1,18 @@
 using Ghost.Core;
+using Ghost.Core.Utilities;
 using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Ghost.Graphics.Utilities;
-using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
 using Misaki.HighPerformance.Mathematics.Geometry;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Engine.Streaming;
 
-[StructLayout(LayoutKind.Sequential)]
+[StructLayout(LayoutKind.Sequential, Size = 192)]
 internal struct MeshContentHeader
 {
     public const uint MAGIC = 0x48534D47; // GMSH
@@ -56,7 +55,7 @@ internal struct MeshContentMaterialPart
     public int vertexCount;
 }
 
-internal partial class AssetManager
+public partial class AssetManager
 {
     public Handle<Mesh> ResolveMesh(Guid assetID)
     {
@@ -89,6 +88,9 @@ internal partial class AssetManager
 
 internal unsafe class MeshAssetEntry : UploadableAssetEntry
 {
+    private Handle<Mesh> _actualHandle;
+    private Handle<Mesh> _tempHandle;
+
     private MemoryBlock _rawData;
 
     private MeshContentHeader _header;
@@ -99,9 +101,6 @@ internal unsafe class MeshAssetEntry : UploadableAssetEntry
     private byte* _pMeshletHierarchyNodes;
     private byte* _pMeshletVertices;
     private byte* _pMeshletTriangles;
-
-    private Handle<Mesh> _actualHandle;
-    private Handle<Mesh> _tempHandle;
 
     public Handle<Mesh> MeshHandle => _actualHandle;
 
@@ -122,7 +121,7 @@ internal unsafe class MeshAssetEntry : UploadableAssetEntry
         _actualHandle = resourceManager.RegisterMesh(ref mesh);
     }
 
-    public override Result OnLoadRawData([OwnershipTransfer] ref MemoryBlock memory)
+    public override Result OnLoadContent(Stream contentStream)
     {
         bool ValidateRange(ulong offset, int count, uint stride)
         {
@@ -130,17 +129,7 @@ internal unsafe class MeshAssetEntry : UploadableAssetEntry
             return offset <= _rawData.Size && size <= _rawData.Size - (nuint)offset;
         }
 
-        _rawData = memory;
-
-        var pData = (byte*)_rawData.GetUnsafePtr();
-        Logger.DebugAssert(pData != null);
-
-        if (_rawData.Size < (nuint)sizeof(MeshContentHeader))
-        {
-            return Result.Failure("Mesh content is smaller than the header.");
-        }
-
-        var header = Unsafe.ReadUnaligned<MeshContentHeader>(pData);
+        var header = contentStream.Read<MeshContentHeader>();
         if (header.magic != MeshContentHeader.MAGIC || header.version != MeshContentHeader.VERSION)
         {
             return Result.Failure("Unsupported mesh content format.");
@@ -169,6 +158,11 @@ internal unsafe class MeshAssetEntry : UploadableAssetEntry
         {
             return Result.Failure("Mesh content contains an invalid material part range.");
         }
+
+        contentStream.Seek(0, SeekOrigin.Begin);
+
+        _rawData = contentStream.ReadMemory(AllocationHandle.Persistent);
+        var pData = (byte*)_rawData.GetUnsafePtr();
 
         _header = header;
         _pVertices = pData + header.vertexOffset;

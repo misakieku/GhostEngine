@@ -71,22 +71,16 @@ internal struct LoadAssetJob : IJob
 
         try
         {
-            using var stream = assetManager.ContentProvider.OpenRead(entry.AssetId).GetValueOrThrow();
-
-            var data = new MemoryBlock((nuint)stream.Length, MemoryUtility.AlignOf<IntPtr>(), AllocationHandle.Persistent);
-
-            // C# built-in collections use int for indexing, so we need to ensure that the buffer size does not exceed int.MaxValue
-            var maxChunkSize = (int)Math.Min(0x7fffffffu, data.Size);
-            var offset = 0u;
-
-            while (offset < data.Size)
+            var openResult = assetManager.ContentProvider.OpenRead(entry.AssetId);
+            if (openResult.IsFailure)
             {
-                using var mem = NativeMemoryManager<byte>.FromMemoryBlock(data, (int)offset, maxChunkSize);
-                stream.ReadExactly(mem.Memory.Span);
-                offset += (uint)mem.Memory.Length;
+                entry.State = AssetState.Failed;
+                Logger.Error($"Failed to open asset {assetID}: {openResult.Message}");
+                return;
             }
 
-            var result = entry.OnLoadRawData(ref data);
+            using var stream = openResult.Value;
+            var result = entry.OnLoadContent(stream);
             if (result.IsFailure)
             {
                 entry.State = AssetState.Failed;
@@ -111,7 +105,7 @@ internal struct LoadAssetJob : IJob
 }
 
 // TODO: Support DirectStorage.
-internal partial class AssetManager : IDisposable
+public partial class AssetManager : IDisposable
 {
     private readonly IResourceDatabase _resourceDatabase;
     private readonly IContentProvider _contentProvider;
@@ -121,8 +115,8 @@ internal partial class AssetManager : IDisposable
 
     private readonly ConcurrentDictionary<Guid, AssetEntry> _entries;
 
-    public IContentProvider ContentProvider => _contentProvider;
-    public ResourceStreamingProcessor StreamingProcessor => _streamingProcessor;
+    internal IContentProvider ContentProvider => _contentProvider;
+    internal ResourceStreamingProcessor StreamingProcessor => _streamingProcessor;
 
     internal AssetManager(IResourceDatabase resourceDatabase, ResourceManager resourceManager, IContentProvider contentProvider, ResourceStreamingProcessor streamingProcessor, JobScheduler jobScheduler)
     {
@@ -239,7 +233,7 @@ internal partial class AssetManager : IDisposable
         return entry;
     }
 
-    public void ReimportAsset(Guid guid)
+    internal void ReimportAsset(Guid guid)
     {
         if (!_entries.TryGetValue(guid, out var entry))
         {

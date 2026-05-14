@@ -22,7 +22,7 @@ public class WorldTests
         world.EntityManager.CreateEntity();
         Assert.AreEqual(1, world.EntityManager.EntityCount);
 
-        world.Clear(default);
+        world.Reset(default);
         Assert.AreEqual(0, world.EntityManager.EntityCount);
     }
 }

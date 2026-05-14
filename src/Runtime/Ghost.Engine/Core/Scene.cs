@@ -30,7 +30,7 @@ internal struct EntityNode : IDisposable
 /// <summary>
 /// Represents a runtime scene - a collection of entities with the same SceneID.
 /// </summary>
-public struct Scene : IDisposable, IEquatable<Scene>
+public struct Scene : IEquatable<Scene>
 {
     private ushort _id;
 
@@ -80,10 +80,6 @@ public struct Scene : IDisposable, IEquatable<Scene>
     {
         return !left.Equals(right);
     }
-
-    public void Dispose()
-    {
-    }
 }
 
 /// <summary>
@@ -123,12 +119,12 @@ public static class SceneManager
         public int componentCount;
         public struct ComponentInfo
         {
+            public UnsafeArray<int> entityFieldOffsets;
+            public long dataOffset;
             public uint typeHash;
             public Identifier<IComponent> typeID;
             public int dataSize;
-            public int dataOffset;
             public int entityFieldCount;
-            public UnsafeArray<int> entityFieldOffsets;
         }
 
         public UnsafeArray<ComponentInfo> components;
@@ -148,7 +144,7 @@ public static class SceneManager
     {
         public UnsafeArray<BinaryEntityInfo> data;
 
-        public readonly ref BinaryEntityInfo this [int index] => ref data[index];
+        public readonly ref BinaryEntityInfo this[int index] => ref data[index];
 
         public BinaryEntityInfoArray(int count, AllocationHandle handle)
         {
@@ -166,18 +162,17 @@ public static class SceneManager
         }
     }
 
-    public static unsafe Result<int> LoadSceneIntoWorld(World world, SceneContentHeader header, void* pRawData, nuint dataSize)
+    internal static unsafe Result LoadBinarySceneIntoWorld(World world, SceneContentHeader header, Stream stream)
     {
-        var reader = new BufferReader((byte*)pRawData, dataSize);
-
         using var scope = AllocationManager.CreateStackScope();
 
         using var entityInfos = new BinaryEntityInfoArray(header.entityCount, scope.AllocationHandle);
         using var forwardMap = new UnsafeHashMap<int, Entity>(header.entityCount, scope.AllocationHandle);
+        using var str = new UnsafeArray<byte>(128, scope.AllocationHandle);
 
         for (var i = 0; i < header.entityCount; i++)
         {
-            var compCount = reader.Read<int>();
+            var compCount = stream.Read<int>();
             if (compCount == 0)
             {
                 continue;
@@ -187,31 +182,39 @@ public static class SceneManager
 
             for (var j = 0; j < compCount; j++)
             {
-                var typeHash = reader.Read<uint>();
-                var nameLength = reader.Read<int>();
-                var typeName = Encoding.UTF8.GetString(reader.ReadSpan<byte>(nameLength));
+                var typeHash = stream.Read<uint>();
+                var nameLength = stream.Read<int>();
 
-                var dataSz = reader.Read<int>();
-                var dataOff = reader.Position;
-                reader.Position += (nuint)dataSz;
+                if (nameLength > str.Length)
+                {
+                    str.Resize(nameLength);
+                }
 
-                var fieldCount = reader.Read<int>();
+                var strSpan = str.AsSpan(0, nameLength);
+                stream.ReadExactly(strSpan);
+
+                var typeName = Encoding.UTF8.GetString(strSpan);
+                var dataSz = stream.Read<int>();
+                var dataOff = stream.Position;
+                stream.Position += dataSz;
+
+                var fieldCount = stream.Read<int>();
                 var fieldOffsets = new UnsafeArray<int>(fieldCount, scope.AllocationHandle);
                 for (var f = 0; f < fieldCount; f++)
                 {
-                    fieldOffsets[f] = reader.Read<int>();
+                    fieldOffsets[f] = stream.Read<int>();
                 }
 
                 var typeID = ComponentRegistry.GetComponentIDByName(typeName);
 
                 comps[j] = new BinaryEntityInfo.ComponentInfo
                 {
+                    dataOffset = dataOff,
+                    entityFieldOffsets = fieldOffsets,
                     typeHash = typeHash,
                     typeID = typeID,
                     dataSize = dataSz,
-                    dataOffset = (int)dataOff,
                     entityFieldCount = fieldCount,
-                    entityFieldOffsets = fieldOffsets,
                 };
             }
 
@@ -257,7 +260,9 @@ public static class SceneManager
 
             world.EntityManager.SetComponent(entity, new SceneID { value = activeScene.ID });
 
+            using var compScope = AllocationManager.CreateStackScope();
             var info = entityInfos[i];
+
             for (var j = 0; j < info.componentCount; j++)
             {
                 var comp = info.components[j];
@@ -267,9 +272,11 @@ public static class SceneManager
                 }
 
                 var compSize = ComponentRegistry.GetComponentInfo(comp.typeID).size;
-                var pSrc = (byte*)pRawData + comp.dataOffset;
 
-                world.EntityManager.SetComponent(entity, comp.typeID, pSrc);
+                stream.Position = comp.dataOffset;
+
+                using var src = stream.ReadMemory(compSize, compScope.AllocationHandle);
+                world.EntityManager.SetComponent(entity, comp.typeID, src.GetUnsafePtr());
             }
         }
 
@@ -310,7 +317,7 @@ public static class SceneManager
             }
         }
 
-        return Result.Success(header.entityCount);
+        return Result.Success();
     }
 
     /// <summary>
@@ -347,7 +354,6 @@ public static class SceneManager
 
     public static void ReleaseScene(Scene scene)
     {
-        scene.Dispose();
         s_recycledSceneIDs.Enqueue(scene.ID);
     }
 

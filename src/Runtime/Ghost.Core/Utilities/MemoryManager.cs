@@ -43,7 +43,7 @@ public unsafe class NativeMemoryManager<T> : MemoryManager<T>
         return new NativeMemoryManager<T>((T*)collection.GetUnsafePtr(), length);
     }
 
-    public static NativeMemoryManager<T> FromMemoryBlock(MemoryBlock memoryBlock, int start, int length)
+    public static NativeMemoryManager<T> FromMemoryBlock(MemoryBlock memoryBlock, nuint start, int length)
     {
         return new NativeMemoryManager<T>((T*)memoryBlock.GetUnsafePtr() + start, length);
     }

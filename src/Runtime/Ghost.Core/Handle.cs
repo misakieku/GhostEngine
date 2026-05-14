@@ -252,25 +252,28 @@ public readonly struct Key128<T> : IEquatable<Key128<T>>
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct AssetRef<T> : IEquatable<AssetRef<T>>
 {
-    public readonly Guid guid;
+    public Guid ID
+    {
+        get;
+    }
 
     public static AssetRef<T> Null => default;
 
-    public bool IsValid => guid != Guid.Empty;
+    public bool IsValid => ID != Guid.Empty;
 
-    public AssetRef(Guid guid)
+    public AssetRef(Guid id)
     {
-        this.guid = guid;
+        ID = id;
     }
 
     public bool Equals(AssetRef<T> other)
     {
-        return guid == other.guid;
+        return ID == other.ID;
     }
 
     public override int GetHashCode()
     {
-        return guid.GetHashCode();
+        return ID.GetHashCode();
     }
 
     public override bool Equals(object? obj)
@@ -280,7 +283,7 @@ public readonly struct AssetRef<T> : IEquatable<AssetRef<T>>
 
     public override string ToString()
     {
-        return $"AssetRef<{typeof(T).Name}>({guid:N})";
+        return $"AssetRef<{typeof(T).Name}>({ID:N})";
     }
 
     public static bool operator ==(AssetRef<T> a, AssetRef<T> b)

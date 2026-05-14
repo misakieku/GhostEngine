@@ -4,7 +4,6 @@ using Ghost.Graphics;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Ghost.Graphics.Utilities;
-using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Runtime.InteropServices;
 
@@ -27,7 +26,7 @@ public struct TextureContentHeader
     public uint colorComponents;
 }
 
-internal partial class AssetManager
+public partial class AssetManager
 {
     public Handle<GPUTexture> ResolveTexture(Guid assetID)
     {
@@ -60,14 +59,11 @@ internal partial class AssetManager
 
 internal unsafe class TextureAssetEntry : UploadableAssetEntry
 {
-    private MemoryBlock _rawData;
-
-    private TextureDesc _desc;
-    private byte* _pData;
-    private nuint _dataSize;
-
     private Handle<GPUTexture> _actualHandle;
     private Handle<GPUTexture> _tempHandle;
+
+    private TextureDesc _desc;
+    private MemoryBlock _textureData;
 
     public Handle<GPUTexture> TextureHandle => _actualHandle;
 
@@ -106,16 +102,9 @@ internal unsafe class TextureAssetEntry : UploadableAssetEntry
         };
     }
 
-    public override Result OnLoadRawData([OwnershipTransfer] ref MemoryBlock memory)
+    public override Result OnLoadContent(Stream contentStream)
     {
-        _rawData = memory;
-
-        var pData = (byte*)memory.GetUnsafePtr();
-        Logger.DebugAssert(pData != null);
-
-        var reader = new BufferReader(pData, memory.Size);
-
-        var header = reader.Read<TextureContentHeader>();
+        var header = contentStream.Read<TextureContentHeader>();
 
         if (header.magic != TextureContentHeader.MAGIC)
         {
@@ -139,23 +128,28 @@ internal unsafe class TextureAssetEntry : UploadableAssetEntry
         };
 
         _desc = textureDesc;
-        _pData = reader.CurrentAddress;
-        _dataSize = reader.RemainingBytes;
+        _textureData = contentStream.ReadMemory(AllocationHandle.Persistent);
 
         return Result.Success();
     }
 
+    public override void OnReleaseResource()
+    {
+        ResourceDatabase.ReleaseResource(_tempHandle.AsResource());
+    }
+
+
     public override Result OnRecordUploadCommands(ResourceStreamingContext context)
     {
-        Logger.DebugAssert(_pData != null);
+        Logger.DebugAssert(_textureData.IsCreated);
 
         var newHandle = RenderingUtility.CreateTexture(
             context.ResourceManager,
             context.ResourceDatabase,
             context.ResourceAllocator,
             context.CopyPipeline.GetCommandBuffer(),
-            _pData,
-            _dataSize,
+            _textureData.GetUnsafePtr(),
+            _textureData.Size,
             in _desc);
 
         if (newHandle.IsInvalid)
@@ -176,13 +170,6 @@ internal unsafe class TextureAssetEntry : UploadableAssetEntry
 
         _actualHandle = Handle<GPUTexture>.Invalid;
         _tempHandle = actualHandle.AsTexture();
-
-        _rawData.Dispose();
-        _pData = null;
-    }
-
-    public override void OnReleaseResource()
-    {
-        ResourceDatabase.ReleaseResource(_tempHandle.AsResource());
+        _textureData.Dispose();
     }
 }

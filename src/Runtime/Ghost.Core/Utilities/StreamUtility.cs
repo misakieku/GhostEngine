@@ -1,3 +1,4 @@
+using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections.Contracts;
 using System.Buffers;
 using System.Runtime.CompilerServices;
@@ -45,11 +46,73 @@ public static class StreamUtility
         try
         {
             Unsafe.WriteUnaligned(ref buffer[0], value);
-             await stream.WriteAsync(buffer.AsMemory(0, size), cancellationToken);
+            await stream.WriteAsync(buffer.AsMemory(0, size), cancellationToken);
         }
         finally
         {
             ArrayPool<byte>.Shared.Return(buffer);
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T Read<T>(this Stream stream)
+        where T : unmanaged
+    {
+        var value = default(T);
+        stream.ReadExactly(MemoryMarshal.AsBytes(new Span<T>(ref value)));
+        return value;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static MemoryBlock ReadMemory(this Stream stream, long length, AllocationHandle allocationHandle)
+    {
+        var memory = new MemoryBlock((nuint)length, 16, allocationHandle);
+
+        // C# built-in collections use int for indexing, so we need to ensure that the buffer size does not exceed int.MaxValue
+        var maxChunkSize = (int)Math.Min(0x7fffffffL, length);
+        var offset = 0L;
+
+        while (offset < length)
+        {
+            using var mem = NativeMemoryManager<byte>.FromMemoryBlock(memory, (nuint)offset, maxChunkSize);
+            stream.ReadExactly(mem.Memory.Span);
+            offset += (uint)mem.Memory.Length;
+        }
+
+        return memory;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static MemoryBlock ReadMemory(this Stream stream, AllocationHandle allocationHandle)
+    {
+        return stream.ReadMemory(stream.Length - stream.Position, allocationHandle);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T Read<T>(this BinaryReader reader)
+        where T : unmanaged
+    {
+        var value = default(T);
+        reader.ReadExactly(MemoryMarshal.AsBytes(new Span<T>(ref value)));
+        return value;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static MemoryBlock ReadMemory(this BinaryReader reader, long length, AllocationHandle allocationHandle)
+    {
+        return reader.BaseStream.ReadMemory(length, allocationHandle);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static MemoryBlock ReadMemory(this BinaryReader reader, AllocationHandle allocationHandle)
+    {
+        return reader.BaseStream.ReadMemory(reader.BaseStream.Length - reader.BaseStream.Position, allocationHandle);
+    }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ReadSpan<T>(this BinaryReader reader, Span<T> data)
+        where T : struct
+    {
+        reader.ReadExactly(MemoryMarshal.AsBytes(data));
     }
 }
