@@ -56,7 +56,7 @@ public partial class AssetManager
                 world.Reset();
             }
 
-            var loadResult = SceneManager.LoadBinarySceneIntoWorld(world, header, stream);
+            var loadResult = SceneManager.LoadSceneIntoWorld(world, header, stream);
             if (loadResult.IsFailure)
             {
                 return Result.Failure(loadResult.Message);

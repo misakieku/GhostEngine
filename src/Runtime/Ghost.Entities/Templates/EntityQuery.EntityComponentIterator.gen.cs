@@ -37,7 +37,7 @@ public unsafe partial struct EntityQuery
             private fixed int _offsets[1];
             private fixed long _compBasePtrs[1];
 
-            private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
+            private readonly ReadOnlyView<Identifier<Archetype>> _matchingArchetypes;
             private readonly EntityQueryMask _mask;
             private readonly World _world;
 
@@ -53,7 +53,7 @@ public unsafe partial struct EntityQuery
             private int _currentChunkIndex;
             private int _currentEntityIndex;
 
-            internal Enumerator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
+            internal Enumerator(ReadOnlyView<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
             {
                 _compTypeIDs[0] = ComponentTypeID<T0>.Value;
                 _offsets[0] = 0;
@@ -180,11 +180,11 @@ public unsafe partial struct EntityQuery
             }
         }
 
-        private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
+        private readonly ReadOnlyView<Identifier<Archetype>> _matchingArchetypes;
         private readonly EntityQueryMask _mask;
         private readonly World _world;
 
-        internal EntityComponentIterator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
+        internal EntityComponentIterator(ReadOnlyView<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
         {
             _matchingArchetypes = matchingArchetypes;
             _mask = mask;
@@ -242,7 +242,7 @@ public unsafe partial struct EntityQuery
             private fixed int _offsets[2];
             private fixed long _compBasePtrs[2];
 
-            private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
+            private readonly ReadOnlyView<Identifier<Archetype>> _matchingArchetypes;
             private readonly EntityQueryMask _mask;
             private readonly World _world;
 
@@ -258,7 +258,7 @@ public unsafe partial struct EntityQuery
             private int _currentChunkIndex;
             private int _currentEntityIndex;
 
-            internal Enumerator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
+            internal Enumerator(ReadOnlyView<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
             {
                 _compTypeIDs[0] = ComponentTypeID<T0>.Value;
                 _offsets[0] = 0;
@@ -390,11 +390,11 @@ public unsafe partial struct EntityQuery
             }
         }
 
-        private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
+        private readonly ReadOnlyView<Identifier<Archetype>> _matchingArchetypes;
         private readonly EntityQueryMask _mask;
         private readonly World _world;
 
-        internal EntityComponentIterator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
+        internal EntityComponentIterator(ReadOnlyView<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
         {
             _matchingArchetypes = matchingArchetypes;
             _mask = mask;
@@ -457,7 +457,7 @@ public unsafe partial struct EntityQuery
             private fixed int _offsets[3];
             private fixed long _compBasePtrs[3];
 
-            private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
+            private readonly ReadOnlyView<Identifier<Archetype>> _matchingArchetypes;
             private readonly EntityQueryMask _mask;
             private readonly World _world;
 
@@ -473,7 +473,7 @@ public unsafe partial struct EntityQuery
             private int _currentChunkIndex;
             private int _currentEntityIndex;
 
-            internal Enumerator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
+            internal Enumerator(ReadOnlyView<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
             {
                 _compTypeIDs[0] = ComponentTypeID<T0>.Value;
                 _offsets[0] = 0;
@@ -610,11 +610,11 @@ public unsafe partial struct EntityQuery
             }
         }
 
-        private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
+        private readonly ReadOnlyView<Identifier<Archetype>> _matchingArchetypes;
         private readonly EntityQueryMask _mask;
         private readonly World _world;
 
-        internal EntityComponentIterator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
+        internal EntityComponentIterator(ReadOnlyView<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
         {
             _matchingArchetypes = matchingArchetypes;
             _mask = mask;
@@ -682,7 +682,7 @@ public unsafe partial struct EntityQuery
             private fixed int _offsets[4];
             private fixed long _compBasePtrs[4];
 
-            private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
+            private readonly ReadOnlyView<Identifier<Archetype>> _matchingArchetypes;
             private readonly EntityQueryMask _mask;
             private readonly World _world;
 
@@ -698,7 +698,7 @@ public unsafe partial struct EntityQuery
             private int _currentChunkIndex;
             private int _currentEntityIndex;
 
-            internal Enumerator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
+            internal Enumerator(ReadOnlyView<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
             {
                 _compTypeIDs[0] = ComponentTypeID<T0>.Value;
                 _offsets[0] = 0;
@@ -840,11 +840,11 @@ public unsafe partial struct EntityQuery
             }
         }
 
-        private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
+        private readonly ReadOnlyView<Identifier<Archetype>> _matchingArchetypes;
         private readonly EntityQueryMask _mask;
         private readonly World _world;
 
-        internal EntityComponentIterator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
+        internal EntityComponentIterator(ReadOnlyView<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
         {
             _matchingArchetypes = matchingArchetypes;
             _mask = mask;
@@ -917,7 +917,7 @@ public unsafe partial struct EntityQuery
             private fixed int _offsets[5];
             private fixed long _compBasePtrs[5];
 
-            private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
+            private readonly ReadOnlyView<Identifier<Archetype>> _matchingArchetypes;
             private readonly EntityQueryMask _mask;
             private readonly World _world;
 
@@ -933,7 +933,7 @@ public unsafe partial struct EntityQuery
             private int _currentChunkIndex;
             private int _currentEntityIndex;
 
-            internal Enumerator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
+            internal Enumerator(ReadOnlyView<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
             {
                 _compTypeIDs[0] = ComponentTypeID<T0>.Value;
                 _offsets[0] = 0;
@@ -1080,11 +1080,11 @@ public unsafe partial struct EntityQuery
             }
         }
 
-        private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
+        private readonly ReadOnlyView<Identifier<Archetype>> _matchingArchetypes;
         private readonly EntityQueryMask _mask;
         private readonly World _world;
 
-        internal EntityComponentIterator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
+        internal EntityComponentIterator(ReadOnlyView<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
         {
             _matchingArchetypes = matchingArchetypes;
             _mask = mask;
@@ -1162,7 +1162,7 @@ public unsafe partial struct EntityQuery
             private fixed int _offsets[6];
             private fixed long _compBasePtrs[6];
 
-            private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
+            private readonly ReadOnlyView<Identifier<Archetype>> _matchingArchetypes;
             private readonly EntityQueryMask _mask;
             private readonly World _world;
 
@@ -1178,7 +1178,7 @@ public unsafe partial struct EntityQuery
             private int _currentChunkIndex;
             private int _currentEntityIndex;
 
-            internal Enumerator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
+            internal Enumerator(ReadOnlyView<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
             {
                 _compTypeIDs[0] = ComponentTypeID<T0>.Value;
                 _offsets[0] = 0;
@@ -1330,11 +1330,11 @@ public unsafe partial struct EntityQuery
             }
         }
 
-        private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
+        private readonly ReadOnlyView<Identifier<Archetype>> _matchingArchetypes;
         private readonly EntityQueryMask _mask;
         private readonly World _world;
 
-        internal EntityComponentIterator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
+        internal EntityComponentIterator(ReadOnlyView<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
         {
             _matchingArchetypes = matchingArchetypes;
             _mask = mask;
@@ -1417,7 +1417,7 @@ public unsafe partial struct EntityQuery
             private fixed int _offsets[7];
             private fixed long _compBasePtrs[7];
 
-            private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
+            private readonly ReadOnlyView<Identifier<Archetype>> _matchingArchetypes;
             private readonly EntityQueryMask _mask;
             private readonly World _world;
 
@@ -1433,7 +1433,7 @@ public unsafe partial struct EntityQuery
             private int _currentChunkIndex;
             private int _currentEntityIndex;
 
-            internal Enumerator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
+            internal Enumerator(ReadOnlyView<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
             {
                 _compTypeIDs[0] = ComponentTypeID<T0>.Value;
                 _offsets[0] = 0;
@@ -1590,11 +1590,11 @@ public unsafe partial struct EntityQuery
             }
         }
 
-        private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
+        private readonly ReadOnlyView<Identifier<Archetype>> _matchingArchetypes;
         private readonly EntityQueryMask _mask;
         private readonly World _world;
 
-        internal EntityComponentIterator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
+        internal EntityComponentIterator(ReadOnlyView<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
         {
             _matchingArchetypes = matchingArchetypes;
             _mask = mask;
@@ -1682,7 +1682,7 @@ public unsafe partial struct EntityQuery
             private fixed int _offsets[8];
             private fixed long _compBasePtrs[8];
 
-            private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
+            private readonly ReadOnlyView<Identifier<Archetype>> _matchingArchetypes;
             private readonly EntityQueryMask _mask;
             private readonly World _world;
 
@@ -1698,7 +1698,7 @@ public unsafe partial struct EntityQuery
             private int _currentChunkIndex;
             private int _currentEntityIndex;
 
-            internal Enumerator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
+            internal Enumerator(ReadOnlyView<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
             {
                 _compTypeIDs[0] = ComponentTypeID<T0>.Value;
                 _offsets[0] = 0;
@@ -1860,11 +1860,11 @@ public unsafe partial struct EntityQuery
             }
         }
 
-        private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
+        private readonly ReadOnlyView<Identifier<Archetype>> _matchingArchetypes;
         private readonly EntityQueryMask _mask;
         private readonly World _world;
 
-        internal EntityComponentIterator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
+        internal EntityComponentIterator(ReadOnlyView<Identifier<Archetype>> matchingArchetypes, EntityQueryMask mask, World world)
         {
             _matchingArchetypes = matchingArchetypes;
             _mask = mask;

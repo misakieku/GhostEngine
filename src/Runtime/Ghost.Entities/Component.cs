@@ -1,8 +1,8 @@
 using Ghost.Core;
-using Ghost.Core.Utilities;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
+using System.IO.Hashing;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities;
@@ -10,6 +10,7 @@ namespace Ghost.Entities;
 public interface IComponent;
 public interface IEnableableComponent : IComponent;
 public interface ICleanupComponent : IComponent;
+public interface ISharedComponent : IComponent;
 
 [AttributeUsage(AttributeTargets.Struct)]
 public class RequireComponentAttribute<T> : Attribute
@@ -20,13 +21,12 @@ public class RequireComponentAttribute<T> : Attribute
 
 internal struct ComponentInfo
 {
-    // public string stableName; // Do we actually need this?
     public Identifier<IComponent> id;
     public int size;
     public int alignment;
     public bool isEnableable;
-    public bool isSharedWarper;
     public bool isCleanup;
+    public bool isShared;
 }
 
 /// <summary>
@@ -44,6 +44,8 @@ internal static class ComponentRegistry
     private static readonly List<ComponentInfo> s_registeredComponents = new();
     private static readonly Dictionary<IntPtr, int> s_typeHandleToID = new();
     private static readonly Dictionary<string, int> s_nameToRuntimeID = new();
+
+    // NOTE: Can we remove the lock? Ideally all the component registeration will happend during module init, way before the first get.
     private static readonly Lock s_registerLock = new();
 
 #if DEBUG || GHOST_EDITOR
@@ -72,13 +74,12 @@ internal static class ComponentRegistry
             var stableName = typeof(T).FullName ?? typeof(T).Name;
             var info = new ComponentInfo
             {
-                // stableName = stableName,
                 id = newID,
                 size = sizeof(T),
                 alignment = (int)MemoryUtility.AlignOf<T>(),
                 isEnableable = typeof(IEnableableComponent).IsAssignableFrom(type),
-                isSharedWarper = typeof(ISharedWrapper).IsAssignableFrom(type),
                 isCleanup = typeof(ICleanupComponent).IsAssignableFrom(type),
+                isShared = typeof(ISharedComponent).IsAssignableFrom(type),
             };
 
             s_registeredComponents.Add(info);
@@ -146,7 +147,7 @@ internal static class ComponentRegistry
         }
     }
 
-    public static int GetHashCode(params ReadOnlySpan<Identifier<IComponent>> componentTypeIDs)
+    public static int GetHashCodeForTypeIDs(params ReadOnlySpan<Identifier<IComponent>> componentTypeIDs)
     {
         var largestID = 0;
         foreach (var id in componentTypeIDs)
@@ -168,6 +169,16 @@ internal static class ComponentRegistry
         }
 
         return bitSet.GetHashCode();
+    }
+
+    public static int GetHashCodeForSharedData(ReadOnlySpan<byte> data)
+    {
+        if (data.IsEmpty)
+        {
+            return 0;
+        }
+
+        return Unsafe.BitCast<uint, int>(XxHash32.HashToUInt32(data));
     }
 }
 
@@ -282,6 +293,8 @@ public partial class ComponentManager : IDisposable
 
         _archetypeLookup.Clear();
         _querieLookup.Clear();
+
+        CreateArchetype(ReadOnlySpan<Identifier<IComponent>>.Empty, 0);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -335,9 +348,40 @@ public partial class ComponentManager : IDisposable
 public struct ComponentSet : IDisposable, IEquatable<ComponentSet>
 {
     private UnsafeArray<Identifier<IComponent>> _components;
+    private UnsafeArray<byte> _sharedData;
     private int _hashCode;
+    private int _sharedHashCode;
 
-    public readonly ReadOnlySpan<Identifier<IComponent>> Components => _components.AsSpan();
+    public readonly ReadOnlySpan<Identifier<IComponent>> Components => _components;
+    public readonly ReadOnlySpan<byte> SharedComponentData => _sharedData;
+
+    public int ComponentHashCode
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+        {
+            if (_hashCode == -1)
+            {
+                _hashCode = ComponentRegistry.GetHashCodeForTypeIDs(_components);
+            }
+
+            return _hashCode;
+        }
+    }
+
+    public int SharedDataHashCode
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+        {
+            if (_sharedHashCode == -1)
+            {
+                _sharedHashCode = ComponentRegistry.GetHashCodeForSharedData(_sharedData);
+            }
+
+            return _sharedHashCode;
+        }
+    }
 
     public ComponentSet(AllocationHandle allocationHandle, params ReadOnlySpan<Identifier<IComponent>> components)
     {
@@ -345,85 +389,35 @@ public struct ComponentSet : IDisposable, IEquatable<ComponentSet>
         components.CopyTo(_components.AsSpan());
 
         _hashCode = -1;
+        _sharedHashCode = -1;
     }
 
-    public ComponentSet With(AllocationHandle allocationHandle, params ReadOnlySpan<Identifier<IComponent>> components)
+    public ComponentSet(AllocationHandle allocationHandle, ReadOnlySpan<Identifier<IComponent>> components, ReadOnlySpan<byte> sharedData)
     {
-        if (_components.AsSpan().SequenceEqual(components))
-        {
-            return new ComponentSet { _components = _components.Clone(allocationHandle), _hashCode = _hashCode };
-        }
+        _components = new UnsafeArray<Identifier<IComponent>>(components.Length, allocationHandle);
+        components.CopyTo(_components.AsSpan());
 
-        var newComponents = new UnsafeArray<Identifier<IComponent>>(_components.Length + components.Length, allocationHandle);
+        _sharedData = new UnsafeArray<byte>(sharedData.Length, allocationHandle);
+        sharedData.CopyTo(_sharedData);
 
-        newComponents.CopyFrom(_components);
-
-        var i = _components.Length;
-        for (int j = 0; j < components.Length; j++)
-        {
-            for (int k = 0; k < i; k++)
-            {
-                if (newComponents[k] != components[j])
-                {
-                    newComponents[i++] = components[j];
-                }
-            }
-        }
-
-        _components.Resize(i);
-        return new ComponentSet { _components = newComponents, _hashCode = -1 };
+        _hashCode = -1;
+        _sharedHashCode = -1;
     }
 
-    public ComponentSet Without(AllocationHandle allocationHandle, params ReadOnlySpan<Identifier<IComponent>> components)
-    {
-        if (_components.AsSpan().SequenceEqual(components))
-        {
-            return default;
-        }
-
-        var newComponents = new UnsafeArray<Identifier<IComponent>>(_components.Length, allocationHandle);
-
-        var i = 0;
-        for (int j = 0; j < _components.Length; j++)
-        {
-            var found = false;
-            for (var k = 0; k < components.Length; k++)
-            {
-                if (components[k] == _components[j])
-                {
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found)
-            {
-                newComponents[i++] = _components[j];
-            }
-        }
-
-        newComponents.Resize(i);
-        return new ComponentSet { _components = newComponents, _hashCode = -1 };
-    }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly ComponentSetView AsView()
     {
-        return new ComponentSetView(_components);
+        return new ComponentSetView(_components, _sharedData);
     }
 
     public readonly bool Equals(ComponentSet other)
     {
-        return _hashCode == other._hashCode;
+        return _hashCode == other._hashCode && _sharedHashCode == other._sharedHashCode;
     }
 
     public override int GetHashCode()
     {
-        if (_hashCode == -1)
-        {
-            _hashCode = ComponentRegistry.GetHashCode(_components.AsSpan());
-        }
-
-        return _hashCode;
+        return ComponentHashCode ^ (SharedDataHashCode >> 16);
     }
 
     public void Dispose()
@@ -448,37 +442,74 @@ public struct ComponentSet : IDisposable, IEquatable<ComponentSet>
 
     public static implicit operator ComponentSetView(in ComponentSet set)
     {
-        return new ComponentSetView(set._components);
+        return new ComponentSetView(set._components, set._sharedData);
     }
 }
 
-
+/// <summary>
+/// Represents a view of component set from external buffer, used to define a group of components within an entity or system.
+/// </summary>
 public ref struct ComponentSetView : IEquatable<ComponentSetView>
 {
     private readonly ReadOnlySpan<Identifier<IComponent>> _components;
+    private readonly ReadOnlySpan<byte> _sharedData;
     private int _hashCode;
+    private int _sharedHashCode;
 
     public readonly ReadOnlySpan<Identifier<IComponent>> Components => _components;
+    public readonly ReadOnlySpan<byte> SharedComponentData => _sharedData;
+
+    public int ComponentHashCode
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+        {
+            if (_hashCode == -1)
+            {
+                _hashCode = ComponentRegistry.GetHashCodeForTypeIDs(_components);
+            }
+
+            return _hashCode;
+        }
+    }
+
+    public int SharedDataHashCode
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+        {
+            if (_sharedHashCode == -1)
+            {
+                _sharedHashCode = ComponentRegistry.GetHashCodeForSharedData(_sharedData);
+            }
+
+            return _sharedHashCode;
+        }
+    }
 
     public ComponentSetView(ReadOnlySpan<Identifier<IComponent>> components)
     {
         _components = components;
         _hashCode = -1;
+        _sharedHashCode = -1;
+    }
+
+    public ComponentSetView(ReadOnlySpan<Identifier<IComponent>> components, ReadOnlySpan<byte> sharedData)
+    {
+        _components = components;
+        _sharedData = sharedData;
+        _hashCode = -1;
+        _sharedHashCode = -1;
     }
 
     public readonly bool Equals(ComponentSetView other)
     {
-        return _hashCode == other._hashCode;
+        return _hashCode == other._hashCode && _sharedHashCode == other._sharedHashCode;
     }
 
     public override int GetHashCode()
     {
-        if (_hashCode == -1)
-        {
-            _hashCode = ComponentRegistry.GetHashCode(_components);
-        }
-
-        return _hashCode;
+        return ComponentHashCode ^ (SharedDataHashCode >> 16);
     }
 
     public override readonly bool Equals(object? obj)

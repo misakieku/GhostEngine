@@ -14,7 +14,7 @@ public static class SceneGraphBuilder
         foreach (var (scene, entities) in sceneEntities)
         {
             var sceneName = GetDefaultSceneName(scene);
-            var sceneNode = new SceneNode(world, scene, sceneName);
+            var sceneNode = new SceneNode(world, new Scene(scene), sceneName);
             BuildEntityTree(entities, sceneNode);
             sceneNodes.Add(sceneNode);
         }
@@ -22,9 +22,9 @@ public static class SceneGraphBuilder
         return sceneNodes;
     }
 
-    private static Dictionary<Scene, List<Entity>> GroupEntitiesByScene(World world)
+    private static Dictionary<ushort, List<Entity>> GroupEntitiesByScene(World world)
     {
-        var sceneMap = new Dictionary<Scene, List<Entity>>();
+        var sceneMap = new Dictionary<ushort, List<Entity>>();
         var queryID = new QueryBuilder().WithAll<SceneID>().Build(world);
         ref var query = ref world.ComponentManager.GetEntityQueryReference(queryID);
 
@@ -36,7 +36,7 @@ public static class SceneGraphBuilder
             for (var i = 0; i < chunk.EntityCount; i++)
             {
                 var s = sceneIDs[i].value;
-                if (!s.IsValid)
+                if (s == Scene.INVALID_ID)
                 {
                     continue;
                 }
@@ -149,8 +149,8 @@ public static class SceneGraphBuilder
         return true;
     }
 
-    private static string GetDefaultSceneName(Scene scene)
+    private static string GetDefaultSceneName(ushort sceneID)
     {
-        return $"NewScene ({scene.ID})";
+        return $"NewScene ({sceneID})";
     }
 }

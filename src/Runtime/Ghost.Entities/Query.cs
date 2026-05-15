@@ -87,10 +87,14 @@ internal struct EntityQueryMask : IDisposable, IEquatable<EntityQueryMask>
 public readonly unsafe ref struct ChunkView
 {
     // We flatten all the information we need for fast access.
-    private readonly ReadOnlyUnsafeCollection<Archetype.ComponentMemoryLayout> _layouts;
-    private readonly ReadOnlyUnsafeCollection<int> _layoutIndexLookup;
+    private readonly ReadOnlyView<Archetype.ComponentMemoryLayout> _layouts;
+    private readonly ReadOnlyView<int> _layoutIndexLookup;
+    private readonly ReadOnlyView<Archetype.SharedComponentLayout> _sharedLayouts;
+
     private readonly byte* _pChunkData;
     private readonly uint* _pVersion;
+    private readonly byte* _pSharedData;
+
     private readonly int _entityOffset;
     private readonly int _entityCount;
     private readonly uint _structuralVersion;
@@ -102,8 +106,12 @@ public readonly unsafe ref struct ChunkView
     {
         _layouts = archetype._layouts.AsReadOnly();
         _layoutIndexLookup = archetype._componentIDToLayoutIndex.AsReadOnly();
+        _sharedLayouts = archetype._sharedLayouts.AsReadOnly();
+
         _pChunkData = chunk.GetUnsafePtr();
         _pVersion = chunk.GetVersionUnsafePtr();
+        _pSharedData = archetype._chunkGroups[chunk._groupIndex].sharedData.IsCreated ? (byte*)archetype._chunkGroups[chunk._groupIndex].sharedData.GetUnsafePtr() : null;
+
         _entityOffset = archetype.EntityIDsOffset;
         _entityCount = chunk._count;
 
@@ -199,7 +207,7 @@ public readonly unsafe ref struct ChunkView
     /// <summary>
     /// Gets a readonly span providing direct access to the component data of space T0 for structuralAll entities in the chunk.
     /// </summary>
-    /// <typeparam name="T">The space of component to access. Must be an unmanaged space that implements <see cref="Component"/>.</typeparam>
+    /// <typeparam name="T">The space of component to access. Must be an unmanaged space that implements <see cref="IComponent"/>.</typeparam>
     /// <returns>A readonly span of space <see cref="{T}"/> containing the component data for each entity in the chunk.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the specified component space is not present in the archetype.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -214,7 +222,7 @@ public readonly unsafe ref struct ChunkView
     /// <summary>
     /// Gets a span providing direct access to the component data of space T0 for structuralAll entities in the chunk.
     /// </summary>
-    /// <typeparam name="T">The space of component to access. Must be an unmanaged space that implements <see cref="Component"/>.</typeparam>
+    /// <typeparam name="T">The space of component to access. Must be an unmanaged space that implements <see cref="IComponent"/>.</typeparam>
     /// <returns>A span of space <see cref="{T}"/> containing the component data for each entity in the chunk.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the specified component space is not present in the archetype.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -252,7 +260,7 @@ public readonly unsafe ref struct ChunkView
     /// <typeparam name="T">The space of the component to check. Must be an unmanaged space that implements <see cref="IEnableableComponent"/>.</typeparam>
     /// <param name="index">The zero-based index of the component instance to check within the chunk.</param>
     /// <returns>true if the component at the specified index is enabled; otherwise, false.</returns>
-    /// <exception cref="InvalidOperationException">Thrown if the specified component space <typeparamref name="T"/> does not support enable/disable functionality.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if the specified component space <typeparamref name="T"/> was not found in current chunk.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsComponentEnabled<T>(int index)
         where T : unmanaged, IEnableableComponent
@@ -260,6 +268,42 @@ public readonly unsafe ref struct ChunkView
         var layout = GetLayout(ComponentTypeID<T>.Value);
         var pMask = _pChunkData + layout.enableBitsOffset;
         return EntityQuery.CheckBit(pMask, index);
+    }
+
+    /// <summary>
+    /// Get the value of the shared data stored in current chunk.
+    /// </summary>
+    /// <typeparam name="T">The space of the component to check. Must be an unmanaged space that implements <see cref="ISharedComponent"/>.</typeparam>
+    /// <returns> The reference to the shared data.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the specified component space <typeparamref name="T"/> was not found in current chunk.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ref readonly T GetSharedComponent<T>()
+        where T : unmanaged, ISharedComponent
+    {
+#if GHOST_EDITOR
+        if (_pSharedData == null)
+        {
+            throw new InvalidOperationException($"Shared component type {typeof(T).Name} does not exist in current chunk.");
+        }
+#endif
+
+        var compID = ComponentTypeID<T>.Value;
+        var layoutIndex = -1;
+        for (int i = 0; i < _sharedLayouts.Length; i++)
+        {
+            if (_sharedLayouts[i].componentID == compID.Value)
+            {
+                layoutIndex = i;
+                break;
+            }
+        }
+
+        if (layoutIndex == -1)
+        {
+            throw new InvalidOperationException($"Shared component type {typeof(T).Name} does not exist in current chunk.");
+        }
+
+        return ref *(T*)(_pSharedData + _sharedLayouts[layoutIndex].offset);
     }
 }
 
@@ -285,6 +329,7 @@ public unsafe partial struct EntityQuery : IDisposable
 
             public readonly ChunkView Current
             {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 get
                 {
                     ref var archetype = ref _iterator._world.ComponentManager.GetArchetypeReference(_iterator._matchingArchetypes[_archetypeIndex]);
@@ -295,6 +340,7 @@ public unsafe partial struct EntityQuery : IDisposable
 
             public bool MoveNext()
             {
+            Start:
                 _chunkIndex++;
 
                 while (_archetypeIndex < _iterator._matchingArchetypes.Count)
@@ -302,6 +348,11 @@ public unsafe partial struct EntityQuery : IDisposable
                     ref var archetype = ref _iterator._world.ComponentManager.GetArchetypeReference(_iterator._matchingArchetypes[_archetypeIndex]);
                     if (_chunkIndex < archetype.ChunkCount)
                     {
+                        if (archetype.GetChunkReference(_chunkIndex)._count == 0)
+                        {
+                            goto Start;
+                        }
+
                         return true;
                     }
 
@@ -319,10 +370,10 @@ public unsafe partial struct EntityQuery : IDisposable
             }
         }
 
-        private readonly ReadOnlyUnsafeCollection<Identifier<Archetype>> _matchingArchetypes;
+        private readonly ReadOnlyView<Identifier<Archetype>> _matchingArchetypes;
         private readonly World _world;
 
-        internal ChunkIterator(ReadOnlyUnsafeCollection<Identifier<Archetype>> matchingArchetypes, World world)
+        internal ChunkIterator(ReadOnlyView<Identifier<Archetype>> matchingArchetypes, World world)
         {
             _matchingArchetypes = matchingArchetypes;
             _world = world;
@@ -351,7 +402,7 @@ public unsafe partial struct EntityQuery : IDisposable
     // TODO: Fetching layout every time is not optimal. Cache them?
     private static bool IsEntityValid(byte* chunkBase, int entityIndex, ref readonly Archetype archetype, ref readonly EntityQueryMask mask)
     {
-        // 1. Check "Require Enabled" (WithAll)
+        // Check "Require Enabled" (WithAll)
         var it = mask.requireEnabled.GetIterator();
         while (it.Next(out var id))
         {
@@ -371,7 +422,7 @@ public unsafe partial struct EntityQuery : IDisposable
             }
         }
 
-        // 2. Check "Require Disabled" (WithDisabled)
+        // Check "Require Disabled" (WithDisabled)
         it = mask.requireDisabled.GetIterator();
         while (it.Next(out var id))
         {
@@ -392,7 +443,7 @@ public unsafe partial struct EntityQuery : IDisposable
             }
         }
 
-        // 3. Check "Reject if Enabled" (The "Soft WithNone")
+        // Check "Reject if Enabled" (The "Soft WithNone")
         it = mask.rejectIfEnabled.GetIterator();
         while (it.Next(out var id))
         {
@@ -445,6 +496,10 @@ public unsafe partial struct EntityQuery : IDisposable
         return new ChunkIterator(_matchingArchetypes.AsReadOnly(), world);
     }
 
+    /// <summary>
+    /// Calculate total entity count in this query
+    /// </summary>
+    /// <returns> Total entity count</returns>
     public readonly int CalculateEntityCount()
     {
         var total = 0;
@@ -461,7 +516,14 @@ public unsafe partial struct EntityQuery : IDisposable
             for (var j = 0; j < archetype.ChunkCount; j++)
             {
                 ref var chunk = ref archetype.GetChunkReference(j);
-                total += chunk._count;
+
+                for (var k = 0; k < chunk._count; k++)
+                {
+                    if (IsEntityValid(chunk.GetUnsafePtr(), k, in archetype, in _mask))
+                    {
+                        total++;
+                    }
+                }
             }
         }
 
@@ -554,7 +616,7 @@ public ref partial struct QueryBuilder : IDisposable
 
     private void BuildQueryMask(AllocationHandle allocationHandle, out EntityQueryMask mask)
     {
-        // 1. Calculate max component ID to size the BitSets
+        // Calculate max component ID to size the BitSets
         var maxID = 0;
         FindMax(_all, ref maxID);
         FindMax(_any, ref maxID);
@@ -563,7 +625,7 @@ public ref partial struct QueryBuilder : IDisposable
         FindMax(_disabled, ref maxID);
         FindMax(_present, ref maxID);
 
-        // 2. Create the Mask
+        // Create the Mask
         mask = new EntityQueryMask
         {
             structuralAll = new UnsafeBitSet(maxID + 1, allocationHandle, AllocationOption.Clear),
@@ -576,7 +638,7 @@ public ref partial struct QueryBuilder : IDisposable
             writeAccess = new UnsafeBitSet(maxID + 1, allocationHandle, AllocationOption.Clear),
         };
 
-        // 3. Fill BitSets
+        // Fill BitSets
         foreach (var id in _all)
         {
             mask.structuralAll.SetBit(id);  // Structure: Must Exist

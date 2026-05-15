@@ -41,22 +41,22 @@ public class SceneGraphSyncService
             RemoveStaleEntityNodes(sceneNode, entities);
         }
 
-        var activeScenes = new HashSet<Scene>(sceneEntities.Keys);
+        var activeScenes = new HashSet<ushort>(sceneEntities.Keys);
         RemoveStaleSceneNodes(_worldService.RootNodes, activeScenes);
     }
 
-    private static SceneNode FindOrCreateSceneNode(World world, Scene scene, System.Collections.ObjectModel.ObservableCollection<SceneNode> rootNodes)
+    private static SceneNode FindOrCreateSceneNode(World world, ushort sceneID, System.Collections.ObjectModel.ObservableCollection<SceneNode> rootNodes)
     {
         foreach (var existing in rootNodes)
         {
-            if (existing.Scene == scene)
+            if (existing.Scene.ID == sceneID)
             {
                 return existing;
             }
         }
 
-        var sceneName = $"NewScene ({scene.ID})";
-        var newSceneNode = new SceneNode(world, scene, sceneName);
+        var sceneName = $"NewScene ({sceneID})";
+        var newSceneNode = new SceneNode(world, new Scene(sceneID), sceneName);
         rootNodes.Add(newSceneNode);
         return newSceneNode;
     }
@@ -159,20 +159,20 @@ public class SceneGraphSyncService
         }
     }
 
-    private static void RemoveStaleSceneNodes(System.Collections.ObjectModel.ObservableCollection<SceneNode> rootNodes, HashSet<Scene> activeScenes)
+    private static void RemoveStaleSceneNodes(System.Collections.ObjectModel.ObservableCollection<SceneNode> rootNodes, HashSet<ushort> activeScenes)
     {
         for (var i = rootNodes.Count - 1; i >= 0; i--)
         {
-            if (!activeScenes.Contains(rootNodes[i].Scene))
+            if (!activeScenes.Contains(rootNodes[i].Scene.ID))
             {
                 rootNodes.RemoveAt(i);
             }
         }
     }
 
-    private static Dictionary<Scene, List<Entity>> GroupEntitiesByScene(World world)
+    private static Dictionary<ushort, List<Entity>> GroupEntitiesByScene(World world)
     {
-        var sceneMap = new Dictionary<Scene, List<Entity>>();
+        var sceneMap = new Dictionary<ushort, List<Entity>>();
         var queryID = new QueryBuilder().WithAll<SceneID>().Build(world);
         ref var query = ref world.ComponentManager.GetEntityQueryReference(queryID);
 
@@ -184,7 +184,7 @@ public class SceneGraphSyncService
             for (var i = 0; i < chunk.EntityCount; i++)
             {
                 var s = sceneIDs[i].value;
-                if (!s.IsValid)
+                if (s == Scene.INVALID_ID)
                 {
                     continue;
                 }

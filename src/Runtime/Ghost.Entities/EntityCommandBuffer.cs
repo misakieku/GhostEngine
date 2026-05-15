@@ -1,12 +1,11 @@
 using Ghost.Core;
+using Ghost.Core.Utilities;
 using Misaki.HighPerformance.LowLevel.Buffer;
-using Misaki.HighPerformance.LowLevel.Collections;
-using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities;
 
-public unsafe class EntityCommandBuffer : IDisposable
+public unsafe struct EntityCommandBuffer : IDisposable
 {
     private enum ECBOpCode : byte
     {
@@ -16,222 +15,194 @@ public unsafe class EntityCommandBuffer : IDisposable
         AddComponent,
         RemoveComponent,
         SetComponent,
+        AddSharedComponent,
+        RemoveSharedComponent,
+        SetSharedComponent,
     }
 
-    private readonly EntityManager _entityManager;
-    private UnsafeList<byte> _buffer;
-    private bool _disposed;
+    private BufferWriter _writer;
 
-    public EntityCommandBuffer(EntityManager entityManager)
+    public EntityCommandBuffer(int capacity, AllocationHandle allocationHandle)
     {
-        _entityManager = entityManager;
-        _buffer = new UnsafeList<byte>(4096, AllocationHandle.Persistent);
-    }
-
-    ~EntityCommandBuffer()
-    {
-        Dispose();
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void WriteHeader(ECBOpCode op)
-    {
-        _buffer.Add((byte)op);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void Write<T>(T value)
-        where T : unmanaged
-    {
-        var size = sizeof(T);
-        var idx = _buffer.Count;
-
-        if (idx + size > _buffer.Capacity)
-        {
-            _buffer.Resize(idx + size);
-        }
-
-        MemoryUtility.MemCpy((byte*)_buffer.GetUnsafePtr() + idx, &value, (nuint)size);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void WriteSpan<T>(ReadOnlySpan<T> span)
-        where T : unmanaged
-    {
-        var size = sizeof(T) * span.Length;
-        var idx = _buffer.Count;
-
-        if (idx + size > _buffer.Capacity)
-        {
-            _buffer.Resize(idx + size);
-        }
-
-        fixed (T* ptr = span)
-        {
-            MemoryUtility.MemCpy((byte*)_buffer.GetUnsafePtr() + idx, ptr, (nuint)size);
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private T Read<T>(ref int cursor)
-        where T : unmanaged
-    {
-        var size = sizeof(T);
-        var ptr = (byte*)_buffer.GetUnsafePtr();
-
-        var value = *(T*)&ptr[cursor];
-        cursor += size;
-
-        return value;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Span<T> ReadSpan<T>(ref int cursor, int length)
-        where T : unmanaged
-    {
-        var size = sizeof(T) * length;
-        var ptr = (byte*)_buffer.GetUnsafePtr();
-
-        var span = new Span<T>(&ptr[cursor], length);
-        cursor += size;
-
-        return span;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void* ReadBuffer(ref int cursor, int size)
-    {
-        var ptr = (byte*)_buffer.GetUnsafePtr();
-        var bufferPtr = ptr + cursor;
-        cursor += size;
-
-        return bufferPtr;
+        _writer = new BufferWriter(capacity, allocationHandle);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void CreateEntity(int count = 1)
     {
-        WriteHeader(ECBOpCode.CreateEntity);
-        Write(count);
+        _writer.Write(ECBOpCode.CreateEntity);
+        _writer.Write(count);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void CreateEntity(int count, ComponentSet set)
+    public void CreateEntity(int count, ComponentSetView set)
     {
-        WriteHeader(ECBOpCode.CreateEntityWithComponents);
-        Write(count);
-        Write(set.Components.Length);
-        WriteSpan(set.Components);
+        _writer.Write(ECBOpCode.CreateEntityWithComponents);
+        _writer.Write(count);
+        _writer.Write(set.Components.Length);
+        _writer.WriteSpan(set.Components);
+        _writer.Write(set.SharedComponentData.Length);
+        _writer.WriteSpan(set.SharedComponentData);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void DestroyEntity(Entity entity)
     {
-        WriteHeader(ECBOpCode.DestroyEntity);
-        Write(entity);
+        _writer.Write(ECBOpCode.DestroyEntity);
+        _writer.Write(entity);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AddComponent<T>(Entity entity, T component = default)
         where T : unmanaged, IComponent
     {
-        WriteHeader(ECBOpCode.AddComponent);
-        Write(entity);
-        Write(ComponentTypeID<T>.Value);
-        Write(component);
+        _writer.Write(ECBOpCode.AddComponent);
+        _writer.Write(entity);
+        _writer.Write(ComponentTypeID<T>.Value);
+        _writer.Write(component);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void RemoveComponent<T>(Entity entity)
         where T : unmanaged, IComponent
     {
-        WriteHeader(ECBOpCode.RemoveComponent);
-        Write(entity);
-        Write(ComponentTypeID<T>.Value);
+        _writer.Write(ECBOpCode.RemoveComponent);
+        _writer.Write(entity);
+        _writer.Write(ComponentTypeID<T>.Value);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void SetComponent<T>(Entity entity, T component)
         where T : unmanaged, IComponent
     {
-        WriteHeader(ECBOpCode.SetComponent);
-        Write(entity);
-        Write(ComponentTypeID<T>.Value);
-        Write(component);
+        _writer.Write(ECBOpCode.SetComponent);
+        _writer.Write(entity);
+        _writer.Write(ComponentTypeID<T>.Value);
+        _writer.Write(component);
     }
 
-    internal void Playback()
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void AddSharedComponent<T>(Entity entity, T component)
+        where T : unmanaged, ISharedComponent
     {
-        var cursor = 0;
-        var length = _buffer.Count;
+        _writer.Write(ECBOpCode.AddSharedComponent);
+        _writer.Write(entity);
+        _writer.Write(ComponentTypeID<T>.Value);
+        _writer.Write(component);
+    }
 
-        while (cursor < length)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void RemoveSharedComponent<T>(Entity entity)
+        where T : unmanaged, ISharedComponent
+    {
+        _writer.Write(ECBOpCode.RemoveSharedComponent);
+        _writer.Write(entity);
+        _writer.Write(ComponentTypeID<T>.Value);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void SetSharedComponent<T>(Entity entity, T component)
+        where T : unmanaged, ISharedComponent
+    {
+        _writer.Write(ECBOpCode.SetSharedComponent);
+        _writer.Write(entity);
+        _writer.Write(ComponentTypeID<T>.Value);
+        _writer.Write(component);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void SetComponent(Entity entity, Identifier<IComponent> componentID, void* data)
+    {
+        _writer.Write(ECBOpCode.SetComponent);
+        _writer.Write(entity);
+        _writer.Write(componentID);
+        _writer.WriteMemory(data, ComponentRegistry.GetComponentInfo(componentID).size);
+    }
+
+    public readonly void Playback(EntityManager entityManager)
+    {
+        var reader = _writer.AsReader();
+
+        while (reader.RemainingBytes > 0)
         {
-            var op = Read<ECBOpCode>(ref cursor);
-
-            using var scope = AllocationManager.CreateStackScope();
+            var op = reader.Read<ECBOpCode>();
 
             switch (op)
             {
                 case ECBOpCode.CreateEntity:
-                    var count = Read<int>(ref cursor);
-                    _entityManager.CreateEntities(count);
+                    var count = reader.Read<int>();
+                    entityManager.CreateEntities(count);
                     break;
 
                 case ECBOpCode.CreateEntityWithComponents:
-                    var entityCount = Read<int>(ref cursor);
-                    var compCount = Read<int>(ref cursor);
-                    var compTypeIDs = ReadSpan<Identifier<IComponent>>(ref cursor, compCount);
-                    var set = new ComponentSet(scope.AllocationHandle, compTypeIDs);
-                    _entityManager.CreateEntities(entityCount, set);
+                    var entityCount = reader.Read<int>();
+
+                    var compCount = reader.Read<int>();
+                    var components = reader.ReadSpan<Identifier<IComponent>>(compCount);
+                    var sharedDataLength = reader.Read<int>();
+                    var sharedData = reader.ReadSpan<byte>(sharedDataLength);
+
+                    var set = new ComponentSetView(components, sharedData);
+                    entityManager.CreateEntities(entityCount, set);
                     break;
 
                 case ECBOpCode.DestroyEntity:
-                    var entityToDestroy = Read<Entity>(ref cursor);
-                    _entityManager.DestroyEntity(entityToDestroy);
+                    var entityToDestroy = reader.Read<Entity>();
+                    entityManager.DestroyEntity(entityToDestroy);
                     break;
 
                 case ECBOpCode.AddComponent:
-                    var entityToAdd = Read<Entity>(ref cursor);
-                    var addCompTypeID = Read<Identifier<IComponent>>(ref cursor);
-                    var pAddCompData = ReadBuffer(ref cursor, ComponentRegistry.GetComponentInfo(addCompTypeID).size);
-                    _entityManager.AddComponent(entityToAdd, addCompTypeID, pAddCompData);
+                    var entityToAdd = reader.Read<Entity>();
+                    var addCompTypeID = reader.Read<Identifier<IComponent>>();
+                    var pAddCompData = reader.ReadMemory((nuint)ComponentRegistry.GetComponentInfo(addCompTypeID).size);
+                    entityManager.AddComponent(entityToAdd, addCompTypeID, pAddCompData);
                     break;
 
                 case ECBOpCode.RemoveComponent:
-                    var entityToRemove = Read<Entity>(ref cursor);
-                    var removeCompTypeID = Read<Identifier<IComponent>>(ref cursor);
-                    _entityManager.RemoveComponent(entityToRemove, removeCompTypeID);
+                    var entityToRemove = reader.Read<Entity>();
+                    var removeCompTypeID = reader.Read<Identifier<IComponent>>();
+                    entityManager.RemoveComponent(entityToRemove, removeCompTypeID);
                     break;
 
                 case ECBOpCode.SetComponent:
-                    var entityToSet = Read<Entity>(ref cursor);
-                    var setCompTypeID = Read<Identifier<IComponent>>(ref cursor);
-                    var pSetCompData = ReadBuffer(ref cursor, ComponentRegistry.GetComponentInfo(setCompTypeID).size);
-                    _entityManager.SetComponent(entityToSet, setCompTypeID, pSetCompData);
+                    var entityToSet = reader.Read<Entity>();
+                    var setCompTypeID = reader.Read<Identifier<IComponent>>();
+                    var pSetCompData = reader.ReadMemory((nuint)ComponentRegistry.GetComponentInfo(setCompTypeID).size);
+                    entityManager.SetComponent(entityToSet, setCompTypeID, pSetCompData);
+                    break;
+
+                case ECBOpCode.AddSharedComponent:
+                    var entityToAddShared = reader.Read<Entity>();
+                    var addSharedTypeID = reader.Read<Identifier<IComponent>>();
+                    var pAddSharedData = reader.ReadMemory((nuint)ComponentRegistry.GetComponentInfo(addSharedTypeID).size);
+                    entityManager.AddSharedComponent(entityToAddShared, addSharedTypeID, pAddSharedData);
+                    break;
+
+                case ECBOpCode.RemoveSharedComponent:
+                    var entityToRemoveShared = reader.Read<Entity>();
+                    var removeSharedTypeID = reader.Read<Identifier<IComponent>>();
+                    entityManager.RemoveSharedComponent(entityToRemoveShared, removeSharedTypeID);
+                    break;
+
+                case ECBOpCode.SetSharedComponent:
+                    var entityToSetShared = reader.Read<Entity>();
+                    var setSharedTypeID = reader.Read<Identifier<IComponent>>();
+                    var pSetSharedData = reader.ReadMemory((nuint)ComponentRegistry.GetComponentInfo(setSharedTypeID).size);
+                    entityManager.SetSharedComponent(entityToSetShared, setSharedTypeID, pSetSharedData);
                     break;
             }
         }
-
-        Reset();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void Reset()
+    public void Reset()
     {
-        _buffer.Clear();
+        _writer.Reset();
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
-        if (_disposed)
-        {
-            return;
-        }
-
-        _buffer.Dispose();
-
-        _disposed = true;
-        GC.SuppressFinalize(this);
+        _writer.Dispose();
     }
 }

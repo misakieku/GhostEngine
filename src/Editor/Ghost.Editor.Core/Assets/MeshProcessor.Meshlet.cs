@@ -164,7 +164,7 @@ public unsafe struct ClodCluster
 
 internal static unsafe partial class MeshProcessor
 {
-    private delegate int ClodOutputDelegate(MeshletContext context, ClodGroup group, ReadOnlyUnsafeCollection<ClodCluster> clusters);
+    private delegate int ClodOutputDelegate(MeshletContext context, ClodGroup group, ReadOnlyView<ClodCluster> clusters);
 
     private static ClodBounds ComputeBounds(ref readonly ClodMesh mesh, UnsafeList<uint> indices, float error)
     {
@@ -431,7 +431,7 @@ internal static unsafe partial class MeshProcessor
         public uint id;
     }
 
-    private static void SimplifyFallback(ref UnsafeArray<uint> lod, ref readonly ClodMesh mesh, ReadOnlyUnsafeCollection<uint> indices, ReadOnlyUnsafeCollection<byte> locks, nuint target_count, float* error, AllocationHandle allocationHandle)
+    private static void SimplifyFallback(ref UnsafeArray<uint> lod, ref readonly ClodMesh mesh, ReadOnlyView<uint> indices, ReadOnlyView<byte> locks, nuint target_count, float* error, AllocationHandle allocationHandle)
     {
         using var subset = new UnsafeArray<SloppyVertex>(indices.Count, allocationHandle);
         using var subset_locks = new UnsafeArray<byte>(indices.Count, allocationHandle);
@@ -469,7 +469,7 @@ internal static unsafe partial class MeshProcessor
     }
 
     private static UnsafeArray<uint> Simplify(ref readonly ClodConfig config, ref readonly ClodMesh mesh,
-        ReadOnlyUnsafeCollection<uint> indices, ReadOnlyUnsafeCollection<byte> locks, nuint targetCount, float* error,
+        ReadOnlyView<uint> indices, ReadOnlyView<byte> locks, nuint targetCount, float* error,
         AllocationHandle allocationHandle)
     {
         var lod = new UnsafeArray<uint>(indices.Count, allocationHandle);
@@ -703,7 +703,7 @@ internal static unsafe partial class MeshProcessor
         public int materialIndex;
     }
 
-    private static int MeshletOutputCallback(MeshletContext context, ClodGroup group, ReadOnlyUnsafeCollection<ClodCluster> clusters)
+    private static int MeshletOutputCallback(MeshletContext context, ClodGroup group, ReadOnlyView<ClodCluster> clusters)
     {
         var meshletData = context.data;
         var materialIndex = context.materialIndex;
@@ -790,7 +790,7 @@ internal static partial class MeshProcessor
     /// Meshlets are built per-part and tagged with the corresponding <c>localMaterialIndex</c>.
     /// </summary>
     public static async Task<DisposablePtr<MeshletMeshData>> BuildMeshletsAsync(JobScheduler jobScheduler,
-        ReadOnlyUnsafeCollection<Vertex> vertices, ReadOnlyUnsafeCollection<uint> indices, ReadOnlyUnsafeCollection<MaterialPartInfo> parts,
+        ReadOnlyView<Vertex> vertices, ReadOnlyView<uint> indices, ReadOnlyView<MaterialPartInfo> parts,
         CancellationToken token)
     {
         Logger.DebugAssert(vertices.Count > 0, "Mesh must have vertices to build meshlets.");

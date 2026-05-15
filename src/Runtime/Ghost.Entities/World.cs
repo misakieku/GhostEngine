@@ -1,5 +1,7 @@
 using Ghost.Core;
 using Misaki.HighPerformance.Jobs;
+using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.LowLevel.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -80,7 +82,7 @@ public partial class World : IDisposable, IEquatable<World>
 
     private readonly EntityManager _entityManager;
     private readonly EntityCommandBuffer _entityCommandBuffer;
-    private readonly EntityCommandBuffer[]? _threadLocalECBs;
+    private readonly UnsafeArray<EntityCommandBuffer> _threadLocalECBs;
 
     private readonly ComponentManager _componentManager;
     private readonly SystemManager _systemManager;
@@ -134,7 +136,7 @@ public partial class World : IDisposable, IEquatable<World>
         _jobScheduler = jobScheduler;
 
         _entityManager = new EntityManager(this, entityCapacity);
-        _entityCommandBuffer = new EntityCommandBuffer(_entityManager);
+        _entityCommandBuffer = new EntityCommandBuffer(4096, AllocationHandle.Persistent);
 
         _componentManager = new ComponentManager(this);
         _systemManager = new SystemManager(this);
@@ -143,10 +145,10 @@ public partial class World : IDisposable, IEquatable<World>
 
         if (jobScheduler != null)
         {
-            _threadLocalECBs = new EntityCommandBuffer[jobScheduler.ThreadLocalCount];
+            _threadLocalECBs = new UnsafeArray<EntityCommandBuffer>(jobScheduler.ThreadLocalCount, AllocationHandle.Persistent);
             for (var i = 0; i < _threadLocalECBs.Length; i++)
             {
-                _threadLocalECBs[i] = new EntityCommandBuffer(_entityManager);
+                _threadLocalECBs[i] = new EntityCommandBuffer(4096, AllocationHandle.Persistent);
             }
         }
     }
@@ -159,14 +161,13 @@ public partial class World : IDisposable, IEquatable<World>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void PlaybackEntityCommandBuffers()
     {
-        _entityCommandBuffer.Playback();
+        _entityCommandBuffer.Playback(_entityManager);
+        _entityCommandBuffer.Reset();
 
-        if (_threadLocalECBs != null)
+        for (var i = 0; i < _threadLocalECBs.Length; i++)
         {
-            for (var i = 0; i < _threadLocalECBs.Length; i++)
-            {
-                _threadLocalECBs[i].Playback();
-            }
+            _threadLocalECBs[i].Playback(_entityManager);
+            _threadLocalECBs[i].Reset();
         }
     }
 
@@ -182,7 +183,7 @@ public partial class World : IDisposable, IEquatable<World>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public EntityCommandBuffer GetThreadLocalEntityCommandBuffer(int threadIndex)
     {
-        if (_threadLocalECBs == null)
+        if (!_threadLocalECBs.IsCreated || _threadLocalECBs.Length == 0)
         {
             throw new InvalidOperationException("This world does not have a JobScheduler associated with it.");
         }
@@ -244,12 +245,9 @@ public partial class World : IDisposable, IEquatable<World>
         _entityManager.Clear();
         _entityCommandBuffer.Reset();
 
-        if (_threadLocalECBs != null)
+        for (var i = 0; i < _threadLocalECBs.Length; i++)
         {
-            for (var i = 0; i < _threadLocalECBs.Length; i++)
-            {
-                _threadLocalECBs[i].Reset();
-            }
+            _threadLocalECBs[i].Reset();
         }
 
         _componentManager.Clear();
@@ -293,12 +291,9 @@ public partial class World : IDisposable, IEquatable<World>
         _entityManager.Dispose();
         _entityCommandBuffer.Dispose();
 
-        if (_threadLocalECBs != null)
+        for (var i = 0; i < _threadLocalECBs.Length; i++)
         {
-            foreach (var v in _threadLocalECBs)
-            {
-                v.Dispose();
-            }
+            _threadLocalECBs[i].Dispose();
         }
 
         _componentManager.Dispose();

@@ -8,14 +8,14 @@ namespace Ghost.Graphics.Services;
 
 public readonly struct MaterialPalette
 {
-    public readonly ReadOnlyUnsafeCollection<Handle<Material>> materials;
+    public readonly ReadOnlyView<Handle<Material>> materials;
 
     public unsafe MaterialPalette(Handle<Material>* pMaterials, int count)
     {
-        materials = new ReadOnlyUnsafeCollection<Handle<Material>>(pMaterials, count);
+        materials = new ReadOnlyView<Handle<Material>>(pMaterials, count);
     }
 
-    public MaterialPalette(ReadOnlyUnsafeCollection<Handle<Material>> materials)
+    public MaterialPalette(ReadOnlyView<Handle<Material>> materials)
     {
         this.materials = materials;
     }

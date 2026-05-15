@@ -114,7 +114,7 @@ public struct RenderList : IDisposable
         _threadLocalRecords[threadIndex].Add(record);
     }
 
-    public readonly ReadOnlyUnsafeCollection<RenderRecord> GetThreadLocalRecords(int threadIndex)
+    public readonly ReadOnlyView<RenderRecord> GetThreadLocalRecords(int threadIndex)
     {
         ThrowIfNotCreated();
         return _threadLocalRecords[threadIndex].AsReadOnly();

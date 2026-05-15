@@ -20,7 +20,7 @@ internal unsafe struct JobChunkBatch<TJob> : IJobParallelFor
     where TJob : unmanaged, IJobChunk
 {
     public TJob userJob;
-    public ReadOnlyUnsafeCollection<ChunkInfo> chunkInfos;
+    public ReadOnlyView<ChunkInfo> chunkInfos;
 
     public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {

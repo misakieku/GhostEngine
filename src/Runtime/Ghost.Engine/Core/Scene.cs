@@ -3,35 +3,20 @@ using Ghost.Core.Utilities;
 using Ghost.Engine.Components;
 using Ghost.Engine.Streaming;
 using Ghost.Entities;
+using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Text;
 
 namespace Ghost.Engine.Core;
 
-internal struct EntityNode : IDisposable
-{
-    public struct ComponentSizeInfo
-    {
-        public nuint size;
-        public nuint alignment;
-        public nuint offset;
-        public Identifier<IComponent> id;
-    }
-
-    public UnsafeList<ComponentSizeInfo> infos;
-
-    public void Dispose()
-    {
-        infos.Dispose();
-    }
-}
-
 /// <summary>
 /// Represents a runtime scene - a collection of entities with the same SceneID.
 /// </summary>
 public struct Scene : IEquatable<Scene>
 {
+    public const ushort INVALID_ID = 65535;
+
     private ushort _id;
 
     public readonly ushort ID => _id;
@@ -39,12 +24,12 @@ public struct Scene : IEquatable<Scene>
     /// <summary>
     /// Gets whether this scene is valid.
     /// </summary>
-    public readonly bool IsValid => ID != 65535;
+    public readonly bool IsValid => ID != INVALID_ID;
 
     /// <summary>
     /// Gets an invalid scene instance.
     /// </summary>
-    public static Scene Invalid => new Scene { _id = 65535 };
+    public static Scene Invalid => new Scene { _id = INVALID_ID };
 
     internal Scene(ushort id)
     {
@@ -91,28 +76,6 @@ public struct Scene : IEquatable<Scene>
 /// </remarks>
 public static class SceneManager
 {
-    private static ushort s_nextSceneID;
-    private static readonly Queue<ushort> s_recycledSceneIDs = new();
-
-    private static readonly Lock s_creationLock = new();
-
-    /// <summary>
-    /// Creates a new scene in the world.
-    /// </summary>
-    /// <returns>The created scene.</returns>
-    public static Scene CreateScene()
-    {
-        lock (s_creationLock)
-        {
-            if (!s_recycledSceneIDs.TryDequeue(out var id))
-            {
-                id = s_nextSceneID++;
-            }
-
-            return new Scene(id);
-        }
-    }
-
     private struct BinaryEntityInfo : IDisposable
     {
         public int entityIndex;
@@ -162,7 +125,79 @@ public static class SceneManager
         }
     }
 
-    internal static unsafe Result LoadBinarySceneIntoWorld(World world, SceneContentHeader header, Stream stream)
+    internal struct SceneLoadResult : IDisposable
+    {
+        internal struct PendingEntity : IDisposable
+        {
+            public int fileLocalIndex;
+            public ComponentSet componentSet;
+            public UnsafeList<(Identifier<IComponent> typeID, UnsafeArray<byte> data)> componentData;
+            public UnsafeList<(int componentIndex, UnsafeArray<int> fieldOffsets)> entityFields;
+
+            public void Dispose()
+            {
+                for (int i = 0; i < componentData.Count; i++)
+                {
+                    componentData[i].data.Dispose();
+                }
+
+                componentSet.Dispose();
+                componentData.Dispose();
+                entityFields.Dispose();
+            }
+        }
+
+        public UnsafeList<PendingEntity> entities;
+        public Scene scene;
+
+        public void Dispose()
+        {
+            for (int i = 0; i < entities.Count; i++)
+            {
+                entities[i].Dispose();
+            }
+
+            entities.Dispose();
+        }
+    }
+
+    internal unsafe struct LoadSceneJob : IJob
+    {
+        public SceneContentHeader header;
+        public Stream stream;
+
+        public SceneLoadResult* result;
+        public AllocationHandle allocationHandle;
+
+        public void Execute(ref readonly JobExecutionContext ctx)
+        {
+
+        }
+    }
+
+    private static ushort s_nextSceneID;
+    private static readonly Queue<ushort> s_recycledSceneIDs = new();
+
+    private static readonly Lock s_creationLock = new();
+
+    /// <summary>
+    /// Creates a new scene in the world.
+    /// </summary>
+    /// <returns>The created scene.</returns>
+    public static Scene CreateScene()
+    {
+        lock (s_creationLock)
+        {
+            if (!s_recycledSceneIDs.TryDequeue(out var id))
+            {
+                id = s_nextSceneID++;
+            }
+
+            return new Scene(id);
+        }
+    }
+
+    internal static unsafe Result<JobHandle> LoadSceneIntoWorld(World world, SceneContentHeader header, Stream stream)
     {
         using var scope = AllocationManager.CreateStackScope();
 
@@ -247,7 +282,6 @@ public static class SceneManager
             forwardMap.TryAdd(i, entity);
             typeIds.RemoveRange(1, typeIds.Count - 1);
         }
-
 
         var activeScene = CreateScene();
 

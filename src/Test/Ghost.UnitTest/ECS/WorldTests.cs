@@ -1,3 +1,4 @@
+using Ghost.Core;
 using Ghost.Entities;
 
 namespace Ghost.UnitTest.ECS;
@@ -6,23 +7,124 @@ namespace Ghost.UnitTest.ECS;
 [DoNotParallelize]
 public class WorldTests
 {
-    [TestMethod]
-    public void CreateWorld()
+    private struct CompA : IComponent { public int value; }
+    private struct CompB : IComponent { public int value; }
+
+    private World _world = null!;
+
+    [TestInitialize]
+    public void Setup()
     {
-        using var world = World.Create();
-        Assert.IsNotNull(world);
+        _world = World.Create(null, 64);
+    }
+
+    [TestCleanup]
+    public void Cleanup()
+    {
+        _world.Dispose();
     }
 
     [TestMethod]
-    public void AddEntityThenClearWorld()
+    public void TestWorld_EntityLifecycle()
     {
-        using var world =  World.Create();
-        Assert.IsNotNull(world);
+        var entity = _world.EntityManager.CreateEntity();
+        Assert.IsTrue(_world.EntityManager.Exists(entity));
 
-        world.EntityManager.CreateEntity();
-        Assert.AreEqual(1, world.EntityManager.EntityCount);
+        _world.EntityManager.DestroyEntity(entity);
+        Assert.IsFalse(_world.EntityManager.Exists(entity));
+    }
 
-        world.Reset(default);
-        Assert.AreEqual(0, world.EntityManager.EntityCount);
+    [TestMethod]
+    public void TestWorld_GenerationalID()
+    {
+        var e1 = _world.EntityManager.CreateEntity();
+        var index = e1.ID;
+        var version = e1.Generation;
+
+        _world.EntityManager.DestroyEntity(e1);
+
+        var e2 = _world.EntityManager.CreateEntity();
+        Assert.AreEqual(index, e2.ID, "Should reuse entity index.");
+        Assert.AreNotEqual(version, e2.Generation, "Should increment version.");
+    }
+
+    [TestMethod]
+    public void TestWorld_ComponentPersistence()
+    {
+        var entity = _world.EntityManager.CreateEntity();
+        _world.EntityManager.AddComponent(entity, new CompA { value = 42 });
+
+        Assert.IsTrue(_world.EntityManager.HasComponent<CompA>(entity));
+        Assert.AreEqual(42, _world.EntityManager.GetComponent<CompA>(entity).value);
+
+        // Add another component, migrates archetype
+        _world.EntityManager.AddComponent(entity, new CompB { value = 100 });
+
+        Assert.IsTrue(_world.EntityManager.HasComponent<CompA>(entity));
+        Assert.IsTrue(_world.EntityManager.HasComponent<CompB>(entity));
+        Assert.AreEqual(42, _world.EntityManager.GetComponent<CompA>(entity).value);
+    }
+
+    [TestMethod]
+    public void TestWorld_Reset_ClearsAll()
+    {
+        _world.EntityManager.CreateEntity();
+        _world.EntityManager.CreateEntity();
+        
+        _world.Reset();
+        
+        // We can't easily check internal state, but new entities should start from index 0 again
+        var entity = _world.EntityManager.CreateEntity();
+        Assert.AreEqual(0, entity.ID);
+    }
+
+    [TestMethod]
+    public void DestroyEntity_ReturnsNotFound_OnDoubleDestroy()
+    {
+        using var world = World.Create(null, 64);
+        var e = world.EntityManager.CreateEntity();
+        
+        var err1 = world.EntityManager.DestroyEntity(e);
+        Assert.AreEqual(Error.None, err1);
+        
+        var err2 = world.EntityManager.DestroyEntity(e);
+        Assert.AreEqual(Error.NotFound, err2);
+    }
+
+    [TestMethod]
+    public void TestWorld_MultipleWorlds_Isolation()
+    {
+        var worldB = World.Create(null, 64);
+        try
+        {
+            var eA = _world.EntityManager.CreateEntity();
+            var eB = worldB.EntityManager.CreateEntity();
+
+            Assert.AreEqual(eA, eB);
+        }
+        finally
+        {
+            worldB.Dispose();
+        }
+    }
+
+    private struct SharedData : ISharedComponent
+    {
+        public int value;
+    }
+
+    [TestMethod]
+    public void TestWorld_Reset_SharedComponents()
+    {
+        var entity = _world.EntityManager.CreateEntity();
+        _world.EntityManager.AddSharedComponent(entity, new SharedData { value = 42 });
+
+        _world.Reset();
+
+        Assert.IsFalse(_world.EntityManager.Exists(entity));
+        // Shared components should be cleaned up by Reset (via ComponentManager.Reset)
+        // We can't directly check the store, but creating a new entity shouldn't have old shared data.
+        var e2 = _world.EntityManager.CreateEntity();
+        Assert.IsFalse(_world.EntityManager.HasComponent<SharedData>(e2));
     }
 }

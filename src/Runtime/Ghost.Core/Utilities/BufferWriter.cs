@@ -7,7 +7,7 @@ namespace Ghost.Core.Utilities;
 
 public unsafe struct BufferWriter : IDisposable
 {
-    private UnsafeList<byte> _buffer;
+    private UnsafeArray<byte> _buffer;
     private int _position;
 
     public int Position
@@ -18,39 +18,76 @@ public unsafe struct BufferWriter : IDisposable
 
     public BufferWriter(int initialCapacity, AllocationHandle allocationHandle)
     {
-        _buffer = new UnsafeList<byte>(initialCapacity, allocationHandle);
+        _buffer = new UnsafeArray<byte>(initialCapacity, allocationHandle);
         _position = 0;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void EnsureCapacity(int bytesNeeded)
+    {
+        if (_position + bytesNeeded > _buffer.Count)
+        {
+            _buffer.Resize(Math.Max(_buffer.Count * 2, _position + bytesNeeded));
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Write<T>(T value)
         where T : unmanaged
     {
+        EnsureCapacity(sizeof(T));
         Unsafe.WriteUnaligned(ref _buffer[_position], value);
         _position += sizeof(T);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteSpan<T>(ReadOnlySpan<T> data)
         where T : unmanaged
     {
         var size = sizeof(T) * data.Length;
         var byteSpan = MemoryMarshal.AsBytes(data);
 
+        EnsureCapacity(size);
         byteSpan.CopyTo(_buffer.AsSpan().Slice(_position, size));
         _position += size;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Span<byte> ReserveSpan(int length)
     {
+        EnsureCapacity(length);
         var span = _buffer.AsSpan().Slice(_position, length);
         _position += length;
         return span;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void WriteMemory(void* data, int size)
+    {
+        EnsureCapacity(size);
+        Unsafe.CopyBlockUnaligned((byte*)_buffer.GetUnsafePtr() + _position, data, (uint)size);
+        _position += size;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Span<byte> AsSpan()
     {
         return _buffer.AsSpan();
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly BufferReader AsReader()
+    {
+        return new BufferReader((byte*)_buffer.GetUnsafePtr(), (nuint)_position);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Reset()
+    {
+        _position = 0;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         _buffer.Dispose();
@@ -76,6 +113,7 @@ public unsafe ref struct SpanWriter
         _position = 0;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Write<T>(T value)
         where T : unmanaged
     {
@@ -83,6 +121,7 @@ public unsafe ref struct SpanWriter
         _position += sizeof(T);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteSpan<T>(ReadOnlySpan<T> data)
         where T : unmanaged
     {
@@ -91,9 +130,9 @@ public unsafe ref struct SpanWriter
 
         byteSpan.CopyTo(_buffer.Slice(_position, size));
         _position += size;
-
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Span<byte> AsSpan()
     {
         return _buffer;
@@ -124,6 +163,7 @@ public unsafe struct BufferReader
         _address = _buffer;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public T Read<T>()
         where T : unmanaged
     {
@@ -132,6 +172,7 @@ public unsafe struct BufferReader
         return value;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<T> ReadSpan<T>(int length)
         where T : unmanaged
     {
@@ -144,6 +185,7 @@ public unsafe struct BufferReader
         return span;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<T> ReadToEnd<T>()
         where T : unmanaged
     {
@@ -151,6 +193,14 @@ public unsafe struct BufferReader
 
         _address += (nuint)(span.Length * sizeof(T));
         return span;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void* ReadMemory(nuint size)
+    {
+        var p = _address;
+        _address += size;
+        return p;
     }
 }
 
@@ -173,6 +223,7 @@ public unsafe ref struct SpanReader
         _position = 0;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public T Read<T>()
         where T : unmanaged
     {
@@ -181,6 +232,7 @@ public unsafe ref struct SpanReader
         return value;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<T> ReadSpan<T>(int length)
         where T : unmanaged
     {
@@ -191,6 +243,7 @@ public unsafe ref struct SpanReader
         return span;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<T> ReadToEnd<T>()
         where T : unmanaged
     {

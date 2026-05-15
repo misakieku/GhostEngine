@@ -116,15 +116,13 @@ internal unsafe struct Chunk : IDisposable
     internal int _count;
     internal readonly int _capacity;
 
-#if DEBUG
-    // For debugging purpose
-    internal int _worldID;
-    internal int _archetypeID;
-#endif
+    internal readonly int _worldID;
+    internal readonly int _archetypeID;
+    internal readonly int _groupIndex;
 
-    public Chunk(int bufferSize, int capacity, int componentCount, uint globalVersion)
+    public Chunk(int capacity, int componentCount, uint globalVersion, int worldID, int archetypeID, int groupIndex)
     {
-        _data = new UnsafeArray<byte>(bufferSize, AllocationHandle.Persistent, AllocationOption.Clear);
+        _data = new UnsafeArray<byte>(CHUNK_BUFFER_SIZE, AllocationHandle.Persistent, AllocationOption.Clear);
         _capacity = capacity;
         _count = 0;
 
@@ -135,6 +133,9 @@ internal unsafe struct Chunk : IDisposable
         }
 
         _structuralVersion = globalVersion;
+        _worldID = worldID;
+        _archetypeID = archetypeID;
+        _groupIndex = groupIndex;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -146,7 +147,7 @@ internal unsafe struct Chunk : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly uint* GetVersionUnsafePtr()
     {
-        return (uint*)_versions.GetUnsafePtr();
+        return _versions.IsCreated ? (uint*)_versions.GetUnsafePtr() : null;
     }
 
     public void Dispose()
@@ -167,6 +168,26 @@ internal unsafe struct Archetype : IDisposable
         public int versionIndex;
     }
 
+    internal struct SharedComponentLayout
+    {
+        public int componentID;
+        public int offset;  // offset into ChunkGroup.sharedData
+        public int size;
+    }
+
+    internal struct ChunkGroup : IDisposable
+    {
+        public int sharedDataHash;
+        public int activeChunkIndex;  // last chunk with room, -1 if none
+        public UnsafeArray<byte> sharedData;  // the shared values for this group
+        public int refCount;
+
+        public void Dispose()
+        {
+            sharedData.Dispose();
+        }
+    }
+
     private struct Edge
     {
         public int componentID;
@@ -178,8 +199,14 @@ internal unsafe struct Archetype : IDisposable
     internal UnsafeArray<ComponentMemoryLayout> _layouts;
     internal UnsafeArray<int> _componentIDToLayoutIndex;
 
+    internal UnsafeArray<SharedComponentLayout> _sharedLayouts;
+    internal UnsafeList<ChunkGroup> _chunkGroups;
+
     private UnsafeList<Edge> _edgesAdd;
     private UnsafeList<Edge> _edgesRemove;
+
+    // 0 means no cleanup component (since 0 is the empty archetype), -1 means haven't computed yet, positive value means the archetype id of the cleanup edge.
+    internal int _cleanupEdge;
 
     private readonly Identifier<Archetype> _id;
     private readonly Identifier<World> _worldID;
@@ -188,9 +215,7 @@ internal unsafe struct Archetype : IDisposable
     private int _entityCapacity;
     private int _maxComponentID;
     private int _entityIdsOffset;
-
-    // 0 means no cleanup component (since 0 is the empty archetype), -1 means haven't computed yet, positive value means the archetype id of the cleanup edge.
-    internal int _cleanupEdge;
+    internal int _sharedDataSize;
 
     public readonly Identifier<Archetype> ID => _id;
     public readonly Identifier<World> WorldID => _worldID;
@@ -211,6 +236,7 @@ internal unsafe struct Archetype : IDisposable
         if (componentIds.IsEmpty)
         {
             _signature = new UnsafeBitSet(1, AllocationHandle.Persistent, AllocationOption.Clear);
+            _chunkGroups = new UnsafeList<ChunkGroup>(1, AllocationHandle.Persistent);
             _hash = 0;
 
             _signature.ClearAll();
@@ -239,17 +265,51 @@ internal unsafe struct Archetype : IDisposable
         var entitySize = sizeof(Entity);
         var entityAlign = (int)MemoryUtility.AlignOf<Entity>();
 
-        var components = (Span<ComponentInfo>)stackalloc ComponentInfo[componentIds.Length];
+
+        using var scope = AllocationManager.CreateStackScope();
+        using var components = new UnsafeList<ComponentInfo>(componentIds.Length, scope.AllocationHandle);
+        using var sharedInfos = new UnsafeList<ComponentInfo>(componentIds.Length, scope.AllocationHandle);
 
         var cleanupCount = 0;
         for (var i = 0; i < componentIds.Length; i++)
         {
             _signature.SetBit(componentIds[i]);
-            components[i] = ComponentRegistry.GetComponentInfo(componentIds[i]);
-            if (components[i].isCleanup)
+
+            var info = ComponentRegistry.GetComponentInfo(componentIds[i]);
+
+            if (info.isShared)
+            {
+                sharedInfos.Add(info);  // store info directly — components list skips shared
+                continue;
+            }
+
+            if (info.isCleanup)
             {
                 cleanupCount++;
             }
+
+            components.Add(info);
+        }
+
+        if (sharedInfos.Count > 0)
+        {
+            var offset = 0;
+
+            _sharedLayouts = new UnsafeArray<SharedComponentLayout>(sharedInfos.Count, AllocationHandle.Persistent);
+            for (var i = 0; i < sharedInfos.Count; i++)
+            {
+                var info = sharedInfos[i];
+                _sharedLayouts[i] = new SharedComponentLayout
+                {
+                    componentID = info.id.Value,
+                    size = info.size,
+                    offset = offset
+                };
+
+                offset += info.size;
+            }
+
+            _sharedDataSize = offset;
         }
 
         if (cleanupCount > 0)
@@ -260,7 +320,7 @@ internal unsafe struct Archetype : IDisposable
         // Calculate total size per entity to get an initial capacity estimate
         var bytesPerEntity = entitySize;
         var maxComponentID = 0;
-        for (var i = 0; i < components.Length; i++)
+        for (var i = 0; i < components.Count; i++)
         {
             var comp = components[i];
             bytesPerEntity += comp.size;
@@ -272,14 +332,15 @@ internal unsafe struct Archetype : IDisposable
 
         _maxComponentID = maxComponentID;
         _entityCapacity = Chunk.CHUNK_BUFFER_SIZE / bytesPerEntity;
-        _layouts = new UnsafeArray<ComponentMemoryLayout>(components.Length, AllocationHandle.Persistent);
+        _layouts = new UnsafeArray<ComponentMemoryLayout>(components.Count, AllocationHandle.Persistent);
         _componentIDToLayoutIndex = new UnsafeArray<int>(_maxComponentID + 1, AllocationHandle.Persistent);
+        _chunkGroups = new UnsafeList<ChunkGroup>(4, AllocationHandle.Persistent);
 
         _componentIDToLayoutIndex.AsSpan().Fill(-1);
 
-        components.Sort((a, b) => b.alignment.CompareTo(a.alignment));
-        var tempOffsets = stackalloc int[components.Length];
-        var tempBitmaskOffsets = stackalloc int[components.Length];
+        components.AsSpan().Sort(static (a, b) => b.alignment.CompareTo(a.alignment));
+        using var tempOffsets = new UnsafeArray<int>(components.Count, scope.AllocationHandle);
+        using var tempBitmaskOffsets = new UnsafeArray<int>(components.Count, scope.AllocationHandle);
 
         while (_entityCapacity > 0)
         {
@@ -291,7 +352,7 @@ internal unsafe struct Archetype : IDisposable
             _entityIdsOffset = currentOffset;
             currentOffset += _entityCapacity * entitySize;
 
-            for (var i = 0; i < components.Length; i++)
+            for (var i = 0; i < components.Count; i++)
             {
                 var size = components[i].size;
                 var align = components[i].alignment;
@@ -322,7 +383,7 @@ internal unsafe struct Archetype : IDisposable
 
             if (fits)
             {
-                for (var i = 0; i < components.Length; i++)
+                for (var i = 0; i < components.Count; i++)
                 {
                     _layouts[i] = new ComponentMemoryLayout
                     {
@@ -343,32 +404,11 @@ internal unsafe struct Archetype : IDisposable
         }
     }
 
-    public void AllocateEntity(out int chunkIndex, out int rowIndex)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private readonly Chunk CreateNewChunk(uint version, int groupIndex)
     {
-        var world = World.GetWorldUncheck(_worldID);
+        var newChunk = new Chunk(_entityCapacity, _layouts.Count, version, _worldID, _id, groupIndex);
 
-        for (var i = 0; i < _chunks.Count; i++)
-        {
-            ref var chunk = ref _chunks[i];
-            if (chunk._count < _entityCapacity)
-            {
-                rowIndex = chunk._count;
-                chunk._count++;
-                chunk._structuralVersion = world.Version;
-                chunkIndex = i;
-
-                return;
-            }
-        }
-
-        // Need to allocate a new chunk
-        var newChunk = new Chunk(Chunk.CHUNK_BUFFER_SIZE, _entityCapacity, _layouts.Count, world.Version);
-#if GHOST_EDITOR
-        newChunk._worldID = _worldID;
-        newChunk._archetypeID = _id;
-#endif
-
-        // Set all enable to true by default for enableable components
         for (var i = 0; i < _layouts.Count; i++)
         {
             var layout = _layouts[i];
@@ -380,11 +420,157 @@ internal unsafe struct Archetype : IDisposable
             }
         }
 
+        return newChunk;
+    }
+
+    public void AllocateEntity(ReadOnlySpan<byte> sharedData, int sharedDataHash, out int chunkIndex, out int rowIndex)
+    {
+        var world = World.GetWorldUncheck(_worldID);
+        var groupIndex = -1;
+
+        for (var i = 0; i < _chunkGroups.Count; i++)
+        {
+            var group = _chunkGroups[i];
+            if (group.sharedDataHash == sharedDataHash)
+            {
+                groupIndex = i;
+                group.refCount++;
+
+                if (group.activeChunkIndex < 0)
+                {
+                    break;
+                }
+
+                ref var chunk = ref _chunks[group.activeChunkIndex];
+                if (chunk._count < _entityCapacity)
+                {
+                    rowIndex = chunk._count;
+                    chunkIndex = group.activeChunkIndex;
+
+                    chunk._count++;
+                    chunk._structuralVersion = world.Version;
+
+                    return;
+                }
+            }
+        }
+
+        if (groupIndex == -1)
+        {
+            var data = sharedData.IsEmpty ? default : new UnsafeArray<byte>(sharedData.Length, AllocationHandle.Persistent);
+            if (!sharedData.IsEmpty)
+            {
+                data.CopyFrom(sharedData);
+            }
+            groupIndex = _chunkGroups.Count;
+
+            _chunkGroups.Add(new ChunkGroup
+            {
+                sharedDataHash = sharedDataHash,
+                sharedData = data,
+                refCount = 1
+            });
+        }
+
+        var newChunk = CreateNewChunk(world.Version, groupIndex);
+
         rowIndex = 0;
         newChunk._count++;
         chunkIndex = _chunks.Count;
 
+        _chunkGroups[groupIndex].activeChunkIndex = chunkIndex;
         _chunks.Add(newChunk);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void AllocateEntity(out int chunkIndex, out int rowIndex)
+    {
+        AllocateEntity(ReadOnlySpan<byte>.Empty, 0, out chunkIndex, out rowIndex);
+    }
+
+    public void AllocateEntities(ReadOnlySpan<byte> sharedData, int sharedDataHash, Span<int> chunkIndex, Span<int> rowIndex)
+    {
+        Logger.DebugAssert(chunkIndex.Length == rowIndex.Length, "chunkIndex and rowIndex spans must have the same length");
+
+        var world = World.GetWorldUncheck(_worldID);
+        var groupIndex = -1;
+
+        var idx = 0;
+        for (var i = 0; i < _chunkGroups.Count; i++)
+        {
+            var group = _chunkGroups[i];
+            if (group.sharedDataHash == sharedDataHash)
+            {
+                groupIndex = i;
+                group.refCount++;
+
+                if (group.activeChunkIndex < 0)
+                {
+                    break;
+                }
+
+                ref var chunk = ref _chunks[group.activeChunkIndex];
+                while (chunk._count < _entityCapacity && idx < rowIndex.Length)
+                {
+                    rowIndex[idx] = chunk._count;
+                    chunkIndex[idx] = group.activeChunkIndex;
+                    
+                    chunk._count++;
+                    idx++;
+                }
+
+                if (idx != 0)
+                {
+                    chunk._structuralVersion = world.Version;
+                }
+
+                if (idx == rowIndex.Length - 1)
+                {
+                    return;
+                }
+            }
+        }
+
+        if (groupIndex == -1)
+        {
+            var data = sharedData.IsEmpty ? default : new UnsafeArray<byte>(sharedData.Length, AllocationHandle.Persistent);
+            if (!sharedData.IsEmpty)
+            {
+                data.CopyFrom(sharedData);
+            }
+            groupIndex = _chunkGroups.Count;
+
+            _chunkGroups.Add(new ChunkGroup
+            {
+                sharedDataHash = sharedDataHash,
+                sharedData = data,
+                refCount = 1
+            });
+        }
+
+
+        while (idx < rowIndex.Length)
+        {
+            var newChunk = CreateNewChunk(world.Version, groupIndex);
+
+            while (newChunk._count < _entityCapacity && idx < rowIndex.Length)
+            {
+                rowIndex[idx] = newChunk._count;
+                chunkIndex[idx] = _chunks.Count;
+
+                newChunk._count++;
+                idx++;
+            }
+
+            _chunkGroups[groupIndex].activeChunkIndex = _chunks.Count;
+            _chunks.Add(newChunk);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void AllocateEntities(Span<int> chunkIndex, Span<int> rowIndex)
+    {
+        AllocateEntities(ReadOnlySpan<byte>.Empty, 0, chunkIndex, rowIndex);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -410,6 +596,13 @@ internal unsafe struct Archetype : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Error SetComponentData(int chunkIndex, int rowIndex, Identifier<IComponent> componentID, void* pComponent)
     {
+#if GHOST_EDITOR
+        if (ComponentRegistry.GetComponentInfo(componentID).isShared)
+        {
+            return Error.InvalidArgument;
+        }
+#endif
+
         var r = GetLayout(componentID);
         if (r.Error != Error.None)
         {
@@ -434,6 +627,13 @@ internal unsafe struct Archetype : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly void* GetComponentData(int chunkIndex, int rowIndex, Identifier<IComponent> componentID)
     {
+#if GHOST_EDITOR
+        if (ComponentRegistry.GetComponentInfo(componentID).isShared)
+        {
+            return null;
+        }
+#endif
+
         var r = GetLayout(componentID);
         if (r.Error != Error.None)
         {
@@ -469,6 +669,21 @@ internal unsafe struct Archetype : IDisposable
         }
 
         return _layouts[layoutIndex];
+    }
+
+    /// <summary>Returns the shared component layout for the given component ID, or an error if not found.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Result<SharedComponentLayout, Error> GetSharedLayout(int componentID)
+    {
+        for (var i = 0; i < _sharedLayouts.Count; i++)
+        {
+            if (_sharedLayouts[i].componentID == componentID)
+            {
+                return _sharedLayouts[i];
+            }
+        }
+
+        return Error.NotFound;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -565,13 +780,13 @@ internal unsafe struct Archetype : IDisposable
         var world = World.GetWorldUncheck(_worldID); // Typo fixed from 'wrold'
 
         // Pointers for the swap logic
-        // 1. 'holePtr' tracks which index in the sorted list we are processing
+        // 'holePtr' tracks which index in the sorted list we are processing
         var holePtr = 0;
 
-        // 2. 'candidateIndex' starts at the end of the OLD array and moves backward
+        // 'candidateIndex' starts at the end of the OLD array and moves backward
         var candidateIndex = oldCount - 1;
 
-        // 3. 'removalTailPtr' tracks removals at the end of the array to skip them
+        // 'removalTailPtr' tracks removals at the end of the array to skip them
         var removalTailPtr = sortedIndicesToRemove.Length - 1;
 
         // Iterate through the holes that are strictly INSIDE the new valid range
@@ -602,7 +817,6 @@ internal unsafe struct Archetype : IDisposable
 
                 if (!isCandidateRemoved)
                 {
-                    // Found a valid filler!
                     break;
                 }
 
@@ -610,13 +824,12 @@ internal unsafe struct Archetype : IDisposable
                 candidateIndex--;
             }
 
-            // --- Perform The Swap ---
             // Move 'candidateIndex' (Filler) into 'holeIndex' (Hole)
 
             var pFillerEntity = chunkBase + _entityIdsOffset + (sizeof(Entity) * candidateIndex);
             var pHoleEntity = chunkBase + _entityIdsOffset + (sizeof(Entity) * holeIndex);
 
-            // 1. Update the Map (Critical Step)
+            // Update the Map
             // We tell the world: "The entity that WAS at 'candidateIndex' is now at 'holeIndex'"
             var result = world.EntityManager.UpdateEntityLocation(*(Entity*)pFillerEntity, _id, chunkIndex, holeIndex);
             if (result != Error.None)
@@ -624,10 +837,9 @@ internal unsafe struct Archetype : IDisposable
                 return result;
             }
 
-            // 2. Overwrite Entity ID
+            // Overwrite entity id and components
             MemoryUtility.MemCpy(pHoleEntity, pFillerEntity, (nuint)sizeof(Entity));
 
-            // 3. Overwrite Components
             for (var i = 0; i < _layouts.Count; i++)
             {
                 var layout = _layouts[i];
@@ -710,11 +922,21 @@ internal unsafe struct Archetype : IDisposable
         {
             if (_chunks[i]._count == 0)
             {
-                _chunks[i].Dispose();
+                ref var chunk = ref _chunks[i];
+                ref var group = ref _chunkGroups[chunk._groupIndex];
+                // How can we set the activeChunkIndex?
+                group.refCount--;
+                if (group.activeChunkIndex == i)
+                {
+                    group.activeChunkIndex = -1;
+                }
+
+                chunk.Dispose();
             }
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override readonly int GetHashCode()
     {
         return _hash;
@@ -722,18 +944,23 @@ internal unsafe struct Archetype : IDisposable
 
     public void Dispose()
     {
-        if (_chunks.IsCreated)
+        for (var i = 0; i < _chunks.Count; i++)
         {
-            foreach (ref var chunk in _chunks)
-            {
-                chunk.Dispose();
-            }
+            _chunks[i].Dispose();
+        }
+
+        for (var i = 0; i < _chunkGroups.Count; i++)
+        {
+            _chunkGroups[i].Dispose();
         }
 
         _signature.Dispose();
         _chunks.Dispose();
         _componentIDToLayoutIndex.Dispose();
         _layouts.Dispose();
+        _sharedLayouts.Dispose();
+        _chunkGroups.Dispose();
+
         _edgesAdd.Dispose();
         _edgesRemove.Dispose();
     }

@@ -5,24 +5,6 @@ using Misaki.HighPerformance.LowLevel.Utilities;
 
 namespace Ghost.Entities;
 
-public interface ISharedComponent;
-public interface ISharedWrapper
-{
-    int Index
-    {
-        get; set;
-    }
-}
-
-public struct Shared<T> : IComponent, ISharedWrapper
-    where T : unmanaged, ISharedComponent
-{
-    public int Index
-    {
-        get; set;
-    }
-}
-
 internal sealed unsafe class SharedComponentStore : IDisposable
 {
     private struct EntryInfo
@@ -50,7 +32,7 @@ internal sealed unsafe class SharedComponentStore : IDisposable
         }
     }
 
-    private UnsafeHashMap<int, TypeStore> _perType; // componentTypeId -> TypeStore
+    private UnsafeHashMap<int, TypeStore> _perType; // componentTypeId -> TypeStore // TODO: UnsafeMultiHashMap
     private bool _disposed;
 
     public SharedComponentStore(int initialCapacity = 16)

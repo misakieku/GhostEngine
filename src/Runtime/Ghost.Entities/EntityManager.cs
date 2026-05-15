@@ -53,7 +53,6 @@ public unsafe partial class EntityManager : IDisposable
         _world = world;
         _entityLocations = new UnsafeSlotMap<EntityLocation>(initialCapacity, AllocationHandle.Persistent, AllocationOption.Clear);
         _scriptComponents = new SlotMap<List<ScriptComponent>>(initialCapacity / 2);
-        // _storages = new IManagedComponentStorage[16];
     }
 
     ~EntityManager()
@@ -177,19 +176,22 @@ public unsafe partial class EntityManager : IDisposable
     public void CreateEntities(int count)
     {
         ref var emptyArchetype = ref _world.ComponentManager.GetArchetypeReference(World.EmptyArchetypeID);
-        emptyArchetype.AllocateEntity(out var chunkIndex, out var rowIndex);
+
+        var chunkIndices = (Span<int>)stackalloc int[count];
+        var rowIndices = (Span<int>)stackalloc int[count];
+        emptyArchetype.AllocateEntities(chunkIndices, rowIndices);
 
         for (var i = 0; i < count; i++)
         {
             var id = _entityLocations.Add(new EntityLocation
             {
                 archetypeID = World.EmptyArchetypeID,
-                chunkIndex = chunkIndex,
-                rowIndex = rowIndex
+                chunkIndex = chunkIndices[i],
+                rowIndex = rowIndices[i]
             }, out var generation);
 
             var entity = new Entity(id, generation);
-            emptyArchetype.SetEntity(chunkIndex, rowIndex, entity);
+            emptyArchetype.SetEntity(chunkIndices[i], rowIndices[i], entity);
         }
     }
 
@@ -201,7 +203,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <returns>An array of the created entities.</returns>
     public void CreateEntities(Span<Entity> entities, ComponentSetView set)
     {
-        var hash = set.GetHashCode();
+        var hash = set.ComponentHashCode;
         var arcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(hash);
 
         if (arcID.IsInvalid)
@@ -213,7 +215,7 @@ public unsafe partial class EntityManager : IDisposable
 
         for (var i = 0; i < entities.Length; i++)
         {
-            archetype.AllocateEntity(out var chunkIndex, out var rowIndex);
+            archetype.AllocateEntity(set.SharedComponentData, set.SharedDataHashCode, out var chunkIndex, out var rowIndex);
 
             var id = _entityLocations.Add(new EntityLocation
             {
@@ -236,7 +238,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="set">A set of component space IDs to add to the entities.</param>
     public void CreateEntities(int count, ComponentSetView set)
     {
-        var hash = set.GetHashCode();
+        var hash = set.ComponentHashCode;
         var arcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(hash);
 
         if (arcID.IsInvalid)
@@ -248,7 +250,7 @@ public unsafe partial class EntityManager : IDisposable
 
         for (var i = 0; i < count; i++)
         {
-            archetype.AllocateEntity(out var chunkIndex, out var rowIndex);
+            archetype.AllocateEntity(set.SharedComponentData, set.SharedDataHashCode, out var chunkIndex, out var rowIndex);
 
             var id = _entityLocations.Add(new EntityLocation
             {
@@ -261,15 +263,6 @@ public unsafe partial class EntityManager : IDisposable
             archetype.SetEntity(chunkIndex, rowIndex, entity);
         }
     }
-
-    // private void DestoryManagedEntityIfExists(ref readonly Archetype archetype, EntityLocation location)
-    // {
-    //     var pManagedRef = archetype.GetComponentData(location.chunkIndex, location.rowIndex, ComponentTypeID<ManagedEntityRef>.Value);
-    //     if (pManagedRef != null)
-    //     {
-    //         DestroyManagedEntity(((ManagedEntityRef*)pManagedRef)->entity);
-    //     }
-    // }
 
     private Error DestroyEntity_Internal(Entity entity, EntityLocation location)
     {
@@ -370,22 +363,6 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="entities">The entities to destroy.</param>
     public void DestroyEntities(ReadOnlySpan<Entity> entities)
     {
-        // void RemoveManagedEntity(ReadOnlySpan<int> rowIndicesCache, ref readonly Archetype archetype, int chunkIndex)
-        // {
-        //     for (var j = 0; j < rowIndicesCache.Length; j++)
-        //     {
-        //         var rowIndex = rowIndicesCache[j];
-        //         var location = new EntityLocation
-        //         {
-        //             archetypeID = archetype.ID,
-        //             chunkIndex = chunkIndex,
-        //             rowIndex = rowIndex
-        //         };
-        //
-        //         DestoryManagedEntityIfExists(in archetype, location);
-        //     }
-        // }
-
         if (entities.Length == 0)
         {
             return;
@@ -411,11 +388,9 @@ public unsafe partial class EntityManager : IDisposable
             return;
         }
 
-        // 2. SORT
         // Sorting groups them by chunk automatically
         batchDestroy.AsSpan().Sort();
 
-        // 3. SWEEP
         // Iterate through the sorted list and batch process each chunk
         var firstLoc = batchDestroy[0];
         var prevArchetypeID = firstLoc.archetypeID;
@@ -442,7 +417,6 @@ public unsafe partial class EntityManager : IDisposable
                 // Execute the hole-filling/swap logic
                 prevArchetype.RemoveEntities(prevChunkIndex, rowIndicesCache.AsSpan());
 
-                // RESET
                 rowIndicesCache.Clear();
                 prevArchetypeID = loc.archetypeID;
                 prevChunkIndex = loc.chunkIndex;
@@ -451,7 +425,6 @@ public unsafe partial class EntityManager : IDisposable
             rowIndicesCache.Add(loc.rowIndex);
         }
 
-        // 4. FINAL FLUSH
         // Process the stragglers remaining in the cache
         if (rowIndicesCache.Count > 0)
         {
@@ -461,7 +434,7 @@ public unsafe partial class EntityManager : IDisposable
             lastArchetype.RemoveEntities(prevChunkIndex, rowIndicesCache.AsSpan());
         }
 
-        // 5. Remove from Entity Locations
+        // Remove from Entity Locations
         for (var i = 0; i < entities.Length; i++)
         {
             var entity = entities[i];
@@ -494,7 +467,7 @@ public unsafe partial class EntityManager : IDisposable
         }
 
         // Check if singleton already exists
-        var signatureHash = ComponentRegistry.GetHashCode(componentID);
+        var signatureHash = ComponentRegistry.GetHashCodeForTypeIDs(componentID);
         var arcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(signatureHash);
 
         if (arcID.IsValid)
@@ -541,7 +514,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <returns>Pointer to the component data, or null if not found.</returns>
     public void* GetSingleton(Identifier<IComponent> componentID)
     {
-        var signatureHash = ComponentRegistry.GetHashCode(componentID);
+        var signatureHash = ComponentRegistry.GetHashCodeForTypeIDs(componentID);
         var arcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(signatureHash);
 
         if (arcID.IsInvalid)
@@ -575,6 +548,44 @@ public unsafe partial class EntityManager : IDisposable
         return ref *(T*)ptr; // This will return null ref if ptr is null.
     }
 
+    private static void BuildSharedData(
+        ref Archetype oldArch, int oldGroupIndex,
+        ref Archetype newArch,
+        Identifier<IComponent> changedID, void* pNewData,   // non-null = adding shared, null = removing or non-shared change
+        Span<byte> outSharedData)
+    {
+        if (newArch._sharedLayouts.Count == 0)
+        {
+            return;
+        }
+
+        var oldShared = oldArch._chunkGroups.Count > 0 && oldArch._chunkGroups[oldGroupIndex].sharedData.IsCreated
+            ? oldArch._chunkGroups[oldGroupIndex].sharedData.AsSpan()
+            : ReadOnlySpan<byte>.Empty;
+
+        for (var i = 0; i < newArch._sharedLayouts.Count; i++)
+        {
+            ref var newLayout = ref newArch._sharedLayouts[i];
+
+            if (newLayout.componentID == changedID.Value && pNewData != null)
+            {
+                // Adding this shared component — write the provided value.
+                new ReadOnlySpan<byte>(pNewData, newLayout.size)
+                    .CopyTo(outSharedData.Slice(newLayout.offset, newLayout.size));
+            }
+            else
+            {
+                // Carry over from old archetype's shared data (skip if old doesn't have it).
+                var oldLayoutResult = oldArch.GetSharedLayout(newLayout.componentID);
+                if (oldLayoutResult.IsSuccess)
+                {
+                    oldShared.Slice(oldLayoutResult.Value.offset, oldLayoutResult.Value.size)
+                        .CopyTo(outSharedData.Slice(newLayout.offset, newLayout.size));
+                }
+            }
+        }
+    }
+
     /// <summary>
     /// Add a component to the specified entity.
     /// </summary>
@@ -584,6 +595,13 @@ public unsafe partial class EntityManager : IDisposable
     /// <returns>The result status of the operation.</returns>
     public Error AddComponent(Entity entity, Identifier<IComponent> componentID, void* pComponent)
     {
+#if GHOST_EDITOR
+        if (ComponentRegistry.GetComponentInfo(componentID).isShared)
+        {
+            return Error.InvalidArgument;
+        }
+#endif
+
         // Find current location
         ref var location = ref _entityLocations.GetElementReferenceAt(entity.ID, entity.Generation, out var exist);
         if (!exist)
@@ -646,7 +664,24 @@ public unsafe partial class EntityManager : IDisposable
 
         // Move entity data
         ref var newArchetype = ref _world.ComponentManager.GetArchetypeReference(newArcID);
-        newArchetype.AllocateEntity(out var newChunkIndex, out var newRowIndex);
+
+        // Carry existing shared values into the new archetype unchanged.
+        int newChunkIndex, newRowIndex;
+        if (oldArchetype._sharedLayouts.Count > 0)
+        {
+            Span<byte> newSharedData = stackalloc byte[newArchetype._sharedDataSize];
+            ref var oldChunk = ref oldArchetype.GetChunkReference(location.chunkIndex);
+            BuildSharedData(ref oldArchetype, oldChunk._groupIndex,
+                            ref newArchetype, default, null, newSharedData);
+
+            var sharedHash = ComponentRegistry.GetHashCodeForSharedData(newSharedData);
+            newArchetype.AllocateEntity(newSharedData, sharedHash, out newChunkIndex, out newRowIndex);
+        }
+        else
+        {
+            newArchetype.AllocateEntity(out newChunkIndex, out newRowIndex);
+        }
+
         CopyData(ref oldArchetype, location.chunkIndex, location.rowIndex,
                  ref newArchetype, newChunkIndex, newRowIndex);
 
@@ -690,6 +725,13 @@ public unsafe partial class EntityManager : IDisposable
     /// <returns>The result status of the operation.</returns>
     public Error RemoveComponent(Entity entity, Identifier<IComponent> componentID)
     {
+#if GHOST_EDITOR
+        if (ComponentRegistry.GetComponentInfo(componentID).isShared)
+        {
+            return Error.InvalidArgument;
+        }
+#endif
+
         // Find current location
         ref var location = ref _entityLocations.GetElementReferenceAt(entity.ID, entity.Generation, out var exist);
         if (!exist)
@@ -752,7 +794,24 @@ public unsafe partial class EntityManager : IDisposable
 
         // Move entity data
         ref var newArchetype = ref _world.ComponentManager.GetArchetypeReference(newArcID);
-        newArchetype.AllocateEntity(out var newChunkIndex, out var newRowIndex);
+
+        // Carry existing shared values into the new archetype unchanged.
+        int newChunkIndex, newRowIndex;
+        if (oldArchetype._sharedLayouts.Count > 0)
+        {
+            Span<byte> newSharedData = stackalloc byte[newArchetype._sharedDataSize];
+            ref var oldChunk = ref oldArchetype.GetChunkReference(location.chunkIndex);
+            BuildSharedData(ref oldArchetype, oldChunk._groupIndex,
+                            ref newArchetype, default, null, newSharedData);
+
+            var sharedHash = ComponentRegistry.GetHashCodeForSharedData(newSharedData);
+            newArchetype.AllocateEntity(newSharedData, sharedHash, out newChunkIndex, out newRowIndex);
+        }
+        else
+        {
+            newArchetype.AllocateEntity(out newChunkIndex, out newRowIndex);
+        }
+
         CopyData(ref oldArchetype, location.chunkIndex, location.rowIndex,
                  ref newArchetype, newChunkIndex, newRowIndex);
 
@@ -764,12 +823,6 @@ public unsafe partial class EntityManager : IDisposable
         {
             return r;
         }
-
-        // var pManagedRef = oldArchetype.GetComponentData(location.chunkIndex, location.rowIndex, ComponentTypeID<ManagedEntityRef>.Value);
-        // if (pManagedRef != null)
-        // {
-        //     DestroyManagedEntity(((ManagedEntityRef*)pManagedRef)->entity);
-        // }
 
         // Update location
         location.archetypeID = newArcID;
@@ -946,6 +999,296 @@ public unsafe partial class EntityManager : IDisposable
         where T : unmanaged, IEnableableComponent
     {
         return SetEnabled(entity, ComponentTypeID<T>.Value, enabled);
+    }
+
+    /// <summary>
+    /// Add a shared component to the specified entity, moving it into the appropriate chunk group.
+    /// </summary>
+    /// <param name="entity">The entity to add the shared component to.</param>
+    /// <param name="componentID">The shared component ID to add.</param>
+    /// <param name="pComponent">Pointer to the shared component value.</param>
+    /// <returns>The result status of the operation.</returns>
+    public Error AddSharedComponent(Entity entity, Identifier<IComponent> componentID, void* pComponent)
+    {
+        ref var location = ref _entityLocations.GetElementReferenceAt(entity.ID, entity.Generation, out var exist);
+        if (!exist)
+        {
+            return Error.NotFound;
+        }
+
+        ref var oldArchetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
+        var oldSignature = oldArchetype._signature;
+
+        if (oldSignature.IsSet(componentID))
+        {
+            return Error.InvalidArgument;
+        }
+
+        var newArcID = oldArchetype.GetEdgeAdd(componentID);
+        if (newArcID.IsInvalid)
+        {
+            var largestComponentID = Math.Max(oldSignature.Count, componentID);
+            var length = UnsafeBitSet.RequiredLength(largestComponentID + 1);
+
+            Span<uint> bits = stackalloc uint[length];
+            bits.Clear();
+
+            var newSignature = new SpanBitSet(bits);
+
+            var oldIt = oldSignature.GetIterator();
+            var compCount = 0;
+            while (oldIt.Next(out var index))
+            {
+                newSignature.SetBit(index);
+                compCount++;
+            }
+
+            compCount++;
+            newSignature.SetBit(componentID);
+
+            var newSignatureHash = newSignature.GetHashCode();
+            newArcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(newSignatureHash);
+            if (newArcID.IsInvalid)
+            {
+                Span<Identifier<IComponent>> componentTypeIDs = stackalloc Identifier<IComponent>[compCount];
+                var newIt = newSignature.GetIterator();
+                var i = 0;
+                while (newIt.Next(out var index))
+                {
+                    componentTypeIDs[i++] = index;
+                }
+
+                newArcID = _world.ComponentManager.CreateArchetype(componentTypeIDs, newSignatureHash);
+            }
+
+            oldArchetype.AddEdgeAdd(componentID, newArcID);
+        }
+
+        ref var newArchetype = ref _world.ComponentManager.GetArchetypeReference(newArcID);
+
+        // Build shared data: carry existing values + insert the new shared component.
+        Span<byte> newSharedData = stackalloc byte[newArchetype._sharedDataSize];
+        ref var oldChunk = ref oldArchetype.GetChunkReference(location.chunkIndex);
+        BuildSharedData(ref oldArchetype, oldChunk._groupIndex,
+                        ref newArchetype, componentID, pComponent, newSharedData);
+
+        var sharedHash = ComponentRegistry.GetHashCodeForSharedData(newSharedData);
+        newArchetype.AllocateEntity(newSharedData, sharedHash, out var newChunkIndex, out var newRowIndex);
+
+        CopyData(ref oldArchetype, location.chunkIndex, location.rowIndex,
+                 ref newArchetype, newChunkIndex, newRowIndex);
+
+        newArchetype.SetEntity(newChunkIndex, newRowIndex, entity);
+
+        var r = oldArchetype.RemoveEntity(location.chunkIndex, location.rowIndex);
+        Logger.DebugAssert(r == Error.None);
+        if (r != Error.None)
+        {
+            return r;
+        }
+
+        location.archetypeID = newArcID;
+        location.chunkIndex = newChunkIndex;
+        location.rowIndex = newRowIndex;
+
+        return Error.None;
+    }
+
+    /// <summary>
+    /// Add a shared component to the specified entity, moving it into the appropriate chunk group.
+    /// </summary>
+    /// <typeparam name="T">The shared component type.</typeparam>
+    /// <param name="entity">The entity to add the shared component to.</param>
+    /// <param name="value">The shared component value.</param>
+    /// <returns>The result status of the operation.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public unsafe Error AddSharedComponent<T>(Entity entity, T value = default)
+        where T : unmanaged, ISharedComponent
+    {
+        return AddSharedComponent(entity, ComponentTypeID<T>.Value, &value);
+    }
+
+    /// <summary>
+    /// Remove a shared component from the specified entity, moving it to the appropriate chunk group.
+    /// </summary>
+    /// <param name="entity">The entity to remove the shared component from.</param>
+    /// <param name="componentID">The shared component ID to remove.</param>
+    /// <returns>The result status of the operation.</returns>
+    public unsafe Error RemoveSharedComponent(Entity entity, Identifier<IComponent> componentID)
+    {
+        ref var location = ref _entityLocations.GetElementReferenceAt(entity.ID, entity.Generation, out var exist);
+        if (!exist)
+        {
+            return Error.NotFound;
+        }
+
+        ref var oldArchetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
+        var oldSignature = oldArchetype._signature;
+
+        var newArcID = oldArchetype.GetEdgeRemove(componentID);
+        if (newArcID.IsInvalid)
+        {
+            var largestComponentID = Math.Max(oldSignature.Count, componentID);
+            var length = UnsafeBitSet.RequiredLength(largestComponentID + 1);
+
+            Span<uint> bits = stackalloc uint[length];
+            bits.Clear();
+
+            var newSignature = new SpanBitSet(bits);
+
+            var oldIt = oldSignature.GetIterator();
+            var compCount = 0;
+            while (oldIt.Next(out var index))
+            {
+                if (index != componentID)
+                {
+                    newSignature.SetBit(index);
+                    compCount++;
+                }
+            }
+
+            if (compCount == 0)
+            {
+                return DestroyEntity_Internal(entity, location);
+            }
+
+            var newSignatureHash = newSignature.GetHashCode();
+            newArcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(newSignatureHash);
+            if (newArcID.IsInvalid)
+            {
+                Span<Identifier<IComponent>> componentTypeIDs = stackalloc Identifier<IComponent>[compCount];
+                var newIt = newSignature.GetIterator();
+                var i = 0;
+                while (newIt.Next(out var index))
+                {
+                    componentTypeIDs[i++] = index;
+                }
+
+                newArcID = _world.ComponentManager.CreateArchetype(componentTypeIDs, newSignatureHash);
+            }
+
+            oldArchetype.AddEdgeRemove(componentID, newArcID);
+        }
+
+        ref var newArchetype = ref _world.ComponentManager.GetArchetypeReference(newArcID);
+
+        // Build shared data: carry existing values, omitting the removed shared component.
+        Span<byte> newSharedData = stackalloc byte[newArchetype._sharedDataSize];
+        ref var oldChunk = ref oldArchetype.GetChunkReference(location.chunkIndex);
+        BuildSharedData(ref oldArchetype, oldChunk._groupIndex,
+                        ref newArchetype, componentID, null, newSharedData);
+
+        var sharedHash = ComponentRegistry.GetHashCodeForSharedData(newSharedData);
+        newArchetype.AllocateEntity(newSharedData, sharedHash, out var newChunkIndex, out var newRowIndex);
+
+        CopyData(ref oldArchetype, location.chunkIndex, location.rowIndex,
+                 ref newArchetype, newChunkIndex, newRowIndex);
+
+        newArchetype.SetEntity(newChunkIndex, newRowIndex, entity);
+
+        var r = oldArchetype.RemoveEntity(location.chunkIndex, location.rowIndex);
+        Logger.DebugAssert(r == Error.None);
+        if (r != Error.None)
+        {
+            return r;
+        }
+
+        location.archetypeID = newArcID;
+        location.chunkIndex = newChunkIndex;
+        location.rowIndex = newRowIndex;
+
+        return Error.None;
+    }
+
+    /// <summary>
+    /// Remove a shared component from the specified entity, moving it to the appropriate chunk group.
+    /// </summary>
+    /// <typeparam name="T">The shared component type.</typeparam>
+    /// <param name="entity">The entity to remove the shared component from.</param>
+    /// <returns>The result status of the operation.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Error RemoveSharedComponent<T>(Entity entity)
+        where T : unmanaged, ISharedComponent
+    {
+        return RemoveSharedComponent(entity, ComponentTypeID<T>.Value);
+    }
+
+    /// <summary>
+    /// Move an entity to the chunk group matching the new shared component value.
+    /// The archetype is unchanged — only the chunk group (and thus the chunk) changes.
+    /// </summary>
+    /// <param name="entity">The entity to update.</param>
+    /// <param name="componentID">The shared component ID to change.</param>
+    /// <param name="pComponent">Pointer to the new shared component value.</param>
+    /// <returns>The result status of the operation.</returns>
+    public Error SetSharedComponent(Entity entity, Identifier<IComponent> componentID, void* pComponent)
+    {
+        ref var location = ref _entityLocations.GetElementReferenceAt(entity.ID, entity.Generation, out var exist);
+        if (!exist)
+        {
+            return Error.NotFound;
+        }
+
+        ref var archetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
+
+        var sharedLayoutResult = archetype.GetSharedLayout(componentID);
+        if (sharedLayoutResult.IsFailure)
+        {
+            return sharedLayoutResult.Error;
+        }
+
+        // Build new shared data blob: copy the current group's data, then overwrite the changed component.
+        ref var oldChunk = ref archetype.GetChunkReference(location.chunkIndex);
+        var oldGroup = archetype._chunkGroups[oldChunk._groupIndex];
+
+        Span<byte> newSharedData = stackalloc byte[archetype._sharedDataSize];
+        oldGroup.sharedData.AsSpan().CopyTo(newSharedData);
+
+        var layout = sharedLayoutResult.Value;
+        new ReadOnlySpan<byte>(pComponent, layout.size).CopyTo(newSharedData.Slice(layout.offset, layout.size));
+
+        var sharedHash = ComponentRegistry.GetHashCodeForSharedData(newSharedData);
+
+        // Same hash and same bytes → entity is already in the right group, nothing to do.
+        if (sharedHash == oldGroup.sharedDataHash && oldGroup.sharedData.AsSpan().SequenceEqual(newSharedData))
+        {
+            return Error.None;
+        }
+
+        // Allocate a slot in the target chunk group (may create a new group + chunk).
+        archetype.AllocateEntity(newSharedData, sharedHash, out var newChunkIndex, out var newRowIndex);
+
+        // memcpy all per-entity component data (layouts are identical — same archetype).
+        CopyData(ref archetype, location.chunkIndex, location.rowIndex,
+                 ref archetype, newChunkIndex, newRowIndex);
+
+        archetype.SetEntity(newChunkIndex, newRowIndex, entity);
+
+        var r = archetype.RemoveEntity(location.chunkIndex, location.rowIndex);
+        Logger.DebugAssert(r == Error.None);
+        if (r != Error.None)
+        {
+            return r;
+        }
+
+        location.chunkIndex = newChunkIndex;
+        location.rowIndex = newRowIndex;
+
+        return Error.None;
+    }
+
+    /// <summary>
+    /// Move an entity to the chunk group matching the new shared component value.
+    /// </summary>
+    /// <typeparam name="T">The shared component type.</typeparam>
+    /// <param name="entity">The entity to update.</param>
+    /// <param name="value">The new shared component value.</param>
+    /// <returns>The result status of the operation.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Error SetSharedComponent<T>(Entity entity, T value)
+        where T : unmanaged, ISharedComponent
+    {
+        return SetSharedComponent(entity, ComponentTypeID<T>.Value, &value);
     }
 
     public void Dispose()

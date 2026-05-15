@@ -15,7 +15,6 @@ public class HierarchyUtilityTests
     [TestInitialize]
     public void Setup()
     {
-        AllocationManager.Initialize();
         _world = World.Create(entityCapacity: 64);
     }
 
@@ -23,7 +22,6 @@ public class HierarchyUtilityTests
     public void Cleanup()
     {
         World.Destroy(_world.ID);
-        AllocationManager.Dispose();
     }
 
     private Entity CreateHierarchyEntity()

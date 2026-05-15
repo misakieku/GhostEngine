@@ -76,7 +76,7 @@ internal class AssetHandlerRegistrationGenerator : IIncrementalGenerator
             sb.AppendLine("        global::Ghost.Editor.Core.Assets.AssetHandlerRegistry.RegisterHandler(");
             sb.AppendLine($"            typeof({symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}),");
             sb.AppendLine($"            System.Guid.Parse(\"{id}\"),");
-            sb.AppendLine($"            (Ghost.Engine.AssetType){runtimeType},");
+            sb.AppendLine($"            (Ghost.Engine.Streaming.AssetType){runtimeType},");
             sb.AppendLine($"            {version},");
             sb.AppendLine($"            {allowCaching},");
             sb.AppendLine($"            new string[] {{ {extensions} }});");
