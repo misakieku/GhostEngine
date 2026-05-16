@@ -372,14 +372,87 @@ public unsafe partial class EntityManager : IDisposable
         using var batchDestroy = new UnsafeList<EntityLocation>(entities.Length, scope.AllocationHandle);
         using var rowIndicesCache = new UnsafeList<int>(32, scope.AllocationHandle);
 
+        Span<bool> cleanupMigrated = stackalloc bool[entities.Length];
+        cleanupMigrated.Clear();
+
         // 1. GATHER
-        // Resolve all entities to their locations
+        // Resolve all entities to their locations.
+        // Entities with ICleanupComponent are handled immediately — moved to a cleanup-only archetype
+        // where they survive until cleanup systems finish processing them.
         for (var i = 0; i < entities.Length; i++)
         {
             var entity = entities[i];
             if (_entityLocations.TryGetElementAt(entity.ID, entity.Generation, out var location))
             {
-                batchDestroy.Add(location);
+                ref var archetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
+
+                // 0 means no cleanup component (empty archetype or no ICleanupComponent types).
+                if (archetype._cleanupEdge == 0)
+                {
+                    batchDestroy.Add(location);
+                }
+                else
+                {
+                    // Archetype has ICleanupComponent — move entity to cleanup archetype.
+                    Identifier<Archetype> newArcID;
+                    if (archetype._cleanupEdge < 0)
+                    {
+                        // Compute cleanup edge: build a signature containing only cleanup components.
+                        ref var signature = ref archetype._signature;
+
+                        using var inner = AllocationManager.CreateStackScope();
+                        using var newSignature = new UnsafeBitSet(signature.Count, inner.AllocationHandle);
+
+                        var compCount = 0;
+                        var it = signature.GetIterator();
+                        while (it.Next(out var componentID))
+                        {
+                            if (ComponentRegistry.GetComponentInfo(componentID).isCleanup)
+                            {
+                                newSignature.SetBit(componentID);
+                                compCount++;
+                            }
+                        }
+
+                        var newSignatureHash = newSignature.GetHashCode();
+                        newArcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(newSignatureHash);
+                        if (newArcID.IsInvalid)
+                        {
+                            Span<Identifier<IComponent>> componentTypeIDs = stackalloc Identifier<IComponent>[compCount];
+
+                            var newIt = newSignature.GetIterator();
+                            var idx = 0;
+                            while (newIt.Next(out var cid))
+                            {
+                                componentTypeIDs[idx++] = cid;
+                            }
+
+                            newArcID = _world.ComponentManager.CreateArchetype(componentTypeIDs, newSignatureHash);
+                        }
+
+                        archetype._cleanupEdge = newArcID;
+                    }
+                    else
+                    {
+                        newArcID = archetype._cleanupEdge;
+                    }
+
+                    ref var newArchetype = ref _world.ComponentManager.GetArchetypeReference(newArcID);
+                    newArchetype.AllocateEntity(out var newChunkIndex, out var newRowIndex);
+                    CopyData(ref archetype, location.chunkIndex, location.rowIndex,
+                            ref newArchetype, newChunkIndex, newRowIndex);
+
+                    newArchetype.SetEntity(newChunkIndex, newRowIndex, entity);
+
+                    // Remove from old archetype.
+                    archetype.RemoveEntity(location.chunkIndex, location.rowIndex);
+
+                    // Update entity location to point to the cleanup archetype.
+                    UpdateEntityLocation(entity, newArcID, newChunkIndex, newRowIndex);
+
+                    // Mark as cleanup-migrated — entity survives in cleanup archetype, do NOT remove from _entityLocations.
+                    cleanupMigrated[i] = true;
+                }
             }
         }
 
@@ -388,10 +461,10 @@ public unsafe partial class EntityManager : IDisposable
             return;
         }
 
-        // Sorting groups them by chunk automatically
+        // 2. BATCH DESTROY
+        // Sorting groups them by chunk automatically.
         batchDestroy.AsSpan().Sort();
 
-        // Iterate through the sorted list and batch process each chunk
         var firstLoc = batchDestroy[0];
         var prevArchetypeID = firstLoc.archetypeID;
         var prevChunkIndex = firstLoc.chunkIndex;
@@ -406,13 +479,10 @@ public unsafe partial class EntityManager : IDisposable
             if (isNewBatch)
             {
                 // FLUSH PREVIOUS BATCH
-                // We must retrieve the Archetype of the *Previous* batch, not the current 'loc'
                 ref var prevArchetype = ref _world.ComponentManager.GetArchetypeReference(prevArchetypeID);
 
                 // Remove Managed Entities first
                 // RemoveManagedEntity(rowIndicesCache.AsSpan(), in prevArchetype, prevChunkIndex);
-
-                // FIX: Handle ICleanupComponent here before we remove the entities from the archetype.
 
                 // Execute the hole-filling/swap logic
                 prevArchetype.RemoveEntities(prevChunkIndex, rowIndicesCache.AsSpan());
@@ -434,9 +504,14 @@ public unsafe partial class EntityManager : IDisposable
             lastArchetype.RemoveEntities(prevChunkIndex, rowIndicesCache.AsSpan());
         }
 
-        // Remove from Entity Locations
+        // 3. Remove from Entity Locations — skip cleanup-migrated entities.
         for (var i = 0; i < entities.Length; i++)
         {
+            if (cleanupMigrated[i])
+            {
+                continue;
+            }
+
             var entity = entities[i];
             _entityLocations.Remove(entity.ID, entity.Generation);
         }
@@ -1102,7 +1177,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="value">The shared component value.</param>
     /// <returns>The result status of the operation.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public unsafe Error AddSharedComponent<T>(Entity entity, T value = default)
+    public Error AddSharedComponent<T>(Entity entity, T value = default)
         where T : unmanaged, ISharedComponent
     {
         return AddSharedComponent(entity, ComponentTypeID<T>.Value, &value);
@@ -1114,7 +1189,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="entity">The entity to remove the shared component from.</param>
     /// <param name="componentID">The shared component ID to remove.</param>
     /// <returns>The result status of the operation.</returns>
-    public unsafe Error RemoveSharedComponent(Entity entity, Identifier<IComponent> componentID)
+    public Error RemoveSharedComponent(Entity entity, Identifier<IComponent> componentID)
     {
         ref var location = ref _entityLocations.GetElementReferenceAt(entity.ID, entity.Generation, out var exist);
         if (!exist)

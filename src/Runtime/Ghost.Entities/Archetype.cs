@@ -514,7 +514,7 @@ internal unsafe struct Archetype : IDisposable
                 {
                     rowIndex[idx] = chunk._count;
                     chunkIndex[idx] = group.activeChunkIndex;
-                    
+
                     chunk._count++;
                     idx++;
                 }
