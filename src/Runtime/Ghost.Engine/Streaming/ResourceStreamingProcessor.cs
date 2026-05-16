@@ -9,7 +9,7 @@ namespace Ghost.Engine.Streaming;
 
 internal class ResourceStreamingProcessor : IResourceStreamingProcessor
 {
-    private const int _MAX_UPLOADS_PER_FRAME = 8;
+    private const int MAX_UPLOADS_PER_FRAME = 8;
 
     private readonly ConcurrentQueue<ProcessableAssetEntry> _pendingProcess;
     private readonly ConcurrentQueue<UploadableAssetEntry> _pendingUpload;
@@ -101,7 +101,7 @@ internal class ResourceStreamingProcessor : IResourceStreamingProcessor
         context.CopyPipeline.Begin();
 
         var uploadCount = 0;
-        while (uploadCount < _MAX_UPLOADS_PER_FRAME && _pendingUpload.TryDequeue(out var entry))
+        while (uploadCount < MAX_UPLOADS_PER_FRAME && _pendingUpload.TryDequeue(out var entry))
         {
             if (entry.State != AssetState.Loaded)
             {

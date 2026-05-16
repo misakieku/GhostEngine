@@ -5,6 +5,7 @@ using Ghost.Entities;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.Jobs;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Engine.Streaming;
@@ -21,6 +22,7 @@ internal struct SceneContentHeader
     public int entityCount;
 }
 
+// TODO: We should have a dedicated scene loading service. Maybe we should make our SceneManager as a service.
 public partial class AssetManager
 {
     public Result<JobHandle> LoadScene(World world, AssetRef<Scene> sceneAsset, SceneLoadingType loadingType)
@@ -56,11 +58,7 @@ public partial class AssetManager
                 world.Reset();
             }
 
-            var loadResult = SceneManager.LoadSceneIntoWorld(world, header, stream);
-            if (loadResult.IsFailure)
-            {
-                return Result.Failure(loadResult.Message);
-            }
+            var loadResult = SceneManager.ParseSceneData(header, stream, AllocationHandle.Persistent);
 
             return JobHandle.Invalid;
         }

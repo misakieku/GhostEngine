@@ -32,7 +32,7 @@ public unsafe struct BufferWriter : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Write<T>(T value)
+    public void Write<T>(scoped in T value)
         where T : unmanaged
     {
         EnsureCapacity(sizeof(T));
@@ -72,7 +72,7 @@ public unsafe struct BufferWriter : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Span<byte> AsSpan()
     {
-        return _buffer.AsSpan();
+        return _buffer.AsSpan(0, Position);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -114,7 +114,7 @@ public unsafe ref struct SpanWriter
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Write<T>(T value)
+    public void Write<T>(scoped in T value)
         where T : unmanaged
     {
         Unsafe.WriteUnaligned(ref _buffer[_position], value);

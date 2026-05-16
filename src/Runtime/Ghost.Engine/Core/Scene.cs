@@ -3,7 +3,6 @@ using Ghost.Core.Utilities;
 using Ghost.Engine.Components;
 using Ghost.Engine.Streaming;
 using Ghost.Entities;
-using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Text;
@@ -29,7 +28,7 @@ public struct Scene : IEquatable<Scene>
     /// <summary>
     /// Gets an invalid scene instance.
     /// </summary>
-    public static Scene Invalid => new Scene { _id = INVALID_ID };
+    public static Scene Invalid => new() { _id = INVALID_ID };
 
     internal Scene(ushort id)
     {
@@ -76,102 +75,40 @@ public struct Scene : IEquatable<Scene>
 /// </remarks>
 public static class SceneManager
 {
-    private struct BinaryEntityInfo : IDisposable
-    {
-        public int entityIndex;
-        public int componentCount;
-        public struct ComponentInfo
-        {
-            public UnsafeArray<int> entityFieldOffsets;
-            public long dataOffset;
-            public uint typeHash;
-            public Identifier<IComponent> typeID;
-            public int dataSize;
-            public int entityFieldCount;
-        }
-
-        public UnsafeArray<ComponentInfo> components;
-
-        public void Dispose()
-        {
-            for (var i = 0; i < components.Length; i++)
-            {
-                components[i].entityFieldOffsets.Dispose();
-            }
-
-            components.Dispose();
-        }
-    }
-
-    private struct BinaryEntityInfoArray : IDisposable
-    {
-        public UnsafeArray<BinaryEntityInfo> data;
-
-        public readonly ref BinaryEntityInfo this[int index] => ref data[index];
-
-        public BinaryEntityInfoArray(int count, AllocationHandle handle)
-        {
-            data = new UnsafeArray<BinaryEntityInfo>(count, handle, AllocationOption.Clear);
-        }
-
-        public void Dispose()
-        {
-            for (var i = 0; i < data.Length; i++)
-            {
-                data[i].Dispose();
-            }
-
-            data.Dispose();
-        }
-    }
-
     internal struct SceneLoadResult : IDisposable
     {
         internal struct PendingEntity : IDisposable
         {
             public int fileLocalIndex;
-            public ComponentSet componentSet;
+            public UnsafeList<Identifier<IComponent>> componentTypeIDs;
             public UnsafeList<(Identifier<IComponent> typeID, UnsafeArray<byte> data)> componentData;
-            public UnsafeList<(int componentIndex, UnsafeArray<int> fieldOffsets)> entityFields;
+            public UnsafeList<(int componentDataIndex, UnsafeArray<int> fieldOffsets)> entityFields;
 
             public void Dispose()
             {
+                componentTypeIDs.Dispose();
                 for (int i = 0; i < componentData.Count; i++)
                 {
                     componentData[i].data.Dispose();
                 }
-
-                componentSet.Dispose();
                 componentData.Dispose();
+                for (int i = 0; i < entityFields.Count; i++)
+                {
+                    entityFields[i].fieldOffsets.Dispose();
+                }
                 entityFields.Dispose();
             }
         }
 
-        public UnsafeList<PendingEntity> entities;
-        public Scene scene;
+        public UnsafeArray<PendingEntity> entities;
 
         public void Dispose()
         {
-            for (int i = 0; i < entities.Count; i++)
+            for (int i = 0; i < entities.Length; i++)
             {
                 entities[i].Dispose();
             }
-
             entities.Dispose();
-        }
-    }
-
-    internal unsafe struct LoadSceneJob : IJob
-    {
-        public SceneContentHeader header;
-        public Stream stream;
-
-        public SceneLoadResult* result;
-        public AllocationHandle allocationHandle;
-
-        public void Execute(ref readonly JobExecutionContext ctx)
-        {
-
         }
     }
 
@@ -197,23 +134,39 @@ public static class SceneManager
         }
     }
 
-    internal static unsafe Result<JobHandle> LoadSceneIntoWorld(World world, SceneContentHeader header, Stream stream)
+    internal static SceneLoadResult ParseSceneData(SceneContentHeader header, Stream stream, AllocationHandle allocationHandle)
     {
-        using var scope = AllocationManager.CreateStackScope();
+        var result = new SceneLoadResult
+        {
+            entities = new UnsafeArray<SceneLoadResult.PendingEntity>(header.entityCount, allocationHandle)
+        };
 
-        using var entityInfos = new BinaryEntityInfoArray(header.entityCount, scope.AllocationHandle);
-        using var forwardMap = new UnsafeHashMap<int, Entity>(header.entityCount, scope.AllocationHandle);
+        using var scope = AllocationManager.CreateStackScope();
         using var str = new UnsafeArray<byte>(128, scope.AllocationHandle);
 
         for (var i = 0; i < header.entityCount; i++)
         {
             var compCount = stream.Read<int>();
+
             if (compCount == 0)
             {
+                result.entities[i] = new SceneLoadResult.PendingEntity
+                {
+                    fileLocalIndex = i,
+                    componentTypeIDs = new UnsafeList<Identifier<IComponent>>(0, allocationHandle),
+                    componentData = new UnsafeList<(Identifier<IComponent> typeID, UnsafeArray<byte> data)>(0, allocationHandle),
+                    entityFields = new UnsafeList<(int componentDataIndex, UnsafeArray<int> fieldOffsets)>(0, allocationHandle)
+                };
                 continue;
             }
 
-            var comps = new UnsafeArray<BinaryEntityInfo.ComponentInfo>(compCount, scope.AllocationHandle);
+            var pending = new SceneLoadResult.PendingEntity
+            {
+                fileLocalIndex = i,
+                componentTypeIDs = new UnsafeList<Identifier<IComponent>>(compCount, allocationHandle),
+                componentData = new UnsafeList<(Identifier<IComponent> typeID, UnsafeArray<byte> data)>(compCount, allocationHandle),
+                entityFields = new UnsafeList<(int componentDataIndex, UnsafeArray<int> fieldOffsets)>(compCount, allocationHandle)
+            };
 
             for (var j = 0; j < compCount; j++)
             {
@@ -226,119 +179,109 @@ public static class SceneManager
                 }
 
                 var strSpan = str.AsSpan(0, nameLength);
-                stream.ReadExactly(strSpan);
+                stream.ReadExactly(strSpan.Slice(0, nameLength));
 
                 var typeName = Encoding.UTF8.GetString(strSpan);
+
                 var dataSz = stream.Read<int>();
-                var dataOff = stream.Position;
-                stream.Position += dataSz;
+                var compData = new UnsafeArray<byte>(dataSz, allocationHandle);
+                stream.ReadExactly(compData);
 
                 var fieldCount = stream.Read<int>();
-                var fieldOffsets = new UnsafeArray<int>(fieldCount, scope.AllocationHandle);
-                for (var f = 0; f < fieldCount; f++)
+
+                UnsafeArray<int> fieldOffsets = default;
+                if (fieldCount > 0)
                 {
-                    fieldOffsets[f] = stream.Read<int>();
+                    fieldOffsets = new UnsafeArray<int>(fieldCount, allocationHandle);
+                    for (var f = 0; f < fieldCount; f++)
+                    {
+                        fieldOffsets[f] = stream.Read<int>();
+                    }
                 }
 
                 var typeID = ComponentRegistry.GetComponentIDByName(typeName);
-
-                comps[j] = new BinaryEntityInfo.ComponentInfo
+                if (typeID.IsValid)
                 {
-                    dataOffset = dataOff,
-                    entityFieldOffsets = fieldOffsets,
-                    typeHash = typeHash,
-                    typeID = typeID,
-                    dataSize = dataSz,
-                    entityFieldCount = fieldCount,
-                };
-            }
-
-            entityInfos[i] = new BinaryEntityInfo
-            {
-                entityIndex = i,
-                componentCount = compCount,
-                components = comps,
-            };
-        }
-
-        using var typeIds = new UnsafeList<Identifier<IComponent>>(32, scope.AllocationHandle);
-        typeIds.Add(ComponentTypeID<SceneID>.Value);
-
-        for (var i = 0; i < header.entityCount; i++)
-        {
-            ref var info = ref entityInfos[i];
-
-            for (var j = 0; j < info.componentCount; j++)
-            {
-                if (info.components[j].typeID.IsValid)
+                    pending.componentTypeIDs.Add(typeID);
+                    pending.componentData.Add((typeID, compData));
+                    if (fieldCount > 0)
+                    {
+                        pending.entityFields.Add((pending.componentData.Count - 1, fieldOffsets));
+                    }
+                }
+                else
                 {
-                    typeIds.Add(info.components[j].typeID);
+                    compData.Dispose();
+                    if (fieldCount > 0) fieldOffsets.Dispose();
                 }
             }
 
-            var set = new ComponentSetView(typeIds);
+            result.entities[i] = pending;
+        }
+
+        return result;
+    }
+
+    internal static unsafe Result<int> MaterializeScene(World world, ref SceneLoadResult result, Scene scene)
+    {
+        using var scope = AllocationManager.CreateStackScope();
+        using var forwardMap = new UnsafeHashMap<int, Entity>(result.entities.Length, scope.AllocationHandle);
+        using var sharedCom = new SharedComponentSet(256, scope.AllocationHandle);
+
+        // Create entities and set SceneID
+        for (var i = 0; i < result.entities.Length; i++)
+        {
+            ref var pending = ref result.entities[i];
+
+            using var typeIds = new UnsafeList<Identifier<IComponent>>(pending.componentTypeIDs.Count + 1, scope.AllocationHandle);
+            typeIds.Add(ComponentTypeID<SceneID>.Value);
+            for (int j = 0; j < pending.componentTypeIDs.Count; j++)
+            {
+                typeIds.Add(pending.componentTypeIDs[j]);
+            }
+
+            sharedCom.With(new SceneID { value = scene.ID });
+
+            var set = new ComponentSetView(typeIds, sharedCom);
             var entity = world.EntityManager.CreateEntity(set);
+            forwardMap.TryAdd(pending.fileLocalIndex, entity);
 
-            forwardMap.TryAdd(i, entity);
-            typeIds.RemoveRange(1, typeIds.Count - 1);
+            sharedCom.Reset();
         }
 
-        var activeScene = CreateScene();
-
-        for (var i = 0; i < header.entityCount; i++)
+        // Set component data
+        for (var i = 0; i < result.entities.Length; i++)
         {
-            if (!forwardMap.TryGetValue(i, out var entity))
-            {
+            ref var pending = ref result.entities[i];
+            if (!forwardMap.TryGetValue(pending.fileLocalIndex, out var entity))
                 continue;
-            }
 
-            world.EntityManager.SetComponent(entity, new SceneID { value = activeScene.ID });
-
-            using var compScope = AllocationManager.CreateStackScope();
-            var info = entityInfos[i];
-
-            for (var j = 0; j < info.componentCount; j++)
+            for (var j = 0; j < pending.componentData.Count; j++)
             {
-                var comp = info.components[j];
-                if (!comp.typeID.IsValid)
-                {
-                    continue;
-                }
-
-                var compSize = ComponentRegistry.GetComponentInfo(comp.typeID).size;
-
-                stream.Position = comp.dataOffset;
-
-                using var src = stream.ReadMemory(compSize, compScope.AllocationHandle);
-                world.EntityManager.SetComponent(entity, comp.typeID, src.GetUnsafePtr());
+                var (typeID, data) = pending.componentData[j];
+                world.EntityManager.SetComponent(entity, typeID, data.GetUnsafePtr());
             }
         }
 
-        for (var i = 0; i < header.entityCount; i++)
+        // Remap entity references
+        for (var i = 0; i < result.entities.Length; i++)
         {
-            if (!forwardMap.TryGetValue(i, out var entity))
-            {
+            ref var pending = ref result.entities[i];
+            if (!forwardMap.TryGetValue(pending.fileLocalIndex, out var entity))
                 continue;
-            }
 
-            var info = entityInfos[i];
-            for (var j = 0; j < info.componentCount; j++)
+            for (var j = 0; j < pending.entityFields.Count; j++)
             {
-                var comp = info.components[j];
-                if (!comp.typeID.IsValid || comp.entityFieldCount == 0)
-                {
-                    continue;
-                }
+                var (componentDataIndex, fieldOffsets) = pending.entityFields[j];
+                var compTypeID = pending.componentData[componentDataIndex].typeID;
 
-                var pComponent = world.EntityManager.GetComponent(entity, comp.typeID);
+                var pComponent = world.EntityManager.GetComponent(entity, compTypeID);
                 if (pComponent == null)
-                {
                     continue;
-                }
 
-                for (var f = 0; f < comp.entityFieldCount; f++)
+                for (var f = 0; f < fieldOffsets.Length; f++)
                 {
-                    var fieldOffset = comp.entityFieldOffsets[f];
+                    var fieldOffset = fieldOffsets[f];
                     var pField = (byte*)pComponent + fieldOffset;
                     var fileLocalIndex = *(int*)pField;
                     if (!forwardMap.TryGetValue(fileLocalIndex, out var remappedEntity))
@@ -351,7 +294,7 @@ public static class SceneManager
             }
         }
 
-        return Result.Success();
+        return Result.Success(result.entities.Length);
     }
 
     /// <summary>
@@ -365,29 +308,18 @@ public static class SceneManager
         ref var query = ref world.ComponentManager.GetEntityQueryReference(queryID);
 
         using var scope = AllocationManager.CreateStackScope();
-        var entitiesToDestroy = new UnsafeList<Entity>(128, scope.AllocationHandle);
+        using var ecb = new EntityCommandBuffer(512, scope.AllocationHandle);
 
         // Iterate through all matching entities
         foreach (var chunk in query.GetChunkIterator())
         {
-            var entities = chunk.GetEntities();
-            var sceneIDs = chunk.GetComponentData<SceneID>();
-
-            for (var i = 0; i < chunk.EntityCount; i++)
+            ref readonly var sceneID = ref chunk.GetSharedComponent<SceneID>();
+            if (sceneID.value == scene.ID)
             {
-                if (sceneIDs[i].value == scene.ID)
-                {
-                    entitiesToDestroy.Add(entities[i]);
-                }
+                ecb.DestroyEntities(chunk.GetEntities());
             }
         }
 
-        world.EntityManager.DestroyEntities(entitiesToDestroy.AsSpan());
-        s_recycledSceneIDs.Enqueue(scene.ID);
-    }
-
-    public static void ReleaseScene(Scene scene)
-    {
         s_recycledSceneIDs.Enqueue(scene.ID);
     }
 
@@ -408,15 +340,10 @@ public static class SceneManager
         // Iterate through all matching entities
         foreach (var chunk in query.GetChunkIterator())
         {
-            var chunkEntities = chunk.GetEntities();
-            var sceneIDs = chunk.GetComponentData<SceneID>();
-
-            for (var i = 0; i < chunk.EntityCount; i++)
+            ref readonly var sceneID = ref chunk.GetSharedComponent<SceneID>();
+            if (sceneID.value == scene.ID)
             {
-                if (sceneIDs[i].value == scene.ID)
-                {
-                    entities.Add(chunkEntities[i]);
-                }
+                entities.AddRange(chunk.GetEntities());
             }
         }
 

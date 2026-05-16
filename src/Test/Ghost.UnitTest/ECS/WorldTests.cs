@@ -101,6 +101,9 @@ public class WorldTests
             var eB = worldB.EntityManager.CreateEntity();
 
             Assert.AreEqual(eA, eB);
+            // Entity does not store world reference, so we can't directly check if world a has eb or world b has ea, but we can check existence in each world.
+            Assert.IsTrue(_world.EntityManager.Exists(eA));
+            Assert.IsTrue(worldB.EntityManager.Exists(eB));
         }
         finally
         {

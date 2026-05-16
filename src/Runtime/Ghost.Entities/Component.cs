@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Core.Utilities;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
@@ -51,11 +52,6 @@ internal static class ComponentRegistry
 #if DEBUG || GHOST_EDITOR
     internal static readonly Dictionary<int, Type> s_runtimeIDToType = new();
 #endif
-
-    static ComponentRegistry()
-    {
-        GetOrRegisterComponentID<ManagedEntityRef>();
-    }
 
     public static unsafe Identifier<IComponent> GetOrRegisterComponentID<T>()
         where T : unmanaged, IComponent
@@ -278,12 +274,12 @@ public partial class ComponentManager : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void Clear()
     {
-        for (int i = 0; i < _archetypes.Count; i++)
+        for (var i = 0; i < _archetypes.Count; i++)
         {
             _archetypes[i].Dispose();
         }
 
-        for (int i = 0; i < _entityQueries.Count; i++)
+        for (var i = 0; i < _entityQueries.Count; i++)
         {
             _entityQueries[i].Dispose();
         }
@@ -300,7 +296,7 @@ public partial class ComponentManager : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void Collect()
     {
-        for (int i = 0; i < _archetypes.Count; i++)
+        for (var i = 0; i < _archetypes.Count; i++)
         {
             _archetypes[i].Collect();
         }
@@ -339,6 +335,37 @@ public partial class ComponentManager : IDisposable
 
         _isDisposed = true;
         GC.SuppressFinalize(this);
+    }
+}
+
+public struct SharedComponentSet : IDisposable
+{
+    private BufferWriter _writer;
+
+    public SharedComponentSet(int capacity, AllocationHandle allocationHandle)
+    {
+        _writer = new BufferWriter(capacity, allocationHandle);
+    }
+
+    public void With<T>(scoped in T data)
+        where T : unmanaged, ISharedComponent
+    {
+        _writer.Write(in data);
+    }
+
+    public readonly ReadOnlySpan<byte> AsSpan()
+    {
+        return _writer.AsSpan();
+    }
+
+    public void Reset()
+    {
+        _writer.Reset();
+    }
+
+    public void Dispose()
+    {
+        _writer.Dispose();
     }
 }
 
@@ -402,6 +429,11 @@ public struct ComponentSet : IDisposable, IEquatable<ComponentSet>
 
         _hashCode = -1;
         _sharedHashCode = -1;
+    }
+
+    public ComponentSet(AllocationHandle allocationHandle, ReadOnlySpan<Identifier<IComponent>> components, SharedComponentSet sharedComponentSet)
+        : this(allocationHandle, components, sharedComponentSet.AsSpan())
+    {
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -500,6 +532,11 @@ public ref struct ComponentSetView : IEquatable<ComponentSetView>
         _sharedData = sharedData;
         _hashCode = -1;
         _sharedHashCode = -1;
+    }
+
+    public ComponentSetView(ReadOnlySpan<Identifier<IComponent>> components, SharedComponentSet sharedComponentSet)
+        : this(components, sharedComponentSet.AsSpan())
+    {
     }
 
     public readonly bool Equals(ComponentSetView other)

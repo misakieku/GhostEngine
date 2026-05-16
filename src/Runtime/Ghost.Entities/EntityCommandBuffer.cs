@@ -12,6 +12,7 @@ public unsafe struct EntityCommandBuffer : IDisposable
         CreateEntity,
         CreateEntityWithComponents,
         DestroyEntity,
+        DestroyEntities,
         AddComponent,
         RemoveComponent,
         SetComponent,
@@ -50,6 +51,14 @@ public unsafe struct EntityCommandBuffer : IDisposable
     {
         _writer.Write(ECBOpCode.DestroyEntity);
         _writer.Write(entity);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void DestroyEntities(params ReadOnlySpan<Entity> entities)
+    {
+        _writer.Write(ECBOpCode.DestroyEntities);
+        _writer.Write(entities.Length);
+        _writer.WriteSpan(entities);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -149,6 +158,12 @@ public unsafe struct EntityCommandBuffer : IDisposable
                 case ECBOpCode.DestroyEntity:
                     var entityToDestroy = reader.Read<Entity>();
                     entityManager.DestroyEntity(entityToDestroy);
+                    break;
+
+                case ECBOpCode.DestroyEntities:
+                    var removeCount = reader.Read<int>();
+                    var entitiesToRemove = reader.ReadSpan<Entity>(removeCount);
+                    entityManager.DestroyEntities(entitiesToRemove);
                     break;
 
                 case ECBOpCode.AddComponent:

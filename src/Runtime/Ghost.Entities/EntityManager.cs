@@ -52,7 +52,6 @@ public unsafe partial class EntityManager : IDisposable
     {
         _world = world;
         _entityLocations = new UnsafeSlotMap<EntityLocation>(initialCapacity, AllocationHandle.Persistent, AllocationOption.Clear);
-        _scriptComponents = new SlotMap<List<ScriptComponent>>(initialCapacity / 2);
     }
 
     ~EntityManager()
@@ -91,6 +90,78 @@ public unsafe partial class EntityManager : IDisposable
     internal void Clear()
     {
         _entityLocations.Clear();
+    }
+
+    /// <summary>
+    /// Get or compute the cleanup archetype for <paramref name="archetype"/>.
+    /// The cleanup archetype contains only <see cref="ICleanupComponent"/> components,
+    /// so they can get a final tick before the entity is fully destroyed.
+    /// </summary>
+    private Identifier<Archetype> GetOrCreateCleanupArchetype(ref Archetype archetype)
+    {
+        if (archetype._cleanupEdge >= 0)
+        {
+            return archetype._cleanupEdge;
+        }
+
+        ref var signature = ref archetype._signature;
+
+        using var scope = AllocationManager.CreateStackScope();
+        using var newSignature = new UnsafeBitSet(signature.Count, scope.AllocationHandle);
+
+        var compCount = 0;
+        var it = signature.GetIterator();
+        while (it.Next(out var componentID))
+        {
+            if (ComponentRegistry.GetComponentInfo(componentID).isCleanup)
+            {
+                newSignature.SetBit(componentID);
+                compCount++;
+            }
+        }
+
+        var newSignatureHash = newSignature.GetHashCode();
+        var newArcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(newSignatureHash);
+        if (newArcID.IsInvalid)
+        {
+            Span<Identifier<IComponent>> componentTypeIDs = stackalloc Identifier<IComponent>[compCount];
+
+            var newIt = newSignature.GetIterator();
+            var i = 0;
+            while (newIt.Next(out var cid))
+            {
+                componentTypeIDs[i++] = cid;
+            }
+
+            newArcID = _world.ComponentManager.CreateArchetype(componentTypeIDs, newSignatureHash);
+        }
+
+        archetype._cleanupEdge = newArcID;
+        return newArcID;
+    }
+
+    /// <summary>
+    /// Look up or create an archetype from a <see cref="SpanBitSet"/> signature.
+    /// </summary>
+    private Identifier<Archetype> FindOrCreateArchetype(ref readonly SpanBitSet signature, int componentCount)
+    {
+        var hash = signature.GetHashCode();
+        var arcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(hash);
+        if (arcID.IsInvalid)
+        {
+            Span<Identifier<IComponent>> componentTypeIDs = stackalloc Identifier<IComponent>[componentCount];
+
+            var it = signature.GetIterator();
+            var i = 0;
+            while (it.Next(out var cid))
+            {
+                componentTypeIDs[i++] = cid;
+            }
+
+            arcID = _world.ComponentManager.CreateArchetype(componentTypeIDs, hash);
+        }
+
+        return arcID;
     }
 
     private static void CopyData(ref Archetype oldArch, int oldChunk, int oldRow,
@@ -303,48 +374,7 @@ public unsafe partial class EntityManager : IDisposable
         }
         else
         {
-            Identifier<Archetype> newArcID = default;
-            if (archetype._cleanupEdge < 0)
-            {
-                ref var signature = ref archetype._signature;
-
-                using var scope = AllocationManager.CreateStackScope();
-                using var newSignature = new UnsafeBitSet(signature.Count, scope.AllocationHandle);
-
-                var compCount = 0;
-                var it = signature.GetIterator();
-                while (it.Next(out var componentID))
-                {
-                    if (ComponentRegistry.GetComponentInfo(componentID).isCleanup)
-                    {
-                        newSignature.SetBit(componentID);
-                        compCount++;
-                    }
-                }
-
-                var newSignatureHash = newSignature.GetHashCode();
-                newArcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(newSignatureHash);
-                if (newArcID.IsInvalid)
-                {
-                    // Create new archetype
-                    Span<Identifier<IComponent>> componentTypeIDs = stackalloc Identifier<IComponent>[compCount];
-
-                    var newIt = newSignature.GetIterator();
-                    var i = 0;
-                    while (newIt.Next(out var index))
-                    {
-                        componentTypeIDs[i++] = index;
-                    }
-
-                    newArcID = _world.ComponentManager.CreateArchetype(componentTypeIDs, newSignatureHash);
-                }
-
-                archetype._cleanupEdge = newArcID;
-            }
-            else
-            {
-                newArcID = archetype._cleanupEdge;
-            }
+            var newArcID = GetOrCreateCleanupArchetype(ref archetype);
 
             ref var newArchetype = ref _world.ComponentManager.GetArchetypeReference(newArcID);
             newArchetype.AllocateEntity(out var newChunkIndex, out var newRowIndex);
@@ -361,7 +391,7 @@ public unsafe partial class EntityManager : IDisposable
     /// Destroy the specified entities.
     /// </summary>
     /// <param name="entities">The entities to destroy.</param>
-    public void DestroyEntities(ReadOnlySpan<Entity> entities)
+    public void DestroyEntities(params ReadOnlySpan<Entity> entities)
     {
         if (entities.Length == 0)
         {
@@ -394,48 +424,7 @@ public unsafe partial class EntityManager : IDisposable
                 else
                 {
                     // Archetype has ICleanupComponent — move entity to cleanup archetype.
-                    Identifier<Archetype> newArcID;
-                    if (archetype._cleanupEdge < 0)
-                    {
-                        // Compute cleanup edge: build a signature containing only cleanup components.
-                        ref var signature = ref archetype._signature;
-
-                        using var inner = AllocationManager.CreateStackScope();
-                        using var newSignature = new UnsafeBitSet(signature.Count, inner.AllocationHandle);
-
-                        var compCount = 0;
-                        var it = signature.GetIterator();
-                        while (it.Next(out var componentID))
-                        {
-                            if (ComponentRegistry.GetComponentInfo(componentID).isCleanup)
-                            {
-                                newSignature.SetBit(componentID);
-                                compCount++;
-                            }
-                        }
-
-                        var newSignatureHash = newSignature.GetHashCode();
-                        newArcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(newSignatureHash);
-                        if (newArcID.IsInvalid)
-                        {
-                            Span<Identifier<IComponent>> componentTypeIDs = stackalloc Identifier<IComponent>[compCount];
-
-                            var newIt = newSignature.GetIterator();
-                            var idx = 0;
-                            while (newIt.Next(out var cid))
-                            {
-                                componentTypeIDs[idx++] = cid;
-                            }
-
-                            newArcID = _world.ComponentManager.CreateArchetype(componentTypeIDs, newSignatureHash);
-                        }
-
-                        archetype._cleanupEdge = newArcID;
-                    }
-                    else
-                    {
-                        newArcID = archetype._cleanupEdge;
-                    }
+                    var newArcID = GetOrCreateCleanupArchetype(ref archetype);
 
                     ref var newArchetype = ref _world.ComponentManager.GetArchetypeReference(newArcID);
                     newArchetype.AllocateEntity(out var newChunkIndex, out var newRowIndex);
@@ -717,22 +706,7 @@ public unsafe partial class EntityManager : IDisposable
             newSignature.SetBit(componentID);
 
             // Find or create new archetype
-            var newSignatureHash = newSignature.GetHashCode();
-            newArcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(newSignatureHash);
-            if (newArcID.IsInvalid)
-            {
-                // Create new archetype
-                Span<Identifier<IComponent>> componentTypeIDs = stackalloc Identifier<IComponent>[compCount];
-
-                var newIt = newSignature.GetIterator();
-                var i = 0;
-                while (newIt.Next(out var index))
-                {
-                    componentTypeIDs[i++] = index;
-                }
-
-                newArcID = _world.ComponentManager.CreateArchetype(componentTypeIDs, newSignatureHash);
-            }
+            newArcID = FindOrCreateArchetype(ref newSignature, compCount);
 
             oldArchetype.AddEdgeAdd(componentID, newArcID);
         }
@@ -847,22 +821,7 @@ public unsafe partial class EntityManager : IDisposable
             }
 
             // Find or create new archetype
-            var newSignatureHash = newSignature.GetHashCode();
-            newArcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(newSignatureHash);
-            if (newArcID.IsInvalid)
-            {
-                // Create new archetype
-                Span<Identifier<IComponent>> componentTypeIDs = stackalloc Identifier<IComponent>[compCount];
-
-                var newIt = newSignature.GetIterator();
-                var i = 0;
-                while (newIt.Next(out var index))
-                {
-                    componentTypeIDs[i++] = index;
-                }
-
-                newArcID = _world.ComponentManager.CreateArchetype(componentTypeIDs, newSignatureHash);
-            }
+            newArcID = FindOrCreateArchetype(ref newSignature, compCount);
 
             oldArchetype.AddEdgeRemove(componentID, newArcID);
         }
@@ -1121,20 +1080,7 @@ public unsafe partial class EntityManager : IDisposable
             compCount++;
             newSignature.SetBit(componentID);
 
-            var newSignatureHash = newSignature.GetHashCode();
-            newArcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(newSignatureHash);
-            if (newArcID.IsInvalid)
-            {
-                Span<Identifier<IComponent>> componentTypeIDs = stackalloc Identifier<IComponent>[compCount];
-                var newIt = newSignature.GetIterator();
-                var i = 0;
-                while (newIt.Next(out var index))
-                {
-                    componentTypeIDs[i++] = index;
-                }
-
-                newArcID = _world.ComponentManager.CreateArchetype(componentTypeIDs, newSignatureHash);
-            }
+            newArcID = FindOrCreateArchetype(ref newSignature, compCount);
 
             oldArchetype.AddEdgeAdd(componentID, newArcID);
         }
@@ -1227,20 +1173,7 @@ public unsafe partial class EntityManager : IDisposable
                 return DestroyEntity_Internal(entity, location);
             }
 
-            var newSignatureHash = newSignature.GetHashCode();
-            newArcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(newSignatureHash);
-            if (newArcID.IsInvalid)
-            {
-                Span<Identifier<IComponent>> componentTypeIDs = stackalloc Identifier<IComponent>[compCount];
-                var newIt = newSignature.GetIterator();
-                var i = 0;
-                while (newIt.Next(out var index))
-                {
-                    componentTypeIDs[i++] = index;
-                }
-
-                newArcID = _world.ComponentManager.CreateArchetype(componentTypeIDs, newSignatureHash);
-            }
+            newArcID = FindOrCreateArchetype(ref newSignature, compCount);
 
             oldArchetype.AddEdgeRemove(componentID, newArcID);
         }

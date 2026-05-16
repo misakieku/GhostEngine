@@ -3,11 +3,34 @@ using Ghost.Graphics;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.Jobs;
-using Misaki.HighPerformance.LowLevel;
-using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Engine.Streaming;
+
+public enum AssetType
+{
+    Texture = 0,
+    Mesh = 1,
+    Material = 2,
+    Shader = 3,
+    Scene = 4,
+    Audio = 5,
+    Video = 6,
+    Json = 7,
+
+    Unknown = 64,
+}
+
+public enum AssetState
+{
+    Unloaded = 0,
+    Scheduled = 1,
+    Loading = 2,
+    Loaded = 3,
+    Processing = 4,
+    Ready = 5,
+    Failed = 6,
+}
 
 internal static class AssetEntryFactory
 {
