@@ -74,7 +74,8 @@ public static class StreamUtility
 
         while (offset < length)
         {
-            using var mem = NativeMemoryManager<byte>.FromMemoryBlock(memory, (nuint)offset, maxChunkSize);
+            var segmentSize = (int)Math.Min(maxChunkSize, stream.Length - stream.Position);
+            using var mem = NativeMemoryManager<byte>.FromMemoryBlock(memory, (nuint)offset, segmentSize);
             stream.ReadExactly(mem.Memory.Span);
             offset += (uint)mem.Memory.Length;
         }

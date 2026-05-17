@@ -75,9 +75,9 @@ public struct Scene : IEquatable<Scene>
 /// </remarks>
 public static class SceneManager
 {
-    internal struct SceneLoadResult : IDisposable
+    internal struct LoadedSceneData : IDisposable
     {
-        internal struct PendingEntity : IDisposable
+        internal struct EntityData : IDisposable
         {
             public int fileLocalIndex;
             public UnsafeList<Identifier<IComponent>> componentTypeIDs;
@@ -100,7 +100,7 @@ public static class SceneManager
             }
         }
 
-        public UnsafeArray<PendingEntity> entities;
+        public UnsafeArray<EntityData> entities;
 
         public void Dispose()
         {
@@ -134,95 +134,115 @@ public static class SceneManager
         }
     }
 
-    internal static SceneLoadResult ParseSceneData(SceneContentHeader header, Stream stream, AllocationHandle allocationHandle)
+    internal static Result<LoadedSceneData> ParseSceneData<T>(SceneContentHeader header, ref T reader, AllocationHandle allocationHandle)
+        where T : struct, IBufferReader
     {
-        var result = new SceneLoadResult
+        var result = new LoadedSceneData
         {
-            entities = new UnsafeArray<SceneLoadResult.PendingEntity>(header.entityCount, allocationHandle)
+            entities = new UnsafeArray<LoadedSceneData.EntityData>(header.entityCount, allocationHandle)
         };
 
-        using var scope = AllocationManager.CreateStackScope();
-        using var str = new UnsafeArray<byte>(128, scope.AllocationHandle);
-
-        for (var i = 0; i < header.entityCount; i++)
+        try
         {
-            var compCount = stream.Read<int>();
+            using var scope = AllocationManager.CreateStackScope();
+            using var str = new UnsafeArray<byte>(128, scope.AllocationHandle);
 
-            if (compCount == 0)
+            for (var i = 0; i < header.entityCount; i++)
             {
-                result.entities[i] = new SceneLoadResult.PendingEntity
+                var compCount = reader.Read<int>();
+
+                if (compCount == 0)
+                {
+                    result.entities[i] = new LoadedSceneData.EntityData
+                    {
+                        fileLocalIndex = i,
+                        componentTypeIDs = new UnsafeList<Identifier<IComponent>>(0, allocationHandle),
+                        componentData = new UnsafeList<(Identifier<IComponent> typeID, UnsafeArray<byte> data)>(0, allocationHandle),
+                        entityFields = new UnsafeList<(int componentDataIndex, UnsafeArray<int> fieldOffsets)>(0, allocationHandle)
+                    };
+                    continue;
+                }
+
+                var pending = new LoadedSceneData.EntityData
                 {
                     fileLocalIndex = i,
-                    componentTypeIDs = new UnsafeList<Identifier<IComponent>>(0, allocationHandle),
-                    componentData = new UnsafeList<(Identifier<IComponent> typeID, UnsafeArray<byte> data)>(0, allocationHandle),
-                    entityFields = new UnsafeList<(int componentDataIndex, UnsafeArray<int> fieldOffsets)>(0, allocationHandle)
+                    componentTypeIDs = new UnsafeList<Identifier<IComponent>>(compCount, allocationHandle),
+                    componentData = new UnsafeList<(Identifier<IComponent> typeID, UnsafeArray<byte> data)>(compCount, allocationHandle),
+                    entityFields = new UnsafeList<(int componentDataIndex, UnsafeArray<int> fieldOffsets)>(compCount, allocationHandle)
                 };
-                continue;
-            }
 
-            var pending = new SceneLoadResult.PendingEntity
-            {
-                fileLocalIndex = i,
-                componentTypeIDs = new UnsafeList<Identifier<IComponent>>(compCount, allocationHandle),
-                componentData = new UnsafeList<(Identifier<IComponent> typeID, UnsafeArray<byte> data)>(compCount, allocationHandle),
-                entityFields = new UnsafeList<(int componentDataIndex, UnsafeArray<int> fieldOffsets)>(compCount, allocationHandle)
-            };
-
-            for (var j = 0; j < compCount; j++)
-            {
-                var typeHash = stream.Read<uint>();
-                var nameLength = stream.Read<int>();
-
-                if (nameLength > str.Length)
+                for (var j = 0; j < compCount; j++)
                 {
-                    str.Resize(nameLength);
-                }
+                    var typeHash = reader.Read<uint>();
+                    var nameLength = reader.Read<int>();
 
-                var strSpan = str.AsSpan(0, nameLength);
-                stream.ReadExactly(strSpan.Slice(0, nameLength));
-
-                var typeName = Encoding.UTF8.GetString(strSpan);
-
-                var dataSz = stream.Read<int>();
-                var compData = new UnsafeArray<byte>(dataSz, allocationHandle);
-                stream.ReadExactly(compData);
-
-                var fieldCount = stream.Read<int>();
-
-                UnsafeArray<int> fieldOffsets = default;
-                if (fieldCount > 0)
-                {
-                    fieldOffsets = new UnsafeArray<int>(fieldCount, allocationHandle);
-                    for (var f = 0; f < fieldCount; f++)
+                    if (nameLength > str.Length)
                     {
-                        fieldOffsets[f] = stream.Read<int>();
+                        str.Resize(nameLength);
                     }
-                }
 
-                var typeID = ComponentRegistry.GetComponentIDByName(typeName);
-                if (typeID.IsValid)
-                {
-                    pending.componentTypeIDs.Add(typeID);
-                    pending.componentData.Add((typeID, compData));
+                    var strSpan = str.AsSpan(0, nameLength);
+                    reader.ReadExactly(strSpan.Slice(0, nameLength));
+
+                    var typeName = Encoding.UTF8.GetString(strSpan);
+
+                    var dataSz = reader.Read<int>();
+                    var compData = new UnsafeArray<byte>(dataSz, allocationHandle);
+                    reader.ReadExactly(compData.AsSpan());
+
+                    var fieldCount = reader.Read<int>();
+
+                    UnsafeArray<int> fieldOffsets = default;
                     if (fieldCount > 0)
                     {
-                        pending.entityFields.Add((pending.componentData.Count - 1, fieldOffsets));
+                        fieldOffsets = new UnsafeArray<int>(fieldCount, allocationHandle);
+                        for (var f = 0; f < fieldCount; f++)
+                        {
+                            fieldOffsets[f] = reader.Read<int>();
+                        }
+                    }
+
+                    var typeID = ComponentRegistry.GetComponentIDByName(typeName);
+                    if (typeID.IsValid)
+                    {
+                        pending.componentTypeIDs.Add(typeID);
+                        pending.componentData.Add((typeID, compData));
+                        if (fieldCount > 0)
+                        {
+                            pending.entityFields.Add((pending.componentData.Count - 1, fieldOffsets));
+                        }
+                    }
+                    else
+                    {
+                        compData.Dispose();
+                        if (fieldCount > 0) fieldOffsets.Dispose();
                     }
                 }
-                else
-                {
-                    compData.Dispose();
-                    if (fieldCount > 0) fieldOffsets.Dispose();
-                }
+
+                result.entities[i] = pending;
             }
 
-            result.entities[i] = pending;
+            return result;
         }
-
-        return result;
+        catch (Exception ex)
+        {
+            return Result.Failure(ex.Message);
+        }
     }
 
-    internal static unsafe Result<int> MaterializeScene(World world, ref SceneLoadResult result, Scene scene)
+    internal static Result<LoadedSceneData> ParseSceneData(SceneContentHeader header, Stream stream, AllocationHandle allocationHandle)
+    {
+        var reader = new StreamBufferReader(stream);
+        return ParseSceneData(header, ref reader, allocationHandle);
+    }
+
+    internal unsafe static Result<LoadedSceneData> ParseSceneData(SceneContentHeader header, void* buffer, nuint size, AllocationHandle allocationHandle)
+    {
+        var reader = new BufferReader((byte*)buffer, size);
+        return ParseSceneData(header, ref reader, allocationHandle);
+    }
+
+    internal static unsafe Result<int> MaterializeScene(World world, ref readonly LoadedSceneData result, Scene scene)
     {
         using var scope = AllocationManager.CreateStackScope();
         using var forwardMap = new UnsafeHashMap<int, Entity>(result.entities.Length, scope.AllocationHandle);

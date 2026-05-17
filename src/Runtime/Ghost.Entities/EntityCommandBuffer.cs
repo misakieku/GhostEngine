@@ -169,7 +169,7 @@ public unsafe struct EntityCommandBuffer : IDisposable
                 case ECBOpCode.AddComponent:
                     var entityToAdd = reader.Read<Entity>();
                     var addCompTypeID = reader.Read<Identifier<IComponent>>();
-                    var pAddCompData = reader.ReadMemory((nuint)ComponentRegistry.GetComponentInfo(addCompTypeID).size);
+                    var pAddCompData = reader.ReadBuffer((nuint)ComponentRegistry.GetComponentInfo(addCompTypeID).size);
                     entityManager.AddComponent(entityToAdd, addCompTypeID, pAddCompData);
                     break;
 
@@ -182,14 +182,14 @@ public unsafe struct EntityCommandBuffer : IDisposable
                 case ECBOpCode.SetComponent:
                     var entityToSet = reader.Read<Entity>();
                     var setCompTypeID = reader.Read<Identifier<IComponent>>();
-                    var pSetCompData = reader.ReadMemory((nuint)ComponentRegistry.GetComponentInfo(setCompTypeID).size);
+                    var pSetCompData = reader.ReadBuffer((nuint)ComponentRegistry.GetComponentInfo(setCompTypeID).size);
                     entityManager.SetComponent(entityToSet, setCompTypeID, pSetCompData);
                     break;
 
                 case ECBOpCode.AddSharedComponent:
                     var entityToAddShared = reader.Read<Entity>();
                     var addSharedTypeID = reader.Read<Identifier<IComponent>>();
-                    var pAddSharedData = reader.ReadMemory((nuint)ComponentRegistry.GetComponentInfo(addSharedTypeID).size);
+                    var pAddSharedData = reader.ReadBuffer((nuint)ComponentRegistry.GetComponentInfo(addSharedTypeID).size);
                     entityManager.AddSharedComponent(entityToAddShared, addSharedTypeID, pAddSharedData);
                     break;
 
@@ -202,7 +202,7 @@ public unsafe struct EntityCommandBuffer : IDisposable
                 case ECBOpCode.SetSharedComponent:
                     var entityToSetShared = reader.Read<Entity>();
                     var setSharedTypeID = reader.Read<Identifier<IComponent>>();
-                    var pSetSharedData = reader.ReadMemory((nuint)ComponentRegistry.GetComponentInfo(setSharedTypeID).size);
+                    var pSetSharedData = reader.ReadBuffer((nuint)ComponentRegistry.GetComponentInfo(setSharedTypeID).size);
                     entityManager.SetSharedComponent(entityToSetShared, setSharedTypeID, pSetSharedData);
                     break;
             }

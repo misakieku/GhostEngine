@@ -280,7 +280,7 @@ public readonly unsafe ref struct ChunkView
     public ref readonly T GetSharedComponent<T>()
         where T : unmanaged, ISharedComponent
     {
-#if GHOST_EDITOR
+#if GHOST_SAFETY_CHECKS
         if (_pSharedData == null)
         {
             throw new InvalidOperationException($"Shared component type {typeof(T).Name} does not exist in current chunk.");
@@ -564,6 +564,7 @@ public ref partial struct QueryBuilder : IDisposable
         _rw = new UnsafeList<Identifier<IComponent>>(4, _scope.AllocationHandle);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static QueryBuilder New()
     {
         return new QueryBuilder();
@@ -578,36 +579,43 @@ public ref partial struct QueryBuilder : IDisposable
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WithAll(params Span<Identifier<IComponent>> componentIDs)
     {
         _all.AddRange(componentIDs);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WithAny(params Span<Identifier<IComponent>> componentIDs)
     {
         _any.AddRange(componentIDs);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WithAbsent(params Span<Identifier<IComponent>> componentIDs)
     {
         _absent.AddRange(componentIDs);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WithNone(params Span<Identifier<IComponent>> componentIDs)
     {
         _none.AddRange(componentIDs);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WithDisabled(params Span<Identifier<IComponent>> componentIDs)
     {
         _disabled.AddRange(componentIDs);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WithPresent(params Span<Identifier<IComponent>> componentIDs)
     {
         _present.AddRange(componentIDs);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WithPresentRW(params Span<Identifier<IComponent>> componentIDs)
     {
         _present.AddRange(componentIDs);

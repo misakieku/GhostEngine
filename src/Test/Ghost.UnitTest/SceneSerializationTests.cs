@@ -1,7 +1,7 @@
-#if false
+#if true
+using Ghost.Core;
 using Ghost.Editor.Core;
 using Ghost.Editor.Core.Assets;
-using Ghost.Editor.Core.SceneGraph;
 using Ghost.Editor.Core.Services;
 using Ghost.Engine;
 using Ghost.Engine.Components;
@@ -75,7 +75,7 @@ public class SceneSerializationTests
     {
         var world = _worldService.EditorWorld;
         var entity = world.EntityManager.CreateEntity();
-        world.EntityManager.AddComponent(entity, new SceneID { value = scene });
+        world.EntityManager.AddComponent(entity, new SceneID { value = scene.ID });
         return entity;
     }
 
@@ -83,7 +83,7 @@ public class SceneSerializationTests
     {
         var world = _worldService.EditorWorld;
         var entity = world.EntityManager.CreateEntity();
-        world.EntityManager.AddComponent(entity, new SceneID { value = scene });
+        world.EntityManager.AddComponent(entity, new SceneID { value = scene.ID });
         world.EntityManager.AddComponent(entity, Hierarchy.Root);
         world.EntityManager.AddComponent(entity, new LocalToWorld());
 
@@ -95,43 +95,43 @@ public class SceneSerializationTests
         return entity;
     }
 
-	[TestMethod]
-	public async Task SaveAndLoad_RoundTrip_PreservesEntityCount()
-	{
-		var scene = SceneManager.CreateScene();
-		CreateSceneEntity(scene);
-		CreateEntityWithHierarchy(scene, Entity.Invalid);
-		CreateEntityWithHierarchy(scene, Entity.Invalid);
+    [TestMethod]
+    public async Task SaveAndLoad_RoundTrip_PreservesEntityCount()
+    {
+        var scene = SceneManager.CreateScene();
+        CreateSceneEntity(scene);
+        CreateEntityWithHierarchy(scene, Entity.Invalid);
+        CreateEntityWithHierarchy(scene, Entity.Invalid);
 
-		var filePath = Path.Combine(_projectRoot, "TestScene.gscene");
-		var saveResult = _serializationService.SaveSceneFromEditorWorld(filePath, scene);
-		Assert.IsTrue(saveResult.IsSuccess, saveResult.Message);
-		Assert.IsTrue(File.Exists(filePath));
+        var filePath = Path.Combine(_projectRoot, "TestScene.gscene");
+        var saveResult = _serializationService.SaveSceneFromEditorWorld(filePath, scene);
+        Assert.IsTrue(saveResult.IsSuccess, saveResult.Message);
+        Assert.IsTrue(File.Exists(filePath));
 
-		var json = await File.ReadAllTextAsync(filePath, TestContext.CancellationToken);
-		Assert.IsTrue(json.Length > 10, $"JSON too short: {json}");
+        var json = await File.ReadAllTextAsync(filePath, TestContext.CancellationToken);
+        Assert.IsGreaterThan(10, json.Length, $"JSON too short: {json}");
 
-		var data = await SceneSerializationService.DeserializeSceneFileAsync(filePath, TestContext.CancellationToken);
-		Assert.IsNotNull(data);
-		Assert.AreEqual(3, data!.Entities.Count, $"JSON content: {json}");
+        var data = await SceneSerializationService.DeserializeSceneFileAsync(filePath, TestContext.CancellationToken);
+        Assert.IsNotNull(data);
+        Assert.HasCount(3, data.Entities, $"JSON content: {json}");
 
-		// Verify saved JSON is valid
-		Assert.AreEqual(3, data.Entities.Count, $"data contained {data.Entities.Count} entities");
-		foreach (var ent in data.Entities)
-		{
-			Assert.IsTrue(ent.Components.Count >= 0, "Entity has no components"); // Can be 0 because we might have entities without components, but should not be negative
+        // Verify saved JSON is valid
+        Assert.HasCount(3, data.Entities, $"data contained {data.Entities.Count} entities");
+        foreach (var ent in data.Entities)
+        {
+            Assert.IsGreaterThanOrEqualTo(0, ent.Components.Count, "Entity has no components"); // Can be 0 because we might have entities without components, but should not be negative
         }
 
-		var loadResult = _serializationService.LoadSceneIntoEditorWorld(data);
-		Assert.IsTrue(loadResult.IsSuccess, loadResult.Message);
+        var loadResult = _serializationService.LoadSceneIntoEditorWorld(data);
+        Assert.IsTrue(loadResult.IsSuccess, loadResult.Message);
 
-		var world = _worldService.EditorWorld;
+        var world = _worldService.EditorWorld;
         scene = loadResult.Value;
 
         using var scope = AllocationManager.CreateStackScope();
-		using var entities = SceneManager.GetSceneEntities(scene, world, scope.AllocationHandle);
-		Assert.AreEqual(3, entities.Count, $"Expected 3 entities for scene {scene.ID} but found {entities.Count}");
-	}
+        using var entities = SceneManager.GetSceneEntities(scene, world, scope.AllocationHandle);
+        Assert.AreEqual(3, entities.Count, $"Expected 3 entities for scene {scene.ID} but found {entities.Count}");
+    }
 
     [TestMethod]
     public async Task SaveAndLoad_HierarchyRelations_Preserved()
@@ -150,7 +150,7 @@ public class SceneSerializationTests
 
         var data = await SceneSerializationService.DeserializeSceneFileAsync(filePath, TestContext.CancellationToken);
         Assert.IsNotNull(data);
-        Assert.AreEqual(3, data!.Entities.Count);
+        Assert.HasCount(3, data.Entities);
 
         var loadResult = _serializationService.LoadSceneIntoEditorWorld(data);
         Assert.IsTrue(loadResult.IsSuccess, loadResult.Message);
@@ -171,7 +171,7 @@ public class SceneSerializationTests
             return h.parent.IsValid;
         }).ToList();
 
-        Assert.AreEqual(1, children.Count);
+        Assert.HasCount(1, children);
     }
 
     [TestMethod]
@@ -244,7 +244,7 @@ public class SceneSerializationTests
         Assert.IsTrue(File.Exists(targetPath));
 
         var binary = await File.ReadAllBytesAsync(targetPath, TestContext.CancellationToken);
-        Assert.IsTrue(binary.Length > 0);
+        Assert.IsNotEmpty(binary);
 
         var magic = Encoding.UTF8.GetString(binary, 0, 4);
         Assert.AreEqual("GSCN", magic);
@@ -257,7 +257,7 @@ public class SceneSerializationTests
     }
 
     [TestMethod]
-    public void SceneLoadingType_Single_ReplacesEntities()
+    public async Task SceneLoadingType_Single_ReplacesEntities()
     {
         var scene = SceneManager.CreateScene();
         CreateSceneEntity(scene);
@@ -276,15 +276,15 @@ public class SceneSerializationTests
             initialCount += chunk.EntityCount;
         }
 
-		Assert.AreEqual(4, initialCount, "Expected 4 entities.");
+        Assert.AreEqual(4, initialCount, "Expected 4 entities.");
 
         var filePath = Path.Combine(_projectRoot, "SingleLoad.gscene");
         _serializationService.SaveSceneFromEditorWorld(filePath, scene);
 
-        var data = SceneSerializationService.DeserializeSceneFileAsync(filePath).Result;
+        var data = await SceneSerializationService.DeserializeSceneFileAsync(filePath, TestContext.CancellationToken);
         Assert.IsNotNull(data);
 
-        var loadResult = _serializationService.LoadSceneIntoEditorWorld(data!, SceneLoadingType.Single);
+        var loadResult = _serializationService.LoadSceneIntoEditorWorld(data, SceneLoadingType.Single);
         Assert.IsTrue(loadResult.IsSuccess, loadResult.Message);
 
         var afterCount = 0;
@@ -330,7 +330,7 @@ public class SceneSerializationTests
         var data = await SceneSerializationService.DeserializeSceneFileAsync(filePath, TestContext.CancellationToken);
         Assert.IsNotNull(data);
 
-        var loadResult = _serializationService.LoadSceneIntoEditorWorld(data!);
+        var loadResult = _serializationService.LoadSceneIntoEditorWorld(data);
         Assert.IsTrue(loadResult.IsSuccess, loadResult.Message);
 
         var world = _worldService.EditorWorld;
@@ -369,14 +369,14 @@ public class SceneSerializationTests
 
         var data = await SceneSerializationService.DeserializeSceneFileAsync(filePath, TestContext.CancellationToken);
         Assert.IsNotNull(data);
-        Assert.AreEqual(999u, data!.FormatVersion);
+        Assert.AreEqual(999u, data.FormatVersion);
 
         var loadResult = _serializationService.LoadSceneIntoEditorWorld(data);
         Assert.IsTrue(loadResult.IsSuccess, loadResult.Message);
     }
 
     [TestMethod]
-    public unsafe void BinaryFormat_RoundTrip_ProducesLoadableData()
+    public async Task BinaryFormat_RoundTrip_ProducesLoadableData()
     {
         var scene = SceneManager.CreateScene();
         CreateSceneEntity(scene);
@@ -386,22 +386,30 @@ public class SceneSerializationTests
         var jsonPath = Path.Combine(_projectRoot, "BinaryRoundTrip.gscene");
         _serializationService.SaveSceneFromEditorWorld(jsonPath, scene);
 
-        var data = SceneSerializationService.DeserializeSceneFileAsync(jsonPath).Result;
+        var data = await SceneSerializationService.DeserializeSceneFileAsync(jsonPath, TestContext.CancellationToken);
         Assert.IsNotNull(data);
 
         using var stream = new MemoryStream();
-        SceneSerializationService.SerializeToBinary(data!, stream);
+        SceneSerializationService.SerializeToBinary(data, stream);
         var binary = stream.ToArray();
 
         var world = World.Create(entityCapacity: 64);
         try
         {
-            fixed (byte* pBinary = binary)
+            Result<SceneManager.LoadedSceneData> sceneDataResult;
+            unsafe
             {
-                var result = SceneLoader.LoadSceneIntoWorld(world, *(SceneContentHeader*)pBinary, pBinary + sizeof(SceneContentHeader), (nuint)(binary.Length + sizeof(SceneContentHeader)));
-                Assert.IsTrue(result.IsSuccess, result.Message);
-                Assert.AreEqual(3, result.Value);
+                fixed (byte* pBinary = binary)
+                {
+                    sceneDataResult = SceneManager.ParseSceneData(*(SceneContentHeader*)pBinary, pBinary + sizeof(SceneContentHeader), (nuint)(binary.Length + sizeof(SceneContentHeader)), AllocationHandle.Persistent);
+                }
             }
+
+            Assert.IsTrue(sceneDataResult.IsSuccess, sceneDataResult.Message);
+            Assert.AreEqual(3, sceneDataResult.Value.entities.Count);
+
+            using var sceneData = sceneDataResult.Value;
+            SceneManager.MaterializeScene(world, in sceneData, scene);
 
             var queryID = new QueryBuilder().WithAll<Hierarchy>().Build(world);
             ref var query = ref world.ComponentManager.GetEntityQueryReference(queryID);
@@ -441,7 +449,7 @@ public class SceneSerializationTests
         var data = await SceneSerializationService.DeserializeSceneFileAsync(filePath, TestContext.CancellationToken);
         Assert.IsNotNull(data);
 
-        var loadResult = _serializationService.LoadSceneIntoEditorWorld(data!);
+        var loadResult = _serializationService.LoadSceneIntoEditorWorld(data);
         Assert.IsTrue(loadResult.IsSuccess, loadResult.Message);
 
         var queryID = new QueryBuilder().WithAll<LocalToWorld>().Build(world);

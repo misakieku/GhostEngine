@@ -659,7 +659,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <returns>The result status of the operation.</returns>
     public Error AddComponent(Entity entity, Identifier<IComponent> componentID, void* pComponent)
     {
-#if GHOST_EDITOR
+#if GHOST_SAFETY_CHECKS
         if (ComponentRegistry.GetComponentInfo(componentID).isShared)
         {
             return Error.InvalidArgument;
@@ -774,7 +774,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <returns>The result status of the operation.</returns>
     public Error RemoveComponent(Entity entity, Identifier<IComponent> componentID)
     {
-#if GHOST_EDITOR
+#if GHOST_SAFETY_CHECKS
         if (ComponentRegistry.GetComponentInfo(componentID).isShared)
         {
             return Error.InvalidArgument;

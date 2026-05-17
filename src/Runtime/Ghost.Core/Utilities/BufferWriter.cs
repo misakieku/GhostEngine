@@ -1,5 +1,6 @@
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -139,7 +140,32 @@ public unsafe ref struct SpanWriter
     }
 }
 
-public unsafe struct BufferReader
+public interface IBufferReader
+{
+    nuint Position
+    {
+        get; set;
+    }
+
+    nuint RemainingBytes
+    {
+        get;
+    }
+
+    T Read<T>()
+        where T : unmanaged;
+
+    void ReadExactly<T>(Span<T> dst)
+        where T : unmanaged;
+
+    ReadOnlySpan<T> ReadSpan<T>(int length)
+        where T : unmanaged;
+
+    ReadOnlySpan<T> ReadToEnd<T>()
+        where T : unmanaged;
+}
+
+public unsafe struct BufferReader : IBufferReader
 {
     private readonly byte* _buffer;
     private readonly nuint _size;
@@ -164,24 +190,47 @@ public unsafe struct BufferReader
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private readonly void CheckRange(byte* addr)
+    {
+        if (addr > _buffer + _size)
+        {
+            throw new EndOfStreamException();
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public T Read<T>()
         where T : unmanaged
     {
+        var newAddr = _address + sizeof(T);
+        CheckRange(newAddr);
+
         var value = *(T*)_address;
-        _address += (nuint)sizeof(T);
+        _address = newAddr;
         return value;
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly void ReadExactly<T>(Span<T> dst)
+        where T : unmanaged
+    {
+        var newAddr = _address + sizeof(T) * dst.Length;
+        CheckRange(newAddr);
+
+        var src = new ReadOnlySpan<T>(_address, dst.Length);
+        src.CopyTo(dst);
+    }
+
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<T> ReadSpan<T>(int length)
         where T : unmanaged
     {
-        length = Math.Min(length, (int)((nuint)(_buffer + _size - _address) / (nuint)sizeof(T)));
+        var newAddr = _address + sizeof(T) * length;
+        CheckRange(newAddr);
 
-        var size = sizeof(T) * length;
         var span = new ReadOnlySpan<T>(_address, length);
-
-        _address += (nuint)size;
+        _address = newAddr;
         return span;
     }
 
@@ -196,11 +245,64 @@ public unsafe struct BufferReader
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void* ReadMemory(nuint size)
+    public void* ReadBuffer(nuint size)
     {
+        var newAddr = _address + size;
+        CheckRange(newAddr);
+
         var p = _address;
-        _address += size;
+        _address = newAddr;
         return p;
+    }
+}
+
+public readonly struct StreamBufferReader : IBufferReader
+{
+    private readonly Stream _stream;
+
+    public readonly nuint Position
+    {
+        get => (nuint)_stream.Position;
+        set => _stream.Position = (long)value;
+    }
+
+    public readonly nuint RemainingBytes => (nuint)(_stream.Length - _stream.Position);
+
+    public StreamBufferReader(Stream stream)
+    {
+        _stream = stream;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly T Read<T>()
+        where T : unmanaged
+    {
+        return _stream.Read<T>();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly void ReadExactly<T>(Span<T> dst)
+        where T : unmanaged
+    {
+        _stream.ReadExactly(MemoryMarshal.AsBytes(dst));
+    }
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly ReadOnlySpan<T> ReadSpan<T>(int length) where T : unmanaged
+    {
+        var arr = new T[length];
+        _stream.ReadExactly(MemoryMarshal.AsBytes(arr.AsSpan()));
+        return arr;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly unsafe ReadOnlySpan<T> ReadToEnd<T>() where T : unmanaged
+    {
+        var size = (_stream.Length - _stream.Position) / sizeof(T);
+        var arr = new T[size];
+        _stream.ReadExactly(MemoryMarshal.AsBytes(arr.AsSpan()));
+        return arr;
     }
 }
 

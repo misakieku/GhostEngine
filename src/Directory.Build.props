@@ -1,8 +1,11 @@
 <Project>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug_Editor'">
-    <DefineConstants>$(DefineConstants);DEBUG;GHOST_EDITOR;GHOST_ZERO_INIT_COMPONENT;</DefineConstants>
+    <DefineConstants>$(DefineConstants);DEBUG;GHOST_EDITOR;GHOST_SAFETY_CHECKS;</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Release_Editor'">
-    <DefineConstants>$(DefineConstants);GHOST_EDITOR;GHOST_ZERO_INIT_COMPONENT;</DefineConstants>
+    <DefineConstants>$(DefineConstants);GHOST_EDITOR;GHOST_SAFETY_CHECKS;</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release_Dev'">
+    <DefineConstants>$(DefineConstants);GHOST_SAFETY_CHECKS;</DefineConstants>
   </PropertyGroup>
 </Project>

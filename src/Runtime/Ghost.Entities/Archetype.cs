@@ -596,7 +596,7 @@ internal unsafe struct Archetype : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Error SetComponentData(int chunkIndex, int rowIndex, Identifier<IComponent> componentID, void* pComponent)
     {
-#if GHOST_EDITOR
+#if GHOST_SAFETY_CHECKS
         if (ComponentRegistry.GetComponentInfo(componentID).isShared)
         {
             return Error.InvalidArgument;
@@ -627,7 +627,7 @@ internal unsafe struct Archetype : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly void* GetComponentData(int chunkIndex, int rowIndex, Identifier<IComponent> componentID)
     {
-#if GHOST_EDITOR
+#if GHOST_SAFETY_CHECKS
         if (ComponentRegistry.GetComponentInfo(componentID).isShared)
         {
             return null;

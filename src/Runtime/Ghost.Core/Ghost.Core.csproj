@@ -19,6 +19,10 @@
     <DefineConstants>$(DefineConstants);MHP_ENABLE_SAFETY_CHECKS</DefineConstants>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)'=='Release_Dev'">
+    <DefineConstants>$(DefineConstants);MHP_ENABLE_SAFETY_CHECKS</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Misaki.HighPerformance" Version="1.0.10" />
     <PackageReference Include="Misaki.HighPerformance.Jobs" Version="3.1.7" />
