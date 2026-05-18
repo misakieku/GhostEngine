@@ -11,11 +11,11 @@ public class SharedComponentTests
 {
     // ── Test components ────────────────────────────────────────────────────────
 
-    private struct Tag : IComponent { }
+    private struct Tag : IComponentData { }
 
-    private struct Tag2 : IComponent { }
+    private struct Tag2 : IComponentData { }
 
-    private struct ScalarData : IComponent
+    private struct ScalarData : IComponentData
     {
         public float value;
     }

@@ -1,4 +1,4 @@
-#if false
+#if true
 using Ghost.Core;
 using Misaki.HighPerformance.Collections;
 using System.Runtime.CompilerServices;
@@ -8,7 +8,7 @@ namespace Ghost.Entities;
 public interface IManagedComponent;
 public interface IManagedWrapper;
 
-public readonly struct Managed<T> : IComponent, IManagedWrapper
+public readonly struct Managed<T> : IComponentData, IManagedWrapper
     where T : IManagedComponent
 {
     public readonly int id;
@@ -38,7 +38,7 @@ internal static class ManagedComponentRegistry
     private static readonly List<ManagedComponentInfo> s_registeredComponents = new();
     private static readonly Dictionary<IntPtr, int> s_typeHandleToID = new();
     private static readonly Dictionary<string, int> s_nameToRuntimeID = new();
-#if GHOST_SAFETY_CHECKS
+#if DEBUG || GHOST_EDITOR
     internal static readonly Dictionary<int, Type> s_runtimeIDToType = new();
 #endif
 
@@ -66,7 +66,7 @@ internal static class ManagedComponentRegistry
 
             s_typeHandleToID[typeHandle] = newID;
             s_nameToRuntimeID[stableName] = newID;
-#if GHOST_SAFETY_CHECKS
+#if DEBUG || GHOST_EDITOR
             s_runtimeIDToType[newID.Value] = typeof(T);
 #endif
 
@@ -137,7 +137,7 @@ public abstract class ScriptComponent : IManagedComponent
     public Entity Entity => _entity;
 
     protected ref T GetComponent<T>()
-        where T : unmanaged, IComponent
+        where T : unmanaged, IComponentData
     {
         return ref _world.EntityManager.GetComponent<T>(_entity);
     }
@@ -177,7 +177,7 @@ public abstract class ScriptComponent : IManagedComponent
 
 public partial class EntityManager
 {
-    private IManagedComponentStorage[] _managedStorages;
+    private IManagedComponentStorage[] _managedStorages = new IManagedComponentStorage[64];
 
     internal IManagedComponentStorage[] ManagedStorages => _managedStorages;
 

@@ -14,13 +14,13 @@ public readonly struct ComponentObject
     }
 
     public ref T GetData<T>()
-        where T : unmanaged, IComponent
+        where T : unmanaged, IComponentData
     {
         return ref _world.EntityManager.GetComponent<T>(_entity);
     }
 
     public void SetData<T>(in T data)
-        where T : unmanaged, IComponent
+        where T : unmanaged, IComponentData
     {
         _world.EntityManager.SetComponent(_entity, data);
     }

@@ -179,20 +179,19 @@ public class SceneGraphSyncService
         foreach (var chunk in query.GetChunkIterator())
         {
             var entities = chunk.GetEntities();
-            var sceneIDs = chunk.GetComponentData<SceneID>();
+            var scene = chunk.GetSharedComponent<SceneID>();
 
             for (var i = 0; i < chunk.EntityCount; i++)
             {
-                var s = sceneIDs[i].value;
-                if (s == Scene.INVALID_ID)
+                if (scene.value == Scene.INVALID_ID)
                 {
                     continue;
                 }
 
-                if (!sceneMap.TryGetValue(s, out var list))
+                if (!sceneMap.TryGetValue(scene.value, out var list))
                 {
                     list = new List<Entity>();
-                    sceneMap[s] = list;
+                    sceneMap[scene.value] = list;
                 }
 
                 list.Add(entities[i]);

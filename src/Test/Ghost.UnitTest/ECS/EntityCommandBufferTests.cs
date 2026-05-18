@@ -7,8 +7,8 @@ namespace Ghost.UnitTest.ECS;
 [DoNotParallelize]
 public class EntityCommandBufferTests
 {
-    private struct CompA : IComponent { public int value; }
-    private struct CompB : IComponent { public int value; }
+    private struct CompA : IComponentData { public int value; }
+    private struct CompB : IComponentData { public int value; }
 
     private World _world = null!;
 

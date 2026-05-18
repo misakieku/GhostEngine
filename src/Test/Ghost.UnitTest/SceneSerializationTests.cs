@@ -75,7 +75,7 @@ public class SceneSerializationTests
     {
         var world = _worldService.EditorWorld;
         var entity = world.EntityManager.CreateEntity();
-        world.EntityManager.AddComponent(entity, new SceneID { value = scene.ID });
+        world.EntityManager.AddSharedComponent(entity, new SceneID { value = scene.ID });
         return entity;
     }
 
@@ -83,7 +83,7 @@ public class SceneSerializationTests
     {
         var world = _worldService.EditorWorld;
         var entity = world.EntityManager.CreateEntity();
-        world.EntityManager.AddComponent(entity, new SceneID { value = scene.ID });
+        world.EntityManager.AddSharedComponent(entity, new SceneID { value = scene.ID });
         world.EntityManager.AddComponent(entity, Hierarchy.Root);
         world.EntityManager.AddComponent(entity, new LocalToWorld());
 
@@ -288,6 +288,7 @@ public class SceneSerializationTests
         Assert.IsTrue(loadResult.IsSuccess, loadResult.Message);
 
         var afterCount = 0;
+        query = ref world.ComponentManager.GetEntityQueryReference(queryID);
         foreach (var chunk in query.GetChunkIterator())
         {
             afterCount += chunk.EntityCount;

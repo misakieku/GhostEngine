@@ -154,13 +154,10 @@ public interface IBufferReader
 
     T Read<T>()
         where T : unmanaged;
-
     void ReadExactly<T>(Span<T> dst)
         where T : unmanaged;
-
     ReadOnlySpan<T> ReadSpan<T>(int length)
         where T : unmanaged;
-
     ReadOnlySpan<T> ReadToEnd<T>()
         where T : unmanaged;
 }
@@ -211,7 +208,7 @@ public unsafe struct BufferReader : IBufferReader
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void ReadExactly<T>(Span<T> dst)
+    public void ReadExactly<T>(Span<T> dst)
         where T : unmanaged
     {
         var newAddr = _address + sizeof(T) * dst.Length;
@@ -219,8 +216,8 @@ public unsafe struct BufferReader : IBufferReader
 
         var src = new ReadOnlySpan<T>(_address, dst.Length);
         src.CopyTo(dst);
+        _address = newAddr;
     }
-
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<T> ReadSpan<T>(int length)

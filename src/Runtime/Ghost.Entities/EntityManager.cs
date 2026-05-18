@@ -566,7 +566,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <returns>The result status of the operation.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Error CreateSingleton<T>(T component = default)
-        where T : unmanaged, IComponent
+        where T : unmanaged, IComponentData
     {
         return CreateSingleton(ComponentTypeID<T>.Value, &component);
     }
@@ -606,7 +606,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <returns>Reference to the component data. null ref if not found.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ref T GetSingleton<T>()
-        where T : unmanaged, IComponent
+        where T : unmanaged, IComponentData
     {
         var ptr = GetSingleton(ComponentTypeID<T>.Value);
         return ref *(T*)ptr; // This will return null ref if ptr is null.
@@ -761,7 +761,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <returns>The result status of the operation.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Error AddComponent<T>(Entity entity, T component = default)
-        where T : unmanaged, IComponent
+        where T : unmanaged, IComponentData
     {
         return AddComponent(entity, ComponentTypeID<T>.Value, &component);
     }
@@ -874,7 +874,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <returns>The result status of the operation.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Error RemoveComponent<T>(Entity entity)
-        where T : unmanaged, IComponent
+        where T : unmanaged, IComponentData
     {
         return RemoveComponent(entity, ComponentTypeID<T>.Value);
     }
@@ -908,7 +908,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="component">The component data.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Error SetComponent<T>(Entity entity, T component)
-        where T : unmanaged, IComponent
+        where T : unmanaged, IComponentData
     {
         return SetComponent(entity, ComponentTypeID<T>.Value, &component);
     }
@@ -939,7 +939,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <returns>Reference to the component data. null ref if not found.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ref T GetComponent<T>(Entity entity)
-        where T : unmanaged, IComponent
+        where T : unmanaged, IComponentData
     {
         var ptr = GetComponent(entity, ComponentTypeID<T>.Value);
         return ref *(T*)ptr; // This will return null ref if ptr is null.

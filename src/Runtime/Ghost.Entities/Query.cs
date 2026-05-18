@@ -153,7 +153,7 @@ public readonly unsafe ref struct ChunkView
     /// <returns>true if the component of space T has changed since the specified version; otherwise, false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly bool HasChanged<T>(uint version)
-        where T : unmanaged, IComponent
+        where T : unmanaged, IComponentData
     {
         var layout = GetLayout(ComponentTypeID<T>.Value);
         return version < _pVersion[layout.versionIndex];
@@ -188,7 +188,7 @@ public readonly unsafe ref struct ChunkView
     /// <returns>The version number of the component space <typeparamref name="T"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly uint GetComponentVersion<T>()
-        where T : unmanaged, IComponent
+        where T : unmanaged, IComponentData
     {
         return _pVersion[ComponentTypeID<T>.Value];
     }
@@ -212,7 +212,7 @@ public readonly unsafe ref struct ChunkView
     /// <exception cref="InvalidOperationException">Thrown if the specified component space is not present in the archetype.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<T> GetComponentData<T>()
-        where T : unmanaged, IComponent
+        where T : unmanaged, IComponentData
     {
         var layout = GetLayout(ComponentTypeID<T>.Value);
         var pComponentData = _pChunkData + layout.offset;
@@ -227,7 +227,7 @@ public readonly unsafe ref struct ChunkView
     /// <exception cref="InvalidOperationException">Thrown if the specified component space is not present in the archetype.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Span<T> GetComponentDataRW<T>()
-        where T : unmanaged, IComponent
+        where T : unmanaged, IComponentData
     {
         var compId = ComponentTypeID<T>.Value;
         var layout = GetLayout(compId);

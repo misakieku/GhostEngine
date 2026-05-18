@@ -350,7 +350,7 @@ internal class SceneSerializationService : IDisposable
                     continue;
                 }
 
-                world.EntityManager.SetComponent(entity, new SceneID { value = activeScene.ID });
+                world.EntityManager.SetSharedComponent(entity, new SceneID { value = activeScene.ID });
 
                 var entityData = data.Entities[fileIndex];
                 ref var list = ref typeIds[fileIndex];

@@ -5,7 +5,7 @@ using Ghost.Graphics.Services;
 
 namespace Ghost.Engine.Components;
 
-public struct MeshInstance : IComponent
+public struct MeshInstance : IComponentData
 {
     public Handle<Mesh> mesh;
     public Identifier<MaterialPalette> materialPalette;

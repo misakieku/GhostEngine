@@ -7,10 +7,10 @@ namespace Ghost.UnitTest.ECS;
 [DoNotParallelize]
 public class EntityQueryTests
 {
-    private struct CompA : IComponent { public int value; }
-    private struct CompB : IComponent { public int value; }
-    private struct CompC : IComponent { public int value; }
-    private struct Tag : IComponent { }
+    private struct CompA : IComponentData { public int value; }
+    private struct CompB : IComponentData { public int value; }
+    private struct CompC : IComponentData { public int value; }
+    private struct Tag : IComponentData { }
     private struct EnableableComp : IEnableableComponent { public int value; }
 
     private World _world = null!;

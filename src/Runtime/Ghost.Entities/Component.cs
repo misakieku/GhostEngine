@@ -9,8 +9,9 @@ using System.Runtime.CompilerServices;
 namespace Ghost.Entities;
 
 public interface IComponent;
-public interface IEnableableComponent : IComponent;
-public interface ICleanupComponent : IComponent;
+public interface IComponentData : IComponent;
+public interface IEnableableComponent : IComponentData;
+public interface ICleanupComponent : IComponentData;
 public interface ISharedComponent : IComponent;
 
 [AttributeUsage(AttributeTargets.Struct)]

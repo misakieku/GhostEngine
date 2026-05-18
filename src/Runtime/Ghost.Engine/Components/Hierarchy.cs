@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 namespace Ghost.Engine.Components;
 
 [HideEditor]
-public struct Hierarchy : IComponent
+public struct Hierarchy : IComponentData
 {
     public Entity parent;
     public Entity firstChild;

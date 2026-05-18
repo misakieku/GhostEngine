@@ -63,7 +63,7 @@ public unsafe struct EntityCommandBuffer : IDisposable
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AddComponent<T>(Entity entity, T component = default)
-        where T : unmanaged, IComponent
+        where T : unmanaged, IComponentData
     {
         _writer.Write(ECBOpCode.AddComponent);
         _writer.Write(entity);
@@ -73,7 +73,7 @@ public unsafe struct EntityCommandBuffer : IDisposable
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void RemoveComponent<T>(Entity entity)
-        where T : unmanaged, IComponent
+        where T : unmanaged, IComponentData
     {
         _writer.Write(ECBOpCode.RemoveComponent);
         _writer.Write(entity);
@@ -82,7 +82,7 @@ public unsafe struct EntityCommandBuffer : IDisposable
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void SetComponent<T>(Entity entity, T component)
-        where T : unmanaged, IComponent
+        where T : unmanaged, IComponentData
     {
         _writer.Write(ECBOpCode.SetComponent);
         _writer.Write(entity);
