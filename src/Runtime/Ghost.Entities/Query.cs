@@ -29,13 +29,40 @@ internal struct EntityQueryMask : IDisposable, IEquatable<EntityQueryMask>
     public override readonly int GetHashCode()
     {
         var hash = 17;
-        if (structuralAll.IsCreated) hash = hash * 23 + structuralAll.GetHashCode();
-        if (structuralAbsent.IsCreated) hash = hash * 23 + structuralAbsent.GetHashCode();
-        if (structuralAny.IsCreated) hash = hash * 23 + structuralAny.GetHashCode();
-        if (requireEnabled.IsCreated) hash = hash * 23 + requireEnabled.GetHashCode();
-        if (requireDisabled.IsCreated) hash = hash * 23 + requireDisabled.GetHashCode();
-        if (rejectIfEnabled.IsCreated) hash = hash * 23 + rejectIfEnabled.GetHashCode();
-        if (writeAccess.IsCreated) hash = hash * 23 + writeAccess.GetHashCode();
+        if (structuralAll.IsCreated)
+        {
+            hash = hash * 23 + structuralAll.GetHashCode();
+        }
+
+        if (structuralAbsent.IsCreated)
+        {
+            hash = hash * 23 + structuralAbsent.GetHashCode();
+        }
+
+        if (structuralAny.IsCreated)
+        {
+            hash = hash * 23 + structuralAny.GetHashCode();
+        }
+
+        if (requireEnabled.IsCreated)
+        {
+            hash = hash * 23 + requireEnabled.GetHashCode();
+        }
+
+        if (requireDisabled.IsCreated)
+        {
+            hash = hash * 23 + requireDisabled.GetHashCode();
+        }
+
+        if (rejectIfEnabled.IsCreated)
+        {
+            hash = hash * 23 + rejectIfEnabled.GetHashCode();
+        }
+
+        if (writeAccess.IsCreated)
+        {
+            hash = hash * 23 + writeAccess.GetHashCode();
+        }
 
         return hash;
     }
@@ -289,7 +316,7 @@ public readonly unsafe ref struct ChunkView
 
         var compID = ComponentTypeID<T>.Value;
         var layoutIndex = -1;
-        for (int i = 0; i < _sharedLayouts.Length; i++)
+        for (var i = 0; i < _sharedLayouts.Length; i++)
         {
             if (_sharedLayouts[i].componentID == compID.Value)
             {
@@ -467,6 +494,43 @@ public unsafe partial struct EntityQuery : IDisposable
         return true;
     }
 
+    private static bool RequiresEnableableFiltering(ref readonly Archetype archetype, ref readonly EntityQueryMask mask)
+    {
+        // If the query asks to filter by enabled/disabled state AND the archetype 
+        // actually has that component marked as enableable (enableBitsOffset != -1), we must filter.
+        var it = mask.requireEnabled.GetIterator();
+        while (it.Next(out var id))
+        {
+            var layoutResult = archetype.GetLayout(id);
+            if (layoutResult.Error == Error.None && layoutResult.Value.enableBitsOffset != -1)
+            {
+                return true;
+            }
+        }
+
+        it = mask.requireDisabled.GetIterator();
+        while (it.Next(out var id))
+        {
+            var layoutResult = archetype.GetLayout(id);
+            if (layoutResult.Error == Error.None && layoutResult.Value.enableBitsOffset != -1)
+            {
+                return true;
+            }
+        }
+
+        it = mask.rejectIfEnabled.GetIterator();
+        while (it.Next(out var id))
+        {
+            var layoutResult = archetype.GetLayout(id);
+            if (layoutResult.Error == Error.None && layoutResult.Value.enableBitsOffset != -1)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static bool CheckBit(byte* maskBase, int index)
     {
@@ -513,21 +577,80 @@ public unsafe partial struct EntityQuery : IDisposable
         {
             var archetypeID = _matchingArchetypes[i];
             ref var archetype = ref world.ComponentManager.GetArchetypeReference(archetypeID);
+
+            var requiresFiltering = RequiresEnableableFiltering(in archetype, in _mask);
+
             for (var j = 0; j < archetype.ChunkCount; j++)
             {
                 ref var chunk = ref archetype.GetChunkReference(j);
-
-                for (var k = 0; k < chunk._count; k++)
+                if (chunk._count == 0)
                 {
-                    if (IsEntityValid(chunk.GetUnsafePtr(), k, in archetype, in _mask))
+                    continue;
+                }
+
+                if (!requiresFiltering)
+                {
+                    // Fast path: all entities match
+                    total += chunk._count;
+                }
+                else
+                {
+                    // Slow path: check individual bits
+                    for (var k = 0; k < chunk._count; k++)
                     {
-                        total++;
+                        if (IsEntityValid(chunk.GetUnsafePtr(), k, in archetype, in _mask))
+                        {
+                            total++;
+                        }
                     }
                 }
             }
         }
 
         return total;
+    }
+
+    public readonly bool HasMatchingEntity()
+    {
+        var world = World.GetWorld(_worldID);
+        if (world is null)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < _matchingArchetypes.Count; i++)
+        {
+            var archetypeID = _matchingArchetypes[i];
+            ref var archetype = ref world.ComponentManager.GetArchetypeReference(archetypeID);
+
+            // Check ONCE per archetype if we actually need to loop entities
+            var requiresFiltering = RequiresEnableableFiltering(in archetype, in _mask);
+
+            for (var j = 0; j < archetype.ChunkCount; j++)
+            {
+                ref var chunk = ref archetype.GetChunkReference(j);
+                if (chunk._count == 0)
+                {
+                    continue;
+                }
+
+                if (!requiresFiltering)
+                {
+                    // No enablement constraints? Any entity in this chunk is a match!
+                    return true;
+                }
+
+                for (var k = 0; k < chunk._count; k++)
+                {
+                    if (IsEntityValid(chunk.GetUnsafePtr(), k, in archetype, in _mask))
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
     public void Dispose()

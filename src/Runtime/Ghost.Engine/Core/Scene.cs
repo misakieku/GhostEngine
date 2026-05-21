@@ -66,52 +66,51 @@ public struct Scene : IEquatable<Scene>
     }
 }
 
-/// <summary>
-/// Manages scenes within a world.
-/// </summary>
-/// <remarks>
-/// This is a minimal runtime representation. All metadata (like scene names) 
-/// should be stored in editor-only classes (SceneNode).
-/// </remarks>
-public static class SceneManager
+public class LoadedSceneData : IDisposable
 {
-    internal struct LoadedSceneData : IDisposable
+    public struct EntityData : IDisposable
     {
-        internal struct EntityData : IDisposable
-        {
-            public int fileLocalIndex;
-            public UnsafeList<Identifier<IComponent>> componentTypeIDs;
-            public UnsafeList<(Identifier<IComponent> typeID, UnsafeArray<byte> data)> componentData;
-            public UnsafeList<(int componentDataIndex, UnsafeArray<int> fieldOffsets)> entityFields;
-
-            public void Dispose()
-            {
-                componentTypeIDs.Dispose();
-                for (int i = 0; i < componentData.Count; i++)
-                {
-                    componentData[i].data.Dispose();
-                }
-                componentData.Dispose();
-                for (int i = 0; i < entityFields.Count; i++)
-                {
-                    entityFields[i].fieldOffsets.Dispose();
-                }
-                entityFields.Dispose();
-            }
-        }
-
-        public UnsafeArray<EntityData> entities;
+        public int fileLocalIndex;
+        public UnsafeList<Identifier<IComponent>> componentTypeIDs;
+        public UnsafeList<(Identifier<IComponent> typeID, UnsafeArray<byte> data)> componentData;
+        public UnsafeList<(int componentDataIndex, UnsafeArray<int> fieldOffsets)> entityFields;
 
         public void Dispose()
         {
-            for (int i = 0; i < entities.Length; i++)
+            componentTypeIDs.Dispose();
+            for (int i = 0; i < componentData.Count; i++)
             {
-                entities[i].Dispose();
+                componentData[i].data.Dispose();
             }
-            entities.Dispose();
+            componentData.Dispose();
+            for (int i = 0; i < entityFields.Count; i++)
+            {
+                entityFields[i].fieldOffsets.Dispose();
+            }
+            entityFields.Dispose();
         }
     }
 
+    public UnsafeArray<EntityData> entities;
+
+    public void Dispose()
+    {
+        for (int i = 0; i < entities.Length; i++)
+        {
+            entities[i].Dispose();
+        }
+
+        entities.Dispose();
+
+        GC.SuppressFinalize(this);
+    }
+}
+
+/// <summary>
+/// Manages scenes within a world.
+/// </summary>
+public static class SceneManager
+{
     private static ushort s_nextSceneID;
     private static readonly Queue<ushort> s_recycledSceneIDs = new();
 
@@ -215,7 +214,10 @@ public static class SceneManager
                     else
                     {
                         compData.Dispose();
-                        if (fieldCount > 0) fieldOffsets.Dispose();
+                        if (fieldCount > 0)
+                        {
+                            fieldOffsets.Dispose();
+                        }
                     }
                 }
 
@@ -242,23 +244,37 @@ public static class SceneManager
         return ParseSceneData(header, ref reader, allocationHandle);
     }
 
-    internal static unsafe Result<int> MaterializeScene(World world, ref readonly LoadedSceneData result, Scene scene)
+    /// <summary>
+    /// Materializes the loaded scene data into actual entities in the world, setting their components and remapping entity references.
+    /// </summary>
+    /// <remarks>
+    /// This method create entities directly into the world. Must ensure it's the safe to perform such strcture changes before calling this method (e.g. not in the middle of a system update that might be iterating over entities).
+    /// </remarks>
+    /// <param name="world">The world into which to materialize the scene data.</param>
+    /// <param name="result">The loaded scene data.</param>
+    /// <param name="scene">The scene to which the entities belong.</param>
+    /// <param name="startEntityIndex">The index of the first entity to materialize.</param>
+    /// <param name="length">The number of entities to materialize.</param>
+    public static unsafe void MaterializeScene(World world, ref readonly LoadedSceneData result, Scene scene, int startEntityIndex, int length)
     {
+        if (startEntityIndex < 0 || startEntityIndex + length > result.entities.Length)
+        {
+            Logger.Error($"Invalid entity index range for materialization: start={startEntityIndex}, length={length}, total={result.entities.Length}");
+            return;
+        }
+
         using var scope = AllocationManager.CreateStackScope();
         using var forwardMap = new UnsafeHashMap<int, Entity>(result.entities.Length, scope.AllocationHandle);
         using var sharedCom = new SharedComponentSet(256, scope.AllocationHandle);
 
         // Create entities and set SceneID
-        for (var i = 0; i < result.entities.Length; i++)
+        for (var i = startEntityIndex; i < startEntityIndex + length; i++)
         {
             ref var pending = ref result.entities[i];
 
             using var typeIds = new UnsafeList<Identifier<IComponent>>(pending.componentTypeIDs.Count + 1, scope.AllocationHandle);
             typeIds.Add(ComponentTypeID<SceneID>.Value);
-            for (int j = 0; j < pending.componentTypeIDs.Count; j++)
-            {
-                typeIds.Add(pending.componentTypeIDs[j]);
-            }
+            typeIds.AddRange(pending.componentTypeIDs);
 
             sharedCom.With(new SceneID { value = scene.ID });
 
@@ -270,11 +286,13 @@ public static class SceneManager
         }
 
         // Set component data
-        for (var i = 0; i < result.entities.Length; i++)
+        for (var i = startEntityIndex; i < startEntityIndex + length; i++)
         {
             ref var pending = ref result.entities[i];
             if (!forwardMap.TryGetValue(pending.fileLocalIndex, out var entity))
+            {
                 continue;
+            }
 
             for (var j = 0; j < pending.componentData.Count; j++)
             {
@@ -284,11 +302,13 @@ public static class SceneManager
         }
 
         // Remap entity references
-        for (var i = 0; i < result.entities.Length; i++)
+        for (var i = startEntityIndex; i < startEntityIndex + length; i++)
         {
             ref var pending = ref result.entities[i];
             if (!forwardMap.TryGetValue(pending.fileLocalIndex, out var entity))
+            {
                 continue;
+            }
 
             for (var j = 0; j < pending.entityFields.Count; j++)
             {
@@ -297,7 +317,9 @@ public static class SceneManager
 
                 var pComponent = world.EntityManager.GetComponent(entity, compTypeID);
                 if (pComponent == null)
+                {
                     continue;
+                }
 
                 for (var f = 0; f < fieldOffsets.Length; f++)
                 {
@@ -313,8 +335,6 @@ public static class SceneManager
                 }
             }
         }
-
-        return Result.Success(result.entities.Length);
     }
 
     /// <summary>
@@ -327,16 +347,13 @@ public static class SceneManager
         var queryID = new QueryBuilder().WithAll<SceneID>().Build(world);
         ref var query = ref world.ComponentManager.GetEntityQueryReference(queryID);
 
-        using var scope = AllocationManager.CreateStackScope();
-        using var ecb = new EntityCommandBuffer(512, scope.AllocationHandle);
-
         // Iterate through all matching entities
         foreach (var chunk in query.GetChunkIterator())
         {
             ref readonly var sceneID = ref chunk.GetSharedComponent<SceneID>();
             if (sceneID.value == scene.ID)
             {
-                ecb.DestroyEntities(chunk.GetEntities());
+                world.EntityManager.DestroyEntities(chunk.GetEntities());
             }
         }
 
@@ -350,7 +367,7 @@ public static class SceneManager
     /// <param name="world">The world containing the entities.</param>
     /// <param name="entities">Span to store the entities.</param>
     /// <returns>The number of entities written to the span.</returns>
-    public static UnsafeList<Entity> GetSceneEntities(Scene scene, World world, AllocationHandle handle)
+    public static UnsafeList<Entity> GetSceneEntities(World world, Scene scene, AllocationHandle handle)
     {
         var queryID = new QueryBuilder().WithAll<SceneID>().Build(world);
         ref var query = ref world.ComponentManager.GetEntityQueryReference(queryID);

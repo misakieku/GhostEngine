@@ -9,12 +9,6 @@ using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.Services;
 
-internal unsafe struct ShaderByteCode
-{
-    public byte* pCode;
-    public ulong size;
-}
-
 internal struct ShaderCache : IDisposable
 {
     public MemoryBlock byteCode;
@@ -73,24 +67,32 @@ internal unsafe class ShaderLibrary : IDisposable
 
     private readonly string _cacheDirectory;
     private readonly IShaderCompilationBridge? _shaderCompilationBridge;
+    private readonly IPipelineLibrary? _pipelineLibrary;
 
-    internal ShaderLibrary(IShaderCompilationBridge? shaderCompilationBridge, string cacheDirectory)
+    internal ShaderLibrary(IShaderCompilationBridge? shaderCompilationBridge, IPipelineLibrary? pipelineLibrary, string cacheDirectory)
     {
         _inMemoryCache = new UnsafeHashMap<ulong, CacheEntry>(16, AllocationHandle.Persistent);
         _variantToCompiledHash = new UnsafeHashMap<ulong, ulong>(16, AllocationHandle.Persistent);
 
         _cacheDirectory = cacheDirectory;
         _shaderCompilationBridge = shaderCompilationBridge;
+        _pipelineLibrary = pipelineLibrary;
 
         if (_shaderCompilationBridge != null)
         {
             _shaderCompilationBridge.OnShaderVariantCompiled += OnVariantCompiled;
+            _shaderCompilationBridge.OnShaderInvalidated += OnShaderInvalidated;
         }
     }
 
-    private void OnVariantCompiled(Key64<ShaderVariant> variantKey, ulong newCompiledHash)
+    private void OnVariantCompiled(ulong shaderId, int passIndex, Key64<ShaderVariant> variantKey, ReadOnlySpan<ShaderByteCode> byteCodes)
     {
-        _variantToCompiledHash[variantKey] = newCompiledHash;
+        CacheCompiledResult(shaderId, passIndex, variantKey, byteCodes);
+    }
+
+    private void OnShaderInvalidated(ulong shaderId)
+    {
+        InvalidateShaderCache(shaderId);
     }
 
     private string GetShaderCacheFilePath(ulong hash)
@@ -203,15 +205,20 @@ internal unsafe class ShaderLibrary : IDisposable
         return Error.NotFound;
     }
 
-    public void InvalidateShaderCache(ulong id, IPipelineLibrary pipelineLibrary)
+    public void InvalidateShaderCache(ulong id)
     {
+        if (_pipelineLibrary == null)
+        {
+            return;
+        }
+
         if (_inMemoryCache.TryGetValue(id, out var entry))
         {
             for (int i = 0; i < entry.cache.Length; i++)
             {
                 if (entry.cache[i].compiledHash != 0)
                 {
-                    pipelineLibrary.EvictStalePipelines(entry.cache[i].compiledHash);
+                    _pipelineLibrary.EvictStalePipelines(entry.cache[i].compiledHash);
                 }
             }
             entry.Dispose();
@@ -237,6 +244,7 @@ internal unsafe class ShaderLibrary : IDisposable
         if (_shaderCompilationBridge != null)
         {
             _shaderCompilationBridge.OnShaderVariantCompiled -= OnVariantCompiled;
+            _shaderCompilationBridge.OnShaderInvalidated -= OnShaderInvalidated;
         }
 
         GC.SuppressFinalize(this);

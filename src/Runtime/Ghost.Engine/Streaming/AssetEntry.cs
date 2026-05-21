@@ -4,6 +4,7 @@ using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.Jobs;
 using System.Runtime.CompilerServices;
+using TerraFX.Interop.Windows;
 
 namespace Ghost.Engine.Streaming;
 
@@ -53,7 +54,7 @@ internal static class AssetEntryFactory
 }
 
 // TODO: Progress report
-internal abstract class AssetEntry
+internal abstract class AssetEntry : IAssetEntry
 {
     private readonly AssetManager _assetManager;
     private readonly ResourceManager _resourceManager;
@@ -72,19 +73,27 @@ internal abstract class AssetEntry
     protected ResourceManager ResourceManager => _resourceManager;
     protected IResourceDatabase ResourceDatabase => _resourceDatabase;
 
-    public AssetManager AssetManager => _assetManager;
     public Guid AssetId => _assetId;
     public JobHandle LoadJobHandle => _loadJobHandle;
     public AssetType AssetType => _assetType;
     public ReadOnlySpan<Guid> Dependencies => _dependencies;
     public int RefCount => Volatile.Read(ref _refCount);
 
-    public ref bool PendingReimport => ref _pendingReimport;
     public ref int StateValue => ref _state;
     public AssetState State
     {
         get => (AssetState)Volatile.Read(ref _state);
-        set => Volatile.Write(ref _state, (int)value);
+        set
+        {
+            Volatile.Write(ref _state, (int)value);
+            if (Volatile.Read(ref _state) == (int)AssetState.Ready)
+            {
+                if (Interlocked.CompareExchange(ref _pendingReimport, false, true))
+                {
+                    _assetManager.ReimportAsset(_assetId);  // re-queue
+                }
+            }
+        }
     }
 
     protected AssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, AssetType assetType, Guid[] dependencies)
@@ -137,31 +146,39 @@ internal abstract class AssetEntry
                 }
             }
         }
-
+        
         return newRefCount;
     }
 
-    public abstract Result OnLoadContent(Stream contentStream);
-    public abstract void OnReleaseResource();
-}
-
-internal abstract class ProcessableAssetEntry : AssetEntry
-{
-    protected ProcessableAssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, AssetType assetType, Guid[] dependencies)
-        : base(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies)
+    public virtual void OnReleaseResource()
     {
     }
-
-    public abstract Result<JobHandle> OnProcessing(object? context);
 }
 
-internal abstract class UploadableAssetEntry : AssetEntry
+interface IAssetEntry
 {
-    protected UploadableAssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, AssetType assetType, Guid[] dependencies)
-        : base(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies)
-    {
-    }
+    Guid AssetId { get; }
+    AssetType AssetType { get; }
+    ReadOnlySpan<Guid> Dependencies { get; }
+    int RefCount { get; }
+    AssetState State { get; set; }
 
-    public abstract Result OnRecordUploadCommands(ResourceStreamingContext context);
-    public abstract void OnUploadComplete(ResourceStreamingContext context);
+    void AddRef();
+    int Release();
+}
+
+internal interface ILoadableAssetEntry : IAssetEntry
+{
+    Result OnLoadContent(Stream contentStream);
+}
+
+internal interface IProcessableAssetEntry : IAssetEntry
+{
+    Result<JobHandle> OnProcessing();
+}
+
+internal interface IUploadableAssetEntry : IAssetEntry
+{
+    Result OnRecordUploadCommands(ResourceStreamingContext context);
+    void OnUploadComplete(ResourceStreamingContext context);
 }

@@ -31,16 +31,22 @@ public class ShaderLibraryTest
     private class MockShaderCompilationBridge : IShaderCompilationBridge
     {
         public List<(ulong id, int passIndex, Key64<ShaderVariant> variantKey, LocalKeywordSet keywordMask)> Requests { get; } = new();
-        public event Action<Key64<ShaderVariant>, ulong>? OnShaderVariantCompiled;
+        public event ShaderVariantCompiledHandler? OnShaderVariantCompiled;
+        public event Action<ulong>? OnShaderInvalidated;
 
         public void RequestCompilation(ulong shaderId, int passIndex, Key64<ShaderVariant> variantKey, LocalKeywordSet keywordMask)
         {
             Requests.Add((shaderId, passIndex, variantKey, keywordMask));
         }
 
-        public void TriggerCompiled(Key64<ShaderVariant> variantKey, ulong newHash)
+        public void TriggerCompiled(ulong shaderId, int passIndex, Key64<ShaderVariant> variantKey, ReadOnlySpan<ShaderByteCode> byteCodes)
         {
-            OnShaderVariantCompiled?.Invoke(variantKey, newHash);
+            OnShaderVariantCompiled?.Invoke(shaderId, passIndex, variantKey, byteCodes);
+        }
+
+        public void TriggerInvalidated(ulong shaderId)
+        {
+            OnShaderInvalidated?.Invoke(shaderId);
         }
 
         public void Dispose()
@@ -64,8 +70,8 @@ public class ShaderLibraryTest
     public unsafe void TestInvalidateShaderCache_EvictsPipelinesAndClearsCache()
     {
         // Arrange
-        using var shaderLibrary = new ShaderLibrary(null, "TestShaderCache");
         var mockPipelineLibrary = new MockPipelineLibrary();
+        using var shaderLibrary = new ShaderLibrary(null, mockPipelineLibrary, "TestShaderCache");
 
         ulong testShaderId = 12345;
         var testPassIndex = 0;
@@ -99,7 +105,7 @@ public class ShaderLibraryTest
         Assert.AreEqual(expectedHash, cachedResult.Value.compiledHash);
 
         // Act: Invalidate
-        shaderLibrary.InvalidateShaderCache(testShaderId, mockPipelineLibrary);
+        shaderLibrary.InvalidateShaderCache(testShaderId);
 
         // Assert: EvictStalePipelines should be called
         Assert.HasCount(1, mockPipelineLibrary.EvictedHashes);
@@ -115,7 +121,7 @@ public class ShaderLibraryTest
     {
         // Arrange
         var mockBridge = new MockShaderCompilationBridge();
-        using var shaderLibrary = new ShaderLibrary(mockBridge, "TestShaderCache");
+        using var shaderLibrary = new ShaderLibrary(mockBridge, null, "TestShaderCache");
         var testShaderId = 555UL;
         var passIndex = 1;
         var variantKey = new Key64<ShaderVariant>(777);
@@ -133,28 +139,39 @@ public class ShaderLibraryTest
     }
 
     [TestMethod]
-    public void TestOnVariantCompiled_UpdatesHashCache()
+    public unsafe void TestOnVariantCompiled_UpdatesHashCache()
     {
         // Arrange
         var mockBridge = new MockShaderCompilationBridge();
-        using var shaderLibrary = new ShaderLibrary(mockBridge, "TestShaderCache");
+        using var shaderLibrary = new ShaderLibrary(mockBridge, null, "TestShaderCache");
         var variantKey = new Key64<ShaderVariant>(123);
-        ulong newHash = 0xABCDE;
+        
+        var fakeData = new byte[] { 1, 2, 3, 4 };
+        var expectedHash = 0UL;
 
         // Act
-        mockBridge.TriggerCompiled(variantKey, newHash);
+        fixed (byte* pData = fakeData)
+        {
+            var byteCode = new ShaderByteCode { pCode = pData, size = (ulong)fakeData.Length };
+            
+            // Compute expected hash of bytecode
+            var dataSpan = new ReadOnlySpan<byte>(pData, fakeData.Length);
+            expectedHash = System.IO.Hashing.XxHash64.HashToUInt64(dataSpan);
+
+            mockBridge.TriggerCompiled(0, 0, variantKey, new ReadOnlySpan<ShaderByteCode>(ref byteCode));
+        }
 
         // Assert
         var result = shaderLibrary.GetCompiledHash(0, 0, variantKey);
         Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual(newHash, result.Value);
+        Assert.AreEqual(expectedHash, result.Value);
     }
 
     [TestMethod]
     public void TestGetCompiledCache_HandlesIndexOutOfBounds()
     {
         // Arrange
-        using var shaderLibrary = new ShaderLibrary(null, "TestShaderCache");
+        using var shaderLibrary = new ShaderLibrary(null, null, "TestShaderCache");
         var testShaderId = 111UL;
 
         // Act

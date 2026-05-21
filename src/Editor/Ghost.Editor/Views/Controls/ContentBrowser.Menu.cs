@@ -50,4 +50,9 @@ internal partial class ContentBrowser
         // Refresh the view model to show the new folder
         viewModel.NavigateToDirectory(currentDir);
     }
+
+    [ContextMenuItem("project-browser", "Create/Asset/Scene")]
+    private static void CreateSceneAsset()
+    {
+    }
 }

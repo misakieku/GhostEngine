@@ -2,6 +2,14 @@ using Ghost.Core;
 
 namespace Ghost.Graphics.RHI;
 
+public unsafe struct ShaderByteCode
+{
+    public byte* pCode;
+    public ulong size;
+}
+
+public unsafe delegate void ShaderVariantCompiledHandler(ulong shaderId, int passIndex, Key64<ShaderVariant> variantKey, ReadOnlySpan<ShaderByteCode> byteCodes);
+
 public interface IShaderCompilationBridge : IDisposable
 {
     /// <summary>
@@ -11,7 +19,13 @@ public interface IShaderCompilationBridge : IDisposable
     void RequestCompilation(ulong shaderId, int passIndex, Key64<ShaderVariant> variantKey, LocalKeywordSet keywordMask);
 
     /// <summary>
-    /// Event triggered when a shader variant has been successfully compiled and updated.
+    /// Event triggered when a shader variant has been successfully compiled.
     /// </summary>
-    event Action<Key64<ShaderVariant>, ulong> OnShaderVariantCompiled;
+    event ShaderVariantCompiledHandler OnShaderVariantCompiled;
+
+    /// <summary>
+    /// Event triggered when a shader source has been imported or modified, requiring cache invalidation.
+    /// </summary>
+    event Action<ulong> OnShaderInvalidated;
 }
+

@@ -86,7 +86,7 @@ public partial class AssetManager
     }
 }
 
-internal unsafe class MeshAssetEntry : UploadableAssetEntry
+internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploadableAssetEntry
 {
     private Handle<Mesh> _actualHandle;
     private Handle<Mesh> _tempHandle;
@@ -121,7 +121,12 @@ internal unsafe class MeshAssetEntry : UploadableAssetEntry
         _actualHandle = resourceManager.RegisterMesh(ref mesh);
     }
 
-    public override Result OnLoadContent(Stream contentStream)
+    public override void OnReleaseResource()
+    {
+        ResourceManager.ReleaseMesh(_tempHandle);
+    }
+
+    public Result OnLoadContent(Stream contentStream)
     {
         bool ValidateRange(ulong offset, int count, uint stride)
         {
@@ -159,7 +164,7 @@ internal unsafe class MeshAssetEntry : UploadableAssetEntry
             return Result.Failure("Mesh content contains an invalid material part range.");
         }
 
-        contentStream.Seek(0, SeekOrigin.Begin);
+        contentStream.Position = 0;
 
         _rawData = contentStream.ReadMemory(AllocationHandle.Persistent);
         var pData = (byte*)_rawData.GetUnsafePtr();
@@ -174,11 +179,6 @@ internal unsafe class MeshAssetEntry : UploadableAssetEntry
         _pMeshletTriangles = pData + header.meshletTriangleOffset;
 
         return Result.Success();
-    }
-
-    public override void OnReleaseResource()
-    {
-        ResourceManager.ReleaseMesh(_tempHandle);
     }
 
     private static Handle<GPUBuffer> CreateBuffer(ResourceStreamingContext context, void* pData, int count, uint stride, BufferUsage usage, string name)
@@ -202,7 +202,7 @@ internal unsafe class MeshAssetEntry : UploadableAssetEntry
             name);
     }
 
-    public override Result OnRecordUploadCommands(ResourceStreamingContext context)
+    public Result OnRecordUploadCommands(ResourceStreamingContext context)
     {
         var vertexBuffer = CreateBuffer(context, _pVertices, _header.vertexCount, (uint)sizeof(Vertex),
             BufferUsage.Vertex | BufferUsage.ShaderResource | BufferUsage.Raw, "Mesh_VertexBuffer");
@@ -298,7 +298,7 @@ internal unsafe class MeshAssetEntry : UploadableAssetEntry
         return Result.Success();
     }
 
-    public override void OnUploadComplete(ResourceStreamingContext context)
+    public void OnUploadComplete(ResourceStreamingContext context)
     {
         var (dstMeshRef, dstError) = context.ResourceManager.GetMeshReference(_actualHandle);
         var (srcMeshRef, srcError) = context.ResourceManager.GetMeshReference(_tempHandle);

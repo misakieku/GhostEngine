@@ -57,7 +57,7 @@ public partial class AssetManager
     }
 }
 
-internal unsafe class TextureAssetEntry : UploadableAssetEntry
+internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUploadableAssetEntry
 {
     private Handle<GPUTexture> _actualHandle;
     private Handle<GPUTexture> _tempHandle;
@@ -102,7 +102,12 @@ internal unsafe class TextureAssetEntry : UploadableAssetEntry
         };
     }
 
-    public override Result OnLoadContent(Stream contentStream)
+    public override void OnReleaseResource()
+    {
+        ResourceDatabase.ReleaseResource(_tempHandle.AsResource());
+    }
+
+    public Result OnLoadContent(Stream contentStream)
     {
         var header = contentStream.Read<TextureContentHeader>();
 
@@ -133,13 +138,7 @@ internal unsafe class TextureAssetEntry : UploadableAssetEntry
         return Result.Success();
     }
 
-    public override void OnReleaseResource()
-    {
-        ResourceDatabase.ReleaseResource(_tempHandle.AsResource());
-    }
-
-
-    public override Result OnRecordUploadCommands(ResourceStreamingContext context)
+    public Result OnRecordUploadCommands(ResourceStreamingContext context)
     {
         Logger.DebugAssert(_textureData.IsCreated);
 
@@ -161,7 +160,7 @@ internal unsafe class TextureAssetEntry : UploadableAssetEntry
         return Result.Success();
     }
 
-    public override void OnUploadComplete(ResourceStreamingContext context)
+    public void OnUploadComplete(ResourceStreamingContext context)
     {
         var actualHandle = context.ResourceDatabase.Replace(_actualHandle.AsResource(), _tempHandle.AsResource());
         Logger.DebugAssert(actualHandle.IsValid);

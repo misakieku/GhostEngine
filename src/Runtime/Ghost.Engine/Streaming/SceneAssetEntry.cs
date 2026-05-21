@@ -22,10 +22,40 @@ internal struct SceneContentHeader
     public int entityCount;
 }
 
-// TODO: We should have a dedicated scene loading service. Maybe we should make our SceneManager as a service.
 public partial class AssetManager
 {
-    public Result<JobHandle> LoadScene(World world, AssetRef<Scene> sceneAsset, SceneLoadingType loadingType)
+    private struct LoadSceneJob : IJob
+    {
+        public SceneContentHeader header;
+        public Stream stream;
+
+        public LoadedSceneData loadedSceneData;
+
+        public readonly void Execute(ref readonly JobExecutionContext context)
+        {
+            try
+            {
+                var loadResult = SceneManager.ParseSceneData(header, stream, AllocationHandle.Persistent);
+                if (loadResult.IsFailure)
+                {
+                    Logger.Error($"Failed to parse scene data: {loadResult.Message}");
+                    return;
+                }
+
+                loadedSceneData.entities = loadResult.Value.entities;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Exception while loading scene: {ex}");
+            }
+            finally
+            {
+                stream.Dispose();
+            }
+        }
+    }
+
+    public unsafe Result<JobHandle> LoadScene(World world, AssetRef<Scene> sceneAsset, SceneLoadingType loadingType, ref LoadedSceneData? loadedSceneData)
     {
         if (!sceneAsset.IsValid)
         {
@@ -38,32 +68,50 @@ public partial class AssetManager
             return Result.Failure($"Failed to open scene {sceneAsset.ID}: {openResult.Message}.");
         }
 
+        var stream = openResult.Value;
+
+        if (stream.Length < sizeof(SceneContentHeader))
+        {
+            stream.Dispose();
+            return Result.Failure("Invalid scene file size.");
+        }
+
+        var header = stream.Read<SceneContentHeader>();
+        if (header.magic != SceneContentHeader.MAGIC)
+        {
+            stream.Dispose();
+            return Result.Failure("Unexpected header format.");
+        }
+
+        if (header.version != SceneContentHeader.VERSION)
+        {
+            stream.Dispose();
+            return Result.Failure($"Not supported scene header version {header.version}.");
+        }
+
         try
         {
-            using var stream = openResult.Value;
-
-            var header = stream.Read<SceneContentHeader>();
-            if (header.magic != SceneContentHeader.MAGIC)
-            {
-                return Result.Failure("Unexpected header format.");
-            }
-
-            if (header.version != SceneContentHeader.VERSION)
-            {
-                return Result.Failure($"Not supported scene header version {header.version}.");
-            }
-
             if (loadingType == SceneLoadingType.Single)
             {
                 world.Reset();
             }
 
-            var loadResult = SceneManager.ParseSceneData(header, stream, AllocationHandle.Persistent);
+            loadedSceneData ??= new LoadedSceneData();
 
-            return JobHandle.Invalid;
+            var entry = GetOrCreateEntry(sceneAsset.ID); // Purely to get the dependencies and ensure the asset is tracked, the actual loading is done in the job.
+
+            var job = new LoadSceneJob
+            {
+                header = header,
+                stream = stream,
+                loadedSceneData = loadedSceneData
+            };
+
+            return _jobScheduler.Schedule(in job, entry.LoadJobHandle);
         }
         catch (Exception ex)
         {
+            stream.Dispose();
             return Result.Failure(ex.Message);
         }
     }
@@ -73,29 +121,6 @@ internal class SceneAssetEntry : AssetEntry
 {
     public SceneAssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, Guid[] dependencies)
         : base(manager, resourceDatabase, resourceManager, assetId, AssetType.Scene, dependencies)
-    {
-        // TODO: How can I get this? Ideally the public api will be something like SceneManager.LoadScene(World, Scene, SceneLoadingType).
-        // Should we handle the scene loading explicitly instead of auto loading on the first resolve?
-        // For example if we have a component called SceneStreamer{ SceneID a; SceneID b; }
-        // In save data, we convert the SceneID(ushort) to a asset gui, and convert it back during load. So at ResolveScene stage (before the file even been loaded), we need to call the SceneManager.CreateScene() and return the id immediately.
-        // Currently we store the world and loading type directly inside the asset entry, but actually that should not be bound with the asset itself, because we may load scene A along at the first time, then we load it additively at the second time.
-        // So, maybe the scene asset entry should only create a unique id from SceneManager.CreateScene() then resolve the scene file without loading it into world.
-        // Then we can load the scene into world using our job system, and user can decide to wait it immediatly (sync) or fire-and-forget (async).
-        // The workflow may be this:
-        // 1. Startup scene load, during resolve, see SceneStreamer has two SceneID fields (which still contains guid now), resolve this two scene via AssetManager. Get the id of those two scene immediately.
-        // 2. Background job load the scene into memory, parse the raw memory into the format that runtime understand. (Or maybe we do not load full memory, just check the header to see if it's valid?
-        //    If the streamer type has 20 scenes, loading all 20 scenes into memory is very huge.).
-        // 3. The streamer called SceneManager.LoadScene(World, SceneID, SceneLoadingType) (example api, may not be this exactly). (Mybe we load the data into memory here every time when LoadScene is
-        //    called? It will be fine right since load scene itself is a heavy opeartion and it's not am opeartion that will be performed per frame)
-        // 4. Background job load the scene into world by creating entities and setup components for those entities.
-    }
-
-    public override Result OnLoadContent(Stream contentStream)
-    {
-        return Result.Success();
-    }
-
-    public override void OnReleaseResource()
     {
     }
 }

@@ -11,28 +11,28 @@ internal class ResourceStreamingProcessor : IResourceStreamingProcessor
 {
     private const int MAX_UPLOADS_PER_FRAME = 8;
 
-    private readonly ConcurrentQueue<ProcessableAssetEntry> _pendingProcess;
-    private readonly ConcurrentQueue<UploadableAssetEntry> _pendingUpload;
-    private readonly ConcurrentQueue<UploadableAssetEntry> _pendingFinalize;
+    private readonly ConcurrentQueue<IProcessableAssetEntry> _pendingProcess;
+    private readonly ConcurrentQueue<IUploadableAssetEntry> _pendingUpload;
+    private readonly ConcurrentQueue<IUploadableAssetEntry> _pendingFinalize;
 
     private ulong _pendingCopyFenceValue;
 
     public ResourceStreamingProcessor()
     {
-        _pendingProcess = new ConcurrentQueue<ProcessableAssetEntry>();
-        _pendingUpload = new ConcurrentQueue<UploadableAssetEntry>();
-        _pendingFinalize = new ConcurrentQueue<UploadableAssetEntry>();
+        _pendingProcess = new ConcurrentQueue<IProcessableAssetEntry>();
+        _pendingUpload = new ConcurrentQueue<IUploadableAssetEntry>();
+        _pendingFinalize = new ConcurrentQueue<IUploadableAssetEntry>();
         _pendingCopyFenceValue = 0;
     }
 
     public bool EnqueueForProcess(AssetEntry entry)
     {
-        if (entry is UploadableAssetEntry uploadable)
+        if (entry is IUploadableAssetEntry uploadable)
         {
             _pendingUpload.Enqueue(uploadable);
             return true;
         }
-        else if (entry is ProcessableAssetEntry processable)
+        else if (entry is IProcessableAssetEntry processable)
         {
             _pendingProcess.Enqueue(processable);
             return true;
@@ -48,7 +48,7 @@ internal class ResourceStreamingProcessor : IResourceStreamingProcessor
 
         while (_pendingProcess.TryDequeue(out var entry))
         {
-            var result = entry.OnProcessing(context);
+            var result = entry.OnProcessing();
             if (result.IsFailure)
             {
                 Logger.Error(result.Message);
@@ -74,12 +74,7 @@ internal class ResourceStreamingProcessor : IResourceStreamingProcessor
         {
             while (_pendingFinalize.TryDequeue(out var item))
             {
-                Volatile.Write(ref item.StateValue, (int)AssetState.Ready);
-                if (Interlocked.CompareExchange(ref item.PendingReimport, false, true))
-                {
-                    item.AssetManager.ReimportAsset(item.AssetId);  // re-queue
-                }
-
+                item.State = AssetState.Ready;
                 item.OnUploadComplete(context);
             }
 

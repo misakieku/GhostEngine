@@ -207,7 +207,7 @@ public class RenderSystem : IDisposable
 
         _resourceManager = new ResourceManager(_graphicsEngine.Device, _graphicsEngine.ResourceAllocator, _graphicsEngine.ResourceDatabase);
         _swapChainManager = new SwapChainManager(_graphicsEngine);
-        _shaderLibrary = new ShaderLibrary(desc.ShaderCompilationBridge, desc.ShaderCacheDirectory);
+        _shaderLibrary = new ShaderLibrary(desc.ShaderCompilationBridge, _graphicsEngine.PipelineLibrary, desc.ShaderCacheDirectory);
         _asyncCopyPipeline = new AsyncCopyPipeline(_graphicsEngine);
 
         _renderThread = new Thread(RenderLoop)

@@ -65,7 +65,7 @@ public abstract class SystemBase : ISystem
         {
             var queryID = _requiredQueries[i];
             ref var query = ref World.ComponentManager.GetEntityQueryReference(new Identifier<EntityQuery>(queryID));
-            if (query.CalculateEntityCount() == 0)
+            if (!query.HasMatchingEntity())
             {
                 return false;
             }

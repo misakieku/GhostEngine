@@ -15,15 +15,15 @@ namespace Ghost.Graphics.D3D12;
 
 internal sealed unsafe partial class D3D12ResourceAllocator
 {
-    // NOTE: _MAX_BYTES may not be accurate, we need to verify it with feature level checks.
-    private const uint _MAX_BYTES = D3D12_REQ_RESOURCE_SIZE_IN_MEGABYTES_EXPRESSION_A_TERM * 1024u * 1024u;
-    private const uint _MAX_TEXTURE2D_DIMENSION = 16384u;
-    private const uint _MAX_TEXTURE3D_DIMENSION = 2048u;
+    // NOTE: MAX_BYTES may not be accurate, we need to verify it with feature level checks.
+    private const uint MAX_BYTES = D3D12_REQ_RESOURCE_SIZE_IN_MEGABYTES_EXPRESSION_A_TERM * 1024u * 1024u;
+    private const uint MAX_TEXTURE2D_DIMENSION = 16384u;
+    private const uint MAX_TEXTURE3D_DIMENSION = 2048u;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void CheckBufferSize(ulong sizeInBytes)
     {
-        if (sizeInBytes > _MAX_BYTES)
+        if (sizeInBytes > MAX_BYTES)
         {
             throw new InvalidOperationException($"ERROR: Resource size too large for DirectX 12 (size {sizeInBytes})");
         }
@@ -32,7 +32,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void CheckTexture2DSize(uint width, uint height)
     {
-        if (width > _MAX_TEXTURE2D_DIMENSION || height > _MAX_TEXTURE2D_DIMENSION)
+        if (width > MAX_TEXTURE2D_DIMENSION || height > MAX_TEXTURE2D_DIMENSION)
         {
             throw new InvalidOperationException($"ERROR: Texture size too large for DirectX 12 (width {width}, height {height})");
         }
@@ -41,8 +41,8 @@ internal sealed unsafe partial class D3D12ResourceAllocator
 
 internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 {
-    private const uint _UPLOAD_BATCH_SIZE = 64 * 1024 * 1024; // 64 MB
-    private const uint _MAX_RESOURCE_SIZE_TO_FIT_IN_UPLOAD_BATCH = 16 * 1024 * 1024; // 16 MB
+    private const uint UPLOAD_BATCH_SIZE = 64 * 1024 * 1024; // 64 MB
+    private const uint MAX_RESOURCE_SIZE_TO_FIT_IN_UPLOAD_BATCH = 16 * 1024 * 1024; // 16 MB
 
     private UniquePtr<D3D12MA_Allocator> _d3d12MA;
 

@@ -53,12 +53,24 @@ internal struct LoadAssetJob : IJob
             }
 
             using var stream = openResult.Value;
-            var result = entry.OnLoadContent(stream);
-            if (result.IsFailure)
+
+            if (entry is ILoadableAssetEntry loadable)
             {
-                entry.State = AssetState.Failed;
-                Logger.Error($"Failed to load asset {assetID}: {result.Message}");
-                return;
+                var result = loadable.OnLoadContent(stream);
+
+                if (result.IsFailure)
+                {
+                    entry.State = AssetState.Failed;
+                    Logger.Error($"Failed to load asset {assetID}: {result.Message}");
+                    return;
+                }
+            }
+
+            entry.State = AssetState.Loaded;
+            if (!assetManager.StreamingProcessor.EnqueueForProcess(entry))
+            {
+                // This mean the asset don't need any further processing anymore.
+                entry.State = AssetState.Ready;
             }
         }
         catch (Exception ex)
@@ -66,13 +78,6 @@ internal struct LoadAssetJob : IJob
             entry.State = AssetState.Failed;
             Logger.Error($"Failed to load asset {assetID}: {ex.Message}");
             return;
-        }
-
-        entry.State = AssetState.Loaded;
-        if (!assetManager.StreamingProcessor.EnqueueForProcess(entry))
-        {
-            // This mean the asset don't need any further processing anymore.
-            entry.State = AssetState.Ready;
         }
     }
 }
@@ -111,6 +116,24 @@ public partial class AssetManager : IDisposable
     internal bool RemoveEntry(Guid guid)
     {
         return _entries.TryRemove(guid, out var _);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private AssetEntry GetOrCreateEntry(Guid guid)
+    {
+        var entry = _entries.GetOrAdd(guid, static (id, self) =>
+        {
+            var type = self._contentProvider.GetAssetType(id);
+            var deps = self._contentProvider.GetDependencies(id);
+
+            var entry = AssetEntryFactory.CreateNewEntry(self, self._resourceDatabase, self._resourceManager, id, type, deps);
+
+            self.EnsureScheduled(entry);
+            return entry;
+        }, this);
+
+        entry.AddRef();
+        return entry;
     }
 
     private void EnsureScheduled(AssetEntry entry)
@@ -188,24 +211,6 @@ public partial class AssetManager : IDisposable
         entry.SetLoadJobHandle(handle); // Use low priority to avoid blocking main thread critical tasks like rendering and physics.
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private AssetEntry GetOrCreateEntry(Guid guid)
-    {
-        var entry = _entries.GetOrAdd(guid, static (id, self) =>
-        {
-            var type = self._contentProvider.GetAssetType(id);
-            var deps = self._contentProvider.GetDependencies(id);
-
-            var entry = AssetEntryFactory.CreateNewEntry(self, self._resourceDatabase, self._resourceManager, id, type, deps);
-
-            self.EnsureScheduled(entry);
-            return entry;
-        }, this);
-
-        entry.AddRef();
-        return entry;
-    }
-
     internal void ReimportAsset(Guid guid)
     {
         if (!_entries.TryGetValue(guid, out var entry))
@@ -227,6 +232,19 @@ public partial class AssetManager : IDisposable
             entry.SetPendingReimport();
         }
     }
+
+    //public IResolveOperation ResolveAsset(Guid assetID)
+    //{
+    //    if (assetID == Guid.Empty)
+    //    {
+    //        return null;
+    //    }
+
+    //    var entry = GetOrCreateEntry(assetID);
+    //    entry.OnResolve();
+
+    //    return new IResolveOperation;
+    //}
 
     public void Dispose()
     {

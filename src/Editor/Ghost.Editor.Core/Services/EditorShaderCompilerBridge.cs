@@ -3,11 +3,8 @@ using Ghost.Core.Graphics;
 using Ghost.Editor.Core.Assets;
 using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.Utilities;
-using Ghost.Engine;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
-using Ghost.Graphics.Services;
-using Microsoft.Extensions.DependencyInjection;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
@@ -19,13 +16,13 @@ internal sealed class EditorShaderCompilerBridge : IShaderCompilationBridge
     private readonly IAssetRegistry _assetRegistry;
     private readonly IServiceProvider _serviceProvider;
     private readonly IShaderCompiler _compiler;
-    private EngineCore? _engineCore;
 
     private readonly ConcurrentDictionary<ulong, Guid> _shaderIdToAssetId = new();
     private readonly ConcurrentDictionary<Guid, Dictionary<int, string>[]> _assetKeywordMappings = new();
     private Task? _shaderDictionaryPopulated;
 
-    public event Action<Key64<ShaderVariant>, ulong>? OnShaderVariantCompiled;
+    public event ShaderVariantCompiledHandler? OnShaderVariantCompiled;
+    public event Action<ulong>? OnShaderInvalidated;
 
     public EditorShaderCompilerBridge(IAssetRegistry assetRegistry, IServiceProvider serviceProvider)
     {
@@ -50,13 +47,7 @@ internal sealed class EditorShaderCompilerBridge : IShaderCompilationBridge
                     _shaderIdToAssetId[nameHash] = guid;
                     BuildKeywordMappings(result.Value, guid);
 
-                    _engineCore ??= _serviceProvider.GetService<EngineCore>();
-                    if (_engineCore != null)
-                    {
-                        var shaderLibrary = _engineCore.RenderSystem.ShaderLibrary;
-                        var pipelineLibrary = _engineCore.RenderSystem.GraphicsEngine.PipelineLibrary;
-                        shaderLibrary.InvalidateShaderCache(nameHash, pipelineLibrary);
-                    }
+                    OnShaderInvalidated?.Invoke(nameHash);
                 }
             }
         }
@@ -269,11 +260,6 @@ internal sealed class EditorShaderCompilerBridge : IShaderCompilationBridge
             return Task.CompletedTask;
         }
 
-        if (_engineCore == null)
-        {
-            return Task.CompletedTask;
-        }
-
         using var compiled = compileResult.Value;
 
         var stageCount = 0;
@@ -298,11 +284,7 @@ internal sealed class EditorShaderCompilerBridge : IShaderCompilationBridge
             byteCodes[idx++] = new ShaderByteCode { pCode = (byte*)compiled.psResult.GetUnsafePtr(), size = (ulong)compiled.psResult.Length };
         }
 
-        var shaderLibrary = _engineCore.RenderSystem.ShaderLibrary;
-        shaderLibrary.CacheCompiledResult(shaderId, passIndex, variantKey, new ReadOnlySpan<ShaderByteCode>(byteCodes, stageCount));
-
-        var (compiledHash, _) = shaderLibrary.GetCompiledHash(shaderId, passIndex, variantKey);
-        OnShaderVariantCompiled?.Invoke(variantKey, compiledHash);
+        OnShaderVariantCompiled?.Invoke(shaderId, passIndex, variantKey, new ReadOnlySpan<ShaderByteCode>(byteCodes, stageCount));
 
         return Task.CompletedTask;
     }
@@ -331,11 +313,6 @@ internal sealed class EditorShaderCompilerBridge : IShaderCompilationBridge
             return Task.CompletedTask;
         }
 
-        if (_engineCore == null)
-        {
-            return Task.CompletedTask;
-        }
-
         using var bytecodeArray = compileResult.Value;
 
         var byteCode = new ShaderByteCode
@@ -344,11 +321,7 @@ internal sealed class EditorShaderCompilerBridge : IShaderCompilationBridge
             size = (ulong)bytecodeArray.Length
         };
 
-        var shaderLibrary = _engineCore.RenderSystem.ShaderLibrary;
-        shaderLibrary.CacheCompiledResult(shaderId, passIndex, variantKey, new ReadOnlySpan<ShaderByteCode>(ref byteCode));
-
-        var (compiledHash, _) = shaderLibrary.GetCompiledHash(shaderId, passIndex, variantKey);
-        OnShaderVariantCompiled?.Invoke(variantKey, compiledHash);
+        OnShaderVariantCompiled?.Invoke(shaderId, passIndex, variantKey, new ReadOnlySpan<ShaderByteCode>(ref byteCode));
 
         return Task.CompletedTask;
     }

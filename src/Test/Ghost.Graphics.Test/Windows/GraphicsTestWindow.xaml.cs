@@ -10,7 +10,6 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
-using Windows.Devices.Geolocation;
 
 namespace Ghost.Graphics.Test.Windows;
 
@@ -80,7 +79,7 @@ public sealed partial class GraphicsTestWindow : Window
         group.AddSystem<CameraMovingSystem>();
         group.SortSystems();
 
-        _world.SystemManager.InitializeAll(default);
+        _world.SystemManager.InitializeAll();
 
         // Create Camera Entity
 
@@ -107,7 +106,7 @@ public sealed partial class GraphicsTestWindow : Window
 
         // Create Mesh Entity
         //MeshBuilder.CreateCube(0.75f, default, Allocator.Persistent, out var vertices, out var indices);
-        Utilities.MeshUtility.LoadMesh("F:/c/SimpleRayTracer/native/assets/bunny.obj", Allocator.Persistent, out var vertices, out var indices).ThrowIfFailed();
+        Utilities.MeshUtility.LoadMesh("F:/c/SimpleRayTracer/native/assets/bunny.obj", AllocationHandle.Persistent, out var vertices, out var indices).ThrowIfFailed();
 
         // TODO: Put this to the beginning of the frame without creating another command buffer?
         using var directCmd = _renderSystem.GraphicsEngine.CreateCommandBuffer(CommandBufferType.Graphics);
@@ -144,7 +143,6 @@ public sealed partial class GraphicsTestWindow : Window
 
     private void GraphicsTestWindow_Closed(object sender, WindowEventArgs e)
     {
-#if false
         try
         {
             CompositionTarget.Rendering -= OnRendering;
@@ -172,7 +170,6 @@ public sealed partial class GraphicsTestWindow : Window
         finally
         {
         }
-#endif
     }
 
     private void SwapChainPanel_SizeChanged(object sender, SizeChangedEventArgs e)

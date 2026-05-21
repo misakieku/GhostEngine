@@ -1,4 +1,3 @@
-#if true
 using Ghost.Core;
 using Ghost.Editor.Core;
 using Ghost.Editor.Core.Assets;
@@ -104,8 +103,8 @@ public class SceneSerializationTests
         CreateEntityWithHierarchy(scene, Entity.Invalid);
 
         var filePath = Path.Combine(_projectRoot, "TestScene.gscene");
-        var saveResult = _serializationService.SaveSceneFromEditorWorld(filePath, scene);
-        Assert.IsTrue(saveResult.IsSuccess, saveResult.Message);
+        _serializationService.SaveSceneFromEditorWorld(filePath, scene);
+
         Assert.IsTrue(File.Exists(filePath));
 
         var json = await File.ReadAllTextAsync(filePath, TestContext.CancellationToken);
@@ -129,7 +128,7 @@ public class SceneSerializationTests
         scene = loadResult.Value;
 
         using var scope = AllocationManager.CreateStackScope();
-        using var entities = SceneManager.GetSceneEntities(scene, world, scope.AllocationHandle);
+        using var entities = SceneManager.GetSceneEntities(world, scene, scope.AllocationHandle);
         Assert.AreEqual(3, entities.Count, $"Expected 3 entities for scene {scene.ID} but found {entities.Count}");
     }
 
@@ -145,8 +144,7 @@ public class SceneSerializationTests
         var world = _worldService.EditorWorld;
 
         var filePath = Path.Combine(_projectRoot, "HierarchyScene.gscene");
-        var saveResult = _serializationService.SaveSceneFromEditorWorld(filePath, scene);
-        Assert.IsTrue(saveResult.IsSuccess, saveResult.Message);
+        _serializationService.SaveSceneFromEditorWorld(filePath, scene);
 
         var data = await SceneSerializationService.DeserializeSceneFileAsync(filePath, TestContext.CancellationToken);
         Assert.IsNotNull(data);
@@ -303,10 +301,9 @@ public class SceneSerializationTests
         var scene = SceneManager.CreateScene();
 
         var filePath = Path.Combine(_projectRoot, "EmptyScene.gscene");
-        var saveResult = _serializationService.SaveSceneFromEditorWorld(filePath, scene);
-        Assert.IsTrue(saveResult.IsFailure, "Empty scene should fail to save.");
+        _serializationService.SaveSceneFromEditorWorld(filePath, scene);
 
-        Assert.AreEqual("No entities found for the specified scene.", saveResult.Message);
+        Assert.IsTrue(File.Exists(filePath));
     }
 
     [TestMethod]
@@ -397,7 +394,7 @@ public class SceneSerializationTests
         var world = World.Create(entityCapacity: 64);
         try
         {
-            Result<SceneManager.LoadedSceneData> sceneDataResult;
+            Result<LoadedSceneData> sceneDataResult;
             unsafe
             {
                 fixed (byte* pBinary = binary)
@@ -410,7 +407,7 @@ public class SceneSerializationTests
             Assert.AreEqual(3, sceneDataResult.Value.entities.Count);
 
             using var sceneData = sceneDataResult.Value;
-            SceneManager.MaterializeScene(world, in sceneData, scene);
+            SceneManager.MaterializeScene(world, in sceneData, scene, 0, sceneData.entities.Count);
 
             var queryID = new QueryBuilder().WithAll<Hierarchy>().Build(world);
             ref var query = ref world.ComponentManager.GetEntityQueryReference(queryID);
@@ -482,4 +479,3 @@ public class SceneSerializationTests
         get; set;
     } = null!;
 }
-#endif

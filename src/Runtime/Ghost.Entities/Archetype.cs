@@ -188,11 +188,11 @@ internal unsafe struct Archetype : IDisposable
         }
     }
 
-    private struct Edge
-    {
-        public int componentID;
-        public int targetArchetype; // can't use Identifier<Archetype> because cycle causer
-    }
+    //private struct Edge
+    //{
+    //    public int componentID;
+    //    public int targetArchetype; // can't use Identifier<Archetype> because cycle causer
+    //}
 
     internal UnsafeBitSet _signature;
     internal UnsafeList<Chunk> _chunks;
@@ -202,8 +202,8 @@ internal unsafe struct Archetype : IDisposable
     internal UnsafeArray<SharedComponentLayout> _sharedLayouts;
     internal UnsafeList<ChunkGroup> _chunkGroups;
 
-    private UnsafeList<Edge> _edgesAdd;
-    private UnsafeList<Edge> _edgesRemove;
+    private UnsafeHashMap<int, int> _edgesAdd;
+    private UnsafeHashMap<int, int> _edgesRemove;
 
     // 0 means no cleanup component (since 0 is the empty archetype), -1 means haven't computed yet, positive value means the archetype id of the cleanup edge.
     internal int _cleanupEdge;
@@ -230,8 +230,8 @@ internal unsafe struct Archetype : IDisposable
         _worldID = worldID;
 
         _chunks = new UnsafeList<Chunk>(4, AllocationHandle.Persistent);
-        _edgesAdd = new UnsafeList<Edge>(4, AllocationHandle.Persistent);
-        _edgesRemove = new UnsafeList<Edge>(4, AllocationHandle.Persistent);
+        _edgesAdd = new UnsafeHashMap<int, int>(4, AllocationHandle.Persistent);
+        _edgesRemove = new UnsafeHashMap<int, int>(4, AllocationHandle.Persistent);
 
         if (componentIds.IsEmpty)
         {
@@ -868,51 +868,25 @@ internal unsafe struct Archetype : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AddEdgeAdd(Identifier<IComponent> componentID, Identifier<Archetype> targetArchetype)
     {
-        _edgesAdd.Add(new Edge
-        {
-            componentID = componentID,
-            targetArchetype = targetArchetype
-        });
+        _edgesAdd.TryAdd(componentID, targetArchetype);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Identifier<Archetype> GetEdgeAdd(Identifier<IComponent> componentID)
     {
-        for (var i = 0; i < _edgesAdd.Count; i++)
-        {
-            var edge = _edgesAdd[i];
-            if (edge.componentID == componentID)
-            {
-                return edge.targetArchetype;
-            }
-        }
-
-        return Identifier<Archetype>.Invalid;
+        return _edgesAdd.GetValueOrDefault(componentID, -1);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AddEdgeRemove(Identifier<IComponent> componentID, Identifier<Archetype> targetArchetype)
     {
-        _edgesRemove.Add(new Edge
-        {
-            componentID = componentID,
-            targetArchetype = targetArchetype
-        });
+        _edgesRemove.TryAdd(componentID, targetArchetype);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Identifier<Archetype> GetEdgeRemove(Identifier<IComponent> componentID)
     {
-        for (var i = 0; i < _edgesRemove.Count; i++)
-        {
-            var edge = _edgesRemove[i];
-            if (edge.componentID == componentID)
-            {
-                return edge.targetArchetype;
-            }
-        }
-
-        return Identifier<Archetype>.Invalid;
+        return _edgesRemove.GetValueOrDefault(componentID, -1);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

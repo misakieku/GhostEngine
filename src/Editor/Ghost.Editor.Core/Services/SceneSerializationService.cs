@@ -1,6 +1,5 @@
 using Ghost.Core;
 using Ghost.Editor.Core.Contracts;
-using Ghost.Editor.Core.SceneGraph;
 using Ghost.Editor.Core.Utilities;
 using Ghost.Engine;
 using Ghost.Engine.Components;
@@ -421,17 +420,12 @@ internal class SceneSerializationService : IDisposable
 
     #region Save Scene from Editor World
 
-    public unsafe Result SaveSceneFromEditorWorld(string filePath, Scene scene)
+    public unsafe void SaveSceneFromEditorWorld(string filePath, Scene scene)
     {
         var world = _worldService.EditorWorld;
 
         using var scope = AllocationManager.CreateStackScope();
-        using var sceneEntities = SceneManager.GetSceneEntities(scene, world, scope.AllocationHandle);
-
-        if (sceneEntities.Count == 0)
-        {
-            return Result.Failure("No entities found for the specified scene.");
-        }
+        using var sceneEntities = SceneManager.GetSceneEntities(world, scene, scope.AllocationHandle);
 
         var entities = new List<Entity>(sceneEntities.Count);
         for (var i = 0; i < sceneEntities.Count; i++)
@@ -511,8 +505,6 @@ internal class SceneSerializationService : IDisposable
         writer.Flush();
 
         File.WriteAllBytes(filePath, stream.ToArray());
-
-        return Result.Success();
     }
 
     private static List<Entity> SortEntitiesByHierarchy(World world, List<Entity> entities)

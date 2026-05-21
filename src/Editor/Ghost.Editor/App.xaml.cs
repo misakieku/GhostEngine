@@ -70,8 +70,6 @@ public partial class App : Application
                 services.AddSingleton<IContentProvider, EditorContentProvider>();
                 services.AddSingleton<IShaderCompilationBridge, EditorShaderCompilerBridge>();
 
-                services.AddSingleton<EngineCore>();
-
                 services.AddSingleton<EngineEditorViewModel>();
 
                 services.AddTransient<ContentBrowserViewModel>();
