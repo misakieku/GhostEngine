@@ -85,12 +85,6 @@ public static class TypeCache
         return dict;
     }
 
-    internal static void Initialize()
-    {
-        // Intentionally left blank.
-        // This method exists to force the static constructor to run.
-    }
-
     internal static void Reload()
     {
         s_types = LoadTypes();

@@ -340,9 +340,9 @@ public static class SceneManager
     /// <summary>
     /// Destroys all entities belonging to the specified scene.
     /// </summary>
-    /// <param name="scene">The scene to unload.</param>
+    /// <param name="scene">The scene to destroy.</param>
     /// <param name="world">The world containing the entities.</param>
-    public static void UnloadScene(Scene scene, World world)
+    public static void DestroyScene(Scene scene, World world)
     {
         var queryID = new QueryBuilder().WithAll<SceneID>().Build(world);
         ref var query = ref world.ComponentManager.GetEntityQueryReference(queryID);

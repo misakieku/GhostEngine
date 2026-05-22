@@ -48,32 +48,6 @@ public class CustomEditorAttribute : DiscoverableAttributeBase
     }
 }
 
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = false, Inherited = false)]
-public class EditorInjectionAttribute : DiscoverableAttributeBase
-{
-    public enum ServiceLifetime
-    {
-        Singleton,
-        Transient,
-    }
-
-    public ServiceLifetime Lifetime
-    {
-        get;
-    }
-
-    public Type ImplementationType
-    {
-        get;
-    }
-
-    public EditorInjectionAttribute(ServiceLifetime lifetime, Type implementationType)
-    {
-        Lifetime = lifetime;
-        ImplementationType = implementationType;
-    }
-}
-
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class ContextMenuItemAttribute : DiscoverableAttributeBase
 {

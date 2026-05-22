@@ -1,4 +1,4 @@
-using Ghost.Core.Utilities;
+using Ghost.Editor.Core.Utilities;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 

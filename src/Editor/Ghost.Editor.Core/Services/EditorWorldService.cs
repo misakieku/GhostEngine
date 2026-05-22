@@ -5,10 +5,9 @@ using System.Collections.ObjectModel;
 
 namespace Ghost.Editor.Core.Services;
 
-[EditorInjection(EditorInjectionAttribute.ServiceLifetime.Singleton, typeof(EditorWorldService))]
 public class EditorWorldService : IDisposable
 {
-    private const int _DEFAULT_ENTITY_CAPACITY = 1024;
+    private const int DEFAULT_ENTITY_CAPACITY = 1024;
 
     public World EditorWorld
     {
@@ -22,7 +21,7 @@ public class EditorWorldService : IDisposable
 
     public EditorWorldService()
     {
-        EditorWorld = World.Create(entityCapacity: _DEFAULT_ENTITY_CAPACITY);
+        EditorWorld = World.Create(entityCapacity: DEFAULT_ENTITY_CAPACITY);
     }
 
     public void CreateDefaultScene()

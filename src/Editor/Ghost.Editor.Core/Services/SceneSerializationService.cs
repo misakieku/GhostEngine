@@ -38,7 +38,7 @@ internal sealed class EntitySaveData
     } = new();
 }
 
-[EditorInjection(EditorInjectionAttribute.ServiceLifetime.Singleton, typeof(SceneSerializationService))]
+// TODO: Serialize shared components.
 internal class SceneSerializationService : IDisposable
 {
     private static readonly Dictionary<Type, FieldInfo[]> s_entityFieldsCache = new();
@@ -84,11 +84,6 @@ internal class SceneSerializationService : IDisposable
         return -1;
     }
 
-    private static bool IsEntityType(Type type)
-    {
-        return type == typeof(Entity);
-    }
-
     private static FieldInfo[] GetEntityFields(Type type)
     {
         if (!s_entityFieldsCache.TryGetValue(type, out var fields))
@@ -96,7 +91,7 @@ internal class SceneSerializationService : IDisposable
             var list = new List<FieldInfo>();
             foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.Instance))
             {
-                if (IsEntityType(field.FieldType))
+                if (field.FieldType == typeof(Entity))
                 {
                     list.Add(field);
                 }

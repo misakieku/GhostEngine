@@ -33,13 +33,13 @@ public static class SceneGraphBuilder
             var entities = chunk.GetEntities();
             var scene = chunk.GetSharedComponent<SceneID>();
 
+            if (scene.value == Scene.INVALID_ID)
+            {
+                continue;
+            }
+
             for (var i = 0; i < chunk.EntityCount; i++)
             {
-                if (scene.value == Scene.INVALID_ID)
-                {
-                    continue;
-                }
-
                 if (!sceneMap.TryGetValue(scene.value, out var list))
                 {
                     list = new List<Entity>();

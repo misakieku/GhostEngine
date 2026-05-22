@@ -8,7 +8,7 @@ public unsafe struct ShaderByteCode
     public ulong size;
 }
 
-public unsafe delegate void ShaderVariantCompiledHandler(ulong shaderId, int passIndex, Key64<ShaderVariant> variantKey, ReadOnlySpan<ShaderByteCode> byteCodes);
+public delegate void ShaderVariantCompiledHandler(ulong shaderId, int passIndex, Key64<ShaderVariant> variantKey, ReadOnlySpan<ShaderByteCode> byteCodes);
 
 public interface IShaderCompilationBridge : IDisposable
 {

@@ -1,12 +1,10 @@
 using Ghost.Editor.Core.SceneGraph;
-using Ghost.Engine;
 using Ghost.Engine.Components;
 using Ghost.Engine.Core;
 using Ghost.Entities;
 
 namespace Ghost.Editor.Core.Services;
 
-[EditorInjection(EditorInjectionAttribute.ServiceLifetime.Singleton, typeof(SceneGraphSyncService))]
 public class SceneGraphSyncService
 {
     private readonly EditorWorldService _worldService;
@@ -61,7 +59,7 @@ public class SceneGraphSyncService
         return newSceneNode;
     }
 
-    private void SyncEntityTree(SceneGraphNode parentNode, List<Entity> entities)
+    private static void SyncEntityTree(SceneGraphNode parentNode, List<Entity> entities)
     {
         var entitySet = new HashSet<Entity>(entities);
         var children = new Dictionary<Entity, List<Entity>>();

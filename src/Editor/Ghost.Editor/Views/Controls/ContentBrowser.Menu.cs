@@ -1,4 +1,7 @@
 using Ghost.Editor.Core;
+using Ghost.Editor.Core.Services;
+using Ghost.Editor.Core.Utilities;
+using Ghost.Engine.Core;
 
 namespace Ghost.Editor.Views.Controls;
 
@@ -54,5 +57,24 @@ internal partial class ContentBrowser
     [ContextMenuItem("project-browser", "Create/Asset/Scene")]
     private static void CreateSceneAsset()
     {
+        var viewModel = LastFocused?.ViewModel;
+        if (viewModel is null)
+        {
+            return;
+        }
+
+        var currentDir = viewModel.CurrentDirectoryPath;
+        if (!Directory.Exists(currentDir))
+        {
+            return;
+        }
+
+        var newScenePath = PathUtility.GetUniqueName(Path.Combine(currentDir, "New Scene.gscene"));
+        var tempScene = SceneManager.CreateScene();
+
+        var sceneSerializationService = App.GetService<SceneSerializationService>();
+        sceneSerializationService.SaveSceneFromEditorWorld(newScenePath, tempScene);
+
+        SceneManager.DestroyScene(tempScene, App.GetService<EditorWorldService>().EditorWorld);
     }
 }

@@ -7,8 +7,8 @@ namespace Ghost.Editor.Views.Controls;
 
 public sealed partial class Hierarchy : UserControl
 {
-    private readonly SceneGraphSyncService _syncService;
     private readonly IInspectorService _inspectorService;
+    private readonly SceneGraphSyncService _syncService;
     private readonly EditorWorldService _worldService;
     private DispatcherQueueTimer? _syncTimer;
 
@@ -16,8 +16,8 @@ public sealed partial class Hierarchy : UserControl
     {
         InitializeComponent();
 
-        _syncService = App.GetService<SceneGraphSyncService>();
         _inspectorService = App.GetService<IInspectorService>();
+        _syncService = App.GetService<SceneGraphSyncService>();
         _worldService = App.GetService<EditorWorldService>();
 
         SceneTreeView.ItemsSource = _worldService.RootNodes;

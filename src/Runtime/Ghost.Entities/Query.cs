@@ -636,16 +636,71 @@ public unsafe partial struct EntityQuery : IDisposable
 
                 if (!requiresFiltering)
                 {
-                    // No enablement constraints? Any entity in this chunk is a match!
                     return true;
                 }
 
-                for (var k = 0; k < chunk._count; k++)
+                var ulongCount = (chunk._count + 63) / 64;
+                var chunkHasMatch = false;
+
+                // Loop through 64 entities at a time
+                for (var block = 0; block < ulongCount; block++)
                 {
-                    if (IsEntityValid(chunk.GetUnsafePtr(), k, in archetype, in _mask))
+                    // Start assuming all 64 entities in this block are valid (ulong.MaxValue = 1111...)
+                    // For the last block, mask out the garbage bits beyond chunk._count
+                    var validMask = ulong.MaxValue;
+                    var remaining = chunk._count - (block * 64);
+                    if (remaining < 64)
                     {
-                        return true;
+                        validMask = (1UL << remaining) - 1UL;
                     }
+
+                    // Intersect requireEnabled (Bits MUST be 1)
+                    var it = _mask.requireEnabled.GetIterator();
+                    while (it.Next(out var id) && validMask != 0)
+                    {
+                        var layoutResult = archetype.GetLayout(id);
+                        if (layoutResult.Error == Error.None && layoutResult.Value.enableBitsOffset != -1)
+                        {
+                            var pMask = (ulong*)(chunk.GetUnsafePtr() + layoutResult.Value.enableBitsOffset);
+                            validMask &= pMask[block];
+                        }
+                    }
+
+                    // Intersect requireDisabled / rejectIfEnabled (Bits MUST be 0)
+                    it = _mask.requireDisabled.GetIterator();
+                    while (it.Next(out var id) && validMask != 0)
+                    {
+                        var layoutResult = archetype.GetLayout(id);
+                        if (layoutResult.Error == Error.None && layoutResult.Value.enableBitsOffset != -1)
+                        {
+                            var pMask = (ulong*)(chunk.GetUnsafePtr() + layoutResult.Value.enableBitsOffset);
+                            validMask &= ~pMask[block]; // Invert memory, because it must be 0!
+                        }
+                    }
+
+                    // rejectIfEnabled behaves identically to requireDisabled
+                    it = _mask.rejectIfEnabled.GetIterator();
+                    while (it.Next(out var id) && validMask != 0)
+                    {
+                        var layoutResult = archetype.GetLayout(id);
+                        if (layoutResult.Error == Error.None && layoutResult.Value.enableBitsOffset != -1)
+                        {
+                            var pMask = (ulong*)(chunk.GetUnsafePtr() + layoutResult.Value.enableBitsOffset);
+                            validMask &= ~pMask[block];
+                        }
+                    }
+
+                    // If validMask still has ANY bits set to 1, we found at least one matching entity.
+                    if (validMask != 0)
+                    {
+                        chunkHasMatch = true;
+                        break;
+                    }
+                }
+
+                if (chunkHasMatch)
+                {
+                    return true;
                 }
             }
         }

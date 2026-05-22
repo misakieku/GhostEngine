@@ -47,13 +47,13 @@ internal sealed partial class ContentBrowser : UserControl
 
     private void ProjectBrowser_Loaded(object sender, RoutedEventArgs e)
     {
-        _inspectorService.OnSelectionChanged += _inspectorService_OnSelectionChanged;
+        //_inspectorService.OnSelectionChanged += _inspectorService_OnSelectionChanged;
         GettingFocus += ProjectBrowser_GettingFocus;
     }
 
     private void ProjectBrowser_Unloaded(object sender, RoutedEventArgs e)
     {
-        _inspectorService.OnSelectionChanged -= _inspectorService_OnSelectionChanged;
+        //_inspectorService.OnSelectionChanged -= _inspectorService_OnSelectionChanged;
         GettingFocus -= ProjectBrowser_GettingFocus;
 
         if (LastFocused == this)
@@ -62,14 +62,14 @@ internal sealed partial class ContentBrowser : UserControl
         }
     }
 
-    private void _inspectorService_OnSelectionChanged(object? sender, InspectorSelectionChangedEventArgs e)
-    {
-        if (e.Source is not ContentBrowserViewModel)
-        {
-            PART_FilesView.DeselectAll();
-            PART_DirectoriesView.SelectedNodes.Clear();
-        }
-    }
+    //private void _inspectorService_OnSelectionChanged(object? sender, InspectorSelectionChangedEventArgs e)
+    //{
+    //    if (e.Source is not ContentBrowserViewModel)
+    //    {
+    //        PART_FilesView.DeselectAll();
+    //        PART_DirectoriesView.SelectedNodes.Clear();
+    //    }
+    //}
 
     private void PART_DirectoriesView_SelectionChanged(TreeView sender, TreeViewSelectionChangedEventArgs args)
     {
@@ -80,7 +80,7 @@ internal sealed partial class ContentBrowser : UserControl
 
         _isUpdatingSelection = true;
 
-        PART_FilesView.DeselectAll();
+        //PART_FilesView.DeselectAll();
         if (args.AddedItems.Count > 0 && args.AddedItems[0] is ExplorerItem selectedItem)
         {
             ViewModel.SelectedItem = selectedItem;
@@ -99,7 +99,7 @@ internal sealed partial class ContentBrowser : UserControl
 
         _isUpdatingSelection = true;
 
-        PART_DirectoriesView.SelectedNodes.Clear();
+        //PART_DirectoriesView.SelectedNodes.Clear();
         if (PART_FilesView.SelectedItem is ExplorerItem selectedItem)
         {
             ViewModel.SelectedItem = selectedItem;

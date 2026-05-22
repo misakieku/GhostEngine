@@ -53,8 +53,6 @@ public partial class App : Application
     {
         InitializeComponent();
 
-        TypeCache.Initialize();
-
         Host = Microsoft.Extensions.Hosting.Host.
             CreateDefaultBuilder().
             UseContentRoot(AppContext.BaseDirectory).
@@ -67,38 +65,17 @@ public partial class App : Application
                 services.AddSingleton<IInspectorService, InspectorService>();
                 services.AddSingleton<IPreviewService, PreviewService>();
                 services.AddSingleton<IAssetRegistry, AssetRegistry>();
+
+                services.AddSingleton<EditorWorldService>();
+                services.AddSingleton<SceneSerializationService>();
+                services.AddSingleton<SceneGraphSyncService>();
+
                 services.AddSingleton<IContentProvider, EditorContentProvider>();
                 services.AddSingleton<IShaderCompilationBridge, EditorShaderCompilerBridge>();
 
                 services.AddSingleton<EngineEditorViewModel>();
 
                 services.AddTransient<ContentBrowserViewModel>();
-
-                // TODO: Use source generators to generate this code at compile time instead of using reflection at runtime.
-                foreach (var type in TypeCache.GetTypes())
-                {
-                    var data = type.GetCustomAttributesData().FirstOrDefault(a => a.AttributeType == typeof(EditorInjectionAttribute));
-                    if (data is null)
-                    {
-                        continue;
-                    }
-
-                    var lifeTime = (EditorInjectionAttribute.ServiceLifetime)data.ConstructorArguments[0].Value!;
-                    var implementationType = (Type)data.ConstructorArguments[1].Value!;
-                    var serviceType = type.IsInterface ? type.AsType() : implementationType;
-
-                    switch (lifeTime)
-                    {
-                        case EditorInjectionAttribute.ServiceLifetime.Singleton:
-                            services.AddSingleton(serviceType, implementationType);
-                            break;
-                        case EditorInjectionAttribute.ServiceLifetime.Transient:
-                            services.AddTransient(serviceType, implementationType);
-                            break;
-                        default:
-                            break;
-                    }
-                }
             })
             .Build();
 
