@@ -402,28 +402,28 @@ internal class MeshAssetHandler : IImportableAssetHandler, IPackableAssetHandler
         using var stream = new FileStream(targetPath, FileMode.Create, FileAccess.Write, FileShare.None);
         stream.Write(header);
 
-        header.vertexOffset = (ulong)stream.Position;
+        header.vertexOffset = stream.Position;
         await stream.WriteAsync<Vertex, UnsafeList<Vertex>>(geometry.Vertices, token);
 
-        header.indexOffset = (ulong)stream.Position;
+        header.indexOffset = stream.Position;
         await stream.WriteAsync<uint, UnsafeList<uint>>(geometry.Indices, token);
 
-        header.materialPartOffset = (ulong)stream.Position;
+        header.materialPartOffset = stream.Position;
         WriteMaterialParts(stream, geometry.MaterialParts.AsSpan());
 
-        header.meshletOffset = (ulong)stream.Position;
+        header.meshletOffset = stream.Position;
         await stream.WriteAsync<Meshlet, UnsafeList<Meshlet>>(meshletData.GetRef().meshlets, token);
 
-        header.meshletGroupOffset = (ulong)stream.Position;
+        header.meshletGroupOffset = stream.Position;
         await stream.WriteAsync<MeshletGroup, UnsafeList<MeshletGroup>>(meshletData.GetRef().groups, token);
 
-        header.meshletHierarchyNodeOffset = (ulong)stream.Position;
+        header.meshletHierarchyNodeOffset = stream.Position;
         await stream.WriteAsync<MeshletHierarchyNode, UnsafeList<MeshletHierarchyNode>>(meshletData.GetRef().hierarchyNodes, token);
 
-        header.meshletVertexOffset = (ulong)stream.Position;
+        header.meshletVertexOffset = stream.Position;
         await stream.WriteAsync<uint, UnsafeList<uint>>(meshletData.GetRef().meshletVertices, token);
 
-        header.meshletTriangleOffset = (ulong)stream.Position;
+        header.meshletTriangleOffset = stream.Position;
         await stream.WriteAsync<uint, UnsafeList<uint>>(meshletData.GetRef().meshletTriangles, token);
 
         stream.Position = 0;

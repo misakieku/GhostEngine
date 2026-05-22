@@ -1,5 +1,6 @@
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections.Contracts;
+using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -66,7 +67,8 @@ public static class StreamUtility
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static MemoryBlock ReadMemory(this Stream stream, long length, AllocationHandle allocationHandle)
     {
-        var memory = new MemoryBlock((nuint)length, 16, allocationHandle);
+        var alignedLength = MemoryUtility.AlignUp((nuint)length, 16);
+        var memory = new MemoryBlock(alignedLength, 16, allocationHandle);
 
         // C# built-in collections use int for indexing, so we need to ensure that the buffer size does not exceed int.MaxValue
         var maxChunkSize = (int)Math.Min(0x7fffffffL, length);

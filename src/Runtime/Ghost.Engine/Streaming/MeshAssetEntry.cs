@@ -35,14 +35,14 @@ internal struct MeshContentHeader
     public float3 boundsMin;
     public float3 boundsMax;
 
-    public ulong vertexOffset;
-    public ulong indexOffset;
-    public ulong materialPartOffset;
-    public ulong meshletOffset;
-    public ulong meshletGroupOffset;
-    public ulong meshletHierarchyNodeOffset;
-    public ulong meshletVertexOffset;
-    public ulong meshletTriangleOffset;
+    public long vertexOffset;
+    public long indexOffset;
+    public long materialPartOffset;
+    public long meshletOffset;
+    public long meshletGroupOffset;
+    public long meshletHierarchyNodeOffset;
+    public long meshletVertexOffset;
+    public long meshletTriangleOffset;
 }
 
 [StructLayout(LayoutKind.Sequential)]
@@ -123,15 +123,19 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
 
     public override void OnReleaseResource()
     {
-        ResourceManager.ReleaseMesh(_tempHandle);
+        ResourceManager.ReleaseMesh(_actualHandle);
+        if (_tempHandle.IsValid)
+        {
+            ResourceManager.ReleaseMesh(_tempHandle);
+        }
     }
 
     public Result OnLoadContent(Stream contentStream)
     {
-        bool ValidateRange(ulong offset, int count, uint stride)
+        bool ValidateRange(long offset, int count, uint stride)
         {
-            var size = (ulong)count * stride;
-            return offset <= _rawData.Size && size <= _rawData.Size - (nuint)offset;
+            var size = count * stride;
+            return offset <= contentStream.Length && size <= contentStream.Length - offset;
         }
 
         var header = contentStream.Read<MeshContentHeader>();
@@ -330,6 +334,7 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
         dstMesh.MeshletTrianglesBuffer = context.ResourceDatabase.Replace(temp.MeshletTrianglesBuffer.AsResource(), srcMesh.MeshletTrianglesBuffer.AsResource()).AsBuffer();
 
         context.ResourceManager.ReleaseMesh(_tempHandle);
+        _tempHandle = Handle<Mesh>.Invalid;
 
         context.CommandBuffer.Barrier(
             BarrierDesc.Buffer(dstMesh.VertexBuffer, BarrierSync.VertexShading, BarrierAccess.VertexBuffer | BarrierAccess.ShaderResource),
@@ -340,8 +345,6 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
             BarrierDesc.Buffer(dstMesh.MeshletGroupBuffer, BarrierSync.AllShading, BarrierAccess.ShaderResource),
             BarrierDesc.Buffer(dstMesh.MeshletHierarchyBuffer, BarrierSync.AllShading, BarrierAccess.ShaderResource),
             BarrierDesc.Buffer(dstMesh.MeshDataBuffer, BarrierSync.AllShading, BarrierAccess.ShaderResource));
-
-        _actualHandle = Handle<Mesh>.Invalid;
 
         _rawData.Dispose();
         _pVertices = null;

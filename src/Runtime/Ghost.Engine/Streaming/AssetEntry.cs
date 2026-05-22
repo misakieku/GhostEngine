@@ -4,7 +4,6 @@ using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.Jobs;
 using System.Runtime.CompilerServices;
-using TerraFX.Interop.Windows;
 
 namespace Ghost.Engine.Streaming;
 
@@ -68,7 +67,7 @@ internal abstract class AssetEntry : IAssetEntry
     private int _refCount;
     private int _state;
 
-    private bool _pendingReimport;
+    private int _pendingReimport;
 
     protected ResourceManager ResourceManager => _resourceManager;
     protected IResourceDatabase ResourceDatabase => _resourceDatabase;
@@ -88,7 +87,7 @@ internal abstract class AssetEntry : IAssetEntry
             Volatile.Write(ref _state, (int)value);
             if (Volatile.Read(ref _state) == (int)AssetState.Ready)
             {
-                if (Interlocked.CompareExchange(ref _pendingReimport, false, true))
+                if (Interlocked.Exchange(ref _pendingReimport, 0) == 1)
                 {
                     _assetManager.ReimportAsset(_assetId);  // re-queue
                 }
@@ -116,7 +115,7 @@ internal abstract class AssetEntry : IAssetEntry
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void SetPendingReimport()
     {
-        Volatile.Write(ref _pendingReimport, true);
+        Volatile.Write(ref _pendingReimport, 1);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -155,7 +154,7 @@ internal abstract class AssetEntry : IAssetEntry
     }
 }
 
-interface IAssetEntry
+internal interface IAssetEntry
 {
     Guid AssetId { get; }
     AssetType AssetType { get; }

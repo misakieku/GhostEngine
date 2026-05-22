@@ -29,24 +29,43 @@ public partial class AssetManager
         public SceneContentHeader header;
         public Stream stream;
 
-        public LoadedSceneData loadedSceneData;
+        public PendingSceneLoad pendingSceneLoad;
 
         public readonly void Execute(ref readonly JobExecutionContext context)
         {
             try
             {
-                var loadResult = SceneManager.ParseSceneData(header, stream, AllocationHandle.Persistent);
-                if (loadResult.IsFailure)
+                if (pendingSceneLoad.Status == SceneLoadStatus.Canceled)
                 {
-                    Logger.Error($"Failed to parse scene data: {loadResult.Message}");
+                    pendingSceneLoad.Dispose();
                     return;
                 }
 
-                loadedSceneData.entities = loadResult.Value.entities;
+                pendingSceneLoad.SetStatus(SceneLoadStatus.Parsing);
+
+                var loadResult = SceneManager.ParseSceneData(header, stream, AllocationHandle.Persistent);
+                if (loadResult.IsFailure)
+                {
+                    pendingSceneLoad.Fail(loadResult.Message ?? "Failed to parse scene data.");
+                    return;
+                }
+
+                if (pendingSceneLoad.Status == SceneLoadStatus.Canceled)
+                {
+                    loadResult.Value.Dispose();
+                    pendingSceneLoad.Dispose();
+                    return;
+                }
+
+                pendingSceneLoad.CompleteParsing(loadResult.Value);
+                if (pendingSceneLoad.Options.AutoMaterialize)
+                {
+                    SceneManager.EnqueuePendingScene(pendingSceneLoad);
+                }
             }
             catch (Exception ex)
             {
-                Logger.Error($"Exception while loading scene: {ex}");
+                pendingSceneLoad.Fail(ex.Message);
             }
             finally
             {
@@ -55,7 +74,7 @@ public partial class AssetManager
         }
     }
 
-    public unsafe Result<JobHandle> LoadScene(World world, AssetRef<Scene> sceneAsset, SceneLoadingType loadingType, ref LoadedSceneData? loadedSceneData)
+    public unsafe Result<SceneLoadOperation> LoadScene(World world, AssetRef<Scene> sceneAsset, SceneLoadingType loadingType, SceneLoadOptions options = default)
     {
         if (!sceneAsset.IsValid)
         {
@@ -91,23 +110,19 @@ public partial class AssetManager
 
         try
         {
-            if (loadingType == SceneLoadingType.Single)
-            {
-                world.Reset();
-            }
-
-            loadedSceneData ??= new LoadedSceneData();
-
             var entry = GetOrCreateEntry(sceneAsset.ID); // Purely to get the dependencies and ensure the asset is tracked, the actual loading is done in the job.
+            var pendingSceneLoad = new PendingSceneLoad(world, sceneAsset, loadingType, options, entry);
+            pendingSceneLoad.SetStatus(SceneLoadStatus.WaitingForDependencies);
 
             var job = new LoadSceneJob
             {
                 header = header,
                 stream = stream,
-                loadedSceneData = loadedSceneData
+                pendingSceneLoad = pendingSceneLoad
             };
 
-            return _jobScheduler.Schedule(in job, entry.LoadJobHandle);
+            _jobScheduler.Schedule(in job, entry.LoadJobHandle);
+            return Result<SceneLoadOperation>.Success(new SceneLoadOperation(pendingSceneLoad));
         }
         catch (Exception ex)
         {

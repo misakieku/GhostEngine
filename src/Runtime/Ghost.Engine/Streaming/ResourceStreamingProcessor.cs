@@ -74,8 +74,8 @@ internal class ResourceStreamingProcessor : IResourceStreamingProcessor
         {
             while (_pendingFinalize.TryDequeue(out var item))
             {
-                item.State = AssetState.Ready;
                 item.OnUploadComplete(context);
+                item.State = AssetState.Ready;
             }
 
             _pendingCopyFenceValue = 0;

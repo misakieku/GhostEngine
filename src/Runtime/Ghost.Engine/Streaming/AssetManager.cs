@@ -42,6 +42,17 @@ internal struct LoadAssetJob : IJob
 
         entry.State = AssetState.Loading;
 
+        if (entry is not ILoadableAssetEntry loadable)
+        {
+            entry.State = AssetState.Loaded;
+            if (!assetManager.StreamingProcessor.EnqueueForProcess(entry))
+            {
+                entry.State = AssetState.Ready;
+            }
+
+            return;
+        }
+
         try
         {
             var openResult = assetManager.ContentProvider.OpenRead(entry.AssetId);
@@ -53,17 +64,12 @@ internal struct LoadAssetJob : IJob
             }
 
             using var stream = openResult.Value;
-
-            if (entry is ILoadableAssetEntry loadable)
+            var result = loadable.OnLoadContent(stream);
+            if (result.IsFailure)
             {
-                var result = loadable.OnLoadContent(stream);
-
-                if (result.IsFailure)
-                {
-                    entry.State = AssetState.Failed;
-                    Logger.Error($"Failed to load asset {assetID}: {result.Message}");
-                    return;
-                }
+                entry.State = AssetState.Failed;
+                Logger.Error($"Failed to load asset {assetID}: {result.Message}");
+                return;
             }
 
             entry.State = AssetState.Loaded;

@@ -172,7 +172,7 @@ internal partial class ContentBrowserViewModel : ObservableObject
         }
         else
         {
-            _assetRegistry.OpenAsset(SelectedItem.FullName);
+            // _assetRegistry.OpenAsset(SelectedItem.FullName);
             return (null, 1);
         }
     }

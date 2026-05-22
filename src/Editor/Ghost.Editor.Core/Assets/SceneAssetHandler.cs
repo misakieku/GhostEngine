@@ -12,10 +12,6 @@ internal class SceneAssetHandler : IImportableAssetHandler, IPackableAssetHandle
         return new SceneAssetSettings();
     }
 
-    public ValueTask OpenAsync(string assetPath)
-    {
-    }
-
     public async ValueTask<Result<IAsset>> LoadAssetAsync(string assetPath, Guid id, IAssetSettings? settings, CancellationToken token = default)
     {
         try

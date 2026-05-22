@@ -104,7 +104,11 @@ internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUplo
 
     public override void OnReleaseResource()
     {
-        ResourceDatabase.ReleaseResource(_tempHandle.AsResource());
+        ResourceDatabase.ReleaseResource(_actualHandle.AsResource());
+        if (_tempHandle.IsValid)
+        {
+            ResourceDatabase.ReleaseResource(_tempHandle.AsResource());
+        }
     }
 
     public Result OnLoadContent(Stream contentStream)
@@ -167,8 +171,8 @@ internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUplo
 
         context.CommandBuffer.Barrier(BarrierDesc.Texture(actualHandle, BarrierSync.AllShading, BarrierAccess.ShaderResource, BarrierLayout.ShaderResource));
 
-        _actualHandle = Handle<GPUTexture>.Invalid;
-        _tempHandle = actualHandle.AsTexture();
+        _actualHandle = actualHandle.AsTexture();
+        _tempHandle = Handle<GPUTexture>.Invalid;
         _textureData.Dispose();
     }
 }

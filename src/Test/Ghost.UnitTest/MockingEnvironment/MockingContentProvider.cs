@@ -36,6 +36,8 @@ internal class MockingContentProvider : IContentProvider
     {
         var header = new TextureContentHeader
         {
+            magic = TextureContentHeader.MAGIC,
+            version = TextureContentHeader.VERSION,
             width = width,
             height = height,
             bpc = 8,
@@ -144,14 +146,14 @@ internal class MockingContentProvider : IContentProvider
         };
 
         stream.Write(header);
-        header.vertexOffset = (ulong)stream.Position; stream.Write(vertices);
-        header.indexOffset = (ulong)stream.Position; stream.Write(indices);
-        header.materialPartOffset = (ulong)stream.Position; stream.Write(materialParts);
-        header.meshletOffset = (ulong)stream.Position; stream.Write(meshlets);
-        header.meshletGroupOffset = (ulong)stream.Position; stream.Write(groups);
-        header.meshletHierarchyNodeOffset = (ulong)stream.Position; stream.Write(hierarchy);
-        header.meshletVertexOffset = (ulong)stream.Position; stream.Write(meshletVertices);
-        header.meshletTriangleOffset = (ulong)stream.Position; stream.Write(meshletTriangles);
+        header.vertexOffset = stream.Position; stream.Write(vertices);
+        header.indexOffset = stream.Position; stream.Write(indices);
+        header.materialPartOffset = stream.Position; stream.Write(materialParts);
+        header.meshletOffset = stream.Position; stream.Write(meshlets);
+        header.meshletGroupOffset = stream.Position; stream.Write(groups);
+        header.meshletHierarchyNodeOffset = stream.Position; stream.Write(hierarchy);
+        header.meshletVertexOffset = stream.Position; stream.Write(meshletVertices);
+        header.meshletTriangleOffset = stream.Position; stream.Write(meshletTriangles);
 
         stream.Position = 0;
         stream.Write(header);
