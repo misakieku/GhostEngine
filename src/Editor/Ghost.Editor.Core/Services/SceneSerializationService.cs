@@ -32,6 +32,11 @@ internal sealed class SceneSaveData
 
 internal sealed class EntitySaveData
 {
+    public string Name
+    {
+        get; set;
+    } = "Entity";
+
     public Dictionary<string, JsonElement> Components
     {
         get; set;
@@ -66,11 +71,13 @@ internal class SceneSerializationService : IDisposable
 
     private readonly EditorWorldService _worldService;
     private readonly IAssetRegistry _assetRegistry;
+    private readonly SceneGraphSyncService _syncService;
 
-    public SceneSerializationService(EditorWorldService worldService, IAssetRegistry assetRegistry)
+    public SceneSerializationService(EditorWorldService worldService, IAssetRegistry assetRegistry, SceneGraphSyncService syncService)
     {
         _worldService = worldService;
         _assetRegistry = assetRegistry;
+        _syncService = syncService;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -261,6 +268,11 @@ internal class SceneSerializationService : IDisposable
             {
                 var entityData = new EntitySaveData();
 
+                if (entityElement.TryGetProperty("name", out var nameElement))
+                {
+                    entityData.Name = nameElement.GetString() ?? "Entity";
+                }
+
                 if (entityElement.TryGetProperty("components", out var componentsElement))
                 {
                     foreach (var componentProperty in componentsElement.EnumerateObject())
@@ -291,12 +303,11 @@ internal class SceneSerializationService : IDisposable
         var activeScene = SceneManager.CreateScene();
 
         var entityCount = data.Entities.Count;
+        var forwardMap = new Dictionary<int, Entity>(entityCount);
         if (entityCount == 0)
         {
             goto RebuildAndReturn;
         }
-
-        var forwardMap = new Dictionary<int, Entity>(entityCount);
 
         var scope = AllocationManager.CreateStackScope();
         var typeIds = new UnsafeArray<UnsafeList<Identifier<IComponent>>>(entityCount, scope.AllocationHandle);
@@ -347,12 +358,21 @@ internal class SceneSerializationService : IDisposable
                 world.EntityManager.SetSharedComponent(entity, new SceneID { value = activeScene.ID });
 
                 var entityData = data.Entities[fileIndex];
-                ref var list = ref typeIds[fileIndex];
-                var idx = 1;
 
                 foreach (var (typeName, componentElement) in entityData.Components)
                 {
-                    var compId = list[idx++];
+                    var compId = ComponentRegistry.GetComponentIDByName(typeName);
+                    if (compId.IsInvalid)
+                    {
+                        var type = TypeCache.GetTypes().FirstOrDefault(t => t.FullName == typeName);
+                        if (type == null)
+                        {
+                            continue;
+                        }
+
+                        compId = ComponentRegistry.GetComponentIDByName(typeName);
+                    }
+
                     if (compId.IsInvalid)
                     {
                         continue;
@@ -387,7 +407,15 @@ internal class SceneSerializationService : IDisposable
         }
 
     RebuildAndReturn:
-        _worldService.RebuildSceneGraph();
+        var initialNames = new Dictionary<Entity, string>();
+        for (var fileIndex = 0; fileIndex < entityCount; fileIndex++)
+        {
+            if (forwardMap.TryGetValue(fileIndex, out var entity))
+            {
+                initialNames[entity] = data.Entities[fileIndex].Name;
+            }
+        }
+        _worldService.RebuildSceneGraph(initialNames);
         return activeScene;
     }
 
@@ -460,6 +488,14 @@ internal class SceneSerializationService : IDisposable
             ref var archetype = ref world.ComponentManager.GetArchetypeReference(location.archetypeID);
 
             writer.WriteStartObject();
+
+            var entityName = "Entity";
+            if (_syncService != null && _syncService.TryGetNode(entity, out var node))
+            {
+                entityName = node.Name;
+            }
+            writer.WriteString("name", entityName);
+
             writer.WriteStartObject("components");
 
             foreach (var layout in archetype._layouts)

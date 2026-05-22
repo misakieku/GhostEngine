@@ -274,7 +274,10 @@ public static class SceneManager
 
             using var typeIds = new UnsafeList<Identifier<IComponent>>(pending.componentTypeIDs.Count + 1, scope.AllocationHandle);
             typeIds.Add(ComponentTypeID<SceneID>.Value);
-            typeIds.AddRange(pending.componentTypeIDs);
+            if (pending.componentTypeIDs.Count > 0)
+            {
+                typeIds.AddRange(pending.componentTypeIDs);
+            }
 
             sharedCom.With(new SceneID { value = scene.ID });
 

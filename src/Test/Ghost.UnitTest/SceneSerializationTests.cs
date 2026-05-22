@@ -42,7 +42,8 @@ public class SceneSerializationTests
         EditorApplication.Initialize(new EmptyServiceProvider(), _projectRoot, "SceneTest");
 
         _worldService = new EditorWorldService();
-        _serializationService = new SceneSerializationService(_worldService, null!);
+        var syncService = new SceneGraphSyncService(_worldService);
+        _serializationService = new SceneSerializationService(_worldService, null!, syncService);
     }
 
     [TestCleanup]

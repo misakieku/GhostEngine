@@ -1,12 +1,13 @@
 using Ghost.Engine.Components;
 using Ghost.Engine.Core;
 using Ghost.Entities;
+using System.Collections.Generic;
 
 namespace Ghost.Editor.Core.SceneGraph;
 
 public static class SceneGraphBuilder
 {
-    public static List<SceneNode> Build(World world)
+    public static List<SceneNode> Build(World world, Dictionary<Entity, string>? initialNames = null)
     {
         var sceneNodes = new List<SceneNode>();
         var sceneEntities = GroupEntitiesByScene(world);
@@ -15,7 +16,7 @@ public static class SceneGraphBuilder
         {
             var sceneName = GetDefaultSceneName(scene);
             var sceneNode = new SceneNode(world, new Scene(scene), sceneName);
-            BuildEntityTree(entities, sceneNode);
+            BuildEntityTree(entities, sceneNode, initialNames);
             sceneNodes.Add(sceneNode);
         }
 
@@ -53,7 +54,7 @@ public static class SceneGraphBuilder
         return sceneMap;
     }
 
-    private static void BuildEntityTree(List<Entity> entities, SceneGraphNode parentNode)
+    private static void BuildEntityTree(List<Entity> entities, SceneGraphNode parentNode, Dictionary<Entity, string>? initialNames = null)
     {
         var entitySet = new HashSet<Entity>(entities);
         var childrenByParent = new Dictionary<Entity, List<Entity>>();
@@ -82,13 +83,14 @@ public static class SceneGraphBuilder
 
         foreach (var rootEntity in roots)
         {
-            var entityNode = new EntityNode(parentNode.World, rootEntity, "Entity");
+            var name = initialNames != null && initialNames.TryGetValue(rootEntity, out var n) ? n : "Entity";
+            var entityNode = new EntityNode(parentNode.World, rootEntity, name);
             parentNode.Children.Add(entityNode);
-            BuildSubtree(entityNode, childrenByParent);
+            BuildSubtree(entityNode, childrenByParent, initialNames);
         }
     }
 
-    private static void BuildSubtree(EntityNode parentNode, Dictionary<Entity, List<Entity>> childrenByParent)
+    private static void BuildSubtree(EntityNode parentNode, Dictionary<Entity, List<Entity>> childrenByParent, Dictionary<Entity, string>? initialNames = null)
     {
         if (!childrenByParent.TryGetValue(parentNode.Entity, out var childList))
         {
@@ -100,9 +102,10 @@ public static class SceneGraphBuilder
         {
             foreach (var childEntity in childList)
             {
-                var childNode = new EntityNode(parentNode.World, childEntity, "Entity");
+                var name = initialNames != null && initialNames.TryGetValue(childEntity, out var n) ? n : "Entity";
+                var childNode = new EntityNode(parentNode.World, childEntity, name);
                 parentNode.Children.Add(childNode);
-                BuildSubtree(childNode, childrenByParent);
+                BuildSubtree(childNode, childrenByParent, initialNames);
             }
 
             return;
@@ -113,9 +116,10 @@ public static class SceneGraphBuilder
         {
             if (childList.Contains(sibling))
             {
-                var childNode = new EntityNode(parentNode.World, sibling, "Entity");
+                var name = initialNames != null && initialNames.TryGetValue(sibling, out var n) ? n : "Entity";
+                var childNode = new EntityNode(parentNode.World, sibling, name);
                 parentNode.Children.Add(childNode);
-                BuildSubtree(childNode, childrenByParent);
+                BuildSubtree(childNode, childrenByParent, initialNames);
             }
 
             Hierarchy siblingHierarchy = default;

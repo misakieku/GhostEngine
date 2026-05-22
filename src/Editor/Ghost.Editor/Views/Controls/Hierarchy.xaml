@@ -20,6 +20,11 @@
                 AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"
                 IsExpanded="True"
                 ItemsSource="{x:Bind Children, Mode=OneWay}">
+                <TreeViewItem.ContextFlyout>
+                    <MenuFlyout>
+                        <MenuFlyoutItem Text="Create Entity" Click="OnCreateEntityClick" />
+                    </MenuFlyout>
+                </TreeViewItem.ContextFlyout>
                 <StackPanel Orientation="Horizontal">
                     <FontIcon FontSize="14" Glyph="&#xF156;" />
                     <TextBlock Margin="10,0,0,0" Text="{x:Bind Name, Mode=OneWay}" />
@@ -31,6 +36,12 @@
             <TreeViewItem
                 AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"
                 ItemsSource="{x:Bind Children, Mode=OneWay}">
+                <TreeViewItem.ContextFlyout>
+                    <MenuFlyout>
+                        <MenuFlyoutItem Text="Create Child" Click="OnCreateChildClick" />
+                        <MenuFlyoutItem Text="Delete" Click="OnDeleteEntityClick" />
+                    </MenuFlyout>
+                </TreeViewItem.ContextFlyout>
                 <StackPanel Orientation="Horizontal">
                     <FontIcon FontSize="14" Glyph="&#xF158;" />
                     <TextBlock Margin="5,0,0,0" Text="{x:Bind Name, Mode=OneWay}" />
@@ -92,6 +103,13 @@
             Grid.Row="1"
             Padding="4,2,0,2"
             ItemTemplateSelector="{StaticResource SceneGraphTemplateSelector}"
-            SelectionMode="Single" />
+            SelectionMode="Single"
+            CanDragItems="True"
+            CanReorderItems="True"
+            AllowDrop="True"
+            DragItemsStarting="OnTreeViewDragItemsStarting"
+            DragOver="OnTreeViewDragOver"
+            Drop="OnTreeViewDrop"
+            KeyDown="OnTreeViewKeyDown" />
     </Grid>
 </UserControl>

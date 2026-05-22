@@ -5,35 +5,6 @@ namespace Ghost.Editor.Core;
 /// </summary>
 public abstract class DiscoverableAttributeBase : Attribute;
 
-
-[AttributeUsage(AttributeTargets.Method)]
-public class AssetOpenHandlerAttribute : DiscoverableAttributeBase
-{
-    public string[] Extensions
-    {
-        get;
-    }
-
-    public AssetOpenHandlerAttribute(params string[] extensions)
-    {
-        Extensions = extensions.Select(e => e.StartsWith('.') ? e.ToLowerInvariant() : '.' + e.ToLowerInvariant()).ToArray();
-    }
-}
-
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-internal class AssetImporterAttribute : DiscoverableAttributeBase
-{
-    public string[] SupportedExtensions
-    {
-        get;
-    }
-
-    public AssetImporterAttribute(params string[] supportedExtensions)
-    {
-        SupportedExtensions = supportedExtensions;
-    }
-}
-
 [AttributeUsage(AttributeTargets.Class)]
 public class CustomEditorAttribute : DiscoverableAttributeBase
 {
