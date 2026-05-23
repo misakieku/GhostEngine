@@ -239,4 +239,10 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Editor|ARM64'">
     <Optimize>True</Optimize>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Editor|x64'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Editor|ARM64'" />
 </Project>

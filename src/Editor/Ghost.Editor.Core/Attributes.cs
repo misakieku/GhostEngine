@@ -19,6 +19,19 @@ public class CustomEditorAttribute : DiscoverableAttributeBase
     }
 }
 
+public class AssetOpenHandlerAttribute : DiscoverableAttributeBase
+{
+    internal string[] Extensions
+    {
+        get;
+    }
+
+    public AssetOpenHandlerAttribute(params string[] extensions)
+    {
+        Extensions = extensions;
+    }
+}
+
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class ContextMenuItemAttribute : DiscoverableAttributeBase
 {

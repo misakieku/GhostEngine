@@ -1,13 +1,11 @@
 using Ghost.Editor.Core.Contracts;
-using Ghost.Editor.Core.Services;
 using Ghost.Editor.Core.SceneGraph;
-using Ghost.Entities;
+using Ghost.Editor.Core.Services;
 using Ghost.Engine;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
-using System;
 
 namespace Ghost.Editor.Views.Controls;
 
@@ -23,7 +21,11 @@ public sealed partial class Hierarchy : UserControl
         InitializeComponent();
 
         _inspectorService = App.GetService<IInspectorService>();
+        
+        // We resolve SceneGraphSyncService here to force the DI container to instantiate it. 
+        // This ensures the singleton hooks into EditorWorldService events and starts populating RootNodes.
         _syncService = App.GetService<SceneGraphSyncService>();
+        
         _worldService = App.GetService<EditorWorldService>();
 
         SceneTreeView.ItemsSource = _worldService.RootNodes;

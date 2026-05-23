@@ -2,8 +2,6 @@ using Ghost.Editor.Core.SceneGraph;
 using Ghost.Engine.Components;
 using Ghost.Engine.Core;
 using Ghost.Entities;
-using System;
-using System.Collections.Generic;
 
 namespace Ghost.Editor.Core.Services;
 
@@ -29,12 +27,6 @@ public class SceneGraphSyncService : IDisposable
     public bool TryGetNode(Entity entity, out EntityNode node)
     {
         return _nodeMap.TryGetValue(entity, out node!);
-    }
-
-    // Keep Tick as an empty stub returning false so we don't break Hierarchy.xaml.cs before we update it
-    public bool Tick()
-    {
-        return false;
     }
 
     public void Dispose()

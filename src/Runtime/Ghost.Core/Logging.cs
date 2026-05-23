@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace Ghost.Core;
 
@@ -217,7 +216,7 @@ public static class Logger
         var messageStr = message?.ToString() ?? "null";
         s_logger.Log(messageStr, LogLevel.Error);
 #if DEBUG
-        System.Diagnostics.Debug.Fail(messageStr);
+        throw new Exception(messageStr);
 #endif
     }
 
@@ -227,7 +226,7 @@ public static class Logger
     {
         s_logger.Log(message, LogLevel.Error);
 #if DEBUG
-        System.Diagnostics.Debug.Fail(message);
+        throw new Exception(message);
 #endif
     }
 
@@ -238,7 +237,7 @@ public static class Logger
         var message = string.Format(format, args);
         s_logger.Log(message, LogLevel.Error);
 #if DEBUG
-        System.Diagnostics.Debug.Fail(message);
+        throw new Exception(message);
 #endif
 
     }
@@ -249,7 +248,7 @@ public static class Logger
     {
         s_logger.Log(ex);
 #if DEBUG
-        System.Diagnostics.Debug.Fail(ex.Message);
+        throw ex;
 #endif
 
     }
@@ -295,15 +294,10 @@ public static class Logger
     public static void DebugAssert([DoesNotReturnIf(false)] bool condition, [CallerArgumentExpression(nameof(condition))] string? message = null)
     {
         s_logger.Assert(condition, message?.ToString() ?? "null");
-#if DEBUG
+#if DEBUG || GHOST_EDITOR
         if (!condition)
         {
-            System.Diagnostics.Debug.Fail(message ?? "Assertion failed.");
-        }
-#elif GHOST_EDITOR
-        if (!condition)
-        {
-            throw new InvalidOperationException(message ?? "Assertion failed.");
+            throw new Exception(message ?? "Assertion failed.");
         }
 #endif
     }

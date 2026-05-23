@@ -58,4 +58,7 @@ public interface IAssetRegistry : IDisposable
     ValueTask<Result> SaveAssetIfDirtyAsync(IAsset asset, CancellationToken token = default);
     ValueTask<Result> SaveAssetIfDirtyAsync(Guid id, CancellationToken token = default);
     ValueTask<Result[]> SaveDirtyAssetsAsync();
+
+    Task<Result> OpenAssetAsync(Guid id);
+    Task<Result> OpenAssetAsync(string assetPath);
 }

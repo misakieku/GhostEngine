@@ -7,6 +7,20 @@ namespace Ghost.Editor.Core.Assets;
 [CustomAssetHandler(AssetTypeId = SceneAsset.GUID, RuntimeAssetType = AssetType.Scene, Extensions = new[] { ".gscene" })]
 internal class SceneAssetHandler : IImportableAssetHandler, IPackableAssetHandler
 {
+    [AssetOpenHandler(".gscene")]
+    private static async Task<Result> OpenAsync(string path)
+    {
+        var data =  await SceneSerializationService.DeserializeSceneFileAsync(path);
+        if (data == null)
+        {
+            return Result.Failure("Failed to load scene.");
+        }
+
+        var service = EditorApplication.GetService<SceneSerializationService>();
+        service.LoadSceneIntoEditorWorld(data);
+        return Result.Success();
+    }
+
     public IAssetSettings? CreateDefaultSettings(string ext)
     {
         return new SceneAssetSettings();

@@ -2,7 +2,9 @@ using Ghost.Core;
 using Ghost.Core.Utilities;
 using Ghost.Editor.Core.Assets;
 using Ghost.Editor.Core.Contracts;
+using Ghost.Editor.Core.Utilities;
 using System.Collections.Concurrent;
+using System.Reflection;
 
 namespace Ghost.Editor.Core.Services;
 
@@ -419,6 +421,37 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
 
         _dirtyAssets.Clear();
         return await Task.WhenAll(tasks);
+    }
+
+    public Task<Result> OpenAssetAsync(Guid id)
+    {
+        var path = GetAssetPath(id);
+        if (path == null)
+        {
+            return Task.FromResult(Result.Failure("Asset not found."));
+        }
+
+        return OpenAssetAsync(path);
+    }
+
+    public Task<Result> OpenAssetAsync(string assetPath)
+    {
+        try
+        {
+            var method = TypeCache.GetMethodsWithAttribute<AssetOpenHandlerAttribute>()?
+                .FirstOrDefault(m => m.GetCustomAttribute<AssetOpenHandlerAttribute>()?.Extensions.Contains(Path.GetExtension(assetPath)) ?? false);
+
+            if (method == null)
+            {
+                return Task.FromResult(Result.Failure("No handler for this asset type."));
+            }
+
+            return (Task<Result>)method.Invoke(null, new object[] { assetPath })!;
+        }
+        catch (Exception ex)
+        {
+            return Task.FromResult(Result.Failure($"Failed to open asset: {ex.Message}"));
+        }
     }
 
     public void Dispose()

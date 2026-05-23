@@ -5,15 +5,15 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="using:Ghost.Editor.Views.Controls"
-    xmlns:sg="using:Ghost.Editor.Core.SceneGraph"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:sg="using:Ghost.Editor.Core.SceneGraph"
     mc:Ignorable="d">
 
     <UserControl.Resources>
         <local:SceneGraphTemplateSelector
             x:Key="SceneGraphTemplateSelector"
-            SceneNodeTemplate="{StaticResource SceneNodeTemplate}"
-            EntityNodeTemplate="{StaticResource EntityNodeTemplate}" />
+            EntityNodeTemplate="{StaticResource EntityNodeTemplate}"
+            SceneNodeTemplate="{StaticResource SceneNodeTemplate}" />
 
         <DataTemplate x:Key="SceneNodeTemplate" x:DataType="sg:SceneNode">
             <TreeViewItem
@@ -22,7 +22,7 @@
                 ItemsSource="{x:Bind Children, Mode=OneWay}">
                 <TreeViewItem.ContextFlyout>
                     <MenuFlyout>
-                        <MenuFlyoutItem Text="Create Entity" Click="OnCreateEntityClick" />
+                        <MenuFlyoutItem Click="OnCreateEntityClick" Text="Create Entity" />
                     </MenuFlyout>
                 </TreeViewItem.ContextFlyout>
                 <StackPanel Orientation="Horizontal">
@@ -33,13 +33,11 @@
         </DataTemplate>
 
         <DataTemplate x:Key="EntityNodeTemplate" x:DataType="sg:EntityNode">
-            <TreeViewItem
-                AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"
-                ItemsSource="{x:Bind Children, Mode=OneWay}">
+            <TreeViewItem AutomationProperties.Name="{x:Bind Name, Mode=OneWay}" ItemsSource="{x:Bind Children, Mode=OneWay}">
                 <TreeViewItem.ContextFlyout>
                     <MenuFlyout>
-                        <MenuFlyoutItem Text="Create Child" Click="OnCreateChildClick" />
-                        <MenuFlyoutItem Text="Delete" Click="OnDeleteEntityClick" />
+                        <MenuFlyoutItem Click="OnCreateChildClick" Text="Create Child" />
+                        <MenuFlyoutItem Click="OnDeleteEntityClick" Text="Delete" />
                     </MenuFlyout>
                 </TreeViewItem.ContextFlyout>
                 <StackPanel Orientation="Horizontal">
@@ -101,15 +99,15 @@
         <TreeView
             x:Name="SceneTreeView"
             Grid.Row="1"
-            Padding="4,2,0,2"
-            ItemTemplateSelector="{StaticResource SceneGraphTemplateSelector}"
-            SelectionMode="Single"
+            Margin="4,2,0,2"
+            AllowDrop="True"
             CanDragItems="True"
             CanReorderItems="True"
-            AllowDrop="True"
             DragItemsStarting="OnTreeViewDragItemsStarting"
             DragOver="OnTreeViewDragOver"
             Drop="OnTreeViewDrop"
-            KeyDown="OnTreeViewKeyDown" />
+            ItemTemplateSelector="{StaticResource SceneGraphTemplateSelector}"
+            KeyDown="OnTreeViewKeyDown"
+            SelectionMode="Single" />
     </Grid>
 </UserControl>

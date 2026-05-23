@@ -1,10 +1,8 @@
 using Ghost.Core;
 using Ghost.Editor.Core.SceneGraph;
-using Ghost.Entities;
 using Ghost.Engine;
 using Ghost.Engine.Core;
-using System;
-using System.Collections.Generic;
+using Ghost.Entities;
 using System.Collections.ObjectModel;
 
 namespace Ghost.Editor.Core.Services;
@@ -136,7 +134,7 @@ public class EditorWorldService : IDisposable
             return Error.InvalidArgument;
         }
 
-        Entity oldParent = Entity.Invalid;
+        var oldParent = Entity.Invalid;
         if (EditorWorld.EntityManager.HasComponent<Engine.Components.Hierarchy>(child))
         {
             oldParent = EditorWorld.EntityManager.GetComponent<Engine.Components.Hierarchy>(child).parent;

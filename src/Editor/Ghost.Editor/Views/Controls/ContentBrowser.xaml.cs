@@ -127,7 +127,7 @@ internal sealed partial class ContentBrowser : UserControl
 
             ViewModel.SelectedItem = selectedItem;
 
-            var navigatedItem = ViewModel.OpenSelected();
+            var navigatedItem = await ViewModel.OpenSelected();
             if (navigatedItem.Item1 != null)
             {
                 if (navigatedItem.Item2 == 0)

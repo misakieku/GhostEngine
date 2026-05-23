@@ -157,7 +157,7 @@ internal partial class ContentBrowserViewModel : ObservableObject
         CurrentDirectoryPath = Path.GetFullPath(path);
     }
 
-    internal (ExplorerItem?, int) OpenSelected()
+    internal async ValueTask<(ExplorerItem?, int)> OpenSelected()
     {
         if (SelectedItem == null)
         {
@@ -172,7 +172,12 @@ internal partial class ContentBrowserViewModel : ObservableObject
         }
         else
         {
-            // _assetRegistry.OpenAsset(SelectedItem.FullName);
+            var result = await _assetRegistry.OpenAssetAsync(SelectedItem.Path);
+            if (result.IsFailure)
+            {
+                return (null, -1);
+            }
+
             return (null, 1);
         }
     }
