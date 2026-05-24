@@ -1,5 +1,6 @@
 using Ghost.Engine.Core;
 using Ghost.Entities;
+using Ghost.Editor.Core.Contracts;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -31,8 +32,8 @@ public sealed partial class SceneNode : SceneGraphNode
         return null;
     }
 
-    public override UIElement? CreateInspector()
+    public override InspectorDescriptor CreateInspectorDescriptor()
     {
-        return null;
+        return null!;
     }
 }

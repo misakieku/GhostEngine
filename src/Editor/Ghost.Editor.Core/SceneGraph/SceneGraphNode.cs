@@ -31,7 +31,15 @@ public abstract partial class SceneGraphNode : ObservableObject, IInspectable
         Name = name;
     }
 
-    public abstract IconSource? CreateIcon();
-    public abstract UIElement? CreateHeader();
-    public abstract UIElement? CreateInspector();
+    public virtual IconSource? CreateIcon()
+    {
+        return null;
+    }
+
+    public virtual UIElement? CreateHeader()
+    {
+        return null;
+    }
+
+    public abstract InspectorDescriptor CreateInspectorDescriptor();
 }

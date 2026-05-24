@@ -9,5 +9,5 @@ public interface IInspectable
 
     UIElement? CreateHeader();
 
-    UIElement? CreateInspector();
+    InspectorDescriptor CreateInspectorDescriptor();
 }

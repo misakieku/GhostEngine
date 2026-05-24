@@ -976,6 +976,14 @@ public unsafe partial class EntityManager : IDisposable
         return HasComponent(entity, ComponentTypeID<T>.Value);
     }
 
+    internal ref readonly Archetype GetEntityArchetype(Entity entity)
+    {
+        if (!_entityLocations.TryGetElementAt(entity.ID, entity.Generation, out var location))
+            throw new ArgumentException("Entity does not exist.", nameof(entity));
+            
+        return ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
+    }
+
     /// <summary>
     /// Set the enabled state of an enableable component for the specified entity.
     /// </summary>
