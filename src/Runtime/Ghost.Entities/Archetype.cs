@@ -599,7 +599,7 @@ internal unsafe struct Archetype : IDisposable
 #if GHOST_SAFETY_CHECKS
         if (ComponentRegistry.GetComponentInfo(componentID).isShared)
         {
-            return Error.InvalidArgument;
+            throw new InvalidOperationException("SetComponentData cannot be used for shared components. Use SetSharedComponentData instead.");
         }
 #endif
 
@@ -630,7 +630,7 @@ internal unsafe struct Archetype : IDisposable
 #if GHOST_SAFETY_CHECKS
         if (ComponentRegistry.GetComponentInfo(componentID).isShared)
         {
-            return null;
+            throw new InvalidOperationException("GetComponentData cannot be used for shared components. Use GetSharedComponentData instead.");
         }
 #endif
 
@@ -657,6 +657,7 @@ internal unsafe struct Archetype : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Result<ComponentMemoryLayout, Error> GetLayout(int componentID)
     {
+#if GHOST_SAFETY_CHECKS
         if (componentID >= _componentIDToLayoutIndex.Count)
         {
             return Error.InvalidArgument;
@@ -669,6 +670,9 @@ internal unsafe struct Archetype : IDisposable
         }
 
         return _layouts[layoutIndex];
+#else
+        return _layouts[_componentIDToLayoutIndex[componentID]];
+#endif
     }
 
     /// <summary>Returns the shared component layout for the given component ID, or an error if not found.</summary>

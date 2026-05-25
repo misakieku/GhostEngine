@@ -56,6 +56,15 @@ public partial class ValueControl<T> : Control
     }
 
     /// <summary>
+    /// Sets the value of the control.
+    /// </summary>
+    /// <param name="value">The new value to set.</param>
+    public void SetValue(T value)
+    {
+        Value = value;
+    }
+
+    /// <summary>
     /// Sets the _value without notifying the change event.
     /// </summary>
     /// <param name="value">The new _value to set.</param>

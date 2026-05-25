@@ -1230,6 +1230,54 @@ public unsafe partial class EntityManager : IDisposable
     }
 
     /// <summary>
+    /// Get a pointer to the shared component value for the specified entity.
+    /// </summary>
+    /// <param name="entity">The entity for which to get the shared component.</param>
+    /// <param name="componentID">The ID of the shared component to retrieve.</param>
+    /// <returns>A pointer to the shared component value, or null if not found.</returns>
+    /// <exception cref="InvalidOperationException"></exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void* GetSharedComponent(Entity entity, Identifier<IComponent> componentID)
+    {
+#if GHOST_SAFETY_CHECKS
+        if (!ComponentRegistry.GetComponentInfo(componentID).isShared)
+        {
+            throw new InvalidOperationException("GetSharedComponent can only be used with shared components.");
+        }
+#endif
+
+        if (!_entityLocations.TryGetElementAt(entity.ID, entity.Generation, out var location))
+        {
+            return null;
+        }
+
+        ref var archetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
+        var sharedLayoutResult = archetype.GetSharedLayout(componentID);
+        if (sharedLayoutResult.IsFailure)
+        {
+            return null;
+        }
+
+        ref var chunk = ref archetype.GetChunkReference(location.chunkIndex);
+        var group = archetype._chunkGroups[chunk._groupIndex];
+        return (byte*)group.sharedData.GetUnsafePtr() + sharedLayoutResult.Value.offset;
+    }
+
+    /// <summary>
+    /// Get a reference to the shared component value for the specified entity.
+    /// </summary>
+    /// <typeparam name="T">The type of the shared component.</typeparam>
+    /// <param name="entity">The entity for which to get the shared component.</param>
+    /// <returns>A reference to the shared component value. null ref if not found.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ref T GetSharedComponent<T>(Entity entity)
+        where T : unmanaged, ISharedComponent
+    {
+        var ptr = GetSharedComponent(entity, ComponentTypeID<T>.Value);
+        return ref *(T*)ptr; // This will return null ref if ptr is null.
+    }
+
+    /// <summary>
     /// Move an entity to the chunk group matching the new shared component value.
     /// The archetype is unchanged — only the chunk group (and thus the chunk) changes.
     /// </summary>

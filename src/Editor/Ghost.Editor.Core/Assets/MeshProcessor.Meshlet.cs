@@ -709,10 +709,25 @@ internal static unsafe partial class MeshProcessor
         var materialIndex = context.materialIndex;
 
         // Ensure lists are initialized
-        if (!meshletData->groups.IsCreated) meshletData->groups = new UnsafeList<MeshletGroup>(16, AllocationHandle.TLSF);
-        if (!meshletData->meshlets.IsCreated) meshletData->meshlets = new UnsafeList<Meshlet>(64, AllocationHandle.TLSF);
-        if (!meshletData->meshletVertices.IsCreated) meshletData->meshletVertices = new UnsafeList<uint>(128, AllocationHandle.TLSF);
-        if (!meshletData->meshletTriangles.IsCreated) meshletData->meshletTriangles = new UnsafeList<uint>(128, AllocationHandle.TLSF);
+        if (!meshletData->groups.IsCreated)
+        {
+            meshletData->groups = new UnsafeList<MeshletGroup>(16, AllocationHandle.TLSF);
+        }
+
+        if (!meshletData->meshlets.IsCreated)
+        {
+            meshletData->meshlets = new UnsafeList<Meshlet>(64, AllocationHandle.TLSF);
+        }
+
+        if (!meshletData->meshletVertices.IsCreated)
+        {
+            meshletData->meshletVertices = new UnsafeList<uint>(128, AllocationHandle.TLSF);
+        }
+
+        if (!meshletData->meshletTriangles.IsCreated)
+        {
+            meshletData->meshletTriangles = new UnsafeList<uint>(128, AllocationHandle.TLSF);
+        }
 
         var meshletGroup = new MeshletGroup
         {
@@ -956,8 +971,15 @@ internal static partial class MeshProcessor
 
         var extents = centroidMax - centroidMin;
         var splitAxis = 0;
-        if (extents.y > extents.x && extents.y > extents.z) splitAxis = 1;
-        if (extents.z > extents.x && extents.z > extents.y) splitAxis = 2;
+        if (extents.y > extents.x && extents.y > extents.z)
+        {
+            splitAxis = 1;
+        }
+
+        if (extents.z > extents.x && extents.z > extents.y)
+        {
+            splitAxis = 2;
+        }
 
         var splitPoint = centroidMin[splitAxis] + extents[splitAxis] * 0.5f;
 
@@ -1008,8 +1030,15 @@ internal static partial class MeshProcessor
     {
         gathered.Clear();
         var node = binaryNodes[nodeIndex];
-        if (node.leftChild != -1) gathered.Add(node.leftChild);
-        if (node.rightChild != -1) gathered.Add(node.rightChild);
+        if (node.leftChild != -1)
+        {
+            gathered.Add(node.leftChild);
+        }
+
+        if (node.rightChild != -1)
+        {
+            gathered.Add(node.rightChild);
+        }
 
         while (gathered.Count < 4)
         {
@@ -1034,12 +1063,22 @@ internal static partial class MeshProcessor
                 }
             }
 
-            if (largestInternalIndex == -1) break; // all gathered are leaves
+            if (largestInternalIndex == -1)
+            {
+                break; // all gathered are leaves
+            }
 
             gathered.RemoveAt(listIndexToRemove);
             var largestNode = binaryNodes[largestInternalIndex];
-            if (largestNode.leftChild != -1) gathered.Add(largestNode.leftChild);
-            if (largestNode.rightChild != -1) gathered.Add(largestNode.rightChild);
+            if (largestNode.leftChild != -1)
+            {
+                gathered.Add(largestNode.leftChild);
+            }
+
+            if (largestNode.rightChild != -1)
+            {
+                gathered.Add(largestNode.rightChild);
+            }
         }
     }
 

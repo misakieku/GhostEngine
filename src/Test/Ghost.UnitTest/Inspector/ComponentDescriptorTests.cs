@@ -1,8 +1,7 @@
 using Ghost.Core.Attributes;
 using Ghost.Editor.Core.Inspector;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Misaki.HighPerformance.Mathematics;
 using Ghost.Entities;
+using Misaki.HighPerformance.Mathematics;
 using System.Runtime.InteropServices;
 
 namespace Ghost.UnitTest.Inspector;
@@ -12,18 +11,18 @@ public unsafe class ComponentDescriptorTests
 {
     private struct TestComponent : IComponent
     {
-        public int IntValue;
+        public int intValue;
 
         [HideInInspector]
-        public float HiddenFloat;
+        public float hiddenFloat;
 
         [InspectorName("Custom Name")]
-        public double DoubleValue;
+        public double doubleValue;
 
         [ReadOnlyInInspector]
-        public bool IsReadOnly;
+        public bool isReadOnly;
 
-        public float3 Position;
+        public float3 position;
     }
 
     [TestMethod]
@@ -65,27 +64,27 @@ public unsafe class ComponentDescriptorTests
 
         var comp = new TestComponent
         {
-            IntValue = 42,
-            DoubleValue = 3.1415,
-            IsReadOnly = true,
-            Position = new float3(1, 2, 3)
+            intValue = 42,
+            doubleValue = 3.1415,
+            isReadOnly = true,
+            position = new float3(1, 2, 3)
         };
 
         var pInt = descriptor.Properties[0];
         var pDouble = descriptor.Properties[1];
 
         // 1. Read
-        object? readInt = pInt.ReadBoxed(&comp);
+        var readInt = pInt.ReadBoxed(&comp);
         Assert.AreEqual(42, readInt);
 
-        object? readDouble = pDouble.ReadBoxed(&comp);
+        var readDouble = pDouble.ReadBoxed(&comp);
         Assert.AreEqual(3.1415, readDouble);
 
         // 2. Write
         pInt.WriteBoxed(&comp, 99);
-        Assert.AreEqual(99, comp.IntValue);
+        Assert.AreEqual(99, comp.intValue);
 
         pDouble.WriteBoxed(&comp, 1.23);
-        Assert.AreEqual(1.23, comp.DoubleValue);
+        Assert.AreEqual(1.23, comp.doubleValue);
     }
 }

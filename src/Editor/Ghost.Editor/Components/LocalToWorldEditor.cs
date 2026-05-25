@@ -2,6 +2,7 @@ using Ghost.Editor.Core;
 using Ghost.Editor.Core.Controls;
 using Ghost.Editor.Core.Inspector;
 using Ghost.Engine.Components;
+using Ghost.Engine.Utilities;
 using Microsoft.UI.Xaml.Controls;
 using Misaki.HighPerformance.Mathematics;
 
@@ -20,9 +21,9 @@ internal class LocalToWorldEditor : ComponentEditor
         _rotationField = new Float3Field();
         _scaleField = new Float3Field();
 
-        container.Children.Add(new Ghost.Editor.Core.Controls.PropertyField() { Header = "Position", Content = _translationField });
-        container.Children.Add(new Ghost.Editor.Core.Controls.PropertyField() { Header = "Rotation", Content = _rotationField });
-        container.Children.Add(new Ghost.Editor.Core.Controls.PropertyField() { Header = "Scale", Content = _scaleField });
+        container.Children.Add(new PropertyField() { Label = "Position", Content = _translationField });
+        container.Children.Add(new PropertyField() { Label = "Rotation", Content = _rotationField });
+        container.Children.Add(new PropertyField() { Label = "Scale", Content = _scaleField });
 
         Bind(_translationField,
             getter: obj => 

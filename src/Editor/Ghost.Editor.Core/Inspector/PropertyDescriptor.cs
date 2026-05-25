@@ -1,5 +1,4 @@
 using Ghost.Core.Attributes;
-using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
@@ -15,45 +14,86 @@ public sealed class PropertyDescriptor
     public string DisplayName { get; }
     public Type FieldType { get; }
     public int OffsetInComponent { get; }
-    public int FieldSize { get; }
     public bool IsReadOnly { get; }
-    
+    public Func<PropertyDescriptor, IPropertyModel[]?, IPropertyModel> ModelFactory { get; }
+
     // For nested structs (e.g. float4x4 -> float4 -> float)
     public PropertyDescriptor[]? Children { get; }
 
+    // TODO: Use source generators to build these at compile time and avoid all reflection/attributes at runtime.
     internal PropertyDescriptor(FieldInfo fieldInfo, int parentOffset)
     {
         Name = fieldInfo.Name;
         FieldType = fieldInfo.FieldType;
         OffsetInComponent = parentOffset + (int)Marshal.OffsetOf(fieldInfo.DeclaringType!, fieldInfo.Name);
-        FieldSize = Marshal.SizeOf(FieldType);
-        
+
         IsReadOnly = fieldInfo.GetCustomAttribute<ReadOnlyInInspectorAttribute>() != null;
-        
+
         var nameAttr = fieldInfo.GetCustomAttribute<InspectorNameAttribute>();
         DisplayName = nameAttr?.Name ?? FormatName(Name);
-        
+
+        var modelType = typeof(PropertyModel<>).MakeGenericType(FieldType);
+        ModelFactory = (desc, children) => (IPropertyModel)Activator.CreateInstance(modelType,
+            BindingFlags.NonPublic | BindingFlags.Instance,
+            null, new object?[] { desc, children }, null)!;
+
         // Handle nested structs if this is an unmanaged struct that is not a primitive or common vector type we have custom drawers for.
-        // We will refine nested struct decomposition later if needed.
+        if (FieldType.IsValueType && !FieldType.IsPrimitive && !FieldType.IsEnum)
+        {
+            if (!PropertyDrawerRegistry.HasCustomDrawer(FieldType))
+            {
+                var children = new List<PropertyDescriptor>();
+                var fields = FieldType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                foreach (var nestedField in fields)
+                {
+                    if (!nestedField.IsPublic &&
+                        nestedField.GetCustomAttribute<InspectorGroupAttribute>() == null &&
+                        nestedField.GetCustomAttribute<ReadOnlyInInspectorAttribute>() == null)
+                    {
+                        continue;
+                    }
+                    children.Add(new PropertyDescriptor(nestedField, OffsetInComponent));
+                }
+                if (children.Count > 0)
+                {
+                    Children = children.ToArray();
+                }
+            }
+        }
     }
 
-    internal PropertyDescriptor(string name, Type type, int offset, int size, bool isReadOnly, PropertyDescriptor[]? children = null)
+    internal PropertyDescriptor(string name, Type type, int offset, bool isReadOnly, PropertyDescriptor[]? children = null)
     {
         Name = name;
         DisplayName = FormatName(name);
         FieldType = type;
         OffsetInComponent = offset;
-        FieldSize = size;
         IsReadOnly = isReadOnly;
         Children = children;
+
+        var modelType = typeof(PropertyModel<>).MakeGenericType(FieldType);
+        ModelFactory = (desc, children) => (IPropertyModel)Activator.CreateInstance(modelType,
+            BindingFlags.NonPublic | BindingFlags.Instance,
+            null, new object?[] { desc, children }, null)!;
     }
 
     private static string FormatName(string name)
     {
-        if (string.IsNullOrEmpty(name)) return name;
-        if (name.StartsWith("_")) name = name.Substring(1);
-        if (name.Length == 0) return name;
-        
+        if (string.IsNullOrEmpty(name))
+        {
+            return name;
+        }
+
+        if (name.StartsWith('_'))
+        {
+            name = name.Substring(1);
+        }
+
+        if (name.Length == 0)
+        {
+            return name;
+        }
+
         return char.ToUpperInvariant(name[0]) + name.Substring(1);
     }
 
@@ -65,7 +105,11 @@ public sealed class PropertyDescriptor
 
     public unsafe void WriteBoxed(void* pComponent, object value)
     {
-        if (IsReadOnly) return;
+        if (IsReadOnly)
+        {
+            return;
+        }
+
         var dst = (byte*)pComponent + OffsetInComponent;
         Marshal.StructureToPtr(value, (nint)dst, false);
     }
@@ -77,7 +121,11 @@ public sealed class PropertyDescriptor
 
     public unsafe void Write<T>(void* pComponent, in T value) where T : unmanaged
     {
-        if (IsReadOnly) return;
+        if (IsReadOnly)
+        {
+            return;
+        }
+
         *(T*)((byte*)pComponent + OffsetInComponent) = value;
     }
 }

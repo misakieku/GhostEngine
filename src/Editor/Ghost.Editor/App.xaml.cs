@@ -65,6 +65,7 @@ public partial class App : Application
                 services.AddSingleton<IInspectorService, InspectorService>();
                 services.AddSingleton<IPreviewService, PreviewService>();
                 services.AddSingleton<IAssetRegistry, AssetRegistry>();
+                services.AddSingleton<InspectorSyncService>();
 
                 services.AddSingleton<EditorWorldService>();
                 services.AddSingleton<SceneSerializationService>();

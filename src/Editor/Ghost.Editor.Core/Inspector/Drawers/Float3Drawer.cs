@@ -3,26 +3,29 @@ using Ghost.Editor.Core.Controls;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Data;
 
+using Misaki.HighPerformance.Mathematics;
+
 namespace Ghost.Editor.Core.Inspector.Drawers;
 
-public sealed class Float3Drawer : PropertyDrawer
+public sealed class Float3Drawer : PropertyDrawer<float3>
 {
-    public override FrameworkElement CreateControl(PropertyModel model)
+    public override FrameworkElement CreateControlT(PropertyModel<float3> model)
     {
         var field = new Float3Field
         {
-            IsEnabled = !model.Descriptor.IsReadOnly
+            IsEnabled = !model.Descriptor.IsReadOnly,
+            Value = model.Value
         };
 
-        var binding = new Binding
+        field.OnValueChanged += (s, e) =>
         {
-            Source = model,
-            Path = new PropertyPath("Value"),
-            Mode = BindingMode.TwoWay,
-            UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
+            model.SetValueFromUI(e.NewValue);
         };
 
-        field.SetBinding(Float3Field.ValueProperty, binding);
+        model.OnValueChanged += (newVal) =>
+        {
+            field.Value = newVal;
+        };
 
         return field;
     }

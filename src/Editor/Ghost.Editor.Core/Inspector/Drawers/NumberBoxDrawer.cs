@@ -1,74 +1,64 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Data;
+using System.Numerics;
 
 namespace Ghost.Editor.Core.Inspector.Drawers;
 
-public sealed class NumberBoxDrawer : PropertyDrawer
+public sealed class NumberBoxDrawer<T> : PropertyDrawer<T>
+    where T : unmanaged, INumber<T>, IMinMaxValue<T>
 {
     private readonly int _fractionDigits;
+    private readonly double _min;
+    private readonly double _max;
 
-    public NumberBoxDrawer(int fractionDigits)
+    public NumberBoxDrawer(int fractionDigits, double min, double max)
     {
         _fractionDigits = fractionDigits;
+        _min = min;
+        _max = max;
     }
 
-    public override FrameworkElement CreateControl(PropertyModel model)
+    public static unsafe NumberBoxDrawer<T> CreateFloatingPoint()
+    {
+        var digits = sizeof(T) > 4 ? 6 : 3;
+        return new NumberBoxDrawer<T>(digits, double.CreateTruncating(T.MinValue), double.CreateTruncating(T.MaxValue));
+    }
+
+    public static NumberBoxDrawer<T> CreateInteger()
+    {
+        return new NumberBoxDrawer<T>(0, double.CreateTruncating(T.MinValue), double.CreateTruncating(T.MaxValue));
+    }
+
+    public override FrameworkElement CreateControlT(PropertyModel<T> model)
     {
         var box = new NumberBox
         {
             SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline,
             HorizontalAlignment = HorizontalAlignment.Stretch,
             IsEnabled = !model.Descriptor.IsReadOnly,
-            MaxWidth = double.PositiveInfinity // To fill PropertyField
+            MaxWidth = double.PositiveInfinity, // To fill PropertyField
+            Maximum = _max,
+            Minimum = _min,
+            Value = double.CreateTruncating(model.Value)
         };
-        
+
         var formatter = new Windows.Globalization.NumberFormatting.DecimalFormatter
         {
             FractionDigits = _fractionDigits
         };
         box.NumberFormatter = formatter;
 
-        // NumberBox uses Value property for its double value.
-        // We bind Mode=TwoWay so typing updates the model.
-        // Convert back and forth between box's double and the model's actual type.
-        var binding = new Binding
+        box.ValueChanged += (s, e) =>
         {
-            Source = model,
-            Path = new PropertyPath("Value"),
-            Mode = BindingMode.TwoWay,
-            UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged,
-            Converter = new NumericConverter(model.Descriptor.FieldType)
+            if (double.IsNaN(e.NewValue)) return;
+            model.SetValueFromUI(T.CreateTruncating(e.NewValue));
         };
-        
-        box.SetBinding(NumberBox.ValueProperty, binding);
-        
+
+        model.OnValueChanged += (newVal) =>
+        {
+            box.Value = double.CreateTruncating(newVal);
+        };
+
         return box;
-    }
-
-    private class NumericConverter : IValueConverter
-    {
-        private readonly System.Type _targetType;
-
-        public NumericConverter(System.Type targetType)
-        {
-            _targetType = targetType;
-        }
-
-        public object Convert(object value, System.Type targetType, object parameter, string language)
-        {
-            if (value == null) return double.NaN;
-            return System.Convert.ToDouble(value);
-        }
-
-        public object ConvertBack(object value, System.Type targetType, object parameter, string language)
-        {
-            if (value is double d)
-            {
-                if (double.IsNaN(d)) return 0; // Or whatever default is appropriate
-                return System.Convert.ChangeType(d, _targetType);
-            }
-            return value;
-        }
     }
 }

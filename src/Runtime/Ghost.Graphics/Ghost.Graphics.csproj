@@ -18,6 +18,10 @@
     <DebugType>embedded</DebugType>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Editor|AnyCPU'">
+    <Optimize>True</Optimize>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Misaki.HighPerformance.Analyzer" Version="1.1.0">
       <PrivateAssets>all</PrivateAssets>

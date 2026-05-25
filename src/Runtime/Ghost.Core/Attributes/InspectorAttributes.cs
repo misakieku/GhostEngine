@@ -1,5 +1,3 @@
-using System;
-
 namespace Ghost.Core.Attributes;
 
 /// <summary>
@@ -25,7 +23,7 @@ public sealed class HideInInspectorAttribute : Attribute
 public sealed class InspectorNameAttribute : Attribute
 {
     public string Name { get; }
-    
+
     public InspectorNameAttribute(string name)
     {
         Name = name;
@@ -39,7 +37,7 @@ public sealed class InspectorNameAttribute : Attribute
 public sealed class InspectorGroupAttribute : Attribute
 {
     public string GroupName { get; }
-    
+
     public InspectorGroupAttribute(string groupName)
     {
         GroupName = groupName;

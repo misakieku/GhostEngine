@@ -13,6 +13,10 @@
     <IsTrimmable>True</IsTrimmable>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Editor|AnyCPU'">
+    <Optimize>True</Optimize>
+  </PropertyGroup>
+
   <ItemGroup>
     <None Include="Templates\EntityQuery.ForEach.gen.cs">
       <DesignTime>True</DesignTime>

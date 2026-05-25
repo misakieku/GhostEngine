@@ -1,6 +1,5 @@
 using Ghost.Entities;
-using System;
-using System.Collections.Generic;
+using System.Buffers;
 
 namespace Ghost.Editor.Core.Inspector;
 
@@ -32,10 +31,16 @@ public sealed unsafe class EntityInspectorModel : IDisposable
     public bool RefreshStructure()
     {
         var locationResult = _world.EntityManager.GetEntityLocation(_entity);
-        if (locationResult.IsFailure) return false;
+        if (locationResult.IsFailure)
+        {
+            return false;
+        }
 
         var location = locationResult.Value;
-        if (location.archetypeID == _lastArchetypeId) return false;
+        if (location.archetypeID == _lastArchetypeId)
+        {
+            return false;
+        }
 
         _lastArchetypeId = location.archetypeID;
         RebuildComponentList();
@@ -47,14 +52,30 @@ public sealed unsafe class EntityInspectorModel : IDisposable
     /// </summary>
     public void SyncFromECS()
     {
-        if (!_world.EntityManager.Exists(_entity)) return;
+        if (!_world.EntityManager.Exists(_entity))
+        {
+            return;
+        }
 
         foreach (var comp in _components)
         {
-            // Fresh pointer every tick - never cached
-            var ptr = _world.EntityManager.GetComponent(_entity, comp.Descriptor.ComponentId);
-            if (ptr != null)
-                comp.SyncFromECS(ptr);
+            if (comp.Descriptor.IsShared)
+            {
+                var ptr = _world.EntityManager.GetSharedComponent(_entity, comp.Descriptor.ComponentId);
+                if (ptr != null)
+                {
+                    comp.SyncFromECS(ptr);
+                }
+            }
+            else
+            {
+                // Fresh pointer every tick - never cached
+                var ptr = _world.EntityManager.GetComponent(_entity, comp.Descriptor.ComponentId);
+                if (ptr != null)
+                {
+                    comp.SyncFromECS(ptr);
+                }
+            }
         }
     }
 
@@ -63,30 +84,69 @@ public sealed unsafe class EntityInspectorModel : IDisposable
     /// </summary>
     public void FlushToECS()
     {
-        if (!_world.EntityManager.Exists(_entity)) return;
+        if (!_world.EntityManager.Exists(_entity))
+        {
+            return;
+        }
 
         foreach (var comp in _components)
         {
-            var ptr = _world.EntityManager.GetComponent(_entity, comp.Descriptor.ComponentId);
-            if (ptr != null)
-                comp.FlushToECS(ptr);
+            if (comp.Descriptor.IsShared)
+            {
+                var ptr = _world.EntityManager.GetSharedComponent(_entity, comp.Descriptor.ComponentId);
+                if (ptr != null)
+                {
+                    // Copy existing shared component data to a local stack buffer
+                    var tempArray = ArrayPool<byte>.Shared.Rent(comp.Descriptor.Size);
+                    try
+                    {
+                        fixed (byte* tempBuffer = tempArray)
+                        {
+                            System.Runtime.CompilerServices.Unsafe.CopyBlock(tempBuffer, ptr, (uint)comp.Descriptor.Size);
+
+                            // Flush local property models to the copied data
+                            comp.FlushToECS(tempBuffer);
+
+                            // Call SetSharedComponent with the modified data
+                            _world.EntityManager.SetSharedComponent(_entity, comp.Descriptor.ComponentId, tempBuffer);
+                        }
+                    }
+                    finally
+                    {
+                        ArrayPool<byte>.Shared.Return(tempArray);
+                    }
+                }
+            }
+            else
+            {
+                var ptr = _world.EntityManager.GetComponent(_entity, comp.Descriptor.ComponentId);
+                if (ptr != null)
+                {
+                    comp.FlushToECS(ptr);
+                }
+            }
         }
     }
 
     private void RebuildComponentList()
     {
         _components.Clear();
-        
-        if (!_world.EntityManager.Exists(_entity)) return;
+
+        if (!_world.EntityManager.Exists(_entity))
+        {
+            return;
+        }
+
         ref readonly var archetype = ref _world.EntityManager.GetEntityArchetype(_entity);
 
-#if DEBUG || GHOST_EDITOR
         var it = archetype._signature.GetIterator();
         while (it.Next(out var componentID))
         {
-            var info = ComponentRegistry.GetComponentInfo(new Ghost.Core.Identifier<Ghost.Entities.IComponent>(componentID));
+            var info = ComponentRegistry.GetComponentInfo(new Ghost.Core.Identifier<IComponent>(componentID));
             if (info.isCleanup)
+            {
                 continue;
+            }
 
             if (ComponentRegistry.s_runtimeIDToType.TryGetValue(componentID, out var type))
             {
@@ -94,7 +154,6 @@ public sealed unsafe class EntityInspectorModel : IDisposable
                 _components.Add(new ComponentModel(descriptor));
             }
         }
-#endif
     }
 
     public void Dispose()

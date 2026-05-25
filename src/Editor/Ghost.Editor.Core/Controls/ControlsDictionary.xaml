@@ -3,7 +3,5 @@
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="ms-appx:///Ghost.Editor.Core/Controls/BasicInput/PropertyField.xaml" />
         <ResourceDictionary Source="ms-appx:///Ghost.Editor.Core/Controls/BasicInput/Float3Field.xaml" />
-
-        <ResourceDictionary Source="ms-appx:///Ghost.Editor.Core/Controls/Internal/ComponentView.xaml" />
     </ResourceDictionary.MergedDictionaries>
 </ResourceDictionary>

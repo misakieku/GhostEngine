@@ -105,7 +105,7 @@ public class SceneGraphSyncService : IDisposable
         }
     }
 
-    private bool RemoveNodeFromChildrenRecursive(System.Collections.ObjectModel.ObservableCollection<SceneGraphNode> children, EntityNode target)
+    private static bool RemoveNodeFromChildrenRecursive(System.Collections.ObjectModel.ObservableCollection<SceneGraphNode> children, EntityNode target)
     {
         foreach (var child in children)
         {

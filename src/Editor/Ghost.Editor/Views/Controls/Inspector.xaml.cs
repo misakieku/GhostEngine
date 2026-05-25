@@ -3,7 +3,6 @@ using Ghost.Editor.Core.Inspector;
 using Ghost.Editor.Core.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using System.Linq;
 
 namespace Ghost.Editor.Views.Controls;
 
@@ -11,7 +10,7 @@ public sealed partial class Inspector : UserControl
 {
     private readonly IInspectorService _inspectorService;
     private readonly InspectorSyncService _syncService;
-    
+
     private EntityInspectorModel? _currentModel;
 
     public Inspector()
@@ -72,7 +71,7 @@ public sealed partial class Inspector : UserControl
         {
             IconPresenter.Content = new FontIcon { Glyph = "\uF158", FontSize = 18 };
         }
-        
+
         HeaderPresenter.Content = inspectable.CreateHeader();
 
         // Build body
@@ -82,12 +81,12 @@ public sealed partial class Inspector : UserControl
         {
             _currentModel = new EntityInspectorModel(entityDesc.World, entityDesc.Entity);
             _currentModel.RefreshStructure();
-            
+
             foreach (var compModel in _currentModel.Components)
             {
                 var expander = new Expander
                 {
-                    Header = compModel.Descriptor.Name,
+                    Header = compModel.Descriptor.DisplayName,
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     HorizontalContentAlignment = HorizontalAlignment.Stretch,
                     IsExpanded = true,
@@ -96,9 +95,23 @@ public sealed partial class Inspector : UserControl
 
                 var propertiesPanel = new StackPanel { Spacing = 8 };
 
-                foreach (var propModel in compModel.Properties)
+                if (ComponentEditorRegistry.HasCustomEditor(compModel.Descriptor.ComponentType))
                 {
-                    BuildPropertyUI(propModel, propertiesPanel);
+                    var editor = ComponentEditorRegistry.CreateCustomEditor(compModel.Descriptor.ComponentType);
+                    if (editor != null)
+                    {
+                        var compObject = new ComponentObject(entityDesc.World, entityDesc.Entity);
+                        editor.Initialize(compObject);
+                        editor.Create(propertiesPanel);
+                        _syncService.BindCustomEditor(editor);
+                    }
+                }
+                else
+                {
+                    foreach (var propModel in compModel.Properties)
+                    {
+                        BuildPropertyUI(propModel, propertiesPanel);
+                    }
                 }
 
                 expander.Content = propertiesPanel;
@@ -118,14 +131,14 @@ public sealed partial class Inspector : UserControl
         }
     }
 
-    private void BuildPropertyUI(PropertyModel propModel, Panel container)
+    private void BuildPropertyUI(IPropertyModel propModel, Panel container)
     {
         var drawer = PropertyDrawerRegistry.GetDrawer(propModel.Descriptor.FieldType);
         var control = drawer.CreateControl(propModel);
 
-        var propertyField = new Ghost.Editor.Core.Controls.PropertyField
+        var propertyField = new Core.Controls.PropertyField
         {
-            Header = propModel.Descriptor.Name,
+            Label = propModel.Descriptor.DisplayName,
             Content = control
         };
 

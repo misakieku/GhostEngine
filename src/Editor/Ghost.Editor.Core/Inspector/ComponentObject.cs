@@ -24,4 +24,16 @@ public readonly struct ComponentObject
     {
         _world.EntityManager.SetComponent(_entity, data);
     }
+
+    public ref T GetSharedData<T>()
+        where T : unmanaged, ISharedComponent
+    {
+        return ref _world.EntityManager.GetSharedComponent<T>(_entity);
+    }
+
+    public void SetSharedData<T>(in T data)
+        where T : unmanaged, ISharedComponent
+    {
+        _world.EntityManager.SetSharedComponent(_entity, data);
+    }
 }

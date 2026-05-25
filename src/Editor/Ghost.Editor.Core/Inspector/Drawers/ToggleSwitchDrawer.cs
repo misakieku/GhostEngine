@@ -4,26 +4,27 @@ using Microsoft.UI.Xaml.Data;
 
 namespace Ghost.Editor.Core.Inspector.Drawers;
 
-public sealed class ToggleSwitchDrawer : PropertyDrawer
+public sealed class ToggleSwitchDrawer : PropertyDrawer<bool>
 {
-    public override FrameworkElement CreateControl(PropertyModel model)
+    public override FrameworkElement CreateControlT(PropertyModel<bool> model)
     {
         var toggle = new ToggleSwitch
         {
             IsEnabled = !model.Descriptor.IsReadOnly,
             OnContent = "",
-            OffContent = ""
+            OffContent = "",
+            IsOn = model.Value
         };
 
-        var binding = new Binding
+        toggle.Toggled += (s, e) =>
         {
-            Source = model,
-            Path = new PropertyPath("Value"),
-            Mode = BindingMode.TwoWay,
-            UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
+            model.SetValueFromUI(toggle.IsOn);
         };
 
-        toggle.SetBinding(ToggleSwitch.IsOnProperty, binding);
+        model.OnValueChanged += (newVal) =>
+        {
+            toggle.IsOn = newVal;
+        };
 
         return toggle;
     }

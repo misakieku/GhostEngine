@@ -14,14 +14,16 @@ public sealed class ComponentDescriptor
     public Identifier<IComponent> ComponentId { get; }
     public string DisplayName { get; }
     public int Size { get; }
+    public bool IsShared { get; }
     public PropertyDescriptor[] Properties { get; }
 
-    private ComponentDescriptor(Type componentType, Identifier<IComponent> componentId, string displayName, int size, PropertyDescriptor[] properties)
+    private ComponentDescriptor(Type componentType, Identifier<IComponent> componentId, string displayName, int size, bool isShared, PropertyDescriptor[] properties)
     {
         ComponentType = componentType;
         ComponentId = componentId;
         DisplayName = displayName;
         Size = size;
+        IsShared = isShared;
         Properties = properties;
     }
 
@@ -39,7 +41,9 @@ public sealed class ComponentDescriptor
         foreach (var field in fields)
         {
             if (field.GetCustomAttribute<HideInInspectorAttribute>() != null)
+            {
                 continue;
+            }
 
             // Optional: Exclude internal/private fields unless they have a specific attribute, but for now we just show public or specifically included.
             if (!field.IsPublic && field.GetCustomAttribute<InspectorNameAttribute>() == null)
@@ -56,6 +60,6 @@ public sealed class ComponentDescriptor
             properties.Add(new PropertyDescriptor(field, 0));
         }
 
-        return new ComponentDescriptor(componentType, componentId, displayName, info.size, properties.ToArray());
+        return new ComponentDescriptor(componentType, componentId, displayName, info.size, info.isShared, properties.ToArray());
     }
 }

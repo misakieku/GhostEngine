@@ -1,83 +1,80 @@
-using System;
-using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Editor.Core.Inspector;
 
 /// <summary>
-/// Observable model for a single property. Implements INotifyPropertyChanged
-/// so WinUI controls can bind to it natively.
+/// Strongly-typed, zero-boxing model for a single property.
 /// </summary>
-public sealed class PropertyModel : INotifyPropertyChanged
+public sealed class PropertyModel<T> : IPropertyModel<T>
+    where T : unmanaged
 {
-    private readonly PropertyDescriptor _descriptor;
-    private object? _cachedValue;
-    private bool _isDirty;
+    private T _value;
 
-    public PropertyDescriptor Descriptor => _descriptor;
+    public PropertyDescriptor Descriptor { get; }
+    public IPropertyModel[]? Children { get; }
+    public bool IsDirty { get; private set; }
 
-    public object? Value
+    public T Value => _value;
+
+    /// <summary>
+    /// Event fired when the value is updated from ECS. UI controls bind to this.
+    /// </summary>
+    public event Action<T>? OnValueChanged;
+
+    internal PropertyModel(PropertyDescriptor descriptor, IPropertyModel[]? children = null)
     {
-        get => _value;
-        set
-        {
-            if (!Equals(_value, value))
-            {
-                _value = value;
-                OnPropertyChanged();
-            }
-        }
-    }
-
-    private object? _value;
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
-
-    public bool IsDirty => _isDirty;
-    
-    public PropertyModel[]? Children { get; }
-
-    internal PropertyModel(PropertyDescriptor descriptor, PropertyModel[]? children = null)
-    {
-        _descriptor = descriptor;
+        Descriptor = descriptor;
         Children = children;
     }
 
     /// <summary>
-    /// Called by sync pump: updates Value only if ECS value actually changed.
-    /// Does NOT mark dirty (it's an ECS->UI sync, not a user edit).
+    /// Syncs value from ECS memory without reflection or boxing.
     /// </summary>
-    internal void SetValueFromECS(object? newValue)
+    public unsafe void SyncFromECS(void* pComponentData)
     {
-        if (Equals(_cachedValue, newValue)) return;
-        
-        _cachedValue = newValue;
-        Value = newValue; // Fires OnPropertyChanged
+        var newValue = Unsafe.ReadUnaligned<T>((byte*)pComponentData + Descriptor.OffsetInComponent);
+
+        if (!EqualityComparer<T>.Default.Equals(_value, newValue))
+        {
+            _value = newValue;
+            OnValueChanged?.Invoke(newValue);
+        }
+
+        if (Children != null)
+        {
+            foreach (var child in Children)
+            {
+                child.SyncFromECS(pComponentData);
+            }
+        }
     }
 
     /// <summary>
-    /// Called when user edits via UI: marks dirty for write-back.
+    /// Called by the UI when the user edits the value.
     /// </summary>
-    public void SetValueFromUI(object? newValue)
+    public void SetValueFromUI(T newValue)
     {
-        _isDirty = true;
-        Value = newValue;
+        IsDirty = true;
+        _value = newValue;
     }
 
     /// <summary>
-    /// Writes dirty value back to ECS memory. Called by flush.
+    /// Writes the strongly-typed value back to ECS memory.
     /// </summary>
-    internal unsafe void FlushToECS(void* pComponent)
+    public unsafe void FlushToECS(void* pComponentData)
     {
-        if (!_isDirty || Value == null) return;
-        
-        _descriptor.WriteBoxed(pComponent, Value);
-        _isDirty = false;
-        _cachedValue = Value;
+        if (IsDirty)
+        {
+            Unsafe.WriteUnaligned((byte*)pComponentData + Descriptor.OffsetInComponent, _value);
+            IsDirty = false;
+        }
+
+        if (Children != null)
+        {
+            foreach (var child in Children)
+            {
+                child.FlushToECS(pComponentData);
+            }
+        }
     }
 }

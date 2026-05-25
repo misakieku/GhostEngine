@@ -263,9 +263,20 @@ internal sealed class EditorShaderCompilerBridge : IShaderCompilationBridge
         using var compiled = compileResult.Value;
 
         var stageCount = 0;
-        if (compiled.asResult.IsCreated) stageCount++;
-        if (compiled.msResult.IsCreated) stageCount++;
-        if (compiled.psResult.IsCreated) stageCount++;
+        if (compiled.asResult.IsCreated)
+        {
+            stageCount++;
+        }
+
+        if (compiled.msResult.IsCreated)
+        {
+            stageCount++;
+        }
+
+        if (compiled.psResult.IsCreated)
+        {
+            stageCount++;
+        }
 
         var byteCodes = stackalloc ShaderByteCode[stageCount];
         var idx = 0;
