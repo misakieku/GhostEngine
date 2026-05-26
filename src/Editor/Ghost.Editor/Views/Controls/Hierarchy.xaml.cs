@@ -21,11 +21,11 @@ public sealed partial class Hierarchy : UserControl
         InitializeComponent();
 
         _inspectorService = App.GetService<IInspectorService>();
-        
+
         // We resolve SceneGraphSyncService here to force the DI container to instantiate it. 
         // This ensures the singleton hooks into EditorWorldService events and starts populating RootNodes.
         _syncService = App.GetService<SceneGraphSyncService>();
-        
+
         _worldService = App.GetService<EditorWorldService>();
 
         SceneTreeView.ItemsSource = _worldService.RootNodes;
@@ -162,7 +162,7 @@ public sealed partial class Hierarchy : UserControl
         if (sender is MenuFlyoutItem menuItem && menuItem.DataContext is EntityNode entityNode)
         {
             var sceneID = _worldService.GetEntitySceneID(entityNode.Entity);
-            if (sceneID != Ghost.Engine.Core.Scene.INVALID_ID)
+            if (sceneID != Engine.Core.Scene.INVALID_ID)
             {
                 _worldService.CreateEntity("Entity", sceneID, parent: entityNode.Entity);
             }

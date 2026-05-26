@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.InteropServices;
 using static Ghost.Ufbx.ufbx_aperture_format;
 using static Ghost.Ufbx.ufbx_aperture_mode;

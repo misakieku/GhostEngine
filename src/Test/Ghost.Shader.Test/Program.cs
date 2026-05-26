@@ -1,4 +1,3 @@
-using Ghost.DSL.Generator;
 using Ghost.DSL.ShaderCompiler;
 using Misaki.HighPerformance.Mathematics;
 using System.Numerics;
@@ -7,7 +6,7 @@ using System.Numerics;
 
 //return;
 #if true
-var result =  DSLShaderCompiler.CompileComputeShaderCode("F:\\csharp\\GhostEngine\\src\\Runtime\\Ghost.Graphics\\TestCompute.gcomp");
+var result = DSLShaderCompiler.CompileComputeShaderCode("F:\\csharp\\GhostEngine\\src\\Runtime\\Ghost.Graphics\\TestCompute.gcomp");
 if (result.IsFailure)
 {
     Console.WriteLine(result.Message);

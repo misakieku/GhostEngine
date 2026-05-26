@@ -1,7 +1,6 @@
 using Ghost.Engine.Components;
 using Ghost.Engine.Core;
 using Ghost.Entities;
-using System.Collections.Generic;
 
 namespace Ghost.Editor.Core.SceneGraph;
 

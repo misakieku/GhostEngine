@@ -2,8 +2,6 @@ using Ghost.Core;
 using Ghost.Graphics.Test.Windows;
 
 using Microsoft.UI.Xaml;
-using Misaki.HighPerformance.LowLevel.Buffer;
-using System.Runtime.InteropServices;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.

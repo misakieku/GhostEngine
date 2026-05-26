@@ -113,7 +113,7 @@ public sealed partial class AssetCatalog
         {
             return Path.GetFullPath(path).Replace('\\', '/');
         }
-        
+
         return path;
     }
 
@@ -121,7 +121,7 @@ public sealed partial class AssetCatalog
     {
         using var connection = OpenConnection();
         using var cmd = connection.CreateCommand();
-        
+
         cmd.CommandText = SqlGetGuid;
         cmd.Parameters.AddWithValue("@path", ToUniversalPath(sourcePath));
         var result = cmd.ExecuteScalar();
@@ -171,7 +171,7 @@ public sealed partial class AssetCatalog
 
         using var connection = OpenConnection();
         using var cmd = connection.CreateCommand();
-        
+
         cmd.CommandText = SqlDelete;
         cmd.Parameters.AddWithValue("@guid", guid.ToByteArray());
         return cmd.ExecuteNonQuery() > 0;
@@ -181,10 +181,10 @@ public sealed partial class AssetCatalog
     {
         using var connection = OpenConnection();
         using var cmd = connection.CreateCommand();
-        
+
         cmd.CommandText = SqlGetAssetTypeId;
         cmd.Parameters.AddWithValue("@guid", guid.ToByteArray());
-        
+
         var result = cmd.ExecuteScalar();
         return result is byte[] bytes ? new Guid(bytes) : Guid.Empty;
     }
@@ -193,10 +193,10 @@ public sealed partial class AssetCatalog
     {
         using var connection = OpenConnection();
         using var cmd = connection.CreateCommand();
-        
+
         cmd.CommandText = SqlGetImportedAt;
         cmd.Parameters.AddWithValue("@guid", guid.ToByteArray());
-        
+
         var result = cmd.ExecuteScalar();
         return result is long ticks ? new DateTime(ticks, DateTimeKind.Utc) : null;
     }
@@ -237,10 +237,10 @@ public sealed partial class AssetCatalog
     {
         using var connection = OpenConnection();
         using var cmd = connection.CreateCommand();
-        
+
         cmd.CommandText = SqlGetReferencers;
         cmd.Parameters.AddWithValue("@guid", guid.ToByteArray());
-        
+
         using var reader = cmd.ExecuteReader();
         var list = new List<Guid>();
         while (reader.Read())
@@ -255,10 +255,10 @@ public sealed partial class AssetCatalog
     {
         using var connection = OpenConnection();
         using var cmd = connection.CreateCommand();
-        
+
         cmd.CommandText = SqlGetDependencies;
         cmd.Parameters.AddWithValue("@guid", guid.ToByteArray());
-        
+
         using var reader = cmd.ExecuteReader();
         var list = new List<Guid>();
         while (reader.Read())
@@ -293,9 +293,9 @@ public sealed partial class AssetCatalog
         using var cmd = connection.CreateCommand();
 
         var parameterNames = new List<string>(assetTypeIds.Length);
-        for (int i = 0; i < assetTypeIds.Length; i++)
+        for (var i = 0; i < assetTypeIds.Length; i++)
         {
-            string paramName = $"@typeId{i}";
+            var paramName = $"@typeId{i}";
             parameterNames.Add(paramName);
             cmd.Parameters.AddWithValue(paramName, assetTypeIds[i].ToByteArray());
         }
@@ -313,10 +313,10 @@ public sealed partial class AssetCatalog
     {
         using var connection = OpenConnection();
         using var cmd = connection.CreateCommand();
-        
+
         cmd.CommandText = SqlEnumerateSubAssets;
         cmd.Parameters.AddWithValue("@parent_guid", parentGuid.ToByteArray());
-        
+
         using var reader = cmd.ExecuteReader();
         var list = new List<SubAssetInfo>();
         while (reader.Read())

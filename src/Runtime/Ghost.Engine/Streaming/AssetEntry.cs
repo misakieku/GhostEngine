@@ -145,7 +145,7 @@ internal abstract class AssetEntry : IAssetEntry
                 }
             }
         }
-        
+
         return newRefCount;
     }
 

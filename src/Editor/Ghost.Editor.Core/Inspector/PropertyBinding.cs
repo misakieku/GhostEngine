@@ -1,5 +1,4 @@
 using Ghost.Editor.Core.Controls;
-using System;
 
 namespace Ghost.Editor.Core.Inspector;
 

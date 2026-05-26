@@ -31,13 +31,13 @@ public sealed class ComponentDescriptor
     {
         var componentId = ComponentRegistry.GetComponentID(componentType);
         var info = ComponentRegistry.GetComponentInfo(componentId);
-        
+
         var nameAttr = componentType.GetCustomAttribute<InspectorNameAttribute>();
         var displayName = nameAttr?.Name ?? componentType.Name;
 
         var properties = new List<PropertyDescriptor>();
         var fields = componentType.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-        
+
         foreach (var field in fields)
         {
             if (field.GetCustomAttribute<HideInInspectorAttribute>() != null)
@@ -45,7 +45,7 @@ public sealed class ComponentDescriptor
                 continue;
             }
 
-            // Optional: Exclude internal/private fields unless they have a specific attribute, but for now we just show public or specifically included.
+            // TODO: Exclude internal/private fields unless they have a specific attribute, but for now we just show public or specifically included.
             if (!field.IsPublic && field.GetCustomAttribute<InspectorNameAttribute>() == null)
             {
                 // In GhostEngine we often use public fields for component data, or private fields with [InspectorName].

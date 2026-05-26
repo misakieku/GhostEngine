@@ -118,7 +118,7 @@ public class SwapChainManager : IDisposable
 
     public void TransitionToPresent(ICommandBuffer commandBuffer)
     {
-        for (int i = 0; i < MAX_SWAP_CHAINS; i++)
+        for (var i = 0; i < MAX_SWAP_CHAINS; i++)
         {
             var record = Volatile.Read(ref _swapChains[i]);
             if (record == null)
@@ -146,7 +146,7 @@ public class SwapChainManager : IDisposable
 
     public void PresentAll(ICommandBuffer commandBuffer)
     {
-        for (int i = 0; i < MAX_SWAP_CHAINS; i++)
+        for (var i = 0; i < MAX_SWAP_CHAINS; i++)
         {
             var record = Volatile.Read(ref _swapChains[i]);
             if (record == null)
@@ -160,7 +160,7 @@ public class SwapChainManager : IDisposable
 
     public void Dispose()
     {
-        for (int i = 0; i < MAX_SWAP_CHAINS; i++)
+        for (var i = 0; i < MAX_SWAP_CHAINS; i++)
         {
             var record = Volatile.Read(ref _swapChains[i]);
             if (record != null)

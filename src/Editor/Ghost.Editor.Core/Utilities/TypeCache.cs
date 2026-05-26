@@ -65,9 +65,9 @@ public static class TypeCache
     private static Dictionary<nint, List<int>> FindTypesWithAttribute()
     {
         var dict = new Dictionary<nint, List<int>>();
-        for (int i = 0; i < s_types.Length; i++)
+        for (var i = 0; i < s_types.Length; i++)
         {
-            TypeInfo? type = s_types[i];
+            var type = s_types[i];
             var attrs = type.GetCustomAttributes<DiscoverableAttributeBase>(false);
             foreach (var attr in attrs)
             {

@@ -1,3 +1,4 @@
+using Ghost.Editor.Core.SceneGraph;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -5,20 +6,21 @@ namespace Ghost.Editor.Core.Inspector.Drawers;
 
 public sealed class ReadOnlyDrawer<T> : PropertyDrawer<T> where T : unmanaged
 {
-    public override FrameworkElement CreateControlT(PropertyModel<T> model)
+    public override FrameworkElement CreateControlT(PropertyNode<T> model)
     {
-        var textBlock = new TextBlock
+        var box = new TextBox
         {
             Text = model.Value.ToString(),
-            VerticalAlignment = VerticalAlignment.Center,
+            IsReadOnly = true,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
             Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorSecondaryBrush"]
         };
 
         model.OnValueChanged += (newVal) =>
         {
-            textBlock.Text = newVal.ToString();
+            box.Text = newVal.ToString();
         };
 
-        return textBlock;
+        return box;
     }
 }

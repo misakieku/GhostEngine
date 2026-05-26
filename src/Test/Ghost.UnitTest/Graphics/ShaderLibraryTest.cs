@@ -145,7 +145,7 @@ public class ShaderLibraryTest
         var mockBridge = new MockShaderCompilationBridge();
         using var shaderLibrary = new ShaderLibrary(mockBridge, null, "TestShaderCache");
         var variantKey = new Key64<ShaderVariant>(123);
-        
+
         var fakeData = new byte[] { 1, 2, 3, 4 };
         var expectedHash = 0UL;
 
@@ -153,7 +153,7 @@ public class ShaderLibraryTest
         fixed (byte* pData = fakeData)
         {
             var byteCode = new ShaderByteCode { pCode = pData, size = (ulong)fakeData.Length };
-            
+
             // Compute expected hash of bytecode
             var dataSpan = new ReadOnlySpan<byte>(pData, fakeData.Length);
             expectedHash = System.IO.Hashing.XxHash64.HashToUInt64(dataSpan);

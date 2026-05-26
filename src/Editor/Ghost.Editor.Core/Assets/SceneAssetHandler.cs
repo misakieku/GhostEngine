@@ -10,7 +10,7 @@ internal class SceneAssetHandler : IImportableAssetHandler, IPackableAssetHandle
     [AssetOpenHandler(".gscene")]
     private static async Task<Result> OpenAsync(string path)
     {
-        var data =  await SceneSerializationService.DeserializeSceneFileAsync(path);
+        var data = await SceneSerializationService.DeserializeSceneFileAsync(path);
         if (data == null)
         {
             return Result.Failure("Failed to load scene.");

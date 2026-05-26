@@ -324,7 +324,7 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
         _completedGpuFrame = gpuFrame;
 
         // Process stale pipelines and dispose them if they are no longer in flight
-        for (int i = _stalePipelines.Count - 1; i >= 0; i--)
+        for (var i = _stalePipelines.Count - 1; i >= 0; i--)
         {
             var stale = _stalePipelines[i];
             if (_completedGpuFrame >= stale.frameAdded)

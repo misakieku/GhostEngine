@@ -1,22 +1,60 @@
-using Ghost.Editor.Core.Utilities;
+using Ghost.Editor.Core.Controls;
+using Ghost.Editor.Core.SceneGraph;
 using Ghost.Entities;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 
 namespace Ghost.Editor.Core.Inspector.Drawers;
 
 internal class EntityDrawer : PropertyDrawer<Entity>
 {
-    public override FrameworkElement CreateControlT(PropertyModel<Entity> model)
+    public override FrameworkElement CreateControlT(PropertyNode<Entity> model)
     {
-        var textBlock = new TextBlock
+        var field = new ReferenceField
         {
-            Text = $"Entity({model.Value.ID}, {model.Value.Generation})",
-            VerticalAlignment = VerticalAlignment.Center
+            TypeLabel = "Entity",
+            IconGlyph = "\uF158",
+            Margin = new Thickness(0, 2, 0, 2)
         };
 
-        textBlock.BindOneWay(model, val => textBlock.Text = $"Entity({val.ID}, {val.Generation})");
+        Action<Entity> updateUI = (val) =>
+        {
+            if (val.IsValid)
+            {
+                field.HasValue = true;
 
-        return textBlock;
+                // For now, just display the Entity ID. We could resolve its SceneGraph Node name in the future.
+                field.DisplayText = $"Entity {val.ID}:{val.Generation}";
+            }
+            else
+            {
+                field.HasValue = false;
+                field.DisplayText = "None (Entity)";
+            }
+        };
+
+        field.ValidateDrop = (args) =>
+        {
+            // TODO: Implement drag and drop for entities from the hierarchy
+            return false;
+        };
+
+        field.OnClearClicked = () =>
+        {
+            model.SetValueFromUI(Entity.Invalid);
+            model.FlushToECS();
+            updateUI(Entity.Invalid);
+        };
+
+        updateUI(model.Value);
+
+        model.OnValueChanged += (val) =>
+        {
+            field.DispatcherQueue.TryEnqueue(() =>
+            {
+                updateUI(val);
+            });
+        };
+
+        return field;
     }
 }

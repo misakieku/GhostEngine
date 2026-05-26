@@ -61,7 +61,7 @@ public abstract class SystemBase : ISystem
             return true;
         }
 
-        for  (var i = 0; i < _requiredQueries.Count; i++)
+        for (var i = 0; i < _requiredQueries.Count; i++)
         {
             var queryID = _requiredQueries[i];
             ref var query = ref World.ComponentManager.GetEntityQueryReference(new Identifier<EntityQuery>(queryID));

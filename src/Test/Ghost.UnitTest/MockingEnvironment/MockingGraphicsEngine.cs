@@ -1,7 +1,4 @@
 using Ghost.Graphics.RHI;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Ghost.UnitTest.MockingEnvironment;
 

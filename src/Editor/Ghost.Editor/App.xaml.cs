@@ -2,7 +2,6 @@ using Ghost.Core;
 using Ghost.Editor.Core;
 using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.Services;
-using Ghost.Editor.Core.Utilities;
 using Ghost.Editor.ViewModels.Controls;
 using Ghost.Editor.ViewModels.Windows;
 using Ghost.Editor.Views.Windows;

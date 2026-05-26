@@ -112,9 +112,9 @@ public static class StreamUtility
         return reader.BaseStream.ReadMemory(reader.BaseStream.Length - reader.BaseStream.Position, allocationHandle);
     }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ReadSpan<T>(this BinaryReader reader, Span<T> data)
-        where T : struct
+    where T : struct
     {
         reader.ReadExactly(MemoryMarshal.AsBytes(data));
     }

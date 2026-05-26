@@ -65,7 +65,7 @@ public static unsafe class RenderingUtility
     {
         var error = Error.UnknownError;
         var bufferHandle = resourceAllocator.CreateBuffer(in desc, name);
-        
+
         if (!bufferHandle.IsInvalid)
         {
             error = UploadBuffer(resourceManager, resourceDatabase, cmd, bufferHandle, pData, sizeInBytes);
@@ -145,7 +145,7 @@ public static unsafe class RenderingUtility
     public static Handle<GPUTexture> CreateTexture(ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator, ICommandBuffer cmd, void* pData, nuint sizeInBytes, ref readonly TextureDesc desc, string? name = null)
     {
         var error = Error.UnknownError;
-        
+
         var textureHandle = resourceAllocator.CreateTexture(in desc, name);
         if (!textureHandle.IsInvalid)
         {

@@ -1,6 +1,5 @@
 using Antlr4.Runtime.Misc;
 using Ghost.DSL.ShaderParser.Model;
-using TerraFX.Interop.Windows;
 
 namespace Ghost.DSL.ShaderParser;
 

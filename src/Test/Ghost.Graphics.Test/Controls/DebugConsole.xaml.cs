@@ -5,7 +5,6 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media;
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 
 namespace Ghost.Graphics.Test.Controls;
 

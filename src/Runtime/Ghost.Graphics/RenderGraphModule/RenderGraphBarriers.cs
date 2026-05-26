@@ -174,7 +174,7 @@ internal static class RenderGraphBarriers
             {
                 var handle = readList[j];
 
-                bool isExplicitlyHandled = false;
+                var isExplicitlyHandled = false;
                 if (pass.type == RenderPassType.Raster)
                 {
                     for (var c = 0; c <= pass.maxColorIndex; c++)

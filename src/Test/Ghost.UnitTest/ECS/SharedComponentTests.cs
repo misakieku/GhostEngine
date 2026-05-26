@@ -1,6 +1,5 @@
 using Ghost.Core;
 using Ghost.Entities;
-using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Runtime.InteropServices;
 
 namespace Ghost.UnitTest.ECS;
@@ -193,7 +192,7 @@ public class SharedComponentTests
         // Query the chunk before the call.
         var queryID = QueryBuilder.New().WithAll<Tag>().Build(_world);
         ref readonly var query = ref _world.ComponentManager.GetEntityQueryReference(queryID);
-        int chunkEntityCountBefore = 0;
+        var chunkEntityCountBefore = 0;
         foreach (var chunk in query.GetChunkIterator())
         {
             chunkEntityCountBefore = chunk.EntityCount;
@@ -202,7 +201,7 @@ public class SharedComponentTests
         var error = _world.EntityManager.SetSharedComponent(entity, new SharedGroup { groupID = 7 });
         Assert.AreEqual(Error.None, error);
 
-        int chunkEntityCountAfter = 0;
+        var chunkEntityCountAfter = 0;
         foreach (var chunk in query.GetChunkIterator())
         {
             chunkEntityCountAfter = chunk.EntityCount;
@@ -404,7 +403,7 @@ public class SharedComponentTests
         foreach (var chunk in query.GetChunkIterator())
         {
             if (chunk.EntityCount == 0) continue;
-            Assert.AreEqual(2,   chunk.GetSharedComponent<SharedGroup>().groupID,  "SharedGroup should be updated.");
+            Assert.AreEqual(2, chunk.GetSharedComponent<SharedGroup>().groupID, "SharedGroup should be updated.");
             Assert.AreEqual(100, chunk.GetSharedComponent<SharedGroup2>().subID, "SharedGroup2 must be unchanged.");
         }
     }

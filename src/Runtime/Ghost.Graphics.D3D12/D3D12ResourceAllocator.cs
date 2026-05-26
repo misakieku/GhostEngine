@@ -8,7 +8,6 @@ using TerraFX.Interop.Windows;
 
 using static TerraFX.Aliases.D3D12_Alias;
 using static TerraFX.Aliases.D3D12MA_Alias;
-using static TerraFX.Aliases.DXGI_Alias;
 using static TerraFX.Interop.DirectX.D3D12MemAlloc;
 
 namespace Ghost.Graphics.D3D12;
@@ -181,7 +180,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         HRESULT hr;
 
         var pCastableFormats = stackalloc DXGI_FORMAT[additionalDesc.CastableFormat.Length];
-        for ( var i = 0; i < additionalDesc.CastableFormat.Length; i++)
+        for (var i = 0; i < additionalDesc.CastableFormat.Length; i++)
         {
             pCastableFormats[i] = additionalDesc.CastableFormat[i].ToDXGIFormat();
         }
@@ -189,7 +188,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         if (isSubAllocation)
         {
             hr = CreateResource(&allocationDesc, &resourceDesc, D3D12_BARRIER_LAYOUT_COMMON, options,
-                (uint)additionalDesc.CastableFormat.Length, pCastableFormats, 
+                (uint)additionalDesc.CastableFormat.Length, pCastableFormats,
                 __uuidof(pResource), (void**)&pResource);
         }
         else

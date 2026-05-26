@@ -41,5 +41,5 @@ public abstract partial class SceneGraphNode : ObservableObject, IInspectable
         return null;
     }
 
-    public abstract InspectorDescriptor CreateInspectorDescriptor();
+    public abstract IInspectorModel CreateInspectorModel();
 }

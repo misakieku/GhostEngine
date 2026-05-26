@@ -34,17 +34,17 @@ internal struct ResourceViewGroup
         {
             usage |= TextureUsage.RenderTarget;
         }
-        
+
         if (dsv.IsValid)
         {
             usage |= TextureUsage.DepthStencil;
         }
-        
+
         if (srv.IsValid)
         {
             usage |= TextureUsage.ShaderResource;
         }
-        
+
         if (uav.IsValid)
         {
             usage |= TextureUsage.UnorderedAccess;
@@ -56,7 +56,7 @@ internal struct ResourceViewGroup
     public readonly BufferUsage GetBufferUsage()
     {
         var usage = BufferUsage.None;
-        
+
         if (cbv.IsValid)
         {
             usage |= BufferUsage.Constant;

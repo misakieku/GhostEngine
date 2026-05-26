@@ -1,16 +1,14 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Data;
 
 namespace Ghost.Editor.Core.Inspector.Drawers;
 
 public sealed class ToggleSwitchDrawer : PropertyDrawer<bool>
 {
-    public override FrameworkElement CreateControlT(PropertyModel<bool> model)
+    public override FrameworkElement CreateControlT(Ghost.Editor.Core.SceneGraph.PropertyNode<bool> model)
     {
         var toggle = new ToggleSwitch
         {
-            IsEnabled = !model.Descriptor.IsReadOnly,
             OnContent = "",
             OffContent = "",
             IsOn = model.Value

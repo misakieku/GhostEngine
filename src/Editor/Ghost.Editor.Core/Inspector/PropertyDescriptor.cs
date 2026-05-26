@@ -15,7 +15,6 @@ public sealed class PropertyDescriptor
     public Type FieldType { get; }
     public int OffsetInComponent { get; }
     public bool IsReadOnly { get; }
-    public Func<PropertyDescriptor, IPropertyModel[]?, IPropertyModel> ModelFactory { get; }
 
     // For nested structs (e.g. float4x4 -> float4 -> float)
     public PropertyDescriptor[]? Children { get; }
@@ -31,11 +30,6 @@ public sealed class PropertyDescriptor
 
         var nameAttr = fieldInfo.GetCustomAttribute<InspectorNameAttribute>();
         DisplayName = nameAttr?.Name ?? FormatName(Name);
-
-        var modelType = typeof(PropertyModel<>).MakeGenericType(FieldType);
-        ModelFactory = (desc, children) => (IPropertyModel)Activator.CreateInstance(modelType,
-            BindingFlags.NonPublic | BindingFlags.Instance,
-            null, new object?[] { desc, children }, null)!;
 
         // Handle nested structs if this is an unmanaged struct that is not a primitive or common vector type we have custom drawers for.
         if (FieldType.IsValueType && !FieldType.IsPrimitive && !FieldType.IsEnum)
@@ -70,11 +64,6 @@ public sealed class PropertyDescriptor
         OffsetInComponent = offset;
         IsReadOnly = isReadOnly;
         Children = children;
-
-        var modelType = typeof(PropertyModel<>).MakeGenericType(FieldType);
-        ModelFactory = (desc, children) => (IPropertyModel)Activator.CreateInstance(modelType,
-            BindingFlags.NonPublic | BindingFlags.Instance,
-            null, new object?[] { desc, children }, null)!;
     }
 
     private static string FormatName(string name)

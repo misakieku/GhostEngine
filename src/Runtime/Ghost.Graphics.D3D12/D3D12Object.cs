@@ -1,14 +1,14 @@
-using Misaki.HighPerformance.LowLevel;
-using TerraFX.Interop.DirectX;
+using Ghost.Core;
 using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.LowLevel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using Ghost.Core;
+using TerraFX.Interop.DirectX;
 
 namespace Ghost.Graphics.D3D12;
 
-public unsafe abstract class D3D12Object<T>: IRHIObject
+public abstract unsafe class D3D12Object<T> : IRHIObject
     where T : unmanaged, ID3D12Object.Interface
 {
     private UniquePtr<T> _nativeObject;

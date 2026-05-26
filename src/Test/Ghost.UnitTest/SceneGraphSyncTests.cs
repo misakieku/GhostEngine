@@ -5,9 +5,6 @@ using Ghost.Engine;
 using Ghost.Engine.Components;
 using Ghost.Engine.Core;
 using Ghost.Entities;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
 
 namespace Ghost.UnitTest;
 

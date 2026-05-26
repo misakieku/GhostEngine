@@ -1,7 +1,5 @@
 using Ghost.Editor.Core.Controls;
 using Microsoft.UI.Xaml.Controls;
-using System;
-using System.Collections.Generic;
 
 namespace Ghost.Editor.Core.Inspector;
 

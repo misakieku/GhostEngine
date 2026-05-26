@@ -41,17 +41,17 @@ public struct Scene : IEquatable<Scene>
         return ID == other.ID;
     }
 
-    public readonly override bool Equals(object? obj)
+    public override readonly bool Equals(object? obj)
     {
         return obj is Scene other && Equals(other);
     }
 
-    public readonly override int GetHashCode()
+    public override readonly int GetHashCode()
     {
         return ID.GetHashCode();
     }
 
-    public readonly override string ToString()
+    public override readonly string ToString()
     {
         return $"Scene(ID: {ID})";
     }
@@ -79,12 +79,12 @@ public class LoadedSceneData : IDisposable
         public void Dispose()
         {
             componentTypeIDs.Dispose();
-            for (int i = 0; i < componentData.Count; i++)
+            for (var i = 0; i < componentData.Count; i++)
             {
                 componentData[i].data.Dispose();
             }
             componentData.Dispose();
-            for (int i = 0; i < entityFields.Count; i++)
+            for (var i = 0; i < entityFields.Count; i++)
             {
                 entityFields[i].fieldOffsets.Dispose();
             }
@@ -96,7 +96,7 @@ public class LoadedSceneData : IDisposable
 
     public void Dispose()
     {
-        for (int i = 0; i < entities.Length; i++)
+        for (var i = 0; i < entities.Length; i++)
         {
             entities[i].Dispose();
         }
@@ -642,7 +642,7 @@ public static class SceneManager
         return ParseSceneData(header, ref reader, allocationHandle);
     }
 
-    internal unsafe static Result<LoadedSceneData> ParseSceneData(SceneContentHeader header, void* buffer, nuint size, AllocationHandle allocationHandle)
+    internal static unsafe Result<LoadedSceneData> ParseSceneData(SceneContentHeader header, void* buffer, nuint size, AllocationHandle allocationHandle)
     {
         var reader = new BufferReader((byte*)buffer, size);
         return ParseSceneData(header, ref reader, allocationHandle);

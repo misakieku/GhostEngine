@@ -1,4 +1,4 @@
-using Ghost.Editor.Core.Inspector;
+using Ghost.Editor.Core.Contracts;
 using Microsoft.UI.Xaml.Media;
 using System.Diagnostics;
 
@@ -10,8 +10,7 @@ namespace Ghost.Editor.Core.Services;
 /// </summary>
 public sealed class InspectorSyncService : IDisposable
 {
-    private EntityInspectorModel? _activeModel;
-    private ComponentEditor? _activeCustomEditor;
+    private ISyncableInspectorModel? _activeModel;
     private long _lastSyncTick;
     private static readonly long s_minSyncInterval = Stopwatch.Frequency / 60;
     private bool _isStarted;
@@ -27,20 +26,14 @@ public sealed class InspectorSyncService : IDisposable
         _isStarted = true;
     }
 
-    public void Bind(EntityInspectorModel model)
+    public void Bind(ISyncableInspectorModel model)
     {
         _activeModel = model;
-    }
-
-    public void BindCustomEditor(ComponentEditor editor)
-    {
-        _activeCustomEditor = editor;
     }
 
     public void Unbind()
     {
         _activeModel = null;
-        _activeCustomEditor = null;
     }
 
     private void OnRendering(object? sender, object e)
@@ -58,16 +51,7 @@ public sealed class InspectorSyncService : IDisposable
             return;
         }
 
-        if (!_activeModel.World.EntityManager.Exists(_activeModel.Entity))
-        {
-            Unbind();
-            return;
-        }
-
-        _activeModel.RefreshStructure();
-        _activeModel.SyncFromECS();
-        _activeCustomEditor?.SyncBindings();
-        _activeModel.FlushToECS();
+        _activeModel.Sync();
     }
 
     public void Dispose()

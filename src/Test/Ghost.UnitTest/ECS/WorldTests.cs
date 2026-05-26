@@ -70,9 +70,9 @@ public class WorldTests
     {
         _world.EntityManager.CreateEntity();
         _world.EntityManager.CreateEntity();
-        
+
         _world.Reset();
-        
+
         // We can't easily check internal state, but new entities should start from index 0 again
         var entity = _world.EntityManager.CreateEntity();
         Assert.AreEqual(0, entity.ID);
@@ -83,10 +83,10 @@ public class WorldTests
     {
         using var world = World.Create(null, 64);
         var e = world.EntityManager.CreateEntity();
-        
+
         var err1 = world.EntityManager.DestroyEntity(e);
         Assert.AreEqual(Error.None, err1);
-        
+
         var err2 = world.EntityManager.DestroyEntity(e);
         Assert.AreEqual(Error.NotFound, err2);
     }

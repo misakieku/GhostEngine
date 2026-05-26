@@ -140,9 +140,9 @@ internal static class ShaderCompilerUtility
             options = additionalConfig.options,
             stage = ShaderStage.ComputeShader,
         };
-        
+
         var compiled = new UnsafeArray<UnsafeArray<byte>>(descriptor.ShaderCodes.Length, allocationHandle);
-        for (int i = 0; i < descriptor.ShaderCodes.Length; i++)
+        for (var i = 0; i < descriptor.ShaderCodes.Length; i++)
         {
             config.shaderCode = descriptor.ShaderCodes[i].code;
             config.entryPoint = descriptor.ShaderCodes[i].entryPoint;
@@ -150,7 +150,7 @@ internal static class ShaderCompilerUtility
             var result = shaderCompiler.Compile(ref config, allocationHandle);
             if (result.IsFailure)
             {
-                for (int j = 0; j < i; j++)
+                for (var j = 0; j < i; j++)
                 {
                     compiled[j].Dispose();
                 }

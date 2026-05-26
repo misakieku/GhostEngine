@@ -29,7 +29,7 @@ internal unsafe class ShaderLibrary : IDisposable
         public int byteCodeOffsetCount;
     }
 
-    private struct CacheEntry: IDisposable
+    private struct CacheEntry : IDisposable
     {
         public UnsafeArray<ShaderCache> cache;
 
@@ -38,7 +38,7 @@ internal unsafe class ShaderLibrary : IDisposable
             if (index >= cache.Length)
             {
                 var newByteCode = new UnsafeArray<ShaderCache>(index + 1, AllocationHandle.Persistent);
-                for (int i = 0; i < cache.Length; i++)
+                for (var i = 0; i < cache.Length; i++)
                 {
                     newByteCode[i] = cache[i];
                 }
@@ -53,7 +53,7 @@ internal unsafe class ShaderLibrary : IDisposable
 
         public readonly void Dispose()
         {
-            for (int i = 0; i < cache.Length; i++)
+            for (var i = 0; i < cache.Length; i++)
             {
                 cache[i].Dispose();
             }
@@ -214,7 +214,7 @@ internal unsafe class ShaderLibrary : IDisposable
 
         if (_inMemoryCache.TryGetValue(id, out var entry))
         {
-            for (int i = 0; i < entry.cache.Length; i++)
+            for (var i = 0; i < entry.cache.Length; i++)
             {
                 if (entry.cache[i].compiledHash != 0)
                 {

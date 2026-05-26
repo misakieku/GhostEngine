@@ -4,9 +4,9 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:inspector="using:Ghost.Editor.Core.Inspector"
     xmlns:local="using:Ghost.Editor.Views.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:inspector="using:Ghost.Editor.Core.Inspector"
     mc:Ignorable="d">
 
     <Grid>
@@ -29,15 +29,19 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <ContentPresenter
+            <ContentControl
                 x:Name="IconPresenter"
                 Grid.Column="0"
-                VerticalAlignment="Center" />
-            
-            <ContentPresenter
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Center"
+                HorizontalContentAlignment="Stretch" />
+
+            <ContentControl
                 x:Name="HeaderPresenter"
                 Grid.Column="1"
-                VerticalAlignment="Center" />
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Center"
+                HorizontalContentAlignment="Stretch" />
 
             <DropDownButton
                 Grid.Column="2"
@@ -53,8 +57,12 @@
         </Grid>
 
         <!--  Content  -->
-        <ScrollView Grid.Row="1" x:Name="ContentScrollView">
-            <StackPanel x:Name="InspectorContentContainer" Orientation="Vertical" Spacing="4" Padding="0,4,0,12" />
+        <ScrollView x:Name="ContentScrollView" Grid.Row="1">
+            <StackPanel
+                x:Name="InspectorContentContainer"
+                Padding="0,4,0,12"
+                Orientation="Vertical"
+                Spacing="4" />
         </ScrollView>
     </Grid>
 </UserControl>

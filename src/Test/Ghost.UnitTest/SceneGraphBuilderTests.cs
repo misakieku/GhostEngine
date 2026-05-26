@@ -3,7 +3,6 @@ using Ghost.Engine;
 using Ghost.Engine.Components;
 using Ghost.Engine.Core;
 using Ghost.Entities;
-using Misaki.HighPerformance.LowLevel.Buffer;
 
 namespace Ghost.UnitTest;
 

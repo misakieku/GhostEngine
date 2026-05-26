@@ -1,5 +1,4 @@
 using Ghost.Core;
-using Misaki.HighPerformance.Collections;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
@@ -980,7 +979,7 @@ public unsafe partial class EntityManager : IDisposable
     {
         if (!_entityLocations.TryGetElementAt(entity.ID, entity.Generation, out var location))
             throw new ArgumentException("Entity does not exist.", nameof(entity));
-            
+
         return ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
     }
 

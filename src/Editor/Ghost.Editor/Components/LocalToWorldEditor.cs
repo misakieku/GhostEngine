@@ -26,7 +26,7 @@ internal class LocalToWorldEditor : ComponentEditor
         container.Children.Add(new PropertyField() { Label = "Scale", Content = _scaleField });
 
         Bind(_translationField,
-            getter: obj => 
+            getter: obj =>
             {
                 obj.GetData<LocalToWorld>().matrix.GetTRS(out var position, out _, out _);
                 return position;

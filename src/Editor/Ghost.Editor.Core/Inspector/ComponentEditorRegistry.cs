@@ -1,6 +1,4 @@
 using Ghost.Editor.Core.Utilities;
-using System;
-using System.Collections.Generic;
 using System.Reflection;
 
 namespace Ghost.Editor.Core.Inspector;
@@ -15,6 +13,11 @@ public static class ComponentEditorRegistry
     static ComponentEditorRegistry()
     {
         var editorTypes = TypeCache.GetTypesWithAttribute<CustomEditorAttribute>();
+        if (editorTypes == null)
+        {
+            return;
+        }
+
         foreach (var editorType in editorTypes)
         {
             var attr = editorType.GetCustomAttribute<CustomEditorAttribute>();

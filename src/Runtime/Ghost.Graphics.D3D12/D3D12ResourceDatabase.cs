@@ -388,7 +388,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
         D3D12Utility.CreateResourceDescriptor(_device, _descriptorAllocator, recordA.desc, recordA.ResourcePtr, viewA);
         D3D12Utility.CreateResourceDescriptor(_device, _descriptorAllocator, recordB.desc, recordB.ResourcePtr, viewB);
-        
+
         return Error.None;
     }
 
@@ -415,7 +415,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         // Update dst's descriptor to point to the new resource
         D3D12Utility.CreateResourceDescriptor(_device, _descriptorAllocator, recordDst.desc, recordDst.ResourcePtr, dstView);
         ReleaseResource(src);
-        
+
         return dst;
     }
 

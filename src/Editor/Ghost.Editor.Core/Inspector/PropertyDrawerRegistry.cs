@@ -1,3 +1,4 @@
+using Ghost.Core;
 using Ghost.Editor.Core.Inspector.Drawers;
 using Ghost.Editor.Core.Utilities;
 using Ghost.Entities;
@@ -90,6 +91,15 @@ public static class PropertyDrawerRegistry
             var enumDrawer = (PropertyDrawer)Activator.CreateInstance(enumDrawerType)!;
             s_drawers[fieldType] = enumDrawer;
             return enumDrawer;
+        }
+
+        if (fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(Handle<>))
+        {
+            var argType = fieldType.GetGenericArguments()[0];
+            var handleDrawerType = typeof(HandleDrawer<>).MakeGenericType(argType);
+            var handleDrawer = (PropertyDrawer)Activator.CreateInstance(handleDrawerType)!;
+            s_drawers[fieldType] = handleDrawer;
+            return handleDrawer;
         }
 
         // Fallback for unknown types. If it's an unmanaged struct with fields, we use EmptyDrawer 

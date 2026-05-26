@@ -33,7 +33,7 @@ public sealed class NamingConventions
             return TrimUnderscores(StripPrefixIgnoreCase(name, _config.NativeTypePrefix));
         }
 
-        string? set = nameOpts.set as string;
+        var set = nameOpts.set as string;
         if (!string.IsNullOrEmpty(set))
         {
             return set;
@@ -63,10 +63,10 @@ public sealed class NamingConventions
         {
             if (string.Equals(style, "PascalCase", StringComparison.Ordinal))
             {
-                int counter = 0;
+                var counter = 0;
                 Span<char> nameSpan = stackalloc char[name.Length];
 
-                for (int i = 0; i < name.Length; i++)
+                for (var i = 0; i < name.Length; i++)
                 {
                     if (i == 0)
                     {
@@ -97,10 +97,10 @@ public sealed class NamingConventions
             }
             else if (string.Equals(style, "ALL_CAPS", StringComparison.Ordinal))
             {
-                int counter = 0;
+                var counter = 0;
                 Span<char> nameSpan = stackalloc char[name.Length * 2]; // Worst case, every character is uppercase and followed by an underscore.
 
-                for (int i = 0; i < name.Length; i++)
+                for (var i = 0; i < name.Length; i++)
                 {
                     // ___ to _
                     if (name[i] == '_')

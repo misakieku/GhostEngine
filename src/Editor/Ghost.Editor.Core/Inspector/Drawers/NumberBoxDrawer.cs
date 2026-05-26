@@ -29,13 +29,12 @@ public sealed class NumberBoxDrawer<T> : PropertyDrawer<T>
         return new NumberBoxDrawer<T>(0, double.CreateTruncating(T.MinValue), double.CreateTruncating(T.MaxValue));
     }
 
-    public override FrameworkElement CreateControlT(PropertyModel<T> model)
+    public override FrameworkElement CreateControlT(Ghost.Editor.Core.SceneGraph.PropertyNode<T> model)
     {
         var box = new NumberBox
         {
             SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline,
             HorizontalAlignment = HorizontalAlignment.Stretch,
-            IsEnabled = !model.Descriptor.IsReadOnly,
             MaxWidth = double.PositiveInfinity, // To fill PropertyField
             Maximum = _max,
             Minimum = _min,

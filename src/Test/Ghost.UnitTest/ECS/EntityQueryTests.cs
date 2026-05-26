@@ -1,5 +1,4 @@
 using Ghost.Entities;
-using Misaki.HighPerformance.LowLevel.Buffer;
 
 namespace Ghost.UnitTest.ECS;
 
@@ -99,7 +98,7 @@ public class EntityQueryTests
     {
         var e1 = _world.EntityManager.CreateEntity();
         _world.EntityManager.AddComponent(e1, new EnableableComp { value = 10 });
-        
+
         var e2 = _world.EntityManager.CreateEntity();
         _world.EntityManager.AddComponent(e2, new EnableableComp { value = 20 });
         _world.EntityManager.SetEnabled<EnableableComp>(e2, false);
@@ -126,7 +125,7 @@ public class EntityQueryTests
     {
         var e1 = _world.EntityManager.CreateEntity();
         _world.EntityManager.AddComponent(e1, new EnableableComp { value = 10 });
-        
+
         var e2 = _world.EntityManager.CreateEntity();
         _world.EntityManager.AddComponent(e2, new EnableableComp { value = 20 });
         _world.EntityManager.SetEnabled<EnableableComp>(e2, false);
@@ -153,7 +152,7 @@ public class EntityQueryTests
     {
         var e1 = _world.EntityManager.CreateEntity();
         _world.EntityManager.AddComponent(e1, new EnableableComp { value = 10 });
-        
+
         var e2 = _world.EntityManager.CreateEntity();
         _world.EntityManager.AddComponent(e2, new EnableableComp { value = 20 });
         _world.EntityManager.SetEnabled<EnableableComp>(e2, false);
@@ -179,7 +178,7 @@ public class EntityQueryTests
     public void Query_CalculateEntityCount_IsCorrectAcrossMultipleArchetypes()
     {
         // Archetype A+B
-        for (int i = 0; i < 5; i++)
+        for (var i = 0; i < 5; i++)
         {
             var e = _world.EntityManager.CreateEntity();
             _world.EntityManager.AddComponent<CompA>(e);
@@ -187,7 +186,7 @@ public class EntityQueryTests
         }
 
         // Archetype A+C
-        for (int i = 0; i < 3; i++)
+        for (var i = 0; i < 3; i++)
         {
             var e = _world.EntityManager.CreateEntity();
             _world.EntityManager.AddComponent<CompA>(e);

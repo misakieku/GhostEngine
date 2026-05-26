@@ -16,7 +16,7 @@ internal unsafe class D3D12CommandSignature : D3D12Object<ID3D12CommandSignature
 
         var pArgumentDescs = stackalloc D3D12_INDIRECT_ARGUMENT_DESC[desc.Arguments.Length];
 
-        for (var i = 0; i < desc.Arguments.Length; i++ )
+        for (var i = 0; i < desc.Arguments.Length; i++)
         {
             var argument = desc.Arguments[i];
             var pArgumentDesc = &pArgumentDescs[i];

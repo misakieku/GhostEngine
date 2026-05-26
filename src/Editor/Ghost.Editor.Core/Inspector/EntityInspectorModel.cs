@@ -1,5 +1,8 @@
+using Ghost.Editor.Core.Contracts;
+using Ghost.Editor.Core.SceneGraph;
 using Ghost.Entities;
-using System.Buffers;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 
 namespace Ghost.Editor.Core.Inspector;
 
@@ -7,16 +10,17 @@ namespace Ghost.Editor.Core.Inspector;
 /// Model for an entire entity being inspected.
 /// Discovers components from archetype, builds ComponentModels.
 /// </summary>
-public sealed unsafe class EntityInspectorModel : IDisposable
+public sealed class EntityInspectorModel : ISyncableInspectorModel
 {
     private readonly World _world;
     private readonly Entity _entity;
-    private readonly List<ComponentModel> _components = new();
+    private EntityNode? _entityNode;
+    private readonly List<ComponentNode> _components = new();
     private int _lastArchetypeId = -1;
 
     public World World => _world;
     public Entity Entity => _entity;
-    public IReadOnlyList<ComponentModel> Components => _components;
+    public IReadOnlyList<ComponentNode> Components => _components;
 
     public EntityInspectorModel(World world, Entity entity)
     {
@@ -59,22 +63,9 @@ public sealed unsafe class EntityInspectorModel : IDisposable
 
         foreach (var comp in _components)
         {
-            if (comp.Descriptor.IsShared)
+            foreach (var prop in comp.Properties)
             {
-                var ptr = _world.EntityManager.GetSharedComponent(_entity, comp.Descriptor.ComponentId);
-                if (ptr != null)
-                {
-                    comp.SyncFromECS(ptr);
-                }
-            }
-            else
-            {
-                // Fresh pointer every tick - never cached
-                var ptr = _world.EntityManager.GetComponent(_entity, comp.Descriptor.ComponentId);
-                if (ptr != null)
-                {
-                    comp.SyncFromECS(ptr);
-                }
+                prop.SyncFromECS();
             }
         }
     }
@@ -91,39 +82,9 @@ public sealed unsafe class EntityInspectorModel : IDisposable
 
         foreach (var comp in _components)
         {
-            if (comp.Descriptor.IsShared)
+            foreach (var prop in comp.Properties)
             {
-                var ptr = _world.EntityManager.GetSharedComponent(_entity, comp.Descriptor.ComponentId);
-                if (ptr != null)
-                {
-                    // Copy existing shared component data to a local stack buffer
-                    var tempArray = ArrayPool<byte>.Shared.Rent(comp.Descriptor.Size);
-                    try
-                    {
-                        fixed (byte* tempBuffer = tempArray)
-                        {
-                            System.Runtime.CompilerServices.Unsafe.CopyBlock(tempBuffer, ptr, (uint)comp.Descriptor.Size);
-
-                            // Flush local property models to the copied data
-                            comp.FlushToECS(tempBuffer);
-
-                            // Call SetSharedComponent with the modified data
-                            _world.EntityManager.SetSharedComponent(_entity, comp.Descriptor.ComponentId, tempBuffer);
-                        }
-                    }
-                    finally
-                    {
-                        ArrayPool<byte>.Shared.Return(tempArray);
-                    }
-                }
-            }
-            else
-            {
-                var ptr = _world.EntityManager.GetComponent(_entity, comp.Descriptor.ComponentId);
-                if (ptr != null)
-                {
-                    comp.FlushToECS(ptr);
-                }
+                prop.FlushToECS();
             }
         }
     }
@@ -137,27 +98,114 @@ public sealed unsafe class EntityInspectorModel : IDisposable
             return;
         }
 
-        ref readonly var archetype = ref _world.EntityManager.GetEntityArchetype(_entity);
-
-        var it = archetype._signature.GetIterator();
-        while (it.Next(out var componentID))
+        if (_entityNode == null)
         {
-            var info = ComponentRegistry.GetComponentInfo(new Ghost.Core.Identifier<IComponent>(componentID));
-            if (info.isCleanup)
+            var syncService = EditorApplication.GetService<Services.SceneGraphSyncService>();
+            if (syncService != null && syncService.TryGetNode(_entity, out var node))
             {
-                continue;
+                _entityNode = node;
+            }
+        }
+
+        if (_entityNode != null)
+        {
+            // Update components list in EntityNode first
+            _entityNode.BuildComponents();
+
+            foreach (var compNode in _entityNode.Components)
+            {
+                _components.Add(compNode);
+            }
+        }
+    }
+
+    private readonly List<ComponentEditor> _activeCustomEditors = new();
+
+    public void Sync()
+    {
+        if (!_world.EntityManager.Exists(_entity)) return;
+        RefreshStructure();
+        SyncFromECS();
+        foreach (var editor in _activeCustomEditors)
+        {
+            editor.SyncBindings();
+        }
+        FlushToECS();
+    }
+
+    public UIElement BuildUI()
+    {
+        RefreshStructure();
+
+        var container = new StackPanel { Spacing = 4 };
+
+        foreach (var compNode in _components)
+        {
+            var expander = new Expander
+            {
+                Header = compNode.Descriptor.DisplayName,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                IsExpanded = true,
+                Margin = new Thickness(4, 2, 4, 2)
+            };
+
+            var propertiesPanel = new StackPanel { Spacing = 8 };
+
+            if (ComponentEditorRegistry.HasCustomEditor(compNode.ComponentType))
+            {
+                var editor = ComponentEditorRegistry.CreateCustomEditor(compNode.ComponentType);
+                if (editor != null)
+                {
+                    var compObject = new ComponentObject(_world, _entity);
+                    editor.Initialize(compObject);
+                    editor.Create(propertiesPanel);
+                    _activeCustomEditors.Add(editor);
+                }
+            }
+            else
+            {
+                foreach (var propNode in compNode.Properties)
+                {
+                    BuildPropertyUI(propNode, propertiesPanel);
+                }
             }
 
-            if (ComponentRegistry.s_runtimeIDToType.TryGetValue(componentID, out var type))
+            expander.Content = propertiesPanel;
+            container.Children.Add(expander);
+        }
+
+        return container;
+    }
+
+    private static void BuildPropertyUI(PropertyNode propNode, Panel container)
+    {
+        var drawer = PropertyDrawerRegistry.GetDrawer(propNode.Descriptor.FieldType);
+        var control = drawer.CreateControl(propNode);
+
+        var propertyField = new Controls.PropertyField
+        {
+            Label = propNode.Descriptor.DisplayName,
+            Content = control,
+            IsEditable = !propNode.Descriptor.IsReadOnly
+        };
+
+        container.Children.Add(propertyField);
+
+        if (propNode.Children != null && propNode.Children.Length > 0)
+        {
+            var childrenPanel = new StackPanel { Spacing = 4, Margin = new Thickness(12, 4, 0, 0) };
+            foreach (var child in propNode.Children)
             {
-                var descriptor = ComponentDescriptorRegistry.GetOrCreate(type);
-                _components.Add(new ComponentModel(descriptor));
+                BuildPropertyUI(child, childrenPanel);
             }
+            container.Children.Add(childrenPanel);
         }
     }
 
     public void Dispose()
     {
         _components.Clear();
+        _activeCustomEditors.Clear();
     }
 }

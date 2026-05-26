@@ -14,7 +14,7 @@ public static class ComponentDescriptorRegistry
     public static ComponentDescriptor GetOrCreate(Type componentType)
     {
         var handle = componentType.TypeHandle.Value;
-        
+
         lock (s_lock)
         {
             if (s_cache.TryGetValue(handle, out var descriptor))

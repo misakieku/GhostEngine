@@ -1,5 +1,4 @@
 using Ghost.Core;
-using Ghost.Engine;
 using Ghost.Engine.Streaming;
 
 namespace Ghost.Editor.Core.Assets;
@@ -35,17 +34,17 @@ public sealed class CustomAssetHandlerAttribute : Attribute
 
 public interface IAsset : IDisposable
 {
-    public Guid ID
+    Guid ID
     {
         get;
     }
 
-    public Guid TypeID
+    Guid TypeID
     {
         get;
     }
 
-    public IAssetSettings? Settings
+    IAssetSettings? Settings
     {
         get;
     }

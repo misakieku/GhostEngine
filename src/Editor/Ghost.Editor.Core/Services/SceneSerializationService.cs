@@ -111,7 +111,7 @@ internal class SceneSerializationService : IDisposable
         return fields;
     }
 
-    private static object RemapEntityFieldsToLocal(object boxed, Type type, Dictionary<Entity, int> reverseMap)
+    private static void RemapEntityFieldsToLocal(object boxed, Type type, Dictionary<Entity, int> reverseMap)
     {
         var entityFields = GetEntityFields(type);
         foreach (var field in entityFields)
@@ -120,11 +120,9 @@ internal class SceneSerializationService : IDisposable
             var localIndex = FileLocalIndexOf(reverseMap, entity);
             field.SetValue(boxed, new Entity(localIndex, localIndex >= 0 ? 0 : -1));
         }
-
-        return boxed;
     }
 
-    private static object RemapLocalFieldsToEntity(object boxed, Type type, Dictionary<int, Entity> forwardMap)
+    private static void RemapLocalFieldsToEntity(object boxed, Type type, Dictionary<int, Entity> forwardMap)
     {
         var entityFields = GetEntityFields(type);
         foreach (var field in entityFields)
@@ -138,8 +136,6 @@ internal class SceneSerializationService : IDisposable
 
             field.SetValue(boxed, entity);
         }
-
-        return boxed;
     }
 
     #region Binary Serialization
@@ -380,15 +376,30 @@ internal class SceneSerializationService : IDisposable
 
                     var componentType = ComponentRegistry.s_runtimeIDToType[compId];
 
-                    var boxed = componentElement.Deserialize(componentType, s_jsonOptions);
-                    if (boxed == null)
+                    if (_syncService.TryGetNode(entity, out var node))
+                    {
+                        node.BuildComponents();
+                        var compNode = node.Components.FirstOrDefault(c => c.ComponentType == componentType);
+                        if (compNode != null)
+                        {
+                            compNode.Deserialize(componentElement, s_jsonOptions, (boxed) =>
+                            {
+                                RemapLocalFieldsToEntity(boxed, componentType, forwardMap);
+                            });
+                            continue;
+                        }
+                    }
+
+                    // Fallback to direct deserialization
+                    var boxedLegacy = componentElement.Deserialize(componentType, s_jsonOptions);
+                    if (boxedLegacy == null)
                     {
                         continue;
                     }
 
-                    boxed = RemapLocalFieldsToEntity(boxed, componentType, forwardMap);
+                    RemapLocalFieldsToEntity(boxedLegacy, componentType, forwardMap);
 
-                    Marshal.StructureToPtr(boxed, (nint)buffer.GetUnsafePtr(), false);
+                    Marshal.StructureToPtr(boxedLegacy, (nint)buffer.GetUnsafePtr(), false);
 
                     world.EntityManager.SetComponent(entity, compId, buffer.GetUnsafePtr());
                 }
@@ -490,7 +501,8 @@ internal class SceneSerializationService : IDisposable
             writer.WriteStartObject();
 
             var entityName = "Entity";
-            if (_syncService != null && _syncService.TryGetNode(entity, out var node))
+            SceneGraph.EntityNode? node = null;
+            if (_syncService != null && _syncService.TryGetNode(entity, out node))
             {
                 entityName = node.Name;
             }
@@ -498,33 +510,51 @@ internal class SceneSerializationService : IDisposable
 
             writer.WriteStartObject("components");
 
-            foreach (var layout in archetype._layouts)
+            if (node != null)
             {
-                var type = ComponentRegistry.s_runtimeIDToType[layout.componentID];
-                if (type == typeof(SceneID))
+                node.BuildComponents(); // Ensure latest
+
+                foreach (var compNode in node.Components)
                 {
-                    continue;
+                    var type = compNode.ComponentType;
+                    var fullName = type.FullName ?? type.Name;
+                    writer.WritePropertyName(fullName);
+                    compNode.Serialize(writer, s_jsonOptions, (boxed) =>
+                    {
+                        RemapEntityFieldsToLocal(boxed, type, reverseMap);
+                    });
                 }
-
-                var fullName = type.FullName ?? type.Name;
-                var compInfo = ComponentRegistry.GetComponentInfo(layout.componentID);
-
-                var pData = archetype.GetComponentData(location.chunkIndex, location.rowIndex, layout.componentID);
-                if (pData == null)
+            }
+            else
+            {
+                foreach (var layout in archetype._layouts)
                 {
-                    continue;
+                    var type = ComponentRegistry.s_runtimeIDToType[layout.componentID];
+                    if (type == typeof(SceneID))
+                    {
+                        continue;
+                    }
+
+                    var fullName = type.FullName ?? type.Name;
+                    var compInfo = ComponentRegistry.GetComponentInfo(layout.componentID);
+
+                    var pData = archetype.GetComponentData(location.chunkIndex, location.rowIndex, layout.componentID);
+                    if (pData == null)
+                    {
+                        continue;
+                    }
+
+                    var boxed = Marshal.PtrToStructure((nint)pData, type);
+                    if (boxed == null)
+                    {
+                        continue;
+                    }
+
+                    RemapEntityFieldsToLocal(boxed, type, reverseMap);
+
+                    writer.WritePropertyName(fullName);
+                    JsonSerializer.Serialize(writer, boxed, type, s_jsonOptions);
                 }
-
-                var boxed = Marshal.PtrToStructure((nint)pData, type);
-                if (boxed == null)
-                {
-                    continue;
-                }
-
-                boxed = RemapEntityFieldsToLocal(boxed, type, reverseMap);
-
-                writer.WritePropertyName(fullName);
-                JsonSerializer.Serialize(writer, boxed, type, s_jsonOptions);
             }
 
             writer.WriteEndObject();

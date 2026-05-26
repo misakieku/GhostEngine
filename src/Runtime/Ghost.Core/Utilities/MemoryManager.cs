@@ -90,7 +90,7 @@ public sealed class CastMemoryManager<TFrom, TTo> : MemoryManager<TTo>
 
         unsafe
         {
-            int byteOffset = elementIndex * Unsafe.SizeOf<TTo>();
+            var byteOffset = elementIndex * Unsafe.SizeOf<TTo>();
             void* pointer = (byte*)_innerHandle.Pointer + byteOffset;
 
             return new MemoryHandle(pointer, default, this);

@@ -40,7 +40,7 @@ public class EntityCommandBufferTests
     public void TestECB_AddComponent()
     {
         var entity = _world.EntityManager.CreateEntity();
-        
+
         using var ecb = new EntityCommandBuffer(1024, AllocationHandle.Persistent);
         ecb.AddComponent(entity, new CompA { value = 100 });
         ecb.Playback(_world.EntityManager);
@@ -79,7 +79,7 @@ public class EntityCommandBufferTests
     public void TestECB_DestroyEntity()
     {
         var entity = _world.EntityManager.CreateEntity();
-        
+
         using var ecb = new EntityCommandBuffer(1024, AllocationHandle.Persistent);
         ecb.DestroyEntity(entity);
         ecb.Playback(_world.EntityManager);
@@ -113,17 +113,17 @@ public class EntityCommandBufferTests
     public void TestECB_SharedComponentOperations()
     {
         var entity = _world.EntityManager.CreateEntity();
-        
+
         using var ecb = new EntityCommandBuffer(1024, AllocationHandle.Persistent);
         ecb.AddSharedComponent(entity, new SharedComp { value = 10 });
         ecb.SetSharedComponent(entity, new SharedComp { value = 20 });
         ecb.Playback(_world.EntityManager);
 
         Assert.IsTrue(_world.EntityManager.HasComponent<SharedComp>(entity));
-        
+
         var queryID = QueryBuilder.New().WithAll<SharedComp>().Build(_world);
         ref readonly var query = ref _world.ComponentManager.GetEntityQueryReference(queryID);
-        
+
         var found = false;
         foreach (var chunk in query.GetChunkIterator())
         {

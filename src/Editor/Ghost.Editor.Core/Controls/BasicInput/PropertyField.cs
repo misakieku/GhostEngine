@@ -39,6 +39,18 @@ public sealed partial class PropertyField : ContentControl
         typeof(PropertyField),
         new PropertyMetadata(default(string)));
 
+    public bool IsEditable
+    {
+        get => (bool)GetValue(IsEditableProperty);
+        set => SetValue(IsEditableProperty, value);
+    }
+
+    public static readonly DependencyProperty IsEditableProperty = DependencyProperty.Register(
+        nameof(IsEditable),
+        typeof(bool),
+        typeof(PropertyField),
+        new PropertyMetadata(true));
+
     public PropertyField()
     {
         DefaultStyleKey = typeof(PropertyField);

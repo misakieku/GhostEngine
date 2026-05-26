@@ -1,3 +1,4 @@
+using Ghost.Editor.Core.SceneGraph;
 using Microsoft.UI.Xaml;
 
 namespace Ghost.Editor.Core.Inspector;
@@ -8,17 +9,17 @@ namespace Ghost.Editor.Core.Inspector;
 public abstract class PropertyDrawer
 {
     /// <summary>
-    /// Create the UI control bound to the given property model.
+    /// Create the UI control bound to the given property node.
     /// </summary>
-    public abstract FrameworkElement CreateControl(IPropertyModel model);
+    public abstract FrameworkElement CreateControl(PropertyNode model);
 }
 
 public abstract class PropertyDrawer<T> : PropertyDrawer where T : unmanaged
 {
-    public sealed override FrameworkElement CreateControl(IPropertyModel model)
+    public sealed override FrameworkElement CreateControl(PropertyNode model)
     {
-        return CreateControlT((PropertyModel<T>)model);
+        return CreateControlT((PropertyNode<T>)model);
     }
 
-    public abstract FrameworkElement CreateControlT(PropertyModel<T> model);
+    public abstract FrameworkElement CreateControlT(PropertyNode<T> model);
 }

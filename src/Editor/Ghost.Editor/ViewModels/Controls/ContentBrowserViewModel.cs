@@ -4,7 +4,6 @@ using Ghost.Editor.Core.Assets;
 using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.Utilities;
 using Ghost.Editor.Models;
-using Ghost.Engine;
 using Ghost.Engine.Streaming;
 using Microsoft.UI.Dispatching;
 using System.Collections.ObjectModel;

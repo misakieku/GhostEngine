@@ -1,5 +1,4 @@
 using Ghost.Editor.Core.Contracts;
-using Ghost.Editor.Core.Inspector;
 using Ghost.Editor.Core.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -11,7 +10,7 @@ public sealed partial class Inspector : UserControl
     private readonly IInspectorService _inspectorService;
     private readonly InspectorSyncService _syncService;
 
-    private EntityInspectorModel? _currentModel;
+    private IInspectorModel? _currentModel;
 
     public Inspector()
     {
@@ -75,83 +74,16 @@ public sealed partial class Inspector : UserControl
         HeaderPresenter.Content = inspectable.CreateHeader();
 
         // Build body
-        var descriptor = inspectable.CreateInspectorDescriptor();
-
-        if (descriptor is EntityInspectorDescriptor entityDesc)
+        _currentModel = inspectable.CreateInspectorModel();
+        if (_currentModel != null)
         {
-            _currentModel = new EntityInspectorModel(entityDesc.World, entityDesc.Entity);
-            _currentModel.RefreshStructure();
+            InspectorContentContainer.Children.Add(_currentModel.BuildUI());
 
-            foreach (var compModel in _currentModel.Components)
+            if (_currentModel is ISyncableInspectorModel syncableModel)
             {
-                var expander = new Expander
-                {
-                    Header = compModel.Descriptor.DisplayName,
-                    HorizontalAlignment = HorizontalAlignment.Stretch,
-                    HorizontalContentAlignment = HorizontalAlignment.Stretch,
-                    IsExpanded = true,
-                    Margin = new Thickness(4, 2, 4, 2)
-                };
-
-                var propertiesPanel = new StackPanel { Spacing = 8 };
-
-                if (ComponentEditorRegistry.HasCustomEditor(compModel.Descriptor.ComponentType))
-                {
-                    var editor = ComponentEditorRegistry.CreateCustomEditor(compModel.Descriptor.ComponentType);
-                    if (editor != null)
-                    {
-                        var compObject = new ComponentObject(entityDesc.World, entityDesc.Entity);
-                        editor.Initialize(compObject);
-                        editor.Create(propertiesPanel);
-                        _syncService.BindCustomEditor(editor);
-                    }
-                }
-                else
-                {
-                    foreach (var propModel in compModel.Properties)
-                    {
-                        BuildPropertyUI(propModel, propertiesPanel);
-                    }
-                }
-
-                expander.Content = propertiesPanel;
-                InspectorContentContainer.Children.Add(expander);
+                _syncService.Bind(syncableModel);
+                syncableModel.Sync(); // Initial sync
             }
-
-            _syncService.Bind(_currentModel);
-            _currentModel.SyncFromECS(); // initial sync
-        }
-        else if (descriptor is CustomInspectorDescriptor customDesc)
-        {
-            var ui = customDesc.Factory();
-            if (ui != null)
-            {
-                InspectorContentContainer.Children.Add(ui);
-            }
-        }
-    }
-
-    private void BuildPropertyUI(IPropertyModel propModel, Panel container)
-    {
-        var drawer = PropertyDrawerRegistry.GetDrawer(propModel.Descriptor.FieldType);
-        var control = drawer.CreateControl(propModel);
-
-        var propertyField = new Core.Controls.PropertyField
-        {
-            Label = propModel.Descriptor.DisplayName,
-            Content = control
-        };
-
-        container.Children.Add(propertyField);
-
-        if (propModel.Children != null && propModel.Children.Length > 0)
-        {
-            var childrenPanel = new StackPanel { Spacing = 4, Margin = new Thickness(12, 4, 0, 0) };
-            foreach (var child in propModel.Children)
-            {
-                BuildPropertyUI(child, childrenPanel);
-            }
-            container.Children.Add(childrenPanel);
         }
     }
 }

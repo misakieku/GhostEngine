@@ -13,8 +13,6 @@ using Misaki.HighPerformance.Mathematics;
 using System.Runtime.CompilerServices;
 using System.Text;
 
-using TLSFPool = Misaki.HighPerformance.LowLevel.Buffer.MemoryPool<Misaki.HighPerformance.LowLevel.Buffer.TLSF, Misaki.HighPerformance.LowLevel.Buffer.TLSF.CreationOptions>;
-
 namespace Ghost.Editor.Core.Assets;
 
 internal readonly unsafe struct MeshParsingJob : IJob

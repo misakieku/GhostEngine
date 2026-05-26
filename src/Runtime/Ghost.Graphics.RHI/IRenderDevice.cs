@@ -1,5 +1,3 @@
-using Ghost.Core;
-
 namespace Ghost.Graphics.RHI;
 
 [Flags]

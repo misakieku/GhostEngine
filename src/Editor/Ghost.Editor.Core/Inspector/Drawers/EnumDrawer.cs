@@ -1,20 +1,17 @@
+using Ghost.Editor.Core.SceneGraph;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using System;
-using System.Linq;
 
 namespace Ghost.Editor.Core.Inspector.Drawers;
 
 public sealed class EnumDrawer<T> : PropertyDrawer<T>
     where T : unmanaged, Enum
 {
-    public override FrameworkElement CreateControlT(PropertyModel<T> model)
+    public override FrameworkElement CreateControlT(PropertyNode<T> model)
     {
-        var names = Enum.GetNames(typeof(T));
-        
         var comboBox = new ComboBox
         {
-            ItemsSource = names,
+            ItemsSource = Enum.GetNames(typeof(T)),
             HorizontalAlignment = HorizontalAlignment.Stretch,
             IsEnabled = !model.Descriptor.IsReadOnly,
             SelectedItem = model.Value.ToString()

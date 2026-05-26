@@ -5,7 +5,6 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
-using Misaki.HighPerformance.Mathematics.Geometry;
 
 namespace Ghost.Graphics.Services;
 
@@ -166,7 +165,7 @@ public sealed partial class ResourceManager : IDisposable
     {
         Logger.DebugAssert(!_disposed);
 
-        lock(_meshWriteLock)
+        lock (_meshWriteLock)
         {
             var id = _meshes.Add(mesh, out var generation);
             return new Handle<Mesh>(id, generation);

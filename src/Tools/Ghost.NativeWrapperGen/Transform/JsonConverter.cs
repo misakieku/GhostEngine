@@ -49,7 +49,7 @@ internal class DynamicJsonWrapper : DynamicObject
         {
             JsonValueKind.Object => new DynamicJsonWrapper(element),
             JsonValueKind.String => element.GetString(),
-            JsonValueKind.Number => element.TryGetInt32(out int i) ? i : element.GetDouble(),
+            JsonValueKind.Number => element.TryGetInt32(out var i) ? i : element.GetDouble(),
             JsonValueKind.Array => element.EnumerateArray().Select(Wrap).ToArray(),
             JsonValueKind.True => true,
             JsonValueKind.False => false,

@@ -1,6 +1,6 @@
+using Ghost.NativeWrapperGen.Transform;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Ghost.NativeWrapperGen.Transform;
 
 namespace Ghost.NativeWrapperGen.Config;
 

@@ -4,7 +4,6 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
@@ -186,7 +185,7 @@ internal unsafe class DXGISwapChain : ISwapChain
         var presentFlags = 0u;
         var syncInterval = vsync ? 1u : 0u;
 
-        var i =_swapChain.Get()->GetCurrentBackBufferIndex();
+        var i = _swapChain.Get()->GetCurrentBackBufferIndex();
         ThrowIfFailed(_swapChain.Get()->Present(syncInterval, presentFlags));
     }
 

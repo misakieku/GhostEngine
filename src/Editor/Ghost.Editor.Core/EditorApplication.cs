@@ -64,7 +64,7 @@ public static class EditorApplication
         s_currentProjectPath = projectPath;
         s_currentProjectName = projectName;
 
-        s_assetsFolderPath =  Path.Combine(projectPath, ASSETS_FOLDER_NAME);
+        s_assetsFolderPath = Path.Combine(projectPath, ASSETS_FOLDER_NAME);
         s_packagesFolderPath = Path.Combine(projectPath, PACKAGES_FOLDER_NAME);
         s_libraryFolderPath = Path.Combine(projectPath, LIBRARY_FOLDER_NAME);
         s_configFolderPath = Path.Combine(projectPath, CONFIG_FOLDER_NAME);
