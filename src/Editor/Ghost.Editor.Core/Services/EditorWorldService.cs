@@ -20,6 +20,7 @@ public class EditorWorldService : IDisposable
     {
         get;
     } = new();
+
     public event Action<Entity, string, ushort>? EntityCreated;
     public event Action<Entity>? EntityDestroyed;
     public event Action<Entity, Entity, Entity>? EntityParentChanged; // (child, oldParent, newParent)

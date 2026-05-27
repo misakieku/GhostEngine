@@ -1,11 +1,12 @@
 using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.SceneGraph;
 using Ghost.Editor.Core.Services;
+using Ghost.Core;
 using Ghost.Engine;
+using Ghost.Entities;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
 
 namespace Ghost.Editor.Views.Controls;
 
@@ -72,80 +73,87 @@ public sealed partial class Hierarchy : UserControl
         }
     }
 
-    private void OnTreeViewDragOver(object sender, DragEventArgs e)
+    private void OnTreeViewDragItemsCompleted(TreeView sender, TreeViewDragItemsCompletedEventArgs args)
     {
-        e.AcceptedOperation = global::Windows.ApplicationModel.DataTransfer.DataPackageOperation.None;
+        var entityNode = args.Items.Count > 0 ? args.Items[0] as EntityNode : _draggedNode;
+        _draggedNode = null;
 
-        if (_draggedNode == null)
+        if (entityNode == null)
         {
             return;
         }
 
-        var targetItem = GetAncestorTreeViewItem(e.OriginalSource as DependencyObject);
-        if (targetItem == null)
+        if (args.DropResult != global::Windows.ApplicationModel.DataTransfer.DataPackageOperation.Move)
         {
+            RebuildSceneGraphFromECS();
             return;
         }
 
-        var targetNode = targetItem.DataContext as SceneGraphNode;
-        if (targetNode == null)
+        if (args.NewParentItem is not SceneGraphNode newParent)
         {
+            RebuildSceneGraphFromECS();
             return;
         }
 
-        // 1. Can't drag onto itself
-        if (_draggedNode == targetNode)
+        if (newParent == entityNode)
         {
+            RebuildSceneGraphFromECS();
             return;
         }
 
-        // 2. Can't drag onto a child of itself (cycle checking)
-        if (targetNode is EntityNode targetEntityNode)
+        var result = Error.None;
+
+        if (newParent is EntityNode parentEntityNode)
         {
-            if (HierarchyUtility.IsAncestor(_worldService.EditorWorld, targetEntityNode.Entity, _draggedNode.Entity))
+            if (HierarchyUtility.IsAncestor(_worldService.EditorWorld, parentEntityNode.Entity, entityNode.Entity))
             {
+                RebuildSceneGraphFromECS();
                 return;
             }
-        }
 
-        e.AcceptedOperation = global::Windows.ApplicationModel.DataTransfer.DataPackageOperation.Move;
-    }
-
-    private void OnTreeViewDrop(object sender, DragEventArgs e)
-    {
-        if (_draggedNode == null)
-        {
-            return;
-        }
-
-        var targetItem = GetAncestorTreeViewItem(e.OriginalSource as DependencyObject);
-        if (targetItem == null)
-        {
-            return;
-        }
-
-        var targetNode = targetItem.DataContext as SceneGraphNode;
-        if (targetNode == null)
-        {
-            return;
-        }
-
-        if (_draggedNode == targetNode)
-        {
-            return;
-        }
-
-        if (targetNode is EntityNode targetEntityNode)
-        {
-            if (!HierarchyUtility.IsAncestor(_worldService.EditorWorld, targetEntityNode.Entity, _draggedNode.Entity))
+            var currentParent = GetCurrentParent(entityNode);
+            if (currentParent == parentEntityNode.Entity)
             {
-                _worldService.SetParent(_draggedNode.Entity, targetEntityNode.Entity);
+                RebuildSceneGraphFromECS();
+                return;
+            }
+
+            result = _worldService.SetParent(entityNode.Entity, parentEntityNode.Entity);
+        }
+        else if (newParent is SceneNode sceneNode)
+        {
+            var currentParent = GetCurrentParent(entityNode);
+            var sceneChanged = _worldService.GetEntitySceneID(entityNode.Entity) != sceneNode.Scene.ID;
+            if (!currentParent.IsValid && !sceneChanged)
+            {
+                RebuildSceneGraphFromECS();
+                return;
+            }
+
+            if (currentParent.IsValid)
+            {
+                result = _worldService.RemoveParent(entityNode.Entity);
+                if (result != Error.None)
+                {
+                    RebuildSceneGraphFromECS();
+                    return;
+                }
+            }
+
+            if (sceneChanged)
+            {
+                _worldService.ChangeEntityScene(entityNode.Entity, sceneNode.Scene.ID);
             }
         }
-        else if (targetNode is SceneNode sceneNode)
+        else
         {
-            _worldService.RemoveParent(_draggedNode.Entity);
-            _worldService.ChangeEntityScene(_draggedNode.Entity, sceneNode.Scene.ID);
+            RebuildSceneGraphFromECS();
+            return;
+        }
+
+        if (result != Error.None)
+        {
+            RebuildSceneGraphFromECS();
         }
     }
 
@@ -177,17 +185,38 @@ public sealed partial class Hierarchy : UserControl
         }
     }
 
-    private TreeViewItem? GetAncestorTreeViewItem(DependencyObject? current)
+    private Entity GetCurrentParent(EntityNode entityNode)
     {
-        while (current != null)
+        if (!_worldService.EditorWorld.EntityManager.HasComponent<Ghost.Engine.Components.Hierarchy>(entityNode.Entity))
         {
-            if (current is TreeViewItem item)
-            {
-                return item;
-            }
-            current = VisualTreeHelper.GetParent(current);
+            return Entity.Invalid;
         }
-        return null;
+
+        return _worldService.EditorWorld.EntityManager.GetComponent<Ghost.Engine.Components.Hierarchy>(entityNode.Entity).parent;
+    }
+
+    private void RebuildSceneGraphFromECS()
+    {
+        var names = new Dictionary<Entity, string>();
+        foreach (var sceneNode in _worldService.RootNodes)
+        {
+            CaptureEntityNames(sceneNode, names);
+        }
+
+        _worldService.RebuildSceneGraph(names);
+    }
+
+    private static void CaptureEntityNames(SceneGraphNode node, Dictionary<Entity, string> names)
+    {
+        if (node is EntityNode entityNode)
+        {
+            names[entityNode.Entity] = entityNode.Name;
+        }
+
+        foreach (var child in node.Children)
+        {
+            CaptureEntityNames(child, names);
+        }
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)

@@ -101,11 +101,11 @@
             Grid.Row="1"
             Margin="4,2,0,2"
             AllowDrop="True"
+            CanDrag="True"
             CanDragItems="True"
             CanReorderItems="True"
+            DragItemsCompleted="OnTreeViewDragItemsCompleted"
             DragItemsStarting="OnTreeViewDragItemsStarting"
-            DragOver="OnTreeViewDragOver"
-            Drop="OnTreeViewDrop"
             ItemTemplateSelector="{StaticResource SceneGraphTemplateSelector}"
             KeyDown="OnTreeViewKeyDown"
             SelectionMode="Single" />

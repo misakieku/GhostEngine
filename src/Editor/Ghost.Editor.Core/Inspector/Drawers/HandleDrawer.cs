@@ -9,6 +9,13 @@ internal class HandleDrawer<T> : PropertyDrawer<Handle<T>> where T : unmanaged
 {
     public override FrameworkElement CreateControlT(PropertyNode<Handle<T>> model)
     {
+        static void UpdateUI(HandlePropertyNode<T> handleNode, ReferenceField field)
+        {
+            var guid = handleNode?.AssetGuid ?? Guid.Empty;
+            field.HasValue = guid != Guid.Empty;
+            field.DisplayText = guid != Guid.Empty ? $"{typeof(T).Name} ({guid.ToString().Substring(0, 8)})" : $"None ({typeof(T).Name})";
+        }
+
         var field = new ReferenceField
         {
             TypeLabel = typeof(T).Name,
@@ -16,13 +23,7 @@ internal class HandleDrawer<T> : PropertyDrawer<Handle<T>> where T : unmanaged
         };
 
         var handleNode = model as HandlePropertyNode<T>;
-
-        Action updateUI = () =>
-        {
-            var guid = handleNode?.AssetGuid ?? Guid.Empty;
-            field.HasValue = guid != Guid.Empty;
-            field.DisplayText = guid != Guid.Empty ? $"{typeof(T).Name} ({guid.ToString().Substring(0, 8)})" : $"None ({typeof(T).Name})";
-        };
+        Logger.DebugAssert(handleNode != null);
 
         field.ValidateDrop = (args) =>
         {
@@ -32,12 +33,16 @@ internal class HandleDrawer<T> : PropertyDrawer<Handle<T>> where T : unmanaged
 
         field.OnDropAccepted = async (args) =>
         {
-            if (handleNode == null) return;
+            if (handleNode == null)
+            {
+                return;
+            }
+
             var text = await args.DataView.GetTextAsync();
             if (Guid.TryParse(text, out var guid))
             {
                 handleNode.SetHandleFromAsset(guid);
-                updateUI();
+                UpdateUI(handleNode, field);
             }
         };
 
@@ -46,11 +51,11 @@ internal class HandleDrawer<T> : PropertyDrawer<Handle<T>> where T : unmanaged
             if (handleNode != null)
             {
                 handleNode.ClearHandle();
-                updateUI();
+                UpdateUI(handleNode, field);
             }
         };
 
-        updateUI();
+        UpdateUI(handleNode, field);
 
         // When ECS value changes outside of UI
         model.OnValueChanged += (val) =>
@@ -58,7 +63,7 @@ internal class HandleDrawer<T> : PropertyDrawer<Handle<T>> where T : unmanaged
             // UI Thread check usually required here, but property model events should be on UI thread or marshaled
             field.DispatcherQueue.TryEnqueue(() =>
             {
-                updateUI();
+                UpdateUI(handleNode, field);
             });
         };
 
