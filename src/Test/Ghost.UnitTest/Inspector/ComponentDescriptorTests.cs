@@ -36,22 +36,26 @@ public unsafe class ComponentDescriptorTests
         Assert.AreEqual(4, descriptor.Properties.Length, "Should have exactly 4 visible properties (HiddenFloat is ignored).");
 
         var p0 = descriptor.Properties[0];
-        Assert.AreEqual("IntValue", p0.Name);
+        Assert.AreEqual("intValue", p0.Name);
+        Assert.AreEqual("IntValue", p0.DisplayName);
         Assert.AreEqual(typeof(int), p0.FieldType);
         Assert.AreEqual(0, p0.OffsetInComponent);
 
         var p1 = descriptor.Properties[1];
+        Assert.AreEqual("doubleValue", p1.Name);
         Assert.AreEqual("Custom Name", p1.DisplayName);
         Assert.AreEqual(typeof(double), p1.FieldType);
         // Offset of double after int+float is 8 (with alignment)
-        Assert.AreEqual((int)Marshal.OffsetOf<TestComponent>("DoubleValue"), p1.OffsetInComponent);
+        Assert.AreEqual((int)Marshal.OffsetOf<TestComponent>("doubleValue"), p1.OffsetInComponent);
 
         var p2 = descriptor.Properties[2];
-        Assert.AreEqual("IsReadOnly", p2.Name);
+        Assert.AreEqual("isReadOnly", p2.Name);
+        Assert.AreEqual("IsReadOnly", p2.DisplayName);
         Assert.IsTrue(p2.IsReadOnly);
 
         var p3 = descriptor.Properties[3];
-        Assert.AreEqual("Position", p3.Name);
+        Assert.AreEqual("position", p3.Name);
+        Assert.AreEqual("Position", p3.DisplayName);
         Assert.AreEqual(typeof(float3), p3.FieldType);
         Assert.IsNull(p3.Children); // float3 is a primitive so it has no children
     }

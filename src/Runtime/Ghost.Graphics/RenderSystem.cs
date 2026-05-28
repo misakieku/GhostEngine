@@ -408,23 +408,6 @@ public class RenderSystem : IDisposable
         _resizeRequest.AddOrUpdate(swapChain, newSize, (_, _) => newSize);
     }
 
-    internal bool TryAcquireCPUFrame()
-    {
-        Logger.DebugAssert(!_disposed, "Cannot acquire CPU frame on a disposed RenderSystem.");
-
-        var requiredGpuFence = _cpuFenceValue < (ulong)_frameResources.Length ? 0 : _cpuFenceValue - (ulong)_frameResources.Length + 1;
-
-        if (requiredGpuFence > 0 && _fence.CompletedValue < requiredGpuFence)
-        {
-            return false;
-        }
-
-        var eventIndex = (int)(_cpuFenceValue % (ulong)_frameResources.Length);
-        ref var frameResource = ref _frameResources[eventIndex];
-
-        return true;
-    }
-
     public bool WaitForGPUReady(int timeOut = -1)
     {
         Logger.DebugAssert(!_disposed, "Cannot wait for GPU ready on a disposed RenderSystem.");

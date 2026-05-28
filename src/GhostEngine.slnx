@@ -46,13 +46,6 @@
     <Project Path="Runtime/Ghost.Graphics/Ghost.Graphics.csproj" />
   </Folder>
   <Folder Name="/Test/">
-    <Project Path="Test/Ghost.Entities.Test/Ghost.Entities.Test.csproj" />
-    <Project Path="Test/Ghost.Graphics.Test/Ghost.Graphics.Test.csproj">
-      <Platform Solution="*|ARM64" Project="ARM64" />
-      <Platform Solution="*|x64" Project="x64" />
-      <Platform Solution="*|x86" Project="x86" />
-      <Deploy />
-    </Project>
     <Project Path="Test/Ghost.MicroTest/Ghost.MicroTest.csproj" Id="8c8ffa4b-e1e4-46a1-9221-7b508a109edd" />
     <Project Path="Test/Ghost.Shader.Test/Ghost.Shader.Test.csproj" />
     <Project Path="Test/Ghost.TestCore/Ghost.TestCore.csproj" />

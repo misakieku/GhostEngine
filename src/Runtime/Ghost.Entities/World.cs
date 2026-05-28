@@ -153,10 +153,6 @@ public partial class World : IDisposable, IEquatable<World>
         }
     }
 
-    ~World()
-    {
-        Dispose();
-    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void PlaybackEntityCommandBuffers()
@@ -291,9 +287,12 @@ public partial class World : IDisposable, IEquatable<World>
         _entityManager.Dispose();
         _entityCommandBuffer.Dispose();
 
-        for (var i = 0; i < _threadLocalECBs.Length; i++)
+        if (_threadLocalECBs.IsCreated)
         {
-            _threadLocalECBs[i].Dispose();
+            for (var i = 0; i < _threadLocalECBs.Length; i++)
+            {
+                _threadLocalECBs[i].Dispose();
+            }
         }
 
         _componentManager.Dispose();

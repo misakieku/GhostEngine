@@ -9,8 +9,6 @@ namespace Ghost.Editor.Core.Services;
 
 public class EditorWorldService : IDisposable
 {
-    private const int DEFAULT_ENTITY_CAPACITY = 1024;
-
     public World EditorWorld
     {
         get;
@@ -27,9 +25,9 @@ public class EditorWorldService : IDisposable
     public event Action<Entity, string>? EntityNameChanged;
     public event Action? SceneGraphRebuilt;
 
-    public EditorWorldService()
+    public EditorWorldService(EngineCore engineCore)
     {
-        EditorWorld = World.Create(entityCapacity: DEFAULT_ENTITY_CAPACITY);
+        EditorWorld = World.Create(engineCore.JobScheduler, 1024);
     }
 
     public Entity CreateEntity(string name, ushort sceneID, Entity parent = default)

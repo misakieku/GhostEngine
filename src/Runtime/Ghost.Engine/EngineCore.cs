@@ -55,18 +55,15 @@ public sealed partial class EngineCore : IDisposable
         _assetManager = new AssetManager(_renderSystem.GraphicsEngine.ResourceDatabase, _renderSystem.ResourceManager, _contentProvider, _streamingProcessor, _jobScheduler);
     }
 
+    internal void Start()
+    {
+        _renderSystem.Start();
+    }
+
     public void Dispose()
     {
         _assetManager.Dispose();
         _renderSystem.Dispose();
         _jobScheduler.Dispose();
     }
-}
-
-[GenerateShaderProperty("TestShader")]
-public partial struct TestShaderProperty
-{
-    public Texture2DHandle texture;
-    public uint someValue;
-    public float3 otherValue;
 }
