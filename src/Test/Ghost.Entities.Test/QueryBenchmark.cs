@@ -13,7 +13,7 @@ internal class GameObject
     public Vector4 Position { get; set; }
 }
 
-internal struct Position : IComponent
+internal struct Position : IComponentData
 {
     public Vector4 value;
 }

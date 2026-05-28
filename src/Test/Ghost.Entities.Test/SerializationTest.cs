@@ -17,6 +17,7 @@ public class SerializationTest : ITest
 
     public unsafe void Run()
     {
+#if GHOST_EDITOR
         using var scope = AllocationManager.CreateStackScope();
         var set1 = new ComponentSet(scope.AllocationHandle, ComponentTypeID<Transform>.Value);
         var set2 = new ComponentSet(scope.AllocationHandle, ComponentTypeID<Transform>.Value, ComponentTypeID<Mesh>.Value);
@@ -131,6 +132,7 @@ public class SerializationTest : ITest
         {
             Console.WriteLine($"Entity ID: {id}, Component: {type.Name}, Data: {instance}");
         }
+#endif
     }
 
     public void Cleanup()

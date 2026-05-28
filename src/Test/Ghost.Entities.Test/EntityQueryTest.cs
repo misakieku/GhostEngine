@@ -34,7 +34,14 @@ public partial class EntityQueryTest : ITest
 
     public void Setup()
     {
-        _jobScheduler = new JobScheduler(4);
+        var desc = new JobSchedulerDesc
+        {
+            ThreadCount = 4,
+            DependencyChainCapacity = 32,
+            ThreadPriority = ThreadPriority.Normal,
+        };
+
+        _jobScheduler = new JobScheduler(in desc);
         _world = World.Create(_jobScheduler);
     }
 
@@ -104,7 +111,7 @@ public struct Transform : IEnableableComponent
     }
 }
 
-public struct Mesh : IComponent
+public struct Mesh : IComponentData
 {
     public int index;
 

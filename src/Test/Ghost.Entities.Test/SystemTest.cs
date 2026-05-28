@@ -19,7 +19,7 @@ internal class SystemTest : ITest
 
         group.SortSystems();
 
-        _world.SystemManager.InitializeAll(new TimeData());
+        _world.SystemManager.InitializeAll();
     }
 
     public void Cleanup()

@@ -27,7 +27,7 @@ namespace Ghost.FMOD.Core
             These properties take advantage of the fact that numbuffers is always zero or one
         */
 
-        public int numchannels
+        public readonly int numchannels
         {
             get
             {
@@ -43,7 +43,7 @@ namespace Ghost.FMOD.Core
             }
         }
 
-        public IntPtr buffer
+        public readonly IntPtr buffer
         {
             get
             {
@@ -307,7 +307,7 @@ namespace Ghost.FMOD.Core
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)]
         private IntPtr[] spectrum_internal;
 
-        public float[][] spectrum
+        public readonly float[][] spectrum
         {
             get
             {
@@ -332,7 +332,7 @@ namespace Ghost.FMOD.Core
             }
         }
 
-        public void getSpectrum(int channel, ref float[] buffer)
+        public readonly void getSpectrum(int channel, ref float[] buffer)
         {
             var bufferLength = Math.Min(buffer.Length, length);
             Marshal.Copy(spectrum_internal[channel], buffer, 0, bufferLength);
@@ -442,14 +442,14 @@ namespace Ghost.FMOD.Core
         public DSP_GETLISTENERATTRIBUTES_FUNC getlistenerattributes;
         public DSP_LOG_FUNC log;
         public DSP_GETUSERDATA_FUNC getuserdata;
-        public DSP_STATE_DFT_FUNCTIONS dft
+        public readonly DSP_STATE_DFT_FUNCTIONS dft
         {
             get
             {
                 return Marshal.PtrToStructure<DSP_STATE_DFT_FUNCTIONS>(dft_internal);
             }
         }
-        public DSP_STATE_PAN_FUNCTIONS pan
+        public readonly DSP_STATE_PAN_FUNCTIONS pan
         {
             get
             {
@@ -470,7 +470,7 @@ namespace Ghost.FMOD.Core
         private IntPtr functions_internal;
         public int systemobject;
 
-        public DSP_STATE_FUNCTIONS functions
+        public readonly DSP_STATE_FUNCTIONS functions
         {
             get
             {

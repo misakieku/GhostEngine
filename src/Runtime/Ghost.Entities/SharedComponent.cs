@@ -1,3 +1,5 @@
+#if false
+
 using Ghost.Core;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
@@ -235,3 +237,5 @@ internal sealed unsafe class SharedComponentStore : IDisposable
         GC.SuppressFinalize(this);
     }
 }
+
+#endif

@@ -15,7 +15,7 @@ public class EditorWorldService : IDisposable
     {
         get;
     }
-
+    
     public ObservableCollection<SceneNode> RootNodes
     {
         get;
