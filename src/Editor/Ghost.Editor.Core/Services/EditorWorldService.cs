@@ -10,6 +10,9 @@ namespace Ghost.Editor.Core.Services;
 
 public class EditorWorldService : IDisposable
 {
+    private readonly System.Collections.Concurrent.ConcurrentQueue<Action> _deferredActions = new();
+    private readonly System.Collections.Concurrent.ConcurrentQueue<Action> _pendingEvents = new();
+
     public World EditorWorld
     {
         get;
@@ -31,47 +34,71 @@ public class EditorWorldService : IDisposable
         EditorWorld = World.Create(jobScheduler, 1024);
     }
 
-    public Entity CreateEntity(string name, ushort sceneID, Entity parent = default)
+    public void Defer(Action action)
     {
-        var entity = EditorWorld.EntityManager.CreateEntity();
+        _deferredActions.Enqueue(action);
+    }
 
-        EditorWorld.EntityManager.AddComponent(entity, new Engine.Components.Hierarchy
+    public void FlushCommands()
+    {
+        while (_deferredActions.TryDequeue(out var action))
         {
-            parent = Entity.Invalid,
-            firstChild = Entity.Invalid,
-            nextSibling = Entity.Invalid
-        });
-
-        EditorWorld.EntityManager.AddSharedComponent(entity, new Engine.Components.SceneID
-        {
-            value = sceneID
-        });
-
-        if (parent.IsValid)
-        {
-            HierarchyUtility.SetParent(EditorWorld, entity, parent);
+            action();
         }
+    }
 
-        EditorWorld.AdvanceVersion();
-        EntityCreated?.Invoke(entity, name, sceneID);
-
-        if (parent.IsValid)
+    public void FirePendingEvents()
+    {
+        while (_pendingEvents.TryDequeue(out var evt))
         {
-            EntityParentChanged?.Invoke(entity, Entity.Invalid, parent);
+            evt();
         }
+    }
 
-        return entity;
+    public void CreateEntity(string name, ushort sceneID, Entity parent = default)
+    {
+        Defer(() =>
+        {
+            var entity = EditorWorld.EntityManager.CreateEntity();
+
+            EditorWorld.EntityManager.AddComponent(entity, new Engine.Components.Hierarchy
+            {
+                parent = Entity.Invalid,
+                firstChild = Entity.Invalid,
+                nextSibling = Entity.Invalid
+            });
+
+            EditorWorld.EntityManager.AddSharedComponent(entity, new Engine.Components.SceneID
+            {
+                value = sceneID
+            });
+
+            if (parent.IsValid)
+            {
+                HierarchyUtility.SetParent(EditorWorld, entity, parent);
+            }
+
+            EditorWorld.AdvanceVersion();
+            
+            _pendingEvents.Enqueue(() =>
+            {
+                EntityCreated?.Invoke(entity, name, sceneID);
+                if (parent.IsValid)
+                {
+                    EntityParentChanged?.Invoke(entity, Entity.Invalid, parent);
+                }
+            });
+        });
     }
 
     public void DestroyEntity(Entity entity)
     {
-        if (!entity.IsValid)
+        Defer(() =>
         {
-            return;
-        }
-
-        DestroyEntityRecursive(entity);
-        EditorWorld.AdvanceVersion();
+            if (!entity.IsValid) return;
+            DestroyEntityRecursive(entity);
+            EditorWorld.AdvanceVersion();
+        });
     }
 
     private void DestroyEntityRecursive(Entity entity)
@@ -91,7 +118,7 @@ public class EditorWorldService : IDisposable
 
         HierarchyUtility.RemoveParent(EditorWorld, entity);
         EditorWorld.EntityManager.DestroyEntity(entity);
-        EntityDestroyed?.Invoke(entity);
+        _pendingEvents.Enqueue(() => EntityDestroyed?.Invoke(entity));
     }
 
     private void UpdateSceneIDRecursive(Entity entity, ushort sceneID)
@@ -117,41 +144,55 @@ public class EditorWorldService : IDisposable
 
     public void ChangeEntityScene(Entity entity, ushort sceneID)
     {
-        if (!entity.IsValid)
+        Defer(() =>
         {
-            return;
-        }
+            if (!entity.IsValid) return;
 
-        UpdateSceneIDRecursive(entity, sceneID);
-        EditorWorld.AdvanceVersion();
-        EntityParentChanged?.Invoke(entity, Entity.Invalid, Entity.Invalid);
+            UpdateSceneIDRecursive(entity, sceneID);
+            EditorWorld.AdvanceVersion();
+            _pendingEvents.Enqueue(() => EntityParentChanged?.Invoke(entity, Entity.Invalid, Entity.Invalid));
+        });
     }
 
     public Error SetParent(Entity child, Entity parent)
     {
-        if (!child.IsValid)
-        {
-            return Error.InvalidArgument;
-        }
+        if (!child.IsValid) return Error.InvalidArgument;
 
-        var oldParent = Entity.Invalid;
-        if (EditorWorld.EntityManager.HasComponent<Engine.Components.Hierarchy>(child))
-        {
-            oldParent = EditorWorld.EntityManager.GetComponent<Engine.Components.Hierarchy>(child).parent;
-        }
-
-        Error err;
+        Error err = Error.None;
         if (parent.IsValid)
         {
-            err = HierarchyUtility.SetParent(EditorWorld, child, parent);
+            err = HierarchyUtility.IsValidParent(EditorWorld, child, parent);
         }
         else
         {
-            err = HierarchyUtility.RemoveParent(EditorWorld, child);
+            if (!EditorWorld.EntityManager.HasComponent<Engine.Components.Hierarchy>(child))
+            {
+                err = Error.NotFound;
+            }
         }
 
-        if (err == Error.None)
+        if (err != Error.None)
         {
+            return err;
+        }
+
+        Defer(() =>
+        {
+            var oldParent = Entity.Invalid;
+            if (EditorWorld.EntityManager.HasComponent<Engine.Components.Hierarchy>(child))
+            {
+                oldParent = EditorWorld.EntityManager.GetComponent<Engine.Components.Hierarchy>(child).parent;
+            }
+
+            if (parent.IsValid)
+            {
+                HierarchyUtility.SetParent(EditorWorld, child, parent);
+            }
+            else
+            {
+                HierarchyUtility.RemoveParent(EditorWorld, child);
+            }
+
             if (parent.IsValid && EditorWorld.EntityManager.HasComponent<Engine.Components.SceneID>(parent))
             {
                 var locRes = EditorWorld.EntityManager.GetEntityLocation(parent);
@@ -166,10 +207,10 @@ public class EditorWorldService : IDisposable
             }
 
             EditorWorld.AdvanceVersion();
-            EntityParentChanged?.Invoke(child, oldParent, parent);
-        }
+            _pendingEvents.Enqueue(() => EntityParentChanged?.Invoke(child, oldParent, parent));
+        });
 
-        return err;
+        return Error.None;
     }
 
     public Error RemoveParent(Entity child)
@@ -201,12 +242,11 @@ public class EditorWorldService : IDisposable
 
     public void RenameEntity(Entity entity, string newName)
     {
-        if (!entity.IsValid)
+        Defer(() =>
         {
-            return;
-        }
-
-        EntityNameChanged?.Invoke(entity, newName);
+            if (!entity.IsValid) return;
+            _pendingEvents.Enqueue(() => EntityNameChanged?.Invoke(entity, newName));
+        });
     }
 
     public void CreateDefaultScene()
@@ -216,13 +256,19 @@ public class EditorWorldService : IDisposable
     }
     public void RebuildSceneGraph(Dictionary<Entity, string>? initialNames = null)
     {
-        RootNodes.Clear();
-        var sceneNodes = SceneGraphBuilder.Build(EditorWorld, initialNames);
-        foreach (var node in sceneNodes)
+        Defer(() => 
         {
-            RootNodes.Add(node);
-        }
-        SceneGraphRebuilt?.Invoke();
+            var sceneNodes = SceneGraphBuilder.Build(EditorWorld, initialNames);
+            _pendingEvents.Enqueue(() => 
+            {
+                RootNodes.Clear();
+                foreach (var node in sceneNodes)
+                {
+                    RootNodes.Add(node);
+                }
+                SceneGraphRebuilt?.Invoke();
+            });
+        });
     }
 
     public void Dispose()

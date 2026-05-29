@@ -28,7 +28,7 @@ public class EntityCommandBufferTests
     public void TestECB_CreateEntity()
     {
         using var ecb = new EntityCommandBuffer(1024, AllocationHandle.Persistent);
-        ecb.CreateEntity(3);
+        ecb.CreateEntities(3);
         ecb.Playback(_world.EntityManager);
 
         var queryID = QueryBuilder.New().Build(_world);

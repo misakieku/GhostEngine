@@ -119,15 +119,20 @@ public class SceneSerializationTests
             Assert.IsGreaterThanOrEqualTo(0, ent.Components.Count, "Entity has no components"); // Can be 0 because we might have entities without components, but should not be negative
         }
 
-        var loadResult = _serializationService.LoadSceneIntoEditorWorld(data);
-        Assert.IsTrue(loadResult.IsSuccess, loadResult.Message);
+        _serializationService.LoadSceneIntoEditorWorld(data);
+        _worldService.FlushCommands();
+        _worldService.FirePendingEvents();
 
         var world = _worldService.EditorWorld;
-        scene = loadResult.Value;
 
-        using var scope = AllocationManager.CreateStackScope();
-        using var entities = SceneManager.GetSceneEntities(world, scene, scope.AllocationHandle);
-        Assert.AreEqual(3, entities.Count, $"Expected 3 entities for scene {scene.ID} but found {entities.Count}");
+        var queryID = new QueryBuilder().WithAll<SceneID>().Build(world);
+        ref var query = ref world.ComponentManager.GetEntityQueryReference(queryID);
+        var loadedCount = 0;
+        foreach (var chunk in query.GetChunkIterator())
+        {
+            loadedCount += chunk.EntityCount;
+        }
+        Assert.AreEqual(3, loadedCount, $"Expected 3 entities but found {loadedCount}");
     }
 
     [TestMethod]
@@ -148,8 +153,9 @@ public class SceneSerializationTests
         Assert.IsNotNull(data);
         Assert.HasCount(3, data.Entities);
 
-        var loadResult = _serializationService.LoadSceneIntoEditorWorld(data);
-        Assert.IsTrue(loadResult.IsSuccess, loadResult.Message);
+        _serializationService.LoadSceneIntoEditorWorld(data);
+        _worldService.FlushCommands();
+        _worldService.FirePendingEvents();
 
         var queryID = new QueryBuilder().WithAll<SceneID, Hierarchy>().Build(world);
         ref var query = ref world.ComponentManager.GetEntityQueryReference(queryID);
@@ -280,8 +286,9 @@ public class SceneSerializationTests
         var data = await SceneSerializationService.DeserializeSceneFileAsync(filePath, TestContext.CancellationToken);
         Assert.IsNotNull(data);
 
-        var loadResult = _serializationService.LoadSceneIntoEditorWorld(data, SceneLoadingType.Single);
-        Assert.IsTrue(loadResult.IsSuccess, loadResult.Message);
+        _serializationService.LoadSceneIntoEditorWorld(data, SceneLoadingType.Single);
+        _worldService.FlushCommands();
+        _worldService.FirePendingEvents();
 
         var afterCount = 0;
         query = ref world.ComponentManager.GetEntityQueryReference(queryID);
@@ -326,8 +333,9 @@ public class SceneSerializationTests
         var data = await SceneSerializationService.DeserializeSceneFileAsync(filePath, TestContext.CancellationToken);
         Assert.IsNotNull(data);
 
-        var loadResult = _serializationService.LoadSceneIntoEditorWorld(data);
-        Assert.IsTrue(loadResult.IsSuccess, loadResult.Message);
+        _serializationService.LoadSceneIntoEditorWorld(data);
+        _worldService.FlushCommands();
+        _worldService.FirePendingEvents();
 
         var world = _worldService.EditorWorld;
         var queryID = new QueryBuilder().WithAll<Hierarchy>().Build(world);
@@ -367,8 +375,9 @@ public class SceneSerializationTests
         Assert.IsNotNull(data);
         Assert.AreEqual(999u, data.FormatVersion);
 
-        var loadResult = _serializationService.LoadSceneIntoEditorWorld(data);
-        Assert.IsTrue(loadResult.IsSuccess, loadResult.Message);
+        _serializationService.LoadSceneIntoEditorWorld(data);
+        _worldService.FlushCommands();
+        _worldService.FirePendingEvents();
     }
 
     [TestMethod]
@@ -445,8 +454,9 @@ public class SceneSerializationTests
         var data = await SceneSerializationService.DeserializeSceneFileAsync(filePath, TestContext.CancellationToken);
         Assert.IsNotNull(data);
 
-        var loadResult = _serializationService.LoadSceneIntoEditorWorld(data);
-        Assert.IsTrue(loadResult.IsSuccess, loadResult.Message);
+        _serializationService.LoadSceneIntoEditorWorld(data);
+        _worldService.FlushCommands();
+        _worldService.FirePendingEvents();
 
         var queryID = new QueryBuilder().WithAll<LocalToWorld>().Build(world);
         ref var query = ref world.ComponentManager.GetEntityQueryReference(queryID);

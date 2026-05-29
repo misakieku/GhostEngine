@@ -288,146 +288,148 @@ internal class SceneSerializationService : IDisposable
 
     #region Load Scene into Editor World
 
-    public unsafe Result<Scene> LoadSceneIntoEditorWorld(SceneSaveData data, SceneLoadingType loadingType = SceneLoadingType.Single)
+    public unsafe void LoadSceneIntoEditorWorld(SceneSaveData data, SceneLoadingType loadingType = SceneLoadingType.Single)
     {
-        if (loadingType == SceneLoadingType.Single)
+        _worldService.Defer(() =>
         {
-            _worldService.EditorWorld.Reset();
-        }
-
-        var world = _worldService.EditorWorld;
-        var activeScene = SceneManager.CreateScene();
-
-        var entityCount = data.Entities.Count;
-        var forwardMap = new Dictionary<int, Entity>(entityCount);
-        if (entityCount == 0)
-        {
-            goto RebuildAndReturn;
-        }
-
-        var scope = AllocationManager.CreateStackScope();
-        var typeIds = new UnsafeArray<UnsafeList<Identifier<IComponent>>>(entityCount, scope.AllocationHandle);
-        for (var i = 0; i < typeIds.Length; i++)
-        {
-            typeIds[i] = new UnsafeList<Identifier<IComponent>>(16, scope.AllocationHandle);
-        }
-
-        try
-        {
-            for (var fileIndex = 0; fileIndex < entityCount; fileIndex++)
+            if (loadingType == SceneLoadingType.Single)
             {
-                var entityData = data.Entities[fileIndex];
-                ref var list = ref typeIds[fileIndex];
-
-                list.Add(ComponentRegistry.GetOrRegisterComponentID<SceneID>());
-
-                foreach (var (typeName, _) in entityData.Components)
-                {
-                    var compId = ComponentRegistry.GetComponentIDByName(typeName);
-                    if (compId.IsInvalid)
-                    {
-                        var type = TypeCache.GetTypes().FirstOrDefault(t => t.FullName == typeName);
-                        if (type == null)
-                        {
-                            continue;
-                        }
-
-                        compId = RegisterComponentByType(type);
-                    }
-
-                    list.Add(compId);
-                }
-
-                var componentSet = new ComponentSetView(list);
-                var entity = world.EntityManager.CreateEntity(componentSet);
-                forwardMap[fileIndex] = entity;
+                _worldService.EditorWorld.Reset();
             }
 
-            using var buffer = new MemoryBlock(1024, 16, scope.AllocationHandle);
-            for (var fileIndex = 0; fileIndex < entityCount; fileIndex++)
+            var world = _worldService.EditorWorld;
+            var activeScene = SceneManager.CreateScene();
+
+            var entityCount = data.Entities.Count;
+            var forwardMap = new Dictionary<int, Entity>(entityCount);
+            if (entityCount == 0)
             {
-                if (!forwardMap.TryGetValue(fileIndex, out var entity))
-                {
-                    continue;
-                }
-
-                world.EntityManager.SetSharedComponent(entity, new SceneID { value = activeScene.ID });
-
-                var entityData = data.Entities[fileIndex];
-
-                foreach (var (typeName, componentElement) in entityData.Components)
-                {
-                    var compId = ComponentRegistry.GetComponentIDByName(typeName);
-                    if (compId.IsInvalid)
-                    {
-                        var type = TypeCache.GetTypes().FirstOrDefault(t => t.FullName == typeName);
-                        if (type == null)
-                        {
-                            continue;
-                        }
-
-                        compId = ComponentRegistry.GetComponentIDByName(typeName);
-                    }
-
-                    if (compId.IsInvalid)
-                    {
-                        continue;
-                    }
-
-                    var componentType = ComponentRegistry.s_runtimeIDToType[compId];
-
-                    if (_syncService.TryGetNode(entity, out var node))
-                    {
-                        node.BuildComponents();
-                        var compNode = node.Components.FirstOrDefault(c => c.ComponentType == componentType);
-                        if (compNode != null)
-                        {
-                            compNode.Deserialize(componentElement, s_jsonOptions, (boxed) =>
-                            {
-                                RemapLocalFieldsToEntity(boxed, componentType, forwardMap);
-                            });
-                            continue;
-                        }
-                    }
-
-                    // Fallback to direct deserialization
-                    var boxedLegacy = componentElement.Deserialize(componentType, s_jsonOptions);
-                    if (boxedLegacy == null)
-                    {
-                        continue;
-                    }
-
-                    RemapLocalFieldsToEntity(boxedLegacy, componentType, forwardMap);
-
-                    Marshal.StructureToPtr(boxedLegacy, (nint)buffer.GetUnsafePtr(), false);
-
-                    world.EntityManager.SetComponent(entity, compId, buffer.GetUnsafePtr());
-                }
+                goto RebuildAndReturn;
             }
-        }
-        finally
-        {
-            scope.Dispose();
 
+            var scope = AllocationManager.CreateStackScope();
+            var typeIds = new UnsafeArray<UnsafeList<Identifier<IComponent>>>(entityCount, scope.AllocationHandle);
             for (var i = 0; i < typeIds.Length; i++)
             {
-                typeIds[i].Dispose();
+                typeIds[i] = new UnsafeList<Identifier<IComponent>>(16, scope.AllocationHandle);
             }
 
-            typeIds.Dispose();
-        }
-
-    RebuildAndReturn:
-        var initialNames = new Dictionary<Entity, string>();
-        for (var fileIndex = 0; fileIndex < entityCount; fileIndex++)
-        {
-            if (forwardMap.TryGetValue(fileIndex, out var entity))
+            try
             {
-                initialNames[entity] = data.Entities[fileIndex].Name;
+                for (var fileIndex = 0; fileIndex < entityCount; fileIndex++)
+                {
+                    var entityData = data.Entities[fileIndex];
+                    ref var list = ref typeIds[fileIndex];
+
+                    list.Add(ComponentRegistry.GetOrRegisterComponentID<SceneID>());
+
+                    foreach (var (typeName, _) in entityData.Components)
+                    {
+                        var compId = ComponentRegistry.GetComponentIDByName(typeName);
+                        if (compId.IsInvalid)
+                        {
+                            var type = TypeCache.GetTypes().FirstOrDefault(t => t.FullName == typeName);
+                            if (type == null)
+                            {
+                                continue;
+                            }
+
+                            compId = RegisterComponentByType(type);
+                        }
+
+                        list.Add(compId);
+                    }
+
+                    var componentSet = new ComponentSetView(list);
+                    var entity = world.EntityManager.CreateEntity(componentSet);
+                    forwardMap[fileIndex] = entity;
+                }
+
+                using var buffer = new MemoryBlock(1024, 16, scope.AllocationHandle);
+                for (var fileIndex = 0; fileIndex < entityCount; fileIndex++)
+                {
+                    if (!forwardMap.TryGetValue(fileIndex, out var entity))
+                    {
+                        continue;
+                    }
+
+                    world.EntityManager.SetSharedComponent(entity, new SceneID { value = activeScene.ID });
+
+                    var entityData = data.Entities[fileIndex];
+
+                    foreach (var (typeName, componentElement) in entityData.Components)
+                    {
+                        var compId = ComponentRegistry.GetComponentIDByName(typeName);
+                        if (compId.IsInvalid)
+                        {
+                            var type = TypeCache.GetTypes().FirstOrDefault(t => t.FullName == typeName);
+                            if (type == null)
+                            {
+                                continue;
+                            }
+
+                            compId = ComponentRegistry.GetComponentIDByName(typeName);
+                        }
+
+                        if (compId.IsInvalid)
+                        {
+                            continue;
+                        }
+
+                        var componentType = ComponentRegistry.s_runtimeIDToType[compId];
+
+                        if (_syncService.TryGetNode(entity, out var node))
+                        {
+                            node.BuildComponents();
+                            var compNode = node.Components.FirstOrDefault(c => c.ComponentType == componentType);
+                            if (compNode != null)
+                            {
+                                compNode.Deserialize(componentElement, s_jsonOptions, (boxed) =>
+                                {
+                                    RemapLocalFieldsToEntity(boxed, componentType, forwardMap);
+                                });
+                                continue;
+                            }
+                        }
+
+                        // Fallback to direct deserialization
+                        var boxedLegacy = componentElement.Deserialize(componentType, s_jsonOptions);
+                        if (boxedLegacy == null)
+                        {
+                            continue;
+                        }
+
+                        RemapLocalFieldsToEntity(boxedLegacy, componentType, forwardMap);
+
+                        Marshal.StructureToPtr(boxedLegacy, (nint)buffer.GetUnsafePtr(), false);
+
+                        world.EntityManager.SetComponent(entity, compId, buffer.GetUnsafePtr());
+                    }
+                }
             }
-        }
-        _worldService.RebuildSceneGraph(initialNames);
-        return activeScene;
+            finally
+            {
+                scope.Dispose();
+
+                for (var i = 0; i < typeIds.Length; i++)
+                {
+                    typeIds[i].Dispose();
+                }
+
+                typeIds.Dispose();
+            }
+
+        RebuildAndReturn:
+            var initialNames = new Dictionary<Entity, string>();
+            for (var fileIndex = 0; fileIndex < entityCount; fileIndex++)
+            {
+                if (forwardMap.TryGetValue(fileIndex, out var entity))
+                {
+                    initialNames[entity] = data.Entities[fileIndex].Name;
+                }
+            }
+            _worldService.RebuildSceneGraph(initialNames);
+        });
     }
 
     private static Identifier<IComponent> RegisterComponentByType(Type type)

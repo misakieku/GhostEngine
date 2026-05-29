@@ -141,6 +141,10 @@ public static class SceneGraphBuilder
 
         ref var archetype = ref world.ComponentManager.GetArchetypeReference(location.Value.archetypeID);
         var hierarchyID = ComponentTypeID<Hierarchy>.Value;
+        if (!archetype.HasComponent(hierarchyID))
+        {
+            return false;
+        }
         var pData = archetype.GetComponentData(location.Value.chunkIndex, location.Value.rowIndex, hierarchyID);
         if (pData == null)
         {

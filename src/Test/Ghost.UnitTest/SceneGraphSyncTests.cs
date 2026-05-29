@@ -52,7 +52,11 @@ public class SceneGraphSyncTests
             { child, "ChildEntity" }
         };
 
+        world.AdvanceVersion();
+        
         _worldService.RebuildSceneGraph(names);
+        _worldService.FlushCommands();
+        _worldService.FirePendingEvents();
 
         Assert.AreEqual(1, _worldService.RootNodes.Count);
         var sceneNode = _worldService.RootNodes[0];
@@ -74,12 +78,15 @@ public class SceneGraphSyncTests
     {
         var scene = SceneManager.CreateScene();
 
-        var entity = _worldService.CreateEntity("NewEntity", scene.ID);
+        _worldService.CreateEntity("NewEntity", scene.ID);
+        _worldService.FlushCommands();
+        _worldService.FirePendingEvents();
 
         Assert.AreEqual(1, _worldService.RootNodes.Count);
         var sceneNode = _worldService.RootNodes[0];
         Assert.AreEqual(1, sceneNode.Children.Count);
         var entityNode = (EntityNode)sceneNode.Children[0];
+        var entity = entityNode.Entity;
         Assert.AreEqual("NewEntity", entityNode.Name);
         Assert.AreEqual(entity, entityNode.Entity);
     }
@@ -89,11 +96,17 @@ public class SceneGraphSyncTests
     {
         var scene = SceneManager.CreateScene();
 
-        var entity = _worldService.CreateEntity("NewEntity", scene.ID);
+        _worldService.CreateEntity("NewEntity", scene.ID);
+        _worldService.FlushCommands();
+        _worldService.FirePendingEvents();
+        
         var sceneNode = _worldService.RootNodes[0];
+        var entity = ((EntityNode)sceneNode.Children[0]).Entity;
         Assert.AreEqual(1, sceneNode.Children.Count);
 
         _worldService.DestroyEntity(entity);
+        _worldService.FlushCommands();
+        _worldService.FirePendingEvents();
 
         Assert.AreEqual(0, sceneNode.Children.Count);
     }
@@ -103,13 +116,21 @@ public class SceneGraphSyncTests
     {
         var scene = SceneManager.CreateScene();
 
-        var parent = _worldService.CreateEntity("Parent", scene.ID);
-        var child = _worldService.CreateEntity("Child", scene.ID);
+        _worldService.CreateEntity("Parent", scene.ID);
+        _worldService.CreateEntity("Child", scene.ID);
+        _worldService.FlushCommands();
+        _worldService.FirePendingEvents();
 
         var sceneNode = _worldService.RootNodes[0];
         Assert.AreEqual(2, sceneNode.Children.Count);
+        
+        var parent = ((EntityNode)sceneNode.Children[0]).Entity;
+        var child = ((EntityNode)sceneNode.Children[1]).Entity;
 
         var err = _worldService.SetParent(child, parent);
+        _worldService.FlushCommands();
+        _worldService.FirePendingEvents();
+        
         Assert.AreEqual(Error.None, err);
 
         Assert.AreEqual(1, sceneNode.Children.Count);
@@ -127,13 +148,19 @@ public class SceneGraphSyncTests
     {
         var scene = SceneManager.CreateScene();
 
-        var entity = _worldService.CreateEntity("OriginalName", scene.ID);
+        _worldService.CreateEntity("OriginalName", scene.ID);
+        _worldService.FlushCommands();
+        _worldService.FirePendingEvents();
+        
         var sceneNode = _worldService.RootNodes[0];
         var entityNode = (EntityNode)sceneNode.Children[0];
+        var entity = entityNode.Entity;
 
         Assert.AreEqual("OriginalName", entityNode.Name);
 
         _worldService.RenameEntity(entity, "NewName");
+        _worldService.FlushCommands();
+        _worldService.FirePendingEvents();
 
         Assert.AreEqual("NewName", entityNode.Name);
     }

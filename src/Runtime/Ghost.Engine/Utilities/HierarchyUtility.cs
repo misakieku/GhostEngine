@@ -6,36 +6,24 @@ namespace Ghost.Engine;
 
 public static class HierarchyUtility
 {
+    public static Error IsValidParent(World world, Entity child, Entity parent)
+    {
+        if (!child.IsValid) return Error.InvalidArgument;
+        if (!parent.IsValid) return Error.InvalidArgument;
+        if (child == parent) return Error.InvalidArgument;
+        if (!world.EntityManager.HasComponent<Components.Hierarchy>(child)) return Error.NotFound;
+        if (!world.EntityManager.HasComponent<Components.Hierarchy>(parent)) return Error.NotFound;
+        if (IsAncestor(world, parent, child)) return Error.InvalidArgument;
+
+        return Error.None;
+    }
+
     public static Error SetParent(World world, Entity child, Entity parent)
     {
-        if (!child.IsValid)
+        var validError = IsValidParent(world, child, parent);
+        if (validError != Error.None)
         {
-            return Error.InvalidArgument;
-        }
-
-        if (!parent.IsValid)
-        {
-            return Error.InvalidArgument;
-        }
-
-        if (child == parent)
-        {
-            return Error.InvalidArgument;
-        }
-
-        if (!world.EntityManager.HasComponent<Components.Hierarchy>(child))
-        {
-            return Error.NotFound;
-        }
-
-        if (!world.EntityManager.HasComponent<Components.Hierarchy>(parent))
-        {
-            return Error.NotFound;
-        }
-
-        if (IsAncestor(world, parent, child))
-        {
-            return Error.InvalidArgument;
+            return validError;
         }
 
         ref var childHierarchy = ref world.EntityManager.GetComponent<Components.Hierarchy>(child);

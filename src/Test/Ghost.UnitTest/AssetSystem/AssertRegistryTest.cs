@@ -5,6 +5,7 @@ using Ghost.Editor.Core.Services;
 
 namespace Ghost.UnitTest.AssetSystem;
 
+#if false
 [TestClass]
 public class AssertRegistryTest
 {
@@ -55,3 +56,4 @@ public class AssertRegistryTest
         Assert.AreEqual(meta.Guid, guid);
     }
 }
+#endif

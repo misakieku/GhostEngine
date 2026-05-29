@@ -1,19 +1,20 @@
 using Ghost.Editor.Core.Contracts;
-using Microsoft.UI.Xaml.Media;
-using System.Diagnostics;
 
 namespace Ghost.Editor.Core.Services;
 
 /// <summary>
-/// Syncs the inspector model from ECS data on every render frame.
-/// Uses CompositionTarget.Rendering with a 60Hz cap.
+/// Syncs the inspector model from ECS data on every editor tick (Phase 3).
 /// </summary>
 public sealed class InspectorSyncService : IDisposable
 {
+    private readonly EditorTickEngine _tickEngine;
     private ISyncableInspectorModel? _activeModel;
-    private long _lastSyncTick;
-    private static readonly long s_minSyncInterval = Stopwatch.Frequency / 60;
     private bool _isStarted;
+
+    public InspectorSyncService(EditorTickEngine tickEngine)
+    {
+        _tickEngine = tickEngine;
+    }
 
     public void Start()
     {
@@ -22,7 +23,7 @@ public sealed class InspectorSyncService : IDisposable
             return;
         }
 
-        CompositionTarget.Rendering += OnRendering;
+        _tickEngine.OnInspectorSync += OnInspectorSync;
         _isStarted = true;
     }
 
@@ -36,16 +37,8 @@ public sealed class InspectorSyncService : IDisposable
         _activeModel = null;
     }
 
-    private void OnRendering(object? sender, object e)
+    private void OnInspectorSync()
     {
-        var now = Stopwatch.GetTimestamp();
-        if (now - _lastSyncTick < s_minSyncInterval)
-        {
-            return;
-        }
-
-        _lastSyncTick = now;
-
         if (_activeModel == null)
         {
             return;
@@ -58,7 +51,7 @@ public sealed class InspectorSyncService : IDisposable
     {
         if (_isStarted)
         {
-            CompositionTarget.Rendering -= OnRendering;
+            _tickEngine.OnInspectorSync -= OnInspectorSync;
             _isStarted = false;
         }
     }

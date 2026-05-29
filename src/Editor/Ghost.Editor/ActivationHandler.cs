@@ -1,4 +1,5 @@
 using Ghost.Editor.Core.Contracts;
+using Ghost.Editor.Core.Services;
 using Ghost.Editor.Models;
 using Ghost.Engine;
 using Misaki.HighPerformance.LowLevel.Buffer;
@@ -68,6 +69,9 @@ internal static class ActivationHandler
 
         var assetRegistry = App.GetService<IAssetRegistry>();
         var engineCore = App.GetService<EngineCore>();
+        var editorTick = App.GetService<EditorTickEngine>();
+
+        editorTick.Start();
 
         assetRegistry.OnAssetImported += (sender, e) =>
         {

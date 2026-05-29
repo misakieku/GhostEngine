@@ -66,26 +66,29 @@ public class ComponentNode
 
     public void SetFieldValue<T>(PropertyDescriptor field, T value) where T : unmanaged
     {
-        unsafe
+        EditorApplication.GetService<Services.EditorWorldService>().Defer(() =>
         {
-            if (Descriptor.IsShared)
+            unsafe
             {
-                var ptr = _world.EntityManager.GetSharedComponent(_entity, Descriptor.ComponentId);
-                if (ptr != null)
+                if (Descriptor.IsShared)
                 {
-                    using var scope = Misaki.HighPerformance.LowLevel.Buffer.AllocationManager.CreateStackScope();
-                    using var buffer = new Misaki.HighPerformance.LowLevel.Buffer.MemoryBlock((nuint)Descriptor.Size, 16, scope.AllocationHandle);
-                    System.Runtime.CompilerServices.Unsafe.CopyBlock(buffer.GetUnsafePtr(), ptr, (uint)Descriptor.Size);
-                    field.Write<T>(buffer.GetUnsafePtr(), value);
-                    _world.EntityManager.SetSharedComponent(_entity, Descriptor.ComponentId, buffer.GetUnsafePtr());
+                    var ptr = _world.EntityManager.GetSharedComponent(_entity, Descriptor.ComponentId);
+                    if (ptr != null)
+                    {
+                        using var scope = Misaki.HighPerformance.LowLevel.Buffer.AllocationManager.CreateStackScope();
+                        using var buffer = new Misaki.HighPerformance.LowLevel.Buffer.MemoryBlock((nuint)Descriptor.Size, 16, scope.AllocationHandle);
+                        System.Runtime.CompilerServices.Unsafe.CopyBlock(buffer.GetUnsafePtr(), ptr, (uint)Descriptor.Size);
+                        field.Write<T>(buffer.GetUnsafePtr(), value);
+                        _world.EntityManager.SetSharedComponent(_entity, Descriptor.ComponentId, buffer.GetUnsafePtr());
+                    }
+                }
+                else
+                {
+                    var pComponent = GetComponentPointer();
+                    field.Write<T>(pComponent, value);
                 }
             }
-            else
-            {
-                var pComponent = GetComponentPointer();
-                field.Write<T>(pComponent, value);
-            }
-        }
+        });
     }
 
     // --- Serialization ---
@@ -133,17 +136,20 @@ public class ComponentNode
                     prop.DeserializeOverride(element, boxed);
                 }
 
-                if (Descriptor.IsShared)
+                EditorApplication.GetService<Services.EditorWorldService>().Defer(() =>
                 {
-                    using var scope = Misaki.HighPerformance.LowLevel.Buffer.AllocationManager.CreateStackScope();
-                    using var buffer = new Misaki.HighPerformance.LowLevel.Buffer.MemoryBlock((nuint)Descriptor.Size, 16, scope.AllocationHandle);
-                    System.Runtime.InteropServices.Marshal.StructureToPtr(boxed, (nint)buffer.GetUnsafePtr(), false);
-                    _world.EntityManager.SetSharedComponent(_entity, Descriptor.ComponentId, buffer.GetUnsafePtr());
-                }
-                else
-                {
-                    System.Runtime.InteropServices.Marshal.StructureToPtr(boxed, (nint)GetComponentPointer(), false);
-                }
+                    if (Descriptor.IsShared)
+                    {
+                        using var scope = Misaki.HighPerformance.LowLevel.Buffer.AllocationManager.CreateStackScope();
+                        using var buffer = new Misaki.HighPerformance.LowLevel.Buffer.MemoryBlock((nuint)Descriptor.Size, 16, scope.AllocationHandle);
+                        System.Runtime.InteropServices.Marshal.StructureToPtr(boxed, (nint)buffer.GetUnsafePtr(), false);
+                        _world.EntityManager.SetSharedComponent(_entity, Descriptor.ComponentId, buffer.GetUnsafePtr());
+                    }
+                    else
+                    {
+                        System.Runtime.InteropServices.Marshal.StructureToPtr(boxed, (nint)GetComponentPointer(), false);
+                    }
+                });
             }
         }
     }

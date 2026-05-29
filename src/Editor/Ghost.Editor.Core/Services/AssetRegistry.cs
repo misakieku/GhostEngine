@@ -190,7 +190,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
         }
         catch (Exception ex)
         {
-            Logger.Error(ex);
+            Logger.Warning($"FileSystemEvent exception: {ex.Message}");
         }
     }
 
